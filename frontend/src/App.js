@@ -1463,6 +1463,8 @@ function PartnerChat({ partner }) {
 export default function App() {
   const [mode, setMode] = useState("admin");
   const [nav, setNav] = useState("overview");
+  const [adminUser, setAdminUser] = useState("claudio"); // "claudio" | "antonella"
+  const [showNuovoPartner, setShowNuovoPartner] = useState(false);
   const [agents, setAgents] = useState([]);
   const [partners, setPartners] = useState([]);
   const [alerts, setAlerts] = useState([]);
