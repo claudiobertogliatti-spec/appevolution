@@ -2301,8 +2301,9 @@ async def record_crm_sale(
     marta = MartaCRMBridge(db) if ads_service_available else None
     if not marta:
         # Fallback direct insert
+        sale_id = f"sale_{datetime.now().timestamp()}"
         sale_doc = {
-            "id": f"sale_{datetime.now().timestamp()}",
+            "id": sale_id,
             "partner_id": partner_id,
             "amount": amount,
             "utm_source": utm_source,
@@ -2312,7 +2313,14 @@ async def record_crm_sale(
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.crm_sales.insert_one(sale_doc)
-        return sale_doc
+        # Return without _id
+        return {
+            "id": sale_id,
+            "partner_id": partner_id,
+            "amount": amount,
+            "utm_source": utm_source,
+            "created_at": sale_doc["created_at"]
+        }
     
     return await marta.record_sale(partner_id, amount, utm_source, utm_campaign, customer_email)
 
