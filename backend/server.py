@@ -4248,13 +4248,16 @@ Rispondi SOLO con il JSON, senza testo aggiuntivo."""
                 }
             }
         
+        # Generate unique session_id for this request
+        course_session_id = f"course-builder-{request.partner_id}-{uuid.uuid4().hex[:8]}"
+        
         chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY
+            api_key=EMERGENT_LLM_KEY,
+            session_id=course_session_id,
+            system_message="Sei STEFANIA, esperta di Instructional Design per Evolution PRO. Genera strutture di corsi professionali in formato JSON."
         ).with_model("anthropic", "claude-sonnet-4-5-20250929")
         
-        response = await chat.send_async(
-            message=UserMessage(text=prompt)
-        )
+        response = await chat.send_message(UserMessage(text=prompt))
         
         # Parse JSON from response
         import re
