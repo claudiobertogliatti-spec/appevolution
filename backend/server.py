@@ -4312,15 +4312,14 @@ Massimo 3-4 frasi, linguaggio diretto e amichevole."""
             }
         
         chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            model="claude-sonnet-4-20250514"
-        )
+            api_key=EMERGENT_LLM_KEY
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
         
         response = await chat.send_async(
-            message=UserMessage(content=prompt)
+            message=UserMessage(text=prompt)
         )
         
-        return {"response": response.content}
+        return {"response": response.text}
         
     except Exception as e:
         logger.error(f"Error in course builder chat: {e}")
