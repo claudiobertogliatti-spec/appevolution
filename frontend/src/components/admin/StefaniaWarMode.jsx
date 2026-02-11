@@ -4,7 +4,8 @@ import {
   DollarSign, Users, Eye, Copy, ExternalLink, RefreshCw,
   Loader2, CheckCircle, XCircle, Link2, Settings, Sparkles,
   BarChart3, PieChart, Activity, Bell, ArrowRight, ArrowLeftRight,
-  Linkedin, Facebook, Video, FileText, MessageSquare, ShieldCheck
+  Linkedin, Facebook, Video, FileText, MessageSquare, ShieldCheck,
+  Key, Plug, CreditCard, Receipt, Database
 } from "lucide-react";
 import axios from "axios";
 
@@ -43,7 +44,7 @@ export function StefaniaWarMode({ partners }) {
   const [dashboard, setDashboard] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("overview"); // overview, meta, linkedin, analysis
+  const [activeTab, setActiveTab] = useState("overview"); // overview, meta, linkedin, analysis, api, roi
   const [selectedPartner, setSelectedPartner] = useState(null);
   
   // Meta Hook Gallery
