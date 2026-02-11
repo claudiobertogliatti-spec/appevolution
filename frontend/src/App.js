@@ -1717,11 +1717,17 @@ export default function App() {
           ) : (
             <>
               {nav === "corso" && <PartnerCourse partner={demoPartner} modules={modules} />}
+              {nav === "masterclass" && <MasterclassBuilder partner={demoPartner} />}
               {nav === "files" && <PartnerFileManager partner={demoPartner} />}
+              {nav === "brandkit" && <BrandKitEditor partner={demoPartner} />}
               {nav === "calendario" && <CalendarioEditoriale partner={demoPartner} />}
-              {nav === "documenti" && <WizardPosizionamento partner={demoPartner} onComplete={(canvas) => { setNav("corso"); }} />}
+              {nav === "documenti" && <WizardPosizionamento partner={demoPartner} onComplete={(canvas) => { setNav("masterclass"); }} />}
               {nav === "risorse" && <PartnerResources />}
-              {nav === "supporto" && <PartnerChat partner={demoPartner} />}
+              {nav === "supporto" && (
+                getTutorForPhase(demoPartner?.phase) === "STEFANIA" 
+                  ? <StefaniaChat partner={demoPartner} />
+                  : <PartnerChat partner={demoPartner} />
+              )}
             </>
           )}
         </div>
