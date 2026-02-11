@@ -1524,6 +1524,8 @@ export default function App() {
     { id: "andrea", label: "Editing", icon: Film },
     { id: "metriche", label: "Post-Lancio", icon: BarChart3 },
     { id: "gaia", label: "GAIA", icon: Zap },
+    { id: "copyfactory", label: "Copy Factory", icon: Edit3 },
+    { id: "warmode", label: "War Mode", icon: Target },
     { id: "compliance", label: "LUCA", icon: Shield },
     { id: "alert", label: "Alert", icon: AlertTriangle, badge: alerts.length }
   ];
@@ -1532,6 +1534,7 @@ export default function App() {
     { id: "overview", label: "Overview", icon: LayoutDashboard },
     { id: "partner", label: "Partner", icon: Users },
     { id: "andrea", label: "Editing Feed", icon: Film },
+    { id: "copyfactory", label: "Copy Factory", icon: Edit3 },
     { id: "compliance", label: "LUCA", icon: Shield },
     { id: "alert", label: "Alert", icon: AlertTriangle, badge: alerts.length }
   ];
