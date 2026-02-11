@@ -1565,6 +1565,8 @@ export default function App() {
     metriche: "Metriche Post-Lancio",
     gaia: "GAIA — Funnel Deployer",
     compliance: "LUCA — Compliance Dashboard",
+    copyfactory: "STEFANIA — Copy Factory (Admin Review)",
+    warmode: "STEFANIA — War Mode (Ads & Traffic)",
     alert: "Alert & Escalation",
     corso: "Videocorso Operativo",
     masterclass: "Masterclass Trasformativa — STEFANIA",
