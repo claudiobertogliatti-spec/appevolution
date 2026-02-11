@@ -3,8 +3,8 @@
 ## Overview
 **Nome**: Evolution PRO OS Platform  
 **Data creazione**: 11 Feb 2026  
-**Versione**: 4.0  
-**Stato**: Aggiornamento Completo ✅
+**Versione**: 5.0 (Masterclass & Tutoring Update)  
+**Stato**: ✅ Implementazione Completa
 
 ## Problem Statement
 Creare un'applicazione full-stack proprietaria per Evolution PRO - una piattaforma di gestione partner per la creazione di videocorsi. L'applicazione elimina dipendenze da tool esterni come Descript e Google Drive, internalizzando processi di video editing e file management.
@@ -17,93 +17,65 @@ Creare un'applicazione full-stack proprietaria per Evolution PRO - una piattafor
 ## Technical Stack
 - **Frontend**: React 19, Tailwind CSS, Lucide Icons
 - **Backend**: FastAPI (Python), MongoDB (Motor)
-- **AI Integration**: Claude Sonnet via Emergent LLM Key, OpenAI TTS & Whisper
-- **Video Processing**: FFmpeg, OpenAI Whisper
+- **AI Integration**: Claude Sonnet via Emergent LLM Key
+- **Voice**: OpenAI TTS & Whisper
+- **Video Processing**: FFmpeg
 - **YouTube Integration**: YouTube Data API v3 (OAuth2)
-- **Design**: Dark theme (Navy #1a2332, Yellow #F5C518)
 
 ---
 
 ## What's Been Implemented
 
-### V1.0 (11 Feb 2026) ✅
-- MVP con dashboard Admin e Partner
-- Chatbot VALENTINA con Claude AI
-- Persistenza MongoDB
-
-### V2.0 (11 Feb 2026) ✅
+### V1.0 - V3.0 (Completati)
+- Dashboard Admin/Partner, Chatbot VALENTINA
 - Pipeline video ANDREA (Whisper + FFmpeg)
-- Native File Manager (eliminato Google Drive)
-- LUCA Compliance Dashboard
+- Native File Manager, LUCA Compliance
+- YouTube Data API, GAIA Funnel Deployer, OpenAI TTS
 
-### V3.0 (11 Feb 2026) ✅
-- YouTube Data API v3 integration (OAuth2 completato)
-- GAIA Funnel Deployer (Systeme.io templates)
-- OpenAI TTS per voce avatar intro/outro
+### V4.0 (Completato)
+- Sistema Notifiche, Dual Admin Switcher
+- Metriche Post-Lancio, Feed Video per Antonella
+- Nuovo Partner Form, Calendario Editoriale, Wizard Posizionamento
 
-### V4.0 (11 Feb 2026) ✅
-**Nuove Funzionalità dal JSX Aggiornato:**
+### V5.0 - Masterclass & Tutoring (11 Feb 2026) ✅
 
-#### Admin Features
-- **Sistema Notifiche (NotificationBell)**
-  - Pannello dropdown con notifiche categorizzate
-  - Badge conteggio non lette
-  - Tipi: modulo completato, escalation, video pronto, file caricato
-  - "Segna tutte come lette"
+#### 1. Modulo Masterclass Trasformativa
+- **Script Builder a 6 Blocchi** con UI dedicata:
+  - 🎯 Hook - Distruzione dello Status Quo
+  - ⭐ Grande Promessa - Risultato Specifico & Desiderabile
+  - 🔷 Il Metodo - Framework Proprietario in 3 Pilastri
+  - 👥 Case History - Prova Sociale con Numeri Reali
+  - 🎁 Offerta - Stack di Valore Irresistibile
+  - ⚡ CTA - Call to Action Urgente
+- Progress bar e hint strategici per ogni blocco
+- Pulsanti "Salva Bozza" e "Invia a STEFANIA"
 
-- **Dual Admin Switcher (Claudio/Antonella)**
-  - Profili admin separati con dashboard personalizzate
-  - Claudio: Overview, Agenti AI, Partner, Editing, Post-Lancio, GAIA, LUCA, Alert
-  - Antonella: Overview, Partner, Editing Feed, LUCA, Alert
-  - Avatar e colori distinti
+#### 2. Tutor Dinamico STEFANIA
+- **Switch automatico** da VALENTINA a STEFANIA quando partner entra in F3/F4
+- **Chat AI specializzata** in copywriting persuasivo
+- **Feedback correttivo** su contenuto troppo "accademico"
+- **Alert Admin** se script non sufficientemente persuasivo
+- **Review automatica** dello script completo
 
-- **Metriche Post-Lancio**
-  - Solo per partner F8+ (lanciati)
-  - KPI: Studenti iscritti, Completamento corso, NPS Score, Revenue
-  - Grafico iscrizioni settimanali
-  - NPS Breakdown (Promotori/Passivi/Detrattori)
-  - Completamento per modulo (Funnel studenti)
-  - Feedback più citati
-  - Systeme.io Live Status (nuovi iscritti, conversion rate, views funnel)
+#### 3. Brand Kit Editor
+- Color picker per colori brand (primario + secondario)
+- Upload logo URL
+- Tagline/Slogan
+- Info contatto (email, website)
+- Social media (Instagram, LinkedIn, YouTube)
+- **Variabili per Systeme.io**: `{{Brand_Color}}`, `{{Logo_URL}}`, `{{Nome_Partner}}`, `{{Tagline}}`
 
-- **Feed Video ANDREA (per Antonella)**
-  - Feed video in attesa di editing
-  - Stati: nuovo, in lavorazione, in attesa link
-  - "Prendi in carico" funzionalità
-  - Alert "X video in attesa"
+#### 4. GAIA Templates Repository
+- **Masterclass Transformation Template** (opt-in, watch page, email sequence)
+- Lead Gen - Freebie Download
+- Webinar Evergreen Funnel
+- Sales Page PRO - Long Form
+- Brand variables pre-configurate
 
-- **Nuovo Partner Form (Onboarding)**
-  - Form multi-step per creare partner
-  - Campi: nome, email, nicchia, investimento, password Systeme
-  - Preview email benvenuto
-  - Generazione credenziali automatica
-  - "Copia per Telegram"
-
-#### Partner Features
-- **Calendario Editoriale 30 Giorni**
-  - Piano contenuti pre-lancio strutturato
-  - 4 settimane (Awareness, Autorità, Lead Gen, Conversione)
-  - Tipi contenuti: YouTube, Instagram, TikTok, Blog/Email
-  - Accordion espandibile per settimana
-  - Legenda colorata per piattaforma
-
-- **Wizard Posizionamento (Documenti)**
-  - 9 domande guidate per Canvas Posizionamento
-  - Progress bar e dot navigation
-  - Hints con esempi pratici
-  - Generazione Canvas finale
-  - Copia/Salva output
-
-#### Refactoring Frontend
-- Componenti estratti in file separati:
-  - `/components/common/NotificationBell.jsx`
-  - `/components/common/AdminSwitcher.jsx`
-  - `/components/admin/MetrichePostLancio.jsx`
-  - `/components/admin/FeedVideoNuovi.jsx`
-  - `/components/admin/NuovoPartnerForm.jsx`
-  - `/components/partner/CalendarioEditoriale.jsx`
-  - `/components/partner/WizardPosizionamento.jsx`
-- Costanti in `/data/constants.js`
+#### 5. Knowledge Base
+- VALENTINA e STEFANIA citano moduli specifici
+- Guidano l'utente agli strumenti interni della Dashboard
+- Eliminati riferimenti a Drive e Telegram
 
 ---
 
@@ -112,101 +84,102 @@ Creare un'applicazione full-stack proprietaria per Evolution PRO - una piattafor
 ```
 /app
 ├── backend/
-│   ├── server.py             # Main FastAPI app
+│   ├── server.py             # Main FastAPI + Stefania endpoints
 │   ├── video_processor.py    # Video editing (FFmpeg, Whisper)
 │   ├── file_storage.py       # Local file management
 │   ├── youtube_uploader.py   # YouTube API & OAuth
 │   ├── tts_generator.py      # OpenAI TTS
-│   ├── requirements.txt
 │   └── .env
 ├── frontend/
 │   ├── src/
-│   │   ├── App.js            # Main React component
-│   │   ├── App.css           # Styles
+│   │   ├── App.js
 │   │   ├── components/
 │   │   │   ├── common/       # NotificationBell, AdminSwitcher
 │   │   │   ├── admin/        # MetrichePostLancio, FeedVideoNuovi, NuovoPartnerForm
-│   │   │   └── partner/      # CalendarioEditoriale, WizardPosizionamento
-│   │   └── data/
-│   │       └── constants.js  # Static data, colors, mock metrics
+│   │   │   └── partner/      # MasterclassBuilder, StefaniaChat, BrandKitEditor,
+│   │   │                     # CalendarioEditoriale, WizardPosizionamento
+│   │   └── data/constants.js
 │   └── package.json
-├── storage/                  # Local file storage
-├── secrets/                  # YouTube OAuth credentials
-└── memory/
-    └── PRD.md
+├── storage/
+├── secrets/
+└── memory/PRD.md
 ```
 
 ---
 
-## Key API Endpoints
+## Key API Endpoints (Nuovi)
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/control` | GET | Dashboard data |
-| `/api/agents` | GET | List AI agents |
-| `/api/partners` | GET/POST | Partner CRUD |
-| `/api/alerts` | GET/DELETE | Alert management |
-| `/api/chat` | POST | VALENTINA chatbot |
-| `/api/files/upload` | POST | File upload |
-| `/api/videos/process` | POST | Start video processing |
-| `/api/videos/jobs` | GET | Video jobs queue |
-| `/api/youtube/upload/{job_id}` | POST | Upload to YouTube |
-| `/api/compliance/pending` | GET | Pending documents |
-| `/api/gaia/templates` | GET/POST | Systeme.io templates |
-| `/api/tts/generate` | POST | Generate TTS audio |
+| `/api/stefania/chat` | POST | Chat con tutor STEFANIA |
+| `/api/stefania/review-script` | POST | Review automatica script |
+| `/api/masterclass/script/{id}` | GET/POST | CRUD script Masterclass |
+| `/api/masterclass/script/{id}/submit` | POST | Invia script per review |
+| `/api/brandkit/{id}` | GET/POST | CRUD Brand Kit partner |
+| `/api/notifications` | GET | Lista notifiche |
+| `/api/notifications/{id}/read` | POST | Segna notifica letta |
+
+---
+
+## Tutor Dinamico - Logica
+
+```
+Partner Phase:
+├── F0, F1, F2 → VALENTINA (Supporto generale)
+├── F3, F4     → STEFANIA (Copy & Marketing Tutor)
+└── F5 - F10  → VALENTINA (Supporto generale)
+```
+
+STEFANIA si attiva automaticamente per le fasi **Masterclass** e **Struttura Corso**.
 
 ---
 
 ## 3rd Party Integrations
 
-| Service | Purpose | Auth Method |
-|---------|---------|-------------|
-| Anthropic Claude | VALENTINA chatbot | Emergent LLM Key |
+| Service | Purpose | Auth |
+|---------|---------|------|
+| Anthropic Claude | VALENTINA + STEFANIA chatbot | Emergent LLM Key |
 | OpenAI TTS | Voice generation | Emergent LLM Key |
-| OpenAI Whisper | Video transcription | Local installation |
-| YouTube Data API v3 | Video uploads | OAuth2 (authorized) |
-| FFmpeg | Video editing | Local installation |
+| OpenAI Whisper | Video transcription | Local |
+| YouTube API v3 | Video uploads | OAuth2 |
+| FFmpeg | Video editing | Local |
 
 ---
 
 ## Prioritized Backlog
 
 ### P0 - Completato ✅
-- [x] MVP funzionante
-- [x] ANDREA Video Pipeline
-- [x] Native File Manager
-- [x] YouTube Integration
-- [x] GAIA Funnel Deployer
-- [x] OpenAI TTS
-- [x] Sistema Notifiche
-- [x] Dual Admin Switcher
-- [x] Metriche Post-Lancio
-- [x] Feed Video per Antonella
-- [x] Nuovo Partner Form
-- [x] Calendario Editoriale
-- [x] Wizard Posizionamento
+- [x] Tutte le funzionalità V1.0 - V5.0
 
 ### P1 - Alta Priorità
 - [ ] Autenticazione JWT (Admin vs Partner login)
-- [ ] Notifiche Telegram per alert e video pronti
-- [ ] API backend per Wizard Posizionamento
+- [ ] Notifiche Telegram per alert critici
+- [ ] Deploy su custom domain `app.evolution-pro.it`
 
 ### P2 - Media Priorità
-- [ ] Systeme.io API reale (attualmente mock data)
+- [ ] Systeme.io API reale (attualmente template links)
+- [ ] Pipeline ANDREA integrata nel tab Produzione
 - [ ] Custom Intro/Outro video templates
-- [ ] Course Builder AI con STEFANIA
-- [ ] Cloudflare R2 migration per storage scalabile
 
 ### P3 - Bassa Priorità
-- [ ] Dashboard analytics avanzate
+- [ ] Course Builder AI avanzato
 - [ ] Mobile responsive optimization
-- [ ] Multi-tenant support
+
+---
+
+## Testing Status
+- Build frontend: ✅ Successo
+- Build backend: ✅ Successo
+- API Stefania Chat: ✅ Funzionante
+- API Masterclass Script: ✅ Funzionante
+- API Notifications: ✅ Funzionante
+- UI Masterclass Builder: ✅ Funzionante
+- UI Brand Kit Editor: ✅ Funzionante
+- Tutor dinamico: ✅ Funzionante
 
 ---
 
 ## Next Action Items
-
-1. **Autenticazione**: Implementare JWT login per Admin e Partner
-2. **Telegram Bot**: Notifiche real-time per alert critici
-3. **Systeme.io API**: Sostituire mock data con integrazione reale
-4. **Testing**: Eseguire test completo di tutte le funzionalità
+1. Implementare JWT authentication
+2. Integrare Telegram Bot per notifiche
+3. Collegare domain `app.evolution-pro.it`
