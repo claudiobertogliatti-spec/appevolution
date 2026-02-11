@@ -2181,6 +2181,243 @@ async def update_campaign_ltv(campaign_id: str, ltv_avg: float, qualified_leads:
     return {"success": True, "campaign_id": campaign_id, "ltv_avg": ltv_avg}
 
 # =============================================================================
+# STEFANIA REAL-TIME API INTEGRATION (Meta + LinkedIn)
+# =============================================================================
+
+# Import the ads integration module
+try:
+    from ads_api_integration import UnifiedAdsService, MartaCRMBridge
+    ads_service_available = True
+except ImportError:
+    ads_service_available = False
+    logging.warning("ads_api_integration module not available")
+
+@api_router.post("/stefania/api/store-credentials")
+async def store_partner_api_credentials(
+    partner_id: str = Form(...),
+    meta_access_token: str = Form(None),
+    meta_ad_account_id: str = Form(None),
+    linkedin_access_token: str = Form(None),
+    linkedin_ad_account_urn: str = Form(None)
+):
+    """
+    Store Meta/LinkedIn API credentials for a partner
+    Required for real-time metrics fetching
+    """
+    if not ads_service_available:
+        raise HTTPException(status_code=503, detail="Ads integration service not available")
+    
+    service = UnifiedAdsService(db)
+    result = await service.store_partner_api_credentials(
+        partner_id,
+        meta_access_token,
+        meta_ad_account_id,
+        linkedin_access_token,
+        linkedin_ad_account_urn
+    )
+    return result
+
+@api_router.get("/stefania/api/credentials/{partner_id}")
+async def get_partner_credentials_status(partner_id: str):
+    """Check which API credentials are configured for a partner"""
+    creds = await db.partner_api_credentials.find_one({"partner_id": partner_id}, {"_id": 0})
+    
+    if not creds:
+        return {
+            "partner_id": partner_id,
+            "meta_configured": False,
+            "linkedin_configured": False
+        }
+    
+    return {
+        "partner_id": partner_id,
+        "meta_configured": bool(creds.get("meta_access_token") and creds.get("meta_ad_account_id")),
+        "linkedin_configured": bool(creds.get("linkedin_access_token") and creds.get("linkedin_ad_account_urn")),
+        "updated_at": creds.get("updated_at")
+    }
+
+@api_router.post("/stefania/api/sync-metrics/{partner_id}")
+async def sync_partner_metrics_realtime(
+    partner_id: str,
+    cpl_threshold_meta: float = 15.0,
+    cpl_threshold_linkedin: float = 25.0
+):
+    """
+    Sync real-time metrics from Meta/LinkedIn APIs
+    Triggers Smart-Optimization alerts if CPL exceeds threshold
+    """
+    if not ads_service_available:
+        raise HTTPException(status_code=503, detail="Ads integration service not available")
+    
+    service = UnifiedAdsService(db)
+    result = await service.sync_and_check_alerts(
+        partner_id,
+        cpl_threshold_meta,
+        cpl_threshold_linkedin
+    )
+    
+    # If alerts were triggered, create notifications
+    if result["alerts_triggered"] > 0:
+        partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+        for alert in result["alerts"]:
+            notification = Notification(
+                type="escalation",
+                icon="⚠️",
+                title=f"SMART-OPTIMIZATION Alert - {alert['platform'].upper()}",
+                body=alert["message"],
+                time=datetime.now().strftime("%H:%M"),
+                partner=partner["name"] if partner else partner_id,
+                action="war_mode"
+            )
+            await db.notifications.insert_one(notification.model_dump())
+    
+    return result
+
+@api_router.get("/stefania/api/roi/{partner_id}")
+async def get_partner_roi_realtime(partner_id: str, days: int = 30):
+    """
+    Calculate real ROI using CRM data from MARTA
+    Shows actual revenue vs ad spend
+    """
+    if not ads_service_available:
+        raise HTTPException(status_code=503, detail="Ads integration service not available")
+    
+    service = UnifiedAdsService(db)
+    roi_data = await service.calculate_partner_roi(partner_id, days)
+    return roi_data
+
+@api_router.post("/stefania/api/crm/sale")
+async def record_crm_sale(
+    partner_id: str = Form(...),
+    amount: float = Form(...),
+    utm_source: str = Form(None),
+    utm_campaign: str = Form(None),
+    customer_email: str = Form(None)
+):
+    """
+    Record a sale in MARTA CRM for ROI attribution
+    Links ad spend to actual revenue
+    """
+    marta = MartaCRMBridge(db) if ads_service_available else None
+    if not marta:
+        # Fallback direct insert
+        sale_doc = {
+            "id": f"sale_{datetime.now().timestamp()}",
+            "partner_id": partner_id,
+            "amount": amount,
+            "utm_source": utm_source,
+            "utm_campaign": utm_campaign,
+            "customer_email": customer_email,
+            "sale_date": datetime.now(timezone.utc),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.crm_sales.insert_one(sale_doc)
+        return sale_doc
+    
+    return await marta.record_sale(partner_id, amount, utm_source, utm_campaign, customer_email)
+
+@api_router.get("/stefania/api/crm/sales/{partner_id}")
+async def get_partner_crm_sales(partner_id: str, days: int = 30):
+    """Get CRM sales data for a partner"""
+    end_date = datetime.now(timezone.utc)
+    start_date = end_date - timedelta(days=days)
+    
+    sales = await db.crm_sales.find({
+        "partner_id": partner_id,
+        "sale_date": {"$gte": start_date, "$lte": end_date}
+    }, {"_id": 0}).to_list(500)
+    
+    total_revenue = sum(s.get("amount", 0) for s in sales)
+    
+    # Group by UTM source
+    by_source = {}
+    for sale in sales:
+        source = sale.get("utm_source", "direct")
+        if source not in by_source:
+            by_source[source] = {"revenue": 0, "count": 0}
+        by_source[source]["revenue"] += sale.get("amount", 0)
+        by_source[source]["count"] += 1
+    
+    return {
+        "partner_id": partner_id,
+        "total_sales": len(sales),
+        "total_revenue": total_revenue,
+        "by_source": by_source,
+        "sales": sales[:50]  # Return latest 50
+    }
+
+@api_router.post("/stefania/api/smart-optimization/check")
+async def run_smart_optimization_check(
+    partner_id: str = Form(...),
+    cpl_meta: float = Form(0),
+    cpl_linkedin: float = Form(0),
+    threshold_meta: float = Form(15.0),
+    threshold_linkedin: float = Form(25.0)
+):
+    """
+    Manual Smart-Optimization check
+    Compare current CPL against Business Plan thresholds
+    """
+    alerts = []
+    
+    # Check Meta CPL
+    if cpl_meta > 0 and cpl_meta > threshold_meta:
+        severity = "critical" if cpl_meta > threshold_meta * 1.5 else "warning"
+        alert = {
+            "id": f"alert_meta_{datetime.now().timestamp()}",
+            "partner_id": partner_id,
+            "platform": "meta",
+            "alert_type": "cpl_exceeded",
+            "severity": severity,
+            "current_value": cpl_meta,
+            "threshold_value": threshold_meta,
+            "message": f"CPL Meta di €{cpl_meta:.2f} supera la soglia Business Plan di €{threshold_meta:.2f}",
+            "suggested_action": "Pausa campagne con performance bassa. Testa nuovi hook dalla Hook Gallery. Considera shift budget a LinkedIn se la qualità lead è superiore.",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.performance_alerts.insert_one(alert)
+        alerts.append(alert)
+    
+    # Check LinkedIn CPL
+    if cpl_linkedin > 0 and cpl_linkedin > threshold_linkedin:
+        severity = "critical" if cpl_linkedin > threshold_linkedin * 1.5 else "warning"
+        alert = {
+            "id": f"alert_linkedin_{datetime.now().timestamp()}",
+            "partner_id": partner_id,
+            "platform": "linkedin",
+            "alert_type": "cpl_exceeded",
+            "severity": severity,
+            "current_value": cpl_linkedin,
+            "threshold_value": threshold_linkedin,
+            "message": f"CPL LinkedIn di €{cpl_linkedin:.2f} supera la soglia Business Plan di €{threshold_linkedin:.2f}",
+            "suggested_action": "Verifica targeting ABM. Analizza qualità dei lead. Considera ottimizzazione lead form o cambio creatività.",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.performance_alerts.insert_one(alert)
+        alerts.append(alert)
+    
+    # Create notification if alerts triggered
+    if alerts:
+        partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+        notification = Notification(
+            type="escalation",
+            icon="📉",
+            title="STEFANIA Smart-Optimization Alert",
+            body=f"{len(alerts)} alert CPL per {partner['name'] if partner else partner_id}",
+            time=datetime.now().strftime("%H:%M"),
+            partner=partner["name"] if partner else partner_id,
+            action="war_mode"
+        )
+        await db.notifications.insert_one(notification.model_dump())
+    
+    return {
+        "partner_id": partner_id,
+        "alerts_triggered": len(alerts),
+        "alerts": alerts,
+        "status": "critical" if any(a["severity"] == "critical" for a in alerts) else "warning" if alerts else "ok"
+    }
+
+# =============================================================================
 # ROUTES - ANDREA (Video Production Support)
 # =============================================================================
 
