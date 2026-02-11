@@ -1,0 +1,163 @@
+import { useState, useEffect, useRef } from "react";
+import { Send, Sparkles, User, RefreshCw, Video, Mic } from "lucide-react";
+import axios from "axios";
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+// ANDREA's welcome message
+const ANDREA_WELCOME = `🎬 Ciao [PARTNER_NAME], sono **Andrea**! Stefania mi ha passato il tuo script: è potente, ora dobbiamo dargli vita.
+
+La mia missione è assicurarmi che la tua voce e la tua immagine siano all'altezza della trasformazione che offri. Non preoccuparti se non sei un attore: **registreremo un pezzetto alla volta**. Se sbagli, non fermarti, farò io il taglio chirurgico dei silenzi e degli errori.
+
+**Facciamo un test:** registra 30 secondi del tuo "Gancio" (Blocco 1) e caricalo qui. Verificherò subito se l'audio e la luce sono perfetti per procedere con tutto il corso!
+
+Prima però, completa la **Checklist Pre-Registrazione** qui a sinistra. ✅`;
+
+export function AndreaChat({ partner, currentBlock, recordingStatus }) {
+  const [messages, setMessages] = useState([
+    { role: "assistant", content: ANDREA_WELCOME.replace("[PARTNER_NAME]", partner?.name || "Partner") }
+  ]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sessionId] = useState(() => `andrea_${partner?.id}_${Date.now()}`);
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const sendMessage = async () => {
+    if (!input.trim() || loading) return;
+    
+    const userMsg = { role: "user", content: input };
+    setMessages(prev => [...prev, userMsg]);
+    setInput("");
+    setLoading(true);
+
+    try {
+      const res = await axios.post(`${API}/andrea/chat`, {
+        session_id: sessionId,
+        message: input,
+        partner_id: partner?.id,
+        partner_name: partner?.name,
+        partner_niche: partner?.niche,
+        current_block: currentBlock,
+        recording_status: recordingStatus
+      });
+
+      setMessages(prev => [...prev, { role: "assistant", content: res.data.response }]);
+    } catch (e) {
+      setMessages(prev => [...prev, { 
+        role: "assistant", 
+        content: "Mi dispiace, c'è stato un errore. Riprova tra qualche secondo." 
+      }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatMessage = (content) => {
+    return content
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/\n/g, '<br/>');
+  };
+
+  return (
+    <div className="h-full flex flex-col bg-[#1a2332] rounded-xl border border-white/10 overflow-hidden" data-testid="andrea-chat">
+      {/* Header */}
+      <div className="p-4 border-b border-white/10 bg-gradient-to-r from-blue-500/20 to-cyan-500/20">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-lg">
+            AN
+          </div>
+          <div>
+            <div className="text-sm font-extrabold text-white flex items-center gap-2">
+              ANDREA
+              <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">
+                Video Production Coach
+              </span>
+            </div>
+            <div className="text-xs text-white/40">Surgical Cut & Recording Support</div>
+          </div>
+          {recordingStatus && (
+            <div className="ml-auto bg-white/5 border border-white/10 rounded-lg px-3 py-1.5">
+              <span className="text-[10px] font-bold text-white/40 uppercase">Fase:</span>
+              <span className={`text-xs font-bold ml-2
+                ${recordingStatus === 'setup' ? 'text-yellow-400' : ''}
+                ${recordingStatus === 'recording' ? 'text-red-400' : ''}
+                ${recordingStatus === 'review' ? 'text-green-400' : ''}`}>
+                {recordingStatus === 'setup' && '⚙️ Setup'}
+                {recordingStatus === 'recording' && '🔴 Registrazione'}
+                {recordingStatus === 'review' && '✅ Review'}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.map((msg, i) => (
+          <div key={i} className={`flex items-start gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+              ${msg.role === "user" 
+                ? "bg-[#F5C518] text-black" 
+                : "bg-gradient-to-br from-blue-500 to-cyan-500 text-white"}`}
+            >
+              {msg.role === "user" ? <User className="w-4 h-4" /> : <Video className="w-4 h-4" />}
+            </div>
+            <div className={`max-w-[80%] rounded-xl px-4 py-3 
+              ${msg.role === "user" 
+                ? "bg-[#F5C518] text-black" 
+                : "bg-white/5 border border-white/10 text-white/80"}`}
+            >
+              <div 
+                className="text-sm leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: formatMessage(msg.content) }}
+              />
+            </div>
+          </div>
+        ))}
+        
+        {loading && (
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+              <RefreshCw className="w-4 h-4 text-white animate-spin" />
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+              <div className="flex gap-1">
+                <span className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input */}
+      <div className="p-4 border-t border-white/10 bg-white/5">
+        <div className="flex gap-2">
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()}
+            placeholder="Chiedi ad Andrea supporto tecnico o coaching..."
+            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-blue-500/50 transition-colors"
+            disabled={loading}
+          />
+          <button
+            onClick={sendMessage}
+            disabled={loading || !input.trim()}
+            className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl px-4 py-3 font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Send className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
