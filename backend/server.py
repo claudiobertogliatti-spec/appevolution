@@ -326,6 +326,58 @@ PHASE_LABELS = {
     "F8": "Lancio", "F9": "Ottimizzazione", "F10": "Scalabilità"
 }
 
+# Initial GAIA Systeme.io Templates
+INITIAL_GAIA_TEMPLATES = [
+    {
+        "id": "masterclass-transformation",
+        "name": "Masterclass Transformation Template",
+        "category": "masterclass",
+        "share_link": "https://systeme.io/share/masterclass-transformation",
+        "description": "Template completo per Masterclass Trasformativa: Opt-in page, Watch page, sequenza email post-visione. Include tutti i 6 blocchi strategici pre-configurati.",
+        "brand_variables": ["Brand_Color", "Logo_URL", "Nome_Partner", "Tagline", "Hook_Text", "Grande_Promessa", "Metodo_Nome", "CTA_Button"],
+        "includes": ["opt_in_page", "watch_page", "email_sequence", "thank_you_page"],
+        "created_at": "2026-02-11T00:00:00Z"
+    },
+    {
+        "id": "lead-gen-basic",
+        "name": "Lead Gen — Freebie Download",
+        "category": "lead_gen",
+        "share_link": "https://systeme.io/share/lead-gen-basic",
+        "description": "Funnel semplice per acquisire lead con un freebie scaricabile. Include landing page e sequenza email di nurturing.",
+        "brand_variables": ["Brand_Color", "Logo_URL", "Nome_Partner", "Freebie_Name"],
+        "includes": ["landing_page", "thank_you_page", "email_sequence"],
+        "created_at": "2026-02-11T00:00:00Z"
+    },
+    {
+        "id": "webinar-evergreen",
+        "name": "Webinar Evergreen Funnel",
+        "category": "webinar",
+        "share_link": "https://systeme.io/share/webinar-evergreen",
+        "description": "Funnel per webinar evergreen con replay automatico. Include registrazione, reminder, replay page e offerta.",
+        "brand_variables": ["Brand_Color", "Logo_URL", "Nome_Partner", "Webinar_Title", "Webinar_Date"],
+        "includes": ["registration_page", "thank_you_page", "reminder_emails", "replay_page", "offer_page"],
+        "created_at": "2026-02-11T00:00:00Z"
+    },
+    {
+        "id": "sales-page-pro",
+        "name": "Sales Page PRO — Long Form",
+        "category": "vendita",
+        "share_link": "https://systeme.io/share/sales-page-pro",
+        "description": "Sales page lunga e persuasiva con tutti gli elementi: hook, storia, benefici, testimonial, FAQ, garanzia, CTA multiple.",
+        "brand_variables": ["Brand_Color", "Logo_URL", "Nome_Partner", "Product_Name", "Price", "Testimonials"],
+        "includes": ["sales_page", "checkout_page", "upsell_page", "thank_you_page"],
+        "created_at": "2026-02-11T00:00:00Z"
+    }
+]
+
+# Initial Notifications for demo
+INITIAL_NOTIFICATIONS = [
+    {"id": "n1", "type": "modulo", "icon": "✅", "title": "Modulo Completato", "body": "Marco Ferretti ha completato M4 – Editing & Branding", "time": "12 min fa", "partner": "Marco Ferretti", "read": False, "action": "partner"},
+    {"id": "n2", "type": "escalation", "icon": "🚨", "title": "Escalation VALENTINA", "body": "Sara Lombardi non risponde da 72h – richiede intervento Antonella", "time": "2h fa", "partner": "Sara Lombardi", "read": False, "action": "alert"},
+    {"id": "n3", "type": "video", "icon": "🎬", "title": "Video Pronto", "body": "ANDREA ha completato editing M3L2 per Luca Marini", "time": "3h fa", "partner": "Luca Marini", "read": True, "action": "andrea"},
+    {"id": "n4", "type": "file", "icon": "📁", "title": "Nuovo File Caricato", "body": "Antonio Bianchi ha caricato Scheda Posizionamento.pdf", "time": "5h fa", "partner": "Antonio Bianchi", "read": True, "action": "partner"},
+]
+
 # =============================================================================
 # STARTUP - SEED DATA
 # =============================================================================
@@ -351,6 +403,16 @@ async def seed_database():
     if await db.modules.count_documents({}) == 0:
         await db.modules.insert_many(MODULES_DATA)
         logging.info("Seeded modules collection")
+    
+    # Seed GAIA templates
+    if await db.systeme_templates.count_documents({}) == 0:
+        await db.systeme_templates.insert_many(INITIAL_GAIA_TEMPLATES)
+        logging.info("Seeded GAIA templates collection")
+    
+    # Seed notifications
+    if await db.notifications.count_documents({}) == 0:
+        await db.notifications.insert_many(INITIAL_NOTIFICATIONS)
+        logging.info("Seeded notifications collection")
 
 # =============================================================================
 # ROUTES - AGENTS
