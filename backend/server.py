@@ -254,6 +254,77 @@ class AdminEditRequest(BaseModel):
     admin_notes: Optional[str] = None
 
 # =============================================================================
+# STEFANIA WAR MODE - ADS & TRAFFIC MODELS
+# =============================================================================
+
+class AdsCampaign(BaseModel):
+    """Model for tracking ad campaigns"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    partner_id: str
+    partner_name: str
+    platform: str  # meta, google, tiktok
+    campaign_name: str
+    status: str = "active"  # active, paused, stopped
+    hooks: List[str] = Field(default_factory=list)  # Generated hooks
+    budget_daily: float = 0
+    spend_total: float = 0
+    leads: int = 0
+    cpl: float = 0  # Cost Per Lead
+    roas: float = 0  # Return on Ad Spend
+    cpl_max_threshold: float = 15.0  # Default €15 max CPL
+    utm_params: Dict[str, str] = Field(default_factory=dict)
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class AdsPerformanceMetrics(BaseModel):
+    """Performance metrics from MARTA"""
+    model_config = ConfigDict(extra="ignore")
+    partner_id: str
+    date: str
+    impressions: int = 0
+    clicks: int = 0
+    ctr: float = 0  # Click Through Rate
+    spend: float = 0
+    leads: int = 0
+    cpl: float = 0
+    conversions: int = 0
+    revenue: float = 0
+    roas: float = 0
+
+class AdHookRequest(BaseModel):
+    """Request to generate ad hooks from Copy Core"""
+    partner_id: str
+    partner_name: str
+    partner_niche: str
+    platform: str = "meta"  # meta, google, tiktok
+
+class UTMGeneratorRequest(BaseModel):
+    """Request to generate UTM tracked links"""
+    partner_id: str
+    partner_name: str
+    destination_url: str
+    campaign_name: str
+    medium: str = "paid"  # paid, organic, email
+    source: str = "meta"  # meta, google, tiktok, email
+    content: Optional[str] = None  # Ad variation identifier
+
+class PerformanceAlert(BaseModel):
+    """Alert for low performance campaigns"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    partner_id: str
+    campaign_id: str
+    alert_type: str  # cpl_exceeded, low_roas, budget_depleted
+    severity: str = "warning"  # warning, critical
+    current_value: float
+    threshold_value: float
+    message: str
+    suggested_action: str
+    resolved: bool = False
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+# =============================================================================
 # ANDREA - VIDEO PRODUCTION MODELS
 # =============================================================================
 
