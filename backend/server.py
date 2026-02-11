@@ -1,4 +1,5 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks
+from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -10,6 +11,10 @@ from typing import List, Optional
 import uuid
 from datetime import datetime, timezone
 from emergentintegrations.llm.chat import LlmChat, UserMessage
+
+# Import custom modules
+from video_processor import video_processor, VideoProcessor
+from file_storage import file_storage, FileStorageManager
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -23,7 +28,7 @@ db = client[os.environ['DB_NAME']]
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
 
 # Create the main app
-app = FastAPI()
+app = FastAPI(title="Evolution PRO OS", version="2.0")
 api_router = APIRouter(prefix="/api")
 
 # =============================================================================
@@ -68,7 +73,7 @@ class ChatMessage(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     session_id: str
-    role: str  # user, assistant
+    role: str
     content: str
     timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
@@ -80,10 +85,43 @@ class ChatRequest(BaseModel):
     partner_phase: str
     modules_done: int
 
-class Module(BaseModel):
-    num: int
-    title: str
-    lessons: List[dict]
+class VideoJob(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    partner_id: str
+    partner_name: str
+    input_file: str
+    status: str = "queued"  # queued, processing, completed, approved, failed
+    output_file: Optional[str] = None
+    processing_result: Optional[dict] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    youtube_url: Optional[str] = None
+
+class VideoProcessRequest(BaseModel):
+    partner_id: str
+    partner_name: str
+    input_file: str
+    auto_trim: bool = True
+    remove_fillers: bool = True
+    apply_speed: bool = True
+    normalize: bool = True
+    add_branding: bool = True
+
+class StoredFile(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    file_id: str
+    original_name: str
+    stored_name: str
+    file_type: str  # video, document
+    partner_id: str
+    status: str  # raw, processed, approved, pending, verified
+    internal_url: str
+    size: int
+    uploaded_at: str
+    verified_by: Optional[str] = None
+    verified_at: Optional[str] = None
 
 # =============================================================================
 # SEED DATA
@@ -270,6 +308,18 @@ async def delete_alert(alert_id: str):
         raise HTTPException(status_code=404, detail="Alert not found")
     return {"status": "deleted"}
 
+@api_router.post("/alerts")
+async def create_alert(agent: str, type: str, msg: str, partner: str):
+    alert = Alert(
+        agent=agent,
+        type=type,
+        msg=msg,
+        partner=partner,
+        time="adesso"
+    )
+    await db.alerts.insert_one(alert.model_dump())
+    return alert
+
 # =============================================================================
 # ROUTES - MODULES
 # =============================================================================
@@ -336,7 +386,6 @@ async def chat_with_valentina(request: ChatRequest):
         for msg in history:
             if msg["role"] == "user":
                 await chat.send_message(UserMessage(text=msg["content"]))
-            # Assistant messages are already in the context from previous calls
         
         # Save user message
         user_msg = ChatMessage(
@@ -377,6 +426,293 @@ async def clear_chat_history(session_id: str):
     return {"status": "cleared"}
 
 # =============================================================================
+# ROUTES - FILE STORAGE (Native File Manager)
+# =============================================================================
+
+@api_router.post("/files/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    partner_id: str = Form(...),
+    category: str = Form(default="document")
+):
+    """Upload a file (video or document) for a partner"""
+    result = await file_storage.upload_file(file, partner_id, category)
+    
+    if result["success"]:
+        # Save file metadata to database
+        file_record = StoredFile(
+            file_id=result["file_id"],
+            original_name=result["original_name"],
+            stored_name=result["stored_name"],
+            file_type=result["file_type"],
+            partner_id=partner_id,
+            status=result["status"],
+            internal_url=result["internal_url"],
+            size=result["size"],
+            uploaded_at=result["uploaded_at"]
+        )
+        await db.files.insert_one(file_record.model_dump())
+        
+        # Update agent status (ANDREA for videos, LUCA for documents)
+        if result["file_type"] == "video":
+            await db.agents.update_one({"id": "ANDREA"}, {"$set": {"status": "ACTIVE"}})
+        else:
+            await db.agents.update_one({"id": "LUCA"}, {"$set": {"status": "ACTIVE"}})
+    
+    return result
+
+@api_router.get("/files")
+async def list_files(
+    category: str = "all",
+    status: str = "all",
+    partner_id: Optional[str] = None
+):
+    """List files in storage"""
+    return file_storage.list_files(category, status, partner_id)
+
+@api_router.get("/files/{path:path}")
+async def serve_file(path: str):
+    """Serve a file from storage"""
+    file_path = file_storage.get_file_path(path)
+    if not file_path:
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path)
+
+@api_router.get("/files/storage/stats")
+async def get_storage_stats():
+    """Get storage usage statistics"""
+    return file_storage.get_storage_stats()
+
+@api_router.post("/files/documents/{filename}/verify")
+async def verify_document(filename: str):
+    """Mark a document as verified (LUCA compliance check)"""
+    result = file_storage.verify_document(filename)
+    if result["success"]:
+        # Update database
+        await db.files.update_one(
+            {"stored_name": filename},
+            {"$set": {
+                "status": "verified",
+                "verified_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    return result
+
+@api_router.delete("/files/documents/{filename}/reject")
+async def reject_document(filename: str, reason: str = ""):
+    """Reject and delete a document"""
+    result = file_storage.reject_document(filename, reason)
+    if result["success"]:
+        await db.files.delete_one({"stored_name": filename})
+    return result
+
+# =============================================================================
+# ROUTES - VIDEO PROCESSING (ANDREA Pipeline)
+# =============================================================================
+
+@api_router.post("/videos/process")
+async def start_video_processing(request: VideoProcessRequest, background_tasks: BackgroundTasks):
+    """Start video processing job"""
+    # Create job record
+    job = VideoJob(
+        partner_id=request.partner_id,
+        partner_name=request.partner_name,
+        input_file=request.input_file,
+        status="queued"
+    )
+    
+    await db.video_jobs.insert_one(job.model_dump())
+    
+    # Update ANDREA status
+    await db.agents.update_one({"id": "ANDREA"}, {"$set": {"status": "ACTIVE"}})
+    
+    # Add processing to background tasks
+    background_tasks.add_task(
+        process_video_background,
+        job.id,
+        request.input_file,
+        request.partner_name,
+        request.auto_trim,
+        request.remove_fillers,
+        request.apply_speed,
+        request.normalize,
+        request.add_branding
+    )
+    
+    return {"job_id": job.id, "status": "queued", "message": "Video processing started"}
+
+async def process_video_background(
+    job_id: str, input_file: str, partner_name: str,
+    auto_trim: bool, remove_fillers: bool, apply_speed: bool,
+    normalize: bool, add_branding: bool
+):
+    """Background task for video processing"""
+    try:
+        # Update status to processing
+        await db.video_jobs.update_one(
+            {"id": job_id},
+            {"$set": {"status": "processing", "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        
+        # Process video
+        result = await video_processor.process_video(
+            job_id, input_file, partner_name,
+            auto_trim, remove_fillers, apply_speed,
+            normalize, add_branding
+        )
+        
+        # Update job with result
+        if result["success"]:
+            await db.video_jobs.update_one(
+                {"id": job_id},
+                {"$set": {
+                    "status": "completed",
+                    "output_file": result["output_file"],
+                    "processing_result": result,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+        else:
+            await db.video_jobs.update_one(
+                {"id": job_id},
+                {"$set": {
+                    "status": "failed",
+                    "processing_result": result,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            
+            # Create alert for failed processing
+            alert = Alert(
+                agent="ANDREA",
+                type="BLOCCO",
+                msg=f"Video processing failed: {result.get('error', 'Unknown error')}",
+                partner=partner_name,
+                time="adesso"
+            )
+            await db.alerts.insert_one(alert.model_dump())
+        
+    except Exception as e:
+        logging.exception(f"Video processing background task failed: {e}")
+        await db.video_jobs.update_one(
+            {"id": job_id},
+            {"$set": {
+                "status": "failed",
+                "processing_result": {"error": str(e)},
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+
+@api_router.get("/videos/jobs")
+async def list_video_jobs(status: Optional[str] = None, partner_id: Optional[str] = None):
+    """List video processing jobs"""
+    query = {}
+    if status:
+        query["status"] = status
+    if partner_id:
+        query["partner_id"] = partner_id
+    
+    jobs = await db.video_jobs.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return jobs
+
+@api_router.get("/videos/jobs/{job_id}")
+async def get_video_job(job_id: str):
+    """Get video job details"""
+    job = await db.video_jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job
+
+@api_router.post("/videos/jobs/{job_id}/approve")
+async def approve_video(job_id: str):
+    """Approve a processed video"""
+    job = await db.video_jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    if job["status"] != "completed":
+        raise HTTPException(status_code=400, detail="Video must be in 'completed' status to approve")
+    
+    # Move to approved folder
+    result = video_processor.approve_video(job_id)
+    
+    if result["success"]:
+        # Generate YouTube-ready URL placeholder (actual upload requires YouTube API)
+        youtube_placeholder = f"https://youtube.com/upload?title={job['partner_name']}_Evolution_PRO"
+        
+        await db.video_jobs.update_one(
+            {"id": job_id},
+            {"$set": {
+                "status": "approved",
+                "youtube_url": youtube_placeholder,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        # Update ANDREA budget (increment for completed work)
+        await db.agents.update_one(
+            {"id": "ANDREA"},
+            {"$inc": {"budget": 5}}
+        )
+        
+        return {
+            "success": True,
+            "job_id": job_id,
+            "status": "approved",
+            "internal_url": result["internal_url"],
+            "youtube_ready": True,
+            "message": "Video approved! Ready for YouTube upload to Evolution PRO channel."
+        }
+    
+    return result
+
+@api_router.delete("/videos/jobs/{job_id}")
+async def delete_video_job(job_id: str):
+    """Delete a video job and associated files"""
+    job = await db.video_jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    # Delete associated files
+    if job.get("output_file"):
+        try:
+            processed_path = Path(f"/app/storage/videos/processed/{job['output_file']}")
+            if processed_path.exists():
+                processed_path.unlink()
+        except:
+            pass
+    
+    await db.video_jobs.delete_one({"id": job_id})
+    return {"status": "deleted", "job_id": job_id}
+
+# =============================================================================
+# ROUTES - COMPLIANCE DASHBOARD (LUCA)
+# =============================================================================
+
+@api_router.get("/compliance/pending")
+async def get_pending_documents():
+    """Get documents pending verification for compliance dashboard"""
+    docs = file_storage.list_files(category="document", status="pending")
+    return {
+        "count": len(docs),
+        "documents": docs
+    }
+
+@api_router.get("/compliance/stats")
+async def get_compliance_stats():
+    """Get compliance statistics for LUCA dashboard"""
+    all_docs = file_storage.list_files(category="document")
+    pending = [d for d in all_docs if d["status"] == "pending"]
+    verified = [d for d in all_docs if d["status"] == "verified"]
+    
+    return {
+        "total_documents": len(all_docs),
+        "pending_count": len(pending),
+        "verified_count": len(verified),
+        "verification_rate": round(len(verified) / max(len(all_docs), 1) * 100, 1)
+    }
+
+# =============================================================================
 # ROUTES - STATS
 # =============================================================================
 
@@ -396,21 +732,60 @@ async def get_stats():
         phase = p.get("phase", "F0")
         phase_dist[phase] = phase_dist.get(phase, 0) + 1
     
+    # Video processing stats
+    video_jobs = await db.video_jobs.find({}, {"_id": 0}).to_list(1000)
+    videos_processing = sum(1 for j in video_jobs if j.get("status") == "processing")
+    videos_pending_approval = sum(1 for j in video_jobs if j.get("status") == "completed")
+    videos_approved = sum(1 for j in video_jobs if j.get("status") == "approved")
+    
+    # Storage stats
+    storage_stats = file_storage.get_storage_stats()
+    
     return {
         "total_partners": total_partners,
         "active_partners": active_partners,
         "total_revenue": total_revenue,
         "alerts_count": alerts_count,
-        "phase_distribution": phase_dist
+        "phase_distribution": phase_dist,
+        "videos": {
+            "processing": videos_processing,
+            "pending_approval": videos_pending_approval,
+            "approved": videos_approved
+        },
+        "storage": storage_stats
     }
 
 # =============================================================================
-# ROOT
+# ROOT & CONTROL
 # =============================================================================
 
 @api_router.get("/")
 async def root():
-    return {"message": "Evolution PRO API v1.0"}
+    return {"message": "Evolution PRO OS API v2.0", "status": "online"}
+
+@api_router.get("/control")
+async def control_dashboard():
+    """Dashboard control endpoint - returns system status"""
+    agents = await db.agents.find({}, {"_id": 0}).to_list(100)
+    stats = await get_stats()
+    
+    return {
+        "system": "Evolution PRO OS",
+        "version": "2.0",
+        "status": "operational",
+        "agents": agents,
+        "stats": stats,
+        "endpoints": {
+            "dashboard": "/",
+            "agents": "/api/agents",
+            "partners": "/api/partners",
+            "alerts": "/api/alerts",
+            "videos": "/api/videos/jobs",
+            "files": "/api/files",
+            "compliance": "/api/compliance/pending",
+            "chat": "/api/chat"
+        }
+    }
 
 # Include router
 app.include_router(api_router)
