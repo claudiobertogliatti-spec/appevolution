@@ -213,6 +213,17 @@ Partner Phase:
 
 ---
 
+## Key API Endpoints (Course Builder v9.0)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/stefania/course-builder/generate` | POST | Genera struttura corso con AI |
+| `/api/stefania/course-builder/chat` | POST | Chat con STEFANIA per modifiche |
+| `/api/stefania/course-builder/save` | POST | Salva struttura finale |
+| `/api/stefania/course-builder/{partner_id}` | GET | Recupera struttura salvata |
+
+---
+
 ## Testing Status
 - Build frontend: ✅ Successo
 - Build backend: ✅ Successo
@@ -221,13 +232,16 @@ Partner Phase:
 - API Video Blocks: ✅ Funzionante
 - UI Produzione Video: ✅ Funzionante
 - Tutor dinamico: ✅ Funzionante (VALENTINA→STEFANIA→ANDREA)
+- Course Builder Wizard: ✅ Funzionante
+- Renewal Plans: ✅ Funzionante
+- 9 Agenti AI: ✅ Tutti presenti
 
 ---
 
 ## Prioritized Backlog
 
 ### P0 - Completato ✅
-- [x] Tutte le funzionalità V1.0 - V8.0
+- [x] Tutte le funzionalità V1.0 - V9.0
 - [x] STEFANIA Copy Factory con Admin Review
 - [x] War Mode Multi-Channel (Meta/LinkedIn)
 - [x] Auto-Pivot Cross-Platform Analysis
@@ -235,6 +249,8 @@ Partner Phase:
 - [x] Feedback-to-Copy Bridge
 - [x] Dynamic Content Unlock (Gamification)
 - [x] Real-Time API Integration Framework
+- [x] Course Builder AI Wizard
+- [x] Renewal Plans Post-12 Mesi
 
 ### P1 - Alta Priorità
 - [ ] Autenticazione JWT (Admin vs Partner login)
