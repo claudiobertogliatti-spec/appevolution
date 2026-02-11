@@ -478,7 +478,7 @@ async def serve_file(path: str):
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(file_path)
 
-@api_router.get("/files/storage/stats")
+@api_router.get("/storage/stats")
 async def get_storage_stats():
     """Get storage usage statistics"""
     return file_storage.get_storage_stats()
