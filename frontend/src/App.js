@@ -10,7 +10,7 @@ import {
   FileVideo, FileCheck, Loader2, CheckCircle, XCircle,
   Youtube, HardDrive, Shield, Eye, RefreshCw, Mic,
   Zap, Link, Palette, Copy, Plus, BarChart3, Calendar,
-  UserPlus, Bell, Sparkles, Video, Target, Edit3
+  UserPlus, Bell, Sparkles, Video, Target, Edit3, Trophy
 } from "lucide-react";
 
 // Import new components
@@ -28,6 +28,7 @@ import { StefaniaChat } from "./components/partner/StefaniaChat";
 import { BrandKitEditor } from "./components/partner/BrandKitEditor";
 import { ProduzioneVideo } from "./components/partner/ProduzioneVideo";
 import { AndreaChat } from "./components/partner/AndreaChat";
+import { AtlasModule } from "./components/partner/AtlasModule";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
