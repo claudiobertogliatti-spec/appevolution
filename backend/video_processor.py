@@ -1,6 +1,8 @@
 """
 EVOLUTION PRO - Video Processing Module (ANDREA & GAIA)
 Surgical Cut Pipeline: Auto-Trim, Pace-Maker, Branding, Normalization
+
+CLOUD VERSION: Uses OpenAI Whisper API instead of local model
 """
 
 import os
@@ -11,9 +13,9 @@ import logging
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 from datetime import datetime
-import whisper
 import tempfile
 import shutil
+import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -54,17 +56,11 @@ class VideoProcessor:
         self.intros_path = self.storage_path / "intros"
         self.outros_path = self.storage_path / "outros"
         
-        # Initialize Whisper model (use "base" for balance of speed/accuracy)
-        self.whisper_model = None
+        # Create directories
+        for path in [self.raw_path, self.processed_path, self.approved_path, 
+                     self.temp_path, self.intros_path, self.outros_path]:
+            path.mkdir(parents=True, exist_ok=True)
         
-    def _ensure_whisper_model(self):
-        """Lazy load Whisper model"""
-        if self.whisper_model is None:
-            logger.info("Loading Whisper model (base)...")
-            self.whisper_model = whisper.load_model("base")
-            logger.info("Whisper model loaded successfully")
-        return self.whisper_model
-    
     def _run_ffmpeg(self, args: List[str], check: bool = True) -> subprocess.CompletedProcess:
         """Run FFmpeg command"""
         cmd = ["ffmpeg", "-y"] + args
@@ -115,44 +111,90 @@ class VideoProcessor:
         logger.info(f"Detected {len(silences)} silence segments")
         return silences
     
-    def transcribe_audio(self, input_path: str) -> dict:
+    async def transcribe_audio_cloud(self, input_path: str) -> dict:
         """
-        Transcribe audio using local Whisper model.
+        Transcribe audio using OpenAI Whisper API (cloud).
         Returns transcription with word-level timestamps.
         """
-        model = self._ensure_whisper_model()
+        api_key = os.environ.get('EMERGENT_LLM_KEY', '')
         
-        logger.info(f"Transcribing audio: {input_path}")
-        result = model.transcribe(
-            str(input_path),
-            language="it",
-            word_timestamps=True,
-            verbose=False
-        )
+        if not api_key:
+            logger.warning("No EMERGENT_LLM_KEY found, skipping transcription")
+            return {"text": "", "segments": []}
         
-        return result
+        # Extract audio to temporary file
+        temp_audio = self.temp_path / f"audio_{datetime.now().timestamp()}.mp3"
+        
+        try:
+            # Extract audio using FFmpeg
+            extract_cmd = [
+                "-i", str(input_path),
+                "-vn", "-acodec", "libmp3lame", "-q:a", "4",
+                "-ar", "16000", "-ac", "1",
+                str(temp_audio)
+            ]
+            self._run_ffmpeg(extract_cmd)
+            
+            # Call OpenAI Whisper API via Emergent
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                with open(temp_audio, 'rb') as audio_file:
+                    files = {'file': ('audio.mp3', audio_file, 'audio/mpeg')}
+                    data = {
+                        'model': 'whisper-1',
+                        'language': 'it',
+                        'response_format': 'verbose_json',
+                        'timestamp_granularities[]': 'word'
+                    }
+                    
+                    response = await client.post(
+                        'https://api.openai.com/v1/audio/transcriptions',
+                        headers={'Authorization': f'Bearer {api_key}'},
+                        files=files,
+                        data=data
+                    )
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        logger.info(f"Transcription completed: {len(result.get('text', ''))} chars")
+                        return result
+                    else:
+                        logger.error(f"Whisper API error: {response.status_code} - {response.text}")
+                        return {"text": "", "segments": []}
+                        
+        except Exception as e:
+            logger.error(f"Transcription failed: {e}")
+            return {"text": "", "segments": []}
+        finally:
+            if temp_audio.exists():
+                temp_audio.unlink()
     
     def detect_filler_segments(self, transcription: dict) -> List[Tuple[float, float]]:
         """
-        Detect filler word segments from Whisper transcription.
+        Detect filler word segments from transcription.
         Returns list of (start, end) tuples for filler segments.
         """
         filler_segments = []
         
-        for segment in transcription.get("segments", []):
-            for word_info in segment.get("words", []):
-                word = word_info.get("word", "").strip().lower()
-                # Remove punctuation
-                word_clean = ''.join(c for c in word if c.isalnum() or c.isspace())
-                
-                for filler in FILLER_WORDS_IT:
-                    if filler in word_clean:
-                        start = word_info.get("start", 0)
-                        end = word_info.get("end", 0)
-                        if end > start:
-                            filler_segments.append((start, end))
-                            logger.debug(f"Found filler '{word}' at {start:.2f}-{end:.2f}")
-                        break
+        # Handle both local Whisper and API response formats
+        words = transcription.get("words", [])
+        if not words:
+            # Try getting from segments
+            for segment in transcription.get("segments", []):
+                words.extend(segment.get("words", []))
+        
+        for word_info in words:
+            word = word_info.get("word", "").strip().lower()
+            # Remove punctuation
+            word_clean = ''.join(c for c in word if c.isalnum() or c.isspace())
+            
+            for filler in FILLER_WORDS_IT:
+                if filler in word_clean:
+                    start = word_info.get("start", 0)
+                    end = word_info.get("end", 0)
+                    if end > start:
+                        filler_segments.append((start, end))
+                        logger.debug(f"Found filler '{word}' at {start:.2f}-{end:.2f}")
+                    break
         
         logger.info(f"Detected {len(filler_segments)} filler word segments")
         return filler_segments
@@ -234,7 +276,6 @@ class VideoProcessor:
         
         # Parse loudnorm output
         try:
-            # Find JSON in stderr
             stderr = result.stderr
             json_start = stderr.rfind('{')
             json_end = stderr.rfind('}') + 1
@@ -406,11 +447,8 @@ class VideoProcessor:
                 })
             
             if remove_fillers:
-                # Run transcription in thread pool to not block
-                loop = asyncio.get_event_loop()
-                transcription = await loop.run_in_executor(
-                    None, self.transcribe_audio, str(input_path)
-                )
+                # Use cloud Whisper API
+                transcription = await self.transcribe_audio_cloud(str(input_path))
                 fillers = self.detect_filler_segments(transcription)
                 segments_to_cut.extend(fillers)
                 result["processing_steps"].append({
