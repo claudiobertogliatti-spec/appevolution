@@ -544,6 +544,345 @@ async def clear_chat_history(session_id: str):
     return {"status": "cleared"}
 
 # =============================================================================
+# ROUTES - STEFANIA (Copy & Marketing Tutor)
+# =============================================================================
+
+def build_stefania_system_prompt(partner_name: str, partner_niche: str, current_block: str = None, script_context: dict = None):
+    """Build the system prompt for STEFANIA - Copy & Marketing tutor"""
+    
+    block_hints = {
+        "hook": "Il GANCIO deve distruggere lo status quo. Non spiegare COME funziona qualcosa, ma PERCHÉ il metodo attuale del mercato è sbagliato. Deve essere provocatorio e far sentire il pubblico 'chiamato in causa'.",
+        "grande_promessa": "La GRANDE PROMESSA deve essere specifica, misurabile e credibile. Non 'migliorare la vita' ma '€10.000 in 30 giorni' o 'perdere 5kg in 2 settimane'. Deve creare desiderio immediato.",
+        "metodo": "IL METODO deve avere un nome memorabile e 3 pilastri chiari. Non spiegare tutto il 'come' - mostra solo la mappa del tesoro, non il tesoro stesso. Lascia che vogliano saperne di più.",
+        "case_history": "La CASE HISTORY deve essere specifica: nome, situazione di partenza, risultato numerico, tempo impiegato. Le storie astratte non vendono, i numeri sì.",
+        "offerta": "L'OFFERTA deve essere irresistibile: prezzo ancorato alto, poi scontato, con bonus che valgono più del corso stesso. Stack di valore visivo.",
+        "cta": "La CTA deve essere urgente e specifica: 'clicca ora', 'solo 10 posti', 'scade domani'. Mai 'se ti interessa'."
+    }
+    
+    block_context = ""
+    if current_block and current_block in block_hints:
+        block_context = f"\n\nBLOCCO ATTUALE: {current_block.upper()}\n{block_hints[current_block]}"
+    
+    script_summary = ""
+    if script_context:
+        filled_blocks = [k for k, v in script_context.items() if v.strip()]
+        if filled_blocks:
+            script_summary = f"\n\nBLOCCHI GIÀ COMPILATI: {', '.join(filled_blocks)}"
+    
+    return f"""Sei STEFANIA, tutor specializzata in copywriting persuasivo e marketing per videocorsi.
+Il tuo ruolo è guidare i partner di Evolution PRO nella creazione della loro Masterclass TRASFORMATIVA.
+
+PARTNER ATTUALE:
+- Nome: {partner_name}
+- Nicchia: {partner_niche}
+{block_context}
+{script_summary}
+
+🎯 IL TUO OBIETTIVO PRIMARIO:
+Trasformare contenuti "enciclopedici" in messaggi che VENDONO. Non stiamo creando un corso, stiamo creando un'ESPERIENZA che distrugge i dubbi del pubblico.
+
+❌ ERRORI COMUNI DA CORREGGERE:
+1. Spiegare il "COME" invece del "PERCHÉ" → Devi forzare il partner a spiegare PERCHÉ il suo metodo funziona, non come
+2. Contenuto troppo accademico/educativo → La Masterclass non è una lezione, è una vendita elegante
+3. Linguaggio generico ("migliorare", "aiutare") → Devi spingere per numeri, risultati specifici
+4. Mancanza di urgenza e scarsità → Ogni blocco deve creare tensione
+
+✅ COME INTERAGIRE:
+- Analizza criticamente ogni input del partner
+- Se è troppo "da professore", FERMALO e chiedi di riscrivere in modo più persuasivo
+- Dai esempi concreti di come riformulare
+- Non approvare mai un blocco mediocre - alza sempre l'asticella
+- Usa un tono diretto ma incoraggiante: "Buon inizio, ma possiamo renderlo magnetico così..."
+
+📊 STRUTTURA MASTERCLASS (6 BLOCCHI):
+1. HOOK - Distruzione dello status quo (il grande errore che tutti fanno)
+2. GRANDE PROMESSA - Risultato specifico e desiderabile
+3. IL METODO - Framework proprietario in 3 pilastri
+4. CASE HISTORY - Prova sociale con numeri reali
+5. OFFERTA - Stack di valore irresistibile
+6. CTA - Call to action urgente
+
+⚠️ ALERT ADMIN:
+Se dopo 2-3 tentativi il partner non riesce a produrre contenuto sufficientemente persuasivo, segnala che è necessario un intervento di Claudio.
+
+Rispondi in italiano, in modo diretto e operativo. Non fare complimenti vuoti - dai feedback costruttivo e actionable."""
+
+@api_router.post("/stefania/chat")
+async def chat_with_stefania(request: StefaniaChatRequest):
+    """Chat with STEFANIA - Copy & Marketing tutor for Masterclass creation"""
+    try:
+        session_id = f"stefania_{request.session_id}"
+        
+        # Get chat history
+        history = await db.chat_messages.find(
+            {"session_id": session_id}, 
+            {"_id": 0}
+        ).sort("timestamp", 1).to_list(50)
+        
+        # Build STEFANIA chat
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=session_id,
+            system_message=build_stefania_system_prompt(
+                request.partner_name,
+                request.partner_niche,
+                request.current_block,
+                request.script_context
+            )
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        
+        # Add history
+        for msg in history:
+            if msg["role"] == "user":
+                await chat.send_message(UserMessage(text=msg["content"]))
+        
+        # Save user message
+        user_msg = ChatMessage(
+            session_id=session_id,
+            role="user",
+            content=request.message
+        )
+        await db.chat_messages.insert_one(user_msg.model_dump())
+        
+        # Get response
+        response = await chat.send_message(UserMessage(text=request.message))
+        
+        # Save assistant response
+        assistant_msg = ChatMessage(
+            session_id=session_id,
+            role="assistant",
+            content=response
+        )
+        await db.chat_messages.insert_one(assistant_msg.model_dump())
+        
+        return {"response": response, "timestamp": assistant_msg.timestamp, "tutor": "STEFANIA"}
+        
+    except Exception as e:
+        logging.error(f"Stefania chat error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/stefania/review-script")
+async def stefania_review_script(request: ScriptReviewRequest):
+    """Have STEFANIA review a complete script and provide feedback"""
+    try:
+        script_text = "\n\n".join([
+            f"**{block.upper()}**:\n{content}" 
+            for block, content in request.script_blocks.items() 
+            if content.strip()
+        ])
+        
+        review_prompt = f"""Analizza lo script Masterclass completo di {request.partner_name} ({request.partner_niche}):
+
+{script_text}
+
+Fornisci:
+1. PUNTEGGIO PERSUASIVITÀ (1-10)
+2. BLOCCHI DA RIVEDERE (se ce ne sono)
+3. FEEDBACK SPECIFICO per ogni blocco debole
+4. VERDETTO FINALE: APPROVATO / DA RIVEDERE / NECESSITA INTERVENTO CLAUDIO"""
+
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"review_{request.partner_id}_{datetime.now().timestamp()}",
+            system_message=build_stefania_system_prompt(request.partner_name, request.partner_niche)
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        
+        review = await chat.send_message(UserMessage(text=review_prompt))
+        
+        # Determine if admin alert is needed
+        needs_admin = "NECESSITA INTERVENTO CLAUDIO" in review.upper() or "DA RIVEDERE" in review.upper()
+        
+        # Create notification if needed
+        if needs_admin and "NECESSITA INTERVENTO" in review.upper():
+            notification = Notification(
+                type="script_review",
+                icon="📝",
+                title="Script Masterclass - Richiede Attenzione",
+                body=f"STEFANIA segnala che lo script di {request.partner_name} necessita revisione di Claudio",
+                time=datetime.now().strftime("%H:%M"),
+                partner=request.partner_name,
+                action="masterclass"
+            )
+            await db.notifications.insert_one(notification.model_dump())
+        
+        return {
+            "review": review,
+            "needs_admin_review": needs_admin,
+            "partner_id": request.partner_id,
+            "reviewed_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+    except Exception as e:
+        logging.error(f"Script review error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# =============================================================================
+# ROUTES - MASTERCLASS SCRIPTS
+# =============================================================================
+
+@api_router.get("/masterclass/script/{partner_id}")
+async def get_masterclass_script(partner_id: str):
+    """Get the masterclass script for a partner"""
+    script = await db.masterclass_scripts.find_one(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    )
+    if not script:
+        # Return empty template
+        return {
+            "partner_id": partner_id,
+            "status": "new",
+            "blocks": {
+                "hook": "",
+                "grande_promessa": "",
+                "metodo": "",
+                "case_history": "",
+                "offerta": "",
+                "cta": ""
+            }
+        }
+    return script
+
+@api_router.post("/masterclass/script/{partner_id}")
+async def save_masterclass_script(partner_id: str, update: MasterclassScriptUpdate):
+    """Save or update masterclass script"""
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    existing = await db.masterclass_scripts.find_one({"partner_id": partner_id})
+    
+    if existing:
+        await db.masterclass_scripts.update_one(
+            {"partner_id": partner_id},
+            {"$set": {
+                "blocks": update.blocks,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    else:
+        script = MasterclassScript(
+            partner_id=partner_id,
+            partner_name=partner["name"],
+            blocks=update.blocks
+        )
+        await db.masterclass_scripts.insert_one(script.model_dump())
+    
+    return {"success": True, "partner_id": partner_id}
+
+@api_router.post("/masterclass/script/{partner_id}/submit")
+async def submit_script_for_review(partner_id: str):
+    """Submit script for STEFANIA review"""
+    script = await db.masterclass_scripts.find_one({"partner_id": partner_id}, {"_id": 0})
+    if not script:
+        raise HTTPException(status_code=404, detail="Script not found")
+    
+    # Get review from STEFANIA
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    review_result = await stefania_review_script(ScriptReviewRequest(
+        partner_id=partner_id,
+        partner_name=partner["name"],
+        script_blocks=script["blocks"]
+    ))
+    
+    # Update script status
+    new_status = "needs_revision" if review_result["needs_admin_review"] else "approved"
+    await db.masterclass_scripts.update_one(
+        {"partner_id": partner_id},
+        {"$set": {
+            "status": new_status,
+            "stefania_feedback": review_result["review"],
+            "last_review_at": review_result["reviewed_at"]
+        }}
+    )
+    
+    return {
+        "status": new_status,
+        "feedback": review_result["review"],
+        "needs_admin_review": review_result["needs_admin_review"]
+    }
+
+# =============================================================================
+# ROUTES - BRAND KIT
+# =============================================================================
+
+@api_router.get("/brandkit/{partner_id}")
+async def get_brand_kit(partner_id: str):
+    """Get brand kit for a partner"""
+    brandkit = await db.brand_kits.find_one(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    )
+    if not brandkit:
+        partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+        if not partner:
+            raise HTTPException(status_code=404, detail="Partner not found")
+        return {
+            "partner_id": partner_id,
+            "nome_partner": partner["name"],
+            "brand_color": "#F5C518",
+            "brand_color_secondary": "#1a2332",
+            "logo_url": None,
+            "tagline": None
+        }
+    return brandkit
+
+@api_router.post("/brandkit/{partner_id}")
+async def update_brand_kit(partner_id: str, update: PartnerBrandKitUpdate):
+    """Update brand kit for a partner"""
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    existing = await db.brand_kits.find_one({"partner_id": partner_id})
+    
+    update_data = {k: v for k, v in update.model_dump().items() if v is not None}
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    if existing:
+        await db.brand_kits.update_one(
+            {"partner_id": partner_id},
+            {"$set": update_data}
+        )
+    else:
+        brandkit = PartnerBrandKit(
+            partner_id=partner_id,
+            nome_partner=partner["name"],
+            **update_data
+        )
+        await db.brand_kits.insert_one(brandkit.model_dump())
+    
+    return {"success": True, "partner_id": partner_id}
+
+# =============================================================================
+# ROUTES - NOTIFICATIONS
+# =============================================================================
+
+@api_router.get("/notifications")
+async def get_notifications(limit: int = 20):
+    """Get recent notifications"""
+    notifications = await db.notifications.find(
+        {},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    return notifications
+
+@api_router.post("/notifications/{notification_id}/read")
+async def mark_notification_read(notification_id: str):
+    """Mark a notification as read"""
+    await db.notifications.update_one(
+        {"id": notification_id},
+        {"$set": {"read": True}}
+    )
+    return {"success": True}
+
+@api_router.post("/notifications/mark-all-read")
+async def mark_all_notifications_read():
+    """Mark all notifications as read"""
+    await db.notifications.update_many({}, {"$set": {"read": True}})
+    return {"success": True}
+
+# =============================================================================
 # ROUTES - FILE STORAGE (Native File Manager)
 # =============================================================================
 
