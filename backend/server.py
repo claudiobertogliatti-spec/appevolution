@@ -415,6 +415,120 @@ PHASE_LABELS = {
     "F8": "Lancio", "F9": "Ottimizzazione", "F10": "Scalabilità"
 }
 
+# =============================================================================
+# STEFANIA - MASTER INPUT: SUCCESSI EVOLUTION PRO
+# =============================================================================
+
+EVOLUTION_PRO_SUCCESS_CASES = [
+    {
+        "id": "success-1",
+        "partner_name": "Marco Ferretti",
+        "niche": "Business Coach",
+        "result": "€28.000 in 60 giorni",
+        "hook_example": "Il 90% dei business coach fallisce perché insegna teoria. Io ho scoperto che il vero problema è la mancanza di un sistema PRATICO.",
+        "grande_promessa_example": "Trasforma la tua consulenza in un videocorso che genera €10.000/mese in automatico, anche mentre dormi.",
+        "metodo_name": "Sistema BCA (Business Coach Accelerator)",
+        "testimonial_quote": "In 60 giorni ho generato più di quanto facevo in 6 mesi di consulenze one-to-one."
+    },
+    {
+        "id": "success-2", 
+        "partner_name": "Giulia Rossi",
+        "niche": "Life Coach",
+        "result": "€15.000 in 45 giorni",
+        "hook_example": "Tutti ti dicono di 'credere in te stesso'. Ma nessuno ti spiega COME farlo concretamente in 30 giorni.",
+        "grande_promessa_example": "Il mio metodo ti permette di eliminare l'auto-sabotaggio e raggiungere i tuoi obiettivi in 30 giorni, garantito.",
+        "metodo_name": "Metodo RIT (Riprogrammazione Identità Trasformativa)",
+        "testimonial_quote": "Ho finalmente capito perché fallivo sempre. Il metodo RIT ha cambiato tutto."
+    },
+    {
+        "id": "success-3",
+        "partner_name": "Luca Marini", 
+        "niche": "Formatore HR",
+        "result": "€32.000 in 90 giorni",
+        "hook_example": "Le aziende spendono migliaia in formazione HR che non funziona. Il problema? Formano le persone sbagliate nel modo sbagliato.",
+        "grande_promessa_example": "Riduci il turnover del 40% in 90 giorni con il mio sistema di selezione e onboarding predittivo.",
+        "metodo_name": "Framework PEO (Predict, Engage, Optimize)",
+        "testimonial_quote": "Abbiamo ridotto il turnover dal 35% al 12% in tre mesi. ROI incredibile."
+    },
+    {
+        "id": "success-4",
+        "partner_name": "Sara Lombardi",
+        "niche": "Psicologa",
+        "result": "€12.000 in 30 giorni",
+        "hook_example": "La terapia tradizionale richiede anni. Ma cosa succederebbe se potessi risolvere l'ansia in sole 6 sessioni?",
+        "grande_promessa_example": "Elimina l'ansia cronica in 6 settimane con il protocollo scientificamente validato che ha già aiutato 500+ persone.",
+        "metodo_name": "Protocollo RESET",
+        "testimonial_quote": "Dopo anni di terapia senza risultati, in 6 settimane ho finalmente risolto la mia ansia."
+    }
+]
+
+# =============================================================================
+# STEFANIA - LE 10 REGOLE D'ORO DEL COPY CORE
+# =============================================================================
+
+GOLDEN_RULES_COPY_CORE = [
+    {
+        "num": 1,
+        "title": "Distruggi lo Status Quo",
+        "description": "Non spiegare COME funziona qualcosa. Spiega PERCHÉ il metodo attuale del mercato è sbagliato.",
+        "example": "Invece di 'Ti insegno a fare marketing' → 'Il 90% del marketing che ti hanno insegnato è spazzatura. Ecco perché fallisci.'"
+    },
+    {
+        "num": 2,
+        "title": "Numeri Specifici Vendono",
+        "description": "Mai usare termini vaghi come 'migliorare' o 'aumentare'. Usa numeri precisi.",
+        "example": "Invece di 'Guadagna di più' → '€10.000 in 30 giorni' o 'Perdi 5kg in 2 settimane'"
+    },
+    {
+        "num": 3,
+        "title": "Il Nome del Metodo Conta",
+        "description": "Crea un nome proprietario memorabile per il tuo framework. Acronimi funzionano bene.",
+        "example": "Sistema BCA, Metodo RIT, Protocollo RESET, Framework PEO"
+    },
+    {
+        "num": 4,
+        "title": "Tre Pilastri, Non Di Più",
+        "description": "Il cervello umano elabora bene gruppi di 3. Il tuo metodo deve avere esattamente 3 step/pilastri.",
+        "example": "1. Analisi → 2. Strategia → 3. Esecuzione"
+    },
+    {
+        "num": 5,
+        "title": "Case History con Numeri Reali",
+        "description": "Le storie astratte non vendono. I numeri specifici con timeline sì.",
+        "example": "Maria, da €0 a €8.000/mese in 45 giorni. Non 'Maria ha migliorato i suoi guadagni'."
+    },
+    {
+        "num": 6,
+        "title": "Ancoraggio del Prezzo",
+        "description": "Mostra prima il valore totale (alto), poi il prezzo reale (più basso). Stack visivo dei bonus.",
+        "example": "Valore totale: €2.997 → Oggi solo €497 (risparmi €2.500)"
+    },
+    {
+        "num": 7,
+        "title": "Urgenza Genuina",
+        "description": "Crea scarsità reale, non fasulla. Limita posti, tempo o bonus.",
+        "example": "'Solo 10 posti disponibili' o 'Il bonus scade tra 48 ore' (se è vero)"
+    },
+    {
+        "num": 8,
+        "title": "CTA Imperativo, Mai Condizionale",
+        "description": "Non 'Se ti interessa clicca'. Usa comandi diretti.",
+        "example": "'Clicca ORA', 'Iscriviti SUBITO', 'Prenota il tuo posto'"
+    },
+    {
+        "num": 9,
+        "title": "Mostra la Mappa, Non il Tesoro",
+        "description": "Nel metodo, fai vedere COSA faranno, non COME lo faranno. Lascia curiosità.",
+        "example": "Mostra i 3 pilastri ma non spiegare ogni dettaglio. 'Nel modulo 2 scoprirai il segreto del...'"
+    },
+    {
+        "num": 10,
+        "title": "L'Emozione Prima della Logica",
+        "description": "Le persone comprano con l'emozione e giustificano con la logica. Parti sempre dal dolore/desiderio.",
+        "example": "Prima descrivi il problema/frustrazione, poi la soluzione. Mai al contrario."
+    }
+]
+
 # Initial GAIA Systeme.io Templates
 INITIAL_GAIA_TEMPLATES = [
     {
