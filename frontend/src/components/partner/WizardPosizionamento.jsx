@@ -1,0 +1,254 @@
+import { useState, useEffect } from "react";
+import { ArrowLeft, ArrowRight, Check, FileText, Target, Sparkles } from "lucide-react";
+import { POSITIONING_QUESTIONS, S } from "../../data/constants";
+import axios from "axios";
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+export function WizardPosizionamento({ partner, onComplete, onBack }) {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [generating, setGenerating] = useState(false);
+  const [output, setOutput] = useState(null);
+
+  const question = POSITIONING_QUESTIONS[currentStep];
+  const totalSteps = POSITIONING_QUESTIONS.length;
+  const progress = ((currentStep + 1) / totalSteps) * 100;
+
+  const handleNext = () => {
+    if (currentStep < totalSteps - 1) {
+      setCurrentStep(currentStep + 1);
+    } else {
+      handleGenerate();
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleGenerate = async () => {
+    setGenerating(true);
+    try {
+      // Call API to generate positioning canvas
+      const res = await axios.post(`${API}/positioning/generate`, {
+        partner_id: partner?.id,
+        partner_name: partner?.name,
+        partner_niche: partner?.niche,
+        answers: answers
+      });
+      setOutput(res.data.canvas);
+    } catch (e) {
+      // Fallback to local generation
+      const canvas = generateCanvasLocally(answers, partner);
+      setOutput(canvas);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const generateCanvasLocally = (answers, partner) => {
+    return `
+═══════════════════════════════════════════════════════════════
+        CANVAS POSIZIONAMENTO — ${partner?.name || "Partner"}
+═══════════════════════════════════════════════════════════════
+
+🎯 OBIETTIVO PRINCIPALE
+${answers.obiettivo || "Non definito"}
+
+👤 STUDENTE IDEALE
+${answers.target || "Non definito"}
+
+🔄 TRASFORMAZIONE PROMESSA
+${answers.trasformazione || "Non definito"}
+
+⭐ DIFFERENZIAZIONE
+${answers.differenziazione || "Non definito"}
+
+🧩 METODO/FRAMEWORK
+${answers.metodo || "Non definito"}
+
+❓ OBIEZIONI PRINCIPALI
+${answers.obiezioni || "Non definito"}
+
+✅ PROVE & TESTIMONIANZE
+${answers.prova || "Non definito"}
+
+⏰ URGENZA
+${answers.urgenza || "Non definito"}
+
+🎁 BONUS INCLUSI
+${answers.bonus || "Non definito"}
+
+═══════════════════════════════════════════════════════════════
+        Generato da Evolution PRO OS — ${new Date().toLocaleDateString("it-IT")}
+═══════════════════════════════════════════════════════════════
+    `;
+  };
+
+  if (generating) {
+    return (
+      <div className="max-w-2xl mx-auto animate-slide-in" data-testid="wizard-generating">
+        <div className="bg-[#1a2332] border border-white/10 rounded-xl p-12 text-center">
+          <div className="text-6xl mb-4 animate-pulse">🎯</div>
+          <div className="text-lg font-extrabold text-white mb-2">
+            Generazione Canvas Posizionamento...
+          </div>
+          <div className="text-sm text-white/50">
+            Stiamo elaborando le tue risposte per creare il Canvas
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (output) {
+    return (
+      <div className="max-w-2xl mx-auto animate-slide-in" data-testid="wizard-output">
+        <div className="bg-[#1a2332] border border-white/10 rounded-xl overflow-hidden">
+          {/* Header */}
+          <div className="p-5 border-b border-white/10 bg-gradient-to-r from-[#F5C518]/20 to-transparent">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-[#F5C518] flex items-center justify-center">
+                <Target className="w-5 h-5 text-black" />
+              </div>
+              <div>
+                <div className="text-sm font-extrabold text-white">Canvas Posizionamento Completato</div>
+                <div className="text-xs text-white/50">Pronto per essere utilizzato nel tuo corso</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Canvas Output */}
+          <div className="p-5 max-h-[500px] overflow-y-auto">
+            <pre className="text-xs font-mono text-white/70 whitespace-pre-wrap leading-relaxed">
+              {output}
+            </pre>
+          </div>
+
+          {/* Actions */}
+          <div className="p-5 border-t border-white/10 flex gap-3">
+            <button
+              onClick={() => { setOutput(null); setCurrentStep(0); }}
+              className="flex-1 flex items-center justify-center gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white/60 hover:bg-white/10 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" /> Modifica risposte
+            </button>
+            <button
+              onClick={() => {
+                navigator.clipboard?.writeText(output);
+              }}
+              className="flex-1 flex items-center justify-center gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white/60 hover:bg-white/10 transition-colors"
+            >
+              📋 Copia Canvas
+            </button>
+            <button
+              onClick={() => onComplete && onComplete(output)}
+              className="flex-1 flex items-center justify-center gap-2 bg-[#F5C518] text-black rounded-xl px-4 py-3 text-sm font-extrabold hover:bg-[#e0a800] transition-colors"
+            >
+              <Check className="w-4 h-4" /> Salva e Continua
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto animate-slide-in" data-testid="wizard-posizionamento">
+      {/* Progress */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-bold text-white/40">
+            Domanda {currentStep + 1} di {totalSteps}
+          </span>
+          <span className="text-xs font-bold text-[#F5C518]">{Math.round(progress)}%</span>
+        </div>
+        <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-[#F5C518] rounded-full transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Progress Dots */}
+      <div className="flex justify-center gap-2 mb-6">
+        {POSITIONING_QUESTIONS.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setCurrentStep(i)}
+            className={`w-3 h-3 rounded-full transition-all
+              ${i < currentStep ? 'bg-[#16a34a]' : i === currentStep ? 'bg-[#F5C518] ring-2 ring-[#F5C518]/30' : 'bg-white/10'}`}
+          />
+        ))}
+      </div>
+
+      {/* Question Card */}
+      <div className="bg-[#1a2332] border border-white/10 rounded-xl overflow-hidden">
+        {/* Question Header */}
+        <div className="p-6 border-b border-white/10">
+          <div className="flex items-start gap-3 mb-4">
+            <div className="w-10 h-10 rounded-lg bg-[#F5C518] flex items-center justify-center font-mono text-sm font-bold text-black flex-shrink-0">
+              {currentStep + 1}
+            </div>
+            <div className="text-lg font-extrabold text-white leading-snug">
+              {question.question}
+            </div>
+          </div>
+
+          {/* Hint */}
+          <div className="bg-[#FFFBEA]/10 border border-[#F5C518]/30 rounded-lg p-4">
+            <div className="flex items-start gap-2">
+              <Sparkles className="w-4 h-4 text-[#F5C518] flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-[#F5C518]/80 leading-relaxed">
+                {question.hint}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Answer Input */}
+        <div className="p-6">
+          <textarea
+            value={answers[question.id] || ""}
+            onChange={(e) => setAnswers(prev => ({ ...prev, [question.id]: e.target.value }))}
+            placeholder={question.placeholder}
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-sm font-semibold text-white placeholder:text-white/30 outline-none transition-colors focus:border-[#F5C518] resize-none min-h-[160px] leading-relaxed"
+          />
+        </div>
+
+        {/* Navigation */}
+        <div className="p-6 border-t border-white/10 flex gap-3">
+          <button
+            onClick={onBack || handlePrev}
+            disabled={currentStep === 0 && !onBack}
+            className={`flex items-center justify-center gap-2 bg-white/5 border border-white/10 rounded-xl px-6 py-3 text-sm font-bold transition-colors
+              ${currentStep === 0 && !onBack ? 'opacity-30 cursor-not-allowed' : 'text-white/60 hover:bg-white/10'}`}
+          >
+            <ArrowLeft className="w-4 h-4" /> Indietro
+          </button>
+          
+          <button
+            onClick={handleNext}
+            disabled={!answers[question.id]?.trim()}
+            className={`flex-1 flex items-center justify-center gap-2 bg-[#F5C518] text-black rounded-xl px-6 py-3 text-sm font-extrabold transition-colors
+              ${!answers[question.id]?.trim() ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#e0a800]'}`}
+          >
+            {currentStep === totalSteps - 1 ? (
+              <>
+                <Sparkles className="w-4 h-4" /> Genera Canvas
+              </>
+            ) : (
+              <>
+                Continua <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
