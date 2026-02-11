@@ -1671,12 +1671,32 @@ export default function App() {
         
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
+          {/* Nuovo Partner Modal */}
+          {showNuovoPartner && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+              <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <NuovoPartnerForm 
+                  onClose={() => setShowNuovoPartner(false)}
+                  onComplete={(data) => {
+                    setShowNuovoPartner(false);
+                    loadData();
+                  }}
+                />
+              </div>
+            </div>
+          )}
+          
           {mode === "admin" ? (
             <>
               {nav === "overview" && <AdminOverview stats={stats} agents={agents} partners={partners} alerts={alerts} />}
               {nav === "agenti" && <AdminAgents agents={agents} />}
               {nav === "partner" && <AdminPartners partners={partners} onSelect={setSelectedPartner} />}
-              {nav === "andrea" && <AndreaPipeline partners={partners} />}
+              {nav === "andrea" && (
+                adminUser === "antonella" 
+                  ? <FeedVideoNuovi onOpenPipeline={() => { setAdminUser("claudio"); setNav("andrea"); }} />
+                  : <AndreaPipeline partners={partners} />
+              )}
+              {nav === "metriche" && <MetrichePostLancio partners={partners} />}
               {nav === "gaia" && <GaiaFunnelDeployer partners={partners} />}
               {nav === "compliance" && <ComplianceDashboard />}
               {nav === "alert" && <AdminAlerts alerts={alerts} onDismiss={dismissAlert} />}
@@ -1685,6 +1705,8 @@ export default function App() {
             <>
               {nav === "corso" && <PartnerCourse partner={demoPartner} modules={modules} />}
               {nav === "files" && <PartnerFileManager partner={demoPartner} />}
+              {nav === "calendario" && <CalendarioEditoriale partner={demoPartner} />}
+              {nav === "documenti" && <WizardPosizionamento partner={demoPartner} onComplete={(canvas) => { setNav("corso"); }} />}
               {nav === "risorse" && <PartnerResources />}
               {nav === "supporto" && <PartnerChat partner={demoPartner} />}
             </>
