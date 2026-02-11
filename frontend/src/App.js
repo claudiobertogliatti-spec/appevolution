@@ -21,6 +21,9 @@ import { FeedVideoNuovi } from "./components/admin/FeedVideoNuovi";
 import { NuovoPartnerForm } from "./components/admin/NuovoPartnerForm";
 import { CalendarioEditoriale } from "./components/partner/CalendarioEditoriale";
 import { WizardPosizionamento } from "./components/partner/WizardPosizionamento";
+import { MasterclassBuilder } from "./components/partner/MasterclassBuilder";
+import { StefaniaChat } from "./components/partner/StefaniaChat";
+import { BrandKitEditor } from "./components/partner/BrandKitEditor";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
