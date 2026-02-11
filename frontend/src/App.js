@@ -1550,6 +1550,7 @@ export default function App() {
   // Dynamic tutor based on partner phase
   function getTutorForPhase(phase) {
     if (["F3", "F4"].includes(phase)) return "STEFANIA";
+    if (phase === "F5") return "ANDREA";
     return "VALENTINA";
   }
   
@@ -1564,12 +1565,17 @@ export default function App() {
     alert: "Alert & Escalation",
     corso: "Videocorso Operativo",
     masterclass: "Masterclass Trasformativa — STEFANIA",
+    produzione: "Produzione Video — ANDREA",
     files: "I Miei File",
     brandkit: "Brand Kit & Variabili",
     calendario: "Calendario Editoriale 30 Giorni",
     documenti: "Documenti & Posizionamento",
     risorse: "Template & Risorse",
-    supporto: getTutorForPhase(demoPartner?.phase) === "STEFANIA" ? "STEFANIA — Copy & Marketing" : "VALENTINA — Supporto 24/7"
+    supporto: getTutorForPhase(demoPartner?.phase) === "STEFANIA" 
+      ? "STEFANIA — Copy & Marketing" 
+      : getTutorForPhase(demoPartner?.phase) === "ANDREA"
+        ? "ANDREA — Video Production"
+        : "VALENTINA — Supporto 24/7"
   };
   
   return (
