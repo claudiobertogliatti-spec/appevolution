@@ -1790,10 +1790,17 @@ async def get_war_mode_dashboard():
     for c in campaigns:
         platform = c.get("platform", "other")
         if platform not in by_platform:
-            by_platform[platform] = {"campaigns": 0, "spend": 0, "leads": 0}
+            by_platform[platform] = {"campaigns": 0, "spend": 0, "leads": 0, "qualified_leads": 0, "ltv_total": 0, "revenue": 0}
         by_platform[platform]["campaigns"] += 1
         by_platform[platform]["spend"] += c.get("spend_total", 0)
         by_platform[platform]["leads"] += c.get("leads", 0)
+        by_platform[platform]["qualified_leads"] += c.get("qualified_leads", 0)
+        by_platform[platform]["ltv_total"] += c.get("ltv_avg", 0) * c.get("conversions", 0)
+        by_platform[platform]["revenue"] += c.get("revenue", 0)
+    
+    # Calculate platform comparison
+    meta_data = by_platform.get("meta", {"spend": 0, "leads": 0, "qualified_leads": 0, "revenue": 0})
+    linkedin_data = by_platform.get("linkedin", {"spend": 0, "leads": 0, "qualified_leads": 0, "revenue": 0})
     
     # Calculate averages
     total_spend = sum(c.get("spend_total", 0) for c in campaigns)
@@ -1808,9 +1815,370 @@ async def get_war_mode_dashboard():
             "active_alerts": len(alerts)
         },
         "by_platform": by_platform,
+        "platform_comparison": {
+            "meta": {
+                "cpl": meta_data["spend"] / meta_data["leads"] if meta_data["leads"] > 0 else 0,
+                "roas": meta_data["revenue"] / meta_data["spend"] if meta_data["spend"] > 0 else 0,
+                "lead_quality": meta_data["qualified_leads"] / meta_data["leads"] if meta_data["leads"] > 0 else 0
+            },
+            "linkedin": {
+                "cpl": linkedin_data["spend"] / linkedin_data["leads"] if linkedin_data["leads"] > 0 else 0,
+                "roas": linkedin_data["revenue"] / linkedin_data["spend"] if linkedin_data["spend"] > 0 else 0,
+                "lead_quality": linkedin_data["qualified_leads"] / linkedin_data["leads"] if linkedin_data["leads"] > 0 else 0
+            }
+        },
         "campaigns": campaigns[:10],  # Latest 10
         "critical_alerts": [a for a in alerts if a.get("severity") == "critical"][:5]
     }
+
+# =============================================================================
+# STEFANIA WAR MODE - MULTI-CHANNEL (META & LINKEDIN)
+# =============================================================================
+
+@api_router.post("/stefania/war-mode/hook-gallery")
+async def generate_hook_gallery(request: HookGalleryRequest):
+    """Generate 3-variant Hook Gallery for Meta (Pain, Secret, Result angles)"""
+    try:
+        # Get Copy Core for context
+        script = await db.masterclass_scripts.find_one({"partner_id": request.partner_id}, {"_id": 0})
+        copy_context = ""
+        if script and script.get("blocks"):
+            copy_context = f"""
+COPY CORE DISPONIBILE:
+- Hook: {script['blocks'].get('hook', 'N/A')[:200]}
+- Grande Promessa: {script['blocks'].get('grande_promessa', 'N/A')[:200]}
+- Case History: {script['blocks'].get('case_history', 'N/A')[:200]}
+"""
+
+        prompt = f"""Sei STEFANIA in War Mode per META ADS. Genera 3 HOOK VIDEO per {request.partner_name} ({request.partner_niche}).
+
+{copy_context}
+
+🎯 STRATEGIA: Hook Gallery (primi 5 secondi del video)
+Il targeting è BROAD - il copy deve FILTRARE i curiosi dai potenziali clienti.
+
+GENERA 3 HOOK DIVERSI:
+
+1️⃣ ANGOLO DEL DOLORE (Emotional Trigger)
+Pattern: "Sei stanco di [frustrazione comune]?"
+Obiettivo: Colpire chi sta vivendo il problema ORA
+
+2️⃣ ANGOLO DEL SEGRETO (Curiosity Gap)  
+Pattern: "Ecco come [nemico comune] ti sta nascondendo [verità scomoda]"
+Obiettivo: Creare suspense e pattern interrupt
+
+3️⃣ ANGOLO DEL RISULTATO (Social Proof)
+Pattern: "Il sistema esatto che ha generato [numero specifico] per [nome/tipo cliente]"
+Obiettivo: Proof + Specificity
+
+REGOLE:
+- Max 50 parole per hook (primi 5 sec video)
+- Linguaggio diretto, parlato
+- Numeri specifici quando possibile
+- NO gergo tecnico
+
+Rispondi in JSON:
+{{"pain": "hook dolore...", "secret": "hook segreto...", "result": "hook risultato...", "targeting_note": "suggerimento targeting broad"}}
+"""
+
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"hookgallery_{request.partner_id}_{datetime.now().timestamp()}",
+            system_message="Sei STEFANIA War Mode - Meta Ads Specialist. Genera hook video che fermano lo scroll."
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        
+        response = await chat.send_message(UserMessage(text=prompt))
+        
+        # Parse JSON
+        import re
+        json_match = re.search(r'\{[\s\S]*\}', response)
+        hook_gallery = {"pain": "", "secret": "", "result": "", "targeting_note": ""}
+        
+        if json_match:
+            try:
+                hook_gallery = json.loads(json_match.group())
+            except json.JSONDecodeError:
+                hook_gallery["pain"] = response
+        
+        # Save to campaign
+        existing = await db.ads_campaigns.find_one({"partner_id": request.partner_id, "platform": "meta"})
+        if existing:
+            await db.ads_campaigns.update_one(
+                {"partner_id": request.partner_id, "platform": "meta"},
+                {"$set": {
+                    "hook_gallery": hook_gallery,
+                    "targeting_type": "broad",
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+        else:
+            campaign = AdsCampaign(
+                partner_id=request.partner_id,
+                partner_name=request.partner_name,
+                platform="meta",
+                campaign_name=f"{request.partner_name} - Meta Hook Gallery",
+                hook_gallery=hook_gallery,
+                targeting_type="broad"
+            )
+            await db.ads_campaigns.insert_one(campaign.model_dump())
+        
+        return {
+            "success": True,
+            "hook_gallery": hook_gallery,
+            "platform": "meta",
+            "partner_id": request.partner_id
+        }
+        
+    except Exception as e:
+        logging.error(f"Hook gallery error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/stefania/war-mode/linkedin-content")
+async def generate_linkedin_content(request: LinkedInContentRequest):
+    """Generate LinkedIn-specific content (Thought Leadership, ABM, Lead Gen Forms)"""
+    try:
+        # Get Copy Core
+        script = await db.masterclass_scripts.find_one({"partner_id": request.partner_id}, {"_id": 0})
+        copy_context = ""
+        if script and script.get("blocks"):
+            copy_context = f"""
+COPY CORE (trasforma in tono LinkedIn):
+- Metodo: {script['blocks'].get('metodo', 'N/A')[:300]}
+- Grande Promessa: {script['blocks'].get('grande_promessa', 'N/A')[:200]}
+"""
+
+        content_prompts = {
+            "thought_leadership": f"""Sei STEFANIA per LINKEDIN ADS. Trasforma il Copy Core di {request.partner_name} ({request.partner_niche}) in un POST THOUGHT LEADERSHIP.
+
+{copy_context}
+
+🎯 OBIETTIVO: Sembrare un'analisi di mercato, NON pubblicità
+
+STRUTTURA THOUGHT LEADERSHIP:
+1. Osservazione di mercato provocatoria (pattern industry)
+2. Dati o insight esclusivo (anche senza numeri reali, usa logica)
+3. Framework/metodologia come soluzione
+4. CTA soft ("Commenta se anche tu...")
+
+TONO: Professionale ma accessibile. Come un post di un CEO rispettato.
+LUNGHEZZA: 150-200 parole max
+
+Rispondi in JSON:
+{{"post_text": "testo post...", "headline": "headline per l'ad", "cta_type": "engagement/lead_form"}}
+""",
+            "abm_ad": f"""Sei STEFANIA per LINKEDIN ABM (Account-Based Marketing). Crea un AD per {request.partner_name} ({request.partner_niche}).
+
+TARGET SPECIFICO: {request.target_segment or "Titolari di agenzie o consulenti senior"}
+
+{copy_context}
+
+🎯 OBIETTIVO: Colpire decision-maker di alto livello
+
+STRUTTURA ABM AD:
+1. Problema specifico del segmento target
+2. Credenziale/autorità di {request.partner_name}
+3. Offerta esclusiva per il segmento
+4. CTA per download risorsa o call
+
+TONO: Diretto, executive-level, no fluff.
+
+Rispondi in JSON:
+{{"ad_copy": "testo ad...", "headline": "headline", "target_criteria": "criteri targeting linkedin"}}
+""",
+            "lead_gen_form": f"""Sei STEFANIA per LINKEDIN LEAD GEN FORMS. Crea il copy per un form nativo LinkedIn per {request.partner_name} ({request.partner_niche}).
+
+{copy_context}
+
+🎯 OBIETTIVO: Massimizzare conversioni con form pre-compilato
+
+STRUTTURA LEAD GEN FORM:
+1. Headline che promette valore immediato
+2. Descrizione breve del "lead magnet" (es. guida, checklist, case study)
+3. 3 bullet points del valore
+4. Privacy-friendly CTA
+
+VANTAGGI FORM NATIVO: Email aziendale reale, dati pre-compilati, zero attrito.
+
+Rispondi in JSON:
+{{"form_headline": "headline form", "form_description": "descrizione", "bullet_points": ["punto1", "punto2", "punto3"], "lead_magnet_name": "nome risorsa"}}
+"""
+        }
+        
+        prompt = content_prompts.get(request.content_type, content_prompts["thought_leadership"])
+        
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"linkedin_{request.partner_id}_{datetime.now().timestamp()}",
+            system_message="Sei STEFANIA War Mode - LinkedIn B2B Specialist. Crea contenuti che costruiscono autorità."
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        
+        response = await chat.send_message(UserMessage(text=prompt))
+        
+        # Parse JSON
+        import re
+        json_match = re.search(r'\{[\s\S]*\}', response)
+        linkedin_content = {}
+        
+        if json_match:
+            try:
+                linkedin_content = json.loads(json_match.group())
+            except json.JSONDecodeError:
+                linkedin_content = {"content": response}
+        
+        # Save to campaign
+        existing = await db.ads_campaigns.find_one({"partner_id": request.partner_id, "platform": "linkedin"})
+        if existing:
+            current_content = existing.get("linkedin_content", {})
+            current_content[request.content_type] = linkedin_content
+            await db.ads_campaigns.update_one(
+                {"partner_id": request.partner_id, "platform": "linkedin"},
+                {"$set": {
+                    "linkedin_content": current_content,
+                    "targeting_type": "abm" if request.content_type == "abm_ad" else existing.get("targeting_type", "professional"),
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+        else:
+            campaign = AdsCampaign(
+                partner_id=request.partner_id,
+                partner_name=request.partner_name,
+                platform="linkedin",
+                campaign_name=f"{request.partner_name} - LinkedIn {request.content_type}",
+                linkedin_content={request.content_type: linkedin_content},
+                targeting_type="abm" if request.content_type == "abm_ad" else "professional"
+            )
+            await db.ads_campaigns.insert_one(campaign.model_dump())
+        
+        return {
+            "success": True,
+            "content_type": request.content_type,
+            "linkedin_content": linkedin_content,
+            "platform": "linkedin",
+            "partner_id": request.partner_id
+        }
+        
+    except Exception as e:
+        logging.error(f"LinkedIn content error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/stefania/war-mode/cross-platform-analysis")
+async def analyze_cross_platform(partner_id: str):
+    """Auto-Pivot Analysis: Compare Meta vs LinkedIn and suggest budget shifts"""
+    try:
+        meta_campaign = await db.ads_campaigns.find_one({"partner_id": partner_id, "platform": "meta"}, {"_id": 0})
+        linkedin_campaign = await db.ads_campaigns.find_one({"partner_id": partner_id, "platform": "linkedin"}, {"_id": 0})
+        
+        analysis = {
+            "partner_id": partner_id,
+            "meta": None,
+            "linkedin": None,
+            "recommended_platform": "meta",
+            "pivot_suggestion": None,
+            "budget_recommendation": None
+        }
+        
+        if meta_campaign:
+            meta_cpl = meta_campaign.get("cpl", 0)
+            meta_roas = meta_campaign.get("roas", 0)
+            meta_ltv = meta_campaign.get("ltv_avg", 0)
+            meta_threshold = meta_campaign.get("cpl_max_threshold", 15)
+            
+            analysis["meta"] = {
+                "cpl": meta_cpl,
+                "roas": meta_roas,
+                "ltv_avg": meta_ltv,
+                "leads": meta_campaign.get("leads", 0),
+                "qualified_leads": meta_campaign.get("qualified_leads", 0),
+                "cpl_exceeded": meta_cpl > meta_threshold if meta_cpl > 0 else False,
+                "hook_gallery": meta_campaign.get("hook_gallery")
+            }
+        
+        if linkedin_campaign:
+            linkedin_cpl = linkedin_campaign.get("cpl", 0)
+            linkedin_roas = linkedin_campaign.get("roas", 0)
+            linkedin_ltv = linkedin_campaign.get("ltv_avg", 0)
+            linkedin_qual_rate = linkedin_campaign.get("qualified_leads", 0) / linkedin_campaign.get("leads", 1) if linkedin_campaign.get("leads", 0) > 0 else 0
+            
+            analysis["linkedin"] = {
+                "cpl": linkedin_cpl,
+                "roas": linkedin_roas,
+                "ltv_avg": linkedin_ltv,
+                "leads": linkedin_campaign.get("leads", 0),
+                "qualified_leads": linkedin_campaign.get("qualified_leads", 0),
+                "qualification_rate": linkedin_qual_rate,
+                "content_types": list(linkedin_campaign.get("linkedin_content", {}).keys()) if linkedin_campaign.get("linkedin_content") else []
+            }
+        
+        # Auto-Pivot Logic
+        if analysis["meta"] and analysis["linkedin"]:
+            meta_cpl_exceeded = analysis["meta"]["cpl_exceeded"]
+            linkedin_better_ltv = (analysis["linkedin"]["ltv_avg"] > analysis["meta"]["ltv_avg"]) if analysis["linkedin"]["ltv_avg"] > 0 else False
+            linkedin_better_quality = (analysis["linkedin"]["qualified_leads"] / max(analysis["linkedin"]["leads"], 1)) > (analysis["meta"]["qualified_leads"] / max(analysis["meta"]["leads"], 1)) if analysis["meta"].get("leads", 0) > 0 else False
+            
+            if meta_cpl_exceeded and (linkedin_better_ltv or linkedin_better_quality):
+                analysis["recommended_platform"] = "linkedin"
+                analysis["pivot_suggestion"] = f"""⚠️ AUTO-PIVOT SUGGERITO: CPL Meta (€{analysis['meta']['cpl']:.2f}) ha superato la soglia.
+
+LinkedIn mostra:
+- LTV medio più alto: €{analysis['linkedin']['ltv_avg']:.0f} vs €{analysis['meta']['ltv_avg']:.0f}
+- Tasso qualificazione lead: {analysis['linkedin'].get('qualification_rate', 0)*100:.0f}%
+
+RACCOMANDAZIONE: Sposta 30-50% del budget da Meta a LinkedIn per ottimizzare il ROAS complessivo."""
+                
+                analysis["budget_recommendation"] = {
+                    "action": "shift_to_linkedin",
+                    "percentage": 40,
+                    "reason": "higher_ltv_and_lead_quality"
+                }
+                
+                # Create alert
+                alert = PerformanceAlert(
+                    partner_id=partner_id,
+                    campaign_id=meta_campaign.get("id", ""),
+                    alert_type="auto_pivot_suggested",
+                    severity="warning",
+                    current_value=analysis["meta"]["cpl"],
+                    threshold_value=meta_campaign.get("cpl_max_threshold", 15),
+                    message=f"Auto-Pivot: Considera shift budget a LinkedIn (LTV {analysis['linkedin']['ltv_avg']:.0f}€ vs Meta {analysis['meta']['ltv_avg']:.0f}€)",
+                    suggested_action="Sposta 40% budget da Meta a LinkedIn per lead di qualità superiore"
+                )
+                await db.performance_alerts.insert_one(alert.model_dump())
+            
+            elif meta_cpl_exceeded:
+                analysis["pivot_suggestion"] = f"⚠️ CPL Meta alto (€{analysis['meta']['cpl']:.2f}). LinkedIn non ha ancora dati sufficienti per un pivot. Considera di lanciare test su LinkedIn."
+        
+        return analysis
+        
+    except Exception as e:
+        logging.error(f"Cross-platform analysis error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/stefania/war-mode/multi-channel/{partner_id}")
+async def get_multi_channel_data(partner_id: str):
+    """Get all multi-channel data for a partner (Meta + LinkedIn)"""
+    meta = await db.ads_campaigns.find_one({"partner_id": partner_id, "platform": "meta"}, {"_id": 0})
+    linkedin = await db.ads_campaigns.find_one({"partner_id": partner_id, "platform": "linkedin"}, {"_id": 0})
+    
+    return {
+        "partner_id": partner_id,
+        "meta": meta,
+        "linkedin": linkedin,
+        "has_meta": meta is not None,
+        "has_linkedin": linkedin is not None
+    }
+
+@api_router.post("/stefania/war-mode/campaigns/{campaign_id}/update-ltv")
+async def update_campaign_ltv(campaign_id: str, ltv_avg: float, qualified_leads: int = None):
+    """Update LTV and qualified lead data for a campaign (for comparison analysis)"""
+    update_data = {
+        "ltv_avg": ltv_avg,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    if qualified_leads is not None:
+        update_data["qualified_leads"] = qualified_leads
+    
+    await db.ads_campaigns.update_one({"id": campaign_id}, {"$set": update_data})
+    return {"success": True, "campaign_id": campaign_id, "ltv_avg": ltv_avg}
 
 # =============================================================================
 # ROUTES - ANDREA (Video Production Support)
