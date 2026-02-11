@@ -1509,19 +1509,33 @@ export default function App() {
     }
   };
   
-  const adminNav = [
+  // Admin navigation based on user
+  const adminNavClaudio = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
     { id: "agenti", label: "Agenti AI", icon: Bot },
     { id: "partner", label: "Partner", icon: Users },
-    { id: "andrea", label: "ANDREA", icon: Film },
+    { id: "andrea", label: "Editing", icon: Film },
+    { id: "metriche", label: "Post-Lancio", icon: BarChart3 },
     { id: "gaia", label: "GAIA", icon: Zap },
     { id: "compliance", label: "LUCA", icon: Shield },
     { id: "alert", label: "Alert", icon: AlertTriangle, badge: alerts.length }
   ];
   
+  const adminNavAntonella = [
+    { id: "overview", label: "Overview", icon: LayoutDashboard },
+    { id: "partner", label: "Partner", icon: Users },
+    { id: "andrea", label: "Editing Feed", icon: Film },
+    { id: "compliance", label: "LUCA", icon: Shield },
+    { id: "alert", label: "Alert", icon: AlertTriangle, badge: alerts.length }
+  ];
+  
+  const adminNav = adminUser === "antonella" ? adminNavAntonella : adminNavClaudio;
+  
   const partnerNav = [
     { id: "corso", label: "Videocorso", icon: PlayCircle },
     { id: "files", label: "I Miei File", icon: FolderOpen },
+    { id: "calendario", label: "Calendario", icon: Calendar },
+    { id: "documenti", label: "Documenti", icon: FileText },
     { id: "risorse", label: "Template", icon: FileText },
     { id: "supporto", label: "VALENTINA", icon: MessageCircle }
   ];
@@ -1530,12 +1544,15 @@ export default function App() {
     overview: "Dashboard Admin",
     agenti: "Agenti AI",
     partner: "Pipeline Partner",
-    andrea: "ANDREA — Surgical Cut Pipeline",
+    andrea: adminUser === "antonella" ? "ANDREA — Feed Video Nuovi" : "ANDREA — Surgical Cut Pipeline",
+    metriche: "Metriche Post-Lancio",
     gaia: "GAIA — Funnel Deployer",
     compliance: "LUCA — Compliance Dashboard",
     alert: "Alert & Escalation",
     corso: "Videocorso Operativo",
     files: "I Miei File",
+    calendario: "Calendario Editoriale 30 Giorni",
+    documenti: "Documenti & Posizionamento",
     risorse: "Template & Risorse",
     supporto: "VALENTINA — Supporto 24/7"
   };
