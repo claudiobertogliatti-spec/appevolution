@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { 
   Sparkles, Save, Send, CheckCircle, AlertTriangle, 
   ChevronRight, ChevronDown, Loader2, FileText, Palette,
-  Target, Star, Layers, Users, Gift, Zap
+  Target, Star, Layers, Users, Gift, Zap, Wand2, Eye,
+  Clock, User, ThumbsUp, ThumbsDown, BookOpen, RefreshCw
 } from "lucide-react";
 import axios from "axios";
 import { StefaniaChat } from "./StefaniaChat";
@@ -66,7 +67,17 @@ const BLOCK_CONFIG = [
   }
 ];
 
-export function MasterclassBuilder({ partner }) {
+const STATUS_CONFIG = {
+  draft: { label: "Bozza", color: "bg-white/10 text-white/60", icon: FileText },
+  ai_draft: { label: "Bozza AI", color: "bg-purple-500/20 text-purple-400", icon: Sparkles },
+  in_review: { label: "In Revisione Admin", color: "bg-yellow-500/20 text-yellow-400", icon: Clock },
+  pending_partner_approval: { label: "Attende Tua Approvazione", color: "bg-blue-500/20 text-blue-400", icon: User },
+  revision_requested: { label: "Revisione Richiesta", color: "bg-orange-500/20 text-orange-400", icon: AlertTriangle },
+  approved: { label: "Approvato", color: "bg-green-500/20 text-green-400", icon: CheckCircle },
+  needs_revision: { label: "Da Rivedere", color: "bg-red-500/20 text-red-400", icon: AlertTriangle }
+};
+
+export function MasterclassBuilder({ partner, isAdmin = false }) {
   const [script, setScript] = useState({
     hook: "",
     grande_promessa: "",
@@ -78,12 +89,20 @@ export function MasterclassBuilder({ partner }) {
   const [expandedBlock, setExpandedBlock] = useState("hook");
   const [status, setStatus] = useState("draft");
   const [feedback, setFeedback] = useState(null);
+  const [adminNotes, setAdminNotes] = useState(null);
+  const [adminEditedBy, setAdminEditedBy] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [generatingDraft, setGeneratingDraft] = useState(false);
+  const [showGoldenRules, setShowGoldenRules] = useState(false);
+  const [goldenRules, setGoldenRules] = useState([]);
+  const [approving, setApproving] = useState(false);
+  const [partnerFeedback, setPartnerFeedback] = useState("");
 
   useEffect(() => {
     loadScript();
+    loadGoldenRules();
   }, [partner?.id]);
 
   const loadScript = async () => {
@@ -96,10 +115,21 @@ export function MasterclassBuilder({ partner }) {
       }
       setStatus(res.data.status || "draft");
       setFeedback(res.data.stefania_feedback || null);
+      setAdminNotes(res.data.admin_notes || null);
+      setAdminEditedBy(res.data.admin_edited_by || null);
     } catch (e) {
       console.error("Error loading script:", e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadGoldenRules = async () => {
+    try {
+      const res = await axios.get(`${API}/stefania/golden-rules`);
+      setGoldenRules(res.data.rules || []);
+    } catch (e) {
+      console.error("Error loading golden rules:", e);
     }
   };
 
@@ -121,7 +151,7 @@ export function MasterclassBuilder({ partner }) {
     try {
       // Save first
       await axios.post(`${API}/masterclass/script/${partner.id}`, { blocks: script });
-      // Then submit for review
+      // Then submit for STEFANIA review
       const res = await axios.post(`${API}/masterclass/script/${partner.id}/submit`);
       setStatus(res.data.status);
       setFeedback(res.data.feedback);
@@ -129,6 +159,60 @@ export function MasterclassBuilder({ partner }) {
       console.error("Error submitting script:", e);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const sendToAdminReview = async () => {
+    if (!partner?.id) return;
+    setSubmitting(true);
+    try {
+      await axios.post(`${API}/masterclass/script/${partner.id}`, { blocks: script });
+      const res = await axios.post(`${API}/masterclass/script/${partner.id}/send-to-admin`);
+      setStatus(res.data.status);
+      alert("Script inviato a Claudio/Antonella per editing finale!");
+    } catch (e) {
+      console.error("Error sending to admin:", e);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const generateAIDraft = async () => {
+    if (!partner?.id) return;
+    setGeneratingDraft(true);
+    try {
+      const res = await axios.post(`${API}/stefania/generate-draft`, {
+        partner_id: partner.id,
+        partner_name: partner.name,
+        partner_niche: partner.niche
+      });
+      if (res.data.draft_blocks) {
+        setScript(res.data.draft_blocks);
+        setStatus("ai_draft");
+        alert("Bozza generata da STEFANIA! Rivedi e personalizza ogni blocco.");
+      }
+    } catch (e) {
+      console.error("Error generating draft:", e);
+      alert("Errore nella generazione. Riprova.");
+    } finally {
+      setGeneratingDraft(false);
+    }
+  };
+
+  const approveAdminEdit = async (approved) => {
+    if (!partner?.id) return;
+    setApproving(true);
+    try {
+      const res = await axios.post(`${API}/masterclass/script/${partner.id}/partner-approve`, null, {
+        params: { approved, feedback: partnerFeedback }
+      });
+      setStatus(res.data.status);
+      alert(res.data.message);
+      setPartnerFeedback("");
+    } catch (e) {
+      console.error("Error approving:", e);
+    } finally {
+      setApproving(false);
     }
   };
 
@@ -142,6 +226,8 @@ export function MasterclassBuilder({ partner }) {
   };
 
   const completion = getCompletionPercentage();
+  const statusConfig = STATUS_CONFIG[status] || STATUS_CONFIG.draft;
+  const StatusIcon = statusConfig.icon;
 
   if (loading) {
     return (
@@ -179,25 +265,93 @@ export function MasterclassBuilder({ partner }) {
             />
           </div>
 
-          {/* Status badge */}
-          <div className="mt-3 flex items-center gap-2">
-            {status === "approved" && (
-              <span className="flex items-center gap-1 text-xs font-bold text-green-400 bg-green-500/20 px-3 py-1 rounded-full">
-                <CheckCircle className="w-3 h-3" /> Approvato da STEFANIA
-              </span>
-            )}
-            {status === "needs_revision" && (
-              <span className="flex items-center gap-1 text-xs font-bold text-orange-400 bg-orange-500/20 px-3 py-1 rounded-full">
-                <AlertTriangle className="w-3 h-3" /> Da rivedere
-              </span>
-            )}
-            {status === "draft" && (
-              <span className="text-xs font-bold text-white/40 bg-white/10 px-3 py-1 rounded-full">
-                Bozza
-              </span>
-            )}
+          {/* Status badge & Golden Rules button */}
+          <div className="mt-3 flex items-center justify-between">
+            <span className={`flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full ${statusConfig.color}`}>
+              <StatusIcon className="w-3 h-3" /> {statusConfig.label}
+            </span>
+            <button
+              onClick={() => setShowGoldenRules(!showGoldenRules)}
+              className={`text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 transition-colors ${showGoldenRules ? "bg-pink-500 text-white" : "bg-white/5 text-white/40 hover:bg-white/10"}`}
+            >
+              <BookOpen className="w-3 h-3" /> 10 Regole d'Oro
+            </button>
           </div>
         </div>
+
+        {/* Admin Notes (if pending partner approval) */}
+        {status === "pending_partner_approval" && adminEditedBy && (
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <User className="w-4 h-4 text-blue-400" />
+              <span className="text-xs font-bold text-blue-400 uppercase">Modificato da {adminEditedBy}</span>
+            </div>
+            {adminNotes && <p className="text-sm text-white/70 mb-3">{adminNotes}</p>}
+            <div className="flex gap-2">
+              <button
+                onClick={() => approveAdminEdit(true)}
+                disabled={approving}
+                className="flex-1 flex items-center justify-center gap-2 bg-green-500 text-white rounded-lg px-4 py-2 text-sm font-bold hover:bg-green-600 disabled:opacity-50"
+              >
+                {approving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ThumbsUp className="w-4 h-4" />}
+                Approva
+              </button>
+              <button
+                onClick={() => approveAdminEdit(false)}
+                disabled={approving}
+                className="flex-1 flex items-center justify-center gap-2 bg-orange-500 text-white rounded-lg px-4 py-2 text-sm font-bold hover:bg-orange-600 disabled:opacity-50"
+              >
+                <ThumbsDown className="w-4 h-4" /> Richiedi Modifica
+              </button>
+            </div>
+            <input
+              type="text"
+              placeholder="Feedback opzionale..."
+              value={partnerFeedback}
+              onChange={e => setPartnerFeedback(e.target.value)}
+              className="w-full mt-2 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30"
+            />
+          </div>
+        )}
+
+        {/* Golden Rules Panel */}
+        {showGoldenRules && goldenRules.length > 0 && (
+          <div className="bg-[#1a2332] border border-pink-500/30 rounded-xl p-4 animate-slide-in">
+            <h4 className="text-xs font-bold text-pink-400 uppercase tracking-wider mb-3">Le 10 Regole d'Oro del Copy Core</h4>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {goldenRules.map(rule => (
+                <div key={rule.num} className="bg-white/5 border border-white/5 rounded-lg p-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-pink-500/20 text-pink-400 text-[10px] font-bold flex items-center justify-center">{rule.num}</span>
+                    <span className="font-bold text-white">{rule.title}</span>
+                  </div>
+                  <p className="text-white/50 mt-1 ml-7">{rule.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* AI Draft Generator */}
+        {(status === "draft" || status === "new") && (
+          <button
+            onClick={generateAIDraft}
+            disabled={generatingDraft}
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl px-4 py-3 text-sm font-extrabold hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {generatingDraft ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                STEFANIA sta scrivendo...
+              </>
+            ) : (
+              <>
+                <Wand2 className="w-4 h-4" />
+                Genera Bozza con AI (Drafting Engine)
+              </>
+            )}
+          </button>
+        )}
 
         {/* Blocks */}
         <div className="space-y-2">
@@ -280,16 +434,29 @@ export function MasterclassBuilder({ partner }) {
             className="flex-1 flex items-center justify-center gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white/60 hover:bg-white/10 transition-colors disabled:opacity-50"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Salva Bozza
+            Salva
           </button>
-          <button
-            onClick={submitForReview}
-            disabled={submitting || completion < 80}
-            className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl px-4 py-3 text-sm font-extrabold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-            Invia a STEFANIA
-          </button>
+          
+          {status !== "approved" && status !== "pending_partner_approval" && (
+            <>
+              <button
+                onClick={submitForReview}
+                disabled={submitting || completion < 50}
+                className="flex-1 flex items-center justify-center gap-2 bg-white/5 border border-pink-500/30 rounded-xl px-4 py-3 text-sm font-bold text-pink-400 hover:bg-pink-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+                Review STEFANIA
+              </button>
+              <button
+                onClick={sendToAdminReview}
+                disabled={submitting || completion < 80}
+                className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl px-4 py-3 text-sm font-extrabold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                Invia ad Admin
+              </button>
+            </>
+          )}
         </div>
 
         {/* Feedback */}
