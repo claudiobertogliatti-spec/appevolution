@@ -1573,6 +1573,7 @@ export default function App() {
     compliance: "LUCA — Compliance Dashboard",
     copyfactory: "STEFANIA — Copy Factory (Admin Review)",
     warmode: "STEFANIA — War Mode (Ads & Traffic)",
+    atlas: "ATLAS — Post-Sale & LTV",
     alert: "Alert & Escalation",
     corso: "Videocorso Operativo",
     masterclass: "Masterclass Trasformativa — STEFANIA",
