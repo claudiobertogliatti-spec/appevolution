@@ -8,7 +8,8 @@ import {
   Download, ExternalLink, Check, Clock, AlertCircle,
   TrendingUp, DollarSign, Activity, Upload, Trash2,
   FileVideo, FileCheck, Loader2, CheckCircle, XCircle,
-  Youtube, HardDrive, Shield, Eye, RefreshCw
+  Youtube, HardDrive, Shield, Eye, RefreshCw, Mic,
+  Zap, Link, Palette, Copy, Plus
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
