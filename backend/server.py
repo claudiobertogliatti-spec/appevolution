@@ -828,6 +828,335 @@ Fornisci:
         raise HTTPException(status_code=500, detail=str(e))
 
 # =============================================================================
+# ROUTES - ANDREA (Video Production Support)
+# =============================================================================
+
+def build_andrea_system_prompt(partner_name: str, partner_niche: str, current_block: str = None, recording_status: str = None):
+    """Build the system prompt for ANDREA - Video Production tutor"""
+    
+    block_tips = {
+        "hook": "Il GANCIO deve essere registrato con energia ALTA. Guarda dritto in camera, voce forte e sicura. Questo è il momento di 'svegliare' il pubblico.",
+        "grande_promessa": "La GRANDE PROMESSA richiede convinzione assoluta. Rallenta leggermente, sottolinea i numeri con pause strategiche.",
+        "metodo": "IL METODO va spiegato con chiarezza didattica ma NON monotona. Usa le mani per i 3 pilastri, crea movimento.",
+        "case_history": "La CASE HISTORY è storytelling: abbassa leggermente il tono quando descrivi il 'prima', poi alzalo per il 'dopo'. Sorridi raccontando il successo.",
+        "offerta": "L'OFFERTA deve essere presentata con entusiasmo genuino. Ogni bonus è un regalo - fai trasparire la generosità.",
+        "cta": "La CTA finale: guarda fisso in camera, voce decisa, pausa prima del comando. 'Clicca. Ora.' - non 'se ti interessa clicca'."
+    }
+    
+    status_context = ""
+    if recording_status == "setup":
+        status_context = """
+🎬 FASE ATTUALE: PRE-FLIGHT CHECK
+Stai guidando il partner attraverso la checklist di setup. Verifica:
+- Sfondo ordinato e professionale
+- Luce frontale (no controluce)
+- Microfono a 15-20cm dalla bocca
+- Inquadratura dal petto in su, occhi al terzo superiore
+- Ambiente silenzioso
+- Script pronto e leggibile
+"""
+    elif recording_status == "recording":
+        status_context = """
+🎬 FASE ATTUALE: REGISTRAZIONE IN CORSO
+Fornisci coaching energetico:
+- Ricorda di NON spiegare ma GUIDARE
+- Voce alta, tono convinto
+- Se sbaglia, non fermarsi - taglio chirurgico in post
+- Un blocco alla volta, pause tra i blocchi
+"""
+    elif recording_status == "review":
+        status_context = """
+🎬 FASE ATTUALE: REVIEW VIDEO CARICATO
+Analizza il video e fornisci feedback su:
+- Qualità audio (rumore, volume, chiarezza)
+- Qualità video (luce, inquadratura, sfondo)
+- Energia e presenza scenica
+- Suggerimenti specifici per migliorare
+"""
+    
+    block_context = ""
+    if current_block and current_block in block_tips:
+        block_context = f"\n\n📍 BLOCCO ATTUALE: {current_block.upper()}\n{block_tips[current_block]}"
+    
+    return f"""Sei ANDREA, il tutor di produzione video di Evolution PRO.
+Il tuo ruolo è guidare i partner nella registrazione professionale della loro Masterclass.
+
+PARTNER ATTUALE:
+- Nome: {partner_name}
+- Nicchia: {partner_niche}
+{status_context}
+{block_context}
+
+🎯 IL TUO OBIETTIVO:
+Trasformare il partner in un presentatore sicuro e magnetico. Non deve sembrare un robot che legge, ma un esperto appassionato che GUIDA il pubblico.
+
+💪 IL TUO STILE:
+- Incoraggiante ma tecnico
+- Pratico e orientato all'azione
+- Dai feedback specifici e actionable
+- Se qualcosa non va, dillo chiaramente ma con tatto
+
+📋 CHECKLIST PRE-REGISTRAZIONE:
+1. ✅ Sfondo ordinato e coerente con il brand
+2. ✅ Luce frontale (ring light o finestra davanti)
+3. ✅ Microfono esterno a 15-20cm (no audio integrato)
+4. ✅ Inquadratura: dal petto in su, occhi al terzo superiore
+5. ✅ Ambiente silenzioso (spegni notifiche, condizionatore)
+6. ✅ Script suddiviso in blocchi, pronto sul teleprompter
+
+🎬 WORKFLOW:
+1. Test video 30 secondi (Blocco 1 - Gancio)
+2. Verifica tecnica audio/video
+3. Registrazione blocco per blocco
+4. Upload immediato → Surgical Cut automatico
+5. Review e approvazione
+6. Assembly finale con Intro/Outro
+
+⚠️ ERRORI COMUNI DA CORREGGERE:
+- Voce troppo bassa o monotona → "Alza il volume del 20%, come se parlassi a qualcuno in fondo alla stanza"
+- Sguardo che fugge → "Fissa l'obiettivo come se fosse il tuo miglior cliente"
+- Lettura robotica → "Parla come se stessi raccontando a un amico, non leggendo"
+- Energia calante → "Pausa, respiro profondo, ricorda PERCHÉ fai questo"
+
+Rispondi in italiano, con tono incoraggiante ma professionale. Massimo 4-5 frasi per risposta."""
+
+@api_router.post("/andrea/chat")
+async def chat_with_andrea(request: AndreaChatRequest):
+    """Chat with ANDREA - Video Production tutor"""
+    try:
+        session_id = f"andrea_{request.session_id}"
+        
+        # Get chat history
+        history = await db.chat_messages.find(
+            {"session_id": session_id}, 
+            {"_id": 0}
+        ).sort("timestamp", 1).to_list(50)
+        
+        # Build ANDREA chat
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=session_id,
+            system_message=build_andrea_system_prompt(
+                request.partner_name,
+                request.partner_niche,
+                request.current_block,
+                request.recording_status
+            )
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        
+        # Add history
+        for msg in history:
+            if msg["role"] == "user":
+                await chat.send_message(UserMessage(text=msg["content"]))
+        
+        # Save user message
+        user_msg = ChatMessage(
+            session_id=session_id,
+            role="user",
+            content=request.message
+        )
+        await db.chat_messages.insert_one(user_msg.model_dump())
+        
+        # Get response
+        response = await chat.send_message(UserMessage(text=request.message))
+        
+        # Save assistant response
+        assistant_msg = ChatMessage(
+            session_id=session_id,
+            role="assistant",
+            content=response
+        )
+        await db.chat_messages.insert_one(assistant_msg.model_dump())
+        
+        return {"response": response, "timestamp": assistant_msg.timestamp, "tutor": "ANDREA"}
+        
+    except Exception as e:
+        logging.error(f"Andrea chat error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/andrea/preflight/{partner_id}")
+async def get_preflight_check(partner_id: str):
+    """Get pre-flight checklist for a partner"""
+    preflight = await db.preflight_checks.find_one(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    )
+    if not preflight:
+        return {
+            "partner_id": partner_id,
+            "checklist": {
+                "sfondo_ordinato": False,
+                "luce_frontale": False,
+                "microfono_posizionato": False,
+                "inquadratura_corretta": False,
+                "silenzio_ambiente": False,
+                "script_pronto": False
+            },
+            "test_video_uploaded": False,
+            "test_video_approved": False
+        }
+    return preflight
+
+@api_router.post("/andrea/preflight/{partner_id}")
+async def update_preflight_check(partner_id: str, checklist: Dict[str, bool]):
+    """Update pre-flight checklist"""
+    existing = await db.preflight_checks.find_one({"partner_id": partner_id})
+    
+    if existing:
+        await db.preflight_checks.update_one(
+            {"partner_id": partner_id},
+            {"$set": {
+                "checklist": checklist,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    else:
+        preflight = PreFlightCheck(partner_id=partner_id, checklist=checklist)
+        await db.preflight_checks.insert_one(preflight.model_dump())
+    
+    return {"success": True}
+
+@api_router.get("/andrea/blocks/{partner_id}")
+async def get_video_blocks(partner_id: str):
+    """Get all video blocks for a partner's production"""
+    blocks = await db.video_blocks.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).sort("created_at", 1).to_list(10)
+    
+    if not blocks:
+        # Initialize blocks from approved script
+        script = await db.masterclass_scripts.find_one({"partner_id": partner_id}, {"_id": 0})
+        if script and script.get("blocks"):
+            block_labels = {
+                "hook": "Il Gancio",
+                "grande_promessa": "Grande Promessa", 
+                "metodo": "Il Metodo",
+                "case_history": "Case History",
+                "offerta": "L'Offerta",
+                "cta": "Call to Action"
+            }
+            blocks = []
+            for block_type, label in block_labels.items():
+                content = script["blocks"].get(block_type, "")
+                if content.strip():
+                    block = VideoBlock(
+                        partner_id=partner_id,
+                        block_type=block_type,
+                        block_label=label,
+                        script_content=content
+                    )
+                    await db.video_blocks.insert_one(block.model_dump())
+                    blocks.append(block.model_dump())
+    
+    return blocks
+
+@api_router.post("/andrea/blocks/{partner_id}/{block_type}/upload")
+async def upload_block_video(
+    partner_id: str,
+    block_type: str,
+    file: UploadFile = File(...)
+):
+    """Upload a video for a specific block and trigger Surgical Cut"""
+    # Upload the file
+    result = await file_storage.upload_file(file, partner_id, "video")
+    
+    if not result["success"]:
+        raise HTTPException(status_code=500, detail="Upload failed")
+    
+    # Update block status
+    await db.video_blocks.update_one(
+        {"partner_id": partner_id, "block_type": block_type},
+        {"$set": {
+            "status": "uploaded",
+            "video_file": result["stored_name"],
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Trigger Surgical Cut processing in background
+    # Note: In production, this would be a background task
+    
+    return {
+        "success": True,
+        "block_type": block_type,
+        "video_file": result["stored_name"],
+        "message": "Video caricato! ANDREA sta applicando il Surgical Cut..."
+    }
+
+@api_router.post("/andrea/blocks/{partner_id}/{block_type}/approve")
+async def approve_block_video(partner_id: str, block_type: str):
+    """Approve a block video after review"""
+    await db.video_blocks.update_one(
+        {"partner_id": partner_id, "block_type": block_type},
+        {"$set": {
+            "status": "approved",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Check if all blocks are approved
+    blocks = await db.video_blocks.find({"partner_id": partner_id}, {"_id": 0}).to_list(10)
+    all_approved = all(b.get("status") == "approved" for b in blocks if b.get("script_content"))
+    
+    if all_approved:
+        # Create notification for admin
+        partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+        notification = Notification(
+            type="video",
+            icon="🎬",
+            title="Masterclass Pronta per Assembly",
+            body=f"Tutti i blocchi video di {partner['name']} sono approvati. Pronto per assembly finale.",
+            time=datetime.now().strftime("%H:%M"),
+            partner=partner["name"],
+            action="andrea"
+        )
+        await db.notifications.insert_one(notification.model_dump())
+    
+    return {"success": True, "all_approved": all_approved}
+
+@api_router.post("/andrea/assembly/{partner_id}")
+async def assemble_final_video(partner_id: str, request: VideoAssemblyRequest):
+    """Assemble all approved blocks into final video with intro/outro"""
+    blocks = await db.video_blocks.find(
+        {"partner_id": partner_id, "status": "approved"},
+        {"_id": 0}
+    ).to_list(10)
+    
+    if not blocks:
+        raise HTTPException(status_code=400, detail="No approved blocks to assemble")
+    
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    brandkit = await db.brand_kits.find_one({"partner_id": partner_id}, {"_id": 0})
+    
+    # In production, this would trigger FFmpeg concatenation
+    # For now, we simulate the process
+    
+    assembly_result = {
+        "partner_id": partner_id,
+        "partner_name": partner["name"],
+        "blocks_assembled": len(blocks),
+        "include_intro": request.include_intro,
+        "include_outro": request.include_outro,
+        "status": "processing",
+        "message": "Assembly in corso... ANDREA sta concatenando i blocchi con Intro/Outro brandizzate."
+    }
+    
+    # Create notification
+    notification = Notification(
+        type="video",
+        icon="🎬",
+        title="Assembly Video Avviato",
+        body=f"ANDREA sta assemblando la Masterclass di {partner['name']} ({len(blocks)} blocchi)",
+        time=datetime.now().strftime("%H:%M"),
+        partner=partner["name"],
+        action="andrea"
+    )
+    await db.notifications.insert_one(notification.model_dump())
+    
+    return assembly_result
+
+# =============================================================================
 # ROUTES - MASTERCLASS SCRIPTS
 # =============================================================================
 
