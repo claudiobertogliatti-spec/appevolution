@@ -4249,12 +4249,11 @@ Rispondi SOLO con il JSON, senza testo aggiuntivo."""
             }
         
         chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            model="claude-sonnet-4-20250514"
-        )
+            api_key=EMERGENT_LLM_KEY
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
         
         response = await chat.send_async(
-            message=UserMessage(content=prompt)
+            message=UserMessage(text=prompt)
         )
         
         # Parse JSON from response
