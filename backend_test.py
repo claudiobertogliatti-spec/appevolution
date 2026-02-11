@@ -212,6 +212,123 @@ class EvolutionProAPITester:
             self.log_test("Alert Dismiss Test", True, "No alerts to dismiss (valid state)")
         return True
 
+    def test_youtube_integration(self):
+        """Test YouTube Data API v3 integration endpoints"""
+        print("\n🎥 Testing YouTube Integration...")
+        
+        # YouTube auth URL
+        success, data = self.run_test("YouTube Auth URL", "GET", "youtube/auth-url")
+        
+        # YouTube status
+        success, data = self.run_test("YouTube Status", "GET", "youtube/status")
+        if success and isinstance(data, dict):
+            if "authenticated" in data and "config_exists" in data:
+                self.log_test("YouTube Status Structure", True, "Status contains required fields")
+            else:
+                self.log_test("YouTube Status Structure", False, "Missing required fields")
+        
+        # Video jobs
+        success, data = self.run_test("Video Jobs List", "GET", "videos/jobs")
+        if success and isinstance(data, list):
+            self.log_test("Video Jobs Data Type", True, f"Found {len(data)} video jobs")
+        
+        return success
+
+    def test_gaia_funnel_deployer(self):
+        """Test GAIA Funnel Deployer for Systeme.io templates"""
+        print("\n⚡ Testing GAIA Funnel Deployer...")
+        
+        # Template categories
+        success, data = self.run_test("Template Categories", "GET", "gaia/templates/categories")
+        if success and isinstance(data, dict) and "categories" in data:
+            categories = data["categories"]
+            expected_categories = ["lead_gen", "masterclass", "vendita", "webinar", "altri"]
+            found_categories = [c["id"] for c in categories]
+            if all(cat in found_categories for cat in expected_categories):
+                self.log_test("Template Categories Validation", True, f"All expected categories found: {expected_categories}")
+            else:
+                missing = [cat for cat in expected_categories if cat not in found_categories]
+                self.log_test("Template Categories Validation", False, f"Missing categories: {missing}")
+        
+        # Templates list
+        success, data = self.run_test("Templates List", "GET", "gaia/templates")
+        if success and isinstance(data, list):
+            self.log_test("Templates Data Type", True, f"Found {len(data)} templates")
+        
+        return success
+
+    def test_tts_integration(self):
+        """Test OpenAI TTS integration"""
+        print("\n🎤 Testing TTS Integration...")
+        
+        # Available voices
+        success, data = self.run_test("TTS Voices", "GET", "tts/voices")
+        if success and isinstance(data, dict) and "voices" in data:
+            voices = data["voices"]
+            expected_voices = ["onyx", "alloy", "nova", "echo"]
+            found_voices = [v["id"] for v in voices]
+            if any(voice in found_voices for voice in expected_voices):
+                self.log_test("TTS Voices Validation", True, f"Found expected voices: {found_voices}")
+            else:
+                self.log_test("TTS Voices Validation", False, f"No expected voices found in: {found_voices}")
+        
+        # List TTS files
+        success, data = self.run_test("TTS Files", "GET", "tts/files")
+        if success and isinstance(data, dict):
+            if "intros" in data and "outros" in data:
+                self.log_test("TTS Files Structure", True, "Contains intros and outros")
+            else:
+                self.log_test("TTS Files Structure", False, "Missing intros or outros")
+        
+        return success
+
+    def test_control_endpoint(self):
+        """Test v3.0 control dashboard endpoint"""
+        print("\n🎛️ Testing Control Dashboard...")
+        
+        success, data = self.run_test("Control Dashboard", "GET", "control")
+        if success and isinstance(data, dict):
+            required_fields = ["system", "version", "status", "agents", "stats", "endpoints"]
+            missing_fields = [f for f in required_fields if f not in data]
+            if not missing_fields:
+                self.log_test("Control Dashboard Structure", True, "All required fields present")
+                
+                # Check version
+                if data.get("version") == "3.0":
+                    self.log_test("Version Check", True, "Version 3.0 confirmed")
+                else:
+                    self.log_test("Version Check", False, f"Expected v3.0, got {data.get('version')}")
+                
+                # Check endpoints
+                endpoints = data.get("endpoints", {})
+                expected_endpoints = ["gaia_templates", "youtube", "tts", "chat"]
+                found_endpoints = list(endpoints.keys())
+                if all(ep in found_endpoints for ep in expected_endpoints):
+                    self.log_test("v3.0 Endpoints Check", True, f"All v3.0 endpoints found: {expected_endpoints}")
+                else:
+                    missing = [ep for ep in expected_endpoints if ep not in found_endpoints]
+                    self.log_test("v3.0 Endpoints Check", False, f"Missing endpoints: {missing}")
+            else:
+                self.log_test("Control Dashboard Structure", False, f"Missing fields: {missing_fields}")
+        
+        return success
+
+    def test_file_management(self):
+        """Test native file management system"""
+        print("\n📁 Testing File Management...")
+        
+        # List files
+        success, data = self.run_test("List Files", "GET", "files")
+        
+        # Storage stats
+        success, data = self.run_test("Storage Stats", "GET", "storage/stats")
+        
+        # Compliance endpoints
+        success, data = self.run_test("Compliance Pending", "GET", "compliance/pending")
+        success, data = self.run_test("Compliance Stats", "GET", "compliance/stats")
+        
+        return success
+
     def run_all_tests(self):
         """Run all backend tests"""
         print("🚀 Starting Evolution PRO Backend API Tests")
