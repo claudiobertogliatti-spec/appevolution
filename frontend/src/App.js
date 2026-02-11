@@ -1539,6 +1539,7 @@ export default function App() {
   const partnerNav = [
     { id: "corso", label: "Videocorso", icon: PlayCircle },
     { id: "masterclass", label: "Masterclass", icon: Mic },
+    { id: "produzione", label: "Produzione Video", icon: Video },
     { id: "files", label: "I Miei File", icon: FolderOpen },
     { id: "brandkit", label: "Brand Kit", icon: Palette },
     { id: "calendario", label: "Calendario", icon: Calendar },
