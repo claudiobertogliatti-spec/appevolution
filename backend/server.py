@@ -268,7 +268,7 @@ class AdsCampaign(BaseModel):
     status: str = "active"  # active, paused, stopped
     hooks: List[str] = Field(default_factory=list)  # Generated hooks
     hook_gallery: Optional[Dict[str, str]] = None  # {pain, secret, result} for Meta
-    linkedin_content: Optional[Dict[str, str]] = None  # {thought_leadership, abm_targeting, lead_form}
+    linkedin_content: Optional[Dict[str, Any]] = None  # {thought_leadership, abm_targeting, lead_form}
     budget_daily: float = 0
     spend_total: float = 0
     leads: int = 0
