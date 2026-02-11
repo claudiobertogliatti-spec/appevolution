@@ -612,6 +612,202 @@ function ComplianceDashboard() {
 }
 
 // ============================================================================
+// GAIA FUNNEL DEPLOYER
+// ============================================================================
+
+function GaiaFunnelDeployer({ partners }) {
+  const [templates, setTemplates] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [activeCategory, setActiveCategory] = useState("all");
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newTemplate, setNewTemplate] = useState({ name: "", category: "lead_gen", share_link: "", description: "" });
+  
+  useEffect(() => {
+    loadTemplates();
+    loadCategories();
+  }, []);
+  
+  const loadTemplates = async () => {
+    try {
+      const res = await axios.get(`${API}/gaia/templates`);
+      setTemplates(res.data);
+    } catch (e) {
+      console.error("Failed to load templates:", e);
+    }
+  };
+  
+  const loadCategories = async () => {
+    try {
+      const res = await axios.get(`${API}/gaia/templates/categories`);
+      setCategories(res.data.categories);
+    } catch (e) {
+      console.error("Failed to load categories:", e);
+    }
+  };
+  
+  const handleAddTemplate = async () => {
+    if (!newTemplate.name || !newTemplate.share_link) return;
+    try {
+      const formData = new FormData();
+      formData.append("name", newTemplate.name);
+      formData.append("category", newTemplate.category);
+      formData.append("share_link", newTemplate.share_link);
+      formData.append("description", newTemplate.description);
+      await axios.post(`${API}/gaia/templates`, formData);
+      setShowAddForm(false);
+      setNewTemplate({ name: "", category: "lead_gen", share_link: "", description: "" });
+      loadTemplates();
+    } catch (e) {
+      console.error("Failed to add template:", e);
+    }
+  };
+  
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`${API}/gaia/templates/${id}`);
+      loadTemplates();
+    } catch (e) {
+      console.error("Failed to delete template:", e);
+    }
+  };
+  
+  const filteredTemplates = activeCategory === "all" ? templates : templates.filter(t => t.category === activeCategory);
+  const getCategoryIcon = (cat) => categories.find(c => c.id === cat)?.icon || "📁";
+  
+  return (
+    <div className="animate-slide-in space-y-6" data-testid="gaia-funnel-deployer">
+      {/* Header */}
+      <div className="bg-[#1a2332] rounded-xl p-6 border border-white/10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-[#F5C518] flex items-center justify-center">
+              <Zap className="w-6 h-6 text-black" />
+            </div>
+            <div>
+              <h2 className="text-xl font-extrabold">GAIA — Funnel Deployer</h2>
+              <p className="text-sm text-white/50">Template Systeme.io · Brand Kit Injector</p>
+            </div>
+          </div>
+          <button onClick={() => setShowAddForm(true)} className="btn-primary px-4 py-2 rounded-lg flex items-center gap-2">
+            <Plus className="w-4 h-4" /> Aggiungi Template
+          </button>
+        </div>
+      </div>
+      
+      {/* Add Template Form */}
+      {showAddForm && (
+        <div className="bg-[#1a2332] border border-[#F5C518]/30 rounded-xl p-6">
+          <h3 className="font-bold mb-4">Nuovo Template Systeme.io</h3>
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <input
+              type="text"
+              placeholder="Nome Template"
+              value={newTemplate.name}
+              onChange={e => setNewTemplate({...newTemplate, name: e.target.value})}
+              className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm"
+            />
+            <select
+              value={newTemplate.category}
+              onChange={e => setNewTemplate({...newTemplate, category: e.target.value})}
+              className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm"
+            >
+              {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+            </select>
+            <input
+              type="text"
+              placeholder="Systeme.io Share Link"
+              value={newTemplate.share_link}
+              onChange={e => setNewTemplate({...newTemplate, share_link: e.target.value})}
+              className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm col-span-2"
+            />
+            <textarea
+              placeholder="Descrizione (opzionale)"
+              value={newTemplate.description}
+              onChange={e => setNewTemplate({...newTemplate, description: e.target.value})}
+              className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm col-span-2 resize-none"
+              rows={2}
+            />
+          </div>
+          <div className="flex gap-2">
+            <button onClick={handleAddTemplate} className="btn-primary px-4 py-2 rounded-lg">Salva Template</button>
+            <button onClick={() => setShowAddForm(false)} className="btn-secondary px-4 py-2 rounded-lg">Annulla</button>
+          </div>
+        </div>
+      )}
+      
+      {/* Category Filter */}
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        <button
+          onClick={() => setActiveCategory("all")}
+          className={`px-4 py-2 rounded-full text-xs font-bold flex-shrink-0 transition-all ${activeCategory === "all" ? "bg-[#F5C518] text-black" : "bg-white/5 border border-white/10"}`}
+        >
+          Tutti ({templates.length})
+        </button>
+        {categories.map(c => (
+          <button
+            key={c.id}
+            onClick={() => setActiveCategory(c.id)}
+            className={`px-4 py-2 rounded-full text-xs font-bold flex-shrink-0 transition-all ${activeCategory === c.id ? "bg-[#F5C518] text-black" : "bg-white/5 border border-white/10"}`}
+          >
+            {c.icon} {c.name} ({templates.filter(t => t.category === c.id).length})
+          </button>
+        ))}
+      </div>
+      
+      {/* Templates Grid */}
+      {filteredTemplates.length === 0 ? (
+        <div className="bg-[#1a2332] border border-white/10 rounded-xl p-12 text-center">
+          <Link className="w-10 h-10 text-white/20 mx-auto mb-4" />
+          <div className="font-bold mb-1">Nessun template</div>
+          <div className="text-sm text-white/40">Aggiungi i tuoi Share Links di Systeme.io</div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4">
+          {filteredTemplates.map(t => (
+            <div key={t.id} className="bg-[#1a2332] border border-white/10 rounded-xl p-5 card-hover">
+              <div className="flex items-start justify-between mb-3">
+                <span className="text-2xl">{getCategoryIcon(t.category)}</span>
+                <span className="text-[10px] font-bold px-2 py-1 rounded bg-white/10 text-white/60">
+                  {categories.find(c => c.id === t.category)?.name || t.category}
+                </span>
+              </div>
+              <h3 className="font-bold mb-1">{t.name}</h3>
+              {t.description && <p className="text-xs text-white/40 mb-3">{t.description}</p>}
+              <div className="flex gap-2 mt-4">
+                <button 
+                  onClick={() => { navigator.clipboard.writeText(t.share_link); alert("Link copiato!"); }}
+                  className="flex-1 btn-secondary px-3 py-2 rounded-lg text-xs flex items-center justify-center gap-1"
+                >
+                  <Copy className="w-3 h-3" /> Copia Link
+                </button>
+                <a href={t.share_link} target="_blank" rel="noopener noreferrer"
+                  className="flex-1 btn-primary px-3 py-2 rounded-lg text-xs flex items-center justify-center gap-1"
+                >
+                  <ExternalLink className="w-3 h-3" /> Apri
+                </a>
+                <button onClick={() => handleDelete(t.id)} className="text-white/30 hover:text-red-400 p-2">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="mt-3 pt-3 border-t border-white/5">
+                <div className="text-[10px] font-bold text-white/30 mb-1">VARIABILI BRAND KIT</div>
+                <div className="flex flex-wrap gap-1">
+                  {(t.brand_variables || ["Nome_Partner", "Colore_Brand"]).map(v => (
+                    <span key={v} className="text-[10px] px-2 py-0.5 rounded bg-[#F5C518]/20 text-[#F5C518]">
+                      {`{{${v}}}`}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
 // ADMIN VIEWS
 // ============================================================================
 
