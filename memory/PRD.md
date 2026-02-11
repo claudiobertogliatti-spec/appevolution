@@ -75,17 +75,21 @@ Creare un'applicazione full-stack basata su Evolution PRO - una piattaforma di g
 
 ### P0 - Critico (Completato)
 - ✅ MVP funzionante end-to-end
+- ✅ ANDREA Video Pipeline con Whisper + FFmpeg
+- ✅ Native File Manager (eliminato Google Drive)
+- ✅ LUCA Compliance Dashboard
 
 ### P1 - Alta Priorità
+- [ ] YouTube Data API v3 integration per upload automatico
 - [ ] Autenticazione JWT (Admin vs Partner login)
-- [ ] Upload file reale su cloud storage (S3/Cloudinary)
-- [ ] Gestione stato moduli dal database
+- [ ] Notifiche Telegram per alert e video pronti
+- [ ] Systeme.io API per aggiornare area corsi partner
 
 ### P2 - Media Priorità
-- [ ] Dashboard ANDREA per editing pipeline
-- [ ] Notifiche email/Telegram per alert
+- [ ] Custom Intro/Outro templates per partner (upload assets)
+- [ ] Voce avatar generata via TTS per intro/outro
 - [ ] Export dati partner in CSV/PDF
-- [ ] Integrazione Systeme.io API
+- [ ] Cloudflare R2 migration per storage scalabile
 
 ### P3 - Bassa Priorità
 - [ ] Dark/Light mode toggle
@@ -94,6 +98,6 @@ Creare un'applicazione full-stack basata su Evolution PRO - una piattaforma di g
 - [ ] Analytics e reportistica avanzata
 
 ## Next Action Items
-1. Aggiungere autenticazione per separare accesso Admin/Partner
-2. Implementare upload file reale invece di simulato
-3. Collegare progressi moduli al database per persistenza
+1. **YouTube Integration**: Fornire Client ID/Secret per upload automatico video approvati
+2. **Template Branding**: Caricare file intro/outro personalizzati per partner
+3. **Telegram Bot**: Configurare notifiche real-time per alert e video completati
