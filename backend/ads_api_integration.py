@@ -393,7 +393,16 @@ class MartaCRMBridge:
         }
         
         await self.db.crm_sales.insert_one(sale_doc)
-        return sale_doc
+        
+        # Return without _id
+        return {
+            "id": sale_doc["id"],
+            "partner_id": partner_id,
+            "amount": amount,
+            "utm_source": utm_source,
+            "utm_campaign": utm_campaign,
+            "created_at": sale_doc["created_at"]
+        }
 
 # =============================================================================
 # UNIFIED ADS SERVICE
