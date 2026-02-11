@@ -1616,12 +1616,18 @@ export default function App() {
         {/* User Footer */}
         <div className="p-4 border-t border-white/5 flex items-center gap-3">
           <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold
-            ${mode === "admin" ? "bg-[#F5C518] text-black" : "bg-white/10 text-white"}`}>
-            {mode === "admin" ? "CB" : "MF"}
+            ${mode === "admin" 
+              ? (adminUser === "antonella" ? "bg-purple-500 text-white" : "bg-[#F5C518] text-black") 
+              : "bg-white/10 text-white"}`}>
+            {mode === "admin" ? (adminUser === "antonella" ? "AB" : "CB") : "MF"}
           </div>
           <div>
-            <div className="text-sm font-bold">{mode === "admin" ? "Claudio B." : "Marco Ferretti"}</div>
-            <div className="text-[10px] text-white/30">{mode === "admin" ? "Admin · Fondatore" : "Partner"}</div>
+            <div className="text-sm font-bold">
+              {mode === "admin" ? (adminUser === "antonella" ? "Antonella B." : "Claudio B.") : "Marco Ferretti"}
+            </div>
+            <div className="text-[10px] text-white/30">
+              {mode === "admin" ? (adminUser === "antonella" ? "Admin · Operations" : "Admin · Fondatore") : "Partner"}
+            </div>
           </div>
         </div>
       </div>
