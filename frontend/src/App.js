@@ -1727,6 +1727,7 @@ export default function App() {
             <>
               {nav === "corso" && <PartnerCourse partner={demoPartner} modules={modules} />}
               {nav === "masterclass" && <MasterclassBuilder partner={demoPartner} />}
+              {nav === "produzione" && <ProduzioneVideo partner={demoPartner} />}
               {nav === "files" && <PartnerFileManager partner={demoPartner} />}
               {nav === "brandkit" && <BrandKitEditor partner={demoPartner} />}
               {nav === "calendario" && <CalendarioEditoriale partner={demoPartner} />}
@@ -1735,7 +1736,9 @@ export default function App() {
               {nav === "supporto" && (
                 getTutorForPhase(demoPartner?.phase) === "STEFANIA" 
                   ? <StefaniaChat partner={demoPartner} />
-                  : <PartnerChat partner={demoPartner} />
+                  : getTutorForPhase(demoPartner?.phase) === "ANDREA"
+                    ? <AndreaChat partner={demoPartner} />
+                    : <PartnerChat partner={demoPartner} />
               )}
             </>
           )}
