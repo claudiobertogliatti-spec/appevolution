@@ -1636,8 +1636,25 @@ export default function App() {
       <div className="flex-1 flex flex-col overflow-hidden bg-[#0B0E14]">
         {/* Topbar */}
         <div className="h-14 bg-[#1a2332] border-b border-white/5 px-6 flex items-center justify-between flex-shrink-0">
-          <h1 className="text-lg font-extrabold" data-testid="page-title">{titles[nav]}</h1>
+          <h1 className="text-lg font-extrabold flex items-center gap-2" data-testid="page-title">
+            {mode === "admin" && (
+              <span className={`text-xs font-bold px-2 py-0.5 rounded ${adminUser === "antonella" ? "bg-purple-500/20 text-purple-400" : "bg-white/10 text-white/50"}`}>
+                {adminUser === "antonella" ? "👩 Antonella" : "👤 Claudio"}
+              </span>
+            )}
+            {titles[nav]}
+          </h1>
           <div className="flex items-center gap-3">
+            {mode === "admin" && <NotificationBell onNavigate={setNav} />}
+            {mode === "admin" && nav === "partner" && (
+              <button
+                onClick={() => setShowNuovoPartner(true)}
+                className="flex items-center gap-2 bg-[#F5C518] text-black rounded-lg px-4 py-2 text-xs font-bold hover:bg-[#e0a800] transition-colors"
+                data-testid="nuovo-partner-btn"
+              >
+                <UserPlus className="w-4 h-4" /> Nuovo Partner
+              </button>
+            )}
             {alerts.length > 0 && mode === "admin" && (
               <button onClick={() => setNav("alert")}
                 className="flex items-center gap-2 bg-red-500/20 border border-red-500/30 rounded-full px-3 py-1.5 text-xs font-bold text-[#EF4444]"
