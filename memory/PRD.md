@@ -174,7 +174,10 @@ Partner Phase:
 ## Prioritized Backlog
 
 ### P0 - Completato ✅
-- [x] Tutte le funzionalità V1.0 - V6.0
+- [x] Tutte le funzionalità V1.0 - V7.0
+- [x] STEFANIA Copy Factory con Admin Review
+- [x] War Mode Multi-Channel (Meta/LinkedIn)
+- [x] Auto-Pivot Cross-Platform Analysis
 
 ### P1 - Alta Priorità
 - [ ] Autenticazione JWT (Admin vs Partner login)
@@ -182,12 +185,33 @@ Partner Phase:
 - [ ] Deploy su `app.evolution-pro.it`
 
 ### P2 - Media Priorità
+- [ ] Collegamento API reale Meta/LinkedIn Ads
 - [ ] Systeme.io API reale
 - [ ] Knowledge Base: VALENTINA/STEFANIA/ANDREA citano moduli specifici
 - [ ] Custom Intro/Outro video templates
 
 ### P3 - Bassa Priorità
 - [ ] Mobile responsive optimization
+- [ ] A/B testing automatico degli hook
+
+---
+
+## API Endpoints (War Mode v7.0)
+
+### STEFANIA Copy Factory
+- `GET /api/stefania/success-cases` - Database Successi EVO PRO
+- `GET /api/stefania/golden-rules` - 10 Regole d'Oro
+- `POST /api/stefania/generate-draft` - Drafting Engine AI
+- `GET /api/stefania/admin-review/pending` - Script in attesa revisione
+- `POST /api/masterclass/script/{id}/admin-edit` - Edit Admin
+- `POST /api/masterclass/script/{id}/partner-approve` - Approvazione Partner
+
+### War Mode Multi-Channel
+- `POST /api/stefania/war-mode/hook-gallery` - Genera 3 Hook (Pain/Secret/Result)
+- `POST /api/stefania/war-mode/linkedin-content` - Thought Leadership/ABM/Lead Gen
+- `POST /api/stefania/war-mode/cross-platform-analysis` - Auto-Pivot Analysis
+- `GET /api/stefania/war-mode/dashboard` - Dashboard completa
+- `POST /api/stefania/war-mode/generate-utm` - UTM Generator
 
 ---
 
