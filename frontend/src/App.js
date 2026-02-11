@@ -1617,6 +1617,7 @@ export default function App() {
               {nav === "agenti" && <AdminAgents agents={agents} />}
               {nav === "partner" && <AdminPartners partners={partners} onSelect={setSelectedPartner} />}
               {nav === "andrea" && <AndreaPipeline partners={partners} />}
+              {nav === "gaia" && <GaiaFunnelDeployer partners={partners} />}
               {nav === "compliance" && <ComplianceDashboard />}
               {nav === "alert" && <AdminAlerts alerts={alerts} onDismiss={dismissAlert} />}
             </>
