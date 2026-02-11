@@ -1,34 +1,245 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --evo-bg: #0B0E14;
+  --evo-surface: #1a2332;
+  --evo-primary: #F5C518;
+  --evo-primary-dark: #e0a800;
+  --evo-text: #F8FAFC;
+  --evo-text-muted: #94A3B8;
+  --evo-border: rgba(255, 255, 255, 0.1);
+  --evo-success: #10B981;
+  --evo-warning: #F59E0B;
+  --evo-error: #EF4444;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+body {
+  font-family: 'Nunito', sans-serif;
+  background: var(--evo-bg);
+  color: var(--evo-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.App-link {
-    color: #61dafb;
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+::-webkit-scrollbar-track {
+  background: var(--evo-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Font Classes */
+.font-mono {
+  font-family: 'Space Mono', monospace !important;
+}
+
+/* Animation Classes */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.5); }
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes border-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 2s infinite;
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
+
+.animate-border-pulse {
+  animation: border-pulse 1.5s infinite;
+}
+
+/* Typing Dots Animation */
+@keyframes typing-dot {
+  0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+  40% { transform: scale(1.2); opacity: 1; }
+}
+
+.typing-dot {
+  animation: typing-dot 0.9s infinite;
+}
+
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* Glass Effect */
+.glass {
+  backdrop-filter: blur(16px);
+  background: rgba(26, 35, 50, 0.85);
+  border: 1px solid var(--evo-border);
+}
+
+/* Custom Focus */
+input:focus, textarea:focus, button:focus {
+  outline: none;
+}
+
+/* YouTube Player */
+.yt-player-wrap {
+  position: relative;
+  padding-bottom: 56.25%;
+  height: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #000;
+}
+
+.yt-player-wrap iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 12px;
+}
+
+/* Status Badge Variants */
+.status-active {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10B981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.status-idle {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94A3B8;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.status-alert {
+  background: rgba(239, 68, 68, 0.15);
+  color: #EF4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Phase Stepper */
+.phase-dot {
+  transition: all 0.3s ease;
+}
+
+.phase-dot.done {
+  background: var(--evo-success);
+  color: white;
+}
+
+.phase-dot.current {
+  background: var(--evo-primary);
+  color: black;
+  box-shadow: 0 0 0 4px rgba(245, 197, 24, 0.3);
+}
+
+.phase-dot.pending {
+  background: var(--evo-surface);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: var(--evo-text-muted);
+}
+
+/* Card Hover Effects */
+.card-hover {
+  transition: all 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  border-color: rgba(245, 197, 24, 0.3);
+}
+
+/* Button Variants */
+.btn-primary {
+  background: var(--evo-primary);
+  color: black;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: var(--evo-primary-dark);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--evo-border);
+  color: var(--evo-text-muted);
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: var(--evo-text);
+}
+
+/* Sidebar Active Item */
+.sidebar-item {
+  transition: all 0.15s ease;
+}
+
+.sidebar-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-item.active {
+  background: var(--evo-primary);
+  color: black;
+}
+
+/* Progress Bar */
+.progress-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+/* Chat Bubble */
+.chat-bubble-user {
+  background: var(--evo-surface);
+  border-radius: 16px 16px 4px 16px;
+}
+
+.chat-bubble-assistant {
+  background: rgba(245, 197, 24, 0.1);
+  border: 1px solid rgba(245, 197, 24, 0.2);
+  border-radius: 16px 16px 16px 4px;
 }
