@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Evolution PRO Backend API Testing
-Tests all backend endpoints for the partner management platform
+Evolution PRO OS v3.0 - Backend API Testing Suite
+Tests all endpoints for YouTube integration, GAIA Funnel Deployer, TTS, and core functionality
 """
 
 import requests
@@ -16,6 +16,7 @@ class EvolutionProAPITester:
         self.tests_run = 0
         self.tests_passed = 0
         self.test_results = []
+        self.failed_tests = []
 
     def log_test(self, name: str, success: bool, details: str = "", response_data: Any = None):
         """Log test result"""
