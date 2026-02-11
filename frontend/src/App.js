@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import "@/App.css";
 import axios from "axios";
 import { 
@@ -6,7 +6,9 @@ import {
   PlayCircle, FolderOpen, FileText, MessageCircle, 
   ChevronDown, ChevronRight, Send, ArrowLeft, 
   Download, ExternalLink, Check, Clock, AlertCircle,
-  TrendingUp, DollarSign, Activity
+  TrendingUp, DollarSign, Activity, Upload, Trash2,
+  FileVideo, FileCheck, Loader2, CheckCircle, XCircle,
+  Youtube, HardDrive, Shield, Eye, RefreshCw
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -45,7 +47,7 @@ function Logo() {
           <span className="text-[#F5C518]">volution</span>Pro
         </div>
         <div className="text-[10px] text-white/30 uppercase tracking-[3px] font-bold">
-          System Platform
+          OS Platform
         </div>
       </div>
     </div>
@@ -204,6 +206,388 @@ function AlertItem({ alert, onDismiss }) {
 }
 
 // ============================================================================
+// ANDREA VIDEO PIPELINE
+// ============================================================================
+
+function AndreaPipeline({ partners }) {
+  const [jobs, setJobs] = useState([]);
+  const [selectedPartner, setSelectedPartner] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const fileInputRef = useRef(null);
+  
+  useEffect(() => {
+    loadJobs();
+    const interval = setInterval(loadJobs, 5000); // Poll every 5s
+    return () => clearInterval(interval);
+  }, []);
+  
+  const loadJobs = async () => {
+    try {
+      const res = await axios.get(`${API}/videos/jobs`);
+      setJobs(res.data);
+    } catch (e) {
+      console.error("Failed to load video jobs:", e);
+    }
+  };
+  
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !selectedPartner) return;
+    
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("partner_id", selectedPartner.id);
+      formData.append("category", "video");
+      
+      const uploadRes = await axios.post(`${API}/files/upload`, formData);
+      
+      if (uploadRes.data.success) {
+        // Start processing
+        setProcessing(true);
+        await axios.post(`${API}/videos/process`, {
+          partner_id: selectedPartner.id,
+          partner_name: selectedPartner.name,
+          input_file: uploadRes.data.stored_name,
+          auto_trim: true,
+          remove_fillers: true,
+          apply_speed: true,
+          normalize: true,
+          add_branding: true
+        });
+        
+        loadJobs();
+      }
+    } catch (e) {
+      console.error("Upload failed:", e);
+    } finally {
+      setUploading(false);
+      setProcessing(false);
+    }
+  };
+  
+  const handleApprove = async (jobId) => {
+    try {
+      await axios.post(`${API}/videos/jobs/${jobId}/approve`);
+      loadJobs();
+    } catch (e) {
+      console.error("Approve failed:", e);
+    }
+  };
+  
+  const handleDelete = async (jobId) => {
+    try {
+      await axios.delete(`${API}/videos/jobs/${jobId}`);
+      loadJobs();
+    } catch (e) {
+      console.error("Delete failed:", e);
+    }
+  };
+  
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "queued": return "bg-white/10 text-white/60";
+      case "processing": return "bg-blue-500/20 text-blue-400";
+      case "completed": return "bg-yellow-500/20 text-yellow-400";
+      case "approved": return "bg-green-500/20 text-green-400";
+      case "failed": return "bg-red-500/20 text-red-400";
+      default: return "bg-white/10 text-white/40";
+    }
+  };
+  
+  return (
+    <div className="animate-slide-in space-y-6" data-testid="andrea-pipeline">
+      {/* Header */}
+      <div className="bg-[#1a2332] rounded-xl p-6 border border-white/10">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="w-12 h-12 rounded-xl bg-[#F5C518] flex items-center justify-center">
+            <Film className="w-6 h-6 text-black" />
+          </div>
+          <div>
+            <h2 className="text-xl font-extrabold">ANDREA — Surgical Cut Pipeline</h2>
+            <p className="text-sm text-white/50">Auto-Trim · Pace-Maker 1.15x · Branding · Normalizzazione -14 LUFS</p>
+          </div>
+        </div>
+        
+        {/* Partner Selector */}
+        <div className="flex gap-2 flex-wrap mb-4">
+          {partners.map(p => (
+            <button
+              key={p.id}
+              onClick={() => setSelectedPartner(p)}
+              className={`px-4 py-2 rounded-full text-xs font-bold transition-all
+                ${selectedPartner?.id === p.id 
+                  ? "bg-[#F5C518] text-black" 
+                  : "bg-white/5 border border-white/10 text-white/60 hover:border-[#F5C518]/30"}`}>
+              {p.name}
+            </button>
+          ))}
+        </div>
+        
+        {/* Upload Zone */}
+        {selectedPartner && (
+          <div 
+            onClick={() => fileInputRef.current?.click()}
+            className="border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:border-[#F5C518]/30 cursor-pointer transition-colors">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="video/*"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            {uploading || processing ? (
+              <div className="flex flex-col items-center">
+                <Loader2 className="w-10 h-10 text-[#F5C518] animate-spin mb-4" />
+                <div className="font-bold">{uploading ? "Caricamento in corso..." : "Processing con Whisper + FFmpeg..."}</div>
+              </div>
+            ) : (
+              <>
+                <Upload className="w-10 h-10 text-white/20 mx-auto mb-4" />
+                <div className="font-bold mb-1">Carica video per {selectedPartner.name}</div>
+                <div className="text-sm text-white/40">MP4, MOV, AVI — Max 500MB</div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+      
+      {/* Video Jobs Queue */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-bold text-white/40 uppercase tracking-wider flex items-center gap-2">
+          <FileVideo className="w-4 h-4" /> Coda Video ({jobs.length})
+          <button onClick={loadJobs} className="ml-auto text-white/30 hover:text-white">
+            <RefreshCw className="w-4 h-4" />
+          </button>
+        </h3>
+        
+        {jobs.length === 0 ? (
+          <div className="bg-[#1a2332] border border-white/10 rounded-xl p-8 text-center">
+            <Film className="w-10 h-10 text-white/20 mx-auto mb-4" />
+            <div className="font-bold mb-1">Nessun video in coda</div>
+            <div className="text-sm text-white/40">Seleziona un partner e carica un video</div>
+          </div>
+        ) : (
+          jobs.map(job => (
+            <div key={job.id} className="bg-[#1a2332] border border-white/10 rounded-xl p-4 card-hover">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-lg bg-black/50 flex items-center justify-center">
+                  {job.status === "processing" ? (
+                    <Loader2 className="w-6 h-6 text-[#F5C518] animate-spin" />
+                  ) : job.status === "approved" ? (
+                    <CheckCircle className="w-6 h-6 text-green-400" />
+                  ) : job.status === "failed" ? (
+                    <XCircle className="w-6 h-6 text-red-400" />
+                  ) : (
+                    <Film className="w-6 h-6 text-white/40" />
+                  )}
+                </div>
+                
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-bold">{job.partner_name}</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${getStatusColor(job.status)}`}>
+                      {job.status.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="text-xs text-white/40 mb-2">{job.input_file}</div>
+                  
+                  {job.processing_result && (
+                    <div className="flex gap-4 text-xs">
+                      {job.processing_result.original_duration && (
+                        <span className="text-white/40">
+                          Originale: <span className="font-mono text-white/60">{Math.round(job.processing_result.original_duration)}s</span>
+                        </span>
+                      )}
+                      {job.processing_result.final_duration && (
+                        <span className="text-white/40">
+                          Finale: <span className="font-mono text-green-400">{Math.round(job.processing_result.final_duration)}s</span>
+                        </span>
+                      )}
+                      {job.processing_result.time_saved && (
+                        <span className="text-green-400 font-bold">
+                          -{Math.round(job.processing_result.time_saved)}s risparmiati
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex gap-2">
+                  {job.status === "completed" && (
+                    <>
+                      <button 
+                        onClick={() => window.open(`${API}/files/videos/processed/${job.output_file}`, "_blank")}
+                        className="btn-secondary px-3 py-2 rounded-lg flex items-center gap-2 text-xs">
+                        <Eye className="w-4 h-4" /> Preview
+                      </button>
+                      <button 
+                        onClick={() => handleApprove(job.id)}
+                        className="btn-primary px-4 py-2 rounded-lg flex items-center gap-2 text-xs">
+                        <Check className="w-4 h-4" /> APPROVA
+                      </button>
+                    </>
+                  )}
+                  
+                  {job.status === "approved" && (
+                    <div className="flex items-center gap-2 text-green-400 text-xs font-bold">
+                      <Youtube className="w-4 h-4" /> Pronto per YouTube
+                    </div>
+                  )}
+                  
+                  <button 
+                    onClick={() => handleDelete(job.id)}
+                    className="text-white/30 hover:text-red-400 p-2">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              
+              {/* Processing Steps */}
+              {job.processing_result?.processing_steps && (
+                <div className="mt-4 pt-4 border-t border-white/5">
+                  <div className="flex gap-2 flex-wrap">
+                    {job.processing_result.processing_steps.map((step, i) => (
+                      <span key={i} className="text-[10px] font-bold px-2 py-1 rounded bg-white/5 text-white/40">
+                        {step.step === "silence_detection" && `🔇 ${step.silences_found} silenzi`}
+                        {step.step === "filler_detection" && `🗣️ ${step.fillers_found} intercalari`}
+                        {step.step === "trim_and_speed" && `⚡ ${step.speed_factor}x`}
+                        {step.step === "audio_normalization" && `🔊 ${step.target_lufs} LUFS`}
+                        {step.step === "branding" && `🎬 Intro/Outro`}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// COMPLIANCE DASHBOARD (LUCA)
+// ============================================================================
+
+function ComplianceDashboard() {
+  const [docs, setDocs] = useState([]);
+  const [stats, setStats] = useState({});
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    loadData();
+  }, []);
+  
+  const loadData = async () => {
+    try {
+      const [docsRes, statsRes] = await Promise.all([
+        axios.get(`${API}/compliance/pending`),
+        axios.get(`${API}/compliance/stats`)
+      ]);
+      setDocs(docsRes.data.documents);
+      setStats(statsRes.data);
+    } catch (e) {
+      console.error("Failed to load compliance data:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleVerify = async (filename) => {
+    try {
+      await axios.post(`${API}/files/documents/${filename}/verify`);
+      loadData();
+    } catch (e) {
+      console.error("Verify failed:", e);
+    }
+  };
+  
+  const handleReject = async (filename) => {
+    try {
+      await axios.delete(`${API}/files/documents/${filename}/reject`);
+      loadData();
+    } catch (e) {
+      console.error("Reject failed:", e);
+    }
+  };
+  
+  return (
+    <div className="animate-slide-in space-y-6" data-testid="compliance-dashboard">
+      {/* Header */}
+      <div className="bg-[#1a2332] rounded-xl p-6 border border-white/10">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-[#F5C518] flex items-center justify-center">
+            <Shield className="w-6 h-6 text-black" />
+          </div>
+          <div>
+            <h2 className="text-xl font-extrabold">LUCA — Compliance Dashboard</h2>
+            <p className="text-sm text-white/50">Verifica documenti partner · Controllo qualità</p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Stats */}
+      <div className="grid grid-cols-4 gap-4">
+        <KPICard label="Documenti Totali" value={stats.total_documents || 0} icon={FileText} />
+        <KPICard label="Da Verificare" value={stats.pending_count || 0} delta={stats.pending_count > 0 ? "Richiede attenzione" : "OK"} deltaType={stats.pending_count > 0 ? "warn" : "up"} icon={Clock} />
+        <KPICard label="Verificati" value={stats.verified_count || 0} icon={FileCheck} />
+        <KPICard label="Tasso Verifica" value={`${stats.verification_rate || 0}%`} icon={TrendingUp} />
+      </div>
+      
+      {/* Pending Documents */}
+      <div>
+        <h3 className="text-sm font-bold text-white/40 uppercase tracking-wider mb-4">Documenti da Verificare</h3>
+        
+        {docs.length === 0 ? (
+          <div className="bg-[#1a2332] border border-white/10 rounded-xl p-8 text-center">
+            <CheckCircle className="w-10 h-10 text-green-400 mx-auto mb-4" />
+            <div className="font-bold mb-1">Nessun documento in attesa</div>
+            <div className="text-sm text-white/40">Tutti i documenti sono stati verificati</div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {docs.map(doc => (
+              <div key={doc.filename} className="bg-[#1a2332] border border-white/10 rounded-xl p-4 flex items-center gap-4 card-hover">
+                <div className="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-blue-400" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-bold mb-1">{doc.filename}</div>
+                  <div className="text-xs text-white/40">
+                    Partner: {doc.partner_id} · {doc.size_readable} · {new Date(doc.created_at).toLocaleDateString("it-IT")}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => window.open(`${API}/${doc.internal_url}`, "_blank")}
+                    className="btn-secondary px-3 py-2 rounded-lg flex items-center gap-2 text-xs">
+                    <Eye className="w-4 h-4" /> Anteprima
+                  </button>
+                  <button 
+                    onClick={() => handleVerify(doc.filename)}
+                    className="bg-green-500/20 text-green-400 px-4 py-2 rounded-lg flex items-center gap-2 text-xs font-bold hover:bg-green-500/30 transition-colors">
+                    <Check className="w-4 h-4" /> Verifica
+                  </button>
+                  <button 
+                    onClick={() => handleReject(doc.filename)}
+                    className="bg-red-500/20 text-red-400 px-4 py-2 rounded-lg flex items-center gap-2 text-xs font-bold hover:bg-red-500/30 transition-colors">
+                    <XCircle className="w-4 h-4" /> Rifiuta
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
 // ADMIN VIEWS
 // ============================================================================
 
@@ -217,6 +601,24 @@ function AdminOverview({ stats, agents, partners, alerts }) {
         <KPICard label="Revenue Totale" value={`€${stats.total_revenue?.toLocaleString() || 0}`} delta="+12% vs mese scorso" deltaType="up" icon={DollarSign} />
         <KPICard label="Alert Attivi" value={stats.alerts_count} delta={stats.alerts_count > 0 ? "Richiede attenzione" : "Tutto OK"} deltaType={stats.alerts_count > 0 ? "warn" : "up"} icon={AlertTriangle} />
       </div>
+      
+      {/* Video Stats */}
+      {stats.videos && (
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-[#1a2332] border border-white/10 rounded-xl p-4 border-t-4 border-t-blue-500">
+            <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-2">Video in Elaborazione</div>
+            <div className="font-mono text-2xl font-bold text-blue-400">{stats.videos.processing}</div>
+          </div>
+          <div className="bg-[#1a2332] border border-white/10 rounded-xl p-4 border-t-4 border-t-yellow-500">
+            <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-2">In Attesa Approvazione</div>
+            <div className="font-mono text-2xl font-bold text-yellow-400">{stats.videos.pending_approval}</div>
+          </div>
+          <div className="bg-[#1a2332] border border-white/10 rounded-xl p-4 border-t-4 border-t-green-500">
+            <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-2">Video Approvati</div>
+            <div className="font-mono text-2xl font-bold text-green-400">{stats.videos.approved}</div>
+          </div>
+        </div>
+      )}
       
       {/* Agents Grid */}
       <div>
@@ -313,6 +715,181 @@ function AdminAlerts({ alerts, onDismiss }) {
         </div>
       ) : (
         alerts.map(a => <AlertItem key={a.id} alert={a} onDismiss={onDismiss} />)
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// PARTNER FILE MANAGER (Native)
+// ============================================================================
+
+function PartnerFileManager({ partner }) {
+  const [files, setFiles] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [storageStats, setStorageStats] = useState({});
+  const fileInputRef = useRef(null);
+  
+  useEffect(() => {
+    loadFiles();
+    loadStorageStats();
+  }, [partner]);
+  
+  const loadFiles = async () => {
+    try {
+      const res = await axios.get(`${API}/files?partner_id=${partner.id}`);
+      setFiles(res.data);
+    } catch (e) {
+      console.error("Failed to load files:", e);
+    }
+  };
+  
+  const loadStorageStats = async () => {
+    try {
+      const res = await axios.get(`${API}/files/storage/stats`);
+      setStorageStats(res.data);
+    } catch (e) {
+      console.error("Failed to load storage stats:", e);
+    }
+  };
+  
+  const handleUpload = async (e, category) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("partner_id", partner.id);
+      formData.append("category", category);
+      
+      await axios.post(`${API}/files/upload`, formData);
+      loadFiles();
+      loadStorageStats();
+    } catch (e) {
+      console.error("Upload failed:", e);
+    } finally {
+      setUploading(false);
+    }
+  };
+  
+  const videos = files.filter(f => f.category === "video");
+  const documents = files.filter(f => f.category === "document");
+  
+  return (
+    <div className="animate-slide-in space-y-6" data-testid="partner-file-manager">
+      {/* Info Bar */}
+      <div className="bg-[#F5C518]/10 border border-[#F5C518]/30 rounded-xl p-4 flex items-center gap-3">
+        <HardDrive className="w-5 h-5 text-[#F5C518]" />
+        <span className="text-sm font-semibold">File Manager Interno — Nessuna dipendenza da Google Drive</span>
+        <span className="ml-auto text-xs text-white/40">
+          Spazio: {storageStats.total_size_readable || "0 B"}
+        </span>
+      </div>
+      
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-[#1a2332] border border-white/10 rounded-xl p-4 text-center border-t-4 border-t-[#F5C518]">
+          <div className="font-mono text-2xl font-bold">{videos.length}</div>
+          <div className="text-xs text-white/40 font-semibold mt-1">Video</div>
+        </div>
+        <div className="bg-[#1a2332] border border-white/10 rounded-xl p-4 text-center border-t-4 border-t-blue-500">
+          <div className="font-mono text-2xl font-bold">{documents.length}</div>
+          <div className="text-xs text-white/40 font-semibold mt-1">Documenti</div>
+        </div>
+        <div className="bg-[#1a2332] border border-white/10 rounded-xl p-4 text-center border-t-4 border-t-green-500">
+          <div className="font-mono text-2xl font-bold">{files.filter(f => f.status === "verified" || f.status === "approved").length}</div>
+          <div className="text-xs text-white/40 font-semibold mt-1">Verificati</div>
+        </div>
+      </div>
+      
+      {/* Upload Zones */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Video Upload */}
+        <div className="bg-[#1a2332] border border-white/10 rounded-xl p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <FileVideo className="w-5 h-5 text-[#F5C518]" />
+            <h3 className="font-bold">Carica Video</h3>
+          </div>
+          <div 
+            onClick={() => document.getElementById("video-upload").click()}
+            className="border-2 border-dashed border-white/10 rounded-xl p-6 text-center hover:border-[#F5C518]/30 cursor-pointer transition-colors">
+            <input
+              id="video-upload"
+              type="file"
+              accept="video/*"
+              onChange={(e) => handleUpload(e, "video")}
+              className="hidden"
+            />
+            <Upload className="w-8 h-8 text-white/20 mx-auto mb-3" />
+            <div className="text-sm font-semibold">MP4, MOV, AVI</div>
+            <div className="text-xs text-white/40">Max 500MB</div>
+          </div>
+        </div>
+        
+        {/* Document Upload */}
+        <div className="bg-[#1a2332] border border-white/10 rounded-xl p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <FileText className="w-5 h-5 text-blue-400" />
+            <h3 className="font-bold">Carica Documenti</h3>
+          </div>
+          <div 
+            onClick={() => document.getElementById("doc-upload").click()}
+            className="border-2 border-dashed border-white/10 rounded-xl p-6 text-center hover:border-blue-500/30 cursor-pointer transition-colors">
+            <input
+              id="doc-upload"
+              type="file"
+              accept=".pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt"
+              onChange={(e) => handleUpload(e, "document")}
+              className="hidden"
+            />
+            <Upload className="w-8 h-8 text-white/20 mx-auto mb-3" />
+            <div className="text-sm font-semibold">PDF, DOCX, XLSX</div>
+            <div className="text-xs text-white/40">Max 50MB</div>
+          </div>
+        </div>
+      </div>
+      
+      {uploading && (
+        <div className="bg-[#F5C518]/10 border border-[#F5C518]/30 rounded-xl p-4 flex items-center gap-3">
+          <Loader2 className="w-5 h-5 text-[#F5C518] animate-spin" />
+          <span className="font-semibold">Caricamento in corso...</span>
+        </div>
+      )}
+      
+      {/* File List */}
+      {files.length > 0 && (
+        <div className="bg-[#1a2332] border border-white/10 rounded-xl overflow-hidden">
+          <div className="p-4 border-b border-white/5 bg-white/5">
+            <h3 className="font-bold">I Tuoi File ({files.length})</h3>
+          </div>
+          <div className="divide-y divide-white/5">
+            {files.map(file => (
+              <div key={file.filename} className="p-4 flex items-center gap-4 hover:bg-white/5 transition-colors">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${file.category === "video" ? "bg-yellow-500/20" : "bg-blue-500/20"}`}>
+                  {file.category === "video" ? <FileVideo className="w-5 h-5 text-yellow-400" /> : <FileText className="w-5 h-5 text-blue-400" />}
+                </div>
+                <div className="flex-1">
+                  <div className="font-semibold text-sm">{file.filename}</div>
+                  <div className="text-xs text-white/40">{file.size_readable} · {new Date(file.created_at).toLocaleDateString("it-IT")}</div>
+                </div>
+                <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${
+                  file.status === "verified" || file.status === "approved" ? "bg-green-500/20 text-green-400" :
+                  file.status === "pending" || file.status === "raw" ? "bg-yellow-500/20 text-yellow-400" :
+                  "bg-white/10 text-white/40"
+                }`}>
+                  {file.status.toUpperCase()}
+                </span>
+                <button 
+                  onClick={() => window.open(`${API}${file.internal_url}`, "_blank")}
+                  className="btn-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-1">
+                  <Download className="w-3 h-3" /> Scarica
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
@@ -449,8 +1026,7 @@ function PartnerCourse({ partner, modules }) {
                     key={li}
                     onClick={() => { setActiveLesson(li); setPlaying(false); }}
                     className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-white/5 last:border-0
-                      ${activeLesson === li ? "bg-[#F5C518]/10" : "hover:bg-white/5"}`}
-                    data-testid={`lesson-${mi}-${li}`}>
+                      ${activeLesson === li ? "bg-[#F5C518]/10" : "hover:bg-white/5"}`}>
                     <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold
                       ${l.done ? "bg-green-500/20 text-green-400" : activeLesson === li ? "bg-[#F5C518] text-black" : "bg-white/10 text-white/40"}`}>
                       {l.done ? "✓" : li + 1}
@@ -468,88 +1044,6 @@ function PartnerCourse({ partner, modules }) {
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-function PartnerFiles({ partner }) {
-  const folders = [
-    { id: "F1", label: "01 · Attivazione", icon: "📋", status: "ok", files: 2 },
-    { id: "F2", label: "02 · Posizionamento", icon: "🎯", status: "pending", files: 1 },
-    { id: "F3", label: "03 · Masterclass", icon: "🎥", status: "missing", files: 0 },
-    { id: "F4", label: "04 · Struttura Corso", icon: "🗂", status: "ok", files: 1 },
-    { id: "F5", label: "05 · Produzione Video", icon: "🎬", status: "pending", files: 0 },
-  ];
-  
-  const [activeFolder, setActiveFolder] = useState("F1");
-  const folder = folders.find(f => f.id === activeFolder);
-  
-  return (
-    <div className="animate-slide-in" data-testid="partner-files">
-      {/* Info Bar */}
-      <div className="bg-[#F5C518]/10 border border-[#F5C518]/30 rounded-xl p-4 mb-6 flex items-center gap-3">
-        <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse-dot" />
-        <span className="text-sm font-semibold">LUCA sta monitorando i tuoi materiali — riceverai un alert se manca qualcosa</span>
-      </div>
-      
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-[#1a2332] border border-white/10 rounded-xl p-4 text-center border-t-4 border-t-[#F5C518]">
-          <div className="font-mono text-2xl font-bold">4</div>
-          <div className="text-xs text-white/40 font-semibold mt-1">File Caricati</div>
-        </div>
-        <div className="bg-[#1a2332] border border-white/10 rounded-xl p-4 text-center border-t-4 border-t-[#EF4444]">
-          <div className="font-mono text-2xl font-bold text-[#EF4444]">1</div>
-          <div className="text-xs text-white/40 font-semibold mt-1">File Mancanti</div>
-        </div>
-        <div className="bg-[#1a2332] border border-white/10 rounded-xl p-4 text-center border-t-4 border-t-[#10B981]">
-          <div className="font-mono text-2xl font-bold">5</div>
-          <div className="text-xs text-white/40 font-semibold mt-1">Cartelle Attive</div>
-        </div>
-      </div>
-      
-      {/* Folder Navigation */}
-      <div className="flex gap-2 overflow-x-auto pb-4 mb-4">
-        {folders.map(f => (
-          <button
-            key={f.id}
-            onClick={() => setActiveFolder(f.id)}
-            className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all
-              ${activeFolder === f.id ? "bg-[#F5C518] text-black" : "bg-[#1a2332] border border-white/10 text-white/60 hover:border-[#F5C518]/30"}`}
-            data-testid={`folder-${f.id}`}>
-            {f.icon} {f.label}
-            {f.status === "missing" && <span className="ml-2 text-[#EF4444]">⚠</span>}
-            {f.status === "ok" && <span className="ml-2 text-[#10B981]">✓</span>}
-          </button>
-        ))}
-      </div>
-      
-      {/* Active Folder */}
-      {folder && (
-        <div className="bg-[#1a2332] border border-white/10 rounded-xl overflow-hidden">
-          <div className="p-4 border-b border-white/5 bg-white/5 flex items-center gap-3">
-            <span className="text-xl">{folder.icon}</span>
-            <div className="flex-1">
-              <div className="font-bold">{folder.label}</div>
-              <div className="text-xs text-white/40">Fase {folder.id} — {PHASE_LABELS[folder.id]}</div>
-            </div>
-            <span className={`text-xs font-bold px-3 py-1 rounded-full
-              ${folder.status === "ok" ? "bg-green-500/20 text-green-400" : folder.status === "pending" ? "bg-yellow-500/20 text-yellow-400" : "bg-red-500/20 text-red-400"}`}>
-              {folder.status === "ok" ? "✓ Completo" : folder.status === "pending" ? "In corso" : "⚠ Mancanti"}
-            </span>
-          </div>
-          
-          {/* Upload Zone */}
-          <div className="p-4">
-            <div className="border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:border-[#F5C518]/30 transition-colors cursor-pointer">
-              <div className="text-3xl mb-3">☁️</div>
-              <div className="font-bold mb-1">Trascina i file qui o clicca per caricare</div>
-              <div className="text-sm text-white/40">PDF, DOCX, MP4 — Max 100MB</div>
-              <button className="btn-primary px-6 py-2 rounded-lg mt-4">Seleziona file</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -592,7 +1086,6 @@ function PartnerChat({ partner }) {
   ];
   
   useEffect(() => {
-    // Initial message
     setMessages([{
       role: "assistant",
       content: `Ciao ${partner.name.split(" ")[0]}! Sono VALENTINA. Sei nella fase **${partner.phase} — ${PHASE_LABELS[partner.phase]}**. Come posso aiutarti oggi?`,
@@ -729,10 +1222,6 @@ function PartnerChat({ partner }) {
           </button>
         </div>
       </div>
-      
-      <div className="text-center text-xs text-white/30 mt-3">
-        VALENTINA risponde 24/7 · Le conversazioni sono registrate per controllo qualità
-      </div>
     </div>
   );
 }
@@ -751,7 +1240,6 @@ export default function App() {
   const [stats, setStats] = useState({});
   const [selectedPartner, setSelectedPartner] = useState(null);
   
-  // Demo partner for Partner mode
   const demoPartner = partners.find(p => p.name === "Marco Ferretti") || {
     id: "1", name: "Marco Ferretti", niche: "Business Coach", phase: "F5",
     revenue: 0, contract: "2025-01-10", alert: false, modules: [1,1,1,1,0,0,0,0,0,0]
@@ -793,6 +1281,8 @@ export default function App() {
     { id: "overview", label: "Overview", icon: LayoutDashboard },
     { id: "agenti", label: "Agenti AI", icon: Bot },
     { id: "partner", label: "Partner", icon: Users },
+    { id: "andrea", label: "ANDREA", icon: Film },
+    { id: "compliance", label: "LUCA", icon: Shield },
     { id: "alert", label: "Alert", icon: AlertTriangle, badge: alerts.length }
   ];
   
@@ -807,6 +1297,8 @@ export default function App() {
     overview: "Dashboard Admin",
     agenti: "Agenti AI",
     partner: "Pipeline Partner",
+    andrea: "ANDREA — Surgical Cut Pipeline",
+    compliance: "LUCA — Compliance Dashboard",
     alert: "Alert & Escalation",
     corso: "Videocorso Operativo",
     files: "I Miei File",
@@ -902,12 +1394,14 @@ export default function App() {
               {nav === "overview" && <AdminOverview stats={stats} agents={agents} partners={partners} alerts={alerts} />}
               {nav === "agenti" && <AdminAgents agents={agents} />}
               {nav === "partner" && <AdminPartners partners={partners} onSelect={setSelectedPartner} />}
+              {nav === "andrea" && <AndreaPipeline partners={partners} />}
+              {nav === "compliance" && <ComplianceDashboard />}
               {nav === "alert" && <AdminAlerts alerts={alerts} onDismiss={dismissAlert} />}
             </>
           ) : (
             <>
               {nav === "corso" && <PartnerCourse partner={demoPartner} modules={modules} />}
-              {nav === "files" && <PartnerFiles partner={demoPartner} />}
+              {nav === "files" && <PartnerFileManager partner={demoPartner} />}
               {nav === "risorse" && <PartnerResources />}
               {nav === "supporto" && <PartnerChat partner={demoPartner} />}
             </>
