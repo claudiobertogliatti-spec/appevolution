@@ -4314,13 +4314,14 @@ Massimo 3-4 frasi, linguaggio diretto e amichevole."""
                 "response": "Ottimo suggerimento! Per questo modulo ti consiglio di aggiungere un esercizio pratico alla fine di ogni lezione. Questo aumenta il tasso di completamento del 40%. Vuoi che ti aiuti a definirlo?"
             }
         
+        chat_session_id = f"course-chat-{uuid.uuid4().hex[:8]}"
         chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY
+            api_key=EMERGENT_LLM_KEY,
+            session_id=chat_session_id,
+            system_message="Sei STEFANIA, consulente di Instructional Design. Rispondi in modo conciso e pratico."
         ).with_model("anthropic", "claude-sonnet-4-5-20250929")
         
-        response = await chat.send_async(
-            message=UserMessage(text=prompt)
-        )
+        response = await chat.send_message(UserMessage(text=prompt))
         
         return {"response": response.text}
         
