@@ -2,32 +2,32 @@ import { S } from "../../data/constants";
 
 export function AdminSwitcher({ adminUser, setAdminUser, setNav }) {
   return (
-    <div className="flex gap-1 bg-white/10 border border-white/10 rounded-lg p-1 mx-2 mb-2">
+    <div className="flex flex-col gap-2 mx-2 mb-2">
       <button
         onClick={() => { setAdminUser("claudio"); setNav("overview"); }}
-        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs font-extrabold transition-all
+        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-extrabold transition-all
           ${adminUser === "claudio" 
-            ? 'bg-white text-[#1a2332] shadow-md' 
-            : 'text-white/50 hover:text-white/80'}`}
+            ? 'bg-[#F5C518] text-[#1a2332] shadow-md' 
+            : 'bg-white/10 text-white/60 hover:bg-white/15 hover:text-white/90'}`}
         data-testid="admin-switch-claudio"
       >
-        <span className="w-6 h-6 rounded-full bg-[#F5C518] text-[#1a2332] flex items-center justify-center text-[10px] font-bold">
+        <span className="w-7 h-7 rounded-full bg-[#1a2332] text-[#F5C518] flex items-center justify-center text-[10px] font-bold flex-shrink-0">
           CB
         </span>
-        Claudio
+        <span className="text-left">Claudio Bertogliatti</span>
       </button>
       <button
         onClick={() => { setAdminUser("antonella"); setNav("overview"); }}
-        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs font-extrabold transition-all
+        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-extrabold transition-all
           ${adminUser === "antonella" 
-            ? 'bg-white text-purple-600 shadow-md' 
-            : 'text-white/50 hover:text-white/80'}`}
+            ? 'bg-purple-500 text-white shadow-md' 
+            : 'bg-white/10 text-white/60 hover:bg-white/15 hover:text-white/90'}`}
         data-testid="admin-switch-antonella"
       >
-        <span className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center text-[10px] font-bold">
-          AB
+        <span className="w-7 h-7 rounded-full bg-purple-600 text-white flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+          AR
         </span>
-        Antonella
+        <span className="text-left">Antonella Rossi</span>
       </button>
     </div>
   );
