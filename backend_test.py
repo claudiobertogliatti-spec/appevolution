@@ -331,17 +331,24 @@ class EvolutionProAPITester:
 
     def run_all_tests(self):
         """Run all backend tests"""
-        print("🚀 Starting Evolution PRO Backend API Tests")
+        print("🚀 Starting Evolution PRO OS v3.0 Backend API Tests")
         print(f"📡 Testing against: {self.base_url}")
         print("=" * 60)
 
         # Core API tests
         self.test_root_endpoint()
+        self.test_control_endpoint()  # v3.0 specific
         self.test_stats_endpoint()
         self.test_agents_endpoint()
         self.test_partners_endpoint()
         self.test_alerts_endpoint()
         self.test_modules_endpoint()
+        
+        # v3.0 Feature tests
+        self.test_youtube_integration()
+        self.test_gaia_funnel_deployer()
+        self.test_tts_integration()
+        self.test_file_management()
         
         # Advanced functionality tests
         self.test_partner_detail_endpoint()
