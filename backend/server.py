@@ -4104,6 +4104,260 @@ async def list_tts_voices():
     """List available TTS voices"""
     return {"voices": tts_generator.list_available_voices()}
 
+# =============================================================================
+# COURSE BUILDER AI - STEFANIA
+# =============================================================================
+
+class CourseBuilderPreferences(BaseModel):
+    duration: str  # 4-week, 8-week, self-paced
+    level: str  # beginner, intermediate, advanced
+    format: str  # video-only, video-pdf, video-workbook
+
+class CourseBuilderRequest(BaseModel):
+    partner_id: str
+    positioning_data: Optional[Dict] = None
+    preferences: CourseBuilderPreferences
+
+class CourseBuilderChatRequest(BaseModel):
+    message: str
+    outline: Optional[Dict] = None
+    selected_module: Optional[int] = None
+    positioning_data: Optional[Dict] = None
+
+class CourseOutlineSaveRequest(BaseModel):
+    partner_id: str
+    outline: Dict
+
+@api_router.post("/stefania/course-builder/generate")
+async def generate_course_structure(request: CourseBuilderRequest):
+    """Generate course structure using STEFANIA AI"""
+    
+    # Build prompt for STEFANIA
+    positioning_info = ""
+    if request.positioning_data:
+        positioning_info = f"""
+POSIZIONAMENTO PARTNER:
+- Trasformazione: {request.positioning_data.get('trasformazione', 'N/A')}
+- Target: {request.positioning_data.get('target', 'N/A')}
+- Problema principale: {request.positioning_data.get('problema', 'N/A')}
+- Soluzione unica: {request.positioning_data.get('soluzione', 'N/A')}
+"""
+    
+    duration_map = {
+        "4-week": "4 settimane (corso intensivo, 5-6 moduli)",
+        "8-week": "8 settimane (corso approfondito, 7-8 moduli)",
+        "self-paced": "Self-paced (6-8 moduli, nessuna deadline)"
+    }
+    
+    level_map = {
+        "beginner": "Principiante (linguaggio semplice, step by step)",
+        "intermediate": "Intermedio (ha basi, vuole approfondire)",
+        "advanced": "Avanzato (esperto, cerca ottimizzazioni)"
+    }
+    
+    format_map = {
+        "video-only": "Solo video con slide integrate",
+        "video-pdf": "Video + dispense PDF per modulo",
+        "video-workbook": "Video + workbook interattivo con esercizi"
+    }
+    
+    prompt = f"""Sei STEFANIA, esperta di Instructional Design per Evolution PRO.
+    
+{positioning_info}
+
+PREFERENZE CORSO:
+- Durata: {duration_map.get(request.preferences.duration, request.preferences.duration)}
+- Livello: {level_map.get(request.preferences.level, request.preferences.level)}
+- Formato: {format_map.get(request.preferences.format, request.preferences.format)}
+
+Genera una struttura corso completa in formato JSON con questo schema esatto:
+{{
+    "corsoTitolo": "Titolo del corso",
+    "durataStimata": "es. 4 settimane",
+    "moduli": [
+        {{
+            "numero": 1,
+            "titolo": "Titolo Modulo",
+            "obiettivo": "Obiettivo del modulo",
+            "lezioni": [
+                {{
+                    "numero": "1.1",
+                    "titolo": "Titolo Lezione",
+                    "durata": "10 min",
+                    "contenuto": ["Punto 1", "Punto 2", "Punto 3"]
+                }}
+            ]
+        }}
+    ]
+}}
+
+Crea una struttura che:
+1. Segua la logica della trasformazione, non dell'insegnamento
+2. Ogni modulo costruisca verso il risultato finale
+3. Le lezioni siano brevi e focalizzate (8-15 min max)
+4. Includa momenti di pratica e riflessione
+
+Rispondi SOLO con il JSON, senza testo aggiuntivo."""
+
+    try:
+        if not EMERGENT_LLM_KEY:
+            # Return mock data if no API key
+            return {
+                "outline": {
+                    "corsoTitolo": "Il Tuo Corso Trasformativo",
+                    "durataStimata": duration_map.get(request.preferences.duration, "4 settimane"),
+                    "moduli": [
+                        {
+                            "numero": 1,
+                            "titolo": "Fondamenta: Il Mindset del Successo",
+                            "obiettivo": "Creare le basi mentali per la trasformazione",
+                            "lezioni": [
+                                {"numero": "1.1", "titolo": "Benvenuto nel Percorso", "durata": "8 min", "contenuto": ["Presentazione", "Obiettivi", "Come seguire il corso"]},
+                                {"numero": "1.2", "titolo": "Il Tuo Punto A", "durata": "12 min", "contenuto": ["Analisi situazione attuale", "Identificare i blocchi", "Esercizio pratico"]},
+                            ]
+                        },
+                        {
+                            "numero": 2,
+                            "titolo": "Il Metodo: I 3 Pilastri",
+                            "obiettivo": "Comprendere il framework di trasformazione",
+                            "lezioni": [
+                                {"numero": "2.1", "titolo": "Pilastro 1: La Visione", "durata": "10 min", "contenuto": ["Definire il Punto B", "Visualizzazione", "Action plan"]},
+                                {"numero": "2.2", "titolo": "Pilastro 2: La Strategia", "durata": "12 min", "contenuto": ["Framework operativo", "Strumenti", "Template"]},
+                                {"numero": "2.3", "titolo": "Pilastro 3: L'Azione", "durata": "10 min", "contenuto": ["Piano d'azione", "Quick wins", "Routine quotidiana"]},
+                            ]
+                        },
+                        {
+                            "numero": 3,
+                            "titolo": "Implementazione: Dalla Teoria alla Pratica",
+                            "obiettivo": "Applicare il metodo alla propria situazione",
+                            "lezioni": [
+                                {"numero": "3.1", "titolo": "Setup del Sistema", "durata": "15 min", "contenuto": ["Configurazione", "Strumenti necessari", "Checklist"]},
+                                {"numero": "3.2", "titolo": "La Prima Settimana", "durata": "12 min", "contenuto": ["Piano 7 giorni", "Metriche", "Aggiustamenti"]},
+                            ]
+                        },
+                        {
+                            "numero": 4,
+                            "titolo": "Ottimizzazione e Scaling",
+                            "obiettivo": "Migliorare e scalare i risultati",
+                            "lezioni": [
+                                {"numero": "4.1", "titolo": "Analisi dei Risultati", "durata": "10 min", "contenuto": ["KPI da monitorare", "Interpretazione dati", "Decisioni data-driven"]},
+                                {"numero": "4.2", "titolo": "Next Level", "durata": "12 min", "contenuto": ["Scalare il successo", "Automatizzare", "Prossimi passi"]},
+                            ]
+                        },
+                    ]
+                }
+            }
+        
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            model="claude-sonnet-4-20250514"
+        )
+        
+        response = await chat.send_async(
+            message=UserMessage(content=prompt)
+        )
+        
+        # Parse JSON from response
+        import re
+        json_match = re.search(r'\{[\s\S]*\}', response.content)
+        if json_match:
+            outline = json.loads(json_match.group())
+            
+            # Save to database
+            await db.course_outlines.update_one(
+                {"partner_id": request.partner_id},
+                {"$set": {
+                    "partner_id": request.partner_id,
+                    "outline": outline,
+                    "preferences": request.preferences.model_dump(),
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }},
+                upsert=True
+            )
+            
+            return {"outline": outline}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to parse AI response")
+            
+    except Exception as e:
+        logger.error(f"Error generating course structure: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/stefania/course-builder/chat")
+async def course_builder_chat(request: CourseBuilderChatRequest):
+    """Chat with STEFANIA about course structure"""
+    
+    context = ""
+    if request.outline:
+        context = f"Struttura corso attuale: {json.dumps(request.outline, ensure_ascii=False)}\n"
+    if request.selected_module is not None and request.outline:
+        mod = request.outline.get("moduli", [])[request.selected_module] if request.selected_module < len(request.outline.get("moduli", [])) else None
+        if mod:
+            context += f"Modulo selezionato: {json.dumps(mod, ensure_ascii=False)}\n"
+    
+    prompt = f"""Sei STEFANIA, esperta di Instructional Design per Evolution PRO.
+Stai aiutando a perfezionare la struttura di un corso.
+
+{context}
+
+DOMANDA PARTNER: {request.message}
+
+Rispondi in modo conciso e pratico. Se suggerisci modifiche alla struttura, spiega brevemente il perché.
+Massimo 3-4 frasi, linguaggio diretto e amichevole."""
+
+    try:
+        if not EMERGENT_LLM_KEY:
+            return {
+                "response": "Ottimo suggerimento! Per questo modulo ti consiglio di aggiungere un esercizio pratico alla fine di ogni lezione. Questo aumenta il tasso di completamento del 40%. Vuoi che ti aiuti a definirlo?"
+            }
+        
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            model="claude-sonnet-4-20250514"
+        )
+        
+        response = await chat.send_async(
+            message=UserMessage(content=prompt)
+        )
+        
+        return {"response": response.content}
+        
+    except Exception as e:
+        logger.error(f"Error in course builder chat: {e}")
+        return {"response": "Mi dispiace, non sono riuscita a elaborare la richiesta. Riprova."}
+
+@api_router.post("/stefania/course-builder/save")
+async def save_course_outline(request: CourseOutlineSaveRequest):
+    """Save the final course outline"""
+    
+    await db.course_outlines.update_one(
+        {"partner_id": request.partner_id},
+        {"$set": {
+            "partner_id": request.partner_id,
+            "outline": request.outline,
+            "status": "saved",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+    
+    return {"success": True, "message": "Struttura corso salvata con successo"}
+
+@api_router.get("/stefania/course-builder/{partner_id}")
+async def get_course_outline(partner_id: str):
+    """Get saved course outline for partner"""
+    
+    doc = await db.course_outlines.find_one(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    )
+    
+    if not doc:
+        return {"outline": None}
+    
+    return {"outline": doc.get("outline"), "status": doc.get("status", "draft")}
+
 @api_router.get("/tts/files")
 async def list_tts_files():
     """List generated intro/outro files"""
