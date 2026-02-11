@@ -258,7 +258,9 @@ export function StefaniaWarMode({ partners }) {
             { id: "overview", label: "Overview", icon: BarChart3 },
             { id: "meta", label: "Meta Ads", icon: Facebook },
             { id: "linkedin", label: "LinkedIn Ads", icon: Linkedin },
-            { id: "analysis", label: "Cross-Platform", icon: ArrowLeftRight }
+            { id: "analysis", label: "Cross-Platform", icon: ArrowLeftRight },
+            { id: "api", label: "API Config", icon: Key },
+            { id: "roi", label: "ROI (MARTA)", icon: Receipt }
           ].map(tab => (
             <button
               key={tab.id}
