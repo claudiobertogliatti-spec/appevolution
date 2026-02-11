@@ -42,7 +42,32 @@ Creare un'applicazione full-stack proprietaria per Evolution PRO - una piattafor
 
 ### V6.0 - Produzione Video ANDREA (11 Feb 2026) ✅
 
-#### 1. Pre-Flight Checklist
+### V7.0 - STEFANIA War Mode Multi-Channel (11 Feb 2026) ✅
+
+#### 1. Copy Factory Admin
+- **Admin Review Mode**: Claudio/Antonella possono editare script prima dell'approvazione Partner
+- **Master Input Database**: 4 Success Cases Evolution PRO con Hook examples
+- **10 Regole d'Oro del Copy Core**: Integrate nel Drafting Engine (Schwartz, Brown, Halbert, Kennedy)
+- **Drafting Engine**: STEFANIA genera bozze complete dei 6 blocchi
+
+#### 2. War Mode Multi-Channel (Meta + LinkedIn)
+- **Hook Gallery (Meta)**: 3 varianti per video ads
+  - Angolo del Dolore (Emotional Trigger)
+  - Angolo del Segreto (Curiosity Gap)
+  - Angolo del Risultato (Social Proof)
+- **LinkedIn Content Hub**:
+  - Thought Leadership Posts
+  - ABM Targeting Ads
+  - Lead Gen Forms nativi
+- **Auto-Pivot Logic**: Se CPL Meta supera soglia, suggerisce shift budget a LinkedIn
+- **LTV Tracking**: Confronto Lifetime Value tra piattaforme
+
+#### 3. Performance Bridge
+- **Cross-Platform Analysis**: Confronto ROAS/CPL tra Meta e LinkedIn
+- **Alert System**: Notifiche automatiche per CPL alto o ROAS basso
+- **UTM Generator**: Link tracciati con parametri Evolution PRO
+
+#### 4. Pre-Flight Checklist (v6.0)
 - **6 items verificabili** con toggle interattivo:
   - ☐ Sfondo ordinato e professionale
   - ☐ Luce frontale (ring light o finestra)
