@@ -213,6 +213,46 @@ class ScriptReviewRequest(BaseModel):
     partner_name: str
     script_blocks: Dict[str, str]
 
+class SuccessCase(BaseModel):
+    """Model for Evolution PRO Success Cases - Master Input"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    partner_name: str
+    niche: str
+    result: str  # e.g., "€15.000 in 45 giorni"
+    hook_example: Optional[str] = None
+    grande_promessa_example: Optional[str] = None
+    metodo_name: Optional[str] = None
+    testimonial_quote: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class DraftGenerationRequest(BaseModel):
+    """Request to generate a script draft via STEFANIA"""
+    partner_id: str
+    partner_name: str
+    partner_niche: str
+    positioning_data: Optional[Dict[str, str]] = None  # From wizard posizionamento
+
+class AdminScriptEdit(BaseModel):
+    """Admin edit for script before partner approval"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    script_id: str
+    partner_id: str
+    admin_user: str  # "Claudio" or "Antonella"
+    original_blocks: Dict[str, str]
+    edited_blocks: Dict[str, str]
+    admin_notes: Optional[str] = None
+    status: str = "pending_partner_approval"  # pending_partner_approval, approved_by_partner, revision_requested
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class AdminEditRequest(BaseModel):
+    """Request from Admin to edit script"""
+    blocks: Dict[str, str]
+    admin_user: str
+    admin_notes: Optional[str] = None
+
 # =============================================================================
 # ANDREA - VIDEO PRODUCTION MODELS
 # =============================================================================
