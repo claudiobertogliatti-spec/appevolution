@@ -1581,12 +1581,14 @@ export default function App() {
     alert: "Alert & Escalation",
     corso: "Videocorso Operativo",
     masterclass: "Masterclass Trasformativa — STEFANIA",
+    coursebuilder: "Course Builder AI — STEFANIA",
     produzione: "Produzione Video — ANDREA",
     files: "I Miei File",
     brandkit: "Brand Kit & Variabili",
     calendario: "Calendario Editoriale 30 Giorni",
     documenti: "Documenti & Posizionamento",
     risorse: "Template & Risorse",
+    renewal: "Piani Post-12 Mesi",
     supporto: getTutorForPhase(demoPartner?.phase) === "STEFANIA" 
       ? "STEFANIA — Copy & Marketing" 
       : getTutorForPhase(demoPartner?.phase) === "ANDREA"
