@@ -32,27 +32,44 @@ Creare un'applicazione full-stack basata su Evolution PRO - una piattaforma di g
 - **AI Integration**: Claude Sonnet via Emergent LLM Key
 - **Design**: Dark theme (Navy #1a2332, Yellow #F5C518)
 
-## What's Been Implemented (11 Feb 2026)
+## What's Been Implemented
 
-### Backend (`/app/backend/server.py`)
-- API `/api/agents` - CRUD agenti AI
-- API `/api/partners` - CRUD partner
-- API `/api/alerts` - Gestione alert
-- API `/api/modules` - Moduli videocorso
-- API `/api/chat` - Chatbot VALENTINA con Claude
-- API `/api/stats` - Statistiche dashboard
-- Seed data automatico su startup
+### V1.0 (11 Feb 2026) - MVP
+- Dashboard Admin con KPI
+- Griglia 9 Agenti AI
+- Pipeline Partner
+- Alert & Escalation
+- Videocorso Partner con YouTube
+- Chatbot VALENTINA (Claude AI)
+- MongoDB persistence
 
-### Frontend (`/app/frontend/src/App.js`)
-- Sidebar con switch Admin/Partner
-- Admin Overview con KPI cards
-- Admin Agenti AI grid
-- Admin Partner Pipeline (table + kanban)
-- Admin Alert list con dismiss
-- Partner Videocorso con YouTube player
-- Partner File Manager
-- Partner Resources/Templates
-- Partner VALENTINA Chat
+### V2.0 (11 Feb 2026) - Video Pipeline & Native Storage
+- **ANDREA Pipeline "Surgical Cut"**:
+  - Auto-Trim silenzi > 0.4s (FFmpeg silencedetect)
+  - Rilevamento intercalari italiani (Whisper locale)
+  - Pace-Maker 1.15x con pitch correction
+  - Normalizzazione audio -14 LUFS
+  - Branding automatico Intro/Outro
+  - Video Approval UI con preview
+  - YouTube-ready post-approvazione
+
+- **Native File Manager** (elimina Google Drive):
+  - Storage interno persistente
+  - Partner Upload per video e documenti
+  - Internal linking per agenti
+  - Statistiche storage real-time
+
+- **LUCA Compliance Dashboard**:
+  - Lista documenti da verificare
+  - Anteprima rapida
+  - Workflow verifica/rifiuto
+  - Metriche compliance
+
+### Tech Stack Additions
+- `openai-whisper` (locale) per transcription
+- `ffmpeg-python` + FFmpeg CLI per video processing
+- `aiofiles` per async file handling
+- Background tasks per processing asincrono
 
 ## Prioritized Backlog
 
