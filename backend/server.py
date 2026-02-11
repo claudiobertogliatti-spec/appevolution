@@ -94,12 +94,13 @@ class VideoJob(BaseModel):
     partner_id: str
     partner_name: str
     input_file: str
-    status: str = "queued"  # queued, processing, completed, approved, failed
+    status: str = "queued"  # queued, processing, completed, approved, uploaded, failed
     output_file: Optional[str] = None
     processing_result: Optional[dict] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     youtube_url: Optional[str] = None
+    youtube_video_id: Optional[str] = None
 
 class VideoProcessRequest(BaseModel):
     partner_id: str
@@ -110,6 +111,41 @@ class VideoProcessRequest(BaseModel):
     apply_speed: bool = True
     normalize: bool = True
     add_branding: bool = True
+
+class YouTubeUploadRequest(BaseModel):
+    job_id: str
+    title: str
+    lesson_title: str
+    module_title: str
+    privacy_status: str = "unlisted"
+
+class SystemeTemplate(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    category: str  # lead_gen, masterclass, vendita, webinar, altri
+    share_link: str
+    description: str = ""
+    brand_variables: List[str] = Field(default_factory=lambda: ["Nome_Partner", "Colore_Brand"])
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class BrandKit(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    partner_id: str
+    nome_partner: str
+    colore_brand: str = "#F5C518"
+    logo_url: Optional[str] = None
+    email_partner: Optional[str] = None
+    telefono: Optional[str] = None
+    sito_web: Optional[str] = None
+    social_instagram: Optional[str] = None
+    social_linkedin: Optional[str] = None
+
+class TTSRequest(BaseModel):
+    text: str
+    voice: str = "onyx"
+    type: str = "intro"  # intro or outro
+    partner_name: str
 
 class StoredFile(BaseModel):
     model_config = ConfigDict(extra="ignore")
