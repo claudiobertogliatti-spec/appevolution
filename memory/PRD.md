@@ -1,9 +1,10 @@
 # Evolution PRO - PRD (Product Requirements Document)
 
 ## Overview
-**Nome**: Evolution PRO System Platform  
+**Nome**: Evolution PRO OS Platform  
 **Data creazione**: 11 Feb 2026  
-**Stato**: MVP Completato ✅
+**Versione**: 2.0  
+**Stato**: MVP + Video Pipeline Completato ✅
 
 ## Problem Statement
 Creare un'applicazione full-stack basata su Evolution PRO - una piattaforma di gestione partner per la creazione di videocorsi. L'applicazione include:
