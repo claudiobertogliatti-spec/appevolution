@@ -4284,7 +4284,57 @@ Rispondi SOLO con il JSON, senza testo aggiuntivo."""
             
     except Exception as e:
         logger.error(f"Error generating course structure: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Return mock data on LLM failure
+        duration_map = {
+            "4-week": "4 settimane (corso intensivo, 5-6 moduli)",
+            "8-week": "8 settimane (corso approfondito, 7-8 moduli)",
+            "self-paced": "Self-paced (6-8 moduli, nessuna deadline)"
+        }
+        return {
+            "outline": {
+                "corsoTitolo": "Il Tuo Corso Trasformativo",
+                "durataStimata": duration_map.get(request.preferences.duration, "4 settimane"),
+                "moduli": [
+                    {
+                        "numero": 1,
+                        "titolo": "Fondamenta: Il Mindset del Successo",
+                        "obiettivo": "Creare le basi mentali per la trasformazione",
+                        "lezioni": [
+                            {"numero": "1.1", "titolo": "Benvenuto nel Percorso", "durata": "8 min", "contenuto": ["Presentazione", "Obiettivi", "Come seguire il corso"]},
+                            {"numero": "1.2", "titolo": "Il Tuo Punto A", "durata": "12 min", "contenuto": ["Analisi situazione attuale", "Identificare i blocchi", "Esercizio pratico"]},
+                        ]
+                    },
+                    {
+                        "numero": 2,
+                        "titolo": "Il Metodo: I 3 Pilastri",
+                        "obiettivo": "Comprendere il framework di trasformazione",
+                        "lezioni": [
+                            {"numero": "2.1", "titolo": "Pilastro 1: La Visione", "durata": "10 min", "contenuto": ["Definire il Punto B", "Visualizzazione", "Action plan"]},
+                            {"numero": "2.2", "titolo": "Pilastro 2: La Strategia", "durata": "12 min", "contenuto": ["Framework operativo", "Strumenti", "Template"]},
+                        ]
+                    },
+                    {
+                        "numero": 3,
+                        "titolo": "Implementazione Pratica",
+                        "obiettivo": "Applicare il metodo alla propria situazione",
+                        "lezioni": [
+                            {"numero": "3.1", "titolo": "Setup del Sistema", "durata": "15 min", "contenuto": ["Configurazione", "Strumenti necessari", "Checklist"]},
+                            {"numero": "3.2", "titolo": "La Prima Settimana", "durata": "12 min", "contenuto": ["Piano 7 giorni", "Metriche", "Aggiustamenti"]},
+                        ]
+                    },
+                    {
+                        "numero": 4,
+                        "titolo": "Ottimizzazione e Scaling",
+                        "obiettivo": "Migliorare e scalare i risultati",
+                        "lezioni": [
+                            {"numero": "4.1", "titolo": "Analisi dei Risultati", "durata": "10 min", "contenuto": ["KPI da monitorare", "Interpretazione dati"]},
+                            {"numero": "4.2", "titolo": "Next Level", "durata": "12 min", "contenuto": ["Scalare il successo", "Automatizzare", "Prossimi passi"]},
+                        ]
+                    },
+                ]
+            },
+            "note": "Struttura generata con template (LLM non disponibile)"
+        }
 
 @api_router.post("/stefania/course-builder/chat")
 async def course_builder_chat(request: CourseBuilderChatRequest):
