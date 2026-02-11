@@ -1536,12 +1536,20 @@ export default function App() {
   
   const partnerNav = [
     { id: "corso", label: "Videocorso", icon: PlayCircle },
+    { id: "masterclass", label: "Masterclass", icon: Mic },
     { id: "files", label: "I Miei File", icon: FolderOpen },
+    { id: "brandkit", label: "Brand Kit", icon: Palette },
     { id: "calendario", label: "Calendario", icon: Calendar },
     { id: "documenti", label: "Documenti", icon: FileText },
     { id: "risorse", label: "Template", icon: FileText },
-    { id: "supporto", label: "VALENTINA", icon: MessageCircle }
+    { id: "supporto", label: getTutorForPhase(demoPartner?.phase), icon: MessageCircle }
   ];
+  
+  // Dynamic tutor based on partner phase
+  function getTutorForPhase(phase) {
+    if (["F3", "F4"].includes(phase)) return "STEFANIA";
+    return "VALENTINA";
+  }
   
   const titles = {
     overview: "Dashboard Admin",
@@ -1553,11 +1561,13 @@ export default function App() {
     compliance: "LUCA — Compliance Dashboard",
     alert: "Alert & Escalation",
     corso: "Videocorso Operativo",
+    masterclass: "Masterclass Trasformativa — STEFANIA",
     files: "I Miei File",
+    brandkit: "Brand Kit & Variabili",
     calendario: "Calendario Editoriale 30 Giorni",
     documenti: "Documenti & Posizionamento",
     risorse: "Template & Risorse",
-    supporto: "VALENTINA — Supporto 24/7"
+    supporto: getTutorForPhase(demoPartner?.phase) === "STEFANIA" ? "STEFANIA — Copy & Marketing" : "VALENTINA — Supporto 24/7"
   };
   
   return (
