@@ -1747,12 +1747,26 @@ export default function App() {
             <>
               {nav === "corso" && <PartnerCourse partner={demoPartner} modules={modules} />}
               {nav === "masterclass" && <MasterclassBuilder partner={demoPartner} />}
+              {nav === "coursebuilder" && (
+                <CourseBuilderWizard 
+                  partnerId={demoPartner?.id || "demo"} 
+                  positioningData={{ trasformazione: "Demo", target: "Demo", problema: "Demo", soluzione: "Demo" }}
+                  onComplete={(outline) => { setNav("produzione"); }}
+                />
+              )}
               {nav === "produzione" && <ProduzioneVideo partner={demoPartner} />}
               {nav === "files" && <PartnerFileManager partner={demoPartner} />}
               {nav === "brandkit" && <BrandKitEditor partner={demoPartner} />}
               {nav === "calendario" && <CalendarioEditoriale partner={demoPartner} />}
               {nav === "documenti" && <WizardPosizionamento partner={demoPartner} onComplete={(canvas) => { setNav("masterclass"); }} />}
               {nav === "risorse" && <PartnerResources />}
+              {nav === "renewal" && (
+                <RenewalPlans 
+                  partnerName={demoPartner?.name || "Partner"} 
+                  currentRevenue={demoPartner?.revenue || 0}
+                  onSelectPlan={(plan) => { console.log("Selected plan:", plan); }}
+                />
+              )}
               {nav === "supporto" && (
                 getTutorForPhase(demoPartner?.phase) === "STEFANIA" 
                   ? <StefaniaChat partner={demoPartner} />
