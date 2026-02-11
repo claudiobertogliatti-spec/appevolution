@@ -4258,7 +4258,7 @@ Rispondi SOLO con il JSON, senza testo aggiuntivo."""
         
         # Parse JSON from response
         import re
-        json_match = re.search(r'\{[\s\S]*\}', response.content)
+        json_match = re.search(r'\{[\s\S]*\}', response.text)
         if json_match:
             outline = json.loads(json_match.group())
             
