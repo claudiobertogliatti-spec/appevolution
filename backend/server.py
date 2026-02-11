@@ -643,6 +643,11 @@ async def seed_database():
     if await db.notifications.count_documents({}) == 0:
         await db.notifications.insert_many(INITIAL_NOTIFICATIONS)
         logging.info("Seeded notifications collection")
+    
+    # Seed Evolution PRO Success Cases (Master Input for STEFANIA)
+    if await db.success_cases.count_documents({}) == 0:
+        await db.success_cases.insert_many(EVOLUTION_PRO_SUCCESS_CASES)
+        logging.info("Seeded Evolution PRO success cases collection")
 
 # =============================================================================
 # ROUTES - AGENTS
