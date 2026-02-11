@@ -147,6 +147,85 @@ class TTSRequest(BaseModel):
     type: str = "intro"  # intro or outro
     partner_name: str
 
+# =============================================================================
+# MASTERCLASS & STEFANIA MODELS
+# =============================================================================
+
+class MasterclassScript(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    partner_id: str
+    partner_name: str
+    status: str = "draft"  # draft, in_review, approved, needs_revision
+    blocks: Dict[str, str] = Field(default_factory=lambda: {
+        "hook": "",
+        "grande_promessa": "",
+        "metodo": "",
+        "case_history": "",
+        "offerta": "",
+        "cta": ""
+    })
+    stefania_feedback: Optional[str] = None
+    last_review_at: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class MasterclassScriptUpdate(BaseModel):
+    blocks: Dict[str, str]
+
+class PartnerBrandKit(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    partner_id: str
+    nome_partner: str
+    brand_color: str = "#F5C518"
+    brand_color_secondary: str = "#1a2332"
+    logo_url: Optional[str] = None
+    tagline: Optional[str] = None
+    email: Optional[str] = None
+    website: Optional[str] = None
+    social_instagram: Optional[str] = None
+    social_linkedin: Optional[str] = None
+    social_youtube: Optional[str] = None
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class PartnerBrandKitUpdate(BaseModel):
+    brand_color: Optional[str] = None
+    brand_color_secondary: Optional[str] = None
+    logo_url: Optional[str] = None
+    tagline: Optional[str] = None
+    email: Optional[str] = None
+    website: Optional[str] = None
+    social_instagram: Optional[str] = None
+    social_linkedin: Optional[str] = None
+    social_youtube: Optional[str] = None
+
+class StefaniaChatRequest(BaseModel):
+    session_id: str
+    message: str
+    partner_id: str
+    partner_name: str
+    partner_niche: str
+    current_block: Optional[str] = None  # hook, grande_promessa, etc.
+    script_context: Optional[Dict[str, str]] = None
+
+class ScriptReviewRequest(BaseModel):
+    partner_id: str
+    partner_name: str
+    script_blocks: Dict[str, str]
+
+class Notification(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    type: str  # modulo, escalation, video, file, script_review
+    icon: str
+    title: str
+    body: str
+    time: str
+    partner: str
+    read: bool = False
+    action: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
 class StoredFile(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
