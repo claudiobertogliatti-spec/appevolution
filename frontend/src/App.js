@@ -10,7 +10,7 @@ import {
   FileVideo, FileCheck, Loader2, CheckCircle, XCircle,
   Youtube, HardDrive, Shield, Eye, RefreshCw, Mic,
   Zap, Link, Palette, Copy, Plus, BarChart3, Calendar,
-  UserPlus, Bell, Sparkles, Video
+  UserPlus, Bell, Sparkles, Video, Target, Edit3
 } from "lucide-react";
 
 // Import new components
@@ -19,6 +19,8 @@ import { AdminSwitcher } from "./components/common/AdminSwitcher";
 import { MetrichePostLancio } from "./components/admin/MetrichePostLancio";
 import { FeedVideoNuovi } from "./components/admin/FeedVideoNuovi";
 import { NuovoPartnerForm } from "./components/admin/NuovoPartnerForm";
+import { CopyFactoryAdmin } from "./components/admin/CopyFactoryAdmin";
+import { StefaniaWarMode } from "./components/admin/StefaniaWarMode";
 import { CalendarioEditoriale } from "./components/partner/CalendarioEditoriale";
 import { WizardPosizionamento } from "./components/partner/WizardPosizionamento";
 import { MasterclassBuilder } from "./components/partner/MasterclassBuilder";
