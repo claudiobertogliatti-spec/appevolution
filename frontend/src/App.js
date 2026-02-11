@@ -29,6 +29,8 @@ import { BrandKitEditor } from "./components/partner/BrandKitEditor";
 import { ProduzioneVideo } from "./components/partner/ProduzioneVideo";
 import { AndreaChat } from "./components/partner/AndreaChat";
 import { AtlasModule } from "./components/partner/AtlasModule";
+import { CourseBuilderWizard } from "./components/partner/CourseBuilderWizard";
+import { RenewalPlans } from "./components/partner/RenewalPlans";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
