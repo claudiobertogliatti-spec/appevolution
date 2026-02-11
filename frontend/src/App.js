@@ -1732,6 +1732,7 @@ export default function App() {
               {nav === "gaia" && <GaiaFunnelDeployer partners={partners} />}
               {nav === "copyfactory" && <CopyFactoryAdmin currentAdmin={adminUser === "antonella" ? "Antonella" : "Claudio"} />}
               {nav === "warmode" && <StefaniaWarMode partners={partners} />}
+              {nav === "atlas" && <AtlasModule partner={selectedPartner || partners[0]} isAdmin={true} />}
               {nav === "compliance" && <ComplianceDashboard />}
               {nav === "alert" && <AdminAlerts alerts={alerts} onDismiss={dismissAlert} />}
             </>
