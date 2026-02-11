@@ -43,59 +43,49 @@ Creare un'applicazione full-stack basata su Evolution PRO - una piattaforma di g
 - Chatbot VALENTINA (Claude AI)
 - MongoDB persistence
 
-### V2.0 (11 Feb 2026) - Video Pipeline & Native Storage
-- **ANDREA Pipeline "Surgical Cut"**:
-  - Auto-Trim silenzi > 0.4s (FFmpeg silencedetect)
-  - Rilevamento intercalari italiani (Whisper locale)
-  - Pace-Maker 1.15x con pitch correction
-  - Normalizzazione audio -14 LUFS
-  - Branding automatico Intro/Outro
-  - Video Approval UI con preview
-  - YouTube-ready post-approvazione
+### V3.0 (11 Feb 2026) - Dashboard Integrata & Automazioni
+- **YouTube SEO Automation**:
+  - OAuth2 flow per upload automatico
+  - Tag SEO predefiniti + keywords da Whisper
+  - Descrizione ottimizzata per canale Evolution PRO
+  - Privacy "unlisted" per Systeme.io integration
 
-- **Native File Manager** (elimina Google Drive):
-  - Storage interno persistente
-  - Partner Upload per video e documenti
-  - Internal linking per agenti
-  - Statistiche storage real-time
+- **GAIA Funnel Deployer** (Systeme.io):
+  - Template Repository con 5 categorie (Lead Gen, Masterclass, Vendita, Webinar, Altri)
+  - Sistema caricamento Share Links dinamico
+  - Brand Kit Injector con variabili: `{{Nome_Partner}}`, `{{Colore_Brand}}`, `{{Logo_URL}}`
+  - Preview e copia link rapida
 
-- **LUCA Compliance Dashboard**:
-  - Lista documenti da verificare
-  - Anteprima rapida
-  - Workflow verifica/rifiuto
-  - Metriche compliance
-
-### Tech Stack Additions
-- `openai-whisper` (locale) per transcription
-- `ffmpeg-python` + FFmpeg CLI per video processing
-- `aiofiles` per async file handling
-- Background tasks per processing asincrono
+- **OpenAI TTS per Intro/Outro**:
+  - 9 voci disponibili (alloy, ash, coral, echo, fable, nova, onyx, sage, shimmer)
+  - Generazione audio MP3 per branding video
+  - API endpoint `/api/tts/generate`
 
 ## Prioritized Backlog
 
 ### P0 - Critico (Completato)
-- ✅ MVP funzionante end-to-end
-- ✅ ANDREA Video Pipeline con Whisper + FFmpeg
+- ✅ MVP funzionante
+- ✅ ANDREA Video Pipeline (Whisper + FFmpeg)
 - ✅ Native File Manager (eliminato Google Drive)
 - ✅ LUCA Compliance Dashboard
+- ✅ YouTube Data API v3 integration
+- ✅ GAIA Funnel Deployer (Systeme.io templates)
+- ✅ OpenAI TTS per voce avatar
 
 ### P1 - Alta Priorità
-- [ ] YouTube Data API v3 integration per upload automatico
+- [ ] **Completare OAuth YouTube**: Autorizzare l'app visitando l'URL generato
 - [ ] Autenticazione JWT (Admin vs Partner login)
 - [ ] Notifiche Telegram per alert e video pronti
-- [ ] Systeme.io API per aggiornare area corsi partner
 
 ### P2 - Media Priorità
-- [ ] Custom Intro/Outro templates per partner (upload assets)
-- [ ] Voce avatar generata via TTS per intro/outro
-- [ ] Export dati partner in CSV/PDF
+- [ ] Systeme.io API per aggiornare automaticamente area corsi
+- [ ] Custom Intro/Outro video templates (non solo audio)
 - [ ] Cloudflare R2 migration per storage scalabile
 
 ### P3 - Bassa Priorità
-- [ ] Dark/Light mode toggle
-- [ ] Localizzazione multi-lingua
+- [ ] Dashboard analytics avanzate
 - [ ] Mobile responsive optimization
-- [ ] Analytics e reportistica avanzata
+- [ ] Multi-tenant support
 
 ## Next Action Items
 1. **YouTube Integration**: Fornire Client ID/Secret per upload automatico video approvati
