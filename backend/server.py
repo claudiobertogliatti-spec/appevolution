@@ -1009,6 +1009,362 @@ Fornisci:
         raise HTTPException(status_code=500, detail=str(e))
 
 # =============================================================================
+# ROUTES - STEFANIA COPY FACTORY (Master Input, Drafting Engine, Admin Review)
+# =============================================================================
+
+@api_router.get("/stefania/success-cases")
+async def get_success_cases():
+    """Get Evolution PRO Success Cases - Master Input database"""
+    cases = await db.success_cases.find({}, {"_id": 0}).to_list(50)
+    if not cases:
+        # Return seed data if empty
+        return EVOLUTION_PRO_SUCCESS_CASES
+    return cases
+
+@api_router.post("/stefania/success-cases")
+async def add_success_case(
+    partner_name: str = Form(...),
+    niche: str = Form(...),
+    result: str = Form(...),
+    hook_example: str = Form(None),
+    grande_promessa_example: str = Form(None),
+    metodo_name: str = Form(None),
+    testimonial_quote: str = Form(None)
+):
+    """Add a new success case to the Master Input database"""
+    case = SuccessCase(
+        partner_name=partner_name,
+        niche=niche,
+        result=result,
+        hook_example=hook_example,
+        grande_promessa_example=grande_promessa_example,
+        metodo_name=metodo_name,
+        testimonial_quote=testimonial_quote
+    )
+    await db.success_cases.insert_one(case.model_dump())
+    return {"success": True, "case_id": case.id}
+
+@api_router.get("/stefania/golden-rules")
+async def get_golden_rules():
+    """Get the 10 Golden Rules of Copy Core"""
+    return {
+        "rules": GOLDEN_RULES_COPY_CORE,
+        "principles": COPY_CORE_PRINCIPLES
+    }
+
+@api_router.post("/stefania/generate-draft")
+async def generate_script_draft(request: DraftGenerationRequest):
+    """STEFANIA Drafting Engine - Generate a complete script draft based on Golden Rules"""
+    try:
+        # Get success cases for reference
+        success_cases = await db.success_cases.find({}, {"_id": 0}).to_list(10)
+        if not success_cases:
+            success_cases = EVOLUTION_PRO_SUCCESS_CASES
+        
+        # Find similar niche cases for inspiration
+        similar_cases = [c for c in success_cases if c.get("niche", "").lower() in request.partner_niche.lower() 
+                        or request.partner_niche.lower() in c.get("niche", "").lower()]
+        if not similar_cases:
+            similar_cases = success_cases[:2]  # Use first 2 as fallback
+        
+        # Build comprehensive prompt with Golden Rules
+        rules_text = "\n".join([f"REGOLA {r['num']}: {r['title']} - {r['description']}" for r in GOLDEN_RULES_COPY_CORE])
+        
+        examples_text = "\n\n".join([
+            f"CASO SUCCESSO: {c['partner_name']} ({c['niche']})\n"
+            f"- Risultato: {c['result']}\n"
+            f"- Hook: {c.get('hook_example', 'N/A')}\n"
+            f"- Grande Promessa: {c.get('grande_promessa_example', 'N/A')}\n"
+            f"- Nome Metodo: {c.get('metodo_name', 'N/A')}"
+            for c in similar_cases
+        ])
+        
+        positioning = ""
+        if request.positioning_data:
+            positioning = f"""
+DATI POSIZIONAMENTO DEL PARTNER:
+- Problema principale: {request.positioning_data.get('problema', 'Non specificato')}
+- Target ideale: {request.positioning_data.get('target', 'Non specificato')}
+- Trasformazione promessa: {request.positioning_data.get('trasformazione', 'Non specificato')}
+- Differenziazione: {request.positioning_data.get('differenziazione', 'Non specificato')}
+"""
+        
+        draft_prompt = f"""Sei STEFANIA, la Copy Strategist di Evolution PRO. Devi generare una bozza completa della Masterclass per {request.partner_name}, esperto in {request.partner_niche}.
+
+{positioning}
+
+🎯 LE 10 REGOLE D'ORO CHE DEVI APPLICARE:
+{rules_text}
+
+📚 CASI DI SUCCESSO DA CUI PRENDERE ISPIRAZIONE:
+{examples_text}
+
+🧠 I 3 PRINCIPI CARDINE:
+1. SCHWARTZ (Ossessione per il Problema): Descrivi il dolore del lead meglio di quanto lui sappia fare
+2. TODD BROWN (Meccanismo Unico): Crea un nome proprietario per il metodo che lo renda unico
+3. HALBERT (Ritmo del Desiderio): Paragrafi brevi, domande retoriche, linguaggio parlato
+
+📝 GENERA UNA BOZZA COMPLETA PER OGNI BLOCCO:
+
+BLOCCO 1 - HOOK:
+Distruggi lo status quo. Qual è la più grande bugia del mercato di {request.partner_niche}?
+
+BLOCCO 2 - GRANDE PROMESSA:
+Risultato specifico con numeri. Usa la Regola 7 (Iper-Specificità).
+
+BLOCCO 3 - IL METODO:
+Crea un nome proprietario (Regola 10). 3 pilastri. Mostra la mappa, non il tesoro.
+
+BLOCCO 4 - CASE HISTORY:
+Storie con numeri reali. Nome, situazione iniziale, risultato, tempo.
+
+BLOCCO 5 - OFFERTA:
+Stack di valore 10X. Bonus che valgono più del corso. Affare stupido da rifiutare.
+
+BLOCCO 6 - CTA:
+Imperativo, mai condizionale. Urgenza genuina.
+
+Rispondi in formato JSON con questa struttura:
+{{"hook": "testo...", "grande_promessa": "testo...", "metodo": "testo...", "case_history": "testo...", "offerta": "testo...", "cta": "testo..."}}
+"""
+
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"draft_{request.partner_id}_{datetime.now().timestamp()}",
+            system_message="Sei STEFANIA, Copy Strategist di Evolution PRO. Genera copy persuasivo seguendo le 10 Regole d'Oro."
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        
+        response = await chat.send_message(UserMessage(text=draft_prompt))
+        
+        # Try to parse JSON from response
+        import re
+        json_match = re.search(r'\{[\s\S]*\}', response)
+        draft_blocks = {}
+        
+        if json_match:
+            try:
+                draft_blocks = json.loads(json_match.group())
+            except json.JSONDecodeError:
+                # If JSON parsing fails, return the raw text with structure hints
+                draft_blocks = {
+                    "hook": response,
+                    "grande_promessa": "",
+                    "metodo": "",
+                    "case_history": "",
+                    "offerta": "",
+                    "cta": ""
+                }
+        else:
+            draft_blocks = {
+                "hook": response,
+                "grande_promessa": "",
+                "metodo": "",
+                "case_history": "",
+                "offerta": "",
+                "cta": ""
+            }
+        
+        # Save as draft
+        existing = await db.masterclass_scripts.find_one({"partner_id": request.partner_id})
+        if existing:
+            await db.masterclass_scripts.update_one(
+                {"partner_id": request.partner_id},
+                {"$set": {
+                    "blocks": draft_blocks,
+                    "status": "ai_draft",
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+        else:
+            script = MasterclassScript(
+                partner_id=request.partner_id,
+                partner_name=request.partner_name,
+                status="ai_draft",
+                blocks=draft_blocks
+            )
+            await db.masterclass_scripts.insert_one(script.model_dump())
+        
+        return {
+            "success": True,
+            "draft_blocks": draft_blocks,
+            "status": "ai_draft",
+            "message": "Bozza generata da STEFANIA. Ora puoi modificarla o inviarla per Admin Review."
+        }
+        
+    except Exception as e:
+        logging.error(f"Draft generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# =============================================================================
+# ADMIN REVIEW MODE - Script editing workflow
+# =============================================================================
+
+@api_router.get("/stefania/admin-review/pending")
+async def get_pending_admin_reviews():
+    """Get all scripts pending Admin review (status: in_review or ai_draft)"""
+    scripts = await db.masterclass_scripts.find(
+        {"status": {"$in": ["in_review", "ai_draft", "needs_revision"]}},
+        {"_id": 0}
+    ).to_list(50)
+    
+    # Enrich with partner info
+    enriched = []
+    for script in scripts:
+        partner = await db.partners.find_one({"id": script["partner_id"]}, {"_id": 0})
+        script["partner_info"] = partner
+        enriched.append(script)
+    
+    return enriched
+
+@api_router.post("/masterclass/script/{partner_id}/send-to-admin")
+async def send_script_to_admin_review(partner_id: str):
+    """Partner sends script to Admin (Claudio/Antonella) for final editing"""
+    script = await db.masterclass_scripts.find_one({"partner_id": partner_id}, {"_id": 0})
+    if not script:
+        raise HTTPException(status_code=404, detail="Script not found")
+    
+    await db.masterclass_scripts.update_one(
+        {"partner_id": partner_id},
+        {"$set": {
+            "status": "in_review",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Create notification for admins
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    notification = Notification(
+        type="script_review",
+        icon="📝",
+        title="Script Pronto per Revisione Admin",
+        body=f"{partner['name']} ha inviato la Masterclass per editing finale",
+        time=datetime.now().strftime("%H:%M"),
+        partner=partner["name"],
+        action="admin_review"
+    )
+    await db.notifications.insert_one(notification.model_dump())
+    
+    return {"success": True, "status": "in_review", "message": "Script inviato a Claudio/Antonella per editing finale"}
+
+@api_router.post("/masterclass/script/{partner_id}/admin-edit")
+async def admin_edit_script(partner_id: str, edit: AdminEditRequest):
+    """Admin (Claudio/Antonella) edits the script before sending to partner for approval"""
+    script = await db.masterclass_scripts.find_one({"partner_id": partner_id}, {"_id": 0})
+    if not script:
+        raise HTTPException(status_code=404, detail="Script not found")
+    
+    # Save admin edit record
+    admin_edit = AdminScriptEdit(
+        script_id=script.get("id", partner_id),
+        partner_id=partner_id,
+        admin_user=edit.admin_user,
+        original_blocks=script.get("blocks", {}),
+        edited_blocks=edit.blocks,
+        admin_notes=edit.admin_notes
+    )
+    await db.admin_script_edits.insert_one(admin_edit.model_dump())
+    
+    # Update script with admin edits
+    await db.masterclass_scripts.update_one(
+        {"partner_id": partner_id},
+        {"$set": {
+            "blocks": edit.blocks,
+            "status": "pending_partner_approval",
+            "admin_edited_by": edit.admin_user,
+            "admin_notes": edit.admin_notes,
+            "admin_edited_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Create notification for partner
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    notification = Notification(
+        type="script_review",
+        icon="✏️",
+        title="Script Modificato - Richiede Approvazione",
+        body=f"{edit.admin_user} ha completato l'editing della tua Masterclass",
+        time=datetime.now().strftime("%H:%M"),
+        partner=partner["name"],
+        action="partner_approval"
+    )
+    await db.notifications.insert_one(notification.model_dump())
+    
+    return {
+        "success": True,
+        "status": "pending_partner_approval",
+        "admin_user": edit.admin_user,
+        "message": f"Script modificato da {edit.admin_user}. In attesa di approvazione dal partner."
+    }
+
+@api_router.post("/masterclass/script/{partner_id}/partner-approve")
+async def partner_approve_admin_edit(partner_id: str, approved: bool = True, feedback: str = None):
+    """Partner approves or requests revision of Admin edits"""
+    script = await db.masterclass_scripts.find_one({"partner_id": partner_id}, {"_id": 0})
+    if not script:
+        raise HTTPException(status_code=404, detail="Script not found")
+    
+    if approved:
+        new_status = "approved"
+        message = "Script approvato! Pronto per la produzione video."
+        
+        # Update admin edit record
+        await db.admin_script_edits.update_one(
+            {"partner_id": partner_id, "status": "pending_partner_approval"},
+            {"$set": {
+                "status": "approved_by_partner",
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    else:
+        new_status = "revision_requested"
+        message = "Richiesta di revisione inviata all'Admin."
+        
+        # Update admin edit record
+        await db.admin_script_edits.update_one(
+            {"partner_id": partner_id, "status": "pending_partner_approval"},
+            {"$set": {
+                "status": "revision_requested",
+                "partner_feedback": feedback,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        # Notify admin
+        partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+        notification = Notification(
+            type="script_review",
+            icon="🔄",
+            title="Revisione Richiesta",
+            body=f"{partner['name']} ha richiesto modifiche allo script: {feedback[:50] if feedback else 'Nessun dettaglio'}",
+            time=datetime.now().strftime("%H:%M"),
+            partner=partner["name"],
+            action="admin_review"
+        )
+        await db.notifications.insert_one(notification.model_dump())
+    
+    await db.masterclass_scripts.update_one(
+        {"partner_id": partner_id},
+        {"$set": {
+            "status": new_status,
+            "partner_feedback": feedback,
+            "partner_approved_at": datetime.now(timezone.utc).isoformat() if approved else None,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"success": True, "status": new_status, "message": message}
+
+@api_router.get("/masterclass/script/{partner_id}/edit-history")
+async def get_script_edit_history(partner_id: str):
+    """Get edit history for a script"""
+    edits = await db.admin_script_edits.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(20)
+    return edits
+
+# =============================================================================
 # ROUTES - ANDREA (Video Production Support)
 # =============================================================================
 
