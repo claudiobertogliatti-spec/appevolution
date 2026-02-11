@@ -263,16 +263,24 @@ class AdsCampaign(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     partner_id: str
     partner_name: str
-    platform: str  # meta, google, tiktok
+    platform: str  # meta, linkedin, google, tiktok
     campaign_name: str
     status: str = "active"  # active, paused, stopped
     hooks: List[str] = Field(default_factory=list)  # Generated hooks
+    hook_gallery: Optional[Dict[str, str]] = None  # {pain, secret, result} for Meta
+    linkedin_content: Optional[Dict[str, str]] = None  # {thought_leadership, abm_targeting, lead_form}
     budget_daily: float = 0
     spend_total: float = 0
     leads: int = 0
+    qualified_leads: int = 0  # For LinkedIn lead quality tracking
+    conversions: int = 0
+    revenue: float = 0
     cpl: float = 0  # Cost Per Lead
+    cpl_qualified: float = 0  # Cost per Qualified Lead
     roas: float = 0  # Return on Ad Spend
+    ltv_avg: float = 0  # Average Lifetime Value of leads from this platform
     cpl_max_threshold: float = 15.0  # Default €15 max CPL
+    targeting_type: str = "broad"  # broad (Meta), abm (LinkedIn), custom
     utm_params: Dict[str, str] = Field(default_factory=dict)
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -287,17 +295,45 @@ class AdsPerformanceMetrics(BaseModel):
     ctr: float = 0  # Click Through Rate
     spend: float = 0
     leads: int = 0
+    qualified_leads: int = 0
     cpl: float = 0
     conversions: int = 0
     revenue: float = 0
     roas: float = 0
+    ltv_avg: float = 0
 
 class AdHookRequest(BaseModel):
     """Request to generate ad hooks from Copy Core"""
     partner_id: str
     partner_name: str
     partner_niche: str
-    platform: str = "meta"  # meta, google, tiktok
+    platform: str = "meta"  # meta, linkedin
+    hook_type: Optional[str] = None  # pain, secret, result (for Hook Gallery)
+
+class HookGalleryRequest(BaseModel):
+    """Request to generate 3-variant Hook Gallery for Meta"""
+    partner_id: str
+    partner_name: str
+    partner_niche: str
+    masterclass_topic: Optional[str] = None
+
+class LinkedInContentRequest(BaseModel):
+    """Request to generate LinkedIn-specific content"""
+    partner_id: str
+    partner_name: str
+    partner_niche: str
+    content_type: str = "thought_leadership"  # thought_leadership, abm_ad, lead_gen_form
+    target_segment: Optional[str] = None  # e.g., "agency_owners", "senior_consultants"
+
+class CrossPlatformAnalysis(BaseModel):
+    """Model for cross-platform performance comparison"""
+    model_config = ConfigDict(extra="ignore")
+    partner_id: str
+    meta_data: Optional[Dict] = None
+    linkedin_data: Optional[Dict] = None
+    recommended_platform: str = "meta"
+    pivot_suggestion: Optional[str] = None
+    ltv_comparison: Optional[Dict] = None
 
 class UTMGeneratorRequest(BaseModel):
     """Request to generate UTM tracked links"""
@@ -306,7 +342,7 @@ class UTMGeneratorRequest(BaseModel):
     destination_url: str
     campaign_name: str
     medium: str = "paid"  # paid, organic, email
-    source: str = "meta"  # meta, google, tiktok, email
+    source: str = "meta"  # meta, linkedin, google, tiktok, email
     content: Optional[str] = None  # Ad variation identifier
 
 class PerformanceAlert(BaseModel):
