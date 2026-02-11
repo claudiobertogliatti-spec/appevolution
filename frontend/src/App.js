@@ -9,8 +9,18 @@ import {
   TrendingUp, DollarSign, Activity, Upload, Trash2,
   FileVideo, FileCheck, Loader2, CheckCircle, XCircle,
   Youtube, HardDrive, Shield, Eye, RefreshCw, Mic,
-  Zap, Link, Palette, Copy, Plus
+  Zap, Link, Palette, Copy, Plus, BarChart3, Calendar,
+  UserPlus, Bell
 } from "lucide-react";
+
+// Import new components
+import { NotificationBell } from "./components/common/NotificationBell";
+import { AdminSwitcher } from "./components/common/AdminSwitcher";
+import { MetrichePostLancio } from "./components/admin/MetrichePostLancio";
+import { FeedVideoNuovi } from "./components/admin/FeedVideoNuovi";
+import { NuovoPartnerForm } from "./components/admin/NuovoPartnerForm";
+import { CalendarioEditoriale } from "./components/partner/CalendarioEditoriale";
+import { WizardPosizionamento } from "./components/partner/WizardPosizionamento";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
