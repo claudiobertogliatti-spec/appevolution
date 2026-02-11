@@ -50,7 +50,7 @@ export function CourseBuilderWizard({ partnerId, positioningData, onComplete }) 
         partner_id: partnerId,
         positioning_data: positioningData,
         preferences: prefs
-      });
+      }, { timeout: 60000 }); // 60 second timeout
       
       setOutline(response.data.outline);
       setChatMessages(prev => [
