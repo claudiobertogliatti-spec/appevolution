@@ -1658,11 +1658,11 @@ export default function App() {
             ${mode === "admin" 
               ? (adminUser === "antonella" ? "bg-purple-500 text-white" : "bg-[#F5C518] text-black") 
               : "bg-white/10 text-white"}`}>
-            {mode === "admin" ? (adminUser === "antonella" ? "AB" : "CB") : "MF"}
+            {mode === "admin" ? (adminUser === "antonella" ? "AR" : "CB") : "MF"}
           </div>
           <div>
             <div className="text-sm font-bold">
-              {mode === "admin" ? (adminUser === "antonella" ? "Antonella B." : "Claudio B.") : "Marco Ferretti"}
+              {mode === "admin" ? (adminUser === "antonella" ? "Antonella Rossi" : "Claudio Bertogliatti") : "Marco Ferretti"}
             </div>
             <div className="text-[10px] text-white/30">
               {mode === "admin" ? (adminUser === "antonella" ? "Admin · Operations" : "Admin · Fondatore") : "Partner"}
