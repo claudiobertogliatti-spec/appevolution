@@ -358,6 +358,80 @@ class PerformanceAlert(BaseModel):
     message: str
     suggested_action: str
     resolved: bool = False
+
+# =============================================================================
+# ATLAS MODULE - POST-SALE & LTV MODELS
+# =============================================================================
+
+class AcademyStudent(BaseModel):
+    """Model for Academy student tracking"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    partner_id: str
+    email: str
+    name: str
+    enrolled_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    status: str = "active"  # active, completed, inactive, churned
+    progress_percent: float = 0
+    completed_modules: List[str] = Field(default_factory=list)
+    unlocked_bonuses: List[str] = Field(default_factory=list)
+    gamification_points: int = 0
+    last_activity: Optional[str] = None
+    referral_code: Optional[str] = None
+    referred_by: Optional[str] = None
+    utm_source: Optional[str] = None
+
+class BonusContent(BaseModel):
+    """Dynamic bonus content that can be unlocked"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    partner_id: str
+    title: str
+    description: str
+    content_type: str  # video, pdf, template, webinar, coaching
+    unlock_condition: str  # progress_50, all_modules, referral_1, quiz_perfect, streak_7
+    unlock_threshold: int = 0  # For numeric conditions
+    points_value: int = 100
+    is_active: bool = True
+
+class StudentFeedback(BaseModel):
+    """Student feedback/comments for Copy Bridge analysis"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    partner_id: str
+    student_id: str
+    module_id: Optional[str] = None
+    feedback_type: str  # question, comment, testimonial, complaint
+    content: str
+    sentiment: Optional[str] = None  # positive, neutral, negative
+    analyzed: bool = False
+    copy_angle_extracted: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class CopyAngleSuggestion(BaseModel):
+    """STEFANIA's copy angle suggestions from feedback analysis"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    partner_id: str
+    angle_type: str  # pain_point, success_story, objection, desire
+    headline: str
+    description: str
+    source_feedbacks: List[str] = Field(default_factory=list)  # List of feedback IDs
+    relevance_score: float = 0.0
+    used_in_campaign: bool = False
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class ReferralRecord(BaseModel):
+    """Track referrals for LTV calculation"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    partner_id: str
+    referrer_student_id: str
+    referred_email: str
+    referral_code: str
+    status: str = "pending"  # pending, converted, expired
+    conversion_value: float = 0
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 # =============================================================================
