@@ -1502,6 +1502,7 @@ export default function App() {
     { id: "agenti", label: "Agenti AI", icon: Bot },
     { id: "partner", label: "Partner", icon: Users },
     { id: "andrea", label: "ANDREA", icon: Film },
+    { id: "gaia", label: "GAIA", icon: Zap },
     { id: "compliance", label: "LUCA", icon: Shield },
     { id: "alert", label: "Alert", icon: AlertTriangle, badge: alerts.length }
   ];
@@ -1518,6 +1519,7 @@ export default function App() {
     agenti: "Agenti AI",
     partner: "Pipeline Partner",
     andrea: "ANDREA — Surgical Cut Pipeline",
+    gaia: "GAIA — Funnel Deployer",
     compliance: "LUCA — Compliance Dashboard",
     alert: "Alert & Escalation",
     corso: "Videocorso Operativo",
