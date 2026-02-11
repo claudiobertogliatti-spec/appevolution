@@ -1,0 +1,281 @@
+import { useState, useEffect } from "react";
+import { Palette, Save, Loader2, Upload, Check, ExternalLink, Image } from "lucide-react";
+import axios from "axios";
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+export function BrandKitEditor({ partner, onSave }) {
+  const [brandKit, setBrandKit] = useState({
+    brand_color: "#F5C518",
+    brand_color_secondary: "#1a2332",
+    logo_url: "",
+    tagline: "",
+    email: "",
+    website: "",
+    social_instagram: "",
+    social_linkedin: "",
+    social_youtube: ""
+  });
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    loadBrandKit();
+  }, [partner?.id]);
+
+  const loadBrandKit = async () => {
+    if (!partner?.id) return;
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API}/brandkit/${partner.id}`);
+      setBrandKit(prev => ({ ...prev, ...res.data }));
+    } catch (e) {
+      console.error("Error loading brand kit:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveBrandKit = async () => {
+    if (!partner?.id) return;
+    setSaving(true);
+    try {
+      await axios.post(`${API}/brandkit/${partner.id}`, brandKit);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+      if (onSave) onSave(brandKit);
+    } catch (e) {
+      console.error("Error saving brand kit:", e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateField = (field, value) => {
+    setBrandKit(prev => ({ ...prev, [field]: value }));
+    setSaved(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-48">
+        <Loader2 className="w-6 h-6 text-[#F5C518] animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-[#1a2332] border border-white/10 rounded-xl overflow-hidden" data-testid="brand-kit-editor">
+      {/* Header */}
+      <div className="p-5 border-b border-white/10 bg-gradient-to-r from-[#F5C518]/10 to-transparent">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-[#F5C518] flex items-center justify-center">
+            <Palette className="w-5 h-5 text-black" />
+          </div>
+          <div>
+            <h3 className="text-sm font-extrabold text-white">Brand Kit</h3>
+            <p className="text-xs text-white/40">Personalizza i tuoi materiali marketing</p>
+          </div>
+          <button
+            onClick={saveBrandKit}
+            disabled={saving}
+            className={`ml-auto flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all
+              ${saved 
+                ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                : 'bg-[#F5C518] text-black hover:bg-[#e0a800]'}`}
+          >
+            {saving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : saved ? (
+              <><Check className="w-4 h-4" /> Salvato</>
+            ) : (
+              <><Save className="w-4 h-4" /> Salva</>
+            )}
+          </button>
+        </div>
+      </div>
+
+      <div className="p-5 space-y-6">
+        {/* Colors */}
+        <div>
+          <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-3">
+            Colori Brand
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-white/60 mb-2 block">Colore Principale</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={brandKit.brand_color}
+                  onChange={e => updateField('brand_color', e.target.value)}
+                  className="w-12 h-12 rounded-lg border border-white/10 cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={brandKit.brand_color}
+                  onChange={e => updateField('brand_color', e.target.value)}
+                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white uppercase"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-white/60 mb-2 block">Colore Secondario</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={brandKit.brand_color_secondary}
+                  onChange={e => updateField('brand_color_secondary', e.target.value)}
+                  className="w-12 h-12 rounded-lg border border-white/10 cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={brandKit.brand_color_secondary}
+                  onChange={e => updateField('brand_color_secondary', e.target.value)}
+                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white uppercase"
+                />
+              </div>
+            </div>
+          </div>
+          
+          {/* Color Preview */}
+          <div className="mt-3 flex items-center gap-2">
+            <div 
+              className="flex-1 h-8 rounded-lg"
+              style={{ background: `linear-gradient(135deg, ${brandKit.brand_color}, ${brandKit.brand_color_secondary})` }}
+            />
+            <span className="text-xs text-white/30">Anteprima gradiente</span>
+          </div>
+        </div>
+
+        {/* Logo */}
+        <div>
+          <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-3">
+            Logo
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="w-20 h-20 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
+              {brandKit.logo_url ? (
+                <img src={brandKit.logo_url} alt="Logo" className="w-full h-full object-contain" />
+              ) : (
+                <Image className="w-8 h-8 text-white/20" />
+              )}
+            </div>
+            <div className="flex-1">
+              <input
+                type="text"
+                value={brandKit.logo_url || ""}
+                onChange={e => updateField('logo_url', e.target.value)}
+                placeholder="https://esempio.com/logo.png"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518] transition-colors"
+              />
+              <div className="text-[10px] text-white/30 mt-1">Incolla l'URL del tuo logo (PNG trasparente consigliato)</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tagline */}
+        <div>
+          <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-3">
+            Tagline / Slogan
+          </div>
+          <input
+            type="text"
+            value={brandKit.tagline || ""}
+            onChange={e => updateField('tagline', e.target.value)}
+            placeholder="es. 'Trasforma la tua expertise in un business digitale'"
+            className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518] transition-colors"
+          />
+        </div>
+
+        {/* Contact Info */}
+        <div>
+          <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-3">
+            Contatti
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <input
+              type="email"
+              value={brandKit.email || ""}
+              onChange={e => updateField('email', e.target.value)}
+              placeholder="Email"
+              className="bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518]"
+            />
+            <input
+              type="url"
+              value={brandKit.website || ""}
+              onChange={e => updateField('website', e.target.value)}
+              placeholder="Sito web"
+              className="bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518]"
+            />
+          </div>
+        </div>
+
+        {/* Social */}
+        <div>
+          <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-3">
+            Social Media
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="w-24 text-xs font-semibold text-white/40">Instagram</span>
+              <input
+                type="text"
+                value={brandKit.social_instagram || ""}
+                onChange={e => updateField('social_instagram', e.target.value)}
+                placeholder="@username"
+                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518]"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-24 text-xs font-semibold text-white/40">LinkedIn</span>
+              <input
+                type="text"
+                value={brandKit.social_linkedin || ""}
+                onChange={e => updateField('social_linkedin', e.target.value)}
+                placeholder="linkedin.com/in/username"
+                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518]"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-24 text-xs font-semibold text-white/40">YouTube</span>
+              <input
+                type="text"
+                value={brandKit.social_youtube || ""}
+                onChange={e => updateField('social_youtube', e.target.value)}
+                placeholder="youtube.com/@channel"
+                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518]"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Template Variables Preview */}
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+          <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-3">
+            Variabili per Template Systeme.io
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+            <div className="flex items-center gap-2">
+              <span className="text-white/30">{`{{Brand_Color}}`}</span>
+              <span className="text-[#F5C518]">{brandKit.brand_color}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-white/30">{`{{Logo_URL}}`}</span>
+              <span className="text-white/60 truncate">{brandKit.logo_url || "Non impostato"}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-white/30">{`{{Nome_Partner}}`}</span>
+              <span className="text-white/60">{partner?.name}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-white/30">{`{{Tagline}}`}</span>
+              <span className="text-white/60 truncate">{brandKit.tagline || "Non impostato"}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
