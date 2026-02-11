@@ -464,70 +464,97 @@ EVOLUTION_PRO_SUCCESS_CASES = [
 
 # =============================================================================
 # STEFANIA - LE 10 REGOLE D'ORO DEL COPY CORE
+# Ispirate ai maestri: Eugene Schwartz, Todd Brown, Gary Halbert
 # =============================================================================
 
 GOLDEN_RULES_COPY_CORE = [
     {
         "num": 1,
-        "title": "Distruggi lo Status Quo",
-        "description": "Non spiegare COME funziona qualcosa. Spiega PERCHÉ il metodo attuale del mercato è sbagliato.",
-        "example": "Invece di 'Ti insegno a fare marketing' → 'Il 90% del marketing che ti hanno insegnato è spazzatura. Ecco perché fallisci.'"
+        "title": "Vendi la Nuova Identità, non il Prodotto",
+        "master": "Eugene Schwartz",
+        "description": "Non vendi un corso, vendi il Punto B: la persona che il lead diventerà dopo aver seguito il tuo metodo.",
+        "example": "Non 'Impara il marketing' → 'Diventa il consulente che le aziende chiamano quando hanno bisogno di risultati veri'"
     },
     {
         "num": 2,
-        "title": "Numeri Specifici Vendono",
-        "description": "Mai usare termini vaghi come 'migliorare' o 'aumentare'. Usa numeri precisi.",
-        "example": "Invece di 'Guadagna di più' → '€10.000 in 30 giorni' o 'Perdi 5kg in 2 settimane'"
+        "title": "Uccidi gli Aggettivi Deboli",
+        "master": "Gary Halbert",
+        "description": "Niente 'fantastico', 'innovativo', 'unico'. Solo fatti, numeri e prove concrete.",
+        "example": "Non 'Risultati fantastici' → '€4.700 in 22 giorni con 3 clienti'"
     },
     {
         "num": 3,
-        "title": "Il Nome del Metodo Conta",
-        "description": "Crea un nome proprietario memorabile per il tuo framework. Acronimi funzionano bene.",
-        "example": "Sistema BCA, Metodo RIT, Protocollo RESET, Framework PEO"
+        "title": "La Regola dell'Uno",
+        "master": "Eugene Schwartz",
+        "description": "Un solo grande problema, una sola grande idea, una sola azione richiesta. La confusione uccide le conversioni.",
+        "example": "Tutta la Masterclass ruota attorno a UN problema centrale e UNA soluzione"
     },
     {
         "num": 4,
-        "title": "Tre Pilastri, Non Di Più",
-        "description": "Il cervello umano elabora bene gruppi di 3. Il tuo metodo deve avere esattamente 3 step/pilastri.",
-        "example": "1. Analisi → 2. Strategia → 3. Esecuzione"
+        "title": "Usa il 'Perché' Sempre",
+        "master": "Robert Cialdini",
+        "description": "Ogni affermazione deve essere seguita da una spiegazione logica. Il cervello accetta più facilmente quando c'è un 'perché'.",
+        "example": "'Questo funziona PERCHÉ attiva il meccanismo di...' non solo 'Questo funziona'"
     },
     {
         "num": 5,
-        "title": "Case History con Numeri Reali",
-        "description": "Le storie astratte non vendono. I numeri specifici con timeline sì.",
-        "example": "Maria, da €0 a €8.000/mese in 45 giorni. Non 'Maria ha migliorato i suoi guadagni'."
+        "title": "Entra nel Dialogo Interno del Cliente",
+        "master": "Eugene Schwartz",
+        "description": "Rispondi ai dubbi e alle obiezioni PRIMA che vengano formulati. Se il lead pensa 'mi legge nel pensiero', la vendita è fatta.",
+        "example": "'So cosa stai pensando: e se non funziona per me? Ecco perché...'"
     },
     {
         "num": 6,
-        "title": "Ancoraggio del Prezzo",
-        "description": "Mostra prima il valore totale (alto), poi il prezzo reale (più basso). Stack visivo dei bonus.",
-        "example": "Valore totale: €2.997 → Oggi solo €497 (risparmi €2.500)"
+        "title": "Crea un Nemico Comune",
+        "master": "Gary Halbert",
+        "description": "Dai la colpa del fallimento del lead a un fattore ESTERNO: il sistema, i vecchi guru, la tecnologia obsoleta. Mai al lead stesso.",
+        "example": "'Non è colpa tua se hai fallito. È colpa del metodo sbagliato che ti hanno insegnato'"
     },
     {
         "num": 7,
-        "title": "Urgenza Genuina",
-        "description": "Crea scarsità reale, non fasulla. Limita posti, tempo o bonus.",
-        "example": "'Solo 10 posti disponibili' o 'Il bonus scade tra 48 ore' (se è vero)"
+        "title": "Sii Iper-Specifico",
+        "master": "Claude Hopkins",
+        "description": "La specificità crea credibilità. I numeri dispari e precisi battono sempre i numeri tondi.",
+        "example": "'Perdi 4.7kg in 22 giorni' batte SEMPRE 'Perdi peso velocemente'"
     },
     {
         "num": 8,
-        "title": "CTA Imperativo, Mai Condizionale",
-        "description": "Non 'Se ti interessa clicca'. Usa comandi diretti.",
-        "example": "'Clicca ORA', 'Iscriviti SUBITO', 'Prenota il tuo posto'"
+        "title": "Bullet Points 'Fascinations'",
+        "master": "Gary Bencivenga",
+        "description": "Elenchi puntati che promettono un segreto senza svelarlo del tutto. Creano curiosità irresistibile.",
+        "example": "'Il trucco controintuitivo che i coach da €10k/mese usano (e che nessuno ti dirà mai)'"
     },
     {
         "num": 9,
-        "title": "Mostra la Mappa, Non il Tesoro",
-        "description": "Nel metodo, fai vedere COSA faranno, non COME lo faranno. Lascia curiosità.",
-        "example": "Mostra i 3 pilastri ma non spiegare ogni dettaglio. 'Nel modulo 2 scoprirai il segreto del...'"
+        "title": "L'Offerta deve essere un 'Affare Stupido' da Rifiutare",
+        "master": "Dan Kennedy",
+        "description": "Il valore percepito deve essere 10X il prezzo. Stack visivo dei bonus che valgono più del corso principale.",
+        "example": "Valore totale: €4.997 → Oggi solo €497 + 5 Bonus (valore €2.000)"
     },
     {
         "num": 10,
-        "title": "L'Emozione Prima della Logica",
-        "description": "Le persone comprano con l'emozione e giustificano con la logica. Parti sempre dal dolore/desiderio.",
-        "example": "Prima descrivi il problema/frustrazione, poi la soluzione. Mai al contrario."
+        "title": "Il Meccanismo Unico (Big Idea)",
+        "master": "Todd Brown",
+        "description": "Isola un 'pezzo' del metodo del partner e battezzalo con un nome proprietario. Questo rende la soluzione logicamente superiore a qualsiasi altra.",
+        "example": "'Il Sistema XYZ' o 'Il Protocollo ABC' - deve avere un NOME che nessun altro può copiare"
     }
 ]
+
+# Principi cardine del Copy Core (i 3 Maestri)
+COPY_CORE_PRINCIPLES = {
+    "schwartz": {
+        "name": "Eugene Schwartz - L'Ossessione per il Problema",
+        "principle": "Prima di scrivere i benefici, descrivi il dolore del lead meglio di quanto il lead sappia fare. Se il lead pensa 'Questa persona mi legge nel pensiero', la vendita è già fatta."
+    },
+    "brown": {
+        "name": "Todd Brown - Il Meccanismo Unico", 
+        "principle": "Non basta dire che il partner è bravo. Devi isolare un 'pezzo' del metodo e battezzarlo con un nome proprietario. Questo rende la soluzione logicamente superiore a qualsiasi altra."
+    },
+    "halbert": {
+        "name": "Gary Halbert - Il Ritmo del Desiderio",
+        "principle": "Usa paragrafi brevi, domande retoriche e linguaggio parlato. Il copy deve scorrere come una conversazione al bar, non come un manuale tecnico."
+    }
+}
 
 # Initial GAIA Systeme.io Templates
 INITIAL_GAIA_TEMPLATES = [
