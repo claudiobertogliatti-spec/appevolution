@@ -201,10 +201,14 @@ Partner Phase:
 ## Prioritized Backlog
 
 ### P0 - Completato ✅
-- [x] Tutte le funzionalità V1.0 - V7.0
+- [x] Tutte le funzionalità V1.0 - V8.0
 - [x] STEFANIA Copy Factory con Admin Review
 - [x] War Mode Multi-Channel (Meta/LinkedIn)
 - [x] Auto-Pivot Cross-Platform Analysis
+- [x] ATLAS Post-Sale & LTV Module
+- [x] Feedback-to-Copy Bridge
+- [x] Dynamic Content Unlock (Gamification)
+- [x] Real-Time API Integration Framework
 
 ### P1 - Alta Priorità
 - [ ] Autenticazione JWT (Admin vs Partner login)
@@ -212,7 +216,7 @@ Partner Phase:
 - [ ] Deploy su `app.evolution-pro.it`
 
 ### P2 - Media Priorità
-- [ ] Collegamento API reale Meta/LinkedIn Ads
+- [ ] Collegamento API reale Meta/LinkedIn Ads (credenziali user)
 - [ ] Systeme.io API reale
 - [ ] Knowledge Base: VALENTINA/STEFANIA/ANDREA citano moduli specifici
 - [ ] Custom Intro/Outro video templates
@@ -223,22 +227,32 @@ Partner Phase:
 
 ---
 
-## API Endpoints (War Mode v7.0)
+## API Endpoints (ATLAS v8.0)
 
-### STEFANIA Copy Factory
-- `GET /api/stefania/success-cases` - Database Successi EVO PRO
-- `GET /api/stefania/golden-rules` - 10 Regole d'Oro
-- `POST /api/stefania/generate-draft` - Drafting Engine AI
-- `GET /api/stefania/admin-review/pending` - Script in attesa revisione
-- `POST /api/masterclass/script/{id}/admin-edit` - Edit Admin
-- `POST /api/masterclass/script/{id}/partner-approve` - Approvazione Partner
+### Academy Students
+- `GET /api/atlas/students/{partner_id}` - Lista studenti
+- `POST /api/atlas/students/enroll` - Iscrivi studente
+- `POST /api/atlas/students/{id}/progress` - Aggiorna progresso
 
-### War Mode Multi-Channel
-- `POST /api/stefania/war-mode/hook-gallery` - Genera 3 Hook (Pain/Secret/Result)
-- `POST /api/stefania/war-mode/linkedin-content` - Thought Leadership/ABM/Lead Gen
-- `POST /api/stefania/war-mode/cross-platform-analysis` - Auto-Pivot Analysis
-- `GET /api/stefania/war-mode/dashboard` - Dashboard completa
-- `POST /api/stefania/war-mode/generate-utm` - UTM Generator
+### Bonus Content (Gamification)
+- `GET /api/atlas/bonuses/{partner_id}` - Lista bonus
+- `POST /api/atlas/bonuses` - Crea bonus
+
+### Feedback-to-Copy Bridge
+- `POST /api/atlas/feedback` - Submit feedback
+- `GET /api/atlas/feedback/{partner_id}` - Lista feedback
+- `POST /api/atlas/feedback/analyze/{partner_id}` - Analizza con STEFANIA
+- `GET /api/atlas/copy-angles/{partner_id}` - Angoli estratti
+
+### LTV Dashboard
+- `GET /api/atlas/ltv-dashboard/{partner_id}` - Dashboard completa
+- `POST /api/atlas/referral/create` - Crea referral
+- `GET /api/atlas/referrals/{partner_id}` - Lista referral
+
+### Real-Time API
+- `POST /api/stefania/api/store-credentials` - Salva credenziali Meta/LinkedIn
+- `POST /api/stefania/api/sync-metrics/{partner_id}` - Sync metriche real-time
+- `GET /api/stefania/api/roi/{partner_id}` - Calcola ROI con CRM
 
 ---
 
