@@ -1549,12 +1549,14 @@ export default function App() {
   const partnerNav = [
     { id: "corso", label: "Videocorso", icon: PlayCircle },
     { id: "masterclass", label: "Masterclass", icon: Mic },
+    { id: "coursebuilder", label: "Course Builder", icon: Sparkles },
     { id: "produzione", label: "Produzione Video", icon: Video },
     { id: "files", label: "I Miei File", icon: FolderOpen },
     { id: "brandkit", label: "Brand Kit", icon: Palette },
     { id: "calendario", label: "Calendario", icon: Calendar },
     { id: "documenti", label: "Documenti", icon: FileText },
     { id: "risorse", label: "Template", icon: FileText },
+    { id: "renewal", label: "Piani Post-12M", icon: Trophy },
     { id: "supporto", label: getTutorForPhase(demoPartner?.phase), icon: MessageCircle }
   ];
   
