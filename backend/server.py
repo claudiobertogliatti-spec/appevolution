@@ -1441,6 +1441,342 @@ async def get_script_edit_history(partner_id: str):
     return edits
 
 # =============================================================================
+# STEFANIA WAR MODE - ADS & TRAFFIC ROUTES
+# =============================================================================
+
+@api_router.post("/stefania/war-mode/generate-hooks")
+async def generate_ad_hooks(request: AdHookRequest):
+    """Ads Script Generator - Extract 5 powerful hooks from Copy Core for Meta/Google ads"""
+    try:
+        # Get the partner's script
+        script = await db.masterclass_scripts.find_one({"partner_id": request.partner_id}, {"_id": 0})
+        
+        # Get success cases for inspiration
+        success_cases = await db.success_cases.find({}, {"_id": 0}).to_list(5)
+        if not success_cases:
+            success_cases = EVOLUTION_PRO_SUCCESS_CASES[:3]
+        
+        # Build Copy Core context
+        copy_core = ""
+        if script and script.get("blocks"):
+            copy_core = f"""
+COPY CORE DEL PARTNER:
+- Hook originale: {script['blocks'].get('hook', '')}
+- Grande Promessa: {script['blocks'].get('grande_promessa', '')}
+- Metodo: {script['blocks'].get('metodo', '')}
+"""
+        
+        # Platform-specific guidelines
+        platform_guidelines = {
+            "meta": "Facebook/Instagram: Max 125 caratteri per l'hook principale. Usa emoji strategicamente. Focus su scroll-stopping opener.",
+            "google": "Google Ads: Max 30 caratteri per headline. Focus su keyword intent. Usa numeri e benefici concreti.",
+            "tiktok": "TikTok: Linguaggio casual e diretto. Pattern interrupt nei primi 3 secondi. Usa domande provocatorie."
+        }
+        
+        hook_prompt = f"""Sei STEFANIA in War Mode - Ads Specialist. Devi generare 5 HOOK PUBBLICITARI potenti per {request.partner_name} ({request.partner_niche}).
+
+{copy_core}
+
+PIATTAFORMA: {request.platform.upper()}
+LINEE GUIDA: {platform_guidelines.get(request.platform, platform_guidelines['meta'])}
+
+🎯 REGOLE PER GLI HOOK ADS:
+1. Pattern Interrupt: Inizia con qualcosa che FERMA lo scroll
+2. Curiosity Gap: Crea un vuoto informativo che spinge a cliccare
+3. Specificity: Usa numeri precisi (4.7kg, €2.347, 22 giorni)
+4. Enemy Frame: Identifica un nemico comune (i guru, il sistema, le bugie)
+5. Identity Trigger: Parla direttamente al target ideale
+
+📚 ESEMPI DA SUCCESSI EVOLUTION PRO:
+{chr(10).join([f"- {c['partner_name']}: {c.get('hook_example', 'N/A')}" for c in success_cases])}
+
+Genera 5 hook diversi, ognuno con un angolo unico:
+1. HOOK CURIOSITÀ: Pattern interrupt + mistero
+2. HOOK PROVOCAZIONE: Sfida lo status quo
+3. HOOK RISULTATO: Numero specifico + timeframe
+4. HOOK STORIA: Mini-narrative hook
+5. HOOK DOMANDA: Domanda provocatoria
+
+Rispondi in formato JSON:
+{{"hooks": ["hook1", "hook2", "hook3", "hook4", "hook5"], "platform_tips": "suggerimenti specifici"}}
+"""
+
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"hooks_{request.partner_id}_{datetime.now().timestamp()}",
+            system_message="Sei STEFANIA War Mode - Ads Specialist di Evolution PRO. Genera copy per ads ad alta conversione."
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        
+        response = await chat.send_message(UserMessage(text=hook_prompt))
+        
+        # Parse JSON response
+        import re
+        json_match = re.search(r'\{[\s\S]*\}', response)
+        hooks_data = {"hooks": [], "platform_tips": ""}
+        
+        if json_match:
+            try:
+                hooks_data = json.loads(json_match.group())
+            except json.JSONDecodeError:
+                hooks_data["hooks"] = [response]
+        
+        # Save to campaign if exists, or create new
+        existing_campaign = await db.ads_campaigns.find_one({"partner_id": request.partner_id, "platform": request.platform})
+        
+        if existing_campaign:
+            await db.ads_campaigns.update_one(
+                {"partner_id": request.partner_id, "platform": request.platform},
+                {"$set": {
+                    "hooks": hooks_data.get("hooks", []),
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+        else:
+            campaign = AdsCampaign(
+                partner_id=request.partner_id,
+                partner_name=request.partner_name,
+                platform=request.platform,
+                campaign_name=f"{request.partner_name} - {request.platform.upper()} Campaign",
+                hooks=hooks_data.get("hooks", [])
+            )
+            await db.ads_campaigns.insert_one(campaign.model_dump())
+        
+        return {
+            "success": True,
+            "hooks": hooks_data.get("hooks", []),
+            "platform": request.platform,
+            "platform_tips": hooks_data.get("platform_tips", ""),
+            "partner_id": request.partner_id
+        }
+        
+    except Exception as e:
+        logging.error(f"Hook generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/stefania/war-mode/campaigns")
+async def get_all_campaigns():
+    """Get all ad campaigns for Admin dashboard"""
+    campaigns = await db.ads_campaigns.find({}, {"_id": 0}).sort("updated_at", -1).to_list(100)
+    return campaigns
+
+@api_router.get("/stefania/war-mode/campaigns/{partner_id}")
+async def get_partner_campaigns(partner_id: str):
+    """Get campaigns for a specific partner"""
+    campaigns = await db.ads_campaigns.find({"partner_id": partner_id}, {"_id": 0}).to_list(20)
+    return campaigns
+
+@api_router.post("/stefania/war-mode/campaigns/{campaign_id}/update-metrics")
+async def update_campaign_metrics(
+    campaign_id: str,
+    spend: float = 0,
+    leads: int = 0,
+    conversions: int = 0,
+    revenue: float = 0
+):
+    """Performance Bridge - Update campaign metrics (simulating MARTA API connection)"""
+    campaign = await db.ads_campaigns.find_one({"id": campaign_id}, {"_id": 0})
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    
+    # Calculate metrics
+    cpl = spend / leads if leads > 0 else 0
+    roas = revenue / spend if spend > 0 else 0
+    
+    # Update campaign
+    await db.ads_campaigns.update_one(
+        {"id": campaign_id},
+        {"$set": {
+            "spend_total": campaign.get("spend_total", 0) + spend,
+            "leads": campaign.get("leads", 0) + leads,
+            "cpl": cpl,
+            "roas": roas,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Auto-Optimization Logic: Check CPL threshold
+    cpl_threshold = campaign.get("cpl_max_threshold", 15.0)
+    alerts = []
+    
+    if cpl > cpl_threshold and leads > 0:
+        # Create Low Performance Alert
+        alert = PerformanceAlert(
+            partner_id=campaign["partner_id"],
+            campaign_id=campaign_id,
+            alert_type="cpl_exceeded",
+            severity="critical" if cpl > cpl_threshold * 1.5 else "warning",
+            current_value=cpl,
+            threshold_value=cpl_threshold,
+            message=f"CPL di €{cpl:.2f} supera la soglia di €{cpl_threshold:.2f}",
+            suggested_action="Considerare cambio creatività. Testa un nuovo hook dalla lista generata o rivedi il targeting."
+        )
+        await db.performance_alerts.insert_one(alert.model_dump())
+        alerts.append(alert.model_dump())
+        
+        # Create notification for Claudio
+        notification = Notification(
+            type="escalation",
+            icon="📉",
+            title="LOW PERFORMANCE - STEFANIA Alert",
+            body=f"CPL {campaign['partner_name']} ({campaign['platform']}) a €{cpl:.2f} - Superata soglia €{cpl_threshold:.2f}",
+            time=datetime.now().strftime("%H:%M"),
+            partner=campaign["partner_name"],
+            action="war_mode"
+        )
+        await db.notifications.insert_one(notification.model_dump())
+    
+    # Low ROAS alert
+    if roas < 1.0 and revenue > 0:
+        alert = PerformanceAlert(
+            partner_id=campaign["partner_id"],
+            campaign_id=campaign_id,
+            alert_type="low_roas",
+            severity="warning",
+            current_value=roas,
+            threshold_value=1.0,
+            message=f"ROAS di {roas:.2f}x è sotto break-even",
+            suggested_action="Ottimizza la landing page o rivedi l'offerta. Considera aumentare il prezzo del corso."
+        )
+        await db.performance_alerts.insert_one(alert.model_dump())
+        alerts.append(alert.model_dump())
+    
+    return {
+        "success": True,
+        "campaign_id": campaign_id,
+        "metrics": {"spend": spend, "leads": leads, "cpl": cpl, "roas": roas},
+        "alerts_triggered": len(alerts),
+        "alerts": alerts
+    }
+
+@api_router.get("/stefania/war-mode/performance/{partner_id}")
+async def get_partner_performance(partner_id: str):
+    """Performance Bridge - Get performance metrics aggregated (MARTA connection)"""
+    campaigns = await db.ads_campaigns.find({"partner_id": partner_id}, {"_id": 0}).to_list(10)
+    alerts = await db.performance_alerts.find({"partner_id": partner_id, "resolved": False}, {"_id": 0}).to_list(20)
+    
+    # Aggregate metrics
+    total_spend = sum(c.get("spend_total", 0) for c in campaigns)
+    total_leads = sum(c.get("leads", 0) for c in campaigns)
+    avg_cpl = total_spend / total_leads if total_leads > 0 else 0
+    
+    return {
+        "partner_id": partner_id,
+        "campaigns_count": len(campaigns),
+        "campaigns": campaigns,
+        "aggregated": {
+            "total_spend": total_spend,
+            "total_leads": total_leads,
+            "avg_cpl": avg_cpl
+        },
+        "active_alerts": alerts
+    }
+
+@api_router.get("/stefania/war-mode/alerts")
+async def get_performance_alerts(resolved: bool = False):
+    """Get all performance alerts for Admin dashboard"""
+    alerts = await db.performance_alerts.find({"resolved": resolved}, {"_id": 0}).sort("created_at", -1).to_list(50)
+    return alerts
+
+@api_router.post("/stefania/war-mode/alerts/{alert_id}/resolve")
+async def resolve_performance_alert(alert_id: str):
+    """Resolve a performance alert"""
+    await db.performance_alerts.update_one(
+        {"id": alert_id},
+        {"$set": {"resolved": True}}
+    )
+    return {"success": True, "alert_id": alert_id}
+
+@api_router.post("/stefania/war-mode/generate-utm")
+async def generate_utm_link(request: UTMGeneratorRequest):
+    """Tracking Automatizzato - Generate UTM tracked links"""
+    # Sanitize values for URL
+    def sanitize(value: str) -> str:
+        return value.lower().replace(" ", "_").replace("-", "_")
+    
+    # Build UTM parameters
+    utm_params = {
+        "utm_source": sanitize(request.source),
+        "utm_medium": sanitize(request.medium),
+        "utm_campaign": sanitize(request.campaign_name),
+        "utm_content": sanitize(request.content) if request.content else f"hook_{datetime.now().strftime('%Y%m%d')}",
+        "utm_term": sanitize(request.partner_name)
+    }
+    
+    # Add Evolution PRO tracking ID
+    utm_params["evo_partner_id"] = request.partner_id
+    utm_params["evo_timestamp"] = datetime.now().strftime("%Y%m%d%H%M")
+    
+    # Build full URL
+    from urllib.parse import urlencode, urlparse, parse_qs
+    
+    base_url = request.destination_url
+    if "?" in base_url:
+        full_url = f"{base_url}&{urlencode(utm_params)}"
+    else:
+        full_url = f"{base_url}?{urlencode(utm_params)}"
+    
+    # Save to campaign
+    await db.ads_campaigns.update_one(
+        {"partner_id": request.partner_id, "platform": request.source},
+        {"$set": {
+            "utm_params": utm_params,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {
+        "success": True,
+        "tracked_url": full_url,
+        "utm_params": utm_params,
+        "short_preview": full_url[:80] + "..." if len(full_url) > 80 else full_url
+    }
+
+@api_router.post("/stefania/war-mode/campaigns/{campaign_id}/set-threshold")
+async def set_cpl_threshold(campaign_id: str, cpl_max: float):
+    """Set CPL max threshold for auto-optimization alerts"""
+    await db.ads_campaigns.update_one(
+        {"id": campaign_id},
+        {"$set": {
+            "cpl_max_threshold": cpl_max,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    return {"success": True, "campaign_id": campaign_id, "new_threshold": cpl_max}
+
+@api_router.get("/stefania/war-mode/dashboard")
+async def get_war_mode_dashboard():
+    """Complete War Mode dashboard data for Admin"""
+    campaigns = await db.ads_campaigns.find({}, {"_id": 0}).to_list(100)
+    alerts = await db.performance_alerts.find({"resolved": False}, {"_id": 0}).to_list(50)
+    
+    # Aggregate by platform
+    by_platform = {}
+    for c in campaigns:
+        platform = c.get("platform", "other")
+        if platform not in by_platform:
+            by_platform[platform] = {"campaigns": 0, "spend": 0, "leads": 0}
+        by_platform[platform]["campaigns"] += 1
+        by_platform[platform]["spend"] += c.get("spend_total", 0)
+        by_platform[platform]["leads"] += c.get("leads", 0)
+    
+    # Calculate averages
+    total_spend = sum(c.get("spend_total", 0) for c in campaigns)
+    total_leads = sum(c.get("leads", 0) for c in campaigns)
+    
+    return {
+        "overview": {
+            "total_campaigns": len(campaigns),
+            "total_spend": total_spend,
+            "total_leads": total_leads,
+            "avg_cpl": total_spend / total_leads if total_leads > 0 else 0,
+            "active_alerts": len(alerts)
+        },
+        "by_platform": by_platform,
+        "campaigns": campaigns[:10],  # Latest 10
+        "critical_alerts": [a for a in alerts if a.get("severity") == "critical"][:5]
+    }
+
+# =============================================================================
 # ROUTES - ANDREA (Video Production Support)
 # =============================================================================
 
