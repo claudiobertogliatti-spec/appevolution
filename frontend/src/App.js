@@ -433,9 +433,32 @@ function AndreaPipeline({ partners }) {
                   )}
                   
                   {job.status === "approved" && (
-                    <div className="flex items-center gap-2 text-green-400 text-xs font-bold">
-                      <Youtube className="w-4 h-4" /> Pronto per YouTube
-                    </div>
+                    <button 
+                      onClick={() => {
+                        const title = prompt("Titolo video YouTube:", `${job.partner_name} - Videocorso Evolution PRO`);
+                        if (title) {
+                          axios.post(`${API}/youtube/upload/${job.id}`, {
+                            job_id: job.id,
+                            title,
+                            lesson_title: "Lezione",
+                            module_title: "Modulo",
+                            privacy_status: "unlisted"
+                          }).then(() => {
+                            alert("Upload YouTube avviato!");
+                            loadJobs();
+                          }).catch(e => alert("Errore: " + (e.response?.data?.detail || e.message)));
+                        }
+                      }}
+                      className="bg-red-500/20 text-red-400 px-4 py-2 rounded-lg flex items-center gap-2 text-xs font-bold hover:bg-red-500/30 transition-colors">
+                      <Youtube className="w-4 h-4" /> Upload YouTube
+                    </button>
+                  )}
+                  
+                  {job.status === "uploaded" && job.youtube_url && (
+                    <a href={job.youtube_url} target="_blank" rel="noopener noreferrer"
+                      className="bg-green-500/20 text-green-400 px-4 py-2 rounded-lg flex items-center gap-2 text-xs font-bold">
+                      <Youtube className="w-4 h-4" /> Vedi su YouTube
+                    </a>
                   )}
                   
                   <button 
