@@ -1583,8 +1583,16 @@ export default function App() {
             </button>
           </div>
           
+          {/* Admin User Switcher */}
+          {mode === "admin" && (
+            <>
+              <div className="text-[9px] font-bold text-white/25 uppercase tracking-[2px] px-3 py-2">Account Admin</div>
+              <AdminSwitcher adminUser={adminUser} setAdminUser={setAdminUser} setNav={setNav} />
+            </>
+          )}
+          
           <div className="text-[9px] font-bold text-white/25 uppercase tracking-[2px] px-3 py-2">
-            {mode === "admin" ? "Gestione" : "Area Riservata"}
+            {mode === "admin" ? (adminUser === "antonella" ? "Area Antonella" : "Area Claudio") : "Area Riservata"}
           </div>
           
           {(mode === "admin" ? adminNav : partnerNav).map(item => (
