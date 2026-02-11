@@ -213,6 +213,55 @@ class ScriptReviewRequest(BaseModel):
     partner_name: str
     script_blocks: Dict[str, str]
 
+# =============================================================================
+# ANDREA - VIDEO PRODUCTION MODELS
+# =============================================================================
+
+class AndreaChatRequest(BaseModel):
+    session_id: str
+    message: str
+    partner_id: str
+    partner_name: str
+    partner_niche: str
+    current_block: Optional[str] = None
+    recording_status: Optional[str] = None  # setup, recording, review
+
+class VideoBlock(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    partner_id: str
+    block_type: str  # hook, grande_promessa, metodo, case_history, offerta, cta
+    block_label: str
+    script_content: str
+    status: str = "pending"  # pending, recording, uploaded, approved, needs_revision
+    video_file: Optional[str] = None
+    duration: Optional[float] = None
+    feedback: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class PreFlightCheck(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    partner_id: str
+    checklist: Dict[str, bool] = Field(default_factory=lambda: {
+        "sfondo_ordinato": False,
+        "luce_frontale": False,
+        "microfono_posizionato": False,
+        "inquadratura_corretta": False,
+        "silenzio_ambiente": False,
+        "script_pronto": False
+    })
+    test_video_uploaded: bool = False
+    test_video_approved: bool = False
+    feedback: Optional[str] = None
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class VideoAssemblyRequest(BaseModel):
+    partner_id: str
+    include_intro: bool = True
+    include_outro: bool = True
+    upload_to_youtube: bool = False
+
 class Notification(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
