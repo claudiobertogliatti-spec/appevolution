@@ -899,6 +899,562 @@ export function StefaniaWarMode({ partners }) {
           )}
         </div>
       )}
+
+      {/* API Configuration Tab */}
+      {activeTab === "api" && (
+        <APIConfigurationTab 
+          selectedPartner={selectedPartner} 
+          onRefresh={loadData}
+        />
+      )}
+
+      {/* ROI Tab - MARTA Integration */}
+      {activeTab === "roi" && (
+        <ROITab 
+          selectedPartner={selectedPartner}
+        />
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
+// API CONFIGURATION TAB COMPONENT
+// =============================================================================
+
+function APIConfigurationTab({ selectedPartner, onRefresh }) {
+  const [credStatus, setCredStatus] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  
+  // Credentials form
+  const [metaToken, setMetaToken] = useState("");
+  const [metaAccountId, setMetaAccountId] = useState("");
+  const [linkedinToken, setLinkedinToken] = useState("");
+  const [linkedinAccountUrn, setLinkedinAccountUrn] = useState("");
+  
+  // Smart-Optimization thresholds
+  const [cplThresholdMeta, setCplThresholdMeta] = useState(15);
+  const [cplThresholdLinkedin, setCplThresholdLinkedin] = useState(25);
+  
+  const [syncResult, setSyncResult] = useState(null);
+
+  useEffect(() => {
+    if (selectedPartner) {
+      loadCredStatus();
+    }
+  }, [selectedPartner]);
+
+  const loadCredStatus = async () => {
+    if (!selectedPartner) return;
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API}/stefania/api/credentials/${selectedPartner.id}`);
+      setCredStatus(res.data);
+    } catch (e) {
+      console.error("Error loading cred status:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveCredentials = async () => {
+    if (!selectedPartner) return;
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append("partner_id", selectedPartner.id);
+      if (metaToken) formData.append("meta_access_token", metaToken);
+      if (metaAccountId) formData.append("meta_ad_account_id", metaAccountId);
+      if (linkedinToken) formData.append("linkedin_access_token", linkedinToken);
+      if (linkedinAccountUrn) formData.append("linkedin_ad_account_urn", linkedinAccountUrn);
+      
+      await axios.post(`${API}/stefania/api/store-credentials`, formData);
+      alert("Credenziali salvate!");
+      loadCredStatus();
+    } catch (e) {
+      console.error("Error saving credentials:", e);
+      alert("Errore nel salvataggio");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const syncMetrics = async () => {
+    if (!selectedPartner) return;
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await axios.post(`${API}/stefania/api/sync-metrics/${selectedPartner.id}`, null, {
+        params: {
+          cpl_threshold_meta: cplThresholdMeta,
+          cpl_threshold_linkedin: cplThresholdLinkedin
+        }
+      });
+      setSyncResult(res.data);
+      if (res.data.alerts_triggered > 0) {
+        onRefresh && onRefresh();
+      }
+    } catch (e) {
+      console.error("Error syncing:", e);
+      alert("Errore nella sincronizzazione");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  if (!selectedPartner) {
+    return (
+      <div className="bg-[#1a2332] border border-white/10 rounded-xl p-12 text-center">
+        <Key className="w-12 h-12 text-white/20 mx-auto mb-4" />
+        <div className="text-lg font-bold mb-2">Seleziona un Partner</div>
+        <div className="text-sm text-white/40">Per configurare le API Real-Time</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* API Status */}
+      <div className="bg-gradient-to-br from-purple-900/20 to-blue-900/10 border border-purple-500/30 rounded-xl p-5">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+            <Plug className="w-6 h-6 text-white" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-extrabold text-white">API Real-Time Configuration</h3>
+            <p className="text-sm text-white/50">Collega Meta Ads Manager e LinkedIn Campaign Manager</p>
+          </div>
+          <button onClick={loadCredStatus} className="p-2 text-white/30 hover:text-white">
+            <RefreshCw className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Connection Status */}
+        {credStatus && (
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className={`rounded-lg p-4 border ${credStatus.meta_configured ? "bg-green-500/10 border-green-500/30" : "bg-white/5 border-white/10"}`}>
+              <div className="flex items-center gap-2 mb-2">
+                <Facebook className={`w-5 h-5 ${credStatus.meta_configured ? "text-green-400" : "text-white/30"}`} />
+                <span className="font-bold text-white">Meta Ads</span>
+                {credStatus.meta_configured ? (
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                ) : (
+                  <XCircle className="w-4 h-4 text-white/30" />
+                )}
+              </div>
+              <span className={`text-xs ${credStatus.meta_configured ? "text-green-400" : "text-white/40"}`}>
+                {credStatus.meta_configured ? "Connesso" : "Non configurato"}
+              </span>
+            </div>
+            <div className={`rounded-lg p-4 border ${credStatus.linkedin_configured ? "bg-green-500/10 border-green-500/30" : "bg-white/5 border-white/10"}`}>
+              <div className="flex items-center gap-2 mb-2">
+                <Linkedin className={`w-5 h-5 ${credStatus.linkedin_configured ? "text-green-400" : "text-white/30"}`} />
+                <span className="font-bold text-white">LinkedIn Ads</span>
+                {credStatus.linkedin_configured ? (
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                ) : (
+                  <XCircle className="w-4 h-4 text-white/30" />
+                )}
+              </div>
+              <span className={`text-xs ${credStatus.linkedin_configured ? "text-green-400" : "text-white/40"}`}>
+                {credStatus.linkedin_configured ? "Connesso" : "Non configurato"}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Credentials Form */}
+      <div className="grid grid-cols-2 gap-6">
+        {/* Meta Credentials */}
+        <div className="bg-[#1a2332] border border-blue-500/30 rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Facebook className="w-5 h-5 text-blue-400" />
+            <h4 className="font-bold text-white">Meta Ads API</h4>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-white/40">Access Token</label>
+              <input
+                type="password"
+                placeholder="EAAxxxxxx..."
+                value={metaToken}
+                onChange={e => setMetaToken(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white placeholder:text-white/30"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-white/40">Ad Account ID</label>
+              <input
+                type="text"
+                placeholder="act_123456789"
+                value={metaAccountId}
+                onChange={e => setMetaAccountId(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white placeholder:text-white/30"
+              />
+            </div>
+            <a 
+              href="https://developers.facebook.com/tools/explorer/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-xs text-blue-400 hover:underline flex items-center gap-1"
+            >
+              <ExternalLink className="w-3 h-3" /> Ottieni Token da Graph API Explorer
+            </a>
+          </div>
+        </div>
+
+        {/* LinkedIn Credentials */}
+        <div className="bg-[#1a2332] border border-sky-500/30 rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Linkedin className="w-5 h-5 text-sky-400" />
+            <h4 className="font-bold text-white">LinkedIn Ads API</h4>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-white/40">Access Token</label>
+              <input
+                type="password"
+                placeholder="AQXxxxxxx..."
+                value={linkedinToken}
+                onChange={e => setLinkedinToken(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white placeholder:text-white/30"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-white/40">Ad Account URN</label>
+              <input
+                type="text"
+                placeholder="urn:li:sponsoredAccount:123456"
+                value={linkedinAccountUrn}
+                onChange={e => setLinkedinAccountUrn(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white placeholder:text-white/30"
+              />
+            </div>
+            <a 
+              href="https://www.linkedin.com/developers/apps" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-xs text-sky-400 hover:underline flex items-center gap-1"
+            >
+              <ExternalLink className="w-3 h-3" /> LinkedIn Developer Portal
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <button
+        onClick={saveCredentials}
+        disabled={loading}
+        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-xl px-6 py-3 font-bold text-sm hover:opacity-90 disabled:opacity-50"
+      >
+        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
+        Salva Credenziali API
+      </button>
+
+      {/* Smart-Optimization Thresholds */}
+      <div className="bg-[#1a2332] border border-orange-500/30 rounded-xl p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <AlertTriangle className="w-5 h-5 text-orange-400" />
+          <h4 className="font-bold text-white">Smart-Optimization Thresholds (Business Plan)</h4>
+        </div>
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="text-xs text-white/40">CPL Max Meta (€)</label>
+            <input
+              type="number"
+              value={cplThresholdMeta}
+              onChange={e => setCplThresholdMeta(Number(e.target.value))}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-white/40">CPL Max LinkedIn (€)</label>
+            <input
+              type="number"
+              value={cplThresholdLinkedin}
+              onChange={e => setCplThresholdLinkedin(Number(e.target.value))}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white"
+            />
+          </div>
+        </div>
+        <button
+          onClick={syncMetrics}
+          disabled={syncing}
+          className="w-full flex items-center justify-center gap-2 bg-orange-500 text-white rounded-lg px-4 py-3 font-bold text-sm hover:bg-orange-600 disabled:opacity-50"
+        >
+          {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Activity className="w-4 h-4" />}
+          Sync Metriche & Check Alert
+        </button>
+
+        {syncResult && (
+          <div className={`mt-4 rounded-lg p-4 border ${syncResult.alerts_triggered > 0 ? "bg-red-500/10 border-red-500/30" : "bg-green-500/10 border-green-500/30"}`}>
+            <div className="flex items-center gap-2 mb-2">
+              {syncResult.alerts_triggered > 0 ? (
+                <AlertTriangle className="w-5 h-5 text-red-400" />
+              ) : (
+                <CheckCircle className="w-5 h-5 text-green-400" />
+              )}
+              <span className="font-bold text-white">
+                {syncResult.alerts_triggered > 0 
+                  ? `${syncResult.alerts_triggered} Alert Generati!` 
+                  : "Nessun alert - Performance OK"}
+              </span>
+            </div>
+            {syncResult.alerts?.map((alert, i) => (
+              <div key={i} className="text-sm text-white/70 mt-2">
+                <span className={`text-xs font-bold px-2 py-0.5 rounded ${alert.severity === "critical" ? "bg-red-500/20 text-red-400" : "bg-orange-500/20 text-orange-400"}`}>
+                  {alert.platform.toUpperCase()}
+                </span>{" "}
+                {alert.message}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// ROI TAB COMPONENT - MARTA CRM Integration
+// =============================================================================
+
+function ROITab({ selectedPartner }) {
+  const [roiData, setRoiData] = useState(null);
+  const [salesData, setSalesData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [days, setDays] = useState(30);
+  
+  // Sale recording form
+  const [saleAmount, setSaleAmount] = useState("");
+  const [saleSource, setSaleSource] = useState("meta");
+  const [saleCampaign, setSaleCampaign] = useState("");
+  const [recordingSale, setRecordingSale] = useState(false);
+
+  useEffect(() => {
+    if (selectedPartner) {
+      loadData();
+    }
+  }, [selectedPartner, days]);
+
+  const loadData = async () => {
+    if (!selectedPartner) return;
+    setLoading(true);
+    try {
+      const [roiRes, salesRes] = await Promise.all([
+        axios.get(`${API}/stefania/api/roi/${selectedPartner.id}`, { params: { days } }),
+        axios.get(`${API}/stefania/api/crm/sales/${selectedPartner.id}`, { params: { days } })
+      ]);
+      setRoiData(roiRes.data);
+      setSalesData(salesRes.data);
+    } catch (e) {
+      console.error("Error loading ROI data:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const recordSale = async () => {
+    if (!selectedPartner || !saleAmount) return;
+    setRecordingSale(true);
+    try {
+      const formData = new FormData();
+      formData.append("partner_id", selectedPartner.id);
+      formData.append("amount", saleAmount);
+      formData.append("utm_source", saleSource);
+      if (saleCampaign) formData.append("utm_campaign", saleCampaign);
+      
+      await axios.post(`${API}/stefania/api/crm/sale`, formData);
+      alert("Vendita registrata!");
+      setSaleAmount("");
+      setSaleCampaign("");
+      loadData();
+    } catch (e) {
+      console.error("Error recording sale:", e);
+    } finally {
+      setRecordingSale(false);
+    }
+  };
+
+  if (!selectedPartner) {
+    return (
+      <div className="bg-[#1a2332] border border-white/10 rounded-xl p-12 text-center">
+        <Receipt className="w-12 h-12 text-white/20 mx-auto mb-4" />
+        <div className="text-lg font-bold mb-2">Seleziona un Partner</div>
+        <div className="text-sm text-white/40">Per vedere il ROI effettivo</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* ROI Header */}
+      <div className="bg-gradient-to-br from-green-900/20 to-emerald-900/10 border border-green-500/30 rounded-xl p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+              <Receipt className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-extrabold text-white">ROI Effettivo — MARTA CRM</h3>
+              <p className="text-sm text-white/50">Calcolo basato su vendite reali registrate</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <select
+              value={days}
+              onChange={e => setDays(Number(e.target.value))}
+              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+            >
+              <option value="7">7 giorni</option>
+              <option value="30">30 giorni</option>
+              <option value="90">90 giorni</option>
+            </select>
+            <button onClick={loadData} className="p-2 text-white/30 hover:text-white">
+              <RefreshCw className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="w-8 h-8 text-green-400 animate-spin" />
+          </div>
+        ) : roiData && (
+          <div className="grid grid-cols-4 gap-4">
+            <div className="bg-[#1a2332] rounded-lg p-4 border border-white/10">
+              <div className="text-[10px] text-white/40 uppercase">Revenue CRM</div>
+              <div className="font-mono text-2xl font-bold text-green-400">€{roiData.crm_revenue?.toFixed(0) || 0}</div>
+            </div>
+            <div className="bg-[#1a2332] rounded-lg p-4 border border-white/10">
+              <div className="text-[10px] text-white/40 uppercase">Spesa Ads</div>
+              <div className="font-mono text-2xl font-bold text-red-400">€{roiData.spend?.toFixed(0) || 0}</div>
+            </div>
+            <div className="bg-[#1a2332] rounded-lg p-4 border border-white/10">
+              <div className="text-[10px] text-white/40 uppercase">Profitto</div>
+              <div className={`font-mono text-2xl font-bold ${(roiData.profit || 0) >= 0 ? "text-green-400" : "text-red-400"}`}>
+                €{roiData.profit?.toFixed(0) || 0}
+              </div>
+            </div>
+            <div className="bg-[#1a2332] rounded-lg p-4 border border-white/10">
+              <div className="text-[10px] text-white/40 uppercase">ROI</div>
+              <div className={`font-mono text-2xl font-bold ${(roiData.roi || 0) >= 0 ? "text-green-400" : "text-red-400"}`}>
+                {roiData.roi?.toFixed(0) || 0}%
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Attribution by Source */}
+      {salesData?.by_source && Object.keys(salesData.by_source).length > 0 && (
+        <div className="bg-[#1a2332] border border-white/10 rounded-xl p-5">
+          <h4 className="font-bold text-white mb-4 flex items-center gap-2">
+            <Database className="w-4 h-4 text-purple-400" /> Attribution per Sorgente
+          </h4>
+          <div className="grid grid-cols-3 gap-4">
+            {Object.entries(salesData.by_source).map(([source, data]) => (
+              <div key={source} className="bg-white/5 border border-white/10 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  {source === "meta" && <Facebook className="w-4 h-4 text-blue-400" />}
+                  {source === "linkedin" && <Linkedin className="w-4 h-4 text-sky-400" />}
+                  {source === "direct" && <Users className="w-4 h-4 text-white/40" />}
+                  <span className="font-bold text-white capitalize">{source}</span>
+                </div>
+                <div className="text-lg font-mono font-bold text-green-400">€{data.revenue?.toFixed(0)}</div>
+                <div className="text-xs text-white/40">{data.count} vendite</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Record Sale Form */}
+      <div className="bg-[#1a2332] border border-white/10 rounded-xl p-5">
+        <h4 className="font-bold text-white mb-4 flex items-center gap-2">
+          <CreditCard className="w-4 h-4 text-green-400" /> Registra Vendita
+        </h4>
+        <div className="grid grid-cols-4 gap-3">
+          <div>
+            <label className="text-xs text-white/40">Importo (€)</label>
+            <input
+              type="number"
+              placeholder="497"
+              value={saleAmount}
+              onChange={e => setSaleAmount(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-white/40">Sorgente</label>
+            <select
+              value={saleSource}
+              onChange={e => setSaleSource(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white"
+            >
+              <option value="meta">Meta</option>
+              <option value="linkedin">LinkedIn</option>
+              <option value="direct">Diretto</option>
+              <option value="email">Email</option>
+              <option value="referral">Referral</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-white/40">Campagna</label>
+            <input
+              type="text"
+              placeholder="masterclass_launch"
+              value={saleCampaign}
+              onChange={e => setSaleCampaign(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white"
+            />
+          </div>
+          <div className="flex items-end">
+            <button
+              onClick={recordSale}
+              disabled={recordingSale || !saleAmount}
+              className="w-full flex items-center justify-center gap-2 bg-green-500 text-white rounded-lg px-4 py-2 text-sm font-bold hover:bg-green-600 disabled:opacity-50"
+            >
+              {recordingSale ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+              Registra
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Sales */}
+      {salesData?.sales?.length > 0 && (
+        <div className="bg-[#1a2332] border border-white/10 rounded-xl overflow-hidden">
+          <div className="p-4 border-b border-white/5 bg-white/5">
+            <h4 className="font-bold">Ultime Vendite ({salesData.total_sales} totali)</h4>
+          </div>
+          <div className="divide-y divide-white/5 max-h-64 overflow-y-auto">
+            {salesData.sales.slice(0, 10).map((sale, i) => (
+              <div key={i} className="p-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    sale.utm_source === "meta" ? "bg-blue-500/20" : 
+                    sale.utm_source === "linkedin" ? "bg-sky-500/20" : "bg-white/10"
+                  }`}>
+                    {sale.utm_source === "meta" && <Facebook className="w-4 h-4 text-blue-400" />}
+                    {sale.utm_source === "linkedin" && <Linkedin className="w-4 h-4 text-sky-400" />}
+                    {(!sale.utm_source || sale.utm_source === "direct") && <Users className="w-4 h-4 text-white/40" />}
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-white">€{sale.amount?.toFixed(0)}</div>
+                    <div className="text-xs text-white/40">{sale.utm_campaign || sale.utm_source || "direct"}</div>
+                  </div>
+                </div>
+                <div className="text-xs text-white/30">
+                  {new Date(sale.sale_date || sale.created_at).toLocaleDateString()}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
