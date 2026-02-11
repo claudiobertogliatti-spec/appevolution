@@ -776,9 +776,13 @@ async def get_stats():
     videos_processing = sum(1 for j in video_jobs if j.get("status") == "processing")
     videos_pending_approval = sum(1 for j in video_jobs if j.get("status") == "completed")
     videos_approved = sum(1 for j in video_jobs if j.get("status") == "approved")
+    videos_uploaded = sum(1 for j in video_jobs if j.get("status") == "uploaded")
     
     # Storage stats
     storage_stats = file_storage.get_storage_stats()
+    
+    # YouTube auth status
+    youtube_auth = youtube_uploader.is_authenticated()
     
     return {
         "total_partners": total_partners,
@@ -789,9 +793,285 @@ async def get_stats():
         "videos": {
             "processing": videos_processing,
             "pending_approval": videos_pending_approval,
-            "approved": videos_approved
+            "approved": videos_approved,
+            "uploaded": videos_uploaded
         },
-        "storage": storage_stats
+        "storage": storage_stats,
+        "youtube_authenticated": youtube_auth
+    }
+
+# =============================================================================
+# ROUTES - YOUTUBE UPLOAD
+# =============================================================================
+
+@api_router.post("/youtube/config")
+async def set_youtube_config(file: UploadFile = File(...)):
+    """Upload YouTube OAuth client_secret.json"""
+    try:
+        content = await file.read()
+        config = json.loads(content.decode())
+        youtube_uploader.set_client_config(config)
+        return {"success": True, "message": "YouTube config saved"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.get("/youtube/auth-url")
+async def get_youtube_auth_url():
+    """Get OAuth authorization URL"""
+    try:
+        url = youtube_uploader.get_auth_url()
+        return {"auth_url": url}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.post("/youtube/complete-auth")
+async def complete_youtube_auth(auth_code: str):
+    """Complete OAuth flow with authorization code"""
+    success = youtube_uploader.complete_auth(auth_code)
+    if success:
+        return {"success": True, "message": "YouTube authentication completed"}
+    raise HTTPException(status_code=400, detail="Authentication failed")
+
+@api_router.get("/youtube/status")
+async def get_youtube_status():
+    """Check YouTube authentication status"""
+    return {
+        "authenticated": youtube_uploader.is_authenticated(),
+        "config_exists": Path("/app/storage/client_secret.json").exists()
+    }
+
+@api_router.post("/youtube/upload/{job_id}")
+async def upload_to_youtube(job_id: str, request: YouTubeUploadRequest, background_tasks: BackgroundTasks):
+    """Upload approved video to YouTube"""
+    if not youtube_uploader.is_authenticated():
+        raise HTTPException(status_code=401, detail="YouTube not authenticated")
+    
+    job = await db.video_jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    if job["status"] != "approved":
+        raise HTTPException(status_code=400, detail="Video must be approved first")
+    
+    # Get partner info
+    partner = await db.partners.find_one({"id": job["partner_id"]}, {"_id": 0})
+    partner_niche = partner.get("niche", "Business") if partner else "Business"
+    
+    # Get transcription from processing result
+    transcription = ""
+    if job.get("processing_result"):
+        for step in job["processing_result"].get("processing_steps", []):
+            if step.get("step") == "filler_detection":
+                transcription = step.get("transcription_text", "")
+                break
+    
+    # Start upload in background
+    background_tasks.add_task(
+        youtube_upload_background,
+        job_id,
+        job["partner_name"],
+        partner_niche,
+        request.title,
+        request.lesson_title,
+        request.module_title,
+        transcription,
+        request.privacy_status
+    )
+    
+    return {"success": True, "message": "YouTube upload started", "job_id": job_id}
+
+async def youtube_upload_background(
+    job_id: str, partner_name: str, partner_niche: str,
+    title: str, lesson_title: str, module_title: str,
+    transcription: str, privacy_status: str
+):
+    """Background task for YouTube upload"""
+    try:
+        video_path = f"/app/storage/videos/approved/approved_{job_id}.mp4"
+        
+        result = await youtube_uploader.upload_video(
+            video_path=video_path,
+            title=title,
+            partner_name=partner_name,
+            partner_niche=partner_niche,
+            lesson_title=lesson_title,
+            module_title=module_title,
+            transcription_text=transcription,
+            privacy_status=privacy_status
+        )
+        
+        if result["success"]:
+            await db.video_jobs.update_one(
+                {"id": job_id},
+                {"$set": {
+                    "status": "uploaded",
+                    "youtube_url": result["video_url"],
+                    "youtube_video_id": result["video_id"],
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+        else:
+            await db.video_jobs.update_one(
+                {"id": job_id},
+                {"$set": {
+                    "youtube_error": result.get("error"),
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+    except Exception as e:
+        logging.exception(f"YouTube upload failed: {e}")
+
+@api_router.delete("/youtube/revoke")
+async def revoke_youtube_auth():
+    """Revoke YouTube authentication"""
+    youtube_uploader.revoke_credentials()
+    return {"success": True, "message": "YouTube credentials revoked"}
+
+# =============================================================================
+# ROUTES - GAIA FUNNEL DEPLOYER (Systeme.io Templates)
+# =============================================================================
+
+@api_router.get("/gaia/templates")
+async def list_systeme_templates(category: Optional[str] = None):
+    """List Systeme.io funnel templates"""
+    query = {}
+    if category:
+        query["category"] = category
+    templates = await db.systeme_templates.find(query, {"_id": 0}).to_list(100)
+    return templates
+
+@api_router.post("/gaia/templates")
+async def create_systeme_template(
+    name: str = Form(...),
+    category: str = Form(...),
+    share_link: str = Form(...),
+    description: str = Form(default=""),
+    brand_variables: str = Form(default="Nome_Partner,Colore_Brand")
+):
+    """Add a new Systeme.io template"""
+    template = SystemeTemplate(
+        name=name,
+        category=category,
+        share_link=share_link,
+        description=description,
+        brand_variables=brand_variables.split(",")
+    )
+    await db.systeme_templates.insert_one(template.model_dump())
+    
+    # Update GAIA status
+    await db.agents.update_one({"id": "GAIA"}, {"$set": {"status": "ACTIVE"}})
+    
+    return template
+
+@api_router.delete("/gaia/templates/{template_id}")
+async def delete_systeme_template(template_id: str):
+    """Delete a Systeme.io template"""
+    result = await db.systeme_templates.delete_one({"id": template_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Template not found")
+    return {"success": True}
+
+@api_router.get("/gaia/templates/categories")
+async def get_template_categories():
+    """Get available template categories"""
+    return {
+        "categories": [
+            {"id": "lead_gen", "name": "Lead Generation", "icon": "📧"},
+            {"id": "masterclass", "name": "Masterclass", "icon": "🎓"},
+            {"id": "vendita", "name": "Vendita", "icon": "💰"},
+            {"id": "webinar", "name": "Webinar", "icon": "🎥"},
+            {"id": "altri", "name": "Altri", "icon": "📁"}
+        ]
+    }
+
+# =============================================================================
+# ROUTES - BRAND KIT
+# =============================================================================
+
+@api_router.get("/gaia/brandkit/{partner_id}")
+async def get_brand_kit(partner_id: str):
+    """Get partner's brand kit"""
+    kit = await db.brand_kits.find_one({"partner_id": partner_id}, {"_id": 0})
+    if not kit:
+        # Return default
+        partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+        return BrandKit(
+            partner_id=partner_id,
+            nome_partner=partner.get("name", "") if partner else ""
+        ).model_dump()
+    return kit
+
+@api_router.post("/gaia/brandkit")
+async def save_brand_kit(kit: BrandKit):
+    """Save or update partner's brand kit"""
+    await db.brand_kits.update_one(
+        {"partner_id": kit.partner_id},
+        {"$set": kit.model_dump()},
+        upsert=True
+    )
+    return {"success": True, "brand_kit": kit}
+
+@api_router.get("/gaia/brandkit/{partner_id}/preview")
+async def preview_template_with_brand(partner_id: str, template_id: str):
+    """Preview template variables replaced with brand kit"""
+    kit = await db.brand_kits.find_one({"partner_id": partner_id}, {"_id": 0})
+    template = await db.systeme_templates.find_one({"id": template_id}, {"_id": 0})
+    
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    # Build variable replacements
+    replacements = {
+        "Nome_Partner": kit.get("nome_partner", "") if kit else "",
+        "Colore_Brand": kit.get("colore_brand", "#F5C518") if kit else "#F5C518",
+        "Logo_URL": kit.get("logo_url", "") if kit else "",
+        "Email_Partner": kit.get("email_partner", "") if kit else "",
+        "Telefono": kit.get("telefono", "") if kit else "",
+        "Sito_Web": kit.get("sito_web", "") if kit else "",
+    }
+    
+    return {
+        "template": template,
+        "replacements": replacements,
+        "share_link": template["share_link"]
+    }
+
+# =============================================================================
+# ROUTES - TTS (Intro/Outro Voice Generation)
+# =============================================================================
+
+@api_router.post("/tts/generate")
+async def generate_tts(request: TTSRequest):
+    """Generate TTS audio for intro/outro"""
+    if request.type == "intro":
+        result = await tts_generator.generate_intro(
+            partner_name=request.partner_name,
+            custom_text=request.text if request.text else None,
+            voice=request.voice
+        )
+    else:
+        result = await tts_generator.generate_outro(
+            partner_name=request.partner_name,
+            custom_text=request.text if request.text else None,
+            voice=request.voice
+        )
+    
+    return result
+
+@api_router.get("/tts/voices")
+async def list_tts_voices():
+    """List available TTS voices"""
+    return {"voices": tts_generator.list_available_voices()}
+
+@api_router.get("/tts/files")
+async def list_tts_files():
+    """List generated intro/outro files"""
+    intros = list(Path("/app/storage/intros").glob("*.mp3"))
+    outros = list(Path("/app/storage/outros").glob("*.mp3"))
+    
+    return {
+        "intros": [{"name": f.name, "url": f"/api/files/intros/{f.name}"} for f in intros],
+        "outros": [{"name": f.name, "url": f"/api/files/outros/{f.name}"} for f in outros]
     }
 
 # =============================================================================
@@ -800,7 +1080,7 @@ async def get_stats():
 
 @api_router.get("/")
 async def root():
-    return {"message": "Evolution PRO OS API v2.0", "status": "online"}
+    return {"message": "Evolution PRO OS API v3.0", "status": "online"}
 
 @api_router.get("/control")
 async def control_dashboard():
@@ -810,18 +1090,22 @@ async def control_dashboard():
     
     return {
         "system": "Evolution PRO OS",
-        "version": "2.0",
+        "version": "3.0",
         "status": "operational",
         "agents": agents,
         "stats": stats,
+        "youtube_authenticated": youtube_uploader.is_authenticated(),
         "endpoints": {
             "dashboard": "/",
             "agents": "/api/agents",
             "partners": "/api/partners",
             "alerts": "/api/alerts",
             "videos": "/api/videos/jobs",
+            "youtube": "/api/youtube/status",
             "files": "/api/files",
             "compliance": "/api/compliance/pending",
+            "gaia_templates": "/api/gaia/templates",
+            "tts": "/api/tts/voices",
             "chat": "/api/chat"
         }
     }
