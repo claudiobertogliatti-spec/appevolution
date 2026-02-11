@@ -31,7 +31,7 @@ db = client[os.environ['DB_NAME']]
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
 
 # Create the main app
-app = FastAPI(title="Evolution PRO OS", version="2.0")
+app = FastAPI(title="Evolution PRO OS", version="3.0")
 api_router = APIRouter(prefix="/api")
 
 # =============================================================================
