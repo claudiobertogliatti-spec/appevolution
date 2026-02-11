@@ -3,7 +3,7 @@
 ## Overview
 **Nome**: Evolution PRO OS Platform  
 **Data creazione**: 11 Feb 2026  
-**Versione**: 8.0 (ATLAS Post-Sale & LTV)  
+**Versione**: 9.0 (Course Builder AI & Renewal Plans)  
 **Stato**: ✅ Implementazione Completa
 
 ## Problem Statement
@@ -45,6 +45,32 @@ Creare un'applicazione full-stack proprietaria per Evolution PRO - una piattafor
 ### V7.0 - STEFANIA War Mode Multi-Channel (11 Feb 2026) ✅
 
 ### V8.0 - ATLAS Post-Sale & LTV Module (11 Feb 2026) ✅
+
+### V9.0 - Course Builder AI & Renewal Plans (11 Feb 2026) ✅
+
+#### 1. Course Builder AI Wizard (STEFANIA)
+- **Wizard preferenze**: Selezione Durata (4/8 settimane, Self-paced), Livello (Principiante/Intermedio/Avanzato), Formato (Video/PDF/Workbook)
+- **Generazione AI**: STEFANIA genera struttura corso completa con moduli e lezioni
+- **Editor interattivo**: Modifica moduli/lezioni con chat STEFANIA integrata
+- **API Endpoint**: `/api/stefania/course-builder/generate`, `/api/stefania/course-builder/chat`, `/api/stefania/course-builder/save`
+- **Fallback Mock**: Quando LLM non disponibile, usa template predefinito
+
+#### 2. Renewal Plans (Piani Post-12 Mesi)
+- **Evolution Top**: €97/mese + 10% revenue - Mantenimento base
+- **Evolution Elite**: €247/mese + 10% revenue - Ottimizzazione e scaling
+- **Evolution Star**: €397/mese + 10% revenue - Full management
+- **Interfaccia**: Card comparative con features, conferma modale
+
+#### 3. Agenti AI Completi (9 totali)
+- MAIN (Sistema Centrale)
+- VALENTINA (Orchestratrice)
+- ORION (Sales Intelligence)
+- MARTA (CRM & Revenue)
+- GAIA (Funnel & Incident)
+- ANDREA (Video Production)
+- STEFANIA (Copy & Traffico)
+- LUCA (Compliance)
+- ATLAS (Post-Sale & LTV)
 
 #### 1. Dynamic Content Unlock (Gamification)
 - Sistema di punti per studenti Academy
