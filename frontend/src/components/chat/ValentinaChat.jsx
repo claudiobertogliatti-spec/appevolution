@@ -88,7 +88,7 @@ function QuickSuggestion({ text, onClick }) {
 }
 
 // Componente principale Chat VALENTINA
-export function ValentinaChat({ partner, onBack }) {
+export function ValentinaChat({ partner, onBack, isAdmin = false }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -102,20 +102,24 @@ export function ValentinaChat({ partner, onBack }) {
   useEffect(() => {
     const welcomeMsg = {
       role: "assistant",
-      content: `Ciao ${partner?.name?.split(" ")[0] || "Partner"}! 👋\n\nSono **VALENTINA**, la tua orchestratrice personale.\n\nSei attualmente in **${partner?.phase || "F1"}**. Posso aiutarti con:\n• Informazioni sul tuo percorso\n• Spostamento tra le fasi\n• Supporto e domande\n\nScrivimi qualsiasi cosa!`,
+      content: isAdmin 
+        ? `Ciao! 👋\n\nSono **VALENTINA**, l'orchestratrice del sistema.\n\nPosso aiutarti con:\n• Gestione partner e fasi\n• Azioni su Systeme.io\n• Supporto operativo\n\nCome posso aiutarti?`
+        : `Ciao ${partner?.name?.split(" ")[0] || "Partner"}! 👋\n\nSono **VALENTINA**, la tua orchestratrice personale.\n\nSei attualmente in **${partner?.phase || "F1"}**. Sono qui per rispondere alle tue domande e supportarti nel percorso.\n\nScrivimi pure!`,
       time: currentTime(),
       read: true
     };
     setMessages([welcomeMsg]);
-  }, [partner]);
+  }, [partner, isAdmin]);
   
   // Scroll automatico
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
   
-  // Verifica se il messaggio contiene un comando eseguibile
+  // Verifica se il messaggio contiene un comando eseguibile (SOLO per admin)
   const checkForCommand = (text) => {
+    if (!isAdmin) return null; // I partner non possono eseguire comandi
+    
     const lowerText = text.toLowerCase();
     
     // Cerca comandi di spostamento fase
