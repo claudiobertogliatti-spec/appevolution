@@ -487,7 +487,7 @@ export default function App() {
   const adminNav=adminUser==="antonella"?antonellaNav:coreNav;
   const isToolNav=toolsNav.some(t=>t.id===nav);
 
-  const titles={overview:"Overview",agenti:"Agenti AI",partner:"Pipeline Partner",andrea:adminUser==="antonella"?"ANDREA — Feed Video":"ANDREA — Surgical Cut",metriche:"Metriche Post-Lancio",systeme:"Systeme.io",gaia:"GAIA — Funnel Deployer",compliance:"LUCA — Compliance",copyfactory:"Copy Factory",warmode:"War Mode — Ads",atlas:"ATLAS — LTV",alert:"Alert & Escalation",home:"Il tuo percorso",corso:"Videocorso",masterclass:"Masterclass — STEFANIA",coursebuilder:"Course Builder AI",produzione:"Produzione Video — ANDREA",files:"I Miei File",brandkit:"Brand Kit",calendario:"Calendario Editoriale",documenti:"Documenti & Posizionamento",risorse:"Template & Risorse",renewal:"Piani Post-12 Mesi",supporto:`${getTutor(demoPartner?.phase)} — Supporto`};
+  const titles={overview:"Overview",agenti:"Agenti AI",partner:"Pipeline Partner",andrea:adminUser==="antonella"?"ANDREA — Feed Video":"ANDREA — Surgical Cut",metriche:"Metriche Post-Lancio",systeme:"SYSTEME.IO — Live Data",gaia:"GAIA — Funnel Deployer",compliance:"LUCA — Compliance",copyfactory:"STEFANIA — Copy Factory",warmode:"STEFANIA — War Mode Ads",atlas:"ATLAS — LTV",alert:"Alert & Escalation",home:"Il tuo percorso",corso:"Videocorso",masterclass:"STEFANIA — Masterclass Builder",coursebuilder:"STEFANIA — Course Builder AI",produzione:"ANDREA — Produzione Video",files:"I Miei File",brandkit:"Brand Kit",calendario:"Calendario Editoriale",documenti:"Documenti & Posizionamento",risorse:"Template & Risorse",renewal:"Piani Post-12 Mesi",supporto:"VALENTINA — Chat"};
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#0B0E14] text-white">
