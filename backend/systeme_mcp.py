@@ -109,7 +109,8 @@ class SystemeMCPClient:
     
     async def add_tag_to_contact(self, contact_id: str, tag_id: str) -> Dict:
         """Aggiunge tag a un contatto"""
-        return await self._request("POST", f"/contacts/{contact_id}/tags", {"tagId": tag_id})
+        # tagId deve essere int
+        return await self._request("POST", f"/contacts/{contact_id}/tags", {"tagId": int(tag_id)})
     
     async def remove_tag_from_contact(self, contact_id: str, tag_id: str) -> Dict:
         """Rimuove tag da un contatto"""
