@@ -159,6 +159,10 @@ class SystemeMCPClient:
         """Recupera dettagli campagna"""
         return await self._request("GET", f"/campaigns/{campaign_id}")
     
+    async def subscribe_to_campaign(self, campaign_id: str, contact_id: str) -> Dict:
+        """Iscrive un contatto a una campagna email (automation)"""
+        return await self._request("POST", f"/campaigns/{campaign_id}/subscribers", {"contactId": contact_id})
+    
     # ==========================================================================
     # PRODOTTI E ORDINI (usato da ORION e MARTA)
     # ==========================================================================
@@ -174,6 +178,192 @@ class SystemeMCPClient:
     async def get_order(self, order_id: str) -> Dict:
         """Recupera dettagli ordine"""
         return await self._request("GET", f"/orders/{order_id}")
+    
+    # ==========================================================================
+    # AUTOMAZIONI E WORKFLOW (WRITE ACTIONS)
+    # ==========================================================================
+    
+    async def trigger_automation(self, contact_id: str, tag_name: str) -> Dict:
+        """
+        Triggera un'automazione aggiungendo un tag specifico a un contatto.
+        In Systeme.io, le automazioni sono collegate ai tag.
+        """
+        # Prima crea il tag se non esiste
+        tags_result = await self.get_tags()
+        tags = tags_result.get("items", [])
+        
+        tag_id = None
+        for tag in tags:
+            if tag.get("name", "").lower() == tag_name.lower():
+                tag_id = tag.get("id")
+                break
+        
+        if not tag_id:
+            # Crea il tag
+            create_result = await self.create_tag(tag_name)
+            tag_id = create_result.get("id")
+        
+        if tag_id:
+            return await self.add_tag_to_contact(contact_id, str(tag_id))
+        
+        return {"error": True, "message": "Impossibile creare/trovare il tag"}
+    
+    async def bulk_add_tag(self, contact_ids: List[str], tag_id: str) -> Dict:
+        """Aggiunge un tag a multipli contatti"""
+        results = []
+        for contact_id in contact_ids:
+            result = await self.add_tag_to_contact(contact_id, tag_id)
+            results.append({"contact_id": contact_id, "result": result})
+        return {"success": True, "results": results, "count": len(results)}
+    
+    async def move_contact_to_phase(self, contact_id: str, phase: str) -> Dict:
+        """
+        Sposta un contatto a una nuova fase del programma Evolution PRO.
+        Rimuove tag fase precedente e aggiunge nuovo tag fase.
+        """
+        phase_tags = {
+            "F0": "Fase_PRE_ONBOARDING",
+            "F1": "Fase_ATTIVAZIONE", 
+            "F2": "Fase_ALLINEAMENTO",
+            "F3": "Fase_COPY_CORE",
+            "F4": "Fase_OUTLINE",
+            "F5": "Fase_REGISTRAZIONE",
+            "F6": "Fase_ACCADEMIA",
+            "F7": "Fase_PRE_LANCIO",
+            "F8": "Fase_LANCIO",
+            "F9": "Fase_OTTIMIZZAZIONE",
+            "F10": "Fase_SCALABILITA"
+        }
+        
+        target_tag = phase_tags.get(phase.upper())
+        if not target_tag:
+            return {"error": True, "message": f"Fase {phase} non valida"}
+        
+        # Ottieni tutti i tag
+        tags_result = await self.get_tags()
+        tags = tags_result.get("items", [])
+        
+        # Trova ID del tag target
+        target_tag_id = None
+        phase_tag_ids = []
+        
+        for tag in tags:
+            tag_name = tag.get("name", "")
+            if tag_name == target_tag:
+                target_tag_id = tag.get("id")
+            if tag_name.startswith("Fase_"):
+                phase_tag_ids.append(tag.get("id"))
+        
+        # Rimuovi tutti i tag fase esistenti dal contatto
+        for tag_id in phase_tag_ids:
+            try:
+                await self.remove_tag_from_contact(contact_id, str(tag_id))
+            except:
+                pass  # Ignora errori se il tag non era assegnato
+        
+        # Aggiungi il nuovo tag fase
+        if target_tag_id:
+            result = await self.add_tag_to_contact(contact_id, str(target_tag_id))
+            return {
+                "success": True, 
+                "contact_id": contact_id, 
+                "new_phase": phase,
+                "tag_added": target_tag,
+                "result": result
+            }
+        else:
+            # Crea il tag se non esiste
+            create_result = await self.create_tag(target_tag)
+            new_tag_id = create_result.get("id")
+            if new_tag_id:
+                result = await self.add_tag_to_contact(contact_id, str(new_tag_id))
+                return {
+                    "success": True,
+                    "contact_id": contact_id,
+                    "new_phase": phase,
+                    "tag_created": target_tag,
+                    "result": result
+                }
+        
+        return {"error": True, "message": "Impossibile aggiornare la fase"}
+    
+    async def send_notification_email(self, contact_id: str, notification_type: str) -> Dict:
+        """
+        Invia una notifica email aggiungendo un tag trigger.
+        Le email sono configurate come automazioni in Systeme.io.
+        """
+        notification_tags = {
+            "welcome": "Notify_Welcome",
+            "phase_complete": "Notify_PhaseComplete",
+            "reminder": "Notify_Reminder",
+            "deadline": "Notify_Deadline",
+            "feedback_request": "Notify_FeedbackRequest",
+            "course_access": "Notify_CourseAccess",
+            "payment_reminder": "Notify_PaymentReminder"
+        }
+        
+        tag_name = notification_tags.get(notification_type.lower())
+        if not tag_name:
+            return {"error": True, "message": f"Tipo notifica '{notification_type}' non valido", "valid_types": list(notification_tags.keys())}
+        
+        return await self.trigger_automation(contact_id, tag_name)
+    
+    async def create_contact_with_phase(self, email: str, first_name: str, last_name: str, phase: str = "F1") -> Dict:
+        """Crea un nuovo contatto e lo assegna a una fase specifica"""
+        # Crea il contatto
+        contact_result = await self.create_contact(email, first_name, last_name)
+        
+        if contact_result.get("error"):
+            return contact_result
+        
+        contact_id = contact_result.get("id")
+        if not contact_id:
+            return {"error": True, "message": "Contatto creato ma ID non restituito"}
+        
+        # Assegna la fase
+        phase_result = await self.move_contact_to_phase(str(contact_id), phase)
+        
+        return {
+            "success": True,
+            "contact": contact_result,
+            "phase_assignment": phase_result
+        }
+    
+    async def get_contacts_by_phase(self, phase: str, limit: int = 100) -> Dict:
+        """Recupera tutti i contatti in una specifica fase"""
+        phase_tags = {
+            "F0": "Fase_PRE_ONBOARDING",
+            "F1": "Fase_ATTIVAZIONE",
+            "F2": "Fase_ALLINEAMENTO", 
+            "F3": "Fase_COPY_CORE",
+            "F4": "Fase_OUTLINE",
+            "F5": "Fase_REGISTRAZIONE",
+            "F6": "Fase_ACCADEMIA",
+            "F7": "Fase_PRE_LANCIO",
+            "F8": "Fase_LANCIO",
+            "F9": "Fase_OTTIMIZZAZIONE",
+            "F10": "Fase_SCALABILITA"
+        }
+        
+        tag_name = phase_tags.get(phase.upper())
+        if not tag_name:
+            return {"error": True, "message": f"Fase {phase} non valida"}
+        
+        # Ottieni il tag ID
+        tags_result = await self.get_tags()
+        tags = tags_result.get("items", [])
+        
+        tag_id = None
+        for tag in tags:
+            if tag.get("name") == tag_name:
+                tag_id = tag.get("id")
+                break
+        
+        if not tag_id:
+            return {"contacts": [], "phase": phase, "message": "Nessun contatto in questa fase"}
+        
+        # Recupera contatti con questo tag
+        return await self._request("GET", f"/contacts?tagId={tag_id}&limit={limit}")
 
 
 # ==========================================================================
