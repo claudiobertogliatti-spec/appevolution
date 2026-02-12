@@ -454,18 +454,18 @@ export default function App() {
     {id:"metriche",label:"Post-Lancio",icon:BarChart3},
   ];
   const toolsNav=[
-    {id:"systeme",label:"Systeme.io",icon:Database},
+    {id:"systeme",label:"SYSTEME.IO",icon:Database},
     {id:"gaia",label:"GAIA",icon:Zap},
-    {id:"copyfactory",label:"Copy Factory",icon:Edit3},
-    {id:"warmode",label:"War Mode",icon:Target},
+    {id:"copyfactory",label:"STEFANIA — Copy Factory",icon:Edit3},
+    {id:"warmode",label:"STEFANIA — War Mode",icon:Target},
     {id:"atlas",label:"ATLAS",icon:Trophy},
     {id:"compliance",label:"LUCA",icon:Shield},
   ];
   const antonellaNav=[
     {id:"overview",label:"Overview",icon:LayoutDashboard},
     {id:"partner",label:"Partner",icon:Users},
-    {id:"andrea",label:"Editing Feed",icon:Film},
-    {id:"copyfactory",label:"Copy Factory",icon:Edit3},
+    {id:"andrea",label:"ANDREA — Editing Feed",icon:Film},
+    {id:"copyfactory",label:"STEFANIA — Copy Factory",icon:Edit3},
     {id:"atlas",label:"ATLAS",icon:Trophy},
     {id:"compliance",label:"LUCA",icon:Shield},
   ];
