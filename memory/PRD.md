@@ -97,6 +97,39 @@ Creare un'applicazione full-stack proprietaria per Evolution PRO - una piattafor
 - Navigazione semplificata per Antonella
 - Badge "NOW" su "Cosa fare ora" per Partner
 
+### V12.0 - Systeme.io MCP Full Integration (12 Feb 2026) ✅
+
+#### 1. Systeme.io Live Data Dashboard
+- Connessione API reale (`api.systeme.io`)
+- Sincronizzazione automatica contatti (1000+ paginati)
+- Statistiche aggregate: tag, funnel, conversioni
+- Dashboard real-time con dati live
+
+#### 2. MCP Integration per Agenti AI
+- Modulo `systeme_mcp.py` con client completo
+- Permessi granulari per ogni agente:
+  - **VALENTINA**: get_contacts, get_tags, get_courses, get_funnels
+  - **STEFANIA**: get_contacts, get_tags, create_tag, add_tag_to_contact, get_campaigns
+  - **ANDREA**: get_courses, get_course_students, enroll_student
+  - **GAIA**: get_funnels, get_funnel, get_contacts, create_contact
+  - **MARTA**: get_contacts, create_contact, update_contact, get_tags, add_tag, get_orders
+  - **ORION**: get_contacts, get_products, get_orders
+  - **ATLAS**: get_courses, get_course_students, get_contacts
+  - **LUCA**: get_contacts, get_tags (solo lettura)
+
+#### 3. API Endpoints per Agenti
+- `POST /api/systeme/agent/action` - Azione generica
+- `GET /api/systeme/agent/permissions` - Permessi agenti
+- `GET /api/systeme/gaia/funnels` - GAIA funnels
+- `GET /api/systeme/stefania/tags` - STEFANIA tags
+- `GET /api/systeme/marta/contacts` - MARTA CRM
+- `GET /api/systeme/andrea/courses` - ANDREA corsi
+- `GET /api/systeme/orion/products` - ORION prodotti
+
+#### 4. Chiavi Configurate
+- `SYSTEME_API_KEY` - API pubblica per lettura dati
+- `SYSTEME_MCP_KEY` - MCP per operazioni avanzate agenti
+
 ---
 
 #### 5. Dynamic Content Unlock (Gamification)
