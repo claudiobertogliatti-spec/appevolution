@@ -342,19 +342,6 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
         <div ref={messagesEndRef} />
       </div>
       
-      {/* Suggerimenti rapidi */}
-      {messages.length <= 2 && (
-        <div className="px-4 py-2 flex gap-2 overflow-x-auto scrollbar-hide">
-          {suggestions.map((s, idx) => (
-            <QuickSuggestion 
-              key={idx} 
-              text={s} 
-              onClick={() => { setInput(s); inputRef.current?.focus(); }} 
-            />
-          ))}
-        </div>
-      )}
-      
       {/* Input area */}
       <div className="bg-[#111827] px-3 py-2 flex items-end gap-2 border-t border-white/5">
         <button className="p-2 hover:bg-white/5 rounded-full transition-colors">
