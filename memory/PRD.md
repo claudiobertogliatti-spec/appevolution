@@ -252,6 +252,7 @@ Partner Phase:
 - [x] Real-Time API Integration Framework
 - [x] Course Builder AI Wizard
 - [x] Renewal Plans Post-12 Mesi
+- [x] Systeme.io Live Data Integration (V10.0)
 
 ### P1 - Alta Priorità
 - [ ] Autenticazione JWT (Admin vs Partner login)
@@ -260,13 +261,26 @@ Partner Phase:
 
 ### P2 - Media Priorità
 - [ ] Collegamento API reale Meta/LinkedIn Ads (credenziali user)
-- [ ] Systeme.io API reale
+- [x] Systeme.io API Integration ✅ (Demo + API reale quando connesso)
 - [ ] Knowledge Base: VALENTINA/STEFANIA/ANDREA citano moduli specifici
 - [ ] Custom Intro/Outro video templates
 
 ### P3 - Bassa Priorità
 - [ ] Mobile responsive optimization
 - [ ] A/B testing automatico degli hook
+
+---
+
+## API Endpoints (Systeme.io v10.0)
+
+### Systeme.io Live Data
+- `POST /api/systeme/credentials` - Salva credenziali API Systeme.io
+- `GET /api/systeme/status/{partner_id}` - Stato connessione
+- `POST /api/systeme/sync` - Sincronizza contatti da Systeme.io
+- `GET /api/systeme/stats/{partner_id}` - Statistiche aggregate (contatti, conversioni, funnel)
+- `GET /api/systeme/contacts/{partner_id}` - Lista contatti sincronizzati
+- `GET /api/systeme/dashboard/{partner_id}` - Dashboard completa
+- `DELETE /api/systeme/disconnect/{partner_id}` - Disconnetti integrazione
 
 ---
 
@@ -303,3 +317,5 @@ Partner Phase:
 1. Implementare JWT authentication
 2. Integrare Telegram Bot per notifiche
 3. Collegare domain `app.evolution-pro.it`
+4. Dashboard Metriche Post-Lancio Avanzata (NPS, grafici, visualizzazione funnel studenti)
+5. ACADEMY_VIDEOS - Sistema micro-learning video
