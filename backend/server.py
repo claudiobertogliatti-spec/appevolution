@@ -4543,10 +4543,18 @@ async def store_systeme_credentials(request: SystemeIOCredentialsRequest):
 @api_router.get("/systeme/status/{partner_id}")
 async def get_systeme_connection_status(partner_id: str):
     """Get Systeme.io connection status for a partner"""
+    # Prima cerca credenziali specifiche del partner, poi globali
     credentials = await db.systeme_credentials.find_one(
         {"partner_id": partner_id},
-        {"_id": 0, "api_key": 0}  # Don't return the API key
+        {"_id": 0, "api_key": 0}
     )
+    
+    if not credentials:
+        # Cerca credenziali globali
+        credentials = await db.systeme_credentials.find_one(
+            {"partner_id": "global"},
+            {"_id": 0, "api_key": 0}
+        )
     
     if not credentials:
         return {
