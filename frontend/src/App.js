@@ -1740,6 +1740,7 @@ export default function App() {
                   : <AndreaPipeline partners={partners} />
               )}
               {nav === "metriche" && <MetrichePostLancio partners={partners} />}
+              {nav === "systeme" && <SystemeIODashboard partnerId={selectedPartner?.id || partners[0]?.id || "1"} partnerName={selectedPartner?.name || partners[0]?.name} />}
               {nav === "gaia" && <GaiaFunnelDeployer partners={partners} />}
               {nav === "copyfactory" && <CopyFactoryAdmin currentAdmin={adminUser === "antonella" ? "Antonella" : "Claudio"} />}
               {nav === "warmode" && <StefaniaWarMode partners={partners} />}
