@@ -99,9 +99,20 @@ class SystemeMCPClient:
     # TAG (usato da MARTA e STEFANIA)
     # ==========================================================================
     
-    async def get_tags(self) -> Dict:
-        """Recupera tutti i tag"""
-        return await self._request("GET", "/tags")
+    async def get_tags(self, limit: int = 100) -> Dict:
+        """Recupera tutti i tag (con paginazione)"""
+        all_tags = []
+        page = 1
+        while True:
+            result = await self._request("GET", f"/tags?limit={limit}&page={page}")
+            items = result.get("items", [])
+            if not items:
+                break
+            all_tags.extend(items)
+            if len(items) < limit:
+                break
+            page += 1
+        return {"items": all_tags, "total": len(all_tags)}
     
     async def create_tag(self, name: str) -> Dict:
         """Crea nuovo tag"""
