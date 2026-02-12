@@ -4832,6 +4832,113 @@ async def get_systeme_dashboard(partner_id: str):
     }
 
 # =============================================================================
+# SYSTEME.IO MCP - AGENT ACTIONS
+# =============================================================================
+
+from systeme_mcp import agent_systeme_action, get_systeme_client, AGENT_PERMISSIONS
+
+class AgentSystemeRequest(BaseModel):
+    agent_name: str
+    action: str
+    params: Dict[str, Any] = Field(default_factory=dict)
+
+@api_router.post("/systeme/agent/action")
+async def execute_agent_systeme_action(request: AgentSystemeRequest):
+    """Esegue un'azione Systeme.io per conto di un agente AI"""
+    result = await agent_systeme_action(
+        agent_name=request.agent_name,
+        action=request.action,
+        **request.params
+    )
+    return result
+
+@api_router.get("/systeme/agent/permissions")
+async def get_agent_permissions():
+    """Restituisce i permessi Systeme.io per ogni agente"""
+    return {
+        "permissions": AGENT_PERMISSIONS,
+        "message": "Permessi Systeme.io per agenti AI"
+    }
+
+@api_router.get("/systeme/agent/{agent_name}/actions")
+async def get_agent_available_actions(agent_name: str):
+    """Restituisce le azioni disponibili per un agente specifico"""
+    actions = AGENT_PERMISSIONS.get(agent_name.upper(), [])
+    return {
+        "agent": agent_name.upper(),
+        "available_actions": actions,
+        "count": len(actions)
+    }
+
+# Endpoint diretti per gli agenti più usati
+
+@api_router.get("/systeme/gaia/funnels")
+async def gaia_get_funnels():
+    """GAIA: Recupera tutti i funnel da Systeme.io"""
+    client = get_systeme_client()
+    return await client.get_funnels()
+
+@api_router.get("/systeme/stefania/campaigns")
+async def stefania_get_campaigns():
+    """STEFANIA: Recupera tutte le campagne email"""
+    client = get_systeme_client()
+    return await client.get_campaigns()
+
+@api_router.get("/systeme/stefania/tags")
+async def stefania_get_tags():
+    """STEFANIA: Recupera tutti i tag"""
+    client = get_systeme_client()
+    return await client.get_tags()
+
+@api_router.post("/systeme/stefania/tag")
+async def stefania_create_tag(name: str):
+    """STEFANIA: Crea un nuovo tag"""
+    client = get_systeme_client()
+    return await client.create_tag(name)
+
+@api_router.get("/systeme/marta/contacts")
+async def marta_get_contacts(limit: int = 100, page: int = 1):
+    """MARTA: Recupera contatti CRM"""
+    client = get_systeme_client()
+    return await client.get_contacts(limit=limit, page=page)
+
+@api_router.post("/systeme/marta/contact")
+async def marta_create_contact(email: str, first_name: str = None, last_name: str = None):
+    """MARTA: Crea nuovo contatto"""
+    client = get_systeme_client()
+    return await client.create_contact(email=email, first_name=first_name, last_name=last_name)
+
+@api_router.get("/systeme/marta/orders")
+async def marta_get_orders(limit: int = 100):
+    """MARTA: Recupera ordini"""
+    client = get_systeme_client()
+    return await client.get_orders(limit=limit)
+
+@api_router.get("/systeme/andrea/courses")
+async def andrea_get_courses():
+    """ANDREA: Recupera corsi"""
+    client = get_systeme_client()
+    return await client.get_courses()
+
+@api_router.get("/systeme/andrea/course/{course_id}/students")
+async def andrea_get_course_students(course_id: str):
+    """ANDREA: Recupera studenti di un corso"""
+    client = get_systeme_client()
+    return await client.get_course_students(course_id)
+
+@api_router.get("/systeme/orion/products")
+async def orion_get_products():
+    """ORION: Recupera prodotti"""
+    client = get_systeme_client()
+    return await client.get_products()
+
+@api_router.get("/systeme/atlas/courses")
+async def atlas_get_courses():
+    """ATLAS: Recupera corsi per LTV analysis"""
+    client = get_systeme_client()
+    return await client.get_courses()
+
+# =============================================================================
 # ROOT & CONTROL
 # =============================================================================
 
