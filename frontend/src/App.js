@@ -452,6 +452,7 @@ export default function App() {
     {id:"partner",label:"Partner",icon:Users},
     {id:"andrea",label:"Editing",icon:Film},
     {id:"metriche",label:"Post-Lancio",icon:BarChart3},
+    {id:"valentina",label:"VALENTINA",icon:MessageCircle,dot:true},
   ];
   const toolsNav=[
     {id:"systeme",label:"SYSTEME.IO",icon:Database},
@@ -468,6 +469,7 @@ export default function App() {
     {id:"copyfactory",label:"STEFANIA — Copy Factory",icon:Edit3},
     {id:"atlas",label:"ATLAS",icon:Trophy},
     {id:"compliance",label:"LUCA",icon:Shield},
+    {id:"valentina",label:"VALENTINA",icon:MessageCircle,dot:true},
   ];
   const partnerNav=[
     {id:"home",label:"Cosa fare ora",icon:Rocket,badge:"NOW"},
