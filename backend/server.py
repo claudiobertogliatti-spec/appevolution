@@ -4502,7 +4502,7 @@ async def store_systeme_credentials(request: SystemeIOCredentialsRequest):
     try:
         # Validate API key by making a test request
         try:
-            test_response = await systeme_api_request(request.api_key, "/contacts?limit=1")
+            await systeme_api_request(request.api_key, "/contacts?limit=1")
             logging.info(f"Systeme.io API validation successful for partner {request.partner_id}")
         except HTTPException as e:
             if e.status_code == 401:
