@@ -1576,6 +1576,7 @@ export default function App() {
     partner: "Pipeline Partner",
     andrea: adminUser === "antonella" ? "ANDREA — Feed Video Nuovi" : "ANDREA — Surgical Cut Pipeline",
     metriche: "Metriche Post-Lancio",
+    systeme: "Systeme.io — Live Data Dashboard",
     gaia: "GAIA — Funnel Deployer",
     compliance: "LUCA — Compliance Dashboard",
     copyfactory: "STEFANIA — Copy Factory (Admin Review)",
