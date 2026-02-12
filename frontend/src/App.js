@@ -1527,6 +1527,7 @@ export default function App() {
     { id: "partner", label: "Partner", icon: Users },
     { id: "andrea", label: "Editing", icon: Film },
     { id: "metriche", label: "Post-Lancio", icon: BarChart3 },
+    { id: "systeme", label: "Systeme.io", icon: Database },
     { id: "gaia", label: "GAIA", icon: Zap },
     { id: "copyfactory", label: "Copy Factory", icon: Edit3 },
     { id: "warmode", label: "War Mode", icon: Target },
