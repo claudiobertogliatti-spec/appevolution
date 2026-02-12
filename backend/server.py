@@ -4728,8 +4728,11 @@ async def calculate_systeme_stats(partner_id: str) -> dict:
 @api_router.get("/systeme/stats/{partner_id}")
 async def get_systeme_stats(partner_id: str, refresh: bool = False):
     """Get aggregated Systeme.io stats for a partner"""
-    # Check if connected
+    # Check if connected - prima partner specifico, poi globale
     credentials = await db.systeme_credentials.find_one({"partner_id": partner_id})
+    if not credentials:
+        credentials = await db.systeme_credentials.find_one({"partner_id": "global"})
+    
     if not credentials:
         # Return mock data for demo/unconnected state
         return {
@@ -4756,14 +4759,17 @@ async def get_systeme_stats(partner_id: str, refresh: bool = False):
             "message": "Dati demo - Connetti Systeme.io per dati reali"
         }
     
+    # Usa sempre "global" per le stats se non esistono stats per partner
+    stats_partner_id = partner_id if await db.systeme_stats.find_one({"partner_id": partner_id}) else "global"
+    
     # Refresh stats if requested
     if refresh:
-        stats = await calculate_systeme_stats(partner_id)
+        stats = await calculate_systeme_stats(stats_partner_id)
     else:
         # Get cached stats
-        stats = await db.systeme_stats.find_one({"partner_id": partner_id}, {"_id": 0})
+        stats = await db.systeme_stats.find_one({"partner_id": stats_partner_id}, {"_id": 0})
         if not stats:
-            stats = await calculate_systeme_stats(partner_id)
+            stats = await calculate_systeme_stats(stats_partner_id)
     
     stats["connected"] = True
     stats["demo_mode"] = False
