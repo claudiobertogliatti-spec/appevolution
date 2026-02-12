@@ -375,16 +375,39 @@ def get_systeme_client() -> SystemeMCPClient:
     return SystemeMCPClient()
 
 
-# Mapping agenti -> operazioni permesse
+# Mapping agenti -> operazioni permesse (incluse azioni WRITE)
 AGENT_PERMISSIONS = {
-    "VALENTINA": ["get_contacts", "get_tags", "get_courses", "get_funnels"],
-    "STEFANIA": ["get_contacts", "get_tags", "create_tag", "add_tag_to_contact", "get_campaigns"],
-    "ANDREA": ["get_courses", "get_course_students", "enroll_student"],
-    "GAIA": ["get_funnels", "get_funnel", "get_contacts", "create_contact"],
-    "MARTA": ["get_contacts", "create_contact", "update_contact", "get_tags", "add_tag_to_contact", "remove_tag_from_contact", "get_orders"],
-    "ORION": ["get_contacts", "get_products", "get_orders"],
-    "ATLAS": ["get_courses", "get_course_students", "get_contacts"],
-    "LUCA": ["get_contacts", "get_tags"]  # Solo lettura per compliance
+    "VALENTINA": [
+        "get_contacts", "get_tags", "get_courses", "get_funnels",
+        "move_contact_to_phase", "send_notification_email", "get_contacts_by_phase"
+    ],
+    "STEFANIA": [
+        "get_contacts", "get_tags", "create_tag", "add_tag_to_contact", "get_campaigns",
+        "subscribe_to_campaign", "trigger_automation", "bulk_add_tag", "send_notification_email"
+    ],
+    "ANDREA": [
+        "get_courses", "get_course_students", "enroll_student",
+        "send_notification_email"
+    ],
+    "GAIA": [
+        "get_funnels", "get_funnel", "get_contacts", "create_contact",
+        "create_contact_with_phase", "trigger_automation"
+    ],
+    "MARTA": [
+        "get_contacts", "create_contact", "update_contact", "get_tags", 
+        "add_tag_to_contact", "remove_tag_from_contact", "get_orders",
+        "create_contact_with_phase", "move_contact_to_phase", "bulk_add_tag",
+        "get_contacts_by_phase", "send_notification_email"
+    ],
+    "ORION": [
+        "get_contacts", "get_products", "get_orders",
+        "trigger_automation", "send_notification_email"
+    ],
+    "ATLAS": [
+        "get_courses", "get_course_students", "get_contacts",
+        "enroll_student", "send_notification_email"
+    ],
+    "LUCA": ["get_contacts", "get_tags", "get_contacts_by_phase"]  # Solo lettura per compliance
 }
 
 
