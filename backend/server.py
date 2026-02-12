@@ -4422,6 +4422,397 @@ async def list_tts_files():
     }
 
 # =============================================================================
+# SYSTEME.IO LIVE DATA INTEGRATION
+# =============================================================================
+
+class SystemeIOCredentials(BaseModel):
+    """Systeme.io API credentials"""
+    model_config = ConfigDict(extra="ignore")
+    partner_id: str
+    api_key: str
+    connected_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    last_sync: Optional[str] = None
+    is_active: bool = True
+
+class SystemeIOContact(BaseModel):
+    """Systeme.io contact synced data"""
+    model_config = ConfigDict(extra="ignore")
+    id: str
+    partner_id: str
+    systeme_id: str
+    email: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    synced_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class SystemeIOStats(BaseModel):
+    """Aggregated stats from Systeme.io data"""
+    model_config = ConfigDict(extra="ignore")
+    partner_id: str
+    total_contacts: int = 0
+    new_contacts_today: int = 0
+    new_contacts_week: int = 0
+    new_contacts_month: int = 0
+    contacts_by_tag: Dict[str, int] = Field(default_factory=dict)
+    conversion_rate: float = 0.0  # Calculated from tags
+    funnel_stats: Dict[str, int] = Field(default_factory=dict)
+    last_updated: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class SystemeIOCredentialsRequest(BaseModel):
+    partner_id: str
+    api_key: str
+
+class SystemeIOSyncRequest(BaseModel):
+    partner_id: str
+    force_full_sync: bool = False
+
+import httpx
+
+# Systeme.io API Helper
+async def systeme_api_request(api_key: str, endpoint: str, method: str = "GET", data: dict = None) -> dict:
+    """Make a request to Systeme.io API"""
+    base_url = "https://systeme.io/api"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        url = f"{base_url}{endpoint}"
+        if method == "GET":
+            response = await client.get(url, headers=headers)
+        elif method == "POST":
+            response = await client.post(url, headers=headers, json=data)
+        else:
+            raise ValueError(f"Unsupported method: {method}")
+        
+        if response.status_code == 401:
+            raise HTTPException(status_code=401, detail="Systeme.io API key non valida")
+        elif response.status_code == 429:
+            raise HTTPException(status_code=429, detail="Rate limit Systeme.io raggiunto. Riprova tra qualche minuto.")
+        elif response.status_code >= 400:
+            raise HTTPException(status_code=response.status_code, detail=f"Errore Systeme.io API: {response.text}")
+        
+        return response.json()
+
+@api_router.post("/systeme/credentials")
+async def store_systeme_credentials(request: SystemeIOCredentialsRequest):
+    """Store Systeme.io API credentials for a partner"""
+    try:
+        # Validate API key by making a test request
+        try:
+            test_response = await systeme_api_request(request.api_key, "/contacts?limit=1")
+            logging.info(f"Systeme.io API validation successful for partner {request.partner_id}")
+        except HTTPException as e:
+            if e.status_code == 401:
+                raise HTTPException(status_code=401, detail="API Key Systeme.io non valida. Verifica le credenziali.")
+            raise e
+        
+        # Store credentials
+        credentials = SystemeIOCredentials(
+            partner_id=request.partner_id,
+            api_key=request.api_key
+        )
+        
+        await db.systeme_credentials.update_one(
+            {"partner_id": request.partner_id},
+            {"$set": credentials.model_dump()},
+            upsert=True
+        )
+        
+        return {
+            "success": True,
+            "partner_id": request.partner_id,
+            "connected_at": credentials.connected_at,
+            "message": "Connessione Systeme.io stabilita con successo!"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error storing Systeme.io credentials: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/systeme/status/{partner_id}")
+async def get_systeme_connection_status(partner_id: str):
+    """Get Systeme.io connection status for a partner"""
+    credentials = await db.systeme_credentials.find_one(
+        {"partner_id": partner_id},
+        {"_id": 0, "api_key": 0}  # Don't return the API key
+    )
+    
+    if not credentials:
+        return {
+            "connected": False,
+            "partner_id": partner_id,
+            "message": "Systeme.io non connesso. Aggiungi le credenziali API."
+        }
+    
+    return {
+        "connected": credentials.get("is_active", False),
+        "partner_id": partner_id,
+        "connected_at": credentials.get("connected_at"),
+        "last_sync": credentials.get("last_sync"),
+        "message": "Systeme.io connesso e attivo" if credentials.get("is_active") else "Connessione inattiva"
+    }
+
+@api_router.post("/systeme/sync")
+async def sync_systeme_contacts(request: SystemeIOSyncRequest):
+    """Sync contacts from Systeme.io API"""
+    try:
+        # Get credentials
+        credentials = await db.systeme_credentials.find_one({"partner_id": request.partner_id})
+        if not credentials:
+            raise HTTPException(status_code=404, detail="Credenziali Systeme.io non trovate")
+        
+        api_key = credentials["api_key"]
+        
+        # Fetch contacts from Systeme.io (paginated)
+        all_contacts = []
+        page = 1
+        has_more = True
+        
+        while has_more and page <= 10:  # Max 10 pages to prevent infinite loops
+            try:
+                response = await systeme_api_request(api_key, f"/contacts?page={page}&limit=100")
+                
+                contacts_data = response.get("data", response.get("items", []))
+                if isinstance(contacts_data, list) and len(contacts_data) > 0:
+                    all_contacts.extend(contacts_data)
+                    page += 1
+                else:
+                    has_more = False
+                    
+            except HTTPException as e:
+                if e.status_code == 429:
+                    # Rate limited, stop and use what we have
+                    logging.warning("Systeme.io rate limited during sync")
+                    has_more = False
+                else:
+                    raise e
+        
+        # Process and store contacts
+        synced_count = 0
+        for contact_data in all_contacts:
+            contact_id = contact_data.get("id", str(uuid.uuid4()))
+            
+            contact = {
+                "id": str(uuid.uuid4()),
+                "partner_id": request.partner_id,
+                "systeme_id": str(contact_id),
+                "email": contact_data.get("email", ""),
+                "first_name": contact_data.get("firstName", contact_data.get("first_name")),
+                "last_name": contact_data.get("lastName", contact_data.get("last_name")),
+                "tags": contact_data.get("tags", []),
+                "created_at": contact_data.get("createdAt", contact_data.get("created_at", datetime.now(timezone.utc).isoformat())),
+                "synced_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            # Upsert by systeme_id
+            await db.systeme_contacts.update_one(
+                {"partner_id": request.partner_id, "systeme_id": contact["systeme_id"]},
+                {"$set": contact},
+                upsert=True
+            )
+            synced_count += 1
+        
+        # Update last sync time
+        await db.systeme_credentials.update_one(
+            {"partner_id": request.partner_id},
+            {"$set": {"last_sync": datetime.now(timezone.utc).isoformat()}}
+        )
+        
+        # Calculate and cache stats
+        await calculate_systeme_stats(request.partner_id)
+        
+        return {
+            "success": True,
+            "partner_id": request.partner_id,
+            "contacts_synced": synced_count,
+            "pages_fetched": page - 1,
+            "synced_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error syncing Systeme.io contacts: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+async def calculate_systeme_stats(partner_id: str) -> dict:
+    """Calculate aggregated stats from synced contacts"""
+    from datetime import timedelta
+    
+    now = datetime.now(timezone.utc)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start = today_start - timedelta(days=7)
+    month_start = today_start - timedelta(days=30)
+    
+    # Get all contacts for this partner
+    contacts = await db.systeme_contacts.find({"partner_id": partner_id}, {"_id": 0}).to_list(10000)
+    
+    total_contacts = len(contacts)
+    new_today = 0
+    new_week = 0
+    new_month = 0
+    tags_count = {}
+    
+    for contact in contacts:
+        created_at_str = contact.get("created_at", "")
+        try:
+            if created_at_str:
+                created_at = datetime.fromisoformat(created_at_str.replace("Z", "+00:00"))
+                if created_at >= today_start:
+                    new_today += 1
+                if created_at >= week_start:
+                    new_week += 1
+                if created_at >= month_start:
+                    new_month += 1
+        except (ValueError, TypeError):
+            pass
+        
+        # Count tags
+        for tag in contact.get("tags", []):
+            tag_name = tag if isinstance(tag, str) else tag.get("name", str(tag))
+            tags_count[tag_name] = tags_count.get(tag_name, 0) + 1
+    
+    # Calculate conversion rate (contacts with "buyer" or "customer" tags)
+    buyer_tags = ["buyer", "customer", "purchased", "cliente", "acquirente", "acquisto"]
+    buyers = sum(tags_count.get(tag, 0) for tag in buyer_tags)
+    conversion_rate = (buyers / total_contacts * 100) if total_contacts > 0 else 0
+    
+    # Funnel stats (estimate based on tags)
+    funnel_stats = {
+        "leads": total_contacts,
+        "engaged": sum(tags_count.get(tag, 0) for tag in ["engaged", "hot", "warm", "interessato", "webinar"]),
+        "qualified": sum(tags_count.get(tag, 0) for tag in ["qualified", "qualificato", "mql", "sql"]),
+        "customers": buyers
+    }
+    
+    stats = {
+        "partner_id": partner_id,
+        "total_contacts": total_contacts,
+        "new_contacts_today": new_today,
+        "new_contacts_week": new_week,
+        "new_contacts_month": new_month,
+        "contacts_by_tag": tags_count,
+        "conversion_rate": round(conversion_rate, 2),
+        "funnel_stats": funnel_stats,
+        "last_updated": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Cache stats
+    await db.systeme_stats.update_one(
+        {"partner_id": partner_id},
+        {"$set": stats},
+        upsert=True
+    )
+    
+    return stats
+
+@api_router.get("/systeme/stats/{partner_id}")
+async def get_systeme_stats(partner_id: str, refresh: bool = False):
+    """Get aggregated Systeme.io stats for a partner"""
+    # Check if connected
+    credentials = await db.systeme_credentials.find_one({"partner_id": partner_id})
+    if not credentials:
+        # Return mock data for demo/unconnected state
+        return {
+            "connected": False,
+            "partner_id": partner_id,
+            "demo_mode": True,
+            "total_contacts": 247,
+            "new_contacts_today": 12,
+            "new_contacts_week": 56,
+            "new_contacts_month": 189,
+            "conversion_rate": 4.8,
+            "funnel_stats": {
+                "leads": 247,
+                "engaged": 142,
+                "qualified": 67,
+                "customers": 12
+            },
+            "contacts_by_tag": {
+                "lead_magnet": 180,
+                "webinar": 95,
+                "hot": 45,
+                "customer": 12
+            },
+            "message": "Dati demo - Connetti Systeme.io per dati reali"
+        }
+    
+    # Refresh stats if requested
+    if refresh:
+        stats = await calculate_systeme_stats(partner_id)
+    else:
+        # Get cached stats
+        stats = await db.systeme_stats.find_one({"partner_id": partner_id}, {"_id": 0})
+        if not stats:
+            stats = await calculate_systeme_stats(partner_id)
+    
+    stats["connected"] = True
+    stats["demo_mode"] = False
+    return stats
+
+@api_router.get("/systeme/contacts/{partner_id}")
+async def get_systeme_contacts(partner_id: str, limit: int = 50, skip: int = 0, tag: Optional[str] = None):
+    """Get synced Systeme.io contacts for a partner"""
+    query = {"partner_id": partner_id}
+    if tag:
+        query["tags"] = {"$in": [tag]}
+    
+    contacts = await db.systeme_contacts.find(
+        query,
+        {"_id": 0}
+    ).skip(skip).limit(limit).sort("created_at", -1).to_list(limit)
+    
+    total = await db.systeme_contacts.count_documents(query)
+    
+    return {
+        "contacts": contacts,
+        "total": total,
+        "limit": limit,
+        "skip": skip
+    }
+
+@api_router.delete("/systeme/disconnect/{partner_id}")
+async def disconnect_systeme(partner_id: str):
+    """Disconnect Systeme.io integration for a partner"""
+    await db.systeme_credentials.delete_one({"partner_id": partner_id})
+    await db.systeme_contacts.delete_many({"partner_id": partner_id})
+    await db.systeme_stats.delete_one({"partner_id": partner_id})
+    
+    return {
+        "success": True,
+        "partner_id": partner_id,
+        "message": "Connessione Systeme.io rimossa"
+    }
+
+@api_router.get("/systeme/dashboard/{partner_id}")
+async def get_systeme_dashboard(partner_id: str):
+    """Get complete Systeme.io dashboard data for a partner"""
+    # Get connection status
+    status = await get_systeme_connection_status(partner_id)
+    
+    # Get stats
+    stats = await get_systeme_stats(partner_id)
+    
+    # Get recent contacts
+    recent_contacts = await db.systeme_contacts.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(10).to_list(10)
+    
+    return {
+        "connection": status,
+        "stats": stats,
+        "recent_contacts": recent_contacts,
+        "partner_id": partner_id
+    }
+
+# =============================================================================
 # ROOT & CONTROL
 # =============================================================================
 
