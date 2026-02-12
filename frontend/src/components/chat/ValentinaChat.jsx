@@ -74,19 +74,6 @@ function Message({ msg, isLast }) {
   );
 }
 
-// Suggerimento rapido
-function QuickSuggestion({ text, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className="px-3 py-1.5 bg-[#1a2332] border border-white/10 rounded-full text-xs font-semibold hover:border-[#F5C518] hover:text-[#F5C518] transition-colors flex items-center gap-1"
-    >
-      {text}
-      <ChevronRight className="w-3 h-3" />
-    </button>
-  );
-}
-
 // Componente principale Chat VALENTINA
 export function ValentinaChat({ partner, onBack, isAdmin = false }) {
   const [messages, setMessages] = useState([]);
