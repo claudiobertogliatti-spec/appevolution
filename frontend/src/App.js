@@ -481,7 +481,7 @@ export default function App() {
     {id:"documenti",label:"Documenti",icon:FileText},
     {id:"risorse",label:"Template",icon:Download},
     {id:"renewal",label:"Post-12 Mesi",icon:Star},
-    {id:"supporto",label:getTutor(demoPartner?.phase),icon:MessageCircle,dot:true},
+    {id:"supporto",label:"VALENTINA",icon:MessageCircle,dot:true},
   ];
 
   const adminNav=adminUser==="antonella"?antonellaNav:coreNav;
