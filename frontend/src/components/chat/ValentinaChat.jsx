@@ -269,14 +269,6 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
     }
   };
   
-  // Suggerimenti rapidi
-  const suggestions = [
-    `Spostami alla fase F${parseInt((partner?.phase || "F1").replace("F", "")) + 1}`,
-    "In che fase sono?",
-    "Cosa devo fare ora?",
-    "Sincronizza Systeme.io"
-  ];
-  
   return (
     <div className="flex flex-col h-full bg-[#0B0E14]" data-testid="valentina-chat">
       {/* Header WhatsApp style */}
