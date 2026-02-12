@@ -4469,8 +4469,6 @@ class SystemeIOSyncRequest(BaseModel):
     partner_id: str
     force_full_sync: bool = False
 
-import httpx
-
 # Systeme.io API Helper
 async def systeme_api_request(api_key: str, endpoint: str, method: str = "GET", data: dict = None) -> dict:
     """Make a request to Systeme.io API"""
