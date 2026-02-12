@@ -3,7 +3,7 @@
 ## Overview
 **Nome**: Evolution PRO OS Platform  
 **Data creazione**: 11 Feb 2026  
-**Versione**: 11.0 (Partner Journey "Cosa fare ora")  
+**Versione**: 12.0 (Systeme.io MCP Full Integration)  
 **Stato**: ✅ Implementazione Completa
 
 ## Problem Statement
@@ -20,7 +20,7 @@ Creare un'applicazione full-stack proprietaria per Evolution PRO - una piattafor
 - **AI Integration**: Claude Sonnet via Emergent LLM Key
 - **Video**: FFmpeg, OpenAI Whisper
 - **YouTube**: Data API v3 (OAuth2)
-- **Systeme.io**: API Integration per contatti e statistiche live
+- **Systeme.io**: API + MCP Integration per agenti AI
 
 ---
 
