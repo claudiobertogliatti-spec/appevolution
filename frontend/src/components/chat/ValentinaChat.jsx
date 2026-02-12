@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { 
   Send, Phone, Video, MoreVertical, Smile, Paperclip,
-  Check, CheckCheck, ArrowLeft, Bot, Loader2, Zap,
-  ChevronRight, Clock, Sparkles
+  Check, CheckCheck, ArrowLeft, Loader2, Zap
 } from "lucide-react";
 import axios from "axios";
 
