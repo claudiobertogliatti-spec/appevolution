@@ -4471,15 +4471,18 @@ class SystemeIOSyncRequest(BaseModel):
 
 # Systeme.io API Helper
 async def systeme_api_request(api_key: str, endpoint: str, method: str = "GET", data: dict = None) -> dict:
-    """Make a request to Systeme.io API"""
-    base_url = "https://systeme.io/api"
+    """Make a request to Systeme.io API v2"""
+    base_url = "https://systeme.io/api/v2"
     headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
+        "X-API-KEY": api_key,
+        "Content-Type": "application/json",
+        "Accept": "application/json"
     }
     
     async with httpx.AsyncClient(timeout=30.0) as client:
         url = f"{base_url}{endpoint}"
+        logging.info(f"Systeme.io API request: {method} {url}")
+        
         if method == "GET":
             response = await client.get(url, headers=headers)
         elif method == "POST":
@@ -4487,12 +4490,15 @@ async def systeme_api_request(api_key: str, endpoint: str, method: str = "GET", 
         else:
             raise ValueError(f"Unsupported method: {method}")
         
+        logging.info(f"Systeme.io API response: {response.status_code}")
+        
         if response.status_code == 401:
             raise HTTPException(status_code=401, detail="Systeme.io API key non valida")
         elif response.status_code == 429:
             raise HTTPException(status_code=429, detail="Rate limit Systeme.io raggiunto. Riprova tra qualche minuto.")
         elif response.status_code >= 400:
-            raise HTTPException(status_code=response.status_code, detail=f"Errore Systeme.io API: {response.text}")
+            logging.error(f"Systeme.io API error: {response.text[:500]}")
+            raise HTTPException(status_code=response.status_code, detail=f"Errore Systeme.io API: {response.status_code}")
         
         return response.json()
 
