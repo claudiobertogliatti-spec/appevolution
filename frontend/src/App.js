@@ -1540,6 +1540,7 @@ export default function App() {
     { id: "overview", label: "Overview", icon: LayoutDashboard },
     { id: "partner", label: "Partner", icon: Users },
     { id: "andrea", label: "Editing Feed", icon: Film },
+    { id: "systeme", label: "Systeme.io", icon: Database },
     { id: "copyfactory", label: "Copy Factory", icon: Edit3 },
     { id: "atlas", label: "ATLAS", icon: Trophy },
     { id: "compliance", label: "LUCA", icon: Shield },
