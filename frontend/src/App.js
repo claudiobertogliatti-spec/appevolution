@@ -558,6 +558,7 @@ export default function App() {
             {nav==="partner"&&<AdminPartners partners={partners} onSelect={setSelectedPartner}/>}
             {nav==="andrea"&&(adminUser==="antonella"?<FeedVideoNuovi onOpenPipeline={()=>{setAdminUser("claudio");setNav("andrea");}}/>:<AndreaPipeline partners={partners}/>)}
             {nav==="metriche"&&<MetrichePostLancio partners={partners}/>}
+            {nav==="valentina"&&<ValentinaChat partner={selectedPartner||partners[0]} onBack={()=>setNav("overview")} isAdmin={true}/>}
             {nav==="systeme"&&<SystemeIODashboard partnerId={selectedPartner?.id||partners[0]?.id||"1"} partnerName={selectedPartner?.name||partners[0]?.name}/>}
             {nav==="gaia"&&<GaiaFunnelDeployer partners={partners}/>}
             {nav==="copyfactory"&&<CopyFactoryAdmin currentAdmin={adminUser==="antonella"?"Antonella":"Claudio"}/>}
