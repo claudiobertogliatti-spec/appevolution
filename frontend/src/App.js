@@ -10,7 +10,8 @@ import {
   FileVideo, FileCheck, Loader2, CheckCircle, XCircle,
   Youtube, HardDrive, Shield, Eye, RefreshCw, Mic,
   Zap, Link, Palette, Copy, Plus, BarChart3, Calendar,
-  UserPlus, Bell, Sparkles, Video, Target, Edit3, Trophy
+  UserPlus, Bell, Sparkles, Video, Target, Edit3, Trophy,
+  Database
 } from "lucide-react";
 
 // Import new components
