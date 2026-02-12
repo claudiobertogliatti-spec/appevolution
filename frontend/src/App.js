@@ -21,6 +21,7 @@ import { FeedVideoNuovi } from "./components/admin/FeedVideoNuovi";
 import { NuovoPartnerForm } from "./components/admin/NuovoPartnerForm";
 import { CopyFactoryAdmin } from "./components/admin/CopyFactoryAdmin";
 import { StefaniaWarMode } from "./components/admin/StefaniaWarMode";
+import { SystemeIODashboard } from "./components/admin/SystemeIODashboard";
 import { CalendarioEditoriale } from "./components/partner/CalendarioEditoriale";
 import { WizardPosizionamento } from "./components/partner/WizardPosizionamento";
 import { MasterclassBuilder } from "./components/partner/MasterclassBuilder";
