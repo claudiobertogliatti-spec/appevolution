@@ -577,7 +577,7 @@ export default function App() {
             {nav==="documenti"&&<WizardPosizionamento partner={demoPartner} onComplete={()=>setNav("masterclass")}/>}
             {nav==="risorse"&&<PartnerResources/>}
             {nav==="renewal"&&<RenewalPlans partnerName={demoPartner?.name||"Partner"} currentRevenue={demoPartner?.revenue||0} onSelectPlan={(plan)=>console.log(plan)}/>}
-            {nav==="supporto"&&(getTutor(demoPartner?.phase)==="STEFANIA"?<StefaniaChat partner={demoPartner}/>:getTutor(demoPartner?.phase)==="ANDREA"?<AndreaChat partner={demoPartner}/>:<PartnerChat partner={demoPartner}/>)}
+            {nav==="supporto"&&<ValentinaChat partner={demoPartner} onBack={()=>setNav("home")}/>}
           </>}
         </div>
       </div>
