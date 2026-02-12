@@ -4939,6 +4939,144 @@ async def atlas_get_courses():
     return await client.get_courses()
 
 # =============================================================================
+# SYSTEME.IO WRITE ACTIONS (Nuovi endpoint per azioni di scrittura)
+# =============================================================================
+
+class MoveToPhaseRequest(BaseModel):
+    contact_id: str
+    phase: str  # F0-F10
+
+class SendNotificationRequest(BaseModel):
+    contact_id: str
+    notification_type: str  # welcome, phase_complete, reminder, deadline, feedback_request, course_access, payment_reminder
+
+class CreateContactWithPhaseRequest(BaseModel):
+    email: str
+    first_name: str
+    last_name: str
+    phase: str = "F1"
+
+class BulkTagRequest(BaseModel):
+    contact_ids: List[str]
+    tag_id: str
+
+class TriggerAutomationRequest(BaseModel):
+    contact_id: str
+    tag_name: str
+
+class EnrollStudentRequest(BaseModel):
+    course_id: str
+    contact_id: str
+
+# --- VALENTINA: Gestione fasi partner ---
+
+@api_router.post("/systeme/valentina/move-phase")
+async def valentina_move_contact_phase(request: MoveToPhaseRequest):
+    """VALENTINA: Sposta un partner a una nuova fase"""
+    client = get_systeme_client()
+    return await client.move_contact_to_phase(request.contact_id, request.phase)
+
+@api_router.get("/systeme/valentina/contacts-by-phase/{phase}")
+async def valentina_get_contacts_by_phase(phase: str, limit: int = 100):
+    """VALENTINA: Recupera tutti i contatti in una fase specifica"""
+    client = get_systeme_client()
+    return await client.get_contacts_by_phase(phase, limit)
+
+@api_router.post("/systeme/valentina/notify")
+async def valentina_send_notification(request: SendNotificationRequest):
+    """VALENTINA: Invia notifica email a un partner"""
+    client = get_systeme_client()
+    return await client.send_notification_email(request.contact_id, request.notification_type)
+
+# --- STEFANIA: Marketing e campagne ---
+
+@api_router.post("/systeme/stefania/trigger-automation")
+async def stefania_trigger_automation(request: TriggerAutomationRequest):
+    """STEFANIA: Triggera un'automazione via tag"""
+    client = get_systeme_client()
+    return await client.trigger_automation(request.contact_id, request.tag_name)
+
+@api_router.post("/systeme/stefania/bulk-tag")
+async def stefania_bulk_add_tag(request: BulkTagRequest):
+    """STEFANIA: Aggiunge tag a multipli contatti"""
+    client = get_systeme_client()
+    return await client.bulk_add_tag(request.contact_ids, request.tag_id)
+
+@api_router.post("/systeme/stefania/subscribe-campaign")
+async def stefania_subscribe_to_campaign(campaign_id: str, contact_id: str):
+    """STEFANIA: Iscrive contatto a campagna email"""
+    client = get_systeme_client()
+    return await client.subscribe_to_campaign(campaign_id, contact_id)
+
+# --- GAIA: Creazione contatti e funnel ---
+
+@api_router.post("/systeme/gaia/create-partner")
+async def gaia_create_contact_with_phase(request: CreateContactWithPhaseRequest):
+    """GAIA: Crea nuovo partner e lo assegna a una fase"""
+    client = get_systeme_client()
+    return await client.create_contact_with_phase(
+        email=request.email,
+        first_name=request.first_name,
+        last_name=request.last_name,
+        phase=request.phase
+    )
+
+# --- MARTA: CRM completo ---
+
+@api_router.post("/systeme/marta/move-phase")
+async def marta_move_contact_phase(request: MoveToPhaseRequest):
+    """MARTA: Sposta contatto a nuova fase (CRM)"""
+    client = get_systeme_client()
+    return await client.move_contact_to_phase(request.contact_id, request.phase)
+
+@api_router.post("/systeme/marta/create-partner")
+async def marta_create_partner(request: CreateContactWithPhaseRequest):
+    """MARTA: Crea nuovo partner con fase"""
+    client = get_systeme_client()
+    return await client.create_contact_with_phase(
+        email=request.email,
+        first_name=request.first_name,
+        last_name=request.last_name,
+        phase=request.phase
+    )
+
+@api_router.post("/systeme/marta/bulk-tag")
+async def marta_bulk_tag(request: BulkTagRequest):
+    """MARTA: Aggiunge tag a multipli contatti"""
+    client = get_systeme_client()
+    return await client.bulk_add_tag(request.contact_ids, request.tag_id)
+
+# --- ANDREA: Gestione corsi ---
+
+@api_router.post("/systeme/andrea/enroll")
+async def andrea_enroll_student(request: EnrollStudentRequest):
+    """ANDREA: Iscrive studente a un corso"""
+    client = get_systeme_client()
+    return await client.enroll_student(request.course_id, request.contact_id)
+
+@api_router.post("/systeme/andrea/notify-access")
+async def andrea_notify_course_access(contact_id: str):
+    """ANDREA: Notifica accesso corso a uno studente"""
+    client = get_systeme_client()
+    return await client.send_notification_email(contact_id, "course_access")
+
+# --- ATLAS: LTV e studenti ---
+
+@api_router.post("/systeme/atlas/enroll")
+async def atlas_enroll_student(request: EnrollStudentRequest):
+    """ATLAS: Iscrive studente per tracking LTV"""
+    client = get_systeme_client()
+    return await client.enroll_student(request.course_id, request.contact_id)
+
+# --- ORION: Sales triggers ---
+
+@api_router.post("/systeme/orion/trigger-sales")
+async def orion_trigger_sales_automation(request: TriggerAutomationRequest):
+    """ORION: Triggera automazione sales"""
+    client = get_systeme_client()
+    return await client.trigger_automation(request.contact_id, request.tag_name)
+
+# =============================================================================
 # ROOT & CONTROL
 # =============================================================================
 
