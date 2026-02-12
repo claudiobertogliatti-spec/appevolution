@@ -73,7 +73,33 @@ Creare un'applicazione full-stack proprietaria per Evolution PRO - una piattafor
 - LUCA (Compliance)
 - ATLAS (Post-Sale & LTV)
 
-#### 1. Dynamic Content Unlock (Gamification)
+### V11.0 - Partner Journey "Cosa fare ora" (12 Feb 2026) ✅
+
+#### 1. PhaseProgressBar
+- Barra progresso visiva con 11 fasi (F0-F10)
+- Percentuale completamento dinamica
+- Indicatori checkmark per fasi completate
+- Glow effect sulla fase corrente
+
+#### 2. PartnerCurrentPhase (Home Partner)
+- Card "Azione corrente" con titolo, descrizione, CTA
+- Tutor dinamico assegnato per fase (VALENTINA, STEFANIA, ANDREA)
+- Colore personalizzato per fase
+- "Strumenti disponibili ora" - grid con tool contestuali
+
+#### 3. PHASE_ACTIONS & PHASE_TOOLS
+- Mappatura completa F0-F10 con azioni specifiche
+- CTA contestuali che navigano alle sezioni corrette
+- Tutor assignment automatico per fase
+
+#### 4. Sidebar Admin Riorganizzata
+- Menu "Strumenti" collapsabile per Claudio
+- Navigazione semplificata per Antonella
+- Badge "NOW" su "Cosa fare ora" per Partner
+
+---
+
+#### 5. Dynamic Content Unlock (Gamification)
 - Sistema di punti per studenti Academy
 - Bonus content che si sblocca automaticamente
 - Condizioni: progress_50, progress_100, referral_1, referral_3, streak_7, feedback_given
