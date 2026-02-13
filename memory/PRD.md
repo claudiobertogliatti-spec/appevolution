@@ -97,7 +97,37 @@ Creare un'applicazione full-stack proprietaria per Evolution PRO - una piattafor
 - Navigazione semplificata per Antonella
 - Badge "NOW" su "Cosa fare ora" per Partner
 
-### V12.0 - Systeme.io MCP Full Integration (12 Feb 2026) ✅
+### V14.0 - Design System Evolution PRO Rebrand (13 Feb 2026) ✅
+
+#### 1. Nuovo Design System CSS
+- **Colore primario brand**: #F2C418 (Giallo oro)
+- **Dark theme**: #2D3239 (Charcoal)
+- **Background chiaro**: #FAFAF7
+- **Accenti**: Verde #2D9F6F, Viola #7B68AE
+- File: `/app/frontend/src/styles/design-system.css`
+
+#### 2. Nuova Sidebar Partner
+- Logo "Evolution PRO" con colori brand
+- Card utente gialla con avatar, nome, fase e progress bar
+- Menu "Il tuo percorso" con 6 step navigabili
+- Badge "NUOVO" per evidenziare nuove sezioni
+- Sezione "Strumenti" separata
+- Pulsante "Parla con Valentina" prominente
+- Footer con Aiuto e Esci
+- File: `/app/frontend/src/components/partner/PartnerSidebar.jsx`
+
+#### 3. Dashboard Partner Semplificata
+- Hero card arancione "Cosa fare ora"
+- Barra progresso visiva
+- Lista step con check verdi per completati
+- Celebrazione animata al completamento
+- FAB Valentina sempre visibile
+
+#### 4. App.js Ristrutturato
+- Sidebar condizionale (PartnerSidebar vs Admin)
+- Sfondo dinamico (chiaro per Partner, scuro per Admin)
+- Topbar solo per Admin
+- Colori brand coordinati in tutta l'app
 
 ### V13.0 - JWT Authentication & Telegram Notifications (13 Feb 2026) ✅
 
