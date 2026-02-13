@@ -89,15 +89,14 @@ class ValentinaAI:
             # Get chat history for this session
             session_id = f"valentina_{partner_id}"
             
-            # Initialize LLM Chat
+            # Initialize LLM Chat with correct pattern
             llm = LlmChat(
-                api_key=self.llm_key,
                 session_id=session_id,
                 system_message=system_prompt
             ).with_model("anthropic/claude-sonnet-4-20250514")
             
             # Send message and get response
-            response = await llm.send_async(UserMessage(message))
+            response = await llm.send_async(UserMessage(text=message))
             
             # Store in history
             if partner_id not in chat_sessions:
