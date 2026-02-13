@@ -742,6 +742,14 @@ function ProductionModeSelector({ onSelect, selectedLessons = [], totalLessons =
           </p>
         )}
       </div>
+      
+      {/* Free Trial Modal */}
+      <AvatarFreeTrialModal 
+        show={showFreeTrial}
+        onClose={() => setShowFreeTrial(false)}
+        onComplete={() => setTrialCompleted(true)}
+        partnerName={partnerName}
+      />
     </div>
   );
 }
