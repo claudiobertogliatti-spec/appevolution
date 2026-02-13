@@ -1,49 +1,94 @@
-/* Evolution PRO OS - Design System */
+/* Evolution PRO OS - Design System v2 */
 /* Brand Colors & Variables */
 
 :root {
-  /* Primary Brand Colors */
-  --evo-accent: #E8652B;
-  --evo-accent-hover: #D4561E;
-  --evo-accent-light: #FFF0E8;
-  --evo-gradient: linear-gradient(135deg, #E8652B, #F4A261);
+  /* Primary Brand Colors - Yellow Gold */
+  --brand-yellow: #F2C418;
+  --brand-yellow-light: #FFF8DC;
+  --brand-yellow-hover: #D9AF14;
+  --brand-yellow-glow: rgba(242, 196, 24, 0.3);
   
-  /* Secondary Colors */
-  --evo-green: #2D9F6F;
-  --evo-green-light: #E6F7EF;
-  --evo-purple: #6B4EAA;
-  --evo-purple-light: #F0ECFA;
-  --evo-gold: #FFD166;
-  --evo-red: #EF476F;
+  /* Dark Theme Colors */
+  --brand-dark: #2D3239;
+  --brand-charcoal: #3A3F47;
+  --brand-dark-lighter: #4A5058;
   
-  /* Background Colors */
-  --evo-bg-warm: #FFF9F4;
-  --evo-bg-card: #FFFFFF;
-  --evo-bg-dark: #2A1F14;
-  --evo-bg-dark-card: #3D3028;
+  /* Light Theme Background */
+  --bg-light: #FAFAF7;
+  --bg-warm: #FFF9F4;
+  --card-bg: #FFFFFF;
+  
+  /* Accent Colors */
+  --color-green: #2D9F6F;
+  --color-green-light: #E6F7EF;
+  --color-purple: #7B68AE;
+  --color-purple-light: #F0ECFA;
+  --color-red: #EF476F;
+  --color-red-light: #FDECEF;
+  --color-orange: #E8652B;
+  --color-orange-light: #FFF0E8;
   
   /* Text Colors */
-  --evo-text-primary: #2A1F14;
-  --evo-text-secondary: #7A6E63;
-  --evo-text-muted: #B0A599;
-  --evo-text-light: #FFFFFF;
+  --text-primary: #2D3239;
+  --text-secondary: #6B7280;
+  --text-muted: #A0A7B0;
+  --text-light: #FFFFFF;
+  --text-dark-secondary: #8B919A;
   
   /* Borders */
-  --evo-border: #EDE6DD;
-  --evo-border-dark: rgba(255,255,255,0.1);
+  --border-light: #ECEDEF;
+  --border-dark: rgba(255, 255, 255, 0.1);
   
   /* Shadows */
-  --evo-shadow-sm: 0 2px 8px rgba(42,31,20,0.06);
-  --evo-shadow-md: 0 8px 32px rgba(42,31,20,0.08);
-  --evo-shadow-lg: 0 16px 48px rgba(42,31,20,0.12);
-  --evo-shadow-accent: 0 6px 28px rgba(232,101,43,0.4);
+  --shadow-sm: 0 2px 8px rgba(45, 50, 57, 0.05);
+  --shadow-md: 0 8px 32px rgba(45, 50, 57, 0.08);
+  --shadow-lg: 0 16px 48px rgba(45, 50, 57, 0.12);
+  --shadow-yellow: 0 6px 24px rgba(242, 196, 24, 0.35);
+  
+  /* Border Radius */
+  --radius-lg: 20px;
+  --radius-md: 16px;
+  --radius-sm: 12px;
+  --radius-xs: 8px;
+  
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+  --transition-slow: 0.4s ease;
 }
 
-/* Dark Mode Variables */
+/* Dark Mode overrides for admin section */
 .dark-mode {
-  --evo-bg-warm: #1a1612;
-  --evo-bg-card: #2A1F14;
-  --evo-text-primary: #FFFFFF;
-  --evo-text-secondary: #B0A599;
-  --evo-border: #3D3028;
+  --bg-light: #1a1612;
+  --card-bg: #2D3239;
+  --text-primary: #FFFFFF;
+  --text-secondary: #A0A7B0;
+  --border-light: #3A3F47;
 }
+
+/* Animation Keyframes */
+@keyframes pulse-yellow {
+  0%, 100% { box-shadow: 0 0 0 0 var(--brand-yellow-glow); }
+  50% { box-shadow: 0 0 0 12px transparent; }
+}
+
+@keyframes bounce-in {
+  0% { transform: scale(0.5); opacity: 0; }
+  70% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.animate-pulse-yellow { animation: pulse-yellow 2s infinite; }
+.animate-bounce-in { animation: bounce-in 0.4s ease-out; }
+.animate-fade-in-up { animation: fade-in-up 0.3s ease-out; }
+.animate-slide-in { animation: slide-in-right 0.3s ease-out; }
