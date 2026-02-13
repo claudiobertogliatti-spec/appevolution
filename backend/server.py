@@ -82,12 +82,13 @@ class ChatMessage(BaseModel):
     timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class ChatRequest(BaseModel):
-    session_id: str
+    session_id: str = ""
     message: str
-    partner_name: str
-    partner_niche: str
-    partner_phase: str
-    modules_done: int
+    partner_name: str = "Partner"
+    partner_niche: str = ""
+    partner_phase: str = "F1"
+    modules_done: int = 0
+    context: Optional[Dict[str, Any]] = None
 
 class VideoJob(BaseModel):
     model_config = ConfigDict(extra="ignore")
