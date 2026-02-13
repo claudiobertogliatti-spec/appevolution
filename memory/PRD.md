@@ -373,8 +373,9 @@ Partner Phase:
 ---
 
 ## Next Action Items
-1. Implementare JWT authentication
-2. Integrare Telegram Bot per notifiche
+1. ~~Implementare JWT authentication~~ ✅ Completato
+2. ~~Integrare Telegram Bot per notifiche~~ ✅ Completato
 3. Collegare domain `app.evolution-pro.it`
 4. Dashboard Metriche Post-Lancio Avanzata (NPS, grafici, visualizzazione funnel studenti)
 5. ACADEMY_VIDEOS - Sistema micro-learning video
+6. Sezione "PARTI DA QUI" - Video lezioni introduttive
