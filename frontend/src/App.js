@@ -550,6 +550,25 @@ export default function App() {
 
   const titles={overview:"Overview",agenti:"Agenti AI",partner:"Pipeline Partner",andrea:adminUser==="antonella"?"ANDREA — Feed Video":"ANDREA — Surgical Cut",metriche:"Metriche Post-Lancio",systeme:"SYSTEME.IO — Live Data",gaia:"GAIA — Funnel Deployer",compliance:"LUCA — Compliance",copyfactory:"STEFANIA — Copy Factory",warmode:"STEFANIA — War Mode Ads",atlas:"ATLAS — LTV",alert:"Alert & Escalation",valentina:"VALENTINA — Chat",home:"Il tuo percorso",corso:"PARTI DA QUI",masterclass:"STEFANIA — Masterclass Builder",coursebuilder:"STEFANIA — Course Builder AI",produzione:"ANDREA — Produzione Video",files:"I Miei File",brandkit:"Brand Kit",calendario:"Calendario Editoriale",documenti:"Documenti & Posizionamento",risorse:"Template & Risorse",renewal:"Piani Post-12 Mesi",supporto:"VALENTINA — Chat"};
 
+  // Loading state
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#0B0E14] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 rounded-xl bg-[#F5C518] flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <span className="text-2xl font-black text-black">E</span>
+          </div>
+          <div className="text-sm text-white/40">Caricamento...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Not authenticated - show login
+  if (!isAuthenticated) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#0B0E14] text-white">
 
