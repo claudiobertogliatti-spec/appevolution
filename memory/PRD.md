@@ -131,6 +131,15 @@ Creare un'applicazione full-stack proprietaria per Evolution PRO - una piattafor
 - Celebrazione animata al completamento
 - FAB Valentina sempre visibile
 
+#### 4. Partner Dashboard V2 - Gamification Update (13 Feb 2026)
+- **Banner di benvenuto dinamico**: Saluto basato sull'ora (Buongiorno/Buon pomeriggio/Buonasera)
+- **Banner evento live**: Con promemoria WhatsApp integrato
+- **Tempi stimati**: Ogni step mostra durata stimata (~2 min, ~10 min, etc.)
+- **Sistema Achievement**: 6 badge sbloccabili (Primo Passo, Posizionato, Maestro, Regista, Online!, Top Partner)
+- **Sezione Risorse**: Guide, Video, Template, Brand Kit con card cliccabili
+- **Sezione Risultati**: Statistiche Clienti, Rating, Crescita, Traguardi
+- **Pulsanti "Serve aiuto?"**: Video tutorial su ogni sezione
+
 #### 4. App.js Ristrutturato
 - Sidebar condizionale (PartnerSidebar vs Admin)
 - Sfondo dinamico (chiaro per Partner, scuro per Admin)
