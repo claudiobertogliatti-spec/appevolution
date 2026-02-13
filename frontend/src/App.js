@@ -24,8 +24,10 @@ import { AtlasModule } from "./components/partner/AtlasModule";
 import { CourseBuilderWizard } from "./components/partner/CourseBuilderWizard";
 import { RenewalPlans } from "./components/partner/RenewalPlans";
 import { PartnerDashboardSimplified } from "./components/partner/PartnerDashboardSimplified";
+import { PartnerSidebar } from "./components/partner/PartnerSidebar";
 import { ValentinaChat } from "./components/chat/ValentinaChat";
 import { LoginPage } from "./components/auth/LoginPage";
+import "./styles/design-system.css";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
