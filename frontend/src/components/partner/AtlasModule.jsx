@@ -106,7 +106,7 @@ export function AtlasModule({ partner, isAdmin = false }) {
             </h2>
             <p className="text-sm text-[#5F6572]">Gamification · Feedback-to-Copy · Lifetime Value Tracking</p>
           </div>
-          <button onClick={loadData} className="p-2 text-white/30 hover:text-[#1E2128]">
+          <button onClick={loadData} className="p-2 text-[#9CA3AF] hover:text-[#1E2128]">
             <RefreshCw className="w-5 h-5" />
           </button>
         </div>
@@ -277,7 +277,7 @@ export function AtlasModule({ partner, isAdmin = false }) {
                     {ltvData.gamification.top_students.slice(0, 3).map((s, i) => (
                       <div key={i} className="flex items-center gap-2 py-2 border-b border-[#ECEDEF]">
                         <span className="text-lg">{i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉"}</span>
-                        <span className="flex-1 text-sm text-white/70">{s.name}</span>
+                        <span className="flex-1 text-sm text-[#5F6572]">{s.name}</span>
                         <span className="font-mono text-xs text-yellow-400">{s.points} pts</span>
                       </div>
                     ))}
@@ -445,8 +445,8 @@ export function AtlasModule({ partner, isAdmin = false }) {
                         <CheckCircle className="w-4 h-4 text-green-400" />
                       )}
                     </div>
-                    <p className="text-sm text-white/80">{f.content}</p>
-                    <div className="text-[10px] text-white/30 mt-2">
+                    <p className="text-sm text-[#5F6572]">{f.content}</p>
+                    <div className="text-[10px] text-[#9CA3AF] mt-2">
                       {new Date(f.created_at).toLocaleDateString()}
                     </div>
                   </div>
@@ -500,7 +500,7 @@ export function AtlasModule({ partner, isAdmin = false }) {
                       <p className="text-sm text-[#5F6572] mb-3">{angle.description}</p>
                       
                       <div className="flex items-center justify-between">
-                        <span className={`text-xs ${angle.used_in_campaign ? "text-green-400" : "text-white/30"}`}>
+                        <span className={`text-xs ${angle.used_in_campaign ? "text-green-400" : "text-[#9CA3AF]"}`}>
                           {angle.used_in_campaign ? "✓ Usato" : "Non usato"}
                         </span>
                         <button

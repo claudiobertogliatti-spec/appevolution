@@ -548,7 +548,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                   </div>
                 ) : (
                   <div className="text-center py-6">
-                    <CreditCard className="w-8 h-8 text-white/10 mx-auto mb-2" />
+                    <CreditCard className="w-8 h-8 text-[#ECEDEF] mx-auto mb-2" />
                     <div className="text-sm text-[#9CA3AF]">Nessun pagamento registrato</div>
                   </div>
                 )}

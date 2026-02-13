@@ -110,7 +110,7 @@ export function AndreaChat({ partner, currentBlock, recordingStatus }) {
             <div className={`max-w-[80%] rounded-xl px-4 py-3 
               ${msg.role === "user" 
                 ? "bg-[#F5C518] text-black" 
-                : "bg-[#FAFAF7] border border-[#ECEDEF] text-white/80"}`}
+                : "bg-[#FAFAF7] border border-[#ECEDEF] text-[#5F6572]"}`}
             >
               <div 
                 className="text-sm leading-relaxed"
@@ -146,7 +146,7 @@ export function AndreaChat({ partner, currentBlock, recordingStatus }) {
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()}
             placeholder="Chiedi ad Andrea supporto tecnico o coaching..."
-            className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-3 text-sm text-[#1E2128] placeholder:text-white/30 outline-none focus:border-blue-500/50 transition-colors"
+            className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-3 text-sm text-[#1E2128] placeholder:text-[#9CA3AF] outline-none focus:border-blue-500/50 transition-colors"
             disabled={loading}
           />
           <button

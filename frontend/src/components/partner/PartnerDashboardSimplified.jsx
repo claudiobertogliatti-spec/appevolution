@@ -153,7 +153,7 @@ function VideoHelpButton({ videoUrl, title }) {
       </button>
       
       {showVideo && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setShowVideo(false)}>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowVideo(false)}>
           <div className="rounded-2xl overflow-hidden max-w-2xl w-full" style={{ background: 'white' }} onClick={e => e.stopPropagation()}>
             <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: '#ECEDEF' }}>
               <span className="font-bold" style={{ color: '#1E2128' }}>{title || "Come funziona"}</span>

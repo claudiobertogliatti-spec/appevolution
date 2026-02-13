@@ -123,7 +123,7 @@ ${answers.bonus || "Non definito"}
 
           {/* Canvas Output */}
           <div className="p-5 max-h-[500px] overflow-y-auto">
-            <pre className="text-xs font-mono text-white/70 whitespace-pre-wrap leading-relaxed">
+            <pre className="text-xs font-mono text-[#5F6572] whitespace-pre-wrap leading-relaxed">
               {output}
             </pre>
           </div>
@@ -229,7 +229,7 @@ ${answers.bonus || "Non definito"}
             value={answers[question.id] || ""}
             onChange={(e) => setAnswers(prev => ({ ...prev, [question.id]: e.target.value }))}
             placeholder={question.placeholder}
-            className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-4 text-sm font-semibold text-[#1E2128] placeholder:text-white/30 outline-none transition-colors focus:border-[#F5C518] resize-none min-h-[160px] leading-relaxed"
+            className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-4 text-sm font-semibold text-[#1E2128] placeholder:text-[#9CA3AF] outline-none transition-colors focus:border-[#F5C518] resize-none min-h-[160px] leading-relaxed"
           />
         </div>
 
