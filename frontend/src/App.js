@@ -79,9 +79,9 @@ const RESOURCES = [
 function Logo() {
   return (
     <div className="flex items-center gap-3">
-      <div className="w-9 h-9 bg-[#F5C518] rounded-lg flex items-center justify-center font-black text-black text-lg">e</div>
+      <div className="w-9 h-9 rounded-lg flex items-center justify-center font-black text-lg" style={{ background: '#F2C418', color: '#2D3239' }}>E</div>
       <div>
-        <div className="text-sm font-extrabold text-white leading-none"><span className="text-[#F5C518]">volution</span>Pro</div>
+        <div className="text-sm font-extrabold text-white leading-none"><span style={{ color: '#F2C418' }}>volution</span>Pro</div>
         <div className="text-[9px] text-white/25 uppercase tracking-[2px] font-bold mt-0.5">OS Platform</div>
       </div>
     </div>
