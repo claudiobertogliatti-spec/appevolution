@@ -28,6 +28,7 @@ import { PartnerSidebarLight } from "./components/partner/PartnerSidebar";
 import { AdminSidebarLight } from "./components/admin/AdminSidebarLight";
 import { ValentinaChat } from "./components/chat/ValentinaChat";
 import { LoginPage } from "./components/auth/LoginPage";
+import { WebhookDashboard } from "./components/admin/WebhookDashboard";
 import "./styles/design-system.css";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
