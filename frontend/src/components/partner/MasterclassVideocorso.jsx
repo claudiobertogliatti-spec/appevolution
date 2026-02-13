@@ -160,7 +160,7 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName }) {
                 <h2 className="text-lg font-black" style={{ color: '#1E2128' }}>Prova Gratuita Avatar</h2>
               </div>
               <p className="text-sm" style={{ color: '#9CA3AF' }}>
-                Vedi come apparirà il tuo Avatar in 30 secondi!
+                Andrea creerà un sample di 30 secondi per te!
               </p>
             </div>
             <button onClick={onClose} className="text-2xl" style={{ color: '#9CA3AF' }}>×</button>
@@ -194,7 +194,7 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName }) {
                 <span className="text-5xl block mb-3">📸</span>
                 <h3 className="font-bold text-lg mb-1" style={{ color: '#1E2128' }}>Carica una tua foto</h3>
                 <p className="text-sm" style={{ color: '#9CA3AF' }}>
-                  Useremo questa foto per creare il tuo avatar digitale
+                  Andrea userà questa foto per creare il tuo avatar digitale
                 </p>
               </div>
               
@@ -231,7 +231,7 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName }) {
               </div>
               
               <div className="p-4 rounded-xl" style={{ background: '#FFF8DC' }}>
-                <div className="text-xs font-bold mb-2" style={{ color: '#C4990A' }}>💡 Consigli per una foto perfetta:</div>
+                <div className="text-xs font-bold mb-2" style={{ color: '#C4990A' }}>💡 Consigli di Andrea per una foto perfetta:</div>
                 <ul className="text-xs space-y-1" style={{ color: '#5F6572' }}>
                   <li>• Foto frontale del viso, ben illuminata</li>
                   <li>• Sfondo neutro (meglio se chiaro)</li>
@@ -261,7 +261,7 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName }) {
                 <span className="text-5xl block mb-3">🎙️</span>
                 <h3 className="font-bold text-lg mb-1" style={{ color: '#1E2128' }}>Registra la tua voce</h3>
                 <p className="text-sm" style={{ color: '#9CA3AF' }}>
-                  Leggi il testo qui sotto per 10-15 secondi
+                  Andrea clonerà la tua voce per l'avatar
                 </p>
               </div>
               
@@ -348,7 +348,7 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName }) {
                     color: audioBlob ? 'white' : '#9CA3AF'
                   }}
                 >
-                  Genera Sample →
+                  Avanti →
                 </button>
               </div>
             </div>
@@ -372,7 +372,7 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName }) {
                           <div className="text-xs">Generando...</div>
                         </div>
                       ) : (
-                        <span className="text-4xl">🤖</span>
+                        <span className="text-4xl">🧑‍💻</span>
                       )}
                     </div>
                   </div>
@@ -380,10 +380,10 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName }) {
                   {isGenerating ? (
                     <>
                       <h3 className="font-bold text-lg mb-2" style={{ color: '#1E2128' }}>
-                        Stiamo creando il tuo Avatar...
+                        Andrea sta creando il tuo Avatar...
                       </h3>
                       <p className="text-sm mb-4" style={{ color: '#9CA3AF' }}>
-                        Questo processo richiede circa 30 secondi
+                        Ci vogliono circa 30 secondi, resta qui!
                       </p>
                       <div className="h-2 rounded-full mx-auto" style={{ width: '80%', background: '#ECEDEF' }}>
                         <div 
@@ -403,17 +403,17 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName }) {
                   ) : (
                     <>
                       <h3 className="font-bold text-lg mb-2" style={{ color: '#1E2128' }}>
-                        Pronto per generare!
+                        Tutto pronto!
                       </h3>
                       <p className="text-sm mb-6" style={{ color: '#9CA3AF' }}>
-                        Creeremo un video sample di 30 secondi con il tuo Avatar
+                        Andrea creerà un video sample di 30 secondi con il tuo Avatar
                       </p>
                       <button 
                         onClick={generateSample}
                         className="px-8 py-4 rounded-xl font-bold text-sm transition-all hover:scale-105"
                         style={{ background: '#7B68AE', color: 'white' }}
                       >
-                        🚀 Genera il mio Avatar Sample
+                        🚀 Crea il mio Avatar Sample
                       </button>
                     </>
                   )}
@@ -424,7 +424,7 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName }) {
                   <div className="mb-6">
                     <span className="text-6xl block mb-3">🎉</span>
                     <h3 className="font-bold text-xl mb-2" style={{ color: '#1E2128' }}>
-                      Il tuo Avatar è pronto!
+                      Andrea ha creato il tuo Avatar!
                     </h3>
                     <p className="text-sm" style={{ color: '#9CA3AF' }}>
                       Ecco come apparirai nei tuoi video
@@ -465,7 +465,7 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName }) {
                       ✨ Ti piace il risultato?
                     </div>
                     <p className="text-xs" style={{ color: '#5F6572' }}>
-                      Se scegli l'opzione Avatar, i tuoi video saranno creati con questa qualità!
+                      Se scegli l'opzione Avatar, Andrea creerà tutti i tuoi video con questa qualità!
                     </p>
                   </div>
                   
