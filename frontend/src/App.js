@@ -678,8 +678,9 @@ export default function App() {
           {mode==="partner"&&<>
             {nav==="home"&&<PartnerDashboardSimplified partner={demoPartner} onNavigate={setNav} onOpenChat={()=>setNav("supporto")}/>}
             {nav==="corso"&&<PartnerCourse partner={demoPartner} modules={modules}/>}
-            {nav==="masterclass"&&<MasterclassBuilder partner={demoPartner}/>}
+            {nav==="masterclass"&&<MasterclassVideocorso partner={demoPartner} onBack={()=>setNav("home")}/>}
             {nav==="coursebuilder"&&<CourseBuilderWizard partnerId={demoPartner?.id||"demo"} positioningData={{trasformazione:"Demo",target:"Demo",problema:"Demo",soluzione:"Demo"}} onComplete={()=>setNav("produzione")}/>}
+            {nav==="funnel"&&<FunnelReviewBuilder partner={demoPartner} onBack={()=>setNav("home")}/>}
             {nav==="produzione"&&<ProduzioneVideo partner={demoPartner}/>}
             {nav==="files"&&<PartnerFileManager partner={demoPartner}/>}
             {nav==="brandkit"&&<BrandKitEditor partner={demoPartner}/>}
