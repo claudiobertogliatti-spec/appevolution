@@ -460,7 +460,15 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName, partnerI
               
               {/* Recording UI */}
               <div className="text-center py-6">
-                {!audioBlob ? (
+                {uploadingAudio ? (
+                  <div className="space-y-3">
+                    <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto animate-pulse"
+                         style={{ background: '#7B68AE20' }}>
+                      <span className="text-3xl">⏳</span>
+                    </div>
+                    <p className="font-bold" style={{ color: '#7B68AE' }}>Caricamento audio in corso...</p>
+                  </div>
+                ) : !audioBlob ? (
                   <>
                     <button 
                       onClick={isRecording ? stopRecording : startRecording}
@@ -501,18 +509,22 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName, partnerI
                 ) : (
                   <div className="space-y-3">
                     <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto"
-                         style={{ background: '#EAFAF1' }}>
-                      <span className="text-3xl">✓</span>
+                         style={{ background: audioUrl ? '#EAFAF1' : '#FEF3C7' }}>
+                      <span className="text-3xl">{audioUrl ? '✓' : '⏳'}</span>
                     </div>
-                    <p className="font-bold" style={{ color: '#34C77B' }}>Registrazione completata!</p>
+                    <p className="font-bold" style={{ color: audioUrl ? '#34C77B' : '#F59E0B' }}>
+                      {audioUrl ? 'Audio caricato con successo!' : 'Caricamento in corso...'}
+                    </p>
                     <p className="text-xs" style={{ color: '#9CA3AF' }}>{recordingTime} secondi registrati</p>
-                    <button 
-                      onClick={() => { setAudioBlob(null); setRecordingTime(0); }}
-                      className="text-xs font-bold underline"
-                      style={{ color: '#7B68AE' }}
-                    >
-                      Registra di nuovo
-                    </button>
+                    {audioUrl && (
+                      <button 
+                        onClick={() => { setAudioBlob(null); setAudioUrl(null); setRecordingTime(0); }}
+                        className="text-xs font-bold underline"
+                        style={{ color: '#7B68AE' }}
+                      >
+                        Registra di nuovo
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -526,15 +538,15 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName, partnerI
                   ← Indietro
                 </button>
                 <button 
-                  onClick={() => audioBlob && setStep(3)}
-                  disabled={!audioBlob}
+                  onClick={() => audioUrl && setStep(3)}
+                  disabled={!audioUrl || uploadingAudio}
                   className="flex-1 py-3 rounded-xl font-bold text-sm transition-all"
                   style={{ 
-                    background: audioBlob ? '#7B68AE' : '#ECEDEF',
-                    color: audioBlob ? 'white' : '#9CA3AF'
+                    background: audioUrl ? '#7B68AE' : '#ECEDEF',
+                    color: audioUrl ? 'white' : '#9CA3AF'
                   }}
                 >
-                  Avanti →
+                  {uploadingAudio ? 'Caricamento...' : 'Avanti →'}
                 </button>
               </div>
             </div>
