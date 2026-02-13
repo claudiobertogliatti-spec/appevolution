@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { ArrowRight, Check, Lock, Play, BookOpen, Video, FileText, Users, Star, TrendingUp, Trophy, MessageCircle, X } from "lucide-react";
-import axios from "axios";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -37,15 +36,15 @@ function ProgressBar({ currentStep, totalSteps }) {
   return (
     <div className="w-full">
       <div className="flex justify-between items-center mb-2">
-        <span className="text-sm font-semibold text-[#7A6E63]">Il tuo percorso</span>
-        <span className="text-sm font-bold text-[#E8652B]">{currentStep} di {totalSteps} completati</span>
+        <span className="text-sm font-semibold" style={{ color: '#5F6572' }}>Il tuo percorso</span>
+        <span className="text-sm font-bold" style={{ color: '#1E2128' }}>{currentStep} di {totalSteps} completati</span>
       </div>
-      <div className="h-2.5 bg-[#EDE6DD] rounded-full overflow-hidden">
+      <div className="h-2.5 rounded-full overflow-hidden" style={{ background: '#ECEDEF' }}>
         <div 
           className="h-full rounded-full transition-all duration-700 ease-out"
           style={{ 
             width: `${percentage}%`,
-            background: 'linear-gradient(90deg, #E8652B, #F4A261)'
+            background: 'linear-gradient(90deg, #F2C418, #FADA5E)'
           }}
         />
       </div>
@@ -55,61 +54,58 @@ function ProgressBar({ currentStep, totalSteps }) {
 
 function StepItem({ step, isCompleted, isCurrent, isLocked }) {
   return (
-    <li className={`flex items-center gap-3 py-3 px-4 rounded-xl transition-all ${
-      isCurrent ? 'bg-[#FFF0E8] border-2 border-[#E8652B]' : 
-      isCompleted ? 'bg-[#E6F7EF]' : 
-      'bg-[#F5F2EE]'
-    }`}>
-      <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
-        isCompleted ? 'bg-[#2D9F6F] text-white' :
-        isCurrent ? 'bg-[#E8652B] text-white' :
-        'bg-[#EDE6DD] text-[#B0A599]'
-      }`}>
+    <li className="flex items-center gap-3 py-3 px-4 rounded-xl transition-all"
+        style={{ 
+          background: isCurrent ? '#FFF3C4' : isCompleted ? '#EAFAF1' : '#FAFAF7',
+          border: isCurrent ? '2px solid #F2C418' : '2px solid transparent'
+        }}>
+      <span className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+            style={{ 
+              background: isCompleted ? '#34C77B' : isCurrent ? '#F2C418' : '#ECEDEF',
+              color: isCompleted || isCurrent ? 'white' : '#9CA3AF'
+            }}>
         {isCompleted ? <Check className="w-4 h-4" /> : 
          isLocked ? <Lock className="w-3.5 h-3.5" /> : 
          step.id}
       </span>
-      <span className={`text-sm font-medium ${
-        isCompleted ? 'text-[#2D9F6F]' :
-        isCurrent ? 'text-[#E8652B] font-bold' :
-        'text-[#B0A599]'
-      }`}>
+      <span className="text-sm font-medium"
+            style={{ 
+              color: isCompleted ? '#2D9F6F' : isCurrent ? '#1E2128' : '#9CA3AF',
+              fontWeight: isCurrent ? 700 : 500
+            }}>
         {step.title}
       </span>
     </li>
   );
 }
 
-function ResourceCard({ icon: Icon, title, description, color, onClick }) {
-  const colorClasses = {
-    orange: 'bg-[#FFF0E8] text-[#E8652B]',
-    green: 'bg-[#E6F7EF] text-[#2D9F6F]',
-    purple: 'bg-[#F0ECFA] text-[#6B4EAA]',
-  };
-  
+function ResourceCard({ icon: Icon, emoji, title, description, onClick }) {
   return (
     <button 
       onClick={onClick}
-      className="flex items-center gap-4 p-4 bg-white rounded-xl border border-[#EDE6DD] hover:border-[#E8652B] hover:shadow-md transition-all w-full text-left group"
+      className="flex items-center gap-4 p-4 rounded-xl border transition-all hover:shadow-md hover:border-[#F2C418] w-full text-left group"
+      style={{ background: 'white', borderColor: '#ECEDEF' }}
     >
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${colorClasses[color]}`}>
-        <Icon className="w-6 h-6" />
+      <div className="w-12 h-12 rounded-xl flex items-center justify-center text-xl"
+           style={{ background: '#FFF8DC' }}>
+        {emoji}
       </div>
       <div className="flex-1">
-        <h3 className="font-bold text-[#2A1F14] group-hover:text-[#E8652B] transition-colors">{title}</h3>
-        <p className="text-sm text-[#7A6E63]">{description}</p>
+        <h3 className="font-bold group-hover:text-[#C4990A] transition-colors" style={{ color: '#1E2128' }}>{title}</h3>
+        <p className="text-sm" style={{ color: '#5F6572' }}>{description}</p>
       </div>
-      <ArrowRight className="w-5 h-5 text-[#B0A599] group-hover:text-[#E8652B] transition-colors" />
+      <ArrowRight className="w-5 h-5 transition-colors" style={{ color: '#9CA3AF' }} />
     </button>
   );
 }
 
 function StatCard({ emoji, value, label }) {
   return (
-    <div className="bg-white rounded-xl border border-[#EDE6DD] p-5 text-center hover:shadow-md transition-all">
+    <div className="rounded-xl border p-5 text-center transition-all hover:shadow-md"
+         style={{ background: 'white', borderColor: '#ECEDEF' }}>
       <div className="text-3xl mb-2">{emoji}</div>
-      <div className="text-2xl font-black text-[#2A1F14]">{value}</div>
-      <div className="text-sm text-[#7A6E63]">{label}</div>
+      <div className="text-2xl font-black" style={{ color: '#1E2128' }}>{value}</div>
+      <div className="text-sm" style={{ color: '#5F6572' }}>{label}</div>
     </div>
   );
 }
@@ -118,21 +114,22 @@ function CelebrationModal({ show, step, onClose }) {
   if (!show) return null;
   
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div 
-        className="bg-white rounded-2xl p-8 text-center max-w-md w-full animate-bounce-in"
+        className="rounded-2xl p-8 text-center max-w-md w-full animate-bounce-in"
+        style={{ background: 'white' }}
         onClick={e => e.stopPropagation()}
       >
         <span className="text-6xl block mb-4">🎉</span>
-        <h2 className="text-2xl font-black text-[#2A1F14] mb-2">Ottimo lavoro!</h2>
-        <p className="text-[#7A6E63] mb-6">
+        <h2 className="text-2xl font-black mb-2" style={{ color: '#1E2128' }}>Ottimo lavoro!</h2>
+        <p className="mb-6" style={{ color: '#5F6572' }}>
           Hai completato il passo {step} di 8.<br/>
           {step < 4 ? "Continua così!" : step < 6 ? "Sei a metà strada!" : "Ci sei quasi!"}
         </p>
         <button 
           onClick={onClose}
-          className="px-6 py-3 rounded-xl font-bold text-white transition-all hover:scale-105"
-          style={{ background: 'linear-gradient(135deg, #E8652B, #F4A261)' }}
+          className="px-6 py-3 rounded-xl font-bold transition-all hover:scale-105"
+          style={{ background: 'linear-gradient(135deg, #F2C418, #FADA5E)', color: '#1E2128' }}
         >
           Avanti! →
         </button>
@@ -148,22 +145,23 @@ function VideoHelpButton({ videoUrl, title }) {
     <>
       <button 
         onClick={() => setShowVideo(true)}
-        className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-[#F0ECFA] text-[#6B4EAA] rounded-xl font-bold hover:bg-[#6B4EAA] hover:text-white transition-all"
+        className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl font-bold transition-all hover:shadow-md"
+        style={{ background: '#FFF8DC', color: '#C4990A', border: '1px solid #F2C418' }}
       >
         <Play className="w-5 h-5" />
         🎬 Come si usa? Guarda il video (45 sec)
       </button>
       
       {showVideo && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={() => setShowVideo(false)}>
-          <div className="bg-white rounded-2xl overflow-hidden max-w-2xl w-full" onClick={e => e.stopPropagation()}>
-            <div className="p-4 border-b border-[#EDE6DD] flex items-center justify-between">
-              <span className="font-bold text-[#2A1F14]">{title || "Come funziona"}</span>
-              <button onClick={() => setShowVideo(false)} className="text-[#B0A599] hover:text-[#2A1F14]">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setShowVideo(false)}>
+          <div className="rounded-2xl overflow-hidden max-w-2xl w-full" style={{ background: 'white' }} onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: '#ECEDEF' }}>
+              <span className="font-bold" style={{ color: '#1E2128' }}>{title || "Come funziona"}</span>
+              <button onClick={() => setShowVideo(false)} style={{ color: '#9CA3AF' }}>
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="aspect-video bg-[#2A1F14] flex items-center justify-center">
+            <div className="aspect-video flex items-center justify-center" style={{ background: '#1E2128' }}>
               <div className="text-center text-white/60">
                 <Play className="w-16 h-16 mx-auto mb-3 opacity-50" />
                 <p>Video tutorial in arrivo</p>
@@ -173,33 +171,6 @@ function VideoHelpButton({ videoUrl, title }) {
         </div>
       )}
     </>
-  );
-}
-
-function ValentinaFAB({ onClick }) {
-  const [showLabel, setShowLabel] = useState(true);
-  
-  useEffect(() => {
-    const timer = setTimeout(() => setShowLabel(false), 5000);
-    return () => clearTimeout(timer);
-  }, []);
-  
-  return (
-    <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3">
-      {showLabel && (
-        <div className="bg-white rounded-xl px-4 py-2 shadow-lg border border-[#EDE6DD] animate-fade-in">
-          <span className="text-sm font-medium text-[#2A1F14]">Ciao! Serve aiuto? 💬</span>
-        </div>
-      )}
-      <button 
-        onClick={onClick}
-        className="w-14 h-14 rounded-full text-white shadow-lg hover:scale-110 transition-all relative"
-        style={{ background: 'linear-gradient(135deg, #E8652B, #F4A261)' }}
-      >
-        <span className="absolute inset-0 rounded-full animate-ping opacity-30" style={{ background: '#E8652B' }} />
-        <MessageCircle className="w-6 h-6 mx-auto" />
-      </button>
-    </div>
   );
 }
 
@@ -230,26 +201,39 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) 
   };
   
   return (
-    <div className="min-h-screen" style={{ background: '#FFF9F4' }}>
+    <div className="min-h-full" style={{ background: '#FAFAF7' }}>
       <div className="max-w-3xl mx-auto p-6 space-y-6">
         
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-black" style={{ color: '#1E2128' }}>Il tuo percorso</h1>
+            <p className="text-sm" style={{ color: '#5F6572' }}>Benvenuto, {partner?.name?.split(" ")[0] || "Partner"}!</p>
+          </div>
+          <div className="text-sm font-medium px-3 py-1.5 rounded-lg" style={{ background: '#ECEDEF', color: '#5F6572' }}>
+            {new Date().toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" })}
+          </div>
+        </div>
+
         {/* HERO: Current Task */}
         <section 
-          className="rounded-2xl p-8 text-white relative overflow-hidden"
-          style={{ background: 'linear-gradient(135deg, #E8652B, #F4A261)' }}
+          className="rounded-2xl p-8 relative overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, #F2C418 0%, #FADA5E 100%)' }}
         >
           <div className="absolute top-0 right-0 w-48 h-48 rounded-full opacity-20" 
-               style={{ background: 'radial-gradient(circle, white 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
+               style={{ background: 'white', transform: 'translate(30%, -30%)' }} />
           
           <div className="relative z-10">
-            <div className="inline-flex items-center gap-2 bg-white/20 rounded-full px-3 py-1 text-sm font-bold mb-4">
+            <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-bold mb-4"
+                 style={{ background: 'rgba(255,255,255,0.25)', color: '#1E2128' }}>
               📍 Cosa fare ora
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black mb-3">{currentTask.title}</h1>
-            <p className="text-white/90 mb-6 max-w-md">{currentTask.desc}</p>
+            <h1 className="text-2xl sm:text-3xl font-black mb-3" style={{ color: '#1E2128' }}>{currentTask.title}</h1>
+            <p className="mb-6 max-w-md" style={{ color: 'rgba(30,33,40,0.7)' }}>{currentTask.desc}</p>
             <button 
               onClick={handleTaskAction}
-              className="inline-flex items-center gap-2 bg-white text-[#E8652B] px-6 py-3 rounded-xl font-bold hover:bg-white/90 hover:scale-105 transition-all shadow-lg"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold hover:scale-105 transition-all"
+              style={{ background: '#1E2128', color: '#F2C418', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}
             >
               {currentTask.cta}
               <ArrowRight className="w-5 h-5" />
@@ -258,7 +242,7 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) 
         </section>
 
         {/* PROGRESS */}
-        <section className="bg-white rounded-2xl p-6 border border-[#EDE6DD] shadow-sm">
+        <section className="rounded-2xl p-6 border" style={{ background: 'white', borderColor: '#ECEDEF' }}>
           <ProgressBar currentStep={completedSteps} totalSteps={JOURNEY_STEPS.length} />
           
           <ul className="mt-6 space-y-2">
@@ -279,46 +263,46 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) 
 
         {/* RESOURCES */}
         <section className="space-y-4">
-          <h2 className="text-lg font-black text-[#2A1F14]">Le tue Risorse</h2>
-          <div className="space-y-3">
+          <h2 className="text-lg font-black" style={{ color: '#1E2128' }}>Le tue Risorse</h2>
+          <div className="grid grid-cols-2 gap-3">
             <ResourceCard 
-              icon={BookOpen}
+              emoji="📚"
               title="Guide e Manuali"
-              description="12 documenti pronti da usare"
-              color="orange"
+              description="12 documenti pronti"
               onClick={() => onNavigate('risorse')}
             />
             <ResourceCard 
-              icon={Video}
+              emoji="🎬"
               title="Video Formativi"
-              description="8 lezioni da 5 minuti ciascuna"
-              color="green"
+              description="8 lezioni da 5 min"
               onClick={() => onNavigate('corso')}
             />
             <ResourceCard 
-              icon={FileText}
-              title="Template e Modelli"
-              description="Pronti da scaricare e personalizzare"
-              color="purple"
+              emoji="📋"
+              title="Template"
+              description="Scarica e personalizza"
               onClick={() => onNavigate('risorse')}
+            />
+            <ResourceCard 
+              emoji="🎨"
+              title="Brand Kit"
+              description="Loghi, colori, font"
+              onClick={() => onNavigate('brandkit')}
             />
           </div>
         </section>
 
         {/* STATS */}
         <section className="space-y-4">
-          <h2 className="text-lg font-black text-[#2A1F14]">I tuoi Risultati</h2>
-          <div className="grid grid-cols-2 gap-3">
-            <StatCard emoji="👥" value={partner?.clients || 0} label="Clienti raggiunti" />
-            <StatCard emoji="⭐" value={partner?.rating || "—"} label="Valutazione media" />
-            <StatCard emoji="📈" value={`€${partner?.revenue?.toLocaleString() || 0}`} label="Revenue generato" />
-            <StatCard emoji="🏆" value={completedSteps} label="Traguardi raggiunti" />
+          <h2 className="text-lg font-black" style={{ color: '#1E2128' }}>I tuoi Risultati</h2>
+          <div className="grid grid-cols-4 gap-3">
+            <StatCard emoji="👥" value={partner?.clients || 0} label="Clienti" />
+            <StatCard emoji="⭐" value={partner?.rating || "—"} label="Rating" />
+            <StatCard emoji="📈" value={`€${partner?.revenue?.toLocaleString() || 0}`} label="Revenue" />
+            <StatCard emoji="🏆" value={completedSteps} label="Traguardi" />
           </div>
         </section>
       </div>
-
-      {/* VALENTINA FAB */}
-      <ValentinaFAB onClick={onOpenChat} />
 
       {/* CELEBRATION */}
       <CelebrationModal 
@@ -333,12 +317,7 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) 
           70% { transform: scale(1.05); }
           100% { transform: scale(1); opacity: 1; }
         }
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateX(10px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
         .animate-bounce-in { animation: bounce-in 0.4s ease-out; }
-        .animate-fade-in { animation: fade-in 0.3s ease-out; }
       `}</style>
     </div>
   );
