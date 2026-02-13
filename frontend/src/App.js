@@ -510,6 +510,7 @@ export default function App() {
   const coreNav=[
     {id:"overview",label:"Overview",icon:LayoutDashboard},
     {id:"partner",label:"Partner",icon:Users},
+    {id:"documenti-partner",label:"Documenti Partner",icon:FileText},
     {id:"andrea",label:"Editing",icon:Film},
     {id:"metriche",label:"Post-Lancio",icon:BarChart3},
     {id:"valentina",label:"VALENTINA",icon:MessageCircle,dot:true},
