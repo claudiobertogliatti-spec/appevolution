@@ -576,13 +576,15 @@ export default function App() {
       <div className="w-52 min-w-52 bg-[#111827] flex flex-col border-r border-white/5 flex-shrink-0">
         <div className="p-4 border-b border-white/5"><Logo/></div>
 
-        {/* Mode toggle */}
+        {/* Mode toggle - solo per admin */}
+        {currentUser?.role === "admin" && (
         <div className="px-3 pt-3 pb-2">
           <div className="flex bg-white/5 rounded-lg p-0.5">
             <button onClick={()=>{setMode("admin");setNav("overview");}} className={`flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all ${mode==="admin"?"bg-[#F5C518] text-black":"text-white/35 hover:text-white/60"}`}>Admin</button>
             <button onClick={()=>{setMode("partner");setNav("home");}} className={`flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all ${mode==="partner"?"bg-[#F5C518] text-black":"text-white/35 hover:text-white/60"}`}>Partner</button>
           </div>
         </div>
+        )}
 
         <div className="flex-1 overflow-y-auto px-2 py-1">
           {mode==="admin"&&<>
