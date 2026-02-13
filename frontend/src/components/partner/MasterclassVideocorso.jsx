@@ -76,6 +76,425 @@ const VIDEOCORSO_LESSONS = [
 // Pricing
 const AVATAR_PRICE_PER_LESSON = 120; // IVA inclusa
 
+// ============================================
+// AVATAR FREE TRIAL MODAL
+// ============================================
+function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName }) {
+  const [step, setStep] = useState(1);
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioBlob, setAudioBlob] = useState(null);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [sampleReady, setSampleReady] = useState(false);
+  
+  // Handle photo upload
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setPhotoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setPhotoPreview(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  // Simulate recording (in real implementation, use MediaRecorder API)
+  const startRecording = () => {
+    setIsRecording(true);
+    setRecordingTime(0);
+    const interval = setInterval(() => {
+      setRecordingTime(prev => {
+        if (prev >= 15) {
+          clearInterval(interval);
+          setIsRecording(false);
+          setAudioBlob(new Blob()); // Mock blob
+          return 15;
+        }
+        return prev + 1;
+      });
+    }, 1000);
+  };
+  
+  const stopRecording = () => {
+    setIsRecording(false);
+    setAudioBlob(new Blob()); // Mock blob
+  };
+  
+  // Simulate avatar generation
+  const generateSample = async () => {
+    setIsGenerating(true);
+    setGenerationProgress(0);
+    
+    // Simulate progress
+    const interval = setInterval(() => {
+      setGenerationProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setIsGenerating(false);
+          setSampleReady(true);
+          return 100;
+        }
+        return prev + Math.random() * 15;
+      });
+    }, 500);
+  };
+  
+  if (!show) return null;
+  
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div 
+        className="rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+        style={{ background: 'white' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="p-5 border-b" style={{ borderColor: '#ECEDEF' }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">🎁</span>
+                <h2 className="text-lg font-black" style={{ color: '#1E2128' }}>Prova Gratuita Avatar</h2>
+              </div>
+              <p className="text-sm" style={{ color: '#9CA3AF' }}>
+                Vedi come apparirà il tuo Avatar in 30 secondi!
+              </p>
+            </div>
+            <button onClick={onClose} className="text-2xl" style={{ color: '#9CA3AF' }}>×</button>
+          </div>
+          
+          {/* Progress Steps */}
+          <div className="flex items-center gap-2 mt-4">
+            {[1, 2, 3].map(s => (
+              <div key={s} className="flex items-center gap-2">
+                <div 
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                  style={{ 
+                    background: step >= s ? '#7B68AE' : '#ECEDEF',
+                    color: step >= s ? 'white' : '#9CA3AF'
+                  }}
+                >
+                  {step > s ? '✓' : s}
+                </div>
+                {s < 3 && <div className="w-8 h-0.5" style={{ background: step > s ? '#7B68AE' : '#ECEDEF' }} />}
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        {/* Content */}
+        <div className="p-5">
+          {/* Step 1: Photo Upload */}
+          {step === 1 && (
+            <div className="space-y-4">
+              <div className="text-center">
+                <span className="text-5xl block mb-3">📸</span>
+                <h3 className="font-bold text-lg mb-1" style={{ color: '#1E2128' }}>Carica una tua foto</h3>
+                <p className="text-sm" style={{ color: '#9CA3AF' }}>
+                  Useremo questa foto per creare il tuo avatar digitale
+                </p>
+              </div>
+              
+              <div 
+                className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all hover:border-[#7B68AE]"
+                style={{ borderColor: photoPreview ? '#7B68AE' : '#ECEDEF' }}
+                onClick={() => document.getElementById('avatar-photo-input').click()}
+              >
+                {photoPreview ? (
+                  <div className="relative inline-block">
+                    <img src={photoPreview} alt="Preview" className="w-32 h-32 rounded-full object-cover mx-auto" />
+                    <div className="absolute bottom-0 right-0 w-8 h-8 rounded-full flex items-center justify-center"
+                         style={{ background: '#34C77B', color: 'white' }}>
+                      ✓
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="w-20 h-20 rounded-full mx-auto mb-3 flex items-center justify-center"
+                         style={{ background: '#FAFAF7' }}>
+                      <span className="text-3xl">👤</span>
+                    </div>
+                    <p className="font-bold" style={{ color: '#5F6572' }}>Clicca per caricare</p>
+                    <p className="text-xs" style={{ color: '#9CA3AF' }}>JPG o PNG, frontale, buona illuminazione</p>
+                  </>
+                )}
+                <input 
+                  id="avatar-photo-input"
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  onChange={handlePhotoUpload}
+                />
+              </div>
+              
+              <div className="p-4 rounded-xl" style={{ background: '#FFF8DC' }}>
+                <div className="text-xs font-bold mb-2" style={{ color: '#C4990A' }}>💡 Consigli per una foto perfetta:</div>
+                <ul className="text-xs space-y-1" style={{ color: '#5F6572' }}>
+                  <li>• Foto frontale del viso, ben illuminata</li>
+                  <li>• Sfondo neutro (meglio se chiaro)</li>
+                  <li>• Espressione naturale, sorriso leggero</li>
+                  <li>• Alta risoluzione (almeno 500x500 px)</li>
+                </ul>
+              </div>
+              
+              <button 
+                onClick={() => photoPreview && setStep(2)}
+                disabled={!photoPreview}
+                className="w-full py-4 rounded-xl font-bold text-sm transition-all"
+                style={{ 
+                  background: photoPreview ? '#7B68AE' : '#ECEDEF',
+                  color: photoPreview ? 'white' : '#9CA3AF'
+                }}
+              >
+                Continua →
+              </button>
+            </div>
+          )}
+          
+          {/* Step 2: Voice Recording */}
+          {step === 2 && (
+            <div className="space-y-4">
+              <div className="text-center">
+                <span className="text-5xl block mb-3">🎙️</span>
+                <h3 className="font-bold text-lg mb-1" style={{ color: '#1E2128' }}>Registra la tua voce</h3>
+                <p className="text-sm" style={{ color: '#9CA3AF' }}>
+                  Leggi il testo qui sotto per 10-15 secondi
+                </p>
+              </div>
+              
+              <div className="p-4 rounded-xl" style={{ background: '#FAFAF7' }}>
+                <div className="text-xs font-bold mb-2" style={{ color: '#9CA3AF' }}>📝 Leggi questo testo:</div>
+                <p className="text-sm italic leading-relaxed" style={{ color: '#5F6572' }}>
+                  "Ciao, sono {partnerName}. Benvenuto nel mio corso! In questo percorso ti guiderò passo dopo passo verso i tuoi obiettivi. Sono entusiasta di condividere con te tutto quello che ho imparato."
+                </p>
+              </div>
+              
+              {/* Recording UI */}
+              <div className="text-center py-6">
+                {!audioBlob ? (
+                  <>
+                    <button 
+                      onClick={isRecording ? stopRecording : startRecording}
+                      className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 transition-all hover:scale-105"
+                      style={{ 
+                        background: isRecording ? '#EF4444' : '#7B68AE',
+                        boxShadow: isRecording ? '0 0 0 8px rgba(239, 68, 68, 0.2)' : 'none'
+                      }}
+                    >
+                      {isRecording ? (
+                        <div className="w-8 h-8 rounded bg-white" />
+                      ) : (
+                        <span className="text-4xl">🎤</span>
+                      )}
+                    </button>
+                    
+                    {isRecording && (
+                      <div className="space-y-2">
+                        <div className="text-3xl font-black" style={{ color: '#EF4444' }}>
+                          {recordingTime}s
+                        </div>
+                        <div className="h-1 rounded-full mx-auto" style={{ width: '200px', background: '#ECEDEF' }}>
+                          <div 
+                            className="h-full rounded-full transition-all"
+                            style={{ width: `${(recordingTime / 15) * 100}%`, background: '#EF4444' }}
+                          />
+                        </div>
+                        <p className="text-xs" style={{ color: '#9CA3AF' }}>Registra almeno 10 secondi</p>
+                      </div>
+                    )}
+                    
+                    {!isRecording && (
+                      <p className="text-sm" style={{ color: '#9CA3AF' }}>
+                        Premi per iniziare a registrare
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto"
+                         style={{ background: '#EAFAF1' }}>
+                      <span className="text-3xl">✓</span>
+                    </div>
+                    <p className="font-bold" style={{ color: '#34C77B' }}>Registrazione completata!</p>
+                    <p className="text-xs" style={{ color: '#9CA3AF' }}>{recordingTime} secondi registrati</p>
+                    <button 
+                      onClick={() => { setAudioBlob(null); setRecordingTime(0); }}
+                      className="text-xs font-bold underline"
+                      style={{ color: '#7B68AE' }}
+                    >
+                      Registra di nuovo
+                    </button>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setStep(1)}
+                  className="flex-1 py-3 rounded-xl font-bold text-sm"
+                  style={{ background: '#FAFAF7', color: '#5F6572' }}
+                >
+                  ← Indietro
+                </button>
+                <button 
+                  onClick={() => audioBlob && setStep(3)}
+                  disabled={!audioBlob}
+                  className="flex-1 py-3 rounded-xl font-bold text-sm transition-all"
+                  style={{ 
+                    background: audioBlob ? '#7B68AE' : '#ECEDEF',
+                    color: audioBlob ? 'white' : '#9CA3AF'
+                  }}
+                >
+                  Genera Sample →
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {/* Step 3: Generation & Result */}
+          {step === 3 && (
+            <div className="space-y-4">
+              {!sampleReady ? (
+                // Generating
+                <div className="text-center py-8">
+                  <div className="relative w-32 h-32 mx-auto mb-6">
+                    {photoPreview && (
+                      <img src={photoPreview} alt="Your avatar" className="w-full h-full rounded-full object-cover" />
+                    )}
+                    <div className="absolute inset-0 rounded-full flex items-center justify-center"
+                         style={{ background: 'rgba(123, 104, 174, 0.9)' }}>
+                      {isGenerating ? (
+                        <div className="text-white text-center">
+                          <div className="text-2xl font-black">{Math.min(100, Math.round(generationProgress))}%</div>
+                          <div className="text-xs">Generando...</div>
+                        </div>
+                      ) : (
+                        <span className="text-4xl">🤖</span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {isGenerating ? (
+                    <>
+                      <h3 className="font-bold text-lg mb-2" style={{ color: '#1E2128' }}>
+                        Stiamo creando il tuo Avatar...
+                      </h3>
+                      <p className="text-sm mb-4" style={{ color: '#9CA3AF' }}>
+                        Questo processo richiede circa 30 secondi
+                      </p>
+                      <div className="h-2 rounded-full mx-auto" style={{ width: '80%', background: '#ECEDEF' }}>
+                        <div 
+                          className="h-full rounded-full transition-all"
+                          style={{ 
+                            width: `${Math.min(100, generationProgress)}%`, 
+                            background: 'linear-gradient(90deg, #7B68AE, #9B8BC4)' 
+                          }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-xs mt-2 px-[10%]" style={{ color: '#9CA3AF' }}>
+                        <span>Analisi volto</span>
+                        <span>Clonazione voce</span>
+                        <span>Rendering</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <h3 className="font-bold text-lg mb-2" style={{ color: '#1E2128' }}>
+                        Pronto per generare!
+                      </h3>
+                      <p className="text-sm mb-6" style={{ color: '#9CA3AF' }}>
+                        Creeremo un video sample di 30 secondi con il tuo Avatar
+                      </p>
+                      <button 
+                        onClick={generateSample}
+                        className="px-8 py-4 rounded-xl font-bold text-sm transition-all hover:scale-105"
+                        style={{ background: '#7B68AE', color: 'white' }}
+                      >
+                        🚀 Genera il mio Avatar Sample
+                      </button>
+                    </>
+                  )}
+                </div>
+              ) : (
+                // Sample Ready
+                <div className="text-center">
+                  <div className="mb-6">
+                    <span className="text-6xl block mb-3">🎉</span>
+                    <h3 className="font-bold text-xl mb-2" style={{ color: '#1E2128' }}>
+                      Il tuo Avatar è pronto!
+                    </h3>
+                    <p className="text-sm" style={{ color: '#9CA3AF' }}>
+                      Ecco come apparirai nei tuoi video
+                    </p>
+                  </div>
+                  
+                  {/* Video Preview (Mock) */}
+                  <div 
+                    className="relative rounded-xl overflow-hidden mb-6 mx-auto"
+                    style={{ maxWidth: '320px', aspectRatio: '16/9', background: '#1E2128' }}
+                  >
+                    {photoPreview && (
+                      <img 
+                        src={photoPreview} 
+                        alt="Avatar preview" 
+                        className="absolute inset-0 w-full h-full object-cover opacity-80"
+                        style={{ filter: 'saturate(1.2)' }}
+                      />
+                    )}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <button className="w-16 h-16 rounded-full flex items-center justify-center"
+                              style={{ background: 'rgba(255,255,255,0.9)' }}>
+                        <span className="text-2xl ml-1">▶</span>
+                      </button>
+                    </div>
+                    <div className="absolute bottom-2 left-2 px-2 py-1 rounded text-xs font-bold"
+                         style={{ background: '#7B68AE', color: 'white' }}>
+                      SAMPLE 30s
+                    </div>
+                    <div className="absolute bottom-2 right-2 px-2 py-1 rounded text-xs font-bold"
+                         style={{ background: 'rgba(0,0,0,0.5)', color: 'white' }}>
+                      🎁 GRATUITO
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 rounded-xl mb-6" style={{ background: '#EAFAF1', border: '1px solid #34C77B30' }}>
+                    <div className="text-sm font-bold" style={{ color: '#34C77B' }}>
+                      ✨ Ti piace il risultato?
+                    </div>
+                    <p className="text-xs" style={{ color: '#5F6572' }}>
+                      Se scegli l'opzione Avatar, i tuoi video saranno creati con questa qualità!
+                    </p>
+                  </div>
+                  
+                  <div className="flex gap-3">
+                    <button 
+                      onClick={() => { setSampleReady(false); setStep(1); setPhotoPreview(null); setAudioBlob(null); }}
+                      className="flex-1 py-3 rounded-xl font-bold text-sm"
+                      style={{ background: '#FAFAF7', color: '#5F6572' }}
+                    >
+                      Riprova con altra foto
+                    </button>
+                    <button 
+                      onClick={() => { onComplete?.(); onClose(); }}
+                      className="flex-1 py-3 rounded-xl font-bold text-sm transition-all hover:scale-[1.02]"
+                      style={{ background: '#7B68AE', color: 'white' }}
+                    >
+                      Perfetto! Scegli lezioni →
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AndreaIntro({ message }) {
   return (
     <div className="flex gap-4 p-5 rounded-2xl mb-6" style={{ background: '#FFF8DC', border: '1px solid #F2C41850' }}>
