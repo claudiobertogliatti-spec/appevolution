@@ -24,10 +24,10 @@ const CONTRACT_TYPES = {
 function InfoField({ label, value, icon: Icon, editable, onEdit }) {
   return (
     <div className="flex items-start gap-3 py-2">
-      {Icon && <Icon className="w-4 h-4 text-white/30 mt-0.5 flex-shrink-0" />}
+      {Icon && <Icon className="w-4 h-4 text-[#9CA3AF] mt-0.5 flex-shrink-0" />}
       <div className="flex-1 min-w-0">
-        <div className="text-[10px] font-bold text-white/30 uppercase tracking-wider mb-0.5">{label}</div>
-        <div className="text-sm text-white/80">{value || "—"}</div>
+        <div className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-0.5">{label}</div>
+        <div className="text-sm text-[#5F6572]">{value || "—"}</div>
       </div>
       {editable && (
         <button onClick={onEdit} className="text-[#9CA3AF] hover:text-[#9CA3AF] transition-colors">
@@ -65,7 +65,7 @@ function PaymentRow({ payment }) {
     <div className="flex items-center justify-between py-2 border-b border-[#ECEDEF] last:border-0">
       <div>
         <div className="text-sm font-semibold">{payment.description}</div>
-        <div className="text-xs text-white/30">{new Date(payment.date).toLocaleDateString("it-IT")}</div>
+        <div className="text-xs text-[#9CA3AF]">{new Date(payment.date).toLocaleDateString("it-IT")}</div>
       </div>
       <div className="flex items-center gap-3">
         <span className="font-mono text-sm font-bold">€{payment.amount.toLocaleString()}</span>
@@ -82,7 +82,7 @@ function DocumentStatus({ label, status, onClick }) {
     completed: { label: "Completato", color: "text-green-400", bg: "bg-green-500/20", icon: Check },
     ai_draft: { label: "Bozza AI", color: "text-blue-400", bg: "bg-blue-500/20", icon: Clock },
     in_review: { label: "In Revisione", color: "text-yellow-400", bg: "bg-yellow-500/20", icon: Clock },
-    not_started: { label: "Non iniziato", color: "text-white/30", bg: "bg-[#FAFAF7]", icon: Clock }
+    not_started: { label: "Non iniziato", color: "text-[#9CA3AF]", bg: "bg-[#FAFAF7]", icon: Clock }
   };
   const config = statusConfig[status] || statusConfig.not_started;
   const Icon = config.icon;
@@ -270,7 +270,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
         <div className="bg-white border border-[#ECEDEF] rounded-2xl p-12">
           <div className="w-8 h-8 border-2 border-[#F5C518] border-t-transparent rounded-full animate-spin mx-auto" />
         </div>
@@ -279,7 +279,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
   }
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" data-testid="partner-profile-modal">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" data-testid="partner-profile-modal">
       <div className="bg-white border border-[#ECEDEF] rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="p-5 border-b border-[#ECEDEF] flex items-center justify-between flex-shrink-0">
@@ -363,7 +363,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                 {editing ? (
                   <div className="space-y-3">
                     <div>
-                      <label className="text-[10px] font-bold text-white/30 uppercase">Email</label>
+                      <label className="text-[10px] font-bold text-[#9CA3AF] uppercase">Email</label>
                       <input
                         type="email"
                         value={editData.email || ""}
@@ -373,7 +373,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-white/30 uppercase">Telefono</label>
+                      <label className="text-[10px] font-bold text-[#9CA3AF] uppercase">Telefono</label>
                       <input
                         type="tel"
                         value={editData.phone || ""}
@@ -383,7 +383,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-white/30 uppercase">Azienda</label>
+                      <label className="text-[10px] font-bold text-[#9CA3AF] uppercase">Azienda</label>
                       <input
                         type="text"
                         value={editData.company || ""}
@@ -393,7 +393,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-white/30 uppercase">P.IVA</label>
+                      <label className="text-[10px] font-bold text-[#9CA3AF] uppercase">P.IVA</label>
                       <input
                         type="text"
                         value={editData.vat_number || ""}
@@ -418,7 +418,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                 {editing ? (
                   <div className="space-y-3">
                     <div>
-                      <label className="text-[10px] font-bold text-white/30 uppercase">Instagram</label>
+                      <label className="text-[10px] font-bold text-[#9CA3AF] uppercase">Instagram</label>
                       <input
                         type="text"
                         value={editData.social_instagram || ""}
@@ -428,7 +428,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-white/30 uppercase">LinkedIn</label>
+                      <label className="text-[10px] font-bold text-[#9CA3AF] uppercase">LinkedIn</label>
                       <input
                         type="text"
                         value={editData.social_linkedin || ""}
@@ -438,7 +438,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-white/30 uppercase">YouTube</label>
+                      <label className="text-[10px] font-bold text-[#9CA3AF] uppercase">YouTube</label>
                       <input
                         type="text"
                         value={editData.social_youtube || ""}
@@ -464,7 +464,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                 {editing ? (
                   <div className="space-y-3">
                     <div>
-                      <label className="text-[10px] font-bold text-white/30 uppercase">Tipo Contratto</label>
+                      <label className="text-[10px] font-bold text-[#9CA3AF] uppercase">Tipo Contratto</label>
                       <select
                         value={editData.contract_type || "standard"}
                         onChange={e => setEditData({...editData, contract_type: e.target.value})}
@@ -476,7 +476,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                       </select>
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-white/30 uppercase">Data Inizio</label>
+                      <label className="text-[10px] font-bold text-[#9CA3AF] uppercase">Data Inizio</label>
                       <input
                         type="date"
                         value={editData.contract_start || editData.contract || ""}
@@ -485,7 +485,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-white/30 uppercase">Data Fine</label>
+                      <label className="text-[10px] font-bold text-[#9CA3AF] uppercase">Data Fine</label>
                       <input
                         type="date"
                         value={editData.contract_end || ""}
@@ -497,7 +497,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                 ) : (
                   <>
                     <div className="flex items-center justify-between py-2">
-                      <span className="text-[10px] font-bold text-white/30 uppercase">Tipo</span>
+                      <span className="text-[10px] font-bold text-[#9CA3AF] uppercase">Tipo</span>
                       <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                         CONTRACT_TYPES[profileData?.contract_type]?.bg || "bg-blue-500/20"
                       } ${CONTRACT_TYPES[profileData?.contract_type]?.color || "text-blue-400"}`}>
@@ -549,14 +549,14 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                 ) : (
                   <div className="text-center py-6">
                     <CreditCard className="w-8 h-8 text-white/10 mx-auto mb-2" />
-                    <div className="text-sm text-white/30">Nessun pagamento registrato</div>
+                    <div className="text-sm text-[#9CA3AF]">Nessun pagamento registrato</div>
                   </div>
                 )}
                 
                 {/* Revenue Summary */}
                 <div className="mt-4 pt-4 border-t border-[#ECEDEF]">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-white/30 uppercase">Revenue Totale</span>
+                    <span className="text-[10px] font-bold text-[#9CA3AF] uppercase">Revenue Totale</span>
                     <span className="font-mono text-lg font-bold text-[#F5C518]">
                       €{partner.revenue?.toLocaleString() || 0}
                     </span>
@@ -589,7 +589,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                   
                   {/* Modules completed */}
                   <div className="flex items-center justify-between text-xs mt-2">
-                    <span className="text-white/30">Moduli completati</span>
+                    <span className="text-[#9CA3AF]">Moduli completati</span>
                     <span className="font-bold">
                       {partner.modules?.filter(Boolean).length || 0} / {partner.modules?.length || 10}
                     </span>
@@ -623,13 +623,13 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                   <div className="text-2xl font-bold text-[#F5C518]">
                     {partner.modules?.filter(Boolean).length || 0}
                   </div>
-                  <div className="text-[10px] text-white/30 uppercase">Moduli</div>
+                  <div className="text-[10px] text-[#9CA3AF] uppercase">Moduli</div>
                 </div>
                 <div className="bg-white border border-[#ECEDEF] rounded-xl p-4 text-center">
                   <div className="text-2xl font-bold text-green-400">
                     €{partner.revenue?.toLocaleString() || 0}
                   </div>
-                  <div className="text-[10px] text-white/30 uppercase">Revenue</div>
+                  <div className="text-[10px] text-[#9CA3AF] uppercase">Revenue</div>
                 </div>
               </div>
             </div>

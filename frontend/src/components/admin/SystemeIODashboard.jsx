@@ -152,7 +152,7 @@ function RecentContacts({ contacts }) {
               </div>
               <div className="text-xs text-[#9CA3AF] truncate">{contact.email}</div>
             </div>
-            <div className="text-[10px] text-white/30">
+            <div className="text-[10px] text-[#9CA3AF]">
               {new Date(contact.created_at).toLocaleDateString("it-IT")}
             </div>
           </div>
@@ -197,7 +197,7 @@ function ConnectionSetup({ partnerId, onConnect, onClose }) {
   };
   
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" data-testid="systeme-connection-modal">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" data-testid="systeme-connection-modal">
       <div className="bg-white border border-[#ECEDEF] rounded-2xl p-8 max-w-md w-full mx-4">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-12 h-12 rounded-xl bg-[#F5C518] flex items-center justify-center">
