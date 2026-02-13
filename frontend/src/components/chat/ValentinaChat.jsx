@@ -63,9 +63,9 @@ function Message({ msg, isLast }) {
         
         {/* Timestamp e stato */}
         <div className={`flex items-center gap-1 mt-1 ${isUser ? "justify-end" : ""}`}>
-          <span className="text-[10px] text-white/30">{msg.time}</span>
+          <span className="text-[10px] text-[#9CA3AF]">{msg.time}</span>
           {isUser && (
-            <CheckCheck className={`w-3 h-3 ${msg.read ? "text-[#F5C518]" : "text-white/30"}`} />
+            <CheckCheck className={`w-3 h-3 ${msg.read ? "text-[#F5C518]" : "text-[#9CA3AF]"}`} />
           )}
         </div>
       </div>
