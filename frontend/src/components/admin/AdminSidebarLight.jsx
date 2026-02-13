@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Users, Film, FileText, BarChart3, MessageCircle, AlertTriangle, Settings, ChevronDown, ChevronRight, LogOut, Database, Edit3, Trophy, Zap, HelpCircle } from "lucide-react";
+import { LayoutDashboard, Users, Film, FileText, BarChart3, MessageCircle, AlertTriangle, Settings, ChevronDown, ChevronRight, LogOut, Database, Edit3, Trophy, Zap, HelpCircle, Webhook } from "lucide-react";
 
 const CLAUDIO_NAV = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -20,6 +20,7 @@ const ANTONELLA_NAV = [
 ];
 
 const TOOLS_NAV = [
+  { id: "webhooks", label: "Webhooks", icon: Webhook },
   { id: "systeme", label: "Systeme.io", icon: Database },
   { id: "gaia", label: "GAIA Funnel", icon: Zap },
   { id: "warmode", label: "War Mode Ads", icon: AlertTriangle },
