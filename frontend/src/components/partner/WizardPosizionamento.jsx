@@ -145,7 +145,20 @@ ${answers.bonus || "Non definito"}
               📋 Copia Canvas
             </button>
             <button
-              onClick={() => onComplete && onComplete(output)}
+              onClick={async () => {
+                // Save positioning data to database
+                try {
+                  await axios.post(`${API}/positioning/save`, {
+                    partner_id: partner?.id,
+                    partner_name: partner?.name,
+                    answers: answers,
+                    canvas: output
+                  });
+                } catch (e) {
+                  console.error("Failed to save positioning:", e);
+                }
+                onComplete && onComplete(output);
+              }}
               className="flex-1 flex items-center justify-center gap-2 bg-[#F5C518] text-black rounded-xl px-4 py-3 text-sm font-extrabold hover:bg-[#e0a800] transition-colors"
             >
               <Check className="w-4 h-4" /> Salva e Continua
