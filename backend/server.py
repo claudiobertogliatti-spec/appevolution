@@ -5481,6 +5481,104 @@ async def orion_trigger_sales_automation(request: TriggerAutomationRequest):
     return await client.trigger_automation(request.contact_id, request.tag_name)
 
 # =============================================================================
+# CLOUDINARY FILE UPLOAD SERVICE
+# =============================================================================
+
+from cloudinary_service import (
+    generate_upload_signature,
+    upload_file_direct,
+    delete_file as cloudinary_delete_file,
+    get_cloudinary_status,
+    is_cloudinary_configured
+)
+
+@api_router.get("/cloudinary/status")
+async def cloudinary_status():
+    """Check Cloudinary configuration status"""
+    return get_cloudinary_status()
+
+@api_router.get("/cloudinary/signature")
+async def get_cloudinary_signature(
+    resource_type: str = "image",
+    folder: str = "avatar-uploads"
+):
+    """
+    Generate signed upload parameters for frontend direct upload to Cloudinary
+    
+    Use 'image' for photos, 'video' for audio files
+    """
+    try:
+        if not is_cloudinary_configured():
+            raise HTTPException(
+                status_code=503, 
+                detail="Cloudinary not configured. Please provide CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET"
+            )
+        
+        return generate_upload_signature(resource_type=resource_type, folder=folder)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/cloudinary/upload")
+async def upload_to_cloudinary(
+    file: UploadFile = File(...),
+    folder: str = Form("avatar-uploads"),
+    resource_type: str = Form("auto")
+):
+    """
+    Backend direct upload to Cloudinary
+    
+    Use this for audio blob uploads from the browser
+    Returns the public URL needed for HeyGen
+    """
+    try:
+        if not is_cloudinary_configured():
+            raise HTTPException(
+                status_code=503,
+                detail="Cloudinary not configured"
+            )
+        
+        # Read file content
+        content = await file.read()
+        
+        # Determine resource type from filename
+        filename = file.filename or "upload"
+        
+        result = await upload_file_direct(
+            file_data=content,
+            filename=filename,
+            resource_type=resource_type,
+            folder=folder
+        )
+        
+        if not result.get("success"):
+            raise HTTPException(status_code=500, detail=result.get("error", "Upload failed"))
+        
+        return {
+            "success": True,
+            "url": result.get("secure_url"),
+            "public_id": result.get("public_id"),
+            "resource_type": result.get("resource_type"),
+            "format": result.get("format")
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Cloudinary upload error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/cloudinary/{public_id:path}")
+async def delete_from_cloudinary(public_id: str, resource_type: str = "image"):
+    """Delete a file from Cloudinary"""
+    try:
+        result = await cloudinary_delete_file(public_id, resource_type)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# =============================================================================
 # HEYGEN AVATAR VIDEO INTEGRATION
 # =============================================================================
 
