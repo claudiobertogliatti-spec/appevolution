@@ -473,17 +473,16 @@ export default function App() {
   ];
   const partnerNav=[
     {id:"home",label:"Cosa fare ora",icon:Rocket,badge:"NOW"},
+    {id:"supporto",label:"VALENTINA",icon:MessageCircle,dot:true},
+    {id:"documenti",label:"Documenti",icon:FileText},
+    {id:"files",label:"I Miei File",icon:FolderOpen},
+    {id:"brandkit",label:"Brand Kit",icon:Palette},
     {id:"corso",label:"Videocorso",icon:PlayCircle},
     {id:"masterclass",label:"Masterclass",icon:Mic},
     {id:"coursebuilder",label:"Course Builder",icon:Sparkles},
     {id:"produzione",label:"Produzione Video",icon:Video},
-    {id:"files",label:"I Miei File",icon:FolderOpen},
-    {id:"brandkit",label:"Brand Kit",icon:Palette},
-    {id:"calendario",label:"Calendario",icon:Calendar},
-    {id:"documenti",label:"Documenti",icon:FileText},
     {id:"risorse",label:"Template",icon:Download},
-    {id:"renewal",label:"Post-12 Mesi",icon:Star},
-    {id:"supporto",label:"VALENTINA",icon:MessageCircle,dot:true},
+    {id:"calendario",label:"Calendario Editoriale",icon:Calendar},
   ];
 
   const adminNav=adminUser==="antonella"?antonellaNav:coreNav;
