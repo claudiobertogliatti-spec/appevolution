@@ -140,6 +140,54 @@ Creare un'applicazione full-stack proprietaria per Evolution PRO - una piattafor
 - **Sezione Risultati**: Statistiche Clienti, Rating, Crescita, Traguardi
 - **Pulsanti "Serve aiuto?"**: Video tutorial su ogni sezione
 
+### V15.0 - Systeme.io Webhooks & Automations (13 Feb 2026) ✅
+
+#### 1. Webhook Endpoint
+- **URL**: `/api/webhooks/systeme`
+- **Eventi supportati**: new_sale, new_subscriber, tag_added, course_access, refund
+- **Verifica firma**: HMAC-SHA256 con secret key
+- **Logging**: Tutti gli eventi loggati in `webhook_logs` collection
+
+#### 2. Auto-Onboarding Partner
+- **Trigger**: `new_sale` con prodotto partner
+- **Azioni**:
+  - Crea partner in DB con fase F0
+  - Crea account utente con password temporanea
+  - Invia notifica Telegram a admin
+  - Registra pagamento
+
+#### 3. Lead Scoring (ORION)
+- **Trigger**: `new_subscriber`, `form_subscribed`
+- **Scoring automatico**:
+  - Form compilato: +10 punti
+  - Webinar registrato: +25 punti
+  - Call prenotata: +50 punti
+  - Checkout iniziato: +40 punti
+  - Vendita: +100 punti
+- **Alert Lead Hot**: Notifica Telegram per score ≥ 80
+
+#### 4. Auto-Progressione Fasi
+- **Trigger**: `tag_added`
+- **Tag supportati**: F0-Completato, F1-Completato, ..., Posizionamento-Completato, etc.
+- **Azioni**: Aggiorna fase partner, sblocca achievement, notifica Telegram
+
+#### 5. Sync Clienti Partner
+- **Trigger**: `course_access`
+- **Azioni**:
+  - Incrementa contatore clienti partner
+  - Registra iscrizione studente
+  - Alert milestone (10, 50, 100 clienti)
+
+#### 6. Dashboard Admin Webhooks
+- **File**: `/app/frontend/src/components/admin/WebhookDashboard.jsx`
+- **Menu**: Admin > Strumenti > Webhooks
+- **Features**:
+  - URL webhook da copiare per Systeme.io
+  - Statistiche eventi in tempo reale
+  - Log eventi con azioni eseguite
+  - Tab Lead Scoring con lista lead e punteggi
+  - Visualizzazione automazioni attive
+
 #### 4. App.js Ristrutturato
 - Sidebar condizionale (PartnerSidebar vs Admin)
 - Sfondo dinamico (chiaro per Partner, scuro per Admin)
