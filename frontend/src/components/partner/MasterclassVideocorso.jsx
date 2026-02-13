@@ -1441,6 +1441,7 @@ export function MasterclassVideocorso({ partner, onBack }) {
             onSelect={handleModeSelect}
             totalLessons={VIDEOCORSO_LESSONS.length}
             partnerName={partnerName}
+            partnerId={partnerId}
           />
         ) : (
           <VideocorsoTab 
