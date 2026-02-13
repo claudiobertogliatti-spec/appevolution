@@ -79,68 +79,230 @@ const AVATAR_PRICE_PER_LESSON = 120; // IVA inclusa
 // ============================================
 // AVATAR FREE TRIAL MODAL
 // ============================================
-function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName }) {
+const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+
+function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName, partnerId }) {
   const [step, setStep] = useState(1);
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
+  const [photoUrl, setPhotoUrl] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState(null);
+  const [audioUrl, setAudioUrl] = useState(null);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [sampleReady, setSampleReady] = useState(false);
+  const [sampleVideoUrl, setSampleVideoUrl] = useState(null);
+  const [error, setError] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadingAudio, setUploadingAudio] = useState(false);
+  
+  // Refs for audio recording
+  const mediaRecorderRef = React.useRef(null);
+  const audioChunksRef = React.useRef([]);
+  const recordingIntervalRef = React.useRef(null);
+  
+  // Upload photo to Cloudinary
+  const uploadPhotoToCloudinary = async (file) => {
+    setUploadingPhoto(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'partner-photos');
+      formData.append('resource_type', 'image');
+      
+      const response = await fetch(`${API_URL}/api/cloudinary/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.detail || 'Upload foto fallito');
+      }
+      
+      const data = await response.json();
+      setPhotoUrl(data.url);
+      return data.url;
+    } catch (err) {
+      setError(`Errore upload foto: ${err.message}`);
+      return null;
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+  
+  // Upload audio to Cloudinary
+  const uploadAudioToCloudinary = async (blob) => {
+    setUploadingAudio(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', blob, 'voice-sample.webm');
+      formData.append('folder', 'partner-audio');
+      formData.append('resource_type', 'video'); // Cloudinary treats audio as video
+      
+      const response = await fetch(`${API_URL}/api/cloudinary/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.detail || 'Upload audio fallito');
+      }
+      
+      const data = await response.json();
+      setAudioUrl(data.url);
+      return data.url;
+    } catch (err) {
+      setError(`Errore upload audio: ${err.message}`);
+      return null;
+    } finally {
+      setUploadingAudio(false);
+    }
+  };
   
   // Handle photo upload
-  const handlePhotoUpload = (e) => {
+  const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
       setPhotoFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setPhotoPreview(reader.result);
       reader.readAsDataURL(file);
+      
+      // Upload to Cloudinary immediately
+      await uploadPhotoToCloudinary(file);
     }
   };
   
-  // Simulate recording (in real implementation, use MediaRecorder API)
-  const startRecording = () => {
-    setIsRecording(true);
-    setRecordingTime(0);
-    const interval = setInterval(() => {
-      setRecordingTime(prev => {
-        if (prev >= 15) {
-          clearInterval(interval);
-          setIsRecording(false);
-          setAudioBlob(new Blob()); // Mock blob
-          return 15;
+  // Real audio recording using MediaRecorder API
+  const startRecording = async () => {
+    setError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
         }
-        return prev + 1;
-      });
-    }, 1000);
+      };
+      
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        setAudioBlob(blob);
+        
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop());
+        
+        // Upload to Cloudinary
+        await uploadAudioToCloudinary(blob);
+      };
+      
+      mediaRecorder.start(100); // Collect data every 100ms
+      setIsRecording(true);
+      setRecordingTime(0);
+      
+      // Timer
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingTime(prev => {
+          if (prev >= 15) {
+            stopRecording();
+            return 15;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+      
+    } catch (err) {
+      setError(`Errore accesso microfono: ${err.message}. Assicurati di permettere l'accesso al microfono.`);
+    }
   };
   
   const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+    }
     setIsRecording(false);
-    setAudioBlob(new Blob()); // Mock blob
   };
   
-  // Simulate avatar generation
+  // Generate Avatar Sample via HeyGen API
   const generateSample = async () => {
+    if (!photoUrl || !audioUrl) {
+      setError('È necessario caricare sia la foto che la registrazione audio');
+      return;
+    }
+    
     setIsGenerating(true);
     setGenerationProgress(0);
+    setError(null);
     
-    // Simulate progress
-    const interval = setInterval(() => {
+    // Start progress animation
+    const progressInterval = setInterval(() => {
       setGenerationProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setIsGenerating(false);
-          setSampleReady(true);
-          return 100;
-        }
-        return prev + Math.random() * 15;
+        if (prev >= 90) return prev; // Stop at 90%, wait for real completion
+        return prev + Math.random() * 8;
       });
-    }, 500);
+    }, 1000);
+    
+    try {
+      const response = await fetch(`${API_URL}/api/heygen/sample/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          photo_url: photoUrl,
+          audio_url: audioUrl,
+          partner_name: partnerName,
+          partner_id: partnerId || 'trial'
+        }),
+      });
+      
+      clearInterval(progressInterval);
+      
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.detail || 'Generazione avatar fallita');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setGenerationProgress(100);
+        setSampleReady(true);
+        if (data.video_url) {
+          setSampleVideoUrl(data.video_url);
+        }
+      } else {
+        throw new Error(data.error || 'Errore sconosciuto nella generazione');
+      }
+      
+    } catch (err) {
+      clearInterval(progressInterval);
+      setError(`Errore generazione avatar: ${err.message}`);
+      setIsGenerating(false);
+    }
   };
+  
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => {
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+    };
+  }, []);
   
   if (!show) return null;
   
