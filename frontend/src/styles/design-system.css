@@ -1,75 +1,72 @@
-/* Evolution PRO OS - Design System v2 */
-/* Brand Colors & Variables */
+/* Evolution PRO OS - Design System v3 - LIGHT THEME */
 
 :root {
-  /* Primary Brand Colors - Yellow Gold */
+  /* Brand Yellow Scale */
   --brand-yellow: #F2C418;
+  --brand-yellow-mid: #FADA5E;
   --brand-yellow-light: #FFF8DC;
-  --brand-yellow-hover: #D9AF14;
-  --brand-yellow-glow: rgba(242, 196, 24, 0.3);
+  --brand-yellow-pale: #FFFDF5;
+  --brand-yellow-glow: rgba(242, 196, 24, 0.25);
   
-  /* Dark Theme Colors */
-  --brand-dark: #2D3239;
-  --brand-charcoal: #3A3F47;
-  --brand-dark-lighter: #4A5058;
+  /* Brand Dark (for text/accents) */
+  --brand-dark: #1E2128;
+  --brand-charcoal: #2D3239;
   
-  /* Light Theme Background */
-  --bg-light: #FAFAF7;
-  --bg-warm: #FFF9F4;
+  /* Sidebar Colors */
+  --sidebar-bg: #FFFFFF;
+  --sidebar-border: #F0EFEB;
+  --sidebar-hover: #FFF8DC;
+  --sidebar-active-bg: #FFF3C4;
+  
+  /* Background Colors */
+  --bg: #FAFAF7;
+  --bg-warm: #FFFDF5;
   --card-bg: #FFFFFF;
   
   /* Accent Colors */
   --color-green: #2D9F6F;
-  --color-green-light: #E6F7EF;
+  --color-green-light: #EAFAF1;
+  --color-green-check: #34C77B;
+  --color-orange: #F2994A;
+  --color-orange-deep: #E8652B;
   --color-purple: #7B68AE;
   --color-purple-light: #F0ECFA;
   --color-red: #EF476F;
   --color-red-light: #FDECEF;
-  --color-orange: #E8652B;
-  --color-orange-light: #FFF0E8;
   
   /* Text Colors */
-  --text-primary: #2D3239;
-  --text-secondary: #6B7280;
-  --text-muted: #A0A7B0;
-  --text-light: #FFFFFF;
-  --text-dark-secondary: #8B919A;
+  --text-primary: #1E2128;
+  --text-secondary: #5F6572;
+  --text-muted: #9CA3AF;
+  --text-sidebar: #3B4049;
+  --text-sidebar-muted: #8D929C;
   
   /* Borders */
-  --border-light: #ECEDEF;
-  --border-dark: rgba(255, 255, 255, 0.1);
+  --border: #ECEDEF;
+  --border-light: #F5F4F1;
   
   /* Shadows */
-  --shadow-sm: 0 2px 8px rgba(45, 50, 57, 0.05);
-  --shadow-md: 0 8px 32px rgba(45, 50, 57, 0.08);
-  --shadow-lg: 0 16px 48px rgba(45, 50, 57, 0.12);
-  --shadow-yellow: 0 6px 24px rgba(242, 196, 24, 0.35);
+  --shadow-xs: 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.05);
+  --shadow-md: 0 6px 24px rgba(0,0,0,0.07);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.10);
+  --shadow-yellow: 0 4px 20px rgba(242,196,24,0.25);
   
   /* Border Radius */
-  --radius-lg: 20px;
-  --radius-md: 16px;
-  --radius-sm: 12px;
+  --radius-lg: 16px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
   --radius-xs: 8px;
   
   /* Transitions */
   --transition-fast: 0.15s ease;
   --transition-normal: 0.25s ease;
-  --transition-slow: 0.4s ease;
-}
-
-/* Dark Mode overrides for admin section */
-.dark-mode {
-  --bg-light: #1a1612;
-  --card-bg: #2D3239;
-  --text-primary: #FFFFFF;
-  --text-secondary: #A0A7B0;
-  --border-light: #3A3F47;
 }
 
 /* Animation Keyframes */
 @keyframes pulse-yellow {
   0%, 100% { box-shadow: 0 0 0 0 var(--brand-yellow-glow); }
-  50% { box-shadow: 0 0 0 12px transparent; }
+  50% { box-shadow: 0 0 0 10px transparent; }
 }
 
 @keyframes bounce-in {
@@ -79,16 +76,29 @@
 }
 
 @keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes slide-in-right {
-  from { opacity: 0; transform: translateX(20px); }
-  to { opacity: 1; transform: translateX(0); }
+.animate-pulse-yellow { animation: pulse-yellow 2s infinite; }
+.animate-bounce-in { animation: bounce-in 0.35s ease-out; }
+.animate-fade-in-up { animation: fade-in-up 0.25s ease-out; }
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
-.animate-pulse-yellow { animation: pulse-yellow 2s infinite; }
-.animate-bounce-in { animation: bounce-in 0.4s ease-out; }
-.animate-fade-in-up { animation: fade-in-up 0.3s ease-out; }
-.animate-slide-in { animation: slide-in-right 0.3s ease-out; }
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #e0dfd8;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #cccbc4;
+}
