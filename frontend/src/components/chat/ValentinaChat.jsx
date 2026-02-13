@@ -49,7 +49,7 @@ function Message({ msg, isLast }) {
               ? "bg-[#F5C518] text-black rounded-br-md" 
               : isAction
                 ? "bg-green-500/20 border border-green-500/30 text-green-400 rounded-bl-md"
-                : "bg-[#1a2332] text-white rounded-bl-md"
+                : "bg-white text-white rounded-bl-md"
           }`}
         >
           {isAction && (
@@ -258,10 +258,10 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
   return (
     <div className="flex flex-col h-full bg-[#0B0E14]" data-testid="valentina-chat">
       {/* Header WhatsApp style */}
-      <div className="bg-[#111827] px-4 py-3 flex items-center gap-3 border-b border-white/5">
+      <div className="bg-white px-4 py-3 flex items-center gap-3 border-b border-[#ECEDEF]">
         {onBack && (
-          <button onClick={onBack} className="p-1 hover:bg-white/5 rounded-lg transition-colors">
-            <ArrowLeft className="w-5 h-5 text-white/60" />
+          <button onClick={onBack} className="p-1 hover:bg-[#FAFAF7] rounded-lg transition-colors">
+            <ArrowLeft className="w-5 h-5 text-[#5F6572]" />
           </button>
         )}
         
@@ -273,19 +273,19 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
           <h2 className="font-bold text-white">VALENTINA</h2>
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-xs text-white/40">Online • Orchestratrice AI</span>
+            <span className="text-xs text-[#9CA3AF]">Online • Orchestratrice AI</span>
           </div>
         </div>
         
         <div className="flex items-center gap-2">
-          <button className="p-2 hover:bg-white/5 rounded-full transition-colors">
-            <Phone className="w-5 h-5 text-white/40" />
+          <button className="p-2 hover:bg-[#FAFAF7] rounded-full transition-colors">
+            <Phone className="w-5 h-5 text-[#9CA3AF]" />
           </button>
-          <button className="p-2 hover:bg-white/5 rounded-full transition-colors">
-            <Video className="w-5 h-5 text-white/40" />
+          <button className="p-2 hover:bg-[#FAFAF7] rounded-full transition-colors">
+            <Video className="w-5 h-5 text-[#9CA3AF]" />
           </button>
-          <button className="p-2 hover:bg-white/5 rounded-full transition-colors">
-            <MoreVertical className="w-5 h-5 text-white/40" />
+          <button className="p-2 hover:bg-[#FAFAF7] rounded-full transition-colors">
+            <MoreVertical className="w-5 h-5 text-[#9CA3AF]" />
           </button>
         </div>
       </div>
@@ -299,7 +299,7 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
       >
         {/* Data */}
         <div className="text-center mb-4">
-          <span className="px-3 py-1 bg-[#1a2332] rounded-full text-[10px] text-white/40 font-semibold">
+          <span className="px-3 py-1 bg-white rounded-full text-[10px] text-[#9CA3AF] font-semibold">
             OGGI
           </span>
         </div>
@@ -315,7 +315,7 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
             <div className="w-8 h-8 rounded-full bg-[#F5C518] flex items-center justify-center text-sm font-bold text-black">
               V
             </div>
-            <div className="bg-[#1a2332] px-4 py-3 rounded-2xl rounded-bl-md">
+            <div className="bg-white px-4 py-3 rounded-2xl rounded-bl-md">
               <div className="flex gap-1">
                 <div className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
                 <div className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
@@ -329,12 +329,12 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
       </div>
       
       {/* Input area */}
-      <div className="bg-[#111827] px-3 py-2 flex items-end gap-2 border-t border-white/5">
-        <button className="p-2 hover:bg-white/5 rounded-full transition-colors">
-          <Smile className="w-6 h-6 text-white/40" />
+      <div className="bg-white px-3 py-2 flex items-end gap-2 border-t border-[#ECEDEF]">
+        <button className="p-2 hover:bg-[#FAFAF7] rounded-full transition-colors">
+          <Smile className="w-6 h-6 text-[#9CA3AF]" />
         </button>
-        <button className="p-2 hover:bg-white/5 rounded-full transition-colors">
-          <Paperclip className="w-6 h-6 text-white/40" />
+        <button className="p-2 hover:bg-[#FAFAF7] rounded-full transition-colors">
+          <Paperclip className="w-6 h-6 text-[#9CA3AF]" />
         </button>
         
         <div className="flex-1 relative">
@@ -350,7 +350,7 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
             }}
             placeholder="Scrivi un messaggio..."
             rows={1}
-            className="w-full bg-[#1a2332] border border-white/10 rounded-2xl px-4 py-2.5 text-sm resize-none focus:border-[#F5C518] outline-none transition-colors max-h-32"
+            className="w-full bg-white border border-[#ECEDEF] rounded-2xl px-4 py-2.5 text-sm resize-none focus:border-[#F5C518] outline-none transition-colors max-h-32"
             style={{ minHeight: "42px" }}
           />
         </div>

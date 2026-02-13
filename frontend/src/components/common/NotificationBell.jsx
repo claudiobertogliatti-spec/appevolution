@@ -28,7 +28,7 @@ export function NotificationBell({ onNavigate }) {
         className="w-10 h-10 rounded-full bg-white border border-white/20 flex items-center justify-center cursor-pointer hover:border-[#F5C518] hover:bg-[#FFFBEA] transition-all relative"
         data-testid="notification-bell"
       >
-        <Bell className="w-4 h-4 text-white/60" />
+        <Bell className="w-4 h-4 text-[#5F6572]" />
         {unread > 0 && (
           <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#dc2626] text-white text-[9px] font-bold flex items-center justify-center border-2 border-[#1a2332]">
             {unread}
