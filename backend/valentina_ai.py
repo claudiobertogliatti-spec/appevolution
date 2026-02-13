@@ -303,5 +303,8 @@ async def telegram_notify(notification_type: str, **kwargs) -> dict:
             kwargs.get("message", ""),
             kwargs.get("partner_name")
         )
+    elif notification_type == "webhook_alert":
+        # Direct message broadcast for webhook events
+        return await telegram_notifier.broadcast_to_admins(kwargs.get("message", ""))
     else:
         return {"ok": False, "error": f"Unknown notification type: {notification_type}"}
