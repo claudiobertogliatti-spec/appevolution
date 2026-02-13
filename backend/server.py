@@ -4664,9 +4664,9 @@ Rispondi SOLO con il JSON, senza testo aggiuntivo."""
         
         response = await chat.send_message(UserMessage(text=prompt))
         
-        # Parse JSON from response
+        # Parse JSON from response (response is a string, not an object)
         import re
-        json_match = re.search(r'\{[\s\S]*\}', response.text)
+        json_match = re.search(r'\{[\s\S]*\}', response)
         if json_match:
             outline = json.loads(json_match.group())
             
