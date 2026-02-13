@@ -832,6 +832,104 @@ async def seed_database():
         logging.info("Seeded Evolution PRO success cases collection")
 
 # =============================================================================
+# AUTHENTICATION
+# =============================================================================
+
+from auth import AuthService, LoginRequest, RegisterRequest, Token, decode_token, UserResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+security = HTTPBearer(auto_error=False)
+auth_service = None  # Will be initialized after db connection
+
+@api_router.on_event("startup")
+async def init_auth():
+    global auth_service
+    auth_service = AuthService(db)
+    await auth_service.seed_default_users()
+    # Load Telegram admins
+    await load_telegram_admins()
+
+@api_router.post("/auth/login", response_model=Token)
+async def login(request: LoginRequest):
+    """Login and get access token"""
+    global auth_service
+    if not auth_service:
+        auth_service = AuthService(db)
+    
+    token = await auth_service.login(request.email, request.password)
+    
+    if not token:
+        raise HTTPException(
+            status_code=401,
+            detail="Email o password non corretti"
+        )
+    
+    return token
+
+@api_router.post("/auth/register")
+async def register(request: RegisterRequest):
+    """Register a new user"""
+    global auth_service
+    if not auth_service:
+        auth_service = AuthService(db)
+    
+    try:
+        user = await auth_service.create_user(request)
+        return {"success": True, "user": user, "message": "Utente registrato con successo"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.get("/auth/me")
+async def get_current_user(credentials: HTTPAuthorizationCredentials = None):
+    """Get current authenticated user"""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    
+    token_data = decode_token(credentials.credentials)
+    
+    if not token_data:
+        raise HTTPException(status_code=401, detail="Token non valido o scaduto")
+    
+    global auth_service
+    if not auth_service:
+        auth_service = AuthService(db)
+    
+    user = await auth_service.get_user_by_id(token_data.user_id)
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+    
+    return UserResponse(
+        id=user["id"],
+        email=user["email"],
+        name=user["name"],
+        role=user["role"],
+        is_active=user.get("is_active", True),
+        partner_id=user.get("partner_id"),
+        phase=user.get("phase"),
+        admin_type=user.get("admin_type")
+    )
+
+@api_router.post("/auth/verify")
+async def verify_token(credentials: HTTPAuthorizationCredentials = None):
+    """Verify if token is valid"""
+    if not credentials:
+        return {"valid": False, "error": "No token provided"}
+    
+    token_data = decode_token(credentials.credentials)
+    
+    if not token_data:
+        return {"valid": False, "error": "Invalid or expired token"}
+    
+    return {"valid": True, "user_id": token_data.user_id, "role": token_data.role}
+
+@api_router.get("/auth/users")
+async def list_users():
+    """List all users (admin only)"""
+    users = await db.users.find({}, {"_id": 0, "hashed_password": 0}).to_list(100)
+    return {"users": users, "count": len(users)}
+
+# =============================================================================
 # ROUTES - AGENTS
 # =============================================================================
 
