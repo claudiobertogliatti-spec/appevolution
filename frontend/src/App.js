@@ -653,7 +653,7 @@ export default function App() {
           {mode==="admin"&&<>
             {nav==="overview"&&<AdminOverview stats={stats} agents={agents} partners={partners} alerts={alerts} onNavigate={setNav}/>}
             {nav==="agenti"&&<AdminAgents agents={agents}/>}
-            {nav==="partner"&&<AdminPartners partners={partners} onSelect={setSelectedPartner}/>}
+            {nav==="partner"&&<AdminPartners partners={partners} onSelect={(p)=>{setSelectedPartner(p);setShowPartnerProfile(true);}}/>}
             {nav==="documenti-partner"&&<PartnerDocumentsView partners={partners}/>}
             {nav==="andrea"&&(adminUser==="antonella"?<FeedVideoNuovi onOpenPipeline={()=>{setAdminUser("claudio");setNav("andrea");}}/>:<AndreaPipeline partners={partners}/>)}
             {nav==="metriche"&&<MetrichePostLancio partners={partners}/>}
