@@ -18,7 +18,7 @@ const BLOCK_LABELS = {
 };
 
 const STATUS_CONFIG = {
-  draft: { label: "Bozza", color: "bg-white/10 text-white/60", icon: FileText },
+  draft: { label: "Bozza", color: "bg-white/10 text-[#5F6572]", icon: FileText },
   ai_draft: { label: "Bozza AI", color: "bg-purple-500/20 text-purple-400", icon: Sparkles },
   in_review: { label: "In Revisione Admin", color: "bg-yellow-500/20 text-yellow-400", icon: Clock },
   pending_partner_approval: { label: "Attende Partner", color: "bg-blue-500/20 text-blue-400", icon: User },
@@ -109,18 +109,18 @@ export function CopyFactoryAdmin({ currentAdmin }) {
           </div>
           <div className="flex-1">
             <h2 className="text-lg font-extrabold text-white">STEFANIA Copy Factory — Admin Review</h2>
-            <p className="text-sm text-white/50">Editing finale delle Masterclass prima dell'approvazione Partner</p>
+            <p className="text-sm text-[#5F6572]">Editing finale delle Masterclass prima dell'approvazione Partner</p>
           </div>
           <div className="flex gap-2">
             <button 
               onClick={() => setShowRules(!showRules)}
-              className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors ${showRules ? "bg-pink-500 text-white" : "bg-white/5 border border-white/10 text-white/60 hover:border-pink-500/30"}`}
+              className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors ${showRules ? "bg-pink-500 text-white" : "bg-[#FAFAF7] border border-[#ECEDEF] text-[#5F6572] hover:border-pink-500/30"}`}
             >
               <BookOpen className="w-4 h-4" /> 10 Regole d'Oro
             </button>
             <button 
               onClick={() => setShowCases(!showCases)}
-              className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors ${showCases ? "bg-purple-500 text-white" : "bg-white/5 border border-white/10 text-white/60 hover:border-purple-500/30"}`}
+              className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors ${showCases ? "bg-purple-500 text-white" : "bg-[#FAFAF7] border border-[#ECEDEF] text-[#5F6572] hover:border-purple-500/30"}`}
             >
               <Sparkles className="w-4 h-4" /> Successi EVO
             </button>
@@ -133,18 +133,18 @@ export function CopyFactoryAdmin({ currentAdmin }) {
 
       {/* Golden Rules Panel */}
       {showRules && (
-        <div className="bg-[#1a2332] border border-pink-500/30 rounded-xl p-5 animate-slide-in">
+        <div className="bg-white border border-pink-500/30 rounded-xl p-5 animate-slide-in">
           <h3 className="text-sm font-extrabold text-pink-400 uppercase tracking-wider mb-4">
             Le 10 Regole d'Oro del Copy Core
           </h3>
           <div className="grid grid-cols-2 gap-3">
             {goldenRules.map(rule => (
-              <div key={rule.num} className="bg-white/5 border border-white/10 rounded-lg p-3">
+              <div key={rule.num} className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="w-6 h-6 rounded-full bg-pink-500/20 text-pink-400 text-xs font-bold flex items-center justify-center">{rule.num}</span>
                   <span className="text-sm font-bold text-white">{rule.title}</span>
                 </div>
-                <p className="text-xs text-white/50 mb-2">{rule.description}</p>
+                <p className="text-xs text-[#5F6572] mb-2">{rule.description}</p>
                 {rule.master && <span className="text-[10px] text-pink-400/60">— {rule.master}</span>}
               </div>
             ))}
@@ -154,20 +154,20 @@ export function CopyFactoryAdmin({ currentAdmin }) {
 
       {/* Success Cases Panel */}
       {showCases && (
-        <div className="bg-[#1a2332] border border-purple-500/30 rounded-xl p-5 animate-slide-in">
+        <div className="bg-white border border-purple-500/30 rounded-xl p-5 animate-slide-in">
           <h3 className="text-sm font-extrabold text-purple-400 uppercase tracking-wider mb-4">
             Successi Evolution PRO — Master Input
           </h3>
           <div className="grid grid-cols-2 gap-4">
             {successCases.map(c => (
-              <div key={c.id} className="bg-white/5 border border-white/10 rounded-lg p-4">
+              <div key={c.id} className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-bold text-white">{c.partner_name}</span>
                   <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">{c.result}</span>
                 </div>
-                <span className="text-xs text-white/40 block mb-3">{c.niche}</span>
+                <span className="text-xs text-[#9CA3AF] block mb-3">{c.niche}</span>
                 {c.hook_example && (
-                  <div className="text-xs text-white/60 mb-2">
+                  <div className="text-xs text-[#5F6572] mb-2">
                     <span className="text-pink-400 font-bold">Hook:</span> "{c.hook_example.substring(0, 80)}..."
                   </div>
                 )}
@@ -183,15 +183,15 @@ export function CopyFactoryAdmin({ currentAdmin }) {
       <div className="grid grid-cols-3 gap-6">
         {/* Left: Pending Scripts List */}
         <div className="space-y-3">
-          <h3 className="text-sm font-bold text-white/40 uppercase tracking-wider">
+          <h3 className="text-sm font-bold text-[#9CA3AF] uppercase tracking-wider">
             Script da Revisionare ({pendingScripts.length})
           </h3>
           
           {pendingScripts.length === 0 ? (
-            <div className="bg-[#1a2332] border border-white/10 rounded-xl p-8 text-center">
+            <div className="bg-white border border-[#ECEDEF] rounded-xl p-8 text-center">
               <CheckCircle className="w-10 h-10 text-green-400 mx-auto mb-4" />
               <div className="font-bold mb-1">Nessuno script in attesa</div>
-              <div className="text-sm text-white/40">Tutti gli script sono stati revisionati</div>
+              <div className="text-sm text-[#9CA3AF]">Tutti gli script sono stati revisionati</div>
             </div>
           ) : (
             pendingScripts.map(script => {
@@ -203,8 +203,8 @@ export function CopyFactoryAdmin({ currentAdmin }) {
                 <div 
                   key={script.partner_id}
                   onClick={() => selectScript(script)}
-                  className={`bg-[#1a2332] border rounded-xl p-4 cursor-pointer transition-all
-                    ${isSelected ? "border-pink-500 bg-pink-500/5" : "border-white/10 hover:border-pink-500/30"}`}
+                  className={`bg-white border rounded-xl p-4 cursor-pointer transition-all
+                    ${isSelected ? "border-pink-500 bg-pink-500/5" : "border-[#ECEDEF] hover:border-pink-500/30"}`}
                 >
                   <div className="flex items-center gap-3 mb-2">
                     <div className="w-10 h-10 rounded-full bg-[#F5C518] flex items-center justify-center text-sm font-bold text-black">
@@ -212,7 +212,7 @@ export function CopyFactoryAdmin({ currentAdmin }) {
                     </div>
                     <div className="flex-1">
                       <div className="font-bold text-sm text-white">{script.partner_info?.name || "Partner"}</div>
-                      <div className="text-xs text-white/40">{script.partner_info?.niche || ""}</div>
+                      <div className="text-xs text-[#9CA3AF]">{script.partner_info?.niche || ""}</div>
                     </div>
                     <ChevronRight className={`w-4 h-4 transition-transform ${isSelected ? "rotate-90 text-pink-400" : "text-white/30"}`} />
                   </div>
@@ -233,15 +233,15 @@ export function CopyFactoryAdmin({ currentAdmin }) {
         {/* Right: Editor */}
         <div className="col-span-2">
           {!selectedScript ? (
-            <div className="bg-[#1a2332] border border-white/10 rounded-xl p-12 text-center h-full flex flex-col items-center justify-center">
-              <Edit3 className="w-12 h-12 text-white/20 mb-4" />
+            <div className="bg-white border border-[#ECEDEF] rounded-xl p-12 text-center h-full flex flex-col items-center justify-center">
+              <Edit3 className="w-12 h-12 text-[#9CA3AF] mb-4" />
               <div className="text-lg font-bold mb-2">Seleziona uno Script</div>
-              <div className="text-sm text-white/40">Clicca su uno script dalla lista per iniziare l'editing</div>
+              <div className="text-sm text-[#9CA3AF]">Clicca su uno script dalla lista per iniziare l'editing</div>
             </div>
           ) : (
             <div className="space-y-4">
               {/* Partner Info Header */}
-              <div className="bg-[#1a2332] border border-pink-500/30 rounded-xl p-4">
+              <div className="bg-white border border-pink-500/30 rounded-xl p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-[#F5C518] flex items-center justify-center text-lg font-bold text-black">
@@ -249,11 +249,11 @@ export function CopyFactoryAdmin({ currentAdmin }) {
                     </div>
                     <div>
                       <div className="font-extrabold text-white">{selectedScript.partner_info?.name}</div>
-                      <div className="text-sm text-white/40">{selectedScript.partner_info?.niche}</div>
+                      <div className="text-sm text-[#9CA3AF]">{selectedScript.partner_info?.niche}</div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-[10px] text-white/40">Editing come</div>
+                    <div className="text-[10px] text-[#9CA3AF]">Editing come</div>
                     <div className="font-bold text-pink-400">{currentAdmin || "Claudio"}</div>
                   </div>
                 </div>
@@ -268,8 +268,8 @@ export function CopyFactoryAdmin({ currentAdmin }) {
               </div>
 
               {/* Block Editor */}
-              <div className="bg-[#1a2332] border border-white/10 rounded-xl overflow-hidden">
-                <div className="p-4 border-b border-white/5 bg-white/5">
+              <div className="bg-white border border-[#ECEDEF] rounded-xl overflow-hidden">
+                <div className="p-4 border-b border-[#ECEDEF] bg-[#FAFAF7]">
                   <h3 className="font-bold">Editing Blocchi Script</h3>
                 </div>
                 <div className="divide-y divide-white/5">
@@ -283,7 +283,7 @@ export function CopyFactoryAdmin({ currentAdmin }) {
                         value={editedBlocks[blockId] || ""}
                         onChange={e => updateBlock(blockId, e.target.value)}
                         placeholder={`Scrivi il contenuto per ${label}...`}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-pink-500/50 transition-colors resize-none min-h-[100px]"
+                        className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-pink-500/50 transition-colors resize-none min-h-[100px]"
                       />
                     </div>
                   ))}
@@ -291,13 +291,13 @@ export function CopyFactoryAdmin({ currentAdmin }) {
               </div>
 
               {/* Admin Notes */}
-              <div className="bg-[#1a2332] border border-white/10 rounded-xl p-4">
-                <div className="text-sm font-bold text-white/60 mb-2">Note per il Partner (opzionale)</div>
+              <div className="bg-white border border-[#ECEDEF] rounded-xl p-4">
+                <div className="text-sm font-bold text-[#5F6572] mb-2">Note per il Partner (opzionale)</div>
                 <textarea
                   value={adminNotes}
                   onChange={e => setAdminNotes(e.target.value)}
                   placeholder="Es: Ho modificato l'hook per renderlo più provocatorio..."
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-pink-500/50 transition-colors resize-none min-h-[80px]"
+                  className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-pink-500/50 transition-colors resize-none min-h-[80px]"
                 />
               </div>
 
@@ -305,7 +305,7 @@ export function CopyFactoryAdmin({ currentAdmin }) {
               <div className="flex gap-3">
                 <button
                   onClick={() => setSelectedScript(null)}
-                  className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-sm font-bold text-white/60 hover:bg-white/10 transition-colors"
+                  className="px-6 py-3 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl text-sm font-bold text-[#5F6572] hover:bg-white/10 transition-colors"
                 >
                   Annulla
                 </button>

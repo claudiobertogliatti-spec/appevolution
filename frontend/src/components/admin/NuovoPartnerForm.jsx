@@ -119,29 +119,29 @@ Primo step: Modulo 0 nell'app`;
   if (step === "success") {
     return (
       <div className="max-w-xl mx-auto animate-slide-in" data-testid="nuovo-partner-success">
-        <div className="bg-[#1a2332] border border-white/10 rounded-xl p-8 text-center">
+        <div className="bg-white border border-[#ECEDEF] rounded-xl p-8 text-center">
           <div className="text-6xl mb-4">✅</div>
           <div className="text-xl font-extrabold text-[#16a34a] mb-2">Partner Creato con Successo!</div>
-          <div className="text-sm text-white/50 mb-6">
+          <div className="text-sm text-[#5F6572] mb-6">
             {formData.name} è stato aggiunto alla pipeline.<br />
             {formData.sendEmail && "Email benvenuto inviata."}
           </div>
 
-          <div className="bg-white/5 border border-white/10 rounded-xl p-5 text-left mb-6">
-            <div className="text-[10px] font-extrabold text-white/40 uppercase tracking-wider mb-4">
+          <div className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl p-5 text-left mb-6">
+            <div className="text-[10px] font-extrabold text-[#9CA3AF] uppercase tracking-wider mb-4">
               Credenziali Generate
             </div>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <span className="text-xs font-bold text-white/40 w-28">Email</span>
+                <span className="text-xs font-bold text-[#9CA3AF] w-28">Email</span>
                 <span className="font-mono text-sm font-bold text-white">{formData.email}</span>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-xs font-bold text-white/40 w-28">Password App</span>
+                <span className="text-xs font-bold text-[#9CA3AF] w-28">Password App</span>
                 <span className="font-mono text-sm font-bold text-[#F5C518]">{generatedData.appPassword}</span>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-xs font-bold text-white/40 w-28">Password Systeme</span>
+                <span className="text-xs font-bold text-[#9CA3AF] w-28">Password Systeme</span>
                 <span className="font-mono text-sm font-bold text-white">{formData.systemePassword}</span>
               </div>
             </div>
@@ -150,7 +150,7 @@ Primo step: Modulo 0 nell'app`;
           <div className="flex gap-3">
             <button
               onClick={copyToClipboard}
-              className="flex-1 flex items-center justify-center gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white/60 hover:bg-white/10 transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-3 text-sm font-bold text-[#5F6572] hover:bg-white/10 transition-colors"
             >
               <Copy className="w-4 h-4" /> Copia per Telegram
             </button>
@@ -170,18 +170,18 @@ Primo step: Modulo 0 nell'app`;
   if (step === "preview") {
     return (
       <div className="max-w-xl mx-auto animate-slide-in" data-testid="nuovo-partner-preview">
-        <div className="bg-[#1a2332] border border-white/10 rounded-xl p-6">
-          <div className="text-xs font-extrabold text-white/40 uppercase tracking-wider mb-4">
+        <div className="bg-white border border-[#ECEDEF] rounded-xl p-6">
+          <div className="text-xs font-extrabold text-[#9CA3AF] uppercase tracking-wider mb-4">
             Anteprima Email Benvenuto
           </div>
           
-          <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-            <div className="p-4 border-b border-white/10 bg-white/5">
-              <div className="text-xs text-white/40 mb-1">A: {formData.email}</div>
+          <div className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl overflow-hidden">
+            <div className="p-4 border-b border-[#ECEDEF] bg-[#FAFAF7]">
+              <div className="text-xs text-[#9CA3AF] mb-1">A: {formData.email}</div>
               <div className="text-sm font-extrabold text-white">{generatedData.emailData.subject}</div>
             </div>
             <div className="p-4 max-h-80 overflow-y-auto">
-              <pre className="text-xs font-medium text-white/60 whitespace-pre-wrap font-mono leading-relaxed">
+              <pre className="text-xs font-medium text-[#5F6572] whitespace-pre-wrap font-mono leading-relaxed">
                 {generatedData.emailData.body}
               </pre>
             </div>
@@ -190,7 +190,7 @@ Primo step: Modulo 0 nell'app`;
           <div className="flex gap-3 mt-6">
             <button
               onClick={() => setStep("form")}
-              className="flex-1 flex items-center justify-center gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white/60 hover:bg-white/10 transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-3 text-sm font-bold text-[#5F6572] hover:bg-white/10 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" /> Modifica dati
             </button>
@@ -213,28 +213,28 @@ Primo step: Modulo 0 nell'app`;
       <div className="bg-gradient-to-br from-[#1a2332] to-[#2c3e55] rounded-xl p-6 text-center mb-6">
         <div className="text-5xl mb-3">🎯</div>
         <div className="text-xl font-extrabold text-white mb-2">Nuovo Partner — Onboarding</div>
-        <div className="text-sm text-white/50">
+        <div className="text-sm text-[#5F6572]">
           Compila i dati per generare gli accessi e inviare l'email benvenuto.<br />
           Assicurati di aver già creato l'account Systeme.io manualmente.
         </div>
       </div>
 
       {/* Dati Partner */}
-      <div className="bg-[#1a2332] border border-white/10 rounded-xl p-5 mb-4">
-        <div className="text-xs font-extrabold text-white/40 uppercase tracking-wider mb-4">
+      <div className="bg-white border border-[#ECEDEF] rounded-xl p-5 mb-4">
+        <div className="text-xs font-extrabold text-[#9CA3AF] uppercase tracking-wider mb-4">
           Dati Partner
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-bold text-white/60 mb-2 block">
+            <label className="text-xs font-bold text-[#5F6572] mb-2 block">
               Nome completo<span className="text-red-400 ml-1">*</span>
             </label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
               <input
-                className={`w-full bg-white/5 border rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-white placeholder:text-white/30 outline-none transition-colors
-                  ${errors.name ? 'border-red-500 bg-red-500/10' : 'border-white/10 focus:border-[#F5C518]'}`}
+                className={`w-full bg-[#FAFAF7] border rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-white placeholder:text-white/30 outline-none transition-colors
+                  ${errors.name ? 'border-red-500 bg-red-500/10' : 'border-[#ECEDEF] focus:border-[#F5C518]'}`}
                 placeholder="es. Marco Ferretti"
                 value={formData.name}
                 onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
@@ -244,99 +244,99 @@ Primo step: Modulo 0 nell'app`;
           </div>
 
           <div>
-            <label className="text-xs font-bold text-white/60 mb-2 block">
+            <label className="text-xs font-bold text-[#5F6572] mb-2 block">
               Email<span className="text-red-400 ml-1">*</span>
             </label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
               <input
                 type="email"
-                className={`w-full bg-white/5 border rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-white placeholder:text-white/30 outline-none transition-colors
-                  ${errors.email ? 'border-red-500 bg-red-500/10' : 'border-white/10 focus:border-[#F5C518]'}`}
+                className={`w-full bg-[#FAFAF7] border rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-white placeholder:text-white/30 outline-none transition-colors
+                  ${errors.email ? 'border-red-500 bg-red-500/10' : 'border-[#ECEDEF] focus:border-[#F5C518]'}`}
                 placeholder="marco.ferretti@gmail.com"
                 value={formData.email}
                 onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
               />
             </div>
             {errors.email && <div className="text-xs font-bold text-red-400 mt-1">{errors.email}</div>}
-            <div className="text-[11px] text-white/40 mt-1">Usa la stessa email con cui hai creato l'account Systeme.io</div>
+            <div className="text-[11px] text-[#9CA3AF] mt-1">Usa la stessa email con cui hai creato l'account Systeme.io</div>
           </div>
 
           <div>
-            <label className="text-xs font-bold text-white/60 mb-2 block">
+            <label className="text-xs font-bold text-[#5F6572] mb-2 block">
               Nicchia<span className="text-red-400 ml-1">*</span>
             </label>
             <div className="relative">
               <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
               <select
-                className={`w-full bg-white/5 border rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-white outline-none transition-colors appearance-none cursor-pointer
-                  ${errors.niche ? 'border-red-500 bg-red-500/10' : 'border-white/10 focus:border-[#F5C518]'}`}
+                className={`w-full bg-[#FAFAF7] border rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-white outline-none transition-colors appearance-none cursor-pointer
+                  ${errors.niche ? 'border-red-500 bg-red-500/10' : 'border-[#ECEDEF] focus:border-[#F5C518]'}`}
                 value={formData.niche}
                 onChange={e => setFormData(prev => ({ ...prev, niche: e.target.value }))}
               >
-                <option value="" className="bg-[#1a2332]">Seleziona nicchia...</option>
-                {NICCHIE_DISPONIBILI.map(n => <option key={n} value={n} className="bg-[#1a2332]">{n}</option>)}
+                <option value="" className="bg-white">Seleziona nicchia...</option>
+                {NICCHIE_DISPONIBILI.map(n => <option key={n} value={n} className="bg-white">{n}</option>)}
               </select>
             </div>
             {errors.niche && <div className="text-xs font-bold text-red-400 mt-1">{errors.niche}</div>}
           </div>
 
           <div>
-            <label className="text-xs font-bold text-white/60 mb-2 block">
+            <label className="text-xs font-bold text-[#5F6572] mb-2 block">
               Investimento (€)<span className="text-red-400 ml-1">*</span>
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
               <input
                 type="number"
-                className={`w-full bg-white/5 border rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-white placeholder:text-white/30 outline-none transition-colors
-                  ${errors.investment ? 'border-red-500 bg-red-500/10' : 'border-white/10 focus:border-[#F5C518]'}`}
+                className={`w-full bg-[#FAFAF7] border rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-white placeholder:text-white/30 outline-none transition-colors
+                  ${errors.investment ? 'border-red-500 bg-red-500/10' : 'border-[#ECEDEF] focus:border-[#F5C518]'}`}
                 placeholder="3000"
                 value={formData.investment}
                 onChange={e => setFormData(prev => ({ ...prev, investment: e.target.value }))}
               />
             </div>
             {errors.investment && <div className="text-xs font-bold text-red-400 mt-1">{errors.investment}</div>}
-            <div className="text-[11px] text-white/40 mt-1">Importo minimo: €500</div>
+            <div className="text-[11px] text-[#9CA3AF] mt-1">Importo minimo: €500</div>
           </div>
         </div>
       </div>
 
       {/* Accesso Systeme */}
-      <div className="bg-[#1a2332] border border-white/10 rounded-xl p-5 mb-4">
-        <div className="text-xs font-extrabold text-white/40 uppercase tracking-wider mb-4">
+      <div className="bg-white border border-[#ECEDEF] rounded-xl p-5 mb-4">
+        <div className="text-xs font-extrabold text-[#9CA3AF] uppercase tracking-wider mb-4">
           Accesso Systeme.io
         </div>
 
         <div>
-          <label className="text-xs font-bold text-white/60 mb-2 block">
+          <label className="text-xs font-bold text-[#5F6572] mb-2 block">
             Password Systeme.io<span className="text-red-400 ml-1">*</span>
           </label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
             <input
               type="text"
-              className={`w-full bg-white/5 border rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-white placeholder:text-white/30 outline-none transition-colors
-                ${errors.systemePassword ? 'border-red-500 bg-red-500/10' : 'border-white/10 focus:border-[#F5C518]'}`}
+              className={`w-full bg-[#FAFAF7] border rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-white placeholder:text-white/30 outline-none transition-colors
+                ${errors.systemePassword ? 'border-red-500 bg-red-500/10' : 'border-[#ECEDEF] focus:border-[#F5C518]'}`}
               placeholder="SysEvo2026_MF"
               value={formData.systemePassword}
               onChange={e => setFormData(prev => ({ ...prev, systemePassword: e.target.value }))}
             />
           </div>
           {errors.systemePassword && <div className="text-xs font-bold text-red-400 mt-1">{errors.systemePassword}</div>}
-          <div className="text-[11px] text-white/40 mt-1">La password che hai impostato creando l'account su Systeme.io (minimo 8 caratteri)</div>
+          <div className="text-[11px] text-[#9CA3AF] mt-1">La password che hai impostato creando l'account su Systeme.io (minimo 8 caratteri)</div>
         </div>
       </div>
 
       {/* Note */}
-      <div className="bg-[#1a2332] border border-white/10 rounded-xl p-5 mb-4">
-        <div className="text-xs font-extrabold text-white/40 uppercase tracking-wider mb-4">
+      <div className="bg-white border border-[#ECEDEF] rounded-xl p-5 mb-4">
+        <div className="text-xs font-extrabold text-[#9CA3AF] uppercase tracking-wider mb-4">
           Note Interne (opzionale)
         </div>
         <div className="relative">
           <FileText className="absolute left-3 top-3 w-4 h-4 text-white/30" />
           <textarea
-            className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-white placeholder:text-white/30 outline-none transition-colors focus:border-[#F5C518] resize-none min-h-[80px]"
+            className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-white placeholder:text-white/30 outline-none transition-colors focus:border-[#F5C518] resize-none min-h-[80px]"
             placeholder="es. Bonifico ricevuto 10/02 - causale EP2026MF - Provenienza: LinkedIn"
             value={formData.notes}
             onChange={e => setFormData(prev => ({ ...prev, notes: e.target.value }))}
@@ -361,7 +361,7 @@ Primo step: Modulo 0 nell'app`;
       <div className="flex gap-3">
         <button
           onClick={onClose}
-          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white/60 hover:bg-white/10 transition-colors"
+          className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-3 text-sm font-bold text-[#5F6572] hover:bg-white/10 transition-colors"
         >
           Annulla
         </button>

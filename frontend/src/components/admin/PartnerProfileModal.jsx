@@ -30,7 +30,7 @@ function InfoField({ label, value, icon: Icon, editable, onEdit }) {
         <div className="text-sm text-white/80">{value || "—"}</div>
       </div>
       {editable && (
-        <button onClick={onEdit} className="text-white/20 hover:text-white/40 transition-colors">
+        <button onClick={onEdit} className="text-[#9CA3AF] hover:text-[#9CA3AF] transition-colors">
           <Edit3 className="w-3.5 h-3.5" />
         </button>
       )}
@@ -40,8 +40,8 @@ function InfoField({ label, value, icon: Icon, editable, onEdit }) {
 
 function SectionCard({ title, icon: Icon, children, action }) {
   return (
-    <div className="bg-[#1a2332] border border-white/10 rounded-xl overflow-hidden">
-      <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
+    <div className="bg-white border border-[#ECEDEF] rounded-xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-[#ECEDEF] flex items-center justify-between">
         <div className="flex items-center gap-2">
           {Icon && <Icon className="w-4 h-4 text-[#F5C518]" />}
           <span className="text-sm font-bold">{title}</span>
@@ -62,7 +62,7 @@ function PaymentRow({ payment }) {
   const config = statusConfig[payment.status] || statusConfig.pending;
 
   return (
-    <div className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+    <div className="flex items-center justify-between py-2 border-b border-[#ECEDEF] last:border-0">
       <div>
         <div className="text-sm font-semibold">{payment.description}</div>
         <div className="text-xs text-white/30">{new Date(payment.date).toLocaleDateString("it-IT")}</div>
@@ -82,7 +82,7 @@ function DocumentStatus({ label, status, onClick }) {
     completed: { label: "Completato", color: "text-green-400", bg: "bg-green-500/20", icon: Check },
     ai_draft: { label: "Bozza AI", color: "text-blue-400", bg: "bg-blue-500/20", icon: Clock },
     in_review: { label: "In Revisione", color: "text-yellow-400", bg: "bg-yellow-500/20", icon: Clock },
-    not_started: { label: "Non iniziato", color: "text-white/30", bg: "bg-white/5", icon: Clock }
+    not_started: { label: "Non iniziato", color: "text-white/30", bg: "bg-[#FAFAF7]", icon: Clock }
   };
   const config = statusConfig[status] || statusConfig.not_started;
   const Icon = config.icon;
@@ -90,7 +90,7 @@ function DocumentStatus({ label, status, onClick }) {
   return (
     <button 
       onClick={onClick}
-      className="flex items-center justify-between p-3 bg-white/5 rounded-lg hover:bg-white/8 transition-colors w-full"
+      className="flex items-center justify-between p-3 bg-[#FAFAF7] rounded-lg hover:bg-white/8 transition-colors w-full"
     >
       <div className="flex items-center gap-2">
         <Icon className={`w-4 h-4 ${config.color}`} />
@@ -100,7 +100,7 @@ function DocumentStatus({ label, status, onClick }) {
         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${config.bg} ${config.color}`}>
           {config.label}
         </span>
-        <ChevronRight className="w-4 h-4 text-white/20" />
+        <ChevronRight className="w-4 h-4 text-[#9CA3AF]" />
       </div>
     </button>
   );
@@ -271,7 +271,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-        <div className="bg-[#111827] border border-white/10 rounded-2xl p-12">
+        <div className="bg-white border border-[#ECEDEF] rounded-2xl p-12">
           <div className="w-8 h-8 border-2 border-[#F5C518] border-t-transparent rounded-full animate-spin mx-auto" />
         </div>
       </div>
@@ -280,9 +280,9 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" data-testid="partner-profile-modal">
-      <div className="bg-[#111827] border border-white/10 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white border border-[#ECEDEF] rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="p-5 border-b border-white/10 flex items-center justify-between flex-shrink-0">
+        <div className="p-5 border-b border-[#ECEDEF] flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-xl bg-[#F5C518] flex items-center justify-center text-xl font-black text-black">
               {partner.name?.split(" ").map(n => n[0]).join("")}
@@ -290,7 +290,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
             <div>
               <h2 className="text-xl font-extrabold">{partner.name}</h2>
               <div className="flex items-center gap-3 mt-1">
-                <span className="text-sm text-white/40">{partner.niche}</span>
+                <span className="text-sm text-[#9CA3AF]">{partner.niche}</span>
                 <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-[#F5C518]/20 text-[#F5C518]">
                   {partner.phase}
                 </span>
@@ -311,7 +311,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
               <>
                 <button
                   onClick={() => setEditing(false)}
-                  className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-bold hover:bg-white/10 transition-colors"
+                  className="px-3 py-1.5 rounded-lg bg-[#FAFAF7] border border-[#ECEDEF] text-xs font-bold hover:bg-white/10 transition-colors"
                 >
                   Annulla
                 </button>
@@ -327,7 +327,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                 <button
                   onClick={handleExportPDF}
                   disabled={exporting}
-                  className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-bold hover:bg-white/10 transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-3 py-1.5 rounded-lg bg-[#FAFAF7] border border-[#ECEDEF] text-xs font-bold hover:bg-white/10 transition-colors flex items-center gap-1.5 disabled:opacity-50"
                 >
                   <Download className="w-3.5 h-3.5" />
                   {exporting ? "Esportando..." : "Esporta PDF"}
@@ -335,7 +335,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                 <button
                   onClick={handleSendEmail}
                   disabled={sending || !profileData?.email}
-                  className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-bold hover:bg-white/10 transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-3 py-1.5 rounded-lg bg-[#FAFAF7] border border-[#ECEDEF] text-xs font-bold hover:bg-white/10 transition-colors flex items-center gap-1.5 disabled:opacity-50"
                 >
                   <Send className="w-3.5 h-3.5" />
                   {sending ? "Inviando..." : "Invia Email"}
@@ -348,7 +348,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                 </button>
               </>
             )}
-            <button onClick={onClose} className="ml-2 text-white/40 hover:text-white transition-colors">
+            <button onClick={onClose} className="ml-2 text-[#9CA3AF] hover:text-white transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -368,7 +368,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                         type="email"
                         value={editData.email || ""}
                         onChange={e => setEditData({...editData, email: e.target.value})}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mt-1"
+                        className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm mt-1"
                         placeholder="email@example.com"
                       />
                     </div>
@@ -378,7 +378,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                         type="tel"
                         value={editData.phone || ""}
                         onChange={e => setEditData({...editData, phone: e.target.value})}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mt-1"
+                        className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm mt-1"
                         placeholder="+39 333 1234567"
                       />
                     </div>
@@ -388,7 +388,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                         type="text"
                         value={editData.company || ""}
                         onChange={e => setEditData({...editData, company: e.target.value})}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mt-1"
+                        className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm mt-1"
                         placeholder="Nome Azienda Srl"
                       />
                     </div>
@@ -398,7 +398,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                         type="text"
                         value={editData.vat_number || ""}
                         onChange={e => setEditData({...editData, vat_number: e.target.value})}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mt-1"
+                        className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm mt-1"
                         placeholder="IT12345678901"
                       />
                     </div>
@@ -423,7 +423,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                         type="text"
                         value={editData.social_instagram || ""}
                         onChange={e => setEditData({...editData, social_instagram: e.target.value})}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mt-1"
+                        className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm mt-1"
                         placeholder="@username"
                       />
                     </div>
@@ -433,7 +433,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                         type="text"
                         value={editData.social_linkedin || ""}
                         onChange={e => setEditData({...editData, social_linkedin: e.target.value})}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mt-1"
+                        className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm mt-1"
                         placeholder="linkedin.com/in/..."
                       />
                     </div>
@@ -443,7 +443,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                         type="text"
                         value={editData.social_youtube || ""}
                         onChange={e => setEditData({...editData, social_youtube: e.target.value})}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mt-1"
+                        className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm mt-1"
                         placeholder="youtube.com/@..."
                       />
                     </div>
@@ -468,7 +468,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                       <select
                         value={editData.contract_type || "standard"}
                         onChange={e => setEditData({...editData, contract_type: e.target.value})}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mt-1"
+                        className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm mt-1"
                       >
                         <option value="standard">Standard (12 mesi)</option>
                         <option value="premium">Premium (12 mesi)</option>
@@ -481,7 +481,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                         type="date"
                         value={editData.contract_start || editData.contract || ""}
                         onChange={e => setEditData({...editData, contract_start: e.target.value, contract: e.target.value})}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mt-1"
+                        className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm mt-1"
                       />
                     </div>
                     <div>
@@ -490,7 +490,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                         type="date"
                         value={editData.contract_end || ""}
                         onChange={e => setEditData({...editData, contract_end: e.target.value})}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mt-1"
+                        className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm mt-1"
                       />
                     </div>
                   </div>
@@ -554,7 +554,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                 )}
                 
                 {/* Revenue Summary */}
-                <div className="mt-4 pt-4 border-t border-white/5">
+                <div className="mt-4 pt-4 border-t border-[#ECEDEF]">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold text-white/30 uppercase">Revenue Totale</span>
                     <span className="font-mono text-lg font-bold text-[#F5C518]">
@@ -575,7 +575,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                       {partner.phase}
                     </span>
                   </div>
-                  <div className="text-xs text-white/40 mb-2">{PHASE_LABELS[partner.phase]}</div>
+                  <div className="text-xs text-[#9CA3AF] mb-2">{PHASE_LABELS[partner.phase]}</div>
                   
                   {/* Progress Bar */}
                   <div className="relative">
@@ -619,13 +619,13 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
 
               {/* Quick Stats */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-[#1a2332] border border-white/10 rounded-xl p-4 text-center">
+                <div className="bg-white border border-[#ECEDEF] rounded-xl p-4 text-center">
                   <div className="text-2xl font-bold text-[#F5C518]">
                     {partner.modules?.filter(Boolean).length || 0}
                   </div>
                   <div className="text-[10px] text-white/30 uppercase">Moduli</div>
                 </div>
-                <div className="bg-[#1a2332] border border-white/10 rounded-xl p-4 text-center">
+                <div className="bg-white border border-[#ECEDEF] rounded-xl p-4 text-center">
                   <div className="text-2xl font-bold text-green-400">
                     €{partner.revenue?.toLocaleString() || 0}
                   </div>

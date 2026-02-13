@@ -17,8 +17,8 @@ export function MetrichePostLancio({ partners = [] }) {
     return (
       <div className="animate-slide-in text-center py-12" data-testid="metriche-empty">
         <div className="text-6xl mb-4">📊</div>
-        <div className="text-lg font-bold text-white/60 mb-2">Nessun Partner Lanciato</div>
-        <div className="text-sm text-white/40">
+        <div className="text-lg font-bold text-[#5F6572] mb-2">Nessun Partner Lanciato</div>
+        <div className="text-sm text-[#9CA3AF]">
           Le metriche post-lancio saranno disponibili quando un partner raggiunge la Fase F8+
         </div>
       </div>
@@ -35,7 +35,7 @@ export function MetrichePostLancio({ partners = [] }) {
           <div className="flex items-center gap-3 mb-4">
             <div className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse shadow-lg shadow-green-400/50" />
             <span className="text-sm font-extrabold text-white">Systeme.io — Dati Live</span>
-            <span className="ml-auto text-xs font-semibold text-white/50">
+            <span className="ml-auto text-xs font-semibold text-[#5F6572]">
               Ultimo sync: {SYSTEME_STATUS.lastSync}
             </span>
           </div>
@@ -49,8 +49,8 @@ export function MetrichePostLancio({ partners = [] }) {
               <div key={i} className="bg-white/15 backdrop-blur rounded-lg p-3">
                 <div className="text-lg mb-1">{k.icon}</div>
                 <div className="font-mono text-xl font-bold text-white">{k.v}</div>
-                <div className="text-[10px] font-semibold text-white/50 mt-1">{k.l}</div>
-                {k.sub && <div className="text-[10px] font-medium text-white/40">{k.sub}</div>}
+                <div className="text-[10px] font-semibold text-[#5F6572] mt-1">{k.l}</div>
+                {k.sub && <div className="text-[10px] font-medium text-[#9CA3AF]">{k.sub}</div>}
               </div>
             ))}
           </div>
@@ -66,7 +66,7 @@ export function MetrichePostLancio({ partners = [] }) {
             className={`px-4 py-2 rounded-full text-xs font-bold transition-all
               ${sel === p.name
                 ? 'bg-[#F5C518] text-black'
-                : 'bg-white/5 border border-white/10 text-white/60 hover:border-[#F5C518]/30'}`}
+                : 'bg-[#FAFAF7] border border-[#ECEDEF] text-[#5F6572] hover:border-[#F5C518]/30'}`}
           >
             {p.name} · {p.phase}
           </button>
@@ -83,12 +83,12 @@ export function MetrichePostLancio({ partners = [] }) {
         ].map(k => (
           <div
             key={k.l}
-            className="bg-[#1a2332] border border-white/10 rounded-xl p-5"
+            className="bg-white border border-[#ECEDEF] rounded-xl p-5"
             style={{ borderTopColor: k.color, borderTopWidth: 3 }}
           >
             <div className="flex items-center gap-2 mb-3">
               <k.icon className="w-4 h-4" style={{ color: k.color }} />
-              <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">{k.l}</span>
+              <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">{k.l}</span>
             </div>
             <div className="font-mono text-3xl font-bold mb-1" style={{ color: k.color }}>{k.v}</div>
             <div className="text-xs font-semibold" style={{ color: k.color }}>{k.sub}</div>
@@ -99,8 +99,8 @@ export function MetrichePostLancio({ partners = [] }) {
       {/* Charts Row */}
       <div className="grid grid-cols-2 gap-4">
         {/* Weekly Signups */}
-        <div className="bg-[#1a2332] border border-white/10 rounded-xl p-5">
-          <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-4">
+        <div className="bg-white border border-[#ECEDEF] rounded-xl p-5">
+          <div className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-4">
             Iscrizioni per Settimana
           </div>
           <div className="flex items-end gap-2 h-16">
@@ -109,7 +109,7 @@ export function MetrichePostLancio({ partners = [] }) {
               const isMax = v === max;
               return (
                 <div key={i} className="flex-1 flex flex-col items-center">
-                  <span className="text-[10px] font-bold text-white/40 mb-1">{v}</span>
+                  <span className="text-[10px] font-bold text-[#9CA3AF] mb-1">{v}</span>
                   <div
                     className="w-full rounded-t transition-all"
                     style={{
@@ -126,8 +126,8 @@ export function MetrichePostLancio({ partners = [] }) {
         </div>
 
         {/* NPS Breakdown */}
-        <div className="bg-[#1a2332] border border-white/10 rounded-xl p-5">
-          <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-4">
+        <div className="bg-white border border-[#ECEDEF] rounded-xl p-5">
+          <div className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-4">
             NPS Breakdown
           </div>
           <div className="flex gap-4 mb-3">
@@ -138,20 +138,20 @@ export function MetrichePostLancio({ partners = [] }) {
             ].map(n => (
               <div key={n.l} className="text-center">
                 <div className="font-mono text-xl font-bold" style={{ color: n.c }}>{n.v}%</div>
-                <div className="text-[10px] font-bold text-white/40">{n.l}</div>
+                <div className="text-[10px] font-bold text-[#9CA3AF]">{n.l}</div>
               </div>
             ))}
           </div>
-          <div className="h-3 rounded-full flex overflow-hidden bg-white/5">
+          <div className="h-3 rounded-full flex overflow-hidden bg-[#FAFAF7]">
             <div className="h-full transition-all" style={{ width: `${m.npsBreakdown.promoters}%`, background: "#16a34a" }} />
             <div className="h-full transition-all" style={{ width: `${m.npsBreakdown.passives}%`, background: "#f97316" }} />
             <div className="h-full transition-all" style={{ width: `${m.npsBreakdown.detractors}%`, background: "#dc2626" }} />
           </div>
           <div className="mt-4">
-            <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-2">Feedback più citati</div>
+            <div className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-2">Feedback più citati</div>
             <div className="flex flex-wrap gap-1">
               {m.topFeedback.map((f, i) => (
-                <span key={i} className="bg-white/5 border border-white/10 rounded-full px-3 py-1 text-[11px] font-semibold text-white/60">
+                <span key={i} className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-full px-3 py-1 text-[11px] font-semibold text-[#5F6572]">
                   "{f}"
                 </span>
               ))}
@@ -161,17 +161,17 @@ export function MetrichePostLancio({ partners = [] }) {
       </div>
 
       {/* Module Completion Funnel */}
-      <div className="bg-[#1a2332] border border-white/10 rounded-xl p-5">
-        <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-4">
+      <div className="bg-white border border-[#ECEDEF] rounded-xl p-5">
+        <div className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-4">
           Completamento per Modulo — Funnel Studenti
         </div>
         <div className="space-y-2">
           {m.moduleCompletion.map((pct, i) => (
             <div key={i} className="flex items-center gap-3">
-              <div className="w-24 text-xs font-semibold text-white/50 flex-shrink-0">
+              <div className="w-24 text-xs font-semibold text-[#5F6572] flex-shrink-0">
                 M{i} {["Intro", "Attiv.", "Masterclass", "Videocorso", "Edit", "Accademia", "Pre-Lancio", "Lancio", "Monit."][i]?.slice(0, 8) || ""}
               </div>
-              <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
+              <div className="flex-1 h-2 bg-[#FAFAF7] rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all"
                   style={{
@@ -180,11 +180,11 @@ export function MetrichePostLancio({ partners = [] }) {
                   }}
                 />
               </div>
-              <div className="font-mono text-xs font-bold text-white/40 w-10 text-right">{pct}%</div>
+              <div className="font-mono text-xs font-bold text-[#9CA3AF] w-10 text-right">{pct}%</div>
             </div>
           ))}
         </div>
-        <div className="mt-4 text-xs text-white/40 font-semibold bg-white/5 rounded-lg p-3">
+        <div className="mt-4 text-xs text-[#9CA3AF] font-semibold bg-[#FAFAF7] rounded-lg p-3">
           💡 Il calo maggiore avviene tra M3 e M5 — punto di abbandono tipico nei corsi online. Considerare un checkpoint VALENTINA a M4.
         </div>
       </div>

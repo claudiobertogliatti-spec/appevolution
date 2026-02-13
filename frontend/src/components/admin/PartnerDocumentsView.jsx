@@ -10,7 +10,7 @@ const STATUS_CONFIG = {
   in_review: { label: "In Revisione", color: "text-yellow-400", bg: "bg-yellow-500/20" },
   approved: { label: "Approvato", color: "text-green-400", bg: "bg-green-500/20" },
   needs_revision: { label: "Da Revisionare", color: "text-orange-400", bg: "bg-orange-500/20" },
-  not_started: { label: "Non iniziato", color: "text-white/30", bg: "bg-white/5" }
+  not_started: { label: "Non iniziato", color: "text-white/30", bg: "bg-[#FAFAF7]" }
 };
 
 function StatusBadge({ status }) {
@@ -33,31 +33,31 @@ function DocumentModal({ partner, documents, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" data-testid="documents-modal">
-      <div className="bg-[#111827] border border-white/10 rounded-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden">
+      <div className="bg-white border border-[#ECEDEF] rounded-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden">
         {/* Header */}
-        <div className="p-5 border-b border-white/10 flex items-center justify-between">
+        <div className="p-5 border-b border-[#ECEDEF] flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-[#F5C518] flex items-center justify-center text-sm font-bold text-black">
               {partner.partner_name?.split(" ").map(n => n[0]).join("")}
             </div>
             <div>
               <div className="font-bold text-white">{partner.partner_name}</div>
-              <div className="text-xs text-white/40">Fase {partner.partner_phase} · Documenti</div>
+              <div className="text-xs text-[#9CA3AF]">Fase {partner.partner_phase} · Documenti</div>
             </div>
           </div>
-          <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">
+          <button onClick={onClose} className="text-[#9CA3AF] hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-white/5">
+        <div className="flex border-b border-[#ECEDEF]">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold transition-all
-                ${activeTab === tab.id ? "text-[#F5C518] border-b-2 border-[#F5C518]" : "text-white/40 hover:text-white/60"}`}
+                ${activeTab === tab.id ? "text-[#F5C518] border-b-2 border-[#F5C518]" : "text-[#9CA3AF] hover:text-[#5F6572]"}`}
             >
               <tab.icon className="w-4 h-4" />
               {tab.label}
@@ -87,8 +87,8 @@ function PositioningContent({ data }) {
     return (
       <div className="text-center py-12">
         <Target className="w-12 h-12 text-white/10 mx-auto mb-3" />
-        <div className="text-white/40 font-semibold">Posizionamento non ancora completato</div>
-        <div className="text-white/20 text-sm mt-1">Il partner deve completare il Wizard Posizionamento</div>
+        <div className="text-[#9CA3AF] font-semibold">Posizionamento non ancora completato</div>
+        <div className="text-[#9CA3AF] text-sm mt-1">Il partner deve completare il Wizard Posizionamento</div>
       </div>
     );
   }
@@ -106,8 +106,8 @@ function PositioningContent({ data }) {
 
       {/* Canvas Output */}
       {data.canvas && (
-        <div className="bg-[#0B0E14] border border-white/10 rounded-xl p-4">
-          <div className="text-xs font-bold text-white/40 uppercase tracking-wider mb-3">Canvas Posizionamento</div>
+        <div className="bg-[#0B0E14] border border-[#ECEDEF] rounded-xl p-4">
+          <div className="text-xs font-bold text-[#9CA3AF] uppercase tracking-wider mb-3">Canvas Posizionamento</div>
           <pre className="text-xs font-mono text-white/70 whitespace-pre-wrap leading-relaxed">
             {data.canvas}
           </pre>
@@ -118,7 +118,7 @@ function PositioningContent({ data }) {
       {data.answers && (
         <div className="grid grid-cols-2 gap-3 mt-4">
           {Object.entries(data.answers).map(([key, value]) => (
-            <div key={key} className="bg-white/5 border border-white/10 rounded-lg p-3">
+            <div key={key} className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg p-3">
               <div className="text-[10px] font-bold text-[#F5C518] uppercase tracking-wider mb-1">
                 {key.replace(/_/g, " ")}
               </div>
@@ -136,8 +136,8 @@ function ScriptContent({ data }) {
     return (
       <div className="text-center py-12">
         <Mic className="w-12 h-12 text-white/10 mx-auto mb-3" />
-        <div className="text-white/40 font-semibold">Script Masterclass non ancora creato</div>
-        <div className="text-white/20 text-sm mt-1">Il partner deve completare il Masterclass Builder</div>
+        <div className="text-[#9CA3AF] font-semibold">Script Masterclass non ancora creato</div>
+        <div className="text-[#9CA3AF] text-sm mt-1">Il partner deve completare il Masterclass Builder</div>
       </div>
     );
   }
@@ -171,20 +171,20 @@ function ScriptContent({ data }) {
           const hasContent = content && content.trim().length > 0;
           
           return (
-            <div key={key} className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-              <div className="px-4 py-2 border-b border-white/5 flex items-center justify-between">
+            <div key={key} className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl overflow-hidden">
+              <div className="px-4 py-2 border-b border-[#ECEDEF] flex items-center justify-between">
                 <span className="text-sm font-bold">{label}</span>
                 {hasContent ? (
                   <Check className="w-4 h-4 text-green-400" />
                 ) : (
-                  <Clock className="w-4 h-4 text-white/20" />
+                  <Clock className="w-4 h-4 text-[#9CA3AF]" />
                 )}
               </div>
               <div className="px-4 py-3">
                 {hasContent ? (
                   <p className="text-sm text-white/70 whitespace-pre-wrap">{content}</p>
                 ) : (
-                  <p className="text-sm text-white/20 italic">Non ancora compilato</p>
+                  <p className="text-sm text-[#9CA3AF] italic">Non ancora compilato</p>
                 )}
               </div>
             </div>
@@ -200,8 +200,8 @@ function CourseContent({ data }) {
     return (
       <div className="text-center py-12">
         <BookOpen className="w-12 h-12 text-white/10 mx-auto mb-3" />
-        <div className="text-white/40 font-semibold">Struttura corso non ancora creata</div>
-        <div className="text-white/20 text-sm mt-1">Il partner deve usare il Course Builder AI</div>
+        <div className="text-[#9CA3AF] font-semibold">Struttura corso non ancora creata</div>
+        <div className="text-[#9CA3AF] text-sm mt-1">Il partner deve usare il Course Builder AI</div>
       </div>
     );
   }
@@ -211,7 +211,7 @@ function CourseContent({ data }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4">
-        <span className="text-xs font-bold text-white/40">{modules.length} moduli</span>
+        <span className="text-xs font-bold text-[#9CA3AF]">{modules.length} moduli</span>
         {data.updated_at && (
           <span className="text-xs text-white/30">
             Aggiornato: {new Date(data.updated_at).toLocaleDateString("it-IT")}
@@ -222,7 +222,7 @@ function CourseContent({ data }) {
       {/* Course Modules */}
       <div className="space-y-2">
         {modules.map((mod, idx) => (
-          <div key={idx} className="bg-white/5 border border-white/10 rounded-xl p-4">
+          <div key={idx} className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl p-4">
             <div className="flex items-center gap-3 mb-2">
               <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-[#F5C518]/20 text-[#F5C518]">
                 M{idx + 1}
@@ -232,7 +232,7 @@ function CourseContent({ data }) {
             {mod.lessons && (
               <div className="ml-8 space-y-1">
                 {mod.lessons.map((lesson, li) => (
-                  <div key={li} className="text-xs text-white/50 flex items-center gap-2">
+                  <div key={li} className="text-xs text-[#5F6572] flex items-center gap-2">
                     <span className="w-4 h-4 rounded-full bg-white/10 flex items-center justify-center text-[9px]">
                       {li + 1}
                     </span>
@@ -282,9 +282,9 @@ export function PartnerDocumentsView({ partners }) {
 
   if (loading) {
     return (
-      <div className="bg-[#1a2332] border border-white/10 rounded-xl p-12 text-center">
+      <div className="bg-white border border-[#ECEDEF] rounded-xl p-12 text-center">
         <div className="w-8 h-8 border-2 border-[#F5C518] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-        <div className="text-sm text-white/40">Caricamento documenti...</div>
+        <div className="text-sm text-[#9CA3AF]">Caricamento documenti...</div>
       </div>
     );
   }
@@ -295,21 +295,21 @@ export function PartnerDocumentsView({ partners }) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-extrabold">Documenti Partner</h2>
-          <p className="text-xs text-white/40">Posizionamento, Script e Struttura Corso</p>
+          <p className="text-xs text-[#9CA3AF]">Posizionamento, Script e Struttura Corso</p>
         </div>
         <button
           onClick={loadSummaries}
-          className="text-xs font-bold px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:border-white/20 transition-colors"
+          className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FAFAF7] border border-[#ECEDEF] hover:border-white/20 transition-colors"
         >
           Aggiorna
         </button>
       </div>
 
       {/* Partners List */}
-      <div className="bg-[#1a2332] border border-white/10 rounded-xl overflow-hidden">
+      <div className="bg-white border border-[#ECEDEF] rounded-xl overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr className="text-[10px] font-bold text-white/25 uppercase tracking-wider border-b border-white/5">
+            <tr className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider border-b border-[#ECEDEF]">
               <th className="text-left px-5 py-3">Partner</th>
               <th className="text-left px-4 py-3">Fase</th>
               <th className="text-center px-4 py-3">Posizionamento</th>
@@ -322,7 +322,7 @@ export function PartnerDocumentsView({ partners }) {
             {summaries.map((partner) => (
               <tr
                 key={partner.partner_id}
-                className="border-t border-white/5 hover:bg-white/2 transition-colors"
+                className="border-t border-[#ECEDEF] hover:bg-white/2 transition-colors"
               >
                 <td className="px-5 py-3">
                   <div className="flex items-center gap-3">
@@ -349,7 +349,7 @@ export function PartnerDocumentsView({ partners }) {
                       Presente
                     </span>
                   ) : (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/5 text-white/30">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FAFAF7] text-white/30">
                       Assente
                     </span>
                   )}
@@ -357,7 +357,7 @@ export function PartnerDocumentsView({ partners }) {
                 <td className="px-5 py-3 text-right">
                   <button
                     onClick={() => openPartnerDocs(partner)}
-                    className="text-xs font-bold px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:border-[#F5C518]/30 hover:bg-[#F5C518]/10 transition-all flex items-center gap-1.5 ml-auto"
+                    className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FAFAF7] border border-[#ECEDEF] hover:border-[#F5C518]/30 hover:bg-[#F5C518]/10 transition-all flex items-center gap-1.5 ml-auto"
                   >
                     <Eye className="w-3 h-3" />
                     Visualizza
