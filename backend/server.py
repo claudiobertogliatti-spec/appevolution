@@ -961,30 +961,25 @@ Rispondi in modo naturale, come farebbe un membro senior del team. Massimo 3-4 f
 @api_router.post("/chat")
 async def chat_with_valentina(request: ChatRequest):
     try:
-        # Get or create chat history for this session
-        history = await db.chat_messages.find(
-            {"session_id": request.session_id}, 
-            {"_id": 0}
-        ).sort("timestamp", 1).to_list(50)
+        # Import VALENTINA AI module
+        from valentina_ai import valentina_ai
         
-        # Build messages for LLM
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=request.session_id,
-            system_message=build_system_prompt(
-                request.partner_name,
-                request.partner_niche,
-                request.partner_phase,
-                request.modules_done
-            )
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        # Build context
+        context = {
+            "name": request.partner_name,
+            "phase": request.partner_phase,
+            "niche": request.partner_niche,
+            "is_admin": request.context.get("is_admin", False) if request.context else False
+        }
         
-        # Add history to chat context
-        for msg in history:
-            if msg["role"] == "user":
-                await chat.send_message(UserMessage(text=msg["content"]))
+        # Get response from VALENTINA AI
+        response = await valentina_ai.chat(
+            partner_id=request.session_id or request.partner_name or "anonymous",
+            message=request.message,
+            context=context
+        )
         
-        # Save user message
+        # Save to chat history
         user_msg = ChatMessage(
             session_id=request.session_id,
             role="user",
@@ -992,10 +987,6 @@ async def chat_with_valentina(request: ChatRequest):
         )
         await db.chat_messages.insert_one(user_msg.model_dump())
         
-        # Get response from LLM
-        response = await chat.send_message(UserMessage(text=request.message))
-        
-        # Save assistant response
         assistant_msg = ChatMessage(
             session_id=request.session_id,
             role="assistant",
@@ -1003,11 +994,13 @@ async def chat_with_valentina(request: ChatRequest):
         )
         await db.chat_messages.insert_one(assistant_msg.model_dump())
         
-        return {"response": response, "timestamp": assistant_msg.timestamp}
+        return {"response": response, "reply": response, "timestamp": assistant_msg.timestamp}
         
     except Exception as e:
         logging.error(f"Chat error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Fallback response
+        fallback = f"Ciao! Sono VALENTINA. Al momento ho qualche difficoltà tecnica, ma sono qui per aiutarti. Riprova tra poco! 🙏"
+        return {"response": fallback, "reply": fallback, "error": str(e)}
 
 @api_router.get("/chat/{session_id}")
 async def get_chat_history(session_id: str):
