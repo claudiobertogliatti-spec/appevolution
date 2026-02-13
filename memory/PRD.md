@@ -314,8 +314,8 @@ Partner Phase:
 - [x] Systeme.io Live Data Integration (V10.0)
 
 ### P1 - Alta Priorità
-- [ ] Autenticazione JWT (Admin vs Partner login)
-- [ ] Notifiche Telegram per alert critici
+- [x] Autenticazione JWT (Admin vs Partner login) ✅ (13 Feb 2026)
+- [x] Notifiche Telegram per alert critici ✅ (13 Feb 2026)
 - [ ] Deploy su `app.evolution-pro.it`
 
 ### P2 - Media Priorità
