@@ -579,84 +579,69 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden text-white" style={{ background: mode === "partner" ? "#FAFAF7" : "#0B0E14" }}>
+    <div className="flex h-screen overflow-hidden" style={{ background: '#FAFAF7', color: '#1E2128' }}>
 
-      {/* SIDEBAR - Conditional based on mode */}
+      {/* SIDEBAR - Light Theme for both modes */}
       {mode === "partner" ? (
-        <PartnerSidebar 
+        <PartnerSidebarLight 
           currentNav={nav}
           onNavigate={setNav}
           partner={demoPartner}
           onLogout={handleLogout}
           onOpenChat={() => setNav("supporto")}
+          onSwitchToAdmin={() => { setMode("admin"); setNav("overview"); }}
+          isAdmin={currentUser?.role === "admin"}
         />
       ) : (
-        <div className="w-52 min-w-52 bg-[#111827] flex flex-col border-r border-white/5 flex-shrink-0">
-          <div className="p-4 border-b border-white/5"><Logo/></div>
-
-          {/* Mode toggle - solo per admin */}
-          {currentUser?.role === "admin" && (
-          <div className="px-3 pt-3 pb-2">
-            <div className="flex bg-white/5 rounded-lg p-0.5">
-              <button onClick={()=>{setMode("admin");setNav("overview");}} className={`flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all ${mode==="admin"?"bg-[#F2C418] text-[#2D3239]":"text-white/35 hover:text-white/60"}`}>Admin</button>
-              <button onClick={()=>{setMode("partner");setNav("home");}} className={`flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all ${mode==="partner"?"bg-[#F2C418] text-[#2D3239]":"text-white/35 hover:text-white/60"}`}>Partner</button>
-            </div>
-          </div>
-          )}
-
-          <div className="flex-1 overflow-y-auto px-2 py-1">
-            {mode==="admin"&&<>
-              <div className="px-2 py-1.5 mb-1"><AdminSwitcher adminUser={adminUser} setAdminUser={setAdminUser} setNav={setNav}/></div>
-              <div className="text-[9px] font-bold text-white/20 uppercase tracking-[2px] px-3 py-1.5">{adminUser==="antonella"?"Area Antonella":"Area Claudio"}</div>
-              {adminNav.map(item=><button key={item.id} onClick={()=>setNav(item.id)} className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg mb-0.5 text-left transition-all ${nav===item.id?"bg-[#F2C418]/15 text-[#F2C418]":"text-white/45 hover:text-white hover:bg-white/5"}`}><item.icon className="w-4 h-4 flex-shrink-0"/><span className="text-xs font-bold">{item.label}</span></button>)}
-              {adminUser==="claudio"&&<div className="mt-1">
-                <button onClick={()=>setToolsOpen(o=>!o)} className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all ${isToolNav?"bg-[#F2C418]/15 text-[#F2C418]":"text-white/25 hover:text-white/50 hover:bg-white/3"}`}><Settings className="w-4 h-4 flex-shrink-0"/><span className="text-xs font-bold flex-1">Strumenti</span>{toolsOpen?<ChevronDown className="w-3 h-3"/>:<ChevronRight className="w-3 h-3"/>}</button>
-                {toolsOpen&&<div className="ml-3 pl-2 border-l border-white/5 mt-0.5 space-y-0.5">{toolsNav.map(item=><button key={item.id} onClick={()=>setNav(item.id)} className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-all ${nav===item.id?"bg-[#F2C418]/15 text-[#F2C418]":"text-white/35 hover:text-white hover:bg-white/5"}`}><item.icon className="w-3.5 h-3.5 flex-shrink-0"/><span className="text-[11px] font-bold">{item.label}</span></button>)}</div>}
-              </div>}
-              <div className="mt-2 pt-2 border-t border-white/5">
-                <button onClick={()=>setNav("alert")} className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all ${nav==="alert"?"bg-red-500/10 text-red-400":alerts.length>0?"text-red-400/60 hover:text-red-400 hover:bg-red-500/5":"text-white/25 hover:text-white/45 hover:bg-white/3"}`}><AlertTriangle className="w-4 h-4 flex-shrink-0"/><span className="text-xs font-bold flex-1">Alert</span>{alerts.length>0&&<span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{alerts.length}</span>}</button>
-              </div>
-            </>}
-          </div>
-
-          {/* Footer utente - Admin */}
-          <div className="p-3 border-t border-white/5">
-            <div className="flex items-center gap-2.5 mb-2">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0 ${adminUser==="antonella"?"bg-purple-500 text-white":"bg-[#F2C418] text-[#2D3239]"}`}>{currentUser?.name?.split(" ").map(n=>n[0]).join("")||"U"}</div>
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-bold truncate">{currentUser?.name||"Utente"}</div>
-                <div className="text-[9px] text-white/20 truncate">Admin · {currentUser?.admin_type==="antonella"?"Operations":"Fondatore"}</div>
-              </div>
-            </div>
-            <button 
-              onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-white/5 border border-white/10 text-white/40 hover:text-white hover:bg-red-500/10 hover:border-red-500/30 transition-all text-xs font-bold"
-              data-testid="logout-btn"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              Esci
-            </button>
-          </div>
-        </div>
+        <AdminSidebarLight 
+          currentNav={nav}
+          onNavigate={setNav}
+          adminUser={adminUser}
+          setAdminUser={setAdminUser}
+          alerts={alerts}
+          onLogout={handleLogout}
+          onSwitchToPartner={() => { setMode("partner"); setNav("home"); }}
+          currentUser={currentUser}
+        />
       )}
 
       {/* MAIN */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        {/* Topbar - Solo per Admin */}
-        {mode === "admin" && (
-        <div className="bg-[#111827] border-b border-white/5 px-5 flex items-center justify-between flex-shrink-0" style={{height:52}}>
-          <h1 className="text-sm font-extrabold text-white flex items-center gap-2">
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${adminUser==="antonella"?"bg-purple-500/20 text-purple-400":"bg-white/8 text-white/35"}`}>{adminUser==="antonella"?"Antonella":"Claudio"}</span>
-            {titles[nav]||nav}
+        {/* Topbar - Light theme */}
+        <div className="border-b px-5 flex items-center justify-between flex-shrink-0" 
+             style={{ height: 56, background: 'white', borderColor: '#ECEDEF' }}>
+          <h1 className="text-base font-extrabold flex items-center gap-2" style={{ color: '#1E2128' }}>
+            {mode === "admin" && (
+              <span className="text-[10px] font-bold px-2 py-1 rounded-full"
+                    style={{ background: adminUser === "antonella" ? '#F0ECFA' : '#FFF3C4', 
+                             color: adminUser === "antonella" ? '#7B68AE' : '#C4990A' }}>
+                {adminUser === "antonella" ? "Antonella" : "Claudio"}
+              </span>
+            )}
+            {titles[nav] || nav}
           </h1>
           <div className="flex items-center gap-2">
-            <NotificationBell onNavigate={setNav}/>
-            {nav==="partner"&&<button onClick={()=>setShowNP(true)} className="flex items-center gap-1.5 bg-[#F2C418] text-[#2D3239] rounded-lg px-3 py-1.5 text-xs font-bold hover:bg-[#D9AF14] transition-colors"><UserPlus className="w-3.5 h-3.5"/>Nuovo Partner</button>}
-            {alerts.length>0&&nav!=="alert"&&<button onClick={()=>setNav("alert")} className="flex items-center gap-1.5 bg-red-500/12 border border-red-500/20 rounded-full px-3 py-1 text-[11px] font-bold text-red-400"><span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse"/>{alerts.length} alert</button>}
-            <div className="text-[10px] font-semibold text-white/20 bg-white/4 border border-white/5 rounded-full px-3 py-1">{new Date().toLocaleDateString("it-IT",{day:"2-digit",month:"short",year:"numeric"})}</div>
+            {mode === "admin" && <NotificationBell onNavigate={setNav}/>}
+            {mode === "admin" && nav === "partner" && (
+              <button onClick={() => setShowNP(true)} 
+                      className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors hover:opacity-90"
+                      style={{ background: '#F2C418', color: '#1E2128' }}>
+                <UserPlus className="w-3.5 h-3.5"/>Nuovo Partner
+              </button>
+            )}
+            {alerts.length > 0 && mode === "admin" && nav !== "alert" && (
+              <button onClick={() => setNav("alert")} 
+                      className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold"
+                      style={{ background: '#FDECEF', color: '#EF476F', border: '1px solid #EF476F30' }}>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#EF476F] animate-pulse"/>{alerts.length} alert
+              </button>
+            )}
+            <div className="text-[11px] font-semibold px-3 py-1.5 rounded-lg" 
+                 style={{ background: '#FAFAF7', color: '#5F6572', border: '1px solid #ECEDEF' }}>
+              {new Date().toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" })}
+            </div>
           </div>
         </div>
-        )}
 
         {/* Content */}
         <div className={`flex-1 overflow-y-auto ${mode === "partner" ? "p-0" : "p-5"}`} style={{ background: mode === "partner" ? "#FAFAF7" : "transparent" }}>
