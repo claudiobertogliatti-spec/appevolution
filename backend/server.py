@@ -5070,6 +5070,100 @@ async def orion_trigger_sales_automation(request: TriggerAutomationRequest):
     return await client.trigger_automation(request.contact_id, request.tag_name)
 
 # =============================================================================
+# TELEGRAM NOTIFICATIONS
+# =============================================================================
+
+from valentina_ai import telegram_notifier, telegram_notify
+
+class TelegramAdminSetup(BaseModel):
+    chat_id: str
+
+class TelegramNotifyRequest(BaseModel):
+    notification_type: str  # new_partner, phase_complete, alert
+    partner_name: Optional[str] = None
+    partner_email: Optional[str] = None
+    old_phase: Optional[str] = None
+    new_phase: Optional[str] = None
+    alert_type: Optional[str] = None
+    message: Optional[str] = None
+
+@api_router.post("/telegram/setup-admin")
+async def setup_telegram_admin(request: TelegramAdminSetup):
+    """Register admin chat ID for notifications"""
+    # Save to database
+    await db.telegram_admins.update_one(
+        {"chat_id": request.chat_id},
+        {"$set": {"chat_id": request.chat_id, "created_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+    
+    # Add to notifier
+    if request.chat_id not in telegram_notifier.admin_chat_ids:
+        telegram_notifier.admin_chat_ids.append(request.chat_id)
+    
+    # Send confirmation
+    result = await telegram_notifier.send_message(
+        request.chat_id,
+        "✅ <b>Evolution PRO OS</b>\n\nNotifiche Telegram attivate! Riceverai alert per:\n• Nuovi partner\n• Fasi completate\n• Alert di sistema"
+    )
+    
+    return {"success": True, "chat_id": request.chat_id, "telegram_result": result}
+
+@api_router.get("/telegram/admins")
+async def get_telegram_admins():
+    """Get list of registered admin chat IDs"""
+    admins = await db.telegram_admins.find({}, {"_id": 0}).to_list(100)
+    return {"admins": admins, "count": len(admins)}
+
+@api_router.post("/telegram/notify")
+async def send_telegram_notification(request: TelegramNotifyRequest):
+    """Send a notification via Telegram"""
+    result = await telegram_notify(
+        notification_type=request.notification_type,
+        partner_name=request.partner_name,
+        partner_email=request.partner_email,
+        old_phase=request.old_phase,
+        new_phase=request.new_phase,
+        alert_type=request.alert_type,
+        message=request.message
+    )
+    return {"success": True, "result": result}
+
+@api_router.get("/telegram/updates")
+async def get_telegram_updates():
+    """Get recent Telegram updates (for discovering chat IDs)"""
+    result = await telegram_notifier.get_updates()
+    
+    # Extract chat IDs from updates
+    chat_ids = []
+    if result.get("ok") and result.get("result"):
+        for update in result["result"]:
+            if "message" in update and "chat" in update["message"]:
+                chat_id = str(update["message"]["chat"]["id"])
+                if chat_id not in chat_ids:
+                    chat_ids.append(chat_id)
+    
+    return {"updates": result, "discovered_chat_ids": chat_ids}
+
+@api_router.post("/telegram/test")
+async def test_telegram_notification(chat_id: str):
+    """Send a test notification to verify Telegram setup"""
+    result = await telegram_notifier.send_message(
+        chat_id,
+        "🧪 <b>Test Notification</b>\n\nSe vedi questo messaggio, le notifiche Telegram funzionano correttamente!\n\n— Evolution PRO OS"
+    )
+    return {"success": result.get("ok", False), "result": result}
+
+# Load admin chat IDs from database on startup
+async def load_telegram_admins():
+    """Load admin chat IDs from database"""
+    admins = await db.telegram_admins.find({}, {"_id": 0}).to_list(100)
+    for admin in admins:
+        if admin.get("chat_id") and admin["chat_id"] not in telegram_notifier.admin_chat_ids:
+            telegram_notifier.admin_chat_ids.append(admin["chat_id"])
+    logging.info(f"Loaded {len(telegram_notifier.admin_chat_ids)} Telegram admin(s)")
+
+# =============================================================================
 # ROOT & CONTROL
 # =============================================================================
 
