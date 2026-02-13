@@ -425,7 +425,10 @@ Partner Phase:
 ## Next Action Items
 1. ~~Implementare JWT authentication~~ ✅ Completato
 2. ~~Integrare Telegram Bot per notifiche~~ ✅ Completato
-3. Collegare domain `app.evolution-pro.it`
-4. Dashboard Metriche Post-Lancio Avanzata (NPS, grafici, visualizzazione funnel studenti)
-5. ACADEMY_VIDEOS - Sistema micro-learning video
-6. Sezione "PARTI DA QUI" - Video lezioni introduttive
+3. ~~Sezione Documenti Partner per Admin~~ ✅ Completato
+4. ~~Profilo Partner completo con anagrafica~~ ✅ Completato
+5. ~~Dashboard Partner semplificata (UX friendly)~~ ✅ Completato
+6. Allineare sidebar/topbar ai colori brand Evolution PRO
+7. Collegare domain `app.evolution-pro.it`
+8. Dashboard Metriche Post-Lancio Avanzata (NPS, grafici, visualizzazione funnel studenti)
+9. ACADEMY_VIDEOS - Sistema micro-learning video
