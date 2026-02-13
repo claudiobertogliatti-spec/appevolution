@@ -51,10 +51,10 @@ Creare un'applicazione full-stack proprietaria per Evolution PRO - una piattafor
 
 #### 1. Course Builder AI Wizard (STEFANIA)
 - **Wizard preferenze**: Selezione Durata (4/8 settimane, Self-paced), Livello (Principiante/Intermedio/Avanzato), Formato (Video/PDF/Workbook)
-- **Generazione AI**: STEFANIA genera struttura corso completa con moduli e lezioni
+- **Generazione AI REALE**: STEFANIA genera struttura corso completa con Claude AI (Fixed 13 Feb 2026)
 - **Editor interattivo**: Modifica moduli/lezioni con chat STEFANIA integrata
 - **API Endpoint**: `/api/stefania/course-builder/generate`, `/api/stefania/course-builder/chat`, `/api/stefania/course-builder/save`
-- **Fallback Mock**: Quando LLM non disponibile, usa template predefinito
+- **Bug Fix**: Corretto parsing risposta LLM (response invece di response.text)
 
 #### 2. Renewal Plans (Piani Post-12 Mesi)
 - **Evolution Top**: €97/mese + 10% revenue - Mantenimento base
