@@ -348,7 +348,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                 </button>
               </>
             )}
-            <button onClick={onClose} className="ml-2 text-[#9CA3AF] hover:text-white transition-colors">
+            <button onClick={onClose} className="ml-2 text-[#9CA3AF] hover:text-[#1E2128] transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>

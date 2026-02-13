@@ -31,7 +31,7 @@ export function CalendarioEditoriale({ partner }) {
               <Calendar className="w-6 h-6 text-black" />
             </div>
             <div>
-              <h2 className="text-xl font-extrabold text-white">Calendario Editoriale 30 Giorni</h2>
+              <h2 className="text-xl font-extrabold text-[#1E2128]">Calendario Editoriale 30 Giorni</h2>
               <p className="text-sm text-[#5F6572]">Piano contenuti pre-lancio strutturato</p>
             </div>
           </div>
@@ -88,7 +88,7 @@ export function CalendarioEditoriale({ partner }) {
                 W{week.week}
               </div>
               <div className="flex-1">
-                <div className="text-sm font-extrabold text-white">{week.title}</div>
+                <div className="text-sm font-extrabold text-[#1E2128]">{week.title}</div>
                 <div className="text-xs text-[#9CA3AF] mt-0.5">{week.content.length} contenuti pianificati</div>
               </div>
               <div className="flex gap-2">

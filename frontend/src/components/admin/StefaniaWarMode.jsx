@@ -238,16 +238,16 @@ export function StefaniaWarMode({ partners }) {
       <div className="bg-gradient-to-br from-red-900/30 to-orange-900/30 border border-red-500/30 rounded-xl p-5">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
-            <Zap className="w-7 h-7 text-white animate-pulse" />
+            <Zap className="w-7 h-7 text-[#1E2128] animate-pulse" />
           </div>
           <div className="flex-1">
-            <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
+            <h2 className="text-xl font-extrabold text-[#1E2128] flex items-center gap-2">
               STEFANIA — WAR MODE
-              <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full animate-pulse">MULTI-CHANNEL</span>
+              <span className="text-xs bg-red-500 text-[#1E2128] px-2 py-0.5 rounded-full animate-pulse">MULTI-CHANNEL</span>
             </h2>
             <p className="text-sm text-white/50">Meta (Visceral) + LinkedIn (Authority) · Auto-Pivot · LTV Tracking</p>
           </div>
-          <button onClick={loadData} className="p-2 text-white/30 hover:text-white">
+          <button onClick={loadData} className="p-2 text-white/30 hover:text-[#1E2128]">
             <RefreshCw className="w-5 h-5" />
           </button>
         </div>
@@ -267,7 +267,7 @@ export function StefaniaWarMode({ partners }) {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
                 activeTab === tab.id 
-                  ? "bg-white/10 text-white border border-white/20" 
+                  ? "bg-white/10 text-[#1E2128] border border-white/20" 
                   : "text-white/40 hover:text-white/60"
               }`}
             >
@@ -287,7 +287,7 @@ export function StefaniaWarMode({ partners }) {
           {alerts.slice(0, 2).map(alert => (
             <div key={alert.id} className="mt-3 flex items-center justify-between bg-[#1a2332] rounded-lg p-3">
               <div>
-                <span className="text-sm font-bold text-white">{alert.message}</span>
+                <span className="text-sm font-bold text-[#1E2128]">{alert.message}</span>
                 <p className="text-xs text-white/50 mt-1">{alert.suggested_action}</p>
               </div>
               <button onClick={() => resolveAlert(alert.id)} className="px-3 py-1 text-xs font-bold bg-white/10 rounded hover:bg-white/20">
@@ -308,7 +308,7 @@ export function StefaniaWarMode({ partners }) {
               onClick={() => setSelectedPartner(p)}
               className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
                 selectedPartner?.id === p.id 
-                  ? "bg-gradient-to-r from-red-500 to-orange-500 text-white" 
+                  ? "bg-gradient-to-r from-red-500 to-orange-500 text-[#1E2128]" 
                   : "bg-white/5 border border-white/10 text-white/60 hover:border-red-500/30"
               }`}
             >
@@ -331,28 +331,28 @@ export function StefaniaWarMode({ partners }) {
                 <Target className="w-4 h-4 text-red-400" />
                 <span className="text-[10px] font-bold text-white/40 uppercase">Campagne</span>
               </div>
-              <div className="font-mono text-2xl font-bold text-white">{dashboard.overview.total_campaigns}</div>
+              <div className="font-mono text-2xl font-bold text-[#1E2128]">{dashboard.overview.total_campaigns}</div>
             </div>
             <div className="bg-[#1a2332] border border-white/10 rounded-xl p-4 border-t-4 border-t-orange-500">
               <div className="flex items-center gap-2 mb-2">
                 <DollarSign className="w-4 h-4 text-orange-400" />
                 <span className="text-[10px] font-bold text-white/40 uppercase">Spesa</span>
               </div>
-              <div className="font-mono text-2xl font-bold text-white">€{dashboard.overview.total_spend.toFixed(0)}</div>
+              <div className="font-mono text-2xl font-bold text-[#1E2128]">€{dashboard.overview.total_spend.toFixed(0)}</div>
             </div>
             <div className="bg-[#1a2332] border border-white/10 rounded-xl p-4 border-t-4 border-t-green-500">
               <div className="flex items-center gap-2 mb-2">
                 <Users className="w-4 h-4 text-green-400" />
                 <span className="text-[10px] font-bold text-white/40 uppercase">Lead</span>
               </div>
-              <div className="font-mono text-2xl font-bold text-white">{dashboard.overview.total_leads}</div>
+              <div className="font-mono text-2xl font-bold text-[#1E2128]">{dashboard.overview.total_leads}</div>
             </div>
             <div className="bg-[#1a2332] border border-white/10 rounded-xl p-4 border-t-4 border-t-blue-500">
               <div className="flex items-center gap-2 mb-2">
                 <BarChart3 className="w-4 h-4 text-blue-400" />
                 <span className="text-[10px] font-bold text-white/40 uppercase">CPL Medio</span>
               </div>
-              <div className="font-mono text-2xl font-bold text-white">€{dashboard.overview.avg_cpl.toFixed(2)}</div>
+              <div className="font-mono text-2xl font-bold text-[#1E2128]">€{dashboard.overview.avg_cpl.toFixed(2)}</div>
             </div>
             <div className="bg-[#1a2332] border border-white/10 rounded-xl p-4 border-t-4 border-t-blue-400">
               <div className="flex items-center gap-2 mb-2">
@@ -380,21 +380,21 @@ export function StefaniaWarMode({ partners }) {
             <div className="bg-gradient-to-br from-blue-900/20 to-blue-800/10 border border-blue-500/30 rounded-xl p-5">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center">
-                  <Facebook className="w-5 h-5 text-white" />
+                  <Facebook className="w-5 h-5 text-[#1E2128]" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-white">Meta Ads</h3>
+                  <h3 className="font-extrabold text-[#1E2128]">Meta Ads</h3>
                   <p className="text-xs text-white/40">Visceral · Emotional · Broad Targeting</p>
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <div className="text-[10px] text-white/40">Spend</div>
-                  <div className="font-mono font-bold text-white">€{dashboard.by_platform?.meta?.spend?.toFixed(0) || 0}</div>
+                  <div className="font-mono font-bold text-[#1E2128]">€{dashboard.by_platform?.meta?.spend?.toFixed(0) || 0}</div>
                 </div>
                 <div>
                   <div className="text-[10px] text-white/40">Leads</div>
-                  <div className="font-mono font-bold text-white">{dashboard.by_platform?.meta?.leads || 0}</div>
+                  <div className="font-mono font-bold text-[#1E2128]">{dashboard.by_platform?.meta?.leads || 0}</div>
                 </div>
                 <div>
                   <div className="text-[10px] text-white/40">ROAS</div>
@@ -407,21 +407,21 @@ export function StefaniaWarMode({ partners }) {
             <div className="bg-gradient-to-br from-sky-900/20 to-sky-800/10 border border-sky-500/30 rounded-xl p-5">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-lg bg-sky-700 flex items-center justify-center">
-                  <Linkedin className="w-5 h-5 text-white" />
+                  <Linkedin className="w-5 h-5 text-[#1E2128]" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-white">LinkedIn Ads</h3>
+                  <h3 className="font-extrabold text-[#1E2128]">LinkedIn Ads</h3>
                   <p className="text-xs text-white/40">Authority · Professional · ABM Targeting</p>
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <div className="text-[10px] text-white/40">Spend</div>
-                  <div className="font-mono font-bold text-white">€{dashboard.by_platform?.linkedin?.spend?.toFixed(0) || 0}</div>
+                  <div className="font-mono font-bold text-[#1E2128]">€{dashboard.by_platform?.linkedin?.spend?.toFixed(0) || 0}</div>
                 </div>
                 <div>
                   <div className="text-[10px] text-white/40">Leads</div>
-                  <div className="font-mono font-bold text-white">{dashboard.by_platform?.linkedin?.leads || 0}</div>
+                  <div className="font-mono font-bold text-[#1E2128]">{dashboard.by_platform?.linkedin?.leads || 0}</div>
                 </div>
                 <div>
                   <div className="text-[10px] text-white/40">Lead Quality</div>
@@ -440,17 +440,17 @@ export function StefaniaWarMode({ partners }) {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center">
-                  <Facebook className="w-6 h-6 text-white" />
+                  <Facebook className="w-6 h-6 text-[#1E2128]" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-extrabold text-white">Meta Ads — Hook Gallery</h3>
+                  <h3 className="text-lg font-extrabold text-[#1E2128]">Meta Ads — Hook Gallery</h3>
                   <p className="text-sm text-white/50">3 varianti per i primi 5 secondi del video</p>
                 </div>
               </div>
               <button
                 onClick={generateHookGallery}
                 disabled={!selectedPartner || generatingHooks}
-                className="flex items-center gap-2 bg-blue-500 text-white rounded-xl px-5 py-2 font-bold text-sm hover:bg-blue-600 disabled:opacity-50"
+                className="flex items-center gap-2 bg-blue-500 text-[#1E2128] rounded-xl px-5 py-2 font-bold text-sm hover:bg-blue-600 disabled:opacity-50"
               >
                 {generatingHooks ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                 Genera Hook Gallery
@@ -481,7 +481,7 @@ export function StefaniaWarMode({ partners }) {
                     </div>
                     <button 
                       onClick={() => copyToClipboard(hookGallery[hookType.id] || "")}
-                      className="mt-2 w-full flex items-center justify-center gap-2 text-xs text-white/40 hover:text-white py-2"
+                      className="mt-2 w-full flex items-center justify-center gap-2 text-xs text-white/40 hover:text-[#1E2128] py-2"
                     >
                       <Copy className="w-3 h-3" /> Copia
                     </button>
@@ -504,10 +504,10 @@ export function StefaniaWarMode({ partners }) {
               <div className="flex items-center gap-3">
                 <Video className="w-5 h-5 text-pink-400" />
                 <div className="flex-1">
-                  <span className="font-bold text-sm text-white">Richiedi Video ad ANDREA</span>
+                  <span className="font-bold text-sm text-[#1E2128]">Richiedi Video ad ANDREA</span>
                   <p className="text-xs text-white/40">Invia questi 3 hook ad Andrea per la produzione dei video-ads</p>
                 </div>
-                <button className="px-4 py-2 bg-pink-500 text-white rounded-lg text-sm font-bold hover:bg-pink-600">
+                <button className="px-4 py-2 bg-pink-500 text-[#1E2128] rounded-lg text-sm font-bold hover:bg-pink-600">
                   Crea Task Video
                 </button>
               </div>
@@ -523,10 +523,10 @@ export function StefaniaWarMode({ partners }) {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-sky-700 flex items-center justify-center">
-                  <Linkedin className="w-6 h-6 text-white" />
+                  <Linkedin className="w-6 h-6 text-[#1E2128]" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-extrabold text-white">LinkedIn Ads — Content Hub</h3>
+                  <h3 className="text-lg font-extrabold text-[#1E2128]">LinkedIn Ads — Content Hub</h3>
                   <p className="text-sm text-white/50">Thought Leadership · ABM · Lead Gen Forms</p>
                 </div>
               </div>
@@ -540,7 +540,7 @@ export function StefaniaWarMode({ partners }) {
                   onClick={() => setSelectedLinkedinType(type.id)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
                     selectedLinkedinType === type.id
-                      ? "bg-sky-600 text-white"
+                      ? "bg-sky-600 text-[#1E2128]"
                       : "bg-white/5 border border-white/10 text-white/60"
                   }`}
                 >
@@ -556,7 +556,7 @@ export function StefaniaWarMode({ partners }) {
                 <select
                   value={targetSegment}
                   onChange={e => setTargetSegment(e.target.value)}
-                  className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white"
+                  className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-[#1E2128]"
                 >
                   <option value="agency_owners">Titolari di Agenzie</option>
                   <option value="senior_consultants">Consulenti Senior</option>
@@ -569,7 +569,7 @@ export function StefaniaWarMode({ partners }) {
             <button
               onClick={generateLinkedinContent}
               disabled={!selectedPartner || generatingLinkedin}
-              className="flex items-center gap-2 bg-sky-600 text-white rounded-xl px-5 py-2 font-bold text-sm hover:bg-sky-700 disabled:opacity-50"
+              className="flex items-center gap-2 bg-sky-600 text-[#1E2128] rounded-xl px-5 py-2 font-bold text-sm hover:bg-sky-700 disabled:opacity-50"
             >
               {generatingLinkedin ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
               Genera {LINKEDIN_CONTENT_TYPES.find(t => t.id === selectedLinkedinType)?.label}
@@ -588,7 +588,7 @@ export function StefaniaWarMode({ partners }) {
                     {linkedinContent.thought_leadership.headline && (
                       <div>
                         <span className="text-[10px] text-white/40">Headline</span>
-                        <p className="text-sm font-bold text-white">{linkedinContent.thought_leadership.headline}</p>
+                        <p className="text-sm font-bold text-[#1E2128]">{linkedinContent.thought_leadership.headline}</p>
                       </div>
                     )}
                     {linkedinContent.thought_leadership.post_text && (
@@ -605,7 +605,7 @@ export function StefaniaWarMode({ partners }) {
                     {linkedinContent.abm_ad.headline && (
                       <div>
                         <span className="text-[10px] text-white/40">Headline</span>
-                        <p className="text-sm font-bold text-white">{linkedinContent.abm_ad.headline}</p>
+                        <p className="text-sm font-bold text-[#1E2128]">{linkedinContent.abm_ad.headline}</p>
                       </div>
                     )}
                     {linkedinContent.abm_ad.ad_copy && (
@@ -628,13 +628,13 @@ export function StefaniaWarMode({ partners }) {
                     {linkedinContent.lead_gen_form.form_headline && (
                       <div>
                         <span className="text-[10px] text-white/40">Form Headline</span>
-                        <p className="text-sm font-bold text-white">{linkedinContent.lead_gen_form.form_headline}</p>
+                        <p className="text-sm font-bold text-[#1E2128]">{linkedinContent.lead_gen_form.form_headline}</p>
                       </div>
                     )}
                     {linkedinContent.lead_gen_form.lead_magnet_name && (
                       <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2">
                         <span className="text-xs text-green-400">📥 Lead Magnet: </span>
-                        <span className="text-sm font-bold text-white">{linkedinContent.lead_gen_form.lead_magnet_name}</span>
+                        <span className="text-sm font-bold text-[#1E2128]">{linkedinContent.lead_gen_form.lead_magnet_name}</span>
                       </div>
                     )}
                     {linkedinContent.lead_gen_form.bullet_points && (
@@ -652,7 +652,7 @@ export function StefaniaWarMode({ partners }) {
 
                 <button 
                   onClick={() => copyToClipboard(JSON.stringify(linkedinContent[selectedLinkedinType], null, 2))}
-                  className="mt-3 flex items-center gap-2 text-xs text-white/40 hover:text-white"
+                  className="mt-3 flex items-center gap-2 text-xs text-white/40 hover:text-[#1E2128]"
                 >
                   <Copy className="w-3 h-3" /> Copia tutto
                 </button>
@@ -669,17 +669,17 @@ export function StefaniaWarMode({ partners }) {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                  <ArrowLeftRight className="w-6 h-6 text-white" />
+                  <ArrowLeftRight className="w-6 h-6 text-[#1E2128]" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-extrabold text-white">Cross-Platform Analysis</h3>
+                  <h3 className="text-lg font-extrabold text-[#1E2128]">Cross-Platform Analysis</h3>
                   <p className="text-sm text-white/50">Auto-Pivot · LTV Comparison · Budget Optimization</p>
                 </div>
               </div>
               <button
                 onClick={runCrossAnalysis}
                 disabled={!selectedPartner || analyzing}
-                className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl px-5 py-2 font-bold text-sm hover:opacity-90 disabled:opacity-50"
+                className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-[#1E2128] rounded-xl px-5 py-2 font-bold text-sm hover:opacity-90 disabled:opacity-50"
               >
                 {analyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Activity className="w-4 h-4" />}
                 Analizza
@@ -726,7 +726,7 @@ export function StefaniaWarMode({ partners }) {
                     <div className="bg-[#1a2332] border border-blue-500/30 rounded-xl p-4">
                       <div className="flex items-center gap-2 mb-3">
                         <Facebook className="w-5 h-5 text-blue-400" />
-                        <span className="font-bold text-white">Meta</span>
+                        <span className="font-bold text-[#1E2128]">Meta</span>
                         {crossAnalysis.meta.cpl_exceeded && (
                           <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded">CPL ALTO</span>
                         )}
@@ -734,21 +734,21 @@ export function StefaniaWarMode({ partners }) {
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div>
                           <span className="text-white/40">CPL</span>
-                          <p className={`font-mono font-bold ${crossAnalysis.meta.cpl_exceeded ? "text-red-400" : "text-white"}`}>
+                          <p className={`font-mono font-bold ${crossAnalysis.meta.cpl_exceeded ? "text-red-400" : "text-[#1E2128]"}`}>
                             €{crossAnalysis.meta.cpl?.toFixed(2) || "0.00"}
                           </p>
                         </div>
                         <div>
                           <span className="text-white/40">ROAS</span>
-                          <p className="font-mono font-bold text-white">{crossAnalysis.meta.roas?.toFixed(2) || "0.00"}x</p>
+                          <p className="font-mono font-bold text-[#1E2128]">{crossAnalysis.meta.roas?.toFixed(2) || "0.00"}x</p>
                         </div>
                         <div>
                           <span className="text-white/40">LTV Medio</span>
-                          <p className="font-mono font-bold text-white">€{crossAnalysis.meta.ltv_avg?.toFixed(0) || 0}</p>
+                          <p className="font-mono font-bold text-[#1E2128]">€{crossAnalysis.meta.ltv_avg?.toFixed(0) || 0}</p>
                         </div>
                         <div>
                           <span className="text-white/40">Lead/Qualificati</span>
-                          <p className="font-mono font-bold text-white">
+                          <p className="font-mono font-bold text-[#1E2128]">
                             {crossAnalysis.meta.leads}/{crossAnalysis.meta.qualified_leads}
                           </p>
                         </div>
@@ -761,7 +761,7 @@ export function StefaniaWarMode({ partners }) {
                     <div className="bg-[#1a2332] border border-sky-500/30 rounded-xl p-4">
                       <div className="flex items-center gap-2 mb-3">
                         <Linkedin className="w-5 h-5 text-sky-400" />
-                        <span className="font-bold text-white">LinkedIn</span>
+                        <span className="font-bold text-[#1E2128]">LinkedIn</span>
                         {crossAnalysis.linkedin.qualification_rate > 0.3 && (
                           <span className="text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded">ALTA QUALITÀ</span>
                         )}
@@ -769,11 +769,11 @@ export function StefaniaWarMode({ partners }) {
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div>
                           <span className="text-white/40">CPL</span>
-                          <p className="font-mono font-bold text-white">€{crossAnalysis.linkedin.cpl?.toFixed(2) || "0.00"}</p>
+                          <p className="font-mono font-bold text-[#1E2128]">€{crossAnalysis.linkedin.cpl?.toFixed(2) || "0.00"}</p>
                         </div>
                         <div>
                           <span className="text-white/40">ROAS</span>
-                          <p className="font-mono font-bold text-white">{crossAnalysis.linkedin.roas?.toFixed(2) || "0.00"}x</p>
+                          <p className="font-mono font-bold text-[#1E2128]">{crossAnalysis.linkedin.roas?.toFixed(2) || "0.00"}x</p>
                         </div>
                         <div>
                           <span className="text-white/40">LTV Medio</span>
@@ -795,7 +795,7 @@ export function StefaniaWarMode({ partners }) {
 
           {/* Metrics Simulator */}
           <div className="bg-[#1a2332] border border-white/10 rounded-xl p-5">
-            <h3 className="text-sm font-extrabold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+            <h3 className="text-sm font-extrabold text-[#1E2128] uppercase tracking-wider mb-4 flex items-center gap-2">
               <Activity className="w-4 h-4 text-purple-400" /> Simulatore Metriche (Test Auto-Pivot)
             </h3>
             
@@ -814,7 +814,7 @@ export function StefaniaWarMode({ partners }) {
                     type="number"
                     value={metricsForm[field.key]}
                     onChange={e => setMetricsForm({ ...metricsForm, [field.key]: Number(e.target.value) })}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-[#1E2128]"
                   />
                 </div>
               ))}
@@ -823,13 +823,13 @@ export function StefaniaWarMode({ partners }) {
             <div className="flex gap-3">
               <button
                 onClick={() => updateMetrics("meta")}
-                className="flex-1 flex items-center justify-center gap-2 bg-blue-500 text-white rounded-lg px-4 py-2 text-sm font-bold hover:bg-blue-600"
+                className="flex-1 flex items-center justify-center gap-2 bg-blue-500 text-[#1E2128] rounded-lg px-4 py-2 text-sm font-bold hover:bg-blue-600"
               >
                 <Facebook className="w-4 h-4" /> Aggiorna Meta
               </button>
               <button
                 onClick={() => updateMetrics("linkedin")}
-                className="flex-1 flex items-center justify-center gap-2 bg-sky-600 text-white rounded-lg px-4 py-2 text-sm font-bold hover:bg-sky-700"
+                className="flex-1 flex items-center justify-center gap-2 bg-sky-600 text-[#1E2128] rounded-lg px-4 py-2 text-sm font-bold hover:bg-sky-700"
               >
                 <Linkedin className="w-4 h-4" /> Aggiorna LinkedIn
               </button>
@@ -841,7 +841,7 @@ export function StefaniaWarMode({ partners }) {
       {/* UTM Generator (always visible) */}
       {selectedPartner && (
         <div className="bg-[#1a2332] border border-white/10 rounded-xl p-5">
-          <h3 className="text-sm font-extrabold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+          <h3 className="text-sm font-extrabold text-[#1E2128] uppercase tracking-wider mb-4 flex items-center gap-2">
             <Link2 className="w-4 h-4 text-green-400" /> Tracking Automatizzato (UTM)
           </h3>
           
@@ -851,14 +851,14 @@ export function StefaniaWarMode({ partners }) {
               placeholder="URL Destinazione (Systeme.io)"
               value={destinationUrl}
               onChange={e => setDestinationUrl(e.target.value)}
-              className="col-span-2 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white placeholder:text-white/30"
+              className="col-span-2 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-white/30"
             />
             <input
               type="text"
               placeholder="Nome Campagna"
               value={campaignName}
               onChange={e => setCampaignName(e.target.value)}
-              className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white placeholder:text-white/30"
+              className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-white/30"
             />
           </div>
           
@@ -866,14 +866,14 @@ export function StefaniaWarMode({ partners }) {
             <button
               onClick={() => generateUtmLink("meta")}
               disabled={!destinationUrl}
-              className="flex items-center gap-2 bg-blue-500 text-white rounded-lg px-4 py-2 text-sm font-bold hover:bg-blue-600 disabled:opacity-50"
+              className="flex items-center gap-2 bg-blue-500 text-[#1E2128] rounded-lg px-4 py-2 text-sm font-bold hover:bg-blue-600 disabled:opacity-50"
             >
               <Facebook className="w-4 h-4" /> UTM Meta
             </button>
             <button
               onClick={() => generateUtmLink("linkedin")}
               disabled={!destinationUrl}
-              className="flex items-center gap-2 bg-sky-600 text-white rounded-lg px-4 py-2 text-sm font-bold hover:bg-sky-700 disabled:opacity-50"
+              className="flex items-center gap-2 bg-sky-600 text-[#1E2128] rounded-lg px-4 py-2 text-sm font-bold hover:bg-sky-700 disabled:opacity-50"
             >
               <Linkedin className="w-4 h-4" /> UTM LinkedIn
             </button>
@@ -886,13 +886,13 @@ export function StefaniaWarMode({ partners }) {
                   type="text"
                   value={generatedUtm.tracked_url}
                   readOnly
-                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white font-mono"
+                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-[#1E2128] font-mono"
                 />
                 <button 
                   onClick={() => copyToClipboard(generatedUtm.tracked_url)}
                   className="p-2 bg-green-500 rounded-lg"
                 >
-                  <Copy className="w-4 h-4 text-white" />
+                  <Copy className="w-4 h-4 text-[#1E2128]" />
                 </button>
               </div>
             </div>
@@ -1019,13 +1019,13 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
       <div className="bg-gradient-to-br from-purple-900/20 to-blue-900/10 border border-purple-500/30 rounded-xl p-5">
         <div className="flex items-center gap-4 mb-4">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
-            <Plug className="w-6 h-6 text-white" />
+            <Plug className="w-6 h-6 text-[#1E2128]" />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-extrabold text-white">API Real-Time Configuration</h3>
+            <h3 className="text-lg font-extrabold text-[#1E2128]">API Real-Time Configuration</h3>
             <p className="text-sm text-white/50">Collega Meta Ads Manager e LinkedIn Campaign Manager</p>
           </div>
-          <button onClick={loadCredStatus} className="p-2 text-white/30 hover:text-white">
+          <button onClick={loadCredStatus} className="p-2 text-white/30 hover:text-[#1E2128]">
             <RefreshCw className="w-5 h-5" />
           </button>
         </div>
@@ -1036,7 +1036,7 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
             <div className={`rounded-lg p-4 border ${credStatus.meta_configured ? "bg-green-500/10 border-green-500/30" : "bg-white/5 border-white/10"}`}>
               <div className="flex items-center gap-2 mb-2">
                 <Facebook className={`w-5 h-5 ${credStatus.meta_configured ? "text-green-400" : "text-white/30"}`} />
-                <span className="font-bold text-white">Meta Ads</span>
+                <span className="font-bold text-[#1E2128]">Meta Ads</span>
                 {credStatus.meta_configured ? (
                   <CheckCircle className="w-4 h-4 text-green-400" />
                 ) : (
@@ -1050,7 +1050,7 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
             <div className={`rounded-lg p-4 border ${credStatus.linkedin_configured ? "bg-green-500/10 border-green-500/30" : "bg-white/5 border-white/10"}`}>
               <div className="flex items-center gap-2 mb-2">
                 <Linkedin className={`w-5 h-5 ${credStatus.linkedin_configured ? "text-green-400" : "text-white/30"}`} />
-                <span className="font-bold text-white">LinkedIn Ads</span>
+                <span className="font-bold text-[#1E2128]">LinkedIn Ads</span>
                 {credStatus.linkedin_configured ? (
                   <CheckCircle className="w-4 h-4 text-green-400" />
                 ) : (
@@ -1071,7 +1071,7 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
         <div className="bg-[#1a2332] border border-blue-500/30 rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4">
             <Facebook className="w-5 h-5 text-blue-400" />
-            <h4 className="font-bold text-white">Meta Ads API</h4>
+            <h4 className="font-bold text-[#1E2128]">Meta Ads API</h4>
           </div>
           <div className="space-y-3">
             <div>
@@ -1081,7 +1081,7 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
                 placeholder="EAAxxxxxx..."
                 value={metaToken}
                 onChange={e => setMetaToken(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white placeholder:text-white/30"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-white/30"
               />
             </div>
             <div>
@@ -1091,7 +1091,7 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
                 placeholder="act_123456789"
                 value={metaAccountId}
                 onChange={e => setMetaAccountId(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white placeholder:text-white/30"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-white/30"
               />
             </div>
             <a 
@@ -1109,7 +1109,7 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
         <div className="bg-[#1a2332] border border-sky-500/30 rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4">
             <Linkedin className="w-5 h-5 text-sky-400" />
-            <h4 className="font-bold text-white">LinkedIn Ads API</h4>
+            <h4 className="font-bold text-[#1E2128]">LinkedIn Ads API</h4>
           </div>
           <div className="space-y-3">
             <div>
@@ -1119,7 +1119,7 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
                 placeholder="AQXxxxxxx..."
                 value={linkedinToken}
                 onChange={e => setLinkedinToken(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white placeholder:text-white/30"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-white/30"
               />
             </div>
             <div>
@@ -1129,7 +1129,7 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
                 placeholder="urn:li:sponsoredAccount:123456"
                 value={linkedinAccountUrn}
                 onChange={e => setLinkedinAccountUrn(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white placeholder:text-white/30"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-white/30"
               />
             </div>
             <a 
@@ -1147,7 +1147,7 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
       <button
         onClick={saveCredentials}
         disabled={loading}
-        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-xl px-6 py-3 font-bold text-sm hover:opacity-90 disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 text-[#1E2128] rounded-xl px-6 py-3 font-bold text-sm hover:opacity-90 disabled:opacity-50"
       >
         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
         Salva Credenziali API
@@ -1157,7 +1157,7 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
       <div className="bg-[#1a2332] border border-orange-500/30 rounded-xl p-5">
         <div className="flex items-center gap-2 mb-4">
           <AlertTriangle className="w-5 h-5 text-orange-400" />
-          <h4 className="font-bold text-white">Smart-Optimization Thresholds (Business Plan)</h4>
+          <h4 className="font-bold text-[#1E2128]">Smart-Optimization Thresholds (Business Plan)</h4>
         </div>
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
@@ -1166,7 +1166,7 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
               type="number"
               value={cplThresholdMeta}
               onChange={e => setCplThresholdMeta(Number(e.target.value))}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-[#1E2128]"
             />
           </div>
           <div>
@@ -1175,14 +1175,14 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
               type="number"
               value={cplThresholdLinkedin}
               onChange={e => setCplThresholdLinkedin(Number(e.target.value))}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-[#1E2128]"
             />
           </div>
         </div>
         <button
           onClick={syncMetrics}
           disabled={syncing}
-          className="w-full flex items-center justify-center gap-2 bg-orange-500 text-white rounded-lg px-4 py-3 font-bold text-sm hover:bg-orange-600 disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-2 bg-orange-500 text-[#1E2128] rounded-lg px-4 py-3 font-bold text-sm hover:bg-orange-600 disabled:opacity-50"
         >
           {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Activity className="w-4 h-4" />}
           Sync Metriche & Check Alert
@@ -1196,7 +1196,7 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
               ) : (
                 <CheckCircle className="w-5 h-5 text-green-400" />
               )}
-              <span className="font-bold text-white">
+              <span className="font-bold text-[#1E2128]">
                 {syncResult.alerts_triggered > 0 
                   ? `${syncResult.alerts_triggered} Alert Generati!` 
                   : "Nessun alert - Performance OK"}
@@ -1295,10 +1295,10 @@ function ROITab({ selectedPartner }) {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
-              <Receipt className="w-6 h-6 text-white" />
+              <Receipt className="w-6 h-6 text-[#1E2128]" />
             </div>
             <div>
-              <h3 className="text-lg font-extrabold text-white">ROI Effettivo — MARTA CRM</h3>
+              <h3 className="text-lg font-extrabold text-[#1E2128]">ROI Effettivo — MARTA CRM</h3>
               <p className="text-sm text-white/50">Calcolo basato su vendite reali registrate</p>
             </div>
           </div>
@@ -1306,13 +1306,13 @@ function ROITab({ selectedPartner }) {
             <select
               value={days}
               onChange={e => setDays(Number(e.target.value))}
-              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-[#1E2128]"
             >
               <option value="7">7 giorni</option>
               <option value="30">30 giorni</option>
               <option value="90">90 giorni</option>
             </select>
-            <button onClick={loadData} className="p-2 text-white/30 hover:text-white">
+            <button onClick={loadData} className="p-2 text-white/30 hover:text-[#1E2128]">
               <RefreshCw className="w-5 h-5" />
             </button>
           </div>
@@ -1351,7 +1351,7 @@ function ROITab({ selectedPartner }) {
       {/* Attribution by Source */}
       {salesData?.by_source && Object.keys(salesData.by_source).length > 0 && (
         <div className="bg-[#1a2332] border border-white/10 rounded-xl p-5">
-          <h4 className="font-bold text-white mb-4 flex items-center gap-2">
+          <h4 className="font-bold text-[#1E2128] mb-4 flex items-center gap-2">
             <Database className="w-4 h-4 text-purple-400" /> Attribution per Sorgente
           </h4>
           <div className="grid grid-cols-3 gap-4">
@@ -1361,7 +1361,7 @@ function ROITab({ selectedPartner }) {
                   {source === "meta" && <Facebook className="w-4 h-4 text-blue-400" />}
                   {source === "linkedin" && <Linkedin className="w-4 h-4 text-sky-400" />}
                   {source === "direct" && <Users className="w-4 h-4 text-white/40" />}
-                  <span className="font-bold text-white capitalize">{source}</span>
+                  <span className="font-bold text-[#1E2128] capitalize">{source}</span>
                 </div>
                 <div className="text-lg font-mono font-bold text-green-400">€{data.revenue?.toFixed(0)}</div>
                 <div className="text-xs text-white/40">{data.count} vendite</div>
@@ -1373,7 +1373,7 @@ function ROITab({ selectedPartner }) {
 
       {/* Record Sale Form */}
       <div className="bg-[#1a2332] border border-white/10 rounded-xl p-5">
-        <h4 className="font-bold text-white mb-4 flex items-center gap-2">
+        <h4 className="font-bold text-[#1E2128] mb-4 flex items-center gap-2">
           <CreditCard className="w-4 h-4 text-green-400" /> Registra Vendita
         </h4>
         <div className="grid grid-cols-4 gap-3">
@@ -1384,7 +1384,7 @@ function ROITab({ selectedPartner }) {
               placeholder="497"
               value={saleAmount}
               onChange={e => setSaleAmount(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-[#1E2128]"
             />
           </div>
           <div>
@@ -1392,7 +1392,7 @@ function ROITab({ selectedPartner }) {
             <select
               value={saleSource}
               onChange={e => setSaleSource(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-[#1E2128]"
             >
               <option value="meta">Meta</option>
               <option value="linkedin">LinkedIn</option>
@@ -1408,14 +1408,14 @@ function ROITab({ selectedPartner }) {
               placeholder="masterclass_launch"
               value={saleCampaign}
               onChange={e => setSaleCampaign(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-[#1E2128]"
             />
           </div>
           <div className="flex items-end">
             <button
               onClick={recordSale}
               disabled={recordingSale || !saleAmount}
-              className="w-full flex items-center justify-center gap-2 bg-green-500 text-white rounded-lg px-4 py-2 text-sm font-bold hover:bg-green-600 disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 bg-green-500 text-[#1E2128] rounded-lg px-4 py-2 text-sm font-bold hover:bg-green-600 disabled:opacity-50"
             >
               {recordingSale ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
               Registra
@@ -1443,7 +1443,7 @@ function ROITab({ selectedPartner }) {
                     {(!sale.utm_source || sale.utm_source === "direct") && <Users className="w-4 h-4 text-white/40" />}
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-white">€{sale.amount?.toFixed(0)}</div>
+                    <div className="text-sm font-bold text-[#1E2128]">€{sale.amount?.toFixed(0)}</div>
                     <div className="text-xs text-white/40">{sale.utm_campaign || sale.utm_source || "direct"}</div>
                   </div>
                 </div>

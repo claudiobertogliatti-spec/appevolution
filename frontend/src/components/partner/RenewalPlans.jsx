@@ -98,7 +98,7 @@ export function RenewalPlans({ partnerName, currentRevenue, onSelectPlan }) {
 
       {/* Current Stats */}
       {currentRevenue > 0 && (
-        <div className="bg-gradient-to-r from-[#1a2332] to-[#2c3e55] rounded-xl p-6 mb-8 text-white">
+        <div className="bg-gradient-to-r from-[#1a2332] to-[#2c3e55] rounded-xl p-6 mb-8 text-[#1E2128]">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm text-[#5F6572] mb-1">Il tuo Asset Value</div>
@@ -179,7 +179,7 @@ export function RenewalPlans({ partnerName, currentRevenue, onSelectPlan }) {
               <div className="px-6 py-4">
                 <button
                   onClick={() => handleSelect(plan)}
-                  className="w-full py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all hover:opacity-90"
+                  className="w-full py-3 rounded-xl font-bold text-[#1E2128] flex items-center justify-center gap-2 transition-all hover:opacity-90"
                   style={{ backgroundColor: plan.color }}
                 >
                   Scegli {plan.name.split(" ")[1]}
@@ -238,7 +238,7 @@ export function RenewalPlans({ partnerName, currentRevenue, onSelectPlan }) {
               </button>
               <button
                 onClick={handleConfirm}
-                className="flex-1 py-3 rounded-xl font-bold text-white transition-colors"
+                className="flex-1 py-3 rounded-xl font-bold text-[#1E2128] transition-colors"
                 style={{ backgroundColor: selectedPlan.color }}
               >
                 Conferma

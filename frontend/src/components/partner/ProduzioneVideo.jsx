@@ -123,10 +123,10 @@ export function ProduzioneVideo({ partner }) {
         <div className="bg-gradient-to-br from-[#1a2332] to-[#2c3e55] rounded-xl p-5">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-              <Video className="w-6 h-6 text-white" />
+              <Video className="w-6 h-6 text-[#1E2128]" />
             </div>
             <div className="flex-1">
-              <h2 className="text-lg font-extrabold text-white">Produzione Video — ANDREA</h2>
+              <h2 className="text-lg font-extrabold text-[#1E2128]">Produzione Video — ANDREA</h2>
               <p className="text-sm text-[#5F6572]">Surgical Cut & Recording Support</p>
             </div>
             <div className="text-right">
@@ -150,7 +150,7 @@ export function ProduzioneVideo({ partner }) {
                 <CheckCircle className="w-4 h-4 text-yellow-400" />
               </div>
               <div>
-                <div className="text-sm font-extrabold text-white">Pre-Flight Checklist</div>
+                <div className="text-sm font-extrabold text-[#1E2128]">Pre-Flight Checklist</div>
                 <div className="text-xs text-[#9CA3AF]">
                   {Object.values(checklist).filter(Boolean).length}/{CHECKLIST_ITEMS.length} completati
                 </div>
@@ -200,7 +200,7 @@ export function ProduzioneVideo({ partner }) {
                   <FileVideo className="w-4 h-4 text-blue-400" />
                 </div>
                 <div>
-                  <div className="text-sm font-extrabold text-white">Teleprompter — Script a Blocchi</div>
+                  <div className="text-sm font-extrabold text-[#1E2128]">Teleprompter — Script a Blocchi</div>
                   <div className="text-xs text-[#9CA3AF]">
                     Registra e carica un blocco alla volta
                   </div>
@@ -221,11 +221,11 @@ export function ProduzioneVideo({ partner }) {
                       onClick={() => setExpandedBlock(isExpanded ? null : blockConfig.id)}
                       className="flex items-center gap-3 p-3 cursor-pointer hover:bg-[#FAFAF7] transition-colors"
                     >
-                      <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${blockConfig.color} flex items-center justify-center text-white font-bold text-xs`}>
+                      <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${blockConfig.color} flex items-center justify-center text-[#1E2128] font-bold text-xs`}>
                         {index + 1}
                       </div>
                       <div className="flex-1">
-                        <div className="text-sm font-bold text-white">{blockConfig.label}</div>
+                        <div className="text-sm font-bold text-[#1E2128]">{blockConfig.label}</div>
                         <div className="text-[10px] text-white/30">{blockConfig.tip}</div>
                       </div>
                       
@@ -258,7 +258,7 @@ export function ProduzioneVideo({ partner }) {
                         {/* Upload / Actions */}
                         {block?.status !== 'approved' && (
                           <div className="flex gap-2">
-                            <label className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg px-4 py-3 text-sm font-bold cursor-pointer hover:opacity-90 transition-opacity">
+                            <label className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-[#1E2128] rounded-lg px-4 py-3 text-sm font-bold cursor-pointer hover:opacity-90 transition-opacity">
                               {isUploading ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
                               ) : (
@@ -310,7 +310,7 @@ export function ProduzioneVideo({ partner }) {
                     });
                     alert("Assembly avviato! ANDREA sta concatenando i blocchi.");
                   }}
-                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl px-6 py-4 text-sm font-extrabold hover:opacity-90 transition-opacity"
+                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 text-[#1E2128] rounded-xl px-6 py-4 text-sm font-extrabold hover:opacity-90 transition-opacity"
                 >
                   <Sparkles className="w-5 h-5" />
                   Assembla Video Finale con Intro/Outro

@@ -69,11 +69,11 @@ export function StefaniaChat({ partner, currentBlock, scriptContext, onScriptUpd
       {/* Header */}
       <div className="p-4 border-b border-[#ECEDEF] bg-gradient-to-r from-pink-500/20 to-purple-500/20">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-lg">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-[#1E2128] font-bold text-sm shadow-lg">
             SF
           </div>
           <div>
-            <div className="text-sm font-extrabold text-white flex items-center gap-2">
+            <div className="text-sm font-extrabold text-[#1E2128] flex items-center gap-2">
               STEFANIA
               <span className="text-[10px] font-bold bg-pink-500/20 text-pink-400 px-2 py-0.5 rounded-full">
                 Copy & Marketing Tutor
@@ -97,7 +97,7 @@ export function StefaniaChat({ partner, currentBlock, scriptContext, onScriptUpd
             <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
               ${msg.role === "user" 
                 ? "bg-[#F5C518] text-black" 
-                : "bg-gradient-to-br from-pink-500 to-purple-500 text-white"}`}
+                : "bg-gradient-to-br from-pink-500 to-purple-500 text-[#1E2128]"}`}
             >
               {msg.role === "user" ? <User className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
             </div>
@@ -117,7 +117,7 @@ export function StefaniaChat({ partner, currentBlock, scriptContext, onScriptUpd
         {loading && (
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center">
-              <RefreshCw className="w-4 h-4 text-white animate-spin" />
+              <RefreshCw className="w-4 h-4 text-[#1E2128] animate-spin" />
             </div>
             <div className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-3">
               <div className="flex gap-1">
@@ -140,13 +140,13 @@ export function StefaniaChat({ partner, currentBlock, scriptContext, onScriptUpd
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()}
             placeholder="Scrivi il tuo contenuto o fai una domanda a Stefania..."
-            className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-pink-500/50 transition-colors"
+            className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-3 text-sm text-[#1E2128] placeholder:text-white/30 outline-none focus:border-pink-500/50 transition-colors"
             disabled={loading}
           />
           <button
             onClick={sendMessage}
             disabled={loading || !input.trim()}
-            className="bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl px-4 py-3 font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-gradient-to-r from-pink-500 to-purple-500 text-[#1E2128] rounded-xl px-4 py-3 font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="w-4 h-4" />
           </button>

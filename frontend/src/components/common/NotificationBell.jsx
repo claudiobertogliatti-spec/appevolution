@@ -30,7 +30,7 @@ export function NotificationBell({ onNavigate }) {
       >
         <Bell className="w-4 h-4 text-[#5F6572]" />
         {unread > 0 && (
-          <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#dc2626] text-white text-[9px] font-bold flex items-center justify-center border-2 border-[#1a2332]">
+          <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#dc2626] text-[#1E2128] text-[9px] font-bold flex items-center justify-center border-2 border-[#1a2332]">
             {unread}
           </div>
         )}

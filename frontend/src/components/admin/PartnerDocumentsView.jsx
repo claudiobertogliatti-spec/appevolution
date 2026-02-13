@@ -41,11 +41,11 @@ function DocumentModal({ partner, documents, onClose }) {
               {partner.partner_name?.split(" ").map(n => n[0]).join("")}
             </div>
             <div>
-              <div className="font-bold text-white">{partner.partner_name}</div>
+              <div className="font-bold text-[#1E2128]">{partner.partner_name}</div>
               <div className="text-xs text-[#9CA3AF]">Fase {partner.partner_phase} · Documenti</div>
             </div>
           </div>
-          <button onClick={onClose} className="text-[#9CA3AF] hover:text-white transition-colors">
+          <button onClick={onClose} className="text-[#9CA3AF] hover:text-[#1E2128] transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>

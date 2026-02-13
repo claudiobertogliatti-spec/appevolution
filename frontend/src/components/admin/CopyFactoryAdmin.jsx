@@ -105,26 +105,26 @@ export function CopyFactoryAdmin({ currentAdmin }) {
       <div className="bg-gradient-to-br from-[#1a2332] to-[#2c3e55] rounded-xl p-5 border border-pink-500/20">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center">
-            <Edit3 className="w-6 h-6 text-white" />
+            <Edit3 className="w-6 h-6 text-[#1E2128]" />
           </div>
           <div className="flex-1">
-            <h2 className="text-lg font-extrabold text-white">STEFANIA Copy Factory — Admin Review</h2>
+            <h2 className="text-lg font-extrabold text-[#1E2128]">STEFANIA Copy Factory — Admin Review</h2>
             <p className="text-sm text-[#5F6572]">Editing finale delle Masterclass prima dell'approvazione Partner</p>
           </div>
           <div className="flex gap-2">
             <button 
               onClick={() => setShowRules(!showRules)}
-              className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors ${showRules ? "bg-pink-500 text-white" : "bg-[#FAFAF7] border border-[#ECEDEF] text-[#5F6572] hover:border-pink-500/30"}`}
+              className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors ${showRules ? "bg-pink-500 text-[#1E2128]" : "bg-[#FAFAF7] border border-[#ECEDEF] text-[#5F6572] hover:border-pink-500/30"}`}
             >
               <BookOpen className="w-4 h-4" /> 10 Regole d'Oro
             </button>
             <button 
               onClick={() => setShowCases(!showCases)}
-              className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors ${showCases ? "bg-purple-500 text-white" : "bg-[#FAFAF7] border border-[#ECEDEF] text-[#5F6572] hover:border-purple-500/30"}`}
+              className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors ${showCases ? "bg-purple-500 text-[#1E2128]" : "bg-[#FAFAF7] border border-[#ECEDEF] text-[#5F6572] hover:border-purple-500/30"}`}
             >
               <Sparkles className="w-4 h-4" /> Successi EVO
             </button>
-            <button onClick={loadData} className="p-2 text-white/30 hover:text-white">
+            <button onClick={loadData} className="p-2 text-white/30 hover:text-[#1E2128]">
               <RefreshCw className="w-4 h-4" />
             </button>
           </div>
@@ -142,7 +142,7 @@ export function CopyFactoryAdmin({ currentAdmin }) {
               <div key={rule.num} className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="w-6 h-6 rounded-full bg-pink-500/20 text-pink-400 text-xs font-bold flex items-center justify-center">{rule.num}</span>
-                  <span className="text-sm font-bold text-white">{rule.title}</span>
+                  <span className="text-sm font-bold text-[#1E2128]">{rule.title}</span>
                 </div>
                 <p className="text-xs text-[#5F6572] mb-2">{rule.description}</p>
                 {rule.master && <span className="text-[10px] text-pink-400/60">— {rule.master}</span>}
@@ -162,7 +162,7 @@ export function CopyFactoryAdmin({ currentAdmin }) {
             {successCases.map(c => (
               <div key={c.id} className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-bold text-white">{c.partner_name}</span>
+                  <span className="font-bold text-[#1E2128]">{c.partner_name}</span>
                   <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">{c.result}</span>
                 </div>
                 <span className="text-xs text-[#9CA3AF] block mb-3">{c.niche}</span>
@@ -211,7 +211,7 @@ export function CopyFactoryAdmin({ currentAdmin }) {
                       {script.partner_info?.name?.split(" ").map(n => n[0]).join("") || "?"}
                     </div>
                     <div className="flex-1">
-                      <div className="font-bold text-sm text-white">{script.partner_info?.name || "Partner"}</div>
+                      <div className="font-bold text-sm text-[#1E2128]">{script.partner_info?.name || "Partner"}</div>
                       <div className="text-xs text-[#9CA3AF]">{script.partner_info?.niche || ""}</div>
                     </div>
                     <ChevronRight className={`w-4 h-4 transition-transform ${isSelected ? "rotate-90 text-pink-400" : "text-white/30"}`} />
@@ -248,7 +248,7 @@ export function CopyFactoryAdmin({ currentAdmin }) {
                       {selectedScript.partner_info?.name?.split(" ").map(n => n[0]).join("") || "?"}
                     </div>
                     <div>
-                      <div className="font-extrabold text-white">{selectedScript.partner_info?.name}</div>
+                      <div className="font-extrabold text-[#1E2128]">{selectedScript.partner_info?.name}</div>
                       <div className="text-sm text-[#9CA3AF]">{selectedScript.partner_info?.niche}</div>
                     </div>
                   </div>
@@ -283,7 +283,7 @@ export function CopyFactoryAdmin({ currentAdmin }) {
                         value={editedBlocks[blockId] || ""}
                         onChange={e => updateBlock(blockId, e.target.value)}
                         placeholder={`Scrivi il contenuto per ${label}...`}
-                        className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-pink-500/50 transition-colors resize-none min-h-[100px]"
+                        className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 text-sm text-[#1E2128] placeholder:text-white/30 outline-none focus:border-pink-500/50 transition-colors resize-none min-h-[100px]"
                       />
                     </div>
                   ))}
@@ -297,7 +297,7 @@ export function CopyFactoryAdmin({ currentAdmin }) {
                   value={adminNotes}
                   onChange={e => setAdminNotes(e.target.value)}
                   placeholder="Es: Ho modificato l'hook per renderlo più provocatorio..."
-                  className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-pink-500/50 transition-colors resize-none min-h-[80px]"
+                  className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 text-sm text-[#1E2128] placeholder:text-white/30 outline-none focus:border-pink-500/50 transition-colors resize-none min-h-[80px]"
                 />
               </div>
 
@@ -312,7 +312,7 @@ export function CopyFactoryAdmin({ currentAdmin }) {
                 <button
                   onClick={saveAndSendToPartner}
                   disabled={saving}
-                  className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl px-6 py-3 text-sm font-extrabold hover:opacity-90 transition-opacity disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-purple-500 text-[#1E2128] rounded-xl px-6 py-3 text-sm font-extrabold hover:opacity-90 transition-opacity disabled:opacity-50"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   Salva e Invia al Partner per Approvazione

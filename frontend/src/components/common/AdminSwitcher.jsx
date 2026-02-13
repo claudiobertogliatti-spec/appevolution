@@ -20,11 +20,11 @@ export function AdminSwitcher({ adminUser, setAdminUser, setNav }) {
         onClick={() => { setAdminUser("antonella"); setNav("overview"); }}
         className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-extrabold transition-all
           ${adminUser === "antonella" 
-            ? 'bg-purple-500 text-white shadow-md' 
+            ? 'bg-purple-500 text-[#1E2128] shadow-md' 
             : 'bg-white/10 text-[#5F6572] hover:bg-white/15 hover:text-white/90'}`}
         data-testid="admin-switch-antonella"
       >
-        <span className="w-7 h-7 rounded-full bg-purple-600 text-white flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+        <span className="w-7 h-7 rounded-full bg-purple-600 text-[#1E2128] flex items-center justify-center text-[10px] font-bold flex-shrink-0">
           AR
         </span>
         <span className="text-left">Antonella Rossi</span>

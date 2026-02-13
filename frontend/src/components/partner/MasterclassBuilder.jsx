@@ -245,10 +245,10 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
         <div className="bg-gradient-to-br from-[#1a2332] to-[#2c3e55] rounded-xl p-5">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center">
-              <FileText className="w-6 h-6 text-white" />
+              <FileText className="w-6 h-6 text-[#1E2128]" />
             </div>
             <div className="flex-1">
-              <h2 className="text-lg font-extrabold text-white">Script Builder — 6 Blocchi</h2>
+              <h2 className="text-lg font-extrabold text-[#1E2128]">Script Builder — 6 Blocchi</h2>
               <p className="text-sm text-[#5F6572]">Masterclass Trasformativa per {partner?.name}</p>
             </div>
             <div className="text-right">
@@ -272,7 +272,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
             </span>
             <button
               onClick={() => setShowGoldenRules(!showGoldenRules)}
-              className={`text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 transition-colors ${showGoldenRules ? "bg-pink-500 text-white" : "bg-[#FAFAF7] text-[#9CA3AF] hover:bg-white/10"}`}
+              className={`text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 transition-colors ${showGoldenRules ? "bg-pink-500 text-[#1E2128]" : "bg-[#FAFAF7] text-[#9CA3AF] hover:bg-white/10"}`}
             >
               <BookOpen className="w-3 h-3" /> 10 Regole d'Oro
             </button>
@@ -291,7 +291,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
               <button
                 onClick={() => approveAdminEdit(true)}
                 disabled={approving}
-                className="flex-1 flex items-center justify-center gap-2 bg-green-500 text-white rounded-lg px-4 py-2 text-sm font-bold hover:bg-green-600 disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-2 bg-green-500 text-[#1E2128] rounded-lg px-4 py-2 text-sm font-bold hover:bg-green-600 disabled:opacity-50"
               >
                 {approving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ThumbsUp className="w-4 h-4" />}
                 Approva
@@ -299,7 +299,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
               <button
                 onClick={() => approveAdminEdit(false)}
                 disabled={approving}
-                className="flex-1 flex items-center justify-center gap-2 bg-orange-500 text-white rounded-lg px-4 py-2 text-sm font-bold hover:bg-orange-600 disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-2 bg-orange-500 text-[#1E2128] rounded-lg px-4 py-2 text-sm font-bold hover:bg-orange-600 disabled:opacity-50"
               >
                 <ThumbsDown className="w-4 h-4" /> Richiedi Modifica
               </button>
@@ -309,7 +309,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
               placeholder="Feedback opzionale..."
               value={partnerFeedback}
               onChange={e => setPartnerFeedback(e.target.value)}
-              className="w-full mt-2 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30"
+              className="w-full mt-2 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm text-[#1E2128] placeholder:text-white/30"
             />
           </div>
         )}
@@ -323,7 +323,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
                 <div key={rule.num} className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg p-2 text-xs">
                   <div className="flex items-center gap-2">
                     <span className="w-5 h-5 rounded-full bg-pink-500/20 text-pink-400 text-[10px] font-bold flex items-center justify-center">{rule.num}</span>
-                    <span className="font-bold text-white">{rule.title}</span>
+                    <span className="font-bold text-[#1E2128]">{rule.title}</span>
                   </div>
                   <p className="text-[#5F6572] mt-1 ml-7">{rule.description}</p>
                 </div>
@@ -337,7 +337,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
           <button
             onClick={generateAIDraft}
             disabled={generatingDraft}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl px-4 py-3 text-sm font-extrabold hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-[#1E2128] rounded-xl px-4 py-3 text-sm font-extrabold hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {generatingDraft ? (
               <>
@@ -372,12 +372,12 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
                   className="p-4 flex items-center gap-3 cursor-pointer hover:bg-[#FAFAF7] transition-colors"
                 >
                   <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${block.color} flex items-center justify-center`}>
-                    <Icon className="w-5 h-5 text-white" />
+                    <Icon className="w-5 h-5 text-[#1E2128]" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-mono text-white/30">{index + 1}</span>
-                      <span className="text-sm font-extrabold text-white">{block.label}</span>
+                      <span className="text-sm font-extrabold text-[#1E2128]">{block.label}</span>
                       {hasContent && <CheckCircle className="w-4 h-4 text-green-500" />}
                     </div>
                     <div className="text-xs text-[#9CA3AF]">{block.subtitle}</div>
@@ -405,7 +405,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
                       value={script[block.id]}
                       onChange={e => updateBlock(block.id, e.target.value)}
                       placeholder={block.placeholder}
-                      className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-pink-500/50 transition-colors resize-none min-h-[120px]"
+                      className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 text-sm text-[#1E2128] placeholder:text-white/30 outline-none focus:border-pink-500/50 transition-colors resize-none min-h-[120px]"
                     />
                     
                     <div className="flex justify-between items-center mt-2">
@@ -450,7 +450,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
               <button
                 onClick={sendToAdminReview}
                 disabled={submitting || completion < 80}
-                className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl px-4 py-3 text-sm font-extrabold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-purple-500 text-[#1E2128] rounded-xl px-4 py-3 text-sm font-extrabold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 Invia ad Admin

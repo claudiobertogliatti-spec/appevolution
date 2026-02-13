@@ -74,7 +74,7 @@ export function BrandKitEditor({ partner, onSave }) {
             <Palette className="w-5 h-5 text-black" />
           </div>
           <div>
-            <h3 className="text-sm font-extrabold text-white">Brand Kit</h3>
+            <h3 className="text-sm font-extrabold text-[#1E2128]">Brand Kit</h3>
             <p className="text-xs text-[#9CA3AF]">Personalizza i tuoi materiali marketing</p>
           </div>
           <button
@@ -116,7 +116,7 @@ export function BrandKitEditor({ partner, onSave }) {
                   type="text"
                   value={brandKit.brand_color}
                   onChange={e => updateField('brand_color', e.target.value)}
-                  className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm font-mono text-white uppercase"
+                  className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm font-mono text-[#1E2128] uppercase"
                 />
               </div>
             </div>
@@ -133,7 +133,7 @@ export function BrandKitEditor({ partner, onSave }) {
                   type="text"
                   value={brandKit.brand_color_secondary}
                   onChange={e => updateField('brand_color_secondary', e.target.value)}
-                  className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm font-mono text-white uppercase"
+                  className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm font-mono text-[#1E2128] uppercase"
                 />
               </div>
             </div>
@@ -168,7 +168,7 @@ export function BrandKitEditor({ partner, onSave }) {
                 value={brandKit.logo_url || ""}
                 onChange={e => updateField('logo_url', e.target.value)}
                 placeholder="https://esempio.com/logo.png"
-                className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518] transition-colors"
+                className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2.5 text-sm text-[#1E2128] placeholder:text-white/30 outline-none focus:border-[#F5C518] transition-colors"
               />
               <div className="text-[10px] text-white/30 mt-1">Incolla l'URL del tuo logo (PNG trasparente consigliato)</div>
             </div>
@@ -185,7 +185,7 @@ export function BrandKitEditor({ partner, onSave }) {
             value={brandKit.tagline || ""}
             onChange={e => updateField('tagline', e.target.value)}
             placeholder="es. 'Trasforma la tua expertise in un business digitale'"
-            className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518] transition-colors"
+            className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 text-sm text-[#1E2128] placeholder:text-white/30 outline-none focus:border-[#F5C518] transition-colors"
           />
         </div>
 
@@ -200,14 +200,14 @@ export function BrandKitEditor({ partner, onSave }) {
               value={brandKit.email || ""}
               onChange={e => updateField('email', e.target.value)}
               placeholder="Email"
-              className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518]"
+              className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2.5 text-sm text-[#1E2128] placeholder:text-white/30 outline-none focus:border-[#F5C518]"
             />
             <input
               type="url"
               value={brandKit.website || ""}
               onChange={e => updateField('website', e.target.value)}
               placeholder="Sito web"
-              className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518]"
+              className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2.5 text-sm text-[#1E2128] placeholder:text-white/30 outline-none focus:border-[#F5C518]"
             />
           </div>
         </div>
@@ -225,7 +225,7 @@ export function BrandKitEditor({ partner, onSave }) {
                 value={brandKit.social_instagram || ""}
                 onChange={e => updateField('social_instagram', e.target.value)}
                 placeholder="@username"
-                className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518]"
+                className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-white/30 outline-none focus:border-[#F5C518]"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -235,7 +235,7 @@ export function BrandKitEditor({ partner, onSave }) {
                 value={brandKit.social_linkedin || ""}
                 onChange={e => updateField('social_linkedin', e.target.value)}
                 placeholder="linkedin.com/in/username"
-                className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518]"
+                className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-white/30 outline-none focus:border-[#F5C518]"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -245,7 +245,7 @@ export function BrandKitEditor({ partner, onSave }) {
                 value={brandKit.social_youtube || ""}
                 onChange={e => updateField('social_youtube', e.target.value)}
                 placeholder="youtube.com/@channel"
-                className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518]"
+                className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-white/30 outline-none focus:border-[#F5C518]"
               />
             </div>
           </div>

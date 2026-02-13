@@ -249,18 +249,18 @@ export function CourseBuilderWizard({ partnerId, positioningData, onComplete }) 
             <div key={mi} className="bg-white border border-gray-200 rounded-xl mb-4 overflow-hidden shadow-sm" data-testid={`module-${mi}`}>
               {/* Module Header */}
               <div className="bg-gradient-to-r from-pink-600 to-pink-400 px-5 py-3 flex items-center gap-3">
-                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-[#1E2128] font-bold text-sm">
                   M{mod.numero}
                 </div>
                 <input
                   value={mod.titolo}
                   onChange={e => updateModulo(mi, "titolo", e.target.value)}
-                  className="flex-1 bg-transparent text-white font-bold text-lg placeholder-white/60 outline-none"
+                  className="flex-1 bg-transparent text-[#1E2128] font-bold text-lg placeholder-white/60 outline-none"
                   placeholder="Titolo modulo"
                 />
                 <button
                   onClick={() => handleAskAboutModule(mi)}
-                  className="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors"
+                  className="bg-white/20 hover:bg-white/30 text-[#1E2128] text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors"
                 >
                   <MessageCircle className="w-3 h-3" />
                   Chiedi a STEFANIA
@@ -357,7 +357,7 @@ export function CourseBuilderWizard({ partnerId, positioningData, onComplete }) 
               S
             </div>
             <div>
-              <div className="text-white font-bold text-sm">STEFANIA AI</div>
+              <div className="text-[#1E2128] font-bold text-sm">STEFANIA AI</div>
               <div className="text-white/70 text-xs">Consulente Instructional Design</div>
             </div>
           </div>
@@ -373,7 +373,7 @@ export function CourseBuilderWizard({ partnerId, positioningData, onComplete }) 
                 )}
                 <div className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${
                   msg.role === "user" 
-                    ? "bg-white text-white" 
+                    ? "bg-white text-[#1E2128]" 
                     : "bg-pink-50 text-gray-700"
                 }`}>
                   {msg.content}
@@ -411,7 +411,7 @@ export function CourseBuilderWizard({ partnerId, positioningData, onComplete }) 
               <button
                 onClick={handleChatSend}
                 disabled={!chatInput.trim() || chatLoading}
-                className="w-10 h-10 bg-pink-600 text-white rounded-lg flex items-center justify-center hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed self-end"
+                className="w-10 h-10 bg-pink-600 text-[#1E2128] rounded-lg flex items-center justify-center hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed self-end"
               >
                 <Send className="w-4 h-4" />
               </button>

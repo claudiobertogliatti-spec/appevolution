@@ -34,7 +34,7 @@ export function MetrichePostLancio({ partners = [] }) {
         <div className="bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl p-5">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse shadow-lg shadow-green-400/50" />
-            <span className="text-sm font-extrabold text-white">Systeme.io — Dati Live</span>
+            <span className="text-sm font-extrabold text-[#1E2128]">Systeme.io — Dati Live</span>
             <span className="ml-auto text-xs font-semibold text-[#5F6572]">
               Ultimo sync: {SYSTEME_STATUS.lastSync}
             </span>
@@ -48,7 +48,7 @@ export function MetrichePostLancio({ partners = [] }) {
             ].map((k, i) => (
               <div key={i} className="bg-white/15 backdrop-blur rounded-lg p-3">
                 <div className="text-lg mb-1">{k.icon}</div>
-                <div className="font-mono text-xl font-bold text-white">{k.v}</div>
+                <div className="font-mono text-xl font-bold text-[#1E2128]">{k.v}</div>
                 <div className="text-[10px] font-semibold text-[#5F6572] mt-1">{k.l}</div>
                 {k.sub && <div className="text-[10px] font-medium text-[#9CA3AF]">{k.sub}</div>}
               </div>

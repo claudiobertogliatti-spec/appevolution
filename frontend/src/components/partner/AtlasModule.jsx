@@ -97,16 +97,16 @@ export function AtlasModule({ partner, isAdmin = false }) {
       <div className="bg-gradient-to-br from-yellow-900/30 to-amber-900/20 border border-yellow-500/30 rounded-xl p-5">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-yellow-500 to-amber-500 flex items-center justify-center">
-            <Trophy className="w-7 h-7 text-white" />
+            <Trophy className="w-7 h-7 text-[#1E2128]" />
           </div>
           <div className="flex-1">
-            <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
+            <h2 className="text-xl font-extrabold text-[#1E2128] flex items-center gap-2">
               ATLAS — Post-Sale & LTV
               <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full">Academy Intelligence</span>
             </h2>
             <p className="text-sm text-[#5F6572]">Gamification · Feedback-to-Copy · Lifetime Value Tracking</p>
           </div>
-          <button onClick={loadData} className="p-2 text-white/30 hover:text-white">
+          <button onClick={loadData} className="p-2 text-white/30 hover:text-[#1E2128]">
             <RefreshCw className="w-5 h-5" />
           </button>
         </div>
@@ -189,13 +189,13 @@ export function AtlasModule({ partner, isAdmin = false }) {
           <div className="grid grid-cols-3 gap-6">
             {/* Student Funnel */}
             <div className="bg-white border border-[#ECEDEF] rounded-xl p-5">
-              <h3 className="font-bold text-white mb-4 flex items-center gap-2">
+              <h3 className="font-bold text-[#1E2128] mb-4 flex items-center gap-2">
                 <Users className="w-4 h-4 text-green-400" /> Student Funnel
               </h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-[#5F6572]">Totali</span>
-                  <span className="font-mono font-bold text-white">{ltvData.students?.total || 0}</span>
+                  <span className="font-mono font-bold text-[#1E2128]">{ltvData.students?.total || 0}</span>
                 </div>
                 <div className="h-2 bg-white/10 rounded-full overflow-hidden">
                   <div className="h-full bg-gradient-to-r from-green-500 to-emerald-500" style={{ width: "100%" }} />
@@ -232,13 +232,13 @@ export function AtlasModule({ partner, isAdmin = false }) {
 
             {/* Referral Performance */}
             <div className="bg-white border border-[#ECEDEF] rounded-xl p-5">
-              <h3 className="font-bold text-white mb-4 flex items-center gap-2">
+              <h3 className="font-bold text-[#1E2128] mb-4 flex items-center gap-2">
                 <UserPlus className="w-4 h-4 text-purple-400" /> Referral Performance
               </h3>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-[#FAFAF7] rounded-lg p-3 text-center">
-                    <div className="font-mono text-2xl font-bold text-white">{ltvData.referrals?.total || 0}</div>
+                    <div className="font-mono text-2xl font-bold text-[#1E2128]">{ltvData.referrals?.total || 0}</div>
                     <div className="text-[10px] text-[#9CA3AF]">Referral Totali</div>
                   </div>
                   <div className="bg-[#FAFAF7] rounded-lg p-3 text-center">
@@ -257,7 +257,7 @@ export function AtlasModule({ partner, isAdmin = false }) {
 
             {/* Gamification Stats */}
             <div className="bg-white border border-[#ECEDEF] rounded-xl p-5">
-              <h3 className="font-bold text-white mb-4 flex items-center gap-2">
+              <h3 className="font-bold text-[#1E2128] mb-4 flex items-center gap-2">
                 <Trophy className="w-4 h-4 text-yellow-400" /> Gamification
               </h3>
               <div className="space-y-3">
@@ -319,11 +319,11 @@ export function AtlasModule({ partner, isAdmin = false }) {
             ) : (
               students.map(student => (
                 <div key={student.id} className="p-4 flex items-center gap-4 hover:bg-[#FAFAF7]">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500 to-amber-500 flex items-center justify-center text-white font-bold">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500 to-amber-500 flex items-center justify-center text-[#1E2128] font-bold">
                     {student.name?.charAt(0) || "?"}
                   </div>
                   <div className="flex-1">
-                    <div className="font-bold text-sm text-white">{student.name}</div>
+                    <div className="font-bold text-sm text-[#1E2128]">{student.name}</div>
                     <div className="text-xs text-[#9CA3AF]">{student.email}</div>
                   </div>
                   <div className="text-center px-3">
@@ -356,7 +356,7 @@ export function AtlasModule({ partner, isAdmin = false }) {
       {activeTab === "bonuses" && (
         <div className="space-y-4">
           <div className="bg-white border border-[#ECEDEF] rounded-xl p-5">
-            <h3 className="font-bold text-white mb-4 flex items-center gap-2">
+            <h3 className="font-bold text-[#1E2128] mb-4 flex items-center gap-2">
               <Gift className="w-5 h-5 text-pink-400" /> Dynamic Content Unlock
             </h3>
             <p className="text-sm text-[#5F6572] mb-4">
@@ -377,7 +377,7 @@ export function AtlasModule({ partner, isAdmin = false }) {
                         <div className="flex items-center gap-2">
                           <span className="text-2xl">{condition.icon || "🎁"}</span>
                           <div>
-                            <div className="font-bold text-white">{bonus.title}</div>
+                            <div className="font-bold text-[#1E2128]">{bonus.title}</div>
                             <span className={`text-xs ${condition.color || "text-[#9CA3AF]"}`}>
                               {condition.label || bonus.unlock_condition}
                             </span>
@@ -407,13 +407,13 @@ export function AtlasModule({ partner, isAdmin = false }) {
         <div className="space-y-4">
           <div className="bg-white border border-[#ECEDEF] rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-white flex items-center gap-2">
+              <h3 className="font-bold text-[#1E2128] flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-blue-400" /> Feedback Studenti
               </h3>
               <button
                 onClick={analyzeFeedback}
                 disabled={analyzing || feedback.filter(f => !f.analyzed).length === 0}
-                className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg px-4 py-2 text-sm font-bold hover:opacity-90 disabled:opacity-50"
+                className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-purple-500 text-[#1E2128] rounded-lg px-4 py-2 text-sm font-bold hover:opacity-90 disabled:opacity-50"
               >
                 {analyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                 Analizza con STEFANIA
@@ -463,10 +463,10 @@ export function AtlasModule({ partner, isAdmin = false }) {
           <div className="bg-gradient-to-br from-pink-900/20 to-purple-900/10 border border-pink-500/30 rounded-xl p-5">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-white" />
+                <Sparkles className="w-6 h-6 text-[#1E2128]" />
               </div>
               <div>
-                <h3 className="text-lg font-extrabold text-white">Feedback-to-Copy Bridge</h3>
+                <h3 className="text-lg font-extrabold text-[#1E2128]">Feedback-to-Copy Bridge</h3>
                 <p className="text-sm text-[#5F6572]">Angoli di copy estratti da STEFANIA dai feedback studenti</p>
               </div>
             </div>
@@ -496,7 +496,7 @@ export function AtlasModule({ partner, isAdmin = false }) {
                         </div>
                       </div>
                       
-                      <h4 className="font-bold text-white mb-2">{angle.headline}</h4>
+                      <h4 className="font-bold text-[#1E2128] mb-2">{angle.headline}</h4>
                       <p className="text-sm text-[#5F6572] mb-3">{angle.description}</p>
                       
                       <div className="flex items-center justify-between">
@@ -505,7 +505,7 @@ export function AtlasModule({ partner, isAdmin = false }) {
                         </span>
                         <button
                           onClick={() => copyToClipboard(angle.headline)}
-                          className="flex items-center gap-1 text-xs text-[#9CA3AF] hover:text-white"
+                          className="flex items-center gap-1 text-xs text-[#9CA3AF] hover:text-[#1E2128]"
                         >
                           <Copy className="w-3 h-3" /> Copia
                         </button>

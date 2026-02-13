@@ -40,7 +40,7 @@ export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminU
         <div className="flex items-center gap-2.5">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
                style={{ background: '#F2C418' }}>
-            <span className="text-lg font-black text-white">E</span>
+            <span className="text-lg font-black text-[#1E2128]">E</span>
           </div>
           <div>
             <div className="font-black text-base" style={{ color: '#2D3239' }}>
