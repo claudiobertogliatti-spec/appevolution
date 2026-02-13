@@ -101,13 +101,13 @@ export function RenewalPlans({ partnerName, currentRevenue, onSelectPlan }) {
         <div className="bg-gradient-to-r from-[#1a2332] to-[#2c3e55] rounded-xl p-6 mb-8 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm text-white/60 mb-1">Il tuo Asset Value</div>
+              <div className="text-sm text-[#5F6572] mb-1">Il tuo Asset Value</div>
               <div className="font-mono text-3xl font-bold text-[#F5C518]">
                 €{currentRevenue.toLocaleString()}
               </div>
             </div>
             <div className="text-right">
-              <div className="text-sm text-white/60 mb-1">Partner</div>
+              <div className="text-sm text-[#5F6572] mb-1">Partner</div>
               <div className="text-xl font-bold">{partnerName}</div>
             </div>
           </div>

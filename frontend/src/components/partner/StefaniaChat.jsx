@@ -65,9 +65,9 @@ export function StefaniaChat({ partner, currentBlock, scriptContext, onScriptUpd
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#1a2332] rounded-xl border border-white/10 overflow-hidden" data-testid="stefania-chat">
+    <div className="h-full flex flex-col bg-white rounded-xl border border-[#ECEDEF] overflow-hidden" data-testid="stefania-chat">
       {/* Header */}
-      <div className="p-4 border-b border-white/10 bg-gradient-to-r from-pink-500/20 to-purple-500/20">
+      <div className="p-4 border-b border-[#ECEDEF] bg-gradient-to-r from-pink-500/20 to-purple-500/20">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-lg">
             SF
@@ -79,11 +79,11 @@ export function StefaniaChat({ partner, currentBlock, scriptContext, onScriptUpd
                 Copy & Marketing Tutor
               </span>
             </div>
-            <div className="text-xs text-white/40">Specializzata in Masterclass Trasformative</div>
+            <div className="text-xs text-[#9CA3AF]">Specializzata in Masterclass Trasformative</div>
           </div>
           {currentBlock && (
-            <div className="ml-auto bg-white/5 border border-white/10 rounded-lg px-3 py-1.5">
-              <span className="text-[10px] font-bold text-white/40 uppercase">Blocco attivo:</span>
+            <div className="ml-auto bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-1.5">
+              <span className="text-[10px] font-bold text-[#9CA3AF] uppercase">Blocco attivo:</span>
               <span className="text-xs font-bold text-pink-400 ml-2">{currentBlock.toUpperCase()}</span>
             </div>
           )}
@@ -104,7 +104,7 @@ export function StefaniaChat({ partner, currentBlock, scriptContext, onScriptUpd
             <div className={`max-w-[80%] rounded-xl px-4 py-3 
               ${msg.role === "user" 
                 ? "bg-[#F5C518] text-black" 
-                : "bg-white/5 border border-white/10 text-white/80"}`}
+                : "bg-[#FAFAF7] border border-[#ECEDEF] text-white/80"}`}
             >
               <div 
                 className="text-sm leading-relaxed"
@@ -119,7 +119,7 @@ export function StefaniaChat({ partner, currentBlock, scriptContext, onScriptUpd
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center">
               <RefreshCw className="w-4 h-4 text-white animate-spin" />
             </div>
-            <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+            <div className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-3">
               <div className="flex gap-1">
                 <span className="w-2 h-2 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: "0ms" }} />
                 <span className="w-2 h-2 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: "150ms" }} />
@@ -133,14 +133,14 @@ export function StefaniaChat({ partner, currentBlock, scriptContext, onScriptUpd
       </div>
 
       {/* Input */}
-      <div className="p-4 border-t border-white/10 bg-white/5">
+      <div className="p-4 border-t border-[#ECEDEF] bg-[#FAFAF7]">
         <div className="flex gap-2">
           <input
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()}
             placeholder="Scrivi il tuo contenuto o fai una domanda a Stefania..."
-            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-pink-500/50 transition-colors"
+            className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-pink-500/50 transition-colors"
             disabled={loading}
           />
           <button

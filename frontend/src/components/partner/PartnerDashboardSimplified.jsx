@@ -162,7 +162,7 @@ function VideoHelpButton({ videoUrl, title }) {
               </button>
             </div>
             <div className="aspect-video flex items-center justify-center" style={{ background: '#1E2128' }}>
-              <div className="text-center text-white/60">
+              <div className="text-center text-[#5F6572]">
                 <Play className="w-16 h-16 mx-auto mb-3 opacity-50" />
                 <p>Video tutorial in arrivo</p>
               </div>

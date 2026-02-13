@@ -68,7 +68,7 @@ const BLOCK_CONFIG = [
 ];
 
 const STATUS_CONFIG = {
-  draft: { label: "Bozza", color: "bg-white/10 text-white/60", icon: FileText },
+  draft: { label: "Bozza", color: "bg-white/10 text-[#5F6572]", icon: FileText },
   ai_draft: { label: "Bozza AI", color: "bg-purple-500/20 text-purple-400", icon: Sparkles },
   in_review: { label: "In Revisione Admin", color: "bg-yellow-500/20 text-yellow-400", icon: Clock },
   pending_partner_approval: { label: "Attende Tua Approvazione", color: "bg-blue-500/20 text-blue-400", icon: User },
@@ -249,11 +249,11 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
             </div>
             <div className="flex-1">
               <h2 className="text-lg font-extrabold text-white">Script Builder — 6 Blocchi</h2>
-              <p className="text-sm text-white/50">Masterclass Trasformativa per {partner?.name}</p>
+              <p className="text-sm text-[#5F6572]">Masterclass Trasformativa per {partner?.name}</p>
             </div>
             <div className="text-right">
               <div className="text-2xl font-mono font-bold text-[#F5C518]">{completion}%</div>
-              <div className="text-[10px] text-white/40 uppercase">Completato</div>
+              <div className="text-[10px] text-[#9CA3AF] uppercase">Completato</div>
             </div>
           </div>
           
@@ -272,7 +272,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
             </span>
             <button
               onClick={() => setShowGoldenRules(!showGoldenRules)}
-              className={`text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 transition-colors ${showGoldenRules ? "bg-pink-500 text-white" : "bg-white/5 text-white/40 hover:bg-white/10"}`}
+              className={`text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 transition-colors ${showGoldenRules ? "bg-pink-500 text-white" : "bg-[#FAFAF7] text-[#9CA3AF] hover:bg-white/10"}`}
             >
               <BookOpen className="w-3 h-3" /> 10 Regole d'Oro
             </button>
@@ -309,23 +309,23 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
               placeholder="Feedback opzionale..."
               value={partnerFeedback}
               onChange={e => setPartnerFeedback(e.target.value)}
-              className="w-full mt-2 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30"
+              className="w-full mt-2 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30"
             />
           </div>
         )}
 
         {/* Golden Rules Panel */}
         {showGoldenRules && goldenRules.length > 0 && (
-          <div className="bg-[#1a2332] border border-pink-500/30 rounded-xl p-4 animate-slide-in">
+          <div className="bg-white border border-pink-500/30 rounded-xl p-4 animate-slide-in">
             <h4 className="text-xs font-bold text-pink-400 uppercase tracking-wider mb-3">Le 10 Regole d'Oro del Copy Core</h4>
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {goldenRules.map(rule => (
-                <div key={rule.num} className="bg-white/5 border border-white/5 rounded-lg p-2 text-xs">
+                <div key={rule.num} className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg p-2 text-xs">
                   <div className="flex items-center gap-2">
                     <span className="w-5 h-5 rounded-full bg-pink-500/20 text-pink-400 text-[10px] font-bold flex items-center justify-center">{rule.num}</span>
                     <span className="font-bold text-white">{rule.title}</span>
                   </div>
-                  <p className="text-white/50 mt-1 ml-7">{rule.description}</p>
+                  <p className="text-[#5F6572] mt-1 ml-7">{rule.description}</p>
                 </div>
               ))}
             </div>
@@ -363,13 +363,13 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
             return (
               <div 
                 key={block.id}
-                className={`bg-[#1a2332] border rounded-xl overflow-hidden transition-all
-                  ${isExpanded ? 'border-pink-500/50' : 'border-white/10'}`}
+                className={`bg-white border rounded-xl overflow-hidden transition-all
+                  ${isExpanded ? 'border-pink-500/50' : 'border-[#ECEDEF]'}`}
               >
                 {/* Block Header */}
                 <div 
                   onClick={() => setExpandedBlock(isExpanded ? null : block.id)}
-                  className="p-4 flex items-center gap-3 cursor-pointer hover:bg-white/5 transition-colors"
+                  className="p-4 flex items-center gap-3 cursor-pointer hover:bg-[#FAFAF7] transition-colors"
                 >
                   <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${block.color} flex items-center justify-center`}>
                     <Icon className="w-5 h-5 text-white" />
@@ -380,18 +380,18 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
                       <span className="text-sm font-extrabold text-white">{block.label}</span>
                       {hasContent && <CheckCircle className="w-4 h-4 text-green-500" />}
                     </div>
-                    <div className="text-xs text-white/40">{block.subtitle}</div>
+                    <div className="text-xs text-[#9CA3AF]">{block.subtitle}</div>
                   </div>
                   {isExpanded ? (
-                    <ChevronDown className="w-5 h-5 text-white/40" />
+                    <ChevronDown className="w-5 h-5 text-[#9CA3AF]" />
                   ) : (
-                    <ChevronRight className="w-5 h-5 text-white/40" />
+                    <ChevronRight className="w-5 h-5 text-[#9CA3AF]" />
                   )}
                 </div>
 
                 {/* Block Content */}
                 {isExpanded && (
-                  <div className="px-4 pb-4 border-t border-white/5">
+                  <div className="px-4 pb-4 border-t border-[#ECEDEF]">
                     {/* Hint */}
                     <div className="bg-pink-500/10 border border-pink-500/20 rounded-lg p-3 my-3">
                       <div className="flex items-start gap-2">
@@ -405,7 +405,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
                       value={script[block.id]}
                       onChange={e => updateBlock(block.id, e.target.value)}
                       placeholder={block.placeholder}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-pink-500/50 transition-colors resize-none min-h-[120px]"
+                      className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-pink-500/50 transition-colors resize-none min-h-[120px]"
                     />
                     
                     <div className="flex justify-between items-center mt-2">
@@ -431,7 +431,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
           <button
             onClick={saveScript}
             disabled={saving}
-            className="flex-1 flex items-center justify-center gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white/60 hover:bg-white/10 transition-colors disabled:opacity-50"
+            className="flex-1 flex items-center justify-center gap-2 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-3 text-sm font-bold text-[#5F6572] hover:bg-white/10 transition-colors disabled:opacity-50"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Salva
@@ -442,7 +442,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
               <button
                 onClick={submitForReview}
                 disabled={submitting || completion < 50}
-                className="flex-1 flex items-center justify-center gap-2 bg-white/5 border border-pink-500/30 rounded-xl px-4 py-3 text-sm font-bold text-pink-400 hover:bg-pink-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 flex items-center justify-center gap-2 bg-[#FAFAF7] border border-pink-500/30 rounded-xl px-4 py-3 text-sm font-bold text-pink-400 hover:bg-pink-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
                 Review STEFANIA
@@ -462,7 +462,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
         {/* Feedback */}
         {feedback && (
           <div className={`rounded-xl p-4 border ${status === "approved" ? "bg-green-500/10 border-green-500/30" : "bg-orange-500/10 border-orange-500/30"}`}>
-            <div className="text-xs font-extrabold text-white/40 uppercase tracking-wider mb-2">
+            <div className="text-xs font-extrabold text-[#9CA3AF] uppercase tracking-wider mb-2">
               Feedback STEFANIA
             </div>
             <div className="text-sm text-white/70 whitespace-pre-wrap leading-relaxed">

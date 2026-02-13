@@ -66,16 +66,16 @@ export function BrandKitEditor({ partner, onSave }) {
   }
 
   return (
-    <div className="bg-[#1a2332] border border-white/10 rounded-xl overflow-hidden" data-testid="brand-kit-editor">
+    <div className="bg-white border border-[#ECEDEF] rounded-xl overflow-hidden" data-testid="brand-kit-editor">
       {/* Header */}
-      <div className="p-5 border-b border-white/10 bg-gradient-to-r from-[#F5C518]/10 to-transparent">
+      <div className="p-5 border-b border-[#ECEDEF] bg-gradient-to-r from-[#F5C518]/10 to-transparent">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-[#F5C518] flex items-center justify-center">
             <Palette className="w-5 h-5 text-black" />
           </div>
           <div>
             <h3 className="text-sm font-extrabold text-white">Brand Kit</h3>
-            <p className="text-xs text-white/40">Personalizza i tuoi materiali marketing</p>
+            <p className="text-xs text-[#9CA3AF]">Personalizza i tuoi materiali marketing</p>
           </div>
           <button
             onClick={saveBrandKit}
@@ -99,41 +99,41 @@ export function BrandKitEditor({ partner, onSave }) {
       <div className="p-5 space-y-6">
         {/* Colors */}
         <div>
-          <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-3">
+          <div className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-3">
             Colori Brand
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-semibold text-white/60 mb-2 block">Colore Principale</label>
+              <label className="text-xs font-semibold text-[#5F6572] mb-2 block">Colore Principale</label>
               <div className="flex items-center gap-2">
                 <input
                   type="color"
                   value={brandKit.brand_color}
                   onChange={e => updateField('brand_color', e.target.value)}
-                  className="w-12 h-12 rounded-lg border border-white/10 cursor-pointer"
+                  className="w-12 h-12 rounded-lg border border-[#ECEDEF] cursor-pointer"
                 />
                 <input
                   type="text"
                   value={brandKit.brand_color}
                   onChange={e => updateField('brand_color', e.target.value)}
-                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white uppercase"
+                  className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm font-mono text-white uppercase"
                 />
               </div>
             </div>
             <div>
-              <label className="text-xs font-semibold text-white/60 mb-2 block">Colore Secondario</label>
+              <label className="text-xs font-semibold text-[#5F6572] mb-2 block">Colore Secondario</label>
               <div className="flex items-center gap-2">
                 <input
                   type="color"
                   value={brandKit.brand_color_secondary}
                   onChange={e => updateField('brand_color_secondary', e.target.value)}
-                  className="w-12 h-12 rounded-lg border border-white/10 cursor-pointer"
+                  className="w-12 h-12 rounded-lg border border-[#ECEDEF] cursor-pointer"
                 />
                 <input
                   type="text"
                   value={brandKit.brand_color_secondary}
                   onChange={e => updateField('brand_color_secondary', e.target.value)}
-                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white uppercase"
+                  className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm font-mono text-white uppercase"
                 />
               </div>
             </div>
@@ -151,15 +151,15 @@ export function BrandKitEditor({ partner, onSave }) {
 
         {/* Logo */}
         <div>
-          <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-3">
+          <div className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-3">
             Logo
           </div>
           <div className="flex items-center gap-4">
-            <div className="w-20 h-20 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
+            <div className="w-20 h-20 rounded-xl bg-[#FAFAF7] border border-[#ECEDEF] flex items-center justify-center overflow-hidden">
               {brandKit.logo_url ? (
                 <img src={brandKit.logo_url} alt="Logo" className="w-full h-full object-contain" />
               ) : (
-                <Image className="w-8 h-8 text-white/20" />
+                <Image className="w-8 h-8 text-[#9CA3AF]" />
               )}
             </div>
             <div className="flex-1">
@@ -168,7 +168,7 @@ export function BrandKitEditor({ partner, onSave }) {
                 value={brandKit.logo_url || ""}
                 onChange={e => updateField('logo_url', e.target.value)}
                 placeholder="https://esempio.com/logo.png"
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518] transition-colors"
+                className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518] transition-colors"
               />
               <div className="text-[10px] text-white/30 mt-1">Incolla l'URL del tuo logo (PNG trasparente consigliato)</div>
             </div>
@@ -177,7 +177,7 @@ export function BrandKitEditor({ partner, onSave }) {
 
         {/* Tagline */}
         <div>
-          <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-3">
+          <div className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-3">
             Tagline / Slogan
           </div>
           <input
@@ -185,13 +185,13 @@ export function BrandKitEditor({ partner, onSave }) {
             value={brandKit.tagline || ""}
             onChange={e => updateField('tagline', e.target.value)}
             placeholder="es. 'Trasforma la tua expertise in un business digitale'"
-            className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518] transition-colors"
+            className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518] transition-colors"
           />
         </div>
 
         {/* Contact Info */}
         <div>
-          <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-3">
+          <div className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-3">
             Contatti
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -200,60 +200,60 @@ export function BrandKitEditor({ partner, onSave }) {
               value={brandKit.email || ""}
               onChange={e => updateField('email', e.target.value)}
               placeholder="Email"
-              className="bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518]"
+              className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518]"
             />
             <input
               type="url"
               value={brandKit.website || ""}
               onChange={e => updateField('website', e.target.value)}
               placeholder="Sito web"
-              className="bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518]"
+              className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518]"
             />
           </div>
         </div>
 
         {/* Social */}
         <div>
-          <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-3">
+          <div className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-3">
             Social Media
           </div>
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <span className="w-24 text-xs font-semibold text-white/40">Instagram</span>
+              <span className="w-24 text-xs font-semibold text-[#9CA3AF]">Instagram</span>
               <input
                 type="text"
                 value={brandKit.social_instagram || ""}
                 onChange={e => updateField('social_instagram', e.target.value)}
                 placeholder="@username"
-                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518]"
+                className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518]"
               />
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-24 text-xs font-semibold text-white/40">LinkedIn</span>
+              <span className="w-24 text-xs font-semibold text-[#9CA3AF]">LinkedIn</span>
               <input
                 type="text"
                 value={brandKit.social_linkedin || ""}
                 onChange={e => updateField('social_linkedin', e.target.value)}
                 placeholder="linkedin.com/in/username"
-                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518]"
+                className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518]"
               />
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-24 text-xs font-semibold text-white/40">YouTube</span>
+              <span className="w-24 text-xs font-semibold text-[#9CA3AF]">YouTube</span>
               <input
                 type="text"
                 value={brandKit.social_youtube || ""}
                 onChange={e => updateField('social_youtube', e.target.value)}
                 placeholder="youtube.com/@channel"
-                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518]"
+                className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#F5C518]"
               />
             </div>
           </div>
         </div>
 
         {/* Template Variables Preview */}
-        <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-          <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-3">
+        <div className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl p-4">
+          <div className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-3">
             Variabili per Template Systeme.io
           </div>
           <div className="grid grid-cols-2 gap-2 text-xs font-mono">
@@ -263,15 +263,15 @@ export function BrandKitEditor({ partner, onSave }) {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-white/30">{`{{Logo_URL}}`}</span>
-              <span className="text-white/60 truncate">{brandKit.logo_url || "Non impostato"}</span>
+              <span className="text-[#5F6572] truncate">{brandKit.logo_url || "Non impostato"}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-white/30">{`{{Nome_Partner}}`}</span>
-              <span className="text-white/60">{partner?.name}</span>
+              <span className="text-[#5F6572]">{partner?.name}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-white/30">{`{{Tagline}}`}</span>
-              <span className="text-white/60 truncate">{brandKit.tagline || "Non impostato"}</span>
+              <span className="text-[#5F6572] truncate">{brandKit.tagline || "Non impostato"}</span>
             </div>
           </div>
         </div>

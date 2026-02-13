@@ -127,7 +127,7 @@ export function ProduzioneVideo({ partner }) {
             </div>
             <div className="flex-1">
               <h2 className="text-lg font-extrabold text-white">Produzione Video — ANDREA</h2>
-              <p className="text-sm text-white/50">Surgical Cut & Recording Support</p>
+              <p className="text-sm text-[#5F6572]">Surgical Cut & Recording Support</p>
             </div>
             <div className="text-right">
               <div className={`text-sm font-bold px-3 py-1 rounded-full
@@ -143,15 +143,15 @@ export function ProduzioneVideo({ partner }) {
         </div>
 
         {/* Pre-Flight Checklist */}
-        <div className="bg-[#1a2332] border border-white/10 rounded-xl overflow-hidden">
-          <div className="p-4 border-b border-white/10 bg-gradient-to-r from-yellow-500/10 to-transparent">
+        <div className="bg-white border border-[#ECEDEF] rounded-xl overflow-hidden">
+          <div className="p-4 border-b border-[#ECEDEF] bg-gradient-to-r from-yellow-500/10 to-transparent">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-yellow-500/20 flex items-center justify-center">
                 <CheckCircle className="w-4 h-4 text-yellow-400" />
               </div>
               <div>
                 <div className="text-sm font-extrabold text-white">Pre-Flight Checklist</div>
-                <div className="text-xs text-white/40">
+                <div className="text-xs text-[#9CA3AF]">
                   {Object.values(checklist).filter(Boolean).length}/{CHECKLIST_ITEMS.length} completati
                 </div>
               </div>
@@ -172,7 +172,7 @@ export function ProduzioneVideo({ partner }) {
                   key={item.id}
                   onClick={() => toggleChecklist(item.id)}
                   className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all
-                    ${checked ? 'bg-green-500/10 border border-green-500/30' : 'bg-white/5 border border-white/10 hover:border-white/20'}`}
+                    ${checked ? 'bg-green-500/10 border border-green-500/30' : 'bg-[#FAFAF7] border border-[#ECEDEF] hover:border-white/20'}`}
                 >
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center
                     ${checked ? 'bg-green-500 text-white' : 'bg-white/10 text-white/30'}`}>
@@ -180,7 +180,7 @@ export function ProduzioneVideo({ partner }) {
                   </div>
                   <Icon className={`w-4 h-4 ${checked ? 'text-green-400' : 'text-white/30'}`} />
                   <div className="flex-1">
-                    <div className={`text-sm font-semibold ${checked ? 'text-green-400' : 'text-white/60'}`}>
+                    <div className={`text-sm font-semibold ${checked ? 'text-green-400' : 'text-[#5F6572]'}`}>
                       {item.label}
                     </div>
                     <div className="text-[10px] text-white/30">{item.hint}</div>
@@ -193,15 +193,15 @@ export function ProduzioneVideo({ partner }) {
 
         {/* Teleprompter - Video Blocks */}
         {checklistComplete && (
-          <div className="bg-[#1a2332] border border-white/10 rounded-xl overflow-hidden">
-            <div className="p-4 border-b border-white/10 bg-gradient-to-r from-blue-500/10 to-transparent">
+          <div className="bg-white border border-[#ECEDEF] rounded-xl overflow-hidden">
+            <div className="p-4 border-b border-[#ECEDEF] bg-gradient-to-r from-blue-500/10 to-transparent">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
                   <FileVideo className="w-4 h-4 text-blue-400" />
                 </div>
                 <div>
                   <div className="text-sm font-extrabold text-white">Teleprompter — Script a Blocchi</div>
-                  <div className="text-xs text-white/40">
+                  <div className="text-xs text-[#9CA3AF]">
                     Registra e carica un blocco alla volta
                   </div>
                 </div>
@@ -215,11 +215,11 @@ export function ProduzioneVideo({ partner }) {
                 const isUploading = uploading === blockConfig.id;
                 
                 return (
-                  <div key={blockConfig.id} className="border border-white/10 rounded-lg overflow-hidden">
+                  <div key={blockConfig.id} className="border border-[#ECEDEF] rounded-lg overflow-hidden">
                     {/* Block Header */}
                     <div
                       onClick={() => setExpandedBlock(isExpanded ? null : blockConfig.id)}
-                      className="flex items-center gap-3 p-3 cursor-pointer hover:bg-white/5 transition-colors"
+                      className="flex items-center gap-3 p-3 cursor-pointer hover:bg-[#FAFAF7] transition-colors"
                     >
                       <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${blockConfig.color} flex items-center justify-center text-white font-bold text-xs`}>
                         {index + 1}
@@ -233,18 +233,18 @@ export function ProduzioneVideo({ partner }) {
                       <div className={`text-[10px] font-bold px-2 py-1 rounded-full
                         ${block?.status === 'approved' ? 'bg-green-500/20 text-green-400' : ''}
                         ${block?.status === 'uploaded' ? 'bg-blue-500/20 text-blue-400' : ''}
-                        ${block?.status === 'pending' || !block ? 'bg-white/10 text-white/40' : ''}`}>
+                        ${block?.status === 'pending' || !block ? 'bg-white/10 text-[#9CA3AF]' : ''}`}>
                         {block?.status === 'approved' && '✓ Approvato'}
                         {block?.status === 'uploaded' && '⏳ In review'}
                         {(block?.status === 'pending' || !block) && '○ Da registrare'}
                       </div>
                       
-                      {isExpanded ? <ChevronDown className="w-4 h-4 text-white/40" /> : <ChevronRight className="w-4 h-4 text-white/40" />}
+                      {isExpanded ? <ChevronDown className="w-4 h-4 text-[#9CA3AF]" /> : <ChevronRight className="w-4 h-4 text-[#9CA3AF]" />}
                     </div>
                     
                     {/* Expanded Content */}
                     {isExpanded && (
-                      <div className="p-4 border-t border-white/5 bg-white/5">
+                      <div className="p-4 border-t border-[#ECEDEF] bg-[#FAFAF7]">
                         {/* Script Content */}
                         <div className="bg-black/30 rounded-lg p-4 mb-4 max-h-40 overflow-y-auto">
                           <div className="text-xs font-bold text-white/30 uppercase tracking-wider mb-2">
@@ -300,7 +300,7 @@ export function ProduzioneVideo({ partner }) {
             
             {/* Assembly Button */}
             {allBlocksApproved && (
-              <div className="p-4 border-t border-white/10 bg-gradient-to-r from-green-500/10 to-transparent">
+              <div className="p-4 border-t border-[#ECEDEF] bg-gradient-to-r from-green-500/10 to-transparent">
                 <button
                   onClick={async () => {
                     await axios.post(`${API}/andrea/assembly/${partner.id}`, {

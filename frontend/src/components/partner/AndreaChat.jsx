@@ -64,9 +64,9 @@ export function AndreaChat({ partner, currentBlock, recordingStatus }) {
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#1a2332] rounded-xl border border-white/10 overflow-hidden" data-testid="andrea-chat">
+    <div className="h-full flex flex-col bg-white rounded-xl border border-[#ECEDEF] overflow-hidden" data-testid="andrea-chat">
       {/* Header */}
-      <div className="p-4 border-b border-white/10 bg-gradient-to-r from-blue-500/20 to-cyan-500/20">
+      <div className="p-4 border-b border-[#ECEDEF] bg-gradient-to-r from-blue-500/20 to-cyan-500/20">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-lg">
             AN
@@ -78,11 +78,11 @@ export function AndreaChat({ partner, currentBlock, recordingStatus }) {
                 Video Production Coach
               </span>
             </div>
-            <div className="text-xs text-white/40">Surgical Cut & Recording Support</div>
+            <div className="text-xs text-[#9CA3AF]">Surgical Cut & Recording Support</div>
           </div>
           {recordingStatus && (
-            <div className="ml-auto bg-white/5 border border-white/10 rounded-lg px-3 py-1.5">
-              <span className="text-[10px] font-bold text-white/40 uppercase">Fase:</span>
+            <div className="ml-auto bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-1.5">
+              <span className="text-[10px] font-bold text-[#9CA3AF] uppercase">Fase:</span>
               <span className={`text-xs font-bold ml-2
                 ${recordingStatus === 'setup' ? 'text-yellow-400' : ''}
                 ${recordingStatus === 'recording' ? 'text-red-400' : ''}
@@ -110,7 +110,7 @@ export function AndreaChat({ partner, currentBlock, recordingStatus }) {
             <div className={`max-w-[80%] rounded-xl px-4 py-3 
               ${msg.role === "user" 
                 ? "bg-[#F5C518] text-black" 
-                : "bg-white/5 border border-white/10 text-white/80"}`}
+                : "bg-[#FAFAF7] border border-[#ECEDEF] text-white/80"}`}
             >
               <div 
                 className="text-sm leading-relaxed"
@@ -125,7 +125,7 @@ export function AndreaChat({ partner, currentBlock, recordingStatus }) {
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
               <RefreshCw className="w-4 h-4 text-white animate-spin" />
             </div>
-            <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+            <div className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-3">
               <div className="flex gap-1">
                 <span className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: "0ms" }} />
                 <span className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: "150ms" }} />
@@ -139,14 +139,14 @@ export function AndreaChat({ partner, currentBlock, recordingStatus }) {
       </div>
 
       {/* Input */}
-      <div className="p-4 border-t border-white/10 bg-white/5">
+      <div className="p-4 border-t border-[#ECEDEF] bg-[#FAFAF7]">
         <div className="flex gap-2">
           <input
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()}
             placeholder="Chiedi ad Andrea supporto tecnico o coaching..."
-            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-blue-500/50 transition-colors"
+            className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-blue-500/50 transition-colors"
             disabled={loading}
           />
           <button

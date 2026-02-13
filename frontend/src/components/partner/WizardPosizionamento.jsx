@@ -91,12 +91,12 @@ ${answers.bonus || "Non definito"}
   if (generating) {
     return (
       <div className="max-w-2xl mx-auto animate-slide-in" data-testid="wizard-generating">
-        <div className="bg-[#1a2332] border border-white/10 rounded-xl p-12 text-center">
+        <div className="bg-white border border-[#ECEDEF] rounded-xl p-12 text-center">
           <div className="text-6xl mb-4 animate-pulse">🎯</div>
           <div className="text-lg font-extrabold text-white mb-2">
             Generazione Canvas Posizionamento...
           </div>
-          <div className="text-sm text-white/50">
+          <div className="text-sm text-[#5F6572]">
             Stiamo elaborando le tue risposte per creare il Canvas
           </div>
         </div>
@@ -107,16 +107,16 @@ ${answers.bonus || "Non definito"}
   if (output) {
     return (
       <div className="max-w-2xl mx-auto animate-slide-in" data-testid="wizard-output">
-        <div className="bg-[#1a2332] border border-white/10 rounded-xl overflow-hidden">
+        <div className="bg-white border border-[#ECEDEF] rounded-xl overflow-hidden">
           {/* Header */}
-          <div className="p-5 border-b border-white/10 bg-gradient-to-r from-[#F5C518]/20 to-transparent">
+          <div className="p-5 border-b border-[#ECEDEF] bg-gradient-to-r from-[#F5C518]/20 to-transparent">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-[#F5C518] flex items-center justify-center">
                 <Target className="w-5 h-5 text-black" />
               </div>
               <div>
                 <div className="text-sm font-extrabold text-white">Canvas Posizionamento Completato</div>
-                <div className="text-xs text-white/50">Pronto per essere utilizzato nel tuo corso</div>
+                <div className="text-xs text-[#5F6572]">Pronto per essere utilizzato nel tuo corso</div>
               </div>
             </div>
           </div>
@@ -129,10 +129,10 @@ ${answers.bonus || "Non definito"}
           </div>
 
           {/* Actions */}
-          <div className="p-5 border-t border-white/10 flex gap-3">
+          <div className="p-5 border-t border-[#ECEDEF] flex gap-3">
             <button
               onClick={() => { setOutput(null); setCurrentStep(0); }}
-              className="flex-1 flex items-center justify-center gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white/60 hover:bg-white/10 transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-3 text-sm font-bold text-[#5F6572] hover:bg-white/10 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" /> Modifica risposte
             </button>
@@ -140,7 +140,7 @@ ${answers.bonus || "Non definito"}
               onClick={() => {
                 navigator.clipboard?.writeText(output);
               }}
-              className="flex-1 flex items-center justify-center gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white/60 hover:bg-white/10 transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-3 text-sm font-bold text-[#5F6572] hover:bg-white/10 transition-colors"
             >
               📋 Copia Canvas
             </button>
@@ -174,7 +174,7 @@ ${answers.bonus || "Non definito"}
       {/* Progress */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-bold text-white/40">
+          <span className="text-xs font-bold text-[#9CA3AF]">
             Domanda {currentStep + 1} di {totalSteps}
           </span>
           <span className="text-xs font-bold text-[#F5C518]">{Math.round(progress)}%</span>
@@ -200,9 +200,9 @@ ${answers.bonus || "Non definito"}
       </div>
 
       {/* Question Card */}
-      <div className="bg-[#1a2332] border border-white/10 rounded-xl overflow-hidden">
+      <div className="bg-white border border-[#ECEDEF] rounded-xl overflow-hidden">
         {/* Question Header */}
-        <div className="p-6 border-b border-white/10">
+        <div className="p-6 border-b border-[#ECEDEF]">
           <div className="flex items-start gap-3 mb-4">
             <div className="w-10 h-10 rounded-lg bg-[#F5C518] flex items-center justify-center font-mono text-sm font-bold text-black flex-shrink-0">
               {currentStep + 1}
@@ -229,17 +229,17 @@ ${answers.bonus || "Non definito"}
             value={answers[question.id] || ""}
             onChange={(e) => setAnswers(prev => ({ ...prev, [question.id]: e.target.value }))}
             placeholder={question.placeholder}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-sm font-semibold text-white placeholder:text-white/30 outline-none transition-colors focus:border-[#F5C518] resize-none min-h-[160px] leading-relaxed"
+            className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-4 text-sm font-semibold text-white placeholder:text-white/30 outline-none transition-colors focus:border-[#F5C518] resize-none min-h-[160px] leading-relaxed"
           />
         </div>
 
         {/* Navigation */}
-        <div className="p-6 border-t border-white/10 flex gap-3">
+        <div className="p-6 border-t border-[#ECEDEF] flex gap-3">
           <button
             onClick={onBack || handlePrev}
             disabled={currentStep === 0 && !onBack}
-            className={`flex items-center justify-center gap-2 bg-white/5 border border-white/10 rounded-xl px-6 py-3 text-sm font-bold transition-colors
-              ${currentStep === 0 && !onBack ? 'opacity-30 cursor-not-allowed' : 'text-white/60 hover:bg-white/10'}`}
+            className={`flex items-center justify-center gap-2 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-6 py-3 text-sm font-bold transition-colors
+              ${currentStep === 0 && !onBack ? 'opacity-30 cursor-not-allowed' : 'text-[#5F6572] hover:bg-white/10'}`}
           >
             <ArrowLeft className="w-4 h-4" /> Indietro
           </button>
