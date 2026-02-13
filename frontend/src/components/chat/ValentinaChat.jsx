@@ -256,7 +256,7 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
   };
   
   return (
-    <div className="flex flex-col h-full bg-[#0B0E14]" data-testid="valentina-chat">
+    <div className="flex flex-col h-full bg-[#FAFAF7]" data-testid="valentina-chat">
       {/* Header WhatsApp style */}
       <div className="bg-white px-4 py-3 flex items-center gap-3 border-b border-[#ECEDEF]">
         {onBack && (
