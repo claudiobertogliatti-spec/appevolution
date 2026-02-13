@@ -228,11 +228,11 @@ function AdminPartners({ partners, onSelect }) {
         <thead><tr className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#9CA3AF', borderBottom: '1px solid #ECEDEF' }}><th className="text-left px-5 py-3">Partner</th><th className="text-left px-4 py-3">Fase</th><th className="text-left px-4 py-3">Revenue</th><th className="text-left px-4 py-3">Contratto</th><th className="text-left px-4 py-3">Stato</th></tr></thead>
         <tbody>{(partners||[]).map(p=>(
           <tr key={p.id} className="cursor-pointer transition-colors hover:bg-[#FAFAF7]" style={{ borderTop: '1px solid #ECEDEF' }} onClick={()=>onSelect(p)}>
-            <td className="px-5 py-3"><div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-[#F5C518] flex items-center justify-center text-sm font-bold text-black">{p.name.split(" ").map(n=>n[0]).join("")}</div><div><div className="text-sm font-bold">{p.name}</div><div className="text-xs text-white/25">{p.niche}</div></div></div></td>
-            <td className="px-4 py-3"><span className="font-mono text-xs font-bold px-2 py-1 rounded bg-[#F5C518]/15 text-[#F5C518]">{p.phase}</span></td>
-            <td className="px-4 py-3 font-mono text-sm text-white/60">{p.revenue>0?`€${p.revenue.toLocaleString()}`:"—"}</td>
-            <td className="px-4 py-3 text-sm text-white/35">{p.contract}</td>
-            <td className="px-4 py-3">{p.alert?<span className="text-xs font-bold text-red-400 flex items-center gap-1"><AlertCircle className="w-3 h-3"/>Alert</span>:<span className="text-xs font-bold text-green-400 flex items-center gap-1"><Check className="w-3 h-3"/>OK</span>}</td>
+            <td className="px-5 py-3"><div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: '#F2C418', color: '#1E2128' }}>{p.name.split(" ").map(n=>n[0]).join("")}</div><div><div className="text-sm font-bold" style={{ color: '#1E2128' }}>{p.name}</div><div className="text-xs" style={{ color: '#9CA3AF' }}>{p.niche}</div></div></div></td>
+            <td className="px-4 py-3"><span className="font-mono text-xs font-bold px-2 py-1 rounded" style={{ background: '#FFF3C4', color: '#C4990A' }}>{p.phase}</span></td>
+            <td className="px-4 py-3 font-mono text-sm" style={{ color: '#5F6572' }}>{p.revenue>0?`€${p.revenue.toLocaleString()}`:"—"}</td>
+            <td className="px-4 py-3 text-sm" style={{ color: '#9CA3AF' }}>{p.contract}</td>
+            <td className="px-4 py-3">{p.alert?<span className="text-xs font-bold text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3"/>Alert</span>:<span className="text-xs font-bold text-green-500 flex items-center gap-1"><Check className="w-3 h-3"/>OK</span>}</td>
           </tr>
         ))}</tbody>
       </table>
@@ -241,13 +241,13 @@ function AdminPartners({ partners, onSelect }) {
 }
 
 function AdminAlerts({ alerts, onDismiss }) {
-  if(!alerts.length) return <div className="bg-[#1a2332] border border-white/10 rounded-xl p-16 text-center"><CheckCircle className="w-10 h-10 text-green-400 mx-auto mb-3"/><div className="font-bold">Nessun alert — tutto OK</div></div>;
+  if(!alerts.length) return <div className="rounded-xl p-16 text-center" style={{ background: 'white', border: '1px solid #ECEDEF' }}><CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-3"/><div className="font-bold" style={{ color: '#1E2128' }}>Nessun alert — tutto OK</div></div>;
   return (
     <div className="space-y-3">{alerts.map(a=>(
-      <div key={a.id} className={`bg-[#1a2332] border border-white/10 rounded-xl p-4 flex items-start gap-4 ${a.type==="BLOCCO"?"border-l-4 border-l-red-500":"border-l-4 border-l-orange-500"}`}>
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${a.type==="BLOCCO"?"bg-red-500/20":"bg-orange-500/20"}`}>{a.type==="BLOCCO"?"🚫":"⚠️"}</div>
-        <div className="flex-1"><div className="flex items-center gap-2 mb-1"><span className="font-mono text-xs font-bold text-white/35">{a.agent}</span><span className={`text-[9px] font-bold px-2 py-0.5 rounded ${a.type==="BLOCCO"?"bg-red-500/20 text-red-400":"bg-orange-500/20 text-orange-400"}`}>{a.type}</span></div><div className="text-sm font-bold mb-1">{a.msg}</div><div className="text-xs text-white/25">{a.partner} · {a.time}</div></div>
-        <button onClick={()=>onDismiss(a.id)} className="text-white/20 hover:text-white transition-colors text-lg leading-none">✕</button>
+      <div key={a.id} className="rounded-xl p-4 flex items-start gap-4" style={{ background: 'white', border: '1px solid #ECEDEF', borderLeft: `4px solid ${a.type==="BLOCCO"?"#EF4444":"#F59E0B"}` }}>
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: a.type==="BLOCCO"?"#FDECEF":"#FFF8DC" }}>{a.type==="BLOCCO"?"🚫":"⚠️"}</div>
+        <div className="flex-1"><div className="flex items-center gap-2 mb-1"><span className="font-mono text-xs font-bold" style={{ color: '#9CA3AF' }}>{a.agent}</span><span className="text-[9px] font-bold px-2 py-0.5 rounded" style={{ background: a.type==="BLOCCO"?"#FDECEF":"#FFF8DC", color: a.type==="BLOCCO"?"#EF4444":"#F59E0B" }}>{a.type}</span></div><div className="text-sm font-bold mb-1" style={{ color: '#1E2128' }}>{a.msg}</div><div className="text-xs" style={{ color: '#9CA3AF' }}>{a.partner} · {a.time}</div></div>
+        <button onClick={()=>onDismiss(a.id)} className="transition-colors text-lg leading-none hover:text-red-500" style={{ color: '#9CA3AF' }}>✕</button>
       </div>
     ))}</div>
   );
