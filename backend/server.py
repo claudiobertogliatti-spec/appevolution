@@ -5481,6 +5481,565 @@ async def orion_trigger_sales_automation(request: TriggerAutomationRequest):
     return await client.trigger_automation(request.contact_id, request.tag_name)
 
 # =============================================================================
+# SYSTEME.IO WEBHOOKS - AUTO-SYNC & AUTOMATIONS
+# =============================================================================
+
+import hmac
+import hashlib
+
+SYSTEME_WEBHOOK_SECRET = os.environ.get('SYSTEME_WEBHOOK_SECRET', '')
+
+# Webhook Event Types
+WEBHOOK_EVENTS = {
+    "new_sale": "Nuova vendita",
+    "new_order": "Nuovo ordine",
+    "new_subscriber": "Nuovo iscritto",
+    "form_subscribed": "Form compilato",
+    "tag_added": "Tag aggiunto",
+    "course_access": "Accesso corso",
+    "refund": "Rimborso"
+}
+
+# Tag-to-Phase mapping for auto-progression
+TAG_PHASE_MAP = {
+    "F0-Completato": "F1",
+    "F1-Completato": "F2",
+    "F2-Completato": "F3",
+    "F3-Completato": "F4",
+    "F4-Completato": "F5",
+    "F5-Completato": "F6",
+    "F6-Completato": "F7",
+    "F7-Completato": "F8",
+    "F8-Completato": "F9",
+    "F9-Completato": "F10",
+    "Posizionamento-Completato": "F3",
+    "Masterclass-Completata": "F4",
+    "Video-Prodotti": "F6",
+    "Corso-Pubblicato": "F7",
+    "Lancio-Completato": "F9"
+}
+
+# Lead scoring rules
+LEAD_SCORE_RULES = {
+    "form_subscribed": 10,
+    "webinar_registered": 25,
+    "ebook_downloaded": 15,
+    "video_watched": 5,
+    "call_booked": 50,
+    "checkout_started": 40,
+    "new_sale": 100
+}
+
+class WebhookPayload(BaseModel):
+    event_type: str
+    data: Dict[str, Any]
+    timestamp: Optional[str] = None
+    signature: Optional[str] = None
+
+class WebhookLog(BaseModel):
+    event_type: str
+    payload: Dict[str, Any]
+    processed: bool
+    actions_taken: List[str]
+    created_at: str
+
+def verify_webhook_signature(payload: str, signature: str) -> bool:
+    """Verify webhook signature using HMAC-SHA256"""
+    if not SYSTEME_WEBHOOK_SECRET:
+        return True  # Skip verification if no secret configured
+    
+    expected = hmac.new(
+        SYSTEME_WEBHOOK_SECRET.encode(),
+        payload.encode(),
+        hashlib.sha256
+    ).hexdigest()
+    
+    return hmac.compare_digest(signature, expected)
+
+async def log_webhook(event_type: str, payload: dict, processed: bool, actions: List[str]):
+    """Log webhook to database"""
+    await db.webhook_logs.insert_one({
+        "event_type": event_type,
+        "payload": payload,
+        "processed": processed,
+        "actions_taken": actions,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+
+async def send_telegram_alert(message: str):
+    """Send Telegram notification for webhook events"""
+    try:
+        from valentina_ai import telegram_notify
+        await telegram_notify(
+            notification_type="webhook_alert",
+            message=message
+        )
+    except Exception as e:
+        logger.error(f"Failed to send Telegram alert: {e}")
+
+# -----------------------------------------------------------------------------
+# WEBHOOK HANDLERS
+# -----------------------------------------------------------------------------
+
+async def handle_new_sale(data: dict) -> List[str]:
+    """Handle new sale - Auto-onboard partner"""
+    actions = []
+    
+    contact_email = data.get("email", data.get("contact_email", ""))
+    contact_name = data.get("name", data.get("contact_name", ""))
+    product_name = data.get("product_name", data.get("product", ""))
+    amount = data.get("amount", data.get("price", 0))
+    order_id = data.get("order_id", data.get("id", str(uuid.uuid4())))
+    
+    if not contact_email:
+        return ["⚠️ Email mancante nel payload"]
+    
+    # Check if this is a partner program sale
+    is_partner_sale = any(kw in product_name.lower() for kw in ["partner", "academy", "evolution", "programma"])
+    
+    if is_partner_sale:
+        # Check if partner already exists
+        existing = await db.partners.find_one({"email": contact_email})
+        
+        if not existing:
+            # Create new partner
+            partner_id = f"p{str(uuid.uuid4())[:8]}"
+            new_partner = {
+                "id": partner_id,
+                "name": contact_name or contact_email.split("@")[0].title(),
+                "email": contact_email,
+                "phone": data.get("phone", ""),
+                "niche": "",
+                "phase": "F0",
+                "status": "active",
+                "revenue": 0,
+                "systeme_id": data.get("contact_id", ""),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "source": "systeme_webhook",
+                "order_id": order_id
+            }
+            
+            await db.partners.insert_one(new_partner)
+            actions.append(f"✅ Partner creato: {contact_name} ({contact_email})")
+            
+            # Send welcome notification
+            await send_telegram_alert(
+                f"🎉 <b>Nuovo Partner!</b>\n\n"
+                f"👤 {contact_name}\n"
+                f"📧 {contact_email}\n"
+                f"💰 {product_name}: €{amount}\n"
+                f"🆔 {partner_id}"
+            )
+            actions.append("📱 Notifica Telegram inviata")
+            
+            # Create auth user
+            import bcrypt
+            temp_password = f"Evo{str(uuid.uuid4())[:6]}!"
+            hashed = bcrypt.hashpw(temp_password.encode(), bcrypt.gensalt()).decode()
+            
+            await db.users.insert_one({
+                "email": contact_email,
+                "password": hashed,
+                "name": contact_name,
+                "role": "partner",
+                "partner_id": partner_id,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+            actions.append(f"🔐 Account creato (password temporanea generata)")
+        else:
+            actions.append(f"ℹ️ Partner già esistente: {contact_email}")
+    
+    # Record payment/order
+    await db.payments.insert_one({
+        "partner_email": contact_email,
+        "order_id": order_id,
+        "product": product_name,
+        "amount": float(amount) if amount else 0,
+        "currency": data.get("currency", "EUR"),
+        "status": "completed",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    actions.append(f"💳 Pagamento registrato: €{amount}")
+    
+    return actions
+
+async def handle_new_subscriber(data: dict) -> List[str]:
+    """Handle new subscriber - Create lead for ORION"""
+    actions = []
+    
+    email = data.get("email", "")
+    name = data.get("name", "")
+    source = data.get("source", data.get("funnel_name", "unknown"))
+    tags = data.get("tags", [])
+    
+    if not email:
+        return ["⚠️ Email mancante"]
+    
+    # Create or update lead in ORION system
+    lead_score = LEAD_SCORE_RULES.get("form_subscribed", 10)
+    
+    existing_lead = await db.leads.find_one({"email": email})
+    
+    if existing_lead:
+        # Update existing lead
+        new_score = existing_lead.get("score", 0) + lead_score
+        await db.leads.update_one(
+            {"email": email},
+            {"$set": {
+                "score": new_score,
+                "last_activity": datetime.now(timezone.utc).isoformat(),
+                "sources": list(set(existing_lead.get("sources", []) + [source]))
+            }}
+        )
+        actions.append(f"📊 Lead aggiornato: {email} (score: {new_score})")
+    else:
+        # Create new lead
+        await db.leads.insert_one({
+            "email": email,
+            "name": name,
+            "score": lead_score,
+            "status": "new",
+            "sources": [source],
+            "tags": tags,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "last_activity": datetime.now(timezone.utc).isoformat()
+        })
+        actions.append(f"🎯 Nuovo lead creato: {name} ({email}) - Score: {lead_score}")
+    
+    # High-score lead alert
+    if lead_score >= 40 or (existing_lead and existing_lead.get("score", 0) + lead_score >= 80):
+        await send_telegram_alert(
+            f"🔥 <b>Lead Hot!</b>\n\n"
+            f"👤 {name}\n"
+            f"📧 {email}\n"
+            f"📊 Score: {lead_score}\n"
+            f"📍 Fonte: {source}"
+        )
+        actions.append("🔔 Alert lead hot inviato")
+    
+    return actions
+
+async def handle_tag_added(data: dict) -> List[str]:
+    """Handle tag added - Auto-progress phases"""
+    actions = []
+    
+    email = data.get("email", data.get("contact_email", ""))
+    tag_name = data.get("tag", data.get("tag_name", ""))
+    
+    if not email or not tag_name:
+        return ["⚠️ Email o tag mancante"]
+    
+    # Check if tag triggers phase progression
+    if tag_name in TAG_PHASE_MAP:
+        new_phase = TAG_PHASE_MAP[tag_name]
+        
+        # Find partner
+        partner = await db.partners.find_one({"email": email})
+        
+        if partner:
+            old_phase = partner.get("phase", "F0")
+            
+            # Update phase
+            await db.partners.update_one(
+                {"email": email},
+                {"$set": {
+                    "phase": new_phase,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            actions.append(f"🚀 Fase aggiornata: {old_phase} → {new_phase}")
+            
+            # Send notification
+            await send_telegram_alert(
+                f"📈 <b>Fase Aggiornata!</b>\n\n"
+                f"👤 {partner.get('name')}\n"
+                f"🏷️ Tag: {tag_name}\n"
+                f"📊 {old_phase} → {new_phase}"
+            )
+            actions.append("📱 Notifica Telegram inviata")
+            
+            # Check for achievement unlock
+            await check_achievement_unlock(partner.get("id"), new_phase)
+            actions.append("🏆 Badge verificati")
+        else:
+            # Update lead score if not a partner
+            lead = await db.leads.find_one({"email": email})
+            if lead:
+                await db.leads.update_one(
+                    {"email": email},
+                    {"$push": {"tags": tag_name}}
+                )
+                actions.append(f"🏷️ Tag aggiunto al lead: {tag_name}")
+    else:
+        actions.append(f"ℹ️ Tag ricevuto (no action): {tag_name}")
+    
+    return actions
+
+async def handle_course_access(data: dict) -> List[str]:
+    """Handle course access - Update partner stats"""
+    actions = []
+    
+    student_email = data.get("student_email", data.get("email", ""))
+    course_name = data.get("course_name", data.get("course", ""))
+    partner_email = data.get("partner_email", "")  # The course owner
+    
+    if partner_email:
+        # Find partner and update client count
+        partner = await db.partners.find_one({"email": partner_email})
+        
+        if partner:
+            # Increment client count
+            current_clients = partner.get("clients", 0)
+            await db.partners.update_one(
+                {"email": partner_email},
+                {"$set": {
+                    "clients": current_clients + 1,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            actions.append(f"👥 Clienti aggiornati: {current_clients} → {current_clients + 1}")
+            
+            # Record the enrollment
+            await db.partner_students.insert_one({
+                "partner_id": partner.get("id"),
+                "student_email": student_email,
+                "course_name": course_name,
+                "enrolled_at": datetime.now(timezone.utc).isoformat()
+            })
+            actions.append(f"📚 Iscrizione registrata: {student_email} → {course_name}")
+            
+            # Check for milestone (10, 50, 100 clients)
+            new_count = current_clients + 1
+            if new_count in [10, 25, 50, 100, 250, 500]:
+                await send_telegram_alert(
+                    f"🎉 <b>Milestone!</b>\n\n"
+                    f"👤 {partner.get('name')}\n"
+                    f"🏆 {new_count} clienti raggiunti!"
+                )
+                actions.append(f"🎉 Milestone {new_count} clienti!")
+    
+    return actions
+
+async def handle_refund(data: dict) -> List[str]:
+    """Handle refund - Alert admin"""
+    actions = []
+    
+    email = data.get("email", "")
+    product = data.get("product_name", "")
+    amount = data.get("amount", 0)
+    reason = data.get("reason", "Non specificato")
+    
+    await send_telegram_alert(
+        f"⚠️ <b>Rimborso!</b>\n\n"
+        f"📧 {email}\n"
+        f"📦 {product}\n"
+        f"💰 €{amount}\n"
+        f"📝 Motivo: {reason}"
+    )
+    actions.append("⚠️ Alert rimborso inviato")
+    
+    # Log refund
+    await db.refunds.insert_one({
+        "email": email,
+        "product": product,
+        "amount": float(amount) if amount else 0,
+        "reason": reason,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    actions.append("📋 Rimborso registrato")
+    
+    return actions
+
+async def check_achievement_unlock(partner_id: str, phase: str):
+    """Check and unlock achievements based on phase"""
+    phase_achievements = {
+        "F1": {"id": "first_step", "name": "Primo Passo", "emoji": "🚀"},
+        "F3": {"id": "positioned", "name": "Posizionato", "emoji": "🎯"},
+        "F4": {"id": "maestro", "name": "Maestro", "emoji": "🎓"},
+        "F6": {"id": "regista", "name": "Regista", "emoji": "🎬"},
+        "F7": {"id": "online", "name": "Online!", "emoji": "🌟"},
+        "F10": {"id": "top_partner", "name": "Top Partner", "emoji": "💎"}
+    }
+    
+    if phase in phase_achievements:
+        achievement = phase_achievements[phase]
+        
+        # Check if already unlocked
+        existing = await db.achievements.find_one({
+            "partner_id": partner_id,
+            "achievement_id": achievement["id"]
+        })
+        
+        if not existing:
+            await db.achievements.insert_one({
+                "partner_id": partner_id,
+                "achievement_id": achievement["id"],
+                "name": achievement["name"],
+                "emoji": achievement["emoji"],
+                "unlocked_at": datetime.now(timezone.utc).isoformat()
+            })
+
+# -----------------------------------------------------------------------------
+# WEBHOOK ENDPOINTS
+# -----------------------------------------------------------------------------
+
+@api_router.post("/webhooks/systeme")
+async def receive_systeme_webhook(
+    payload: Dict[str, Any],
+    background_tasks: BackgroundTasks
+):
+    """
+    Main webhook endpoint for Systeme.io events
+    
+    Supported events:
+    - new_sale / new_order: Auto-onboard partner
+    - new_subscriber / form_subscribed: Create lead
+    - tag_added: Auto-progress phases
+    - course_access: Update client stats
+    - refund: Alert admin
+    """
+    event_type = payload.get("event_type", payload.get("event", "unknown"))
+    data = payload.get("data", payload)
+    
+    logger.info(f"Webhook received: {event_type}")
+    
+    actions = []
+    processed = True
+    
+    try:
+        if event_type in ["new_sale", "new_order", "sale", "order"]:
+            actions = await handle_new_sale(data)
+        
+        elif event_type in ["new_subscriber", "subscriber", "form_subscribed", "optin"]:
+            actions = await handle_new_subscriber(data)
+        
+        elif event_type in ["tag_added", "tag", "contact_tagged"]:
+            actions = await handle_tag_added(data)
+        
+        elif event_type in ["course_access", "enrollment", "student_enrolled"]:
+            actions = await handle_course_access(data)
+        
+        elif event_type in ["refund", "chargeback"]:
+            actions = await handle_refund(data)
+        
+        else:
+            actions = [f"ℹ️ Evento non gestito: {event_type}"]
+            processed = False
+    
+    except Exception as e:
+        logger.error(f"Webhook processing error: {e}")
+        actions = [f"❌ Errore: {str(e)}"]
+        processed = False
+    
+    # Log webhook
+    background_tasks.add_task(log_webhook, event_type, payload, processed, actions)
+    
+    return {
+        "success": processed,
+        "event_type": event_type,
+        "actions_taken": actions
+    }
+
+@api_router.get("/webhooks/logs")
+async def get_webhook_logs(limit: int = 50, event_type: Optional[str] = None):
+    """Get webhook logs for admin dashboard"""
+    query = {}
+    if event_type:
+        query["event_type"] = event_type
+    
+    logs = await db.webhook_logs.find(
+        query,
+        {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    # Stats
+    total = await db.webhook_logs.count_documents({})
+    processed = await db.webhook_logs.count_documents({"processed": True})
+    
+    return {
+        "logs": logs,
+        "stats": {
+            "total": total,
+            "processed": processed,
+            "failed": total - processed
+        }
+    }
+
+@api_router.get("/webhooks/stats")
+async def get_webhook_stats():
+    """Get webhook statistics"""
+    # Count by event type
+    pipeline = [
+        {"$group": {"_id": "$event_type", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}}
+    ]
+    event_counts = await db.webhook_logs.aggregate(pipeline).to_list(100)
+    
+    # Recent activity
+    recent = await db.webhook_logs.find(
+        {},
+        {"_id": 0, "event_type": 1, "created_at": 1, "processed": 1}
+    ).sort("created_at", -1).limit(10).to_list(10)
+    
+    # Leads stats
+    total_leads = await db.leads.count_documents({})
+    hot_leads = await db.leads.count_documents({"score": {"$gte": 80}})
+    
+    return {
+        "events_by_type": {item["_id"]: item["count"] for item in event_counts},
+        "recent_activity": recent,
+        "leads": {
+            "total": total_leads,
+            "hot": hot_leads
+        }
+    }
+
+@api_router.get("/leads")
+async def get_leads(status: Optional[str] = None, min_score: int = 0):
+    """Get all leads with optional filtering"""
+    query = {"score": {"$gte": min_score}}
+    if status:
+        query["status"] = status
+    
+    leads = await db.leads.find(query, {"_id": 0}).sort("score", -1).to_list(500)
+    return {"leads": leads, "count": len(leads)}
+
+@api_router.patch("/leads/{email}/score")
+async def update_lead_score(email: str, score_delta: int):
+    """Manually adjust lead score"""
+    lead = await db.leads.find_one({"email": email})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    new_score = max(0, lead.get("score", 0) + score_delta)
+    await db.leads.update_one(
+        {"email": email},
+        {"$set": {"score": new_score}}
+    )
+    
+    return {"email": email, "old_score": lead.get("score", 0), "new_score": new_score}
+
+@api_router.get("/partners/{partner_id}/achievements")
+async def get_partner_achievements(partner_id: str):
+    """Get achievements for a partner"""
+    achievements = await db.achievements.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).to_list(100)
+    
+    return {"achievements": achievements}
+
+@api_router.get("/partners/{partner_id}/students")
+async def get_partner_students(partner_id: str):
+    """Get students enrolled in partner's courses"""
+    students = await db.partner_students.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).sort("enrolled_at", -1).to_list(500)
+    
+    return {"students": students, "count": len(students)}
+
+# =============================================================================
 # TELEGRAM NOTIFICATIONS
 # =============================================================================
 
