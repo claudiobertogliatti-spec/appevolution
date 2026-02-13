@@ -440,6 +440,7 @@ export default function App() {
   const [nav,setNav]=useState("overview");
   const [adminUser,setAdminUser]=useState("claudio");
   const [showNP,setShowNP]=useState(false);
+  const [showPartnerProfile,setShowPartnerProfile]=useState(false);
   const [toolsOpen,setToolsOpen]=useState(false);
   const [agents,setAgents]=useState([]);
   const [partners,setPartners]=useState([]);
