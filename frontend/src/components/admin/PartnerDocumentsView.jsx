@@ -98,7 +98,7 @@ function PositioningContent({ data }) {
       <div className="flex items-center justify-between mb-4">
         <StatusBadge status={data.status} />
         {data.updated_at && (
-          <span className="text-xs text-white/30">
+          <span className="text-xs text-[#9CA3AF]">
             Aggiornato: {new Date(data.updated_at).toLocaleDateString("it-IT")}
           </span>
         )}
@@ -122,7 +122,7 @@ function PositioningContent({ data }) {
               <div className="text-[10px] font-bold text-[#F5C518] uppercase tracking-wider mb-1">
                 {key.replace(/_/g, " ")}
               </div>
-              <div className="text-sm text-white/70">{value || "—"}</div>
+              <div className="text-sm text-[#5F6572]">{value || "—"}</div>
             </div>
           ))}
         </div>
@@ -135,7 +135,7 @@ function ScriptContent({ data }) {
   if (!data || data.status === "not_started") {
     return (
       <div className="text-center py-12">
-        <Mic className="w-12 h-12 text-white/10 mx-auto mb-3" />
+        <Mic className="w-12 h-12 text-[#ECEDEF] mx-auto mb-3" />
         <div className="text-[#9CA3AF] font-semibold">Script Masterclass non ancora creato</div>
         <div className="text-[#9CA3AF] text-sm mt-1">Il partner deve completare il Masterclass Builder</div>
       </div>
@@ -158,7 +158,7 @@ function ScriptContent({ data }) {
       <div className="flex items-center justify-between mb-4">
         <StatusBadge status={data.status} />
         {data.updated_at && (
-          <span className="text-xs text-white/30">
+          <span className="text-xs text-[#9CA3AF]">
             Aggiornato: {new Date(data.updated_at).toLocaleDateString("it-IT")}
           </span>
         )}
@@ -182,7 +182,7 @@ function ScriptContent({ data }) {
               </div>
               <div className="px-4 py-3">
                 {hasContent ? (
-                  <p className="text-sm text-white/70 whitespace-pre-wrap">{content}</p>
+                  <p className="text-sm text-[#5F6572] whitespace-pre-wrap">{content}</p>
                 ) : (
                   <p className="text-sm text-[#9CA3AF] italic">Non ancora compilato</p>
                 )}
@@ -199,7 +199,7 @@ function CourseContent({ data }) {
   if (!data) {
     return (
       <div className="text-center py-12">
-        <BookOpen className="w-12 h-12 text-white/10 mx-auto mb-3" />
+        <BookOpen className="w-12 h-12 text-[#ECEDEF] mx-auto mb-3" />
         <div className="text-[#9CA3AF] font-semibold">Struttura corso non ancora creata</div>
         <div className="text-[#9CA3AF] text-sm mt-1">Il partner deve usare il Course Builder AI</div>
       </div>
@@ -213,7 +213,7 @@ function CourseContent({ data }) {
       <div className="flex items-center justify-between mb-4">
         <span className="text-xs font-bold text-[#9CA3AF]">{modules.length} moduli</span>
         {data.updated_at && (
-          <span className="text-xs text-white/30">
+          <span className="text-xs text-[#9CA3AF]">
             Aggiornato: {new Date(data.updated_at).toLocaleDateString("it-IT")}
           </span>
         )}
@@ -233,7 +233,7 @@ function CourseContent({ data }) {
               <div className="ml-8 space-y-1">
                 {mod.lessons.map((lesson, li) => (
                   <div key={li} className="text-xs text-[#5F6572] flex items-center gap-2">
-                    <span className="w-4 h-4 rounded-full bg-white/10 flex items-center justify-center text-[9px]">
+                    <span className="w-4 h-4 rounded-full bg-[#ECEDEF] flex items-center justify-center text-[9px]">
                       {li + 1}
                     </span>
                     {lesson.title || lesson}
@@ -349,7 +349,7 @@ export function PartnerDocumentsView({ partners }) {
                       Presente
                     </span>
                   ) : (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FAFAF7] text-white/30">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FAFAF7] text-[#9CA3AF]">
                       Assente
                     </span>
                   )}
