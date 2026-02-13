@@ -976,6 +976,10 @@ async def create_partner(data: PartnerCreate):
 
 @api_router.patch("/partners/{partner_id}")
 async def update_partner(partner_id: str, phase: Optional[str] = None, alert: Optional[bool] = None, modules: Optional[List[int]] = None):
+    # Get current partner data for comparison
+    current_partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    old_phase = current_partner.get("phase") if current_partner else None
+    
     update = {}
     if phase:
         update["phase"] = phase
@@ -985,7 +989,23 @@ async def update_partner(partner_id: str, phase: Optional[str] = None, alert: Op
         update["modules"] = modules
     if update:
         await db.partners.update_one({"id": partner_id}, {"$set": update})
+    
     partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    
+    # Send Telegram notification if phase changed
+    if phase and old_phase and phase != old_phase and partner:
+        try:
+            from valentina_ai import telegram_notify
+            await telegram_notify(
+                notification_type="phase_complete",
+                partner_name=partner.get("name", "Partner"),
+                old_phase=old_phase,
+                new_phase=phase
+            )
+            logging.info(f"Telegram notification sent: {partner.get('name')} {old_phase} → {phase}")
+        except Exception as e:
+            logging.error(f"Failed to send Telegram notification: {e}")
+    
     return partner
 
 # =============================================================================
