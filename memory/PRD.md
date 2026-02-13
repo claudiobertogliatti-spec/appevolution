@@ -128,6 +128,27 @@ Creare un'applicazione full-stack proprietaria per Evolution PRO - una piattafor
   - `GET /api/partner-documents/{partner_id}` - Tutti i documenti partner
   - `GET /api/partner-documents/all/summary` - Riassunto per Admin
 
+#### 4. Partner Profile Complete View
+- **Modal Profilo Completo**: Click su partner dalla lista
+- **3 Colonne Layout**:
+  - Anagrafica (email, telefono, azienda, P.IVA, nicchia)
+  - Social (Instagram, LinkedIn, YouTube)
+  - Contratto (tipo, data inizio, scadenza, giorni rimanenti)
+  - Pagamenti (lista pagamenti, revenue totale)
+  - Progresso (fase attuale, barra progresso, moduli completati)
+  - Documenti (posizionamento, script, corso)
+- **Funzionalità**:
+  - **Modifica**: Edit inline di tutti i campi
+  - **Esporta PDF**: Download report completo partner
+  - **Invia Email**: Invio documenti al partner
+- **API Endpoints**:
+  - `GET /api/partners/{id}/profile` - Profilo esteso
+  - `PATCH /api/partners/{id}/profile` - Aggiorna profilo
+  - `GET /api/partners/{id}/payments` - Storico pagamenti
+  - `POST /api/partners/{id}/payments` - Aggiungi pagamento
+  - `GET /api/partners/{id}/export-pdf` - Export PDF
+  - `POST /api/partners/{id}/send-documents` - Invia email
+
 #### 1. Systeme.io Live Data Dashboard
 - Connessione API reale (`api.systeme.io`)
 - Sincronizzazione automatica contatti (1000+ paginati)
