@@ -99,6 +99,22 @@ Creare un'applicazione full-stack proprietaria per Evolution PRO - una piattafor
 
 ### V12.0 - Systeme.io MCP Full Integration (12 Feb 2026) ✅
 
+### V13.0 - JWT Authentication & Telegram Notifications (13 Feb 2026) ✅
+
+#### 1. JWT Authentication System
+- **Login Page**: UI completa con branding Evolution PRO
+- **Token Management**: Salvataggio in localStorage, verifica automatica
+- **Role-based Access**: Admin vede toggle Admin/Partner, Partner solo Partner view
+- **Logout**: Pulsante logout funzionante con pulizia sessione
+- **Default Users**: claudio@evolutionpro.it, antonella@evolutionpro.it (auto-seed)
+
+#### 2. Telegram Bot Notifications
+- **Bot**: @valentina_evo_bot (Valentina Evolution Pro)
+- **Admin Setup**: `/api/telegram/setup-admin` per registrare admin
+- **Test Endpoint**: `/api/telegram/test` per verificare funzionamento
+- **Notification Types**: Alert sistema, nuovi partner, fasi completate
+- **Chat ID Admin**: 852111182 (Claudio Bertogliatti)
+
 #### 1. Systeme.io Live Data Dashboard
 - Connessione API reale (`api.systeme.io`)
 - Sincronizzazione automatica contatti (1000+ paginati)
