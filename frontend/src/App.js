@@ -604,9 +604,22 @@ export default function App() {
         </div>
 
         {/* Footer utente */}
-        <div className="p-3 border-t border-white/5 flex items-center gap-2.5">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0 ${mode==="admin"?(adminUser==="antonella"?"bg-purple-500 text-white":"bg-[#F5C518] text-black"):"bg-white/10 text-white"}`}>{mode==="admin"?(adminUser==="antonella"?"AR":"CB"):"MF"}</div>
-          <div className="flex-1 min-w-0"><div className="text-xs font-bold truncate">{mode==="admin"?(adminUser==="antonella"?"Antonella Rossi":"Claudio Bertogliatti"):"Marco Ferretti"}</div><div className="text-[9px] text-white/20 truncate">{mode==="admin"?(adminUser==="antonella"?"Admin · Operations":"Admin · Fondatore"):`Partner · ${demoPartner.phase}`}</div></div>
+        <div className="p-3 border-t border-white/5">
+          <div className="flex items-center gap-2.5 mb-2">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0 ${mode==="admin"?(adminUser==="antonella"?"bg-purple-500 text-white":"bg-[#F5C518] text-black"):"bg-white/10 text-white"}`}>{currentUser?.name?.split(" ").map(n=>n[0]).join("")||"U"}</div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-bold truncate">{currentUser?.name||"Utente"}</div>
+              <div className="text-[9px] text-white/20 truncate">{currentUser?.role==="admin"?`Admin · ${currentUser.admin_type==="antonella"?"Operations":"Fondatore"}`:`Partner · ${demoPartner.phase}`}</div>
+            </div>
+          </div>
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-white/5 border border-white/10 text-white/40 hover:text-white hover:bg-red-500/10 hover:border-red-500/30 transition-all text-xs font-bold"
+            data-testid="logout-btn"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Esci
+          </button>
         </div>
       </div>
 
