@@ -101,10 +101,18 @@ Creare un'applicazione full-stack proprietaria per Evolution PRO - una piattafor
 
 #### 1. Nuovo Design System CSS
 - **Colore primario brand**: #F2C418 (Giallo oro)
-- **Dark theme**: #2D3239 (Charcoal)
-- **Background chiaro**: #FAFAF7
+- **LIGHT THEME COMPLETO** (13 Feb 2026): Sfondo bianco #FAFAF7, testo nero #1E2128
+- **Dark theme rimosso**: Tutta l'app ora in light theme
 - **Accenti**: Verde #2D9F6F, Viola #7B68AE
 - File: `/app/frontend/src/styles/design-system.css`
+- CSS Variables: `/app/frontend/src/App.css` (--evo-bg, --evo-surface, --evo-text)
+
+#### 2. Light Theme Fix (13 Feb 2026)
+- **Pagina Login**: Sfondo bianco con card ombreggiata
+- **Dashboard Admin/Partner**: Background #FAFAF7
+- **Tutte le sezioni**: Documenti, VALENTINA Chat, Post-Lancio, Editing
+- **Modali**: Overlay bg-black/40 con content bianco
+- **Componenti UI**: Tutti aggiornati (sheet, dialog, drawer, alert-dialog)
 
 #### 2. Nuova Sidebar Partner
 - Logo "Evolution PRO" con colori brand
