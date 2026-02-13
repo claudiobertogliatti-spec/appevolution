@@ -180,30 +180,30 @@ function AdminOverview({ stats, agents, partners, alerts, onNavigate }) {
         <KPICard label="Alert Aperti" value={alerts.length} delta={alerts.length>0?"Richiedono attenzione":"Tutto OK"} deltaType={alerts.length>0?"down":"up"} icon={AlertTriangle} accent={alerts.length>0?"#EF4444":"#10B981"} />
       </div>
       {alertPartners.length>0 && (
-        <div className="bg-red-500/8 border border-red-500/20 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-3"><AlertCircle className="w-4 h-4 text-red-400"/><span className="font-bold text-sm text-red-400">{alertPartners.length} partner richiedono attenzione</span></div>
-          <div className="flex gap-2 flex-wrap">{alertPartners.map(p=><button key={p.id} onClick={()=>onNavigate("partner")} className="bg-red-500/15 text-red-300 border border-red-500/20 rounded-lg px-3 py-1.5 text-xs font-bold hover:bg-red-500/25 transition-colors">{p.name} · {p.phase}</button>)}</div>
+        <div className="rounded-xl p-4" style={{ background: '#FDECEF', border: '1px solid #EF467F30' }}>
+          <div className="flex items-center gap-2 mb-3"><AlertCircle className="w-4 h-4 text-red-500"/><span className="font-bold text-sm text-red-500">{alertPartners.length} partner richiedono attenzione</span></div>
+          <div className="flex gap-2 flex-wrap">{alertPartners.map(p=><button key={p.id} onClick={()=>onNavigate("partner")} className="bg-white text-red-500 border border-red-200 rounded-lg px-3 py-1.5 text-xs font-bold hover:bg-red-50 transition-colors">{p.name} · {p.phase}</button>)}</div>
         </div>
       )}
-      <div className="bg-[#1a2332] border border-white/10 rounded-xl overflow-hidden">
-        <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between">
-          <span className="font-bold text-sm">Pipeline Partner</span>
-          <button onClick={()=>onNavigate("partner")} className="text-xs font-bold text-[#F5C518] hover:opacity-80 transition-opacity">Vedi tutti →</button>
+      <div className="rounded-xl overflow-hidden" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
+        <div className="px-5 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid #ECEDEF' }}>
+          <span className="font-bold text-sm" style={{ color: '#1E2128' }}>Pipeline Partner</span>
+          <button onClick={()=>onNavigate("partner")} className="text-xs font-bold hover:opacity-80 transition-opacity" style={{ color: '#F2C418' }}>Vedi tutti →</button>
         </div>
         <table className="w-full">
-          <thead><tr className="text-[10px] font-bold text-white/25 uppercase tracking-wider"><th className="text-left px-5 py-2">Partner</th><th className="text-left px-4 py-2">Fase</th><th className="text-left px-4 py-2">Revenue</th><th className="text-left px-4 py-2">Stato</th></tr></thead>
+          <thead><tr className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#9CA3AF' }}><th className="text-left px-5 py-2">Partner</th><th className="text-left px-4 py-2">Fase</th><th className="text-left px-4 py-2">Revenue</th><th className="text-left px-4 py-2">Stato</th></tr></thead>
           <tbody>{(partners||[]).slice(0,5).map(p=>(
-            <tr key={p.id} className="border-t border-white/5 hover:bg-white/2 cursor-pointer transition-colors" onClick={()=>onNavigate("partner")}>
-              <td className="px-5 py-3"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-[#F5C518] flex items-center justify-center text-xs font-bold text-black">{p.name.split(" ").map(n=>n[0]).join("")}</div><div><div className="text-sm font-bold">{p.name}</div><div className="text-xs text-white/25">{p.niche}</div></div></div></td>
-              <td className="px-4 py-3"><span className="font-mono text-xs font-bold px-2 py-1 rounded bg-[#F5C518]/15 text-[#F5C518]">{p.phase}</span></td>
-              <td className="px-4 py-3 font-mono text-sm text-white/60">{p.revenue>0?`€${p.revenue.toLocaleString()}`:"—"}</td>
-              <td className="px-4 py-3">{p.alert?<span className="text-xs font-bold text-red-400 flex items-center gap-1"><AlertCircle className="w-3 h-3"/>Alert</span>:<span className="text-xs font-bold text-green-400 flex items-center gap-1"><Check className="w-3 h-3"/>OK</span>}</td>
+            <tr key={p.id} className="cursor-pointer transition-colors hover:bg-[#FAFAF7]" style={{ borderTop: '1px solid #ECEDEF' }} onClick={()=>onNavigate("partner")}>
+              <td className="px-5 py-3"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: '#F2C418', color: '#1E2128' }}>{p.name.split(" ").map(n=>n[0]).join("")}</div><div><div className="text-sm font-bold" style={{ color: '#1E2128' }}>{p.name}</div><div className="text-xs" style={{ color: '#9CA3AF' }}>{p.niche}</div></div></div></td>
+              <td className="px-4 py-3"><span className="font-mono text-xs font-bold px-2 py-1 rounded" style={{ background: '#FFF3C4', color: '#C4990A' }}>{p.phase}</span></td>
+              <td className="px-4 py-3 font-mono text-sm" style={{ color: '#5F6572' }}>{p.revenue>0?`€${p.revenue.toLocaleString()}`:"—"}</td>
+              <td className="px-4 py-3">{p.alert?<span className="text-xs font-bold text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3"/>Alert</span>:<span className="text-xs font-bold text-green-500 flex items-center gap-1"><Check className="w-3 h-3"/>OK</span>}</td>
             </tr>
           ))}</tbody>
         </table>
       </div>
       <div>
-        <div className="flex items-center justify-between mb-3"><span className="text-xs font-bold text-white/35 uppercase tracking-wider">Agenti AI</span><button onClick={()=>onNavigate("agenti")} className="text-xs font-bold text-[#F5C518] hover:opacity-80 transition-opacity">Vedi tutti →</button></div>
+        <div className="flex items-center justify-between mb-3"><span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Agenti AI</span><button onClick={()=>onNavigate("agenti")} className="text-xs font-bold hover:opacity-80 transition-opacity" style={{ color: '#F2C418' }}>Vedi tutti →</button></div>
         <div className="grid grid-cols-4 gap-3">{(agents||[]).slice(0,4).map(a=><AgentCard key={a.id} agent={a}/>)}</div>
       </div>
     </div>
@@ -213,8 +213,8 @@ function AdminOverview({ stats, agents, partners, alerts, onNavigate }) {
 function AdminAgents({ agents }) {
   return (
     <div className="space-y-5">
-      <div className="bg-[#F5C518]/8 border border-[#F5C518]/20 rounded-xl p-4 text-sm font-semibold text-white/60">
-        Budget sistema: <strong className="font-mono text-[#F5C518]">${(agents||[]).reduce((s,a)=>s+a.budget,0)} / $900</strong> · Rinnovo fine mese
+      <div className="rounded-xl p-4 text-sm font-semibold" style={{ background: '#FFF3C4', border: '1px solid #F2C41830', color: '#5F6572' }}>
+        Budget sistema: <strong className="font-mono" style={{ color: '#C4990A' }}>${(agents||[]).reduce((s,a)=>s+a.budget,0)} / $900</strong> · Rinnovo fine mese
       </div>
       <div className="grid grid-cols-3 gap-4">{(agents||[]).map(a=><AgentCard key={a.id} agent={a}/>)}</div>
     </div>
@@ -223,11 +223,11 @@ function AdminAgents({ agents }) {
 
 function AdminPartners({ partners, onSelect }) {
   return (
-    <div className="bg-[#1a2332] border border-white/10 rounded-xl overflow-hidden">
+    <div className="rounded-xl overflow-hidden" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
       <table className="w-full">
-        <thead><tr className="text-[10px] font-bold text-white/25 uppercase tracking-wider border-b border-white/5"><th className="text-left px-5 py-3">Partner</th><th className="text-left px-4 py-3">Fase</th><th className="text-left px-4 py-3">Revenue</th><th className="text-left px-4 py-3">Contratto</th><th className="text-left px-4 py-3">Stato</th></tr></thead>
+        <thead><tr className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#9CA3AF', borderBottom: '1px solid #ECEDEF' }}><th className="text-left px-5 py-3">Partner</th><th className="text-left px-4 py-3">Fase</th><th className="text-left px-4 py-3">Revenue</th><th className="text-left px-4 py-3">Contratto</th><th className="text-left px-4 py-3">Stato</th></tr></thead>
         <tbody>{(partners||[]).map(p=>(
-          <tr key={p.id} className="border-t border-white/5 hover:bg-white/2 cursor-pointer transition-colors" onClick={()=>onSelect(p)}>
+          <tr key={p.id} className="cursor-pointer transition-colors hover:bg-[#FAFAF7]" style={{ borderTop: '1px solid #ECEDEF' }} onClick={()=>onSelect(p)}>
             <td className="px-5 py-3"><div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-[#F5C518] flex items-center justify-center text-sm font-bold text-black">{p.name.split(" ").map(n=>n[0]).join("")}</div><div><div className="text-sm font-bold">{p.name}</div><div className="text-xs text-white/25">{p.niche}</div></div></div></td>
             <td className="px-4 py-3"><span className="font-mono text-xs font-bold px-2 py-1 rounded bg-[#F5C518]/15 text-[#F5C518]">{p.phase}</span></td>
             <td className="px-4 py-3 font-mono text-sm text-white/60">{p.revenue>0?`€${p.revenue.toLocaleString()}`:"—"}</td>
