@@ -177,18 +177,23 @@ Creare un'applicazione full-stack proprietaria per Evolution PRO - una piattafor
   - Pulsante "Lancia il Funnel" quando tutto approvato
   - Modale celebrazione lancio
 
-#### 2. Masterclass & Videocorso Studio
+#### 2. Masterclass & Videocorso Studio con Opzioni Premium
 - **File**: `/app/frontend/src/components/partner/MasterclassVideocorso.jsx`
-- **Tab Masterclass**:
-  - Scaletta 5 blocchi (Intro, Problema, Metodo, Caso Studio, CTA)
-  - Setup registrazione con checklist Andrea
-  - Consigli di Stefania per non vendere troppo presto
-- **Tab Studio Videocorso**:
-  - 8 lezioni strutturate con istruzioni regista AI
-  - Progress bar lezioni registrate
-  - Indicazioni per ogni lezione: durata, inquadratura, tono, punti chiave
-  - Sistema step-by-step (sblocco progressivo)
-  - Pulsanti "Inizia a Registrare" e "Ho registrato"
+- **Opzioni di Produzione**:
+  - **🤖 Avatar + Voice Clone (PREMIUM)**: €120/video IVA inclusa
+    - Avatar professionale con sembianze partner
+    - Voice clone della voce reale
+    - Montaggio e post-produzione inclusi
+    - Consegna 48-72 ore
+    - Revisioni illimitate
+  - **🎬 Registra in Autonomia (INCLUSO)**: €0/video
+    - Partner registra con smartphone
+    - Andrea fa editing professionale
+    - Grafiche, titoli, transizioni, musica incluse
+- **Selezione Mix**: Partner può scegliere quali lezioni delegare ad Avatar e quali fare in autonomia
+- **Riepilogo dinamico**: Totale automatico basato su selezione
+- **Tab Masterclass**: Scaletta 5 blocchi + Setup registrazione
+- **Tab Videocorso**: 8 lezioni con indicazioni regista AI
 
 #### 3. Sidebar Partner Aggiornata
 - Nuova voce "Il tuo Funnel" con badge NUOVO
