@@ -94,28 +94,33 @@ function PhaseProgressBar({ currentPhase }) {
   const idx = PHASES.indexOf(currentPhase);
   const pct = Math.round((idx / (PHASES.length - 1)) * 100);
   return (
-    <div className="bg-[#1a2332] border border-white/10 rounded-xl p-4 mb-5">
+    <div className="rounded-xl p-4 mb-5" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
       <div className="flex items-center justify-between mb-3">
         <div>
-          <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Il tuo percorso</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Il tuo percorso</span>
           <div className="text-base font-extrabold mt-0.5">
-            <span className="text-[#F5C518]">{currentPhase}</span>
-            <span className="text-white/50 font-semibold text-sm ml-2">— {PHASE_LABELS[currentPhase]}</span>
+            <span style={{ color: '#F2C418' }}>{currentPhase}</span>
+            <span className="font-semibold text-sm ml-2" style={{ color: '#5F6572' }}>— {PHASE_LABELS[currentPhase]}</span>
           </div>
         </div>
         <div className="text-right">
-          <div className="font-mono text-2xl font-bold text-[#F5C518]">{pct}%</div>
-          <div className="text-[10px] text-white/25 font-semibold">completato</div>
+          <div className="font-mono text-2xl font-bold" style={{ color: '#F2C418' }}>{pct}%</div>
+          <div className="text-[10px] font-semibold" style={{ color: '#9CA3AF' }}>completato</div>
         </div>
       </div>
       <div className="relative mt-2">
-        <div className="absolute top-3 left-0 right-0 h-0.5 bg-white/10 rounded" />
-        <div className="absolute top-3 left-0 h-0.5 bg-[#F5C518] rounded transition-all duration-700" style={{width:`${pct}%`}} />
+        <div className="absolute top-3 left-0 right-0 h-0.5 rounded" style={{ background: '#ECEDEF' }} />
+        <div className="absolute top-3 left-0 h-0.5 rounded transition-all duration-700" style={{ width: `${pct}%`, background: '#F2C418' }} />
         <div className="relative flex justify-between">
           {PHASES.map((p,i)=>(
             <div key={p} className="flex flex-col items-center">
-              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-[9px] font-bold transition-all
-                ${i<idx?"bg-[#F5C518] border-[#F5C518] text-black":i===idx?"bg-[#1a2332] border-[#F5C518] text-[#F5C518] shadow-[0_0_10px_rgba(245,197,24,.35)]":"bg-[#1a2332] border-white/15 text-white/25"}`}>
+              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-[9px] font-bold transition-all`}
+                   style={{ 
+                     background: i < idx ? '#F2C418' : 'white',
+                     borderColor: i <= idx ? '#F2C418' : '#ECEDEF',
+                     color: i < idx ? '#1E2128' : i === idx ? '#F2C418' : '#9CA3AF',
+                     boxShadow: i === idx ? '0 0 10px rgba(242,196,24,0.35)' : 'none'
+                   }}>
                 {i<idx?<Check className="w-3 h-3"/>:p.replace("F","")}
               </div>
             </div>
@@ -129,13 +134,13 @@ function PhaseProgressBar({ currentPhase }) {
 // ─── KPI CARD ──────────────────────────────────────────────────────────────────
 function KPICard({ label, value, delta, deltaType, icon: Icon, accent }) {
   return (
-    <div className="bg-[#1a2332] border border-white/10 rounded-xl p-5 relative overflow-hidden">
-      {accent && <div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-xl" style={{background:accent}} />}
+    <div className="rounded-xl p-5 relative overflow-hidden" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
+      {accent && <div className="absolute top-0 left-0 right-0 h-1 rounded-t-xl" style={{background:accent}} />}
       <div className="flex items-start justify-between mb-3">
-        <span className="text-[10px] font-bold text-white/35 uppercase tracking-wider">{label}</span>
-        {Icon && <Icon className="w-4 h-4 text-white/15" />}
+        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#9CA3AF' }}>{label}</span>
+        {Icon && <Icon className="w-4 h-4" style={{ color: '#D1D5DB' }} />}
       </div>
-      <div className="font-mono text-3xl font-bold mb-1">{value}</div>
+      <div className="font-mono text-3xl font-bold mb-1" style={{ color: '#1E2128' }}>{value}</div>
       {delta && <div className={`text-xs font-bold ${deltaType==="up"?"text-[#10B981]":deltaType==="warn"?"text-[#F59E0B]":"text-[#EF4444]"}`}>{delta}</div>}
     </div>
   );
@@ -145,18 +150,18 @@ function KPICard({ label, value, delta, deltaType, icon: Icon, accent }) {
 function AgentCard({ agent }) {
   const pct = agent.budget;
   const color = pct>70?"#EF4444":pct>40?"#F59E0B":"#10B981";
-  const sc = {ACTIVE:"#10B981",IDLE:"#6b7280",ALERT:"#EF4444"};
+  const sc = {ACTIVE:"#10B981",IDLE:"#9CA3AF",ALERT:"#EF4444"};
   return (
-    <div className={`bg-[#1a2332] border border-white/10 rounded-xl p-4 relative overflow-hidden ${agent.status==="ALERT"?"border-red-500/20":""}`}>
-      <div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-xl" style={{background:sc[agent.status]||"#6b7280"}} />
+    <div className="rounded-xl p-4 relative overflow-hidden" style={{ background: 'white', border: `1px solid ${agent.status==="ALERT"?"#FDECEF":"#ECEDEF"}` }}>
+      <div className="absolute top-0 left-0 right-0 h-1 rounded-t-xl" style={{background:sc[agent.status]||"#9CA3AF"}} />
       <div className="flex items-center justify-between mb-2">
-        <span className="font-mono text-xs font-bold text-white/40">{agent.id}</span>
-        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{background:`${sc[agent.status]||"#6b7280"}20`,color:sc[agent.status]||"#6b7280"}}>{agent.status}</span>
+        <span className="font-mono text-xs font-bold" style={{ color: '#9CA3AF' }}>{agent.id}</span>
+        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{background:`${sc[agent.status]||"#9CA3AF"}15`,color:sc[agent.status]||"#9CA3AF"}}>{agent.status}</span>
       </div>
-      <div className="text-sm font-bold text-white mb-0.5">{agent.role}</div>
-      <div className="text-[10px] text-white/25 font-semibold mb-3">{agent.category}</div>
-      <div className="flex justify-between text-[10px] font-bold text-white/25 mb-1"><span>Budget</span><span className="font-mono" style={{color}}>${agent.budget}/$100</span></div>
-      <div className="h-1 bg-white/5 rounded-full overflow-hidden"><div className="h-full rounded-full transition-all" style={{width:`${pct}%`,background:color}} /></div>
+      <div className="text-sm font-bold mb-0.5" style={{ color: '#1E2128' }}>{agent.role}</div>
+      <div className="text-[10px] font-semibold mb-3" style={{ color: '#9CA3AF' }}>{agent.category}</div>
+      <div className="flex justify-between text-[10px] font-bold mb-1" style={{ color: '#9CA3AF' }}><span>Budget</span><span className="font-mono" style={{color}}>${agent.budget}/$100</span></div>
+      <div className="h-1 rounded-full overflow-hidden" style={{ background: '#ECEDEF' }}><div className="h-full rounded-full transition-all" style={{width:`${pct}%`,background:color}} /></div>
     </div>
   );
 }
