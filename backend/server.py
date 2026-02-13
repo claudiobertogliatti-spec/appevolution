@@ -5481,6 +5481,246 @@ async def orion_trigger_sales_automation(request: TriggerAutomationRequest):
     return await client.trigger_automation(request.contact_id, request.tag_name)
 
 # =============================================================================
+# HEYGEN AVATAR VIDEO INTEGRATION
+# =============================================================================
+
+from heygen_service import heygen_service, HeyGenService
+
+HEYGEN_API_KEY = os.environ.get('HEYGEN_API_KEY', '')
+
+class AvatarSampleRequest(BaseModel):
+    photo_url: str
+    audio_url: str
+    partner_name: str
+    partner_id: str
+
+class AvatarLessonRequest(BaseModel):
+    partner_id: str
+    avatar_id: str
+    voice_id: str
+    script: str
+    lesson_title: str
+    lesson_id: int
+
+class AvatarOrderRequest(BaseModel):
+    partner_id: str
+    lesson_ids: List[int]
+    avatar_id: str
+    voice_id: str
+
+@api_router.get("/heygen/status")
+async def heygen_status():
+    """Check HeyGen API connection status"""
+    if not HEYGEN_API_KEY:
+        return {"connected": False, "error": "API key not configured"}
+    
+    try:
+        result = await heygen_service.get_voices()
+        return {
+            "connected": True,
+            "voices_count": len(result.get("data", {}).get("voices", [])),
+            "api_version": "v2"
+        }
+    except Exception as e:
+        return {"connected": False, "error": str(e)}
+
+@api_router.get("/heygen/avatars")
+async def get_heygen_avatars():
+    """Get available HeyGen avatars"""
+    try:
+        result = await heygen_service.get_avatars()
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/heygen/voices")
+async def get_heygen_voices():
+    """Get available HeyGen voices"""
+    try:
+        result = await heygen_service.get_voices()
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/heygen/sample/generate")
+async def generate_avatar_sample(request: AvatarSampleRequest, background_tasks: BackgroundTasks):
+    """
+    Generate a free 30-second sample video with Avatar + Voice Clone
+    
+    This is for the "Prova Gratuita" feature
+    """
+    try:
+        # Generate sample video
+        result = await heygen_service.generate_sample_video(
+            photo_url=request.photo_url,
+            audio_url=request.audio_url,
+            partner_name=request.partner_name
+        )
+        
+        if result.get("success"):
+            # Store sample request in database
+            await db.avatar_samples.insert_one({
+                "partner_id": request.partner_id,
+                "partner_name": request.partner_name,
+                "avatar_id": result.get("avatar_id"),
+                "voice_id": result.get("voice_id"),
+                "video_id": result.get("video_id"),
+                "status": "processing",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+            
+            return {
+                "success": True,
+                "video_id": result.get("video_id"),
+                "avatar_id": result.get("avatar_id"),
+                "voice_id": result.get("voice_id"),
+                "message": "Sample video in generazione. Riceverai una notifica quando sarà pronto."
+            }
+        else:
+            raise HTTPException(status_code=500, detail=result.get("error", "Unknown error"))
+            
+    except Exception as e:
+        logger.error(f"Error generating avatar sample: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/heygen/sample/{video_id}/status")
+async def get_sample_status(video_id: str):
+    """Check the status of a sample video generation"""
+    try:
+        result = await heygen_service.get_video_status(video_id)
+        
+        status = result.get("data", {}).get("status", "unknown")
+        video_url = result.get("data", {}).get("video_url")
+        
+        # Update database if completed
+        if status == "completed" and video_url:
+            await db.avatar_samples.update_one(
+                {"video_id": video_id},
+                {"$set": {
+                    "status": "completed",
+                    "video_url": video_url,
+                    "completed_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+        
+        return {
+            "video_id": video_id,
+            "status": status,
+            "video_url": video_url,
+            "thumbnail_url": result.get("data", {}).get("thumbnail_url")
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/heygen/lesson/generate")
+async def generate_lesson_video(request: AvatarLessonRequest):
+    """
+    Generate a full lesson video (paid service - €120/video)
+    """
+    try:
+        # Get partner info
+        partner = await db.partners.find_one({"id": request.partner_id})
+        partner_name = partner.get("name", "Partner") if partner else "Partner"
+        
+        result = await heygen_service.generate_lesson_video(
+            avatar_id=request.avatar_id,
+            voice_id=request.voice_id,
+            script=request.script,
+            lesson_title=request.lesson_title,
+            partner_name=partner_name
+        )
+        
+        if result.get("success"):
+            # Store lesson video in database
+            await db.avatar_lessons.insert_one({
+                "partner_id": request.partner_id,
+                "lesson_id": request.lesson_id,
+                "lesson_title": request.lesson_title,
+                "avatar_id": request.avatar_id,
+                "voice_id": request.voice_id,
+                "video_id": result.get("video_id"),
+                "status": "processing",
+                "price": 120.00,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+            
+            return {
+                "success": True,
+                "video_id": result.get("video_id"),
+                "message": f"Video '{request.lesson_title}' in generazione."
+            }
+        else:
+            raise HTTPException(status_code=500, detail=result.get("error"))
+            
+    except Exception as e:
+        logger.error(f"Error generating lesson video: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/heygen/order")
+async def create_avatar_order(request: AvatarOrderRequest):
+    """
+    Create an order for multiple Avatar videos
+    """
+    try:
+        partner = await db.partners.find_one({"id": request.partner_id})
+        if not partner:
+            raise HTTPException(status_code=404, detail="Partner not found")
+        
+        total_price = len(request.lesson_ids) * 120.00
+        
+        order = {
+            "id": f"ORD-{str(uuid.uuid4())[:8].upper()}",
+            "partner_id": request.partner_id,
+            "partner_name": partner.get("name"),
+            "avatar_id": request.avatar_id,
+            "voice_id": request.voice_id,
+            "lesson_ids": request.lesson_ids,
+            "lesson_count": len(request.lesson_ids),
+            "price_per_lesson": 120.00,
+            "total_price": total_price,
+            "currency": "EUR",
+            "status": "pending_payment",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.avatar_orders.insert_one(order)
+        
+        return {
+            "success": True,
+            "order_id": order["id"],
+            "total_price": total_price,
+            "lesson_count": len(request.lesson_ids),
+            "message": f"Ordine creato: {len(request.lesson_ids)} video Avatar per €{total_price}"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating avatar order: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/heygen/orders/{partner_id}")
+async def get_partner_avatar_orders(partner_id: str):
+    """Get all avatar orders for a partner"""
+    orders = await db.avatar_orders.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    return {"orders": orders}
+
+@api_router.get("/heygen/lessons/{partner_id}")
+async def get_partner_avatar_lessons(partner_id: str):
+    """Get all avatar lesson videos for a partner"""
+    lessons = await db.avatar_lessons.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    return {"lessons": lessons}
+
+# =============================================================================
 # SYSTEME.IO WEBHOOKS - AUTO-SYNC & AUTOMATIONS
 # =============================================================================
 
