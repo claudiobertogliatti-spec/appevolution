@@ -39,16 +39,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--evo-surface);
+  background: #F5F4F1;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: #D1D5DB;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: #9CA3AF;
 }
 
 /* Font Classes */
@@ -100,7 +100,7 @@ body {
 /* Glass Effect */
 .glass {
   backdrop-filter: blur(16px);
-  background: rgba(26, 35, 50, 0.85);
+  background: rgba(255, 255, 255, 0.95);
   border: 1px solid var(--evo-border);
 }
 
