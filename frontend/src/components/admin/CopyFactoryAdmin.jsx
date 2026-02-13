@@ -18,7 +18,7 @@ const BLOCK_LABELS = {
 };
 
 const STATUS_CONFIG = {
-  draft: { label: "Bozza", color: "bg-white/10 text-[#5F6572]", icon: FileText },
+  draft: { label: "Bozza", color: "bg-[#ECEDEF] text-[#5F6572]", icon: FileText },
   ai_draft: { label: "Bozza AI", color: "bg-purple-500/20 text-purple-400", icon: Sparkles },
   in_review: { label: "In Revisione Admin", color: "bg-yellow-500/20 text-yellow-400", icon: Clock },
   pending_partner_approval: { label: "Attende Partner", color: "bg-blue-500/20 text-blue-400", icon: User },
@@ -124,7 +124,7 @@ export function CopyFactoryAdmin({ currentAdmin }) {
             >
               <Sparkles className="w-4 h-4" /> Successi EVO
             </button>
-            <button onClick={loadData} className="p-2 text-white/30 hover:text-[#1E2128]">
+            <button onClick={loadData} className="p-2 text-[#9CA3AF] hover:text-[#1E2128]">
               <RefreshCw className="w-4 h-4" />
             </button>
           </div>
@@ -214,7 +214,7 @@ export function CopyFactoryAdmin({ currentAdmin }) {
                       <div className="font-bold text-sm text-[#1E2128]">{script.partner_info?.name || "Partner"}</div>
                       <div className="text-xs text-[#9CA3AF]">{script.partner_info?.niche || ""}</div>
                     </div>
-                    <ChevronRight className={`w-4 h-4 transition-transform ${isSelected ? "rotate-90 text-pink-400" : "text-white/30"}`} />
+                    <ChevronRight className={`w-4 h-4 transition-transform ${isSelected ? "rotate-90 text-pink-400" : "text-[#9CA3AF]"}`} />
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 ${status.color}`}>
@@ -262,7 +262,7 @@ export function CopyFactoryAdmin({ currentAdmin }) {
                 {selectedScript.partner_feedback && (
                   <div className="mt-4 bg-orange-500/10 border border-orange-500/30 rounded-lg p-3">
                     <div className="text-[10px] font-bold text-orange-400 uppercase mb-1">Feedback Partner</div>
-                    <div className="text-sm text-white/70">{selectedScript.partner_feedback}</div>
+                    <div className="text-sm text-[#5F6572]">{selectedScript.partner_feedback}</div>
                   </div>
                 )}
               </div>
@@ -277,13 +277,13 @@ export function CopyFactoryAdmin({ currentAdmin }) {
                     <div key={blockId} className="p-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-bold text-pink-400">{label}</span>
-                        <span className="text-[10px] text-white/30">{editedBlocks[blockId]?.length || 0} caratteri</span>
+                        <span className="text-[10px] text-[#9CA3AF]">{editedBlocks[blockId]?.length || 0} caratteri</span>
                       </div>
                       <textarea
                         value={editedBlocks[blockId] || ""}
                         onChange={e => updateBlock(blockId, e.target.value)}
                         placeholder={`Scrivi il contenuto per ${label}...`}
-                        className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 text-sm text-[#1E2128] placeholder:text-white/30 outline-none focus:border-pink-500/50 transition-colors resize-none min-h-[100px]"
+                        className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 text-sm text-[#1E2128] placeholder:text-[#9CA3AF] outline-none focus:border-pink-500/50 transition-colors resize-none min-h-[100px]"
                       />
                     </div>
                   ))}
@@ -297,7 +297,7 @@ export function CopyFactoryAdmin({ currentAdmin }) {
                   value={adminNotes}
                   onChange={e => setAdminNotes(e.target.value)}
                   placeholder="Es: Ho modificato l'hook per renderlo più provocatorio..."
-                  className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 text-sm text-[#1E2128] placeholder:text-white/30 outline-none focus:border-pink-500/50 transition-colors resize-none min-h-[80px]"
+                  className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 text-sm text-[#1E2128] placeholder:text-[#9CA3AF] outline-none focus:border-pink-500/50 transition-colors resize-none min-h-[80px]"
                 />
               </div>
 
@@ -305,7 +305,7 @@ export function CopyFactoryAdmin({ currentAdmin }) {
               <div className="flex gap-3">
                 <button
                   onClick={() => setSelectedScript(null)}
-                  className="px-6 py-3 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl text-sm font-bold text-[#5F6572] hover:bg-white/10 transition-colors"
+                  className="px-6 py-3 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl text-sm font-bold text-[#5F6572] hover:bg-[#ECEDEF] transition-colors"
                 >
                   Annulla
                 </button>

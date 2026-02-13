@@ -68,7 +68,7 @@ const BLOCK_CONFIG = [
 ];
 
 const STATUS_CONFIG = {
-  draft: { label: "Bozza", color: "bg-white/10 text-[#5F6572]", icon: FileText },
+  draft: { label: "Bozza", color: "bg-[#ECEDEF] text-[#5F6572]", icon: FileText },
   ai_draft: { label: "Bozza AI", color: "bg-purple-500/20 text-purple-400", icon: Sparkles },
   in_review: { label: "In Revisione Admin", color: "bg-yellow-500/20 text-yellow-400", icon: Clock },
   pending_partner_approval: { label: "Attende Tua Approvazione", color: "bg-blue-500/20 text-blue-400", icon: User },
@@ -258,7 +258,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
           </div>
           
           {/* Progress bar */}
-          <div className="mt-4 h-2 bg-white/10 rounded-full overflow-hidden">
+          <div className="mt-4 h-2 bg-[#ECEDEF] rounded-full overflow-hidden">
             <div 
               className="h-full bg-gradient-to-r from-pink-500 to-purple-500 rounded-full transition-all duration-500"
               style={{ width: `${completion}%` }}
@@ -272,7 +272,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
             </span>
             <button
               onClick={() => setShowGoldenRules(!showGoldenRules)}
-              className={`text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 transition-colors ${showGoldenRules ? "bg-pink-500 text-[#1E2128]" : "bg-[#FAFAF7] text-[#9CA3AF] hover:bg-white/10"}`}
+              className={`text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 transition-colors ${showGoldenRules ? "bg-pink-500 text-[#1E2128]" : "bg-[#FAFAF7] text-[#9CA3AF] hover:bg-[#ECEDEF]"}`}
             >
               <BookOpen className="w-3 h-3" /> 10 Regole d'Oro
             </button>
@@ -286,7 +286,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
               <User className="w-4 h-4 text-blue-400" />
               <span className="text-xs font-bold text-blue-400 uppercase">Modificato da {adminEditedBy}</span>
             </div>
-            {adminNotes && <p className="text-sm text-white/70 mb-3">{adminNotes}</p>}
+            {adminNotes && <p className="text-sm text-[#5F6572] mb-3">{adminNotes}</p>}
             <div className="flex gap-2">
               <button
                 onClick={() => approveAdminEdit(true)}
@@ -309,7 +309,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
               placeholder="Feedback opzionale..."
               value={partnerFeedback}
               onChange={e => setPartnerFeedback(e.target.value)}
-              className="w-full mt-2 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm text-[#1E2128] placeholder:text-white/30"
+              className="w-full mt-2 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm text-[#1E2128] placeholder:text-[#9CA3AF]"
             />
           </div>
         )}
@@ -376,7 +376,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono text-white/30">{index + 1}</span>
+                      <span className="text-xs font-mono text-[#9CA3AF]">{index + 1}</span>
                       <span className="text-sm font-extrabold text-[#1E2128]">{block.label}</span>
                       {hasContent && <CheckCircle className="w-4 h-4 text-green-500" />}
                     </div>
@@ -405,11 +405,11 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
                       value={script[block.id]}
                       onChange={e => updateBlock(block.id, e.target.value)}
                       placeholder={block.placeholder}
-                      className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 text-sm text-[#1E2128] placeholder:text-white/30 outline-none focus:border-pink-500/50 transition-colors resize-none min-h-[120px]"
+                      className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 text-sm text-[#1E2128] placeholder:text-[#9CA3AF] outline-none focus:border-pink-500/50 transition-colors resize-none min-h-[120px]"
                     />
                     
                     <div className="flex justify-between items-center mt-2">
-                      <span className="text-[10px] text-white/30">
+                      <span className="text-[10px] text-[#9CA3AF]">
                         {script[block.id]?.length || 0} caratteri
                       </span>
                       <button
@@ -431,7 +431,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
           <button
             onClick={saveScript}
             disabled={saving}
-            className="flex-1 flex items-center justify-center gap-2 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-3 text-sm font-bold text-[#5F6572] hover:bg-white/10 transition-colors disabled:opacity-50"
+            className="flex-1 flex items-center justify-center gap-2 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-3 text-sm font-bold text-[#5F6572] hover:bg-[#ECEDEF] transition-colors disabled:opacity-50"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Salva
@@ -465,7 +465,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
             <div className="text-xs font-extrabold text-[#9CA3AF] uppercase tracking-wider mb-2">
               Feedback STEFANIA
             </div>
-            <div className="text-sm text-white/70 whitespace-pre-wrap leading-relaxed">
+            <div className="text-sm text-[#5F6572] whitespace-pre-wrap leading-relaxed">
               {feedback}
             </div>
           </div>

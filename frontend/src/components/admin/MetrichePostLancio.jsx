@@ -118,7 +118,7 @@ export function MetrichePostLancio({ partners = [] }) {
                       opacity: isMax ? 1 : 0.6
                     }}
                   />
-                  <span className="text-[9px] font-bold text-white/30 mt-1">W{i + 1}</span>
+                  <span className="text-[9px] font-bold text-[#9CA3AF] mt-1">W{i + 1}</span>
                 </div>
               );
             })}

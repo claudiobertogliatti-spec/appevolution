@@ -83,7 +83,7 @@ export function CalendarioEditoriale({ partner }) {
               className="p-4 flex items-center gap-3 cursor-pointer hover:bg-[#FAFAF7] transition-colors"
             >
               <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-mono text-sm font-bold
-                ${wi <= 1 ? 'bg-[#F5C518] text-black' : 'bg-white/10 text-[#5F6572]'}`}
+                ${wi <= 1 ? 'bg-[#F5C518] text-black' : 'bg-[#ECEDEF] text-[#5F6572]'}`}
               >
                 W{week.week}
               </div>
@@ -123,10 +123,10 @@ export function CalendarioEditoriale({ partner }) {
                         {config.icon}
                       </div>
                       <div className="flex-1">
-                        <div className="text-sm font-bold text-white/80">{c.title}</div>
+                        <div className="text-sm font-bold text-[#5F6572]">{c.title}</div>
                         <div className={`text-xs font-semibold mt-0.5 ${config.color}`}>{c.platform}</div>
                       </div>
-                      <button className="text-xs font-bold text-white/30 hover:text-[#F5C518] transition-colors">
+                      <button className="text-xs font-bold text-[#9CA3AF] hover:text-[#F5C518] transition-colors">
                         Modifica
                       </button>
                     </div>

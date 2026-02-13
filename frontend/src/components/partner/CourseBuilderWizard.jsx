@@ -358,7 +358,7 @@ export function CourseBuilderWizard({ partnerId, positioningData, onComplete }) 
             </div>
             <div>
               <div className="text-[#1E2128] font-bold text-sm">STEFANIA AI</div>
-              <div className="text-white/70 text-xs">Consulente Instructional Design</div>
+              <div className="text-[#5F6572] text-xs">Consulente Instructional Design</div>
             </div>
           </div>
 

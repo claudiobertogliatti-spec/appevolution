@@ -247,7 +247,7 @@ export function StefaniaWarMode({ partners }) {
             </h2>
             <p className="text-sm text-[#5F6572]">Meta (Visceral) + LinkedIn (Authority) · Auto-Pivot · LTV Tracking</p>
           </div>
-          <button onClick={loadData} className="p-2 text-white/30 hover:text-[#1E2128]">
+          <button onClick={loadData} className="p-2 text-[#9CA3AF] hover:text-[#1E2128]">
             <RefreshCw className="w-5 h-5" />
           </button>
         </div>
@@ -267,7 +267,7 @@ export function StefaniaWarMode({ partners }) {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
                 activeTab === tab.id 
-                  ? "bg-white/10 text-[#1E2128] border border-white/20" 
+                  ? "bg-[#ECEDEF] text-[#1E2128] border border-white/20" 
                   : "text-[#9CA3AF] hover:text-[#5F6572]"
               }`}
             >
@@ -290,7 +290,7 @@ export function StefaniaWarMode({ partners }) {
                 <span className="text-sm font-bold text-[#1E2128]">{alert.message}</span>
                 <p className="text-xs text-[#5F6572] mt-1">{alert.suggested_action}</p>
               </div>
-              <button onClick={() => resolveAlert(alert.id)} className="px-3 py-1 text-xs font-bold bg-white/10 rounded hover:bg-white/20">
+              <button onClick={() => resolveAlert(alert.id)} className="px-3 py-1 text-xs font-bold bg-[#ECEDEF] rounded hover:bg-white/20">
                 Risolvi
               </button>
             </div>
@@ -309,7 +309,7 @@ export function StefaniaWarMode({ partners }) {
               className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
                 selectedPartner?.id === p.id 
                   ? "bg-gradient-to-r from-red-500 to-orange-500 text-[#1E2128]" 
-                  : "bg-white/5 border border-[#ECEDEF] text-[#5F6572] hover:border-red-500/30"
+                  : "bg-[#FAFAF7] border border-[#ECEDEF] text-[#5F6572] hover:border-red-500/30"
               }`}
             >
               <div className="w-6 h-6 rounded-full bg-[#F5C518] flex items-center justify-center text-[10px] font-bold text-black">
@@ -474,8 +474,8 @@ export function StefaniaWarMode({ partners }) {
                         <p className="text-[10px] text-[#9CA3AF]">{hookType.desc}</p>
                       </div>
                     </div>
-                    <div className="bg-white/5 border border-[#ECEDEF] rounded-lg p-3 min-h-[100px]">
-                      <p className="text-sm text-white/80 leading-relaxed">
+                    <div className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg p-3 min-h-[100px]">
+                      <p className="text-sm text-[#5F6572] leading-relaxed">
                         {hookGallery[hookType.id] || "Non generato"}
                       </p>
                     </div>
@@ -541,7 +541,7 @@ export function StefaniaWarMode({ partners }) {
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
                     selectedLinkedinType === type.id
                       ? "bg-sky-600 text-[#1E2128]"
-                      : "bg-white/5 border border-[#ECEDEF] text-[#5F6572]"
+                      : "bg-[#FAFAF7] border border-[#ECEDEF] text-[#5F6572]"
                   }`}
                 >
                   <span>{type.icon}</span> {type.label}
@@ -556,7 +556,7 @@ export function StefaniaWarMode({ partners }) {
                 <select
                   value={targetSegment}
                   onChange={e => setTargetSegment(e.target.value)}
-                  className="bg-white/5 border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128]"
+                  className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128]"
                 >
                   <option value="agency_owners">Titolari di Agenzie</option>
                   <option value="senior_consultants">Consulenti Senior</option>
@@ -594,7 +594,7 @@ export function StefaniaWarMode({ partners }) {
                     {linkedinContent.thought_leadership.post_text && (
                       <div>
                         <span className="text-[10px] text-[#9CA3AF]">Post</span>
-                        <p className="text-sm text-white/80 whitespace-pre-wrap">{linkedinContent.thought_leadership.post_text}</p>
+                        <p className="text-sm text-[#5F6572] whitespace-pre-wrap">{linkedinContent.thought_leadership.post_text}</p>
                       </div>
                     )}
                   </div>
@@ -611,7 +611,7 @@ export function StefaniaWarMode({ partners }) {
                     {linkedinContent.abm_ad.ad_copy && (
                       <div>
                         <span className="text-[10px] text-[#9CA3AF]">Ad Copy</span>
-                        <p className="text-sm text-white/80">{linkedinContent.abm_ad.ad_copy}</p>
+                        <p className="text-sm text-[#5F6572]">{linkedinContent.abm_ad.ad_copy}</p>
                       </div>
                     )}
                     {linkedinContent.abm_ad.target_criteria && (
@@ -640,7 +640,7 @@ export function StefaniaWarMode({ partners }) {
                     {linkedinContent.lead_gen_form.bullet_points && (
                       <div>
                         <span className="text-[10px] text-[#9CA3AF]">Bullet Points</span>
-                        <ul className="text-sm text-white/80 list-disc list-inside">
+                        <ul className="text-sm text-[#5F6572] list-disc list-inside">
                           {linkedinContent.lead_gen_form.bullet_points.map((point, i) => (
                             <li key={i}>{point}</li>
                           ))}
@@ -705,7 +705,7 @@ export function StefaniaWarMode({ partners }) {
                       <AlertTriangle className="w-5 h-5 text-yellow-400" />
                       <span className="font-bold text-yellow-400">Auto-Pivot Suggerito</span>
                     </div>
-                    <p className="text-sm text-white/80 whitespace-pre-wrap">{crossAnalysis.pivot_suggestion}</p>
+                    <p className="text-sm text-[#5F6572] whitespace-pre-wrap">{crossAnalysis.pivot_suggestion}</p>
                     
                     {crossAnalysis.budget_recommendation && (
                       <div className="mt-3 flex items-center gap-2">
@@ -814,7 +814,7 @@ export function StefaniaWarMode({ partners }) {
                     type="number"
                     value={metricsForm[field.key]}
                     onChange={e => setMetricsForm({ ...metricsForm, [field.key]: Number(e.target.value) })}
-                    className="w-full bg-white/5 border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm text-[#1E2128]"
+                    className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm text-[#1E2128]"
                   />
                 </div>
               ))}
@@ -851,14 +851,14 @@ export function StefaniaWarMode({ partners }) {
               placeholder="URL Destinazione (Systeme.io)"
               value={destinationUrl}
               onChange={e => setDestinationUrl(e.target.value)}
-              className="col-span-2 bg-white/5 border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-white/30"
+              className="col-span-2 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-[#9CA3AF]"
             />
             <input
               type="text"
               placeholder="Nome Campagna"
               value={campaignName}
               onChange={e => setCampaignName(e.target.value)}
-              className="bg-white/5 border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-white/30"
+              className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-[#9CA3AF]"
             />
           </div>
           
@@ -886,7 +886,7 @@ export function StefaniaWarMode({ partners }) {
                   type="text"
                   value={generatedUtm.tracked_url}
                   readOnly
-                  className="flex-1 bg-white/5 border border-[#ECEDEF] rounded-lg px-3 py-2 text-xs text-[#1E2128] font-mono"
+                  className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-xs text-[#1E2128] font-mono"
                 />
                 <button 
                   onClick={() => copyToClipboard(generatedUtm.tracked_url)}
@@ -1025,7 +1025,7 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
             <h3 className="text-lg font-extrabold text-[#1E2128]">API Real-Time Configuration</h3>
             <p className="text-sm text-[#5F6572]">Collega Meta Ads Manager e LinkedIn Campaign Manager</p>
           </div>
-          <button onClick={loadCredStatus} className="p-2 text-white/30 hover:text-[#1E2128]">
+          <button onClick={loadCredStatus} className="p-2 text-[#9CA3AF] hover:text-[#1E2128]">
             <RefreshCw className="w-5 h-5" />
           </button>
         </div>
@@ -1033,28 +1033,28 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
         {/* Connection Status */}
         {credStatus && (
           <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className={`rounded-lg p-4 border ${credStatus.meta_configured ? "bg-green-500/10 border-green-500/30" : "bg-white/5 border-[#ECEDEF]"}`}>
+            <div className={`rounded-lg p-4 border ${credStatus.meta_configured ? "bg-green-500/10 border-green-500/30" : "bg-[#FAFAF7] border-[#ECEDEF]"}`}>
               <div className="flex items-center gap-2 mb-2">
-                <Facebook className={`w-5 h-5 ${credStatus.meta_configured ? "text-green-400" : "text-white/30"}`} />
+                <Facebook className={`w-5 h-5 ${credStatus.meta_configured ? "text-green-400" : "text-[#9CA3AF]"}`} />
                 <span className="font-bold text-[#1E2128]">Meta Ads</span>
                 {credStatus.meta_configured ? (
                   <CheckCircle className="w-4 h-4 text-green-400" />
                 ) : (
-                  <XCircle className="w-4 h-4 text-white/30" />
+                  <XCircle className="w-4 h-4 text-[#9CA3AF]" />
                 )}
               </div>
               <span className={`text-xs ${credStatus.meta_configured ? "text-green-400" : "text-[#9CA3AF]"}`}>
                 {credStatus.meta_configured ? "Connesso" : "Non configurato"}
               </span>
             </div>
-            <div className={`rounded-lg p-4 border ${credStatus.linkedin_configured ? "bg-green-500/10 border-green-500/30" : "bg-white/5 border-[#ECEDEF]"}`}>
+            <div className={`rounded-lg p-4 border ${credStatus.linkedin_configured ? "bg-green-500/10 border-green-500/30" : "bg-[#FAFAF7] border-[#ECEDEF]"}`}>
               <div className="flex items-center gap-2 mb-2">
-                <Linkedin className={`w-5 h-5 ${credStatus.linkedin_configured ? "text-green-400" : "text-white/30"}`} />
+                <Linkedin className={`w-5 h-5 ${credStatus.linkedin_configured ? "text-green-400" : "text-[#9CA3AF]"}`} />
                 <span className="font-bold text-[#1E2128]">LinkedIn Ads</span>
                 {credStatus.linkedin_configured ? (
                   <CheckCircle className="w-4 h-4 text-green-400" />
                 ) : (
-                  <XCircle className="w-4 h-4 text-white/30" />
+                  <XCircle className="w-4 h-4 text-[#9CA3AF]" />
                 )}
               </div>
               <span className={`text-xs ${credStatus.linkedin_configured ? "text-green-400" : "text-[#9CA3AF]"}`}>
@@ -1081,7 +1081,7 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
                 placeholder="EAAxxxxxx..."
                 value={metaToken}
                 onChange={e => setMetaToken(e.target.value)}
-                className="w-full bg-white/5 border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-white/30"
+                className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-[#9CA3AF]"
               />
             </div>
             <div>
@@ -1091,7 +1091,7 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
                 placeholder="act_123456789"
                 value={metaAccountId}
                 onChange={e => setMetaAccountId(e.target.value)}
-                className="w-full bg-white/5 border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-white/30"
+                className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-[#9CA3AF]"
               />
             </div>
             <a 
@@ -1119,7 +1119,7 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
                 placeholder="AQXxxxxxx..."
                 value={linkedinToken}
                 onChange={e => setLinkedinToken(e.target.value)}
-                className="w-full bg-white/5 border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-white/30"
+                className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-[#9CA3AF]"
               />
             </div>
             <div>
@@ -1129,7 +1129,7 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
                 placeholder="urn:li:sponsoredAccount:123456"
                 value={linkedinAccountUrn}
                 onChange={e => setLinkedinAccountUrn(e.target.value)}
-                className="w-full bg-white/5 border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-white/30"
+                className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-[#9CA3AF]"
               />
             </div>
             <a 
@@ -1166,7 +1166,7 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
               type="number"
               value={cplThresholdMeta}
               onChange={e => setCplThresholdMeta(Number(e.target.value))}
-              className="w-full bg-white/5 border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128]"
+              className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128]"
             />
           </div>
           <div>
@@ -1175,7 +1175,7 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
               type="number"
               value={cplThresholdLinkedin}
               onChange={e => setCplThresholdLinkedin(Number(e.target.value))}
-              className="w-full bg-white/5 border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128]"
+              className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128]"
             />
           </div>
         </div>
@@ -1203,7 +1203,7 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
               </span>
             </div>
             {syncResult.alerts?.map((alert, i) => (
-              <div key={i} className="text-sm text-white/70 mt-2">
+              <div key={i} className="text-sm text-[#5F6572] mt-2">
                 <span className={`text-xs font-bold px-2 py-0.5 rounded ${alert.severity === "critical" ? "bg-red-500/20 text-red-400" : "bg-orange-500/20 text-orange-400"}`}>
                   {alert.platform.toUpperCase()}
                 </span>{" "}
@@ -1306,13 +1306,13 @@ function ROITab({ selectedPartner }) {
             <select
               value={days}
               onChange={e => setDays(Number(e.target.value))}
-              className="bg-white/5 border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm text-[#1E2128]"
+              className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm text-[#1E2128]"
             >
               <option value="7">7 giorni</option>
               <option value="30">30 giorni</option>
               <option value="90">90 giorni</option>
             </select>
-            <button onClick={loadData} className="p-2 text-white/30 hover:text-[#1E2128]">
+            <button onClick={loadData} className="p-2 text-[#9CA3AF] hover:text-[#1E2128]">
               <RefreshCw className="w-5 h-5" />
             </button>
           </div>
@@ -1356,7 +1356,7 @@ function ROITab({ selectedPartner }) {
           </h4>
           <div className="grid grid-cols-3 gap-4">
             {Object.entries(salesData.by_source).map(([source, data]) => (
-              <div key={source} className="bg-white/5 border border-[#ECEDEF] rounded-lg p-4">
+              <div key={source} className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   {source === "meta" && <Facebook className="w-4 h-4 text-blue-400" />}
                   {source === "linkedin" && <Linkedin className="w-4 h-4 text-sky-400" />}
@@ -1384,7 +1384,7 @@ function ROITab({ selectedPartner }) {
               placeholder="497"
               value={saleAmount}
               onChange={e => setSaleAmount(e.target.value)}
-              className="w-full bg-white/5 border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128]"
+              className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128]"
             />
           </div>
           <div>
@@ -1392,7 +1392,7 @@ function ROITab({ selectedPartner }) {
             <select
               value={saleSource}
               onChange={e => setSaleSource(e.target.value)}
-              className="w-full bg-white/5 border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128]"
+              className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128]"
             >
               <option value="meta">Meta</option>
               <option value="linkedin">LinkedIn</option>
@@ -1408,7 +1408,7 @@ function ROITab({ selectedPartner }) {
               placeholder="masterclass_launch"
               value={saleCampaign}
               onChange={e => setSaleCampaign(e.target.value)}
-              className="w-full bg-white/5 border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128]"
+              className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128]"
             />
           </div>
           <div className="flex items-end">
@@ -1427,7 +1427,7 @@ function ROITab({ selectedPartner }) {
       {/* Recent Sales */}
       {salesData?.sales?.length > 0 && (
         <div className="bg-white border border-[#ECEDEF] rounded-xl overflow-hidden">
-          <div className="p-4 border-b border-[#ECEDEF] bg-white/5">
+          <div className="p-4 border-b border-[#ECEDEF] bg-[#FAFAF7]">
             <h4 className="font-bold">Ultime Vendite ({salesData.total_sales} totali)</h4>
           </div>
           <div className="divide-y divide-white/5 max-h-64 overflow-y-auto">
@@ -1436,7 +1436,7 @@ function ROITab({ selectedPartner }) {
                 <div className="flex items-center gap-3">
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                     sale.utm_source === "meta" ? "bg-blue-500/20" : 
-                    sale.utm_source === "linkedin" ? "bg-sky-500/20" : "bg-white/10"
+                    sale.utm_source === "linkedin" ? "bg-sky-500/20" : "bg-[#ECEDEF]"
                   }`}>
                     {sale.utm_source === "meta" && <Facebook className="w-4 h-4 text-blue-400" />}
                     {sale.utm_source === "linkedin" && <Linkedin className="w-4 h-4 text-sky-400" />}
@@ -1447,7 +1447,7 @@ function ROITab({ selectedPartner }) {
                     <div className="text-xs text-[#9CA3AF]">{sale.utm_campaign || sale.utm_source || "direct"}</div>
                   </div>
                 </div>
-                <div className="text-xs text-white/30">
+                <div className="text-xs text-[#9CA3AF]">
                   {new Date(sale.sale_date || sale.created_at).toLocaleDateString()}
                 </div>
               </div>

@@ -150,7 +150,7 @@ Primo step: Modulo 0 nell'app`;
           <div className="flex gap-3">
             <button
               onClick={copyToClipboard}
-              className="flex-1 flex items-center justify-center gap-2 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-3 text-sm font-bold text-[#5F6572] hover:bg-white/10 transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-3 text-sm font-bold text-[#5F6572] hover:bg-[#ECEDEF] transition-colors"
             >
               <Copy className="w-4 h-4" /> Copia per Telegram
             </button>
@@ -190,7 +190,7 @@ Primo step: Modulo 0 nell'app`;
           <div className="flex gap-3 mt-6">
             <button
               onClick={() => setStep("form")}
-              className="flex-1 flex items-center justify-center gap-2 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-3 text-sm font-bold text-[#5F6572] hover:bg-white/10 transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-3 text-sm font-bold text-[#5F6572] hover:bg-[#ECEDEF] transition-colors"
             >
               <ArrowLeft className="w-4 h-4" /> Modifica dati
             </button>
@@ -231,9 +231,9 @@ Primo step: Modulo 0 nell'app`;
               Nome completo<span className="text-red-400 ml-1">*</span>
             </label>
             <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" />
               <input
-                className={`w-full bg-[#FAFAF7] border rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-[#1E2128] placeholder:text-white/30 outline-none transition-colors
+                className={`w-full bg-[#FAFAF7] border rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-[#1E2128] placeholder:text-[#9CA3AF] outline-none transition-colors
                   ${errors.name ? 'border-red-500 bg-red-500/10' : 'border-[#ECEDEF] focus:border-[#F5C518]'}`}
                 placeholder="es. Marco Ferretti"
                 value={formData.name}
@@ -248,10 +248,10 @@ Primo step: Modulo 0 nell'app`;
               Email<span className="text-red-400 ml-1">*</span>
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" />
               <input
                 type="email"
-                className={`w-full bg-[#FAFAF7] border rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-[#1E2128] placeholder:text-white/30 outline-none transition-colors
+                className={`w-full bg-[#FAFAF7] border rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-[#1E2128] placeholder:text-[#9CA3AF] outline-none transition-colors
                   ${errors.email ? 'border-red-500 bg-red-500/10' : 'border-[#ECEDEF] focus:border-[#F5C518]'}`}
                 placeholder="marco.ferretti@gmail.com"
                 value={formData.email}
@@ -267,7 +267,7 @@ Primo step: Modulo 0 nell'app`;
               Nicchia<span className="text-red-400 ml-1">*</span>
             </label>
             <div className="relative">
-              <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+              <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" />
               <select
                 className={`w-full bg-[#FAFAF7] border rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-[#1E2128] outline-none transition-colors appearance-none cursor-pointer
                   ${errors.niche ? 'border-red-500 bg-red-500/10' : 'border-[#ECEDEF] focus:border-[#F5C518]'}`}
@@ -286,10 +286,10 @@ Primo step: Modulo 0 nell'app`;
               Investimento (€)<span className="text-red-400 ml-1">*</span>
             </label>
             <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" />
               <input
                 type="number"
-                className={`w-full bg-[#FAFAF7] border rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-[#1E2128] placeholder:text-white/30 outline-none transition-colors
+                className={`w-full bg-[#FAFAF7] border rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-[#1E2128] placeholder:text-[#9CA3AF] outline-none transition-colors
                   ${errors.investment ? 'border-red-500 bg-red-500/10' : 'border-[#ECEDEF] focus:border-[#F5C518]'}`}
                 placeholder="3000"
                 value={formData.investment}
@@ -313,10 +313,10 @@ Primo step: Modulo 0 nell'app`;
             Password Systeme.io<span className="text-red-400 ml-1">*</span>
           </label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" />
             <input
               type="text"
-              className={`w-full bg-[#FAFAF7] border rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-[#1E2128] placeholder:text-white/30 outline-none transition-colors
+              className={`w-full bg-[#FAFAF7] border rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-[#1E2128] placeholder:text-[#9CA3AF] outline-none transition-colors
                 ${errors.systemePassword ? 'border-red-500 bg-red-500/10' : 'border-[#ECEDEF] focus:border-[#F5C518]'}`}
               placeholder="SysEvo2026_MF"
               value={formData.systemePassword}
@@ -334,9 +334,9 @@ Primo step: Modulo 0 nell'app`;
           Note Interne (opzionale)
         </div>
         <div className="relative">
-          <FileText className="absolute left-3 top-3 w-4 h-4 text-white/30" />
+          <FileText className="absolute left-3 top-3 w-4 h-4 text-[#9CA3AF]" />
           <textarea
-            className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-[#1E2128] placeholder:text-white/30 outline-none transition-colors focus:border-[#F5C518] resize-none min-h-[80px]"
+            className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-[#1E2128] placeholder:text-[#9CA3AF] outline-none transition-colors focus:border-[#F5C518] resize-none min-h-[80px]"
             placeholder="es. Bonifico ricevuto 10/02 - causale EP2026MF - Provenienza: LinkedIn"
             value={formData.notes}
             onChange={e => setFormData(prev => ({ ...prev, notes: e.target.value }))}
@@ -361,7 +361,7 @@ Primo step: Modulo 0 nell'app`;
       <div className="flex gap-3">
         <button
           onClick={onClose}
-          className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-3 text-sm font-bold text-[#5F6572] hover:bg-white/10 transition-colors"
+          className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-3 text-sm font-bold text-[#5F6572] hover:bg-[#ECEDEF] transition-colors"
         >
           Annulla
         </button>

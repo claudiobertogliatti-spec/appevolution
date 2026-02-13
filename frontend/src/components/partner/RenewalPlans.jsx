@@ -205,7 +205,7 @@ export function RenewalPlans({ partnerName, currentRevenue, onSelectPlan }) {
 
       {/* Confirmation Modal */}
       {showConfirm && selectedPlan && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-[#FAFAF7] flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl" data-testid="confirm-modal">
             <div className="text-center mb-6">
               <div 

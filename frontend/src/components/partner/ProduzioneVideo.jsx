@@ -175,15 +175,15 @@ export function ProduzioneVideo({ partner }) {
                     ${checked ? 'bg-green-500/10 border border-green-500/30' : 'bg-[#FAFAF7] border border-[#ECEDEF] hover:border-white/20'}`}
                 >
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center
-                    ${checked ? 'bg-green-500 text-white' : 'bg-white/10 text-white/30'}`}>
+                    ${checked ? 'bg-green-500 text-white' : 'bg-[#ECEDEF] text-[#9CA3AF]'}`}>
                     {checked ? <Check className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
                   </div>
-                  <Icon className={`w-4 h-4 ${checked ? 'text-green-400' : 'text-white/30'}`} />
+                  <Icon className={`w-4 h-4 ${checked ? 'text-green-400' : 'text-[#9CA3AF]'}`} />
                   <div className="flex-1">
                     <div className={`text-sm font-semibold ${checked ? 'text-green-400' : 'text-[#5F6572]'}`}>
                       {item.label}
                     </div>
-                    <div className="text-[10px] text-white/30">{item.hint}</div>
+                    <div className="text-[10px] text-[#9CA3AF]">{item.hint}</div>
                   </div>
                 </div>
               );
@@ -226,14 +226,14 @@ export function ProduzioneVideo({ partner }) {
                       </div>
                       <div className="flex-1">
                         <div className="text-sm font-bold text-[#1E2128]">{blockConfig.label}</div>
-                        <div className="text-[10px] text-white/30">{blockConfig.tip}</div>
+                        <div className="text-[10px] text-[#9CA3AF]">{blockConfig.tip}</div>
                       </div>
                       
                       {/* Status Badge */}
                       <div className={`text-[10px] font-bold px-2 py-1 rounded-full
                         ${block?.status === 'approved' ? 'bg-green-500/20 text-green-400' : ''}
                         ${block?.status === 'uploaded' ? 'bg-blue-500/20 text-blue-400' : ''}
-                        ${block?.status === 'pending' || !block ? 'bg-white/10 text-[#9CA3AF]' : ''}`}>
+                        ${block?.status === 'pending' || !block ? 'bg-[#ECEDEF] text-[#9CA3AF]' : ''}`}>
                         {block?.status === 'approved' && '✓ Approvato'}
                         {block?.status === 'uploaded' && '⏳ In review'}
                         {(block?.status === 'pending' || !block) && '○ Da registrare'}
@@ -246,11 +246,11 @@ export function ProduzioneVideo({ partner }) {
                     {isExpanded && (
                       <div className="p-4 border-t border-[#ECEDEF] bg-[#FAFAF7]">
                         {/* Script Content */}
-                        <div className="bg-black/30 rounded-lg p-4 mb-4 max-h-40 overflow-y-auto">
-                          <div className="text-xs font-bold text-white/30 uppercase tracking-wider mb-2">
+                        <div className="bg-[#FAFAF7] rounded-lg p-4 mb-4 max-h-40 overflow-y-auto">
+                          <div className="text-xs font-bold text-[#9CA3AF] uppercase tracking-wider mb-2">
                             📜 Script — {blockConfig.label}
                           </div>
-                          <div className="text-sm text-white/80 leading-relaxed whitespace-pre-wrap">
+                          <div className="text-sm text-[#5F6572] leading-relaxed whitespace-pre-wrap">
                             {block?.script_content || "Script non ancora disponibile. Completa prima la Masterclass con STEFANIA."}
                           </div>
                         </div>
