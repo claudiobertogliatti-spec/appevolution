@@ -947,6 +947,7 @@ function ProductionModeSelector({ onSelect, selectedLessons = [], totalLessons =
         onClose={() => setShowFreeTrial(false)}
         onComplete={() => setTrialCompleted(true)}
         partnerName={partnerName}
+        partnerId={partnerId}
       />
     </div>
   );
