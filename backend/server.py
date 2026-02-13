@@ -1046,6 +1046,124 @@ async def get_modules():
     return modules
 
 # =============================================================================
+# ROUTES - POSITIONING (Partner Documents)
+# =============================================================================
+
+class PositioningData(BaseModel):
+    partner_id: str
+    partner_name: str
+    answers: Dict[str, str]  # All wizard answers
+    canvas: Optional[str] = None  # Generated canvas text
+
+@api_router.post("/positioning/save")
+async def save_positioning(data: PositioningData):
+    """Save partner positioning data from wizard"""
+    doc = {
+        "partner_id": data.partner_id,
+        "partner_name": data.partner_name,
+        "answers": data.answers,
+        "canvas": data.canvas,
+        "status": "completed",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Upsert - update if exists, insert if new
+    await db.partner_positioning.update_one(
+        {"partner_id": data.partner_id},
+        {"$set": doc},
+        upsert=True
+    )
+    
+    return {"success": True, "partner_id": data.partner_id}
+
+@api_router.get("/positioning/{partner_id}")
+async def get_positioning(partner_id: str):
+    """Get partner positioning data"""
+    positioning = await db.partner_positioning.find_one(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    )
+    return positioning or {"partner_id": partner_id, "status": "not_started"}
+
+@api_router.get("/positioning/generate")
+async def generate_positioning_canvas(partner_id: str, partner_name: str, partner_niche: str, answers: str):
+    """Generate positioning canvas (placeholder for AI generation)"""
+    # For now just return the answers - can be enhanced with AI later
+    return {"canvas": answers, "status": "generated"}
+
+# =============================================================================
+# ROUTES - PARTNER DOCUMENTS (Admin View)
+# =============================================================================
+
+@api_router.get("/partner-documents/{partner_id}")
+async def get_partner_documents(partner_id: str):
+    """Get all documents for a partner (positioning + scripts)"""
+    # Get positioning data
+    positioning = await db.partner_positioning.find_one(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    )
+    
+    # Get masterclass script
+    script = await db.masterclass_scripts.find_one(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    )
+    
+    # Get course structure
+    course = await db.course_structures.find_one(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    )
+    
+    return {
+        "partner_id": partner_id,
+        "positioning": positioning,
+        "masterclass_script": script,
+        "course_structure": course
+    }
+
+@api_router.get("/partner-documents/all/summary")
+async def get_all_partner_documents_summary():
+    """Get summary of all partner documents for Admin dashboard"""
+    # Get all partners
+    partners = await db.partners.find({}, {"_id": 0}).to_list(100)
+    
+    summaries = []
+    for partner in partners:
+        pid = partner.get("id")
+        
+        # Check positioning
+        pos = await db.partner_positioning.find_one({"partner_id": pid}, {"_id": 0, "status": 1, "updated_at": 1})
+        
+        # Check script
+        script = await db.masterclass_scripts.find_one({"partner_id": pid}, {"_id": 0, "status": 1, "updated_at": 1})
+        
+        # Check course
+        course = await db.course_structures.find_one({"partner_id": pid}, {"_id": 0, "updated_at": 1})
+        
+        summaries.append({
+            "partner_id": pid,
+            "partner_name": partner.get("name"),
+            "partner_phase": partner.get("phase"),
+            "positioning": {
+                "status": pos.get("status") if pos else "not_started",
+                "updated_at": pos.get("updated_at") if pos else None
+            },
+            "script": {
+                "status": script.get("status") if script else "not_started",
+                "updated_at": script.get("updated_at") if script else None
+            },
+            "course": {
+                "has_structure": course is not None,
+                "updated_at": course.get("updated_at") if course else None
+            }
+        })
+    
+    return summaries
+
+# =============================================================================
 # ROUTES - CHAT (VALENTINA)
 # =============================================================================
 
