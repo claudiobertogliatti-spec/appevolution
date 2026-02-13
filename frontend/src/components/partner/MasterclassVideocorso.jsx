@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { ArrowLeft, Check, ChevronDown, ChevronUp, Video, Play, Lock, Clock, Upload, Sparkles, User, Mic, CreditCard, ShoppingCart } from "lucide-react";
 
 // Masterclass blocks
