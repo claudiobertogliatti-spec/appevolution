@@ -192,6 +192,11 @@ Creare un'applicazione full-stack proprietaria per Evolution PRO - una piattafor
     - Grafiche, titoli, transizioni, musica incluse
 - **Selezione Mix**: Partner può scegliere quali lezioni delegare ad Avatar e quali fare in autonomia
 - **Riepilogo dinamico**: Totale automatico basato su selezione
+- **🎁 Prova Gratuita Avatar**: Sample 30 secondi gratuito
+  - Step 1: Carica foto frontale
+  - Step 2: Registra campione vocale 10-15 sec
+  - Step 3: Genera e visualizza Avatar sample
+  - Consigli per foto perfetta (illuminazione, sfondo, risoluzione)
 - **Tab Masterclass**: Scaletta 5 blocchi + Setup registrazione
 - **Tab Videocorso**: 8 lezioni con indicazioni regista AI
 
