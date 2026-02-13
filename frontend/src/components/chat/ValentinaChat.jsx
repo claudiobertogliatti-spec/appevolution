@@ -350,7 +350,7 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
             }}
             placeholder="Scrivi un messaggio..."
             rows={1}
-            className="w-full bg-white border border-[#ECEDEF] rounded-2xl px-4 py-2.5 text-sm resize-none focus:border-[#F5C518] outline-none transition-colors max-h-32"
+            className="w-full bg-white border border-[#ECEDEF] rounded-2xl px-4 py-2.5 text-sm text-[#1E2128] resize-none focus:border-[#F5C518] outline-none transition-colors max-h-32 placeholder:text-[#9CA3AF]"
             style={{ minHeight: "42px" }}
           />
         </div>
