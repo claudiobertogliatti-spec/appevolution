@@ -210,6 +210,34 @@ Creare un'applicazione full-stack proprietaria per Evolution PRO - una piattafor
 - Topbar solo per Admin
 - Colori brand coordinati in tutta l'app
 
+### V17.0 - HeyGen Avatar Integration (13 Feb 2026) ✅
+
+#### 1. Backend Integration
+- **File**: `/app/backend/heygen_service.py`
+- **API Key configurata**: `HEYGEN_API_KEY` in `.env`
+- **Connessione verificata**: ✅ 1290 avatars, 2332 voices disponibili
+
+#### 2. API Endpoints
+- `GET /api/heygen/status`: Verifica connessione API
+- `GET /api/heygen/avatars`: Lista avatar disponibili
+- `GET /api/heygen/voices`: Lista voci disponibili
+- `POST /api/heygen/sample/generate`: Genera sample gratuito 30 sec
+- `GET /api/heygen/sample/{video_id}/status`: Stato generazione sample
+- `POST /api/heygen/lesson/generate`: Genera video lezione (€120)
+- `POST /api/heygen/order`: Crea ordine Avatar multiplo
+- `GET /api/heygen/orders/{partner_id}`: Ordini partner
+- `GET /api/heygen/lessons/{partner_id}`: Video lezioni partner
+
+#### 3. Database Collections
+- `avatar_samples`: Sample gratuiti generati
+- `avatar_lessons`: Video lezioni pagate
+- `avatar_orders`: Ordini Avatar
+
+#### 4. Frontend (Prova Gratuita)
+- Upload foto partner
+- Registrazione campione vocale
+- Generazione sample 30 sec
+- Preview video risultato
 ### V13.0 - JWT Authentication & Telegram Notifications (13 Feb 2026) ✅
 
 #### 1. JWT Authentication System
