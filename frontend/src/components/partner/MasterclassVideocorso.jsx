@@ -588,6 +588,16 @@ function ProductionModeSelector({ onSelect, selectedLessons = [], totalLessons =
               </li>
             ))}
           </ul>
+          
+          {/* Free Trial Button */}
+          <button 
+            onClick={() => setShowFreeTrial(true)}
+            className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+            style={{ background: 'rgba(255,255,255,0.95)', color: '#7B68AE' }}
+          >
+            <span>🎁</span>
+            {trialCompleted ? '✓ Sample visto! Scegli lezioni ↓' : 'Prova Gratuita · Vedi il tuo Avatar'}
+          </button>
         </div>
         
         {/* DIY Option */}
