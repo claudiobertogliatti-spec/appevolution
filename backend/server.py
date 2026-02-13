@@ -1009,6 +1009,180 @@ async def update_partner(partner_id: str, phase: Optional[str] = None, alert: Op
     return partner
 
 # =============================================================================
+# ROUTES - PARTNER PROFILE (Extended)
+# =============================================================================
+
+class PartnerProfileUpdate(BaseModel):
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    company: Optional[str] = None
+    vat_number: Optional[str] = None
+    address: Optional[str] = None
+    contract_type: Optional[str] = None
+    contract_start: Optional[str] = None
+    contract_end: Optional[str] = None
+    social_instagram: Optional[str] = None
+    social_linkedin: Optional[str] = None
+    social_youtube: Optional[str] = None
+
+class PaymentRecord(BaseModel):
+    partner_id: str
+    amount: float
+    description: str
+    date: str
+    status: str = "paid"  # paid, pending, overdue
+    invoice_number: Optional[str] = None
+
+@api_router.get("/partners/{partner_id}/profile")
+async def get_partner_profile(partner_id: str):
+    """Get extended partner profile"""
+    # Get base partner data
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    # Get extended profile data
+    profile = await db.partner_profiles.find_one({"partner_id": partner_id}, {"_id": 0})
+    
+    # Merge data
+    result = {**partner}
+    if profile:
+        result.update(profile)
+    
+    # Calculate contract end if not set
+    if not result.get("contract_end") and result.get("contract"):
+        contract_start = datetime.fromisoformat(result["contract"].replace("Z", "+00:00")) if "T" in result["contract"] else datetime.strptime(result["contract"], "%Y-%m-%d")
+        contract_type = result.get("contract_type", "standard")
+        months = 12 if contract_type in ["standard", "premium"] else 24
+        contract_end = contract_start + timedelta(days=months * 30)
+        result["contract_end"] = contract_end.strftime("%Y-%m-%d")
+        result["contract_start"] = result["contract"]
+    
+    return result
+
+@api_router.patch("/partners/{partner_id}/profile")
+async def update_partner_profile(partner_id: str, data: PartnerProfileUpdate):
+    """Update extended partner profile"""
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    update_data["partner_id"] = partner_id
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    # Update or create profile
+    await db.partner_profiles.update_one(
+        {"partner_id": partner_id},
+        {"$set": update_data},
+        upsert=True
+    )
+    
+    # Also update base partner if contract changed
+    if data.contract_start:
+        await db.partners.update_one(
+            {"id": partner_id},
+            {"$set": {"contract": data.contract_start}}
+        )
+    
+    return {"success": True, "partner_id": partner_id}
+
+@api_router.get("/partners/{partner_id}/payments")
+async def get_partner_payments(partner_id: str):
+    """Get partner payment history"""
+    payments = await db.partner_payments.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).sort("date", -1).to_list(100)
+    return payments
+
+@api_router.post("/partners/{partner_id}/payments")
+async def add_partner_payment(partner_id: str, payment: PaymentRecord):
+    """Add a payment record"""
+    payment_data = payment.model_dump()
+    payment_data["id"] = str(uuid.uuid4())
+    payment_data["created_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.partner_payments.insert_one(payment_data)
+    
+    # Update partner revenue
+    if payment.status == "paid":
+        await db.partners.update_one(
+            {"id": partner_id},
+            {"$inc": {"revenue": payment.amount}}
+        )
+    
+    return {"success": True, "payment_id": payment_data["id"]}
+
+@api_router.post("/partners/{partner_id}/send-documents")
+async def send_partner_documents(partner_id: str, email: str = None):
+    """Send documents to partner via email (placeholder)"""
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    # Get profile for email
+    profile = await db.partner_profiles.find_one({"partner_id": partner_id}, {"_id": 0})
+    target_email = email or (profile.get("email") if profile else None)
+    
+    if not target_email:
+        raise HTTPException(status_code=400, detail="No email address available")
+    
+    # TODO: Implement actual email sending with SendGrid/Resend
+    # For now, just log and return success
+    logging.info(f"Would send documents to {target_email} for partner {partner_id}")
+    
+    return {"success": True, "email": target_email, "message": "Documents queued for sending"}
+
+@api_router.get("/partners/{partner_id}/export-pdf")
+async def export_partner_pdf(partner_id: str):
+    """Export partner documents as PDF (returns text for now)"""
+    from fastapi.responses import PlainTextResponse
+    
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    profile = await db.partner_profiles.find_one({"partner_id": partner_id}, {"_id": 0})
+    positioning = await db.partner_positioning.find_one({"partner_id": partner_id}, {"_id": 0})
+    script = await db.masterclass_scripts.find_one({"partner_id": partner_id}, {"_id": 0})
+    
+    # Generate text content
+    content = f"""═══════════════════════════════════════════════════════════════
+    PROFILO PARTNER — {partner.get('name', 'Partner')}
+═══════════════════════════════════════════════════════════════
+
+📋 ANAGRAFICA
+Nome: {partner.get('name', '—')}
+Email: {profile.get('email', '—') if profile else '—'}
+Telefono: {profile.get('phone', '—') if profile else '—'}
+Azienda: {profile.get('company', '—') if profile else '—'}
+P.IVA: {profile.get('vat_number', '—') if profile else '—'}
+Nicchia: {partner.get('niche', '—')}
+
+📄 CONTRATTO
+Data Inizio: {partner.get('contract', '—')}
+Tipo: {profile.get('contract_type', 'standard') if profile else 'standard'}
+
+📊 STATO
+Fase Attuale: {partner.get('phase', 'F1')}
+Revenue Generato: €{partner.get('revenue', 0):,}
+
+"""
+    
+    if positioning and positioning.get('canvas'):
+        content += f"\n📝 POSIZIONAMENTO\n{positioning['canvas']}\n"
+    
+    if script and script.get('blocks'):
+        content += "\n🎤 SCRIPT MASTERCLASS\n"
+        for key, value in script['blocks'].items():
+            if value:
+                content += f"\n[{key.upper()}]\n{value}\n"
+    
+    content += f"""
+═══════════════════════════════════════════════════════════════
+    Generato da Evolution PRO OS — {datetime.now().strftime("%d/%m/%Y %H:%M")}
+═══════════════════════════════════════════════════════════════"""
+    
+    return PlainTextResponse(content, media_type="text/plain")
+
+# =============================================================================
 # ROUTES - ALERTS
 # =============================================================================
 
