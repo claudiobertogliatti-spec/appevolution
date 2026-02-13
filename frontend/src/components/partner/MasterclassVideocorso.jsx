@@ -524,9 +524,11 @@ function DirectorTip({ text, icon = "🎬" }) {
 // ============================================
 // PRODUCTION MODE SELECTION
 // ============================================
-function ProductionModeSelector({ onSelect, selectedLessons = [], totalLessons = 8 }) {
+function ProductionModeSelector({ onSelect, selectedLessons = [], totalLessons = 8, partnerName }) {
   const [avatarLessons, setAvatarLessons] = useState([]);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [showFreeTrial, setShowFreeTrial] = useState(false);
+  const [trialCompleted, setTrialCompleted] = useState(false);
   
   const avatarTotal = avatarLessons.length * AVATAR_PRICE_PER_LESSON;
   
