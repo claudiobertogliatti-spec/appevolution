@@ -150,43 +150,49 @@ Creare un'applicazione full-stack proprietaria per Evolution PRO - una piattafor
 
 #### 2. Auto-Onboarding Partner
 - **Trigger**: `new_sale` con prodotto partner
-- **Azioni**:
-  - Crea partner in DB con fase F0
-  - Crea account utente con password temporanea
-  - Invia notifica Telegram a admin
-  - Registra pagamento
+- **Azioni**: Crea partner, account utente, notifica Telegram, registra pagamento
 
 #### 3. Lead Scoring (ORION)
 - **Trigger**: `new_subscriber`, `form_subscribed`
-- **Scoring automatico**:
-  - Form compilato: +10 punti
-  - Webinar registrato: +25 punti
-  - Call prenotata: +50 punti
-  - Checkout iniziato: +40 punti
-  - Vendita: +100 punti
-- **Alert Lead Hot**: Notifica Telegram per score ≥ 80
+- **Scoring automatico**: form +10, webinar +25, call +50, vendita +100
 
 #### 4. Auto-Progressione Fasi
 - **Trigger**: `tag_added`
-- **Tag supportati**: F0-Completato, F1-Completato, ..., Posizionamento-Completato, etc.
-- **Azioni**: Aggiorna fase partner, sblocca achievement, notifica Telegram
+- **Tag supportati**: F0-Completato, F1-Completato, etc.
 
-#### 5. Sync Clienti Partner
-- **Trigger**: `course_access`
-- **Azioni**:
-  - Incrementa contatore clienti partner
-  - Registra iscrizione studente
-  - Alert milestone (10, 50, 100 clienti)
-
-#### 6. Dashboard Admin Webhooks
+#### 5. Dashboard Admin Webhooks
 - **File**: `/app/frontend/src/components/admin/WebhookDashboard.jsx`
-- **Menu**: Admin > Strumenti > Webhooks
+- **Features**: URL webhook, statistiche, log eventi, lead scoring
+
+### V16.0 - Funnel Review & Masterclass Studio (13 Feb 2026) ✅
+
+#### 1. Funnel Review Builder
+- **File**: `/app/frontend/src/components/partner/FunnelReviewBuilder.jsx`
 - **Features**:
-  - URL webhook da copiare per Systeme.io
-  - Statistiche eventi in tempo reale
-  - Log eventi con azioni eseguite
-  - Tab Lead Scoring con lista lead e punteggi
-  - Visualizzazione automazioni attive
+  - Wizard a 4 step: Opt-in → Masterclass → Ordine+Email → Thank You
+  - Andrea AI come tutor che prepara contenuto per ogni sezione
+  - Anteprima form cattura lead
+  - 6 email automatiche pre-configurate con timing
+  - Barra di stato con contatore approvazioni
+  - Pulsante "Lancia il Funnel" quando tutto approvato
+  - Modale celebrazione lancio
+
+#### 2. Masterclass & Videocorso Studio
+- **File**: `/app/frontend/src/components/partner/MasterclassVideocorso.jsx`
+- **Tab Masterclass**:
+  - Scaletta 5 blocchi (Intro, Problema, Metodo, Caso Studio, CTA)
+  - Setup registrazione con checklist Andrea
+  - Consigli di Stefania per non vendere troppo presto
+- **Tab Studio Videocorso**:
+  - 8 lezioni strutturate con istruzioni regista AI
+  - Progress bar lezioni registrate
+  - Indicazioni per ogni lezione: durata, inquadratura, tono, punti chiave
+  - Sistema step-by-step (sblocco progressivo)
+  - Pulsanti "Inizia a Registrare" e "Ho registrato"
+
+#### 3. Sidebar Partner Aggiornata
+- Nuova voce "Il tuo Funnel" con badge NUOVO
+- Voce "Masterclass" rinominata in "Masterclass & Videocorso"
 
 #### 4. App.js Ristrutturato
 - Sidebar condizionale (PartnerSidebar vs Admin)
