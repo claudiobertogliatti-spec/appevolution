@@ -97,7 +97,7 @@ class ValentinaAI:
             ).with_model("anthropic", "claude-sonnet-4-20250514")
             
             # Send message and get response
-            response = await llm.send_async(UserMessage(text=message))
+            response = await llm.chat_async(UserMessage(text=message))
             
             # Store in history
             if partner_id not in chat_sessions:
