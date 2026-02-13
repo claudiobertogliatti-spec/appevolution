@@ -12,6 +12,7 @@ import { CopyFactoryAdmin } from "./components/admin/CopyFactoryAdmin";
 import { StefaniaWarMode } from "./components/admin/StefaniaWarMode";
 import { SystemeIODashboard } from "./components/admin/SystemeIODashboard";
 import { PartnerDocumentsView } from "./components/admin/PartnerDocumentsView";
+import { PartnerProfileModal } from "./components/admin/PartnerProfileModal";
 import { CalendarioEditoriale } from "./components/partner/CalendarioEditoriale";
 import { WizardPosizionamento } from "./components/partner/WizardPosizionamento";
 import { MasterclassBuilder } from "./components/partner/MasterclassBuilder";
