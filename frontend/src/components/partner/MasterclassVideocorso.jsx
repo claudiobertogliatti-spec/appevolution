@@ -349,6 +349,14 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName, partnerI
         
         {/* Content */}
         <div className="p-5">
+          {/* Error display */}
+          {error && (
+            <div className="mb-4 p-4 rounded-xl" style={{ background: '#FEE2E2', border: '1px solid #EF444450' }}>
+              <div className="text-sm font-bold" style={{ color: '#DC2626' }}>⚠️ Errore</div>
+              <p className="text-xs mt-1" style={{ color: '#7F1D1D' }}>{error}</p>
+            </div>
+          )}
+          
           {/* Step 1: Photo Upload */}
           {step === 1 && (
             <div className="space-y-4">
@@ -362,15 +370,23 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName, partnerI
               
               <div 
                 className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all hover:border-[#7B68AE]"
-                style={{ borderColor: photoPreview ? '#7B68AE' : '#ECEDEF' }}
-                onClick={() => document.getElementById('avatar-photo-input').click()}
+                style={{ borderColor: photoUrl ? '#34C77B' : photoPreview ? '#7B68AE' : '#ECEDEF' }}
+                onClick={() => !uploadingPhoto && document.getElementById('avatar-photo-input').click()}
               >
-                {photoPreview ? (
+                {uploadingPhoto ? (
+                  <div className="space-y-3">
+                    <div className="w-20 h-20 rounded-full mx-auto flex items-center justify-center animate-pulse"
+                         style={{ background: '#7B68AE20' }}>
+                      <span className="text-3xl">⏳</span>
+                    </div>
+                    <p className="font-bold" style={{ color: '#7B68AE' }}>Caricamento in corso...</p>
+                  </div>
+                ) : photoPreview ? (
                   <div className="relative inline-block">
                     <img src={photoPreview} alt="Preview" className="w-32 h-32 rounded-full object-cover mx-auto" />
                     <div className="absolute bottom-0 right-0 w-8 h-8 rounded-full flex items-center justify-center"
-                         style={{ background: '#34C77B', color: 'white' }}>
-                      ✓
+                         style={{ background: photoUrl ? '#34C77B' : '#F59E0B', color: 'white' }}>
+                      {photoUrl ? '✓' : '⏳'}
                     </div>
                   </div>
                 ) : (
@@ -389,8 +405,16 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName, partnerI
                   accept="image/*" 
                   className="hidden" 
                   onChange={handlePhotoUpload}
+                  disabled={uploadingPhoto}
                 />
               </div>
+              
+              {photoUrl && (
+                <div className="p-3 rounded-xl flex items-center gap-2" style={{ background: '#EAFAF1' }}>
+                  <span style={{ color: '#34C77B' }}>✓</span>
+                  <span className="text-xs font-bold" style={{ color: '#34C77B' }}>Foto caricata con successo!</span>
+                </div>
+              )}
               
               <div className="p-4 rounded-xl" style={{ background: '#FFF8DC' }}>
                 <div className="text-xs font-bold mb-2" style={{ color: '#C4990A' }}>💡 Consigli di Andrea per una foto perfetta:</div>
@@ -403,15 +427,15 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName, partnerI
               </div>
               
               <button 
-                onClick={() => photoPreview && setStep(2)}
-                disabled={!photoPreview}
+                onClick={() => photoUrl && setStep(2)}
+                disabled={!photoUrl || uploadingPhoto}
                 className="w-full py-4 rounded-xl font-bold text-sm transition-all"
                 style={{ 
-                  background: photoPreview ? '#7B68AE' : '#ECEDEF',
-                  color: photoPreview ? 'white' : '#9CA3AF'
+                  background: photoUrl ? '#7B68AE' : '#ECEDEF',
+                  color: photoUrl ? 'white' : '#9CA3AF'
                 }}
               >
-                Continua →
+                {uploadingPhoto ? 'Caricamento...' : 'Continua →'}
               </button>
             </div>
           )}
