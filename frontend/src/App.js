@@ -23,6 +23,7 @@ import { AndreaChat } from "./components/partner/AndreaChat";
 import { AtlasModule } from "./components/partner/AtlasModule";
 import { CourseBuilderWizard } from "./components/partner/CourseBuilderWizard";
 import { RenewalPlans } from "./components/partner/RenewalPlans";
+import { PartnerDashboardSimplified } from "./components/partner/PartnerDashboardSimplified";
 import { ValentinaChat } from "./components/chat/ValentinaChat";
 import { LoginPage } from "./components/auth/LoginPage";
 
