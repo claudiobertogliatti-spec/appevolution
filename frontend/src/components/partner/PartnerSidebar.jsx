@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Home, BookOpen, Target, Mic, Film, FileText, Calendar, Palette, FolderOpen, MessageCircle, LogOut, ChevronRight, ChevronDown, HelpCircle, Sparkles, Check, Lock, Rocket } from "lucide-react";
+import { Home, BookOpen, Target, Mic, Film, FileText, Calendar, Palette, FolderOpen, MessageCircle, LogOut, ChevronRight, ChevronDown, HelpCircle, Sparkles, Check, Lock, Rocket, ShoppingBag } from "lucide-react";
 
 const NAV_ITEMS = [
   { id: "home", label: "Home", icon: Home },
@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { id: "masterclass", label: "Masterclass & Videocorso", icon: Mic },
   { id: "funnel", label: "Il tuo Funnel", icon: Rocket, badge: "NUOVO" },
   { id: "produzione", label: "Produzione Video", icon: Film },
+  { id: "servizi-extra", label: "Servizi Extra", icon: ShoppingBag, badge: "NEW" },
 ];
 
 const TOOLS_ITEMS = [
