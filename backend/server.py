@@ -4778,7 +4778,7 @@ Massimo 3-4 frasi, linguaggio diretto e amichevole."""
         
         response = await chat.send_message(UserMessage(text=prompt))
         
-        return {"response": response.text}
+        return {"response": response}
         
     except Exception as e:
         logger.error(f"Error in course builder chat: {e}")
