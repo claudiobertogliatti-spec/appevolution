@@ -1,0 +1,49 @@
+/* Evolution PRO OS - Design System */
+/* Brand Colors & Variables */
+
+:root {
+  /* Primary Brand Colors */
+  --evo-accent: #E8652B;
+  --evo-accent-hover: #D4561E;
+  --evo-accent-light: #FFF0E8;
+  --evo-gradient: linear-gradient(135deg, #E8652B, #F4A261);
+  
+  /* Secondary Colors */
+  --evo-green: #2D9F6F;
+  --evo-green-light: #E6F7EF;
+  --evo-purple: #6B4EAA;
+  --evo-purple-light: #F0ECFA;
+  --evo-gold: #FFD166;
+  --evo-red: #EF476F;
+  
+  /* Background Colors */
+  --evo-bg-warm: #FFF9F4;
+  --evo-bg-card: #FFFFFF;
+  --evo-bg-dark: #2A1F14;
+  --evo-bg-dark-card: #3D3028;
+  
+  /* Text Colors */
+  --evo-text-primary: #2A1F14;
+  --evo-text-secondary: #7A6E63;
+  --evo-text-muted: #B0A599;
+  --evo-text-light: #FFFFFF;
+  
+  /* Borders */
+  --evo-border: #EDE6DD;
+  --evo-border-dark: rgba(255,255,255,0.1);
+  
+  /* Shadows */
+  --evo-shadow-sm: 0 2px 8px rgba(42,31,20,0.06);
+  --evo-shadow-md: 0 8px 32px rgba(42,31,20,0.08);
+  --evo-shadow-lg: 0 16px 48px rgba(42,31,20,0.12);
+  --evo-shadow-accent: 0 6px 28px rgba(232,101,43,0.4);
+}
+
+/* Dark Mode Variables */
+.dark-mode {
+  --evo-bg-warm: #1a1612;
+  --evo-bg-card: #2A1F14;
+  --evo-text-primary: #FFFFFF;
+  --evo-text-secondary: #B0A599;
+  --evo-border: #3D3028;
+}
