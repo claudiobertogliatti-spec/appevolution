@@ -722,7 +722,7 @@ function DirectorTip({ text, icon = "🎬" }) {
 // ============================================
 // PRODUCTION MODE SELECTION
 // ============================================
-function ProductionModeSelector({ onSelect, selectedLessons = [], totalLessons = 8, partnerName }) {
+function ProductionModeSelector({ onSelect, selectedLessons = [], totalLessons = 8, partnerName, partnerId }) {
   const [avatarLessons, setAvatarLessons] = useState([]);
   const [showCheckout, setShowCheckout] = useState(false);
   const [showFreeTrial, setShowFreeTrial] = useState(false);
