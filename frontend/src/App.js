@@ -658,7 +658,7 @@ export default function App() {
         )}
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-5">
+        <div className={`flex-1 overflow-y-auto ${mode === "partner" ? "p-0" : "p-5"}`} style={{ background: mode === "partner" ? "#FAFAF7" : "transparent" }}>
           {showNP&&<div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4"><div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto"><NuovoPartnerForm onClose={()=>setShowNP(false)} onComplete={()=>{setShowNP(false);loadData();}}/></div></div>}
           
           {showPartnerProfile&&selectedPartner&&<PartnerProfileModal partner={selectedPartner} onClose={()=>{setShowPartnerProfile(false);}} onUpdate={loadData}/>}
@@ -682,16 +682,16 @@ export default function App() {
 
           {mode==="partner"&&<>
             {nav==="home"&&<PartnerDashboardSimplified partner={demoPartner} onNavigate={setNav} onOpenChat={()=>setNav("supporto")}/>}
-            {nav==="corso"&&<PartnerCourse partner={demoPartner} modules={modules}/>}
-            {nav==="masterclass"&&<MasterclassBuilder partner={demoPartner}/>}
-            {nav==="coursebuilder"&&<CourseBuilderWizard partnerId={demoPartner?.id||"demo"} positioningData={{trasformazione:"Demo",target:"Demo",problema:"Demo",soluzione:"Demo"}} onComplete={()=>setNav("produzione")}/>}
-            {nav==="produzione"&&<ProduzioneVideo partner={demoPartner}/>}
-            {nav==="files"&&<PartnerFileManager partner={demoPartner}/>}
-            {nav==="brandkit"&&<BrandKitEditor partner={demoPartner}/>}
-            {nav==="calendario"&&<CalendarioEditoriale partner={demoPartner}/>}
-            {nav==="documenti"&&<WizardPosizionamento partner={demoPartner} onComplete={()=>setNav("masterclass")}/>}
-            {nav==="risorse"&&<PartnerResources/>}
-            {nav==="renewal"&&<RenewalPlans partnerName={demoPartner?.name||"Partner"} currentRevenue={demoPartner?.revenue||0} onSelectPlan={(plan)=>console.log(plan)}/>}
+            {nav==="corso"&&<div className="p-6" style={{color:'#2D3239'}}><PartnerCourse partner={demoPartner} modules={modules}/></div>}
+            {nav==="masterclass"&&<div className="p-6" style={{color:'#2D3239'}}><MasterclassBuilder partner={demoPartner}/></div>}
+            {nav==="coursebuilder"&&<div className="p-6" style={{color:'#2D3239'}}><CourseBuilderWizard partnerId={demoPartner?.id||"demo"} positioningData={{trasformazione:"Demo",target:"Demo",problema:"Demo",soluzione:"Demo"}} onComplete={()=>setNav("produzione")}/></div>}
+            {nav==="produzione"&&<div className="p-6" style={{color:'#2D3239'}}><ProduzioneVideo partner={demoPartner}/></div>}
+            {nav==="files"&&<div className="p-6" style={{color:'#2D3239'}}><PartnerFileManager partner={demoPartner}/></div>}
+            {nav==="brandkit"&&<div className="p-6" style={{color:'#2D3239'}}><BrandKitEditor partner={demoPartner}/></div>}
+            {nav==="calendario"&&<div className="p-6" style={{color:'#2D3239'}}><CalendarioEditoriale partner={demoPartner}/></div>}
+            {nav==="documenti"&&<div className="p-6" style={{color:'#2D3239'}}><WizardPosizionamento partner={demoPartner} onComplete={()=>setNav("masterclass")}/></div>}
+            {nav==="risorse"&&<div className="p-6" style={{color:'#2D3239'}}><PartnerResources/></div>}
+            {nav==="renewal"&&<div className="p-6" style={{color:'#2D3239'}}><RenewalPlans partnerName={demoPartner?.name||"Partner"} currentRevenue={demoPartner?.revenue||0} onSelectPlan={(plan)=>console.log(plan)}/></div>}
             {nav==="supporto"&&<ValentinaChat partner={demoPartner} onBack={()=>setNav("home")}/>}
           </>}
         </div>
