@@ -429,6 +429,11 @@ function PartnerCurrentPhase({ partner, onNavigate }) {
 
 // ─── MAIN APP ──────────────────────────────────────────────────────────────────
 export default function App() {
+  // Auth state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  
   const [mode,setMode]=useState("admin");
   const [nav,setNav]=useState("overview");
   const [adminUser,setAdminUser]=useState("claudio");
@@ -443,7 +448,60 @@ export default function App() {
 
   const demoPartner=partners.find(p=>p.name==="Marco Ferretti")||{id:"1",name:"Marco Ferretti",niche:"Business Coach",phase:"F3",revenue:0,contract:"2025-01-10",alert:false,modules:[1,1,1,0,0,0,0,0,0,0]};
 
-  useEffect(()=>{loadData();},[]);
+  // Check auth on mount
+  useEffect(() => {
+    const checkAuth = () => {
+      const token = localStorage.getItem("access_token");
+      const user = localStorage.getItem("user");
+      if (token && user) {
+        try {
+          const userData = JSON.parse(user);
+          setCurrentUser(userData);
+          setIsAuthenticated(true);
+          // Set mode and admin user based on role
+          if (userData.role === "admin") {
+            setMode("admin");
+            setAdminUser(userData.admin_type || "claudio");
+          } else {
+            setMode("partner");
+            setNav("home");
+          }
+        } catch (e) {
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("user");
+        }
+      }
+      setAuthLoading(false);
+    };
+    checkAuth();
+  }, []);
+
+  // Handle login
+  const handleLogin = (user, token) => {
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+    if (user.role === "admin") {
+      setMode("admin");
+      setAdminUser(user.admin_type || "claudio");
+      setNav("overview");
+    } else {
+      setMode("partner");
+      setNav("home");
+    }
+    loadData();
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("user");
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+    setMode("admin");
+    setNav("overview");
+  };
+
+  useEffect(()=>{if(isAuthenticated) loadData();},[isAuthenticated]);
   const loadData=async()=>{try{const[a,p,al,m,s]=await Promise.all([axios.get(`${API}/agents`),axios.get(`${API}/partners`),axios.get(`${API}/alerts`),axios.get(`${API}/modules`),axios.get(`${API}/stats`)]);setAgents(a.data);setPartners(p.data);setAlerts(al.data);setModules(m.data);setStats(s.data);}catch(e){console.error(e);}};
   const dismissAlert=async(id)=>{try{await axios.delete(`${API}/alerts/${id}`);setAlerts(p=>p.filter(a=>a.id!==id));}catch(e){}};
   const getTutor=(phase)=>["F3","F4"].includes(phase)?"STEFANIA":phase==="F5"?"ANDREA":"VALENTINA";
