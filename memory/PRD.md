@@ -114,6 +114,19 @@ Creare un'applicazione full-stack proprietaria per Evolution PRO - una piattafor
 - **Test Endpoint**: `/api/telegram/test` per verificare funzionamento
 - **Notification Types**: Alert sistema, nuovi partner, fasi completate
 - **Chat ID Admin**: 852111182 (Claudio Bertogliatti)
+- **Auto-Notification**: Notifica Telegram automatica al cambio fase partner
+
+#### 3. Partner Documents Admin View
+- **Nuova sezione Admin**: "Documenti Partner" nella sidebar
+- **Tabella riassuntiva**: Tutti i partner con stato documenti
+- **Colonne**: Posizionamento, Script Masterclass, Struttura Corso
+- **Badge di stato**: completed, ai_draft, in_review, not_started
+- **Modal dettagli**: Visualizza contenuto completo con 3 tab
+- **API Endpoints**:
+  - `POST /api/positioning/save` - Salva posizionamento partner
+  - `GET /api/positioning/{partner_id}` - Recupera posizionamento
+  - `GET /api/partner-documents/{partner_id}` - Tutti i documenti partner
+  - `GET /api/partner-documents/all/summary` - Riassunto per Admin
 
 #### 1. Systeme.io Live Data Dashboard
 - Connessione API reale (`api.systeme.io`)
