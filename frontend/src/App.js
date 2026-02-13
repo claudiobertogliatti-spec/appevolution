@@ -526,6 +526,7 @@ export default function App() {
   const antonellaNav=[
     {id:"overview",label:"Overview",icon:LayoutDashboard},
     {id:"partner",label:"Partner",icon:Users},
+    {id:"documenti-partner",label:"Documenti Partner",icon:FileText},
     {id:"andrea",label:"ANDREA — Editing Feed",icon:Film},
     {id:"copyfactory",label:"STEFANIA — Copy Factory",icon:Edit3},
     {id:"atlas",label:"ATLAS",icon:Trophy},
