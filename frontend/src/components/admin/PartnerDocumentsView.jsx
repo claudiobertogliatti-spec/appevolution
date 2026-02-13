@@ -10,7 +10,7 @@ const STATUS_CONFIG = {
   in_review: { label: "In Revisione", color: "text-yellow-400", bg: "bg-yellow-500/20" },
   approved: { label: "Approvato", color: "text-green-400", bg: "bg-green-500/20" },
   needs_revision: { label: "Da Revisionare", color: "text-orange-400", bg: "bg-orange-500/20" },
-  not_started: { label: "Non iniziato", color: "text-white/30", bg: "bg-[#FAFAF7]" }
+  not_started: { label: "Non iniziato", color: "text-[#9CA3AF]", bg: "bg-[#FAFAF7]" }
 };
 
 function StatusBadge({ status }) {
@@ -32,7 +32,7 @@ function DocumentModal({ partner, documents, onClose }) {
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" data-testid="documents-modal">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" data-testid="documents-modal">
       <div className="bg-white border border-[#ECEDEF] rounded-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden">
         {/* Header */}
         <div className="p-5 border-b border-[#ECEDEF] flex items-center justify-between">
@@ -86,7 +86,7 @@ function PositioningContent({ data }) {
   if (!data || data.status === "not_started") {
     return (
       <div className="text-center py-12">
-        <Target className="w-12 h-12 text-white/10 mx-auto mb-3" />
+        <Target className="w-12 h-12 text-[#ECEDEF] mx-auto mb-3" />
         <div className="text-[#9CA3AF] font-semibold">Posizionamento non ancora completato</div>
         <div className="text-[#9CA3AF] text-sm mt-1">Il partner deve completare il Wizard Posizionamento</div>
       </div>
@@ -106,9 +106,9 @@ function PositioningContent({ data }) {
 
       {/* Canvas Output */}
       {data.canvas && (
-        <div className="bg-[#0B0E14] border border-[#ECEDEF] rounded-xl p-4">
+        <div className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl p-4">
           <div className="text-xs font-bold text-[#9CA3AF] uppercase tracking-wider mb-3">Canvas Posizionamento</div>
-          <pre className="text-xs font-mono text-white/70 whitespace-pre-wrap leading-relaxed">
+          <pre className="text-xs font-mono text-[#5F6572] whitespace-pre-wrap leading-relaxed">
             {data.canvas}
           </pre>
         </div>
