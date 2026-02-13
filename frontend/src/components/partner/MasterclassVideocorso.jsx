@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Check, ChevronDown, ChevronUp, Video, Play, Lock, Clock } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, ChevronUp, Video, Play, Lock, Clock, Upload, Sparkles, User, Mic, CreditCard, ShoppingCart } from "lucide-react";
 
 // Masterclass blocks
 const MASTERCLASS_BLOCKS = [
@@ -10,7 +10,7 @@ const MASTERCLASS_BLOCKS = [
   { id: 5, title: "CTA + Offerta", duration: "~10 min", desc: "Transizione naturale verso il Programma Acceleratore. \"Se vuoi accelerare...\"" }
 ];
 
-// Setup checklist
+// Setup checklist for DIY recording
 const SETUP_CHECKLIST = [
   { icon: "📱", text: "Telefono in orizzontale su un supporto stabile" },
   { icon: "💡", text: "Luce naturale davanti a te (finestra) — mai dietro" },
@@ -35,14 +35,46 @@ const VIDEOCORSO_LESSONS = [
     ],
     tip: "Questa è la lezione più importante — se piaci qui, guarderanno tutto. Sorridi, sii naturale. Se sbagli, ricomincia tranquillamente — monto io!"
   },
-  { id: 2, title: "Il Problema: Perché i coach non trovano clienti", duration: "~12 min", meta: "I 3 errori comuni" },
-  { id: 3, title: "Definisci la tua Nicchia", duration: "~10 min", meta: "Trovare il tuo pubblico ideale" },
-  { id: 4, title: "Il tuo Posizionamento Unico", duration: "~12 min", meta: "Differenziarti dalla massa" },
-  { id: 5, title: "Strategia di Primo Contatto", duration: "~15 min", meta: "Come avvicinare i clienti" },
-  { id: 6, title: "La Conversazione di Vendita", duration: "~12 min", meta: "Convertire senza pressione" },
-  { id: 7, title: "Fidelizzare e Ottenere Referral", duration: "~10 min", meta: "Clienti che portano clienti" },
-  { id: 8, title: "Il tuo Piano d'Azione a 90 Giorni", duration: "~10 min", meta: "Recap + prossimi passi" }
+  { id: 2, title: "Il Problema: Perché i coach non trovano clienti", duration: "~12 min", meta: "I 3 errori comuni",
+    instructions: "Parla dei 3 errori più comuni che i coach fanno quando cercano clienti. Crea empatia mostrando che capisci le loro frustrazioni.",
+    inquadratura: "Mezzo busto",
+    tono: "Empatico, comprensivo",
+    puntiChiave: ["Errore 1: Parlare a tutti", "Errore 2: Non avere un sistema", "Errore 3: Aspettare che arrivino"]
+  },
+  { id: 3, title: "Definisci la tua Nicchia", duration: "~10 min", meta: "Trovare il tuo pubblico ideale",
+    instructions: "Guida il pubblico a identificare la propria nicchia ideale con esercizi pratici.",
+    inquadratura: "Mezzo busto",
+    tono: "Pratico, guidato"
+  },
+  { id: 4, title: "Il tuo Posizionamento Unico", duration: "~12 min", meta: "Differenziarti dalla massa",
+    instructions: "Spiega come creare un posizionamento che ti distingua dalla concorrenza.",
+    inquadratura: "Mezzo busto",
+    tono: "Strategico, motivante"
+  },
+  { id: 5, title: "Strategia di Primo Contatto", duration: "~15 min", meta: "Come avvicinare i clienti",
+    instructions: "Condividi le tue strategie per iniziare conversazioni con potenziali clienti.",
+    inquadratura: "Mezzo busto",
+    tono: "Pratico, con esempi"
+  },
+  { id: 6, title: "La Conversazione di Vendita", duration: "~12 min", meta: "Convertire senza pressione",
+    instructions: "Insegna come gestire una conversazione di vendita in modo naturale.",
+    inquadratura: "Mezzo busto",
+    tono: "Rilassato, non aggressivo"
+  },
+  { id: 7, title: "Fidelizzare e Ottenere Referral", duration: "~10 min", meta: "Clienti che portano clienti",
+    instructions: "Spiega come mantenere i clienti e ottenere referral.",
+    inquadratura: "Mezzo busto",
+    tono: "Relazionale"
+  },
+  { id: 8, title: "Il tuo Piano d'Azione a 90 Giorni", duration: "~10 min", meta: "Recap + prossimi passi",
+    instructions: "Riassumi il percorso e dai un piano d'azione concreto per i prossimi 90 giorni.",
+    inquadratura: "Mezzo busto",
+    tono: "Motivante, conclusivo"
+  }
 ];
+
+// Pricing
+const AVATAR_PRICE_PER_LESSON = 120; // IVA inclusa
 
 function AndreaIntro({ message }) {
   return (
@@ -70,6 +102,222 @@ function DirectorTip({ text, icon = "🎬" }) {
   );
 }
 
+// ============================================
+// PRODUCTION MODE SELECTION
+// ============================================
+function ProductionModeSelector({ onSelect, selectedLessons = [], totalLessons = 8 }) {
+  const [avatarLessons, setAvatarLessons] = useState([]);
+  const [showCheckout, setShowCheckout] = useState(false);
+  
+  const avatarTotal = avatarLessons.length * AVATAR_PRICE_PER_LESSON;
+  
+  const handleSelectAll = () => {
+    if (avatarLessons.length === totalLessons) {
+      setAvatarLessons([]);
+    } else {
+      setAvatarLessons(VIDEOCORSO_LESSONS.map(l => l.id));
+    }
+  };
+  
+  const toggleLesson = (lessonId) => {
+    if (avatarLessons.includes(lessonId)) {
+      setAvatarLessons(avatarLessons.filter(id => id !== lessonId));
+    } else {
+      setAvatarLessons([...avatarLessons, lessonId]);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <AndreaIntro message={`Prima di iniziare, scegli come vuoi creare il tuo videocorso. Puoi <strong>delegare tutto a noi</strong> con il servizio Avatar + Voice Clone, oppure <strong>registrare in autonomia</strong> e io mi occuperò dell'editing professionale. Puoi anche mixare le due opzioni!`} />
+      
+      {/* Option Cards */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Avatar Option */}
+        <div 
+          className="rounded-2xl p-6 relative overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, #7B68AE, #9B8BC4)', border: '2px solid #7B68AE' }}
+        >
+          <div className="absolute top-3 right-3 px-2 py-1 rounded-full text-[10px] font-bold"
+               style={{ background: 'rgba(255,255,255,0.2)', color: 'white' }}>
+            PREMIUM
+          </div>
+          
+          <div className="text-4xl mb-3">🤖</div>
+          <h3 className="text-lg font-black text-white mb-1">Avatar + Voice Clone</h3>
+          <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.8)' }}>
+            Deleghi tutto a noi! Creiamo il video con il tuo avatar digitale e la tua voce clonata.
+          </p>
+          
+          <div className="flex items-baseline gap-1 mb-4">
+            <span className="text-3xl font-black text-white">€{AVATAR_PRICE_PER_LESSON}</span>
+            <span className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>/video · IVA inclusa</span>
+          </div>
+          
+          <ul className="space-y-2 mb-4">
+            {[
+              "✨ Avatar professionale con le tue sembianze",
+              "🎙️ Voice clone della tua voce reale",
+              "🎬 Montaggio e post-produzione inclusi",
+              "⏱️ Consegna in 48-72 ore per video",
+              "♻️ Revisioni illimitate"
+            ].map((item, i) => (
+              <li key={i} className="text-xs flex items-start gap-2" style={{ color: 'rgba(255,255,255,0.9)' }}>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+        
+        {/* DIY Option */}
+        <div 
+          className="rounded-2xl p-6 relative"
+          style={{ background: 'white', border: '2px solid #ECEDEF' }}
+        >
+          <div className="absolute top-3 right-3 px-2 py-1 rounded-full text-[10px] font-bold"
+               style={{ background: '#EAFAF1', color: '#34C77B' }}>
+            INCLUSO
+          </div>
+          
+          <div className="text-4xl mb-3">🎬</div>
+          <h3 className="text-lg font-black mb-1" style={{ color: '#1E2128' }}>Registra in Autonomia</h3>
+          <p className="text-sm mb-4" style={{ color: '#5F6572' }}>
+            Tu registri il video grezzo, Andrea si occupa di editing e post-produzione.
+          </p>
+          
+          <div className="flex items-baseline gap-1 mb-4">
+            <span className="text-3xl font-black" style={{ color: '#34C77B' }}>€0</span>
+            <span className="text-sm" style={{ color: '#9CA3AF' }}>/video · Incluso nel programma</span>
+          </div>
+          
+          <ul className="space-y-2 mb-4">
+            {[
+              "📱 Registri con il tuo smartphone",
+              "🎬 Andrea edita e monta il video",
+              "🎨 Grafiche, titoli e transizioni incluse",
+              "🎵 Musica ed effetti sonori",
+              "📤 Pronto per il caricamento"
+            ].map((item, i) => (
+              <li key={i} className="text-xs flex items-start gap-2" style={{ color: '#5F6572' }}>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      
+      {/* Lesson Selection for Avatar */}
+      <div className="rounded-xl p-5" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h4 className="font-bold text-sm" style={{ color: '#1E2128' }}>Seleziona le lezioni da delegare</h4>
+            <p className="text-xs" style={{ color: '#9CA3AF' }}>Puoi scegliere quali video creare con Avatar e quali registrare tu</p>
+          </div>
+          <button 
+            onClick={handleSelectAll}
+            className="text-xs font-bold px-3 py-1.5 rounded-lg transition-all"
+            style={{ 
+              background: avatarLessons.length === totalLessons ? '#7B68AE' : '#ECEDEF',
+              color: avatarLessons.length === totalLessons ? 'white' : '#5F6572'
+            }}
+          >
+            {avatarLessons.length === totalLessons ? '✓ Tutte selezionate' : 'Seleziona tutte'}
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-2">
+          {VIDEOCORSO_LESSONS.map(lesson => {
+            const isSelected = avatarLessons.includes(lesson.id);
+            return (
+              <button
+                key={lesson.id}
+                onClick={() => toggleLesson(lesson.id)}
+                className="flex items-center gap-3 p-3 rounded-xl text-left transition-all"
+                style={{ 
+                  background: isSelected ? '#7B68AE15' : 'white',
+                  border: isSelected ? '2px solid #7B68AE' : '2px solid #ECEDEF'
+                }}
+              >
+                <div 
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                  style={{ 
+                    background: isSelected ? '#7B68AE' : '#ECEDEF',
+                    color: isSelected ? 'white' : '#9CA3AF'
+                  }}
+                >
+                  {isSelected ? '✓' : lesson.id}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-bold truncate" style={{ color: '#1E2128' }}>{lesson.title}</div>
+                  <div className="text-[10px]" style={{ color: '#9CA3AF' }}>{lesson.duration}</div>
+                </div>
+                {isSelected && (
+                  <span className="text-xs font-bold" style={{ color: '#7B68AE' }}>🤖</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      
+      {/* Summary & CTA */}
+      <div className="rounded-2xl p-5" style={{ background: 'white', border: '2px solid #ECEDEF' }}>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <div className="text-sm" style={{ color: '#5F6572' }}>Riepilogo produzione</div>
+            <div className="flex items-center gap-4 mt-1">
+              {avatarLessons.length > 0 && (
+                <span className="flex items-center gap-1.5">
+                  <span className="text-lg">🤖</span>
+                  <span className="font-bold" style={{ color: '#7B68AE' }}>{avatarLessons.length} Avatar</span>
+                </span>
+              )}
+              {(totalLessons - avatarLessons.length) > 0 && (
+                <span className="flex items-center gap-1.5">
+                  <span className="text-lg">🎬</span>
+                  <span className="font-bold" style={{ color: '#34C77B' }}>{totalLessons - avatarLessons.length} Autonomia</span>
+                </span>
+              )}
+            </div>
+          </div>
+          
+          {avatarLessons.length > 0 && (
+            <div className="text-right">
+              <div className="text-xs" style={{ color: '#9CA3AF' }}>Totale Avatar</div>
+              <div className="text-2xl font-black" style={{ color: '#7B68AE' }}>€{avatarTotal}</div>
+              <div className="text-[10px]" style={{ color: '#9CA3AF' }}>IVA inclusa</div>
+            </div>
+          )}
+        </div>
+        
+        <button 
+          onClick={() => onSelect({ avatarLessons, diyLessons: VIDEOCORSO_LESSONS.filter(l => !avatarLessons.includes(l.id)).map(l => l.id) })}
+          className="w-full py-4 rounded-xl font-bold text-sm transition-all hover:scale-[1.01]"
+          style={{ 
+            background: 'linear-gradient(135deg, #F2C418, #FADA5E)',
+            color: '#1E2128',
+            boxShadow: '0 4px 20px rgba(242, 196, 24, 0.3)'
+          }}
+        >
+          {avatarLessons.length > 0 
+            ? `Procedi con ${avatarLessons.length} Avatar + ${totalLessons - avatarLessons.length} Autonomia →`
+            : 'Procedi con registrazione in autonomia →'
+          }
+        </button>
+        
+        {avatarLessons.length > 0 && (
+          <p className="text-xs text-center mt-3" style={{ color: '#9CA3AF' }}>
+            Il pagamento avverrà dopo l'approvazione degli script
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// MASTERCLASS TAB
+// ============================================
 function MasterclassTab({ partnerName, approvedSections, setApprovedSections }) {
   const [openSection, setOpenSection] = useState(1);
   const allApproved = approvedSections.length >= 2;
@@ -230,31 +478,53 @@ function MasterclassTab({ partnerName, approvedSections, setApprovedSections }) 
   );
 }
 
-function VideocorsoTab({ partnerName, recordedLessons, setRecordedLessons }) {
+// ============================================
+// VIDEOCORSO TAB (DIY + Avatar mixed)
+// ============================================
+function VideocorsoTab({ partnerName, productionMode, recordedLessons, setRecordedLessons, uploadedVideos, setUploadedVideos }) {
   const [openLesson, setOpenLesson] = useState(1);
-  const progress = (recordedLessons.length / VIDEOCORSO_LESSONS.length) * 100;
+  
+  const { avatarLessons = [], diyLessons = VIDEOCORSO_LESSONS.map(l => l.id) } = productionMode || {};
+  
+  const completedCount = recordedLessons.length + avatarLessons.filter(id => recordedLessons.includes(id)).length;
+  const progress = (completedCount / VIDEOCORSO_LESSONS.length) * 100;
 
   const handleMarkRecorded = (lessonId) => {
     if (!recordedLessons.includes(lessonId)) {
       setRecordedLessons([...recordedLessons, lessonId]);
-      // Auto-open next lesson
       if (lessonId < VIDEOCORSO_LESSONS.length) {
         setOpenLesson(lessonId + 1);
       }
     }
   };
 
+  const isAvatar = (lessonId) => avatarLessons.includes(lessonId);
+
   return (
     <div className="space-y-4">
-      <AndreaIntro message={`Ciao ${partnerName}! 🎬 Ho strutturato il tuo <strong>videocorso in 8 lezioni</strong>. Per ogni lezione ti dico: <strong>cosa dire, come inquadrarti, quanto deve durare</strong>. Tu premi "Registra", segui le mie indicazioni, e io monto tutto. Facile!`} />
+      <AndreaIntro message={`Ciao ${partnerName}! 🎬 Ecco il piano di produzione del tuo videocorso. ${avatarLessons.length > 0 ? `<strong>${avatarLessons.length} lezioni</strong> saranno create con Avatar, <strong>${diyLessons.length}</strong> le registri tu e io faccio l'editing.` : 'Tu registri, io faccio <strong>editing professionale</strong>: grafiche, titoli, transizioni, musica. Facile!'}`} />
+      
+      {/* Legend */}
+      {avatarLessons.length > 0 && (
+        <div className="flex items-center gap-4 p-3 rounded-xl" style={{ background: '#FAFAF7' }}>
+          <span className="flex items-center gap-1.5 text-xs font-bold" style={{ color: '#7B68AE' }}>
+            <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px]" style={{ background: '#7B68AE', color: 'white' }}>🤖</span>
+            Avatar + Voice Clone
+          </span>
+          <span className="flex items-center gap-1.5 text-xs font-bold" style={{ color: '#34C77B' }}>
+            <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px]" style={{ background: '#34C77B', color: 'white' }}>🎬</span>
+            Tu registri + Editing Andrea
+          </span>
+        </div>
+      )}
       
       {/* Progress */}
       <div className="flex items-center gap-4 p-4 rounded-xl" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
         <span className="text-3xl">🎬</span>
         <div className="flex-1">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-sm font-bold" style={{ color: '#5F6572' }}>Lezioni registrate</span>
-            <span className="text-sm font-bold" style={{ color: '#1E2128' }}>{recordedLessons.length} di {VIDEOCORSO_LESSONS.length}</span>
+            <span className="text-sm font-bold" style={{ color: '#5F6572' }}>Lezioni completate</span>
+            <span className="text-sm font-bold" style={{ color: '#1E2128' }}>{completedCount} di {VIDEOCORSO_LESSONS.length}</span>
           </div>
           <div className="h-2 rounded-full overflow-hidden" style={{ background: '#ECEDEF' }}>
             <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #F2C418, #34C77B)' }} />
@@ -264,10 +534,11 @@ function VideocorsoTab({ partnerName, recordedLessons, setRecordedLessons }) {
       
       {/* Lessons */}
       {VIDEOCORSO_LESSONS.map((lesson, i) => {
-        const isRecorded = recordedLessons.includes(lesson.id);
-        const isLocked = !isRecorded && i > 0 && !recordedLessons.includes(lesson.id - 1);
-        const isCurrent = !isRecorded && (i === 0 || recordedLessons.includes(lesson.id - 1));
+        const isCompleted = recordedLessons.includes(lesson.id);
+        const isLocked = !isCompleted && i > 0 && !recordedLessons.includes(lesson.id - 1);
+        const isCurrent = !isCompleted && (i === 0 || recordedLessons.includes(lesson.id - 1));
         const isOpen = openLesson === lesson.id;
+        const isAvatarLesson = isAvatar(lesson.id);
         
         return (
           <div 
@@ -275,7 +546,7 @@ function VideocorsoTab({ partnerName, recordedLessons, setRecordedLessons }) {
             className="rounded-xl overflow-hidden transition-all"
             style={{ 
               background: 'white', 
-              border: isRecorded ? '2px solid #34C77B' : isCurrent ? '2px solid #F2C418' : '2px solid #ECEDEF',
+              border: isCompleted ? '2px solid #34C77B' : isCurrent ? `2px solid ${isAvatarLesson ? '#7B68AE' : '#F2C418'}` : '2px solid #ECEDEF',
               opacity: isLocked ? 0.6 : 1
             }}
           >
@@ -286,86 +557,148 @@ function VideocorsoTab({ partnerName, recordedLessons, setRecordedLessons }) {
               <div 
                 className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
                 style={{ 
-                  background: isRecorded ? '#34C77B' : isCurrent ? '#F2C418' : '#ECEDEF',
-                  color: isRecorded ? 'white' : isCurrent ? '#1E2128' : '#9CA3AF'
+                  background: isCompleted ? '#34C77B' : isAvatarLesson ? '#7B68AE' : isCurrent ? '#F2C418' : '#ECEDEF',
+                  color: isCompleted || isAvatarLesson ? 'white' : isCurrent ? '#1E2128' : '#9CA3AF'
                 }}
               >
-                {isRecorded ? '✓' : isLocked ? <Lock className="w-3 h-3" /> : lesson.id}
+                {isCompleted ? '✓' : isLocked ? <Lock className="w-3 h-3" /> : isAvatarLesson ? '🤖' : lesson.id}
               </div>
               <div className="flex-1">
-                <div className="font-bold text-sm" style={{ color: '#1E2128' }}>{lesson.title}</div>
+                <div className="font-bold text-sm flex items-center gap-2" style={{ color: '#1E2128' }}>
+                  {lesson.title}
+                  {isAvatarLesson && !isCompleted && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: '#7B68AE20', color: '#7B68AE' }}>AVATAR</span>
+                  )}
+                </div>
                 <div className="text-xs" style={{ color: '#9CA3AF' }}>{lesson.duration} · {lesson.meta}</div>
               </div>
               <span 
                 className="text-xs font-bold px-3 py-1 rounded-full"
                 style={{ 
-                  background: isRecorded ? '#EAFAF1' : isLocked ? '#FAFAF7' : '#FFF3C4',
-                  color: isRecorded ? '#34C77B' : isLocked ? '#9CA3AF' : '#C4990A'
+                  background: isCompleted ? '#EAFAF1' : isLocked ? '#FAFAF7' : isAvatarLesson ? '#7B68AE20' : '#FFF3C4',
+                  color: isCompleted ? '#34C77B' : isLocked ? '#9CA3AF' : isAvatarLesson ? '#7B68AE' : '#C4990A'
                 }}
               >
-                {isRecorded ? '✓ Registrata' : isLocked ? '🔒 Dopo lezione ' + (lesson.id - 1) : '📹 Da registrare'}
+                {isCompleted ? '✓ Completata' : isLocked ? '🔒' : isAvatarLesson ? '🤖 In produzione' : '📹 Da registrare'}
               </span>
               {!isLocked && (isOpen ? <ChevronUp className="w-5 h-5" style={{ color: '#9CA3AF' }} /> : <ChevronDown className="w-5 h-5" style={{ color: '#9CA3AF' }} />)}
             </div>
             
-            {isOpen && !isLocked && lesson.instructions && (
+            {isOpen && !isLocked && (
               <div className="px-4 pb-4">
-                <DirectorTip text={`<strong>Indicazioni di Andrea per questa lezione:</strong><br>${lesson.instructions}`} />
-                
-                <div className="space-y-2 mb-4">
-                  <div className="flex gap-2 p-3 rounded-lg" style={{ background: '#FAFAF7' }}>
-                    <span className="text-xs font-bold min-w-[90px]" style={{ color: '#9CA3AF' }}>Durata</span>
-                    <span className="text-sm font-bold" style={{ color: '#1E2128' }}>{lesson.duration}</span>
-                  </div>
-                  <div className="flex gap-2 p-3 rounded-lg" style={{ background: '#FAFAF7' }}>
-                    <span className="text-xs font-bold min-w-[90px]" style={{ color: '#9CA3AF' }}>Inquadratura</span>
-                    <span className="text-sm" style={{ color: '#5F6572' }}>{lesson.inquadratura}</span>
-                  </div>
-                  <div className="flex gap-2 p-3 rounded-lg" style={{ background: '#FAFAF7' }}>
-                    <span className="text-xs font-bold min-w-[90px]" style={{ color: '#9CA3AF' }}>Tono</span>
-                    <span className="text-sm" style={{ color: '#5F6572' }}>{lesson.tono}</span>
-                  </div>
-                  <div className="p-3 rounded-lg" style={{ background: '#FAFAF7' }}>
-                    <span className="text-xs font-bold" style={{ color: '#9CA3AF' }}>Punti chiave</span>
-                    <ul className="mt-2 space-y-1">
-                      {lesson.puntiChiave?.map((punto, j) => (
-                        <li key={j} className="text-sm flex items-start gap-2" style={{ color: '#5F6572' }}>
-                          <span style={{ color: '#34C77B' }}>•</span> {punto}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-                
-                {lesson.tip && (
-                  <div className="p-4 rounded-xl mb-4" style={{ background: '#FFF8DC', borderLeft: '4px solid #F2C418' }}>
-                    💡 <strong>Tip di Andrea:</strong> {lesson.tip}
-                  </div>
+                {isAvatarLesson ? (
+                  // Avatar lesson content
+                  <>
+                    <DirectorTip 
+                      icon="🤖" 
+                      text={`<strong>Questa lezione sarà creata con Avatar + Voice Clone.</strong><br>Noi creeremo il video con il tuo avatar digitale. Tu devi solo approvare lo script qui sotto.`} 
+                    />
+                    
+                    <div className="p-4 rounded-xl mb-4" style={{ background: '#7B68AE10', border: '1px solid #7B68AE30' }}>
+                      <div className="text-xs font-bold mb-2" style={{ color: '#7B68AE' }}>📝 Script da approvare</div>
+                      <div className="text-sm" style={{ color: '#5F6572' }}>
+                        {lesson.instructions || "Lo script sarà generato automaticamente basandosi sul tuo posizionamento e sul contenuto della lezione."}
+                      </div>
+                    </div>
+                    
+                    {lesson.puntiChiave && (
+                      <div className="p-3 rounded-lg mb-4" style={{ background: '#FAFAF7' }}>
+                        <span className="text-xs font-bold" style={{ color: '#9CA3AF' }}>Punti chiave del video</span>
+                        <ul className="mt-2 space-y-1">
+                          {lesson.puntiChiave.map((punto, j) => (
+                            <li key={j} className="text-sm flex items-start gap-2" style={{ color: '#5F6572' }}>
+                              <span style={{ color: '#7B68AE' }}>•</span> {punto}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    <div className="flex gap-3">
+                      <button 
+                        onClick={() => handleMarkRecorded(lesson.id)}
+                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm"
+                        style={{ background: '#7B68AE', color: 'white' }}
+                      >
+                        ✓ Approva script e avvia produzione
+                      </button>
+                      <button className="flex-1 py-3 rounded-xl font-bold text-sm"
+                              style={{ background: '#FFF8DC', color: '#C4990A' }}>
+                        💬 Modifica script
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  // DIY lesson content
+                  <>
+                    <DirectorTip text={`<strong>Indicazioni di Andrea per questa lezione:</strong><br>${lesson.instructions || 'Segui le indicazioni sotto per registrare un video efficace.'}`} />
+                    
+                    <div className="space-y-2 mb-4">
+                      <div className="flex gap-2 p-3 rounded-lg" style={{ background: '#FAFAF7' }}>
+                        <span className="text-xs font-bold min-w-[90px]" style={{ color: '#9CA3AF' }}>Durata</span>
+                        <span className="text-sm font-bold" style={{ color: '#1E2128' }}>{lesson.duration}</span>
+                      </div>
+                      {lesson.inquadratura && (
+                        <div className="flex gap-2 p-3 rounded-lg" style={{ background: '#FAFAF7' }}>
+                          <span className="text-xs font-bold min-w-[90px]" style={{ color: '#9CA3AF' }}>Inquadratura</span>
+                          <span className="text-sm" style={{ color: '#5F6572' }}>{lesson.inquadratura}</span>
+                        </div>
+                      )}
+                      {lesson.tono && (
+                        <div className="flex gap-2 p-3 rounded-lg" style={{ background: '#FAFAF7' }}>
+                          <span className="text-xs font-bold min-w-[90px]" style={{ color: '#9CA3AF' }}>Tono</span>
+                          <span className="text-sm" style={{ color: '#5F6572' }}>{lesson.tono}</span>
+                        </div>
+                      )}
+                      {lesson.puntiChiave && (
+                        <div className="p-3 rounded-lg" style={{ background: '#FAFAF7' }}>
+                          <span className="text-xs font-bold" style={{ color: '#9CA3AF' }}>Punti chiave</span>
+                          <ul className="mt-2 space-y-1">
+                            {lesson.puntiChiave.map((punto, j) => (
+                              <li key={j} className="text-sm flex items-start gap-2" style={{ color: '#5F6572' }}>
+                                <span style={{ color: '#34C77B' }}>•</span> {punto}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {lesson.tip && (
+                      <div className="p-4 rounded-xl mb-4" style={{ background: '#FFF8DC', borderLeft: '4px solid #F2C418' }}>
+                        💡 <strong>Tip di Andrea:</strong> {lesson.tip}
+                      </div>
+                    )}
+                    
+                    {/* Editing info */}
+                    <div className="p-4 rounded-xl mb-4" style={{ background: '#EAFAF1', border: '1px solid #34C77B30' }}>
+                      <div className="text-xs font-bold mb-2" style={{ color: '#34C77B' }}>🎬 Cosa farà Andrea con il tuo video:</div>
+                      <ul className="space-y-1">
+                        {["Taglio delle pause e degli errori", "Aggiunta titoli e grafiche", "Transizioni professionali", "Musica di sottofondo", "Color correction"].map((item, i) => (
+                          <li key={i} className="text-xs flex items-center gap-2" style={{ color: '#5F6572' }}>
+                            <span style={{ color: '#34C77B' }}>✓</span> {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    
+                    <div className="flex gap-3">
+                      <button 
+                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm"
+                        style={{ background: '#3B82F6', color: 'white' }}
+                      >
+                        <Upload className="w-4 h-4" /> Carica video registrato
+                      </button>
+                      <button 
+                        onClick={() => handleMarkRecorded(lesson.id)}
+                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm"
+                        style={{ background: '#34C77B', color: 'white' }}
+                      >
+                        ✓ Ho caricato, vai alla prossima
+                      </button>
+                    </div>
+                  </>
                 )}
-                
-                {!isRecorded && (
-                  <div className="flex gap-3">
-                    <button 
-                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm"
-                      style={{ background: '#EF4444', color: 'white' }}
-                    >
-                      📹 Inizia a Registrare
-                    </button>
-                    <button 
-                      onClick={() => handleMarkRecorded(lesson.id)}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm"
-                      style={{ background: '#34C77B', color: 'white' }}
-                    >
-                      ✓ Ho registrato, vai alla prossima
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {isOpen && !isLocked && !lesson.instructions && (
-              <div className="px-4 pb-4">
-                <DirectorTip text="<strong>Registra la lezione precedente prima.</strong> Le indicazioni dettagliate appariranno quando sarà il tuo turno!" />
               </div>
             )}
           </div>
@@ -374,20 +707,20 @@ function VideocorsoTab({ partnerName, recordedLessons, setRecordedLessons }) {
       
       {/* Launch Bar */}
       <div 
-        className={`flex items-center gap-4 p-5 rounded-2xl transition-all ${recordedLessons.length === 8 ? '' : 'opacity-60'}`}
+        className={`flex items-center gap-4 p-5 rounded-2xl transition-all ${completedCount === VIDEOCORSO_LESSONS.length ? '' : 'opacity-60'}`}
         style={{ 
-          background: recordedLessons.length === 8 ? 'linear-gradient(135deg, #F2C418, #FADA5E)' : '#ECEDEF',
-          boxShadow: recordedLessons.length === 8 ? '0 8px 30px rgba(242, 196, 24, 0.3)' : 'none'
+          background: completedCount === VIDEOCORSO_LESSONS.length ? 'linear-gradient(135deg, #F2C418, #FADA5E)' : '#ECEDEF',
+          boxShadow: completedCount === VIDEOCORSO_LESSONS.length ? '0 8px 30px rgba(242, 196, 24, 0.3)' : 'none'
         }}
       >
         <span className="text-3xl">🎬</span>
         <div className="flex-1">
           <div className="font-bold" style={{ color: '#1E2128' }}>Pubblica il Videocorso</div>
-          <div className="text-sm" style={{ color: recordedLessons.length === 8 ? '#1E2128' : '#9CA3AF' }}>
-            {recordedLessons.length === 8 ? 'Tutte le lezioni registrate! Pronto per pubblicare' : `Registra tutte le ${VIDEOCORSO_LESSONS.length} lezioni per pubblicare`}
+          <div className="text-sm" style={{ color: completedCount === VIDEOCORSO_LESSONS.length ? '#1E2128' : '#9CA3AF' }}>
+            {completedCount === VIDEOCORSO_LESSONS.length ? 'Tutte le lezioni pronte! Pronto per pubblicare' : `Completa tutte le ${VIDEOCORSO_LESSONS.length} lezioni per pubblicare`}
           </div>
         </div>
-        {recordedLessons.length === 8 && (
+        {completedCount === VIDEOCORSO_LESSONS.length && (
           <button className="px-6 py-3 rounded-xl font-bold text-sm" style={{ background: '#1E2128', color: '#F2C418' }}>
             Pubblica 🚀
           </button>
@@ -397,12 +730,23 @@ function VideocorsoTab({ partnerName, recordedLessons, setRecordedLessons }) {
   );
 }
 
+// ============================================
+// MAIN COMPONENT
+// ============================================
 export function MasterclassVideocorso({ partner, onBack }) {
   const [activeTab, setActiveTab] = useState("masterclass");
   const [approvedSections, setApprovedSections] = useState([]);
   const [recordedLessons, setRecordedLessons] = useState([]);
+  const [uploadedVideos, setUploadedVideos] = useState([]);
+  const [productionMode, setProductionMode] = useState(null);
+  const [showModeSelector, setShowModeSelector] = useState(true);
   
   const partnerName = partner?.name?.split(" ")[0] || "Partner";
+
+  const handleModeSelect = (mode) => {
+    setProductionMode(mode);
+    setShowModeSelector(false);
+  };
 
   return (
     <div className="min-h-full" style={{ background: '#FAFAF7' }}>
@@ -424,7 +768,7 @@ export function MasterclassVideocorso({ partner, onBack }) {
         <div className="flex gap-2 mb-6 p-1 rounded-xl" style={{ background: '#ECEDEF' }}>
           <button
             onClick={() => setActiveTab("masterclass")}
-            className={`flex-1 py-3 rounded-lg font-bold text-sm transition-all ${activeTab === "masterclass" ? '' : ''}`}
+            className={`flex-1 py-3 rounded-lg font-bold text-sm transition-all`}
             style={{ 
               background: activeTab === "masterclass" ? 'white' : 'transparent',
               color: activeTab === "masterclass" ? '#1E2128' : '#9CA3AF',
@@ -453,11 +797,19 @@ export function MasterclassVideocorso({ partner, onBack }) {
             approvedSections={approvedSections}
             setApprovedSections={setApprovedSections}
           />
+        ) : showModeSelector ? (
+          <ProductionModeSelector 
+            onSelect={handleModeSelect}
+            totalLessons={VIDEOCORSO_LESSONS.length}
+          />
         ) : (
           <VideocorsoTab 
             partnerName={partnerName}
+            productionMode={productionMode}
             recordedLessons={recordedLessons}
             setRecordedLessons={setRecordedLessons}
+            uploadedVideos={uploadedVideos}
+            setUploadedVideos={setUploadedVideos}
           />
         )}
       </div>
