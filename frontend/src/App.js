@@ -671,7 +671,7 @@ export default function App() {
           </>}
 
           {mode==="partner"&&<>
-            {nav==="home"&&<PartnerCurrentPhase partner={demoPartner} onNavigate={setNav}/>}
+            {nav==="home"&&<PartnerDashboardSimplified partner={demoPartner} onNavigate={setNav} onOpenChat={()=>setNav("supporto")}/>}
             {nav==="corso"&&<PartnerCourse partner={demoPartner} modules={modules}/>}
             {nav==="masterclass"&&<MasterclassBuilder partner={demoPartner}/>}
             {nav==="coursebuilder"&&<CourseBuilderWizard partnerId={demoPartner?.id||"demo"} positioningData={{trasformazione:"Demo",target:"Demo",problema:"Demo",soluzione:"Demo"}} onComplete={()=>setNav("produzione")}/>}
