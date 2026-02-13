@@ -5,13 +5,14 @@
 @tailwind utilities;
 
 :root {
-  --evo-bg: #0B0E14;
-  --evo-surface: #1a2332;
+  /* Light Theme Colors */
+  --evo-bg: #FAFAF7;
+  --evo-surface: #FFFFFF;
   --evo-primary: #F5C518;
   --evo-primary-dark: #e0a800;
-  --evo-text: #F8FAFC;
-  --evo-text-muted: #94A3B8;
-  --evo-border: rgba(255, 255, 255, 0.1);
+  --evo-text: #1E2128;
+  --evo-text-muted: #9CA3AF;
+  --evo-border: #ECEDEF;
   --evo-success: #10B981;
   --evo-warning: #F59E0B;
   --evo-error: #EF4444;
