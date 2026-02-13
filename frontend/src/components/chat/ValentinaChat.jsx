@@ -294,12 +294,12 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
       <div 
         className="flex-1 overflow-y-auto p-4"
         style={{ 
-          backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")"
+          background: '#FAFAF7'
         }}
       >
         {/* Data */}
         <div className="text-center mb-4">
-          <span className="px-3 py-1 bg-white rounded-full text-[10px] text-[#9CA3AF] font-semibold">
+          <span className="px-3 py-1 bg-white border border-[#ECEDEF] rounded-full text-[10px] text-[#9CA3AF] font-semibold">
             OGGI
           </span>
         </div>
@@ -315,11 +315,11 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
             <div className="w-8 h-8 rounded-full bg-[#F5C518] flex items-center justify-center text-sm font-bold text-black">
               V
             </div>
-            <div className="bg-white px-4 py-3 rounded-2xl rounded-bl-md">
+            <div className="bg-white border border-[#ECEDEF] px-4 py-3 rounded-2xl rounded-bl-md">
               <div className="flex gap-1">
-                <div className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                <div className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                <div className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                <div className="w-2 h-2 bg-[#F2C418] rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                <div className="w-2 h-2 bg-[#F2C418] rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                <div className="w-2 h-2 bg-[#F2C418] rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
               </div>
             </div>
           </div>
