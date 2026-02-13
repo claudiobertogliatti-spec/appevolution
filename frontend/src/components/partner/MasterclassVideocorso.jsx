@@ -1380,6 +1380,7 @@ export function MasterclassVideocorso({ partner, onBack }) {
   const [showModeSelector, setShowModeSelector] = useState(true);
   
   const partnerName = partner?.name?.split(" ")[0] || "Partner";
+  const partnerId = partner?.id || "unknown";
 
   const handleModeSelect = (mode) => {
     setProductionMode(mode);
