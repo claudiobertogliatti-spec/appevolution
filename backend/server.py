@@ -7761,6 +7761,213 @@ Rispondi in JSON con questo formato:
         raise HTTPException(status_code=500, detail=f"Errore nella generazione: {str(e)}")
 
 # =============================================================================
+# ORION - LEAD SCORING & INTELLIGENCE
+# =============================================================================
+
+@api_router.get("/orion/score/{email}")
+async def orion_score_single_lead(email: str):
+    """Score a single lead by email"""
+    # Find lead in database or Systeme.io contacts
+    lead = await db.leads.find_one({"email": email}, {"_id": 0})
+    
+    if not lead:
+        # Try systeme contacts
+        contact = await db.systeme_contacts.find_one({"email": email}, {"_id": 0})
+        if contact:
+            lead = {
+                "email": contact.get("email"),
+                "name": f"{contact.get('first_name', '')} {contact.get('last_name', '')}".strip(),
+                "tags": contact.get("tags", []),
+                "source": contact.get("source", ""),
+                "last_activity": contact.get("updated_at")
+            }
+    
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead non trovato")
+    
+    scored = await orion_scoring.score_lead(lead)
+    
+    # Update lead in database with score
+    await db.leads.update_one(
+        {"email": email},
+        {"$set": {"score": scored["score"], "temperature": scored["temperature"], "scored_at": scored["scored_at"]}},
+        upsert=True
+    )
+    
+    return {
+        "lead": {"email": email, "name": lead.get("name", "")},
+        "scoring": scored
+    }
+
+@api_router.post("/orion/analyze-list")
+async def orion_analyze_lead_list(limit: int = 1000):
+    """
+    Analyze and score all Systeme.io contacts
+    Use for initial 13K lead analysis
+    """
+    # Get contacts from Systeme.io cache
+    contacts = await db.systeme_contacts.find({}, {"_id": 0}).limit(limit).to_list(limit)
+    
+    if not contacts:
+        return {"error": "Nessun contatto trovato. Sincronizza prima i contatti da Systeme.io"}
+    
+    # Analyze with ORION
+    results = await orion_scoring.analyze_systeme_contacts(contacts)
+    
+    # Save scoring results
+    await db.orion_analysis.insert_one({
+        "id": str(uuid.uuid4()),
+        "type": "list_analysis",
+        "total_analyzed": results["total"],
+        "hot_count": len(results["hot"]),
+        "warm_count": len(results["warm"]),
+        "cold_count": len(results["cold"]),
+        "frozen_count": len(results["frozen"]),
+        "average_score": results["average_score"],
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    # Update agent status
+    await db.agents.update_one(
+        {"id": "ORION"},
+        {"$set": {"status": "ACTIVE", "last_activity": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    # Generate monetization segments
+    segments = await orion_scoring.get_monetization_segments(results)
+    
+    return {
+        "analysis": {
+            "total": results["total"],
+            "average_score": results["average_score"],
+            "distribution": {
+                "hot": len(results["hot"]),
+                "warm": len(results["warm"]),
+                "cold": len(results["cold"]),
+                "frozen": len(results["frozen"])
+            }
+        },
+        "segments": segments,
+        "top_hot_leads": results["hot"][:20],  # Top 20 hot leads
+        "analyzed_at": datetime.now(timezone.utc).isoformat()
+    }
+
+@api_router.get("/orion/segments")
+async def orion_get_segments():
+    """Get current lead segments for monetization"""
+    # Get latest analysis
+    analysis = await db.orion_analysis.find_one(
+        {"type": "list_analysis"},
+        {"_id": 0},
+        sort=[("created_at", -1)]
+    )
+    
+    if not analysis:
+        return {"error": "Nessuna analisi disponibile. Esegui prima /orion/analyze-list"}
+    
+    # Get scored leads by temperature
+    hot_leads = await db.leads.find(
+        {"temperature": "hot"},
+        {"_id": 0, "email": 1, "name": 1, "score": 1}
+    ).sort("score", -1).limit(50).to_list(50)
+    
+    warm_leads = await db.leads.find(
+        {"temperature": "warm"},
+        {"_id": 0, "email": 1, "name": 1, "score": 1}
+    ).sort("score", -1).limit(100).to_list(100)
+    
+    return {
+        "last_analysis": analysis,
+        "segments": {
+            "hot": {"count": len(hot_leads), "leads": hot_leads},
+            "warm": {"count": len(warm_leads), "leads": warm_leads[:50]}
+        }
+    }
+
+@api_router.post("/orion/tag-segment/{segment}")
+async def orion_tag_segment(segment: str, tag_name: str):
+    """
+    Tag all leads in a segment for Systeme.io automation
+    segment: hot, warm, cold, frozen
+    """
+    valid_segments = ["hot", "warm", "cold", "frozen"]
+    if segment not in valid_segments:
+        raise HTTPException(status_code=400, detail=f"Segmento non valido. Usa: {valid_segments}")
+    
+    # Get leads in segment
+    leads = await db.leads.find(
+        {"temperature": segment},
+        {"email": 1}
+    ).to_list(1000)
+    
+    if not leads:
+        return {"error": f"Nessun lead trovato nel segmento {segment}"}
+    
+    # Get Systeme.io credentials
+    credentials = await db.systeme_credentials.find_one({"partner_id": "global"})
+    
+    tagged_count = 0
+    errors = []
+    
+    if credentials and credentials.get("api_key"):
+        for lead in leads[:100]:  # Limit to 100 per batch
+            try:
+                await add_systeme_tag(credentials["api_key"], lead["email"], tag_name)
+                tagged_count += 1
+            except Exception as e:
+                errors.append(f"{lead['email']}: {str(e)}")
+    else:
+        return {"error": "Credenziali Systeme.io non configurate"}
+    
+    return {
+        "success": True,
+        "segment": segment,
+        "tag": tag_name,
+        "tagged_count": tagged_count,
+        "errors": errors[:10] if errors else []
+    }
+
+# =============================================================================
+# AGENT HUB - CENTRALIZED BUSINESS INTELLIGENCE
+# =============================================================================
+
+@api_router.get("/agent-hub/status")
+async def get_all_agents_status():
+    """Get status and metrics for all 9 agents"""
+    return await agent_hub.get_all_agents_status()
+
+@api_router.get("/agent-hub/agent/{agent_id}")
+async def get_single_agent_status(agent_id: str):
+    """Get detailed status for a specific agent"""
+    return await agent_hub.get_agent_status(agent_id.upper())
+
+@api_router.get("/agent-hub/summary")
+async def get_business_summary():
+    """Get comprehensive business summary from all agents"""
+    return await agent_hub.get_business_summary()
+
+@api_router.get("/agent-hub/alerts")
+async def get_system_alerts():
+    """Get all active alerts across agents"""
+    summary = await agent_hub.get_business_summary()
+    return {
+        "alerts": summary.get("alerts", []),
+        "opportunities": summary.get("opportunities", []),
+        "health": summary.get("health", {})
+    }
+
+@api_router.post("/agent-hub/activate/{agent_id}")
+async def activate_agent(agent_id: str):
+    """Activate an agent"""
+    result = await db.agents.update_one(
+        {"id": agent_id.upper()},
+        {"$set": {"status": "ACTIVE", "activated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Agent non trovato")
+    return {"success": True, "agent": agent_id.upper(), "status": "ACTIVE"}
+
+# =============================================================================
 # EMAIL QUEUE MANAGEMENT
 # =============================================================================
 
