@@ -55,77 +55,81 @@ class OrionLeadScoring:
     # Tag mappings for Systeme.io
     TAG_SCORE_MAP = {
         # ============================================
-        # EVOLUTION PRO - TAG SCORING (REAL TAGS)
+        # EVOLUTION PRO - PIPELINE COMMERCIALE COMPLETA
         # ============================================
         
-        # Fase avanzamento (più avanti = più engaged)
-        "fase_scalabilita": 90,
-        "fase_ottimizzazione": 80,
-        "fase_lancio": 70,
-        "fase_pre_lancio": 60,
-        "fase_accademia": 50,
-        "fase_registrazione": 40,
-        "fase_attivazione": 45,
-        "fase_pre_onboarding": 35,
-        "fase_outline": 30,
+        # FASI PARTNER (Fase0-10) - Partner attivi, ESCLUDI da lead
+        "fase10_scalabilita": 200,   # Partner avanzato
+        "fase9_ottimizzazione": 190,
+        "fase8_lancio": 180,
+        "fase7_pre_lancio": 170,
+        "fase6_accademia": 160,
+        "fase5_registrazione": 150,
+        "fase4_outline": 140,
+        "fase3_copy_core": 130,
+        "fase2_masterclass": 120,
+        "fase1_allineamento": 110,
+        "fase0_attivazione": 100,
+        "fase_pre_onboarding": 90,   # Pre-partner
         
-        # Settimane onboarding (engagement)
-        "settimana 5": 50,
-        "settimana 4": 45,
-        "settimana 3": 40,
-        "settimana 2": 35,
-        "onboarding": 30,
-        "follow-up": 25,
+        # ACTIONS - Segnali di engagement
+        "action_acquisto_67": 85,    # Ha comprato tripwire €7 - HOT!
+        "action_call_fatta": 80,     # Call completata - HOT!
+        "action_call_fissata": 75,   # Call fissata - HOT!
+        "action_questionario": 60,   # Ha compilato questionario - WARM
+        "action_optin": 40,          # Si è iscritto - WARM
+        "action_click": 30,          # Ha cliccato - WARM
+        "action_aperto_60g": 20,     # Ha aperto email ultimi 60g - WARM
+        "action_partner_attivo": 200, # Partner attivo - ESCLUDI
         
-        # Acquisti / Pagamenti (HIGH VALUE)
-        "pagamento fee": 100,
-        "purchased": 100,
-        "customer": 100,
-        "pagato": 100,
-        "acquistato": 100,
-        "tripwire": 70,
-        "vip": 120,
+        # STATI - Status del contatto
+        "stato_cliente": 200,        # Cliente - ESCLUDI da lead
+        "stato_ex_cliente": 50,      # Ex cliente - potenziale re-engagement
+        "stato_partner_attivo": 200, # Partner attivo - ESCLUDI
+        "stato_ex_partner": 40,      # Ex partner - potenziale re-engagement
+        "stato_dormiente": 10,       # Dormiente - COLD
+        "stato_attivo": 60,          # Attivo ma non partner - WARM
         
-        # Recovery / Riattivazione
-        "temp_recovery": 15,  # Contatti da riattivare - score base
-        "recovery": 15,
-        
-        # Interesse mostrato
+        # LEAD SCORING LEGACY (backward compatibility)
         "hot_lead": 80,
         "warm_lead": 50,
         "cold_lead": 20,
-        "interested": 40,
+        
+        # Acquisti / Pagamenti
+        "acquisto": 85,
+        "pagamento": 100,
+        "purchased": 100,
+        "customer": 100,
+        "tripwire": 70,
+        
+        # Engagement generici
+        "opened": 5,
+        "clicked": 15,
+        "watched": 25,
+        "downloaded": 20,
         "webinar": 35,
         "masterclass": 35,
         
         # Newsletter/Base
         "newsletter": 10,
-        "notify_welcome": 20,
-        
-        # Engagement signals generici
-        "opened_email": 5,
-        "clicked_link": 15,
-        "clicked": 15,
-        "opened": 5,
-        "watched": 25,
-        "downloaded": 20,
-        "visited": 15,
-        "checkout": 40,
-        "cart": 35,
-        
-        # Segment tags
-        "coach": 5,
-        "consultant": 5,
-        "trainer": 5,
-        "entrepreneur": 3,
+        "optin": 15,
         
         # Negative tags
         "unsubscribed": -50,
         "bounced": -100,
         "complained": -100,
         "spam": -100,
-        "inactive": -20,
+        "dormiente": -10,
     }
+    
+    # Tags che identificano PARTNER ATTIVI (da escludere dai lead)
+    PARTNER_TAGS = [
+        "fase0_attivazione", "fase1_allineamento", "fase2_masterclass", 
+        "fase3_copy_core", "fase4_outline", "fase5_registrazione",
+        "fase6_accademia", "fase7_pre_lancio", "fase8_lancio",
+        "fase9_ottimizzazione", "fase10_scalabilita",
+        "stato_cliente", "stato_partner_attivo", "action_partner_attivo"
+    ]
     
     def __init__(self, db):
         self.db = db
