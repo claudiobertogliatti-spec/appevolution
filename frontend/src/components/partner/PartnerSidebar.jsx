@@ -112,8 +112,9 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
           {NAV_ITEMS.map((item, index) => {
             const isActive = currentNav === item.id;
             const isCompleted = index > 0 && index <= completedPhases;
-            // Servizi Extra è sempre accessibile
-            const isLocked = item.id !== "servizi-extra" && index > completedPhases + 1;
+            // Tools always accessible: servizi-extra, video-editor, legal-pages
+            const alwaysAccessible = ["servizi-extra", "video-editor", "legal-pages"];
+            const isLocked = !alwaysAccessible.includes(item.id) && index > completedPhases + 1;
             
             return (
               <button
