@@ -357,19 +357,26 @@ export function EmailAutomation({ partner }) {
       {/* Email Queue Tab */}
       {activeTab === "queue" && (
         <div className="space-y-4">
-          {/* How it works */}
+          {/* How it works - Systeme.io Native */}
           <div className="bg-white rounded-2xl p-5 shadow-sm" style={{ border: '1px solid #7B68AE30' }}>
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl" style={{ background: '#7B68AE20' }}>
-                ⚡
+                🏷️
               </div>
-              <div>
-                <h4 className="font-bold mb-1" style={{ color: '#1E2128' }}>Come funziona l'automazione</h4>
-                <p className="text-sm" style={{ color: '#5F6572' }}>
-                  Quando un nuovo iscritto arriva tramite <strong>Systeme.io webhook</strong>, 
-                  le sequenze attive vengono automaticamente attivate. Le email vengono messe in coda 
-                  e inviate secondo i tempi configurati.
+              <div className="flex-1">
+                <h4 className="font-bold mb-2" style={{ color: '#1E2128' }}>Automazione via Systeme.io (Tag-based)</h4>
+                <p className="text-sm mb-3" style={{ color: '#5F6572' }}>
+                  Quando arriva un nuovo iscritto, aggiungiamo automaticamente un <strong>tag</strong> al contatto in Systeme.io.
+                  Le email vengono inviate dalla piattaforma nativa, più affidabile e con tracking completo.
                 </p>
+                <div className="p-3 rounded-lg" style={{ background: '#FAFAF7' }}>
+                  <div className="text-xs font-bold mb-2" style={{ color: '#9CA3AF' }}>📋 SETUP IN SYSTEME.IO:</div>
+                  <ol className="text-xs space-y-1" style={{ color: '#5F6572' }}>
+                    <li>1. Vai su <strong>Automations</strong> → <strong>Rules</strong></li>
+                    <li>2. Crea regola: <em>"When tag is added"</em> → seleziona il tag (es. <code>evo_seq_benvenuto</code>)</li>
+                    <li>3. Azione: <em>"Start campaign"</em> → scegli la sequenza email</li>
+                  </ol>
+                </div>
               </div>
             </div>
           </div>
@@ -378,10 +385,10 @@ export function EmailAutomation({ partner }) {
             <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
               <Send className="w-12 h-12 mx-auto mb-4" style={{ color: '#9CA3AF' }} />
               <h3 className="font-bold text-lg mb-2" style={{ color: '#1E2128' }}>
-                Nessuna email in coda
+                Nessun trigger registrato
               </h3>
               <p className="text-sm" style={{ color: '#5F6572' }}>
-                Quando arriverà un nuovo iscritto, le email appariranno qui
+                Quando arriverà un nuovo iscritto, i tag aggiunti appariranno qui
               </p>
             </div>
           ) : (
@@ -390,7 +397,7 @@ export function EmailAutomation({ partner }) {
                 <thead>
                   <tr style={{ background: '#FAFAF7', borderBottom: '1px solid #ECEDEF' }}>
                     <th className="text-left px-5 py-3 text-xs font-bold" style={{ color: '#9CA3AF' }}>CONTATTO</th>
-                    <th className="text-left px-4 py-3 text-xs font-bold" style={{ color: '#9CA3AF' }}>SEQUENZA/EMAIL</th>
+                    <th className="text-left px-4 py-3 text-xs font-bold" style={{ color: '#9CA3AF' }}>SEQUENZA/TAG</th>
                     <th className="text-left px-4 py-3 text-xs font-bold" style={{ color: '#9CA3AF' }}>STATO</th>
                     <th className="text-left px-4 py-3 text-xs font-bold" style={{ color: '#9CA3AF' }}>DATA</th>
                   </tr>
