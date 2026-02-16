@@ -104,16 +104,54 @@ export function PartnerProfileHub({ partner, onNavigate }) {
     { id: "andrea", label: "Vista Andrea", status: "wip" }
   ];
 
+  // Load profile from backend
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const partnerId = partner?.id || "demo";
+
+  useEffect(() => {
+    loadProfile();
+  }, [partnerId]);
+
+  const loadProfile = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/partner-hub/${partnerId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setProfileData(prev => ({
+          ...prev,
+          ...data
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Handle edit
   const startEdit = (field, value) => {
     setIsEditing(field);
     setEditValue(value || "");
   };
 
-  const saveEdit = (field) => {
-    setProfileData(prev => ({ ...prev, [field]: editValue }));
-    setIsEditing(null);
-    // TODO: Save to backend
+  const saveEdit = async (field) => {
+    setIsSaving(true);
+    try {
+      const response = await fetch(`${API_URL}/api/partner-hub/${partnerId}/field?field=${field}&value=${encodeURIComponent(editValue)}`, {
+        method: 'PATCH'
+      });
+      if (response.ok) {
+        setProfileData(prev => ({ ...prev, [field]: editValue }));
+      }
+    } catch (error) {
+      console.error('Error saving field:', error);
+    } finally {
+      setIsSaving(false);
+      setIsEditing(null);
+    }
   };
 
   const cancelEdit = () => {
