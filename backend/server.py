@@ -1613,6 +1613,135 @@ async def clear_chat_history(session_id: str):
     return {"status": "cleared"}
 
 # =============================================================================
+# VALENTINA MEMORY SYSTEM API
+# =============================================================================
+
+from valentina_memory import valentina_memory
+
+@api_router.post("/valentina/memory/knowledge")
+async def add_valentina_knowledge(
+    category: str,
+    content: str,
+    user_id: str = "claudio"
+):
+    """
+    Aggiungi una conoscenza alla memoria di VALENTINA.
+    
+    Categories: preference, rule, decision, fact, correction
+    """
+    valid_categories = ["preference", "rule", "decision", "fact", "correction"]
+    if category not in valid_categories:
+        raise HTTPException(status_code=400, detail=f"Categoria non valida. Usa: {valid_categories}")
+    
+    await valentina_memory.add_knowledge(
+        user_id=user_id,
+        category=category,
+        content=content,
+        source="manual"
+    )
+    
+    return {
+        "success": True,
+        "category": category,
+        "content": content,
+        "message": f"Conoscenza aggiunta alla memoria di VALENTINA"
+    }
+
+@api_router.get("/valentina/memory/knowledge")
+async def get_valentina_knowledge(
+    user_id: str = "claudio",
+    category: str = None
+):
+    """Recupera la knowledge base di VALENTINA"""
+    knowledge = await valentina_memory.get_knowledge(user_id, category)
+    
+    return {
+        "user_id": user_id,
+        "category": category,
+        "knowledge": knowledge,
+        "count": len(knowledge)
+    }
+
+@api_router.post("/valentina/memory/feedback")
+async def add_valentina_feedback(
+    original_response: str,
+    correction: str,
+    feedback_type: str = "correction",
+    user_id: str = "claudio"
+):
+    """
+    Invia feedback a VALENTINA per migliorare le risposte future.
+    
+    feedback_type: correction, improvement, positive
+    """
+    await valentina_memory.save_feedback(
+        user_id=user_id,
+        original_response=original_response,
+        correction=correction,
+        feedback_type=feedback_type
+    )
+    
+    return {
+        "success": True,
+        "feedback_type": feedback_type,
+        "message": "Feedback salvato. VALENTINA imparerà da questo!"
+    }
+
+@api_router.get("/valentina/memory/conversations")
+async def get_valentina_conversations(
+    user_id: str = "claudio",
+    limit: int = 50,
+    only_important: bool = False
+):
+    """Recupera lo storico conversazioni di VALENTINA"""
+    if only_important:
+        conversations = await valentina_memory.get_important_conversations(user_id, limit)
+    else:
+        conversations = await valentina_memory.get_recent_conversations(user_id, limit)
+    
+    return {
+        "user_id": user_id,
+        "conversations": conversations,
+        "count": len(conversations)
+    }
+
+@api_router.post("/valentina/memory/mark-important")
+async def mark_conversation_important(
+    user_id: str = "claudio",
+    content_snippet: str = ""
+):
+    """Marca un messaggio come importante per la memoria a lungo termine"""
+    await valentina_memory.mark_as_important(user_id, content_snippet)
+    
+    return {
+        "success": True,
+        "message": "Messaggio marcato come importante"
+    }
+
+@api_router.get("/valentina/memory/stats")
+async def get_valentina_memory_stats(user_id: str = "claudio"):
+    """Statistiche sulla memoria di VALENTINA"""
+    await valentina_memory.connect()
+    
+    total_conversations = await valentina_memory.db.valentina_conversations.count_documents({"user_id": user_id})
+    important_conversations = await valentina_memory.db.valentina_conversations.count_documents({"user_id": user_id, "is_important": True})
+    knowledge_count = await valentina_memory.db.valentina_knowledge.count_documents({"user_id": user_id, "active": True})
+    feedback_count = await valentina_memory.db.valentina_feedback.count_documents({"user_id": user_id})
+    corrections_count = await valentina_memory.db.valentina_feedback.count_documents({"user_id": user_id, "feedback_type": "correction"})
+    
+    return {
+        "user_id": user_id,
+        "stats": {
+            "total_conversations": total_conversations,
+            "important_conversations": important_conversations,
+            "knowledge_entries": knowledge_count,
+            "total_feedback": feedback_count,
+            "corrections_learned": corrections_count
+        },
+        "message": f"VALENTINA ha {knowledge_count} conoscenze e ha imparato da {corrections_count} correzioni"
+    }
+
+# =============================================================================
 # ROUTES - STEFANIA (Copy & Marketing Tutor)
 # =============================================================================
 
