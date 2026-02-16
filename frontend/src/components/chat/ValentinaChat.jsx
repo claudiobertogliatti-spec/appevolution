@@ -89,7 +89,7 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
     const welcomeMsg = {
       role: "assistant",
       content: isAdmin 
-        ? `Ciao! 👋\n\nSono **VALENTINA**, l'orchestratrice del sistema.\n\nPosso aiutarti con:\n• Gestione partner e fasi\n• Azioni su Systeme.io\n• Supporto operativo\n\nCome posso aiutarti?`
+        ? `Ciao Claudio! 👋\n\nSono **VALENTINA**, il tuo braccio destro.\n\nPosso aiutarti con:\n• 📊 Status lead e ORION (13.000+ contatti)\n• 👔 Gestione partner e fasi\n• 💰 KPI vendite e Tripwire €7\n• ⚡ Coordinare gli agenti AI\n\nDimmi cosa ti serve, boss!`
         : `Ciao ${partner?.name?.split(" ")[0] || "Partner"}! 👋\n\nSono **VALENTINA**, la tua orchestratrice personale.\n\nSei attualmente in **${partner?.phase || "F1"}**. Sono qui per rispondere alle tue domande e supportarti nel percorso.\n\nScrivimi pure!`,
       time: currentTime(),
       read: true
