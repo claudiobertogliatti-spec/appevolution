@@ -30,6 +30,7 @@ import { ValentinaChat } from "./components/chat/ValentinaChat";
 import { LoginPage } from "./components/auth/LoginPage";
 import { WebhookDashboard } from "./components/admin/WebhookDashboard";
 import { FunnelReviewBuilder } from "./components/partner/FunnelReviewBuilder";
+import { FunnelAnalytics } from "./components/partner/FunnelAnalytics";
 import { MasterclassVideocorso } from "./components/partner/MasterclassVideocorso";
 import { ServiziExtra } from "./components/partner/ServiziExtra";
 import { VideoEditorAndrea } from "./components/partner/VideoEditorAndrea";
