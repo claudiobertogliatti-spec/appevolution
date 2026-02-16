@@ -344,6 +344,111 @@ export function OrionLeadScoring() {
         </div>
       </div>
 
+      {/* Import by Segment Section */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm" style={{ border: '2px dashed #10B981' }}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center"
+                 style={{ background: '#D1FAE5' }}>
+              <Filter className="w-6 h-6" style={{ color: '#10B981' }} />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold" style={{ color: '#1E2128' }}>
+                Importa per Segmento (Pipeline)
+              </h2>
+              <p className="text-sm" style={{ color: '#9CA3AF' }}>
+                Importa contatti dalla colonna followup o altre pipeline di Systeme.io
+              </p>
+            </div>
+          </div>
+          
+          <button
+            onClick={runRetag}
+            disabled={isRetagging}
+            className="px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-all hover:opacity-90 disabled:opacity-50"
+            style={{ background: '#6B7280', color: 'white' }}
+          >
+            {isRetagging ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            Re-Tag Tutti
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-bold mb-2" style={{ color: '#1E2128' }}>
+              Seleziona Segmento:
+            </label>
+            <select 
+              value={selectedSegment}
+              onChange={(e) => setSelectedSegment(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border text-sm font-bold"
+              style={{ borderColor: '#ECEDEF', background: '#FAFAF7' }}
+            >
+              <option value="hot">🔥 HOT - Lead caldi pronti all'acquisto</option>
+              <option value="warm">🟡 WARM - Lead interessati (es. followup)</option>
+              <option value="cold">❄️ COLD - Lead freddi da riattivare</option>
+              <option value="partner">👔 PARTNER - Partner attivi (escludi)</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-bold mb-2" style={{ color: '#1E2128' }}>
+              Carica CSV del segmento:
+            </label>
+            <input
+              ref={segmentFileRef}
+              type="file"
+              accept=".csv"
+              onChange={handleSegmentImport}
+              className="hidden"
+              id="segment-csv-upload"
+            />
+            <label
+              htmlFor="segment-csv-upload"
+              className={`w-full px-4 py-3 rounded-xl font-bold flex items-center justify-center gap-2 cursor-pointer transition-all hover:opacity-90 ${isImporting ? 'opacity-50 pointer-events-none' : ''}`}
+              style={{ background: '#10B981', color: 'white' }}
+            >
+              {isImporting ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Importazione...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-5 h-5" />
+                  Carica CSV {selectedSegment.toUpperCase()}
+                </>
+              )}
+            </label>
+          </div>
+        </div>
+        
+        {/* Segment Totals */}
+        <div className="mt-4 grid grid-cols-5 gap-2">
+          {[
+            { key: 'hot', emoji: '🔥', color: '#EF4444' },
+            { key: 'warm', emoji: '🟡', color: '#F59E0B' },
+            { key: 'cold', emoji: '❄️', color: '#3B82F6' },
+            { key: 'frozen', emoji: '🧊', color: '#6B7280' },
+            { key: 'partner', emoji: '👔', color: '#10B981' }
+          ].map(seg => (
+            <div key={seg.key} className="text-center p-3 rounded-xl" style={{ background: '#FAFAF7' }}>
+              <div className="text-lg">{seg.emoji}</div>
+              <div className="text-xl font-black" style={{ color: seg.color }}>
+                {(segmentTotals[seg.key] || 0).toLocaleString()}
+              </div>
+              <div className="text-xs" style={{ color: '#9CA3AF' }}>{seg.key.toUpperCase()}</div>
+            </div>
+          ))}
+        </div>
+        
+        <div className="mt-4 p-3 rounded-xl" style={{ background: '#ECFDF5' }}>
+          <p className="text-xs" style={{ color: '#065F46' }}>
+            <strong>💡 Tip:</strong> Vai su Systeme.io → Pipeline → Colonna "Followup" → Esporta solo quei contatti → Seleziona "WARM" → Carica qui
+          </p>
+        </div>
+      </div>
+
       {/* Temperature Distribution */}
       <div className="grid grid-cols-4 gap-4">
         <TemperatureCard 
