@@ -1028,6 +1028,182 @@ class PartnerProfileUpdate(BaseModel):
     social_linkedin: Optional[str] = None
     social_youtube: Optional[str] = None
 
+# Complete Partner Profile Hub Model
+class PartnerProfileHub(BaseModel):
+    # Identity
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    city: Optional[str] = None
+    bio: Optional[str] = None
+    photo: Optional[str] = None
+    # Social
+    website: Optional[str] = None
+    instagram: Optional[str] = None
+    linkedin: Optional[str] = None
+    youtube: Optional[str] = None
+    # Positioning
+    whoYouAre: Optional[str] = None
+    targetAudience: Optional[str] = None
+    problem: Optional[str] = None
+    solution: Optional[str] = None
+    pitch: Optional[str] = None
+    differentiator: Optional[str] = None
+    # Offer
+    offerName: Optional[str] = None
+    offerPrice: Optional[str] = None
+    offerIncludes: Optional[str] = None
+    offerGuarantee: Optional[str] = None
+    # Brand Kit
+    logo: Optional[str] = None
+    primaryColor: Optional[str] = None
+    accentColor: Optional[str] = None
+    textColor: Optional[str] = None
+    bgColor: Optional[str] = None
+    fontPrimary: Optional[str] = None
+    fontSecondary: Optional[str] = None
+    toneOfVoice: Optional[str] = None
+    keywords: Optional[str] = None
+    # Media
+    heroPhoto: Optional[str] = None
+    introVideo: Optional[str] = None
+    voiceSample: Optional[str] = None
+    # Progress
+    progress: Optional[Dict[str, int]] = None
+    currentStep: Optional[int] = None
+
+@api_router.get("/partner-hub/{partner_id}")
+async def get_partner_hub(partner_id: str):
+    """Get complete partner hub profile - all data Andrea needs"""
+    # Get base partner data
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    # Get hub profile data
+    hub_profile = await db.partner_hub.find_one({"partner_id": partner_id}, {"_id": 0})
+    
+    # Get brand kit
+    brand_kit = await db.partner_brand_kits.find_one({"partner_id": partner_id}, {"_id": 0})
+    
+    # Merge all data
+    result = {
+        "id": partner.get("id"),
+        "name": partner.get("name", ""),
+        "email": partner.get("email", ""),
+        "phone": partner.get("phone", ""),
+        "niche": partner.get("niche", ""),
+        "phase": partner.get("phase", "F1"),
+        "revenue": partner.get("revenue", 0),
+        "created_at": partner.get("created_at", ""),
+        # Hub profile data (overrides if exists)
+        "city": "",
+        "bio": "",
+        "photo": None,
+        "website": "",
+        "instagram": "",
+        "linkedin": "",
+        "youtube": "",
+        "whoYouAre": "",
+        "targetAudience": "",
+        "problem": "",
+        "solution": "",
+        "pitch": "",
+        "differentiator": "",
+        "offerName": "",
+        "offerPrice": "",
+        "offerIncludes": "",
+        "offerGuarantee": "",
+        "logo": None,
+        "primaryColor": "#2C5F8A",
+        "accentColor": "#F2C418",
+        "textColor": "#1E2128",
+        "bgColor": "#FAFAF7",
+        "fontPrimary": "Nunito Bold",
+        "fontSecondary": "Nunito Regular",
+        "toneOfVoice": "",
+        "keywords": "",
+        "heroPhoto": None,
+        "introVideo": None,
+        "voiceSample": None,
+        "progress": {
+            "positioning": 0,
+            "masterclass": 0,
+            "videocorso": 0,
+            "funnel": 0
+        },
+        "currentStep": 1
+    }
+    
+    # Merge hub profile
+    if hub_profile:
+        for key, value in hub_profile.items():
+            if key not in ["_id", "partner_id"] and value is not None:
+                result[key] = value
+    
+    # Merge brand kit
+    if brand_kit:
+        result["logo"] = brand_kit.get("logo", result["logo"])
+        result["primaryColor"] = brand_kit.get("primary_color", result["primaryColor"])
+        result["accentColor"] = brand_kit.get("accent_color", result["accentColor"])
+        result["textColor"] = brand_kit.get("text_color", result["textColor"])
+        result["bgColor"] = brand_kit.get("bg_color", result["bgColor"])
+        result["fontPrimary"] = brand_kit.get("font_primary", result["fontPrimary"])
+        result["fontSecondary"] = brand_kit.get("font_secondary", result["fontSecondary"])
+    
+    return result
+
+@api_router.put("/partner-hub/{partner_id}")
+async def update_partner_hub(partner_id: str, data: PartnerProfileHub):
+    """Update partner hub profile"""
+    # Check partner exists
+    partner = await db.partners.find_one({"id": partner_id})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    update_data["partner_id"] = partner_id
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    # Upsert hub profile
+    await db.partner_hub.update_one(
+        {"partner_id": partner_id},
+        {"$set": update_data},
+        upsert=True
+    )
+    
+    # Also update main partner name if changed
+    if data.name:
+        await db.partners.update_one(
+            {"id": partner_id},
+            {"$set": {"name": data.name}}
+        )
+    
+    # Return updated profile
+    return await get_partner_hub(partner_id)
+
+@api_router.patch("/partner-hub/{partner_id}/field")
+async def update_partner_hub_field(partner_id: str, field: str, value: str):
+    """Update a single field in partner hub profile"""
+    # Check partner exists
+    partner = await db.partners.find_one({"id": partner_id})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    # Update the specific field
+    await db.partner_hub.update_one(
+        {"partner_id": partner_id},
+        {
+            "$set": {
+                field: value,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+    
+    return {"success": True, "field": field, "value": value}
+
 class PaymentRecord(BaseModel):
     partner_id: str
     amount: float
