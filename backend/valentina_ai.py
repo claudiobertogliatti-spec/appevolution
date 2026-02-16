@@ -1,6 +1,6 @@
 """
 VALENTINA AI Module - Orchestratrice Evolution PRO OS
-Integrazione LLM + Telegram Notifications
+Integrazione LLM + Telegram Notifications + Persistent Memory
 """
 
 import os
@@ -17,6 +17,15 @@ logger = logging.getLogger(__name__)
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_BOT_USERNAME = os.environ.get("TELEGRAM_BOT_USERNAME", "valentina_evo_bot")
+
+# Import Memory System
+try:
+    from valentina_memory import valentina_memory
+    MEMORY_ENABLED = True
+    logger.info("VALENTINA Memory System loaded successfully")
+except ImportError as e:
+    MEMORY_ENABLED = False
+    logger.warning(f"VALENTINA Memory System not available: {e}")
 
 # VALENTINA System Prompt
 VALENTINA_SYSTEM_PROMPT = """Sei VALENTINA, l'orchestratrice AI di Evolution PRO OS - la piattaforma per creare videocorsi professionali.
