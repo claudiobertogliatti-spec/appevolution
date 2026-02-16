@@ -196,8 +196,30 @@ export function PartnerProfileHub({ partner, onNavigate }) {
     </div>
   );
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="p-6 flex items-center justify-center" style={{ background: '#FAFAF7', minHeight: '100vh' }}>
+        <div className="text-center">
+          <div className="w-12 h-12 rounded-full border-4 border-t-transparent animate-spin mx-auto mb-4" 
+               style={{ borderColor: '#F2C418', borderTopColor: 'transparent' }} />
+          <p className="text-sm font-bold" style={{ color: '#9CA3AF' }}>Caricamento profilo...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6" style={{ background: '#FAFAF7', minHeight: '100vh' }}>
+      {/* Saving indicator */}
+      {isSaving && (
+        <div className="fixed top-4 right-4 bg-white rounded-xl px-4 py-2 shadow-lg flex items-center gap-2 z-50">
+          <div className="w-4 h-4 rounded-full border-2 border-t-transparent animate-spin" 
+               style={{ borderColor: '#34C77B', borderTopColor: 'transparent' }} />
+          <span className="text-sm font-bold" style={{ color: '#34C77B' }}>Salvataggio...</span>
+        </div>
+      )}
+      
       {/* Page Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-black flex items-center gap-2" style={{ color: '#1E2128' }}>
