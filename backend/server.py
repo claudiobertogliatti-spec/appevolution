@@ -7578,6 +7578,237 @@ Rispondi in JSON con questo formato:
         logging.error(f"Error generating email sequence: {e}")
         raise HTTPException(status_code=500, detail=f"Errore nella generazione: {str(e)}")
 
+# =============================================================================
+# STRIPE CHECKOUT - AVATAR SERVICE PAYMENT
+# =============================================================================
+
+# Fixed service packages (server-side only - security)
+AVATAR_SERVICE_PACKAGES = {
+    "single_lesson": {
+        "name": "Avatar Lezione Singola",
+        "price": 120.00,
+        "description": "Produzione avatar professionale per 1 lezione del tuo videocorso",
+        "includes": ["Avatar AI professionale", "Script ottimizzato", "Editing completo", "Sottotitoli"]
+    },
+    "bundle_3": {
+        "name": "Bundle 3 Lezioni",
+        "price": 300.00,
+        "description": "Produzione avatar per 3 lezioni (sconto 17%)",
+        "includes": ["3 Avatar AI professionali", "Script ottimizzati", "Editing completo", "Sottotitoli", "Intro/Outro brandizzate"]
+    },
+    "bundle_5": {
+        "name": "Bundle 5 Lezioni",
+        "price": 450.00,
+        "description": "Produzione avatar per 5 lezioni (sconto 25%)",
+        "includes": ["5 Avatar AI professionali", "Script premium", "Editing avanzato", "Sottotitoli animati", "Intro/Outro brandizzate", "Revisione inclusa"]
+    },
+    "full_course": {
+        "name": "Videocorso Completo",
+        "price": 800.00,
+        "description": "Produzione avatar per videocorso completo (fino a 10 lezioni)",
+        "includes": ["Fino a 10 Avatar AI", "Script premium", "Editing cinematografico", "Sottotitoli animati", "Branding completo", "2 revisioni incluse", "Supporto prioritario"]
+    }
+}
+
+class AvatarPaymentRequest(BaseModel):
+    package_id: str
+    partner_id: str
+    partner_name: str
+    partner_email: Optional[str] = None
+    origin_url: str
+    lesson_details: Optional[str] = None
+
+@api_router.get("/avatar-packages")
+async def get_avatar_packages():
+    """Get available avatar service packages"""
+    return {"packages": AVATAR_SERVICE_PACKAGES}
+
+@api_router.post("/avatar-checkout")
+async def create_avatar_checkout(request: Request, data: AvatarPaymentRequest):
+    """Create Stripe checkout session for avatar service"""
+    
+    # Validate package
+    if data.package_id not in AVATAR_SERVICE_PACKAGES:
+        raise HTTPException(status_code=400, detail="Pacchetto non valido")
+    
+    package = AVATAR_SERVICE_PACKAGES[data.package_id]
+    
+    # Get Stripe API key
+    stripe_api_key = os.environ.get("STRIPE_API_KEY")
+    if not stripe_api_key:
+        raise HTTPException(status_code=500, detail="Stripe non configurato")
+    
+    # Build dynamic URLs from frontend origin
+    success_url = f"{data.origin_url}/avatar-payment-success?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{data.origin_url}/avatar-payment-cancel"
+    
+    # Initialize Stripe checkout
+    host_url = str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
+    
+    # Create checkout session
+    checkout_request = CheckoutSessionRequest(
+        amount=package["price"],
+        currency="eur",
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata={
+            "package_id": data.package_id,
+            "package_name": package["name"],
+            "partner_id": data.partner_id,
+            "partner_name": data.partner_name,
+            "partner_email": data.partner_email or "",
+            "lesson_details": data.lesson_details or "",
+            "service_type": "avatar_production"
+        }
+    )
+    
+    try:
+        session = await stripe_checkout.create_checkout_session(checkout_request)
+        
+        # Create payment transaction record
+        transaction = {
+            "id": str(uuid.uuid4()),
+            "session_id": session.session_id,
+            "partner_id": data.partner_id,
+            "partner_name": data.partner_name,
+            "partner_email": data.partner_email,
+            "package_id": data.package_id,
+            "package_name": package["name"],
+            "amount": package["price"],
+            "currency": "eur",
+            "status": "pending",
+            "payment_status": "initiated",
+            "lesson_details": data.lesson_details,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.payment_transactions.insert_one(transaction)
+        
+        return {
+            "success": True,
+            "checkout_url": session.url,
+            "session_id": session.session_id,
+            "package": package
+        }
+        
+    except Exception as e:
+        logging.error(f"Stripe checkout error: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore creazione checkout: {str(e)}")
+
+@api_router.get("/avatar-checkout/status/{session_id}")
+async def get_avatar_checkout_status(session_id: str):
+    """Get payment status for avatar checkout"""
+    
+    stripe_api_key = os.environ.get("STRIPE_API_KEY")
+    if not stripe_api_key:
+        raise HTTPException(status_code=500, detail="Stripe non configurato")
+    
+    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url="")
+    
+    try:
+        status = await stripe_checkout.get_checkout_status(session_id)
+        
+        # Update transaction in database
+        update_data = {
+            "status": status.status,
+            "payment_status": status.payment_status,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        # If paid, trigger production workflow
+        if status.payment_status == "paid":
+            # Check if not already processed
+            existing = await db.payment_transactions.find_one({
+                "session_id": session_id,
+                "payment_status": "paid"
+            })
+            
+            if not existing:
+                update_data["paid_at"] = datetime.now(timezone.utc).isoformat()
+                
+                # Get transaction details for notification
+                transaction = await db.payment_transactions.find_one({"session_id": session_id})
+                if transaction:
+                    # Send Telegram notification
+                    try:
+                        await telegram_notify(
+                            notification_type="alert",
+                            message=f"💰 NUOVO PAGAMENTO AVATAR!\n\nPartner: {transaction.get('partner_name')}\nPacchetto: {transaction.get('package_name')}\nImporto: €{transaction.get('amount')}\n\n📋 Dettagli: {transaction.get('lesson_details', 'N/D')}\n\n▶️ Avvia produzione avatar!"
+                        )
+                    except Exception as e:
+                        logging.error(f"Failed to send payment notification: {e}")
+        
+        await db.payment_transactions.update_one(
+            {"session_id": session_id},
+            {"$set": update_data}
+        )
+        
+        return {
+            "session_id": session_id,
+            "status": status.status,
+            "payment_status": status.payment_status,
+            "amount_total": status.amount_total,
+            "currency": status.currency,
+            "metadata": status.metadata
+        }
+        
+    except Exception as e:
+        logging.error(f"Error checking payment status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/webhook/stripe")
+async def stripe_webhook(request: Request):
+    """Handle Stripe webhook events"""
+    
+    stripe_api_key = os.environ.get("STRIPE_API_KEY")
+    if not stripe_api_key:
+        raise HTTPException(status_code=500, detail="Stripe non configurato")
+    
+    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url="")
+    
+    try:
+        body = await request.body()
+        signature = request.headers.get("Stripe-Signature")
+        
+        webhook_response = await stripe_checkout.handle_webhook(body, signature)
+        
+        logging.info(f"Stripe webhook received: {webhook_response.event_type}")
+        
+        # Update transaction based on webhook event
+        if webhook_response.session_id:
+            update_data = {
+                "payment_status": webhook_response.payment_status,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            if webhook_response.payment_status == "paid":
+                update_data["paid_at"] = datetime.now(timezone.utc).isoformat()
+            
+            await db.payment_transactions.update_one(
+                {"session_id": webhook_response.session_id},
+                {"$set": update_data}
+            )
+        
+        return {"received": True}
+        
+    except Exception as e:
+        logging.error(f"Stripe webhook error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.get("/avatar-payments/{partner_id}")
+async def get_partner_avatar_payments(partner_id: str):
+    """Get all avatar payments for a partner"""
+    
+    payments = await db.payment_transactions.find(
+        {"partner_id": partner_id, "service_type": "avatar_production"},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    
+    return {"payments": payments, "total": len(payments)}
+
 # Include router
 app.include_router(api_router)
 
