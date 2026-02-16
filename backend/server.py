@@ -19,6 +19,8 @@ from video_processor import video_processor, VideoProcessor
 from file_storage import file_storage, FileStorageManager
 from youtube_uploader import youtube_uploader, YouTubeUploader
 from tts_generator import tts_generator, TTSGenerator
+from video_editor_service import video_editor, VideoEditorService
+from legal_pages_service import legal_generator, LegalPagesGenerator
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
