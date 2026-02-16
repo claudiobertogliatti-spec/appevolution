@@ -469,7 +469,7 @@ class VideoEditorService:
     
     def burn_subtitles(self, video_path: str, srt_path: str, 
                        output_path: str,
-                       font_size: int = 24,
+                       font_size: int = 16,
                        font_color: str = "white",
                        outline_color: str = "black",
                        position: str = "bottom") -> Dict:
@@ -480,40 +480,54 @@ class VideoEditorService:
             video_path: Source video
             srt_path: SRT subtitle file
             output_path: Output video with burned subtitles
-            font_size: Subtitle font size
+            font_size: Subtitle font size (default 16 for mobile videos)
             font_color: Text color
             outline_color: Outline color for readability
             position: bottom, center, top
         """
         try:
-            # Position mapping
-            positions = {
-                "bottom": "y=h-th-40",
-                "center": "y=(h-th)/2",
-                "top": "y=40"
-            }
-            y_position = positions.get(position, positions["bottom"])
+            # Get video dimensions to calculate appropriate font size
+            info = self.get_video_info(video_path)
+            video_height = info.get("height", 720)
+            video_width = info.get("width", 1280)
             
-            # Build subtitle filter
+            # Calculate font size based on video height (smaller for vertical videos)
+            # For 1080p = 24, for 480p vertical = ~12-14
+            calculated_font_size = max(10, min(font_size, int(video_height / 50)))
+            
+            # Margin from bottom (percentage of height)
+            margin_v = int(video_height * 0.05)  # 5% from bottom
+            
+            # Build subtitle filter with ASS styling
             # Escape path for FFmpeg
             srt_escaped = str(srt_path).replace(":", "\\:").replace("'", "\\'")
             
+            # ASS color format: &HAABBGGRR (alpha, blue, green, red)
+            # White = &H00FFFFFF, Black = &H00000000
             subtitle_filter = (
                 f"subtitles='{srt_escaped}':"
-                f"force_style='FontSize={font_size},"
+                f"force_style='"
+                f"FontSize={calculated_font_size},"
+                f"FontName=Arial,"
                 f"PrimaryColour=&H00FFFFFF,"
                 f"OutlineColour=&H00000000,"
-                f"BorderStyle=3,"
-                f"Outline=2,"
-                f"Shadow=1,"
-                f"MarginV=30'"
+                f"BackColour=&H80000000,"
+                f"BorderStyle=4,"
+                f"Outline=1,"
+                f"Shadow=0,"
+                f"MarginV={margin_v},"
+                f"Alignment=2"  # 2 = bottom center
+                f"'"
             )
             
+            # Use stream copy for audio to preserve sync
             cmd = [
                 "-i", str(video_path),
                 "-vf", subtitle_filter,
-                "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                "-c:v", "libx264", "-preset", "fast", "-crf", "18",
                 "-c:a", "copy",
+                "-avoid_negative_ts", "make_zero",
+                "-fflags", "+genpts",
                 str(output_path)
             ]
             
@@ -521,7 +535,8 @@ class VideoEditorService:
             
             return {
                 "success": True,
-                "output_path": output_path
+                "output_path": output_path,
+                "font_size_used": calculated_font_size
             }
             
         except Exception as e:
