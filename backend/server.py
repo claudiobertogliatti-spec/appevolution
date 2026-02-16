@@ -6967,6 +6967,440 @@ async def control_dashboard():
         }
     }
 
+# =============================================================================
+# DOMAIN CONFIGURATION
+# =============================================================================
+
+class DomainRequest(BaseModel):
+    partner_id: str
+    partner_name: str
+    domain: str
+    partner_email: Optional[str] = None
+
+class DomainDnsParams(BaseModel):
+    dns_params: Dict[str, str]
+    status: str = "configuring"
+
+class DomainStatusUpdate(BaseModel):
+    status: str  # pending, configuring, active, error
+
+@api_router.post("/domain/request")
+async def create_domain_request(request: DomainRequest):
+    """Partner submits a domain configuration request"""
+    # Check if domain already requested
+    existing = await db.domain_requests.find_one({
+        "$or": [
+            {"partner_id": request.partner_id},
+            {"domain": request.domain.lower()}
+        ]
+    })
+    
+    if existing:
+        if existing.get("partner_id") == request.partner_id:
+            raise HTTPException(status_code=400, detail="Hai già una richiesta dominio attiva")
+        else:
+            raise HTTPException(status_code=400, detail="Questo dominio è già stato richiesto")
+    
+    domain_doc = {
+        "id": str(uuid.uuid4()),
+        "partner_id": request.partner_id,
+        "partner_name": request.partner_name,
+        "partner_email": request.partner_email,
+        "domain": request.domain.lower(),
+        "status": "pending",
+        "dns_params": None,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.domain_requests.insert_one(domain_doc)
+    
+    # Send Telegram notification to admins
+    try:
+        await telegram_notify(
+            notification_type="alert",
+            message=f"🌐 Nuova richiesta dominio\n\nPartner: {request.partner_name}\nDominio: {request.domain}\n\nConfigura i parametri DNS in Systeme.io"
+        )
+    except Exception as e:
+        logging.error(f"Failed to send domain notification: {e}")
+    
+    return {"success": True, "domain_request": {k: v for k, v in domain_doc.items() if k != "_id"}}
+
+@api_router.get("/domain/partner/{partner_id}")
+async def get_partner_domain_request(partner_id: str):
+    """Get domain request for a partner"""
+    domain = await db.domain_requests.find_one({"partner_id": partner_id}, {"_id": 0})
+    return {"domain_request": domain}
+
+@api_router.get("/domain/all")
+async def get_all_domain_requests():
+    """Admin: Get all domain requests"""
+    domains = await db.domain_requests.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return {"domains": domains, "count": len(domains)}
+
+@api_router.put("/domain/{domain_id}/dns-params")
+async def update_domain_dns_params(domain_id: str, data: DomainDnsParams):
+    """Admin adds DNS parameters from Systeme.io"""
+    domain = await db.domain_requests.find_one({"id": domain_id})
+    if not domain:
+        raise HTTPException(status_code=404, detail="Richiesta dominio non trovata")
+    
+    await db.domain_requests.update_one(
+        {"id": domain_id},
+        {"$set": {
+            "dns_params": data.dns_params,
+            "status": data.status,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Notify partner via Telegram if we have their email
+    try:
+        await telegram_notify(
+            notification_type="alert",
+            message=f"📋 Parametri DNS pronti per {domain.get('partner_name')}\n\nDominio: {domain.get('domain')}\nIl partner può ora configurare il DNS."
+        )
+    except Exception as e:
+        logging.error(f"Failed to send DNS ready notification: {e}")
+    
+    updated = await db.domain_requests.find_one({"id": domain_id}, {"_id": 0})
+    return {"success": True, "domain_request": updated}
+
+@api_router.put("/domain/{domain_id}/status")
+async def update_domain_status(domain_id: str, data: DomainStatusUpdate):
+    """Admin updates domain status"""
+    domain = await db.domain_requests.find_one({"id": domain_id})
+    if not domain:
+        raise HTTPException(status_code=404, detail="Richiesta dominio non trovata")
+    
+    await db.domain_requests.update_one(
+        {"id": domain_id},
+        {"$set": {
+            "status": data.status,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Notify if domain is now active
+    if data.status == "active":
+        try:
+            await telegram_notify(
+                notification_type="alert",
+                message=f"✅ Dominio ATTIVO!\n\nPartner: {domain.get('partner_name')}\nDominio: {domain.get('domain')}\n\nIl funnel è ora raggiungibile!"
+            )
+        except Exception as e:
+            logging.error(f"Failed to send domain active notification: {e}")
+    
+    updated = await db.domain_requests.find_one({"id": domain_id}, {"_id": 0})
+    return {"success": True, "domain_request": updated}
+
+@api_router.delete("/domain/{domain_id}")
+async def delete_domain_request(domain_id: str):
+    """Admin deletes a domain request"""
+    result = await db.domain_requests.delete_one({"id": domain_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Richiesta dominio non trovata")
+    return {"success": True, "deleted": domain_id}
+
+# =============================================================================
+# EMAIL AUTOMATION (via Systeme.io)
+# =============================================================================
+
+class EmailAutomationTemplate(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    partner_id: str
+    name: str
+    trigger: str  # new_subscriber, purchase, tag_added, form_submitted
+    delay_hours: int = 0
+    subject: str
+    body: str
+    is_active: bool = True
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class EmailAutomationCreate(BaseModel):
+    partner_id: str
+    name: str
+    trigger: str
+    delay_hours: int = 0
+    subject: str
+    body: str
+
+class EmailSequenceStep(BaseModel):
+    day: int
+    subject: str
+    body: str
+    email_type: str = "nurture"  # nurture, sales, reminder, followup
+
+class EmailSequenceCreate(BaseModel):
+    partner_id: str
+    name: str
+    trigger: str
+    steps: List[EmailSequenceStep]
+
+# Predefined email templates for Evolution PRO partners
+EMAIL_TEMPLATES = {
+    "welcome_subscriber": {
+        "name": "Benvenuto Nuovo Iscritto",
+        "trigger": "new_subscriber",
+        "delay_hours": 0,
+        "subject": "Benvenuto/a! Ecco il tuo regalo 🎁",
+        "body": """Ciao {nome},
+
+Grazie per esserti iscritto/a!
+
+Come promesso, ecco il link per scaricare il tuo regalo:
+👉 [LINK_RISORSA]
+
+Nei prossimi giorni ti invierò contenuti esclusivi che ti aiuteranno a [BENEFICIO_PRINCIPALE].
+
+A presto,
+{partner_name}
+
+P.S. Se hai domande, rispondi a questa email. Leggo personalmente ogni messaggio!"""
+    },
+    "day2_value": {
+        "name": "Giorno 2 - Valore",
+        "trigger": "sequence",
+        "delay_hours": 48,
+        "subject": "Il segreto che nessuno ti dice su {topic}",
+        "body": """Ciao {nome},
+
+Oggi voglio condividere con te qualcosa di importante...
+
+[CONTENUTO_VALORE]
+
+Se vuoi approfondire, ho preparato una Masterclass gratuita dove ti spiego tutto nel dettaglio:
+👉 [LINK_MASTERCLASS]
+
+A domani,
+{partner_name}"""
+    },
+    "day4_case_study": {
+        "name": "Giorno 4 - Case Study",
+        "trigger": "sequence",
+        "delay_hours": 96,
+        "subject": "Come [NOME_CLIENTE] ha ottenuto [RISULTATO]",
+        "body": """Ciao {nome},
+
+Voglio raccontarti la storia di [NOME_CLIENTE]...
+
+[STORIA_SUCCESSO]
+
+Vuoi ottenere risultati simili? Ecco come posso aiutarti:
+👉 [LINK_OFFERTA]
+
+{partner_name}"""
+    },
+    "day7_offer": {
+        "name": "Giorno 7 - Offerta",
+        "trigger": "sequence",
+        "delay_hours": 168,
+        "subject": "🎯 [NOME], ecco la tua opportunità",
+        "body": """Ciao {nome},
+
+In questi giorni ti ho mostrato:
+✅ [BENEFICIO_1]
+✅ [BENEFICIO_2]
+✅ [BENEFICIO_3]
+
+Ora tocca a te decidere se vuoi passare all'azione.
+
+Ho preparato un'offerta speciale per te:
+👉 [LINK_OFFERTA]
+
+⏰ L'offerta scade tra 48 ore.
+
+{partner_name}
+
+P.S. Se hai dubbi, rispondimi. Sono qui per aiutarti!"""
+    },
+    "purchase_thank_you": {
+        "name": "Grazie per l'acquisto",
+        "trigger": "purchase",
+        "delay_hours": 0,
+        "subject": "🎉 Benvenuto/a nel programma!",
+        "body": """Ciao {nome},
+
+CONGRATULAZIONI! 🎉
+
+Hai fatto la scelta giusta investendo su te stesso/a.
+
+Ecco i prossimi passi:
+
+1️⃣ Accedi all'area riservata: [LINK_CORSO]
+2️⃣ Completa il modulo introduttivo
+3️⃣ Unisciti alla community: [LINK_COMMUNITY]
+
+Se hai bisogno di supporto tecnico, scrivi a support@{domain}
+
+A presto nella tua nuova avventura!
+{partner_name}"""
+    },
+    "cart_abandoned": {
+        "name": "Carrello Abbandonato",
+        "trigger": "cart_abandoned",
+        "delay_hours": 2,
+        "subject": "Hai dimenticato qualcosa? 🛒",
+        "body": """Ciao {nome},
+
+Ho notato che hai lasciato qualcosa nel carrello...
+
+Forse hai avuto un imprevisto? Nessun problema!
+
+Il tuo carrello è ancora attivo:
+👉 [LINK_CHECKOUT]
+
+Se hai domande o dubbi che ti bloccano, rispondimi. Sono qui per aiutarti a prendere la decisione giusta per te.
+
+{partner_name}"""
+    }
+}
+
+@api_router.get("/email-automation/templates")
+async def get_email_templates():
+    """Get predefined email templates"""
+    return {"templates": EMAIL_TEMPLATES}
+
+@api_router.get("/email-automation/partner/{partner_id}")
+async def get_partner_email_automations(partner_id: str):
+    """Get all email automations for a partner"""
+    automations = await db.email_automations.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).to_list(100)
+    
+    sequences = await db.email_sequences.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).to_list(50)
+    
+    return {
+        "automations": automations,
+        "sequences": sequences
+    }
+
+@api_router.post("/email-automation/create")
+async def create_email_automation(data: EmailAutomationCreate):
+    """Create a single email automation"""
+    automation = {
+        "id": str(uuid.uuid4()),
+        **data.model_dump(),
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.email_automations.insert_one(automation)
+    
+    return {"success": True, "automation": {k: v for k, v in automation.items() if k != "_id"}}
+
+@api_router.post("/email-automation/sequence")
+async def create_email_sequence(data: EmailSequenceCreate):
+    """Create an email sequence (drip campaign)"""
+    sequence = {
+        "id": str(uuid.uuid4()),
+        "partner_id": data.partner_id,
+        "name": data.name,
+        "trigger": data.trigger,
+        "steps": [s.model_dump() for s in data.steps],
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.email_sequences.insert_one(sequence)
+    
+    return {"success": True, "sequence": {k: v for k, v in sequence.items() if k != "_id"}}
+
+@api_router.put("/email-automation/{automation_id}/toggle")
+async def toggle_email_automation(automation_id: str):
+    """Toggle automation active/inactive"""
+    automation = await db.email_automations.find_one({"id": automation_id})
+    if not automation:
+        raise HTTPException(status_code=404, detail="Automazione non trovata")
+    
+    new_status = not automation.get("is_active", True)
+    await db.email_automations.update_one(
+        {"id": automation_id},
+        {"$set": {"is_active": new_status}}
+    )
+    
+    return {"success": True, "is_active": new_status}
+
+@api_router.delete("/email-automation/{automation_id}")
+async def delete_email_automation(automation_id: str):
+    """Delete an email automation"""
+    result = await db.email_automations.delete_one({"id": automation_id})
+    if result.deleted_count == 0:
+        # Try sequences
+        result = await db.email_sequences.delete_one({"id": automation_id})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Automazione non trovata")
+    
+    return {"success": True}
+
+@api_router.post("/email-automation/generate-sequence")
+async def generate_email_sequence_ai(partner_id: str, partner_name: str, partner_niche: str, sequence_type: str = "nurture"):
+    """Generate an email sequence using AI (STEFANIA)"""
+    
+    # Use Claude to generate a personalized sequence
+    prompt = f"""Genera una sequenza email di 5 giorni per un {sequence_type} funnel.
+
+PARTNER: {partner_name}
+NICCHIA: {partner_niche}
+
+La sequenza deve seguire questo schema:
+- Giorno 1: Email di benvenuto + delivery del lead magnet
+- Giorno 2: Email di valore (insegnamento)
+- Giorno 4: Case study/testimonianza
+- Giorno 6: Soft pitch dell'offerta
+- Giorno 7: Email di urgenza finale
+
+Per ogni email fornisci:
+- subject: Oggetto accattivante
+- body: Corpo email (usa {{nome}} come variabile per il nome)
+
+Rispondi in JSON con questo formato:
+{{
+  "steps": [
+    {{"day": 1, "subject": "...", "body": "...", "email_type": "welcome"}},
+    ...
+  ]
+}}"""
+    
+    try:
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            model="claude-sonnet-4-20250514"
+        )
+        response = await chat.send_async(prompt)
+        
+        # Parse JSON response
+        import re
+        json_match = re.search(r'\{[\s\S]*\}', response)
+        if json_match:
+            sequence_data = json.loads(json_match.group())
+            
+            # Save sequence
+            sequence = {
+                "id": str(uuid.uuid4()),
+                "partner_id": partner_id,
+                "name": f"Sequenza {sequence_type.capitalize()} - AI Generated",
+                "trigger": "new_subscriber",
+                "steps": sequence_data.get("steps", []),
+                "is_active": False,  # Requires review before activation
+                "ai_generated": True,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            await db.email_sequences.insert_one(sequence)
+            
+            return {"success": True, "sequence": {k: v for k, v in sequence.items() if k != "_id"}}
+        else:
+            raise HTTPException(status_code=500, detail="Errore nel parsing della risposta AI")
+            
+    except Exception as e:
+        logging.error(f"Error generating email sequence: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore nella generazione: {str(e)}")
+
 # Include router
 app.include_router(api_router)
 
