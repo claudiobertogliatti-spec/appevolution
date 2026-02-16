@@ -693,6 +693,8 @@ export default function App() {
             {nav==="renewal"&&<RenewalPlans partnerName={demoPartner?.name||"Partner"} currentRevenue={demoPartner?.revenue||0} onSelectPlan={(plan)=>console.log(plan)}/>}
             {nav==="supporto"&&<ValentinaChat partner={demoPartner} onBack={()=>setNav("home")}/>}
             {nav==="servizi-extra"&&<ServiziExtra partner={demoPartner}/>}
+            {nav==="video-editor"&&<VideoEditorAndrea partner={demoPartner} onBack={()=>setNav("home")}/>}
+            {nav==="legal-pages"&&<LegalPagesGenerator partner={demoPartner} onBack={()=>setNav("home")}/>}
           </>}
         </div>
       </div>
