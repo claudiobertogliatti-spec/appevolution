@@ -413,24 +413,23 @@ export function EmailAutomation({ partner }) {
                         <div className="text-sm" style={{ color: '#5F6572' }}>
                           {item.sequence_name || item.automation_name || item.subject}
                         </div>
-                        {item.type === 'sequence' && (
-                          <div className="text-xs" style={{ color: '#9CA3AF' }}>
-                            Step {(item.current_step || 0) + 1} di {item.steps?.length || '?'}
+                        {item.systeme_tag && (
+                          <div className="text-xs mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded" 
+                               style={{ background: '#E0E7FF', color: '#4F46E5' }}>
+                            🏷️ {item.systeme_tag}
                           </div>
                         )}
                       </td>
                       <td className="px-4 py-3">
                         <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                          item.status === 'sent' ? 'bg-green-100 text-green-600' :
-                          item.status === 'active' ? 'bg-blue-100 text-blue-600' :
+                          item.status === 'sent_to_systeme' ? 'bg-green-100 text-green-600' :
+                          item.status === 'triggered_via_systeme' ? 'bg-blue-100 text-blue-600' :
                           item.status === 'pending' ? 'bg-yellow-100 text-yellow-600' :
-                          item.status === 'scheduled' ? 'bg-purple-100 text-purple-600' :
                           'bg-gray-100 text-gray-600'
                         }`}>
-                          {item.status === 'sent' ? '✓ Inviata' :
-                           item.status === 'active' ? '▶ Attiva' :
+                          {item.status === 'sent_to_systeme' ? '✓ Tag inviato' :
+                           item.status === 'triggered_via_systeme' ? '🔄 In elaborazione' :
                            item.status === 'pending' ? '⏳ In attesa' :
-                           item.status === 'scheduled' ? '📅 Programmata' :
                            item.status}
                         </span>
                       </td>
