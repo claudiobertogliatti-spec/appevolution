@@ -29,6 +29,8 @@ const TRIGGER_ICONS = {
 export function EmailAutomation({ partner }) {
   const [automations, setAutomations] = useState([]);
   const [sequences, setSequences] = useState([]);
+  const [emailQueue, setEmailQueue] = useState([]);
+  const [queueStats, setQueueStats] = useState({});
   const [templates, setTemplates] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("automations");
@@ -49,9 +51,10 @@ export function EmailAutomation({ partner }) {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [automationsRes, templatesRes] = await Promise.all([
+      const [automationsRes, templatesRes, queueRes] = await Promise.all([
         fetch(`${API_URL}/api/email-automation/partner/${partnerId}`),
-        fetch(`${API_URL}/api/email-automation/templates`)
+        fetch(`${API_URL}/api/email-automation/templates`),
+        fetch(`${API_URL}/api/email-queue/${partnerId}`)
       ]);
       
       if (automationsRes.ok) {
@@ -63,6 +66,12 @@ export function EmailAutomation({ partner }) {
       if (templatesRes.ok) {
         const data = await templatesRes.json();
         setTemplates(data.templates || {});
+      }
+      
+      if (queueRes.ok) {
+        const data = await queueRes.json();
+        setEmailQueue(data.queue || []);
+        setQueueStats(data.stats || {});
       }
     } catch (error) {
       console.error('Error loading automations:', error);
