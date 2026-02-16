@@ -471,11 +471,43 @@ Partner Phase:
 | `/api/stefania/course-builder/save` | POST | Salva struttura finale |
 | `/api/stefania/course-builder/{partner_id}` | GET | Recupera struttura salvata |
 
+### V18.0 - Cloudinary File Upload & HeyGen Complete Integration (16 Feb 2026) ✅
+
+#### 1. Cloudinary Integration
+- **File**: `/app/backend/cloudinary_service.py`
+- **Credentials**: Configurate in `.env` (CLOUDINARY_CLOUD_NAME, API_KEY, API_SECRET)
+- **API Endpoints**:
+  - `GET /api/cloudinary/status`: Verifica configurazione
+  - `GET /api/cloudinary/signature`: Genera firma per upload frontend
+  - `POST /api/cloudinary/upload`: Upload diretto file (foto/audio)
+  - `DELETE /api/cloudinary/{public_id}`: Elimina file
+
+#### 2. Avatar Free Trial Modal (Funzionale)
+- **Upload foto reale**: Caricamento su Cloudinary con feedback visivo
+- **Registrazione audio reale**: MediaRecorder API con upload automatico
+- **Integrazione HeyGen**: Chiamata API per generare sample avatar
+- **3-Step Wizard**: Foto → Voce → Generazione
+- **Error handling**: Messaggi di errore localizzati in italiano
+
+#### 3. Servizi Extra Page
+- **File**: `/app/frontend/src/components/partner/ServiziExtra.jsx`
+- **Routing**: Integrato in App.js con `nav==="servizi-extra"`
+- **Sidebar**: Sempre accessibile (non bloccato da fase)
+- **Contenuto**: Placeholder "Coming Soon" per servizi futuri
+
+#### 4. Bug Fixes
+- Fix sidebar lock per Servizi Extra (sempre accessibile)
+- Fix import React per useRef/useEffect in MasterclassVideocorso
+
 ---
 
 ## Testing Status
 - Build frontend: ✅ Successo
 - Build backend: ✅ Successo
+- Cloudinary upload: ✅ Testato con successo
+- HeyGen API connection: ✅ Connesso (2332 voices)
+- Avatar Trial Modal: ✅ UI funzionante
+- Servizi Extra page: ✅ Navigazione funzionante
 - API ANDREA Chat: ✅ Funzionante
 - API Pre-Flight: ✅ Funzionante
 - API Video Blocks: ✅ Funzionante
