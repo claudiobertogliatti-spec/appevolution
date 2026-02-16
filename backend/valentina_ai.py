@@ -116,8 +116,32 @@ chat_sessions: Dict[str, List[Dict]] = {}
 class ValentinaAI:
     """VALENTINA AI Assistant with LLM integration"""
     
+    # Admin/Founder identifiers
+    FOUNDER_IDENTIFIERS = ["claudio", "claudio@evolutionpro.it", "admin", "founder"]
+    
     def __init__(self):
         self.llm_key = EMERGENT_LLM_KEY
+    
+    def _is_founder(self, context: dict) -> bool:
+        """Check if the user is the founder/admin"""
+        if not context:
+            return False
+        
+        # Check is_admin flag
+        if context.get("is_admin"):
+            return True
+        
+        # Check name
+        name = context.get("name", "").lower()
+        if any(f in name for f in self.FOUNDER_IDENTIFIERS):
+            return True
+        
+        # Check email
+        email = context.get("email", "").lower()
+        if any(f in email for f in self.FOUNDER_IDENTIFIERS):
+            return True
+            
+        return False
         
     async def chat(self, partner_id: str, message: str, context: dict = None) -> str:
         """
@@ -132,9 +156,17 @@ class ValentinaAI:
             Risposta di VALENTINA
         """
         try:
-            # Build context string
-            context_str = self._build_context(context)
-            system_prompt = VALENTINA_SYSTEM_PROMPT.format(context=context_str)
+            # Determine if this is the founder
+            is_founder = self._is_founder(context)
+            
+            # Build context string with live data for founder
+            context_str = await self._build_context(context, is_founder)
+            
+            # Choose appropriate system prompt
+            if is_founder:
+                system_prompt = VALENTINA_FOUNDER_PROMPT.format(context=context_str)
+            else:
+                system_prompt = VALENTINA_SYSTEM_PROMPT.format(context=context_str)
             
             # Get chat history for this session
             session_id = f"valentina_{partner_id}"
