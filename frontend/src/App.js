@@ -35,6 +35,8 @@ import { ServiziExtra } from "./components/partner/ServiziExtra";
 import { VideoEditorAndrea } from "./components/partner/VideoEditorAndrea";
 import { LegalPagesGenerator } from "./components/partner/LegalPagesGenerator";
 import { PartnerProfileHub } from "./components/partner/PartnerProfileHub";
+import { DomainConfiguration } from "./components/partner/DomainConfiguration";
+import { EmailAutomation } from "./components/partner/EmailAutomation";
 import "./styles/design-system.css";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
