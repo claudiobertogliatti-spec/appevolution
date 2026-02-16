@@ -453,6 +453,8 @@ export function FunnelReviewBuilder({ partner, onBack }) {
   const [openSection, setOpenSection] = useState(1);
   const [chatMessages, setChatMessages] = useState({});
   const [showLaunchModal, setShowLaunchModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportResult, setExportResult] = useState(null);
   
   const partnerName = partner?.name?.split(" ")[0] || "Partner";
   const allApproved = approvedIds.length === FUNNEL_SECTIONS.length;
@@ -468,8 +470,42 @@ export function FunnelReviewBuilder({ partner, onBack }) {
     }
   };
   
+  // Export funnel for Systeme.io
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const response = await fetch(`${API}/funnel/export`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          partner_data: {
+            id: partner?.id || "unknown",
+            name: partner?.name || "Partner",
+            niche: partner?.niche || "coaching",
+            offer_name: "Programma Acceleratore",
+            offer_price: "297€"
+          },
+          funnel_sections: FUNNEL_SECTIONS,
+          approved_sections: approvedIds
+        })
+      });
+      
+      if (!response.ok) throw new Error('Export failed');
+      
+      const data = await response.json();
+      setExportResult(data);
+      setShowLaunchModal(true);
+      
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Errore durante l\'export: ' + error.message);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+  
   const handleLaunch = () => {
-    setShowLaunchModal(true);
+    handleExport();
   };
 
   return (
