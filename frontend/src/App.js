@@ -39,6 +39,8 @@ import { LegalPagesGenerator } from "./components/partner/LegalPagesGenerator";
 import { PartnerProfileHub } from "./components/partner/PartnerProfileHub";
 import { DomainConfiguration } from "./components/partner/DomainConfiguration";
 import { EmailAutomation } from "./components/partner/EmailAutomation";
+import { AgentDashboard } from "./components/admin/AgentDashboard";
+import { OrionLeadScoring } from "./components/admin/OrionLeadScoring";
 import "./styles/design-system.css";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
