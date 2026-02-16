@@ -696,6 +696,7 @@ export default function App() {
             {nav==="servizi-extra"&&<ServiziExtra partner={demoPartner}/>}
             {nav==="video-editor"&&<VideoEditorAndrea partner={demoPartner} onBack={()=>setNav("home")}/>}
             {nav==="legal-pages"&&<LegalPagesGenerator partner={demoPartner} onBack={()=>setNav("home")}/>}
+            {nav==="profilo-hub"&&<PartnerProfileHub partner={demoPartner} onNavigate={setNav}/>}
           </>}
         </div>
       </div>
