@@ -647,6 +647,50 @@ Partner Phase:
 
 ---
 
+### V21.0 - Domain Configuration & Email Automation (16 Feb 2026) ✅
+
+#### 1. Domain Configuration
+- **Backend Endpoints**:
+  - `POST /api/domain/request`: Partner invia richiesta dominio
+  - `GET /api/domain/partner/{partner_id}`: Recupera stato dominio
+  - `GET /api/domain/all`: Admin lista tutte le richieste
+  - `PUT /api/domain/{domain_id}/dns-params`: Admin aggiunge parametri DNS
+  - `PUT /api/domain/{domain_id}/status`: Admin aggiorna stato (active/error)
+  - `DELETE /api/domain/{domain_id}`: Admin elimina richiesta
+- **Frontend Component**: `/app/frontend/src/components/partner/DomainConfiguration.jsx`
+- **Flusso 3 Step**:
+  1. Partner inserisce dominio desiderato
+  2. Admin configura in Systeme.io e inserisce parametri DNS
+  3. Partner configura DNS presso il proprio provider
+  4. Admin segna come attivo
+- **Notifiche Telegram**: Automatiche ad ogni cambio di stato
+
+#### 2. Email Automation (via Systeme.io)
+- **Backend Endpoints**:
+  - `GET /api/email-automation/templates`: Template email predefiniti
+  - `GET /api/email-automation/partner/{partner_id}`: Automazioni partner
+  - `POST /api/email-automation/create`: Crea singola automazione
+  - `POST /api/email-automation/sequence`: Crea sequenza (drip campaign)
+  - `PUT /api/email-automation/{id}/toggle`: Attiva/disattiva
+  - `DELETE /api/email-automation/{id}`: Elimina automazione
+  - `POST /api/email-automation/generate-sequence`: Genera sequenza con AI (STEFANIA)
+- **Frontend Component**: `/app/frontend/src/components/partner/EmailAutomation.jsx`
+- **Template Predefiniti** (6):
+  - Benvenuto Nuovo Iscritto
+  - Giorno 2 - Valore
+  - Giorno 4 - Case Study
+  - Giorno 7 - Offerta
+  - Grazie per l'acquisto
+  - Carrello Abbandonato
+- **Generazione AI**: STEFANIA genera sequenze email personalizzate per nicchia
+
+#### 3. Sidebar Partner Aggiornata
+- Nuova voce "Dominio Funnel" con badge NEW
+- Nuova voce "Email Automatiche" con badge NEW
+- Entrambi sempre accessibili (non bloccati da fase)
+
+---
+
 ## Next Action Items
 1. ~~Implementare JWT authentication~~ ✅ Completato
 2. ~~Integrare Telegram Bot per notifiche~~ ✅ Completato
@@ -655,10 +699,14 @@ Partner Phase:
 5. ~~Dashboard Partner semplificata (UX friendly)~~ ✅ Completato
 6. ~~Integrazione Cloudinary per upload file~~ ✅ Completato (16 Feb 2026)
 7. ~~Servizi Extra page placeholder~~ ✅ Completato (16 Feb 2026)
-8. **P0**: Test end-to-end Avatar Trial con file reali
-9. **P1**: Popolare sezione "Servizi Extra" con contenuti reali
-10. **P1**: Implementare export documenti PDF/Email
-11. **P1**: Popolare sezione "PARTI DA QUI" con video lezioni
-12. **P2**: Dashboard Metriche Post-Lancio Avanzata
-13. **P3**: Refactoring App.js con react-router-dom
-14. Collegare domain `app.evolution-pro.it`
+8. ~~Domain Configuration~~ ✅ Completato (16 Feb 2026)
+9. ~~Email Automation via Systeme.io~~ ✅ Completato (16 Feb 2026)
+10. **P0**: Test end-to-end Avatar Trial con file reali
+11. **P1**: Connettere Partner Profile Hub al backend (attualmente UI statica)
+12. **P1**: Popolare sezione "Servizi Extra" con contenuti reali
+13. **P1**: Popolare sezione "PARTI DA QUI" con video lezioni
+14. **P2**: Dashboard Metriche Post-Lancio Avanzata
+15. **P3**: Refactoring server.py in router modulari (CRITICO - file monolitico)
+16. **P3**: Refactoring App.js con react-router-dom
+17. Collegare domain `app.evolution-pro.it`
+
