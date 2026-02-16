@@ -353,6 +353,22 @@ Creare un'applicazione full-stack proprietaria per Evolution PRO - una piattafor
 - Nuove voci: Analytics Funnel, Avatar PRO €120
 - Tutte le nuove sezioni sempre accessibili
 
+#### 5. Email Sequence Auto-Trigger (Systeme.io Webhook)
+- **Trigger automatico**: Quando arriva un `new_subscriber` via webhook Systeme.io
+- **Funzione**: `trigger_email_sequence()` attiva sequenze e automazioni
+- **Coda Email**: Collection `email_queue` per tracking
+- **Tag Systeme.io**: Aggiunge tag automatico per tracciamento
+- **API Endpoints**:
+  - `GET /api/email-queue/{partner_id}`: Visualizza coda email
+  - `POST /api/email-queue/trigger-test`: Test manuale trigger
+  - `DELETE /api/email-queue/{queue_id}`: Cancella email in coda
+  - `GET /api/email-queue/stats/global`: Statistiche globali
+- **Frontend Updates**:
+  - Tab "Coda Email" in EmailAutomation.jsx
+  - Stats: pending, scheduled, sent, active_sequences
+  - Tabella con dettagli contatti e stato email
+- **Notifica Telegram**: Avviso automatico su sequenza attivata
+
 ### V13.0 - JWT Authentication & Telegram Notifications (13 Feb 2026) ✅
 
 #### 1. JWT Authentication System
