@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { LayoutDashboard, Users, Film, FileText, BarChart3, MessageCircle, AlertTriangle, Settings, ChevronDown, ChevronRight, LogOut, Database, Edit3, Trophy, Zap, HelpCircle, Webhook, Bot } from "lucide-react";
+import { LayoutDashboard, Users, Film, FileText, BarChart3, MessageCircle, AlertTriangle, Settings, ChevronDown, ChevronRight, LogOut, Database, Edit3, Trophy, Zap, HelpCircle, Webhook, Bot, Target } from "lucide-react";
 
 const CLAUDIO_NAV = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "partner", label: "Partner", icon: Users },
-  { id: "agenti", label: "Agenti AI", icon: Bot },
+  { id: "agenti", label: "Agent Hub", icon: Bot },
+  { id: "orion", label: "ORION Lead Scoring", icon: Target, badge: "NEW" },
   { id: "documenti-partner", label: "Documenti Partner", icon: FileText },
   { id: "andrea", label: "Editing", icon: Film },
   { id: "metriche", label: "Post-Lancio", icon: BarChart3 },
@@ -14,7 +15,8 @@ const CLAUDIO_NAV = [
 const ANTONELLA_NAV = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "partner", label: "Partner", icon: Users },
-  { id: "agenti", label: "Agenti AI", icon: Bot },
+  { id: "agenti", label: "Agent Hub", icon: Bot },
+  { id: "orion", label: "ORION Lead Scoring", icon: Target, badge: "NEW" },
   { id: "documenti-partner", label: "Documenti Partner", icon: FileText },
   { id: "andrea", label: "ANDREA — Editing Feed", icon: Film },
   { id: "copyfactory", label: "STEFANIA — Copy Factory", icon: Edit3 },
