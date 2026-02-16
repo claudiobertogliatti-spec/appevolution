@@ -31,6 +31,7 @@ import { LoginPage } from "./components/auth/LoginPage";
 import { WebhookDashboard } from "./components/admin/WebhookDashboard";
 import { FunnelReviewBuilder } from "./components/partner/FunnelReviewBuilder";
 import { MasterclassVideocorso } from "./components/partner/MasterclassVideocorso";
+import { ServiziExtra } from "./components/partner/ServiziExtra";
 import "./styles/design-system.css";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
