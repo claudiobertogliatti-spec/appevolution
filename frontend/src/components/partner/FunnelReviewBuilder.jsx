@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Check, Clock, MessageCircle, Send, ChevronDown, ChevronUp, Rocket, Mail, CreditCard, PartyPopper, FileText, Play } from "lucide-react";
+import { ArrowLeft, Check, Clock, MessageCircle, Send, ChevronDown, ChevronUp, Rocket, Mail, CreditCard, PartyPopper, FileText, Play, Download, Loader2, ExternalLink } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
