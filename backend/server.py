@@ -8608,6 +8608,179 @@ async def orion_tag_segment(segment: str, tag_name: str):
     }
 
 # =============================================================================
+# ORION - RE-TAGGING & SEGMENTATION SYSTEM
+# =============================================================================
+
+@api_router.post("/orion/retag-contacts")
+async def orion_retag_contacts():
+    """
+    Analizza tutti i contatti e li classifica in base ai tag Evolution PRO.
+    Esclude i partner attivi e segmenta i lead per azioni di riattivazione.
+    """
+    # Tags che identificano PARTNER ATTIVI (da escludere)
+    PARTNER_TAGS = [
+        "fase0_attivazione", "fase1_allineamento", "fase2_masterclass", 
+        "fase3_copy_core", "fase4_outline", "fase5_registrazione",
+        "fase6_accademia", "fase7_pre_lancio", "fase8_lancio",
+        "fase9_ottimizzazione", "fase10_scalabilita",
+        "stato_cliente", "stato_partner_attivo", "action_partner_attivo"
+    ]
+    
+    # Score thresholds
+    HOT_THRESHOLD = 70
+    WARM_THRESHOLD = 40
+    COLD_THRESHOLD = 20
+    
+    results = {
+        "partners_excluded": 0,
+        "hot_leads": 0,
+        "warm_leads": 0,
+        "cold_leads": 0,
+        "frozen_leads": 0,
+        "total_processed": 0,
+        "contacts_updated": 0
+    }
+    
+    # Process all contacts
+    contacts = await db.systeme_contacts.find({}).to_list(50000)
+    
+    for contact in contacts:
+        results["total_processed"] += 1
+        
+        tags = contact.get("tags", [])
+        tag_names = []
+        for tag in tags:
+            if isinstance(tag, dict):
+                tag_names.append(tag.get("name", "").lower().replace(" ", "_"))
+            else:
+                tag_names.append(str(tag).lower().replace(" ", "_"))
+        
+        # Check if partner
+        is_partner = any(pt in tn for tn in tag_names for pt in PARTNER_TAGS)
+        
+        if is_partner:
+            results["partners_excluded"] += 1
+            segment = "partner"
+            score = 200
+        else:
+            # Calculate score based on tags
+            score = 0
+            for tn in tag_names:
+                for tag_key, tag_score in orion_scoring.TAG_SCORE_MAP.items():
+                    if tag_key in tn:
+                        score += tag_score
+                        break
+            
+            # Assign segment
+            if score >= HOT_THRESHOLD:
+                segment = "hot"
+                results["hot_leads"] += 1
+            elif score >= WARM_THRESHOLD:
+                segment = "warm"
+                results["warm_leads"] += 1
+            elif score >= COLD_THRESHOLD:
+                segment = "cold"
+                results["cold_leads"] += 1
+            else:
+                segment = "frozen"
+                results["frozen_leads"] += 1
+        
+        # Update contact with segment and score
+        await db.systeme_contacts.update_one(
+            {"_id": contact["_id"]},
+            {"$set": {
+                "orion_score": score,
+                "orion_segment": segment,
+                "orion_updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        results["contacts_updated"] += 1
+    
+    # Save analysis results
+    await db.orion_analysis.insert_one({
+        "id": str(uuid.uuid4()),
+        "type": "retag_analysis",
+        "results": results,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "success": True,
+        "analysis": results,
+        "message": f"Processati {results['total_processed']} contatti. Partner esclusi: {results['partners_excluded']}"
+    }
+
+@api_router.get("/orion/leads-by-segment/{segment}")
+async def get_leads_by_segment(segment: str, limit: int = 100, skip: int = 0):
+    """
+    Get leads by ORION segment: hot, warm, cold, frozen, partner
+    """
+    valid_segments = ["hot", "warm", "cold", "frozen", "partner"]
+    if segment not in valid_segments:
+        raise HTTPException(status_code=400, detail=f"Segmento non valido. Usa: {valid_segments}")
+    
+    leads = await db.systeme_contacts.find(
+        {"orion_segment": segment},
+        {"_id": 0, "email": 1, "first_name": 1, "last_name": 1, "orion_score": 1, "tags": 1}
+    ).sort("orion_score", -1).skip(skip).limit(limit).to_list(limit)
+    
+    total = await db.systeme_contacts.count_documents({"orion_segment": segment})
+    
+    return {
+        "segment": segment,
+        "leads": leads,
+        "count": len(leads),
+        "total": total
+    }
+
+@api_router.post("/orion/bulk-tag")
+async def orion_bulk_tag(segment: str, new_tag: str, limit: int = 500):
+    """
+    Add a tag to all contacts in a segment (in local DB).
+    Use this to prepare contacts before syncing to Systeme.io.
+    """
+    valid_segments = ["hot", "warm", "cold", "frozen"]
+    if segment not in valid_segments:
+        raise HTTPException(status_code=400, detail=f"Segmento non valido. Usa: {valid_segments}")
+    
+    tag_obj = {"name": new_tag, "added_at": datetime.now(timezone.utc).isoformat(), "source": "orion"}
+    
+    result = await db.systeme_contacts.update_many(
+        {"orion_segment": segment},
+        {"$addToSet": {"tags": tag_obj}}
+    )
+    
+    return {
+        "success": True,
+        "segment": segment,
+        "tag_added": new_tag,
+        "contacts_updated": result.modified_count
+    }
+
+@api_router.get("/orion/export-segment/{segment}")
+async def export_segment_emails(segment: str):
+    """
+    Export emails from a segment for use in Systeme.io campaigns.
+    Returns a list of emails that can be copied to Systeme.io.
+    """
+    valid_segments = ["hot", "warm", "cold", "frozen", "partner"]
+    if segment not in valid_segments:
+        raise HTTPException(status_code=400, detail=f"Segmento non valido. Usa: {valid_segments}")
+    
+    contacts = await db.systeme_contacts.find(
+        {"orion_segment": segment},
+        {"_id": 0, "email": 1}
+    ).to_list(50000)
+    
+    emails = [c["email"] for c in contacts if c.get("email")]
+    
+    return {
+        "segment": segment,
+        "count": len(emails),
+        "emails": emails
+    }
+
+# =============================================================================
 # AGENT HUB - CENTRALIZED BUSINESS INTELLIGENCE
 # =============================================================================
 
