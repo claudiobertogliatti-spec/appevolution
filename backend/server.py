@@ -6638,6 +6638,167 @@ async def handle_new_sale(data: dict) -> List[str]:
     
     return actions
 
+# =============================================================================
+# EMAIL SEQUENCE TRIGGER SYSTEM
+# =============================================================================
+
+async def trigger_email_sequence(partner_id: str, contact_email: str, contact_name: str, trigger_type: str) -> List[str]:
+    """
+    Trigger email sequence for a contact via Systeme.io
+    Returns list of actions taken
+    """
+    actions = []
+    
+    try:
+        # Find active sequences for this partner with matching trigger
+        sequences = await db.email_sequences.find({
+            "partner_id": partner_id,
+            "trigger": trigger_type,
+            "is_active": True
+        }).to_list(10)
+        
+        # Also check for automations (single emails)
+        automations = await db.email_automations.find({
+            "partner_id": partner_id,
+            "trigger": trigger_type,
+            "is_active": True
+        }).to_list(10)
+        
+        if not sequences and not automations:
+            # Try global/default sequences
+            sequences = await db.email_sequences.find({
+                "partner_id": "global",
+                "trigger": trigger_type,
+                "is_active": True
+            }).to_list(5)
+            automations = await db.email_automations.find({
+                "partner_id": "global",
+                "trigger": trigger_type,
+                "is_active": True
+            }).to_list(5)
+        
+        if not sequences and not automations:
+            actions.append(f"ℹ️ Nessuna sequenza attiva per trigger '{trigger_type}'")
+            return actions
+        
+        # Get Systeme.io credentials for partner or global
+        credentials = await db.systeme_credentials.find_one({"partner_id": partner_id})
+        if not credentials:
+            credentials = await db.systeme_credentials.find_one({"partner_id": "global"})
+        
+        # Create email queue entry for each sequence
+        for sequence in sequences:
+            queue_entry = {
+                "id": str(uuid.uuid4()),
+                "type": "sequence",
+                "sequence_id": sequence.get("id"),
+                "sequence_name": sequence.get("name"),
+                "partner_id": partner_id,
+                "contact_email": contact_email,
+                "contact_name": contact_name,
+                "steps": sequence.get("steps", []),
+                "current_step": 0,
+                "status": "active",
+                "triggered_by": trigger_type,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "next_send_at": datetime.now(timezone.utc).isoformat()  # First email immediately
+            }
+            
+            await db.email_queue.insert_one(queue_entry)
+            actions.append(f"📧 Sequenza '{sequence.get('name')}' attivata per {contact_email}")
+            
+            # If Systeme.io connected, tag the contact to trigger native automation
+            if credentials and credentials.get("api_key"):
+                try:
+                    tag_name = f"seq_{sequence.get('id', 'unknown')[:8]}"
+                    await add_systeme_tag(credentials["api_key"], contact_email, tag_name)
+                    actions.append(f"🏷️ Tag '{tag_name}' aggiunto in Systeme.io")
+                except Exception as e:
+                    logging.error(f"Error adding Systeme.io tag: {e}")
+        
+        # Process single automations (immediate emails)
+        for automation in automations:
+            if automation.get("delay_hours", 0) == 0:
+                # Send immediately
+                queue_entry = {
+                    "id": str(uuid.uuid4()),
+                    "type": "single",
+                    "automation_id": automation.get("id"),
+                    "automation_name": automation.get("name"),
+                    "partner_id": partner_id,
+                    "contact_email": contact_email,
+                    "contact_name": contact_name,
+                    "subject": automation.get("subject", "").replace("{nome}", contact_name),
+                    "body": automation.get("body", "").replace("{nome}", contact_name),
+                    "status": "pending",
+                    "triggered_by": trigger_type,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "send_at": datetime.now(timezone.utc).isoformat()
+                }
+                await db.email_queue.insert_one(queue_entry)
+                actions.append(f"✉️ Email '{automation.get('name')}' in coda per {contact_email}")
+            else:
+                # Schedule for later
+                send_time = datetime.now(timezone.utc) + timedelta(hours=automation.get("delay_hours", 0))
+                queue_entry = {
+                    "id": str(uuid.uuid4()),
+                    "type": "single",
+                    "automation_id": automation.get("id"),
+                    "automation_name": automation.get("name"),
+                    "partner_id": partner_id,
+                    "contact_email": contact_email,
+                    "contact_name": contact_name,
+                    "subject": automation.get("subject", "").replace("{nome}", contact_name),
+                    "body": automation.get("body", "").replace("{nome}", contact_name),
+                    "status": "scheduled",
+                    "triggered_by": trigger_type,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "send_at": send_time.isoformat()
+                }
+                await db.email_queue.insert_one(queue_entry)
+                actions.append(f"⏰ Email '{automation.get('name')}' schedulata per +{automation.get('delay_hours')}h")
+        
+        # Send notification to partner/admin
+        try:
+            await telegram_notify(
+                notification_type="info",
+                message=f"📧 Sequenza Email Attivata\n\n👤 {contact_name}\n📧 {contact_email}\n🎯 Trigger: {trigger_type}\n📋 Sequenze: {len(sequences)}\n✉️ Email singole: {len(automations)}"
+            )
+        except Exception as e:
+            logging.error(f"Failed to send sequence notification: {e}")
+        
+    except Exception as e:
+        logging.error(f"Error triggering email sequence: {e}")
+        actions.append(f"❌ Errore trigger sequenza: {str(e)}")
+    
+    return actions
+
+async def add_systeme_tag(api_key: str, email: str, tag_name: str):
+    """Add a tag to a contact in Systeme.io"""
+    try:
+        # First, find the contact by email
+        contacts_response = await systeme_api_request(api_key, f"/contacts?email={email}")
+        contacts = contacts_response.get("items", [])
+        
+        if not contacts:
+            logging.warning(f"Contact {email} not found in Systeme.io")
+            return
+        
+        contact_id = contacts[0].get("id")
+        
+        # Add tag to contact
+        await systeme_api_request(
+            api_key, 
+            f"/contacts/{contact_id}/tags",
+            method="POST",
+            data={"name": tag_name}
+        )
+        logging.info(f"Tag '{tag_name}' added to contact {email} in Systeme.io")
+        
+    except Exception as e:
+        logging.error(f"Error adding tag in Systeme.io: {e}")
+        raise
+
 async def handle_new_subscriber(data: dict) -> List[str]:
     """Handle new subscriber - Create lead for ORION"""
     actions = []
