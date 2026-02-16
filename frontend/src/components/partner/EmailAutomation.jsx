@@ -271,6 +271,16 @@ export function EmailAutomation({ partner }) {
         >
           Sequenze ({sequences.length})
         </button>
+        <button
+          onClick={() => setActiveTab("queue")}
+          className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+            activeTab === "queue" 
+              ? "bg-[#F2C418] text-[#1E2128]" 
+              : "bg-white text-[#5F6572] hover:bg-[#FFF8DC]"
+          }`}
+        >
+          📬 Coda Email ({emailQueue.length})
+        </button>
       </div>
 
       {/* Content */}
