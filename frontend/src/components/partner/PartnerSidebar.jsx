@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { id: "domain-config", label: "Dominio Funnel", icon: Globe },
   { id: "email-automation", label: "Email Automatiche", icon: Mail },
   { id: "produzione", label: "Produzione Video", icon: Film },
+  { id: "avatar-checkout", label: "🎬 Avatar PRO", icon: Film, badge: "€120" },
   { id: "video-editor", label: "Video Editor", icon: Scissors },
   { id: "legal-pages", label: "Pagine Legali", icon: Scale },
   { id: "servizi-extra", label: "Servizi Extra", icon: ShoppingBag },
