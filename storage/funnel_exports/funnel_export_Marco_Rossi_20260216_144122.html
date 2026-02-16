@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Funnel Export - Marco Rossi | Evolution PRO</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #f8f9fa; 
+            color: #1a1a2e; 
+            line-height: 1.6;
+        }
+        .container { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+        }
+        .header h1 { font-size: 28px; margin-bottom: 10px; }
+        .header p { opacity: 0.8; font-size: 14px; }
+        .header .badge {
+            display: inline-block;
+            background: #F2C418;
+            color: #1a1a2e;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+        
+        /* Partner Info */
+        .partner-info {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            border-left: 4px solid #7B68AE;
+        }
+        .partner-info h3 { color: #7B68AE; margin-bottom: 15px; }
+        .partner-info .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .partner-info .item { }
+        .partner-info .label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+        .partner-info .value { font-weight: 600; color: #1a1a2e; margin-top: 4px; }
+        
+        /* Section */
+        .section {
+            background: white;
+            border-radius: 16px;
+            margin-bottom: 25px;
+            overflow: hidden;
+            border: 1px solid #e0e0e0;
+        }
+        .section.approved { border-color: #34C77B; }
+        .section.pending { border-color: #F59E0B; }
+        
+        .section-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .section.approved .section-header { background: #EAFAF1; }
+        .section.pending .section-header { background: #FEF3C7; }
+        
+        .section-icon { font-size: 28px; }
+        .section-title { font-weight: 700; font-size: 18px; }
+        .section-subtitle { font-size: 13px; color: #666; margin-top: 4px; }
+        .section-status {
+            margin-left: auto;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .section.approved .section-status { background: #34C77B; color: white; }
+        .section.pending .section-status { background: #F59E0B; color: white; }
+        
+        .section-content { padding: 25px; }
+        
+        /* Content blocks */
+        .content-block {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 3px solid #7B68AE;
+        }
+        .content-block:last-child { margin-bottom: 0; }
+        .content-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #7B68AE;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .content-value {
+            font-size: 15px;
+            color: #1a1a2e;
+        }
+        .content-value.headline {
+            font-size: 20px;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+        .content-value.cta {
+            display: inline-block;
+            background: #7B68AE;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 700;
+        }
+        
+        /* List */
+        .content-list {
+            list-style: none;
+            padding: 0;
+        }
+        .content-list li {
+            padding: 8px 0 8px 25px;
+            position: relative;
+            border-bottom: 1px solid #eee;
+        }
+        .content-list li:last-child { border-bottom: none; }
+        .content-list li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #34C77B;
+            font-weight: bold;
+        }
+        
+        /* Email sequence */
+        .email-item {
+            display: flex;
+            gap: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        .email-timing {
+            background: #7B68AE;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+            height: fit-content;
+        }
+        .email-content { flex: 1; }
+        .email-subject { font-weight: 700; margin-bottom: 4px; }
+        .email-desc { font-size: 13px; color: #666; }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+            font-size: 13px;
+        }
+        .footer strong { color: #7B68AE; }
+        
+        /* Copy button hint */
+        .copy-hint {
+            background: #FFF8DC;
+            border: 1px dashed #F2C418;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #8B7500;
+        }
+        .copy-hint strong { color: #1a1a2e; }
+        
+        /* Print styles */
+        @media print {
+            body { background: white; }
+            .container { padding: 20px; }
+            .section { break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📄 Funnel Export per Systeme.io</h1>
+            <p>Documento generato da Evolution PRO — Pronto per l'importazione manuale</p>
+            <span class="badge">PARTNER: MARCO ROSSI</span>
+        </div>
+        
+        <!-- Copy Hint -->
+        <div class="copy-hint">
+            <strong>💡 Come usare questo documento:</strong><br>
+            Copia ogni sezione e incollala nel builder di Systeme.io. I testi sono già pronti — basta copiare!
+        </div>
+        
+        <!-- Partner Info -->
+        <div class="partner-info">
+            <h3>👤 Informazioni Partner</h3>
+            <div class="grid">
+                <div class="item">
+                    <div class="label">Nome</div>
+                    <div class="value">Marco Rossi</div>
+                </div>
+                <div class="item">
+                    <div class="label">Nicchia</div>
+                    <div class="value">Business Coaching</div>
+                </div>
+                <div class="item">
+                    <div class="label">Offerta</div>
+                    <div class="value">Programma Acceleratore</div>
+                </div>
+                <div class="item">
+                    <div class="label">Prezzo</div>
+                    <div class="value">297€</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Funnel Sections -->
+        
+        <div class="section approved">
+            <div class="section-header">
+                <span class="section-icon">📝</span>
+                <div>
+                    <div class="section-title">Opt-in Page</div>
+                    <div class="section-subtitle">Lead capture</div>
+                </div>
+                <span class="section-status">✓ APPROVATO</span>
+            </div>
+            <div class="section-content">
+                
+                <div class="content-block">
+                    <div class="content-label">Headline principale</div>
+                    <div class="content-value headline">Test Headline</div>
+                </div>
+                <div class="content-block">
+                    <div class="content-label">Sottotitolo</div>
+                    <div class="content-value"></div>
+                </div>
+                <div class="content-block">
+                    <div class="content-label">Promessa / Hook</div>
+                    <div class="content-value"></div>
+                </div>
+                <div class="content-block">
+                    <div class="content-label">Testo introduttivo</div>
+                    <div class="content-value"></div>
+                </div>
+                <div class="content-block">
+                    <div class="content-label">Campi form</div>
+                    <div class="content-value"></div>
+                </div>
+                <div class="content-block">
+                    <div class="content-label">Call to Action (Pulsante)</div>
+                    <div class="content-value cta">Iscriviti!</div>
+                </div>
+                <div class="content-block">
+                    <div class="content-label">Dopo invio form</div>
+                    <div class="content-value"></div>
+                </div>
+            
+            </div>
+        </div>
+        
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p>Generato da <strong>Evolution PRO OS</strong> · 16/02/2026 alle 14:41</p>
+            <p>Copy approvato e pronto per Systeme.io</p>
+        </div>
+    </div>
+</body>
+</html>
