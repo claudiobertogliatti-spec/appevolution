@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { LayoutDashboard, Users, Film, FileText, BarChart3, MessageCircle, AlertTriangle, Settings, ChevronDown, ChevronRight, LogOut, Database, Edit3, Trophy, Zap, HelpCircle, Webhook, Bot, Target } from "lucide-react";
+import { LayoutDashboard, Users, Film, FileText, BarChart3, MessageCircle, AlertTriangle, Settings, ChevronDown, ChevronRight, LogOut, Database, Edit3, Trophy, Zap, HelpCircle, Webhook, Bot, Target, DollarSign } from "lucide-react";
 
 const CLAUDIO_NAV = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "partner", label: "Partner", icon: Users },
   { id: "agenti", label: "Agent Hub", icon: Bot },
-  { id: "orion", label: "ORION Lead Scoring", icon: Target, badge: "NEW" },
+  { id: "orion", label: "ORION Lead Scoring", icon: Target },
+  { id: "sales-kpi", label: "Sales KPI", icon: DollarSign, badge: "€7" },
   { id: "documenti-partner", label: "Documenti Partner", icon: FileText },
   { id: "andrea", label: "Editing", icon: Film },
   { id: "metriche", label: "Post-Lancio", icon: BarChart3 },
@@ -16,7 +17,8 @@ const ANTONELLA_NAV = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "partner", label: "Partner", icon: Users },
   { id: "agenti", label: "Agent Hub", icon: Bot },
-  { id: "orion", label: "ORION Lead Scoring", icon: Target, badge: "NEW" },
+  { id: "orion", label: "ORION Lead Scoring", icon: Target },
+  { id: "sales-kpi", label: "Sales KPI", icon: DollarSign, badge: "€7" },
   { id: "documenti-partner", label: "Documenti Partner", icon: FileText },
   { id: "andrea", label: "ANDREA — Editing Feed", icon: Film },
   { id: "copyfactory", label: "STEFANIA — Copy Factory", icon: Edit3 },
