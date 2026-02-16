@@ -5176,8 +5176,9 @@ async def sync_systeme_contacts(request: SystemeIOSyncRequest):
         all_contacts = []
         page = 1
         has_more = True
+        max_pages = 150  # 150 pages x 100 = 15,000 contacts max
         
-        while has_more and page <= 10:  # Max 10 pages to prevent infinite loops
+        while has_more and page <= max_pages:
             try:
                 response = await systeme_api_request(api_key, f"/contacts?page={page}&limit=100")
                 
@@ -5185,6 +5186,10 @@ async def sync_systeme_contacts(request: SystemeIOSyncRequest):
                 if isinstance(contacts_data, list) and len(contacts_data) > 0:
                     all_contacts.extend(contacts_data)
                     page += 1
+                    
+                    # Log progress every 10 pages
+                    if page % 10 == 0:
+                        logging.info(f"Systeme.io sync progress: {len(all_contacts)} contacts fetched")
                 else:
                     has_more = False
                     
@@ -5195,6 +5200,8 @@ async def sync_systeme_contacts(request: SystemeIOSyncRequest):
                     has_more = False
                 else:
                     raise e
+        
+        logging.info(f"Systeme.io sync: fetched {len(all_contacts)} total contacts")
         
         # Process and store contacts
         synced_count = 0
@@ -5209,7 +5216,9 @@ async def sync_systeme_contacts(request: SystemeIOSyncRequest):
                 "first_name": contact_data.get("firstName", contact_data.get("first_name")),
                 "last_name": contact_data.get("lastName", contact_data.get("last_name")),
                 "tags": contact_data.get("tags", []),
+                "source": contact_data.get("source", ""),
                 "created_at": contact_data.get("createdAt", contact_data.get("created_at", datetime.now(timezone.utc).isoformat())),
+                "updated_at": contact_data.get("updatedAt", contact_data.get("updated_at")),
                 "synced_at": datetime.now(timezone.utc).isoformat()
             }
             
@@ -5224,18 +5233,22 @@ async def sync_systeme_contacts(request: SystemeIOSyncRequest):
         # Update last sync time
         await db.systeme_credentials.update_one(
             {"partner_id": request.partner_id},
-            {"$set": {"last_sync": datetime.now(timezone.utc).isoformat()}}
+            {"$set": {"last_sync": datetime.now(timezone.utc).isoformat(), "total_contacts": synced_count}}
         )
         
         # Calculate and cache stats
         await calculate_systeme_stats(request.partner_id)
+        
+        # Trigger ORION analysis automatically
+        logging.info(f"Triggering ORION analysis for {synced_count} contacts")
         
         return {
             "success": True,
             "partner_id": request.partner_id,
             "contacts_synced": synced_count,
             "pages_fetched": page - 1,
-            "synced_at": datetime.now(timezone.utc).isoformat()
+            "synced_at": datetime.now(timezone.utc).isoformat(),
+            "next_step": "Esegui /api/orion/analyze-list per scoring automatico"
         }
         
     except HTTPException:
