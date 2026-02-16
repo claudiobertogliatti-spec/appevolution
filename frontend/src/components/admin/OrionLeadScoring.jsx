@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { 
   Target, Zap, Users, TrendingUp, RefreshCw, Loader2,
   Flame, Thermometer, Snowflake, AlertCircle, Tag,
-  DollarSign, ChevronRight, Play, Upload, FileSpreadsheet, CheckCircle2
+  DollarSign, ChevronRight, Play, Upload, FileSpreadsheet, CheckCircle2,
+  Filter, Download
 } from "lucide-react";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
@@ -16,7 +17,11 @@ export function OrionLeadScoring() {
   const [isImporting, setIsImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
   const [contactCount, setContactCount] = useState(0);
+  const [segmentTotals, setSegmentTotals] = useState({});
+  const [selectedSegment, setSelectedSegment] = useState("warm");
+  const [isRetagging, setIsRetagging] = useState(false);
   const fileInputRef = useRef(null);
+  const segmentFileRef = useRef(null);
 
   useEffect(() => {
     loadSegments();
