@@ -1,15 +1,16 @@
 import { useState } from "react";
-import { Home, BookOpen, Target, Mic, Film, FileText, Calendar, Palette, FolderOpen, MessageCircle, LogOut, ChevronRight, ChevronDown, HelpCircle, Sparkles, Check, Lock, Rocket, ShoppingBag, Scissors, Scale } from "lucide-react";
+import { Home, BookOpen, Target, Mic, Film, FileText, Calendar, Palette, FolderOpen, MessageCircle, LogOut, ChevronRight, ChevronDown, HelpCircle, Sparkles, Check, Lock, Rocket, ShoppingBag, Scissors, Scale, UserCircle } from "lucide-react";
 
 const NAV_ITEMS = [
   { id: "home", label: "Home", icon: Home },
+  { id: "profilo-hub", label: "Profilo Hub", icon: UserCircle, badge: "NEW" },
   { id: "corso", label: "Parti da Qui", icon: BookOpen, badge: "NUOVO" },
   { id: "documenti", label: "Posizionamento", icon: Target },
   { id: "masterclass", label: "Masterclass & Videocorso", icon: Mic },
   { id: "funnel", label: "Il tuo Funnel", icon: Rocket, badge: "NUOVO" },
   { id: "produzione", label: "Produzione Video", icon: Film },
-  { id: "video-editor", label: "Video Editor", icon: Scissors, badge: "NEW" },
-  { id: "legal-pages", label: "Pagine Legali", icon: Scale, badge: "NEW" },
+  { id: "video-editor", label: "Video Editor", icon: Scissors },
+  { id: "legal-pages", label: "Pagine Legali", icon: Scale },
   { id: "servizi-extra", label: "Servizi Extra", icon: ShoppingBag },
 ];
 
