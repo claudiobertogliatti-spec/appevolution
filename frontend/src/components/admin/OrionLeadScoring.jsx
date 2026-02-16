@@ -26,6 +26,7 @@ export function OrionLeadScoring() {
   useEffect(() => {
     loadSegments();
     loadContactCount();
+    loadSegmentTotals();
   }, []);
 
   const loadContactCount = async () => {
@@ -37,6 +38,20 @@ export function OrionLeadScoring() {
       }
     } catch (error) {
       console.error('Error loading contact count:', error);
+    }
+  };
+
+  const loadSegmentTotals = async () => {
+    try {
+      for (const seg of ['hot', 'warm', 'cold', 'frozen', 'partner']) {
+        const response = await fetch(`${API_URL}/api/orion/leads-by-segment/${seg}?limit=1`);
+        if (response.ok) {
+          const data = await response.json();
+          setSegmentTotals(prev => ({...prev, [seg]: data.total || 0}));
+        }
+      }
+    } catch (error) {
+      console.error('Error loading segment totals:', error);
     }
   };
 
@@ -61,8 +76,75 @@ export function OrionLeadScoring() {
         const result = await response.json();
         setImportResult(result);
         setContactCount(result.total_in_database);
+        loadSegmentTotals();
       } else {
         const error = await response.json();
+        setImportResult({ success: false, error: error.detail || 'Errore durante l\'import' });
+      }
+    } catch (error) {
+      setImportResult({ success: false, error: error.message });
+    } finally {
+      setIsImporting(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleSegmentImport = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    setIsImporting(true);
+    setImportResult(null);
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('segment', selectedSegment);
+    formData.append('tag_to_add', `evo_${selectedSegment}_lead`);
+    
+    try {
+      const response = await fetch(`${API_URL}/api/orion/import-segment-csv`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        setImportResult(result);
+        setSegmentTotals(result.segment_totals || {});
+        loadContactCount();
+      } else {
+        const error = await response.json();
+        setImportResult({ success: false, error: error.detail || 'Errore durante l\'import' });
+      }
+    } catch (error) {
+      setImportResult({ success: false, error: error.message });
+    } finally {
+      setIsImporting(false);
+      if (segmentFileRef.current) {
+        segmentFileRef.current.value = '';
+      }
+    }
+  };
+
+  const runRetag = async () => {
+    setIsRetagging(true);
+    try {
+      const response = await fetch(`${API_URL}/api/orion/retag-contacts`, {
+        method: 'POST'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        alert(`✅ Processati ${data.analysis.total_processed} contatti!\nPartner: ${data.analysis.partners_excluded}\nHOT: ${data.analysis.hot_leads}\nWARM: ${data.analysis.warm_leads}\nCOLD: ${data.analysis.cold_leads}\nFROZEN: ${data.analysis.frozen_leads}`);
+        loadSegmentTotals();
+      }
+    } catch (error) {
+      alert('Errore nel re-tagging');
+    } finally {
+      setIsRetagging(false);
+    }
+  };
         setImportResult({ success: false, error: error.detail || 'Errore durante l\'import' });
       }
     } catch (error) {
