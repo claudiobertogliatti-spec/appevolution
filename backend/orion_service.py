@@ -92,11 +92,17 @@ class OrionLeadScoring:
         # 1. Tag-based scoring
         tags = lead_data.get("tags", [])
         for tag in tags:
-            tag_lower = tag.lower().replace(" ", "_")
+            # Handle both string tags and dict tags
+            if isinstance(tag, dict):
+                tag_name = tag.get("name", tag.get("tag", str(tag)))
+            else:
+                tag_name = str(tag)
+            
+            tag_lower = tag_name.lower().replace(" ", "_")
             for key, points in self.TAG_SCORE_MAP.items():
                 if key in tag_lower:
                     score += points
-                    signals.append(f"Tag '{tag}': +{points}")
+                    signals.append(f"Tag '{tag_name}': +{points}")
                     break
         
         # 2. Activity recency
