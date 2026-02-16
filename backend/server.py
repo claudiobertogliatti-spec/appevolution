@@ -7475,6 +7475,7 @@ class EmailAutomationCreate(BaseModel):
     delay_hours: int = 0
     subject: str
     body: str
+    systeme_tag: Optional[str] = None  # Custom tag for Systeme.io automation
 
 class EmailSequenceStep(BaseModel):
     day: int
@@ -7487,6 +7488,7 @@ class EmailSequenceCreate(BaseModel):
     name: str
     trigger: str
     steps: List[EmailSequenceStep]
+    systeme_tag: Optional[str] = None  # Custom tag for Systeme.io automation
 
 # Predefined email templates for Evolution PRO partners
 EMAIL_TEMPLATES = {
