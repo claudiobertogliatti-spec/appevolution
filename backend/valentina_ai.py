@@ -195,9 +195,22 @@ class ValentinaAI:
         try:
             # Determine if this is the founder
             is_founder = self._is_founder(context)
+            user_id = "claudio" if is_founder else partner_id
+            
+            # Load persistent memory if available
+            memory_context = ""
+            if MEMORY_ENABLED and is_founder:
+                try:
+                    memory_context = await valentina_memory.get_full_context_for_prompt(user_id)
+                    
+                    # Auto-detect and save important content from user message
+                    if await valentina_memory.auto_detect_important_content(message):
+                        await valentina_memory.extract_and_save_knowledge(user_id, message)
+                except Exception as e:
+                    logger.error(f"Memory load error: {e}")
             
             # Build context string with live data for founder
-            context_str = await self._build_context(context, is_founder)
+            context_str = await self._build_context(context, is_founder, memory_context)
             
             # Choose appropriate system prompt
             if is_founder:
@@ -218,7 +231,7 @@ class ValentinaAI:
             # Send message and get response
             response = await llm.send_message(UserMessage(text=message))
             
-            # Store in history
+            # Store in local history
             if partner_id not in chat_sessions:
                 chat_sessions[partner_id] = []
             
@@ -233,9 +246,30 @@ class ValentinaAI:
                 "timestamp": datetime.now(timezone.utc).isoformat()
             })
             
-            # Keep only last 20 messages
+            # Keep only last 20 messages in memory
             if len(chat_sessions[partner_id]) > 20:
                 chat_sessions[partner_id] = chat_sessions[partner_id][-20:]
+            
+            # Save to persistent memory
+            if MEMORY_ENABLED:
+                try:
+                    is_important = await valentina_memory.auto_detect_important_content(message)
+                    await valentina_memory.save_conversation(
+                        user_id=user_id,
+                        role="user",
+                        content=message,
+                        context=context,
+                        is_important=is_important
+                    )
+                    await valentina_memory.save_conversation(
+                        user_id=user_id,
+                        role="assistant",
+                        content=response,
+                        context=context,
+                        is_important=False
+                    )
+                except Exception as e:
+                    logger.error(f"Memory save error: {e}")
             
             return response
             
