@@ -54,17 +54,64 @@ class OrionLeadScoring:
     
     # Tag mappings for Systeme.io
     TAG_SCORE_MAP = {
-        # Positive engagement tags
-        "opened_email": 5,
-        "clicked_link": 15,
-        "watched_masterclass": 30,
-        "downloaded_lead_magnet": 20,
-        "visited_sales_page": 25,
-        "started_checkout": 40,
-        "abandoned_cart": 35,  # Still high intent
+        # ============================================
+        # EVOLUTION PRO - TAG SCORING (REAL TAGS)
+        # ============================================
+        
+        # Fase avanzamento (più avanti = più engaged)
+        "fase_scalabilita": 90,
+        "fase_ottimizzazione": 80,
+        "fase_lancio": 70,
+        "fase_pre_lancio": 60,
+        "fase_accademia": 50,
+        "fase_registrazione": 40,
+        "fase_attivazione": 45,
+        "fase_pre_onboarding": 35,
+        "fase_outline": 30,
+        
+        # Settimane onboarding (engagement)
+        "settimana 5": 50,
+        "settimana 4": 45,
+        "settimana 3": 40,
+        "settimana 2": 35,
+        "onboarding": 30,
+        "follow-up": 25,
+        
+        # Acquisti / Pagamenti (HIGH VALUE)
+        "pagamento fee": 100,
         "purchased": 100,
         "customer": 100,
+        "pagato": 100,
+        "acquistato": 100,
+        "tripwire": 70,
         "vip": 120,
+        
+        # Recovery / Riattivazione
+        "temp_recovery": 15,  # Contatti da riattivare - score base
+        "recovery": 15,
+        
+        # Interesse mostrato
+        "hot_lead": 80,
+        "warm_lead": 50,
+        "cold_lead": 20,
+        "interested": 40,
+        "webinar": 35,
+        "masterclass": 35,
+        
+        # Newsletter/Base
+        "newsletter": 10,
+        "notify_welcome": 20,
+        
+        # Engagement signals generici
+        "opened_email": 5,
+        "clicked_link": 15,
+        "clicked": 15,
+        "opened": 5,
+        "watched": 25,
+        "downloaded": 20,
+        "visited": 15,
+        "checkout": 40,
+        "cart": 35,
         
         # Segment tags
         "coach": 5,
@@ -76,6 +123,8 @@ class OrionLeadScoring:
         "unsubscribed": -50,
         "bounced": -100,
         "complained": -100,
+        "spam": -100,
+        "inactive": -20,
     }
     
     def __init__(self, db):
