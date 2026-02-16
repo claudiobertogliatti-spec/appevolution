@@ -145,17 +145,6 @@ export function OrionLeadScoring() {
       setIsRetagging(false);
     }
   };
-        setImportResult({ success: false, error: error.detail || 'Errore durante l\'import' });
-      }
-    } catch (error) {
-      setImportResult({ success: false, error: error.message });
-    } finally {
-      setIsImporting(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
 
   const loadSegments = async () => {
     setIsLoading(true);
