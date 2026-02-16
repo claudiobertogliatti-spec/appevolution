@@ -6646,6 +6646,7 @@ async def handle_new_subscriber(data: dict) -> List[str]:
     name = data.get("name", "")
     source = data.get("source", data.get("funnel_name", "unknown"))
     tags = data.get("tags", [])
+    partner_id = data.get("partner_id", "global")
     
     if not email:
         return ["⚠️ Email mancante"]
@@ -6676,10 +6677,20 @@ async def handle_new_subscriber(data: dict) -> List[str]:
             "status": "new",
             "sources": [source],
             "tags": tags,
+            "partner_id": partner_id,
             "created_at": datetime.now(timezone.utc).isoformat(),
             "last_activity": datetime.now(timezone.utc).isoformat()
         })
         actions.append(f"🎯 Nuovo lead creato: {name} ({email}) - Score: {lead_score}")
+        
+        # TRIGGER EMAIL SEQUENCE for new subscribers
+        sequence_actions = await trigger_email_sequence(
+            partner_id=partner_id,
+            contact_email=email,
+            contact_name=name,
+            trigger_type="new_subscriber"
+        )
+        actions.extend(sequence_actions)
     
     # High-score lead alert
     if lead_score >= 40 or (existing_lead and existing_lead.get("score", 0) + lead_score >= 80):
