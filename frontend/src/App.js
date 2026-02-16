@@ -41,6 +41,7 @@ import { DomainConfiguration } from "./components/partner/DomainConfiguration";
 import { EmailAutomation } from "./components/partner/EmailAutomation";
 import { AgentDashboard } from "./components/admin/AgentDashboard";
 import { OrionLeadScoring } from "./components/admin/OrionLeadScoring";
+import { SalesKPIDashboard } from "./components/admin/SalesKPIDashboard";
 import "./styles/design-system.css";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
