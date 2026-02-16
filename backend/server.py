@@ -5821,6 +5821,379 @@ async def get_partner_avatar_lessons(partner_id: str):
     return {"lessons": lessons}
 
 # =============================================================================
+# VIDEO EDITOR (ANDREA) - EDITING BASE
+# =============================================================================
+
+class VideoTrimRequest(BaseModel):
+    video_path: str
+    start_time: float
+    end_time: float
+    output_name: Optional[str] = None
+
+class VideoCutRequest(BaseModel):
+    video_path: str
+    cut_start: float
+    cut_end: float
+    output_name: Optional[str] = None
+
+class VideoMergeRequest(BaseModel):
+    video_paths: List[str]
+    output_name: Optional[str] = None
+    transition: str = "none"
+
+class IntroOutroRequest(BaseModel):
+    video_path: str
+    intro_path: Optional[str] = "auto"
+    outro_path: Optional[str] = "auto"
+    partner_name: str = "Partner"
+    output_name: Optional[str] = None
+
+class TextOverlayRequest(BaseModel):
+    video_path: str
+    text: str
+    start_time: float = 0
+    end_time: Optional[float] = None
+    position: str = "center"
+    font_size: int = 48
+    font_color: str = "white"
+    bg_color: Optional[str] = None
+    output_name: Optional[str] = None
+
+class BurnSubtitlesRequest(BaseModel):
+    video_path: str
+    srt_path: str
+    font_size: int = 24
+    position: str = "bottom"
+    output_name: Optional[str] = None
+
+@api_router.post("/editor/upload")
+async def editor_upload_video(file: UploadFile = File(...)):
+    """Upload video for editing"""
+    try:
+        from pathlib import Path
+        
+        # Save to editor uploads folder
+        upload_path = Path("/app/storage/editor/uploads")
+        upload_path.mkdir(parents=True, exist_ok=True)
+        
+        filename = f"{datetime.now().timestamp()}_{file.filename}"
+        file_path = upload_path / filename
+        
+        content = await file.read()
+        with open(file_path, 'wb') as f:
+            f.write(content)
+        
+        # Get video info
+        info = video_editor.get_video_info(str(file_path))
+        
+        return {
+            "success": True,
+            "filename": filename,
+            "path": str(file_path),
+            "info": info
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/editor/video-info")
+async def get_video_info(path: str):
+    """Get video metadata"""
+    info = video_editor.get_video_info(path)
+    return info
+
+@api_router.post("/editor/trim")
+async def editor_trim_video(request: VideoTrimRequest):
+    """Trim video to specific segment"""
+    from pathlib import Path
+    
+    output_name = request.output_name or f"trimmed_{datetime.now().timestamp()}.mp4"
+    output_path = Path("/app/storage/editor/exports") / output_name
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    result = video_editor.trim_video(
+        request.video_path,
+        str(output_path),
+        request.start_time,
+        request.end_time
+    )
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail=result.get("error"))
+    
+    return result
+
+@api_router.post("/editor/cut")
+async def editor_cut_segment(request: VideoCutRequest):
+    """Remove a segment from video"""
+    from pathlib import Path
+    
+    output_name = request.output_name or f"cut_{datetime.now().timestamp()}.mp4"
+    output_path = Path("/app/storage/editor/exports") / output_name
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    result = video_editor.cut_segment(
+        request.video_path,
+        str(output_path),
+        request.cut_start,
+        request.cut_end
+    )
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail=result.get("error"))
+    
+    return result
+
+@api_router.post("/editor/merge")
+async def editor_merge_videos(request: VideoMergeRequest):
+    """Merge multiple videos"""
+    from pathlib import Path
+    
+    output_name = request.output_name or f"merged_{datetime.now().timestamp()}.mp4"
+    output_path = Path("/app/storage/editor/exports") / output_name
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    result = video_editor.merge_videos(
+        request.video_paths,
+        str(output_path),
+        request.transition
+    )
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail=result.get("error"))
+    
+    return result
+
+@api_router.post("/editor/intro-outro")
+async def editor_add_intro_outro(request: IntroOutroRequest):
+    """Add intro and/or outro to video"""
+    from pathlib import Path
+    
+    output_name = request.output_name or f"branded_{datetime.now().timestamp()}.mp4"
+    output_path = Path("/app/storage/editor/exports") / output_name
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    result = video_editor.add_intro_outro(
+        request.video_path,
+        str(output_path),
+        request.intro_path,
+        request.outro_path,
+        request.partner_name
+    )
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail=result.get("error"))
+    
+    return result
+
+@api_router.post("/editor/subtitles/generate")
+async def editor_generate_subtitles(video_path: str, language: str = "it"):
+    """Generate subtitles using Whisper"""
+    result = await video_editor.generate_subtitles(video_path, language)
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail=result.get("error"))
+    
+    return result
+
+@api_router.post("/editor/subtitles/burn")
+async def editor_burn_subtitles(request: BurnSubtitlesRequest):
+    """Burn subtitles into video"""
+    from pathlib import Path
+    
+    output_name = request.output_name or f"subtitled_{datetime.now().timestamp()}.mp4"
+    output_path = Path("/app/storage/editor/exports") / output_name
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    result = video_editor.burn_subtitles(
+        request.video_path,
+        request.srt_path,
+        str(output_path),
+        request.font_size,
+        position=request.position
+    )
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail=result.get("error"))
+    
+    return result
+
+@api_router.post("/editor/text-overlay")
+async def editor_add_text_overlay(request: TextOverlayRequest):
+    """Add text overlay to video"""
+    from pathlib import Path
+    
+    output_name = request.output_name or f"overlay_{datetime.now().timestamp()}.mp4"
+    output_path = Path("/app/storage/editor/exports") / output_name
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    result = video_editor.add_text_overlay(
+        request.video_path,
+        str(output_path),
+        request.text,
+        request.start_time,
+        request.end_time,
+        request.position,
+        request.font_size,
+        request.font_color,
+        request.bg_color
+    )
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail=result.get("error"))
+    
+    return result
+
+@api_router.get("/editor/files/{filename}")
+async def editor_get_file(filename: str):
+    """Serve exported video file"""
+    from pathlib import Path
+    
+    # Check in exports folder
+    file_path = Path("/app/storage/editor/exports") / filename
+    if not file_path.exists():
+        # Check in uploads
+        file_path = Path("/app/storage/editor/uploads") / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    return FileResponse(str(file_path), media_type="video/mp4", filename=filename)
+
+@api_router.get("/editor/subtitles/{filename}")
+async def editor_get_subtitles(filename: str):
+    """Serve SRT subtitle file"""
+    from pathlib import Path
+    
+    file_path = Path("/app/storage/editor/subtitles") / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Subtitle file not found")
+    
+    return FileResponse(str(file_path), media_type="text/plain", filename=filename)
+
+# =============================================================================
+# LEGAL PAGES GENERATOR (ANDREA)
+# =============================================================================
+
+class LegalPageRequest(BaseModel):
+    page_type: str  # privacy_policy, terms_conditions, cookie_policy, disclaimer
+    business_data: Dict[str, Any]
+    custom_sections: Optional[List[str]] = None
+
+class AllLegalPagesRequest(BaseModel):
+    business_data: Dict[str, Any]
+
+@api_router.get("/legal/templates")
+async def get_legal_templates():
+    """Get list of available legal page templates"""
+    return legal_generator.list_available_templates()
+
+@api_router.get("/legal/template/{page_type}")
+async def get_legal_template_info(page_type: str):
+    """Get detailed info about a specific template"""
+    info = legal_generator.get_template_info(page_type)
+    if "error" in info:
+        raise HTTPException(status_code=404, detail=info["error"])
+    return info
+
+@api_router.post("/legal/generate")
+async def generate_legal_page(request: LegalPageRequest):
+    """Generate a single legal page"""
+    result = await legal_generator.generate_legal_page(
+        request.page_type,
+        request.business_data,
+        request.custom_sections
+    )
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail=result.get("error"))
+    
+    # Save to database for partner
+    partner_id = request.business_data.get("partner_id")
+    if partner_id:
+        await db.legal_pages.update_one(
+            {"partner_id": partner_id, "page_type": request.page_type},
+            {"$set": {
+                "partner_id": partner_id,
+                "page_type": request.page_type,
+                "content_html": result.get("content_html"),
+                "content_text": result.get("content_text"),
+                "business_data": request.business_data,
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }},
+            upsert=True
+        )
+    
+    return result
+
+@api_router.post("/legal/generate-all")
+async def generate_all_legal_pages(request: AllLegalPagesRequest):
+    """Generate all legal pages at once"""
+    result = await legal_generator.generate_all_legal_pages(request.business_data)
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail="Some pages failed to generate")
+    
+    # Save all to database
+    partner_id = request.business_data.get("partner_id")
+    if partner_id:
+        for page_type, page_result in result.get("results", {}).items():
+            if page_result.get("success"):
+                await db.legal_pages.update_one(
+                    {"partner_id": partner_id, "page_type": page_type},
+                    {"$set": {
+                        "partner_id": partner_id,
+                        "page_type": page_type,
+                        "content_html": page_result.get("content_html"),
+                        "content_text": page_result.get("content_text"),
+                        "business_data": request.business_data,
+                        "generated_at": datetime.now(timezone.utc).isoformat(),
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }},
+                    upsert=True
+                )
+    
+    return result
+
+@api_router.get("/legal/partner/{partner_id}")
+async def get_partner_legal_pages(partner_id: str):
+    """Get all generated legal pages for a partner"""
+    pages = await db.legal_pages.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).to_list(length=10)
+    
+    return {
+        "partner_id": partner_id,
+        "pages": pages,
+        "count": len(pages)
+    }
+
+@api_router.get("/legal/partner/{partner_id}/{page_type}")
+async def get_partner_legal_page(partner_id: str, page_type: str):
+    """Get specific legal page for a partner"""
+    page = await db.legal_pages.find_one(
+        {"partner_id": partner_id, "page_type": page_type},
+        {"_id": 0}
+    )
+    
+    if not page:
+        raise HTTPException(status_code=404, detail="Legal page not found")
+    
+    return page
+
+@api_router.delete("/legal/partner/{partner_id}/{page_type}")
+async def delete_partner_legal_page(partner_id: str, page_type: str):
+    """Delete a legal page"""
+    result = await db.legal_pages.delete_one(
+        {"partner_id": partner_id, "page_type": page_type}
+    )
+    
+    return {
+        "success": result.deleted_count > 0,
+        "deleted": result.deleted_count
+    }
+
+# =============================================================================
 # SYSTEME.IO WEBHOOKS - AUTO-SYNC & AUTOMATIONS
 # =============================================================================
 
