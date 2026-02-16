@@ -23,6 +23,8 @@ from tts_generator import tts_generator, TTSGenerator
 from video_editor_service import video_editor, VideoEditorService
 from legal_pages_service import legal_generator, LegalPagesGenerator
 from funnel_export_service import funnel_export_service, FunnelExportService
+from orion_service import OrionLeadScoring, init_orion
+from agent_hub_service import AgentAnalyticsHub, init_agent_hub
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -31,6 +33,10 @@ load_dotenv(ROOT_DIR / '.env')
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
+
+# Initialize AI Agents
+orion_scoring = init_orion(db)
+agent_hub = init_agent_hub(db)
 
 # Emergent LLM Key
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
