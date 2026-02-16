@@ -454,7 +454,7 @@ export function OrionLeadScoring() {
         <TemperatureCard 
           emoji="🔥" 
           label="HOT" 
-          count={distribution.hot_count || distribution.hot || 0}
+          count={segmentTotals.hot || distribution.hot_count || distribution.hot || 0}
           color="#EF4444"
           bgColor="#FEE2E2"
           description="Pronti a comprare"
@@ -464,7 +464,7 @@ export function OrionLeadScoring() {
         <TemperatureCard 
           emoji="🟡" 
           label="WARM" 
-          count={distribution.warm_count || distribution.warm || 0}
+          count={segmentTotals.warm || distribution.warm_count || distribution.warm || 0}
           color="#F59E0B"
           bgColor="#FEF3C7"
           description="Interessati"
@@ -474,7 +474,7 @@ export function OrionLeadScoring() {
         <TemperatureCard 
           emoji="❄️" 
           label="COLD" 
-          count={distribution.cold_count || distribution.cold || 0}
+          count={segmentTotals.cold || distribution.cold_count || distribution.cold || 0}
           color="#3B82F6"
           bgColor="#DBEAFE"
           description="Basso engagement"
@@ -484,7 +484,7 @@ export function OrionLeadScoring() {
         <TemperatureCard 
           emoji="🧊" 
           label="FROZEN" 
-          count={distribution.frozen_count || distribution.frozen || 0}
+          count={segmentTotals.frozen || distribution.frozen_count || distribution.frozen || 0}
           color="#6B7280"
           bgColor="#F3F4F6"
           description="Inattivi"
