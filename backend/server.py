@@ -54,18 +54,18 @@ class Partner(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
-    niche: str
-    phase: str
+    niche: str = ""
+    phase: str = "F1"
     revenue: int = 0
-    contract: str
+    contract: str = ""
     alert: bool = False
     modules: List[int] = Field(default_factory=lambda: [0]*10)
 
 class PartnerCreate(BaseModel):
     name: str
-    niche: str
+    niche: str = ""
     phase: str = "F1"
-    contract: str
+    contract: str = ""
 
 class Alert(BaseModel):
     model_config = ConfigDict(extra="ignore")
