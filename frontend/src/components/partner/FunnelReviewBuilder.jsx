@@ -556,43 +556,80 @@ export function FunnelReviewBuilder({ partner, onBack }) {
             background: allApproved ? 'linear-gradient(135deg, #F2C418, #FADA5E)' : '#ECEDEF',
             boxShadow: allApproved ? '0 8px 30px rgba(242, 196, 24, 0.3)' : 'none'
           }}
-          onClick={allApproved ? handleLaunch : undefined}
+          onClick={allApproved && !isExporting ? handleLaunch : undefined}
         >
-          <span className="text-3xl">🚀</span>
+          <span className="text-3xl">{isExporting ? '⏳' : '🚀'}</span>
           <div className="flex-1">
-            <div className="font-bold" style={{ color: '#1E2128' }}>Lancia il tuo Funnel</div>
+            <div className="font-bold" style={{ color: '#1E2128' }}>
+              {isExporting ? 'Generazione in corso...' : 'Esporta per Systeme.io'}
+            </div>
             <div className="text-sm" style={{ color: allApproved ? '#1E2128' : '#9CA3AF' }}>
-              {allApproved ? 'Tutto pronto! Clicca per lanciare' : 'Approva tutte le sezioni per lanciare'}
+              {allApproved 
+                ? (isExporting ? 'Preparazione documento...' : 'Genera il documento con tutto il copy pronto')
+                : 'Approva tutte le sezioni per esportare'}
             </div>
           </div>
           <button 
-            disabled={!allApproved}
-            className="px-6 py-3 rounded-xl font-bold text-sm transition-all"
+            disabled={!allApproved || isExporting}
+            className="px-6 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-2"
             style={{ 
               background: allApproved ? '#1E2128' : '#9CA3AF',
               color: allApproved ? '#F2C418' : 'white'
             }}
           >
-            Lancia! 🚀
+            {isExporting ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Esporto...</>
+            ) : (
+              <><Download className="w-4 h-4" /> Esporta</>
+            )}
           </button>
         </div>
       </div>
       
-      {/* Launch Modal */}
-      {showLaunchModal && (
+      {/* Export Success Modal */}
+      {showLaunchModal && exportResult && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="rounded-2xl p-8 text-center max-w-md w-full" style={{ background: 'white' }}>
-            <span className="text-6xl block mb-4">🎉</span>
-            <h2 className="text-2xl font-black mb-2" style={{ color: '#1E2128' }}>Funnel Lanciato!</h2>
+          <div className="rounded-2xl p-8 text-center max-w-lg w-full" style={{ background: 'white' }}>
+            <span className="text-6xl block mb-4">📄</span>
+            <h2 className="text-2xl font-black mb-2" style={{ color: '#1E2128' }}>Export Completato!</h2>
             <p className="mb-6" style={{ color: '#5F6572' }}>
-              Il tuo funnel è ora attivo e pronto a raccogliere lead. Riceverai una notifica per ogni nuova iscrizione!
+              Il documento con tutto il copy del funnel è pronto. Stefania può ora copiare i contenuti in Systeme.io.
             </p>
+            
+            <div className="p-4 rounded-xl mb-6" style={{ background: '#FAFAF7' }}>
+              <div className="text-xs font-bold mb-2" style={{ color: '#9CA3AF' }}>File generato:</div>
+              <div className="text-sm font-bold" style={{ color: '#1E2128' }}>{exportResult.filename}</div>
+              <div className="text-xs mt-1" style={{ color: '#34C77B' }}>
+                ✓ {exportResult.sections_exported} sezioni esportate
+              </div>
+            </div>
+            
+            <div className="flex gap-3">
+              <a 
+                href={`${API}/funnel/export/preview/${exportResult.filename}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-sm transition-all hover:scale-105"
+                style={{ background: '#ECEDEF', color: '#5F6572' }}
+              >
+                <ExternalLink className="w-4 h-4" /> Anteprima
+              </a>
+              <a 
+                href={`${API}/funnel/export/download/${exportResult.filename}`}
+                download
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-sm transition-all hover:scale-105"
+                style={{ background: '#F2C418', color: '#1E2128' }}
+              >
+                <Download className="w-4 h-4" /> Scarica HTML
+              </a>
+            </div>
+            
             <button 
-              onClick={() => { setShowLaunchModal(false); onBack?.(); }}
-              className="px-6 py-3 rounded-xl font-bold transition-all hover:scale-105"
-              style={{ background: '#F2C418', color: '#1E2128' }}
+              onClick={() => { setShowLaunchModal(false); setExportResult(null); }}
+              className="mt-4 text-sm font-bold"
+              style={{ color: '#9CA3AF' }}
             >
-              Fantastico! →
+              Chiudi
             </button>
           </div>
         </div>
