@@ -369,6 +369,23 @@ Creare un'applicazione full-stack proprietaria per Evolution PRO - una piattafor
   - Tabella con dettagli contatti e stato email
 - **Notifica Telegram**: Avviso automatico su sequenza attivata
 
+#### 6. Integrazione Tag Nativi Systeme.io
+- **Approccio**: Tag-based invece di invio diretto email
+- **Flusso**:
+  1. Nuovo iscritto arriva via webhook
+  2. Sistema genera tag univoco (es. `evo_seq_benvenuto`)
+  3. Tag aggiunto al contatto in Systeme.io via API
+  4. Automazione nativa Systeme.io attiva la sequenza email
+- **Vantaggi**:
+  - Email inviate dalla piattaforma nativa (più affidabile)
+  - Tracking completo (aperture, click) in Systeme.io
+  - Gestione delay/scheduling nativa
+- **Setup richiesto in Systeme.io**:
+  - Automations → Rules → "When tag is added" → Start campaign
+- **Campi aggiuntivi**:
+  - `systeme_tag` su EmailAutomationCreate e EmailSequenceCreate
+  - Status: `triggered_via_systeme`, `sent_to_systeme`
+
 ### V13.0 - JWT Authentication & Telegram Notifications (13 Feb 2026) ✅
 
 #### 1. JWT Authentication System
