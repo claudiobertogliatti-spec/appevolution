@@ -672,6 +672,7 @@ export default function App() {
             {nav==="overview"&&<AdminOverview stats={stats} agents={agents} partners={partners} alerts={alerts} onNavigate={setNav}/>}
             {nav==="agenti"&&<AgentDashboard/>}
             {nav==="orion"&&<OrionLeadScoring/>}
+            {nav==="sales-kpi"&&<SalesKPIDashboard/>}
             {nav==="partner"&&<AdminPartners partners={partners} onSelect={(p)=>{setSelectedPartner(p);setShowPartnerProfile(true);}}/>}
             {nav==="documenti-partner"&&<PartnerDocumentsView partners={partners}/>}
             {nav==="andrea"&&(adminUser==="antonella"?<FeedVideoNuovi onOpenPipeline={()=>{setAdminUser("claudio");setNav("andrea");}}/>:<AndreaPipeline partners={partners}/>)}
