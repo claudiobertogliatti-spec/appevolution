@@ -6759,21 +6759,12 @@ async def trigger_email_sequence(partner_id: str, contact_email: str, contact_na
                     logging.error(f"Error adding automation tag: {e}")
             else:
                 actions.append(f"✉️ Email '{automation.get('name')}' pronta (connetti Systeme.io)")
-                    "subject": automation.get("subject", "").replace("{nome}", contact_name),
-                    "body": automation.get("body", "").replace("{nome}", contact_name),
-                    "status": "scheduled",
-                    "triggered_by": trigger_type,
-                    "created_at": datetime.now(timezone.utc).isoformat(),
-                    "send_at": send_time.isoformat()
-                }
-                await db.email_queue.insert_one(queue_entry)
-                actions.append(f"⏰ Email '{automation.get('name')}' schedulata per +{automation.get('delay_hours')}h")
         
         # Send notification to partner/admin
         try:
             await telegram_notify(
                 notification_type="info",
-                message=f"📧 Sequenza Email Attivata\n\n👤 {contact_name}\n📧 {contact_email}\n🎯 Trigger: {trigger_type}\n📋 Sequenze: {len(sequences)}\n✉️ Email singole: {len(automations)}"
+                message=f"📧 Automazione Email via Systeme.io\n\n👤 {contact_name}\n📧 {contact_email}\n🎯 Trigger: {trigger_type}\n📋 Sequenze: {len(sequences)}\n✉️ Automazioni: {len(automations)}\n\n🏷️ Tag aggiunti per attivare le email native"
             )
         except Exception as e:
             logging.error(f"Failed to send sequence notification: {e}")
