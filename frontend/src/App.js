@@ -690,6 +690,7 @@ export default function App() {
             {nav==="risorse"&&<PartnerResources/>}
             {nav==="renewal"&&<RenewalPlans partnerName={demoPartner?.name||"Partner"} currentRevenue={demoPartner?.revenue||0} onSelectPlan={(plan)=>console.log(plan)}/>}
             {nav==="supporto"&&<ValentinaChat partner={demoPartner} onBack={()=>setNav("home")}/>}
+            {nav==="servizi-extra"&&<ServiziExtra partner={demoPartner}/>}
           </>}
         </div>
       </div>
