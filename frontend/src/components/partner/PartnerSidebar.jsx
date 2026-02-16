@@ -116,7 +116,7 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
             const isActive = currentNav === item.id;
             const isCompleted = index > 0 && index <= completedPhases;
             // Tools always accessible
-            const alwaysAccessible = ["servizi-extra", "video-editor", "legal-pages", "profilo-hub", "funnel"];
+            const alwaysAccessible = ["servizi-extra", "video-editor", "legal-pages", "profilo-hub", "funnel", "domain-config", "email-automation"];
             const isLocked = !alwaysAccessible.includes(item.id) && index > completedPhases + 1;
             
             return (
