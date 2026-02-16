@@ -207,17 +207,57 @@ class ValentinaAI:
             # Fallback response
             return self._fallback_response(message, context)
     
-    def _build_context(self, context: dict) -> str:
+    async def _build_context(self, context: dict, is_founder: bool = False) -> str:
         """Build context string for the prompt"""
         if not context:
             return "Nessun contesto specifico disponibile."
         
         parts = []
         
-        if context.get("name"):
-            parts.append(f"Nome Partner: {context['name']}")
+        if is_founder:
+            # Add live system data for founder
+            parts.append("=== STATO SISTEMA LIVE ===")
+            try:
+                # Import MongoDB connection (this will be available from server.py context)
+                from motor.motor_asyncio import AsyncIOMotorClient
+                mongo_url = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
+                db_name = os.environ.get("DB_NAME", "test_database")
+                client = AsyncIOMotorClient(mongo_url)
+                db = client[db_name]
+                
+                # Get lead counts by segment
+                hot = await db.systeme_contacts.count_documents({"orion_segment": "hot"})
+                warm = await db.systeme_contacts.count_documents({"orion_segment": "warm"})
+                cold = await db.systeme_contacts.count_documents({"orion_segment": "cold"})
+                frozen = await db.systeme_contacts.count_documents({"orion_segment": "frozen"})
+                total_contacts = await db.systeme_contacts.count_documents({})
+                
+                parts.append(f"📊 Lead Totali: {total_contacts:,}")
+                parts.append(f"   🔥 HOT: {hot:,} | 🟡 WARM: {warm:,} | ❄️ COLD: {cold:,} | 🧊 FROZEN: {frozen:,}")
+                
+                # Get partner counts by phase
+                partners = await db.partners.count_documents({})
+                parts.append(f"👔 Partner Attivi: {partners}")
+                
+                # Get recent sales
+                recent_sales = await db.payments.find({}, {"_id": 0, "amount": 1}).to_list(100)
+                total_revenue = sum(s.get("amount", 0) for s in recent_sales)
+                parts.append(f"💰 Revenue: €{total_revenue:,.2f} ({len(recent_sales)} ordini)")
+                
+                client.close()
+            except Exception as e:
+                parts.append(f"(Errore caricamento dati live: {str(e)[:50]})")
+            
+            parts.append("=== FINE STATO ===")
+            parts.append("")
         
-        if context.get("phase"):
+        if context.get("name"):
+            if is_founder:
+                parts.append(f"👤 Utente: {context['name']} (FONDATORE)")
+            else:
+                parts.append(f"Nome Partner: {context['name']}")
+        
+        if context.get("phase") and not is_founder:
             phase = context["phase"]
             phase_names = {
                 "F0": "Pre-Onboarding",
@@ -235,10 +275,10 @@ class ValentinaAI:
             phase_name = phase_names.get(phase, phase)
             parts.append(f"Fase Attuale: {phase} - {phase_name}")
         
-        if context.get("niche"):
+        if context.get("niche") and not is_founder:
             parts.append(f"Nicchia: {context['niche']}")
             
-        if context.get("is_admin"):
+        if context.get("is_admin") and not is_founder:
             parts.append("NOTA: L'utente è un ADMIN, può richiedere azioni su Systeme.io e gestione partner.")
         
         return "\n".join(parts) if parts else "Partner in fase iniziale."
