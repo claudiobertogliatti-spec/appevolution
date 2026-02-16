@@ -6071,6 +6071,90 @@ async def editor_get_subtitles(filename: str):
     return FileResponse(str(file_path), media_type="text/plain", filename=filename)
 
 # =============================================================================
+# FUNNEL EXPORT SERVICE (for Systeme.io)
+# =============================================================================
+
+class FunnelSection(BaseModel):
+    id: int
+    icon: str
+    title: str
+    subtitle: str = ""
+    content: Dict[str, Any]
+
+class FunnelExportRequest(BaseModel):
+    partner_data: Dict[str, Any]
+    funnel_sections: List[FunnelSection]
+    approved_sections: List[int]
+
+@api_router.post("/funnel/export")
+async def export_funnel_for_systeme(request: FunnelExportRequest):
+    """
+    Generate HTML export document for Systeme.io manual import
+    """
+    try:
+        # Convert sections to dict format
+        sections = [s.model_dump() for s in request.funnel_sections]
+        
+        result = funnel_export_service.generate_funnel_export(
+            partner_data=request.partner_data,
+            funnel_sections=sections,
+            approved_sections=request.approved_sections
+        )
+        
+        if not result.get("success"):
+            raise HTTPException(status_code=500, detail="Export generation failed")
+        
+        # Save export record to database
+        export_record = {
+            "partner_id": request.partner_data.get("id", "unknown"),
+            "partner_name": request.partner_data.get("name", "Partner"),
+            "filename": result.get("filename"),
+            "sections_exported": result.get("sections_exported"),
+            "approved_sections": request.approved_sections,
+            "generated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.funnel_exports.insert_one(export_record)
+        
+        return result
+        
+    except Exception as e:
+        logging.error(f"Funnel export error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/funnel/exports")
+async def list_funnel_exports(partner_id: Optional[str] = None):
+    """List all funnel exports"""
+    exports = funnel_export_service.list_exports(partner_id)
+    return {"exports": exports, "count": len(exports)}
+
+@api_router.get("/funnel/export/download/{filename}")
+async def download_funnel_export(filename: str):
+    """Download a funnel export file"""
+    from pathlib import Path
+    
+    filepath = Path("/app/storage/funnel_exports") / filename
+    if not filepath.exists():
+        raise HTTPException(status_code=404, detail="Export file not found")
+    
+    return FileResponse(
+        str(filepath), 
+        media_type="text/html", 
+        filename=filename,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+@api_router.get("/funnel/export/preview/{filename}")
+async def preview_funnel_export(filename: str):
+    """Preview a funnel export file in browser"""
+    from pathlib import Path
+    
+    filepath = Path("/app/storage/funnel_exports") / filename
+    if not filepath.exists():
+        raise HTTPException(status_code=404, detail="Export file not found")
+    
+    return FileResponse(str(filepath), media_type="text/html")
+
+# =============================================================================
 # LEGAL PAGES GENERATOR (ANDREA)
 # =============================================================================
 
