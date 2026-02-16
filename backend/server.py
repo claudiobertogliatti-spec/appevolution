@@ -6688,6 +6688,9 @@ async def trigger_email_sequence(partner_id: str, contact_email: str, contact_na
         
         # Create email queue entry for each sequence
         for sequence in sequences:
+            # Create a meaningful tag name for Systeme.io native automation
+            tag_name = sequence.get("systeme_tag") or f"evo_seq_{sequence.get('name', 'default').lower().replace(' ', '_')[:20]}"
+            
             queue_entry = {
                 "id": str(uuid.uuid4()),
                 "type": "sequence",
@@ -6696,58 +6699,66 @@ async def trigger_email_sequence(partner_id: str, contact_email: str, contact_na
                 "partner_id": partner_id,
                 "contact_email": contact_email,
                 "contact_name": contact_name,
-                "steps": sequence.get("steps", []),
-                "current_step": 0,
-                "status": "active",
+                "systeme_tag": tag_name,
+                "status": "triggered_via_systeme",
                 "triggered_by": trigger_type,
-                "created_at": datetime.now(timezone.utc).isoformat(),
-                "next_send_at": datetime.now(timezone.utc).isoformat()  # First email immediately
+                "created_at": datetime.now(timezone.utc).isoformat()
             }
             
             await db.email_queue.insert_one(queue_entry)
-            actions.append(f"📧 Sequenza '{sequence.get('name')}' attivata per {contact_email}")
             
-            # If Systeme.io connected, tag the contact to trigger native automation
+            # Add tag to Systeme.io to trigger native automation
             if credentials and credentials.get("api_key"):
                 try:
-                    tag_name = f"seq_{sequence.get('id', 'unknown')[:8]}"
                     await add_systeme_tag(credentials["api_key"], contact_email, tag_name)
-                    actions.append(f"🏷️ Tag '{tag_name}' aggiunto in Systeme.io")
+                    actions.append(f"🏷️ Tag '{tag_name}' → Systeme.io (sequenza nativa attivata)")
+                    
+                    # Update queue entry status
+                    await db.email_queue.update_one(
+                        {"id": queue_entry["id"]},
+                        {"$set": {"status": "sent_to_systeme", "sent_at": datetime.now(timezone.utc).isoformat()}}
+                    )
                 except Exception as e:
                     logging.error(f"Error adding Systeme.io tag: {e}")
-        
-        # Process single automations (immediate emails)
-        for automation in automations:
-            if automation.get("delay_hours", 0) == 0:
-                # Send immediately
-                queue_entry = {
-                    "id": str(uuid.uuid4()),
-                    "type": "single",
-                    "automation_id": automation.get("id"),
-                    "automation_name": automation.get("name"),
-                    "partner_id": partner_id,
-                    "contact_email": contact_email,
-                    "contact_name": contact_name,
-                    "subject": automation.get("subject", "").replace("{nome}", contact_name),
-                    "body": automation.get("body", "").replace("{nome}", contact_name),
-                    "status": "pending",
-                    "triggered_by": trigger_type,
-                    "created_at": datetime.now(timezone.utc).isoformat(),
-                    "send_at": datetime.now(timezone.utc).isoformat()
-                }
-                await db.email_queue.insert_one(queue_entry)
-                actions.append(f"✉️ Email '{automation.get('name')}' in coda per {contact_email}")
+                    actions.append(f"⚠️ Errore tag Systeme.io: {str(e)}")
             else:
-                # Schedule for later
-                send_time = datetime.now(timezone.utc) + timedelta(hours=automation.get("delay_hours", 0))
-                queue_entry = {
-                    "id": str(uuid.uuid4()),
-                    "type": "single",
-                    "automation_id": automation.get("id"),
-                    "automation_name": automation.get("name"),
-                    "partner_id": partner_id,
-                    "contact_email": contact_email,
-                    "contact_name": contact_name,
+                actions.append(f"📧 Sequenza '{sequence.get('name')}' pronta (connetti Systeme.io per attivare)")
+        
+        # Process single automations - also via Systeme.io tags
+        for automation in automations:
+            tag_name = automation.get("systeme_tag") or f"evo_auto_{automation.get('name', 'default').lower().replace(' ', '_')[:20]}"
+            
+            queue_entry = {
+                "id": str(uuid.uuid4()),
+                "type": "single",
+                "automation_id": automation.get("id"),
+                "automation_name": automation.get("name"),
+                "partner_id": partner_id,
+                "contact_email": contact_email,
+                "contact_name": contact_name,
+                "systeme_tag": tag_name,
+                "delay_hours": automation.get("delay_hours", 0),
+                "status": "triggered_via_systeme",
+                "triggered_by": trigger_type,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.email_queue.insert_one(queue_entry)
+            
+            # Add tag to Systeme.io
+            if credentials and credentials.get("api_key"):
+                try:
+                    await add_systeme_tag(credentials["api_key"], contact_email, tag_name)
+                    delay_info = f" (delay: +{automation.get('delay_hours')}h)" if automation.get("delay_hours", 0) > 0 else ""
+                    actions.append(f"🏷️ Tag '{tag_name}' → Systeme.io{delay_info}")
+                    
+                    await db.email_queue.update_one(
+                        {"id": queue_entry["id"]},
+                        {"$set": {"status": "sent_to_systeme", "sent_at": datetime.now(timezone.utc).isoformat()}}
+                    )
+                except Exception as e:
+                    logging.error(f"Error adding automation tag: {e}")
+            else:
+                actions.append(f"✉️ Email '{automation.get('name')}' pronta (connetti Systeme.io)")
                     "subject": automation.get("subject", "").replace("{nome}", contact_name),
                     "body": automation.get("body", "").replace("{nome}", contact_name),
                     "status": "scheduled",
