@@ -21,6 +21,7 @@ from youtube_uploader import youtube_uploader, YouTubeUploader
 from tts_generator import tts_generator, TTSGenerator
 from video_editor_service import video_editor, VideoEditorService
 from legal_pages_service import legal_generator, LegalPagesGenerator
+from funnel_export_service import funnel_export_service, FunnelExportService
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
