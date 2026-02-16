@@ -138,14 +138,14 @@ export function OrionLeadScoring() {
                 ORION - Lead Intelligence
               </h1>
               <p className="text-sm" style={{ color: '#9CA3AF' }}>
-                Analisi e scoring automatico dei tuoi 13.000+ lead
+                Analisi e scoring automatico dei tuoi {contactCount.toLocaleString()} lead
               </p>
             </div>
           </div>
           
           <button
             onClick={runAnalysis}
-            disabled={isAnalyzing}
+            disabled={isAnalyzing || contactCount === 0}
             className="px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all hover:opacity-90 disabled:opacity-50"
             style={{ background: '#F59E0B', color: 'white' }}
           >
@@ -161,6 +161,99 @@ export function OrionLeadScoring() {
               </>
             )}
           </button>
+        </div>
+      </div>
+
+      {/* CSV Import Section */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm" style={{ border: '2px dashed #F59E0B' }}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center"
+                 style={{ background: '#FEF3C7' }}>
+              <FileSpreadsheet className="w-6 h-6" style={{ color: '#F59E0B' }} />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold" style={{ color: '#1E2128' }}>
+                Importa Contatti da CSV
+              </h2>
+              <p className="text-sm" style={{ color: '#9CA3AF' }}>
+                Esporta i contatti da Systeme.io e carica il file CSV qui
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleFileUpload}
+              className="hidden"
+              id="csv-upload"
+              data-testid="csv-upload-input"
+            />
+            <label
+              htmlFor="csv-upload"
+              className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 cursor-pointer transition-all hover:opacity-90 ${isImporting ? 'opacity-50 pointer-events-none' : ''}`}
+              style={{ background: '#1E2128', color: 'white' }}
+              data-testid="csv-upload-btn"
+            >
+              {isImporting ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Importazione...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-5 h-5" />
+                  Carica CSV
+                </>
+              )}
+            </label>
+          </div>
+        </div>
+        
+        {/* Import Result */}
+        {importResult && (
+          <div className={`mt-4 p-4 rounded-xl ${importResult.success ? 'bg-green-50' : 'bg-red-50'}`}>
+            <div className="flex items-center gap-2">
+              {importResult.success ? (
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+              ) : (
+                <AlertCircle className="w-5 h-5 text-red-600" />
+              )}
+              <span className={`font-bold ${importResult.success ? 'text-green-700' : 'text-red-700'}`}>
+                {importResult.success ? importResult.message : importResult.error}
+              </span>
+            </div>
+            {importResult.success && (
+              <div className="mt-2 grid grid-cols-3 gap-4 text-sm">
+                <div className="text-center p-2 rounded-lg bg-white">
+                  <div className="text-2xl font-black text-green-600">{importResult.contacts_imported}</div>
+                  <div className="text-xs text-gray-500">Nuovi importati</div>
+                </div>
+                <div className="text-center p-2 rounded-lg bg-white">
+                  <div className="text-2xl font-black text-blue-600">{importResult.contacts_updated}</div>
+                  <div className="text-xs text-gray-500">Aggiornati</div>
+                </div>
+                <div className="text-center p-2 rounded-lg bg-white">
+                  <div className="text-2xl font-black text-purple-600">{importResult.total_in_database?.toLocaleString()}</div>
+                  <div className="text-xs text-gray-500">Totale in DB</div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Instructions */}
+        <div className="mt-4 p-4 rounded-xl" style={{ background: '#FAFAF7' }}>
+          <h3 className="text-sm font-bold mb-2" style={{ color: '#1E2128' }}>📋 Come esportare da Systeme.io:</h3>
+          <ol className="text-xs space-y-1" style={{ color: '#5F6572' }}>
+            <li>1. Vai su <strong>Systeme.io → Contatti</strong></li>
+            <li>2. Clicca su <strong>"Esporta"</strong> in alto a destra</li>
+            <li>3. Seleziona <strong>tutti i contatti</strong> o filtra per tag</li>
+            <li>4. Scarica il file CSV e caricalo qui</li>
+          </ol>
         </div>
       </div>
 
