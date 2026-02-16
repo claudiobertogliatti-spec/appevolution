@@ -7473,6 +7473,138 @@ async def get_webhook_stats():
         }
     }
 
+# =============================================================================
+# TRIPWIRE €7 - SALES KPI & TRACKING
+# =============================================================================
+
+@api_router.get("/sales/kpi")
+async def get_sales_kpi():
+    """
+    Get sales KPIs for Tripwire and all products.
+    Tracks conversions from Systeme.io webhooks.
+    """
+    from datetime import timedelta
+    
+    now = datetime.now(timezone.utc)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start = today_start - timedelta(days=today_start.weekday())
+    month_start = today_start.replace(day=1)
+    
+    # All-time stats
+    all_payments = await db.payments.find({}, {"_id": 0}).to_list(10000)
+    
+    total_revenue = sum(p.get("amount", 0) for p in all_payments)
+    total_orders = len(all_payments)
+    
+    # Tripwire specific (€7 offers)
+    tripwire_payments = [p for p in all_payments if p.get("amount", 0) <= 10 or "tripwire" in p.get("product", "").lower()]
+    tripwire_revenue = sum(p.get("amount", 0) for p in tripwire_payments)
+    tripwire_count = len(tripwire_payments)
+    
+    # Time-based stats
+    def count_in_period(payments, start_date):
+        count = 0
+        revenue = 0
+        for p in payments:
+            created = p.get("created_at", "")
+            if created:
+                try:
+                    dt = datetime.fromisoformat(created.replace("Z", "+00:00"))
+                    if dt >= start_date:
+                        count += 1
+                        revenue += p.get("amount", 0)
+                except:
+                    pass
+        return count, revenue
+    
+    today_count, today_revenue = count_in_period(all_payments, today_start)
+    week_count, week_revenue = count_in_period(all_payments, week_start)
+    month_count, month_revenue = count_in_period(all_payments, month_start)
+    
+    # Conversion rate (if we have contact data)
+    total_contacts = await db.systeme_contacts.count_documents({})
+    conversion_rate = (total_orders / total_contacts * 100) if total_contacts > 0 else 0
+    
+    # Product breakdown
+    product_pipeline = [
+        {"$group": {
+            "_id": "$product",
+            "count": {"$sum": 1},
+            "revenue": {"$sum": "$amount"}
+        }},
+        {"$sort": {"revenue": -1}}
+    ]
+    products = await db.payments.aggregate(product_pipeline).to_list(20)
+    
+    return {
+        "summary": {
+            "total_revenue": round(total_revenue, 2),
+            "total_orders": total_orders,
+            "average_order_value": round(total_revenue / total_orders, 2) if total_orders > 0 else 0,
+            "conversion_rate": round(conversion_rate, 2)
+        },
+        "tripwire": {
+            "revenue": round(tripwire_revenue, 2),
+            "orders": tripwire_count,
+            "target_price": 7
+        },
+        "periods": {
+            "today": {"orders": today_count, "revenue": round(today_revenue, 2)},
+            "this_week": {"orders": week_count, "revenue": round(week_revenue, 2)},
+            "this_month": {"orders": month_count, "revenue": round(month_revenue, 2)}
+        },
+        "products": [
+            {"product": p["_id"] or "Unknown", "orders": p["count"], "revenue": round(p["revenue"], 2)}
+            for p in products
+        ],
+        "total_contacts": total_contacts
+    }
+
+@api_router.post("/sales/record")
+async def record_manual_sale(
+    email: str,
+    product: str,
+    amount: float,
+    order_id: Optional[str] = None,
+    source: str = "manual"
+):
+    """
+    Manually record a sale (useful for tracking sales from external sources).
+    """
+    payment = {
+        "partner_email": email,
+        "order_id": order_id or f"MAN-{str(uuid.uuid4())[:8]}",
+        "product": product,
+        "amount": amount,
+        "currency": "EUR",
+        "status": "completed",
+        "source": source,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.payments.insert_one(payment)
+    
+    # Update contact score if exists
+    await db.systeme_contacts.update_one(
+        {"email": email},
+        {"$addToSet": {"tags": {"name": "purchased", "added_at": datetime.now(timezone.utc).isoformat()}}}
+    )
+    
+    return {
+        "success": True,
+        "payment": {k: v for k, v in payment.items() if k != "_id"}
+    }
+
+@api_router.get("/sales/recent")
+async def get_recent_sales(limit: int = 20):
+    """Get recent sales for the dashboard"""
+    sales = await db.payments.find(
+        {},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    return {"sales": sales, "count": len(sales)}
+
 @api_router.get("/leads")
 async def get_leads(status: Optional[str] = None, min_score: int = 0):
     """Get all leads with optional filtering"""
