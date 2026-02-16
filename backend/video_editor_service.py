@@ -360,7 +360,7 @@ class VideoEditorService:
     async def generate_subtitles(self, video_path: str, 
                                   language: str = "it") -> Dict:
         """
-        Generate subtitles using OpenAI Whisper API
+        Generate subtitles using OpenAI Whisper API via emergentintegrations
         Returns SRT content and segments
         """
         api_key = os.environ.get('EMERGENT_LLM_KEY', '')
@@ -380,31 +380,33 @@ class VideoEditorService:
             ]
             self._run_ffmpeg(extract_cmd)
             
-            # Call Whisper API
-            async with httpx.AsyncClient(timeout=180.0) as client:
-                with open(temp_audio, 'rb') as audio_file:
-                    files = {'file': ('audio.mp3', audio_file, 'audio/mpeg')}
-                    data = {
-                        'model': 'whisper-1',
-                        'language': language,
-                        'response_format': 'verbose_json',
-                        'timestamp_granularities[]': 'segment'
-                    }
-                    
-                    response = await client.post(
-                        'https://api.openai.com/v1/audio/transcriptions',
-                        headers={'Authorization': f'Bearer {api_key}'},
-                        files=files,
-                        data=data
-                    )
-                    
-                    if response.status_code != 200:
-                        return {"success": False, "error": f"Whisper API error: {response.text}"}
-                    
-                    result = response.json()
+            # Use emergentintegrations for Whisper
+            from emergentintegrations.llm.openai import OpenAISpeechToText
+            
+            stt = OpenAISpeechToText(api_key=api_key)
+            
+            with open(temp_audio, 'rb') as audio_file:
+                response = await stt.transcribe(
+                    file=audio_file,
+                    model="whisper-1",
+                    response_format="verbose_json",
+                    language=language,
+                    timestamp_granularities=["segment"]
+                )
+            
+            # Extract segments from response
+            segments = []
+            if hasattr(response, 'segments'):
+                for seg in response.segments:
+                    segments.append({
+                        "start": seg.start,
+                        "end": seg.end,
+                        "text": seg.text
+                    })
+            
+            text = response.text if hasattr(response, 'text') else ""
             
             # Convert to SRT format
-            segments = result.get("segments", [])
             srt_content = self._segments_to_srt(segments)
             
             # Save SRT file
@@ -415,7 +417,7 @@ class VideoEditorService:
             
             return {
                 "success": True,
-                "text": result.get("text", ""),
+                "text": text,
                 "segments": segments,
                 "srt_content": srt_content,
                 "srt_path": str(srt_path),
