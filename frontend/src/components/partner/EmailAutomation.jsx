@@ -354,6 +354,93 @@ export function EmailAutomation({ partner }) {
         </div>
       )}
 
+      {/* Email Queue Tab */}
+      {activeTab === "queue" && (
+        <div className="space-y-4">
+          {/* How it works */}
+          <div className="bg-white rounded-2xl p-5 shadow-sm" style={{ border: '1px solid #7B68AE30' }}>
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl" style={{ background: '#7B68AE20' }}>
+                ⚡
+              </div>
+              <div>
+                <h4 className="font-bold mb-1" style={{ color: '#1E2128' }}>Come funziona l'automazione</h4>
+                <p className="text-sm" style={{ color: '#5F6572' }}>
+                  Quando un nuovo iscritto arriva tramite <strong>Systeme.io webhook</strong>, 
+                  le sequenze attive vengono automaticamente attivate. Le email vengono messe in coda 
+                  e inviate secondo i tempi configurati.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {emailQueue.length === 0 ? (
+            <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
+              <Send className="w-12 h-12 mx-auto mb-4" style={{ color: '#9CA3AF' }} />
+              <h3 className="font-bold text-lg mb-2" style={{ color: '#1E2128' }}>
+                Nessuna email in coda
+              </h3>
+              <p className="text-sm" style={{ color: '#5F6572' }}>
+                Quando arriverà un nuovo iscritto, le email appariranno qui
+              </p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr style={{ background: '#FAFAF7', borderBottom: '1px solid #ECEDEF' }}>
+                    <th className="text-left px-5 py-3 text-xs font-bold" style={{ color: '#9CA3AF' }}>CONTATTO</th>
+                    <th className="text-left px-4 py-3 text-xs font-bold" style={{ color: '#9CA3AF' }}>SEQUENZA/EMAIL</th>
+                    <th className="text-left px-4 py-3 text-xs font-bold" style={{ color: '#9CA3AF' }}>STATO</th>
+                    <th className="text-left px-4 py-3 text-xs font-bold" style={{ color: '#9CA3AF' }}>DATA</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {emailQueue.slice(0, 20).map((item, idx) => (
+                    <tr key={item.id || idx} style={{ borderBottom: '1px solid #ECEDEF' }}>
+                      <td className="px-5 py-3">
+                        <div className="text-sm font-bold" style={{ color: '#1E2128' }}>{item.contact_name}</div>
+                        <div className="text-xs" style={{ color: '#9CA3AF' }}>{item.contact_email}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-sm" style={{ color: '#5F6572' }}>
+                          {item.sequence_name || item.automation_name || item.subject}
+                        </div>
+                        {item.type === 'sequence' && (
+                          <div className="text-xs" style={{ color: '#9CA3AF' }}>
+                            Step {(item.current_step || 0) + 1} di {item.steps?.length || '?'}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                          item.status === 'sent' ? 'bg-green-100 text-green-600' :
+                          item.status === 'active' ? 'bg-blue-100 text-blue-600' :
+                          item.status === 'pending' ? 'bg-yellow-100 text-yellow-600' :
+                          item.status === 'scheduled' ? 'bg-purple-100 text-purple-600' :
+                          'bg-gray-100 text-gray-600'
+                        }`}>
+                          {item.status === 'sent' ? '✓ Inviata' :
+                           item.status === 'active' ? '▶ Attiva' :
+                           item.status === 'pending' ? '⏳ In attesa' :
+                           item.status === 'scheduled' ? '📅 Programmata' :
+                           item.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs" style={{ color: '#9CA3AF' }}>
+                        {new Date(item.created_at).toLocaleDateString('it-IT', { 
+                          day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' 
+                        })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Create Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
