@@ -292,6 +292,67 @@ Creare un'applicazione full-stack proprietaria per Evolution PRO - una piattafor
 - Nuova voce "Pagine Legali" con badge NEW
 - Tool sempre accessibili (non bloccati da fase)
 
+### V22.0 - Partner Hub, Funnel Analytics & Stripe Checkout (16 Feb 2026) ✅
+
+#### 1. Partner Profile Hub Backend
+- **API Endpoints**:
+  - `GET /api/partner-hub/{partner_id}`: Profilo completo partner
+  - `PUT /api/partner-hub/{partner_id}`: Aggiorna profilo hub
+  - `PATCH /api/partner-hub/{partner_id}/field`: Aggiorna singolo campo
+- **Dati gestiti**:
+  - Identity: nome, email, telefono, città, bio, foto
+  - Social: website, Instagram, LinkedIn, YouTube
+  - Posizionamento: chi sei, target, problema, soluzione, pitch, differenziatore
+  - Offerta: nome, prezzo, cosa include, garanzia
+  - Brand Kit: logo, colori, font, tono di voce, keywords
+  - Media: hero photo, intro video, voice sample
+  - Progress: tracking avanzamento moduli
+- **Frontend**: `/app/frontend/src/components/partner/PartnerProfileHub.jsx`
+  - Caricamento/salvataggio dinamico da backend
+  - Editing inline con salvataggio automatico
+  - Indicatore di caricamento e salvataggio
+
+#### 2. Funnel Analytics Dashboard
+- **Frontend**: `/app/frontend/src/components/partner/FunnelAnalytics.jsx`
+- **4 Card Metriche Chiave**:
+  - 👀 Visite Opt-in
+  - 📧 Iscritti
+  - 🎬 Visto Masterclass
+  - 💰 Acquisti
+- **Dati da Systeme.io**:
+  - `GET /api/systeme/stats/{partner_id}`: Stats aggregate
+  - Demo mode se non connesso
+  - Refresh manuale disponibile
+- **Stats Row**: Oggi, settimana, mese, conversion rate
+- **Tag Distribution**: Visualizzazione tag contatti
+
+#### 3. Stripe Checkout Avatar Service
+- **Backend Integration**:
+  - Import: `emergentintegrations.payments.stripe.checkout`
+  - API Key: `STRIPE_API_KEY` in `.env`
+- **Pacchetti Fissi (server-side):**
+  - `single_lesson`: €120 - Lezione singola
+  - `bundle_3`: €300 - 3 lezioni (sconto 17%)
+  - `bundle_5`: €450 - 5 lezioni (sconto 25%)
+  - `full_course`: €800 - Videocorso completo
+- **API Endpoints**:
+  - `GET /api/avatar-packages`: Lista pacchetti
+  - `POST /api/avatar-checkout`: Crea sessione checkout
+  - `GET /api/avatar-checkout/status/{session_id}`: Verifica pagamento
+  - `POST /api/webhook/stripe`: Webhook eventi Stripe
+  - `GET /api/avatar-payments/{partner_id}`: Storico pagamenti
+- **Frontend**: `/app/frontend/src/components/partner/AvatarCheckout.jsx`
+  - Selezione pacchetto
+  - Input dettagli lezione
+  - Redirect Stripe Checkout
+  - Polling status pagamento
+  - Notifica Telegram su pagamento completato
+- **Security**: Importi definiti solo server-side, URL dinamici
+
+#### 4. Sidebar Partner Updates
+- Nuove voci: Analytics Funnel, Avatar PRO €120
+- Tutte le nuove sezioni sempre accessibili
+
 ### V13.0 - JWT Authentication & Telegram Notifications (13 Feb 2026) ✅
 
 #### 1. JWT Authentication System
