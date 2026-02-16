@@ -699,6 +699,8 @@ export default function App() {
             {nav==="video-editor"&&<VideoEditorAndrea partner={demoPartner} onBack={()=>setNav("home")}/>}
             {nav==="legal-pages"&&<LegalPagesGenerator partner={demoPartner} onBack={()=>setNav("home")}/>}
             {nav==="profilo-hub"&&<PartnerProfileHub partner={demoPartner} onNavigate={setNav}/>}
+            {nav==="domain-config"&&<DomainConfiguration partner={demoPartner}/>}
+            {nav==="email-automation"&&<EmailAutomation partner={demoPartner}/>}
           </>}
         </div>
       </div>
