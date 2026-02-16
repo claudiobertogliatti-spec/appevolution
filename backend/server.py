@@ -5606,6 +5606,123 @@ async def disconnect_systeme(partner_id: str):
         "message": "Connessione Systeme.io rimossa"
     }
 
+@api_router.post("/systeme/import-csv")
+async def import_systeme_contacts_csv(
+    file: UploadFile = File(...),
+    partner_id: str = Form(default="global")
+):
+    """
+    Import contacts from a Systeme.io CSV export.
+    Expected CSV columns: email, firstName, lastName, tags, registeredAt, etc.
+    """
+    import csv
+    import io
+    
+    try:
+        # Read CSV content
+        content = await file.read()
+        
+        # Try different encodings
+        for encoding in ['utf-8', 'utf-8-sig', 'latin-1', 'cp1252']:
+            try:
+                text_content = content.decode(encoding)
+                break
+            except UnicodeDecodeError:
+                continue
+        else:
+            raise HTTPException(status_code=400, detail="Impossibile decodificare il file CSV")
+        
+        # Parse CSV
+        csv_reader = csv.DictReader(io.StringIO(text_content))
+        
+        contacts_imported = 0
+        contacts_updated = 0
+        errors = []
+        
+        for row in csv_reader:
+            try:
+                # Map CSV columns to contact schema (handle various column names)
+                email = row.get('email', row.get('Email', row.get('E-mail', ''))).strip()
+                
+                if not email:
+                    continue
+                
+                # Generate a unique ID based on email if no systeme_id
+                systeme_id = row.get('id', row.get('ID', row.get('contact_id', str(hash(email)))))
+                
+                # Parse tags - could be comma-separated string or JSON
+                tags_raw = row.get('tags', row.get('Tags', row.get('tag', '')))
+                if isinstance(tags_raw, str):
+                    if tags_raw.startswith('['):
+                        try:
+                            tags = json.loads(tags_raw)
+                        except:
+                            tags = [{"name": t.strip()} for t in tags_raw.split(',') if t.strip()]
+                    else:
+                        tags = [{"name": t.strip()} for t in tags_raw.split(',') if t.strip()]
+                else:
+                    tags = []
+                
+                contact = {
+                    "id": str(uuid.uuid4()),
+                    "partner_id": partner_id,
+                    "systeme_id": str(systeme_id),
+                    "email": email,
+                    "first_name": row.get('firstName', row.get('first_name', row.get('First Name', row.get('Nome', '')))),
+                    "last_name": row.get('lastName', row.get('last_name', row.get('Last Name', row.get('Cognome', '')))),
+                    "tags": tags,
+                    "source": row.get('source', row.get('Source', row.get('sourceURL', ''))),
+                    "created_at": row.get('registeredAt', row.get('registered_at', row.get('Created At', datetime.now(timezone.utc).isoformat()))),
+                    "locale": row.get('locale', row.get('Locale', '')),
+                    "unsubscribed": row.get('unsubscribed', 'false').lower() == 'true',
+                    "synced_at": datetime.now(timezone.utc).isoformat(),
+                    "import_source": "csv"
+                }
+                
+                # Upsert by email (more reliable than systeme_id for CSV imports)
+                result = await db.systeme_contacts.update_one(
+                    {"partner_id": partner_id, "email": email},
+                    {"$set": contact},
+                    upsert=True
+                )
+                
+                if result.upserted_id:
+                    contacts_imported += 1
+                else:
+                    contacts_updated += 1
+                    
+            except Exception as e:
+                errors.append(f"Row error: {str(e)}")
+                if len(errors) >= 10:
+                    errors.append("... (altri errori omessi)")
+                    break
+        
+        # Update stats
+        total_contacts = await db.systeme_contacts.count_documents({"partner_id": partner_id})
+        
+        await db.systeme_stats.update_one(
+            {"partner_id": partner_id},
+            {"$set": {
+                "total_contacts": total_contacts,
+                "last_import": datetime.now(timezone.utc).isoformat(),
+                "import_method": "csv"
+            }},
+            upsert=True
+        )
+        
+        return {
+            "success": True,
+            "contacts_imported": contacts_imported,
+            "contacts_updated": contacts_updated,
+            "total_in_database": total_contacts,
+            "errors": errors if errors else None,
+            "message": f"Importati {contacts_imported} nuovi contatti, aggiornati {contacts_updated}"
+        }
+        
+    except Exception as e:
+        logging.error(f"CSV import error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.get("/systeme/dashboard/{partner_id}")
 async def get_systeme_dashboard(partner_id: str):
     """Get complete Systeme.io dashboard data for a partner"""
