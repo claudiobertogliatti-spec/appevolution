@@ -5161,6 +5161,200 @@ async def get_systeme_connection_status(partner_id: str):
         "message": "Systeme.io connesso e attivo" if credentials.get("is_active") else "Connessione inattiva"
     }
 
+@api_router.post("/systeme/sync-batch")
+async def sync_systeme_contacts_batch(partner_id: str = "global", start_page: int = 1, pages_per_batch: int = 10):
+    """
+    Sync contacts from Systeme.io in batches to avoid timeouts.
+    Call multiple times with increasing start_page to sync all contacts.
+    """
+    try:
+        # Get credentials
+        credentials = await db.systeme_credentials.find_one({"partner_id": partner_id})
+        if not credentials:
+            raise HTTPException(status_code=404, detail="Credenziali Systeme.io non trovate")
+        
+        api_key = credentials["api_key"]
+        
+        # Fetch contacts in batch
+        all_contacts = []
+        page = start_page
+        end_page = start_page + pages_per_batch
+        has_more = True
+        
+        while has_more and page < end_page:
+            try:
+                response = await systeme_api_request(api_key, f"/contacts?page={page}&limit=100")
+                
+                contacts_data = response.get("data", response.get("items", []))
+                if isinstance(contacts_data, list) and len(contacts_data) > 0:
+                    all_contacts.extend(contacts_data)
+                    page += 1
+                else:
+                    has_more = False
+                    
+            except HTTPException as e:
+                if e.status_code == 429:
+                    logging.warning("Systeme.io rate limited")
+                    break
+                else:
+                    raise e
+        
+        # Save contacts to database
+        synced_count = 0
+        for contact_data in all_contacts:
+            contact_id = contact_data.get("id", str(uuid.uuid4()))
+            
+            contact = {
+                "id": str(uuid.uuid4()),
+                "partner_id": partner_id,
+                "systeme_id": str(contact_id),
+                "email": contact_data.get("email", ""),
+                "first_name": contact_data.get("firstName", contact_data.get("first_name")),
+                "last_name": contact_data.get("lastName", contact_data.get("last_name")),
+                "tags": contact_data.get("tags", []),
+                "source": contact_data.get("source", ""),
+                "created_at": contact_data.get("createdAt", contact_data.get("created_at", datetime.now(timezone.utc).isoformat())),
+                "updated_at": contact_data.get("updatedAt", contact_data.get("updated_at")),
+                "synced_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            # Upsert by systeme_id
+            await db.systeme_contacts.update_one(
+                {"partner_id": partner_id, "systeme_id": contact["systeme_id"]},
+                {"$set": contact},
+                upsert=True
+            )
+            synced_count += 1
+        
+        # Get total count in DB
+        total_in_db = await db.systeme_contacts.count_documents({"partner_id": partner_id})
+        
+        # Update credentials with sync progress
+        await db.systeme_credentials.update_one(
+            {"partner_id": partner_id},
+            {"$set": {
+                "last_sync_page": page,
+                "total_contacts": total_in_db,
+                "last_sync": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        return {
+            "success": True,
+            "batch_synced": synced_count,
+            "pages_processed": f"{start_page}-{page-1}",
+            "has_more": has_more,
+            "next_start_page": page if has_more else None,
+            "total_in_database": total_in_db,
+            "message": f"Sincronizzati {synced_count} contatti. Totale in DB: {total_in_db}"
+        }
+        
+    except Exception as e:
+        logging.error(f"Batch sync error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/systeme/sync-all")
+async def sync_all_systeme_contacts(background_tasks: BackgroundTasks, partner_id: str = "global"):
+    """
+    Start background sync of all Systeme.io contacts.
+    Returns immediately, sync happens in background.
+    """
+    async def background_sync():
+        try:
+            credentials = await db.systeme_credentials.find_one({"partner_id": partner_id})
+            if not credentials:
+                return
+            
+            api_key = credentials["api_key"]
+            page = 1
+            total_synced = 0
+            has_more = True
+            
+            while has_more and page <= 200:  # Max 20,000 contacts
+                try:
+                    response = await systeme_api_request(api_key, f"/contacts?page={page}&limit=100")
+                    contacts_data = response.get("data", response.get("items", []))
+                    
+                    if isinstance(contacts_data, list) and len(contacts_data) > 0:
+                        # Save batch
+                        for contact_data in contacts_data:
+                            contact_id = contact_data.get("id", str(uuid.uuid4()))
+                            contact = {
+                                "id": str(uuid.uuid4()),
+                                "partner_id": partner_id,
+                                "systeme_id": str(contact_id),
+                                "email": contact_data.get("email", ""),
+                                "first_name": contact_data.get("firstName", contact_data.get("first_name")),
+                                "last_name": contact_data.get("lastName", contact_data.get("last_name")),
+                                "tags": contact_data.get("tags", []),
+                                "source": contact_data.get("source", ""),
+                                "created_at": contact_data.get("createdAt", datetime.now(timezone.utc).isoformat()),
+                                "updated_at": contact_data.get("updatedAt"),
+                                "synced_at": datetime.now(timezone.utc).isoformat()
+                            }
+                            await db.systeme_contacts.update_one(
+                                {"partner_id": partner_id, "systeme_id": contact["systeme_id"]},
+                                {"$set": contact},
+                                upsert=True
+                            )
+                            total_synced += 1
+                        
+                        page += 1
+                        
+                        # Update progress every 10 pages
+                        if page % 10 == 0:
+                            await db.systeme_credentials.update_one(
+                                {"partner_id": partner_id},
+                                {"$set": {"sync_progress": total_synced, "sync_page": page}}
+                            )
+                            logging.info(f"Sync progress: {total_synced} contacts, page {page}")
+                    else:
+                        has_more = False
+                        
+                except Exception as e:
+                    logging.error(f"Sync page {page} error: {e}")
+                    break
+            
+            # Final update
+            await db.systeme_credentials.update_one(
+                {"partner_id": partner_id},
+                {"$set": {
+                    "total_contacts": total_synced,
+                    "last_sync": datetime.now(timezone.utc).isoformat(),
+                    "sync_complete": True
+                }}
+            )
+            logging.info(f"Background sync complete: {total_synced} contacts")
+            
+        except Exception as e:
+            logging.error(f"Background sync failed: {e}")
+    
+    # Start background task
+    background_tasks.add_task(background_sync)
+    
+    return {
+        "success": True,
+        "message": "Sincronizzazione avviata in background. Controlla /api/systeme/sync-status per il progresso."
+    }
+
+@api_router.get("/systeme/sync-status/{partner_id}")
+async def get_sync_status(partner_id: str):
+    """Get current sync status"""
+    credentials = await db.systeme_credentials.find_one({"partner_id": partner_id}, {"_id": 0})
+    if not credentials:
+        raise HTTPException(status_code=404, detail="Partner non trovato")
+    
+    total_in_db = await db.systeme_contacts.count_documents({"partner_id": partner_id})
+    
+    return {
+        "partner_id": partner_id,
+        "total_contacts_in_db": total_in_db,
+        "sync_progress": credentials.get("sync_progress", 0),
+        "sync_page": credentials.get("sync_page", 0),
+        "sync_complete": credentials.get("sync_complete", False),
+        "last_sync": credentials.get("last_sync")
+    }
+
 @api_router.post("/systeme/sync")
 async def sync_systeme_contacts(request: SystemeIOSyncRequest):
     """Sync contacts from Systeme.io API"""
