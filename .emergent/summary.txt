@@ -1,107 +1,96 @@
 <analysis>**original_problem_statement:**
 The user is building Evolution PRO OS, a proprietary web application for business workflow automation.
 
-Initial session goals were to complete JWT auth, set up Telegram notifications, create admin views, and perform a major UI overhaul to a light theme.
-
-During this session, the user expanded the scope to:
-1.  Fix all remaining dark UI elements from the previous refactor.
-2.  Fix the mocked LLM Course Builder.
-3.  Redesign the Partner Dashboard with gamification elements (badges, progress, etc.) based on a new mockup.
-4.  Implement a complete Systeme.io webhook system to automate partner onboarding, phase progression, and lead scoring.
-5.  Build a Funnel Review wizard and a Masterclass/Videocorso studio for partners, based on mockups.
-6.  In the videocorso studio, add options for partners to choose between a paid Avatar + Voice Clone service and a free Self-Recording option, including dynamic pricing.
-7.  Add a Free Trial flow for the avatar service.
-8.  Integrate the HeyGen API to power the avatar creation feature.
-9.  Create a placeholder page for Servizi Extra (Extra Services).
-10. Ensure the AI persona Andrea is presented as the creator/editor for all video-related tasks.
+The scope of work for this session included:
+1.  **HeyGen Avatar Trial Fix:** Resolve the blocker preventing the HeyGen avatar feature from working by implementing a file storage solution for public URLs.
+2.  **Servizi Extra Page:** Complete the integration of the placeholder page into the UI.
+3.  **Video Editing App for Andrea:** Implement a basic video editor for the AI persona Andrea, allowing for cutting/joining clips and adding automatic subtitles using Whisper.
+4.  **Legal Pages Generator:** Create a tool for partners to generate legal documents (Privacy Policy, T&C, Cookie Policy, Disclaimer) based on their profile data.
+5.  **Partner Profile Hub:** Implement a new, centralized partner profile page based on a provided HTML mockup.
+6.  **Funnel Page Generator:** Implement a system to generate funnel pages. After discovering the Systeme.io API does not support page creation, the plan shifted to creating an exportable HTML/PDF document that an admin (Stefania) can use to manually build the pages in Systeme.io.
+7.  **Domain Configuration:** Implement a UI for partners to submit a custom domain for their funnel, which an admin will then manually configure in Systeme.io and provide DNS records back to the partner through the app.
 
 **User's preferred language**: Italian. The next agent **MUST** respond in **Italian**.
 
 **what currently exists?**
 A full-stack application (React/FastAPI/MongoDB).
--   **Backend:** JWT authentication and Telegram notifications are functional. A complete Systeme.io webhook system is implemented () to handle new sales, subscribers, and tags, with automation logic for partner creation and phase updates. A new  and corresponding API endpoints () have been created and successfully connected to the HeyGen API using the user's key. The monolithic  has grown significantly with these additions.
--   **Frontend:** The global light theme refactor is complete. The application features a new gamified Partner Dashboard, a Funnel Review builder, and a Masterclass/Videocorso studio. The videocorso section includes a UI for selecting production modes (paid Avatar vs. free self-recording) and a multi-step modal for a free avatar trial. A new admin dashboard for monitoring webhooks () is also present. A placeholder component for a Servizi Extra page has been created but is not yet integrated into the UI.
--   **AI Personas:** Andrea is established as the AI director who handles funnel reviews, video script/lesson creation, and avatar generation (which is powered by HeyGen behind the scenes).
+-   **Backend:** The monolithic  now includes integrations for HeyGen, Systeme.io (webhooks and API), Telegram, and a newly added **Cloudinary** integration for file uploads. New service files have been created for these features: ,  (with functional Whisper SRT generation and video burning via FFmpeg), , and . Corresponding API endpoints have been added to . The  is correctly used with  for the Whisper API calls.
+-   **Frontend:** The React frontend has been significantly expanded with several new, fully integrated components: , , and . The  in  has been completely rewritten to use the new Cloudinary backend for real file uploads, making the feature fully functional. The  now includes a function to export the funnel content as an HTML file. A new, placeholder component  has been created.
+-   **AI Personas:** Andrea is the established AI persona for all video and content generation tasks. Stefania has been introduced as the human admin who handles the manual funnel creation in Systeme.io.
 
 **Last working item**:
--   Last item agent was working: The agent was implementing the user's request to create a new placeholder page for Servizi Extra and update UI text to clarify that Andrea is the persona behind the AI video features. The agent successfully created the  component and updated the text in the Avatar trial modal. The immediate next step was to integrate the new component into the application's navigation.
+-   Last item agent was working: The agent was implementing the Domain Configuration feature. After receiving the user's manual workflow description, the agent created the frontend component  and was about to add the necessary API endpoints to the backend to manage domain requests.
 -   Status: **IN PROGRESS**
 -   Agent Testing Done: N
--   Which testing method agent to use? **frontend testing agent** or **screenshot tool** to verify the new Servizi Extra menu item appears in the partner sidebar and navigates to the new placeholder page.
+-   Which testing method agent to use? **both**. The backend agent should test the new API endpoints for creating and retrieving domain configurations using . The frontend agent should use the  to verify the new component is integrated into the UI and displays the correct states for the 3-step manual process.
 -   User Testing Done: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: HeyGen Integration Requires Public File URLs (P0 - HIGHEST PRIORITY / BLOCKER)**
-    -   The HeyGen API requires public URLs for photo and audio files to create avatars. The current implementation does not include a file storage service (like S3) to handle uploads and generate these public URLs. This completely blocks the Free Avatar Trial feature from being functional.
-    -   **Attempted fixes:** None. This was identified as a future requirement at the end of the session.
+-   **Issue 1: Backend Latency and API Timeouts (P2)**
+    -   An underlying issue causing potential  errors from LLM calls was mentioned in a previous fork. While specific symptoms have been fixed (like the LLM Course Builder), the root cause has not been investigated and may still affect other AI-dependent features.
+    -   **Attempted fixes:** None in this session.
     -   **Next debug checklist:**
-        1.  Choose a file storage solution (e.g., AWS S3, Cloudinary, or a simple local static file server for now).
-        2.  Implement a backend endpoint to handle file uploads (photo/audio).
-        3.  The endpoint must save the file to the chosen storage and return a publicly accessible URL.
-        4.  Update the frontend  to send files to this new endpoint.
-    -   **Why fix this issue and what will be achieved with the fix?** This is critical to make the entire Avatar feature (both trial and paid) functional. It unblocks a major feature requested by the user.
-    -   **Status:** BLOCKED
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** None.
--   **Issue 2: Backend Latency and API Timeouts (P2)**
-    -   An underlying issue causing potential  errors from LLM calls was mentioned in the previous fork. While the specific instance in the Course Builder was fixed, the root cause was never investigated and might still affect other LLM-dependent features like .
+        1.  Review logs for  errors during long-running AI operations (e.g., video processing, complex text generation).
+        2.  Investigate if a background task runner (like Celery) is needed to handle long-running processes asynchronously, preventing API gateway timeouts.
+    -   **Why fix this issue and what will be achieved with the fix?** To improve application stability and prevent user-facing errors on critical AI features.
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?** backend
+    -   **Blocked on other issue:** None.
 
 **In progress Task List**:
--   **Task 1: Integrate Servizi Extra Page into UI (P1)**
-    -   **Where to resume:** The component  has been created. The agent needs to:
-        1.  Add a new menu item for Servizi Extra in .
-        2.  Import  in .
-        3.  Add the routing logic in  to render the component when the new menu item is clicked.
-    -   **What will be achieved with this?** This will complete the user's request to have a placeholder section ready for future content.
+-   **Task 1: Implement Domain Configuration Feature (P0 - HIGHEST PRIORITY)**
+    -   **Where to resume:** The component  exists. The agent needs to:
+        1.  Add new API endpoints to  to handle the domain management flow:
+            -   : Allows a partner to submit their desired domain name.
+            -   : Allows an admin to update the domain record with DNS settings from Systeme.io.
+            -   : Allows a partner to retrieve the status and DNS records for their domain.
+        2.  Implement the UI logic in  to reflect the 3-step process (partner input, admin pending, partner action required).
+        3.  Integrate the new component into  and add a link in .
+    -   **What will be achieved with this?** This will complete the user-requested feature for managing custom domains for funnels.
     -   **Status:** IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?** frontend
+    -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on something:** No.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **P0: Finalize HeyGen Avatar Trial Flow:** Once the file upload issue is resolved, implement the actual API calls in the frontend  to connect to the backend HeyGen service for voice cloning and video generation.
-    -   **P1: Populate Servizi Extra Section:** Pending user input on what content/features to add to this new page.
-    -   **P1: Implement Document Export/Email:** The UI for this may exist, but the backend functionality to export documents as PDF or email them is missing.
-    -   **P1: Populate PARTI DA QUI Section:** The user will provide video lessons to be integrated here.
-    -   **P2: Advanced Post-Launch Metrics Dashboard:** Create the  component with charts.
-    -   **P2: ACADEMY_VIDEOS:** Implement a system to manage micro-learning videos for partners.
+    -   **P1: Connect Partner Profile Hub to Backend:** The new  is currently a UI-only component with static data. The editable fields need to be connected to the backend to persist partner data.
+    -   **P1: Populate Servizi Extra Section:** Awaiting user input on content.
+    -   **P1: Populate PARTI DA QUI Section:** Awaiting video content from the user.
+    -   **P2: Advanced Post-Launch Metrics Dashboard:** Create the  component.
+    -   **P2: ACADEMY_VIDEOS:** Implement a system to manage micro-learning videos.
 -   **Future Tasks:**
-    -   **P3: Frontend Refactoring:** Decompose the monolithic  and the large  into smaller, manageable components and implement a proper routing structure with .
-    -   **P3: Backend Refactoring:** Split the monolithic  into multiple route files using FastAPI's .
+    -   **P3: Backend Refactoring:** The  monolith is now critically large and complex. It should be split into multiple route files using FastAPI's  (e.g., , , , ).
+    -   **P3: Frontend Refactoring:** Decompose  into a proper routing structure and break down large components like .
 
 **Completed work in this session**
--   **Global Light Theme Refactor (DONE):** All dark UI elements were removed, and the theme was verified via screenshots and the testing agent.
--   **LLM Course Builder Fix (DONE):** Removed mock fallback and fixed the LLM response parsing bug.
--   **Partner Dashboard V2 (Gamification) (DONE):** A completely new, gamified partner dashboard was implemented per the user's mockup.
--   **Systeme.io Webhook Integration (DONE):** A full webhook system was built and tested for automating partner onboarding, stat syncing, and phase progression.
--   **Funnel & Videocorso Studio (DONE):** Created  and  based on user mockups.
--   **Video Production Options (DONE):** Implemented the UI for partners to choose between paid Avatar and free Self-Recording options.
--   **HeyGen API Backend Integration (DONE):** A backend service and API endpoints for HeyGen were created and successfully connected.
+-   **HeyGen/Cloudinary Integration (DONE):** Unblocked the Avatar Free Trial by implementing a full file upload pipeline using Cloudinary. This involved creating , adding endpoints, and rewriting the  to handle real uploads.
+-   **Servizi Extra Page Integration (DONE):** The existing component was successfully integrated into the routing in  and made accessible via the .
+-   **Video Editor Andrea (DONE & TESTED):** A full-featured video editor was implemented (, ). Functionality for trimming, adding branded intro/outro, and generating/burning Whisper subtitles was built and debugged based on user feedback (fixed font size, position, and audio sync issues).
+-   **Legal Pages Generator (DONE):** A feature to generate legal documents from partner data was created (, ) and integrated.
+-   **Partner Profile Hub (DONE):** A new UI component () was created and integrated based on an HTML mockup.
+-   **Funnel Export for Systeme.io (DONE):** Implemented a workaround for Systeme.io API limitations by creating a service () and UI button to export funnel content as an HTML document for manual setup.
 
 **Earlier issues found/mentioned but not fixed**
--   The root cause of  errors during LLM calls was not investigated, even though a specific symptom was fixed. This could resurface in other features.
+-   The root cause of  errors during long-running LLM calls remains uninvestigated.
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork:** Backend Latency and API Timeouts when calling LLMs.
--   **Recurrence count:** 3
+-   **Recurrence count:** 4+
 -   **Status:** NOT STARTED (Root cause analysis is pending).
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Webhook Integration:** Receiving, validating (with a secret key), and processing real-time events from a third-party service (Systeme.io).
--   **3rd Party API Integration:** Interfacing with a generative AI service (HeyGen) for video and voice creation.
--   **Gamification:** Using UI elements like badges, progress bars, and achievements to increase user engagement.
--   **Dynamic Pricing UI:** Creating an interface where user selections (e.g., number of avatar videos) dynamically update a total cost.
+-   **Cloud File Storage:** Integration with Cloudinary for handling user file uploads (images, audio) and generating public URLs.
+-   **Server-Side Media Processing:** Using FFmpeg for complex video manipulations (trimming, concatenating, burning subtitles).
+-   **AI Speech-to-Text:** Using OpenAI's Whisper via  to generate accurate, timestamped SRT subtitles.
+-   **Dynamic Document Generation:** Creating formatted HTML/PDF files on the backend for users to download.
+-   **Manual Admin Workflows:** Designing UI/API flows that support and track manual administrative tasks (like domain configuration).
 
 **key DB schema**
--   : (Implicitly created) Stores incoming webhook events for debugging and display.
--   : (Implicitly created) Stores leads generated from webhooks for the sales intelligence feature.
--   : Schema extended to support new progress tracking for funnels and videocursos.
+-   : Schema implicitly needs fields to store the state of domain configuration. A new collection  may be required to track requests, DNS records, and status.
 
 **All files of reference**
 -   **Created:**
@@ -110,73 +99,78 @@ A full-stack application (React/FastAPI/MongoDB).
     -   
     -   
     -   
+    -   
+    -   
+    -   
 -   **Updated:**
-    -   : Major additions for webhooks and HeyGen endpoints.
-    -   : Added  and .
-    -   : Added new  notification type.
-    -   : Integrated all new dashboards and partner features.
-    -   : Completely rewritten based on a new mockup.
-    -   : Added Webhooks menu item.
-    -   : Added Il tuo Funnel & Masterclass menu items.
-    -   : Updated with all completed features.
+    -   : Major additions for all new services.
+    -   : Added .
+    -   : Integrated all new components and routing logic.
+    -   :  completely rewritten.
+    -   : Added links for all new features.
+    -   : Added export functionality.
+    -   : Updated to V20.0.
 
 **Areas that need refactoring**:
--   : Urgently needs to be broken down into a proper routing structure.
--   : A large monolith that should be split into logical modules (webhooks, heygen, partners, etc.).
--   : This single file has become extremely large and contains definitions for at least three distinct components (, , ). It should be broken into separate files.
+-   : **CRITICAL**. This monolith is becoming unmanageable and is a significant technical debt. It must be broken down into routers.
+-   : Needs a proper routing structure ().
+-   : Still a very large component that should be decomposed.
 
 **key api endpoints**
--   : Receives all webhook events from Systeme.io.
--   : Retrieves processed webhook logs for the admin dashboard.
--   : Verifies the API key for HeyGen.
--   : Lists available avatars and voices from HeyGen.
--   : (Endpoint exists but functionality is likely incomplete without file upload).
+-   : Generates a signature for direct frontend uploads.
+-   : Main endpoint for all video editing tasks (trim, subtitles, etc.).
+-   : Lists available legal document templates.
+-   : Generates a legal document for the partner.
+-   : Generates an HTML export of the funnel content.
 
 **Critical Info for New Agent**
 -   **MUST communicate in Italian.**
--   Your first task is to integrate the  component into the partner sidebar and routing.
--   Your highest priority blocker is implementing a file upload mechanism (e.g., to S3 or similar) to get public URLs for the HeyGen integration. The entire Avatar feature is non-functional without it.
--   The AI persona Andrea is the user-facing director for all video creation tasks. Maintain this illusion in all UI text.
+-   Your first and highest priority task is to complete the **Domain Configuration** feature. This involves building the backend API and connecting it to the existing frontend component.
+-   The HeyGen Avatar feature is now **fully functional** thanks to the Cloudinary integration.
+-   The Video Editor feature has been **tested and debugged** based on user feedback. The final corrected video is available at .
+-   The backend  file has grown significantly and is a major candidate for refactoring. Propose this as a P3 task after completing the immediate feature requests.
 
 **documents and test reports created in this job**
 -    (updated)
--   
+-   Exported videos stored in  and copied to  for user download.
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **User:** Agrees to the implementation of the Funnel Review and Masterclass Studio features based on mockups. (COMPLETED)
-9.  **User:** Provides requirements for videocorso production: a paid Avatar + Voice Clone option (€120/video) and a free Self-Recording option where Andrea edits. (COMPLETED)
-8.  **User:** Confirms that a free 30-second sample for the Avatar feature should be implemented. (COMPLETED)
-7.  **User:** States they have accounts on both HeyGen and ElevenLabs and asks how to integrate them. (ADDRESSED)
-6.  **User:** Provides a HeyGen API key when asked. (ADDRESSED)
-5.  **User:** Clarifies to use *only* HeyGen for the integration. (ADDRESSED)
-4.  **User:** Asks who, in practice, creates the avatar for the partner. (ADDRESSED, clarified as Andrea)
-3.  **User:** Asks to update the UI text to reflect Andrea as the creator and simultaneously requests a new Servizi Extra section placeholder. (IN PROGRESS)
-2.  **User:** (Uploaded artifacts  and ) (COMPLETED)
-1.  **User:** (Uploaded artifact ) (COMPLETED)
+10. **User:** (Provides feedback on subtitled video) Subtitles are too big, cover the video, and audio sync is bad. (RESOLVED)
+9.  **User:** ottimo lavoro (Great work) - Approves the corrected video. (COMPLETED)
+8.  **User:** (Uploads mockup ) Asks to proceed with these changes. (COMPLETED)
+7.  **User:** Asks about the funnel generator, mentioning the UI prototype exists and the hosting decision was pending. (ADDRESSED)
+6.  **User:** opzione a - Confirms the plan to export an HTML template for Systeme.io, with Stefania handling the manual copy. (COMPLETED)
+5.  **User:** Asks to implement domain configuration for the partner to connect to the Systeme.io funnel. (IN PROGRESS)
+4.  **User:** Explains the manual domain configuration workflow they use. (ADDRESSED)
+3.  **User:** Generatore pagine funnel... (Clarifies context about the funnel builder). (ADDRESSED)
+2.  **User:** soluzione a - Reconfirms the export template solution after being told the Systeme.io API is limited. (COMPLETED)
+1.  **User:** opzione a / le pagine devono essere pubbliche su dominio gratuito generato in systeme / il copy lo gestisce stefania - Provides clear direction for the funnel page generation task. (COMPLETED)
 
 **Project Health Check:**
--   **Broken:** The Free Avatar Trial feature is functionally broken as it cannot handle the necessary file uploads to generate public URLs for the HeyGen API.
--   **Mocked:** The frontend of the  is a UI-only mock. While the backend HeyGen service is connected, the frontend does not yet make the API calls to clone voice or generate video.
+-   **Broken:** None.
+-   **Mocked:**
+    -    is UI-only; the data is static and not connected to the backend.
+    -    is a UI placeholder without backend logic.
 
 **3rd Party Integrations**
 -   **Anthropic Claude (via ):** Powers VALENTINA agent chat. Uses **Emergent LLM Key**.
--   **Systeme.io API:** For live contact/tag data sync and agent actions. Requires **User API Key** and a **User MCP Key**.
--   **Telegram Bot API:** For notifications. Requires **User API Key** (Bot Token).
--   **Systeme.io Webhooks:** For real-time event automation. Requires a **User-generated Secret Key**.
--   **HeyGen API:** For avatar and voice clone video generation. Requires **User API Key**.
+-   **OpenAI Whisper (via ):** Powers video subtitling. Uses **Emergent LLM Key**.
+-   **Systeme.io API:** For contacts/tags and webhooks. Requires **User API Key** & **Secret**.
+-   **Telegram Bot API:** For notifications. Requires **User API Key**.
+-   **HeyGen API:** For avatar/video generation. Requires **User API Key**.
+-   **Cloudinary API:** For all file uploads. Requires **User API Key**, **Secret**, and **Cloud Name**.
 
 **Testing status**
--   Testing agent used after significant changes: YES (once, successfully for the light theme fix).
+-   Testing agent used after significant changes: NO (Agent performed extensive manual testing with  and screenshots).
 -   Troubleshoot agent used after agent stuck in loop: NO
--   Test files created: 
+-   Test files created: None.
 -   Known regressions: None.
 
 **Credentials to test flow:**
 -   **Admin User:** email: , password: 
--   **Partner User:** email: , password: 
--   **HeyGen API Key:** Stored in 
--   **Systeme.io Webhook Secret:** Stored in 
+-   **Partner User:** A test partner  was created manually.
+-   **All API Keys** (HeyGen, Systeme, Cloudinary) are stored in .
 
 **What agent forgot to execute**
--   The agent created the  component but did not complete the task by integrating it into the  and  router.
--   The agent correctly identified that the HeyGen integration requires a file storage solution for public URLs but did not proceed to implement it, leaving the feature blocked.</analysis>
+-   The agent did not address the long-standing issue of backend latency/API timeouts, which is a recurring problem.
+-   The agent started the domain configuration task but did not complete the backend implementation or UI integration.</analysis>
