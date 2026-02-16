@@ -396,15 +396,23 @@ class VideoEditorService:
             
             # Extract segments from response
             segments = []
-            if hasattr(response, 'segments'):
-                for seg in response.segments:
+            raw_segments = getattr(response, 'segments', None) or []
+            for seg in raw_segments:
+                # Handle both dict and object segments
+                if isinstance(seg, dict):
                     segments.append({
-                        "start": seg.start,
-                        "end": seg.end,
-                        "text": seg.text
+                        "start": seg.get("start", 0),
+                        "end": seg.get("end", 0),
+                        "text": seg.get("text", "")
+                    })
+                else:
+                    segments.append({
+                        "start": getattr(seg, 'start', 0),
+                        "end": getattr(seg, 'end', 0),
+                        "text": getattr(seg, 'text', "")
                     })
             
-            text = response.text if hasattr(response, 'text') else ""
+            text = getattr(response, 'text', "") or ""
             
             # Convert to SRT format
             srt_content = self._segments_to_srt(segments)
