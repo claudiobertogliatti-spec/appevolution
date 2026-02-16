@@ -238,6 +238,60 @@ Creare un'applicazione full-stack proprietaria per Evolution PRO - una piattafor
 - Registrazione campione vocale
 - Generazione sample 30 sec
 - Preview video risultato
+
+### V19.0 - Video Editor & Legal Pages Generator (16 Feb 2026) ✅
+
+#### 1. Video Editor Andrea
+- **Backend File**: `/app/backend/video_editor_service.py`
+- **Frontend File**: `/app/frontend/src/components/partner/VideoEditorAndrea.jsx`
+- **Funzionalità**:
+  - Upload video con metadata (durata, risoluzione, FPS)
+  - Taglia video (trim) - estrai segmento specifico
+  - Rimuovi segmento (cut) - elimina parte indesiderata
+  - Unisci video (merge) - combina più clip
+  - Aggiungi Intro/Outro brandizzati automatici
+  - Sottotitoli automatici con Whisper API
+  - Burn sottotitoli nel video o scarica SRT
+  - Aggiungi testo overlay con posizione/timing personalizzabili
+- **API Endpoints**:
+  - `POST /api/editor/upload`: Upload video
+  - `GET /api/editor/video-info`: Metadata video
+  - `POST /api/editor/trim`: Taglia segmento
+  - `POST /api/editor/cut`: Rimuovi segmento
+  - `POST /api/editor/merge`: Unisci video
+  - `POST /api/editor/intro-outro`: Aggiungi branding
+  - `POST /api/editor/subtitles/generate`: Genera sottotitoli (Whisper)
+  - `POST /api/editor/subtitles/burn`: Incorpora sottotitoli
+  - `POST /api/editor/text-overlay`: Aggiungi testo
+
+#### 2. Legal Pages Generator
+- **Backend File**: `/app/backend/legal_pages_service.py`
+- **Frontend File**: `/app/frontend/src/components/partner/LegalPagesGenerator.jsx`
+- **Documenti generabili**:
+  - Privacy Policy (GDPR compliant)
+  - Termini e Condizioni
+  - Cookie Policy
+  - Disclaimer
+- **Features**:
+  - Form dati aziendali pre-compilato dal profilo partner
+  - Generazione AI con Claude (conformi normativa italiana/GDPR)
+  - Anteprima HTML styled
+  - Copia HTML negli appunti
+  - Download file HTML
+  - Salvataggio in MongoDB per partner
+- **API Endpoints**:
+  - `GET /api/legal/templates`: Lista template disponibili
+  - `GET /api/legal/template/{type}`: Info template specifico
+  - `POST /api/legal/generate`: Genera singola pagina
+  - `POST /api/legal/generate-all`: Genera tutte le pagine
+  - `GET /api/legal/partner/{id}`: Pagine salvate partner
+  - `DELETE /api/legal/partner/{id}/{type}`: Elimina pagina
+
+#### 3. Sidebar Partner Aggiornata
+- Nuova voce "Video Editor" con badge NEW
+- Nuova voce "Pagine Legali" con badge NEW
+- Tool sempre accessibili (non bloccati da fase)
+
 ### V13.0 - JWT Authentication & Telegram Notifications (13 Feb 2026) ✅
 
 #### 1. JWT Authentication System
