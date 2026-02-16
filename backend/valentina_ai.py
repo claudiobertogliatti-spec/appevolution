@@ -278,12 +278,17 @@ class ValentinaAI:
             # Fallback response
             return self._fallback_response(message, context)
     
-    async def _build_context(self, context: dict, is_founder: bool = False) -> str:
+    async def _build_context(self, context: dict, is_founder: bool = False, memory_context: str = "") -> str:
         """Build context string for the prompt"""
         if not context:
             return "Nessun contesto specifico disponibile."
         
         parts = []
+        
+        # Add persistent memory context first (for founder)
+        if memory_context:
+            parts.append(memory_context)
+            parts.append("")
         
         if is_founder:
             # Add live system data for founder
