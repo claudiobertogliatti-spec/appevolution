@@ -32,6 +32,8 @@ import { WebhookDashboard } from "./components/admin/WebhookDashboard";
 import { FunnelReviewBuilder } from "./components/partner/FunnelReviewBuilder";
 import { MasterclassVideocorso } from "./components/partner/MasterclassVideocorso";
 import { ServiziExtra } from "./components/partner/ServiziExtra";
+import { VideoEditorAndrea } from "./components/partner/VideoEditorAndrea";
+import { LegalPagesGenerator } from "./components/partner/LegalPagesGenerator";
 import "./styles/design-system.css";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
