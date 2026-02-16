@@ -599,7 +599,12 @@ Partner Phase:
 3. ~~Sezione Documenti Partner per Admin~~ ✅ Completato
 4. ~~Profilo Partner completo con anagrafica~~ ✅ Completato
 5. ~~Dashboard Partner semplificata (UX friendly)~~ ✅ Completato
-6. Allineare sidebar/topbar ai colori brand Evolution PRO
-7. Collegare domain `app.evolution-pro.it`
-8. Dashboard Metriche Post-Lancio Avanzata (NPS, grafici, visualizzazione funnel studenti)
-9. ACADEMY_VIDEOS - Sistema micro-learning video
+6. ~~Integrazione Cloudinary per upload file~~ ✅ Completato (16 Feb 2026)
+7. ~~Servizi Extra page placeholder~~ ✅ Completato (16 Feb 2026)
+8. **P0**: Test end-to-end Avatar Trial con file reali
+9. **P1**: Popolare sezione "Servizi Extra" con contenuti reali
+10. **P1**: Implementare export documenti PDF/Email
+11. **P1**: Popolare sezione "PARTI DA QUI" con video lezioni
+12. **P2**: Dashboard Metriche Post-Lancio Avanzata
+13. **P3**: Refactoring App.js con react-router-dom
+14. Collegare domain `app.evolution-pro.it`
