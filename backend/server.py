@@ -8780,6 +8780,127 @@ async def export_segment_emails(segment: str):
         "emails": emails
     }
 
+@api_router.post("/orion/import-segment-csv")
+async def import_segment_csv(
+    file: UploadFile = File(...),
+    segment: str = Form(...),
+    tag_to_add: str = Form(default="")
+):
+    """
+    Import a CSV and assign all contacts to a specific ORION segment.
+    Use this to import contacts from Systeme.io pipeline columns.
+    
+    Segments: hot, warm, cold, partner
+    """
+    import csv
+    import io
+    
+    valid_segments = ["hot", "warm", "cold", "frozen", "partner"]
+    if segment not in valid_segments:
+        raise HTTPException(status_code=400, detail=f"Segmento non valido. Usa: {valid_segments}")
+    
+    # Score mapping
+    segment_scores = {"hot": 80, "warm": 50, "cold": 25, "frozen": 0, "partner": 200}
+    
+    try:
+        content = await file.read()
+        
+        # Try different encodings
+        for encoding in ['utf-8', 'utf-8-sig', 'latin-1', 'cp1252']:
+            try:
+                text_content = content.decode(encoding)
+                break
+            except UnicodeDecodeError:
+                continue
+        else:
+            raise HTTPException(status_code=400, detail="Impossibile decodificare il file CSV")
+        
+        csv_reader = csv.DictReader(io.StringIO(text_content))
+        
+        updated_count = 0
+        new_count = 0
+        emails_processed = []
+        
+        for row in csv_reader:
+            email = row.get('email', row.get('Email', row.get('E-mail', ''))).strip().lower()
+            
+            if not email or '@' not in email:
+                continue
+            
+            emails_processed.append(email)
+            
+            # Build tag list
+            new_tags = []
+            if tag_to_add:
+                new_tags.append({
+                    "name": tag_to_add,
+                    "added_at": datetime.now(timezone.utc).isoformat(),
+                    "source": "orion_import"
+                })
+            
+            # Check if contact exists
+            existing = await db.systeme_contacts.find_one({"email": email})
+            
+            if existing:
+                # Update existing contact
+                update_data = {
+                    "orion_segment": segment,
+                    "orion_score": segment_scores[segment],
+                    "orion_updated_at": datetime.now(timezone.utc).isoformat()
+                }
+                
+                if new_tags:
+                    await db.systeme_contacts.update_one(
+                        {"email": email},
+                        {
+                            "$set": update_data,
+                            "$addToSet": {"tags": {"$each": new_tags}}
+                        }
+                    )
+                else:
+                    await db.systeme_contacts.update_one(
+                        {"email": email},
+                        {"$set": update_data}
+                    )
+                updated_count += 1
+            else:
+                # Create new contact
+                new_contact = {
+                    "id": str(uuid.uuid4()),
+                    "partner_id": "global",
+                    "email": email,
+                    "first_name": row.get('firstName', row.get('first_name', row.get('Nome', ''))),
+                    "last_name": row.get('lastName', row.get('last_name', row.get('Cognome', ''))),
+                    "tags": new_tags,
+                    "orion_segment": segment,
+                    "orion_score": segment_scores[segment],
+                    "orion_updated_at": datetime.now(timezone.utc).isoformat(),
+                    "synced_at": datetime.now(timezone.utc).isoformat(),
+                    "import_source": f"segment_csv_{segment}"
+                }
+                await db.systeme_contacts.insert_one(new_contact)
+                new_count += 1
+        
+        # Get updated totals
+        segment_totals = {}
+        for seg in valid_segments:
+            segment_totals[seg] = await db.systeme_contacts.count_documents({"orion_segment": seg})
+        
+        return {
+            "success": True,
+            "segment": segment,
+            "tag_added": tag_to_add or None,
+            "emails_processed": len(emails_processed),
+            "updated": updated_count,
+            "new": new_count,
+            "segment_totals": segment_totals,
+            "message": f"Importati {len(emails_processed)} contatti nel segmento {segment.upper()}"
+        }
+        
+    except Exception as e:
+        logging.error(f"Segment CSV import error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # =============================================================================
 # AGENT HUB - CENTRALIZED BUSINESS INTELLIGENCE
 # =============================================================================
