@@ -7751,6 +7751,76 @@ Rispondi in JSON con questo formato:
         raise HTTPException(status_code=500, detail=f"Errore nella generazione: {str(e)}")
 
 # =============================================================================
+# EMAIL QUEUE MANAGEMENT
+# =============================================================================
+
+@api_router.get("/email-queue/{partner_id}")
+async def get_email_queue(partner_id: str, status: Optional[str] = None):
+    """Get email queue for a partner"""
+    query = {"partner_id": partner_id}
+    if status:
+        query["status"] = status
+    
+    queue = await db.email_queue.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    
+    # Stats
+    stats = {
+        "total": len(queue),
+        "pending": len([q for q in queue if q.get("status") == "pending"]),
+        "scheduled": len([q for q in queue if q.get("status") == "scheduled"]),
+        "sent": len([q for q in queue if q.get("status") == "sent"]),
+        "active_sequences": len([q for q in queue if q.get("status") == "active" and q.get("type") == "sequence"])
+    }
+    
+    return {"queue": queue, "stats": stats}
+
+@api_router.post("/email-queue/trigger-test")
+async def trigger_test_sequence(partner_id: str, email: str, name: str = "Test User"):
+    """Manually trigger email sequence for testing"""
+    actions = await trigger_email_sequence(
+        partner_id=partner_id,
+        contact_email=email,
+        contact_name=name,
+        trigger_type="new_subscriber"
+    )
+    return {"success": True, "actions": actions}
+
+@api_router.delete("/email-queue/{queue_id}")
+async def cancel_queued_email(queue_id: str):
+    """Cancel a queued email"""
+    result = await db.email_queue.update_one(
+        {"id": queue_id},
+        {"$set": {"status": "cancelled", "cancelled_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Email in coda non trovata")
+    return {"success": True}
+
+@api_router.get("/email-queue/stats/global")
+async def get_global_email_stats():
+    """Get global email queue statistics"""
+    pipeline = [
+        {"$group": {
+            "_id": "$status",
+            "count": {"$sum": 1}
+        }}
+    ]
+    
+    stats_raw = await db.email_queue.aggregate(pipeline).to_list(10)
+    stats = {item["_id"]: item["count"] for item in stats_raw}
+    
+    # Recent activity
+    recent = await db.email_queue.find(
+        {},
+        {"_id": 0, "contact_email": 1, "contact_name": 1, "sequence_name": 1, "automation_name": 1, "status": 1, "created_at": 1}
+    ).sort("created_at", -1).limit(10).to_list(10)
+    
+    return {
+        "stats": stats,
+        "recent_activity": recent
+    }
+
+# =============================================================================
 # STRIPE CHECKOUT - AVATAR SERVICE PAYMENT
 # =============================================================================
 
