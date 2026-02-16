@@ -218,7 +218,8 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
           message: userInput,
           context: {
             phase: partner?.phase,
-            name: partner?.name
+            name: partner?.name,
+            is_admin: isAdmin
           }
         });
         
