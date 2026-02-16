@@ -386,6 +386,56 @@ Creare un'applicazione full-stack proprietaria per Evolution PRO - una piattafor
   - `systeme_tag` su EmailAutomationCreate e EmailSequenceCreate
   - Status: `triggered_via_systeme`, `sent_to_systeme`
 
+### V23.0 - Agent Hub & ORION Lead Intelligence (16 Feb 2026) ✅
+
+#### 1. ORION - Lead Scoring Service
+- **File**: `/app/backend/orion_service.py`
+- **Funzionalità**:
+  - Scoring automatico lead (0-100)
+  - Temperatura: HOT (≥70), WARM (40-69), COLD (20-39), FROZEN (<20)
+  - Analisi batch lista contatti
+  - Segmentazione per monetizzazione
+- **Scoring Rules**:
+  - Tag-based: email_opened (+5), clicked (+15), purchased (+100)
+  - Recency multiplier: 7 giorni (x2), 30 giorni (x1.5), 90+ (x0.5)
+  - Source quality: organic (+10), referral (+15), paid (+8)
+- **API Endpoints**:
+  - `GET /api/orion/score/{email}`: Score singolo lead
+  - `POST /api/orion/analyze-list`: Analizza lista completa
+  - `GET /api/orion/segments`: Segmenti per monetizzazione
+  - `POST /api/orion/tag-segment/{segment}`: Tagga segmento in Systeme.io
+
+#### 2. Agent Hub - Business Intelligence
+- **File**: `/app/backend/agent_hub_service.py`
+- **9 Agenti monitorati**: MAIN, VALENTINA, ORION, MARTA, GAIA, ANDREA, STEFANIA, LUCA, ATLAS
+- **Metriche per agente**:
+  - ORION: lead_score_avg, hot_leads, warm_leads
+  - MARTA: mrr, transactions, avg_order_value
+  - ATLAS: avg_ltv, churn_risk_count
+  - LUCA: expiring_30_days
+- **Business Summary**: Health indicators, alerts, opportunities
+- **API Endpoints**:
+  - `GET /api/agent-hub/status`: Status tutti agenti
+  - `GET /api/agent-hub/agent/{id}`: Dettaglio singolo agente
+  - `GET /api/agent-hub/summary`: Business summary
+  - `POST /api/agent-hub/activate/{id}`: Attiva agente
+
+#### 3. Frontend Components
+- **AgentDashboard.jsx**: Vista centralizzata 9 agenti con metriche real-time
+- **OrionLeadScoring.jsx**: 
+  - 4 card temperatura (HOT/WARM/COLD/FROZEN)
+  - Tabella top hot leads
+  - Proiezione revenue automatica
+  - Tagging segmenti per Systeme.io
+
+#### 4. Strategia Monetizzazione 13K Lead
+- **Tripwire €7** (valore €67): Servizio analisi
+- **Sequenza riattivazione 3 wave** via tag Systeme.io
+- **Proiezione conservativa**:
+  - HOT → 20% conversion = €X
+  - WARM → 8% after nurture = €Y
+  - COLD → 3% reactivation = €Z
+
 ### V13.0 - JWT Authentication & Telegram Notifications (13 Feb 2026) ✅
 
 #### 1. JWT Authentication System
