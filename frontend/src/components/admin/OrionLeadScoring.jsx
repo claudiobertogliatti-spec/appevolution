@@ -20,7 +20,55 @@ export function OrionLeadScoring() {
 
   useEffect(() => {
     loadSegments();
+    loadContactCount();
   }, []);
+
+  const loadContactCount = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/systeme/contacts/global?limit=1`);
+      if (response.ok) {
+        const data = await response.json();
+        setContactCount(data.total || 0);
+      }
+    } catch (error) {
+      console.error('Error loading contact count:', error);
+    }
+  };
+
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    setIsImporting(true);
+    setImportResult(null);
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('partner_id', 'global');
+    
+    try {
+      const response = await fetch(`${API_URL}/api/systeme/import-csv`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        setImportResult(result);
+        setContactCount(result.total_in_database);
+      } else {
+        const error = await response.json();
+        setImportResult({ success: false, error: error.detail || 'Errore durante l\'import' });
+      }
+    } catch (error) {
+      setImportResult({ success: false, error: error.message });
+    } finally {
+      setIsImporting(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const loadSegments = async () => {
     setIsLoading(true);
