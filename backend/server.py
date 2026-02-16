@@ -7628,6 +7628,230 @@ Se hai domande o dubbi che ti bloccano, rispondimi. Sono qui per aiutarti a pren
     }
 }
 
+# Predefined REACTIVATION SEQUENCES for cold leads
+REACTIVATION_SEQUENCES = {
+    "cold_revival_3wave": {
+        "name": "Riattivazione 3 Wave - Cold Lead Revival",
+        "trigger": "tag_added",
+        "systeme_tag": "evo_reactivation",
+        "steps": [
+            {
+                "day": 1,
+                "subject": "Mi sei mancato/a... 💭",
+                "body": """Ciao {nome},
+
+È passato un po' di tempo dall'ultima volta che ci siamo sentiti.
+
+Mi chiedevo come stai e se hai ancora quell'obiettivo che ti aveva portato qui la prima volta.
+
+Sai, ho visto molte persone nella tua situazione raggiungere risultati incredibili semplicemente facendo il primo passo.
+
+Se vuoi riprendere da dove avevi lasciato, sono qui.
+
+Un saluto,
+{partner_name}
+
+P.S. Rispondi a questa email se hai 2 minuti - mi farebbe piacere sapere come stai.""",
+                "email_type": "reactivation"
+            },
+            {
+                "day": 3,
+                "subject": "Ho qualcosa per te (gratis) 🎁",
+                "body": """Ciao {nome},
+
+Dato che non ci sentiamo da un po', ho pensato di farti un regalo.
+
+Ho preparato [NOME_LEAD_MAGNET] - completamente gratuito.
+
+È perfetto per te se vuoi [BENEFICIO_PRINCIPALE].
+
+👉 Scaricalo qui: [LINK_LEAD_MAGNET]
+
+Nessun impegno, nessuna carta di credito richiesta. Solo valore puro.
+
+Fammi sapere cosa ne pensi!
+
+{partner_name}""",
+                "email_type": "value"
+            },
+            {
+                "day": 7,
+                "subject": "Ultima chance + regalo speciale ⏰",
+                "body": """Ciao {nome},
+
+Questa è l'ultima email che ti scrivo per un po'.
+
+Prima di salutarti, volevo offrirti qualcosa di speciale:
+
+🎯 Accesso esclusivo al mio [NOME_OFFERTA] a soli €7 (invece di €67)
+
+Questo è il prezzo più basso che abbia mai offerto, e lo faccio solo perché voglio darti una seconda possibilità.
+
+👉 Approfitta ora: [LINK_TRIPWIRE]
+
+⏰ L'offerta scade tra 48 ore.
+
+Se non fa per te, nessun problema. Ti auguro il meglio!
+
+{partner_name}
+
+P.S. Se clicchi e poi hai ripensamenti, nessun problema. Ma almeno dai un'occhiata a cosa potresti ottenere.""",
+                "email_type": "offer"
+            }
+        ]
+    },
+    "hot_lead_tripwire": {
+        "name": "Hot Lead → Tripwire €7",
+        "trigger": "tag_added",
+        "systeme_tag": "evo_hot_lead",
+        "steps": [
+            {
+                "day": 0,
+                "subject": "🔥 Offerta esclusiva per te (solo €7)",
+                "body": """Ciao {nome},
+
+Ho notato che sei molto interessato/a a [ARGOMENTO].
+
+Per questo motivo, voglio farti un'offerta che non faccio a tutti:
+
+Puoi accedere a [NOME_OFFERTA] a soli €7 invece di €67.
+
+Cosa include:
+✅ [BENEFICIO_1]
+✅ [BENEFICIO_2]
+✅ [BENEFICIO_3]
+
+👉 Approfitta ora: [LINK_TRIPWIRE]
+
+Questa offerta è disponibile solo per 48 ore.
+
+{partner_name}""",
+                "email_type": "offer"
+            },
+            {
+                "day": 1,
+                "subject": "Hai visto l'offerta? ⏰",
+                "body": """Ciao {nome},
+
+Volevo assicurarmi che avessi visto l'email di ieri.
+
+L'offerta a €7 per [NOME_OFFERTA] scade domani.
+
+Se hai dubbi o domande, rispondimi - sono qui per aiutarti.
+
+👉 Link diretto: [LINK_TRIPWIRE]
+
+{partner_name}""",
+                "email_type": "reminder"
+            }
+        ]
+    },
+    "warm_nurture_5day": {
+        "name": "Warm Lead Nurturing - 5 giorni",
+        "trigger": "tag_added",
+        "systeme_tag": "evo_warm_nurture",
+        "steps": [
+            {
+                "day": 0,
+                "subject": "Ecco cosa ho preparato per te 📚",
+                "body": """Ciao {nome},
+
+Nei prossimi giorni ti invierò alcuni contenuti esclusivi che ti aiuteranno a [OBIETTIVO_PRINCIPALE].
+
+Iniziamo subito con qualcosa di pratico:
+
+[CONTENUTO_VALORE_1]
+
+Domani ti invierò il secondo contenuto. Resta sintonizzato/a!
+
+{partner_name}""",
+                "email_type": "nurture"
+            },
+            {
+                "day": 2,
+                "subject": "Il metodo che ha cambiato tutto 💡",
+                "body": """Ciao {nome},
+
+Oggi voglio parlarti di [METODO/STRATEGIA].
+
+[CONTENUTO_VALORE_2]
+
+Questo è esattamente ciò che insegno nella mia Masterclass gratuita:
+👉 [LINK_MASTERCLASS]
+
+{partner_name}""",
+                "email_type": "nurture"
+            },
+            {
+                "day": 4,
+                "subject": "La storia di [NOME_CLIENTE] 🌟",
+                "body": """Ciao {nome},
+
+Lascia che ti racconti cosa è successo a [NOME_CLIENTE]...
+
+[CASE_STUDY]
+
+Se vuoi risultati simili, ho qualcosa per te:
+👉 [LINK_OFFERTA]
+
+{partner_name}""",
+                "email_type": "case_study"
+            },
+            {
+                "day": 5,
+                "subject": "Pronto/a per il prossimo passo? 🚀",
+                "body": """Ciao {nome},
+
+In questi giorni ti ho mostrato:
+✅ [RECAP_1]
+✅ [RECAP_2]
+✅ [RECAP_3]
+
+Ora hai due scelte:
+1. Continuare da solo/a (va benissimo!)
+2. Accelerare con il mio supporto
+
+Se scegli la seconda, ho un'offerta speciale per te:
+[NOME_OFFERTA] a soli €7
+
+👉 Scopri di più: [LINK_TRIPWIRE]
+
+{partner_name}""",
+                "email_type": "offer"
+            }
+        ]
+    }
+}
+
+@api_router.get("/email-automation/reactivation-sequences")
+async def get_reactivation_sequences():
+    """Get predefined reactivation sequences"""
+    return {"sequences": REACTIVATION_SEQUENCES}
+
+@api_router.post("/email-automation/create-reactivation/{sequence_type}")
+async def create_reactivation_sequence(sequence_type: str, partner_id: str):
+    """Create a predefined reactivation sequence for a partner"""
+    if sequence_type not in REACTIVATION_SEQUENCES:
+        raise HTTPException(status_code=400, detail=f"Tipo sequenza non valido. Usa: {list(REACTIVATION_SEQUENCES.keys())}")
+    
+    template = REACTIVATION_SEQUENCES[sequence_type]
+    
+    sequence = {
+        "id": str(uuid.uuid4()),
+        "partner_id": partner_id,
+        "name": template["name"],
+        "trigger": template["trigger"],
+        "systeme_tag": template["systeme_tag"],
+        "steps": template["steps"],
+        "is_active": True,
+        "is_predefined": True,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.email_sequences.insert_one(sequence)
+    
+    return {"success": True, "sequence": {k: v for k, v in sequence.items() if k != "_id"}}
+
 @api_router.get("/email-automation/templates")
 async def get_email_templates():
     """Get predefined email templates"""
