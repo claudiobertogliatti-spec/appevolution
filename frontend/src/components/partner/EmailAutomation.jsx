@@ -209,7 +209,7 @@ export function EmailAutomation({ partner }) {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-4 mt-6">
+        <div className="grid grid-cols-5 gap-4 mt-6">
           <div className="p-4 rounded-xl" style={{ background: '#FAFAF7' }}>
             <div className="text-2xl font-bold" style={{ color: '#1E2128' }}>{automations.length}</div>
             <div className="text-xs" style={{ color: '#9CA3AF' }}>Email Singole</div>
@@ -224,13 +224,29 @@ export function EmailAutomation({ partner }) {
             </div>
             <div className="text-xs" style={{ color: '#2D9F6F' }}>Attive</div>
           </div>
+          <div className="p-4 rounded-xl" style={{ background: '#E0E7FF' }}>
+            <div className="text-2xl font-bold" style={{ color: '#4F46E5' }}>
+              {queueStats.pending || 0}
+            </div>
+            <div className="text-xs" style={{ color: '#4F46E5' }}>In Coda</div>
+          </div>
           <div className="p-4 rounded-xl" style={{ background: '#FFF8DC' }}>
             <div className="text-2xl font-bold" style={{ color: '#C4990A' }}>
-              {sequences.reduce((sum, s) => sum + (s.steps?.length || 0), 0)}
+              {queueStats.sent || 0}
             </div>
-            <div className="text-xs" style={{ color: '#C4990A' }}>Email Totali</div>
+            <div className="text-xs" style={{ color: '#C4990A' }}>Inviate</div>
           </div>
         </div>
+        
+        {/* Active sequences indicator */}
+        {queueStats.active_sequences > 0 && (
+          <div className="mt-4 p-3 rounded-xl flex items-center gap-3" style={{ background: '#EAFAF1', border: '1px solid #2D9F6F30' }}>
+            <div className="w-3 h-3 rounded-full animate-pulse" style={{ background: '#2D9F6F' }} />
+            <span className="text-sm font-bold" style={{ color: '#2D9F6F' }}>
+              {queueStats.active_sequences} sequenze attive in esecuzione
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
