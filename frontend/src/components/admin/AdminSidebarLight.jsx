@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { LayoutDashboard, Users, Film, FileText, BarChart3, MessageCircle, AlertTriangle, Settings, ChevronDown, ChevronRight, LogOut, Database, Edit3, Trophy, Zap, HelpCircle, Webhook, Bot, Target, DollarSign } from "lucide-react";
+import { LayoutDashboard, Users, Film, FileText, BarChart3, MessageCircle, AlertTriangle, Settings, ChevronDown, ChevronRight, LogOut, Database, Edit3, Trophy, Zap, HelpCircle, Webhook, Bot, Target, DollarSign, UsersRound } from "lucide-react";
 
 const CLAUDIO_NAV = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "partner", label: "Partner", icon: Users },
+  { id: "team", label: "Team Evolution", icon: UsersRound },
   { id: "agenti", label: "Agent Hub", icon: Bot },
   { id: "orion", label: "ORION Lead Scoring", icon: Target },
   { id: "sales-kpi", label: "Sales KPI", icon: DollarSign, badge: "€7" },
@@ -16,6 +17,7 @@ const CLAUDIO_NAV = [
 const ANTONELLA_NAV = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "partner", label: "Partner", icon: Users },
+  { id: "team", label: "Team Evolution", icon: UsersRound },
   { id: "agenti", label: "Agent Hub", icon: Bot },
   { id: "orion", label: "ORION Lead Scoring", icon: Target },
   { id: "sales-kpi", label: "Sales KPI", icon: DollarSign, badge: "€7" },
