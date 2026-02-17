@@ -5,7 +5,7 @@ import {
   Mail, Phone, Globe, User, MapPin
 } from "lucide-react";
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+import { API_URL, API } from '../../utils/api-config';
 
 // Page type icons and colors
 const PAGE_TYPES = {

@@ -79,7 +79,7 @@ const AVATAR_PRICE_PER_LESSON = 120; // IVA inclusa
 // ============================================
 // AVATAR FREE TRIAL MODAL
 // ============================================
-const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+import { API_URL, API } from '../../utils/api-config';
 
 function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName, partnerId }) {
   const [step, setStep] = useState(1);
