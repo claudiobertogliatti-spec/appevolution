@@ -148,16 +148,17 @@ export function OrionLeadScoring() {
         body: formData
       });
       
-      if (response.ok) {
-        const result = await response.json();
-        setImportResult(result);
-        setSegmentTotals(result.segment_totals || {});
+      const data = await response.json();
+      
+      if (response.ok && data.success !== false) {
+        setImportResult(data);
+        setSegmentTotals(data.segment_totals || {});
         loadContactCount();
       } else {
-        const error = await response.json();
-        setImportResult({ success: false, error: error.detail || 'Errore durante l\'import' });
+        setImportResult({ success: false, error: data.detail || data.error || 'Errore durante l\'import' });
       }
     } catch (error) {
+      console.error('Segment Import error:', error);
       setImportResult({ success: false, error: error.message });
     } finally {
       setIsImporting(false);
@@ -173,12 +174,15 @@ export function OrionLeadScoring() {
       const response = await fetch(`${API}/orion/retag-contacts`, {
         method: 'POST'
       });
+      const data = await response.json();
       if (response.ok) {
-        const data = await response.json();
-        alert(`✅ Processati ${data.analysis.total_processed} contatti!\nPartner: ${data.analysis.partners_excluded}\nHOT: ${data.analysis.hot_leads}\nWARM: ${data.analysis.warm_leads}\nCOLD: ${data.analysis.cold_leads}\nFROZEN: ${data.analysis.frozen_leads}`);
+        alert(`✅ Processati ${data.analysis?.total_processed || 0} contatti!\nPartner: ${data.analysis?.partners_excluded || 0}\nHOT: ${data.analysis?.hot_leads || 0}\nWARM: ${data.analysis?.warm_leads || 0}\nCOLD: ${data.analysis?.cold_leads || 0}\nFROZEN: ${data.analysis?.frozen_leads || 0}`);
         loadSegmentTotals();
+      } else {
+        alert(`Errore: ${data.detail || 'Errore nel re-tagging'}`);
       }
     } catch (error) {
+      console.error('Retag error:', error);
       alert('Errore nel re-tagging');
     } finally {
       setIsRetagging(false);
@@ -203,13 +207,18 @@ export function OrionLeadScoring() {
   const runAnalysis = async () => {
     setIsAnalyzing(true);
     try {
-      const response = await fetch(`${API}/orion/analyze-list?limit=5000`, {
+      // Analyze up to 50000 contacts (increased from 5000)
+      const response = await fetch(`${API}/orion/analyze-list?limit=50000`, {
         method: 'POST'
       });
+      const data = await response.json();
       if (response.ok) {
-        const data = await response.json();
         setAnalysis(data);
+        // Save to sessionStorage for persistence
+        sessionStorage.setItem('orion_analysis', JSON.stringify(data));
         await loadSegments();
+      } else {
+        console.error('Analysis failed:', data.detail || data.error);
       }
     } catch (error) {
       console.error('Error running analysis:', error);
