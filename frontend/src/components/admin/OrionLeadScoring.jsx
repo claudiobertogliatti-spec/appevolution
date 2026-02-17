@@ -520,35 +520,25 @@ export function OrionLeadScoring() {
           </h2>
           
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr style={{ borderBottom: '1px solid #ECEDEF' }}>
-                  <th className="text-left px-4 py-3 text-xs font-bold" style={{ color: '#9CA3AF' }}>EMAIL</th>
-                  <th className="text-left px-4 py-3 text-xs font-bold" style={{ color: '#9CA3AF' }}>NOME</th>
-                  <th className="text-left px-4 py-3 text-xs font-bold" style={{ color: '#9CA3AF' }}>SCORE</th>
-                  <th className="text-left px-4 py-3 text-xs font-bold" style={{ color: '#9CA3AF' }}>AZIONE</th>
-                </tr>
-              </thead>
-              <tbody>
+            <div className="min-w-full">
+              <div className="grid grid-cols-4 px-4 py-3 text-xs font-bold" style={{ color: '#9CA3AF', borderBottom: '1px solid #ECEDEF' }}>
+                <span>EMAIL</span><span>NOME</span><span>SCORE</span><span>AZIONE</span>
+              </div>
+              <div className="divide-y" style={{ borderColor: '#ECEDEF' }}>
                 {(analysis?.top_hot_leads || segments?.segments?.hot?.leads || []).slice(0, 10).map((lead, idx) => (
-                  <tr key={idx} style={{ borderBottom: '1px solid #ECEDEF' }}>
-                    <td className="px-4 py-3 text-sm" style={{ color: '#1E2128' }}>{lead.email}</td>
-                    <td className="px-4 py-3 text-sm" style={{ color: '#5F6572' }}>{lead.name || '-'}</td>
-                    <td className="px-4 py-3">
-                      <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-600">
-                        {lead.score}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <button className="text-xs px-3 py-1 rounded-full font-bold"
-                              style={{ background: '#FEF3C7', color: '#D97706' }}>
+                  <div key={idx} className="grid grid-cols-4 items-center px-4 py-3">
+                    <span className="text-sm" style={{ color: '#1E2128' }}>{lead.email}</span>
+                    <span className="text-sm" style={{ color: '#5F6572' }}>{lead.name || '-'}</span>
+                    <span><span className="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-600">{lead.score}</span></span>
+                    <span>
+                      <button className="text-xs px-3 py-1 rounded-full font-bold" style={{ background: '#FEF3C7', color: '#D97706' }}>
                         Invia Tripwire €7
                       </button>
-                    </td>
-                  </tr>
+                    </span>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </div>
           </div>
         </div>
       )}
