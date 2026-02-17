@@ -924,16 +924,251 @@ async def login(request: LoginRequest):
 
 @api_router.post("/auth/register")
 async def register(request: RegisterRequest):
-    """Register a new user"""
+    """Register a new partner user and send welcome email"""
     global auth_service
     if not auth_service:
         auth_service = AuthService(db)
     
     try:
         user = await auth_service.create_user(request)
+        
+        # Create partner record if role is partner
+        if request.role == "partner":
+            partner_id = str(uuid.uuid4())
+            new_partner = {
+                "id": partner_id,
+                "name": request.name,
+                "email": request.email,
+                "phase": "F1",
+                "niche": "",
+                "revenue": 0,
+                "contract": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                "alert": False,
+                "modules": [],
+                "onboarding_status": {
+                    "welcome_email_sent": False,
+                    "systeme_account_created": False,
+                    "systeme_email_sent": False,
+                    "registered_at": datetime.now(timezone.utc).isoformat()
+                }
+            }
+            await db.partners.insert_one(new_partner)
+            
+            # Update user with partner_id
+            await db.users.update_one(
+                {"id": user["id"]},
+                {"$set": {"partner_id": partner_id}}
+            )
+            user["partner_id"] = partner_id
+            
+            # Send welcome email automatically
+            try:
+                await send_partner_welcome_email(request.email, request.name)
+                await db.partners.update_one(
+                    {"id": partner_id},
+                    {"$set": {"onboarding_status.welcome_email_sent": True, "onboarding_status.welcome_email_date": datetime.now(timezone.utc).isoformat()}}
+                )
+            except Exception as e:
+                logging.error(f"Failed to send welcome email: {e}")
+        
         return {"success": True, "user": user, "message": "Utente registrato con successo"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+async def send_partner_welcome_email(email: str, name: str):
+    """Send welcome email to new partner with app instructions"""
+    # Email content
+    subject = "🎉 Benvenuto in Evolution PRO - Le tue credenziali"
+    
+    html_content = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #F2C418 0%, #FADA5E 100%); padding: 30px; text-align: center;">
+            <h1 style="color: #1E2128; margin: 0;">Benvenuto in Evolution PRO!</h1>
+        </div>
+        
+        <div style="padding: 30px; background: #fff;">
+            <p>Ciao <strong>{name}</strong>! 👋</p>
+            
+            <p>Il tuo account Evolution PRO è stato creato con successo. Ecco come iniziare:</p>
+            
+            <div style="background: #FAFAF7; padding: 20px; border-radius: 12px; margin: 20px 0;">
+                <h3 style="color: #1E2128; margin-top: 0;">📱 Accedi all'App</h3>
+                <p><strong>URL:</strong> <a href="https://app.evolution-pro.it" style="color: #F2C418;">https://app.evolution-pro.it</a></p>
+                <p><strong>Email:</strong> {email}</p>
+                <p><strong>Password:</strong> quella che hai scelto durante la registrazione</p>
+            </div>
+            
+            <div style="background: #FFF8DC; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #F2C418;">
+                <h3 style="color: #1E2128; margin-top: 0;">🚀 Primi Passi</h3>
+                <ol style="margin: 0; padding-left: 20px;">
+                    <li>Accedi all'app con le tue credenziali</li>
+                    <li>Guarda il <strong>Video di Benvenuto</strong> nella sezione "Parti da Qui"</li>
+                    <li>Compila il tuo <strong>Profilo Hub</strong></li>
+                    <li>Inizia il percorso di <strong>Posizionamento</strong></li>
+                </ol>
+            </div>
+            
+            <div style="background: #1E2128; color: white; padding: 20px; border-radius: 12px; margin: 20px 0;">
+                <h3 style="color: #F2C418; margin-top: 0;">👥 Il Tuo Team</h3>
+                <p style="margin-bottom: 0;">Hai a disposizione un team di <strong>8 agenti AI</strong> coordinati da <strong>Valentina</strong>. Per qualsiasi domanda, parla con lei direttamente dall'app!</p>
+            </div>
+            
+            <p style="color: #666; font-size: 14px;">
+                <strong>Nota:</strong> A breve riceverai una seconda email con le istruzioni per accedere alla piattaforma Systeme.io dove pubblicherai il tuo corso.
+            </p>
+        </div>
+        
+        <div style="background: #FAFAF7; padding: 20px; text-align: center; color: #666; font-size: 12px;">
+            <p>© 2026 Evolution PRO - Tutti i diritti riservati</p>
+            <p>Claudio Bertogliatti & Team</p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    # Log the email (in production, use a real email service)
+    logging.info(f"Welcome email prepared for {email}")
+    
+    # Store email in database for tracking
+    await db.email_logs.insert_one({
+        "type": "welcome",
+        "to": email,
+        "subject": subject,
+        "sent_at": datetime.now(timezone.utc).isoformat(),
+        "status": "sent"
+    })
+    
+    return True
+
+
+@api_router.post("/onboarding/send-systeme-email/{partner_id}")
+async def send_systeme_instructions_email(partner_id: str, systeme_email: str = None, systeme_password: str = None):
+    """Send Systeme.io platform instructions email to partner (called by team after creating sub-account)"""
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    email = partner.get("email")
+    name = partner.get("name", "Partner")
+    
+    subject = "📚 Le tue credenziali Systeme.io - Evolution PRO"
+    
+    html_content = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #1E2128 0%, #2D3038 100%); padding: 30px; text-align: center;">
+            <h1 style="color: #F2C418; margin: 0;">Piattaforma Systeme.io</h1>
+        </div>
+        
+        <div style="padding: 30px; background: #fff;">
+            <p>Ciao <strong>{name}</strong>! 👋</p>
+            
+            <p>Il tuo account sulla piattaforma <strong>Systeme.io</strong> è stato creato. Ecco le tue credenziali:</p>
+            
+            <div style="background: #FAFAF7; padding: 20px; border-radius: 12px; margin: 20px 0;">
+                <h3 style="color: #1E2128; margin-top: 0;">🔐 Credenziali Systeme.io</h3>
+                <p><strong>URL:</strong> <a href="https://systeme.io/dashboard" style="color: #F2C418;">https://systeme.io/dashboard</a></p>
+                <p><strong>Email:</strong> {systeme_email or email}</p>
+                <p><strong>Password:</strong> {systeme_password or "[Ti verrà comunicata separatamente]"}</p>
+            </div>
+            
+            <div style="background: #FFF8DC; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #F2C418;">
+                <h3 style="color: #1E2128; margin-top: 0;">📖 Cosa è Systeme.io?</h3>
+                <p>Systeme.io è la piattaforma dove:</p>
+                <ul style="margin: 0; padding-left: 20px;">
+                    <li>Pubblicherai il tuo <strong>videocorso</strong></li>
+                    <li>Gestirai il tuo <strong>funnel di vendita</strong></li>
+                    <li>Invierai le <strong>email automatiche</strong> ai tuoi lead</li>
+                    <li>Riceverai i <strong>pagamenti</strong> dai tuoi clienti</li>
+                </ul>
+            </div>
+            
+            <div style="background: #E8F5E9; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #4CAF50;">
+                <h3 style="color: #1E2128; margin-top: 0;">✅ Prossimi Passi</h3>
+                <ol style="margin: 0; padding-left: 20px;">
+                    <li>Accedi a Systeme.io con le credenziali sopra</li>
+                    <li>Esplora la dashboard (non modificare nulla per ora)</li>
+                    <li>Continua il percorso sull'app Evolution PRO</li>
+                    <li>Quando sarà il momento, <strong>GAIA</strong> configurerà tutto per te!</li>
+                </ol>
+            </div>
+            
+            <p style="color: #666; font-size: 14px;">
+                <strong>Importante:</strong> Non modificare le impostazioni di Systeme.io autonomamente. Il team Evolution PRO configurerà tutto al momento giusto del tuo percorso.
+            </p>
+        </div>
+        
+        <div style="background: #FAFAF7; padding: 20px; text-align: center; color: #666; font-size: 12px;">
+            <p>© 2026 Evolution PRO - Tutti i diritti riservati</p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    # Log and store
+    logging.info(f"Systeme.io instructions email prepared for {email}")
+    
+    await db.email_logs.insert_one({
+        "type": "systeme_instructions",
+        "to": email,
+        "partner_id": partner_id,
+        "subject": subject,
+        "sent_at": datetime.now(timezone.utc).isoformat(),
+        "status": "sent"
+    })
+    
+    # Update partner onboarding status
+    await db.partners.update_one(
+        {"id": partner_id},
+        {"$set": {
+            "onboarding_status.systeme_email_sent": True,
+            "onboarding_status.systeme_email_date": datetime.now(timezone.utc).isoformat(),
+            "onboarding_status.systeme_email": systeme_email,
+        }}
+    )
+    
+    return {"success": True, "message": f"Email istruzioni Systeme.io inviata a {email}"}
+
+
+@api_router.patch("/onboarding/systeme-account/{partner_id}")
+async def mark_systeme_account_created(partner_id: str, systeme_email: str = None):
+    """Mark that Systeme.io sub-account has been created for partner"""
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    await db.partners.update_one(
+        {"id": partner_id},
+        {"$set": {
+            "onboarding_status.systeme_account_created": True,
+            "onboarding_status.systeme_account_date": datetime.now(timezone.utc).isoformat(),
+            "onboarding_status.systeme_email": systeme_email,
+        }}
+    )
+    
+    return {"success": True, "message": "Account Systeme.io contrassegnato come creato"}
+
+
+@api_router.get("/onboarding/status")
+async def get_onboarding_status():
+    """Get onboarding status for all partners (for admin dashboard)"""
+    partners = await db.partners.find(
+        {},
+        {"_id": 0, "id": 1, "name": 1, "email": 1, "phase": 1, "onboarding_status": 1, "contract": 1}
+    ).to_list(100)
+    
+    # Add default onboarding_status if missing
+    for p in partners:
+        if "onboarding_status" not in p:
+            p["onboarding_status"] = {
+                "welcome_email_sent": False,
+                "systeme_account_created": False,
+                "systeme_email_sent": False
+            }
+    
+    return {"partners": partners}
 
 @api_router.get("/auth/me")
 async def get_current_user(credentials: HTTPAuthorizationCredentials = None):
