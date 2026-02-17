@@ -4,8 +4,7 @@ import {
   Users, DollarSign, Target, Video, FileText, Shield,
   Trophy, MessageCircle, Loader2, ChevronRight, Activity
 } from "lucide-react";
-
-const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+import { API_URL, API } from "../../utils/api-config";
 
 // Agent emoji and color mapping
 const AGENT_CONFIG = {

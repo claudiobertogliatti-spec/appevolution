@@ -4,8 +4,7 @@ import {
   RefreshCw, Loader2, Calendar, Target,
   ArrowUpRight, ArrowDownRight, Zap
 } from "lucide-react";
-
-const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+import { API_URL, API } from "../../utils/api-config";
 
 export function SalesKPIDashboard() {
   const [kpi, setKpi] = useState(null);
