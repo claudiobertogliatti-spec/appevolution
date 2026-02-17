@@ -109,16 +109,18 @@ export function OrionLeadScoring() {
         body: formData
       });
       
-      if (response.ok) {
-        const result = await response.json();
-        setImportResult(result);
-        setContactCount(result.total_in_database);
+      // Clone response before reading to avoid "body stream already read" error
+      const data = await response.json();
+      
+      if (response.ok && data.success !== false) {
+        setImportResult(data);
+        setContactCount(data.total_in_database || contactCount);
         loadSegmentTotals();
       } else {
-        const error = await response.json();
-        setImportResult({ success: false, error: error.detail || 'Errore durante l\'import' });
+        setImportResult({ success: false, error: data.detail || data.error || 'Errore durante l\'import' });
       }
     } catch (error) {
+      console.error('CSV Import error:', error);
       setImportResult({ success: false, error: error.message });
     } finally {
       setIsImporting(false);
