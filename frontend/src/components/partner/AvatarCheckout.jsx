@@ -216,7 +216,7 @@ export function AvatarCheckout({ partner, onBack }) {
   }
 
   return (
-    <div className="p-6 space-y-6" style={{ background: '#FAFAF7', minHeight: '100vh' }}>
+    <div className="p-6 space-y-8" style={{ background: '#FAFAF7', minHeight: '100vh' }}>
       {/* Header */}
       <div className="flex items-center gap-4">
         {onBack && (
@@ -226,26 +226,133 @@ export function AvatarCheckout({ partner, onBack }) {
         )}
         <div>
           <h1 className="text-2xl font-black flex items-center gap-2" style={{ color: '#1E2128' }}>
-            🎬 Servizio Avatar Professionale
+            🎬 Avatar PRO — Servizio Delega
           </h1>
           <p className="text-sm" style={{ color: '#9CA3AF' }}>
-            Produzione video con avatar AI per il tuo videocorso
+            Lascia che il nostro team crei video professionali per te
           </p>
         </div>
       </div>
 
+      {/* Hero Section - Service Description */}
+      <div className="bg-white rounded-3xl overflow-hidden" style={{ border: '1px solid #ECEDEF' }}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+          {/* Video Demo */}
+          <div className="relative bg-gradient-to-br from-[#1E2128] to-[#2D3038] p-6 flex items-center justify-center min-h-[300px]">
+            <div className="absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold bg-[#F2C418] text-[#1E2128]">
+              ESEMPIO AVATAR
+            </div>
+            <div className="w-full max-w-md">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl" style={{ aspectRatio: '16/9' }}>
+                <video 
+                  className="w-full h-full object-cover"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  poster="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&q=80"
+                >
+                  {/* HeyGen Demo Video - Professional Avatar */}
+                  <source src="https://resource.heygen.ai/video/7879de1f45e94c6c8cbcc0ecb2d3e6e8/1080p.mp4" type="video/mp4" />
+                  {/* Fallback image */}
+                  Il tuo browser non supporta i video HTML5.
+                </video>
+                {/* Play overlay indicator */}
+                <div className="absolute bottom-3 right-3 px-2 py-1 rounded-lg bg-black/60 text-white text-xs flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                  Demo 30s
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className="p-8 flex flex-col justify-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold mb-4 w-fit"
+                 style={{ background: '#F2C41815', color: '#C4990A' }}>
+              <Sparkles className="w-3 h-3" />
+              SERVIZIO PREMIUM
+            </div>
+            
+            <h2 className="text-2xl font-black mb-4" style={{ color: '#1E2128' }}>
+              Il Tuo Clone Digitale che Insegna per Te
+            </h2>
+            
+            <p className="text-base mb-6 leading-relaxed" style={{ color: '#5F6572' }}>
+              Immagina di poter <strong>moltiplicare la tua presenza</strong> senza registrare un singolo video. 
+              Con il nostro servizio Avatar PRO, creiamo un <strong>avatar AI professionale</strong> con la tua voce 
+              e il tuo stile che parla, sorride e insegna esattamente come faresti tu.
+            </p>
+
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#10B98115' }}>
+                  <Check className="w-4 h-4" style={{ color: '#10B981' }} />
+                </div>
+                <div>
+                  <div className="font-bold text-sm" style={{ color: '#1E2128' }}>Qualità Cinematografica</div>
+                  <div className="text-xs" style={{ color: '#9CA3AF' }}>Risoluzione 1080p HD</div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#10B98115' }}>
+                  <Check className="w-4 h-4" style={{ color: '#10B981' }} />
+                </div>
+                <div>
+                  <div className="font-bold text-sm" style={{ color: '#1E2128' }}>Espressioni Naturali</div>
+                  <div className="text-xs" style={{ color: '#9CA3AF' }}>Sorrisi e gesti realistici</div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#10B98115' }}>
+                  <Check className="w-4 h-4" style={{ color: '#10B981' }} />
+                </div>
+                <div>
+                  <div className="font-bold text-sm" style={{ color: '#1E2128' }}>Script Ottimizzato</div>
+                  <div className="text-xs" style={{ color: '#9CA3AF' }}>Copy persuasivo incluso</div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#10B98115' }}>
+                  <Check className="w-4 h-4" style={{ color: '#10B981' }} />
+                </div>
+                <div>
+                  <div className="font-bold text-sm" style={{ color: '#1E2128' }}>Consegna Rapida</div>
+                  <div className="text-xs" style={{ color: '#9CA3AF' }}>48-72h per lezione</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl" style={{ background: '#FFF8DC' }}>
+              <p className="text-sm" style={{ color: '#92700C' }}>
+                💡 <strong>Come funziona:</strong> Tu ci invii il tuo script (o lo scriviamo noi), 
+                noi creiamo il video con il tuo avatar che parla in modo naturale e coinvolgente. 
+                Ricevi il video pronto per essere caricato nel tuo corso.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section Title */}
+      <div className="text-center">
+        <h3 className="text-xl font-bold" style={{ color: '#1E2128' }}>Scegli il Pacchetto</h3>
+        <p className="text-sm" style={{ color: '#9CA3AF' }}>Più lezioni acquisti, più risparmi</p>
+      </div>
+
       {/* Packages Grid */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         {Object.entries(packages).map(([id, pkg]) => {
           const isSelected = selectedPackage === id;
-          const isPopular = id === 'bundle_3';
+          const isPopular = id === 'bundle_5';
+          const isBest = id === 'bundle_15';
           
           return (
             <div
               key={id}
               onClick={() => setSelectedPackage(id)}
               className={`relative bg-white rounded-2xl p-6 cursor-pointer transition-all ${
-                isSelected ? 'ring-2 ring-[#F2C418] shadow-lg' : 'hover:shadow-md'
+                isSelected ? 'ring-2 ring-[#F2C418] shadow-lg scale-[1.02]' : 'hover:shadow-md hover:scale-[1.01]'
               }`}
               style={{ border: '1px solid #ECEDEF' }}
             >
@@ -253,6 +360,12 @@ export function AvatarCheckout({ partner, onBack }) {
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold"
                      style={{ background: '#7B68AE', color: 'white' }}>
                   PIÙ POPOLARE
+                </div>
+              )}
+              {isBest && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold"
+                     style={{ background: '#10B981', color: 'white' }}>
+                  MIGLIOR VALORE
                 </div>
               )}
               
