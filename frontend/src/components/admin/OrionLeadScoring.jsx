@@ -7,25 +7,63 @@ import {
 } from "lucide-react";
 import { API_URL, API } from "../../utils/api-config";
 
+// Chiave per sessionStorage
+const ORION_STORAGE_KEY = 'orion_analysis_data';
+
+// Helper per caricare dati da sessionStorage
+const loadStoredData = () => {
+  try {
+    const stored = sessionStorage.getItem(ORION_STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.error('Error loading stored ORION data:', e);
+  }
+  return null;
+};
+
 export function OrionLeadScoring() {
-  const [analysis, setAnalysis] = useState(null);
+  // Carica dati salvati se presenti
+  const storedData = loadStoredData();
+  
+  const [analysis, setAnalysis] = useState(storedData?.analysis || null);
   const [isLoading, setIsLoading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [segments, setSegments] = useState(null);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [segments, setSegments] = useState(storedData?.segments || null);
+  const [activeTab, setActiveTab] = useState(storedData?.activeTab || "overview");
   const [isImporting, setIsImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
-  const [contactCount, setContactCount] = useState(0);
-  const [segmentTotals, setSegmentTotals] = useState({});
+  const [contactCount, setContactCount] = useState(storedData?.contactCount || 0);
+  const [segmentTotals, setSegmentTotals] = useState(storedData?.segmentTotals || {});
   const [selectedSegment, setSelectedSegment] = useState("warm");
   const [isRetagging, setIsRetagging] = useState(false);
   const fileInputRef = useRef(null);
   const segmentFileRef = useRef(null);
 
+  // Salva dati importanti in sessionStorage quando cambiano
   useEffect(() => {
-    loadSegments();
-    loadContactCount();
-    loadSegmentTotals();
+    const dataToStore = {
+      analysis,
+      segments,
+      activeTab,
+      contactCount,
+      segmentTotals
+    };
+    try {
+      sessionStorage.setItem(ORION_STORAGE_KEY, JSON.stringify(dataToStore));
+    } catch (e) {
+      console.error('Error saving ORION data:', e);
+    }
+  }, [analysis, segments, activeTab, contactCount, segmentTotals]);
+
+  useEffect(() => {
+    // Carica dati solo se non abbiamo dati salvati
+    if (!storedData) {
+      loadSegments();
+      loadContactCount();
+      loadSegmentTotals();
+    }
   }, []);
 
   const loadContactCount = async () => {
