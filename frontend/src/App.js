@@ -843,7 +843,7 @@ export default function App() {
             {nav==="files"&&<PartnerFileManager partner={demoPartner}/>}
             {nav==="brandkit"&&<BrandKitEditor partner={demoPartner}/>}
             {nav==="calendario"&&<CalendarioEditoriale partner={demoPartner}/>}
-            {nav==="documenti"&&<WizardPosizionamento partner={demoPartner} onComplete={()=>setNav("masterclass")}/>}
+            {nav==="documenti"&&demoPartner?.phase==="F0"?<OnboardingDocuments partner={demoPartner} onComplete={()=>setNav("home")}/>:<>{nav==="documenti"&&<WizardPosizionamento partner={demoPartner} onComplete={()=>setNav("masterclass")}/>}</>}
             {nav==="risorse"&&<PartnerResources/>}
             {nav==="renewal"&&<RenewalPlans partnerName={demoPartner?.name||"Partner"} currentRevenue={demoPartner?.revenue||0} onSelectPlan={(plan)=>console.log(plan)}/>}
             {nav==="supporto"&&<ValentinaChat partner={demoPartner} onBack={()=>setNav("home")}/>}
