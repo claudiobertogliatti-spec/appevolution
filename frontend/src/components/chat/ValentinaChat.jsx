@@ -4,8 +4,7 @@ import {
   Check, CheckCheck, ArrowLeft, Loader2, Zap
 } from "lucide-react";
 import axios from "axios";
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import { API } from "../../utils/api-config";
 
 // Comandi che VALENTINA può eseguire
 const EXECUTABLE_COMMANDS = {

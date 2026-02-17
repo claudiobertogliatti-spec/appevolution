@@ -5,8 +5,7 @@ import {
   DollarSign, ChevronRight, Play, Upload, FileSpreadsheet, CheckCircle2,
   Filter, Download
 } from "lucide-react";
-
-const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+import { API_URL, API } from "../../utils/api-config";
 
 export function OrionLeadScoring() {
   const [analysis, setAnalysis] = useState(null);

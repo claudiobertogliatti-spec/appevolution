@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 import axios from "axios";
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import { API } from "../../utils/api-config";
 
 export function LoginPage({ onLogin }) {
   const [email, setEmail] = useState("");
