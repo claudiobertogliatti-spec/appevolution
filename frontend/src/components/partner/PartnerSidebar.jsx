@@ -383,7 +383,10 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
                       )}
                       {item.badge && isUnlocked && (
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                              style={{ background: '#F2C418', color: '#1E2128' }}>
+                              style={{ 
+                                background: item.badgeColor === 'red' ? '#FEE2E2' : '#F2C418', 
+                                color: item.badgeColor === 'red' ? '#DC2626' : '#1E2128' 
+                              }}>
                           {item.badge}
                         </span>
                       )}
