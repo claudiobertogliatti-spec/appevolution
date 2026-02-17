@@ -30,7 +30,7 @@ export function OrionLeadScoring() {
 
   const loadContactCount = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/systeme/contacts/global?limit=1`);
+      const response = await fetch(`${API}/systeme/contacts/global?limit=1`);
       if (response.ok) {
         const data = await response.json();
         setContactCount(data.total || 0);
@@ -43,7 +43,7 @@ export function OrionLeadScoring() {
   const loadSegmentTotals = async () => {
     try {
       for (const seg of ['hot', 'warm', 'cold', 'frozen', 'partner']) {
-        const response = await fetch(`${API_URL}/api/orion/leads-by-segment/${seg}?limit=1`);
+        const response = await fetch(`${API}/orion/leads-by-segment/${seg}?limit=1`);
         if (response.ok) {
           const data = await response.json();
           setSegmentTotals(prev => ({...prev, [seg]: data.total || 0}));
@@ -66,7 +66,7 @@ export function OrionLeadScoring() {
     formData.append('partner_id', 'global');
     
     try {
-      const response = await fetch(`${API_URL}/api/systeme/import-csv`, {
+      const response = await fetch(`${API}/systeme/import-csv`, {
         method: 'POST',
         body: formData
       });
@@ -103,7 +103,7 @@ export function OrionLeadScoring() {
     formData.append('tag_to_add', `evo_${selectedSegment}_lead`);
     
     try {
-      const response = await fetch(`${API_URL}/api/orion/import-segment-csv`, {
+      const response = await fetch(`${API}/orion/import-segment-csv`, {
         method: 'POST',
         body: formData
       });
@@ -130,7 +130,7 @@ export function OrionLeadScoring() {
   const runRetag = async () => {
     setIsRetagging(true);
     try {
-      const response = await fetch(`${API_URL}/api/orion/retag-contacts`, {
+      const response = await fetch(`${API}/orion/retag-contacts`, {
         method: 'POST'
       });
       if (response.ok) {
@@ -148,7 +148,7 @@ export function OrionLeadScoring() {
   const loadSegments = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/orion/segments`);
+      const response = await fetch(`${API}/orion/segments`);
       if (response.ok) {
         const data = await response.json();
         setSegments(data);
@@ -163,7 +163,7 @@ export function OrionLeadScoring() {
   const runAnalysis = async () => {
     setIsAnalyzing(true);
     try {
-      const response = await fetch(`${API_URL}/api/orion/analyze-list?limit=5000`, {
+      const response = await fetch(`${API}/orion/analyze-list?limit=5000`, {
         method: 'POST'
       });
       if (response.ok) {
@@ -180,7 +180,7 @@ export function OrionLeadScoring() {
 
   const tagSegment = async (segment, tagName) => {
     try {
-      const response = await fetch(`${API_URL}/api/orion/tag-segment/${segment}?tag_name=${encodeURIComponent(tagName)}`, {
+      const response = await fetch(`${API}/orion/tag-segment/${segment}?tag_name=${encodeURIComponent(tagName)}`, {
         method: 'POST'
       });
       if (response.ok) {
