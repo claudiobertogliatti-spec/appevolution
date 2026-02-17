@@ -4,8 +4,7 @@ import {
   Edit2, Upload, Link, Instagram, Linkedin, Youtube, Globe,
   ChevronRight, AlertTriangle, Mic, MessageSquare
 } from "lucide-react";
-
-const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+import { API } from "../../utils/api-config";
 
 // ============================================
 // PARTNER PROFILE HUB

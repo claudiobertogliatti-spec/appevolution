@@ -3,8 +3,7 @@ import {
   Video, CreditCard, Check, Package, Sparkles, Loader2, 
   AlertCircle, ChevronRight, Shield, Clock, ArrowLeft
 } from "lucide-react";
-
-const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+import { API } from "../../utils/api-config";
 
 // ============================================
 // AVATAR SERVICE CHECKOUT

@@ -3,8 +3,7 @@ import {
   Globe, Check, Clock, AlertTriangle, Copy, ExternalLink,
   Send, RefreshCw, CheckCircle, XCircle, Loader2
 } from "lucide-react";
-
-const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+import { API } from "../../utils/api-config";
 
 // Domain status colors and labels
 const STATUS_CONFIG = {

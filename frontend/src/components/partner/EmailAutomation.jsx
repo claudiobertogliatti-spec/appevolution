@@ -4,8 +4,7 @@ import {
   Zap, Send, ChevronRight, ChevronDown, Sparkles, Loader2,
   Check, AlertTriangle, Copy, ExternalLink
 } from "lucide-react";
-
-const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+import { API } from "../../utils/api-config";
 
 // Trigger labels in Italian
 const TRIGGER_LABELS = {
