@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Send, Sparkles, User, AlertTriangle, CheckCircle, RefreshCw } from "lucide-react";
 import axios from "axios";
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import { API } from "../../utils/api-config"; // API configured
 
 // STEFANIA's welcome message
 const STEFANIA_WELCOME = `🎙️ Ciao! Sono **Stefania**, e da questo momento prendo io il timone per guidarti nella creazione della tua **Masterclass Trasformativa**.

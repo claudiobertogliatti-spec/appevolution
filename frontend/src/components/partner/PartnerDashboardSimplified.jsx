@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ArrowRight, Check, Lock, Play, X, Calendar, MessageCircle, HelpCircle } from "lucide-react";
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import { API } from "../../utils/api-config"; // API configured
 
 // Phase steps mapping with estimated time
 const JOURNEY_STEPS = [

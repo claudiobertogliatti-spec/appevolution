@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import { API } from "../../utils/api-config"; // API configured
 
 const UNLOCK_CONDITIONS = {
   progress_50: { label: "Completa 50%", icon: "📊", color: "text-blue-400" },

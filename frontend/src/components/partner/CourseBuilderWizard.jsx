@@ -6,7 +6,7 @@ import {
   Check, Loader2, GraduationCap, MessageCircle
 } from "lucide-react";
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import { API } from "../../utils/api-config"; // API configured
 
 // Styles
 const S = {

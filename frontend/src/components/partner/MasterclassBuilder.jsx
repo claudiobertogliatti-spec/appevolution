@@ -8,7 +8,7 @@ import {
 import axios from "axios";
 import { StefaniaChat } from "./StefaniaChat";
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import { API } from "../../utils/api-config"; // API configured
 
 const BLOCK_CONFIG = [
   { 

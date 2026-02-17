@@ -8,7 +8,7 @@ import {
 import axios from "axios";
 import { AndreaChat } from "./AndreaChat";
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import { API } from "../../utils/api-config"; // API configured
 
 const CHECKLIST_ITEMS = [
   { id: "sfondo_ordinato", label: "Sfondo ordinato e professionale", icon: Camera, hint: "Niente oggetti distraenti dietro di te" },

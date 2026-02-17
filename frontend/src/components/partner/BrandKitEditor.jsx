@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Palette, Save, Loader2, Upload, Check, ExternalLink, Image } from "lucide-react";
 import axios from "axios";
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import { API } from "../../utils/api-config"; // API configured
 
 export function BrandKitEditor({ partner, onSave }) {
   const [brandKit, setBrandKit] = useState({

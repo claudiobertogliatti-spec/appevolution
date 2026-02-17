@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Send, Sparkles, User, RefreshCw, Video, Mic } from "lucide-react";
 import axios from "axios";
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import { API } from "../../utils/api-config"; // API configured
 
 // ANDREA's welcome message
 const ANDREA_WELCOME = `🎬 Ciao [PARTNER_NAME], sono **Andrea**! Stefania mi ha passato il tuo script: è potente, ora dobbiamo dargli vita.

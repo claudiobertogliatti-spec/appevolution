@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight, Check, FileText, Target, Sparkles } from "lucide
 import { POSITIONING_QUESTIONS, S } from "../../data/constants";
 import axios from "axios";
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import { API } from "../../utils/api-config"; // API configured
 
 export function WizardPosizionamento({ partner, onComplete, onBack }) {
   const [currentStep, setCurrentStep] = useState(0);
