@@ -204,17 +204,22 @@ function AdminOverview({ stats, agents, partners, alerts, onNavigate }) {
           <span className="font-bold text-sm" style={{ color: '#1E2128' }}>Pipeline Partner</span>
           <button onClick={()=>onNavigate("partner")} className="text-xs font-bold hover:opacity-80 transition-opacity" style={{ color: '#F2C418' }}>Vedi tutti →</button>
         </div>
-        <table className="w-full">
-          <thead><tr className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#9CA3AF' }}><th className="text-left px-5 py-2">Partner</th><th className="text-left px-4 py-2">Fase</th><th className="text-left px-4 py-2">Revenue</th><th className="text-left px-4 py-2">Stato</th></tr></thead>
-          <tbody>{(partners||[]).slice(0,5).map(p=>(
-            <tr key={p.id} className="cursor-pointer transition-colors hover:bg-[#FAFAF7]" style={{ borderTop: '1px solid #ECEDEF' }} onClick={()=>onNavigate("partner")}>
-              <td className="px-5 py-3"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: '#F2C418', color: '#1E2128' }}>{p.name.split(" ").map(n=>n[0]).join("")}</div><div><div className="text-sm font-bold" style={{ color: '#1E2128' }}>{p.name}</div><div className="text-xs" style={{ color: '#9CA3AF' }}>{p.niche}</div></div></div></td>
-              <td className="px-4 py-3"><span className="font-mono text-xs font-bold px-2 py-1 rounded" style={{ background: '#FFF3C4', color: '#C4990A' }}>{p.phase}</span></td>
-              <td className="px-4 py-3 font-mono text-sm" style={{ color: '#5F6572' }}>{p.revenue>0?`€${p.revenue.toLocaleString()}`:"—"}</td>
-              <td className="px-4 py-3">{p.alert?<span className="text-xs font-bold text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3"/>Alert</span>:<span className="text-xs font-bold text-green-500 flex items-center gap-1"><Check className="w-3 h-3"/>OK</span>}</td>
-            </tr>
-          ))}</tbody>
-        </table>
+        <div className="divide-y" style={{ borderColor: '#ECEDEF' }}>
+          <div className="grid grid-cols-4 px-5 py-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#9CA3AF' }}>
+            <span>Partner</span><span>Fase</span><span>Revenue</span><span>Stato</span>
+          </div>
+          {(partners||[]).slice(0,5).map(p=>(
+            <div key={p.id} className="grid grid-cols-4 items-center px-5 py-3 cursor-pointer transition-colors hover:bg-[#FAFAF7]" onClick={()=>onNavigate("partner")}>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: '#F2C418', color: '#1E2128' }}>{p.name.split(" ").map(n=>n[0]).join("")}</div>
+                <div><div className="text-sm font-bold" style={{ color: '#1E2128' }}>{p.name}</div><div className="text-xs" style={{ color: '#9CA3AF' }}>{p.niche}</div></div>
+              </div>
+              <div><span className="font-mono text-xs font-bold px-2 py-1 rounded" style={{ background: '#FFF3C4', color: '#C4990A' }}>{p.phase}</span></div>
+              <div className="font-mono text-sm" style={{ color: '#5F6572' }}>{p.revenue>0?`€${p.revenue.toLocaleString()}`:"—"}</div>
+              <div>{p.alert?<span className="text-xs font-bold text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3"/>Alert</span>:<span className="text-xs font-bold text-green-500 flex items-center gap-1"><Check className="w-3 h-3"/>OK</span>}</div>
+            </div>
+          ))}
+        </div>
       </div>
       <div>
         <div className="flex items-center justify-between mb-3"><span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Agenti AI</span><button onClick={()=>onNavigate("agenti")} className="text-xs font-bold hover:opacity-80 transition-opacity" style={{ color: '#F2C418' }}>Vedi tutti →</button></div>
