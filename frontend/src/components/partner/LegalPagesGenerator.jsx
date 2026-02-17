@@ -167,7 +167,7 @@ export function LegalPagesGenerator({ partner, onBack }) {
               📄 Generatore Pagine Legali
             </h1>
             <p className="text-sm" style={{ color: '#9CA3AF' }}>
-              Andrea genera Privacy Policy, T&C, Cookie Policy e Disclaimer
+              Luca genera Privacy Policy, T&C, Cookie Policy e Disclaimer
             </p>
           </div>
         </div>
@@ -192,6 +192,52 @@ export function LegalPagesGenerator({ partner, onBack }) {
               )}
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* IMPORTANT DISCLAIMER */}
+      <div className="max-w-4xl mx-auto mb-6">
+        <div 
+          className="rounded-2xl p-6 relative overflow-hidden"
+          style={{ 
+            background: 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)',
+            border: '2px solid #F59E0B'
+          }}
+        >
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                 style={{ background: '#F59E0B' }}>
+              <AlertTriangle className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-lg mb-2" style={{ color: '#92400E' }}>
+                ⚠️ Disclaimer Importante — Leggi Prima di Procedere
+              </h3>
+              <div className="space-y-3 text-sm" style={{ color: '#78350F' }}>
+                <p>
+                  <strong>Questo strumento è un assistente, non un sostituto legale.</strong> I documenti generati 
+                  da Luca sono <strong>bozze di partenza</strong> create per semplificarti il lavoro, ma <u>non 
+                  costituiscono consulenza legale professionale</u>.
+                </p>
+                <p>
+                  Per una conformità GDPR completa e documenti legalmente vincolanti, ti consigliamo di:
+                </p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>Rivolgerti a un <strong>avvocato specializzato</strong> in diritto digitale e privacy</li>
+                  <li>Utilizzare servizi professionali dedicati come <strong>Iubenda</strong>, <strong>Cookiebot</strong> o <strong>Termly</strong></li>
+                  <li>Far <strong>revisionare sempre</strong> i documenti da un professionista prima della pubblicazione</li>
+                </ul>
+                <p className="pt-2" style={{ borderTop: '1px solid #D97706' }}>
+                  💡 <strong>Il nostro consiglio:</strong> Usa questi documenti come punto di partenza per 
+                  risparmiare tempo, poi affidati a un esperto per la validazione finale. La conformità legale 
+                  è troppo importante per essere lasciata al caso — proteggi te stesso e i tuoi clienti.
+                </p>
+              </div>
+            </div>
+          </div>
+          {/* Decorative corner */}
+          <div className="absolute -bottom-4 -right-4 w-24 h-24 rounded-full opacity-20"
+               style={{ background: '#F59E0B' }}></div>
         </div>
       </div>
 
