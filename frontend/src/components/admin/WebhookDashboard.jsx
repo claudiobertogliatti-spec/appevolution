@@ -5,8 +5,7 @@ import {
   Clock, TrendingUp, Zap, Filter, ChevronDown
 } from "lucide-react";
 import axios from "axios";
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import { API, API_URL } from "../../utils/api-config";
 
 // Event type icons and colors
 const EVENT_CONFIG = {

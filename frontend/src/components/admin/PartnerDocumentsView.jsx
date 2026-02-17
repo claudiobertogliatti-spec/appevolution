@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { FileText, Target, Mic, BookOpen, ChevronDown, ChevronRight, Check, Clock, AlertCircle, Eye, X } from "lucide-react";
 import axios from "axios";
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import { API } from "../../utils/api-config";
 
 const STATUS_CONFIG = {
   completed: { label: "Completato", color: "text-green-400", bg: "bg-green-500/20" },
