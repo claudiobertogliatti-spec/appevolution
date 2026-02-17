@@ -244,27 +244,16 @@ export function AvatarCheckout({ partner, onBack }) {
             </div>
             <div className="w-full max-w-md">
               <div className="relative rounded-2xl overflow-hidden shadow-2xl" style={{ aspectRatio: '16/9' }}>
-                {/* Professional Avatar Demo Video */}
+                {/* Professional Avatar Demo Video - Evolution PRO */}
                 <video 
                   className="w-full h-full object-cover"
                   autoPlay
                   loop
                   muted
                   playsInline
-                  poster="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&q=80"
                 >
-                  {/* Synthesia public demo video */}
-                  <source src="https://cdn.synthesia.io/video/c5f726ad-f8c3-436b-84cd-e04a693cd5c9.mp4" type="video/mp4" />
-                  {/* HeyGen fallback */}
-                  <source src="https://files.heygen.ai/prod/movio/render/7879de1f45e94c6c8cbcc0ecb2d3e6e8/1080p.mp4" type="video/mp4" />
+                  <source src="https://customer-assets.emergentagent.com/job_workflow-sync-6/artifacts/w619n7sa_base.mp4" type="video/mp4" />
                 </video>
-                {/* Fallback image overlay if video fails */}
-                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#1E2128] to-[#3D4048] -z-10">
-                  <div className="text-center text-white">
-                    <Video className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                    <p className="text-sm opacity-70">Video Avatar Demo</p>
-                  </div>
-                </div>
                 {/* Play overlay indicator */}
                 <div className="absolute bottom-3 right-3 px-2 py-1 rounded-lg bg-black/60 text-white text-xs flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
