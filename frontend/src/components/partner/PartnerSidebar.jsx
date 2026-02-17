@@ -4,7 +4,7 @@ import {
   FolderOpen, MessageCircle, LogOut, ChevronRight, ChevronDown, 
   HelpCircle, Sparkles, Check, Lock, Rocket, ShoppingBag, Scissors, 
   Scale, UserCircle, Globe, Mail, BarChart3, UsersRound, Video,
-  PlayCircle, X, Users, Lightbulb, Star
+  PlayCircle, X, Users, Lightbulb, Star, FileUp
 } from "lucide-react";
 
 // =====================================================
