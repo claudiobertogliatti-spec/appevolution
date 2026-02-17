@@ -45,46 +45,55 @@ const UNLOCK_RULES = {
   "servizi-extra": 1,   // Altri servizi
 };
 
-// Gruppi della sidebar
-const SIDEBAR_GROUPS = [
-  {
-    id: "percorso",
-    label: "📚 Percorso",
-    items: [
-      { id: "corso", label: "Parti da Qui", icon: PlayCircle, badge: "START" },
-      { id: "brandkit", label: "Brand Kit", icon: Palette },
-      { id: "documenti", label: "Posizionamento", icon: Target },
-      { id: "masterclass", label: "Masterclass", icon: Mic },
-    ]
-  },
-  {
-    id: "lancio",
-    label: "🚀 Lancio",
-    items: [
-      { id: "funnel", label: "Il tuo Funnel", icon: Rocket },
-      { id: "email-automation", label: "Email Automatiche", icon: Mail },
-      { id: "domain-config", label: "Dominio Funnel", icon: Globe },
-      { id: "funnel-analytics", label: "Analytics Funnel", icon: BarChart3 },
-    ]
-  },
-  {
-    id: "produzione",
-    label: "🎬 Produzione Video",
-    items: [
-      { id: "consigli-registrazione", label: "Consigli Registrazione", icon: Lightbulb },
-      { id: "video-editor", label: "Video Editor", icon: Scissors },
-      { id: "legal-pages", label: "Pagine Legali", icon: Scale },
-    ]
-  },
-  {
-    id: "servizi",
-    label: "⭐ Servizi Extra",
-    items: [
-      { id: "avatar-checkout", label: "Avatar PRO", icon: Video, badge: "DELEGA" },
-      { id: "servizi-extra", label: "Altri Servizi", icon: ShoppingBag },
-    ]
-  }
-];
+// Funzione per generare i gruppi della sidebar in base alla fase
+const getSidebarGroups = (partnerPhase) => {
+  const isF0 = partnerPhase === "F0";
+  
+  return [
+    {
+      id: "percorso",
+      label: "📚 Percorso",
+      items: [
+        // Mostra "Documenti Onboarding" solo in F0
+        ...(isF0 ? [{ id: "onboarding-docs", label: "Documenti Onboarding", icon: FileUp, badge: "URGENTE", badgeColor: "red" }] : []),
+        { id: "corso", label: "Parti da Qui", icon: PlayCircle, badge: isF0 ? null : "START" },
+        { id: "brandkit", label: "Brand Kit", icon: Palette },
+        { id: "documenti", label: "Posizionamento", icon: Target },
+        { id: "masterclass", label: "Masterclass", icon: Mic },
+      ]
+    },
+    {
+      id: "lancio",
+      label: "🚀 Lancio",
+      items: [
+        { id: "funnel", label: "Il tuo Funnel", icon: Rocket },
+        { id: "email-automation", label: "Email Automatiche", icon: Mail },
+        { id: "domain-config", label: "Dominio Funnel", icon: Globe },
+        { id: "funnel-analytics", label: "Analytics Funnel", icon: BarChart3 },
+      ]
+    },
+    {
+      id: "produzione",
+      label: "🎬 Produzione Video",
+      items: [
+        { id: "consigli-registrazione", label: "Consigli Registrazione", icon: Lightbulb },
+        { id: "video-editor", label: "Video Editor", icon: Scissors },
+        { id: "legal-pages", label: "Pagine Legali", icon: Scale },
+      ]
+    },
+    {
+      id: "servizi",
+      label: "⭐ Servizi Extra",
+      items: [
+        { id: "avatar-checkout", label: "Avatar PRO", icon: Video, badge: "DELEGA" },
+        { id: "servizi-extra", label: "Altri Servizi", icon: ShoppingBag },
+      ]
+    }
+  ];
+};
+
+// Gruppi della sidebar (per compatibilità - usa la funzione sopra dove possibile)
+const SIDEBAR_GROUPS = getSidebarGroups("F1");
 
 // Helper per ottenere la fase richiesta
 const getRequiredPhase = (itemId) => UNLOCK_RULES[itemId] || 1;
