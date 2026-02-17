@@ -217,6 +217,8 @@ export function OrionLeadScoring() {
         // Save to sessionStorage for persistence
         sessionStorage.setItem('orion_analysis', JSON.stringify(data));
         await loadSegments();
+        await loadContactCount(); // Refresh total count
+        await loadSegmentTotals(); // Refresh segment totals
       } else {
         console.error('Analysis failed:', data.detail || data.error);
       }
