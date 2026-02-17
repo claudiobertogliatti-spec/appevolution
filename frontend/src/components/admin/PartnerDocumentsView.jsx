@@ -307,43 +307,39 @@ export function PartnerDocumentsView({ partners }) {
 
       {/* Partners List */}
       <div className="bg-white border border-[#ECEDEF] rounded-xl overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider border-b border-[#ECEDEF]">
-              <th className="text-left px-5 py-3">Partner</th>
-              <th className="text-left px-4 py-3">Fase</th>
-              <th className="text-center px-4 py-3">Posizionamento</th>
-              <th className="text-center px-4 py-3">Script</th>
-              <th className="text-center px-4 py-3">Corso</th>
-              <th className="text-right px-5 py-3">Azioni</th>
-            </tr>
-          </thead>
-          <tbody>
+        <div className="w-full">
+          <div className="grid grid-cols-6 text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider border-b border-[#ECEDEF] px-5 py-3">
+            <span>Partner</span>
+            <span>Fase</span>
+            <span className="text-center">Posizionamento</span>
+            <span className="text-center">Script</span>
+            <span className="text-center">Corso</span>
+            <span className="text-right">Azioni</span>
+          </div>
+          <div className="divide-y divide-[#ECEDEF]">
             {summaries.map((partner) => (
-              <tr
+              <div
                 key={partner.partner_id}
-                className="border-t border-[#ECEDEF] hover:bg-white/2 transition-colors"
+                className="grid grid-cols-6 items-center hover:bg-white/2 transition-colors px-5 py-3"
               >
-                <td className="px-5 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#F5C518] flex items-center justify-center text-xs font-bold text-black">
-                      {partner.partner_name?.split(" ").map(n => n[0]).join("")}
-                    </div>
-                    <span className="text-sm font-semibold">{partner.partner_name}</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-[#F5C518] flex items-center justify-center text-xs font-bold text-black">
+                    {partner.partner_name?.split(" ").map(n => n[0]).join("")}
                   </div>
-                </td>
-                <td className="px-4 py-3">
+                  <span className="text-sm font-semibold">{partner.partner_name}</span>
+                </div>
+                <div>
                   <span className="font-mono text-xs font-bold px-2 py-1 rounded bg-[#F5C518]/15 text-[#F5C518]">
                     {partner.partner_phase}
                   </span>
-                </td>
-                <td className="px-4 py-3 text-center">
+                </div>
+                <div className="text-center">
                   <StatusBadge status={partner.positioning?.status} />
-                </td>
-                <td className="px-4 py-3 text-center">
+                </div>
+                <div className="text-center">
                   <StatusBadge status={partner.script?.status} />
-                </td>
-                <td className="px-4 py-3 text-center">
+                </div>
+                <div className="text-center">
                   {partner.course?.has_structure ? (
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-500/20 text-green-400">
                       Presente
@@ -353,8 +349,8 @@ export function PartnerDocumentsView({ partners }) {
                       Assente
                     </span>
                   )}
-                </td>
-                <td className="px-5 py-3 text-right">
+                </div>
+                <div className="text-right">
                   <button
                     onClick={() => openPartnerDocs(partner)}
                     className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FAFAF7] border border-[#ECEDEF] hover:border-[#F5C518]/30 hover:bg-[#F5C518]/10 transition-all flex items-center gap-1.5 ml-auto"
@@ -362,11 +358,11 @@ export function PartnerDocumentsView({ partners }) {
                     <Eye className="w-3 h-3" />
                     Visualizza
                   </button>
-                </td>
-              </tr>
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+        </div>
       </div>
 
       {/* Document Modal */}
