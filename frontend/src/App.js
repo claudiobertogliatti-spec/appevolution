@@ -390,10 +390,60 @@ function PartnerFileManager({ partner }) {
 // ─── PARTNER COURSE ────────────────────────────────────────────────────────────
 function PartnerCourse({ partner, modules }) {
   const [activeModule,setActiveModule]=useState(null);const [activeLesson,setActiveLesson]=useState(0);const [playing,setPlaying]=useState(false);
+  const [welcomeVideoPlaying, setWelcomeVideoPlaying] = useState(false);
   const phaseIdx=PHASES.indexOf(partner.phase);const done=(partner.modules||[]).filter(Boolean).length;
   const cm=activeModule!==null?modules[activeModule]:null;const cl=cm?.lessons[activeLesson];
   return (
     <div className="space-y-5">
+      {/* Welcome Video Section */}
+      <div className="bg-gradient-to-br from-[#1E2128] to-[#2D3038] rounded-2xl overflow-hidden border border-[#3D4048]">
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-[#F5C518] flex items-center justify-center">
+              <PlayCircle className="w-5 h-5 text-black" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white">Benvenuto nel Percorso Evolution PRO</h2>
+              <p className="text-xs text-[#9CA3AF]">Guarda questo video prima di iniziare</p>
+            </div>
+            <span className="ml-auto px-3 py-1 rounded-full text-xs font-bold bg-[#F5C518] text-black">START</span>
+          </div>
+          <div className="relative rounded-xl overflow-hidden" style={{ aspectRatio: '16/9' }}>
+            {!welcomeVideoPlaying ? (
+              <div 
+                className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 cursor-pointer group"
+                onClick={() => setWelcomeVideoPlaying(true)}
+              >
+                <video 
+                  className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity"
+                  muted
+                  playsInline
+                  poster="https://customer-assets.emergentagent.com/job_workflow-sync-6/artifacts/g7nm3aau_Benvenuto_nel_Percorso_Evolution_PRO.mp4#t=0.5"
+                >
+                  <source src="https://customer-assets.emergentagent.com/job_workflow-sync-6/artifacts/g7nm3aau_Benvenuto_nel_Percorso_Evolution_PRO.mp4" type="video/mp4" />
+                </video>
+                <div className="relative z-10 text-center">
+                  <div className="w-16 h-16 bg-[#F5C518] rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform shadow-lg">
+                    <PlayCircle className="w-8 h-8 text-black" />
+                  </div>
+                  <div className="font-bold text-white text-lg mb-1">Guarda il Video di Benvenuto</div>
+                  <div className="text-xs text-white/70">Claudio ti spiega come funziona il percorso</div>
+                </div>
+              </div>
+            ) : (
+              <video 
+                className="w-full h-full object-cover"
+                controls
+                autoPlay
+                playsInline
+              >
+                <source src="https://customer-assets.emergentagent.com/job_workflow-sync-6/artifacts/g7nm3aau_Benvenuto_nel_Percorso_Evolution_PRO.mp4" type="video/mp4" />
+              </video>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className="bg-white border border-[#ECEDEF] rounded-xl p-5"><div className="flex items-center justify-between mb-3"><h2 className="text-base font-extrabold">Videocorso Operativo</h2><span className="text-xs font-bold text-[#9CA3AF]">{done}/{(modules||[]).length} moduli</span></div><div className="h-1.5 bg-[#FAFAF7] rounded-full overflow-hidden"><div className="h-full bg-[#F5C518] rounded-full transition-all" style={{width:`${(done/Math.max((modules||[]).length,1))*100}%`}}/></div></div>
       <div className="flex gap-5">
         <div className="w-52 flex-shrink-0 space-y-2">{(modules||[]).map((m,mi)=>{const unlocked=mi<=phaseIdx+1;const isDone=(partner.modules||[])[mi];const isActive=activeModule===mi;return(<div key={m.num} onClick={()=>unlocked&&(setActiveModule(isActive?null:mi),setActiveLesson(0),setPlaying(false))} className={`rounded-xl p-3 cursor-pointer transition-all border ${isActive?"border-[#F5C518] bg-[#F5C518]/5":"border-[#ECEDEF] bg-white hover:border-[#F2C418]"} ${!unlocked?"opacity-40 cursor-not-allowed":""}`}><div className="flex items-center gap-2 mb-1"><span className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded ${isDone?"bg-green-500/20 text-green-400":isActive?"bg-[#F5C518] text-black":"bg-[#ECEDEF] text-[#9CA3AF]"}`}>M{m.num}</span>{!unlocked&&<span className="text-[#9CA3AF] text-xs">🔒</span>}</div><div className="text-xs font-bold leading-snug">{m.title}</div><div className="text-[10px] text-[#9CA3AF] mt-0.5">{m.lessons?.length} lezioni</div></div>);})}</div>
