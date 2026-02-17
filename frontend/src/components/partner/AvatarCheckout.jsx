@@ -244,19 +244,22 @@ export function AvatarCheckout({ partner, onBack }) {
             </div>
             <div className="w-full max-w-md">
               <div className="relative rounded-2xl overflow-hidden shadow-2xl" style={{ aspectRatio: '16/9' }}>
-                <video 
-                  className="w-full h-full object-cover"
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  poster="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&q=80"
-                >
-                  {/* HeyGen Demo Video - Professional Avatar */}
-                  <source src="https://resource.heygen.ai/video/7879de1f45e94c6c8cbcc0ecb2d3e6e8/1080p.mp4" type="video/mp4" />
-                  {/* Fallback image */}
-                  Il tuo browser non supporta i video HTML5.
-                </video>
+                {/* Professional Avatar Demo - Synthesia/HeyGen style */}
+                <iframe
+                  className="w-full h-full"
+                  src="https://www.youtube.com/embed/eDFa9tqwDg8?autoplay=1&mute=1&loop=1&playlist=eDFa9tqwDg8&controls=0&showinfo=0&modestbranding=1&rel=0&start=5&end=35"
+                  title="Avatar Demo"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  style={{ pointerEvents: 'none' }}
+                ></iframe>
+                {/* Fallback for no-iframe */}
+                <img 
+                  src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&q=80"
+                  alt="Avatar Demo"
+                  className="absolute inset-0 w-full h-full object-cover -z-10"
+                />
                 {/* Play overlay indicator */}
                 <div className="absolute bottom-3 right-3 px-2 py-1 rounded-lg bg-black/60 text-white text-xs flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
