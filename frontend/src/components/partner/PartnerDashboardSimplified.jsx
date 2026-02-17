@@ -25,6 +25,21 @@ const ACHIEVEMENTS = [
   { id: 6, emoji: "💎", name: "Top Partner", desc: "Percorso completato", phase: "F10" },
 ];
 
+// Phase labels
+const PHASE_LABELS = {
+  F0: "Pre-Onboarding",
+  F1: "Attivazione",
+  F2: "Posizionamento",
+  F3: "Masterclass",
+  F4: "Struttura Corso",
+  F5: "Produzione Video",
+  F6: "Post-Produzione",
+  F7: "Funnel",
+  F8: "Lancio",
+  F9: "Ottimizzazione",
+  F10: "Scalabilità"
+};
+
 // Current task based on phase
 const PHASE_TASKS = {
   F0: { title: "Completa la Registrazione", desc: "Inserisci i tuoi dati per attivare il tuo account partner.", cta: "Inizia ora", action: "profile" },
