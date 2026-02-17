@@ -470,29 +470,46 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) 
           />
           <div className="grid grid-cols-2 gap-3">
             <ResourceCard 
-              emoji="📚"
-              title="Guide e Manuali"
-              description="12 documenti pronti"
-              onClick={() => onNavigate('risorse')}
-            />
-            <ResourceCard 
-              emoji="🎬"
-              title="Video Formativi"
-              description="8 lezioni da 5 min"
-              onClick={() => onNavigate('corso')}
+              emoji="📁"
+              title="Documenti"
+              description="Contratto, ricevute, copy approvati"
+              onClick={() => onNavigate('documenti-partner')}
             />
             <ResourceCard 
               emoji="📋"
               title="Template"
-              description="Scarica e personalizza"
-              onClick={() => onNavigate('risorse')}
+              description="Materiali in arrivo..."
+              onClick={() => {}}
+              disabled={true}
             />
-            <ResourceCard 
-              emoji="🎨"
-              title="Brand Kit"
-              description="Loghi, colori, font"
-              onClick={() => onNavigate('brandkit')}
-            />
+          </div>
+          
+          {/* Documents List Preview */}
+          <div className="mt-3 p-4 rounded-xl" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
+            <div className="text-xs font-bold mb-2" style={{ color: '#5F6572' }}>Contenuto cartella Documenti:</div>
+            <div className="grid grid-cols-2 gap-2 text-xs" style={{ color: '#9CA3AF' }}>
+              <div className="flex items-center gap-1.5">
+                <span style={{ color: '#22C55E' }}>✓</span> Contratto firmato
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span style={{ color: '#22C55E' }}>✓</span> Ricevuta di pagamento
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span style={{ color: '#22C55E' }}>✓</span> Copia documenti personali
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span style={{ color: '#F59E0B' }}>○</span> Posizionamento
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span style={{ color: '#F59E0B' }}>○</span> Script masterclass approvato
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span style={{ color: '#F59E0B' }}>○</span> Email automatiche approvate
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span style={{ color: '#F59E0B' }}>○</span> Copy funnel approvato
+              </div>
+            </div>
           </div>
         </section>
 
