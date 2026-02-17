@@ -159,7 +159,7 @@ export function WebhookDashboard() {
     ? logs.filter(l => l.event_type === eventFilter)
     : logs;
 
-  const webhookUrl = `${process.env.REACT_APP_BACKEND_URL}/api/webhooks/systeme`;
+  const webhookUrl = `${API_URL}/api/webhooks/systeme`;
 
   return (
     <div className="space-y-6" data-testid="webhook-dashboard">
