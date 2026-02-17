@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Home, BookOpen, Target, Mic, Film, FileText, Calendar, Palette, FolderOpen, MessageCircle, LogOut, ChevronRight, ChevronDown, HelpCircle, Sparkles, Check, Lock, Rocket, ShoppingBag, Scissors, Scale, UserCircle, Globe, Mail, BarChart3 } from "lucide-react";
+import { Home, BookOpen, Target, Mic, Film, FileText, Calendar, Palette, FolderOpen, MessageCircle, LogOut, ChevronRight, ChevronDown, HelpCircle, Sparkles, Check, Lock, Rocket, ShoppingBag, Scissors, Scale, UserCircle, Globe, Mail, BarChart3, UsersRound } from "lucide-react";
 
 const NAV_ITEMS = [
   { id: "home", label: "Home", icon: Home },
   { id: "profilo-hub", label: "Profilo Hub", icon: UserCircle, badge: "NEW" },
+  { id: "team", label: "Team Evolution", icon: UsersRound },
   { id: "corso", label: "Parti da Qui", icon: BookOpen, badge: "NUOVO" },
   { id: "documenti", label: "Posizionamento", icon: Target },
   { id: "masterclass", label: "Masterclass & Videocorso", icon: Mic },
