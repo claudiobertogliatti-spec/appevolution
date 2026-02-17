@@ -74,7 +74,23 @@ function Message({ msg, isLast }) {
 
 // Componente principale Chat VALENTINA
 export function ValentinaChat({ partner, onBack, isAdmin = false }) {
-  const [messages, setMessages] = useState([]);
+  // Chiave per sessionStorage basata sul partner/admin
+  const storageKey = `valentina_chat_${isAdmin ? 'admin' : partner?.id || 'default'}`;
+  
+  // Carica messaggi da sessionStorage se presenti
+  const loadStoredMessages = () => {
+    try {
+      const stored = sessionStorage.getItem(storageKey);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      console.error('Error loading stored messages:', e);
+    }
+    return null;
+  };
+  
+  const [messages, setMessages] = useState(() => loadStoredMessages() || []);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [typing, setTyping] = useState(false);
@@ -83,18 +99,31 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
   
   const currentTime = () => new Date().toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
   
-  // Messaggio iniziale
+  // Salva messaggi in sessionStorage quando cambiano
   useEffect(() => {
-    const welcomeMsg = {
-      role: "assistant",
-      content: isAdmin 
-        ? `Ciao Claudio! 👋\n\nSono **VALENTINA**, il tuo braccio destro.\n\nPosso aiutarti con:\n• 📊 Status lead e ORION (13.000+ contatti)\n• 👔 Gestione partner e fasi\n• 💰 KPI vendite e Tripwire €7\n• ⚡ Coordinare gli agenti AI\n\nDimmi cosa ti serve, boss!`
-        : `Ciao ${partner?.name?.split(" ")[0] || "Partner"}! 👋\n\nSono **VALENTINA**, la tua orchestratrice personale.\n\nSei attualmente in **${partner?.phase || "F1"}**. Sono qui per rispondere alle tue domande e supportarti nel percorso.\n\nScrivimi pure!`,
-      time: currentTime(),
-      read: true
-    };
-    setMessages([welcomeMsg]);
-  }, [partner, isAdmin]);
+    if (messages.length > 0) {
+      try {
+        sessionStorage.setItem(storageKey, JSON.stringify(messages));
+      } catch (e) {
+        console.error('Error saving messages:', e);
+      }
+    }
+  }, [messages, storageKey]);
+  
+  // Messaggio iniziale (solo se non ci sono messaggi salvati)
+  useEffect(() => {
+    if (messages.length === 0) {
+      const welcomeMsg = {
+        role: "assistant",
+        content: isAdmin 
+          ? `Ciao Claudio! 👋\n\nSono **VALENTINA**, il tuo braccio destro.\n\nPosso aiutarti con:\n• 📊 Status lead e ORION (13.000+ contatti)\n• 👔 Gestione partner e fasi\n• 💰 KPI vendite e Tripwire €7\n• ⚡ Coordinare gli agenti AI\n\nDimmi cosa ti serve, boss!`
+          : `Ciao ${partner?.name?.split(" ")[0] || "Partner"}! 👋\n\nSono **VALENTINA**, la tua orchestratrice personale.\n\nSei attualmente in **${partner?.phase || "F1"}**. Sono qui per rispondere alle tue domande e supportarti nel percorso.\n\nScrivimi pure!`,
+        time: currentTime(),
+        read: true
+      };
+      setMessages([welcomeMsg]);
+    }
+  }, [partner, isAdmin, messages.length]);
   
   // Scroll automatico
   useEffect(() => {
