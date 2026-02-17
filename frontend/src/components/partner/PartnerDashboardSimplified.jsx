@@ -327,6 +327,64 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) 
           </div>
         </div>
 
+        {/* Profile Hub Summary Card */}
+        <div className="bg-white rounded-2xl border border-[#ECEDEF] overflow-hidden">
+          <div className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-black"
+                   style={{ background: '#F2C418', color: '#1E2128' }}>
+                {partner?.name?.split(" ").map(n => n[0]).join("") || "P"}
+              </div>
+              <div className="flex-1">
+                <div className="font-bold text-lg" style={{ color: '#1E2128' }}>
+                  {partner?.name || "Partner"}
+                </div>
+                <div className="text-sm" style={{ color: '#9CA3AF' }}>
+                  {partner?.niche || "Coach"} · {partner?.email || "email@example.com"}
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="px-2 py-0.5 rounded-full text-xs font-bold"
+                        style={{ background: '#F2C41820', color: '#C4990A' }}>
+                    {partner?.phase || 'F1'}
+                  </span>
+                  <span className="text-xs" style={{ color: '#5F6572' }}>
+                    {PHASE_LABELS[partner?.phase] || 'Attivazione'}
+                  </span>
+                </div>
+              </div>
+              <button 
+                onClick={() => onNavigate('profilo-hub')}
+                className="px-4 py-2 rounded-xl text-sm font-bold transition-all hover:opacity-90"
+                style={{ background: '#FAFAF7', border: '1px solid #ECEDEF', color: '#5F6572' }}>
+                Modifica Profilo →
+              </button>
+            </div>
+          </div>
+          
+          {/* Flow Steps Mini */}
+          <div className="px-5 pb-5">
+            <div className="flex items-center gap-1 p-3 rounded-xl" style={{ background: '#FAFAF7' }}>
+              {['Profilo', 'Brand Kit', 'Posizionamento', 'Masterclass', 'Funnel', 'Lancio'].map((step, idx) => {
+                const isCompleted = idx < phaseNumber;
+                const isCurrent = idx === phaseNumber;
+                return (
+                  <div key={step} className="flex items-center gap-1 flex-1">
+                    <div 
+                      className={`flex-1 h-2 rounded-full transition-all ${isCompleted ? 'bg-green-400' : isCurrent ? 'bg-[#F2C418]' : 'bg-[#ECEDEF]'}`}
+                    />
+                    {idx < 5 && <div className="w-1" />}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex justify-between mt-2 px-1">
+              <span className="text-[9px] font-medium" style={{ color: '#9CA3AF' }}>Inizio</span>
+              <span className="text-[9px] font-bold" style={{ color: '#F2C418' }}>Sei qui</span>
+              <span className="text-[9px] font-medium" style={{ color: '#9CA3AF' }}>Lancio 🚀</span>
+            </div>
+          </div>
+        </div>
+
         {/* Welcome Banner */}
         <WelcomeBanner 
           partnerName={partnerFirstName}
