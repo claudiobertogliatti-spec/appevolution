@@ -393,8 +393,21 @@ function PartnerCourse({ partner, modules }) {
   const [welcomeVideoPlaying, setWelcomeVideoPlaying] = useState(false);
   const phaseIdx=PHASES.indexOf(partner.phase);const done=(partner.modules||[]).filter(Boolean).length;
   const cm=activeModule!==null?modules[activeModule]:null;const cl=cm?.lessons[activeLesson];
+  
+  // Team Evolution Data
+  const TEAM_AGENTS = [
+    { id: "orion", name: "Orion", role: "Sales Intelligence", emoji: "🎯", color: "#5B9EF5", desc: "Analizza lead e ottimizza le conversioni" },
+    { id: "valentina", name: "Valentina", role: "Orchestratrice", emoji: "🔗", color: "#E87CA0", desc: "Coordina il flusso di lavoro" },
+    { id: "marta", name: "Marta", role: "CRM & Revenue", emoji: "💰", color: "#4ECBA0", desc: "Gestisce contatti e fatturato" },
+    { id: "gaia", name: "Gaia", role: "Funnel & Incident", emoji: "🚀", color: "#F59E42", desc: "Costruisce e ottimizza il funnel" },
+    { id: "andrea", name: "Andrea", role: "Video Production", emoji: "🎬", color: "#7C8CF5", desc: "Editing video e avatar AI" },
+    { id: "stefania", name: "Stefania", role: "Copy & Traffico", emoji: "✍️", color: "#D17CEF", desc: "Scrive testi persuasivi" },
+    { id: "luca", name: "Luca", role: "Compliance", emoji: "🛡️", color: "#8899AA", desc: "Conformità GDPR e legale" },
+    { id: "atlas", name: "Atlas", role: "Post-Sale & LTV", emoji: "🤝", color: "#3CC8B4", desc: "Onboarding e retention clienti" },
+  ];
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Welcome Video Section */}
       <div className="bg-gradient-to-br from-[#1E2128] to-[#2D3038] rounded-2xl overflow-hidden border border-[#3D4048]">
         <div className="p-6">
@@ -444,14 +457,71 @@ function PartnerCourse({ partner, modules }) {
         </div>
       </div>
 
-      <div className="bg-white border border-[#ECEDEF] rounded-xl p-5"><div className="flex items-center justify-between mb-3"><h2 className="text-base font-extrabold">Videocorso Operativo</h2><span className="text-xs font-bold text-[#9CA3AF]">{done}/{(modules||[]).length} moduli</span></div><div className="h-1.5 bg-[#FAFAF7] rounded-full overflow-hidden"><div className="h-full bg-[#F5C518] rounded-full transition-all" style={{width:`${(done/Math.max((modules||[]).length,1))*100}%`}}/></div></div>
-      <div className="flex gap-5">
-        <div className="w-52 flex-shrink-0 space-y-2">{(modules||[]).map((m,mi)=>{const unlocked=mi<=phaseIdx+1;const isDone=(partner.modules||[])[mi];const isActive=activeModule===mi;return(<div key={m.num} onClick={()=>unlocked&&(setActiveModule(isActive?null:mi),setActiveLesson(0),setPlaying(false))} className={`rounded-xl p-3 cursor-pointer transition-all border ${isActive?"border-[#F5C518] bg-[#F5C518]/5":"border-[#ECEDEF] bg-white hover:border-[#F2C418]"} ${!unlocked?"opacity-40 cursor-not-allowed":""}`}><div className="flex items-center gap-2 mb-1"><span className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded ${isDone?"bg-green-500/20 text-green-400":isActive?"bg-[#F5C518] text-black":"bg-[#ECEDEF] text-[#9CA3AF]"}`}>M{m.num}</span>{!unlocked&&<span className="text-[#9CA3AF] text-xs">🔒</span>}</div><div className="text-xs font-bold leading-snug">{m.title}</div><div className="text-[10px] text-[#9CA3AF] mt-0.5">{m.lessons?.length} lezioni</div></div>);})}</div>
-        <div className="flex-1 min-w-0">
-          {activeModule===null?<div className="bg-white border border-[#ECEDEF] rounded-xl p-12 text-center"><PlayCircle className="w-10 h-10 text-[#9CA3AF] mx-auto mb-3"/><div className="font-bold">Seleziona un modulo</div></div>:<>
-            {cl?.ytId?<div className="relative w-full rounded-xl overflow-hidden mb-4" style={{aspectRatio:"16/9"}}>{!playing?<div className="absolute inset-0 flex flex-col items-center justify-center bg-white cursor-pointer group" onClick={()=>setPlaying(true)}><img src={`https://img.youtube.com/vi/${cl.ytId}/hqdefault.jpg`} alt="" className="absolute inset-0 w-full h-full object-cover opacity-25 group-hover:opacity-35 transition-opacity"/><div className="relative z-10 text-center"><div className="w-14 h-14 bg-[#F5C518] rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform"><PlayCircle className="w-7 h-7 text-black"/></div><div className="font-bold text-sm">{cl.title}</div></div></div>:<iframe src={`https://www.youtube.com/embed/${cl.ytId}?autoplay=1&rel=0`} title={cl.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="absolute inset-0 w-full h-full"/>}</div>:<div className="bg-white border-2 border-dashed border-[#ECEDEF] rounded-xl p-10 text-center mb-4"><Clock className="w-8 h-8 text-[#9CA3AF] mx-auto mb-3"/><div className="font-bold text-sm">Video in arrivo — ANDREA caricherà a breve</div></div>}
-            <div className="bg-white border border-[#ECEDEF] rounded-xl overflow-hidden">{cm.lessons.map((l,li)=><div key={li} onClick={()=>{setActiveLesson(li);setPlaying(false);}} className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors border-b border-[#ECEDEF] last:border-0 ${activeLesson===li?"bg-[#F5C518]/8":"hover:bg-[#FAFAF7]"}`}><div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${l.done?"bg-green-500/20 text-green-400":activeLesson===li?"bg-[#F5C518] text-black":"bg-[#ECEDEF] text-[#9CA3AF]"}`}>{l.done?"✓":li+1}</div><span className={`flex-1 text-xs font-semibold ${l.done?"line-through text-[#9CA3AF]":""}`}>{l.title}</span>{l.ytId?<span className="text-[10px] font-bold text-green-400 bg-green-500/20 px-1.5 py-0.5 rounded">▶</span>:<span className="text-[10px] text-[#9CA3AF]">—</span>}</div>)}</div>
-          </>}
+      {/* Team Evolution Section - Integrated */}
+      <div className="bg-white rounded-2xl border border-[#ECEDEF] overflow-hidden">
+        <div className="p-5 border-b border-[#ECEDEF]" style={{ background: '#FAFAF7' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#1E2128' }}>
+              <Users className="w-5 h-5" style={{ color: '#F5C518' }} />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold" style={{ color: '#1E2128' }}>Il Tuo Team Evolution</h2>
+              <p className="text-xs" style={{ color: '#9CA3AF' }}>8 agenti AI + supervisione umana di Claudio e Antonella</p>
+            </div>
+          </div>
+        </div>
+        <div className="p-5">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {TEAM_AGENTS.map(agent => (
+              <div 
+                key={agent.id}
+                className="p-4 rounded-xl text-center transition-all hover:shadow-md"
+                style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}
+              >
+                <div 
+                  className="w-12 h-12 rounded-xl mx-auto mb-2 flex items-center justify-center text-xl"
+                  style={{ background: `${agent.color}15` }}
+                >
+                  {agent.emoji}
+                </div>
+                <div className="font-bold text-sm" style={{ color: '#1E2128' }}>{agent.name}</div>
+                <div className="text-[10px] font-medium mb-1" style={{ color: agent.color }}>{agent.role}</div>
+                <div className="text-[10px]" style={{ color: '#9CA3AF' }}>{agent.desc}</div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 p-4 rounded-xl text-center" style={{ background: '#FFF8DC', border: '1px solid #F2C41830' }}>
+            <div className="text-sm" style={{ color: '#92700C' }}>
+              💡 <strong>Valentina</strong> coordina tutto il team. Parla con lei per qualsiasi domanda!
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Course Progress - Simplified */}
+      <div className="bg-white border border-[#ECEDEF] rounded-xl p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-extrabold">Il Tuo Percorso</h2>
+          <span className="text-xs font-bold text-[#9CA3AF]">{done}/{(modules||[]).length} moduli completati</span>
+        </div>
+        <div className="h-2 bg-[#FAFAF7] rounded-full overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-[#F5C518] to-[#FADA5E] rounded-full transition-all" style={{width:`${(done/Math.max((modules||[]).length,1))*100}%`}}/>
+        </div>
+        <div className="mt-4 grid grid-cols-5 gap-2">
+          {(modules||[]).slice(0,5).map((m,mi)=>{
+            const unlocked=mi<=phaseIdx+1;
+            const isDone=(partner.modules||[])[mi];
+            return(
+              <div key={m.num} className={`p-3 rounded-lg text-center ${isDone?"bg-green-50 border-green-200":unlocked?"bg-[#FFF8DC] border-[#F2C418]":"bg-gray-50 border-gray-200"} border`}>
+                <div className={`text-lg font-black ${isDone?"text-green-500":unlocked?"text-[#C4990A]":"text-gray-400"}`}>
+                  {isDone?"✓":`M${m.num}`}
+                </div>
+                <div className="text-[10px] font-medium truncate" style={{ color: isDone?"#22C55E":unlocked?"#1E2128":"#9CA3AF" }}>
+                  {m.title.split(" ").slice(0,2).join(" ")}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
