@@ -24,7 +24,7 @@ const AGENTS = [
   {
     id: "valentina",
     name: "Valentina",
-    role: "Coordinatrice",
+    role: "Orchestratrice",
     icon: Link2,
     color: "#E87CA0",
     emoji: "🔗",
@@ -54,22 +54,22 @@ const AGENTS = [
   {
     id: "gaia",
     name: "Gaia",
-    role: "Funnel",
+    role: "Funnel & Incident",
     icon: Rocket,
     color: "#F59E42",
     emoji: "🚀",
-    desc: "Costruisce, pubblica e ottimizza le pagine del funnel: opt-in, landing, ordine, thank you page.",
+    desc: "Costruisce, pubblica e ottimizza le pagine del funnel: opt-in, landing, ordine, thank you page. Gestisce anche gli alert di sistema.",
     tasks: [
       "Generazione pagine funnel personalizzate",
       "A/B testing automatico",
       "Ottimizzazione tassi di conversione",
-      "Integrazione Stripe e pagamenti"
+      "Gestione incident e alert"
     ]
   },
   {
     id: "andrea",
     name: "Andrea",
-    role: "Video",
+    role: "Video Production",
     icon: Video,
     color: "#7C8CF5",
     emoji: "🎬",
@@ -84,15 +84,15 @@ const AGENTS = [
   {
     id: "stefania",
     name: "Stefania",
-    role: "Copy",
+    role: "Copy & Traffico",
     icon: PenTool,
     color: "#D17CEF",
     emoji: "✍️",
-    desc: "Scrive tutti i testi: headline, email, pagine funnel, bio, post social — nel tono di voce del partner.",
+    desc: "Scrive tutti i testi e gestisce le campagne ADV: headline, email, pagine funnel, bio, post social — nel tono di voce del partner.",
     tasks: [
       "Copy pagine funnel e landing",
       "Sequenze email automatiche",
-      "Headline e CTA ottimizzate",
+      "Gestione campagne ADV",
       "Adattamento al tono di voce del partner"
     ]
   },
@@ -114,11 +114,11 @@ const AGENTS = [
   {
     id: "atlas",
     name: "Atlas",
-    role: "Post Sales",
+    role: "Post-Sale & LTV",
     icon: Handshake,
     color: "#3CC8B4",
     emoji: "🤝",
-    desc: "Si occupa di tutto ciò che succede dopo la vendita: onboarding clienti, follow-up, soddisfazione e retention.",
+    desc: "Si occupa di tutto ciò che succede dopo la vendita: onboarding clienti, follow-up, soddisfazione, retention e lifetime value.",
     tasks: [
       "Onboarding automatico nuovi clienti",
       "Sequenze follow-up personalizzate",
