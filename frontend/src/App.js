@@ -833,6 +833,7 @@ export default function App() {
 
           {mode==="partner"&&<>
             {nav==="home"&&<PartnerDashboardSimplified partner={demoPartner} onNavigate={setNav} onOpenChat={()=>setNav("supporto")}/>}
+            {nav==="onboarding-docs"&&<OnboardingDocuments partner={demoPartner} onComplete={()=>setNav("home")}/>}
             {nav==="corso"&&<PartnerCourse partner={demoPartner} modules={modules}/>}
             {nav==="masterclass"&&<MasterclassVideocorso partner={demoPartner} onBack={()=>setNav("home")}/>}
             {nav==="coursebuilder"&&<CourseBuilderWizard partnerId={demoPartner?.id||"demo"} positioningData={{trasformazione:"Demo",target:"Demo",problema:"Demo",soluzione:"Demo"}} onComplete={()=>setNav("consigli-registrazione")}/>}
