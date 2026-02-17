@@ -116,17 +116,45 @@ Build "Evolution PRO OS", a proprietary web application for business workflow au
 - **CRITICAL:** `server.py` is 8,000+ lines - needs refactoring into APIRouter modules
 - `App.js` has complex conditional rendering - needs proper routing
 
+## Recent Changes (2026-02-17)
+
+### Session 26 - Partner Onboarding Documents Upload System
+1. **New Onboarding Documents Feature**
+   - Created `/app/frontend/src/components/partner/OnboardingDocuments.jsx`
+   - Partners in F0 phase can upload 3 required documents:
+     - Contratto Firmato (PDF)
+     - Documenti Personali (PDF, JPG, PNG)
+     - Distinta di Pagamento (PDF, JPG, PNG)
+   - Drag & drop upload with progress tracking
+   - Status badges (Obbligatorio, Caricato, Verificato)
+
+2. **Backend API Endpoints**
+   - `GET /api/partners/{id}/onboarding-documents` - List documents
+   - `POST /api/partners/{id}/onboarding-documents/upload` - Upload
+   - `DELETE /api/partners/{id}/onboarding-documents/{type}` - Delete
+   - `POST /api/partners/{id}/onboarding-documents/{type}/verify` - Admin verify
+   - `GET /api/admin/onboarding-documents/pending` - Admin pending list
+
+3. **Partner Sidebar Updates**
+   - Dynamic sidebar groups based on partner phase
+   - "Documenti Onboarding" with URGENTE badge for F0 partners
+   - Fixed phase 0 unlock logic (falsy value bug)
+
+4. **Partner User Association**
+   - Fixed demoPartner to use logged-in user's partner_id
+   - Partners now see their own data, not demo data
+
 ## Backlog (Prioritized)
 ### P0 (Immediate)
-- None currently blocking
+- **CORS Verification**: Deploy to app.evolution-pro.it and verify fix
 
 ### P1 (High Priority)
+- Admin UI for reviewing onboarding documents
 - Connect Systeme.io webhook for Tripwire sales
 - Implement ORION agent actions (auto-tagging)
-- Create real email sequences in Systeme.io
 
 ### P2 (Medium Priority)
-- Backend refactoring (split server.py)
+- Backend refactoring (split server.py - now 9800+ lines!)
 - Advanced post-launch metrics dashboard
 
 ### P3 (Future)
