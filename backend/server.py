@@ -9192,28 +9192,34 @@ async def get_global_email_stats():
 # Fixed service packages (server-side only - security)
 AVATAR_SERVICE_PACKAGES = {
     "single_lesson": {
-        "name": "Avatar Lezione Singola",
+        "name": "Lezione Singola",
         "price": 120.00,
-        "description": "Produzione avatar professionale per 1 lezione del tuo videocorso",
-        "includes": ["Avatar AI professionale", "Script ottimizzato", "Editing completo", "Sottotitoli"]
+        "description": "Produzione professionale per 1 lezione del tuo videocorso",
+        "includes": ["1 Lezione professionale", "Script ottimizzato", "Editing completo", "Sottotitoli"]
     },
     "bundle_3": {
         "name": "Bundle 3 Lezioni",
         "price": 300.00,
-        "description": "Produzione avatar per 3 lezioni (sconto 17%)",
-        "includes": ["3 Avatar AI professionali", "Script ottimizzati", "Editing completo", "Sottotitoli", "Intro/Outro brandizzate"]
+        "description": "Produzione professionale per 3 lezioni (sconto 17%)",
+        "includes": ["3 Lezioni professionali", "Script ottimizzati", "Editing completo", "Sottotitoli", "Intro/Outro brandizzate"]
     },
     "bundle_5": {
         "name": "Bundle 5 Lezioni",
         "price": 450.00,
-        "description": "Produzione avatar per 5 lezioni (sconto 25%)",
-        "includes": ["5 Avatar AI professionali", "Script premium", "Editing avanzato", "Sottotitoli animati", "Intro/Outro brandizzate", "Revisione inclusa"]
+        "description": "Produzione professionale per 5 lezioni (sconto 25%)",
+        "includes": ["5 Lezioni professionali", "Script premium", "Editing avanzato", "Sottotitoli animati", "Intro/Outro brandizzate", "Revisione inclusa"]
     },
-    "full_course": {
-        "name": "Videocorso Completo",
+    "bundle_10": {
+        "name": "Bundle 10 Lezioni",
         "price": 800.00,
-        "description": "Produzione avatar per videocorso completo (fino a 10 lezioni)",
-        "includes": ["Fino a 10 Avatar AI", "Script premium", "Editing cinematografico", "Sottotitoli animati", "Branding completo", "2 revisioni incluse", "Supporto prioritario"]
+        "description": "Produzione professionale per videocorso completo (fino a 10 lezioni)",
+        "includes": ["Fino a 10 Lezioni", "Script premium", "Editing cinematografico", "Sottotitoli animati", "Branding completo", "2 revisioni incluse", "Supporto prioritario"]
+    },
+    "bundle_15": {
+        "name": "Bundle 15 Lezioni",
+        "price": 1200.00,
+        "description": "Produzione professionale per videocorso completo (fino a 15 lezioni)",
+        "includes": ["Fino a 15 Lezioni", "Script premium", "Editing cinematografico", "Sottotitoli animati", "Branding completo", "3 revisioni incluse", "Supporto prioritario", "Consulenza strategica"]
     }
 }
 
