@@ -173,21 +173,29 @@ function StepItem({ step, isCompleted, isCurrent, isLocked }) {
   );
 }
 
-function ResourceCard({ emoji, title, description, onClick }) {
+function ResourceCard({ emoji, title, description, onClick, disabled = false }) {
   return (
     <button 
-      onClick={onClick}
-      className="flex items-center gap-4 p-4 rounded-xl border transition-all hover:shadow-md hover:border-[#F2C418] w-full text-left group"
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      className={`flex items-center gap-4 p-4 rounded-xl border transition-all w-full text-left group ${
+        disabled ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md hover:border-[#F2C418]'
+      }`}
       style={{ background: 'white', borderColor: '#ECEDEF' }}
     >
       <div className="w-12 h-12 rounded-xl flex items-center justify-center text-xl"
-           style={{ background: '#FFF8DC' }}>
+           style={{ background: disabled ? '#F5F4F1' : '#FFF8DC' }}>
         {emoji}
       </div>
       <div className="flex-1">
-        <h3 className="font-bold group-hover:text-[#C4990A] transition-colors" style={{ color: '#1E2128' }}>{title}</h3>
+        <h3 className={`font-bold transition-colors ${disabled ? '' : 'group-hover:text-[#C4990A]'}`} style={{ color: disabled ? '#9CA3AF' : '#1E2128' }}>{title}</h3>
         <p className="text-sm" style={{ color: '#5F6572' }}>{description}</p>
       </div>
+      {disabled && (
+        <span className="text-xs px-2 py-1 rounded-full" style={{ background: '#ECEDEF', color: '#9CA3AF' }}>
+          Soon
+        </span>
+      )}
     </button>
   );
 }
