@@ -1,49 +1,214 @@
 import { useState } from "react";
-import { Home, BookOpen, Target, Mic, Film, FileText, Calendar, Palette, FolderOpen, MessageCircle, LogOut, ChevronRight, ChevronDown, HelpCircle, Sparkles, Check, Lock, Rocket, ShoppingBag, Scissors, Scale, UserCircle, Globe, Mail, BarChart3, UsersRound, Video } from "lucide-react";
+import { 
+  Home, BookOpen, Target, Mic, Film, FileText, Calendar, Palette, 
+  FolderOpen, MessageCircle, LogOut, ChevronRight, ChevronDown, 
+  HelpCircle, Sparkles, Check, Lock, Rocket, ShoppingBag, Scissors, 
+  Scale, UserCircle, Globe, Mail, BarChart3, UsersRound, Video,
+  PlayCircle, X, Users
+} from "lucide-react";
 
-const NAV_ITEMS = [
-  { id: "home", label: "Home", icon: Home },
-  { id: "profilo-hub", label: "Profilo Hub", icon: UserCircle, badge: "NEW" },
-  { id: "team", label: "Team Evolution", icon: UsersRound },
-  { id: "corso", label: "Parti da Qui", icon: BookOpen, badge: "NUOVO" },
-  { id: "documenti", label: "Posizionamento", icon: Target },
-  { id: "masterclass", label: "Masterclass & Videocorso", icon: Mic },
-  { id: "funnel", label: "Il tuo Funnel", icon: Rocket, badge: "NUOVO" },
-  { id: "funnel-analytics", label: "📊 Analytics Funnel", icon: BarChart3, badge: "NEW" },
-  { id: "domain-config", label: "Dominio Funnel", icon: Globe },
-  { id: "email-automation", label: "Email Automatiche", icon: Mail },
-  { id: "produzione", label: "Produzione Video", icon: Film },
-  { id: "video-editor", label: "Video Editor", icon: Scissors },
-  { id: "legal-pages", label: "Pagine Legali", icon: Scale },
-  { id: "avatar-checkout", label: "Avatar PRO", icon: Video, badge: "DELEGA" },
-  { id: "servizi-extra", label: "Servizi Extra", icon: ShoppingBag },
-];
+// =====================================================
+// CONFIGURAZIONE SIDEBAR RAGGRUPPATA
+// =====================================================
 
-const TOOLS_ITEMS = [
-  { id: "calendario", label: "Calendario", icon: Calendar },
-  { id: "brandkit", label: "Brand Kit", icon: Palette },
-  { id: "files", label: "I Miei File", icon: FolderOpen },
-  { id: "risorse", label: "Template", icon: FileText },
-];
-
-export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout, onOpenChat, onSwitchToAdmin, isAdmin }) {
-  const [toolsOpen, setToolsOpen] = useState(false);
-  const completedPhases = parseInt(partner?.phase?.replace('F', '') || '1');
+// Regole di sblocco basate sulle fasi
+const UNLOCK_RULES = {
+  // F1 - Primo login: sbloccati di default
+  "home": 1,
+  "corso": 1,           // Parti da Qui
+  "profilo-hub": 1,     // Profilo Hub
+  "team": 1,            // Team Evolution
   
-  // Get next step info
-  const getNextStep = () => {
-    const steps = [
-      { phase: 1, label: "Posizionamento", nav: "documenti" },
-      { phase: 2, label: "Masterclass", nav: "masterclass" },
-      { phase: 3, label: "Struttura Corso", nav: "coursebuilder" },
-      { phase: 4, label: "Produzione Video", nav: "produzione" },
-      { phase: 5, label: "Pubblica Corso", nav: "corso" },
-    ];
-    const nextStep = steps.find(s => s.phase > completedPhases) || steps[steps.length - 1];
-    return nextStep;
+  // F2 - Dopo Profilo Hub completato
+  "documenti": 2,       // Posizionamento
+  
+  // F3 - Dopo Posizionamento approvato
+  "brandkit": 3,        // Brand Kit
+  "masterclass": 3,     // Masterclass & Videocorso
+  
+  // F5 - Dopo prima lezione caricata
+  "video-editor": 5,    // Video Editor
+  "avatar-checkout": 5, // Avatar PRO
+  "produzione": 5,      // Produzione Video
+  
+  // F7 - Dopo Masterclass + 4 lezioni pronte
+  "funnel": 7,          // Il tuo Funnel
+  "email-automation": 7,// Email Automatiche
+  "domain-config": 7,   // Dominio Funnel
+  "legal-pages": 7,     // Pagine Legali
+  
+  // F8 - Dopo Funnel approvato + Stripe
+  "funnel-analytics": 8,// Analytics Funnel
+  "servizi-extra": 8,   // Servizi Extra
+};
+
+// Gruppi della sidebar
+const SIDEBAR_GROUPS = [
+  {
+    id: "percorso",
+    label: "📚 Percorso",
+    items: [
+      { id: "corso", label: "Parti da Qui", icon: PlayCircle, badge: "START" },
+      { id: "profilo-hub", label: "Profilo Hub", icon: UserCircle },
+      { id: "team", label: "Team Evolution", icon: UsersRound },
+      { id: "documenti", label: "Posizionamento", icon: Target },
+      { id: "brandkit", label: "Brand Kit", icon: Palette },
+      { id: "masterclass", label: "Masterclass & Videocorso", icon: Mic },
+    ]
+  },
+  {
+    id: "lancio",
+    label: "🚀 Lancio",
+    items: [
+      { id: "funnel", label: "Il tuo Funnel", icon: Rocket },
+      { id: "email-automation", label: "Email Automatiche", icon: Mail },
+      { id: "domain-config", label: "Dominio Funnel", icon: Globe },
+      { id: "funnel-analytics", label: "Analytics Funnel", icon: BarChart3 },
+    ]
+  },
+  {
+    id: "strumenti",
+    label: "🛠️ Strumenti",
+    items: [
+      { id: "produzione", label: "Produzione Video", icon: Film },
+      { id: "video-editor", label: "Video Editor", icon: Scissors },
+      { id: "legal-pages", label: "Pagine Legali", icon: Scale },
+      { id: "avatar-checkout", label: "Avatar PRO", icon: Video, badge: "DELEGA" },
+      { id: "servizi-extra", label: "Servizi Extra", icon: ShoppingBag },
+    ]
+  }
+];
+
+// Helper per ottenere la fase richiesta
+const getRequiredPhase = (itemId) => UNLOCK_RULES[itemId] || 1;
+
+// Helper per verificare se un item è sbloccato
+const isItemUnlocked = (itemId, partnerPhase) => {
+  const currentPhase = parseInt(partnerPhase?.replace('F', '') || '1');
+  const requiredPhase = getRequiredPhase(itemId);
+  return currentPhase >= requiredPhase;
+};
+
+// =====================================================
+// MODAL VIDEO BLOCCO
+// =====================================================
+function LockedModal({ isOpen, onClose, itemLabel, requiredPhase }) {
+  if (!isOpen) return null;
+  
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
+      <div className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl">
+        {/* Header */}
+        <div className="p-4 flex items-center justify-between" style={{ background: '#FAFAF7', borderBottom: '1px solid #ECEDEF' }}>
+          <div className="flex items-center gap-2">
+            <Lock className="w-5 h-5" style={{ color: '#F59E0B' }} />
+            <span className="font-bold" style={{ color: '#1E2128' }}>Sezione Bloccata</span>
+          </div>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-white transition-all">
+            <X className="w-5 h-5" style={{ color: '#9CA3AF' }} />
+          </button>
+        </div>
+        
+        {/* Video Placeholder */}
+        <div className="relative" style={{ aspectRatio: '16/9', background: 'linear-gradient(135deg, #1E2128 0%, #2D3038 100%)' }}>
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" 
+                 style={{ background: '#F2C41830', border: '2px solid #F2C418' }}>
+              <PlayCircle className="w-8 h-8" style={{ color: '#F2C418' }} />
+            </div>
+            <h3 className="text-lg font-bold text-white mb-2">Video in arrivo</h3>
+            <p className="text-sm text-white/70">
+              Claudio ti spiegherà come sbloccare questa sezione
+            </p>
+          </div>
+        </div>
+        
+        {/* Content */}
+        <div className="p-6">
+          <h2 className="text-xl font-black mb-2" style={{ color: '#1E2128' }}>
+            "{itemLabel}" sarà disponibile presto!
+          </h2>
+          <p className="text-sm mb-4" style={{ color: '#5F6572' }}>
+            Per accedere a questa sezione devi prima completare i passaggi precedenti del tuo percorso.
+          </p>
+          
+          {/* Progress indicator */}
+          <div className="p-4 rounded-xl mb-4" style={{ background: '#FFF8DC', border: '1px solid #F2C41830' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold"
+                   style={{ background: '#F2C418', color: '#1E2128' }}>
+                F{requiredPhase}
+              </div>
+              <div>
+                <div className="text-xs font-bold" style={{ color: '#92700C' }}>Fase richiesta</div>
+                <div className="text-sm font-bold" style={{ color: '#1E2128' }}>
+                  {requiredPhase === 2 && "Completa il Profilo Hub"}
+                  {requiredPhase === 3 && "Completa il Posizionamento"}
+                  {requiredPhase === 5 && "Carica la prima lezione video"}
+                  {requiredPhase === 7 && "Completa Masterclass + 4 lezioni"}
+                  {requiredPhase === 8 && "Approva il Funnel + attiva Stripe"}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <button 
+            onClick={onClose}
+            className="w-full py-3 rounded-xl font-bold transition-all hover:opacity-90"
+            style={{ background: '#F2C418', color: '#1E2128' }}
+          >
+            Ho capito, torno al percorso
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =====================================================
+// SIDEBAR COMPONENT
+// =====================================================
+export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout, onOpenChat, onSwitchToAdmin, isAdmin }) {
+  const [expandedGroups, setExpandedGroups] = useState(['percorso', 'lancio', 'strumenti']);
+  const [lockedModal, setLockedModal] = useState({ isOpen: false, itemLabel: '', requiredPhase: 1 });
+  
+  const partnerPhase = partner?.phase || 'F1';
+  const currentPhaseNum = parseInt(partnerPhase.replace('F', '') || '1');
+  
+  // Toggle group expansion
+  const toggleGroup = (groupId) => {
+    setExpandedGroups(prev => 
+      prev.includes(groupId) 
+        ? prev.filter(g => g !== groupId)
+        : [...prev, groupId]
+    );
   };
   
-  const nextStep = getNextStep();
+  // Handle item click
+  const handleItemClick = (item) => {
+    const isUnlocked = isItemUnlocked(item.id, partnerPhase);
+    if (isUnlocked) {
+      onNavigate(item.id);
+    } else {
+      setLockedModal({
+        isOpen: true,
+        itemLabel: item.label,
+        requiredPhase: getRequiredPhase(item.id)
+      });
+    }
+  };
+  
+  // Get next recommended action
+  const getNextAction = () => {
+    if (currentPhaseNum < 2) return { label: "Completa Profilo Hub", nav: "profilo-hub" };
+    if (currentPhaseNum < 3) return { label: "Compila Posizionamento", nav: "documenti" };
+    if (currentPhaseNum < 5) return { label: "Crea Masterclass", nav: "masterclass" };
+    if (currentPhaseNum < 7) return { label: "Prepara il Funnel", nav: "funnel" };
+    if (currentPhaseNum < 8) return { label: "Vai al Lancio!", nav: "funnel" };
+    return { label: "Analizza Metriche", nav: "funnel-analytics" };
+  };
+  
+  const nextAction = getNextAction();
 
   return (
     <div className="w-64 min-w-64 flex flex-col h-full border-r overflow-hidden" 
@@ -65,7 +230,7 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
         </div>
       </div>
 
-      {/* Admin/Partner Toggle - solo se admin */}
+      {/* Admin/Partner Toggle */}
       {isAdmin && (
         <div className="px-4 py-3">
           <div className="flex rounded-lg p-1" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
@@ -86,9 +251,9 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
         </div>
       )}
 
-      {/* User Card */}
+      {/* User Card with Phase Progress */}
       <div className="px-4 py-3">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
                style={{ background: '#F2C418', color: '#1E2128' }}>
             {partner?.name?.split(" ").map(n => n[0]).join("") || "P"}
@@ -97,71 +262,134 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
             <div className="font-bold text-sm truncate" style={{ color: '#1E2128' }}>
               {partner?.name || "Partner"}
             </div>
-            <div className="text-xs" style={{ color: '#9CA3AF' }}>
-              Fase {partner?.phase || "F1"} · {partner?.niche || "Coach"}
+            <div className="text-xs flex items-center gap-1" style={{ color: '#9CA3AF' }}>
+              <span className="font-bold" style={{ color: '#F2C418' }}>{partnerPhase}</span>
+              <span>·</span>
+              <span>{partner?.niche || "Coach"}</span>
             </div>
           </div>
+        </div>
+        
+        {/* Phase Progress Bar */}
+        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#ECEDEF' }}>
+          <div 
+            className="h-full rounded-full transition-all duration-500"
+            style={{ 
+              width: `${(currentPhaseNum / 10) * 100}%`,
+              background: 'linear-gradient(90deg, #F2C418 0%, #FADA5E 100%)'
+            }}
+          />
+        </div>
+        <div className="flex justify-between mt-1">
+          <span className="text-[10px]" style={{ color: '#9CA3AF' }}>Inizio</span>
+          <span className="text-[10px] font-bold" style={{ color: '#F2C418' }}>{Math.round((currentPhaseNum / 10) * 100)}%</span>
+          <span className="text-[10px]" style={{ color: '#9CA3AF' }}>Lancio</span>
         </div>
       </div>
 
       {/* Divider */}
       <div className="mx-4 my-1" style={{ height: 1, background: '#F5F4F1' }} />
 
-      {/* Main Navigation */}
+      {/* Main Navigation - Grouped */}
       <div className="flex-1 overflow-y-auto px-3 py-2">
-        <div className="text-[10px] font-bold uppercase tracking-wider px-2 py-2" 
-             style={{ color: '#9CA3AF' }}>
-          Il tuo percorso
-        </div>
         
-        <nav className="space-y-0.5">
-          {NAV_ITEMS.map((item, index) => {
-            const isActive = currentNav === item.id;
-            const isCompleted = index > 0 && index <= completedPhases;
-            // Tools always accessible
-            const alwaysAccessible = ["servizi-extra", "video-editor", "legal-pages", "profilo-hub", "funnel", "domain-config", "email-automation", "funnel-analytics", "avatar-checkout"];
-            const isLocked = !alwaysAccessible.includes(item.id) && index > completedPhases + 1;
+        {/* Home - Always visible */}
+        <button
+          onClick={() => onNavigate('home')}
+          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all mb-2"
+          style={{ 
+            background: currentNav === 'home' ? '#FFF3C4' : 'transparent',
+            borderLeft: currentNav === 'home' ? '3px solid #F2C418' : '3px solid transparent',
+            color: currentNav === 'home' ? '#1E2128' : '#3B4049'
+          }}
+        >
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+               style={{ 
+                 background: currentNav === 'home' ? '#F2C418' : '#FFF8DC',
+                 color: currentNav === 'home' ? '#1E2128' : '#C4990A'
+               }}>
+            <Home className="w-3.5 h-3.5" />
+          </div>
+          <span className={`text-sm flex-1 ${currentNav === 'home' ? 'font-bold' : 'font-medium'}`}>
+            Home
+          </span>
+        </button>
+
+        {/* Grouped Navigation */}
+        {SIDEBAR_GROUPS.map(group => (
+          <div key={group.id} className="mb-2">
+            {/* Group Header */}
+            <button
+              onClick={() => toggleGroup(group.id)}
+              className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-left transition-all hover:bg-[#FAFAF7]"
+            >
+              <span className="text-xs font-bold flex-1" style={{ color: '#5F6572' }}>
+                {group.label}
+              </span>
+              {expandedGroups.includes(group.id) ? (
+                <ChevronDown className="w-4 h-4" style={{ color: '#9CA3AF' }} />
+              ) : (
+                <ChevronRight className="w-4 h-4" style={{ color: '#9CA3AF' }} />
+              )}
+            </button>
             
-            return (
-              <button
-                key={item.id}
-                onClick={() => !isLocked && onNavigate(item.id)}
-                disabled={isLocked}
-                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all ${
-                  isLocked ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-                style={{ 
-                  background: isActive ? '#FFF3C4' : 'transparent',
-                  borderLeft: isActive ? '3px solid #F2C418' : '3px solid transparent',
-                  color: isActive ? '#1E2128' : '#3B4049'
-                }}
-              >
-                <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0`}
-                     style={{ 
-                       background: isActive ? '#F2C418' : isCompleted ? '#EAFAF1' : '#FFF8DC',
-                       color: isActive ? '#1E2128' : isCompleted ? '#2D9F6F' : '#C4990A'
-                     }}>
-                  {isCompleted && !isActive ? (
-                    <Check className="w-3.5 h-3.5" />
-                  ) : isLocked ? (
-                    <Lock className="w-3.5 h-3.5" />
-                  ) : (
-                    <item.icon className="w-3.5 h-3.5" />
-                  )}
-                </div>
-                <span className={`text-sm flex-1 ${isActive ? 'font-bold' : 'font-medium'}`}>
-                  {item.label}
-                </span>
-                {item.badge && (
-                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                        style={{ background: '#F2C418', color: '#1E2128' }}>
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
+            {/* Group Items */}
+            {expandedGroups.includes(group.id) && (
+              <nav className="space-y-0.5 mt-1">
+                {group.items.map(item => {
+                  const isActive = currentNav === item.id;
+                  const isUnlocked = isItemUnlocked(item.id, partnerPhase);
+                  const requiredPhase = getRequiredPhase(item.id);
+                  const isCompleted = currentPhaseNum > requiredPhase;
+                  
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleItemClick(item)}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all ${
+                        !isUnlocked ? 'opacity-60' : ''
+                      }`}
+                      style={{ 
+                        background: isActive ? '#FFF3C4' : 'transparent',
+                        borderLeft: isActive ? '3px solid #F2C418' : '3px solid transparent',
+                        color: isActive ? '#1E2128' : isUnlocked ? '#3B4049' : '#9CA3AF'
+                      }}
+                    >
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                           style={{ 
+                             background: isActive ? '#F2C418' : isCompleted ? '#EAFAF1' : isUnlocked ? '#FFF8DC' : '#F5F4F1',
+                             color: isActive ? '#1E2128' : isCompleted ? '#2D9F6F' : isUnlocked ? '#C4990A' : '#9CA3AF'
+                           }}>
+                        {!isUnlocked ? (
+                          <Lock className="w-3.5 h-3.5" />
+                        ) : isCompleted && !isActive ? (
+                          <Check className="w-3.5 h-3.5" />
+                        ) : (
+                          <item.icon className="w-3.5 h-3.5" />
+                        )}
+                      </div>
+                      <span className={`text-sm flex-1 ${isActive ? 'font-bold' : 'font-medium'}`}>
+                        {item.label}
+                      </span>
+                      {!isUnlocked && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                              style={{ background: '#ECEDEF', color: '#9CA3AF' }}>
+                          F{requiredPhase}
+                        </span>
+                      )}
+                      {item.badge && isUnlocked && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                              style={{ background: '#F2C418', color: '#1E2128' }}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
+            )}
+          </div>
+        ))}
 
         {/* Next Step CTA */}
         <div className="mt-4 mx-1 rounded-xl p-4 relative overflow-hidden"
@@ -173,89 +401,49 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
               Prossimo passo
             </div>
             <div className="text-sm font-black mb-2" style={{ color: '#1E2128' }}>
-              {nextStep.label}
+              {nextAction.label}
             </div>
             <button 
-              onClick={() => onNavigate(nextStep.nav)}
+              onClick={() => onNavigate(nextAction.nav)}
               className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-all hover:opacity-90"
               style={{ background: '#1E2128', color: '#F2C418' }}>
               Continua <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
-
-        {/* Tools Section */}
-        <div className="mt-4">
-          <button 
-            onClick={() => setToolsOpen(!toolsOpen)}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all hover:bg-[#FFF8DC]"
-            style={{ color: '#8D929C' }}
-          >
-            <span className="text-xs font-bold flex-1">Strumenti</span>
-            {toolsOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-          </button>
-          
-          {toolsOpen && (
-            <nav className="mt-1 ml-2 pl-3 border-l space-y-0.5" style={{ borderColor: '#F5F4F1' }}>
-              {TOOLS_ITEMS.map(item => {
-                const isActive = currentNav === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => onNavigate(item.id)}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-all"
-                    style={{ 
-                      background: isActive ? '#FFF8DC' : 'transparent',
-                      color: isActive ? '#1E2128' : '#8D929C'
-                    }}
-                  >
-                    <item.icon className="w-3.5 h-3.5" />
-                    <span className="text-xs font-medium">{item.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-          )}
-        </div>
       </div>
 
-      {/* Valentina CTA */}
-      <div className="px-3 pb-2">
+      {/* Bottom Actions */}
+      <div className="p-3 border-t space-y-2" style={{ borderColor: '#F0EFEB' }}>
+        {/* Chat with Valentina */}
         <button 
           onClick={onOpenChat}
-          className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all hover:border-[#F2C418] hover:shadow-sm"
-          style={{ background: '#FFFDF5', border: '2px solid #FFF8DC' }}
+          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-all hover:opacity-90"
+          style={{ background: '#F2C418', color: '#1E2128' }}
         >
-          <div className="w-9 h-9 rounded-full flex items-center justify-center"
-               style={{ background: '#F2C418' }}>
-            <MessageCircle className="w-4 h-4" style={{ color: '#1E2128' }} />
-          </div>
-          <div className="flex-1 text-left">
-            <div className="text-xs font-bold" style={{ color: '#1E2128' }}>Valentina</div>
-            <div className="text-[10px]" style={{ color: '#2D9F6F' }}>● Online ora</div>
-          </div>
-          <Sparkles className="w-4 h-4" style={{ color: '#F2C418' }} />
+          <MessageCircle className="w-4 h-4" />
+          <span className="text-sm font-bold flex-1 text-left">Parla con Valentina</span>
+          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
         </button>
-      </div>
-
-      {/* Footer */}
-      <div className="px-3 pb-4 flex gap-2">
-        <button 
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg transition-all hover:bg-[#FFF8DC]"
-          style={{ color: '#8D929C' }}
-        >
-          <HelpCircle className="w-4 h-4" />
-          <span className="text-xs font-semibold">Aiuto</span>
-        </button>
+        
+        {/* Logout */}
         <button 
           onClick={onLogout}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg transition-all hover:bg-red-50 hover:text-red-500"
-          style={{ color: '#8D929C' }}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all"
+          style={{ color: '#9CA3AF' }}
         >
           <LogOut className="w-4 h-4" />
-          <span className="text-xs font-semibold">Esci</span>
+          <span className="text-sm font-medium">Esci</span>
         </button>
       </div>
+      
+      {/* Locked Modal */}
+      <LockedModal 
+        isOpen={lockedModal.isOpen}
+        onClose={() => setLockedModal({ ...lockedModal, isOpen: false })}
+        itemLabel={lockedModal.itemLabel}
+        requiredPhase={lockedModal.requiredPhase}
+      />
     </div>
   );
 }
