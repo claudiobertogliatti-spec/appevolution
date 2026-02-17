@@ -393,23 +393,21 @@ export function EmailAutomation({ partner }) {
             </div>
           ) : (
             <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr style={{ background: '#FAFAF7', borderBottom: '1px solid #ECEDEF' }}>
-                    <th className="text-left px-5 py-3 text-xs font-bold" style={{ color: '#9CA3AF' }}>CONTATTO</th>
-                    <th className="text-left px-4 py-3 text-xs font-bold" style={{ color: '#9CA3AF' }}>SEQUENZA/TAG</th>
-                    <th className="text-left px-4 py-3 text-xs font-bold" style={{ color: '#9CA3AF' }}>STATO</th>
-                    <th className="text-left px-4 py-3 text-xs font-bold" style={{ color: '#9CA3AF' }}>DATA</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <div className="w-full">
+                <div className="grid grid-cols-4 px-5 py-3 text-xs font-bold" style={{ background: '#FAFAF7', borderBottom: '1px solid #ECEDEF', color: '#9CA3AF' }}>
+                  <span>CONTATTO</span>
+                  <span>SEQUENZA/TAG</span>
+                  <span>STATO</span>
+                  <span>DATA</span>
+                </div>
+                <div className="divide-y" style={{ borderColor: '#ECEDEF' }}>
                   {emailQueue.slice(0, 20).map((item, idx) => (
-                    <tr key={item.id || idx} style={{ borderBottom: '1px solid #ECEDEF' }}>
-                      <td className="px-5 py-3">
+                    <div key={item.id || idx} className="grid grid-cols-4 items-center px-5 py-3">
+                      <div>
                         <div className="text-sm font-bold" style={{ color: '#1E2128' }}>{item.contact_name}</div>
                         <div className="text-xs" style={{ color: '#9CA3AF' }}>{item.contact_email}</div>
-                      </td>
-                      <td className="px-4 py-3">
+                      </div>
+                      <div>
                         <div className="text-sm" style={{ color: '#5F6572' }}>
                           {item.sequence_name || item.automation_name || item.subject}
                         </div>
@@ -419,8 +417,8 @@ export function EmailAutomation({ partner }) {
                             🏷️ {item.systeme_tag}
                           </div>
                         )}
-                      </td>
-                      <td className="px-4 py-3">
+                      </div>
+                      <div>
                         <span className={`text-xs font-bold px-2 py-1 rounded-full ${
                           item.status === 'sent_to_systeme' ? 'bg-green-100 text-green-600' :
                           item.status === 'triggered_via_systeme' ? 'bg-blue-100 text-blue-600' :
@@ -432,16 +430,16 @@ export function EmailAutomation({ partner }) {
                            item.status === 'pending' ? '⏳ In attesa' :
                            item.status}
                         </span>
-                      </td>
-                      <td className="px-4 py-3 text-xs" style={{ color: '#9CA3AF' }}>
+                      </div>
+                      <div className="text-xs" style={{ color: '#9CA3AF' }}>
                         {new Date(item.created_at).toLocaleDateString('it-IT', { 
                           day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' 
                         })}
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              </div>
             </div>
           )}
         </div>
