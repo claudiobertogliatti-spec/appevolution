@@ -1649,6 +1649,260 @@ Revenue Generato: €{partner.get('revenue', 0):,}
     return PlainTextResponse(content, media_type="text/plain")
 
 # =============================================================================
+# ROUTES - ONBOARDING DOCUMENTS (Partner Upload during Registration)
+# =============================================================================
+
+class OnboardingDocument(BaseModel):
+    """Model for onboarding documents"""
+    file_id: str
+    document_type: str  # contratto_firmato, documenti_personali, distinta_pagamento
+    partner_id: str
+    original_name: str
+    stored_name: str
+    internal_url: str
+    size: int
+    size_readable: str
+    status: str = "uploaded"  # uploaded, verified, rejected
+    uploaded_at: str
+    verified_at: Optional[str] = None
+    verified_by: Optional[str] = None
+    rejection_reason: Optional[str] = None
+
+ONBOARDING_DOC_TYPES = ["contratto_firmato", "documenti_personali", "distinta_pagamento"]
+
+@api_router.get("/partners/{partner_id}/onboarding-documents")
+async def get_onboarding_documents(partner_id: str):
+    """Get all onboarding documents for a partner"""
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    documents = await db.onboarding_documents.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).to_list(10)
+    
+    # Check completion status
+    uploaded_types = [d["document_type"] for d in documents if d.get("status") != "rejected"]
+    all_uploaded = all(dt in uploaded_types for dt in ONBOARDING_DOC_TYPES)
+    all_verified = all(d.get("status") == "verified" for d in documents) if documents else False
+    
+    return {
+        "success": True,
+        "documents": documents,
+        "completion": {
+            "total_required": len(ONBOARDING_DOC_TYPES),
+            "uploaded": len(uploaded_types),
+            "all_uploaded": all_uploaded,
+            "all_verified": all_verified
+        }
+    }
+
+@api_router.post("/partners/{partner_id}/onboarding-documents/upload")
+async def upload_onboarding_document(
+    partner_id: str,
+    file: UploadFile = File(...),
+    document_type: str = Form(...)
+):
+    """Upload an onboarding document for a partner"""
+    # Validate partner exists
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    # Validate document type
+    if document_type not in ONBOARDING_DOC_TYPES:
+        raise HTTPException(status_code=400, detail=f"Invalid document type. Must be one of: {ONBOARDING_DOC_TYPES}")
+    
+    # Check if document already exists (not rejected)
+    existing = await db.onboarding_documents.find_one({
+        "partner_id": partner_id,
+        "document_type": document_type,
+        "status": {"$ne": "rejected"}
+    })
+    
+    if existing:
+        raise HTTPException(status_code=400, detail=f"Document '{document_type}' already uploaded. Delete it first to upload a new one.")
+    
+    # Use file storage to upload
+    result = await file_storage.upload_file(file, partner_id, "document")
+    
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result.get("error", "Upload failed"))
+    
+    # Create onboarding document record
+    onboarding_doc = OnboardingDocument(
+        file_id=result["file_id"],
+        document_type=document_type,
+        partner_id=partner_id,
+        original_name=result["original_name"],
+        stored_name=result["stored_name"],
+        internal_url=result["internal_url"],
+        size=result["size"],
+        size_readable=result["size_readable"],
+        status="uploaded",
+        uploaded_at=result["uploaded_at"]
+    )
+    
+    await db.onboarding_documents.insert_one(onboarding_doc.model_dump())
+    
+    # Update partner onboarding status
+    await update_partner_onboarding_status(partner_id)
+    
+    # Create notification for admin
+    await db.notifications.insert_one({
+        "id": str(uuid.uuid4()),
+        "type": "document",
+        "title": f"Nuovo documento caricato",
+        "message": f"{partner.get('name', 'Partner')} ha caricato: {document_type.replace('_', ' ').title()}",
+        "time": datetime.now(timezone.utc).isoformat(),
+        "read": False,
+        "partner_id": partner_id
+    })
+    
+    return {
+        "success": True,
+        "document": onboarding_doc.model_dump()
+    }
+
+@api_router.delete("/partners/{partner_id}/onboarding-documents/{document_type}")
+async def delete_onboarding_document(partner_id: str, document_type: str):
+    """Delete an onboarding document"""
+    # Find the document
+    doc = await db.onboarding_documents.find_one({
+        "partner_id": partner_id,
+        "document_type": document_type
+    }, {"_id": 0})
+    
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    if doc.get("status") == "verified":
+        raise HTTPException(status_code=400, detail="Cannot delete a verified document")
+    
+    # Delete from file storage
+    if doc.get("internal_url"):
+        internal_path = doc["internal_url"].replace("/api/files/", "")
+        file_storage.delete_file(internal_path)
+    
+    # Delete from database
+    await db.onboarding_documents.delete_one({
+        "partner_id": partner_id,
+        "document_type": document_type
+    })
+    
+    # Update partner onboarding status
+    await update_partner_onboarding_status(partner_id)
+    
+    return {"success": True, "deleted": document_type}
+
+@api_router.post("/partners/{partner_id}/onboarding-documents/{document_type}/verify")
+async def verify_onboarding_document(partner_id: str, document_type: str, admin_email: str = "admin"):
+    """Mark an onboarding document as verified (Admin only)"""
+    result = await db.onboarding_documents.update_one(
+        {"partner_id": partner_id, "document_type": document_type},
+        {"$set": {
+            "status": "verified",
+            "verified_at": datetime.now(timezone.utc).isoformat(),
+            "verified_by": admin_email
+        }}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Update partner onboarding status
+    await update_partner_onboarding_status(partner_id)
+    
+    # Check if all documents are verified
+    docs = await db.onboarding_documents.find({"partner_id": partner_id}, {"_id": 0}).to_list(10)
+    all_verified = all(d.get("status") == "verified" for d in docs) if len(docs) == len(ONBOARDING_DOC_TYPES) else False
+    
+    if all_verified:
+        # Update partner phase to F1 if still in F0
+        partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+        if partner and partner.get("phase") == "F0":
+            await db.partners.update_one(
+                {"id": partner_id},
+                {"$set": {"phase": "F1"}}
+            )
+            
+            # Create notification
+            await db.notifications.insert_one({
+                "id": str(uuid.uuid4()),
+                "type": "phase_change",
+                "title": f"Documenti verificati",
+                "message": f"{partner.get('name', 'Partner')} è passato alla fase F1!",
+                "time": datetime.now(timezone.utc).isoformat(),
+                "read": False,
+                "partner_id": partner_id
+            })
+    
+    return {"success": True, "status": "verified", "all_verified": all_verified}
+
+@api_router.post("/partners/{partner_id}/onboarding-documents/{document_type}/reject")
+async def reject_onboarding_document(partner_id: str, document_type: str, reason: str = ""):
+    """Reject an onboarding document (Admin only)"""
+    result = await db.onboarding_documents.update_one(
+        {"partner_id": partner_id, "document_type": document_type},
+        {"$set": {
+            "status": "rejected",
+            "rejection_reason": reason
+        }}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Update partner onboarding status
+    await update_partner_onboarding_status(partner_id)
+    
+    return {"success": True, "status": "rejected", "reason": reason}
+
+async def update_partner_onboarding_status(partner_id: str):
+    """Helper to update partner's onboarding document status"""
+    docs = await db.onboarding_documents.find(
+        {"partner_id": partner_id, "status": {"$ne": "rejected"}},
+        {"_id": 0}
+    ).to_list(10)
+    
+    uploaded_types = [d["document_type"] for d in docs]
+    verified_count = sum(1 for d in docs if d.get("status") == "verified")
+    
+    await db.partners.update_one(
+        {"id": partner_id},
+        {"$set": {
+            "onboarding_status.documents_uploaded": len(uploaded_types),
+            "onboarding_status.documents_verified": verified_count,
+            "onboarding_status.documents_complete": len(uploaded_types) == len(ONBOARDING_DOC_TYPES),
+            "onboarding_status.documents_all_verified": verified_count == len(ONBOARDING_DOC_TYPES),
+            "onboarding_status.last_document_upload": datetime.now(timezone.utc).isoformat() if docs else None
+        }}
+    )
+
+@api_router.get("/admin/onboarding-documents/pending")
+async def get_pending_onboarding_documents():
+    """Get all pending onboarding documents for Admin review"""
+    documents = await db.onboarding_documents.find(
+        {"status": "uploaded"},
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Enrich with partner info
+    for doc in documents:
+        partner = await db.partners.find_one({"id": doc["partner_id"]}, {"_id": 0, "name": 1, "email": 1, "phase": 1})
+        if partner:
+            doc["partner_name"] = partner.get("name", "Unknown")
+            doc["partner_email"] = partner.get("email", "")
+            doc["partner_phase"] = partner.get("phase", "F0")
+    
+    return {
+        "success": True,
+        "documents": documents,
+        "total": len(documents)
+    }
+
+# =============================================================================
 # ROUTES - ALERTS
 # =============================================================================
 
