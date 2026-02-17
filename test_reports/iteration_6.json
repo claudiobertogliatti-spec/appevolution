@@ -1,0 +1,66 @@
+{
+  "summary": "Onboarding Documents feature testing complete. All backend APIs working correctly. Frontend OnboardingDocuments component displays properly for F0 partners with drag & drop upload, progress bar, and document status badges.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "GET /api/partners/{partner_id}/onboarding-documents - Returns documents list with completion status ✅",
+    "GET /api/partners/{partner_id}/onboarding-documents - Returns 404 for invalid partner ✅",
+    "POST /api/partners/{partner_id}/onboarding-documents/upload - Upload contratto_firmato ✅",
+    "POST /api/partners/{partner_id}/onboarding-documents/upload - Upload documenti_personali ✅",
+    "POST /api/partners/{partner_id}/onboarding-documents/upload - Upload distinta_pagamento ✅",
+    "POST /api/partners/{partner_id}/onboarding-documents/upload - Rejects duplicate uploads (400) ✅",
+    "POST /api/partners/{partner_id}/onboarding-documents/upload - Rejects invalid document types (400) ✅",
+    "DELETE /api/partners/{partner_id}/onboarding-documents/{document_type} - Deletes non-verified docs ✅",
+    "DELETE /api/partners/{partner_id}/onboarding-documents/{document_type} - Blocks deletion of verified docs (400) ✅",
+    "POST /api/partners/{partner_id}/onboarding-documents/{document_type}/verify - Verifies document ✅",
+    "GET /api/admin/onboarding-documents/pending - Returns pending documents for admin ✅",
+    "Partner F0 exists and is in correct phase ✅",
+    "Admin login works ✅",
+    "Partner login works ✅",
+    "Frontend: Partner F0 sees 'Documenti Onboarding' in sidebar with URGENTE badge ✅",
+    "Frontend: OnboardingDocuments component shows 3 document types ✅",
+    "Frontend: Upload areas with drag & drop functionality visible ✅",
+    "Frontend: Progress bar shows completion percentage (67%) ✅",
+    "Frontend: Document status badges (Verificato, Caricato, Obbligatorio) display correctly ✅"
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_onboarding_documents.py",
+    "/app/test_reports/pytest/pytest_results_onboarding.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_onboarding_documents.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "seed_data_creation": "Test documents uploaded for partner d248c632-869d-4a13-b94a-dbf2425fa143 (Test F0 Partner)",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Onboarding documents feature fully tested. Partner F0 (testf0@evolutionpro.it / Test2026!) has test documents uploaded. Admin can view pending documents via /api/admin/onboarding-documents/pending endpoint. The PartnerDocumentsView in admin sidebar is for positioning/script/course documents, not onboarding documents - a dedicated admin UI for onboarding document review may be needed.",
+  "verified_features": {
+    "backend_api_get_documents": "WORKING - Returns documents with completion status",
+    "backend_api_upload": "WORKING - Uploads files to /app/storage/documents/",
+    "backend_api_delete": "WORKING - Deletes non-verified documents only",
+    "backend_api_verify": "WORKING - Admin can verify documents",
+    "backend_api_admin_pending": "WORKING - Returns pending documents for admin review",
+    "frontend_sidebar_badge": "WORKING - Shows URGENTE badge for F0 partners",
+    "frontend_document_cards": "WORKING - Shows 3 document types with status",
+    "frontend_drag_drop": "WORKING - Upload areas with drag & drop",
+    "frontend_progress_bar": "WORKING - Shows completion percentage"
+  },
+  "test_credentials": {
+    "admin": "claudio@evolutionpro.it / Evolution2026!",
+    "partner_f0": "testf0@evolutionpro.it / Test2026!",
+    "partner_id_f0": "d248c632-869d-4a13-b94a-dbf2425fa143"
+  }
+}
