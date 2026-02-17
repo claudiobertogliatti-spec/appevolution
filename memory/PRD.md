@@ -1,6 +1,6 @@
 # Evolution PRO OS - Product Requirements Document
-**Version:** 24.0
-**Last Updated:** 2026-02-16
+**Version:** 25.0
+**Last Updated:** 2026-02-17
 
 ## Original Problem Statement
 Build "Evolution PRO OS", a proprietary web application for business workflow automation with AI agents, partner management, funnel deployment, video production, and lead monetization.
@@ -19,14 +19,15 @@ Build "Evolution PRO OS", a proprietary web application for business workflow au
 - [x] Domain configuration
 
 ### AI Agents (9 Agents)
-- [x] VALENTINA - Chat support
+- [x] VALENTINA - Chat support (with session persistence)
 - [x] ANDREA - Video editing
 - [x] STEFANIA - Copy Factory & War Mode Ads
 - [x] GAIA - Funnel Deployer
 - [x] ATLAS - LTV tracking
 - [x] LUCA - Compliance
-- [x] ORION - Lead Scoring & Intelligence
+- [x] ORION - Lead Scoring & Intelligence (with session persistence)
 - [x] Agent Hub Dashboard
+- [x] **Team Evolution Page** - Agent overview for Admin & Partner
 
 ### Lead Management & Monetization
 - [x] CSV Import from Systeme.io (13.246 contacts)
@@ -47,10 +48,33 @@ Build "Evolution PRO OS", a proprietary web application for business workflow au
 - [x] HeyGen (avatar generation)
 - [x] Cloudinary (file storage)
 - [x] Claude/OpenAI (via Emergent LLM Key)
+- [x] **MongoDB Atlas** (cloud database)
+
+## Recent Changes (2026-02-17)
+
+### Session 25 - CORS Fix, Team Evolution Page, Session Persistence
+1. **CORS Configuration Fixed**
+   - Moved CORS middleware before router inclusion
+   - Added production domains to whitelist
+   - Created `api-config.js` utility for dynamic API URL resolution
+   - Frontend uses relative URLs `/api` on production domains
+
+2. **Team Evolution Page** (`/components/shared/TeamEvolution.jsx`)
+   - New page showcasing all 8 AI agents + human supervisors
+   - White background with Evolution PRO color scheme
+   - Flow diagram explaining how the team works
+   - Added to both Admin and Partner sidebars
+
+3. **Session Persistence**
+   - VALENTINA Chat: Messages saved in sessionStorage per user
+   - ORION: Analysis data persisted during browser session
+   - Data survives navigation between pages
+
+4. **Updated 30+ Components**
+   - Migrated to centralized API configuration
+   - Production-ready URL handling
 
 ## Recent Changes (2026-02-16)
-
-### Session 24 - Import CSV & Sales KPI
 1. **CSV Import Endpoint** (`/api/systeme/import-csv`)
    - Multi-encoding support (UTF-8, Latin-1)
    - Flexible column mapping
