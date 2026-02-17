@@ -36,8 +36,8 @@ export function AgentDashboard() {
     
     try {
       const [agentsRes, summaryRes] = await Promise.all([
-        fetch(`${API_URL}/api/agent-hub/status`),
-        fetch(`${API_URL}/api/agent-hub/summary`)
+        fetch(`${API}/agent-hub/status`),
+        fetch(`${API}/agent-hub/summary`)
       ]);
       
       if (agentsRes.ok) {
@@ -319,7 +319,7 @@ export function AgentDashboard() {
                 <button
                   onClick={() => {
                     // Activate agent
-                    fetch(`${API_URL}/api/agent-hub/activate/${selectedAgent.id}`, { method: 'POST' })
+                    fetch(`${API}/agent-hub/activate/${selectedAgent.id}`, { method: 'POST' })
                       .then(() => {
                         loadData(true);
                         setSelectedAgent(null);
