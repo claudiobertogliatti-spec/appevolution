@@ -13,6 +13,9 @@ import {
 
 // Regole di sblocco basate sulle fasi
 const UNLOCK_RULES = {
+  // F0 - Pre-onboarding: documenti obbligatori
+  "onboarding-docs": 0, // Documenti Onboarding (solo F0)
+  
   // F1 - Primo login: sbloccati di default
   "home": 1,
   "corso": 1,           // Parti da Qui (include Team Evolution)
