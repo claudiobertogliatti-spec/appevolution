@@ -43,6 +43,7 @@ import { AgentDashboard } from "./components/admin/AgentDashboard";
 import { OrionLeadScoring } from "./components/admin/OrionLeadScoring";
 import { SalesKPIDashboard } from "./components/admin/SalesKPIDashboard";
 import { TeamEvolution } from "./components/shared/TeamEvolution";
+import { OnboardingDocuments } from "./components/partner/OnboardingDocuments";
 import "./styles/design-system.css";
 
 // Use relative URL in production (same domain), absolute URL in development
