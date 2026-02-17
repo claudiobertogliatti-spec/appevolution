@@ -44,7 +44,17 @@ import { OrionLeadScoring } from "./components/admin/OrionLeadScoring";
 import { SalesKPIDashboard } from "./components/admin/SalesKPIDashboard";
 import "./styles/design-system.css";
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+// Use relative URL in production (same domain), absolute URL in development
+const getApiUrl = () => {
+  const backendUrl = process.env.REACT_APP_BACKEND_URL;
+  // If we're on a production domain (evolution-pro.it), use relative /api
+  if (typeof window !== 'undefined' && window.location.hostname.includes('evolution-pro.it')) {
+    return '/api';
+  }
+  // Otherwise use the configured backend URL
+  return backendUrl ? `${backendUrl}/api` : '/api';
+};
+const API = getApiUrl();
 
 const PHASE_LABELS = {
   F0:"Pre-Onboarding",F1:"Attivazione",F2:"Posizionamento",F3:"Masterclass",
