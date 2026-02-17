@@ -294,10 +294,21 @@ class ValentinaAI:
             # Add live system data for founder
             parts.append("=== STATO SISTEMA LIVE ===")
             try:
-                # Import MongoDB connection (this will be available from server.py context)
+                # Import MongoDB connection - Use Atlas fallback
                 from motor.motor_asyncio import AsyncIOMotorClient
-                mongo_url = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
-                db_name = os.environ.get("DB_NAME", "test_database")
+                ATLAS_URL = "mongodb+srv://evolution_admin:Evoluzione74@cluster0.4cgj8wx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+                ATLAS_DB = "evolution_pro"
+                
+                _mongo_url = os.environ.get("MONGO_URL", "")
+                _db_name = os.environ.get("DB_NAME", "")
+                
+                if not _mongo_url or 'localhost' in _mongo_url or '127.0.0.1' in _mongo_url:
+                    mongo_url = ATLAS_URL
+                    db_name = ATLAS_DB
+                else:
+                    mongo_url = _mongo_url
+                    db_name = _db_name or "evolution_pro"
+                
                 client = AsyncIOMotorClient(mongo_url)
                 db = client[db_name]
                 
