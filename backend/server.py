@@ -29,10 +29,24 @@ from agent_hub_service import AgentAnalyticsHub, init_agent_hub
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
+# MongoDB connection - Use Atlas if local not available
+mongo_url = os.environ.get('MONGO_URL', '')
+db_name = os.environ.get('DB_NAME', 'evolution_pro')
+
+# Fallback to MongoDB Atlas if local connection fails or not configured
+ATLAS_URL = "mongodb+srv://evolution_admin:Evoluzione74@cluster0.4cgj8wx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+ATLAS_DB = "evolution_pro"
+
+if not mongo_url or 'localhost' in mongo_url or '127.0.0.1' in mongo_url:
+    # Use Atlas in production
+    mongo_url = ATLAS_URL
+    db_name = ATLAS_DB
+    print(f"🔗 Using MongoDB Atlas: cluster0.4cgj8wx.mongodb.net")
+else:
+    print(f"🔗 Using configured MongoDB: {mongo_url[:50]}...")
+
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+db = client[db_name]
 
 # Initialize AI Agents
 orion_scoring = init_orion(db)
