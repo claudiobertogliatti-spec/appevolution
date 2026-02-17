@@ -51,7 +51,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await fetch(`${API_URL}/api/editor/upload`, {
+      const response = await fetch(`${API}/editor/upload`, {
         method: 'POST',
         body: formData
       });
@@ -61,7 +61,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
       const data = await response.json();
       setVideoFile(data);
       setVideoInfo(data.info);
-      setVideoUrl(`${API_URL}/api/editor/files/${data.filename}`);
+      setVideoUrl(`${API}/editor/files/${data.filename}`);
       setTrimEnd(data.info?.duration || 0);
       setActiveTab("edit");
       
@@ -83,7 +83,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
     
     try {
       const response = await fetch(
-        `${API_URL}/api/editor/subtitles/generate?video_path=${encodeURIComponent(videoFile.path)}&language=it`,
+        `${API}/editor/subtitles/generate?video_path=${encodeURIComponent(videoFile.path)}&language=it`,
         { method: 'POST' }
       );
       
@@ -109,7 +109,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
     setProcessingStatus("Andrea sta tagliando il video...");
     
     try {
-      const response = await fetch(`${API_URL}/api/editor/trim`, {
+      const response = await fetch(`${API}/editor/trim`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -126,7 +126,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
       setExportedVideos(prev => [...prev, {
         name: `Taglio ${formatTime(trimStart)}-${formatTime(trimEnd)}`,
         filename,
-        url: `${API_URL}/api/editor/files/${filename}`,
+        url: `${API}/editor/files/${filename}`,
         duration: data.duration
       }]);
       
@@ -147,7 +147,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
     setProcessingStatus("Andrea sta rimuovendo il segmento...");
     
     try {
-      const response = await fetch(`${API_URL}/api/editor/cut`, {
+      const response = await fetch(`${API}/editor/cut`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -164,7 +164,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
       setExportedVideos(prev => [...prev, {
         name: `Rimosso ${formatTime(cutStart)}-${formatTime(cutEnd)}`,
         filename,
-        url: `${API_URL}/api/editor/files/${filename}`,
+        url: `${API}/editor/files/${filename}`,
         removed_duration: data.removed_duration
       }]);
       
@@ -185,7 +185,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
     setProcessingStatus("Andrea sta aggiungendo intro/outro...");
     
     try {
-      const response = await fetch(`${API_URL}/api/editor/intro-outro`, {
+      const response = await fetch(`${API}/editor/intro-outro`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -203,7 +203,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
       setExportedVideos(prev => [...prev, {
         name: `Video con Intro/Outro`,
         filename,
-        url: `${API_URL}/api/editor/files/${filename}`
+        url: `${API}/editor/files/${filename}`
       }]);
       
     } catch (error) {
@@ -223,7 +223,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
     setProcessingStatus("Andrea sta incorporando i sottotitoli...");
     
     try {
-      const response = await fetch(`${API_URL}/api/editor/subtitles/burn`, {
+      const response = await fetch(`${API}/editor/subtitles/burn`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -241,7 +241,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
       setExportedVideos(prev => [...prev, {
         name: `Video con Sottotitoli`,
         filename,
-        url: `${API_URL}/api/editor/files/${filename}`
+        url: `${API}/editor/files/${filename}`
       }]);
       
     } catch (error) {
@@ -261,7 +261,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
     setProcessingStatus("Andrea sta aggiungendo il testo...");
     
     try {
-      const response = await fetch(`${API_URL}/api/editor/text-overlay`, {
+      const response = await fetch(`${API}/editor/text-overlay`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -283,7 +283,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
       setExportedVideos(prev => [...prev, {
         name: `Video con Testo: "${overlayText.substring(0, 20)}..."`,
         filename,
-        url: `${API_URL}/api/editor/files/${filename}`
+        url: `${API}/editor/files/${filename}`
       }]);
       
     } catch (error) {
@@ -657,7 +657,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
                         Incorpora nel Video
                       </button>
                       <a 
-                        href={`${API_URL}/api/editor/subtitles/${subtitles.srt_filename}`}
+                        href={`${API}/editor/subtitles/${subtitles.srt_filename}`}
                         download
                         className="flex-1 py-2 rounded-lg font-bold text-xs text-center"
                         style={{ background: '#FAFAF7', color: '#5F6572' }}
