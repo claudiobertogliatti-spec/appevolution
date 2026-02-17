@@ -40,7 +40,7 @@ export function DomainConfiguration({ partner, isAdmin = false }) {
   const loadDomainRequest = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/domain/partner/${partnerId}`);
+      const response = await fetch(`${API}/domain/partner/${partnerId}`);
       if (response.ok) {
         const data = await response.json();
         setDomainRequest(data.domain_request);
@@ -58,7 +58,7 @@ export function DomainConfiguration({ partner, isAdmin = false }) {
     
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${API_URL}/api/domain/request`, {
+      const response = await fetch(`${API}/domain/request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -91,7 +91,7 @@ export function DomainConfiguration({ partner, isAdmin = false }) {
     
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${API_URL}/api/domain/${domainRequest.id}/dns-params`, {
+      const response = await fetch(`${API}/domain/${domainRequest.id}/dns-params`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -114,7 +114,7 @@ export function DomainConfiguration({ partner, isAdmin = false }) {
   const handleMarkActive = async () => {
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${API_URL}/api/domain/${domainRequest.id}/status`, {
+      const response = await fetch(`${API}/domain/${domainRequest.id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'active' })

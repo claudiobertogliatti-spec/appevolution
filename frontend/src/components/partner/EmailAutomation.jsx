@@ -51,9 +51,9 @@ export function EmailAutomation({ partner }) {
     setIsLoading(true);
     try {
       const [automationsRes, templatesRes, queueRes] = await Promise.all([
-        fetch(`${API_URL}/api/email-automation/partner/${partnerId}`),
-        fetch(`${API_URL}/api/email-automation/templates`),
-        fetch(`${API_URL}/api/email-queue/${partnerId}`)
+        fetch(`${API}/email-automation/partner/${partnerId}`),
+        fetch(`${API}/email-automation/templates`),
+        fetch(`${API}/email-queue/${partnerId}`)
       ]);
       
       if (automationsRes.ok) {
@@ -82,7 +82,7 @@ export function EmailAutomation({ partner }) {
   // Toggle automation active state
   const toggleAutomation = async (id) => {
     try {
-      const response = await fetch(`${API_URL}/api/email-automation/${id}/toggle`, {
+      const response = await fetch(`${API}/email-automation/${id}/toggle`, {
         method: 'PUT'
       });
       if (response.ok) {
@@ -98,7 +98,7 @@ export function EmailAutomation({ partner }) {
     if (!window.confirm('Sei sicuro di voler eliminare questa automazione?')) return;
     
     try {
-      const response = await fetch(`${API_URL}/api/email-automation/${id}`, {
+      const response = await fetch(`${API}/email-automation/${id}`, {
         method: 'DELETE'
       });
       if (response.ok) {
@@ -113,7 +113,7 @@ export function EmailAutomation({ partner }) {
   const generateAISequence = async () => {
     setIsGenerating(true);
     try {
-      const response = await fetch(`${API_URL}/api/email-automation/generate-sequence?partner_id=${partnerId}&partner_name=${encodeURIComponent(partnerName)}&partner_niche=${encodeURIComponent(partnerNiche)}&sequence_type=nurture`, {
+      const response = await fetch(`${API}/email-automation/generate-sequence?partner_id=${partnerId}&partner_name=${encodeURIComponent(partnerName)}&partner_niche=${encodeURIComponent(partnerNiche)}&sequence_type=nurture`, {
         method: 'POST'
       });
       
@@ -137,7 +137,7 @@ export function EmailAutomation({ partner }) {
     if (!template) return;
     
     try {
-      const response = await fetch(`${API_URL}/api/email-automation/create`, {
+      const response = await fetch(`${API}/email-automation/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
