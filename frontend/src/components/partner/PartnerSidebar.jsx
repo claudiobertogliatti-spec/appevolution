@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Home, BookOpen, Target, Mic, Film, FileText, Calendar, Palette, FolderOpen, MessageCircle, LogOut, ChevronRight, ChevronDown, HelpCircle, Sparkles, Check, Lock, Rocket, ShoppingBag, Scissors, Scale, UserCircle, Globe, Mail, BarChart3, UsersRound } from "lucide-react";
+import { Home, BookOpen, Target, Mic, Film, FileText, Calendar, Palette, FolderOpen, MessageCircle, LogOut, ChevronRight, ChevronDown, HelpCircle, Sparkles, Check, Lock, Rocket, ShoppingBag, Scissors, Scale, UserCircle, Globe, Mail, BarChart3, UsersRound, Video } from "lucide-react";
 
 const NAV_ITEMS = [
   { id: "home", label: "Home", icon: Home },
@@ -13,9 +13,9 @@ const NAV_ITEMS = [
   { id: "domain-config", label: "Dominio Funnel", icon: Globe },
   { id: "email-automation", label: "Email Automatiche", icon: Mail },
   { id: "produzione", label: "Produzione Video", icon: Film },
-  { id: "avatar-checkout", label: "🎬 Avatar PRO", icon: Film, badge: "€120" },
   { id: "video-editor", label: "Video Editor", icon: Scissors },
   { id: "legal-pages", label: "Pagine Legali", icon: Scale },
+  { id: "avatar-checkout", label: "Avatar PRO", icon: Video, badge: "DELEGA" },
   { id: "servizi-extra", label: "Servizi Extra", icon: ShoppingBag },
 ];
 
