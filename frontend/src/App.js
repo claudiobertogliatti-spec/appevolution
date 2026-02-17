@@ -732,6 +732,7 @@ export default function App() {
             {nav==="profilo-hub"&&<PartnerProfileHub partner={demoPartner} onNavigate={setNav}/>}
             {nav==="domain-config"&&<DomainConfiguration partner={demoPartner}/>}
             {nav==="email-automation"&&<EmailAutomation partner={demoPartner}/>}
+            {nav==="team"&&<TeamEvolution isAdmin={false}/>}
           </>}
         </div>
       </div>
