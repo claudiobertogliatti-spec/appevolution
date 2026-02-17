@@ -57,6 +57,37 @@ EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
 
 # Create the main app
 app = FastAPI(title="Evolution PRO OS", version="3.0")
+
+# CORS Configuration - MUST be before routers
+# Allow specific origins for production + wildcard for development
+ALLOWED_ORIGINS = [
+    "https://app.evolution-pro.it",
+    "https://www.app.evolution-pro.it",
+    "https://evolution-pro.it",
+    "https://www.evolution-pro.it",
+    "http://localhost:3000",
+    "http://localhost:8001",
+]
+
+# Add any preview URLs from environment
+cors_env = os.environ.get('CORS_ORIGINS', '')
+if cors_env and cors_env != '*':
+    ALLOWED_ORIGINS.extend([o.strip() for o in cors_env.split(',') if o.strip()])
+
+# Add current preview URL dynamically
+react_backend_url = os.environ.get('REACT_APP_BACKEND_URL', '')
+if react_backend_url and react_backend_url not in ALLOWED_ORIGINS:
+    ALLOWED_ORIGINS.append(react_backend_url)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
+
 api_router = APIRouter(prefix="/api")
 
 # =============================================================================
