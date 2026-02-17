@@ -4,7 +4,7 @@ import {
   FolderOpen, MessageCircle, LogOut, ChevronRight, ChevronDown, 
   HelpCircle, Sparkles, Check, Lock, Rocket, ShoppingBag, Scissors, 
   Scale, UserCircle, Globe, Mail, BarChart3, UsersRound, Video,
-  PlayCircle, X, Users
+  PlayCircle, X, Users, Lightbulb, Star
 } from "lucide-react";
 
 // =====================================================
@@ -15,23 +15,20 @@ import {
 const UNLOCK_RULES = {
   // F1 - Primo login: sbloccati di default
   "home": 1,
-  "corso": 1,           // Parti da Qui
-  "profilo-hub": 1,     // Profilo Hub
-  "team": 1,            // Team Evolution
+  "corso": 1,           // Parti da Qui (include Team Evolution)
   
-  // F2 - Dopo Profilo Hub completato
+  // F2 - Dopo Profilo Hub completato (nella Home)
+  "brandkit": 2,        // Brand Kit
   "documenti": 2,       // Posizionamento
   
   // F3 - Dopo Posizionamento approvato
-  "brandkit": 3,        // Brand Kit
-  "masterclass": 3,     // Masterclass & Videocorso
+  "masterclass": 3,     // Masterclass
   
   // F5 - Dopo prima lezione caricata
+  "consigli-registrazione": 5, // Consigli Registrazione
   "video-editor": 5,    // Video Editor
-  "avatar-checkout": 5, // Avatar PRO
-  "produzione": 5,      // Produzione Video
   
-  // F7 - Dopo Masterclass + 4 lezioni pronte
+  // F7 - Dopo Masterclass pronta
   "funnel": 7,          // Il tuo Funnel
   "email-automation": 7,// Email Automatiche
   "domain-config": 7,   // Dominio Funnel
@@ -39,7 +36,10 @@ const UNLOCK_RULES = {
   
   // F8 - Dopo Funnel approvato + Stripe
   "funnel-analytics": 8,// Analytics Funnel
-  "servizi-extra": 8,   // Servizi Extra
+  
+  // Servizi Extra - sempre visibili ma alcuni bloccati
+  "avatar-checkout": 5, // Avatar PRO
+  "servizi-extra": 1,   // Altri servizi
 };
 
 // Gruppi della sidebar
@@ -49,11 +49,9 @@ const SIDEBAR_GROUPS = [
     label: "📚 Percorso",
     items: [
       { id: "corso", label: "Parti da Qui", icon: PlayCircle, badge: "START" },
-      { id: "profilo-hub", label: "Profilo Hub", icon: UserCircle },
-      { id: "team", label: "Team Evolution", icon: UsersRound },
-      { id: "documenti", label: "Posizionamento", icon: Target },
       { id: "brandkit", label: "Brand Kit", icon: Palette },
-      { id: "masterclass", label: "Masterclass & Videocorso", icon: Mic },
+      { id: "documenti", label: "Posizionamento", icon: Target },
+      { id: "masterclass", label: "Masterclass", icon: Mic },
     ]
   },
   {
@@ -67,14 +65,20 @@ const SIDEBAR_GROUPS = [
     ]
   },
   {
-    id: "strumenti",
-    label: "🛠️ Strumenti",
+    id: "produzione",
+    label: "🎬 Produzione Video",
     items: [
-      { id: "produzione", label: "Produzione Video", icon: Film },
+      { id: "consigli-registrazione", label: "Consigli Registrazione", icon: Lightbulb },
       { id: "video-editor", label: "Video Editor", icon: Scissors },
       { id: "legal-pages", label: "Pagine Legali", icon: Scale },
+    ]
+  },
+  {
+    id: "servizi",
+    label: "⭐ Servizi Extra",
+    items: [
       { id: "avatar-checkout", label: "Avatar PRO", icon: Video, badge: "DELEGA" },
-      { id: "servizi-extra", label: "Servizi Extra", icon: ShoppingBag },
+      { id: "servizi-extra", label: "Altri Servizi", icon: ShoppingBag },
     ]
   }
 ];
@@ -142,10 +146,10 @@ function LockedModal({ isOpen, onClose, itemLabel, requiredPhase }) {
               <div>
                 <div className="text-xs font-bold" style={{ color: '#92700C' }}>Fase richiesta</div>
                 <div className="text-sm font-bold" style={{ color: '#1E2128' }}>
-                  {requiredPhase === 2 && "Completa il Profilo Hub"}
+                  {requiredPhase === 2 && "Completa il Profilo Hub nella Home"}
                   {requiredPhase === 3 && "Completa il Posizionamento"}
-                  {requiredPhase === 5 && "Carica la prima lezione video"}
-                  {requiredPhase === 7 && "Completa Masterclass + 4 lezioni"}
+                  {requiredPhase === 5 && "Registra la prima lezione video"}
+                  {requiredPhase === 7 && "Completa la Masterclass"}
                   {requiredPhase === 8 && "Approva il Funnel + attiva Stripe"}
                 </div>
               </div>
@@ -169,7 +173,7 @@ function LockedModal({ isOpen, onClose, itemLabel, requiredPhase }) {
 // SIDEBAR COMPONENT
 // =====================================================
 export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout, onOpenChat, onSwitchToAdmin, isAdmin }) {
-  const [expandedGroups, setExpandedGroups] = useState(['percorso', 'lancio', 'strumenti']);
+  const [expandedGroups, setExpandedGroups] = useState(['percorso', 'lancio', 'produzione', 'servizi']);
   const [lockedModal, setLockedModal] = useState({ isOpen: false, itemLabel: '', requiredPhase: 1 });
   
   const partnerPhase = partner?.phase || 'F1';
@@ -197,18 +201,6 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
       });
     }
   };
-  
-  // Get next recommended action
-  const getNextAction = () => {
-    if (currentPhaseNum < 2) return { label: "Completa Profilo Hub", nav: "profilo-hub" };
-    if (currentPhaseNum < 3) return { label: "Compila Posizionamento", nav: "documenti" };
-    if (currentPhaseNum < 5) return { label: "Crea Masterclass", nav: "masterclass" };
-    if (currentPhaseNum < 7) return { label: "Prepara il Funnel", nav: "funnel" };
-    if (currentPhaseNum < 8) return { label: "Vai al Lancio!", nav: "funnel" };
-    return { label: "Analizza Metriche", nav: "funnel-analytics" };
-  };
-  
-  const nextAction = getNextAction();
 
   return (
     <div className="w-64 min-w-64 flex flex-col h-full border-r overflow-hidden" 
@@ -390,27 +382,6 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
             )}
           </div>
         ))}
-
-        {/* Next Step CTA */}
-        <div className="mt-4 mx-1 rounded-xl p-4 relative overflow-hidden"
-             style={{ background: 'linear-gradient(135deg, #F2C418 0%, #FADA5E 100%)' }}>
-          <div className="absolute top-0 right-0 w-20 h-20 rounded-full opacity-20"
-               style={{ background: 'white', transform: 'translate(30%, -30%)' }} />
-          <div className="relative">
-            <div className="text-xs font-bold mb-1 opacity-80" style={{ color: '#1E2128' }}>
-              Prossimo passo
-            </div>
-            <div className="text-sm font-black mb-2" style={{ color: '#1E2128' }}>
-              {nextAction.label}
-            </div>
-            <button 
-              onClick={() => onNavigate(nextAction.nav)}
-              className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-all hover:opacity-90"
-              style={{ background: '#1E2128', color: '#F2C418' }}>
-              Continua <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* Bottom Actions */}
