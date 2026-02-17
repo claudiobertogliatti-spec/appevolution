@@ -706,6 +706,7 @@ export default function App() {
             {nav==="warmode"&&<StefaniaWarMode partners={partners}/>}
             {nav==="atlas"&&<AtlasModule partner={selectedPartner||partners[0]} isAdmin={true}/>}
             {nav==="compliance"&&<ComplianceDashboard/>}
+            {nav==="team"&&<TeamEvolution isAdmin={true}/>}
             {nav==="alert"&&<AdminAlerts alerts={alerts} onDismiss={dismissAlert}/>}
           </>}
 
