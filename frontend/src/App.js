@@ -614,7 +614,11 @@ export default function App() {
   const [stats,setStats]=useState({});
   const [selectedPartner,setSelectedPartner]=useState(null);
 
-  const demoPartner=partners.find(p=>p.name==="Marco Ferretti")||{id:"1",name:"Marco Ferretti",niche:"Business Coach",phase:"F3",revenue:0,contract:"2025-01-10",alert:false,modules:[1,1,1,0,0,0,0,0,0,0]};
+  // Get the partner data for the logged-in user (if they are a partner)
+  // Falls back to demo partner for admin testing
+  const demoPartner = currentUser?.role === "partner" && currentUser?.partner_id
+    ? partners.find(p => p.id === currentUser.partner_id) || partners.find(p => p.name === "Marco Ferretti") || { id: "1", name: "Marco Ferretti", niche: "Business Coach", phase: "F3", revenue: 0, contract: "2025-01-10", alert: false, modules: [1, 1, 1, 0, 0, 0, 0, 0, 0, 0] }
+    : partners.find(p => p.name === "Marco Ferretti") || { id: "1", name: "Marco Ferretti", niche: "Business Coach", phase: "F3", revenue: 0, contract: "2025-01-10", alert: false, modules: [1, 1, 1, 0, 0, 0, 0, 0, 0, 0] };
 
   // Check auth on mount
   useEffect(() => {
