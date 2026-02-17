@@ -834,11 +834,11 @@ export default function App() {
             {nav==="home"&&<PartnerDashboardSimplified partner={demoPartner} onNavigate={setNav} onOpenChat={()=>setNav("supporto")}/>}
             {nav==="corso"&&<PartnerCourse partner={demoPartner} modules={modules}/>}
             {nav==="masterclass"&&<MasterclassVideocorso partner={demoPartner} onBack={()=>setNav("home")}/>}
-            {nav==="coursebuilder"&&<CourseBuilderWizard partnerId={demoPartner?.id||"demo"} positioningData={{trasformazione:"Demo",target:"Demo",problema:"Demo",soluzione:"Demo"}} onComplete={()=>setNav("produzione")}/>}
+            {nav==="coursebuilder"&&<CourseBuilderWizard partnerId={demoPartner?.id||"demo"} positioningData={{trasformazione:"Demo",target:"Demo",problema:"Demo",soluzione:"Demo"}} onComplete={()=>setNav("consigli-registrazione")}/>}
             {nav==="funnel"&&<FunnelReviewBuilder partner={demoPartner} onBack={()=>setNav("home")}/>}
             {nav==="funnel-analytics"&&<FunnelAnalytics partner={demoPartner}/>}
             {nav==="avatar-checkout"&&<AvatarCheckout partner={demoPartner} onBack={()=>setNav("masterclass")}/>}
-            {nav==="produzione"&&<ProduzioneVideo partner={demoPartner}/>}
+            {nav==="consigli-registrazione"&&<ProduzioneVideo partner={demoPartner}/>}
             {nav==="files"&&<PartnerFileManager partner={demoPartner}/>}
             {nav==="brandkit"&&<BrandKitEditor partner={demoPartner}/>}
             {nav==="calendario"&&<CalendarioEditoriale partner={demoPartner}/>}
@@ -852,7 +852,6 @@ export default function App() {
             {nav==="profilo-hub"&&<PartnerProfileHub partner={demoPartner} onNavigate={setNav}/>}
             {nav==="domain-config"&&<DomainConfiguration partner={demoPartner}/>}
             {nav==="email-automation"&&<EmailAutomation partner={demoPartner}/>}
-            {nav==="team"&&<TeamEvolution isAdmin={false}/>}
           </>}
         </div>
       </div>
