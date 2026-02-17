@@ -243,18 +243,23 @@ function AdminAgents({ agents }) {
 function AdminPartners({ partners, onSelect }) {
   return (
     <div className="rounded-xl overflow-hidden" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
-      <table className="w-full">
-        <thead><tr className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#9CA3AF', borderBottom: '1px solid #ECEDEF' }}><th className="text-left px-5 py-3">Partner</th><th className="text-left px-4 py-3">Fase</th><th className="text-left px-4 py-3">Revenue</th><th className="text-left px-4 py-3">Contratto</th><th className="text-left px-4 py-3">Stato</th></tr></thead>
-        <tbody>{(partners||[]).map(p=>(
-          <tr key={p.id} className="cursor-pointer transition-colors hover:bg-[#FAFAF7]" style={{ borderTop: '1px solid #ECEDEF' }} onClick={()=>onSelect(p)}>
-            <td className="px-5 py-3"><div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: '#F2C418', color: '#1E2128' }}>{p.name.split(" ").map(n=>n[0]).join("")}</div><div><div className="text-sm font-bold" style={{ color: '#1E2128' }}>{p.name}</div><div className="text-xs" style={{ color: '#9CA3AF' }}>{p.niche}</div></div></div></td>
-            <td className="px-4 py-3"><span className="font-mono text-xs font-bold px-2 py-1 rounded" style={{ background: '#FFF3C4', color: '#C4990A' }}>{p.phase}</span></td>
-            <td className="px-4 py-3 font-mono text-sm" style={{ color: '#5F6572' }}>{p.revenue>0?`€${p.revenue.toLocaleString()}`:"—"}</td>
-            <td className="px-4 py-3 text-sm" style={{ color: '#9CA3AF' }}>{p.contract}</td>
-            <td className="px-4 py-3">{p.alert?<span className="text-xs font-bold text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3"/>Alert</span>:<span className="text-xs font-bold text-green-500 flex items-center gap-1"><Check className="w-3 h-3"/>OK</span>}</td>
-          </tr>
-        ))}</tbody>
-      </table>
+      <div className="grid grid-cols-5 text-[10px] font-bold uppercase tracking-wider px-5 py-3" style={{ color: '#9CA3AF', borderBottom: '1px solid #ECEDEF' }}>
+        <span>Partner</span><span>Fase</span><span>Revenue</span><span>Contratto</span><span>Stato</span>
+      </div>
+      <div className="divide-y" style={{ borderColor: '#ECEDEF' }}>
+        {(partners||[]).map(p=>(
+          <div key={p.id} className="grid grid-cols-5 items-center px-5 py-3 cursor-pointer transition-colors hover:bg-[#FAFAF7]" onClick={()=>onSelect(p)}>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: '#F2C418', color: '#1E2128' }}>{p.name.split(" ").map(n=>n[0]).join("")}</div>
+              <div><div className="text-sm font-bold" style={{ color: '#1E2128' }}>{p.name}</div><div className="text-xs" style={{ color: '#9CA3AF' }}>{p.niche}</div></div>
+            </div>
+            <div><span className="font-mono text-xs font-bold px-2 py-1 rounded" style={{ background: '#FFF3C4', color: '#C4990A' }}>{p.phase}</span></div>
+            <div className="font-mono text-sm" style={{ color: '#5F6572' }}>{p.revenue>0?`€${p.revenue.toLocaleString()}`:"—"}</div>
+            <div className="text-sm" style={{ color: '#9CA3AF' }}>{p.contract}</div>
+            <div>{p.alert?<span className="text-xs font-bold text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3"/>Alert</span>:<span className="text-xs font-bold text-green-500 flex items-center gap-1"><Check className="w-3 h-3"/>OK</span>}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
