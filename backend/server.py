@@ -9419,15 +9419,6 @@ async def get_partner_avatar_payments(partner_id: str):
 # Include router
 app.include_router(api_router)
 
-# CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # Logging
 logging.basicConfig(
     level=logging.INFO,
