@@ -96,7 +96,10 @@ const getSidebarGroups = (partnerPhase) => {
 const SIDEBAR_GROUPS = getSidebarGroups("F1");
 
 // Helper per ottenere la fase richiesta
-const getRequiredPhase = (itemId) => UNLOCK_RULES[itemId] || 1;
+const getRequiredPhase = (itemId) => {
+  const phase = UNLOCK_RULES[itemId];
+  return phase !== undefined ? phase : 1;
+};
 
 // Helper per verificare se un item è sbloccato
 const isItemUnlocked = (itemId, partnerPhase) => {
