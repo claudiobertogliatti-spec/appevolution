@@ -408,51 +408,51 @@ function PartnerCourse({ partner, modules }) {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Video Section */}
-      <div className="bg-gradient-to-br from-[#1E2128] to-[#2D3038] rounded-2xl overflow-hidden border border-[#3D4048]">
-        <div className="p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-[#F5C518] flex items-center justify-center">
-              <PlayCircle className="w-5 h-5 text-black" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-white">Benvenuto nel Percorso Evolution PRO</h2>
-              <p className="text-xs text-[#9CA3AF]">Guarda questo video prima di iniziare</p>
-            </div>
-            <span className="ml-auto px-3 py-1 rounded-full text-xs font-bold bg-[#F5C518] text-black">START</span>
+      {/* Welcome Video Section - Compact & Centered */}
+      <div className="flex justify-center">
+        <div className="w-full max-w-2xl">
+          <div className="text-center mb-4">
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold mb-2" 
+                  style={{ background: '#F2C41820', color: '#C4990A' }}>
+              <PlayCircle className="w-3 h-3" /> START
+            </span>
+            <h2 className="text-xl font-bold" style={{ color: '#1E2128' }}>Benvenuto nel Percorso Evolution PRO</h2>
+            <p className="text-sm" style={{ color: '#9CA3AF' }}>Guarda questo video prima di iniziare</p>
           </div>
-          <div className="relative rounded-xl overflow-hidden" style={{ aspectRatio: '16/9' }}>
-            {!welcomeVideoPlaying ? (
-              <div 
-                className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 cursor-pointer group"
-                onClick={() => setWelcomeVideoPlaying(true)}
-              >
+          
+          <div className="rounded-2xl overflow-hidden shadow-xl" style={{ border: '1px solid #ECEDEF' }}>
+            <div className="relative" style={{ aspectRatio: '16/9', background: 'linear-gradient(135deg, #1E2128 0%, #2D3038 100%)' }}>
+              {!welcomeVideoPlaying ? (
+                <div 
+                  className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer group"
+                  onClick={() => setWelcomeVideoPlaying(true)}
+                >
+                  <video 
+                    className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-70 transition-opacity"
+                    muted
+                    playsInline
+                  >
+                    <source src="https://customer-assets.emergentagent.com/job_workflow-sync-6/artifacts/g7nm3aau_Benvenuto_nel_Percorso_Evolution_PRO.mp4" type="video/mp4" />
+                  </video>
+                  <div className="relative z-10 text-center">
+                    <div className="w-16 h-16 bg-[#F5C518] rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform shadow-lg">
+                      <PlayCircle className="w-8 h-8 text-black" />
+                    </div>
+                    <div className="font-bold text-white text-lg mb-1">Guarda il Video</div>
+                    <div className="text-xs text-white/70">Claudio ti spiega come funziona il percorso</div>
+                  </div>
+                </div>
+              ) : (
                 <video 
-                  className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity"
-                  muted
+                  className="w-full h-full object-cover"
+                  controls
+                  autoPlay
                   playsInline
-                  poster="https://customer-assets.emergentagent.com/job_workflow-sync-6/artifacts/g7nm3aau_Benvenuto_nel_Percorso_Evolution_PRO.mp4#t=0.5"
                 >
                   <source src="https://customer-assets.emergentagent.com/job_workflow-sync-6/artifacts/g7nm3aau_Benvenuto_nel_Percorso_Evolution_PRO.mp4" type="video/mp4" />
                 </video>
-                <div className="relative z-10 text-center">
-                  <div className="w-16 h-16 bg-[#F5C518] rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform shadow-lg">
-                    <PlayCircle className="w-8 h-8 text-black" />
-                  </div>
-                  <div className="font-bold text-white text-lg mb-1">Guarda il Video di Benvenuto</div>
-                  <div className="text-xs text-white/70">Claudio ti spiega come funziona il percorso</div>
-                </div>
-              </div>
-            ) : (
-              <video 
-                className="w-full h-full object-cover"
-                controls
-                autoPlay
-                playsInline
-              >
-                <source src="https://customer-assets.emergentagent.com/job_workflow-sync-6/artifacts/g7nm3aau_Benvenuto_nel_Percorso_Evolution_PRO.mp4" type="video/mp4" />
-              </video>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
