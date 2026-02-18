@@ -534,10 +534,47 @@ class ValentinaActionDispatcher:
         }
     
     async def _sync_systeme_contacts(self) -> Dict:
-        """Trigger Systeme.io contact sync"""
-        # Get API key
+        """Trigger Systeme.io contact sync using integrated services"""
         systeme_key = os.environ.get("SYSTEME_API_KEY")
         if not systeme_key:
+            return {
+                "success": False,
+                "agent": "GAIA",
+                "message": "⚠️ **API Key Systeme.io non configurata.**\n\nPer attivare la sincronizzazione:\n1. Vai su Systeme.io → Impostazioni → API Keys\n2. Crea una nuova API Key\n3. Aggiungila al file .env come SYSTEME_API_KEY\n\nVuoi che ti guidi nel processo?"
+            }
+        
+        # Create and execute task via integrated services
+        try:
+            from integrated_services import create_agent_task
+            
+            result = await create_agent_task(
+                agent="GAIA",
+                title="Sync Systeme.io Contacts",
+                task_type="sync_contacts",
+                execute_now=True
+            )
+            
+            if result.get("executed") and result.get("result", {}).get("success"):
+                return {
+                    "success": True,
+                    "agent": "GAIA",
+                    "task_id": result.get("task_id"),
+                    "message": f"✅ **Sincronizzazione Completata!**\n\n{result.get('result', {}).get('message', 'Contatti sincronizzati')}\n\nI dati sono ora aggiornati nel database locale."
+                }
+            else:
+                return {
+                    "success": True,
+                    "agent": "GAIA",
+                    "task_id": result.get("task_id"),
+                    "message": f"🔄 **Task di sincronizzazione creato**\n\nID: {result.get('task_id')}\nStato: In coda per l'esecuzione\n\nVerrà processato dal background worker."
+                }
+        except Exception as e:
+            logger.error(f"Sync error: {e}")
+            return {
+                "success": False,
+                "agent": "GAIA",
+                "message": f"⚠️ Errore durante la sincronizzazione: {str(e)}"
+            }
             return {
                 "success": False,
                 "agent": "GAIA",
