@@ -722,9 +722,34 @@ class ValentinaActionDispatcher:
         """Add tag to contact in Systeme.io via background task"""
         import uuid
         
-        # Extract email and tag from context
+        # Extract email and tag from context or parse from original message
         email = context.get("email") if context else None
         tag_name = context.get("tag_name") if context else None
+        
+        # Try to extract from original message if not in context
+        if (not email or not tag_name) and context and "_original_message" in context:
+            original_msg = context["_original_message"].lower()
+            
+            # Extract email using regex
+            email_match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', original_msg)
+            if email_match:
+                email = email_match.group(0)
+            
+            # Extract tag name - look for patterns like "tag 'name'" or "tag name al/a/to"
+            # Pattern 1: tag 'name' or tag "name"
+            tag_match = re.search(r"tag\s+['\"]([^'\"]+)['\"]", original_msg)
+            if tag_match:
+                tag_name = tag_match.group(1)
+            else:
+                # Pattern 2: "il tag name al contatto" or "tag name a"
+                tag_match = re.search(r"(?:il\s+)?tag\s+([a-zA-Z0-9_-]+)\s+(?:al|a|to|su)", original_msg)
+                if tag_match:
+                    tag_name = tag_match.group(1)
+                else:
+                    # Pattern 3: "aggiungi tag name"
+                    tag_match = re.search(r"(?:aggiungi|metti|applica)\s+(?:il\s+)?(?:un\s+)?tag\s+([a-zA-Z0-9_-]+)", original_msg)
+                    if tag_match:
+                        tag_name = tag_match.group(1)
         
         if not email or not tag_name:
             return {
