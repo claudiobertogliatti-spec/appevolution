@@ -504,6 +504,21 @@ async def valentina_chat(partner_id: str, message: str, context: dict = None) ->
     return await valentina_ai.chat(partner_id, message, context)
 
 
+def valentina_reset_session(partner_id: str) -> bool:
+    """Reset VALENTINA session for a partner (clears conversation memory)"""
+    session_key = f"valentina_{partner_id}"
+    if session_key in ValentinaAI._llm_sessions:
+        del ValentinaAI._llm_sessions[session_key]
+        logger.info(f"Session reset for {session_key}")
+        return True
+    return False
+
+
+def valentina_get_active_sessions() -> list:
+    """Get list of active VALENTINA sessions"""
+    return list(ValentinaAI._llm_sessions.keys())
+
+
 async def telegram_notify(notification_type: str, **kwargs) -> dict:
     """Quick access to Telegram notifications"""
     if notification_type == "new_partner":
