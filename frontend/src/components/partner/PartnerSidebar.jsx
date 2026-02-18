@@ -19,6 +19,7 @@ const UNLOCK_RULES = {
   // F1 - Primo login: sbloccati di default
   "home": 1,
   "corso": 1,           // Parti da Qui (include Team Evolution)
+  "bonus": 1,           // Bonus Strategici (disponibile subito)
   "files": 1,           // I Miei File (disponibile subito)
   
   // F2 - Dopo Profilo Hub completato (nella Home)
