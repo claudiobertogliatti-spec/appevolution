@@ -464,19 +464,21 @@ export function PartnerFilesPage({ partner }) {
         </h3>
         
         <div className="grid grid-cols-2 gap-4">
-          {/* Video Upload */}
-          <div className="border-2 border-dashed border-[#ECEDEF] rounded-xl p-5 text-center hover:border-[#F5C518] cursor-pointer transition-colors"
-               onClick={() => fileInputRef.current?.click()}>
-            <input ref={fileInputRef} type="file" accept="video/*" onChange={e => handleUpload(e, 'video')} className="hidden"/>
-            <FileVideo className="w-8 h-8 text-yellow-400 mx-auto mb-2"/>
-            <div className="font-bold text-sm text-[#1E2128] mb-1">Carica Video</div>
-            <div className="text-xs text-[#9CA3AF]">Max 500MB</div>
+          {/* YouTube Video Upload */}
+          <div className="border-2 border-dashed border-red-200 rounded-xl p-5 text-center hover:border-red-400 cursor-pointer transition-colors bg-red-50/30"
+               onClick={() => youtubeStatus.authenticated ? setShowVideoModal(true) : alert("YouTube non configurato. Contatta il supporto.")}>
+            <Youtube className="w-8 h-8 text-red-500 mx-auto mb-2"/>
+            <div className="font-bold text-sm text-[#1E2128] mb-1">Carica Video su YouTube</div>
+            <div className="text-xs text-[#9CA3AF]">I tuoi video vengono salvati sul canale Evolution</div>
+            {!youtubeStatus.authenticated && (
+              <div className="text-[10px] text-orange-500 mt-1">⚠️ YouTube non configurato</div>
+            )}
           </div>
           
           {/* Document Upload */}
           <div className="border-2 border-dashed border-[#ECEDEF] rounded-xl p-5 text-center hover:border-[#F5C518] cursor-pointer transition-colors"
                onClick={() => docInputRef.current?.click()}>
-            <input ref={docInputRef} type="file" accept=".pdf,.docx,.doc,.xlsx" onChange={e => handleUpload(e, 'document')} className="hidden"/>
+            <input ref={docInputRef} type="file" accept=".pdf,.docx,.doc,.xlsx" onChange={handleDocUpload} className="hidden"/>
             <FileText className="w-8 h-8 text-blue-400 mx-auto mb-2"/>
             <div className="font-bold text-sm text-[#1E2128] mb-1">Carica Documenti</div>
             <div className="text-xs text-[#9CA3AF]">PDF, DOCX • Max 50MB</div>
@@ -490,6 +492,109 @@ export function PartnerFilesPage({ partner }) {
           </div>
         )}
       </div>
+
+      {/* YouTube Video Upload Modal */}
+      {showVideoModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowVideoModal(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+                <Youtube className="w-5 h-5 text-red-500"/>
+              </div>
+              <div>
+                <h3 className="font-bold text-lg text-[#1E2128]">Carica Video su YouTube</h3>
+                <p className="text-xs text-[#9CA3AF]">Il video verrà aggiunto alla tua playlist</p>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-[#1E2128] mb-1">Titolo del Video *</label>
+                <input
+                  type="text"
+                  value={videoTitle}
+                  onChange={e => setVideoTitle(e.target.value)}
+                  placeholder="Es: Lezione 1 - Introduzione"
+                  className="w-full p-3 rounded-xl border border-[#ECEDEF] text-sm focus:outline-none focus:border-[#F5C518]"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-[#1E2128] mb-1">File Video</label>
+                <input
+                  ref={videoInputRef}
+                  type="file"
+                  accept="video/*"
+                  onChange={handleVideoUpload}
+                  disabled={!videoTitle.trim() || uploadingVideo}
+                  className="w-full p-2 text-sm"
+                />
+              </div>
+              
+              {uploadingVideo && (
+                <div className="flex items-center gap-2 text-sm text-red-500">
+                  <Loader2 className="w-4 h-4 animate-spin"/>
+                  Caricamento su YouTube in corso...
+                </div>
+              )}
+              
+              <div className="bg-[#FEF9E7] rounded-lg p-3 text-xs text-[#C4990A]">
+                <strong>Nota:</strong> Il video verrà caricato sul canale YouTube di Evolution PRO e aggiunto alla tua playlist personale. Potrai poi usare il link per Systeme.io.
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-2 mt-6">
+              <button
+                onClick={() => setShowVideoModal(false)}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-[#5F6572] hover:bg-[#FAFAF7] transition-colors"
+              >
+                Annulla
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* YouTube Videos Section */}
+      {youtubeVideos.length > 0 && (
+        <div className="bg-white rounded-2xl border border-red-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-red-100 flex items-center gap-2 bg-red-50/30">
+            <Youtube className="w-5 h-5 text-red-500"/>
+            <span className="font-bold text-[#1E2128]">I tuoi Video su YouTube</span>
+            <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-600">
+              {youtubeVideos.length}
+            </span>
+          </div>
+          <div className="divide-y divide-[#ECEDEF]">
+            {youtubeVideos.map(v => (
+              <div key={v.video_id} className="px-6 py-4 flex items-center gap-4 hover:bg-[#FAFAF7] transition-colors">
+                {v.thumbnail ? (
+                  <img src={v.thumbnail} alt={v.title} className="w-24 h-14 rounded-lg object-cover"/>
+                ) : (
+                  <div className="w-24 h-14 rounded-lg bg-gray-100 flex items-center justify-center">
+                    <Play className="w-6 h-6 text-gray-400"/>
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm text-[#1E2128] truncate">{v.title}</div>
+                  <div className="text-xs text-[#9CA3AF]">
+                    Posizione: {v.position + 1} • {new Date(v.added_at).toLocaleDateString('it-IT')}
+                  </div>
+                </div>
+                <a 
+                  href={v.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5"/>
+                  Apri
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Onboarding Documents */}
       {onboardingDocs.length > 0 && (
