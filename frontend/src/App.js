@@ -366,9 +366,44 @@ function AndreaPipeline({ partners }) {
 
 // ─── PARTNER FILE MANAGER ──────────────────────────────────────────────────────
 function PartnerFileManager({ partner }) {
-  const [files,setFiles]=useState([]);const [uploading,setUploading]=useState(false);
-  useEffect(()=>{(async()=>{try{const r=await axios.get(`${API}/files/partner/${partner.id}`);setFiles(r.data);}catch(e){}})();},[partner]);
-  const handleUpload=async(e,cat)=>{const file=e.target.files[0];if(!file)return;setUploading(true);try{const fd=new FormData();fd.append("file",file);fd.append("partner_id",partner.id);fd.append("category",cat);await axios.post(`${API}/files/upload`,fd);const r=await axios.get(`${API}/files/partner/${partner.id}`);setFiles(r.data);}catch(e){}finally{setUploading(false);}};
+  const [files,setFiles]=useState({video:[],document:[],image:[],audio:[],onboarding:[]});
+  const [uploading,setUploading]=useState(false);
+  const [totalFiles, setTotalFiles] = useState(0);
+  
+  useEffect(()=>{
+    (async()=>{
+      try{
+        const r=await axios.get(`${API}/files/partner/${partner.id}`);
+        if(r.data.files) {
+          setFiles(r.data.files);
+          setTotalFiles(r.data.total || 0);
+        }
+      }catch(e){console.error('Error loading files:', e);}
+    })();
+  },[partner]);
+  
+  const handleUpload=async(e,cat)=>{
+    const file=e.target.files[0];
+    if(!file)return;
+    setUploading(true);
+    try{
+      const fd=new FormData();
+      fd.append("file",file);
+      fd.append("partner_id",partner.id);
+      fd.append("category",cat);
+      await axios.post(`${API}/files/upload`,fd);
+      const r=await axios.get(`${API}/files/partner/${partner.id}`);
+      if(r.data.files) {
+        setFiles(r.data.files);
+        setTotalFiles(r.data.total || 0);
+      }
+    }catch(e){console.error('Upload error:', e);}finally{setUploading(false);}
+  };
+  
+  // Flatten files for display
+  const allFiles = [...(files.video||[]), ...(files.document||[]), ...(files.image||[]), ...(files.audio||[])];
+  const onboardingDocs = files.onboarding || [];
+  
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-4">
@@ -382,8 +417,63 @@ function PartnerFileManager({ partner }) {
           </div>
         ))}
       </div>
+      
       {uploading&&<div className="bg-[#F5C518]/8 border border-[#F5C518]/20 rounded-xl p-3 flex items-center gap-2 text-sm"><Loader2 className="w-4 h-4 text-[#F5C518] animate-spin"/>Caricamento...</div>}
-      {files.length>0&&<div className="bg-white border border-[#ECEDEF] rounded-xl overflow-hidden"><div className="px-5 py-3 border-b border-[#ECEDEF] font-bold text-sm">I Tuoi File ({files.length})</div>{files.map(f=><div key={f.filename} className="px-5 py-3 flex items-center gap-3 border-t border-[#ECEDEF] hover:bg-[#FAFAF7] transition-colors"><div className={`w-9 h-9 rounded-lg flex items-center justify-center ${f.category==="video"?"bg-yellow-500/20":"bg-blue-500/20"}`}>{f.category==="video"?<FileVideo className="w-4 h-4 text-yellow-400"/>:<FileText className="w-4 h-4 text-blue-400"/>}</div><div className="flex-1 min-w-0"><div className="font-semibold text-sm truncate">{f.filename}</div><div className="text-xs text-[#9CA3AF]">{f.size_readable}</div></div><span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${f.status==="verified"||f.status==="approved"?"bg-green-500/20 text-green-400":"bg-yellow-500/20 text-yellow-400"}`}>{f.status?.toUpperCase()}</span><button onClick={()=>window.open(`${API}${f.internal_url}`,"_blank")} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FAFAF7] border border-[#ECEDEF] flex items-center gap-1 hover:border-[#F2C418] transition-colors"><Download className="w-3 h-3"/>Scarica</button></div>)}</div>}
+      
+      {/* Onboarding Documents Section */}
+      {onboardingDocs.length>0&&(
+        <div className="bg-white border border-[#ECEDEF] rounded-xl overflow-hidden">
+          <div className="px-5 py-3 border-b border-[#ECEDEF] font-bold text-sm flex items-center gap-2">
+            <Shield className="w-4 h-4 text-green-500"/>Documenti Onboarding ({onboardingDocs.length})
+          </div>
+          {onboardingDocs.map(f=>(
+            <div key={f.file_id} className="px-5 py-3 flex items-center gap-3 border-t border-[#ECEDEF] hover:bg-[#FAFAF7] transition-colors">
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-green-500/20">
+                <FileCheck className="w-4 h-4 text-green-500"/>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-sm truncate">{f.document_type?.replace(/_/g, ' ').toUpperCase()}</div>
+                <div className="text-xs text-[#9CA3AF]">{f.original_name} • {f.size_readable}</div>
+              </div>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${f.status==="verified"?"bg-green-500/20 text-green-500":f.status==="rejected"?"bg-red-500/20 text-red-500":"bg-yellow-500/20 text-yellow-500"}`}>
+                {f.status?.toUpperCase()}
+              </span>
+              {f.internal_url&&<button onClick={()=>window.open(`${API}${f.internal_url.replace('/api','')}`, "_blank")} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FAFAF7] border border-[#ECEDEF] flex items-center gap-1 hover:border-[#F2C418] transition-colors"><Download className="w-3 h-3"/>Visualizza</button>}
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {/* Regular Files Section */}
+      {allFiles.length>0&&(
+        <div className="bg-white border border-[#ECEDEF] rounded-xl overflow-hidden">
+          <div className="px-5 py-3 border-b border-[#ECEDEF] font-bold text-sm">I Tuoi File ({allFiles.length})</div>
+          {allFiles.map(f=>(
+            <div key={f.file_id || f.filename} className="px-5 py-3 flex items-center gap-3 border-t border-[#ECEDEF] hover:bg-[#FAFAF7] transition-colors">
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${f.category==="video"?"bg-yellow-500/20":"bg-blue-500/20"}`}>
+                {f.category==="video"?<FileVideo className="w-4 h-4 text-yellow-400"/>:<FileText className="w-4 h-4 text-blue-400"/>}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-sm truncate">{f.original_name || f.filename}</div>
+                <div className="text-xs text-[#9CA3AF]">{f.size_readable}</div>
+              </div>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${f.status==="verified"||f.status==="approved"?"bg-green-500/20 text-green-400":"bg-yellow-500/20 text-yellow-400"}`}>
+                {f.status?.toUpperCase()}
+              </span>
+              <button onClick={()=>window.open(`${API}${f.internal_url?.replace('/api','')}`, "_blank")} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FAFAF7] border border-[#ECEDEF] flex items-center gap-1 hover:border-[#F2C418] transition-colors"><Download className="w-3 h-3"/>Scarica</button>
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {/* Empty State */}
+      {totalFiles===0&&(
+        <div className="bg-white border border-[#ECEDEF] rounded-xl p-8 text-center">
+          <FolderOpen className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3"/>
+          <h3 className="font-bold text-[#1E2128] mb-1">Nessun file caricato</h3>
+          <p className="text-sm text-[#9CA3AF]">Carica video o documenti usando i pulsanti sopra</p>
+        </div>
+      )}
     </div>
   );
 }
