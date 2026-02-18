@@ -2428,7 +2428,29 @@ async def get_chat_history(session_id: str):
 @api_router.delete("/chat/{session_id}")
 async def clear_chat_history(session_id: str):
     await db.chat_messages.delete_many({"session_id": session_id})
-    return {"status": "cleared"}
+    # Also reset VALENTINA LLM session to clear conversation memory
+    from valentina_ai import valentina_reset_session
+    valentina_reset_session(session_id)
+    return {"status": "cleared", "llm_session_reset": True}
+
+
+@api_router.post("/chat/reset/{session_id}")
+async def reset_valentina_session(session_id: str):
+    """Reset VALENTINA's conversation memory for a session"""
+    from valentina_ai import valentina_reset_session
+    reset = valentina_reset_session(session_id)
+    if reset:
+        return {"success": True, "message": f"Session {session_id} reset successfully"}
+    return {"success": True, "message": f"No active session found for {session_id}"}
+
+
+@api_router.get("/chat/sessions/active")
+async def get_active_valentina_sessions():
+    """Get list of active VALENTINA sessions (admin only)"""
+    from valentina_ai import valentina_get_active_sessions
+    sessions = valentina_get_active_sessions()
+    return {"active_sessions": sessions, "count": len(sessions)}
+
 
 # =============================================================================
 # VALENTINA MEMORY SYSTEM API
