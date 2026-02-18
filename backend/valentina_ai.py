@@ -332,9 +332,13 @@ Per operazioni sulla pipeline Systeme.io, devi farlo dalla dashboard https://sys
             else:
                 system_prompt = VALENTINA_SYSTEM_PROMPT.format(context=context_str)
             
-            # Get or create LLM session - PERSIST the session for conversation continuity
-            if session_key not in self._llm_sessions:
-                logger.info(f"Creating new LLM session for {session_key}")
+            # Get or create LLM session - REFRESH if action result exists
+            # We need to update the system prompt when we have action results
+            if session_key not in self._llm_sessions or action_result:
+                if session_key in self._llm_sessions and action_result:
+                    logger.info(f"Refreshing LLM session for {session_key} with action result")
+                else:
+                    logger.info(f"Creating new LLM session for {session_key}")
                 self._llm_sessions[session_key] = LlmChat(
                     api_key=self.llm_key,
                     session_id=session_key,
