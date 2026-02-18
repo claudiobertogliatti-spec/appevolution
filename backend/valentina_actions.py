@@ -468,6 +468,110 @@ class ValentinaActionDispatcher:
             "message": f"📊 **Report Lead ORION**\n\n🔥 HOT (pronti): {hot:,}\n🟡 WARM (interessati): {warm:,}\n❄️ COLD (freddi): {cold:,}\n🧊 FROZEN (inattivi): {frozen:,}\n📋 Non classificati: {unscored:,}\n\n**Totale contatti:** {total:,}"
         }
     
+    async def _migrate_leads_segment(self, context: Dict = None) -> Dict:
+        """Migrate leads from one segment to another via Systeme.io tags"""
+        # Parse source and target segments from message
+        source_segment = None
+        target_segment = None
+        
+        if context and "_original_message" in context:
+            msg = context["_original_message"].lower()
+            
+            # Detect segments
+            segments = ["hot", "warm", "cold", "frozen"]
+            found_segments = []
+            for seg in segments:
+                if seg in msg:
+                    found_segments.append(seg)
+            
+            # Also detect "followup", "pipeline", etc as source indicators
+            if "followup" in msg or "pipeline" in msg or "contatti" in msg:
+                # Try to find the target segment
+                if "warm" in msg:
+                    target_segment = "warm"
+                    source_segment = "followup"  # Generic source
+                elif "hot" in msg:
+                    target_segment = "hot"
+                    source_segment = "warm"
+            elif len(found_segments) >= 2:
+                # First is source, second is target (usually "da X a Y")
+                source_segment = found_segments[0]
+                target_segment = found_segments[1]
+            elif len(found_segments) == 1:
+                target_segment = found_segments[0]
+        
+        if not target_segment:
+            return {
+                "success": True,
+                "agent": "ORION",
+                "message": "🔄 **ORION - Migrazione Lead**\n\nPer migrare lead tra segmenti, dimmi:\n\n1️⃣ **Segmento di origine** (opzionale)\n2️⃣ **Segmento di destinazione**: HOT, WARM, COLD, FROZEN\n\nEsempi:\n• 'Sposta i lead COLD a WARM'\n• 'Migra i contatti followup a WARM'\n• 'Promuovi lead interessati a HOT'"
+            }
+        
+        # Count leads that would be affected
+        filter_query = {}
+        if source_segment and source_segment not in ["followup", "pipeline", "contatti"]:
+            filter_query["orion_segment"] = source_segment
+            leads_count = await db.systeme_contacts.count_documents(filter_query)
+        else:
+            # For generic sources, count leads that are NOT in target segment
+            filter_query["orion_segment"] = {"$ne": target_segment}
+            leads_count = await db.systeme_contacts.count_documents(filter_query)
+        
+        # Create the tag name for Systeme.io
+        tag_name = f"segment_{target_segment}"
+        
+        # Create task for background execution
+        import uuid
+        task_doc = {
+            "id": str(uuid.uuid4()),
+            "title": f"Migra lead a segmento {target_segment.upper()}",
+            "task_type": "migrate_segment",
+            "agent": "ORION",
+            "data": {
+                "source_segment": source_segment,
+                "target_segment": target_segment,
+                "tag_to_apply": tag_name,
+                "estimated_leads": leads_count
+            },
+            "priority": "high",
+            "status": "pending",
+            "created_by": "valentina",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.agent_tasks.insert_one(task_doc)
+        
+        # Also update leads in local database immediately
+        if source_segment and source_segment not in ["followup", "pipeline", "contatti"]:
+            update_filter = {"orion_segment": source_segment}
+        else:
+            update_filter = {"orion_segment": {"$nin": [target_segment, "hot"]}}  # Don't downgrade hot leads
+        
+        # Perform the migration in local DB
+        result = await db.systeme_contacts.update_many(
+            update_filter,
+            {
+                "$set": {
+                    "orion_segment": target_segment,
+                    "orion_updated_at": datetime.now(timezone.utc).isoformat()
+                }
+            }
+        )
+        
+        migrated_count = result.modified_count
+        
+        return {
+            "success": True,
+            "agent": "ORION",
+            "task_id": task_doc["id"],
+            "data": {
+                "migrated_count": migrated_count,
+                "target_segment": target_segment,
+                "source_segment": source_segment
+            },
+            "message": f"✅ **Migrazione Completata!**\n\n📊 **Risultato**:\n• Lead migrati a **{target_segment.upper()}**: {migrated_count:,}\n• Tag Systeme.io: `{tag_name}`\n\n🔄 Il task di sincronizzazione con Systeme.io è in coda.\n\n💡 I lead sono ora classificati come {target_segment.upper()} nel database. Vuoi che verifichi le nuove statistiche?"
+        }
+
     async def _get_hot_leads(self) -> Dict:
         """Get list of hot leads"""
         leads = await db.systeme_contacts.find(
