@@ -4804,14 +4804,6 @@ async def list_files(
     """List files in storage"""
     return file_storage.list_files(category, status, partner_id)
 
-@api_router.get("/files/{path:path}")
-async def serve_file(path: str):
-    """Serve a file from storage"""
-    file_path = file_storage.get_file_path(path)
-    if not file_path:
-        raise HTTPException(status_code=404, detail="File not found")
-    return FileResponse(file_path)
-
 @api_router.get("/files/partner/{partner_id}")
 async def get_partner_files(partner_id: str):
     """Get all files for a specific partner"""
@@ -4848,6 +4840,14 @@ async def get_partner_files(partner_id: str):
         "total": len(files) + len(onboarding_docs),
         "partner_id": partner_id
     }
+
+@api_router.get("/files/{path:path}")
+async def serve_file(path: str):
+    """Serve a file from storage"""
+    file_path = file_storage.get_file_path(path)
+    if not file_path:
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path)
 
 @api_router.get("/storage/stats")
 async def get_storage_stats():
