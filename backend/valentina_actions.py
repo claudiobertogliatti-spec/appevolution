@@ -38,47 +38,47 @@ AVAILABLE_ACTIONS = {
     # =========================================================================
     # ORION - Lead Intelligence (INTERNAL ONLY - Admin vede tutti i lead)
     # =========================================================================
-    "get_lead_stats": {
-        "agent": "ORION",
-        "scope": "internal",
-        "description": "Ottieni statistiche sui lead (HOT, WARM, COLD, FROZEN)",
-        "keywords": ["lead", "contatti", "statistiche", "quanti lead", "situazione lead", "orion", "report lead"]
-    },
-    "get_hot_leads": {
-        "agent": "ORION",
-        "scope": "internal",
-        "description": "Lista dei lead HOT pronti a comprare",
-        "keywords": ["lead hot", "lead caldi", "pronti a comprare", "lead interessati", "chi è pronto"]
-    },
     "analyze_lead": {
         "agent": "ORION",
         "scope": "internal",
         "description": "Analizza un lead specifico per email",
-        "keywords": ["analizza lead", "controlla contatto", "verifica lead", "cerca contatto", "trova lead", "info su"]
+        "keywords": ["analizza il lead", "analizza lead", "controlla contatto", "verifica lead", "cerca contatto", "trova il lead", "info su", "dettagli lead", "chi è"]
     },
     "get_leads_to_reactivate": {
         "agent": "ORION",
         "scope": "internal",
         "description": "Identifica lead COLD/FROZEN da riattivare",
-        "keywords": ["riattivare", "riattivazione", "lead freddi", "lead inattivi", "recuperare lead", "wake up", "svegliare"]
+        "keywords": ["riattivare", "riattivazione", "lead freddi", "lead inattivi", "recuperare lead", "wake up", "svegliare", "da riattivare"]
     },
     "get_lead_trends": {
         "agent": "ORION",
         "scope": "internal",
         "description": "Mostra trend e statistiche degli ultimi giorni",
-        "keywords": ["trend", "andamento", "ultimi giorni", "questa settimana", "evoluzione lead", "storico"]
+        "keywords": ["trend lead", "andamento lead", "ultimi giorni", "questa settimana", "evoluzione lead", "storico lead"]
     },
     "get_segment_details": {
         "agent": "ORION",
         "scope": "internal",
         "description": "Dettagli approfonditi di un segmento specifico",
-        "keywords": ["dettagli segmento", "approfondisci", "analisi segmento", "breakdown", "scomponi"]
+        "keywords": ["dettagli segmento", "approfondisci segmento", "analisi segmento", "breakdown", "scomponi segmento"]
     },
     "get_conversion_potential": {
         "agent": "ORION",
         "scope": "internal",
         "description": "Calcola il potenziale di conversione e revenue stimato",
-        "keywords": ["potenziale", "conversione", "revenue stimato", "quanto posso guadagnare", "previsione", "forecast"]
+        "keywords": ["potenziale", "conversione", "revenue stimato", "quanto posso guadagnare", "previsione vendite", "forecast"]
+    },
+    "get_lead_stats": {
+        "agent": "ORION",
+        "scope": "internal",
+        "description": "Ottieni statistiche sui lead (HOT, WARM, COLD, FROZEN)",
+        "keywords": ["statistiche lead", "quanti lead", "situazione lead", "report lead", "conteggio lead", "numeri lead"]
+    },
+    "get_hot_leads": {
+        "agent": "ORION",
+        "scope": "internal",
+        "description": "Lista dei lead HOT pronti a comprare",
+        "keywords": ["lead hot", "lead caldi", "pronti a comprare", "lead interessati", "chi è pronto", "lista hot"]
     },
     
     # =========================================================================
