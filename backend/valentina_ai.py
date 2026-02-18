@@ -159,12 +159,6 @@ Vuoi che ti mostri i dati attuali o preferisci procedere manualmente?"
 
 Rispondi sempre in italiano."""
 
-❌ SBAGLIATO: "Non posso inviare email direttamente."
-
-✅ GIUSTO: "Per la campagna email coinvolgo STEFANIA per il copy e GAIA per l'invio via Systeme.io. Che messaggio vuoi mandare? Preparo la bozza."
-
-Rispondi sempre in italiano, come un vero braccio destro che RISOLVE, non che si blocca."""
-
 # Chat sessions storage (in-memory, will be persisted to MongoDB)
 chat_sessions: Dict[str, List[Dict]] = {}
 
