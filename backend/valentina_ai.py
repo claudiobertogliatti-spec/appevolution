@@ -212,6 +212,18 @@ class ValentinaAI:
             # Create unique session key
             session_key = f"valentina_{user_id}"
             
+            # =====================================================
+            # STEP 1: Check if message requires an ACTION to execute
+            # =====================================================
+            action_result = None
+            if ACTIONS_ENABLED and is_founder:
+                try:
+                    action_result = await detect_and_execute_action(message, context)
+                    if action_result:
+                        logger.info(f"Action executed: {action_result.get('action', 'unknown')}")
+                except Exception as e:
+                    logger.error(f"Action detection error: {e}")
+            
             # Load persistent memory if available
             memory_context = ""
             if MEMORY_ENABLED and is_founder:
@@ -226,6 +238,13 @@ class ValentinaAI:
             
             # Build context string with live data for founder
             context_str = await self._build_context(context, is_founder, memory_context)
+            
+            # =====================================================
+            # STEP 2: If action was executed, add result to context
+            # =====================================================
+            if action_result and action_result.get("success"):
+                action_context = f"\n\n=== RISULTATO AZIONE ESEGUITA ({action_result.get('agent', 'SYSTEM')}) ===\n{action_result.get('message', '')}\n=== FINE RISULTATO ===\n\nOra rispondi all'utente confermando l'azione eseguita e mostrando i risultati. Non inventare dati, usa SOLO quelli forniti sopra."
+                context_str += action_context
             
             # Choose appropriate system prompt
             if is_founder:
