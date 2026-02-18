@@ -1,0 +1,449 @@
+import React, { useState, useEffect, useRef } from "react";
+import { 
+  FileText, Download, Upload, Shield, ChevronDown, ChevronUp,
+  Loader2, FolderOpen, FileVideo, FileCheck, Trash2, Eye,
+  Clock, CheckCircle, XCircle, AlertTriangle, Info, Check
+} from "lucide-react";
+import axios from "axios";
+import { API } from "../../utils/api-config";
+
+// Contract articles data
+const CONTRACT_ARTICLES = [
+  {
+    num: 1,
+    title: "Oggetto del Contratto",
+    subtitle: "Cosa facciamo insieme e chi fa cosa",
+    summary: "Tu e EvolutionPro collaborate per creare, promuovere e vendere il tuo videocorso. Tu metti i contenuti e la tua competenza, noi mettiamo la strategia, la tecnologia e il supporto operativo.",
+    points: [
+      { icon: "📦", text: "Tu fornisci i materiali originali (testi, video, immagini) di tua proprietà" },
+      { icon: "⚙️", text: "Noi forniamo: posizionamento, piattaforma, funnel, editing, copy, lancio" },
+      { icon: "🔒", text: "Il corso si vende solo tramite i canali EvolutionPro durante la partnership" },
+      { icon: "📊", text: "Hai accesso alla dashboard per vedere vendite e fatturato in tempo reale" },
+    ],
+    alert: { type: "warn", text: "Non puoi vendere lo stesso corso in autonomia durante la partnership. Serve l'ok scritto di EvolutionPro." }
+  },
+  {
+    num: 2,
+    title: "Durata, Rinnovo e Recesso",
+    subtitle: "Quanto dura e come funziona la chiusura",
+    summary: "La partnership dura 12 mesi dalla firma. Non si rinnova automaticamente: alla scadenza finisce, e se volete continuare si fa un nuovo accordo.",
+    points: [
+      { icon: "📅", text: "Durata: 12 mesi dalla firma del contratto" },
+      { icon: "🔄", text: "Nessun rinnovo automatico — alla scadenza si decide insieme" },
+      { icon: "🛠️", text: "Dopo la scadenza puoi tenere online il corso pagando Systeme.io" },
+    ],
+    alert: { type: "info", text: "In caso di grave inadempimento, il contratto può essere risolto con diffida PEC e 15 giorni di tempo." }
+  },
+  {
+    num: 3,
+    title: "Diritti e Obblighi delle Parti",
+    subtitle: "Cosa devi fare tu e cosa facciamo noi",
+    summary: "Entrambe le parti hanno dei compiti precisi. Tu partecipi attivamente, fornisci i materiali nei tempi indicati e collabori.",
+    points: [
+      { icon: "📝", text: "Tu: Posizionamento entro 7 giorni, outline corso entro 7 giorni, video tra settimana 3 e 5" },
+      { icon: "⏱️", text: "Tu: Revisioni entro 48 ore, comunicazione costante" },
+      { icon: "🔧", text: "Noi: Funnel, editing, copy, supporto strategico, accesso piattaforma" },
+    ],
+    alert: { type: "warn", text: "Se ritardi nella consegna dei materiali, le fasi successive slittano — ma la durata del contratto non si allunga." }
+  },
+  {
+    num: 4,
+    title: "Proprietà Intellettuale",
+    subtitle: "Chi possiede cosa",
+    summary: "I tuoi contenuti restano tuoi al 100%. Tu dai a EvolutionPro una licenza temporanea per usarli per la durata della partnership.",
+    points: [
+      { icon: "✅", text: "I tuoi contenuti originali restano di tua proprietà" },
+      { icon: "📄", text: "EvolutionPro ha una licenza d'uso esclusiva ma temporanea (12 mesi + 60 giorni)" },
+      { icon: "🎨", text: "Possiamo adattare i contenuti per migliorare qualità e performance" },
+    ],
+    alert: { type: "good", text: "Dopo la fine del contratto, i tuoi contenuti tornano completamente a te." }
+  },
+  {
+    num: 5,
+    title: "Corrispettivi e Pagamenti",
+    subtitle: "Quanto costa, come si paga, le royalties",
+    summary: "Investi €2.500 una tantum per avviare il progetto. In cambio dell'investimento di EvolutionPro, le riconosci il 10% delle vendite nette per 12 mesi.",
+    points: [
+      { icon: "💰", text: "Investimento: €2.500 una tantum (non è un abbonamento)" },
+      { icon: "📊", text: "Valore progetto stimato: €8.000 (tu 30%, EvolutionPro 70% in servizi)" },
+      { icon: "📈", text: "Royalty: 10% delle vendite nette per 12 mesi a EvolutionPro" },
+    ],
+    alert: { type: "warn", text: "L'investimento non è rimborsabile, salvo grave inadempimento di EvolutionPro." }
+  },
+  {
+    num: 6,
+    title: "Riservatezza",
+    subtitle: "Cosa non puoi condividere",
+    summary: "Tutto ciò che impari durante la partnership è confidenziale: strategie, funnel, dati di vendita, procedure, know-how.",
+    points: [
+      { icon: "🔐", text: "Strategie, funnel, automazioni, report → tutto riservato" },
+      { icon: "⏰", text: "L'obbligo vale per la durata del contratto + 2 mesi" },
+      { icon: "🚫", text: "Penale: €2.000 per violazione della riservatezza" },
+    ]
+  },
+  {
+    num: 7,
+    title: "Servizi Forniti & Metodo EVO",
+    subtitle: "Il programma operativo in dettaglio",
+    summary: "EvolutionPro ti fornisce tutto il necessario per lanciare: analisi strategica, piattaforma, funnel, copy, piano editoriale.",
+    points: [
+      { icon: "✅", text: "Incluso: Posizionamento, Systeme.io, funnel, copy, editing, Telegram, videocorso" },
+      { icon: "❌", text: "Non incluso: Gestione social continuativa, campagne ADV operative" },
+      { icon: "➕", text: "Servizi extra disponibili a preventivo separato" },
+    ]
+  },
+];
+
+// Article Card component
+function ArticleCard({ article, isOpen, onToggle }) {
+  const alertStyles = {
+    warn: "bg-orange-50 border-orange-200 text-orange-700",
+    info: "bg-blue-50 border-blue-200 text-blue-700",
+    good: "bg-green-50 border-green-200 text-green-700"
+  };
+  
+  const alertIcons = {
+    warn: AlertTriangle,
+    info: Info,
+    good: Check
+  };
+
+  return (
+    <div className={`bg-white rounded-xl border transition-all duration-200 ${
+      isOpen ? "border-[#F5C518] shadow-sm" : "border-[#ECEDEF] hover:border-[#F5C518]/50"
+    }`}>
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center gap-3 p-4 text-left"
+      >
+        <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+             style={{ background: isOpen ? '#F5C518' : '#FEF9E7', color: isOpen ? '#1E2128' : '#C4990A' }}>
+          <span className="font-bold text-sm">{article.num}</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-bold text-[#1E2128]">{article.title}</div>
+          <div className="text-xs text-[#9CA3AF]">{article.subtitle}</div>
+        </div>
+        <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+          isOpen ? "bg-[#F5C518]/20" : "bg-[#FAFAF7]"
+        }`}>
+          {isOpen ? <ChevronUp className="w-4 h-4 text-[#5F6572]"/> : <ChevronDown className="w-4 h-4 text-[#9CA3AF]"/>}
+        </div>
+      </button>
+      
+      {isOpen && (
+        <div className="px-4 pb-4 border-t border-[#ECEDEF]">
+          <div className="mt-4 p-4 rounded-lg bg-[#FEF9E7] border border-[#F5C518]/20">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-[#C4990A] mb-2 flex items-center gap-1.5">
+              💡 Cosa significa in pratica
+            </div>
+            <p className="text-sm text-[#3B4049] leading-relaxed">{article.summary}</p>
+          </div>
+          
+          <div className="mt-4 space-y-2">
+            {article.points.map((point, idx) => (
+              <div key={idx} className="flex items-start gap-3 text-sm">
+                <span className="flex-shrink-0 text-base">{point.icon}</span>
+                <span className="text-[#5F6572] leading-relaxed">{point.text}</span>
+              </div>
+            ))}
+          </div>
+          
+          {article.alert && (
+            <div className={`mt-4 p-3 rounded-lg border flex items-start gap-2 ${alertStyles[article.alert.type]}`}>
+              {React.createElement(alertIcons[article.alert.type], { className: "w-4 h-4 flex-shrink-0 mt-0.5" })}
+              <span className="text-xs">{article.alert.text}</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Main component
+export function PartnerFilesPage({ partner }) {
+  const [files, setFiles] = useState({ video: [], document: [], image: [], audio: [], onboarding: [] });
+  const [uploading, setUploading] = useState(false);
+  const [totalFiles, setTotalFiles] = useState(0);
+  const [openArticles, setOpenArticles] = useState([1]); // First article open by default
+  const fileInputRef = useRef(null);
+  const docInputRef = useRef(null);
+
+  useEffect(() => {
+    loadFiles();
+  }, [partner]);
+
+  const loadFiles = async () => {
+    if (!partner?.id) return;
+    try {
+      const r = await axios.get(`${API}/files/partner/${partner.id}`);
+      if (r.data.files) {
+        setFiles(r.data.files);
+        setTotalFiles(r.data.total || 0);
+      }
+    } catch (e) {
+      console.error('Error loading files:', e);
+    }
+  };
+
+  const handleUpload = async (e, category) => {
+    const file = e.target.files[0];
+    if (!file || !partner?.id) return;
+    
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("partner_id", partner.id);
+      fd.append("category", category);
+      await axios.post(`${API}/files/upload`, fd);
+      await loadFiles();
+    } catch (e) {
+      console.error('Upload error:', e);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (docInputRef.current) docInputRef.current.value = '';
+    }
+  };
+
+  const toggleArticle = (num) => {
+    setOpenArticles(prev => 
+      prev.includes(num) ? prev.filter(n => n !== num) : [...prev, num]
+    );
+  };
+
+  const allFiles = [...(files.video || []), ...(files.document || []), ...(files.image || []), ...(files.audio || [])];
+  const onboardingDocs = files.onboarding || [];
+
+  // Get contract info from partner
+  const contractDate = partner?.contract ? new Date(partner.contract).toLocaleDateString('it-IT', { 
+    day: 'numeric', month: 'long', year: 'numeric' 
+  }) : 'Da definire';
+
+  return (
+    <div className="space-y-6" style={{ background: '#FAFAF7', minHeight: '100vh', padding: '24px' }}>
+      
+      {/* Header */}
+      <div className="text-center mb-8">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold mb-4"
+             style={{ background: '#FEF9E7', color: '#C4990A', border: '1px solid #F5C518' }}>
+          📄 Le Mie Risorse
+        </div>
+        <h1 className="text-2xl font-bold text-[#1E2128] mb-2">
+          Il Mio <span style={{ color: '#F5C518' }}>Accordo</span>
+        </h1>
+        <p className="text-sm text-[#9CA3AF] max-w-lg mx-auto">
+          Il tuo contratto di partnership con EvolutionPro, spiegato articolo per articolo in modo semplice e chiaro.
+        </p>
+      </div>
+
+      {/* PDF Download Card */}
+      <div className="bg-white rounded-2xl border border-[#F5C518]/30 overflow-hidden shadow-sm">
+        <div className="h-1 bg-gradient-to-r from-[#F5C518] via-[#F5C518]/50 to-transparent"/>
+        <div className="p-6">
+          <div className="flex items-start gap-4 mb-5">
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl"
+                 style={{ background: '#FEF9E7', border: '1px solid #F5C518' }}>
+              📋
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-[#1E2128] text-lg">Contratto di Partnership</h3>
+              <p className="text-xs text-[#9CA3AF] font-mono">Documento ufficiale firmato</p>
+            </div>
+          </div>
+          
+          {/* Contract Meta */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 rounded-xl mb-5"
+               style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
+            <div>
+              <div className="text-[10px] font-mono uppercase tracking-wider text-[#9CA3AF] mb-0.5">Tipo</div>
+              <div className="text-sm font-medium text-[#3B4049]">Collaborazione Partnership</div>
+            </div>
+            <div>
+              <div className="text-[10px] font-mono uppercase tracking-wider text-[#9CA3AF] mb-0.5">Durata</div>
+              <div className="text-sm font-medium text-[#3B4049]">12 mesi dalla firma</div>
+            </div>
+            <div>
+              <div className="text-[10px] font-mono uppercase tracking-wider text-[#9CA3AF] mb-0.5">Data Firma</div>
+              <div className="text-sm font-medium text-[#3B4049]">{contractDate}</div>
+            </div>
+            <div>
+              <div className="text-[10px] font-mono uppercase tracking-wider text-[#9CA3AF] mb-0.5">Fase</div>
+              <div className="text-sm font-medium text-[#3B4049]">{partner?.phase || 'F1'}</div>
+            </div>
+          </div>
+          
+          {/* Download Button */}
+          <button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all hover:shadow-lg"
+                  style={{ background: '#F5C518', color: '#1E2128' }}>
+            <Download className="w-4 h-4"/>
+            Scarica il tuo contratto (PDF)
+          </button>
+          
+          {/* Confidential Notice */}
+          <div className="mt-4 flex items-center gap-2 p-2.5 rounded-lg text-xs"
+               style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626' }}>
+            <Shield className="w-4 h-4 flex-shrink-0"/>
+            Documento confidenziale — Distribuzione non autorizzata vietata
+          </div>
+        </div>
+      </div>
+
+      {/* Upload Section */}
+      <div className="bg-white rounded-2xl border border-[#ECEDEF] p-6">
+        <h3 className="font-bold text-[#1E2128] mb-4 flex items-center gap-2">
+          <Upload className="w-5 h-5 text-[#F5C518]"/>
+          Carica i tuoi file
+        </h3>
+        
+        <div className="grid grid-cols-2 gap-4">
+          {/* Video Upload */}
+          <div className="border-2 border-dashed border-[#ECEDEF] rounded-xl p-5 text-center hover:border-[#F5C518] cursor-pointer transition-colors"
+               onClick={() => fileInputRef.current?.click()}>
+            <input ref={fileInputRef} type="file" accept="video/*" onChange={e => handleUpload(e, 'video')} className="hidden"/>
+            <FileVideo className="w-8 h-8 text-yellow-400 mx-auto mb-2"/>
+            <div className="font-bold text-sm text-[#1E2128] mb-1">Carica Video</div>
+            <div className="text-xs text-[#9CA3AF]">Max 500MB</div>
+          </div>
+          
+          {/* Document Upload */}
+          <div className="border-2 border-dashed border-[#ECEDEF] rounded-xl p-5 text-center hover:border-[#F5C518] cursor-pointer transition-colors"
+               onClick={() => docInputRef.current?.click()}>
+            <input ref={docInputRef} type="file" accept=".pdf,.docx,.doc,.xlsx" onChange={e => handleUpload(e, 'document')} className="hidden"/>
+            <FileText className="w-8 h-8 text-blue-400 mx-auto mb-2"/>
+            <div className="font-bold text-sm text-[#1E2128] mb-1">Carica Documenti</div>
+            <div className="text-xs text-[#9CA3AF]">PDF, DOCX • Max 50MB</div>
+          </div>
+        </div>
+        
+        {uploading && (
+          <div className="mt-4 flex items-center gap-2 text-sm text-[#F5C518]">
+            <Loader2 className="w-4 h-4 animate-spin"/>
+            Caricamento in corso...
+          </div>
+        )}
+      </div>
+
+      {/* Onboarding Documents */}
+      {onboardingDocs.length > 0 && (
+        <div className="bg-white rounded-2xl border border-[#ECEDEF] overflow-hidden">
+          <div className="px-6 py-4 border-b border-[#ECEDEF] flex items-center gap-2">
+            <Shield className="w-5 h-5 text-green-500"/>
+            <span className="font-bold text-[#1E2128]">Documenti Onboarding</span>
+            <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-600">
+              {onboardingDocs.length}
+            </span>
+          </div>
+          <div className="divide-y divide-[#ECEDEF]">
+            {onboardingDocs.map(f => (
+              <div key={f.file_id} className="px-6 py-4 flex items-center gap-4 hover:bg-[#FAFAF7] transition-colors">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-green-100">
+                  <FileCheck className="w-5 h-5 text-green-600"/>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm text-[#1E2128]">
+                    {f.document_type?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                  </div>
+                  <div className="text-xs text-[#9CA3AF]">{f.original_name} • {f.size_readable}</div>
+                </div>
+                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
+                  f.status === "verified" ? "bg-green-100 text-green-600" :
+                  f.status === "rejected" ? "bg-red-100 text-red-600" :
+                  "bg-yellow-100 text-yellow-600"
+                }`}>
+                  {f.status === "verified" ? "✓ Verificato" : f.status === "rejected" ? "✗ Rifiutato" : "In attesa"}
+                </span>
+                {f.internal_url && (
+                  <button 
+                    onClick={() => window.open(`${API}${f.internal_url.replace('/api','')}`, "_blank")}
+                    className="p-2 rounded-lg hover:bg-[#ECEDEF] transition-colors"
+                  >
+                    <Eye className="w-4 h-4 text-[#5F6572]"/>
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Regular Files */}
+      {allFiles.length > 0 && (
+        <div className="bg-white rounded-2xl border border-[#ECEDEF] overflow-hidden">
+          <div className="px-6 py-4 border-b border-[#ECEDEF] flex items-center gap-2">
+            <FolderOpen className="w-5 h-5 text-[#F5C518]"/>
+            <span className="font-bold text-[#1E2128]">I Tuoi File</span>
+            <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full bg-[#FEF9E7] text-[#C4990A]">
+              {allFiles.length}
+            </span>
+          </div>
+          <div className="divide-y divide-[#ECEDEF]">
+            {allFiles.map(f => (
+              <div key={f.file_id || f.filename} className="px-6 py-4 flex items-center gap-4 hover:bg-[#FAFAF7] transition-colors">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                  f.category === "video" ? "bg-yellow-100" : "bg-blue-100"
+                }`}>
+                  {f.category === "video" ? 
+                    <FileVideo className="w-5 h-5 text-yellow-500"/> : 
+                    <FileText className="w-5 h-5 text-blue-500"/>
+                  }
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm text-[#1E2128] truncate">{f.original_name || f.filename}</div>
+                  <div className="text-xs text-[#9CA3AF]">{f.size_readable}</div>
+                </div>
+                <button 
+                  onClick={() => window.open(`${API}${f.internal_url?.replace('/api','')}`, "_blank")}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#FAFAF7] border border-[#ECEDEF] hover:border-[#F5C518] transition-colors"
+                >
+                  <Download className="w-3 h-3"/>
+                  Scarica
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {totalFiles === 0 && onboardingDocs.length === 0 && (
+        <div className="bg-white rounded-2xl border border-[#ECEDEF] p-8 text-center">
+          <FolderOpen className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3"/>
+          <h3 className="font-bold text-[#1E2128] mb-1">Nessun file caricato</h3>
+          <p className="text-sm text-[#9CA3AF]">Carica video o documenti usando i pulsanti sopra</p>
+        </div>
+      )}
+
+      {/* Contract Articles Section */}
+      <div className="flex items-center gap-3 my-8">
+        <div className="flex-1 h-px bg-[#ECEDEF]"/>
+        <h2 className="text-xs font-mono font-bold uppercase tracking-widest text-[#F5C518]">
+          Articoli Spiegati
+        </h2>
+        <div className="flex-1 h-px bg-[#ECEDEF]"/>
+      </div>
+
+      {/* Article Cards */}
+      <div className="space-y-3">
+        {CONTRACT_ARTICLES.map(article => (
+          <ArticleCard
+            key={article.num}
+            article={article}
+            isOpen={openArticles.includes(article.num)}
+            onToggle={() => toggleArticle(article.num)}
+          />
+        ))}
+      </div>
+
+      {/* Footer Note */}
+      <div className="text-center py-6 text-xs text-[#9CA3AF] border-t border-[#ECEDEF] mt-8">
+        Questa guida semplificata è fornita per aiutarti a comprendere il tuo accordo.<br/>
+        In caso di dubbio, fa fede esclusivamente il testo integrale del contratto firmato.
+      </div>
+    </div>
+  );
+}
+
+export default PartnerFilesPage;
