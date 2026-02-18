@@ -199,8 +199,12 @@ Build "Evolution PRO OS", a proprietary web application for business workflow au
 
 ### P2 (Medium Priority)
 - [ ] Backend refactoring (split server.py - now 10,000+ lines!)
+  - ✅ Created `/app/backend/ARCHITECTURE.md` with migration plan
+  - ✅ Created `/app/backend/routers/` folder structure
+  - ✅ Prepared `auth.py`, `orion.py` router templates
+  - [ ] Gradual endpoint migration (Phase 2)
 - [ ] Advanced post-launch metrics dashboard
-- [ ] Resend email integration for direct transactional emails
+- [ ] Implement historical tracking for ORION trends
 
 ### P3 (Future)
 - [ ] Frontend refactoring
