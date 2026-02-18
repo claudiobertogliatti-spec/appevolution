@@ -55,23 +55,35 @@ Build "Evolution PRO OS", a proprietary web application for business workflow au
 
 ## Recent Changes (2026-02-18)
 
-### Session 27 - VALENTINA Fix, Bonus Strategici, Contract PDF, Welcome Email
+### Session 27 - VALENTINA Fix + Action Execution System
 
 1. **VALENTINA AI Bug Fix (CRITICAL)**
-   - **Problem**: VALENTINA non manteneva la memoria dopo 4-5 messaggi, causando allucinazioni
-   - **Root cause**: 
-     - Modello LLM sbagliato (`claude-4-sonnet-20250514` non esiste)
-     - Sessione LLM ricreata ad ogni messaggio (perdita contesto)
-   - **Fix applicato**:
-     - Corretto modello: `claude-sonnet-4-20250514`
-     - Sessioni LLM persistite in `_llm_sessions` dict a livello di classe
-     - Aggiunto reset automatico sessione in caso di errore
-   - **Nuovi endpoint**:
-     - `POST /api/chat/reset/{session_id}` - Reset sessione VALENTINA
-     - `GET /api/chat/sessions/active` - Lista sessioni attive
-   - **File modificati**: `/app/backend/valentina_ai.py`, `/app/backend/server.py`
+   - **Problem**: VALENTINA non manteneva la memoria dopo 4-5 messaggi
+   - **Fix**: Corretto modello LLM (`claude-sonnet-4-20250514`), sessioni persistite
+   
+2. **VALENTINA Action Dispatcher (NEW - CRITICAL)**
+   - **File**: `/app/backend/valentina_actions.py`
+   - **Capacità**: VALENTINA ora ESEGUE azioni reali, non solo parla
+   - **Azioni implementate**:
+     - `get_lead_stats` - Statistiche lead reali da ORION
+     - `get_hot_leads` - Lista lead HOT dal DB
+     - `get_sales_kpi` - KPI vendite reali da MARTA
+     - `list_blocked_partners` - Partner bloccati
+     - `get_partner_status` - Stato dettagliato partner
+     - `sync_systeme_contacts` - Sync Systeme.io con GAIA
+     - `generate_email_copy` - Genera copy con STEFANIA
+     - `check_contract_expiry` - Contratti in scadenza (LUCA)
+     - `get_churn_risk` - Partner a rischio (ATLAS)
 
-2. **Bonus Strategici Section** (`/components/partner/BonusStrategici.jsx`)
+3. **Agent Task System (NEW)**
+   - Sistema per tracciare task assegnati agli agenti
+   - **Endpoints**:
+     - `POST /api/agent-tasks` - Crea task
+     - `GET /api/agent-tasks` - Lista task
+     - `PATCH /api/agent-tasks/{id}/status` - Aggiorna stato
+     - `GET /api/agent-tasks/summary/dashboard` - Dashboard task
+
+4. **Bonus Strategici Section** (`/components/partner/BonusStrategici.jsx`)
    - 7 strategic bonus guides for partners
    - Chapter-based reading experience
    - Progress tracking with session persistence
