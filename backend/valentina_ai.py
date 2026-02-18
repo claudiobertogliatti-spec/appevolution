@@ -267,41 +267,42 @@ class ValentinaAI:
                     )
                     if action_result:
                         logger.info(f"Action executed: {action_result.get('action', 'unknown')} (internal: {is_founder})")
+                        logger.info(f"Action result success: {action_result.get('success')}")
                 except Exception as e:
                     logger.error(f"Action detection error: {e}")
+            else:
+                logger.warning("ACTIONS_ENABLED is False!")
             
             # =====================================================
             # STEP 1.5: Check for UNSUPPORTED Systeme.io operations
-            # If user asks for something we CAN'T do, return honest response
+            # ONLY if no action was detected/executed
             # =====================================================
             msg_lower = message.lower()
             unsupported_keywords = [
                 "crea colonna", "creare colonna", "aggiungi colonna", "nuova colonna",
                 "crea pipeline", "creare pipeline", "nuova pipeline",
-                "sposta contatto", "spostare contatto", "sposta lead", "spostare lead",
                 "inserisci nella pipeline", "inserire nella pipeline",
                 "modifica automazione", "crea automazione", "nuova automazione",
                 "crea funnel", "creare funnel", "nuovo funnel"
             ]
             
+            # Only block if NO action was executed AND message contains unsupported keywords
             if not action_result and any(kw in msg_lower for kw in unsupported_keywords):
+                logger.info(f"Blocking unsupported operation: {message[:50]}")
                 # Return honest response about limitations
                 return """Boss, devo essere onesta con te.
 
-**❌ Questa operazione NON posso farla:**
+**Questa operazione NON posso farla:**
 - Creare/modificare colonne o pipeline su Systeme.io
-- Spostare contatti specifici nella pipeline
 - Creare automazioni o funnel
 
-**✅ Cosa POSSO fare davvero:**
+**Cosa POSSO fare davvero:**
 - Aggiungere TAG ai contatti (es: "Aggiungi tag VIP al contatto mario@email.it")
 - Leggere statistiche lead (es: "Quanti lead HOT abbiamo?")
 - Migrare lead tra segmenti nel database (es: "Migra COLD a WARM")
 - Generare copy per email
 
-Per operazioni sulla pipeline Systeme.io, devi farlo dalla dashboard https://systeme.io
-
-Mi dispiace per la confusione precedente. Dimmi cosa posso fare per te tra le opzioni disponibili."""
+Per operazioni sulla pipeline Systeme.io, devi farlo dalla dashboard https://systeme.io"""
 
             # Load persistent memory if available (only for founder)
             memory_context = ""
