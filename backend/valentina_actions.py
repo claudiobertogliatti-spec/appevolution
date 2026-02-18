@@ -1126,6 +1126,9 @@ async def detect_and_execute_action(message: str, context: Dict = None, is_inter
     if action:
         action_id, agent = action
         logger.info(f"Detected action: {action_id} (agent: {agent}, internal: {is_internal})")
-        result = await action_dispatcher.execute_action(action_id, context)
+        # Merge context with message for parameter extraction
+        exec_context = context.copy() if context else {}
+        exec_context["_original_message"] = message
+        result = await action_dispatcher.execute_action(action_id, exec_context)
         return result
     return None
