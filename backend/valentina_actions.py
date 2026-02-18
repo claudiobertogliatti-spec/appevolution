@@ -356,6 +356,16 @@ class ValentinaActionDispatcher:
                 return await self._get_lead_stats()
             elif action_id == "get_hot_leads":
                 return await self._get_hot_leads()
+            elif action_id == "analyze_lead":
+                return await self._analyze_lead(context)
+            elif action_id == "get_leads_to_reactivate":
+                return await self._get_leads_to_reactivate()
+            elif action_id == "get_lead_trends":
+                return await self._get_lead_trends()
+            elif action_id == "get_segment_details":
+                return await self._get_segment_details(context)
+            elif action_id == "get_conversion_potential":
+                return await self._get_conversion_potential()
             
             # MARTA actions
             elif action_id == "get_sales_kpi":
