@@ -79,6 +79,7 @@ const getSidebarGroups = (partnerPhase) => {
         { id: "consigli-registrazione", label: "Consigli Registrazione", icon: Lightbulb },
         { id: "video-editor", label: "Video Editor", icon: Scissors },
         { id: "legal-pages", label: "Pagine Legali", icon: Scale },
+        { id: "files", label: "I Miei File", icon: FolderOpen },
       ]
     },
     {
