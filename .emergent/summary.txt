@@ -1,174 +1,187 @@
 <analysis>**original_problem_statement:**
-The user is building Evolution PRO OS, a proprietary web application for business workflow automation. The initial goal of the session was to get user verification for a production deployment fix related to React hydration errors.
+The user is building Evolution PRO OS, a proprietary web application for business workflow automation. This session's initial goal was to get user verification for a production CORS fix. However, a series of new issues and major feature requests emerged, becoming the primary focus:
 
-However, after deploying, a new critical **CORS error** emerged, blocking all API calls from the production domain () to the preview backend. This became the primary focus.
-
-Once the CORS issue was addressed (pending final user verification), the user initiated a series of significant feature requests and UI/UX overhauls, including:
-1.  **New Team Evolution Page:** Create a new page displaying the AI agent team structure.
-2.  **State Persistence:** Fix an issue where chat history (Valentina) and analysis data (ORION) were lost when navigating away from the components.
-3.  **Partner Journey Overhaul:** A complete redesign of the partner-facing experience based on a detailed flow document provided by the user. This included:
-    *   Restructuring the partner sidebar into collapsible, role-based groups (Percorso, Lancio, Produzione Video, Servizi Extra).
-    *   Implementing a progressive unlocking system, where sections are visible but locked (🔒) until the partner reaches the required phase.
-    *   Redesigning the partner Home page to integrate a Profilo Hub and a visual progress tracker.
-    *   Consolidating and reordering pages (e.g., merging Team Evolution into the Parti da Qui page).
-4.  **UI Updates:** Modifying several pages, including Avatar PRO (new layout, video, and bundles), Pagine Legali (adding a disclaimer), and Parti da Qui (adding a welcome video).
-5.  **Onboarding Automation:** Begin implementation of an automated onboarding flow where a new partner's self-registration triggers a welcome email.
+1.  **Partner Onboarding Document Upload:** The user requested a system for new partners (Phase F0) to upload mandatory documents (signed contract, personal ID, proof of payment) immediately after registration.
+2.  **Admin UI for Onboarding:** A corresponding admin-facing UI was requested to review, approve, or reject these uploaded documents.
+3.  **ORION Agent Bugs:** The user reported critical bugs in the ORION Lead Scoring tool: an error (body stream already read) when loading leads, loss of state on page navigation, and an analysis limit of 5000 records.
+4.  **I Miei File Page Overhaul:** The user reported that the Documenti section for partners was blank. This led to creating a missing API endpoint and refactoring the frontend viewer. The user then requested to move this section to a more prominent place (Percorso) and completely redesign its UI based on a provided HTML layout, renaming it Il Mio Accordo.
+5.  **YouTube Integration for Videos:** To avoid overloading the application, the user requested that all partner video uploads be handled through YouTube, creating dedicated playlists for each partner on the company's channel.
+6.  **Production Data Mismatch (CRITICAL):** After a deployment, the user reported that partners and leads were missing on the production environment (). The system was showing only 5 test partners instead of the 26 from the database.
+7.  **Bonus Strategici Integration:** The user asked to integrate the content and functionality of another application (a bonus content platform) into Evolution PRO as a new Bonus Strategici section for partners.
 
 **User's preferred language**: Italian. The next agent **MUST** respond in **Italian**.
 
 **what currently exists?**
-A full-stack application (React/FastAPI) with a heavily modified frontend and backend.
--   **Backend:** The monolithic  is now even larger. It contains updated logic for Avatar PRO packages and new (incomplete) endpoints for the partner onboarding email flow. The CORS middleware has been correctly configured to handle requests from the production domain.
+A full-stack application (React/FastAPI) with significant new features and fixes implemented in this session.
+-   **Backend:** The monolithic  is now over 10,000 lines.
+    -   It includes a critical fix to force the use of the correct MongoDB Atlas connection string at startup, intended to resolve the production data mismatch.
+    -   New endpoints exist to manage the partner onboarding document lifecycle ().
+    -   A new endpoint () was added to serve partner-specific files.
+    -   New endpoints were added to manage YouTube playlists and video uploads ().
 -   **Frontend:**
-    -   A new centralized API utility () has been created. It dynamically switches between the preview backend URL and relative paths () for production, which is the core of the CORS fix. Over 30 components were refactored to use this utility.
-    -   The partner-facing UI has been completely redesigned.  now implements a grouped, progressive-locking navigation system.  (the partner home) integrates a profile summary and progress tracker.  has been updated to reflect the new navigation structure.
-    -   New component  was created and then integrated into the  component within .
-    -   State persistence has been added to  and  using .
-    -   A new (empty) component  exists for the admin area.
+    -   **Partner Onboarding:** A new component, , has been created for Phase F0 partners to upload their required documents.
+    -   **Admin Panel:** A new UI, , allows admins to manage and verify the onboarding documents.
+    -   **Partner File Management:** A new, sophisticated page  has replaced the old file manager. It features a new layout (based on user's HTML), displays contract details, and has separate uploaders for YouTube videos and regular documents.
+    -   **ORION Agent:** The  component has been patched to fix the body stream already read bug, increase the analysis limit to 50,000, and ensure state persistence works correctly.
+    -   **Navigation:**  and  have been heavily modified to include the new navigation items (Documenti Onboarding, I Miei File, Bonus Strategici) and their associated access logic.
+    -   **Bonus Content:** A new component, , has been created to house the content from the user's external bonus app, styled to match the Evolution PRO theme.
 
 **Last working item**:
--   Last item agent was working: Implementing the automated partner onboarding flow. The user requested that after a partner self-registers, a welcome email should be sent automatically. The agent was in the process of adding the necessary backend endpoints to  and had created a new frontend component  for the admin to manage this.
+-   Last item agent was working: Integrating the Bonus Strategici application into Evolution PRO. The agent created the  component, ported over the HTML content from the user's reference app, styled it with a light theme, and integrated it into the partner navigation ( section).
 -   Status: **IN PROGRESS**
 -   Agent Testing Done: N
--   Which testing method agent to use? backend testing agent
+-   Which testing method agent to use? frontend testing agent
 -   User Testing Done: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Production Deployment & CORS Verification (P0 - BLOCKER)**
-    -   The app was failing on the production domain () due to CORS errors. The agent implemented a robust fix by refactoring all frontend API calls to use relative URLs in production. However, the user's last deployment attempt used a stale build, so the fix has **not been verified in the live production environment**.
-    -   **Attempted fixes:** The agent correctly diagnosed that the frontend build was using a hardcoded preview URL. It created a central API config utility and refactored over 30 components to use it.
+-   **Issue 1: Production Data Mismatch Verification (P0 - BLOCKER)**
+    -   The production environment () was showing only 5 test partners instead of the 26 present in the database. The agent implemented a fix in  to force the correct MongoDB connection at startup. This fix is **unverified in the live production environment**.
+    -   **Attempted fixes:** The agent identified the issue was likely due to the production deployment using a different or empty database, which triggered the initial data seeding. The fix hardcodes the connection logic to prevent this.
     -   **Next debug checklist:**
-        1.  **Crucially, ask the user to perform a new deployment to **.
-        2.  Ask the user to confirm if the CORS errors are finally resolved.
-        3.  If any new errors appear, ask for the browser console logs from the production URL.
-    -   **Why fix this issue and what will be achieved with the fix?** This is the final blocker preventing the entire application from being usable in the user's live environment. All other work depends on this.
+        1.  **CRITICAL**: Ask the user to perform a **new deployment** to production.
+        2.  Ask the user to confirm that all 26 partners and all leads are now visible on .
+        3.  If the issue persists, investigate the production deployment environment's environment variables (, ).
+    -   **Why fix this issue and what will be achieved with the fix?** This is the final blocker preventing the application from being usable in production with the correct data.
     -   **Status:** USER VERIFICATION PENDING
     -   **Is recurring issue?** Y
     -   **Should Test frontend/backend/both after fix?** User needs to test deployment.
     -   **Blocked on other issue:** None. This is the primary blocker.
--   **Issue 2: Backend Latency and API Timeouts (P2)**
-    -   The underlying issue of potential  errors during long-running AI/API calls remains unaddressed.
+-   **Issue 2: CORS Verification (P0 - Recurring Blocker)**
+    -   While the user mentioned gran parte degli errori sono stati corretti, a definitive confirmation that the original CORS issue is 100% resolved across all APIs on production was never received before the data mismatch issue appeared. This should be re-verified alongside Issue 1.
+    -   **Status:** USER VERIFICATION PENDING
+    -   **Is recurring issue?** Y
+-   **Issue 3: Backend Latency and API Timeouts (P2 - Recurring)**
+    -   The underlying issue of potential  errors during long-running API calls remains unaddressed. The  monolith has grown, increasing the risk.
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** Y
     -   **Should Test frontend/backend/both after fix?** backend
 
 **In progress Task List**:
--   **Task 1: Complete Partner Onboarding Automation (P1)**
-    -   **Where to resume:** The agent has added new endpoints to  and created . The next step is to complete the backend logic for sending the welcome email upon registration and build out the admin UI to track onboarding status (e.g., if the Systeme.io sub-account has been created).
-    -   **What will be achieved with this?** Automates the first step of the partner journey, providing immediate feedback to new sign-ups and creating a task for the admin team.
+-   **Task 1: Complete Bonus Strategici Integration (P1)**
+    -   **Where to resume:** The component  has been created and populated. It needs to be thoroughly tested on the frontend to ensure the layout is correct, all content is displayed, and it is responsive.
+    -   **What will be achieved with this?** The partner-facing application will be enriched with valuable strategic content, as requested by the user.
     -   **Status:** IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on something:** Issue 1: Production Deployment Verification.
+    -   **Should Test frontend/backend/both after fix?** frontend
+    -   **Blocked on something:** Production verification (Issue 1).
+-   **Task 2: Complete Partner Onboarding Automation (P1)**
+    -   **Where to resume:** The document upload portion is complete. The next step is to implement the **welcome email** functionality. The user has specified using Systeme.io but does not have a template.
+    -   **What will be achieved with this?** Automates the full initial onboarding loop, from registration and document submission to sending a welcome communication.
+    -   **Status:** NOT STARTED (email part)
+    -   **Should Test frontend/backend/both after fix?** backend
+    -   **Blocked on something:** Production verification (Issue 1).
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **P1: Implement Locked Section Video:** The user wants a short explanatory video to be shown in the modal when a partner clicks on a locked section of the sidebar. The agent has implemented a placeholder for this.
+    -   **P1: Create Systeme.io Welcome Email Template:** Design and implement a professional email template to be sent to new partners.
+    -   **P1: Connect Real Contract to Download Button:** The Download PDF button on the  needs to be linked to the partner's actual, specific contract document.
+    -   **P1: Implement Locked Section Video:** Add the explanatory video for locked sidebar sections.
     -   **P1: Implement ORION Agent Actions:** Connect the insights from ORION analysis to the 9 AI agents.
-    -   **P1: UI for VALENTINA's Knowledge Base:** Create an interface for the user to view and manage VALENTINA's memory.
 -   **Future Tasks:**
-    -   **P2: Backend Refactoring:** **CRITICAL**.  has grown even larger and MUST be split into multiple route files using FastAPI's .
+    -   **P2: Backend Refactoring:** **CRITICAL**.  is now over 10,000 lines and is a significant source of technical debt and risk. It MUST be split into multiple route files.
     -   **P2: Frontend Refactoring:** Decompose  and other large components.
     -   **P3: Advanced Post-Launch Metrics Dashboard:** Create the  component.
-    -   **P3: ACADEMY_VIDEOS:** Implement a system to manage micro-learning videos.
 
 **Completed work in this session**
--   **Production CORS Error (FIXED - Pending Verification):** Diagnosed that the frontend build was using a hardcoded preview URL. Implemented a robust fix using a central API config () to switch to relative URLs in production. Refactored 30+ components.
--   **Partner Journey Redesign (DONE):**
-    -   Completely overhauled  with collapsible groups and a progressive locking system based on partner phase.
-    -   Redesigned the partner Home page () to integrate a profile summary and progress tracker.
-    -   Re-organized the entire partner navigation flow in .
--   **State Persistence (DONE):** Implemented  in  and  to retain state during navigation.
--   **Team Evolution Page (DONE):** Created the page from an HTML layout, styled it, and integrated it into the Parti da Qui section. Aligned agent roles with backend config.
--   **Avatar PRO Page Update (DONE):** Renamed bundles to lezioni, added a new bundle, and completely redesigned the layout to include a hero section with a description and an example video provided by the user.
--   **Pagine Legali Disclaimer (DONE):** Added a prominent, styled disclaimer box at the top of the page.
--   **Parti da Qui Welcome Video (DONE):** Added the user's welcome video to the page and styled the video player.
+-   **Production Data Mismatch (FIXED - Pending Verification):** Diagnosed that the production backend was using seed data. Implemented a fix in  to force the correct MongoDB connection.
+-   **Partner Onboarding Document Upload (DONE):** Built the full-stack feature, including the frontend component () for partners and the backend endpoints for file handling.
+-   **Admin UI for Onboarding Docs (DONE):** Created a new admin page () to review and manage submitted onboarding documents, complete with status filters and action buttons.
+-   **ORION Agent Bugs (FIXED):** Corrected the body stream already read error, increased the analysis limit to 50,000, and ensured state persistence on navigation.
+-   **I Miei File Page (RE-IMPLEMENTED):** Created a new page () from a user-provided HTML template, restyled it to match the app, and integrated it into the Percorso section of the partner sidebar.
+-   **Partner File Viewer Bug (FIXED):** Created the missing  endpoint and updated the frontend () to handle the new API response structure.
+-   **YouTube Video Upload (INTEGRATED):** Replaced the local video upload with a YouTube-based flow in , supported by new backend endpoints for playlist management.
 
 **Earlier issues found/mentioned but not fixed**
 -   The root cause of  errors during long-running LLM/API calls remains uninvestigated.
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork:** Backend Latency and API Timeouts.
--   **Recurrence count:** 6+
+-   **Recurrence count:** 7+
 -   **Status:** NOT STARTED
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Production CORS Debugging:** The core problem was not the backend CORS headers but the frontend build process hardcoding . The solution was to make the frontend environment-aware, using relative URLs in production.
--   **Component State Persistence:** Using  to maintain React component state across navigations, preventing data loss in chat and analysis views.
--   **Progressive Unlocking UI:** Building a navigation system where menu items are conditionally disabled/locked based on user progress (a  property), guiding the user through a predefined workflow.
--   **Dynamic UI Composition:** Refactoring components to be more modular and combining them in new ways (e.g., integrating the Team view into the Start Here page, and the Profile Hub into the Home page).
+-   **Production vs. Preview Debugging:** Diagnosing data discrepancies between environments by tracing API responses, environment variables, and application startup logic.
+-   **Robust Error Handling:** Fixing JavaScript  body consumption errors (body stream already read) by ensuring the response stream is read only once.
+-   **Dynamic UI Generation:** Using a function () to dynamically construct the partner sidebar based on the partner's current phase.
+-   **Third-Party API Integration (YouTube):** Extending an existing module () to add new functionality (playlist management) and integrating it into the frontend workflow.
+-   **Content Integration:** Porting the structure and text from an external HTML file into a new, stylistically consistent React component (, ).
 
 **key DB schema**
--   : A new field  is planned to be added to track the new user flow.
+-   : A new collection to store metadata for documents uploaded during partner onboarding. Schema: .
 
 **All files of reference**
 -   **Created:**
     -   
     -   
     -   
+    -   
 -   **Updated (Heavily):**
-    -    (Completely rewritten)
-    -   
-    -   
-    -   
-    -   
-    -   30+ other frontend components were updated to use .
+    -    (New endpoints, DB connection fix)
+    -    (New routes, component logic, file manager)
+    -    (New items, dynamic generation)
+    -    (Bug fixes)
+    -    (Playlist functionality)
 
 **Areas that need refactoring**:
--   : **CRITICAL**. It has grown even larger and is a massive source of technical debt. It must be broken down.
--   : Still contains a large amount of routing and conditional rendering logic that could be simplified.
+-   : **CRITICAL**. At over 10,000 lines, it is a massive liability. It must be broken down into routers for maintainability and to mitigate latency issues.
 
 **key api endpoints**
--   : The entry point for the new automated onboarding flow.
--   : New endpoint added (incomplete).
--   : New endpoint added (incomplete).
--   : Endpoint providing the updated Lezioni bundles.
+-   : For partners to upload onboarding files.
+-   : For admins to list documents for review.
+-   : For admins to approve a document.
+-   : For admins to reject a document.
+-   : To list all files associated with a partner.
+-   : To get or create a YouTube playlist for a partner.
+-   : To upload a video to YouTube.
 
 **Critical Info for New Agent**
 -   **MUST communicate in Italian.**
--   **IMMEDIATE ACTION (P0):** Your first task is to ask the user to perform a **new deployment to ** and confirm if the CORS errors are gone. The agent has implemented a robust fix for this, but it is **unverified in production** because the user's last deploy used a stale frontend build. This is the absolute priority. Do not proceed with other tasks until this is confirmed.
--   **Resume Onboarding Task (P1):** Once the deployment is verified, continue the Partner Onboarding Automation task. You need to finish the logic in the new backend endpoints in  to send emails and update the partner's status, and then build the UI in .
--   The partner-facing UI has been completely overhauled. The new navigation logic is in . Be aware of the -based locking system.
--   The critical technical debt of the  monolith remains and is getting worse. This should be proposed as a high-priority task once the application is stable in production.
+-   **IMMEDIATE ACTION (P0):** Your first task is to manage the verification of the production data fix. Ask the user to **perform a new deployment** and confirm that all 26 partners are visible on . This is the top priority and blocks all other progress.
+-   **Production Instability:** The application has a history of issues (CORS, data mismatch) that only appear after deployment. Be extra cautious and prioritize confirming production stability with the user before starting new features.
+-   **Monolith Risk:** The  file is extremely large. Be mindful that any changes can have unintended side effects. Propose refactoring this file as a high-priority task once the app is stable.
+-   **Resume Bonus Strategici:** Once production is stable, your first implementation task should be to complete and test the  component.
 
 **documents and test reports created in this job**
 -    (updated)
+-    (for onboarding documents feature)
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **User:** Asks to restructure the partner sidebar and home page based on a long list of requirements.
-9.  **Agent:** Implements the major UI/UX overhaul of the partner journey.
-8.  **User:** Asks to tweak the welcome video size and the Resources section.
-7.  **Agent:** Implements the UI tweaks.
-6.  **User:** Asks to verify that the admin-side is ready for the new partner flow.
-5.  **Agent:** Verifies the admin dashboard and asks for clarification on the onboarding automation.
-4.  **User:** Clarifies the onboarding flow: partner self-registers, gets a welcome email, and the team is notified to create a Systeme.io account.
-3.  **Agent:** Begins implementing the automated onboarding flow by creating new backend endpoints and a frontend component.
-2.  **User:** Provides a definitive flow document ().
-1.  **User:** Confirms the plan to implement the new sidebar structure, progressive locking, and phase-based logic.
+10. **User:** Asks to move I Miei File into the Percorso section and redesign it based on an attached HTML file.
+9.  **Agent:** Implements the new  and moves the navigation item.
+8.  **User:** Asks to add the remaining contract articles (total 15) and to create the Admin UI for onboarding documents.
+7.  **Agent:** Adds the articles and creates the  page.
+6.  **User:** Requests to switch video uploads to YouTube to save space and create partner-specific playlists.
+5.  **Agent:** Integrates the YouTube upload flow.
+4.  **User:** Reports a critical issue after deployment: partners and leads are missing on the production site.
+3.  **Agent:** Investigates and identifies the production environment is using seed data, not the full database. Implements a fix in  to force the correct DB connection.
+2.  **User:** Asks for the agent's help on what to do about the production data issue.
+1.  **User:** Asks to integrate another app (7 Bonus Sbloccati) as a Bonus Strategici section within the partner area.
 
 **Project Health Check:**
--   **Broken:** The production deployment's status is **unknown**. A fix for the blocking CORS issue has been implemented but awaits verification. The application is therefore potentially still broken in production.
--   **Mocked:** The modal for locked sections contains a placeholder for a video.
--   **Technical Debt:** The  monolith is extremely large and a critical liability.
+-   **Broken:** The production deployment's status is **critically unknown**. A fix for a data integrity issue has been implemented but is **awaiting deployment and verification by the user**.
+-   **Mocked:** The Download PDF button on the  is not yet linked to a real contract file. The Locked Section video modal is still a placeholder.
 
 **3rd Party Integrations**
 -   **MongoDB Atlas:** Primary database.
--   **Anthropic Claude (via ):** Powers VALENTINA agent chat. Uses **Emergent LLM Key**.
--   **Systeme.io API:** Used for webhooks. The team will manually create sub-accounts. Requires **User API Key** & **Secret**.
+-   **Anthropic Claude (via ):** Powers VALENTINA agent. Uses **Emergent LLM Key**.
+-   **YouTube Data API v3:** Used for video uploads and playlist management. Requires OAuth2 credentials configured in .
+-   **Systeme.io API:** Used for webhooks. Welcome email integration is pending.
 -   **Stripe API:** For payments.
 -   Others: Cloudinary, Telegram, HeyGen, OpenAI Whisper.
 
 **Testing status**
--   Testing agent used after significant changes: NO
+-   Testing agent used after significant changes: YES (for onboarding documents feature).
 -   Troubleshoot agent used after agent stuck in loop: NO
--   Test files created: None.
--   Known regressions: None identified, but the massive frontend refactoring carries risk.
+-   Test files created: 
+-   Known regressions: None identified, but the production data mismatch was a major regression that is hopefully now fixed.
 
 **Credentials to test flow:**
 -   **Admin User:**  / 
--   **Partner User (for testing partner view):** You can register a new partner or use an existing one from the admin pipeline view.
+-   **Partner User (Phase F0):**  /  (to test the new onboarding document upload).
+-   **Partner User (Phase F5):**  is available, but you can also use  which has a partner view switcher.
 
 **What agent forgot to execute**
--   The agent did not insist on verifying the P0 CORS fix before moving on to a very large set of new feature requests. This leaves the primary blocker unresolved from a verification standpoint. The next agent MUST prioritize this verification step.</analysis>
+-   The agent created the full-stack feature for onboarding document uploads but did not add an entry for it in  when finishing the task.
+-   The agent did not fully complete the original onboarding automation task; the welcome email part is still pending.</analysis>
