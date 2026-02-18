@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { 
   FileText, Download, Upload, Shield, ChevronDown, ChevronUp,
   Loader2, FolderOpen, FileVideo, FileCheck, Trash2, Eye,
-  Clock, CheckCircle, XCircle, AlertTriangle, Info, Check
+  Clock, CheckCircle, XCircle, AlertTriangle, Info, Check,
+  Youtube, ExternalLink, Play
 } from "lucide-react";
 import axios from "axios";
 import { API } from "../../utils/api-config";
