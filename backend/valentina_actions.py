@@ -484,6 +484,241 @@ class ValentinaActionDispatcher:
             "message": f"🔥 **Top {len(leads)} Lead HOT**\n\n{lead_list}\n\nQuesti lead sono pronti per essere contattati!"
         }
     
+    async def _analyze_lead(self, context: Dict = None) -> Dict:
+        """Analyze a specific lead by email"""
+        # Try to extract email from context or original message
+        email = context.get("email") if context else None
+        
+        if not email and context and "_original_message" in context:
+            email_match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', context["_original_message"])
+            if email_match:
+                email = email_match.group(0)
+        
+        if not email:
+            return {
+                "success": True,
+                "agent": "ORION",
+                "message": "🔍 **ORION - Analisi Lead**\n\nPer analizzare un lead specifico dimmi la sua email.\n\nEsempio: 'Analizza il lead mario@email.it'"
+            }
+        
+        # Find the lead
+        lead = await db.systeme_contacts.find_one(
+            {"email": {"$regex": email, "$options": "i"}},
+            {"_id": 0}
+        )
+        
+        if not lead:
+            return {
+                "success": True,
+                "agent": "ORION",
+                "message": f"⚠️ Lead con email `{email}` non trovato nel database."
+            }
+        
+        # Build analysis
+        segment = lead.get("orion_segment", "non classificato")
+        score = lead.get("orion_score", 0)
+        tags = lead.get("tags", [])
+        tags_str = ", ".join(tags[:5]) if tags else "Nessuno"
+        
+        # Recommendation based on segment
+        recommendations = {
+            "hot": "🎯 **Azione consigliata**: Contatto diretto! Questo lead è pronto all'acquisto.",
+            "warm": "📧 **Azione consigliata**: Inserisci in sequenza nurturing per mantenere l'interesse.",
+            "cold": "🔄 **Azione consigliata**: Campagna di riattivazione con offerta speciale.",
+            "frozen": "❄️ **Azione consigliata**: Email finale 'ultima chance' o rimuovi dalla lista."
+        }
+        
+        rec = recommendations.get(segment, "📋 Classifica questo lead con ORION.")
+        
+        return {
+            "success": True,
+            "agent": "ORION",
+            "data": lead,
+            "message": f"🔍 **Analisi Lead ORION**\n\n📧 **Email**: {lead.get('email')}\n👤 **Nome**: {lead.get('first_name', '')} {lead.get('last_name', '')}\n\n📊 **Segmento**: {segment.upper()}\n⭐ **Score**: {score}/100\n🏷️ **Tags**: {tags_str}\n\n{rec}"
+        }
+    
+    async def _get_leads_to_reactivate(self) -> Dict:
+        """Get COLD and FROZEN leads that need reactivation"""
+        # Get cold leads
+        cold_leads = await db.systeme_contacts.find(
+            {"orion_segment": "cold"},
+            {"_id": 0, "email": 1, "first_name": 1, "orion_score": 1}
+        ).sort("orion_score", -1).limit(10).to_list(10)
+        
+        # Get frozen leads
+        frozen_leads = await db.systeme_contacts.find(
+            {"orion_segment": "frozen"},
+            {"_id": 0, "email": 1, "first_name": 1, "orion_score": 1}
+        ).limit(10).to_list(10)
+        
+        cold_count = await db.systeme_contacts.count_documents({"orion_segment": "cold"})
+        frozen_count = await db.systeme_contacts.count_documents({"orion_segment": "frozen"})
+        
+        # Format lists
+        cold_list = "\n".join([f"• {l.get('first_name', l['email'][:20])} - score: {l.get('orion_score', 0)}" for l in cold_leads[:5]])
+        frozen_list = "\n".join([f"• {l.get('first_name', l['email'][:20])}" for l in frozen_leads[:5]])
+        
+        return {
+            "success": True,
+            "agent": "ORION",
+            "data": {
+                "cold_count": cold_count,
+                "frozen_count": frozen_count,
+                "cold_sample": cold_leads,
+                "frozen_sample": frozen_leads
+            },
+            "message": f"🔄 **Lead da Riattivare**\n\n❄️ **COLD** ({cold_count:,} totali):\n{cold_list or 'Nessuno'}\n\n🧊 **FROZEN** ({frozen_count:,} totali):\n{frozen_list or 'Nessuno'}\n\n💡 **Strategia consigliata**:\n• COLD → Sequenza riattivazione 3 email\n• FROZEN → Email finale 'ultima chance'\n\nVuoi che crei una campagna di riattivazione?"
+        }
+    
+    async def _get_lead_trends(self) -> Dict:
+        """Get lead trends and statistics over time"""
+        from datetime import timedelta
+        
+        # Current stats
+        total = await db.systeme_contacts.count_documents({})
+        hot = await db.systeme_contacts.count_documents({"orion_segment": "hot"})
+        warm = await db.systeme_contacts.count_documents({"orion_segment": "warm"})
+        cold = await db.systeme_contacts.count_documents({"orion_segment": "cold"})
+        frozen = await db.systeme_contacts.count_documents({"orion_segment": "frozen"})
+        
+        # Get recent imports (last 7 days)
+        week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+        recent_imports = await db.systeme_contacts.count_documents({
+            "synced_at": {"$gte": week_ago.isoformat()}
+        })
+        
+        # Get recent scoring updates
+        recent_scored = await db.systeme_contacts.count_documents({
+            "orion_updated_at": {"$gte": week_ago.isoformat()}
+        })
+        
+        # Calculate percentages
+        hot_pct = (hot / total * 100) if total > 0 else 0
+        warm_pct = (warm / total * 100) if total > 0 else 0
+        cold_pct = (cold / total * 100) if total > 0 else 0
+        frozen_pct = (frozen / total * 100) if total > 0 else 0
+        
+        return {
+            "success": True,
+            "agent": "ORION",
+            "data": {
+                "total": total,
+                "hot": hot,
+                "warm": warm,
+                "cold": cold,
+                "frozen": frozen,
+                "recent_imports": recent_imports,
+                "recent_scored": recent_scored
+            },
+            "message": f"📈 **Trend Lead ORION**\n\n📊 **Distribuzione attuale**:\n• 🔥 HOT: {hot:,} ({hot_pct:.1f}%)\n• 🟡 WARM: {warm:,} ({warm_pct:.1f}%)\n• ❄️ COLD: {cold:,} ({cold_pct:.1f}%)\n• 🧊 FROZEN: {frozen:,} ({frozen_pct:.1f}%)\n\n📅 **Ultimi 7 giorni**:\n• Nuovi contatti importati: {recent_imports:,}\n• Lead ri-analizzati: {recent_scored:,}\n\n**Totale database**: {total:,} contatti"
+        }
+    
+    async def _get_segment_details(self, context: Dict = None) -> Dict:
+        """Get detailed breakdown of a specific segment"""
+        # Try to detect segment from message
+        segment = None
+        if context and "_original_message" in context:
+            msg = context["_original_message"].lower()
+            if "hot" in msg:
+                segment = "hot"
+            elif "warm" in msg:
+                segment = "warm"
+            elif "cold" in msg:
+                segment = "cold"
+            elif "frozen" in msg:
+                segment = "frozen"
+        
+        if not segment:
+            return {
+                "success": True,
+                "agent": "ORION",
+                "message": "📊 **ORION - Dettagli Segmento**\n\nQuale segmento vuoi approfondire?\n\n• 🔥 HOT - Lead pronti all'acquisto\n• 🟡 WARM - Lead interessati\n• ❄️ COLD - Lead da riattivare\n• 🧊 FROZEN - Lead inattivi\n\nEsempio: 'Dettagli segmento HOT'"
+            }
+        
+        # Get segment data
+        count = await db.systeme_contacts.count_documents({"orion_segment": segment})
+        
+        # Get top leads in segment
+        leads = await db.systeme_contacts.find(
+            {"orion_segment": segment},
+            {"_id": 0, "email": 1, "first_name": 1, "orion_score": 1, "tags": 1}
+        ).sort("orion_score", -1).limit(10).to_list(10)
+        
+        # Get tag distribution for segment
+        pipeline = [
+            {"$match": {"orion_segment": segment}},
+            {"$unwind": "$tags"},
+            {"$group": {"_id": "$tags", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+            {"$limit": 5}
+        ]
+        tag_dist = await db.systeme_contacts.aggregate(pipeline).to_list(5)
+        
+        emoji_map = {"hot": "🔥", "warm": "🟡", "cold": "❄️", "frozen": "🧊"}
+        emoji = emoji_map.get(segment, "📊")
+        
+        leads_list = "\n".join([f"• {l.get('first_name', l['email'][:25])} (score: {l.get('orion_score', 0)})" for l in leads[:5]])
+        tags_list = "\n".join([f"• {t['_id']}: {t['count']}" for t in tag_dist]) if tag_dist else "Nessun tag comune"
+        
+        return {
+            "success": True,
+            "agent": "ORION",
+            "data": {"segment": segment, "count": count, "leads": leads, "tags": tag_dist},
+            "message": f"{emoji} **Dettagli Segmento {segment.upper()}**\n\n📈 **Totale lead**: {count:,}\n\n👤 **Top 5 lead**:\n{leads_list or 'Nessuno'}\n\n🏷️ **Tag più comuni**:\n{tags_list}"
+        }
+    
+    async def _get_conversion_potential(self) -> Dict:
+        """Calculate conversion potential and estimated revenue"""
+        # Get segment counts
+        hot = await db.systeme_contacts.count_documents({"orion_segment": "hot"})
+        warm = await db.systeme_contacts.count_documents({"orion_segment": "warm"})
+        cold = await db.systeme_contacts.count_documents({"orion_segment": "cold"})
+        frozen = await db.systeme_contacts.count_documents({"orion_segment": "frozen"})
+        total = hot + warm + cold + frozen
+        
+        # Conversion rates (conservative estimates)
+        conv_rates = {
+            "hot": 0.20,      # 20% conversion for hot leads
+            "warm": 0.08,     # 8% for warm
+            "cold": 0.03,     # 3% for cold
+            "frozen": 0.005   # 0.5% for frozen
+        }
+        
+        # Tripwire price
+        tripwire_price = 7
+        
+        # Calculate projections
+        hot_conv = int(hot * conv_rates["hot"])
+        warm_conv = int(warm * conv_rates["warm"])
+        cold_conv = int(cold * conv_rates["cold"])
+        frozen_conv = int(frozen * conv_rates["frozen"])
+        
+        hot_rev = hot_conv * tripwire_price
+        warm_rev = warm_conv * tripwire_price
+        cold_rev = cold_conv * tripwire_price
+        frozen_rev = frozen_conv * tripwire_price
+        
+        total_conv = hot_conv + warm_conv + cold_conv + frozen_conv
+        total_rev = hot_rev + warm_rev + cold_rev + frozen_rev
+        
+        # Optimistic scenario (1.5x)
+        optimistic_rev = int(total_rev * 1.5)
+        
+        return {
+            "success": True,
+            "agent": "ORION",
+            "data": {
+                "hot": {"count": hot, "conversions": hot_conv, "revenue": hot_rev},
+                "warm": {"count": warm, "conversions": warm_conv, "revenue": warm_rev},
+                "cold": {"count": cold, "conversions": cold_conv, "revenue": cold_rev},
+                "frozen": {"count": frozen, "conversions": frozen_conv, "revenue": frozen_rev},
+                "total_conversions": total_conv,
+                "total_revenue": total_rev,
+                "optimistic_revenue": optimistic_rev
+            },
+            "message": f"💰 **Potenziale Conversione ORION**\n\n**Proiezione conservativa** (Tripwire €{tripwire_price}):\n\n🔥 HOT ({hot:,} lead × 20%):\n   → {hot_conv} conversioni = **€{hot_rev:,}**\n\n🟡 WARM ({warm:,} lead × 8%):\n   → {warm_conv} conversioni = **€{warm_rev:,}**\n\n❄️ COLD ({cold:,} lead × 3%):\n   → {cold_conv} conversioni = **€{cold_rev:,}**\n\n🧊 FROZEN ({frozen:,} lead × 0.5%):\n   → {frozen_conv} conversioni = **€{frozen_rev:,}**\n\n━━━━━━━━━━━━━━━━━━━━\n📊 **TOTALE**: {total_conv:,} conversioni\n💵 **Revenue stimato**: €{total_rev:,} - €{optimistic_rev:,}\n\n💡 Per massimizzare: concentrati sui lead HOT prima!"
+        }
+    
     async def _get_sales_kpi(self) -> Dict:
         """Get sales KPI from MARTA"""
         # Get payments
