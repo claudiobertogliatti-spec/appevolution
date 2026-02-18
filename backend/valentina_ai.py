@@ -156,6 +156,9 @@ class ValentinaAI:
     # Admin/Founder identifiers
     FOUNDER_IDENTIFIERS = ["claudio", "claudio@evolutionpro.it", "admin", "founder"]
     
+    # LLM Chat sessions cache - persist across calls
+    _llm_sessions: Dict[str, 'LlmChat'] = {}
+    
     def __init__(self):
         self.llm_key = EMERGENT_LLM_KEY
     
