@@ -100,6 +100,41 @@ AVAILABLE_ACTIONS = {
     },
     
     # =========================================================================
+    # GAIA - Systeme.io Operations
+    # =========================================================================
+    "add_systeme_tag": {
+        "agent": "GAIA",
+        "scope": "internal",
+        "description": "Aggiungi tag a un contatto su Systeme.io",
+        "keywords": ["aggiungi tag", "add tag", "taggare", "tag contatto", "metti tag"]
+    },
+    "trigger_email_campaign": {
+        "agent": "GAIA",
+        "scope": "internal",
+        "description": "Trigger campagna email su un segmento via tag",
+        "keywords": ["campagna email", "invia email", "email campaign", "riattivazione email", "manda email"]
+    },
+    "sync_systeme_contacts": {
+        "agent": "GAIA",
+        "scope": "internal",
+        "description": "Sincronizza contatti da Systeme.io",
+        "keywords": ["sincronizza systeme", "importa contatti", "sync systeme", "aggiorna lead", "sincronizza contatti"]
+    },
+    "check_funnel_status": {
+        "agent": "GAIA",
+        "scope": "both",
+        "description": "Verifica stato funnel di un partner",
+        "keywords": ["stato funnel", "funnel attivo", "verifica funnel"]
+    },
+    "setup_systeme_account": {
+        "agent": "GAIA",
+        "scope": "external",
+        "phases": ["F6"],
+        "description": "Guida setup sub-account Systeme.io del partner",
+        "keywords": ["configura systeme", "setup systeme", "sub-account", "accademia"]
+    },
+    
+    # =========================================================================
     # ANDREA - Video Production
     # =========================================================================
     "create_video_edit": {
@@ -126,29 +161,6 @@ AVAILABLE_ACTIONS = {
         "phases": ["F5"],
         "description": "Ottieni checklist per registrazione video",
         "keywords": ["checklist registrazione", "come registrare", "setup video", "consigli registrazione"]
-    },
-    
-    # =========================================================================
-    # GAIA - Funnel & Systeme.io
-    # =========================================================================
-    "sync_systeme_contacts": {
-        "agent": "GAIA",
-        "scope": "internal",  # Solo admin può sincronizzare tutti i contatti
-        "description": "Sincronizza contatti da Systeme.io",
-        "keywords": ["sincronizza systeme", "importa contatti", "sync systeme", "aggiorna lead"]
-    },
-    "check_funnel_status": {
-        "agent": "GAIA",
-        "scope": "both",  # Admin vede tutti, partner vede il suo
-        "description": "Verifica stato funnel di un partner",
-        "keywords": ["stato funnel", "funnel attivo", "verifica funnel"]
-    },
-    "setup_systeme_account": {
-        "agent": "GAIA",
-        "scope": "external",
-        "phases": ["F6"],
-        "description": "Guida setup sub-account Systeme.io del partner",
-        "keywords": ["configura systeme", "setup systeme", "sub-account", "accademia"]
     },
     
     # =========================================================================
