@@ -1,6 +1,6 @@
 """
 VALENTINA AI Module - Orchestratrice Evolution PRO OS
-Integrazione LLM + Telegram Notifications + Persistent Memory
+Integrazione LLM + Telegram Notifications + Persistent Memory + Action Execution
 """
 
 import os
@@ -26,6 +26,15 @@ try:
 except ImportError as e:
     MEMORY_ENABLED = False
     logger.warning(f"VALENTINA Memory System not available: {e}")
+
+# Import Action Dispatcher
+try:
+    from valentina_actions import action_dispatcher, detect_and_execute_action
+    ACTIONS_ENABLED = True
+    logger.info("VALENTINA Action Dispatcher loaded successfully")
+except ImportError as e:
+    ACTIONS_ENABLED = False
+    logger.warning(f"VALENTINA Action Dispatcher not available: {e}")
 
 # VALENTINA System Prompt
 VALENTINA_SYSTEM_PROMPT = """Sei VALENTINA, l'orchestratrice AI di Evolution PRO OS - la piattaforma per creare videocorsi professionali.
