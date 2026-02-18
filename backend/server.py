@@ -2642,7 +2642,9 @@ async def get_tasks_dashboard():
 
 from integrated_services import (
     systeme_client, email_service, job_executor,
-    add_systeme_tag, send_email_now, create_agent_task
+    add_systeme_tag as integrated_add_tag, 
+    send_email_now, 
+    create_agent_task
 )
 
 
