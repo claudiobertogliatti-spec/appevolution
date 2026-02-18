@@ -363,10 +363,26 @@ class ValentinaActionDispatcher:
     
     async def _generate_email_copy(self, context: Dict = None) -> Dict:
         """Generate email copy with STEFANIA"""
+        # Create a task for tracking
+        import uuid
+        task_doc = {
+            "id": str(uuid.uuid4()),
+            "title": "Genera copy email",
+            "description": "Richiesta copy email da VALENTINA",
+            "agent": "STEFANIA",
+            "priority": "medium",
+            "status": "pending",
+            "created_by": "valentina",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.agent_tasks.insert_one(task_doc)
+        
         return {
             "success": True,
             "agent": "STEFANIA",
-            "message": "✍️ **STEFANIA - Copy Email**\n\nPer generare un'email efficace ho bisogno di sapere:\n\n1️⃣ **Obiettivo**: Cosa vuoi ottenere? (vendita, nurturing, reminder...)\n2️⃣ **Pubblico**: A chi è destinata?\n3️⃣ **Offerta**: Qual è il prodotto/servizio?\n4️⃣ **Tono**: Formale, friendly, urgente?\n\nDimmi questi dettagli e creo subito la bozza!"
+            "task_id": task_doc["id"],
+            "message": "✍️ **STEFANIA - Copy Email**\n\n📋 Ho creato un task per STEFANIA.\n\nPer generare un'email efficace ho bisogno di sapere:\n\n1️⃣ **Obiettivo**: Cosa vuoi ottenere? (vendita, nurturing, reminder...)\n2️⃣ **Pubblico**: A chi è destinata?\n3️⃣ **Offerta**: Qual è il prodotto/servizio?\n4️⃣ **Tono**: Formale, friendly, urgente?\n\nDimmi questi dettagli e creo subito la bozza!"
         }
     
     async def _check_contract_expiry(self) -> Dict:
