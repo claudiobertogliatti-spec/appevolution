@@ -152,16 +152,41 @@ class SystemeIOClient:
         """Remove tag from contact"""
         return await self._request("DELETE", f"contacts/{contact_id}/tags/{tag_id}")
     
-    async def add_tag_by_email(self, email: str, tag_name: str) -> Dict:
-        """Add tag to contact by email (convenience method)"""
+    async def add_tag_by_email(self, email: str, tag_name: str, create_if_missing: bool = True) -> Dict:
+        """Add tag to contact by email (convenience method)
+        
+        Args:
+            email: Contact email
+            tag_name: Tag to add
+            create_if_missing: If True, create contact if not found
+        """
         contact = await self.get_contact_by_email(email)
+        
         if not contact:
-            raise SystemeIOError(f"Contact not found: {email}")
+            if create_if_missing:
+                # Create the contact first
+                logger.info(f"Contact {email} not found, creating...")
+                try:
+                    # Extract name from email if possible
+                    name_part = email.split("@")[0].replace(".", " ").replace("_", " ").title()
+                    result = await self.create_contact(email, name_part)
+                    contact = result
+                    logger.info(f"Contact created: {email} (ID: {contact.get('id')})")
+                except Exception as e:
+                    raise SystemeIOError(f"Failed to create contact {email}: {e}")
+            else:
+                raise SystemeIOError(f"Contact not found: {email}")
         
         tag_id = await self.get_or_create_tag(tag_name)
         await self.add_tag_to_contact(contact["id"], tag_id)
         
-        return {"success": True, "contact_id": contact["id"], "tag_id": tag_id, "tag_name": tag_name}
+        return {
+            "success": True, 
+            "contact_id": contact["id"], 
+            "tag_id": tag_id, 
+            "tag_name": tag_name,
+            "contact_created": not bool(contact.get("createdAt"))  # New contact won't have this initially
+        }
     
     # =========================================================================
     # Email Campaign Operations (via tags/automations)
