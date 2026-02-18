@@ -1,13 +1,11 @@
 """
 Evolution PRO - Integrated Services
-- Systeme.io API Client
-- Resend Email Service
+- Systeme.io API Client (contacts, tags, campaigns, emails)
 - Background Job Executor
 """
 
 import os
 import httpx
-import resend
 import asyncio
 import logging
 from datetime import datetime, timezone
@@ -40,7 +38,7 @@ db = client[db_name]
 # SYSTEME.IO API CLIENT
 # ============================================================================
 class SystemeIOClient:
-    """Client for Systeme.io API operations"""
+    """Client for Systeme.io API operations - handles contacts, tags, and email campaigns"""
     
     def __init__(self):
         self.api_key = os.environ.get("SYSTEME_API_KEY", "")
@@ -72,7 +70,9 @@ class SystemeIOClient:
                 logger.error(f"Systeme.io request failed: {e}")
                 raise SystemeIOError(f"Request failed: {str(e)}")
     
+    # =========================================================================
     # Contact Operations
+    # =========================================================================
     async def get_contacts(self, limit: int = 100, page: int = 1) -> Dict:
         """Get list of contacts"""
         return await self._request("GET", f"contacts?limit={limit}&page={page}")
@@ -82,6 +82,13 @@ class SystemeIOClient:
         contacts = await self._request("GET", f"contacts?email={email}")
         items = contacts.get("items", [])
         return items[0] if items else None
+    
+    async def get_contact_by_id(self, contact_id: str) -> Optional[Dict]:
+        """Get contact by ID"""
+        try:
+            return await self._request("GET", f"contacts/{contact_id}")
+        except:
+            return None
     
     async def create_contact(self, email: str, first_name: str = "", fields: Dict = None) -> Dict:
         """Create a new contact"""
@@ -105,11 +112,35 @@ class SystemeIOClient:
         
         return await self._request("PATCH", f"contacts/{contact_id}", json=data)
     
+    # =========================================================================
     # Tag Operations
+    # =========================================================================
     async def get_tags(self) -> List[Dict]:
         """Get all tags"""
         result = await self._request("GET", "tags")
         return result.get("items", [])
+    
+    async def get_tag_by_name(self, tag_name: str) -> Optional[Dict]:
+        """Find tag by name"""
+        tags = await self.get_tags()
+        for tag in tags:
+            if tag.get("name", "").lower() == tag_name.lower():
+                return tag
+        return None
+    
+    async def create_tag(self, tag_name: str) -> Dict:
+        """Create a new tag"""
+        return await self._request("POST", "tags", json={"name": tag_name})
+    
+    async def get_or_create_tag(self, tag_name: str) -> str:
+        """Get tag ID by name, create if not exists"""
+        tag = await self.get_tag_by_name(tag_name)
+        if tag:
+            return tag.get("id")
+        
+        # Create new tag
+        result = await self.create_tag(tag_name)
+        return result.get("id")
     
     async def add_tag_to_contact(self, contact_id: str, tag_id: str) -> Dict:
         """Add tag to contact"""
@@ -119,174 +150,111 @@ class SystemeIOClient:
         """Remove tag from contact"""
         return await self._request("DELETE", f"contacts/{contact_id}/tags/{tag_id}")
     
-    async def get_or_create_tag(self, tag_name: str) -> str:
-        """Get tag ID by name, create if not exists"""
-        tags = await self.get_tags()
-        for tag in tags:
-            if tag.get("name", "").lower() == tag_name.lower():
-                return tag.get("id")
+    async def add_tag_by_email(self, email: str, tag_name: str) -> Dict:
+        """Add tag to contact by email (convenience method)"""
+        contact = await self.get_contact_by_email(email)
+        if not contact:
+            raise SystemeIOError(f"Contact not found: {email}")
         
-        # Create new tag
-        result = await self._request("POST", "tags", json={"name": tag_name})
-        return result.get("id")
+        tag_id = await self.get_or_create_tag(tag_name)
+        await self.add_tag_to_contact(contact["id"], tag_id)
+        
+        return {"success": True, "contact_id": contact["id"], "tag_id": tag_id, "tag_name": tag_name}
     
-    # Email Campaign Operations
+    # =========================================================================
+    # Email Campaign Operations (via tags/automations)
+    # =========================================================================
     async def subscribe_to_campaign(self, contact_id: str, campaign_id: str) -> Dict:
         """Subscribe contact to email campaign"""
         return await self._request(
             "POST", 
             f"contacts/{contact_id}/campaigns/{campaign_id}/subscription"
         )
+    
+    async def trigger_email_automation(self, email: str, automation_tag: str) -> Dict:
+        """
+        Trigger email automation by adding a specific tag.
+        In Systeme.io, automations are triggered by tags.
+        
+        Common tags:
+        - welcome_partner: Triggers welcome email sequence
+        - lead_hot: Triggers hot lead sequence
+        - lead_cold_reactivation: Triggers cold lead reactivation
+        """
+        result = await self.add_tag_by_email(email, automation_tag)
+        
+        # Log the automation trigger
+        await db.automation_logs.insert_one({
+            "email": email,
+            "tag": automation_tag,
+            "triggered_at": datetime.now(timezone.utc).isoformat(),
+            "result": result
+        })
+        
+        return result
+    
+    async def send_welcome_sequence(self, email: str, partner_name: str) -> Dict:
+        """Trigger welcome email sequence for new partner"""
+        # First ensure contact exists or create it
+        contact = await self.get_contact_by_email(email)
+        if not contact:
+            contact = await self.create_contact(email, first_name=partner_name)
+        
+        # Add welcome tag to trigger automation
+        result = await self.trigger_email_automation(email, "welcome_partner")
+        
+        return {
+            "success": True,
+            "message": f"Welcome sequence triggered for {email}",
+            **result
+        }
+    
+    async def send_campaign_to_segment(self, tag_filter: str, campaign_tag: str) -> Dict:
+        """
+        Send campaign to a segment by adding a campaign tag to all contacts with specific tag.
+        This triggers the automation associated with campaign_tag.
+        """
+        # Get contacts with the filter tag
+        all_contacts = []
+        page = 1
+        while True:
+            result = await self.get_contacts(limit=100, page=page)
+            contacts = result.get("items", [])
+            if not contacts:
+                break
+            all_contacts.extend(contacts)
+            page += 1
+            if page > 100:  # Safety limit
+                break
+        
+        # Filter contacts by tag
+        filtered_contacts = []
+        for contact in all_contacts:
+            contact_tags = [t.get("name", "").lower() for t in contact.get("tags", [])]
+            if tag_filter.lower() in contact_tags:
+                filtered_contacts.append(contact)
+        
+        # Add campaign tag to trigger emails
+        success_count = 0
+        for contact in filtered_contacts:
+            try:
+                tag_id = await self.get_or_create_tag(campaign_tag)
+                await self.add_tag_to_contact(contact["id"], tag_id)
+                success_count += 1
+            except Exception as e:
+                logger.warning(f"Failed to tag contact {contact.get('email')}: {e}")
+        
+        return {
+            "success": True,
+            "total_contacts": len(filtered_contacts),
+            "tagged": success_count,
+            "campaign_tag": campaign_tag
+        }
 
 
 class SystemeIOError(Exception):
     """Systeme.io API Error"""
     pass
-
-
-# ============================================================================
-# RESEND EMAIL SERVICE
-# ============================================================================
-class EmailService:
-    """Service for sending transactional emails via Resend"""
-    
-    def __init__(self):
-        self.api_key = os.environ.get("RESEND_API_KEY", "")
-        self.sender_email = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
-        
-        if self.api_key:
-            resend.api_key = self.api_key
-    
-    async def send_email(
-        self,
-        to_email: str,
-        subject: str,
-        html_content: str,
-        from_email: str = None
-    ) -> Dict:
-        """Send email via Resend (non-blocking)"""
-        if not self.api_key:
-            logger.warning("RESEND_API_KEY not configured - email not sent")
-            return {"success": False, "error": "Email service not configured"}
-        
-        params = {
-            "from": from_email or self.sender_email,
-            "to": [to_email],
-            "subject": subject,
-            "html": html_content
-        }
-        
-        try:
-            # Run sync SDK in thread to keep FastAPI non-blocking
-            result = await asyncio.to_thread(resend.Emails.send, params)
-            
-            # Log to database
-            await db.email_logs.insert_one({
-                "to": to_email,
-                "subject": subject,
-                "status": "sent",
-                "resend_id": result.get("id"),
-                "sent_at": datetime.now(timezone.utc).isoformat()
-            })
-            
-            logger.info(f"Email sent to {to_email}: {subject}")
-            return {"success": True, "email_id": result.get("id")}
-            
-        except Exception as e:
-            logger.error(f"Failed to send email to {to_email}: {e}")
-            
-            # Log failure
-            await db.email_logs.insert_one({
-                "to": to_email,
-                "subject": subject,
-                "status": "failed",
-                "error": str(e),
-                "sent_at": datetime.now(timezone.utc).isoformat()
-            })
-            
-            return {"success": False, "error": str(e)}
-    
-    async def send_welcome_email(self, to_email: str, partner_name: str) -> Dict:
-        """Send welcome email to new partner"""
-        subject = "🎉 Benvenuto in Evolution PRO - Le tue credenziali"
-        
-        html_content = f"""
-        <html>
-        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <div style="background: linear-gradient(135deg, #F2C418 0%, #FADA5E 100%); padding: 30px; text-align: center;">
-                <h1 style="color: #1E2128; margin: 0;">Benvenuto in Evolution PRO!</h1>
-            </div>
-            
-            <div style="padding: 30px; background: #fff;">
-                <p>Ciao <strong>{partner_name}</strong>! 👋</p>
-                
-                <p>Il tuo account Evolution PRO è stato creato con successo.</p>
-                
-                <div style="background: #FAFAF7; padding: 20px; border-radius: 12px; margin: 20px 0;">
-                    <h3 style="color: #1E2128; margin-top: 0;">📱 Accedi all'App</h3>
-                    <p><strong>URL:</strong> <a href="https://app.evolution-pro.it" style="color: #F2C418;">https://app.evolution-pro.it</a></p>
-                    <p><strong>Email:</strong> {to_email}</p>
-                </div>
-                
-                <div style="background: #FFF8DC; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #F2C418;">
-                    <h3 style="color: #1E2128; margin-top: 0;">🚀 Primi Passi</h3>
-                    <ol style="margin: 0; padding-left: 20px;">
-                        <li>Accedi all'app con le tue credenziali</li>
-                        <li>Guarda il <strong>Video di Benvenuto</strong></li>
-                        <li>Compila il tuo <strong>Profilo Hub</strong></li>
-                        <li>Inizia il percorso di <strong>Posizionamento</strong></li>
-                    </ol>
-                </div>
-                
-                <div style="background: #1E2128; color: white; padding: 20px; border-radius: 12px; margin: 20px 0;">
-                    <h3 style="color: #F2C418; margin-top: 0;">👥 Il Tuo Team</h3>
-                    <p style="margin-bottom: 0;">Hai a disposizione un team di <strong>8 agenti AI</strong> coordinati da <strong>Valentina</strong>!</p>
-                </div>
-            </div>
-            
-            <div style="background: #FAFAF7; padding: 20px; text-align: center; color: #666; font-size: 12px;">
-                <p>© 2026 Evolution PRO - Tutti i diritti riservati</p>
-            </div>
-        </body>
-        </html>
-        """
-        
-        return await self.send_email(to_email, subject, html_content)
-    
-    async def send_campaign_email(
-        self,
-        to_emails: List[str],
-        subject: str,
-        html_content: str,
-        campaign_name: str = "Generic"
-    ) -> Dict:
-        """Send campaign email to multiple recipients"""
-        results = {
-            "total": len(to_emails),
-            "sent": 0,
-            "failed": 0,
-            "errors": []
-        }
-        
-        for email in to_emails:
-            result = await self.send_email(email, subject, html_content)
-            if result.get("success"):
-                results["sent"] += 1
-            else:
-                results["failed"] += 1
-                results["errors"].append({"email": email, "error": result.get("error")})
-        
-        # Log campaign
-        await db.campaign_logs.insert_one({
-            "campaign_name": campaign_name,
-            "subject": subject,
-            "total_recipients": results["total"],
-            "sent": results["sent"],
-            "failed": results["failed"],
-            "sent_at": datetime.now(timezone.utc).isoformat()
-        })
-        
-        return results
 
 
 # ============================================================================
@@ -297,7 +265,6 @@ class BackgroundJobExecutor:
     
     def __init__(self):
         self.systeme_client = SystemeIOClient()
-        self.email_service = EmailService()
         self.running = False
     
     async def process_pending_tasks(self):
@@ -377,18 +344,8 @@ class BackgroundJobExecutor:
             email = data.get("email")
             tag_name = data.get("tag_name")
             
-            # Find contact
-            contact = await self.systeme_client.get_contact_by_email(email)
-            if not contact:
-                return {"success": False, "error": f"Contact not found: {email}"}
-            
-            # Get or create tag
-            tag_id = await self.systeme_client.get_or_create_tag(tag_name)
-            
-            # Add tag
-            await self.systeme_client.add_tag_to_contact(contact["id"], tag_id)
-            
-            return {"success": True, "message": f"Tag '{tag_name}' added to {email}"}
+            result = await self.systeme_client.add_tag_by_email(email, tag_name)
+            return {"success": True, "message": f"Tag '{tag_name}' aggiunto a {email}", **result}
         
         elif task_type == "sync_contacts":
             # Sync contacts from Systeme.io to local DB
@@ -409,40 +366,43 @@ class BackgroundJobExecutor:
                 )
                 synced += 1
             
-            return {"success": True, "message": f"Synced {synced} contacts"}
+            return {"success": True, "message": f"Sincronizzati {synced} contatti da Systeme.io"}
+        
+        elif task_type == "send_welcome":
+            email = data.get("email")
+            partner_name = data.get("partner_name", "Partner")
+            
+            result = await self.systeme_client.send_welcome_sequence(email, partner_name)
+            return result
+        
+        elif task_type == "trigger_campaign":
+            segment_tag = data.get("segment_tag")
+            campaign_tag = data.get("campaign_tag")
+            
+            result = await self.systeme_client.send_campaign_to_segment(segment_tag, campaign_tag)
+            return result
         
         return {"success": False, "error": f"Unknown GAIA task type: {task_type}"}
     
     async def _execute_stefania_task(self, task: Dict) -> Dict:
-        """Execute STEFANIA (email/copy) task"""
+        """Execute STEFANIA (copy/email) task - emails sent via Systeme.io"""
         task_type = task.get("task_type", "")
         data = task.get("data", {})
         
-        if task_type == "send_email":
-            to_email = data.get("to_email")
-            subject = data.get("subject")
-            html_content = data.get("html_content")
+        if task_type == "send_email_campaign":
+            # Use Systeme.io to send campaign
+            segment_tag = data.get("segment_tag", "all")
+            campaign_tag = data.get("campaign_tag")
             
-            result = await self.email_service.send_email(to_email, subject, html_content)
-            return result
+            if not campaign_tag:
+                return {"success": False, "error": "campaign_tag required"}
+            
+            result = await self.systeme_client.send_campaign_to_segment(segment_tag, campaign_tag)
+            return {"success": True, "message": f"Campagna avviata", **result}
         
-        elif task_type == "send_campaign":
-            emails = data.get("emails", [])
-            subject = data.get("subject")
-            html_content = data.get("html_content")
-            campaign_name = data.get("campaign_name", "Campaign")
-            
-            result = await self.email_service.send_campaign_email(
-                emails, subject, html_content, campaign_name
-            )
-            return {"success": True, **result}
-        
-        elif task_type == "send_welcome":
-            to_email = data.get("to_email")
-            partner_name = data.get("partner_name")
-            
-            result = await self.email_service.send_welcome_email(to_email, partner_name)
-            return result
+        elif task_type == "generate_copy":
+            # Copy generation is handled by LLM, just mark as complete
+            return {"success": True, "message": "Copy generato - vedi risultato nella chat"}
         
         return {"success": False, "error": f"Unknown STEFANIA task type: {task_type}"}
     
@@ -451,27 +411,27 @@ class BackgroundJobExecutor:
         task_type = task.get("task_type", "")
         
         if task_type == "segment_leads":
-            # Run lead segmentation
+            # Run lead segmentation based on tags
             total = await db.systeme_contacts.count_documents({})
-            return {"success": True, "message": f"Analyzed {total} leads"}
+            return {"success": True, "message": f"Analizzati {total} lead"}
         
         return {"success": False, "error": f"Unknown ORION task type: {task_type}"}
     
     async def _execute_marta_task(self, task: Dict) -> Dict:
         """Execute MARTA (CRM) task"""
-        return {"success": True, "message": "MARTA task executed"}
+        return {"success": True, "message": "MARTA task eseguito"}
     
     async def _execute_andrea_task(self, task: Dict) -> Dict:
-        """Execute ANDREA (video) task"""
-        return {"success": True, "message": "ANDREA task queued - manual processing required"}
+        """Execute ANDREA (video) task - requires manual processing"""
+        return {"success": True, "message": "Task ANDREA in coda - richiede elaborazione manuale"}
     
     async def _execute_luca_task(self, task: Dict) -> Dict:
         """Execute LUCA (compliance) task"""
-        return {"success": True, "message": "LUCA task executed"}
+        return {"success": True, "message": "LUCA task eseguito"}
     
     async def _execute_atlas_task(self, task: Dict) -> Dict:
         """Execute ATLAS (retention) task"""
-        return {"success": True, "message": "ATLAS task executed"}
+        return {"success": True, "message": "ATLAS task eseguito"}
     
     async def start_worker(self, interval_seconds: int = 60):
         """Start background worker that processes tasks periodically"""
@@ -496,7 +456,6 @@ class BackgroundJobExecutor:
 # Singleton Instances
 # ============================================================================
 systeme_client = SystemeIOClient()
-email_service = EmailService()
 job_executor = BackgroundJobExecutor()
 
 
@@ -506,22 +465,31 @@ job_executor = BackgroundJobExecutor()
 async def add_systeme_tag(email: str, tag_name: str) -> Dict:
     """Add tag to contact in Systeme.io"""
     try:
-        contact = await systeme_client.get_contact_by_email(email)
-        if not contact:
-            return {"success": False, "error": "Contact not found"}
-        
-        tag_id = await systeme_client.get_or_create_tag(tag_name)
-        await systeme_client.add_tag_to_contact(contact["id"], tag_id)
-        
-        return {"success": True, "tag_id": tag_id}
+        result = await systeme_client.add_tag_by_email(email, tag_name)
+        return result
     except Exception as e:
         logger.error(f"Failed to add tag: {e}")
         return {"success": False, "error": str(e)}
 
 
-async def send_email_now(to_email: str, subject: str, html_content: str) -> Dict:
-    """Send email immediately"""
-    return await email_service.send_email(to_email, subject, html_content)
+async def send_welcome_email(email: str, partner_name: str) -> Dict:
+    """Send welcome email via Systeme.io automation"""
+    try:
+        result = await systeme_client.send_welcome_sequence(email, partner_name)
+        return result
+    except Exception as e:
+        logger.error(f"Failed to send welcome: {e}")
+        return {"success": False, "error": str(e)}
+
+
+async def trigger_email_campaign(segment_tag: str, campaign_tag: str) -> Dict:
+    """Trigger email campaign to a segment via Systeme.io"""
+    try:
+        result = await systeme_client.send_campaign_to_segment(segment_tag, campaign_tag)
+        return result
+    except Exception as e:
+        logger.error(f"Failed to trigger campaign: {e}")
+        return {"success": False, "error": str(e)}
 
 
 async def create_agent_task(
@@ -554,3 +522,4 @@ async def create_agent_task(
         return {"task_id": task["id"], "executed": True, "result": result}
     
     return {"task_id": task["id"], "executed": False, "status": "queued"}
+
