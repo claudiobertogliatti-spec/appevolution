@@ -74,8 +74,10 @@ class SystemeIOClient:
     # Contact Operations
     # =========================================================================
     async def get_contacts(self, limit: int = 100, page: int = 1) -> Dict:
-        """Get list of contacts"""
-        return await self._request("GET", f"contacts?limit={limit}&page={page}")
+        """Get list of contacts (limit must be between 10 and 100)"""
+        # Systeme.io requires limit between 10 and 100
+        safe_limit = max(10, min(100, limit))
+        return await self._request("GET", f"contacts?limit={safe_limit}&page={page}")
     
     async def get_contact_by_email(self, email: str) -> Optional[Dict]:
         """Find contact by email"""
