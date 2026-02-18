@@ -287,15 +287,20 @@ class ValentinaAI:
             # STEP 1: Check if message requires an ACTION to execute
             # =====================================================
             action_result = None
-            if ACTIONS_ENABLED and is_founder:
+            if ACTIONS_ENABLED:
                 try:
-                    action_result = await detect_and_execute_action(message, context)
+                    # Pass is_internal flag to filter actions by scope
+                    action_result = await detect_and_execute_action(
+                        message, 
+                        context, 
+                        is_internal=is_founder
+                    )
                     if action_result:
-                        logger.info(f"Action executed: {action_result.get('action', 'unknown')}")
+                        logger.info(f"Action executed: {action_result.get('action', 'unknown')} (internal: {is_founder})")
                 except Exception as e:
                     logger.error(f"Action detection error: {e}")
             
-            # Load persistent memory if available
+            # Load persistent memory if available (only for founder)
             memory_context = ""
             if MEMORY_ENABLED and is_founder:
                 try:
