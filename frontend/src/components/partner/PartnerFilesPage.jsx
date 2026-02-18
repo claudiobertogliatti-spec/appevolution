@@ -441,8 +441,12 @@ export function PartnerFilesPage({ partner }) {
           </div>
           
           {/* Download Button */}
-          <button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all hover:shadow-lg"
-                  style={{ background: '#F5C518', color: '#1E2128' }}>
+          <button 
+            onClick={() => window.open(`${API}/partners/${partner?.id}/contract-pdf`, "_blank")}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all hover:shadow-lg"
+            style={{ background: '#F5C518', color: '#1E2128' }}
+            data-testid="download-contract-pdf-btn"
+          >
             <Download className="w-4 h-4"/>
             Scarica il tuo contratto (PDF)
           </button>
