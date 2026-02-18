@@ -1,6 +1,6 @@
 # Evolution PRO OS - Product Requirements Document
-**Version:** 25.0
-**Last Updated:** 2026-02-17
+**Version:** 26.0
+**Last Updated:** 2026-02-18
 
 ## Original Problem Statement
 Build "Evolution PRO OS", a proprietary web application for business workflow automation with AI agents, partner management, funnel deployment, video production, and lead monetization.
@@ -17,6 +17,8 @@ Build "Evolution PRO OS", a proprietary web application for business workflow au
 - [x] Partner Profile Hub (connected to backend)
 - [x] Document management
 - [x] Domain configuration
+- [x] **Onboarding Documents Upload** - F0 partners upload contracts, IDs, payment proof
+- [x] **Admin Onboarding Review** - Verify/reject partner documents
 
 ### AI Agents (9 Agents)
 - [x] VALENTINA - Chat support (with session persistence)
@@ -49,52 +51,36 @@ Build "Evolution PRO OS", a proprietary web application for business workflow au
 - [x] Cloudinary (file storage)
 - [x] Claude/OpenAI (via Emergent LLM Key)
 - [x] **MongoDB Atlas** (cloud database)
+- [x] **YouTube Data API** (playlist management, video uploads)
 
-## Recent Changes (2026-02-17)
+## Recent Changes (2026-02-18)
 
-### Session 25 - CORS Fix, Team Evolution Page, Session Persistence
-1. **CORS Configuration Fixed**
-   - Moved CORS middleware before router inclusion
-   - Added production domains to whitelist
-   - Created `api-config.js` utility for dynamic API URL resolution
-   - Frontend uses relative URLs `/api` on production domains
+### Session 27 - Bonus Strategici, Contract PDF, Welcome Email
+1. **Bonus Strategici Section** (`/components/partner/BonusStrategici.jsx`)
+   - 7 strategic bonus guides for partners
+   - Chapter-based reading experience
+   - Progress tracking with session persistence
+   - Completion badges per bonus
+   - Responsive design matching Evolution PRO theme
 
-2. **Team Evolution Page** (`/components/shared/TeamEvolution.jsx`)
-   - New page showcasing all 8 AI agents + human supervisors
-   - White background with Evolution PRO color scheme
-   - Flow diagram explaining how the team works
-   - Added to both Admin and Partner sidebars
+2. **Contract PDF Generation** (`/api/partners/{id}/contract-pdf`)
+   - Dynamic PDF generation using reportlab
+   - Partner-specific data: name, email, date, phase
+   - Professional formatting with Evolution PRO branding
+   - 15 contract articles summary
+   - Signature section
+   - Download filename: `Contratto_EvolutionPRO_{Name}_{Date}.pdf`
 
-3. **Session Persistence**
-   - VALENTINA Chat: Messages saved in sessionStorage per user
-   - ORION: Analysis data persisted during browser session
-   - Data survives navigation between pages
+3. **Welcome Email Integration**
+   - Enhanced `send_partner_welcome_email()` function
+   - Adds `welcome_partner` tag to Systeme.io for automation trigger
+   - Telegram notification to admin on new partner registration
+   - Email content logged to database for tracking
+   - New endpoint: `POST /api/onboarding/send-welcome-email/{partner_id}`
 
-4. **Updated 30+ Components**
-   - Migrated to centralized API configuration
-   - Production-ready URL handling
-
-## Recent Changes (2026-02-16)
-1. **CSV Import Endpoint** (`/api/systeme/import-csv`)
-   - Multi-encoding support (UTF-8, Latin-1)
-   - Flexible column mapping
-   - Upsert by email
-   - Successfully imported 3,232 new contacts
-
-2. **ORION Tag Scoring Updated**
-   - Added Evolution PRO specific tags
-   - `temp_recovery`: 15 points
-   - `pagamento fee`: 100 points
-   - `fase_*` tags: 30-90 points
-   - `settimana 2-5`: 35-50 points
-
-3. **Sales KPI Dashboard**
-   - New component: `SalesKPIDashboard.jsx`
-   - Endpoints: `/api/sales/kpi`, `/api/sales/recent`, `/api/sales/record`
-   - Real-time tracking of Tripwire €7 sales
-   - Period stats (today, week, month)
-   - Product breakdown
-   - Webhook configuration instructions
+4. **PartnerFilesPage.jsx Updates**
+   - Connected "Scarica il tuo contratto (PDF)" button to real endpoint
+   - Added data-testid for testing: `download-contract-pdf-btn`
 
 ## Database Collections
 - `users` - Authentication
@@ -104,6 +90,8 @@ Build "Evolution PRO OS", a proprietary web application for business workflow au
 - `payments` - Sales records
 - `orion_analysis` - Lead scoring results
 - `webhook_logs` - Webhook activity
+- `onboarding_documents` - Partner onboarding files
+- `email_logs` - Email tracking
 
 ## API Endpoints (Key)
 - `POST /api/systeme/import-csv` - Import contacts from CSV
@@ -111,57 +99,46 @@ Build "Evolution PRO OS", a proprietary web application for business workflow au
 - `POST /api/webhooks/systeme` - Systeme.io webhook receiver
 - `POST /api/orion/analyze-list` - Run ORION analysis
 - `GET /api/orion/segments` - Get lead segments
+- `GET /api/partners/{id}/contract-pdf` - Generate partner contract PDF
+- `POST /api/onboarding/send-welcome-email/{id}` - Send welcome email + Systeme.io tag
+- `GET /api/partners/{id}/onboarding-documents` - List onboarding docs
+- `POST /api/partners/{id}/onboarding-documents/upload` - Upload onboarding doc
 
 ## Technical Debt
-- **CRITICAL:** `server.py` is 8,000+ lines - needs refactoring into APIRouter modules
+- **CRITICAL:** `server.py` is 10,000+ lines - needs refactoring into APIRouter modules
 - `App.js` has complex conditional rendering - needs proper routing
-
-## Recent Changes (2026-02-17)
-
-### Session 26 - Partner Onboarding Documents Upload System
-1. **New Onboarding Documents Feature**
-   - Created `/app/frontend/src/components/partner/OnboardingDocuments.jsx`
-   - Partners in F0 phase can upload 3 required documents:
-     - Contratto Firmato (PDF)
-     - Documenti Personali (PDF, JPG, PNG)
-     - Distinta di Pagamento (PDF, JPG, PNG)
-   - Drag & drop upload with progress tracking
-   - Status badges (Obbligatorio, Caricato, Verificato)
-
-2. **Backend API Endpoints**
-   - `GET /api/partners/{id}/onboarding-documents` - List documents
-   - `POST /api/partners/{id}/onboarding-documents/upload` - Upload
-   - `DELETE /api/partners/{id}/onboarding-documents/{type}` - Delete
-   - `POST /api/partners/{id}/onboarding-documents/{type}/verify` - Admin verify
-   - `GET /api/admin/onboarding-documents/pending` - Admin pending list
-
-3. **Partner Sidebar Updates**
-   - Dynamic sidebar groups based on partner phase
-   - "Documenti Onboarding" with URGENTE badge for F0 partners
-   - Fixed phase 0 unlock logic (falsy value bug)
-
-4. **Partner User Association**
-   - Fixed demoPartner to use logged-in user's partner_id
-   - Partners now see their own data, not demo data
+- YouTube token expired (needs re-authentication)
 
 ## Backlog (Prioritized)
+
 ### P0 (Immediate)
-- **CORS Verification**: Deploy to app.evolution-pro.it and verify fix
+- ✅ Production data fix verified
+- ✅ Bonus Strategici implementation
+- ✅ Contract PDF download
+- ✅ Welcome email with Systeme.io tag
 
 ### P1 (High Priority)
-- Admin UI for reviewing onboarding documents
-- Connect Systeme.io webhook for Tripwire sales
-- Implement ORION agent actions (auto-tagging)
+- [ ] Connect ORION insights to 9 AI agents
+- [ ] Implement locked section video modal
+- [ ] Re-authenticate YouTube API token
+- [ ] Create Systeme.io welcome automation
 
 ### P2 (Medium Priority)
-- Backend refactoring (split server.py - now 9800+ lines!)
-- Advanced post-launch metrics dashboard
+- [ ] Backend refactoring (split server.py - now 10,000+ lines!)
+- [ ] Advanced post-launch metrics dashboard
+- [ ] Resend email integration for direct transactional emails
 
 ### P3 (Future)
-- Frontend refactoring
-- Academy videos system
-- Multi-tenant support
+- [ ] Frontend refactoring
+- [ ] Academy videos system
+- [ ] Multi-tenant support
 
 ## Credentials (Test)
 - Admin: `claudio@evolutionpro.it` / `Evolution2026!`
+- Partner F0: `testf0@evolutionpro.it` / `Test2026!`
+- Partner F0 ID: `d248c632-869d-4a13-b94a-dbf2425fa143`
 - API Keys: stored in `/app/backend/.env`
+
+## Test Reports
+- Latest: `/app/test_reports/iteration_7.json` - 100% pass rate
+- Tests: `/app/backend/tests/test_bonus_contract_email.py`
