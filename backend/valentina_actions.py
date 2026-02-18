@@ -38,6 +38,12 @@ AVAILABLE_ACTIONS = {
     # =========================================================================
     # ORION - Lead Intelligence (INTERNAL ONLY - Admin vede tutti i lead)
     # =========================================================================
+    "migrate_leads_segment": {
+        "agent": "ORION",
+        "scope": "internal",
+        "description": "Migra/sposta lead da un segmento all'altro",
+        "keywords": ["migrare lead", "migra lead", "sposta lead", "spostare lead", "cambia segmento", "passa a warm", "passa a hot", "promuovi lead", "followup pipeline"]
+    },
     "analyze_lead": {
         "agent": "ORION",
         "scope": "internal",
