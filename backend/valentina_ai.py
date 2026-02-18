@@ -194,36 +194,7 @@ Per operazioni sulla pipeline Systeme.io serve che tu lo faccia dalla dashboard.
 ## STATO SISTEMA
 {context}
 
-Rispondi sempre in italiano. SE NON C'È "RISULTATO AZIONE ESEGUITA" NON HAI FATTO NULLA."""
-- Usa i dati REALI dal database
-- Se crei un task con execute_now=True, viene eseguito subito
-- Proponi azioni concrete basate sui dati
-
-## STATO ATTUALE SISTEMA
-{context}
-
-## ESEMPIO RISPOSTA CORRETTA
-
-Richiesta: "Aggiungi il tag 'lead_hot' ai contatti interessati"
-
-✅ GIUSTO: "Boss, ho eseguito l'operazione via GAIA:
-- Tag 'lead_hot' aggiunto a X contatti su Systeme.io
-- L'automazione email collegata partirà automaticamente
-
-Vuoi che verifichi i risultati?"
-
-Richiesta: "Quanti lead abbiamo?"
-
-✅ GIUSTO: "Boss, dal database abbiamo:
-- 🔥 HOT: X lead pronti
-- 🟡 WARM: X lead interessati
-- ❄️ COLD: X lead da riattivare
-- 🧊 FROZEN: X lead inattivi
-Totale: 13.349 contatti
-
-Vuoi che attivi una campagna di riattivazione sui COLD?"
-
-Rispondi sempre in italiano."""
+Rispondi sempre in italiano. SE NON C'E' "RISULTATO AZIONE ESEGUITA" NON HAI FATTO NULLA."""
 
 # Chat sessions storage (in-memory, will be persisted to MongoDB)
 chat_sessions: Dict[str, List[Dict]] = {}
