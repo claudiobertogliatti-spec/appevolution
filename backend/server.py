@@ -1641,6 +1641,236 @@ Revenue Generato: €{partner.get('revenue', 0):,}
     
     return PlainTextResponse(content, media_type="text/plain")
 
+
+@api_router.get("/partners/{partner_id}/contract-pdf")
+async def get_partner_contract_pdf(partner_id: str):
+    """Generate and return the partner's contract as a professionally formatted PDF"""
+    from fastapi.responses import StreamingResponse
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm, cm
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.colors import HexColor
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, PageBreak
+    from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
+    import io
+    
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    profile = await db.partner_profiles.find_one({"partner_id": partner_id}, {"_id": 0})
+    
+    # Create PDF buffer
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer, 
+        pagesize=A4,
+        rightMargin=2*cm, 
+        leftMargin=2*cm,
+        topMargin=2*cm, 
+        bottomMargin=2*cm
+    )
+    
+    # Custom styles
+    styles = getSampleStyleSheet()
+    
+    # Title style
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Title'],
+        fontSize=24,
+        textColor=HexColor('#1E2128'),
+        spaceAfter=12,
+        alignment=TA_CENTER
+    )
+    
+    # Subtitle style
+    subtitle_style = ParagraphStyle(
+        'CustomSubtitle',
+        parent=styles['Normal'],
+        fontSize=12,
+        textColor=HexColor('#F5C518'),
+        spaceBefore=6,
+        spaceAfter=20,
+        alignment=TA_CENTER
+    )
+    
+    # Article title style
+    article_title_style = ParagraphStyle(
+        'ArticleTitle',
+        parent=styles['Heading2'],
+        fontSize=14,
+        textColor=HexColor('#1E2128'),
+        spaceBefore=16,
+        spaceAfter=8,
+        leftIndent=0
+    )
+    
+    # Body text style
+    body_style = ParagraphStyle(
+        'CustomBody',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=HexColor('#3B4049'),
+        spaceBefore=4,
+        spaceAfter=4,
+        alignment=TA_JUSTIFY,
+        leading=14
+    )
+    
+    # Info box style
+    info_style = ParagraphStyle(
+        'InfoBox',
+        parent=styles['Normal'],
+        fontSize=9,
+        textColor=HexColor('#5F6572'),
+        spaceBefore=4,
+        spaceAfter=4,
+        leftIndent=10,
+        rightIndent=10
+    )
+    
+    # Build document elements
+    elements = []
+    
+    # Header
+    elements.append(Paragraph("CONTRATTO DI PARTNERSHIP", title_style))
+    elements.append(Paragraph("Evolution PRO - Collaborazione per Videocorsi", subtitle_style))
+    elements.append(Spacer(1, 20))
+    
+    # Partner info table
+    contract_date = partner.get('contract', datetime.now().strftime('%Y-%m-%d'))
+    if isinstance(contract_date, str) and '-' in contract_date:
+        try:
+            from datetime import datetime as dt
+            cd = dt.strptime(contract_date.split('T')[0], '%Y-%m-%d')
+            contract_date_formatted = cd.strftime('%d/%m/%Y')
+            contract_end = (cd + timedelta(days=365)).strftime('%d/%m/%Y')
+        except:
+            contract_date_formatted = contract_date
+            contract_end = "Da calcolare"
+    else:
+        contract_date_formatted = str(contract_date)
+        contract_end = "Da calcolare"
+    
+    partner_data = [
+        ['Partner:', partner.get('name', 'N/D')],
+        ['Email:', profile.get('email', partner.get('email', 'N/D')) if profile else partner.get('email', 'N/D')],
+        ['Nicchia:', partner.get('niche', 'N/D')],
+        ['Data Firma:', contract_date_formatted],
+        ['Scadenza:', contract_end],
+        ['Fase Attuale:', partner.get('phase', 'F1')],
+    ]
+    
+    t = Table(partner_data, colWidths=[4*cm, 10*cm])
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (0, -1), HexColor('#FEF9E7')),
+        ('TEXTCOLOR', (0, 0), (0, -1), HexColor('#C4990A')),
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
+        ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ('BOX', (0, 0), (-1, -1), 1, HexColor('#F5C518')),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, HexColor('#ECEDEF')),
+    ]))
+    elements.append(t)
+    elements.append(Spacer(1, 30))
+    
+    # Contract articles (summary version)
+    contract_articles = [
+        ("Art. 1 - Oggetto del Contratto", 
+         "Le Parti collaborano per creare, promuovere e vendere il videocorso del Partner. Il Partner fornisce i contenuti originali, Evolution PRO fornisce strategia, tecnologia e supporto operativo."),
+        ("Art. 2 - Durata", 
+         "La partnership ha durata di 12 mesi dalla data di firma. Non è previsto rinnovo automatico."),
+        ("Art. 3 - Diritti e Obblighi", 
+         "Il Partner si impegna a fornire i materiali nei tempi concordati. Evolution PRO si impegna a eseguire il programma operativo con professionalità."),
+        ("Art. 4 - Proprietà Intellettuale", 
+         "I contenuti originali del Partner restano di sua proprietà. Evolution PRO ha licenza d'uso temporanea per la durata della partnership."),
+        ("Art. 5 - Corrispettivi", 
+         f"Investimento iniziale: €2.500. Royalty: 10% delle vendite nette per 12 mesi a favore di Evolution PRO."),
+        ("Art. 6 - Riservatezza", 
+         "Tutte le informazioni scambiate sono confidenziali. L'obbligo vale per la durata del contratto + 2 mesi."),
+        ("Art. 7 - Recesso e Risoluzione", 
+         "Non è previsto recesso ordinario. Risoluzione possibile solo per grave inadempimento."),
+        ("Art. 8 - Servizi Forniti", 
+         "Inclusi: Posizionamento, piattaforma Systeme.io, funnel, copy, editing, piano editoriale lancio, gruppo Telegram, videocorso formativo."),
+        ("Art. 9 - Clausola Fiscale", 
+         "Evolution PRO LLC opera da Torino (sede operativa). Fatture esenti IVA con reverse charge."),
+        ("Art. 10 - Protezione Dati", 
+         "Il Partner è titolare del trattamento dei dati dei suoi clienti. Evolution PRO opera come responsabile del trattamento."),
+        ("Art. 11 - Salvaguardia", 
+         "Questo contratto sostituisce qualsiasi accordo precedente."),
+        ("Art. 12 - Tutela del Brand", 
+         "Il marchio Evolution PRO è proprietà esclusiva. Divieto di utilizzo post-contratto per 60 giorni."),
+        ("Art. 13 - Comunicazioni", 
+         "Comunicazioni formali via PEC o raccomandata. Comunicazioni operative via email o Telegram."),
+        ("Art. 14 - Foro Competente", 
+         "Legge applicabile: italiana. Foro competente esclusivo: Tribunale di Torino."),
+        ("Art. 15 - Clausola Finale", 
+         "Il contratto entra in vigore alla firma. Clausole speciali approvate ex art. 1341-1342 c.c."),
+    ]
+    
+    for art_title, art_text in contract_articles:
+        elements.append(Paragraph(art_title, article_title_style))
+        elements.append(Paragraph(art_text, body_style))
+    
+    elements.append(Spacer(1, 30))
+    
+    # Signature section
+    elements.append(Paragraph("<b>FIRME</b>", article_title_style))
+    elements.append(Spacer(1, 10))
+    
+    sig_data = [
+        ['Per Evolution PRO LLC', f'Partner: {partner.get("name", "")}'],
+        ['_________________________', '_________________________'],
+        ['Claudio Bertogliatti', partner.get('name', '')],
+        ['Amministratore', ''],
+    ]
+    
+    sig_table = Table(sig_data, colWidths=[7*cm, 7*cm])
+    sig_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('TOPPADDING', (0, 0), (-1, -1), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+    ]))
+    elements.append(sig_table)
+    
+    elements.append(Spacer(1, 30))
+    
+    # Footer
+    footer_style = ParagraphStyle(
+        'Footer',
+        parent=styles['Normal'],
+        fontSize=8,
+        textColor=HexColor('#9CA3AF'),
+        alignment=TA_CENTER
+    )
+    elements.append(Paragraph(f"Documento generato il {datetime.now().strftime('%d/%m/%Y alle %H:%M')}", footer_style))
+    elements.append(Paragraph("Evolution PRO LLC - Delaware, USA - EIN: 30-1375330", footer_style))
+    elements.append(Paragraph("Sede operativa: Torino, Italia - assistenza@evolution-pro.it", footer_style))
+    
+    # Build PDF
+    doc.build(elements)
+    buffer.seek(0)
+    
+    # Return as downloadable file
+    filename = f"Contratto_EvolutionPRO_{partner.get('name', 'Partner').replace(' ', '_')}_{contract_date_formatted.replace('/', '-')}.pdf"
+    
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )
+
+
 # =============================================================================
 # ROUTES - ONBOARDING DOCUMENTS (Partner Upload during Registration)
 # =============================================================================
