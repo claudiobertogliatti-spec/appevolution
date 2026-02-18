@@ -715,6 +715,90 @@ class ValentinaActionDispatcher:
         }
     
     # =========================================================================
+    # GAIA - Systeme.io Tag & Email Methods
+    # =========================================================================
+    
+    async def _add_systeme_tag(self, context: Dict = None) -> Dict:
+        """Add tag to contact in Systeme.io via background task"""
+        import uuid
+        
+        # Extract email and tag from context
+        email = context.get("email") if context else None
+        tag_name = context.get("tag_name") if context else None
+        
+        if not email or not tag_name:
+            return {
+                "success": True,
+                "agent": "GAIA",
+                "message": "🏷️ **GAIA - Aggiungi Tag**\n\nPer aggiungere un tag ho bisogno di:\n\n1️⃣ **Email del contatto**: Quale contatto vuoi taggare?\n2️⃣ **Nome del tag**: Quale tag aggiungere?\n\nEsempio: 'Aggiungi il tag premium_lead al contatto mario@email.it'"
+            }
+        
+        # Create task for background execution
+        task_doc = {
+            "id": str(uuid.uuid4()),
+            "title": f"Aggiungi tag '{tag_name}' a {email}",
+            "task_type": "add_tag",
+            "agent": "GAIA",
+            "data": {
+                "email": email,
+                "tag_name": tag_name
+            },
+            "priority": "high",
+            "status": "pending",
+            "created_by": "valentina",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.agent_tasks.insert_one(task_doc)
+        
+        return {
+            "success": True,
+            "agent": "GAIA",
+            "task_id": task_doc["id"],
+            "message": f"✅ **Task creato per GAIA**\n\n🏷️ Tag: `{tag_name}`\n📧 Contatto: `{email}`\n\n⏳ Il background worker eseguirà l'operazione su Systeme.io entro 60 secondi.\n\nID Task: `{task_doc['id'][:8]}...`"
+        }
+    
+    async def _trigger_email_campaign(self, context: Dict = None) -> Dict:
+        """Trigger email campaign to segment via background task"""
+        import uuid
+        
+        # Extract campaign details from context
+        segment_tag = context.get("segment_tag") if context else None
+        campaign_tag = context.get("campaign_tag") if context else None
+        
+        if not segment_tag or not campaign_tag:
+            return {
+                "success": True,
+                "agent": "GAIA",
+                "message": "📧 **GAIA - Campagna Email**\n\nPer lanciare una campagna email ho bisogno di:\n\n1️⃣ **Segmento target**: A chi vuoi inviare? (es: lead_hot, lead_warm)\n2️⃣ **Tag campagna**: Quale automazione attivare? (es: promo_natale, riattivazione)\n\nLa campagna verrà inviata a tutti i contatti con il tag specificato."
+            }
+        
+        # Create task for background execution
+        task_doc = {
+            "id": str(uuid.uuid4()),
+            "title": f"Campagna '{campaign_tag}' per segmento '{segment_tag}'",
+            "task_type": "trigger_campaign",
+            "agent": "GAIA",
+            "data": {
+                "segment_tag": segment_tag,
+                "campaign_tag": campaign_tag
+            },
+            "priority": "high",
+            "status": "pending",
+            "created_by": "valentina",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.agent_tasks.insert_one(task_doc)
+        
+        return {
+            "success": True,
+            "agent": "GAIA",
+            "task_id": task_doc["id"],
+            "message": f"✅ **Campagna Email Schedulata**\n\n🎯 Segmento: `{segment_tag}`\n📧 Campagna: `{campaign_tag}`\n\n⏳ GAIA processerà la campagna entro 60 secondi.\n\nID Task: `{task_doc['id'][:8]}...`"
+        }
+    
+    # =========================================================================
     # GAIA - Funnel & Systeme.io Methods
     # =========================================================================
     
