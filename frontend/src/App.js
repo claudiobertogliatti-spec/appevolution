@@ -43,6 +43,7 @@ import { EmailAutomation } from "./components/partner/EmailAutomation";
 import { AgentDashboard } from "./components/admin/AgentDashboard";
 import { OrionLeadScoring } from "./components/admin/OrionLeadScoring";
 import { SalesKPIDashboard } from "./components/admin/SalesKPIDashboard";
+import { OnboardingDocumentsAdmin } from "./components/admin/OnboardingDocumentsAdmin";
 import { TeamEvolution } from "./components/shared/TeamEvolution";
 import { OnboardingDocuments } from "./components/partner/OnboardingDocuments";
 import "./styles/design-system.css";
