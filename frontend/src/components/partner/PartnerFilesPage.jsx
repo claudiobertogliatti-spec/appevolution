@@ -19,8 +19,9 @@ const CONTRACT_ARTICLES = [
       { icon: "⚙️", text: "Noi forniamo: posizionamento, piattaforma, funnel, editing, copy, lancio" },
       { icon: "🔒", text: "Il corso si vende solo tramite i canali EvolutionPro durante la partnership" },
       { icon: "📊", text: "Hai accesso alla dashboard per vedere vendite e fatturato in tempo reale" },
+      { icon: "📢", text: "Puoi promuovere sui tuoi social, ma il traffico deve andare verso il funnel di EvolutionPro" },
     ],
-    alert: { type: "warn", text: "Non puoi vendere lo stesso corso in autonomia durante la partnership. Serve l'ok scritto di EvolutionPro." }
+    alert: { type: "warn", text: "Non puoi vendere lo stesso corso (o uno molto simile) in autonomia durante la partnership. Serve l'ok scritto di EvolutionPro." }
   },
   {
     num: 2,
@@ -30,66 +31,171 @@ const CONTRACT_ARTICLES = [
     points: [
       { icon: "📅", text: "Durata: 12 mesi dalla firma del contratto" },
       { icon: "🔄", text: "Nessun rinnovo automatico — alla scadenza si decide insieme" },
-      { icon: "🛠️", text: "Dopo la scadenza puoi tenere online il corso pagando Systeme.io" },
+      { icon: "🛠️", text: "Dopo la scadenza puoi tenere online il corso pagando tu direttamente Systeme.io" },
+      { icon: "📩", text: "Per rinnovare o modificare: comunicazione scritta almeno 30 giorni prima della scadenza" },
     ],
-    alert: { type: "info", text: "In caso di grave inadempimento, il contratto può essere risolto con diffida PEC e 15 giorni di tempo." }
+    alert: { type: "info", text: "In caso di grave inadempimento di una delle parti, il contratto può essere risolto anticipatamente con diffida via PEC e 15 giorni di tempo per rimediare." }
   },
   {
     num: 3,
     title: "Diritti e Obblighi delle Parti",
     subtitle: "Cosa devi fare tu e cosa facciamo noi",
-    summary: "Entrambe le parti hanno dei compiti precisi. Tu partecipi attivamente, fornisci i materiali nei tempi indicati e collabori.",
+    summary: "Entrambe le parti hanno dei compiti precisi. Tu partecipi attivamente, fornisci i materiali nei tempi indicati e collabori. Noi eseguiamo il programma operativo con professionalità.",
     points: [
-      { icon: "📝", text: "Tu: Posizionamento entro 7 giorni, outline corso entro 7 giorni, video tra settimana 3 e 5" },
-      { icon: "⏱️", text: "Tu: Revisioni entro 48 ore, comunicazione costante" },
-      { icon: "🔧", text: "Noi: Funnel, editing, copy, supporto strategico, accesso piattaforma" },
+      { icon: "📝", text: "Tu: Posizionamento entro 7 giorni dalla firma, outline corso entro 7 giorni dal brief, video tra settimana 3 e 5" },
+      { icon: "⏱️", text: "Tu: Revisioni entro 48 ore, comunicazione costante e tempestiva" },
+      { icon: "🎯", text: "Tu: Gestisci in autonomia i contatti e lead generati per vendita e relazione clienti" },
+      { icon: "🔧", text: "Noi: Funnel, editing, copy, supporto strategico, accesso piattaforma, gruppo Telegram, videocorso formativo" },
+      { icon: "📞", text: "Noi: Supporto via Telegram e email assistenza@evolution-pro.it" },
     ],
-    alert: { type: "warn", text: "Se ritardi nella consegna dei materiali, le fasi successive slittano — ma la durata del contratto non si allunga." }
+    alert: { type: "warn", text: "Se ritardi nella consegna dei materiali, le fasi successive slittano proporzionalmente — ma la durata del contratto non si allunga." }
   },
   {
     num: 4,
     title: "Proprietà Intellettuale",
     subtitle: "Chi possiede cosa",
-    summary: "I tuoi contenuti restano tuoi al 100%. Tu dai a EvolutionPro una licenza temporanea per usarli per la durata della partnership.",
+    summary: "I tuoi contenuti restano tuoi al 100%. Tu dai a EvolutionPro una licenza temporanea per usarli, produrre il corso e promuoverlo — ma solo per la durata della partnership (+ 60 giorni).",
     points: [
-      { icon: "✅", text: "I tuoi contenuti originali restano di tua proprietà" },
+      { icon: "✅", text: "I tuoi contenuti originali (idee, testi, video) restano di tua proprietà" },
       { icon: "📄", text: "EvolutionPro ha una licenza d'uso esclusiva ma temporanea (12 mesi + 60 giorni)" },
-      { icon: "🎨", text: "Possiamo adattare i contenuti per migliorare qualità e performance" },
+      { icon: "🎨", text: "Possiamo adattare i contenuti per migliorare qualità e performance, senza alterarne la sostanza" },
+      { icon: "📸", text: "EvolutionPro può usare estratti e testimonianze per il proprio portfolio, anche dopo la fine del contratto" },
     ],
-    alert: { type: "good", text: "Dopo la fine del contratto, i tuoi contenuti tornano completamente a te." }
+    alert: { type: "good", text: "Dopo la fine del contratto, i tuoi contenuti tornano completamente a te. La licenza di EvolutionPro decade." }
   },
   {
     num: 5,
     title: "Corrispettivi e Pagamenti",
     subtitle: "Quanto costa, come si paga, le royalties",
-    summary: "Investi €2.500 una tantum per avviare il progetto. In cambio dell'investimento di EvolutionPro, le riconosci il 10% delle vendite nette per 12 mesi.",
+    summary: "Investi €2.500 una tantum per avviare il progetto — questo copre il 30% del valore totale stimato (€8.000), mentre EvolutionPro investe il restante 70% in servizi.",
     points: [
       { icon: "💰", text: "Investimento: €2.500 una tantum (non è un abbonamento)" },
-      { icon: "📊", text: "Valore progetto stimato: €8.000 (tu 30%, EvolutionPro 70% in servizi)" },
-      { icon: "📈", text: "Royalty: 10% delle vendite nette per 12 mesi a EvolutionPro" },
+      { icon: "📊", text: "Valore progetto stimato: €8.000 (tu copri il 30%, EvolutionPro il 70% in servizi)" },
+      { icon: "📈", text: "Royalty: 10% delle vendite nette del corso per 12 mesi a favore di EvolutionPro" },
+      { icon: "💳", text: "Pagamento su conto Revolut Bank UAB o tramite Stripe/PayPal" },
+      { icon: "📢", text: "Le campagne ADV sono consigliate ma non obbligatorie — i costi ADV sono a tuo carico" },
     ],
-    alert: { type: "warn", text: "L'investimento non è rimborsabile, salvo grave inadempimento di EvolutionPro." }
+    alert: { type: "warn", text: "L'investimento non è rimborsabile, salvo grave inadempimento di EvolutionPro. Se non paghi entro 15 giorni dalla scadenza, l'accesso alla piattaforma può essere sospeso." }
   },
   {
     num: 6,
     title: "Riservatezza",
     subtitle: "Cosa non puoi condividere",
-    summary: "Tutto ciò che impari durante la partnership è confidenziale: strategie, funnel, dati di vendita, procedure, know-how.",
+    summary: "Tutto ciò che impari, vedi e ricevi durante la partnership è confidenziale: strategie, funnel, dati di vendita, procedure, know-how. Vale per entrambe le parti.",
     points: [
-      { icon: "🔐", text: "Strategie, funnel, automazioni, report → tutto riservato" },
-      { icon: "⏰", text: "L'obbligo vale per la durata del contratto + 2 mesi" },
-      { icon: "🚫", text: "Penale: €2.000 per violazione della riservatezza" },
+      { icon: "🔐", text: "Strategie, funnel, automazioni, report, dati clienti → tutto riservato" },
+      { icon: "⏰", text: "L'obbligo vale per la durata del contratto + 2 mesi dopo la fine" },
+      { icon: "🚫", text: "Penale: €2.000 per violazione della riservatezza (+ risarcimento danni)" },
+      { icon: "🤝", text: "Vale anche per le informazioni scambiate prima della firma (fase precontrattuale)" },
     ]
   },
   {
     num: 7,
+    title: "Recesso e Risoluzione Anticipata",
+    subtitle: "Come si esce prima della scadenza",
+    summary: "Non esiste un recesso \"libero\" — il contratto dura 12 mesi. Si può uscire prima solo se l'altra parte commette un inadempimento grave.",
+    points: [
+      { icon: "❌", text: "Nessun recesso ordinario per nessuna delle due parti" },
+      { icon: "⚖️", text: "Risoluzione possibile solo per grave inadempimento (con diffida PEC + 15 giorni)" },
+      { icon: "💸", text: "Se EvolutionPro è inadempiente: rimborso proporzionato alle attività non eseguite" },
+      { icon: "📉", text: "EvolutionPro non garantisce vendite o profitti — garantisce l'esecuzione professionale dei servizi" },
+    ]
+  },
+  {
+    num: 8,
     title: "Servizi Forniti & Metodo EVO",
     subtitle: "Il programma operativo in dettaglio",
-    summary: "EvolutionPro ti fornisce tutto il necessario per lanciare: analisi strategica, piattaforma, funnel, copy, piano editoriale.",
+    summary: "EvolutionPro ti fornisce tutto il necessario per lanciare il corso: analisi strategica, piattaforma, funnel, copy, piano editoriale per il lancio, gruppo Telegram dedicato e videocorso formativo.",
     points: [
-      { icon: "✅", text: "Incluso: Posizionamento, Systeme.io, funnel, copy, editing, Telegram, videocorso" },
-      { icon: "❌", text: "Non incluso: Gestione social continuativa, campagne ADV operative" },
-      { icon: "➕", text: "Servizi extra disponibili a preventivo separato" },
+      { icon: "✅", text: "Incluso: Posizionamento, piattaforma Systeme.io, funnel, copy, editing, piano editoriale lancio, Telegram, videocorso" },
+      { icon: "❌", text: "Non incluso: Gestione social continuativa, campagne ADV operative, contenuti extra, attività non previste" },
+      { icon: "➕", text: "Servizi extra: Puoi richiedere sessioni aggiuntive, AI personalizzato, gestione social, ADV operativo — a preventivo separato" },
+      { icon: "📋", text: "Il \"Metodo EVO\" (programma 8 settimane) è parte integrante del contratto e può essere aggiornato senza costi aggiuntivi" },
+    ]
+  },
+  {
+    num: 9,
+    title: "Clausola Fiscale",
+    subtitle: "IVA, fatturazione e responsabilità fiscale",
+    summary: "EvolutionPro è una LLC americana (Delaware) che opera da Torino. Non ha Partita IVA italiana, quindi le fatture sono esenti IVA con reverse charge.",
+    points: [
+      { icon: "🏢", text: "Evolution PRO LLC — Delaware, USA — EIN: 30-1375330" },
+      { icon: "🏦", text: "IBAN: LT94 3250 0974 4929 5781 (Revolut Bank UAB)" },
+      { icon: "📑", text: "Fatture esenti IVA in Italia → meccanismo reverse charge" },
+      { icon: "👤", text: "Tu sei responsabile della tua gestione fiscale (imposte, contributi, registrazioni)" },
+    ],
+    alert: { type: "info", text: "Questo non è un rapporto di lavoro, agenzia, franchising o associazione in partecipazione. Entrambe le parti operano in piena autonomia giuridica e fiscale." }
+  },
+  {
+    num: 10,
+    title: "Protezione Dati (DPA)",
+    subtitle: "Come trattiamo i dati dei tuoi clienti",
+    summary: "Tu sei il \"titolare\" dei dati dei tuoi clienti, EvolutionPro è il \"responsabile del trattamento\". Significa che noi gestiamo i dati per tuo conto, seguendo le tue istruzioni e le norme GDPR.",
+    points: [
+      { icon: "👤", text: "Tu = Titolare del trattamento (decidi come usare i dati)" },
+      { icon: "⚙️", text: "EvolutionPro = Responsabile del trattamento (gestisce i dati per tuo conto)" },
+      { icon: "🔒", text: "Misure di sicurezza: cifratura, autenticazione a due fattori, backup, monitoring" },
+      { icon: "🚨", text: "In caso di data breach: notifica entro 48 ore dalla scoperta" },
+      { icon: "🗑️", text: "Alla fine del contratto: cancellazione o restituzione di tutti i dati" },
+    ]
+  },
+  {
+    num: 11,
+    title: "Salvaguardia e Prevalenza",
+    subtitle: "Questo contratto è l'unico accordo valido",
+    summary: "Questo contratto sostituisce qualsiasi accordo precedente (verbale o scritto). Qualsiasi modifica futura deve essere scritta e firmata da entrambi. Se una clausola viene dichiarata invalida, il resto del contratto resta valido.",
+    points: []
+  },
+  {
+    num: 12,
+    title: "Tutela del Brand",
+    subtitle: "Protezione del marchio EvolutionPro",
+    summary: "Il marchio EvolutionPro, i format, le metodologie e i modelli di funnel sono proprietà esclusiva di EvolutionPro. Dopo la fine della partnership, non puoi usare il brand o replicare il modello di business.",
+    points: [
+      { icon: "🏷️", text: "Logo, nome, format, procedure di EvolutionPro = proprietà esclusiva" },
+      { icon: "🚫", text: "Dopo la fine: rimuovere ogni riferimento a EvolutionPro dai tuoi canali" },
+      { icon: "⏰", text: "Divieto valido per 60 giorni dopo la cessazione del contratto" },
+      { icon: "💸", text: "Penale: €2.500 per violazione della tutela del brand (+ risarcimento danni)" },
+    ],
+    alert: { type: "good", text: "Puoi sempre usare le competenze professionali acquisite — il divieto riguarda solo la replica del modello EvolutionPro specifico." }
+  },
+  {
+    num: 13,
+    title: "Comunicazioni e Notifiche",
+    subtitle: "Come ci scriviamo ufficialmente",
+    summary: "Per le cose ufficiali (diffide, risoluzioni, modifiche contrattuali) servono PEC o raccomandata. Per le comunicazioni operative quotidiane va bene l'email o Telegram.",
+    points: [
+      { icon: "📧", text: "Comunicazioni formali: PEC o Raccomandata A/R" },
+      { icon: "💬", text: "Comunicazioni operative: email, Telegram (non hanno valore legale)" },
+      { icon: "📝", text: "Se cambi PEC o indirizzo: comunica entro 15 giorni lavorativi" },
+    ]
+  },
+  {
+    num: 14,
+    title: "Foro Competente",
+    subtitle: "Dove si risolvono le controversie",
+    summary: "Il contratto è regolato dalla legge italiana. Prima di andare in tribunale, le parti provano a risolvere la cosa in modo amichevole (15 giorni di tempo).",
+    points: [
+      { icon: "🇮🇹", text: "Legge applicabile: italiana" },
+      { icon: "🤝", text: "Prima passo: tentativo di composizione amichevole (15 giorni)" },
+      { icon: "⚖️", text: "Foro competente esclusivo: Tribunale di Torino" },
+    ]
+  },
+  {
+    num: 15,
+    title: "Clausola Finale",
+    subtitle: "Entrata in vigore e clausole approvate specificamente",
+    summary: "Il contratto entra in vigore alla firma (digitale o cartacea). Firmandolo, dichiari di aver letto e compreso tutto — in particolare le clausole più importanti elencate sotto.",
+    points: [
+      { icon: "✍️", text: "Firma digitale e cartacea hanno lo stesso valore legale" },
+      { icon: "📋", text: "Clausole approvate specificamente (art. 1341-1342 c.c.):" },
+      { icon: "•", text: "Art. 1.4: Divieto vendita autonoma" },
+      { icon: "•", text: "Art. 2.6: Recesso unilaterale di EvolutionPro" },
+      { icon: "•", text: "Art. 5.4: Investimento non rimborsabile" },
+      { icon: "•", text: "Art. 6.5: Penale riservatezza (€2.000)" },
+      { icon: "•", text: "Art. 7.1-7.6: No recesso ordinario, limitazioni responsabilità" },
+      { icon: "•", text: "Art. 12.4-12.5: Divieto concorrenza sleale, penale brand (€2.500)" },
+      { icon: "•", text: "Art. 14.3: Foro esclusivo Torino" },
     ]
   },
 ];
