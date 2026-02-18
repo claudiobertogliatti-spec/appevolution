@@ -25,6 +25,7 @@ import { CourseBuilderWizard } from "./components/partner/CourseBuilderWizard";
 import { RenewalPlans } from "./components/partner/RenewalPlans";
 import { PartnerDashboardSimplified } from "./components/partner/PartnerDashboardSimplified";
 import { PartnerSidebarLight } from "./components/partner/PartnerSidebar";
+import { PartnerFilesPage } from "./components/partner/PartnerFilesPage";
 import { AdminSidebarLight } from "./components/admin/AdminSidebarLight";
 import { ValentinaChat } from "./components/chat/ValentinaChat";
 import { LoginPage } from "./components/auth/LoginPage";
