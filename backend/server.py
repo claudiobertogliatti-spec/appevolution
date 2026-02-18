@@ -5260,6 +5260,204 @@ async def revoke_youtube_auth():
     return {"success": True, "message": "YouTube credentials revoked"}
 
 # =============================================================================
+# ROUTES - YOUTUBE PLAYLISTS FOR PARTNERS
+# =============================================================================
+
+@api_router.get("/youtube/partner/{partner_id}/playlist")
+async def get_partner_playlist(partner_id: str):
+    """Get or create playlist for a specific partner"""
+    if not youtube_uploader.is_authenticated():
+        raise HTTPException(status_code=401, detail="YouTube not authenticated")
+    
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    result = youtube_uploader.get_or_create_partner_playlist(
+        partner.get("name", "Unknown Partner"),
+        partner_id
+    )
+    
+    if result.get("success"):
+        # Save playlist ID to partner record
+        await db.partners.update_one(
+            {"id": partner_id},
+            {"$set": {
+                "youtube_playlist_id": result["playlist_id"],
+                "youtube_playlist_url": result["url"]
+            }}
+        )
+    
+    return result
+
+@api_router.get("/youtube/partner/{partner_id}/videos")
+async def get_partner_videos(partner_id: str):
+    """Get all videos in a partner's playlist"""
+    if not youtube_uploader.is_authenticated():
+        raise HTTPException(status_code=401, detail="YouTube not authenticated")
+    
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    playlist_id = partner.get("youtube_playlist_id")
+    
+    if not playlist_id:
+        # Try to get or create playlist
+        playlist_result = youtube_uploader.get_or_create_partner_playlist(
+            partner.get("name", "Unknown Partner"),
+            partner_id
+        )
+        if not playlist_result.get("success"):
+            return {"success": False, "videos": [], "error": playlist_result.get("error")}
+        
+        playlist_id = playlist_result["playlist_id"]
+        
+        # Save to partner
+        await db.partners.update_one(
+            {"id": partner_id},
+            {"$set": {
+                "youtube_playlist_id": playlist_id,
+                "youtube_playlist_url": playlist_result["url"]
+            }}
+        )
+    
+    videos_result = youtube_uploader.get_playlist_videos(playlist_id)
+    
+    return {
+        "success": True,
+        "partner_id": partner_id,
+        "partner_name": partner.get("name"),
+        "playlist_id": playlist_id,
+        "playlist_url": f"https://www.youtube.com/playlist?list={playlist_id}",
+        "videos": videos_result.get("videos", []),
+        "total": videos_result.get("total", 0)
+    }
+
+class PartnerVideoUploadRequest(BaseModel):
+    video_title: str
+    lesson_title: Optional[str] = ""
+    module_title: Optional[str] = ""
+
+@api_router.post("/youtube/partner/{partner_id}/upload")
+async def upload_partner_video_to_youtube(
+    partner_id: str,
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    video_title: str = Form(...),
+    lesson_title: str = Form(default=""),
+    module_title: str = Form(default="")
+):
+    """Upload a video directly to partner's YouTube playlist"""
+    if not youtube_uploader.is_authenticated():
+        raise HTTPException(status_code=401, detail="YouTube not authenticated. Please authenticate first.")
+    
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    # Save file temporarily
+    temp_path = f"/tmp/youtube_upload_{partner_id}_{file.filename}"
+    try:
+        with open(temp_path, "wb") as f:
+            content = await file.read()
+            f.write(content)
+        
+        # Start upload in background
+        background_tasks.add_task(
+            upload_partner_video_background,
+            temp_path,
+            partner_id,
+            partner.get("name", "Unknown Partner"),
+            partner.get("niche", "Business"),
+            video_title,
+            lesson_title,
+            module_title
+        )
+        
+        return {
+            "success": True,
+            "message": "Video upload started. It will appear in your playlist shortly.",
+            "partner_id": partner_id
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+async def upload_partner_video_background(
+    video_path: str,
+    partner_id: str,
+    partner_name: str,
+    partner_niche: str,
+    video_title: str,
+    lesson_title: str,
+    module_title: str
+):
+    """Background task to upload video to YouTube and add to partner playlist"""
+    try:
+        result = await youtube_uploader.upload_partner_video(
+            video_path=video_path,
+            partner_id=partner_id,
+            partner_name=partner_name,
+            partner_niche=partner_niche,
+            video_title=video_title,
+            lesson_title=lesson_title,
+            module_title=module_title,
+            add_to_playlist=True
+        )
+        
+        if result.get("success"):
+            # Save video info to database
+            await db.partner_videos.insert_one({
+                "partner_id": partner_id,
+                "video_id": result["video_id"],
+                "video_url": result["video_url"],
+                "title": video_title,
+                "playlist_id": result.get("playlist_info", {}).get("playlist_id"),
+                "uploaded_at": datetime.now(timezone.utc).isoformat()
+            })
+            
+            # Create notification
+            await db.notifications.insert_one({
+                "id": str(uuid.uuid4()),
+                "type": "youtube_upload",
+                "title": "Video caricato su YouTube",
+                "message": f"Il video '{video_title}' è stato caricato con successo",
+                "time": datetime.now(timezone.utc).isoformat(),
+                "read": False,
+                "partner_id": partner_id,
+                "video_url": result["video_url"]
+            })
+            
+            logging.info(f"Partner video uploaded: {result['video_url']}")
+        else:
+            logging.error(f"Partner video upload failed: {result.get('error')}")
+            
+    except Exception as e:
+        logging.exception(f"Partner video upload error: {e}")
+    finally:
+        # Clean up temp file
+        import os
+        if os.path.exists(video_path):
+            os.remove(video_path)
+
+@api_router.delete("/youtube/partner/{partner_id}/video/{playlist_item_id}")
+async def remove_partner_video(partner_id: str, playlist_item_id: str):
+    """Remove a video from partner's playlist"""
+    if not youtube_uploader.is_authenticated():
+        raise HTTPException(status_code=401, detail="YouTube not authenticated")
+    
+    result = youtube_uploader.remove_video_from_playlist(playlist_item_id)
+    
+    if result.get("success"):
+        # Also remove from database
+        await db.partner_videos.delete_one({
+            "partner_id": partner_id,
+            "playlist_item_id": playlist_item_id
+        })
+    
+    return result
+
+# =============================================================================
 # ROUTES - GAIA FUNNEL DEPLOYER (Systeme.io Templates)
 # =============================================================================
 
