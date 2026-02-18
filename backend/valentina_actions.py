@@ -353,14 +353,11 @@ class ValentinaActionDispatcher:
             elif action_id == "get_phase_info":
                 return await self._get_phase_info(context)
             
-            # ATLAS actions
-            elif action_id == "get_churn_risk":
-                return await self._get_churn_risk()
-            elif action_id == "get_my_progress":
-                return await self._get_my_progress(context)
-                return await self._get_partner_status(context)
-            
-            # GAIA actions
+            # GAIA actions (Systeme.io)
+            elif action_id == "add_systeme_tag":
+                return await self._add_systeme_tag(context)
+            elif action_id == "trigger_email_campaign":
+                return await self._trigger_email_campaign(context)
             elif action_id == "sync_systeme_contacts":
                 return await self._sync_systeme_contacts()
             elif action_id == "check_funnel_status":
@@ -387,6 +384,8 @@ class ValentinaActionDispatcher:
             # ATLAS actions
             elif action_id == "get_churn_risk":
                 return await self._get_churn_risk()
+            elif action_id == "get_my_progress":
+                return await self._get_my_progress(context)
             
             else:
                 return {
