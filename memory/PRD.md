@@ -55,8 +55,23 @@ Build "Evolution PRO OS", a proprietary web application for business workflow au
 
 ## Recent Changes (2026-02-18)
 
-### Session 27 - Bonus Strategici, Contract PDF, Welcome Email
-1. **Bonus Strategici Section** (`/components/partner/BonusStrategici.jsx`)
+### Session 27 - VALENTINA Fix, Bonus Strategici, Contract PDF, Welcome Email
+
+1. **VALENTINA AI Bug Fix (CRITICAL)**
+   - **Problem**: VALENTINA non manteneva la memoria dopo 4-5 messaggi, causando allucinazioni
+   - **Root cause**: 
+     - Modello LLM sbagliato (`claude-4-sonnet-20250514` non esiste)
+     - Sessione LLM ricreata ad ogni messaggio (perdita contesto)
+   - **Fix applicato**:
+     - Corretto modello: `claude-sonnet-4-20250514`
+     - Sessioni LLM persistite in `_llm_sessions` dict a livello di classe
+     - Aggiunto reset automatico sessione in caso di errore
+   - **Nuovi endpoint**:
+     - `POST /api/chat/reset/{session_id}` - Reset sessione VALENTINA
+     - `GET /api/chat/sessions/active` - Lista sessioni attive
+   - **File modificati**: `/app/backend/valentina_ai.py`, `/app/backend/server.py`
+
+2. **Bonus Strategici Section** (`/components/partner/BonusStrategici.jsx`)
    - 7 strategic bonus guides for partners
    - Chapter-based reading experience
    - Progress tracking with session persistence
