@@ -510,6 +510,122 @@ class ValentinaActionDispatcher:
             "message": f"🚨 **Partner a Rischio Churn**\n\n{risk_list}\n\nConsigli:\n1. Contattarli personalmente\n2. Offrire sessione di supporto\n3. Verificare eventuali blocchi"
         }
     
+    # =========================================================================
+    # ANDREA - Video Production Methods
+    # =========================================================================
+    
+    async def _create_video_edit(self, context: Dict = None) -> Dict:
+        """Create or edit a video with ANDREA"""
+        import uuid
+        task_doc = {
+            "id": str(uuid.uuid4()),
+            "title": "Editing Video",
+            "description": "Richiesta editing video da VALENTINA",
+            "agent": "ANDREA",
+            "priority": "medium",
+            "status": "pending",
+            "created_by": "valentina",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.agent_tasks.insert_one(task_doc)
+        
+        return {
+            "success": True,
+            "agent": "ANDREA",
+            "task_id": task_doc["id"],
+            "message": "🎬 **ANDREA - Video Production**\n\n📋 Task creato!\n\nPer procedere con l'editing ho bisogno di:\n\n1️⃣ **Video sorgente**: URL o file del video raw\n2️⃣ **Tipo di editing**: Taglio, montaggio, correzione colore?\n3️⃣ **Sottotitoli**: Sì/No? Lingua?\n4️⃣ **Thumbnail**: Serve una copertina?\n5️⃣ **Durata target**: Quanto deve durare il video finale?\n\nDimmi i dettagli!"
+        }
+    
+    async def _generate_thumbnail(self, context: Dict = None) -> Dict:
+        """Generate YouTube thumbnail with ANDREA"""
+        return {
+            "success": True,
+            "agent": "ANDREA",
+            "message": "🖼️ **ANDREA - Thumbnail Creator**\n\nPer creare una thumbnail accattivante ho bisogno di:\n\n1️⃣ **Titolo video**: Qual è l'argomento?\n2️⃣ **Stile**: Professionale, energetico, minimalista?\n3️⃣ **Testo overlay**: Quale testo mostrare?\n4️⃣ **Colori brand**: Palette specifica?\n\nOppure dimmi il tema e creo qualche proposta!"
+        }
+    
+    # =========================================================================
+    # GAIA - Funnel & Systeme.io Methods
+    # =========================================================================
+    
+    async def _check_funnel_status(self, context: Dict = None) -> Dict:
+        """Check funnel status with GAIA"""
+        # Get partner funnel data
+        partners_with_funnel = await db.partners.find(
+            {"systeme_funnel_url": {"$exists": True, "$ne": ""}},
+            {"_id": 0, "name": 1, "systeme_funnel_url": 1, "phase": 1}
+        ).to_list(50)
+        
+        active_funnels = len(partners_with_funnel)
+        total_partners = await db.partners.count_documents({})
+        
+        return {
+            "success": True,
+            "agent": "GAIA",
+            "data": {"active_funnels": active_funnels, "total_partners": total_partners},
+            "message": f"🔄 **GAIA - Stato Funnel**\n\n📊 **Funnel Attivi:** {active_funnels}/{total_partners} partner\n\n{'✅ Tutti i partner hanno un funnel configurato!' if active_funnels == total_partners else f'⚠️ {total_partners - active_funnels} partner senza funnel attivo'}\n\nVuoi che verifichi lo stato di un partner specifico o che configuri un nuovo funnel?"
+        }
+    
+    # =========================================================================
+    # MARTA - CRM & Revenue Methods
+    # =========================================================================
+    
+    async def _get_pipeline_status(self) -> Dict:
+        """Get sales pipeline status with MARTA"""
+        # Count partners by phase as pipeline stages
+        pipeline = {}
+        for i in range(11):
+            phase = f"F{i}"
+            count = await db.partners.count_documents({"phase": phase})
+            if count > 0:
+                pipeline[phase] = count
+        
+        total = sum(pipeline.values())
+        
+        # Calculate conversion rates
+        conversion_info = ""
+        if pipeline.get("F0", 0) > 0 and pipeline.get("F1", 0) > 0:
+            conv_rate = (pipeline.get("F1", 0) / pipeline.get("F0", 0)) * 100
+            conversion_info = f"\n📈 Conversion F0→F1: {conv_rate:.1f}%"
+        
+        pipeline_text = "\n".join([f"• **{k}**: {v} partner" for k, v in sorted(pipeline.items())])
+        
+        return {
+            "success": True,
+            "agent": "MARTA",
+            "data": {"pipeline": pipeline, "total": total},
+            "message": f"📊 **MARTA - Pipeline Commerciale**\n\n{pipeline_text}\n\n**Totale:** {total} partner{conversion_info}"
+        }
+    
+    async def _create_payment_link(self, context: Dict = None) -> Dict:
+        """Create Stripe payment link with MARTA"""
+        return {
+            "success": True,
+            "agent": "MARTA",
+            "message": "💳 **MARTA - Payment Link**\n\nPer creare un link di pagamento Stripe ho bisogno di:\n\n1️⃣ **Prodotto**: Quale prodotto/servizio?\n2️⃣ **Importo**: Quanto costa? (€)\n3️⃣ **Destinatario**: Per quale partner/cliente?\n4️⃣ **Scadenza**: Link con scadenza? (opzionale)\n\nDimmi i dettagli e genero il link!"
+        }
+    
+    # =========================================================================
+    # STEFANIA - Additional Copy Methods
+    # =========================================================================
+    
+    async def _generate_social_post(self, context: Dict = None) -> Dict:
+        """Generate social media post with STEFANIA"""
+        return {
+            "success": True,
+            "agent": "STEFANIA",
+            "message": "📱 **STEFANIA - Social Post**\n\nPer creare un post efficace dimmi:\n\n1️⃣ **Piattaforma**: LinkedIn, Facebook, Instagram?\n2️⃣ **Obiettivo**: Engagement, traffico, vendita?\n3️⃣ **Argomento**: Di cosa vuoi parlare?\n4️⃣ **CTA**: Quale azione vuoi far fare?\n\nOppure dimmi il tema e preparo diverse versioni!"
+        }
+    
+    async def _generate_ad_hooks(self, context: Dict = None) -> Dict:
+        """Generate ad hooks with STEFANIA War Mode"""
+        return {
+            "success": True,
+            "agent": "STEFANIA",
+            "message": "🎯 **STEFANIA - War Mode Hooks**\n\nPer generare hook pubblicitari killer ho bisogno di:\n\n1️⃣ **Prodotto**: Cosa stai vendendo?\n2️⃣ **Target**: Chi è il pubblico ideale?\n3️⃣ **Pain point**: Quale problema risolvi?\n4️⃣ **Numero hook**: Quanti ne vuoi? (consiglio: 5-10)\n\nGenero hook per Facebook, Instagram e YouTube Ads!"
+        }
+    
     async def log_action(self, action_id: str, result: Dict, user_id: str):
         """Log executed action for tracking"""
         await db.valentina_actions.insert_one({
