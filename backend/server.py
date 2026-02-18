@@ -2637,33 +2637,26 @@ async def get_tasks_dashboard():
 
 
 # =============================================================================
-# INTEGRATED SERVICES - Systeme.io, Email, Background Jobs
+# INTEGRATED SERVICES - Systeme.io & Background Jobs
 # =============================================================================
 
 from integrated_services import (
-    systeme_client, email_service, job_executor,
+    systeme_client, job_executor,
     add_systeme_tag as integrated_add_tag, 
-    send_email_now, 
+    send_welcome_email as systeme_send_welcome,
+    trigger_email_campaign,
     create_agent_task
 )
-
-
-class EmailSendRequest(BaseModel):
-    to_email: str
-    subject: str
-    html_content: str
-
-
-class CampaignEmailRequest(BaseModel):
-    emails: List[str]
-    subject: str
-    html_content: str
-    campaign_name: str = "Campaign"
 
 
 class TagRequest(BaseModel):
     email: str
     tag_name: str
+
+
+class CampaignRequest(BaseModel):
+    segment_tag: str  # Tag to filter contacts (e.g., "lead_cold")
+    campaign_tag: str  # Tag to trigger email automation
 
 
 class AgentTaskRequest(BaseModel):
@@ -2675,28 +2668,9 @@ class AgentTaskRequest(BaseModel):
     execute_now: bool = False
 
 
-@api_router.post("/email/send")
-async def api_send_email(request: EmailSendRequest):
-    """Send a single email via Resend"""
-    result = await send_email_now(request.to_email, request.subject, request.html_content)
-    return result
-
-
-@api_router.post("/email/campaign")
-async def api_send_campaign(request: CampaignEmailRequest):
-    """Send email campaign to multiple recipients"""
-    result = await email_service.send_campaign_email(
-        request.emails,
-        request.subject,
-        request.html_content,
-        request.campaign_name
-    )
-    return result
-
-
-@api_router.post("/email/welcome/{partner_id}")
-async def api_send_welcome_email(partner_id: str):
-    """Send welcome email to partner"""
+@api_router.post("/systeme/welcome/{partner_id}")
+async def api_send_welcome_via_systeme(partner_id: str):
+    """Send welcome email sequence to partner via Systeme.io automation"""
     partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
     if not partner:
         raise HTTPException(status_code=404, detail="Partner not found")
@@ -2707,14 +2681,24 @@ async def api_send_welcome_email(partner_id: str):
     if not email:
         raise HTTPException(status_code=400, detail="Partner has no email")
     
-    result = await email_service.send_welcome_email(email, name)
+    result = await systeme_send_welcome(email, name)
     
     if result.get("success"):
         await db.partners.update_one(
             {"id": partner_id},
-            {"$set": {"welcome_email_sent": True, "welcome_email_date": datetime.now(timezone.utc).isoformat()}}
+            {"$set": {
+                "welcome_email_sent": True, 
+                "welcome_email_date": datetime.now(timezone.utc).isoformat()
+            }}
         )
     
+    return result
+
+
+@api_router.post("/systeme/campaign")
+async def api_trigger_campaign(request: CampaignRequest):
+    """Trigger email campaign to a segment via Systeme.io"""
+    result = await trigger_email_campaign(request.segment_tag, request.campaign_tag)
     return result
 
 
