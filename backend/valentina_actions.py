@@ -193,24 +193,54 @@ class ValentinaActionDispatcher:
         
         try:
             # Route to appropriate handler
+            # ORION actions
             if action_id == "get_lead_stats":
                 return await self._get_lead_stats()
             elif action_id == "get_hot_leads":
                 return await self._get_hot_leads()
+            
+            # MARTA actions
             elif action_id == "get_sales_kpi":
                 return await self._get_sales_kpi()
+            elif action_id == "get_pipeline_status":
+                return await self._get_pipeline_status()
+            elif action_id == "create_payment_link":
+                return await self._create_payment_link(context)
+            
+            # VALENTINA actions
             elif action_id == "list_blocked_partners":
                 return await self._list_blocked_partners()
             elif action_id == "get_partner_status":
                 return await self._get_partner_status(context)
+            
+            # GAIA actions
             elif action_id == "sync_systeme_contacts":
                 return await self._sync_systeme_contacts()
+            elif action_id == "check_funnel_status":
+                return await self._check_funnel_status(context)
+            
+            # STEFANIA actions
             elif action_id == "generate_email_copy":
                 return await self._generate_email_copy(context)
+            elif action_id == "generate_social_post":
+                return await self._generate_social_post(context)
+            elif action_id == "generate_ad_hooks":
+                return await self._generate_ad_hooks(context)
+            
+            # ANDREA actions
+            elif action_id == "create_video_edit":
+                return await self._create_video_edit(context)
+            elif action_id == "generate_thumbnail":
+                return await self._generate_thumbnail(context)
+            
+            # LUCA actions
             elif action_id == "check_contract_expiry":
                 return await self._check_contract_expiry()
+            
+            # ATLAS actions
             elif action_id == "get_churn_risk":
                 return await self._get_churn_risk()
+            
             else:
                 return {
                     "success": False,
