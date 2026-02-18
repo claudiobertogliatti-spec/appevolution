@@ -1158,6 +1158,34 @@ async def send_systeme_instructions_email(partner_id: str, systeme_email: str = 
     return {"success": True, "message": f"Email istruzioni Systeme.io inviata a {email}"}
 
 
+@api_router.post("/onboarding/send-welcome-email/{partner_id}")
+async def resend_welcome_email(partner_id: str):
+    """Send or resend welcome email to partner"""
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    email = partner.get("email")
+    name = partner.get("name", "Partner")
+    
+    if not email:
+        raise HTTPException(status_code=400, detail="Partner email not found")
+    
+    try:
+        await send_partner_welcome_email(email, name)
+        await db.partners.update_one(
+            {"id": partner_id},
+            {"$set": {
+                "onboarding_status.welcome_email_sent": True,
+                "onboarding_status.welcome_email_date": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        return {"success": True, "message": f"Email di benvenuto inviata a {email}"}
+    except Exception as e:
+        logging.error(f"Failed to send welcome email: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore invio email: {str(e)}")
+
+
 @api_router.patch("/onboarding/systeme-account/{partner_id}")
 async def mark_systeme_account_created(partner_id: str, systeme_email: str = None):
     """Mark that Systeme.io sub-account has been created for partner"""
