@@ -113,6 +113,16 @@ AVAILABLE_ACTIONS = {
         "description": "Revenue specifico di un partner",
         "keywords": ["revenue partner", "fatturato partner", "guadagni partner"]
     },
+    "get_pipeline_status": {
+        "agent": "MARTA",
+        "description": "Stato pipeline commerciale",
+        "keywords": ["pipeline", "stato commerciale", "opportunità", "deals"]
+    },
+    "create_payment_link": {
+        "agent": "MARTA",
+        "description": "Crea link di pagamento Stripe",
+        "keywords": ["link pagamento", "stripe", "checkout", "paga"]
+    },
     
     # ATLAS - Post-Sale
     "get_churn_risk": {
