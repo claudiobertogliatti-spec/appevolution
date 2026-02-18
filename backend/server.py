@@ -2634,9 +2634,7 @@ async def get_tasks_dashboard():
         "by_agent": agents_stats,
         "recent_tasks": recent
     }
-        "knowledge": knowledge,
-        "count": len(knowledge)
-    }
+
 
 @api_router.post("/valentina/memory/feedback")
 async def add_valentina_feedback(
