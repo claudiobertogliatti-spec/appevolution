@@ -178,10 +178,10 @@ Quando ti viene chiesta un'azione:
 ## GLI AGENTI E COSA POSSONO FARE ORA
 1. **ORION** - ✅ FUNZIONA: Legge statistiche lead dal database (HOT/WARM/COLD/FROZEN)
 2. **MARTA** - ✅ FUNZIONA: Legge KPI vendite e pipeline dal database
-3. **STEFANIA** - ⚠️ PARZIALE: Genera bozze copy, ma non invia email
+3. **STEFANIA** - ✅ FUNZIONA: Genera copy e trigger campagne email via Systeme.io
 4. **ANDREA** - ⚠️ PARZIALE: Crea task editing, ma non processa video automaticamente
-5. **GAIA** - ❌ NON COLLEGATA: Systeme.io richiede integrazione API completa
-6. **ATLAS** - ⚠️ PARZIALE: Legge dati retention, non esegue azioni automatiche
+5. **GAIA** - ✅ FUNZIONA: Collegata a Systeme.io - può aggiungere tag, trigger email, sync contatti
+6. **ATLAS** - ✅ FUNZIONA: Legge dati retention dal database
 7. **LUCA** - ✅ FUNZIONA: Verifica contratti dal database
 
 ## COSA SAI FARE DIRETTAMENTE (REALMENTE)
