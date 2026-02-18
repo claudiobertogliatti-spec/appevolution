@@ -42,19 +42,43 @@ AVAILABLE_ACTIONS = {
         "agent": "ORION",
         "scope": "internal",
         "description": "Ottieni statistiche sui lead (HOT, WARM, COLD, FROZEN)",
-        "keywords": ["lead", "contatti", "statistiche", "quanti lead", "situazione lead", "orion"]
+        "keywords": ["lead", "contatti", "statistiche", "quanti lead", "situazione lead", "orion", "report lead"]
     },
     "get_hot_leads": {
         "agent": "ORION",
         "scope": "internal",
         "description": "Lista dei lead HOT pronti a comprare",
-        "keywords": ["lead hot", "lead caldi", "pronti a comprare", "lead interessati"]
+        "keywords": ["lead hot", "lead caldi", "pronti a comprare", "lead interessati", "chi è pronto"]
     },
     "analyze_lead": {
         "agent": "ORION",
         "scope": "internal",
-        "description": "Analizza un lead specifico",
-        "keywords": ["analizza lead", "controlla contatto", "verifica lead"]
+        "description": "Analizza un lead specifico per email",
+        "keywords": ["analizza lead", "controlla contatto", "verifica lead", "cerca contatto", "trova lead", "info su"]
+    },
+    "get_leads_to_reactivate": {
+        "agent": "ORION",
+        "scope": "internal",
+        "description": "Identifica lead COLD/FROZEN da riattivare",
+        "keywords": ["riattivare", "riattivazione", "lead freddi", "lead inattivi", "recuperare lead", "wake up", "svegliare"]
+    },
+    "get_lead_trends": {
+        "agent": "ORION",
+        "scope": "internal",
+        "description": "Mostra trend e statistiche degli ultimi giorni",
+        "keywords": ["trend", "andamento", "ultimi giorni", "questa settimana", "evoluzione lead", "storico"]
+    },
+    "get_segment_details": {
+        "agent": "ORION",
+        "scope": "internal",
+        "description": "Dettagli approfonditi di un segmento specifico",
+        "keywords": ["dettagli segmento", "approfondisci", "analisi segmento", "breakdown", "scomponi"]
+    },
+    "get_conversion_potential": {
+        "agent": "ORION",
+        "scope": "internal",
+        "description": "Calcola il potenziale di conversione e revenue stimato",
+        "keywords": ["potenziale", "conversione", "revenue stimato", "quanto posso guadagnare", "previsione", "forecast"]
     },
     
     # =========================================================================
