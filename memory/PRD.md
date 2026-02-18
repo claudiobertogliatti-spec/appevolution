@@ -64,16 +64,15 @@ Build "Evolution PRO OS", a proprietary web application for business workflow au
 2. **VALENTINA Action Dispatcher (NEW - CRITICAL)**
    - **File**: `/app/backend/valentina_actions.py`
    - **Capacità**: VALENTINA ora ESEGUE azioni reali, non solo parla
-   - **Azioni implementate**:
-     - `get_lead_stats` - Statistiche lead reali da ORION
-     - `get_hot_leads` - Lista lead HOT dal DB
-     - `get_sales_kpi` - KPI vendite reali da MARTA
-     - `list_blocked_partners` - Partner bloccati
-     - `get_partner_status` - Stato dettagliato partner
-     - `sync_systeme_contacts` - Sync Systeme.io con GAIA
-     - `generate_email_copy` - Genera copy con STEFANIA
-     - `check_contract_expiry` - Contratti in scadenza (LUCA)
-     - `get_churn_risk` - Partner a rischio (ATLAS)
+   - **8 Agenti Integrati**:
+     - **VALENTINA** (Main) - Orchestrazione, stato partner
+     - **ORION** - Lead stats, hot leads, scoring
+     - **STEFANIA** - Email copy, social posts, ad hooks
+     - **ANDREA** - Video editing, thumbnails, sottotitoli
+     - **GAIA** - Funnel status, sync Systeme.io
+     - **MARTA** - Sales KPI, pipeline, payment links
+     - **ATLAS** - Churn risk, retention
+     - **LUCA** - Contract expiry, compliance
 
 3. **Agent Task System (NEW)**
    - Sistema per tracciare task assegnati agli agenti
