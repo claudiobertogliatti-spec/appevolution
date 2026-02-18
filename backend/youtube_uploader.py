@@ -314,6 +314,269 @@ Prodotto da Evolution PRO LLC
         self.credentials = None
         self.service = None
         logger.info("YouTube credentials revoked")
+    
+    # =====================================================
+    # PLAYLIST MANAGEMENT FOR PARTNERS
+    # =====================================================
+    
+    def get_or_create_partner_playlist(self, partner_name: str, partner_id: str) -> Dict:
+        """
+        Get existing playlist for partner or create a new one.
+        
+        Args:
+            partner_name: Partner's display name
+            partner_id: Partner's unique ID
+            
+        Returns:
+            Dict with playlist_id, title, and url
+        """
+        try:
+            service = self._get_service()
+            
+            # Search for existing playlist with partner name
+            playlist_title = f"Evolution PRO - {partner_name}"
+            
+            # List all playlists
+            playlists_response = service.playlists().list(
+                part="snippet,contentDetails",
+                mine=True,
+                maxResults=50
+            ).execute()
+            
+            # Check if playlist exists
+            for playlist in playlists_response.get("items", []):
+                if partner_name in playlist["snippet"]["title"] or partner_id in playlist["snippet"].get("description", ""):
+                    return {
+                        "success": True,
+                        "playlist_id": playlist["id"],
+                        "title": playlist["snippet"]["title"],
+                        "url": f"https://www.youtube.com/playlist?list={playlist['id']}",
+                        "video_count": playlist["contentDetails"]["itemCount"],
+                        "created": False
+                    }
+            
+            # Create new playlist
+            playlist_body = {
+                "snippet": {
+                    "title": playlist_title,
+                    "description": f"Videocorso di {partner_name} - Partner Evolution PRO\nPartner ID: {partner_id}",
+                    "defaultLanguage": "it"
+                },
+                "status": {
+                    "privacyStatus": "unlisted"  # Unlisted for Systeme.io embedding
+                }
+            }
+            
+            new_playlist = service.playlists().insert(
+                part="snippet,status",
+                body=playlist_body
+            ).execute()
+            
+            logger.info(f"Created new playlist for {partner_name}: {new_playlist['id']}")
+            
+            return {
+                "success": True,
+                "playlist_id": new_playlist["id"],
+                "title": new_playlist["snippet"]["title"],
+                "url": f"https://www.youtube.com/playlist?list={new_playlist['id']}",
+                "video_count": 0,
+                "created": True
+            }
+            
+        except HttpError as e:
+            logger.error(f"Playlist operation failed: {e}")
+            return {"success": False, "error": str(e)}
+        except Exception as e:
+            logger.exception(f"Playlist error: {e}")
+            return {"success": False, "error": str(e)}
+    
+    def add_video_to_playlist(self, video_id: str, playlist_id: str, position: int = None) -> Dict:
+        """
+        Add a video to a playlist.
+        
+        Args:
+            video_id: YouTube video ID
+            playlist_id: YouTube playlist ID
+            position: Optional position in playlist (0 = first)
+            
+        Returns:
+            Dict with success status
+        """
+        try:
+            service = self._get_service()
+            
+            body = {
+                "snippet": {
+                    "playlistId": playlist_id,
+                    "resourceId": {
+                        "kind": "youtube#video",
+                        "videoId": video_id
+                    }
+                }
+            }
+            
+            if position is not None:
+                body["snippet"]["position"] = position
+            
+            response = service.playlistItems().insert(
+                part="snippet",
+                body=body
+            ).execute()
+            
+            logger.info(f"Added video {video_id} to playlist {playlist_id}")
+            
+            return {
+                "success": True,
+                "playlist_item_id": response["id"],
+                "position": response["snippet"].get("position", 0)
+            }
+            
+        except HttpError as e:
+            logger.error(f"Add to playlist failed: {e}")
+            return {"success": False, "error": str(e)}
+    
+    def get_playlist_videos(self, playlist_id: str) -> Dict:
+        """
+        Get all videos in a playlist.
+        
+        Args:
+            playlist_id: YouTube playlist ID
+            
+        Returns:
+            Dict with list of videos
+        """
+        try:
+            service = self._get_service()
+            
+            videos = []
+            next_page_token = None
+            
+            while True:
+                response = service.playlistItems().list(
+                    part="snippet,contentDetails",
+                    playlistId=playlist_id,
+                    maxResults=50,
+                    pageToken=next_page_token
+                ).execute()
+                
+                for item in response.get("items", []):
+                    snippet = item["snippet"]
+                    videos.append({
+                        "playlist_item_id": item["id"],
+                        "video_id": snippet["resourceId"]["videoId"],
+                        "title": snippet["title"],
+                        "description": snippet["description"][:200] + "..." if len(snippet.get("description", "")) > 200 else snippet.get("description", ""),
+                        "thumbnail": snippet.get("thumbnails", {}).get("medium", {}).get("url"),
+                        "position": snippet["position"],
+                        "added_at": snippet["publishedAt"],
+                        "url": f"https://www.youtube.com/watch?v={snippet['resourceId']['videoId']}"
+                    })
+                
+                next_page_token = response.get("nextPageToken")
+                if not next_page_token:
+                    break
+            
+            return {
+                "success": True,
+                "playlist_id": playlist_id,
+                "videos": videos,
+                "total": len(videos)
+            }
+            
+        except HttpError as e:
+            logger.error(f"Get playlist videos failed: {e}")
+            return {"success": False, "error": str(e), "videos": []}
+    
+    def remove_video_from_playlist(self, playlist_item_id: str) -> Dict:
+        """
+        Remove a video from a playlist.
+        
+        Args:
+            playlist_item_id: The playlist item ID (not video ID)
+            
+        Returns:
+            Dict with success status
+        """
+        try:
+            service = self._get_service()
+            
+            service.playlistItems().delete(id=playlist_item_id).execute()
+            
+            logger.info(f"Removed item {playlist_item_id} from playlist")
+            return {"success": True}
+            
+        except HttpError as e:
+            logger.error(f"Remove from playlist failed: {e}")
+            return {"success": False, "error": str(e)}
+    
+    async def upload_partner_video(
+        self,
+        video_path: str,
+        partner_id: str,
+        partner_name: str,
+        partner_niche: str,
+        video_title: str,
+        lesson_title: str = "",
+        module_title: str = "",
+        transcription_text: str = "",
+        add_to_playlist: bool = True
+    ) -> Dict:
+        """
+        Upload video and automatically add to partner's playlist.
+        
+        Args:
+            video_path: Path to video file
+            partner_id: Partner's unique ID
+            partner_name: Partner's display name
+            partner_niche: Partner's niche/industry
+            video_title: Title for the video
+            lesson_title: Optional lesson title
+            module_title: Optional module title
+            transcription_text: Optional transcription for SEO
+            add_to_playlist: Whether to add to partner playlist
+            
+        Returns:
+            Dict with upload result and playlist info
+        """
+        # Upload video
+        upload_result = await self.upload_video(
+            video_path=video_path,
+            title=video_title,
+            partner_name=partner_name,
+            partner_niche=partner_niche,
+            lesson_title=lesson_title or video_title,
+            module_title=module_title or "Videocorso",
+            transcription_text=transcription_text,
+            privacy_status="unlisted"
+        )
+        
+        if not upload_result.get("success"):
+            return upload_result
+        
+        # Add to playlist if requested
+        playlist_info = None
+        if add_to_playlist:
+            # Get or create partner playlist
+            playlist_result = self.get_or_create_partner_playlist(partner_name, partner_id)
+            
+            if playlist_result.get("success"):
+                # Add video to playlist
+                add_result = self.add_video_to_playlist(
+                    upload_result["video_id"],
+                    playlist_result["playlist_id"]
+                )
+                
+                playlist_info = {
+                    "playlist_id": playlist_result["playlist_id"],
+                    "playlist_url": playlist_result["url"],
+                    "playlist_title": playlist_result["title"],
+                    "added_to_playlist": add_result.get("success", False)
+                }
+        
+        return {
+            **upload_result,
+            "playlist_info": playlist_info
+        }
 
 
 # Singleton instance
