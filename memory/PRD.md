@@ -55,6 +55,25 @@ Build "Evolution PRO OS", a proprietary web application for business workflow au
 
 ## Recent Changes (2026-02-18)
 
+### Session 28 - VALENTINA Action Execution System VALIDATED ✅
+
+1. **VALENTINA Task Execution Working End-to-End**
+   - Implemented `_add_systeme_tag()` method with NLP parameter extraction
+   - Added regex parsing to extract email and tag_name from natural language messages
+   - Example: "Aggiungi il tag test_valentina al contatto info@danieleandolfi.com" → Task created and executed
+   - **Verified**: Tag successfully added on Systeme.io (contact_id: 404930971, tag_id: 1876220)
+
+2. **Action Detection Improvements**
+   - Expanded keywords for better Italian phrase matching
+   - Added "aggiungi il tag", "applica tag", "metti il tag" variations
+   - Passing original message to execution context for parameter extraction
+
+3. **Background Worker Confirmed Working**
+   - Tasks created in `agent_tasks` collection with status tracking
+   - Background worker processes pending tasks every 60 seconds
+   - Tasks transition: pending → in_progress → completed/failed
+   - Results stored with full Systeme.io response
+
 ### Session 27 - Complete Agent System + Integrated Services
 
 1. **VALENTINA AI Overhaul**
