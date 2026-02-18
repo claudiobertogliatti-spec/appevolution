@@ -80,6 +80,7 @@ Build "Evolution PRO OS", a proprietary web application for business workflow au
    - `get_lead_trends`: Trend e statistiche nel tempo
    - `get_segment_details`: Breakdown approfondito per segmento
    - `get_conversion_potential`: Calcolo potenziale revenue con tassi conversione
+   - `migrate_leads_segment`: **Migrazione lead tra segmenti con update DB reale**
 
 ### Session 27 - Complete Agent System + Integrated Services
 
