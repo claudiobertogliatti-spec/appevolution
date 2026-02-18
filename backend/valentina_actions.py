@@ -761,6 +761,221 @@ class ValentinaActionDispatcher:
             "message": "🎯 **STEFANIA - War Mode Hooks**\n\nPer generare hook pubblicitari killer ho bisogno di:\n\n1️⃣ **Prodotto**: Cosa stai vendendo?\n2️⃣ **Target**: Chi è il pubblico ideale?\n3️⃣ **Pain point**: Quale problema risolvi?\n4️⃣ **Numero hook**: Quanti ne vuoi? (consiglio: 5-10)\n\nGenero hook per Facebook, Instagram e YouTube Ads!"
         }
     
+    # =========================================================================
+    # PARTNER-SPECIFIC Methods (External Use)
+    # =========================================================================
+    
+    async def _get_my_status(self, context: Dict = None) -> Dict:
+        """Get current partner status and next steps"""
+        partner_id = context.get("partner_id") if context else None
+        partner_phase = context.get("partner_phase", "F1") if context else "F1"
+        partner_name = context.get("partner_name", "Partner") if context else "Partner"
+        
+        # Phase descriptions
+        phase_info = {
+            "F0": {"name": "Pre-Onboarding", "next": "Completa l'upload dei documenti richiesti"},
+            "F1": {"name": "Attivazione", "next": "Compila il Profilo Hub definendo chi sei e chi aiuti"},
+            "F2": {"name": "Posizionamento", "next": "Rivedi la struttura del corso generata da STEFANIA"},
+            "F3": {"name": "Masterclass", "next": "Approva i 6 blocchi della masterclass"},
+            "F4": {"name": "Struttura Corso", "next": "Conferma l'outline finale del corso"},
+            "F5": {"name": "Produzione", "next": "Registra i video seguendo la checklist di ANDREA"},
+            "F6": {"name": "Accademia", "next": "Carica i video e configura il tuo Systeme.io"},
+            "F7": {"name": "Pre-Lancio", "next": "Rivedi email e post social preparati da STEFANIA"},
+            "F8": {"name": "Lancio", "next": "Monitora le conversioni durante il lancio"},
+            "F9": {"name": "Ottimizzazione", "next": "Analizza i dati e ottimizza il funnel"},
+            "F10": {"name": "Scalabilità", "next": "Esplora opzioni di scaling (ads, webinar, nuovo corso)"},
+        }
+        
+        current_info = phase_info.get(partner_phase, {"name": "Sconosciuta", "next": "Contatta il supporto"})
+        
+        return {
+            "success": True,
+            "agent": "VALENTINA",
+            "data": {"phase": partner_phase, "name": partner_name},
+            "message": f"📊 **Il Tuo Stato Attuale, {partner_name}**\n\n🎯 **Fase:** {partner_phase} - {current_info['name']}\n\n✅ **Prossimo passo:**\n{current_info['next']}\n\nHai bisogno di aiuto con questo step? Chiedimi pure!"
+        }
+    
+    async def _get_phase_info(self, context: Dict = None) -> Dict:
+        """Explain what to do in current phase"""
+        partner_phase = context.get("partner_phase", "F1") if context else "F1"
+        partner_name = context.get("partner_name", "") if context else ""
+        
+        phase_details = {
+            "F0": {
+                "title": "Pre-Onboarding",
+                "obiettivo": "Completare la documentazione iniziale per ufficializzare la partnership",
+                "tasks": [
+                    "📄 Carica il contratto firmato",
+                    "🪪 Carica un documento d'identità",
+                    "💳 Carica la prova di pagamento"
+                ],
+                "agente": "LUCA ti guida con la compliance"
+            },
+            "F1": {
+                "title": "Attivazione/Allineamento",
+                "obiettivo": "Definire chi sei, chi aiuti e cosa prometti",
+                "tasks": [
+                    "👤 Compila il tuo Profilo Hub",
+                    "🎯 Definisci la tua nicchia specifica",
+                    "💡 Chiarisci la tua proposta di valore unica"
+                ],
+                "agente": "Io (VALENTINA) ti guido in questo processo"
+            },
+            "F2": {
+                "title": "Posizionamento",
+                "obiettivo": "Ricevere e validare la struttura del tuo corso",
+                "tasks": [
+                    "📝 STEFANIA genera la struttura del corso",
+                    "🔍 Rivedi i moduli proposti",
+                    "✏️ Richiedi modifiche se necessario"
+                ],
+                "agente": "STEFANIA crea la struttura"
+            },
+            "F3": {
+                "title": "Masterclass/Copy Core",
+                "obiettivo": "Creare i 6 blocchi strategici per la tua Masterclass gratuita",
+                "tasks": [
+                    "🎬 STEFANIA genera i 6 blocchi copy",
+                    "📖 Rivedi ogni blocco attentamente",
+                    "✅ Approva o richiedi revisioni"
+                ],
+                "agente": "STEFANIA crea il copy"
+            },
+            "F4": {
+                "title": "Struttura Corso",
+                "obiettivo": "Confermare l'outline definitivo del corso",
+                "tasks": [
+                    "📋 Rivedi tutti i moduli",
+                    "🎯 Verifica che coprano tutto il necessario",
+                    "✅ Conferma l'outline finale"
+                ],
+                "agente": "STEFANIA finalizza la struttura"
+            },
+            "F5": {
+                "title": "Produzione/Registrazione",
+                "obiettivo": "Registrare tutti i video del corso",
+                "tasks": [
+                    "🎥 Segui la checklist di registrazione",
+                    "💡 Configura luce, audio e sfondo",
+                    "🎬 Registra un modulo alla volta"
+                ],
+                "agente": "ANDREA ti guida nella produzione"
+            },
+            "F6": {
+                "title": "Accademia",
+                "obiettivo": "Caricare i video e configurare la piattaforma",
+                "tasks": [
+                    "📤 Carica i video registrati",
+                    "🎨 Configura il tuo Brand Kit",
+                    "⚙️ Setup del tuo sub-account Systeme.io"
+                ],
+                "agente": "ANDREA e GAIA ti supportano"
+            },
+            "F7": {
+                "title": "Pre-Lancio",
+                "obiettivo": "Preparare tutti i materiali per il lancio",
+                "tasks": [
+                    "📧 Rivedi le email di lancio",
+                    "📱 Approva i post social",
+                    "📅 Conferma il calendario 30 giorni"
+                ],
+                "agente": "STEFANIA prepara tutto il copy"
+            },
+            "F8": {
+                "title": "Lancio",
+                "obiettivo": "Eseguire il lancio e monitorare i risultati",
+                "tasks": [
+                    "🚀 Lancio attivo!",
+                    "📊 Monitora conversioni in tempo reale",
+                    "🔧 Fai aggiustamenti se necessario"
+                ],
+                "agente": "MARTA e ORION monitorano"
+            },
+            "F9": {
+                "title": "Ottimizzazione",
+                "obiettivo": "Analizzare i dati e ottimizzare",
+                "tasks": [
+                    "📈 Analizza i dati del lancio",
+                    "🎯 Identifica aree di miglioramento",
+                    "🔄 Ottimizza il funnel"
+                ],
+                "agente": "ORION analizza, GAIA ottimizza"
+            },
+            "F10": {
+                "title": "Scalabilità",
+                "obiettivo": "Crescere e scalare il business",
+                "tasks": [
+                    "📢 Valuta advertising (Facebook, YouTube)",
+                    "🎤 Considera webinar di vendita",
+                    "🆕 Pianifica un nuovo corso"
+                ],
+                "agente": "Tutto il team a supporto"
+            }
+        }
+        
+        info = phase_details.get(partner_phase, {
+            "title": "Fase non riconosciuta",
+            "obiettivo": "Contatta il supporto",
+            "tasks": ["Verifica la tua fase con il team"],
+            "agente": "VALENTINA"
+        })
+        
+        tasks_list = "\n".join(info["tasks"])
+        
+        return {
+            "success": True,
+            "agent": "VALENTINA",
+            "message": f"📚 **{partner_phase} - {info['title']}**\n\n🎯 **Obiettivo:**\n{info['obiettivo']}\n\n📋 **Cosa fare:**\n{tasks_list}\n\n👤 **Chi ti aiuta:** {info['agente']}\n\nVuoi iniziare con il primo task?"
+        }
+    
+    async def _get_my_progress(self, context: Dict = None) -> Dict:
+        """Get partner progress through the program"""
+        partner_phase = context.get("partner_phase", "F1") if context else "F1"
+        partner_name = context.get("partner_name", "Partner") if context else "Partner"
+        
+        # Calculate progress
+        phase_num = int(partner_phase.replace("F", "")) if partner_phase.startswith("F") else 0
+        progress_percent = (phase_num / 10) * 100
+        
+        phases_completed = phase_num
+        phases_remaining = 10 - phase_num
+        
+        # Progress bar
+        filled = "█" * phase_num
+        empty = "░" * (10 - phase_num)
+        progress_bar = f"[{filled}{empty}]"
+        
+        return {
+            "success": True,
+            "agent": "ATLAS",
+            "data": {"phase": partner_phase, "progress": progress_percent},
+            "message": f"📈 **Il Tuo Progresso, {partner_name}**\n\n{progress_bar} {progress_percent:.0f}%\n\n✅ **Fasi completate:** {phases_completed}/10\n⏳ **Fasi rimanenti:** {phases_remaining}\n🎯 **Fase attuale:** {partner_phase}\n\n{'🎉 Sei quasi alla fine!' if phase_num >= 8 else '💪 Continua così!' if phase_num >= 4 else '🚀 Buon inizio! Il meglio deve ancora venire!'}"
+        }
+    
+    async def _get_partner_revenue(self, context: Dict = None) -> Dict:
+        """Get revenue for a specific partner"""
+        partner_id = context.get("partner_id") if context else None
+        partner_name = context.get("partner_name", "Partner") if context else "Partner"
+        
+        if not partner_id:
+            return {
+                "success": False,
+                "agent": "MARTA",
+                "message": "⚠️ Non riesco a identificare il partner per mostrare il revenue."
+            }
+        
+        # Get partner's payments
+        payments = await db.payments.find({"partner_id": partner_id}, {"_id": 0}).to_list(100)
+        total_revenue = sum(p.get("amount", 0) for p in payments)
+        total_orders = len(payments)
+        
+        return {
+            "success": True,
+            "agent": "MARTA",
+            "data": {"revenue": total_revenue, "orders": total_orders},
+            "message": f"💰 **Revenue di {partner_name}**\n\n📈 **Totale guadagnato:** €{total_revenue:,.2f}\n🛒 **Ordini completati:** {total_orders}\n\n{'🎉 Ottimo lavoro!' if total_revenue > 0 else '💪 Il primo ordine arriverà presto!'}"
+        }
+    
     async def log_action(self, action_id: str, result: Dict, user_id: str):
         """Log executed action for tracking"""
         await db.valentina_actions.insert_one({
@@ -775,15 +990,24 @@ class ValentinaActionDispatcher:
 action_dispatcher = ValentinaActionDispatcher()
 
 
-async def detect_and_execute_action(message: str, context: Dict = None) -> Optional[Dict]:
+async def detect_and_execute_action(message: str, context: Dict = None, is_internal: bool = False) -> Optional[Dict]:
     """
     Helper function to detect and execute an action from a message
+    Filters by scope (internal/external) and partner phase
+    
+    Args:
+        message: User message
+        context: Context dict with partner info
+        is_internal: True if admin/Claudio
+    
     Returns action result or None if no action detected
     """
-    action = action_dispatcher.detect_action(message)
+    partner_phase = context.get("partner_phase") if context else None
+    
+    action = action_dispatcher.detect_action(message, is_internal=is_internal, partner_phase=partner_phase)
     if action:
         action_id, agent = action
-        logger.info(f"Detected action: {action_id} (agent: {agent})")
+        logger.info(f"Detected action: {action_id} (agent: {agent}, internal: {is_internal})")
         result = await action_dispatcher.execute_action(action_id, context)
         return result
     return None
