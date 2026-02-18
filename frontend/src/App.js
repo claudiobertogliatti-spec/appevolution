@@ -936,7 +936,7 @@ export default function App() {
             {nav==="funnel-analytics"&&<FunnelAnalytics partner={demoPartner}/>}
             {nav==="avatar-checkout"&&<AvatarCheckout partner={demoPartner} onBack={()=>setNav("masterclass")}/>}
             {nav==="consigli-registrazione"&&<ProduzioneVideo partner={demoPartner}/>}
-            {nav==="files"&&<PartnerFileManager partner={demoPartner}/>}
+            {nav==="files"&&<PartnerFilesPage partner={demoPartner}/>}
             {nav==="brandkit"&&<BrandKitEditor partner={demoPartner}/>}
             {nav==="calendario"&&<CalendarioEditoriale partner={demoPartner}/>}
             {nav==="documenti"&&demoPartner?.phase==="F0"?<OnboardingDocuments partner={demoPartner} onComplete={()=>setNav("home")}/>:<>{nav==="documenti"&&<WizardPosizionamento partner={demoPartner} onComplete={()=>setNav("masterclass")}/>}</>}
