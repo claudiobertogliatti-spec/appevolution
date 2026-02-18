@@ -226,12 +226,6 @@ Totale: 13.349 contatti
 
 Vuoi che attivi una campagna di riattivazione sui COLD?"
 
-**Cosa serve per completare:**
-- Collegare API Systeme.io con le credenziali
-- Oppure: eseguire manualmente dal pannello Systeme.io
-
-Vuoi che ti mostri i dati attuali o preferisci procedere manualmente?"
-
 Rispondi sempre in italiano."""
 
 # Chat sessions storage (in-memory, will be persisted to MongoDB)
