@@ -267,15 +267,40 @@ class ValentinaActionDispatcher:
     def __init__(self):
         self.actions_log = []
     
-    def detect_action(self, message: str) -> Optional[Tuple[str, str]]:
+    def detect_action(self, message: str, is_internal: bool = False, partner_phase: str = None) -> Optional[Tuple[str, str]]:
         """
         Detect if the message requires an action to be executed
+        Filters actions based on scope (internal/external) and partner phase
+        
+        Args:
+            message: User message
+            is_internal: True if admin/Claudio, False if partner
+            partner_phase: Current phase of partner (F0-F10) if external
+        
         Returns (action_id, agent) or None
         """
         message_lower = message.lower()
         
-        # Check each action's keywords
+        # Determine allowed scope
+        allowed_scopes = ["both"]
+        if is_internal:
+            allowed_scopes.append("internal")
+        else:
+            allowed_scopes.append("external")
+        
+        # Check each action's keywords, filtering by scope
         for action_id, action_info in AVAILABLE_ACTIONS.items():
+            # Check scope
+            action_scope = action_info.get("scope", "both")
+            if action_scope not in allowed_scopes:
+                continue
+            
+            # Check phase restriction for external users
+            if not is_internal and "phases" in action_info:
+                if partner_phase not in action_info["phases"]:
+                    continue
+            
+            # Check keywords
             for keyword in action_info["keywords"]:
                 if keyword in message_lower:
                     return (action_id, action_info["agent"])
@@ -303,11 +328,24 @@ class ValentinaActionDispatcher:
                 return await self._get_pipeline_status()
             elif action_id == "create_payment_link":
                 return await self._create_payment_link(context)
+            elif action_id == "get_partner_revenue":
+                return await self._get_partner_revenue(context)
             
             # VALENTINA actions
             elif action_id == "list_blocked_partners":
                 return await self._list_blocked_partners()
             elif action_id == "get_partner_status":
+                return await self._get_partner_status(context)
+            elif action_id == "get_my_status":
+                return await self._get_my_status(context)
+            elif action_id == "get_phase_info":
+                return await self._get_phase_info(context)
+            
+            # ATLAS actions
+            elif action_id == "get_churn_risk":
+                return await self._get_churn_risk()
+            elif action_id == "get_my_progress":
+                return await self._get_my_progress(context)
                 return await self._get_partner_status(context)
             
             # GAIA actions
