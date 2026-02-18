@@ -2636,6 +2636,164 @@ async def get_tasks_dashboard():
     }
 
 
+# =============================================================================
+# INTEGRATED SERVICES - Systeme.io, Email, Background Jobs
+# =============================================================================
+
+from integrated_services import (
+    systeme_client, email_service, job_executor,
+    add_systeme_tag, send_email_now, create_agent_task
+)
+
+
+class EmailSendRequest(BaseModel):
+    to_email: str
+    subject: str
+    html_content: str
+
+
+class CampaignEmailRequest(BaseModel):
+    emails: List[str]
+    subject: str
+    html_content: str
+    campaign_name: str = "Campaign"
+
+
+class TagRequest(BaseModel):
+    email: str
+    tag_name: str
+
+
+class AgentTaskRequest(BaseModel):
+    agent: str
+    title: str
+    task_type: str
+    data: Optional[Dict] = None
+    priority: str = "medium"
+    execute_now: bool = False
+
+
+@api_router.post("/email/send")
+async def api_send_email(request: EmailSendRequest):
+    """Send a single email via Resend"""
+    result = await send_email_now(request.to_email, request.subject, request.html_content)
+    return result
+
+
+@api_router.post("/email/campaign")
+async def api_send_campaign(request: CampaignEmailRequest):
+    """Send email campaign to multiple recipients"""
+    result = await email_service.send_campaign_email(
+        request.emails,
+        request.subject,
+        request.html_content,
+        request.campaign_name
+    )
+    return result
+
+
+@api_router.post("/email/welcome/{partner_id}")
+async def api_send_welcome_email(partner_id: str):
+    """Send welcome email to partner"""
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    email = partner.get("email")
+    name = partner.get("name", "Partner")
+    
+    if not email:
+        raise HTTPException(status_code=400, detail="Partner has no email")
+    
+    result = await email_service.send_welcome_email(email, name)
+    
+    if result.get("success"):
+        await db.partners.update_one(
+            {"id": partner_id},
+            {"$set": {"welcome_email_sent": True, "welcome_email_date": datetime.now(timezone.utc).isoformat()}}
+        )
+    
+    return result
+
+
+@api_router.post("/systeme/tag/add")
+async def api_add_systeme_tag(request: TagRequest):
+    """Add tag to contact in Systeme.io"""
+    result = await add_systeme_tag(request.email, request.tag_name)
+    return result
+
+
+@api_router.get("/systeme/contacts")
+async def api_get_systeme_contacts(limit: int = 100, page: int = 1):
+    """Get contacts from Systeme.io"""
+    try:
+        contacts = await systeme_client.get_contacts(limit=limit, page=page)
+        return contacts
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get("/systeme/tags")
+async def api_get_systeme_tags():
+    """Get all tags from Systeme.io"""
+    try:
+        tags = await systeme_client.get_tags()
+        return {"tags": tags}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/systeme/sync-contacts")
+async def api_sync_systeme_contacts():
+    """Sync contacts from Systeme.io to local database"""
+    task = await create_agent_task(
+        agent="GAIA",
+        title="Sync Systeme.io Contacts",
+        task_type="sync_contacts",
+        execute_now=True
+    )
+    return task
+
+
+@api_router.post("/jobs/task")
+async def api_create_task(request: AgentTaskRequest):
+    """Create an agent task (optionally execute immediately)"""
+    result = await create_agent_task(
+        agent=request.agent,
+        title=request.title,
+        task_type=request.task_type,
+        data=request.data,
+        priority=request.priority,
+        execute_now=request.execute_now
+    )
+    return result
+
+
+@api_router.post("/jobs/process")
+async def api_process_pending_tasks():
+    """Manually trigger processing of pending tasks"""
+    await job_executor.process_pending_tasks()
+    return {"success": True, "message": "Pending tasks processed"}
+
+
+@api_router.get("/jobs/status")
+async def api_get_job_status():
+    """Get status of background job system"""
+    pending = await db.agent_tasks.count_documents({"status": "pending"})
+    in_progress = await db.agent_tasks.count_documents({"status": "in_progress"})
+    completed_today = await db.agent_tasks.count_documents({
+        "status": "completed",
+        "completed_at": {"$gte": datetime.now(timezone.utc).replace(hour=0, minute=0, second=0).isoformat()}
+    })
+    
+    return {
+        "pending": pending,
+        "in_progress": in_progress,
+        "completed_today": completed_today,
+        "worker_running": job_executor.running
+    }
+
+
 @api_router.post("/valentina/memory/feedback")
 async def add_valentina_feedback(
     original_response: str,
