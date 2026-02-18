@@ -942,6 +942,7 @@ export default function App() {
             {nav==="avatar-checkout"&&<AvatarCheckout partner={demoPartner} onBack={()=>setNav("masterclass")}/>}
             {nav==="consigli-registrazione"&&<ProduzioneVideo partner={demoPartner}/>}
             {nav==="files"&&<PartnerFilesPage partner={demoPartner}/>}
+            {nav==="bonus"&&<BonusStrategici partner={demoPartner}/>}
             {nav==="brandkit"&&<BrandKitEditor partner={demoPartner}/>}
             {nav==="calendario"&&<CalendarioEditoriale partner={demoPartner}/>}
             {nav==="documenti"&&demoPartner?.phase==="F0"?<OnboardingDocuments partner={demoPartner} onComplete={()=>setNav("home")}/>:<>{nav==="documenti"&&<WizardPosizionamento partner={demoPartner} onComplete={()=>setNav("masterclass")}/>}</>}
