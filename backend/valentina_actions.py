@@ -106,7 +106,7 @@ AVAILABLE_ACTIONS = {
         "agent": "GAIA",
         "scope": "internal",
         "description": "Aggiungi tag a un contatto su Systeme.io",
-        "keywords": ["aggiungi tag", "add tag", "taggare", "tag contatto", "metti tag"]
+        "keywords": ["aggiungi tag", "aggiungi il tag", "aggiungi un tag", "add tag", "taggare", "tag contatto", "metti tag", "metti il tag", "applica tag", "applica il tag"]
     },
     "trigger_email_campaign": {
         "agent": "GAIA",
