@@ -204,20 +204,50 @@ AVAILABLE_ACTIONS = {
         "description": "Contratti in scadenza",
         "keywords": ["contratti scadenza", "rinnovi", "contratti expiring"]
     },
+    "check_my_contract": {
+        "agent": "LUCA",
+        "scope": "external",
+        "description": "Mostra dettagli contratto del partner",
+        "keywords": ["mio contratto", "vedi contratto", "scadenza contratto", "dettagli accordo"]
+    },
+    "check_onboarding_docs": {
+        "agent": "LUCA",
+        "scope": "external",
+        "phases": ["F0"],
+        "description": "Verifica stato documenti onboarding",
+        "keywords": ["documenti", "stato documenti", "upload documenti", "contratto firmato"]
+    },
     
-    # Partner Management
+    # =========================================================================
+    # VALENTINA - Partner Management
+    # =========================================================================
     "get_partner_status": {
         "agent": "VALENTINA",
+        "scope": "internal",  # Admin vede status di tutti
         "description": "Stato dettagliato di un partner",
         "keywords": ["stato partner", "situazione partner", "come sta", "a che punto è"]
     },
     "list_blocked_partners": {
         "agent": "VALENTINA",
+        "scope": "internal",  # Solo admin vede partner bloccati
         "description": "Partner bloccati che necessitano attenzione",
         "keywords": ["partner bloccati", "blocchi", "chi è fermo", "partner fermi"]
     },
+    "get_my_status": {
+        "agent": "VALENTINA",
+        "scope": "external",
+        "description": "Mostra stato attuale del partner e prossimi passi",
+        "keywords": ["mio stato", "dove sono", "prossimo passo", "cosa devo fare"]
+    },
+    "get_phase_info": {
+        "agent": "VALENTINA",
+        "scope": "external",
+        "description": "Spiega cosa fare nella fase attuale",
+        "keywords": ["cosa fare", "questa fase", "obiettivo fase", "aiutami"]
+    },
     "move_partner_phase": {
         "agent": "VALENTINA",
+        "scope": "internal",  # Solo admin può spostare fasi
         "description": "Sposta un partner alla fase successiva",
         "keywords": ["sposta fase", "avanza fase", "promuovi partner", "passa a fase"]
     },
