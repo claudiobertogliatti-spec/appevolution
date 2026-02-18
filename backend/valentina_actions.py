@@ -358,7 +358,9 @@ class ValentinaActionDispatcher:
         try:
             # Route to appropriate handler
             # ORION actions
-            if action_id == "get_lead_stats":
+            if action_id == "migrate_leads_segment":
+                return await self._migrate_leads_segment(context)
+            elif action_id == "get_lead_stats":
                 return await self._get_lead_stats()
             elif action_id == "get_hot_leads":
                 return await self._get_hot_leads()
