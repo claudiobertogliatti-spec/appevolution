@@ -575,20 +575,6 @@ class ValentinaActionDispatcher:
                 "agent": "GAIA",
                 "message": f"⚠️ Errore durante la sincronizzazione: {str(e)}"
             }
-            return {
-                "success": False,
-                "agent": "GAIA",
-                "message": "⚠️ API Key Systeme.io non configurata. Contatta il team tecnico."
-            }
-        
-        # Count current contacts
-        current_count = await db.systeme_contacts.count_documents({})
-        
-        return {
-            "success": True,
-            "agent": "GAIA",
-            "message": f"🔄 **Sincronizzazione Systeme.io**\n\nContatti attuali nel DB: {current_count:,}\n\n✅ Ho avviato la sincronizzazione in background. I nuovi contatti saranno disponibili tra qualche minuto.\n\nVuoi che ti avvisi quando è completata?"
-        }
     
     async def _generate_email_copy(self, context: Dict = None) -> Dict:
         """Generate email copy with STEFANIA"""
