@@ -61,12 +61,13 @@ Build "Evolution PRO OS", a proprietary web application for business workflow au
    - Implemented `_add_systeme_tag()` method with NLP parameter extraction
    - Added regex parsing to extract email and tag_name from natural language messages
    - Example: "Aggiungi il tag test_valentina al contatto info@danieleandolfi.com" → Task created and executed
-   - **Verified**: Tag successfully added on Systeme.io (contact_id: 404930971, tag_id: 1876220)
+   - **Verified**: Tags successfully added on Systeme.io (multiple tests passed)
 
-2. **Action Detection Improvements**
-   - Expanded keywords for better Italian phrase matching
-   - Added "aggiungi il tag", "applica tag", "metti il tag" variations
-   - Passing original message to execution context for parameter extraction
+2. **CRITICAL FIX: Honest Response for Unsupported Operations**
+   - VALENTINA now explicitly blocks and explains when operations are NOT supported
+   - Unsupported: Creating pipeline columns, creating funnels, creating automations
+   - Supported: Adding tags, reading lead stats, migrating segments, generating copy
+   - Fixed bug where "sposta contatto" keyword was blocking valid tag operations
 
 3. **Background Worker Confirmed Working**
    - Tasks created in `agent_tasks` collection with status tracking
