@@ -4812,6 +4812,43 @@ async def serve_file(path: str):
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(file_path)
 
+@api_router.get("/files/partner/{partner_id}")
+async def get_partner_files(partner_id: str):
+    """Get all files for a specific partner"""
+    # Get files from database
+    files = await db.files.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Also get onboarding documents
+    onboarding_docs = await db.onboarding_documents.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).to_list(10)
+    
+    # Categorize files
+    categorized = {
+        "video": [],
+        "document": [],
+        "image": [],
+        "audio": [],
+        "onboarding": onboarding_docs
+    }
+    
+    for f in files:
+        cat = f.get("category", "document")
+        if cat in categorized:
+            categorized[cat].append(f)
+        else:
+            categorized["document"].append(f)
+    
+    return {
+        "files": categorized,
+        "total": len(files) + len(onboarding_docs),
+        "partner_id": partner_id
+    }
+
 @api_router.get("/storage/stats")
 async def get_storage_stats():
     """Get storage usage statistics"""
