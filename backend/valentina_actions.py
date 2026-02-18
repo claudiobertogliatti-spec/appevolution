@@ -33,49 +33,78 @@ db = client[db_name]
 
 
 # Available actions that VALENTINA can execute
+# scope: "internal" = solo admin/Claudio, "external" = partner, "both" = entrambi
 AVAILABLE_ACTIONS = {
-    # ORION - Lead Intelligence
+    # =========================================================================
+    # ORION - Lead Intelligence (INTERNAL ONLY - Admin vede tutti i lead)
+    # =========================================================================
     "get_lead_stats": {
         "agent": "ORION",
+        "scope": "internal",
         "description": "Ottieni statistiche sui lead (HOT, WARM, COLD, FROZEN)",
         "keywords": ["lead", "contatti", "statistiche", "quanti lead", "situazione lead", "orion"]
     },
     "get_hot_leads": {
         "agent": "ORION",
+        "scope": "internal",
         "description": "Lista dei lead HOT pronti a comprare",
         "keywords": ["lead hot", "lead caldi", "pronti a comprare", "lead interessati"]
     },
     "analyze_lead": {
         "agent": "ORION",
+        "scope": "internal",
         "description": "Analizza un lead specifico",
         "keywords": ["analizza lead", "controlla contatto", "verifica lead"]
     },
     
+    # =========================================================================
     # STEFANIA - Copy & Marketing
+    # =========================================================================
     "generate_email_copy": {
         "agent": "STEFANIA",
+        "scope": "internal",  # Solo admin può generare campagne email bulk
         "description": "Genera copy per email marketing",
         "keywords": ["scrivi email", "genera email", "copy email", "email marketing"]
     },
     "generate_social_post": {
         "agent": "STEFANIA",
+        "scope": "both",  # Partner può chiedere aiuto per i suoi post
         "description": "Genera post per social media",
         "keywords": ["post social", "post linkedin", "post facebook", "post instagram", "contenuto social"]
     },
     "generate_ad_hooks": {
         "agent": "STEFANIA",
+        "scope": "internal",  # War Mode è solo per admin
         "description": "Genera hook per ads (War Mode)",
         "keywords": ["hook ads", "creatività ads", "testi pubblicitari", "war mode"]
     },
     "review_script": {
         "agent": "STEFANIA",
+        "scope": "both",  # Partner può chiedere revisione del suo script
         "description": "Revisiona uno script per masterclass/video",
         "keywords": ["revisiona script", "controlla script", "feedback script"]
     },
+    "generate_course_structure": {
+        "agent": "STEFANIA",
+        "scope": "external",  # Specifico per partner in F2
+        "phases": ["F2"],
+        "description": "Genera struttura del corso per il partner",
+        "keywords": ["struttura corso", "outline", "moduli corso", "posizionamento"]
+    },
+    "generate_masterclass_blocks": {
+        "agent": "STEFANIA",
+        "scope": "external",  # Specifico per partner in F3
+        "phases": ["F3"],
+        "description": "Genera i 6 blocchi della masterclass",
+        "keywords": ["masterclass", "blocchi", "copy masterclass", "6 blocchi"]
+    },
     
+    # =========================================================================
     # ANDREA - Video Production
+    # =========================================================================
     "create_video_edit": {
         "agent": "ANDREA",
+        "scope": "both",
         "description": "Crea o modifica un video (editing, sottotitoli, thumbnail)",
         "keywords": ["video", "editing", "monta video", "sottotitoli", "thumbnail", "andrea"]
     },
