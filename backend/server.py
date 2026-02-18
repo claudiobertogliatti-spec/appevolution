@@ -29,21 +29,14 @@ from agent_hub_service import AgentAnalyticsHub, init_agent_hub
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection - Use Atlas if local not available
-mongo_url = os.environ.get('MONGO_URL', '')
-db_name = os.environ.get('DB_NAME', 'evolution_pro')
-
-# Fallback to MongoDB Atlas if local connection fails or not configured
+# MongoDB connection - Always use MongoDB Atlas
 ATLAS_URL = "mongodb+srv://evolution_admin:Evoluzione74@cluster0.4cgj8wx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 ATLAS_DB = "evolution_pro"
 
-if not mongo_url or 'localhost' in mongo_url or '127.0.0.1' in mongo_url:
-    # Use Atlas in production
-    mongo_url = ATLAS_URL
-    db_name = ATLAS_DB
-    print(f"🔗 Using MongoDB Atlas: cluster0.4cgj8wx.mongodb.net")
-else:
-    print(f"🔗 Using configured MongoDB: {mongo_url[:50]}...")
+# Force Atlas connection for consistency between preview and production
+mongo_url = ATLAS_URL
+db_name = ATLAS_DB
+print(f"🔗 Connected to MongoDB Atlas: cluster0.4cgj8wx.mongodb.net / {db_name}")
 
 client = AsyncIOMotorClient(mongo_url)
 db = client[db_name]
