@@ -10754,6 +10754,31 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Background task holder
+background_tasks = set()
+
+@app.on_event("startup")
+async def start_background_services():
+    """Start background job worker"""
+    try:
+        from integrated_services import job_executor
+        import asyncio
+        
+        # Create background task for job worker (runs every 60 seconds)
+        task = asyncio.create_task(job_executor.start_worker(interval_seconds=60))
+        background_tasks.add(task)
+        task.add_done_callback(background_tasks.discard)
+        
+        logging.info("Background job worker started")
+    except Exception as e:
+        logging.warning(f"Could not start background worker: {e}")
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
+    """Shutdown database and background services"""
+    try:
+        from integrated_services import job_executor
+        job_executor.stop_worker()
+    except:
+        pass
     client.close()
