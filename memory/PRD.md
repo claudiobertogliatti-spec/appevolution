@@ -74,6 +74,13 @@ Build "Evolution PRO OS", a proprietary web application for business workflow au
    - Tasks transition: pending → in_progress → completed/failed
    - Results stored with full Systeme.io response
 
+4. **ORION Expanded Actions** (NEW)
+   - `analyze_lead`: Analisi dettagliata lead specifico per email
+   - `get_leads_to_reactivate`: Identifica COLD/FROZEN da riattivare  
+   - `get_lead_trends`: Trend e statistiche nel tempo
+   - `get_segment_details`: Breakdown approfondito per segmento
+   - `get_conversion_potential`: Calcolo potenziale revenue con tassi conversione
+
 ### Session 27 - Complete Agent System + Integrated Services
 
 1. **VALENTINA AI Overhaul**
