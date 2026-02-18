@@ -58,6 +58,7 @@ const getSidebarGroups = (partnerPhase) => {
         // Mostra "Documenti Onboarding" solo in F0
         ...(isF0 ? [{ id: "onboarding-docs", label: "Documenti Onboarding", icon: FileUp, badge: "URGENTE", badgeColor: "red" }] : []),
         { id: "corso", label: "Parti da Qui", icon: PlayCircle, badge: isF0 ? null : "START" },
+        { id: "bonus", label: "Bonus Strategici", icon: Star, badge: "7" },
         { id: "files", label: "I Miei File", icon: FolderOpen },
         { id: "brandkit", label: "Brand Kit", icon: Palette },
         { id: "documenti", label: "Posizionamento", icon: Target },
