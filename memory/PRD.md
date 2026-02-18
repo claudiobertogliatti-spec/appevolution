@@ -55,24 +55,45 @@ Build "Evolution PRO OS", a proprietary web application for business workflow au
 
 ## Recent Changes (2026-02-18)
 
-### Session 27 - VALENTINA Fix + Action Execution System
+### Session 27 - Complete Agent System + Integrated Services
 
-1. **VALENTINA AI Bug Fix (CRITICAL)**
-   - **Problem**: VALENTINA non manteneva la memoria dopo 4-5 messaggi
-   - **Fix**: Corretto modello LLM (`claude-sonnet-4-20250514`), sessioni persistite
+1. **VALENTINA AI Overhaul**
+   - Fixed memory persistence bug (sessions now cached)
+   - Corrected LLM model name
+   - Added honesty rules (no more fake "completed" actions)
    
-2. **VALENTINA Action Dispatcher (NEW - CRITICAL)**
-   - **File**: `/app/backend/valentina_actions.py`
-   - **Capacità**: VALENTINA ora ESEGUE azioni reali, non solo parla
-   - **8 Agenti Integrati**:
-     - **VALENTINA** (Main) - Orchestrazione, stato partner
-     - **ORION** - Lead stats, hot leads, scoring
-     - **STEFANIA** - Email copy, social posts, ad hooks
-     - **ANDREA** - Video editing, thumbnails, sottotitoli
-     - **GAIA** - Funnel status, sync Systeme.io
-     - **MARTA** - Sales KPI, pipeline, payment links
-     - **ATLAS** - Churn risk, retention
-     - **LUCA** - Contract expiry, compliance
+2. **Internal/External Scope System**
+   - Actions now filtered by scope (internal for admin, external for partners)
+   - Partners get contextual help based on their phase (F0-F10)
+   - Admin has full access to all data and operations
+
+3. **Integrated Services** (`/app/backend/integrated_services.py`)
+   - **Systeme.io Client**: Full API integration
+     - Get/create contacts
+     - Manage tags (add/remove)
+     - Subscribe to campaigns
+   - **Resend Email Service**: Transactional emails
+     - Send single emails
+     - Campaign emails to multiple recipients
+     - Welcome email templates
+   - **Background Job Executor**: 
+     - Processes pending agent tasks every 60 seconds
+     - Supports immediate execution with `execute_now=True`
+     - Task status tracking (pending/in_progress/completed/failed)
+
+4. **New API Endpoints**
+   - `POST /api/email/send` - Send single email
+   - `POST /api/email/campaign` - Send campaign to multiple recipients  
+   - `POST /api/email/welcome/{partner_id}` - Send welcome email
+   - `POST /api/systeme/tag/add` - Add tag to contact
+   - `GET /api/systeme/contacts` - List contacts
+   - `GET /api/systeme/tags` - List all tags
+   - `POST /api/systeme/sync-contacts` - Sync contacts to local DB
+   - `POST /api/jobs/task` - Create agent task
+   - `POST /api/jobs/process` - Process pending tasks manually
+   - `GET /api/jobs/status` - Get background worker status
+
+5. **8 Agents Integrated** with scope filtering
 
 3. **Agent Task System (NEW)**
    - Sistema per tracciare task assegnati agli agenti
