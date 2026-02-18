@@ -2721,7 +2721,7 @@ async def api_send_welcome_email(partner_id: str):
 @api_router.post("/systeme/tag/add")
 async def api_add_systeme_tag(request: TagRequest):
     """Add tag to contact in Systeme.io"""
-    result = await add_systeme_tag(request.email, request.tag_name)
+    result = await integrated_add_tag(request.email, request.tag_name)
     return result
 
 
