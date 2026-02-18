@@ -970,8 +970,13 @@ async def register(request: RegisterRequest):
 
 
 async def send_partner_welcome_email(email: str, name: str):
-    """Send welcome email to new partner with app instructions"""
-    # Email content
+    """Send welcome email to new partner with app instructions
+    
+    This function:
+    1. Logs the email content to database
+    2. Adds 'welcome_partner' tag to Systeme.io to trigger automation
+    3. Sends notification via Telegram
+    """
     subject = "🎉 Benvenuto in Evolution PRO - Le tue credenziali"
     
     html_content = f"""
@@ -1021,17 +1026,45 @@ async def send_partner_welcome_email(email: str, name: str):
     </html>
     """
     
-    # Log the email (in production, use a real email service)
     logging.info(f"Welcome email prepared for {email}")
     
     # Store email in database for tracking
     await db.email_logs.insert_one({
         "type": "welcome",
         "to": email,
+        "name": name,
         "subject": subject,
+        "html_content": html_content,
         "sent_at": datetime.now(timezone.utc).isoformat(),
-        "status": "sent"
+        "status": "queued"
     })
+    
+    # Trigger Systeme.io automation by adding welcome tag
+    systeme_api_key = os.environ.get('SYSTEME_API_KEY')
+    if systeme_api_key:
+        try:
+            await add_systeme_tag(systeme_api_key, email, "welcome_partner")
+            await db.email_logs.update_one(
+                {"to": email, "type": "welcome"},
+                {"$set": {"systeme_tag_added": True, "status": "sent_via_systeme"}}
+            )
+            logging.info(f"Welcome tag added to {email} in Systeme.io")
+        except Exception as e:
+            logging.warning(f"Could not add Systeme.io tag for {email}: {e}")
+    
+    # Send Telegram notification to admin
+    try:
+        telegram_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+        admin_chat_id = os.environ.get('TELEGRAM_ADMIN_CHAT_ID')
+        if telegram_token and admin_chat_id:
+            message = f"🎉 *Nuovo Partner Registrato!*\n\n👤 *Nome:* {name}\n📧 *Email:* {email}\n\n✅ Email di benvenuto inviata"
+            async with httpx.AsyncClient() as client:
+                await client.post(
+                    f"https://api.telegram.org/bot{telegram_token}/sendMessage",
+                    json={"chat_id": admin_chat_id, "text": message, "parse_mode": "Markdown"}
+                )
+    except Exception as e:
+        logging.warning(f"Could not send Telegram notification: {e}")
     
     return True
 
