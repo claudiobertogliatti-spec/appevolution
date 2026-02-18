@@ -30,6 +30,7 @@ const UNLOCK_RULES = {
   // F5 - Dopo prima lezione caricata
   "consigli-registrazione": 5, // Consigli Registrazione
   "video-editor": 5,    // Video Editor
+  "files": 5,           // I Miei File
   
   // F7 - Dopo Masterclass pronta
   "funnel": 7,          // Il tuo Funnel
