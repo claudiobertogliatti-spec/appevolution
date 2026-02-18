@@ -200,6 +200,9 @@ class ValentinaAI:
             is_founder = self._is_founder(context)
             user_id = "claudio" if is_founder else partner_id
             
+            # Create unique session key
+            session_key = f"valentina_{user_id}"
+            
             # Load persistent memory if available
             memory_context = ""
             if MEMORY_ENABLED and is_founder:
@@ -221,15 +224,16 @@ class ValentinaAI:
             else:
                 system_prompt = VALENTINA_SYSTEM_PROMPT.format(context=context_str)
             
-            # Get chat history for this session
-            session_id = f"valentina_{partner_id}"
+            # Get or create LLM session - PERSIST the session for conversation continuity
+            if session_key not in self._llm_sessions:
+                logger.info(f"Creating new LLM session for {session_key}")
+                self._llm_sessions[session_key] = LlmChat(
+                    api_key=self.llm_key,
+                    session_id=session_key,
+                    system_message=system_prompt
+                ).with_model("anthropic", "claude-sonnet-4-20250514")
             
-            # Initialize LLM Chat with correct pattern
-            llm = LlmChat(
-                api_key=self.llm_key,
-                session_id=session_id,
-                system_message=system_prompt
-            ).with_model("anthropic", "claude-4-sonnet-20250514")
+            llm = self._llm_sessions[session_key]
             
             # Send message and get response
             response = await llm.send_message(UserMessage(text=message))
@@ -278,6 +282,10 @@ class ValentinaAI:
             
         except Exception as e:
             logger.error(f"VALENTINA chat error: {e}")
+            # Reset session on error to avoid stuck state
+            session_key = f"valentina_{partner_id}"
+            if session_key in self._llm_sessions:
+                del self._llm_sessions[session_key]
             # Fallback response
             return self._fallback_response(message, context)
     
