@@ -299,6 +299,39 @@ class ValentinaAI:
                 except Exception as e:
                     logger.error(f"Action detection error: {e}")
             
+            # =====================================================
+            # STEP 1.5: Check for UNSUPPORTED Systeme.io operations
+            # If user asks for something we CAN'T do, return honest response
+            # =====================================================
+            msg_lower = message.lower()
+            unsupported_keywords = [
+                "crea colonna", "creare colonna", "aggiungi colonna", "nuova colonna",
+                "crea pipeline", "creare pipeline", "nuova pipeline",
+                "sposta contatto", "spostare contatto", "sposta lead", "spostare lead",
+                "inserisci nella pipeline", "inserire nella pipeline",
+                "modifica automazione", "crea automazione", "nuova automazione",
+                "crea funnel", "creare funnel", "nuovo funnel"
+            ]
+            
+            if not action_result and any(kw in msg_lower for kw in unsupported_keywords):
+                # Return honest response about limitations
+                return """Boss, devo essere onesta con te.
+
+**❌ Questa operazione NON posso farla:**
+- Creare/modificare colonne o pipeline su Systeme.io
+- Spostare contatti specifici nella pipeline
+- Creare automazioni o funnel
+
+**✅ Cosa POSSO fare davvero:**
+- Aggiungere TAG ai contatti (es: "Aggiungi tag VIP al contatto mario@email.it")
+- Leggere statistiche lead (es: "Quanti lead HOT abbiamo?")
+- Migrare lead tra segmenti nel database (es: "Migra COLD a WARM")
+- Generare copy per email
+
+Per operazioni sulla pipeline Systeme.io, devi farlo dalla dashboard https://systeme.io
+
+Mi dispiace per la confusione precedente. Dimmi cosa posso fare per te tra le opzioni disponibili."""
+
             # Load persistent memory if available (only for founder)
             memory_context = ""
             if MEMORY_ENABLED and is_founder:
