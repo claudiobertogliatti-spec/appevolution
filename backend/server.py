@@ -2498,6 +2498,140 @@ async def get_valentina_knowledge(
     return {
         "user_id": user_id,
         "category": category,
+
+
+# =============================================================================
+# AGENT TASK SYSTEM - Track and execute tasks assigned to agents
+# =============================================================================
+
+class AgentTaskCreate(BaseModel):
+    title: str
+    description: str
+    agent: str  # VALENTINA, STEFANIA, ORION, GAIA, MARTA, ATLAS, LUCA, ANDREA
+    priority: str = "medium"  # low, medium, high, urgent
+    partner_id: Optional[str] = None
+    due_date: Optional[str] = None
+    created_by: str = "valentina"
+
+
+@api_router.post("/agent-tasks")
+async def create_agent_task(task: AgentTaskCreate):
+    """Create a task assigned to an agent"""
+    valid_agents = ["VALENTINA", "STEFANIA", "ORION", "GAIA", "MARTA", "ATLAS", "LUCA", "ANDREA"]
+    if task.agent.upper() not in valid_agents:
+        raise HTTPException(status_code=400, detail=f"Agente non valido. Usa: {valid_agents}")
+    
+    task_doc = {
+        "id": str(uuid.uuid4()),
+        "title": task.title,
+        "description": task.description,
+        "agent": task.agent.upper(),
+        "priority": task.priority,
+        "partner_id": task.partner_id,
+        "due_date": task.due_date,
+        "status": "pending",  # pending, in_progress, completed, failed
+        "created_by": task.created_by,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "completed_at": None,
+        "result": None
+    }
+    
+    await db.agent_tasks.insert_one(task_doc)
+    task_doc.pop("_id", None)
+    
+    return {"success": True, "task": task_doc}
+
+
+@api_router.get("/agent-tasks")
+async def list_agent_tasks(
+    agent: str = None,
+    status: str = None,
+    limit: int = 50
+):
+    """List agent tasks with optional filters"""
+    query = {}
+    if agent:
+        query["agent"] = agent.upper()
+    if status:
+        query["status"] = status
+    
+    tasks = await db.agent_tasks.find(query, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    return {"tasks": tasks, "count": len(tasks)}
+
+
+@api_router.get("/agent-tasks/{task_id}")
+async def get_agent_task(task_id: str):
+    """Get a specific task"""
+    task = await db.agent_tasks.find_one({"id": task_id}, {"_id": 0})
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
+
+
+@api_router.patch("/agent-tasks/{task_id}/status")
+async def update_task_status(task_id: str, status: str, result: str = None):
+    """Update task status"""
+    valid_statuses = ["pending", "in_progress", "completed", "failed"]
+    if status not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Status non valido. Usa: {valid_statuses}")
+    
+    update_data = {
+        "status": status,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    if status == "completed":
+        update_data["completed_at"] = datetime.now(timezone.utc).isoformat()
+    
+    if result:
+        update_data["result"] = result
+    
+    result_update = await db.agent_tasks.update_one(
+        {"id": task_id},
+        {"$set": update_data}
+    )
+    
+    if result_update.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    return {"success": True, "task_id": task_id, "new_status": status}
+
+
+@api_router.get("/agent-tasks/summary/dashboard")
+async def get_tasks_dashboard():
+    """Get summary of all agent tasks for dashboard"""
+    # Count by status
+    pending = await db.agent_tasks.count_documents({"status": "pending"})
+    in_progress = await db.agent_tasks.count_documents({"status": "in_progress"})
+    completed = await db.agent_tasks.count_documents({"status": "completed"})
+    failed = await db.agent_tasks.count_documents({"status": "failed"})
+    
+    # Count by agent
+    agents_stats = {}
+    for agent in ["VALENTINA", "STEFANIA", "ORION", "GAIA", "MARTA", "ATLAS", "LUCA", "ANDREA"]:
+        count = await db.agent_tasks.count_documents({"agent": agent, "status": {"$in": ["pending", "in_progress"]}})
+        if count > 0:
+            agents_stats[agent] = count
+    
+    # Recent tasks
+    recent = await db.agent_tasks.find(
+        {"status": {"$in": ["pending", "in_progress"]}},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(10).to_list(10)
+    
+    return {
+        "summary": {
+            "pending": pending,
+            "in_progress": in_progress,
+            "completed": completed,
+            "failed": failed,
+            "total_active": pending + in_progress
+        },
+        "by_agent": agents_stats,
+        "recent_tasks": recent
+    }
         "knowledge": knowledge,
         "count": len(knowledge)
     }
