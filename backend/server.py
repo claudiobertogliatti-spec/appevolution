@@ -2498,6 +2498,8 @@ async def get_valentina_knowledge(
     return {
         "user_id": user_id,
         "category": category,
+        "knowledge": knowledge
+    }
 
 
 # =============================================================================
