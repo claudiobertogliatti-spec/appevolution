@@ -58,6 +58,7 @@ const getSidebarGroups = (partnerPhase) => {
         // Mostra "Documenti Onboarding" solo in F0
         ...(isF0 ? [{ id: "onboarding-docs", label: "Documenti Onboarding", icon: FileUp, badge: "URGENTE", badgeColor: "red" }] : []),
         { id: "corso", label: "Parti da Qui", icon: PlayCircle, badge: isF0 ? null : "START" },
+        { id: "files", label: "I Miei File", icon: FolderOpen },
         { id: "brandkit", label: "Brand Kit", icon: Palette },
         { id: "documenti", label: "Posizionamento", icon: Target },
         { id: "masterclass", label: "Masterclass", icon: Mic },
@@ -80,7 +81,6 @@ const getSidebarGroups = (partnerPhase) => {
         { id: "consigli-registrazione", label: "Consigli Registrazione", icon: Lightbulb },
         { id: "video-editor", label: "Video Editor", icon: Scissors },
         { id: "legal-pages", label: "Pagine Legali", icon: Scale },
-        { id: "files", label: "I Miei File", icon: FolderOpen },
       ]
     },
     {
