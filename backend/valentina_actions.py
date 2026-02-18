@@ -110,59 +110,97 @@ AVAILABLE_ACTIONS = {
     },
     "generate_thumbnail": {
         "agent": "ANDREA",
+        "scope": "both",
         "description": "Genera thumbnail per video YouTube",
         "keywords": ["thumbnail", "copertina video", "immagine video"]
     },
     "add_subtitles": {
         "agent": "ANDREA",
+        "scope": "both",
         "description": "Aggiungi sottotitoli a un video",
         "keywords": ["sottotitoli", "captions", "trascrizione video"]
     },
+    "get_recording_checklist": {
+        "agent": "ANDREA",
+        "scope": "external",
+        "phases": ["F5"],
+        "description": "Ottieni checklist per registrazione video",
+        "keywords": ["checklist registrazione", "come registrare", "setup video", "consigli registrazione"]
+    },
     
+    # =========================================================================
     # GAIA - Funnel & Systeme.io
+    # =========================================================================
     "sync_systeme_contacts": {
         "agent": "GAIA",
+        "scope": "internal",  # Solo admin può sincronizzare tutti i contatti
         "description": "Sincronizza contatti da Systeme.io",
         "keywords": ["sincronizza systeme", "importa contatti", "sync systeme", "aggiorna lead"]
     },
     "check_funnel_status": {
         "agent": "GAIA",
+        "scope": "both",  # Admin vede tutti, partner vede il suo
         "description": "Verifica stato funnel di un partner",
         "keywords": ["stato funnel", "funnel attivo", "verifica funnel"]
     },
+    "setup_systeme_account": {
+        "agent": "GAIA",
+        "scope": "external",
+        "phases": ["F6"],
+        "description": "Guida setup sub-account Systeme.io del partner",
+        "keywords": ["configura systeme", "setup systeme", "sub-account", "accademia"]
+    },
     
+    # =========================================================================
     # MARTA - CRM & Revenue
+    # =========================================================================
     "get_sales_kpi": {
         "agent": "MARTA",
+        "scope": "internal",  # KPI globali solo per admin
         "description": "Ottieni KPI vendite (fatturato, ordini, conversioni)",
         "keywords": ["vendite", "fatturato", "kpi", "revenue", "ordini", "incassi"]
     },
     "get_partner_revenue": {
         "agent": "MARTA",
+        "scope": "both",  # Admin vede tutti, partner vede il suo
         "description": "Revenue specifico di un partner",
-        "keywords": ["revenue partner", "fatturato partner", "guadagni partner"]
+        "keywords": ["revenue partner", "fatturato partner", "guadagni partner", "mie vendite"]
     },
     "get_pipeline_status": {
         "agent": "MARTA",
+        "scope": "internal",  # Pipeline globale solo per admin
         "description": "Stato pipeline commerciale",
         "keywords": ["pipeline", "stato commerciale", "opportunità", "deals"]
     },
     "create_payment_link": {
         "agent": "MARTA",
+        "scope": "internal",  # Solo admin crea link pagamento
         "description": "Crea link di pagamento Stripe",
         "keywords": ["link pagamento", "stripe", "checkout", "paga"]
     },
     
+    # =========================================================================
     # ATLAS - Post-Sale
+    # =========================================================================
     "get_churn_risk": {
         "agent": "ATLAS",
+        "scope": "internal",  # Solo admin vede rischio churn
         "description": "Partner a rischio churn",
         "keywords": ["rischio abbandono", "churn", "partner inattivi", "partner a rischio"]
     },
+    "get_my_progress": {
+        "agent": "ATLAS",
+        "scope": "external",
+        "description": "Mostra progresso del partner nel percorso",
+        "keywords": ["mio progresso", "a che punto sono", "stato percorso", "come sto andando"]
+    },
     
+    # =========================================================================
     # LUCA - Compliance
+    # =========================================================================
     "check_contract_expiry": {
         "agent": "LUCA",
+        "scope": "internal",  # Solo admin vede scadenze contratti
         "description": "Contratti in scadenza",
         "keywords": ["contratti scadenza", "rinnovi", "contratti expiring"]
     },
