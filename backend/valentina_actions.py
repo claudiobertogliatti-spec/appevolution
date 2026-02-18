@@ -73,6 +73,23 @@ AVAILABLE_ACTIONS = {
         "keywords": ["revisiona script", "controlla script", "feedback script"]
     },
     
+    # ANDREA - Video Production
+    "create_video_edit": {
+        "agent": "ANDREA",
+        "description": "Crea o modifica un video (editing, sottotitoli, thumbnail)",
+        "keywords": ["video", "editing", "monta video", "sottotitoli", "thumbnail", "andrea"]
+    },
+    "generate_thumbnail": {
+        "agent": "ANDREA",
+        "description": "Genera thumbnail per video YouTube",
+        "keywords": ["thumbnail", "copertina video", "immagine video"]
+    },
+    "add_subtitles": {
+        "agent": "ANDREA",
+        "description": "Aggiungi sottotitoli a un video",
+        "keywords": ["sottotitoli", "captions", "trascrizione video"]
+    },
+    
     # GAIA - Funnel & Systeme.io
     "sync_systeme_contacts": {
         "agent": "GAIA",
