@@ -274,35 +274,95 @@ class ValentinaAI:
                 logger.warning("ACTIONS_ENABLED is False!")
             
             # =====================================================
-            # STEP 1.5: Check for UNSUPPORTED Systeme.io operations
-            # ONLY if no action was detected/executed
+            # STEP 1.5: Check for OPENCLAW operations (GUI automation)
+            # If action requires browser control, send to OpenClaw
             # =====================================================
             msg_lower = message.lower()
-            unsupported_keywords = [
-                "crea colonna", "creare colonna", "aggiungi colonna", "nuova colonna",
-                "crea pipeline", "creare pipeline", "nuova pipeline",
-                "inserisci nella pipeline", "inserire nella pipeline",
-                "modifica automazione", "crea automazione", "nuova automazione",
-                "crea funnel", "creare funnel", "nuovo funnel"
-            ]
             
-            # Only block if NO action was executed AND message contains unsupported keywords
-            if not action_result and any(kw in msg_lower for kw in unsupported_keywords):
-                logger.info(f"Blocking unsupported operation: {message[:50]}")
-                # Return honest response about limitations
-                return """Boss, devo essere onesta con te.
+            # Keywords that trigger OpenClaw
+            openclaw_keywords = {
+                "crea colonna": "create_pipeline_column",
+                "creare colonna": "create_pipeline_column",
+                "aggiungi colonna": "create_pipeline_column",
+                "nuova colonna": "create_pipeline_column",
+                "sposta in colonna": "move_contact_to_column",
+                "sposta nella colonna": "move_contact_to_column",
+                "metti in pipeline": "move_contact_to_column",
+                "crea funnel": "create_funnel",
+                "creare funnel": "create_funnel",
+                "nuovo funnel": "create_funnel",
+                "crea automazione": "create_automation",
+                "creare automazione": "create_automation",
+                "nuova automazione": "create_automation"
+            }
+            
+            # Check if message requires OpenClaw
+            openclaw_action = None
+            for kw, action in openclaw_keywords.items():
+                if kw in msg_lower:
+                    openclaw_action = action
+                    break
+            
+            if openclaw_action and not action_result:
+                # Send to OpenClaw via Telegram
+                try:
+                    from openclaw_integration import send_openclaw_task, OpenClawTask
+                    
+                    # Extract parameters from message
+                    params = {"raw_request": message}
+                    
+                    # Try to extract column name
+                    import re
+                    column_match = re.search(r"colonna\s+['\"]?([^'\"]+)['\"]?", msg_lower)
+                    if column_match:
+                        params["column_name"] = column_match.group(1).strip()
+                    
+                    # Try to extract email
+                    email_match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', message)
+                    if email_match:
+                        params["email"] = email_match.group(0)
+                    
+                    # Try to extract funnel name
+                    funnel_match = re.search(r"funnel\s+['\"]?([^'\"]+)['\"]?", msg_lower)
+                    if funnel_match:
+                        params["funnel_name"] = funnel_match.group(1).strip()
+                    
+                    task = OpenClawTask(
+                        action=openclaw_action,
+                        params=params,
+                        priority="normal",
+                        description=message,
+                        partner_id=context.get("partner_id") if context else None
+                    )
+                    
+                    result = await send_openclaw_task(task, db)
+                    
+                    if result.get("success"):
+                        return f"""✅ **Task inviato a OpenClaw!**
 
-**Questa operazione NON posso farla:**
-- Creare/modificare colonne o pipeline su Systeme.io
-- Creare automazioni o funnel
+Ho creato un task per eseguire questa operazione su Systeme.io:
 
-**Cosa POSSO fare davvero:**
-- Aggiungere TAG ai contatti (es: "Aggiungi tag VIP al contatto mario@email.it")
-- Leggere statistiche lead (es: "Quanti lead HOT abbiamo?")
-- Migrare lead tra segmenti nel database (es: "Migra COLD a WARM")
-- Generare copy per email
+🎯 **Azione:** `{openclaw_action}`
+🆔 **Task ID:** `{result.get('task_id')}`
 
-Per operazioni sulla pipeline Systeme.io, devi farlo dalla dashboard https://systeme.io"""
+⏳ OpenClaw eseguirà l'operazione sulla dashboard Systeme.io.
+Riceverai una notifica quando sarà completato.
+
+📝 **Dettagli:** {message[:100]}..."""
+                    else:
+                        logger.error(f"OpenClaw task failed: {result.get('error')}")
+                        
+                except Exception as e:
+                    logger.error(f"Error creating OpenClaw task: {e}")
+                
+                # Fallback message if OpenClaw fails
+                return f"""Boss, questa operazione richiede l'intervento di OpenClaw sul browser.
+
+🔧 **Azione richiesta:** {openclaw_action}
+📝 **Richiesta:** {message[:100]}
+
+Ho tentato di inviare il task ma c'è stato un problema.
+Verifica che OpenClaw sia attivo e connesso a Telegram."""
 
             # Load persistent memory if available (only for founder)
             memory_context = ""
