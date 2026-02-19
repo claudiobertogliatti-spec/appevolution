@@ -255,37 +255,47 @@ class ValentinaAI:
             
             # =====================================================
             # STEP 0: Check for OPENCLAW operations FIRST (GUI automation)
-            # If action requires browser control, send to OpenClaw BEFORE other actions
+            # Se l'azione richiede browser control, invia a OpenClaw PRIMA di altre azioni
+            # OpenClaw = braccio esecutivo, non agente AI
             # =====================================================
             msg_lower = message.lower()
             
-            # Keywords patterns that trigger OpenClaw (using regex for flexibility)
+            # Keywords patterns che triggano OpenClaw (regex per flessibilità)
             import re
+            
+            # Categoria A: Esecuzione diretta (no approvazione)
+            # Categoria B: Richiede approvazione prima
             openclaw_patterns = [
-                (r"crea\w*\s+(?:una\s+)?colonna", "create_pipeline_column"),
-                (r"aggiung\w*\s+(?:una\s+)?colonna", "create_pipeline_column"),
-                (r"nuova\s+colonna", "create_pipeline_column"),
-                (r"sposta\w*\s+(?:il\s+|in\s+)?(?:contatto\s+)?(?:nella?\s+)?colonna", "move_contact_to_column"),
-                (r"mett\w*\s+(?:in\s+)?pipeline", "move_contact_to_column"),
-                (r"inseris\w*\s+(?:nella?\s+)?pipeline", "move_contact_to_column"),
-                (r"crea\w*\s+(?:un\s+)?funnel", "create_funnel"),
-                (r"nuovo\s+funnel", "create_funnel"),
-                (r"crea\w*\s+(?:una?\s+)?automazione", "create_automation"),
-                (r"nuova\s+automazione", "create_automation"),
+                # Categoria A - Esecuzione diretta
+                (r"crea\w*\s+(?:una\s+)?colonna", "create_pipeline_column", "A"),
+                (r"aggiung\w*\s+(?:una\s+)?colonna", "create_pipeline_column", "A"),
+                (r"nuova\s+colonna", "create_pipeline_column", "A"),
+                (r"sposta\w*\s+(?:il\s+|in\s+)?(?:contatto\s+)?(?:nella?\s+)?colonna", "move_contact_to_column", "A"),
+                (r"mett\w*\s+(?:in\s+)?pipeline", "move_contact_to_column", "A"),
+                (r"inseris\w*\s+(?:nella?\s+)?pipeline", "move_contact_to_column", "A"),
+                # Categoria B - Richiede approvazione
+                (r"crea\w*\s+(?:un\s+)?funnel", "create_funnel", "B"),
+                (r"nuovo\s+funnel", "create_funnel", "B"),
+                (r"crea\w*\s+(?:una?\s+)?automazione", "create_automation", "B"),
+                (r"nuova\s+automazione", "create_automation", "B"),
+                (r"lancia\w*\s+(?:la\s+)?(?:sequenza\s+)?email", "trigger_email_campaign", "B"),
+                (r"attiva\w*\s+(?:la\s+)?campagna", "trigger_email_campaign", "B"),
             ]
             
             # Check if message requires OpenClaw
             openclaw_action = None
-            for pattern, action in openclaw_patterns:
+            openclaw_category = None
+            for pattern, action, category in openclaw_patterns:
                 if re.search(pattern, msg_lower):
                     openclaw_action = action
-                    logger.info(f"OpenClaw action detected: {action} (pattern: {pattern})")
+                    openclaw_category = category
+                    logger.info(f"OpenClaw action detected: {action} (Category {category}, pattern: {pattern})")
                     break
             
             if openclaw_action:
-                # Send to OpenClaw via Telegram IMMEDIATELY
+                # Send to OpenClaw via Telegram
                 try:
-                    from openclaw_integration import send_openclaw_task, OpenClawTask
+                    from openclaw_integration import send_openclaw_task, OpenClawTask, get_action_category
                     
                     # Extract parameters from message
                     params = {"raw_request": message}
@@ -305,12 +315,37 @@ class ValentinaAI:
                     if funnel_match:
                         params["funnel_name"] = funnel_match.group(1).strip()
                     
+                    # Determina approval_status in base alla categoria
+                    # Categoria A: n/a (esecuzione diretta)
+                    # Categoria B: richiede approvazione esplicita da Claudio
+                    approval_status = "n/a"
+                    if openclaw_category == "B":
+                        # Per Categoria B, il fondatore può dare override con "esegui subito"
+                        if is_founder and any(kw in msg_lower for kw in ["esegui subito", "skip approval", "fallo subito", "direttamente"]):
+                            approval_status = "approved"
+                            logger.info(f"Founder override: approval granted for Category B action")
+                        else:
+                            # Se non c'è override, avvisa che serve approvazione
+                            if not is_founder:
+                                return f"""⚠️ **Azione non permessa**
+
+Questa azione (`{openclaw_action}`) è di Categoria B e richiede approvazione di Claudio o Antonella prima dell'esecuzione.
+
+Non posso procedere autonomamente con azioni che:
+- Inviano email reali ai contatti
+- Creano funnel pubblici
+- Modificano automazioni
+
+Chiedi a Claudio di approvare questa richiesta."""
+                    
                     task = OpenClawTask(
                         action=openclaw_action,
                         params=params,
                         priority="normal",
                         description=message,
-                        partner_id=context.get("partner_id") if context else None
+                        partner_id=context.get("partner_id") if context else None,
+                        scope="INTERNAL" if is_founder else "EXTERNAL",
+                        approval_status=approval_status
                     )
                     
                     result = await send_openclaw_task(task, None)  # db=None, task saved only to Telegram
@@ -322,12 +357,19 @@ class ValentinaAI:
                         logger.info(f"LLM session {session_key} reset after OpenClaw task")
                     
                     if result.get("success"):
+                        category_note = ""
+                        if openclaw_category == "A":
+                            category_note = "🟢 Categoria A: esecuzione diretta autorizzata"
+                        elif openclaw_category == "B":
+                            category_note = "🟡 Categoria B: approvato dal fondatore"
+                        
                         openclaw_response = f"""✅ **Task inviato a OpenClaw!**
 
 Ho creato un task per eseguire questa operazione su Systeme.io:
 
 🎯 **Azione:** `{openclaw_action}`
 🆔 **Task ID:** `{result.get('task_id')}`
+📋 **{category_note}**
 
 ⏳ OpenClaw eseguirà l'operazione sulla dashboard Systeme.io.
 Riceverai una notifica Telegram quando sarà completato.
@@ -350,11 +392,23 @@ Riceverai una notifica Telegram quando sarà completato.
                         
                         return openclaw_response
                     else:
-                        logger.error(f"OpenClaw task failed: {result.get('error')}")
+                        # Gestisci errori specifici
+                        error_msg = result.get('error', 'Errore sconosciuto')
+                        
+                        if result.get("requires_approval"):
+                            return f"""⚠️ **Approvazione Richiesta**
+
+L'azione `{openclaw_action}` è di Categoria B e richiede approvazione.
+
+{error_msg}
+
+Per procedere, scrivi: "esegui subito" o "skip approval" insieme alla richiesta."""
+                        
+                        logger.error(f"OpenClaw task failed: {error_msg}")
                         return f"""⚠️ **Problema con OpenClaw**
 
 Ho tentato di inviare il task ma c'è stato un errore:
-`{result.get('error', 'Errore sconosciuto')}`
+`{error_msg}`
 
 Verifica che OpenClaw sia attivo e connesso a Telegram.
 
