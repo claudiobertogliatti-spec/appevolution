@@ -2563,6 +2563,83 @@ async def list_agent_tasks(
     return {"tasks": tasks, "count": len(tasks)}
 
 
+# NOTE: Static routes BEFORE parametric routes to avoid conflicts
+@api_router.get("/agent-tasks/summary/dashboard")
+async def get_tasks_dashboard():
+    """Get task dashboard summary"""
+    pending = await db.agent_tasks.count_documents({"status": "pending"})
+    in_progress = await db.agent_tasks.count_documents({"status": "in_progress"})
+    completed = await db.agent_tasks.count_documents({"status": "completed"})
+    failed = await db.agent_tasks.count_documents({"status": "failed"})
+    
+    # Get tasks by agent
+    agents_stats = {}
+    for agent in ["VALENTINA", "ORION", "MARTA", "STEFANIA", "ANDREA", "GAIA", "ATLAS", "LUCA"]:
+        count = await db.agent_tasks.count_documents({"agent": agent})
+        if count > 0:
+            agents_stats[agent] = count
+    
+    # Recent tasks
+    recent = await db.agent_tasks.find(
+        {}, {"_id": 0}
+    ).sort("created_at", -1).limit(10).to_list(10)
+    
+    return {
+        "summary": {
+            "pending": pending,
+            "in_progress": in_progress,
+            "completed": completed,
+            "failed": failed,
+            "total_active": pending + in_progress
+        },
+        "by_agent": agents_stats,
+        "recent_tasks": recent
+    }
+
+
+# =============================================================================
+# APPROVAL WORKFLOW ENDPOINTS
+# =============================================================================
+
+from approval_workflow import (
+    requires_approval,
+    get_task_scope,
+    create_task_with_approval,
+    approve_task,
+    reject_task,
+    get_pending_approvals,
+    get_approval_stats
+)
+
+
+class ApproveRequest(BaseModel):
+    reviewer: str
+    notes: Optional[str] = None
+
+
+class RejectRequest(BaseModel):
+    reviewer: str
+    feedback: str
+
+
+@api_router.get("/agent-tasks/approvals")
+async def list_pending_approvals(
+    agent: Optional[str] = None,
+    partner_id: Optional[str] = None
+):
+    """Lista task in attesa di approvazione"""
+    tasks = await get_pending_approvals(db, agent, partner_id)
+    return {"tasks": tasks, "count": len(tasks)}
+
+
+@api_router.get("/agent-tasks/approval-stats")
+async def get_approval_statistics():
+    """Statistiche approvazioni"""
+    stats = await get_approval_stats(db)
+    return stats
+
+
+# Parametric routes AFTER static routes
 @api_router.get("/agent-tasks/{task_id}")
 async def get_agent_task(task_id: str):
     """Get a specific task"""
@@ -2570,6 +2647,28 @@ async def get_agent_task(task_id: str):
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
+
+
+@api_router.get("/agent-tasks/{task_id}/preview")
+async def get_task_preview(task_id: str):
+    """Ottieni l'output generato di un task per la preview"""
+    task = await db.agent_tasks.find_one({"id": task_id}, {"_id": 0})
+    
+    if not task:
+        raise HTTPException(status_code=404, detail="Task non trovato")
+    
+    return {
+        "task_id": task_id,
+        "title": task.get("title"),
+        "agent": task.get("agent"),
+        "status": task.get("status"),
+        "output": task.get("result", {}).get("output"),
+        "preview_url": task.get("preview_url"),
+        "revisions": task.get("revisions", []),
+        "approval": task.get("approval"),
+        "partner_id": task.get("partner_id"),
+        "created_at": task.get("created_at")
+    }
 
 
 @api_router.patch("/agent-tasks/{task_id}/status")
