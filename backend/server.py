@@ -2736,6 +2736,115 @@ async def get_tasks_dashboard():
 
 
 # =============================================================================
+# OPENCLAW INTEGRATION - Azioni GUI su Systeme.io
+# =============================================================================
+
+from openclaw_integration import (
+    requires_openclaw,
+    OpenClawTask,
+    send_openclaw_task,
+    create_pipeline_column,
+    move_contact_to_column,
+    create_funnel,
+    create_automation,
+    handle_openclaw_callback,
+    get_pending_openclaw_tasks
+)
+
+
+class OpenClawTaskRequest(BaseModel):
+    action: str
+    params: Dict
+    priority: str = "normal"
+    description: str = ""
+    partner_id: Optional[str] = None
+
+
+class OpenClawCallbackRequest(BaseModel):
+    task_id: str
+    status: str  # "done" or "fail"
+    result: Optional[str] = None
+
+
+@api_router.post("/openclaw/task")
+async def create_openclaw_task(request: OpenClawTaskRequest):
+    """Crea e invia un task a OpenClaw via Telegram"""
+    task = OpenClawTask(
+        action=request.action,
+        params=request.params,
+        priority=request.priority,
+        description=request.description,
+        partner_id=request.partner_id
+    )
+    
+    result = await send_openclaw_task(task, db)
+    return result
+
+
+@api_router.post("/openclaw/pipeline/column")
+async def create_pipeline_column_endpoint(
+    column_name: str,
+    pipeline_name: str = "default",
+    position: str = "end"
+):
+    """Crea una colonna nella pipeline Systeme.io (via OpenClaw)"""
+    result = await create_pipeline_column(column_name, pipeline_name, position, db)
+    return result
+
+
+@api_router.post("/openclaw/pipeline/move")
+async def move_contact_endpoint(
+    email: str,
+    target_column: str,
+    pipeline_name: str = "default"
+):
+    """Sposta un contatto in una colonna della pipeline (via OpenClaw)"""
+    result = await move_contact_to_column(email, target_column, pipeline_name, db)
+    return result
+
+
+@api_router.post("/openclaw/funnel")
+async def create_funnel_endpoint(
+    funnel_name: str,
+    template: str = "blank",
+    pages: List[str] = None
+):
+    """Crea un nuovo funnel su Systeme.io (via OpenClaw)"""
+    result = await create_funnel(funnel_name, template, pages, db)
+    return result
+
+
+@api_router.post("/openclaw/callback")
+async def openclaw_callback(request: OpenClawCallbackRequest):
+    """Callback da OpenClaw quando un task è completato"""
+    result = await handle_openclaw_callback(
+        request.task_id,
+        request.status,
+        request.result,
+        db
+    )
+    return result
+
+
+@api_router.get("/openclaw/tasks/pending")
+async def list_pending_openclaw_tasks():
+    """Lista task OpenClaw in attesa"""
+    tasks = await get_pending_openclaw_tasks(db)
+    return {"tasks": tasks, "count": len(tasks)}
+
+
+@api_router.get("/openclaw/tasks")
+async def list_all_openclaw_tasks(limit: int = 50):
+    """Lista tutti i task OpenClaw"""
+    tasks = await db.openclaw_tasks.find(
+        {},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    return {"tasks": tasks, "count": len(tasks)}
+
+
+# =============================================================================
 # INTEGRATED SERVICES - Systeme.io & Background Jobs
 # =============================================================================
 
