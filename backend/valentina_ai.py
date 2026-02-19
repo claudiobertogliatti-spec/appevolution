@@ -279,28 +279,27 @@ class ValentinaAI:
             # =====================================================
             msg_lower = message.lower()
             
-            # Keywords that trigger OpenClaw
-            openclaw_keywords = {
-                "crea colonna": "create_pipeline_column",
-                "creare colonna": "create_pipeline_column",
-                "aggiungi colonna": "create_pipeline_column",
-                "nuova colonna": "create_pipeline_column",
-                "sposta in colonna": "move_contact_to_column",
-                "sposta nella colonna": "move_contact_to_column",
-                "metti in pipeline": "move_contact_to_column",
-                "crea funnel": "create_funnel",
-                "creare funnel": "create_funnel",
-                "nuovo funnel": "create_funnel",
-                "crea automazione": "create_automation",
-                "creare automazione": "create_automation",
-                "nuova automazione": "create_automation"
-            }
+            # Keywords patterns that trigger OpenClaw (using regex for flexibility)
+            import re
+            openclaw_patterns = [
+                (r"crea\w*\s+(?:una\s+)?colonna", "create_pipeline_column"),
+                (r"aggiung\w*\s+(?:una\s+)?colonna", "create_pipeline_column"),
+                (r"nuova\s+colonna", "create_pipeline_column"),
+                (r"sposta\w*\s+(?:il\s+|in\s+)?(?:contatto\s+)?(?:nella?\s+)?colonna", "move_contact_to_column"),
+                (r"mett\w*\s+(?:in\s+)?pipeline", "move_contact_to_column"),
+                (r"inseris\w*\s+(?:nella?\s+)?pipeline", "move_contact_to_column"),
+                (r"crea\w*\s+(?:un\s+)?funnel", "create_funnel"),
+                (r"nuovo\s+funnel", "create_funnel"),
+                (r"crea\w*\s+(?:una?\s+)?automazione", "create_automation"),
+                (r"nuova\s+automazione", "create_automation"),
+            ]
             
             # Check if message requires OpenClaw
             openclaw_action = None
-            for kw, action in openclaw_keywords.items():
-                if kw in msg_lower:
+            for pattern, action in openclaw_patterns:
+                if re.search(pattern, msg_lower):
                     openclaw_action = action
+                    logger.info(f"OpenClaw action detected: {action} (pattern: {pattern})")
                     break
             
             if openclaw_action and not action_result:
