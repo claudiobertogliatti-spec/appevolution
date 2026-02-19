@@ -313,7 +313,7 @@ class ValentinaAI:
                         partner_id=context.get("partner_id") if context else None
                     )
                     
-                    result = await send_openclaw_task(task, db)
+                    result = await send_openclaw_task(task, None)  # db=None, task saved only to Telegram
                     
                     if result.get("success"):
                         return f"""✅ **Task inviato a OpenClaw!**
