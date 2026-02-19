@@ -2637,6 +2637,101 @@ async def get_tasks_dashboard():
 
 
 # =============================================================================
+# APPROVAL WORKFLOW ENDPOINTS
+# =============================================================================
+
+from approval_workflow import (
+    requires_approval,
+    get_task_scope,
+    create_task_with_approval,
+    approve_task,
+    reject_task,
+    get_pending_approvals,
+    get_approval_stats
+)
+
+
+class ApproveRequest(BaseModel):
+    reviewer: str
+    notes: Optional[str] = None
+
+
+class RejectRequest(BaseModel):
+    reviewer: str
+    feedback: str
+
+
+@api_router.get("/agent-tasks/approvals")
+async def list_pending_approvals(
+    agent: Optional[str] = None,
+    partner_id: Optional[str] = None
+):
+    """Lista task in attesa di approvazione"""
+    tasks = await get_pending_approvals(db, agent, partner_id)
+    return {"tasks": tasks, "count": len(tasks)}
+
+
+@api_router.get("/agent-tasks/approval-stats")
+async def get_approval_statistics():
+    """Statistiche approvazioni"""
+    stats = await get_approval_stats(db)
+    return stats
+
+
+@api_router.get("/agent-tasks/{task_id}/preview")
+async def get_task_preview(task_id: str):
+    """Ottieni l'output generato di un task per la preview"""
+    task = await db.agent_tasks.find_one({"id": task_id}, {"_id": 0})
+    
+    if not task:
+        raise HTTPException(status_code=404, detail="Task non trovato")
+    
+    return {
+        "task_id": task_id,
+        "title": task.get("title"),
+        "agent": task.get("agent"),
+        "status": task.get("status"),
+        "output": task.get("result", {}).get("output"),
+        "preview_url": task.get("preview_url"),
+        "revisions": task.get("revisions", []),
+        "approval": task.get("approval"),
+        "partner_id": task.get("partner_id"),
+        "created_at": task.get("created_at")
+    }
+
+
+@api_router.patch("/agent-tasks/{task_id}/approve")
+async def approve_task_endpoint(task_id: str, request: ApproveRequest):
+    """Approva un task"""
+    try:
+        task = await approve_task(db, task_id, request.reviewer, request.notes)
+        return {
+            "success": True,
+            "message": f"Task approvato da {request.reviewer}",
+            "task_id": task_id,
+            "status": task.get("status")
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@api_router.patch("/agent-tasks/{task_id}/reject")
+async def reject_task_endpoint(task_id: str, request: RejectRequest):
+    """Rifiuta un task con feedback"""
+    try:
+        task = await reject_task(db, task_id, request.reviewer, request.feedback)
+        return {
+            "success": True,
+            "message": f"Task rifiutato da {request.reviewer}. Sarà rigenerato con il feedback.",
+            "task_id": task_id,
+            "status": task.get("status"),
+            "revision_count": task.get("approval", {}).get("revision_count", 0)
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# =============================================================================
 # INTEGRATED SERVICES - Systeme.io & Background Jobs
 # =============================================================================
 
