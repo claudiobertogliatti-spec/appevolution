@@ -55,7 +55,30 @@ Build "Evolution PRO OS", a proprietary web application for business workflow au
 
 ## Recent Changes (2026-02-18)
 
-### Session 28 - VALENTINA Action Execution System VALIDATED ✅
+### Session 29 - Approval Workflow System IMPLEMENTED ✅
+
+1. **Sistema di Approvazione Task**
+   - Creato `/app/backend/approval_workflow.py` con matrice di approvazione
+   - Task che richiedono SEMPRE approvazione: email, copy, script, campagne
+   - Task che non richiedono approvazione: lettura dati (ORION, MARTA, ATLAS)
+   - Sistema di revisioni (max 3 tentativi con feedback)
+
+2. **API Endpoints Approvazioni**
+   - `GET /api/agent-tasks/approvals` - Lista task in attesa
+   - `GET /api/agent-tasks/approval-stats` - Statistiche
+   - `PATCH /api/agent-tasks/{id}/approve` - Approva task
+   - `PATCH /api/agent-tasks/{id}/reject` - Rifiuta con feedback
+
+3. **Dashboard Approvazioni (Frontend)**
+   - Componente `ApprovalDashboard.jsx` con UI completa
+   - Statistiche: In Attesa, Approvati Oggi, Rifiutati, Stale >4h
+   - Preview output generato
+   - Storico revisioni
+   - Selezione reviewer (Antonella/Claudio)
+
+4. **Background Worker Aggiornato**
+   - Gestisce workflow: pending → awaiting_approval → approved → completed
+   - Rigenerazione automatica con feedback dopo rifiuto
 
 1. **VALENTINA Task Execution Working End-to-End**
    - Implemented `_add_systeme_tag()` method with NLP parameter extraction
