@@ -254,6 +254,101 @@ class ValentinaAI:
             session_key = f"valentina_{user_id}"
             
             # =====================================================
+            # STEP 0: Check for OPENCLAW operations FIRST (GUI automation)
+            # If action requires browser control, send to OpenClaw BEFORE other actions
+            # =====================================================
+            msg_lower = message.lower()
+            
+            # Keywords patterns that trigger OpenClaw (using regex for flexibility)
+            import re
+            openclaw_patterns = [
+                (r"crea\w*\s+(?:una\s+)?colonna", "create_pipeline_column"),
+                (r"aggiung\w*\s+(?:una\s+)?colonna", "create_pipeline_column"),
+                (r"nuova\s+colonna", "create_pipeline_column"),
+                (r"sposta\w*\s+(?:il\s+|in\s+)?(?:contatto\s+)?(?:nella?\s+)?colonna", "move_contact_to_column"),
+                (r"mett\w*\s+(?:in\s+)?pipeline", "move_contact_to_column"),
+                (r"inseris\w*\s+(?:nella?\s+)?pipeline", "move_contact_to_column"),
+                (r"crea\w*\s+(?:un\s+)?funnel", "create_funnel"),
+                (r"nuovo\s+funnel", "create_funnel"),
+                (r"crea\w*\s+(?:una?\s+)?automazione", "create_automation"),
+                (r"nuova\s+automazione", "create_automation"),
+            ]
+            
+            # Check if message requires OpenClaw
+            openclaw_action = None
+            for pattern, action in openclaw_patterns:
+                if re.search(pattern, msg_lower):
+                    openclaw_action = action
+                    logger.info(f"OpenClaw action detected: {action} (pattern: {pattern})")
+                    break
+            
+            if openclaw_action:
+                # Send to OpenClaw via Telegram IMMEDIATELY
+                try:
+                    from openclaw_integration import send_openclaw_task, OpenClawTask
+                    
+                    # Extract parameters from message
+                    params = {"raw_request": message}
+                    
+                    # Try to extract column name
+                    column_match = re.search(r"colonna\s+['\"]?([a-zA-Z0-9_\-\s]+)", msg_lower)
+                    if column_match:
+                        params["column_name"] = column_match.group(1).strip()
+                    
+                    # Try to extract email
+                    email_match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', message)
+                    if email_match:
+                        params["email"] = email_match.group(0)
+                    
+                    # Try to extract funnel name
+                    funnel_match = re.search(r"funnel\s+['\"]?([a-zA-Z0-9_\-\s]+)", msg_lower)
+                    if funnel_match:
+                        params["funnel_name"] = funnel_match.group(1).strip()
+                    
+                    task = OpenClawTask(
+                        action=openclaw_action,
+                        params=params,
+                        priority="normal",
+                        description=message,
+                        partner_id=context.get("partner_id") if context else None
+                    )
+                    
+                    result = await send_openclaw_task(task, db)
+                    
+                    if result.get("success"):
+                        return f"""✅ **Task inviato a OpenClaw!**
+
+Ho creato un task per eseguire questa operazione su Systeme.io:
+
+🎯 **Azione:** `{openclaw_action}`
+🆔 **Task ID:** `{result.get('task_id')}`
+
+⏳ OpenClaw eseguirà l'operazione sulla dashboard Systeme.io.
+Riceverai una notifica Telegram quando sarà completato.
+
+📝 **Richiesta:** {message[:100]}"""
+                    else:
+                        logger.error(f"OpenClaw task failed: {result.get('error')}")
+                        return f"""⚠️ **Problema con OpenClaw**
+
+Ho tentato di inviare il task ma c'è stato un errore:
+`{result.get('error', 'Errore sconosciuto')}`
+
+Verifica che OpenClaw sia attivo e connesso a Telegram.
+
+📝 **Azione richiesta:** {openclaw_action}
+📝 **Richiesta:** {message[:100]}"""
+                        
+                except Exception as e:
+                    logger.error(f"Error creating OpenClaw task: {e}")
+                    return f"""⚠️ **Errore OpenClaw**
+
+Non sono riuscita a creare il task per OpenClaw:
+`{str(e)}`
+
+Verifica la configurazione di OpenClaw nel sistema."""
+            
+            # =====================================================
             # STEP 1: Check if message requires an ACTION to execute
             # =====================================================
             action_result = None
