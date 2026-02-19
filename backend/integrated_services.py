@@ -287,24 +287,241 @@ class SystemeIOError(Exception):
 # ============================================================================
 # BACKGROUND JOB EXECUTOR
 # ============================================================================
+
+# Import approval workflow
+from approval_workflow import requires_approval, get_task_scope
+
 class BackgroundJobExecutor:
-    """Execute agent tasks in background"""
+    """Execute agent tasks in background with approval workflow support"""
     
     def __init__(self):
         self.systeme_client = SystemeIOClient()
         self.running = False
     
     async def process_pending_tasks(self):
-        """Process all pending tasks"""
-        pending_tasks = await db.agent_tasks.find(
-            {"status": "pending"}
-        ).sort("created_at", 1).to_list(50)
+        """Process all pending tasks based on approval workflow"""
         
-        for task in pending_tasks:
+        # ─── STEP 1: Task DIRETTI (no approvazione) ───
+        # Questi vanno dritti: pending → in_progress → completed
+        direct_tasks = await db.agent_tasks.find({
+            "status": "pending",
+            "$or": [
+                {"requires_approval": {"$ne": True}},
+                {"requires_approval": {"$exists": False}}
+            ]
+        }).sort("created_at", 1).to_list(50)
+        
+        for task in direct_tasks:
+            # Double check: se task_type richiede approvazione, setta il flag
+            task_type = task.get("task_type", "")
+            scope = task.get("scope", "INTERNAL")
+            if requires_approval(task_type, scope):
+                # Update task to require approval
+                await db.agent_tasks.update_one(
+                    {"id": task["id"]},
+                    {"$set": {
+                        "requires_approval": True,
+                        "approval": {
+                            "required": True,
+                            "status": "pending",
+                            "reviewer": None,
+                            "feedback": None,
+                            "reviewed_at": None,
+                            "revision_count": 0
+                        }
+                    }}
+                )
+                # Re-add to processing as approval task
+                continue
+            
+            # Execute directly
             await self.execute_task(task)
+        
+        # ─── STEP 2: Task CON APPROVAZIONE (fase 1: generazione) ───
+        # Questi vanno: pending → in_progress → awaiting_approval
+        approval_tasks_new = await db.agent_tasks.find({
+            "status": "pending",
+            "requires_approval": True
+        }).sort("created_at", 1).to_list(50)
+        
+        for task in approval_tasks_new:
+            await self.generate_for_approval(task)
+        
+        # ─── STEP 3: Task APPROVATI (fase 2: esecuzione) ───
+        # Questi sono stati approvati da Antonella/Claudio → eseguire
+        approved_tasks = await db.agent_tasks.find({
+            "status": "approved",
+            "requires_approval": True
+        }).sort("created_at", 1).to_list(50)
+        
+        for task in approved_tasks:
+            await self.execute_approved_task(task)
+        
+        # ─── STEP 4: Task RIFIUTATI (rigenerazione) ───
+        # Antonella ha rifiutato con feedback → rigenera
+        rejected_tasks = await db.agent_tasks.find({
+            "status": "rejected",
+            "requires_approval": True,
+            "approval.revision_count": {"$lt": 3}  # Max 3 tentativi
+        }).sort("created_at", 1).to_list(50)
+        
+        for task in rejected_tasks:
+            await self.regenerate_with_feedback(task)
+    
+    async def generate_for_approval(self, task: Dict) -> Dict:
+        """Generate output for a task that requires approval"""
+        task_id = task.get("id")
+        agent = task.get("agent", "").upper()
+        
+        logger.info(f"Generating for approval: task {task_id} for agent {agent}")
+        
+        # Update status to in_progress
+        await db.agent_tasks.update_one(
+            {"id": task_id},
+            {"$set": {"status": "in_progress", "started_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        
+        try:
+            # Generate output (but don't execute external actions)
+            result = await self._generate_output(task)
+            
+            # Set to awaiting_approval (NOT completed)
+            await db.agent_tasks.update_one(
+                {"id": task_id},
+                {"$set": {
+                    "status": "awaiting_approval",
+                    "result": {
+                        "success": True,
+                        "output": result.get("output", result.get("message", "")),
+                        "message": "Output generato, in attesa di approvazione"
+                    },
+                    "approval.status": "pending"
+                }}
+            )
+            
+            logger.info(f"Task {task_id} ready for approval")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Task {task_id} generation failed: {e}")
+            await db.agent_tasks.update_one(
+                {"id": task_id},
+                {"$set": {
+                    "status": "failed",
+                    "result": {"success": False, "error": str(e)}
+                }}
+            )
+            return {"success": False, "error": str(e)}
+    
+    async def execute_approved_task(self, task: Dict) -> Dict:
+        """Execute a task that has been approved"""
+        task_id = task.get("id")
+        agent = task.get("agent", "").upper()
+        
+        logger.info(f"Executing approved task {task_id} for agent {agent}")
+        
+        try:
+            # For GAIA tasks, execute the actual Systeme.io action
+            if agent == "GAIA":
+                result = await self._execute_gaia_task(task)
+            else:
+                # For content generation tasks, the output is already generated
+                # Just mark as completed
+                result = {"success": True, "message": "Output approvato e consegnato"}
+            
+            # Mark completed
+            await db.agent_tasks.update_one(
+                {"id": task_id},
+                {"$set": {
+                    "status": "completed",
+                    "completed_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Approved task {task_id} execution failed: {e}")
+            await db.agent_tasks.update_one(
+                {"id": task_id},
+                {"$set": {
+                    "status": "failed",
+                    "result": {"success": False, "error": str(e)}
+                }}
+            )
+            return {"success": False, "error": str(e)}
+    
+    async def regenerate_with_feedback(self, task: Dict) -> Dict:
+        """Regenerate output with reviewer feedback"""
+        task_id = task.get("id")
+        feedback = task.get("approval", {}).get("feedback", "")
+        
+        logger.info(f"Regenerating task {task_id} with feedback: {feedback[:50]}...")
+        
+        # Update status
+        await db.agent_tasks.update_one(
+            {"id": task_id},
+            {"$set": {"status": "in_progress"}}
+        )
+        
+        try:
+            # Add feedback to task data for regeneration
+            task_with_feedback = task.copy()
+            task_with_feedback["data"] = task.get("data", {}).copy()
+            task_with_feedback["data"]["revision_feedback"] = feedback
+            task_with_feedback["data"]["revision_number"] = task.get("approval", {}).get("revision_count", 0) + 1
+            
+            # Regenerate
+            result = await self._generate_output(task_with_feedback)
+            
+            # Back to awaiting_approval
+            await db.agent_tasks.update_one(
+                {"id": task_id},
+                {"$set": {
+                    "status": "awaiting_approval",
+                    "result": {
+                        "success": True,
+                        "output": result.get("output", result.get("message", "")),
+                        "message": f"Output rigenerato (revisione #{task.get('approval', {}).get('revision_count', 0) + 1})"
+                    },
+                    "approval.status": "pending",
+                    "approval.feedback": None  # Clear feedback after regeneration
+                }}
+            )
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Task {task_id} regeneration failed: {e}")
+            await db.agent_tasks.update_one(
+                {"id": task_id},
+                {"$set": {
+                    "status": "failed",
+                    "result": {"success": False, "error": str(e)}
+                }}
+            )
+            return {"success": False, "error": str(e)}
+    
+    async def _generate_output(self, task: Dict) -> Dict:
+        """Generate output based on task type (without executing external actions)"""
+        agent = task.get("agent", "").upper()
+        
+        if agent == "STEFANIA":
+            return await self._execute_stefania_task(task)
+        elif agent == "GAIA":
+            # For GAIA, just prepare the action (don't execute yet)
+            return {
+                "success": True,
+                "output": f"Azione preparata: {task.get('title')}",
+                "message": "Azione GAIA pronta per esecuzione dopo approvazione"
+            }
+        elif agent == "LUCA":
+            return await self._execute_luca_task(task)
+        else:
+            return {"success": True, "output": task.get("title"), "message": "Task generato"}
     
     async def execute_task(self, task: Dict) -> Dict:
-        """Execute a single task based on agent type"""
+        """Execute a single task based on agent type (direct, no approval)"""
         task_id = task.get("id")
         agent = task.get("agent", "").upper()
         
