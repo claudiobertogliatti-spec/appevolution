@@ -55,6 +55,26 @@ Build "Evolution PRO OS", a proprietary web application for business workflow au
 
 ## Recent Changes (2026-02-18)
 
+### Session 30 - OpenClaw Integration IMPLEMENTED ✅
+
+1. **OpenClaw Integration System**
+   - Creato `/app/backend/openclaw_integration.py`
+   - Task inviati via Telegram Bot a OpenClaw
+   - Azioni supportate: create_pipeline_column, move_contact_to_column, create_funnel, create_automation
+
+2. **API Endpoints OpenClaw**
+   - `POST /api/openclaw/task` - Crea task generico
+   - `POST /api/openclaw/pipeline/column` - Crea colonna
+   - `POST /api/openclaw/pipeline/move` - Sposta contatto
+   - `POST /api/openclaw/funnel` - Crea funnel
+   - `POST /api/openclaw/callback` - Callback completamento
+   - `GET /api/openclaw/tasks/pending` - Task in attesa
+
+3. **VALENTINA + OpenClaw**
+   - Pattern matching per rilevare richieste GUI
+   - Invio automatico a OpenClaw quando API non disponibile
+   - Risposta con Task ID e conferma invio
+
 ### Session 29 - Approval Workflow System IMPLEMENTED ✅
 
 1. **Sistema di Approvazione Task**
