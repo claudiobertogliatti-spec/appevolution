@@ -315,8 +315,14 @@ class ValentinaAI:
                     
                     result = await send_openclaw_task(task, None)  # db=None, task saved only to Telegram
                     
+                    # IMPORTANTE: Reset della sessione LLM dopo task OpenClaw
+                    # per evitare che il contesto precedente venga mescolato
+                    if session_key in self._llm_sessions:
+                        del self._llm_sessions[session_key]
+                        logger.info(f"LLM session {session_key} reset after OpenClaw task")
+                    
                     if result.get("success"):
-                        return f"""✅ **Task inviato a OpenClaw!**
+                        openclaw_response = f"""✅ **Task inviato a OpenClaw!**
 
 Ho creato un task per eseguire questa operazione su Systeme.io:
 
@@ -327,6 +333,22 @@ Ho creato un task per eseguire questa operazione su Systeme.io:
 Riceverai una notifica Telegram quando sarà completato.
 
 📝 **Richiesta:** {message[:100]}"""
+                        
+                        # Salva nella cronologia della chat
+                        if partner_id not in chat_sessions:
+                            chat_sessions[partner_id] = []
+                        chat_sessions[partner_id].append({
+                            "role": "user",
+                            "content": message,
+                            "timestamp": datetime.now(timezone.utc).isoformat()
+                        })
+                        chat_sessions[partner_id].append({
+                            "role": "assistant", 
+                            "content": openclaw_response,
+                            "timestamp": datetime.now(timezone.utc).isoformat()
+                        })
+                        
+                        return openclaw_response
                     else:
                         logger.error(f"OpenClaw task failed: {result.get('error')}")
                         return f"""⚠️ **Problema con OpenClaw**
