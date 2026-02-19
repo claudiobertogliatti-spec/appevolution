@@ -45,6 +45,7 @@ import { AgentDashboard } from "./components/admin/AgentDashboard";
 import { OrionLeadScoring } from "./components/admin/OrionLeadScoring";
 import { SalesKPIDashboard } from "./components/admin/SalesKPIDashboard";
 import { OnboardingDocumentsAdmin } from "./components/admin/OnboardingDocumentsAdmin";
+import ApprovalDashboard from "./components/admin/ApprovalDashboard";
 import { TeamEvolution } from "./components/shared/TeamEvolution";
 import { OnboardingDocuments } from "./components/partner/OnboardingDocuments";
 import "./styles/design-system.css";
