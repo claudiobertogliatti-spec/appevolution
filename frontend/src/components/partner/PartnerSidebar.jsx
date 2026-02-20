@@ -353,8 +353,9 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
               <nav className="space-y-0.5 mt-1">
                 {group.items.map(item => {
                   const isActive = currentNav === item.id;
-                  const isUnlocked = isItemUnlocked(item.id, partnerPhase);
                   const requiredPhase = getRequiredPhase(item.id);
+                  // Usa currentPhaseNum (già 10 per admin) invece di partnerPhase
+                  const isUnlocked = currentPhaseNum >= requiredPhase;
                   const isCompleted = currentPhaseNum > requiredPhase;
                   
                   return (
