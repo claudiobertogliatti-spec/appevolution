@@ -198,7 +198,8 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
   const [lockedModal, setLockedModal] = useState({ isOpen: false, itemLabel: '', requiredPhase: 1 });
   
   const partnerPhase = partner?.phase || 'F1';
-  const currentPhaseNum = parseInt(partnerPhase.replace('F', '') || '1');
+  // Se è admin in modalità demo, sblocca tutto (F10)
+  const currentPhaseNum = isAdmin ? 10 : parseInt(partnerPhase.replace('F', '') || '1');
   
   // Toggle group expansion
   const toggleGroup = (groupId) => {
