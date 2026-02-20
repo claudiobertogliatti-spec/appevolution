@@ -38,6 +38,7 @@ const UNLOCK_RULES = {
   "email-automation": 7,// Email Automatiche
   "domain-config": 7,   // Dominio Funnel
   "legal-pages": 7,     // Pagine Legali
+  "calendario": 7,      // Calendario Editoriale 30 giorni
   
   // F8 - Dopo Funnel approvato + Stripe
   "funnel-analytics": 8,// Analytics Funnel
