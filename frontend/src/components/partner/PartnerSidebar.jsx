@@ -210,16 +210,17 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
     );
   };
   
-  // Handle item click
+  // Handle item click - usa currentPhaseNum che è già 10 per admin
   const handleItemClick = (item) => {
-    const isUnlocked = isItemUnlocked(item.id, partnerPhase);
+    const requiredPhase = getRequiredPhase(item.id);
+    const isUnlocked = currentPhaseNum >= requiredPhase;
     if (isUnlocked) {
       onNavigate(item.id);
     } else {
       setLockedModal({
         isOpen: true,
         itemLabel: item.label,
-        requiredPhase: getRequiredPhase(item.id)
+        requiredPhase: requiredPhase
       });
     }
   };
