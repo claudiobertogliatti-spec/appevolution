@@ -71,6 +71,7 @@ const getSidebarGroups = (partnerPhase) => {
       id: "lancio",
       label: "🚀 Lancio",
       items: [
+        { id: "calendario", label: "Calendario Editoriale", icon: Calendar },
         { id: "funnel", label: "Il tuo Funnel", icon: Rocket },
         { id: "email-automation", label: "Email Automatiche", icon: Mail },
         { id: "domain-config", label: "Dominio Funnel", icon: Globe },
