@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { 
   Globe, Check, Clock, AlertTriangle, Copy, ExternalLink,
-  Send, RefreshCw, CheckCircle, XCircle, Loader2
+  Send, RefreshCw, CheckCircle, XCircle, Loader2, FileText
 } from "lucide-react";
 import { API } from "../../utils/api-config";
 
