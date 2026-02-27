@@ -991,8 +991,13 @@ export default function App() {
             {nav==="files"&&<PartnerFilesPage partner={demoPartner}/>}
             
             {/* PROFILO - Contratto */}
-            {nav==="profilo-contratto"&&<LegalPagesGenerator partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
-            {nav==="legal-pages"&&<LegalPagesGenerator partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
+            {nav==="profilo-contratto"&&<ContrattoPartnership partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
+            
+            {/* PROFILO - Dati Personali */}
+            {nav==="profilo-dati"&&<DatiPersonali partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
+            
+            {/* Generatore Pagine Legali */}
+            {nav==="legal-pages"&&<LegalPagesGenerator partner={demoPartner} onBack={()=>setNav("fase7-dominio")}/>}
             
             {/* PROFILO - Brand Kit */}
             {nav==="profilo-brandkit"&&<BrandKitEditor partner={demoPartner}/>}
