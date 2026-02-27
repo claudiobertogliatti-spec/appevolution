@@ -65,7 +65,6 @@ const getSidebarGroups = (partnerPhase) => {
       id: "fasi",
       label: "📋 Percorso",
       items: [
-        { id: "dashboard", label: "DASHBOARD", icon: Home },
         { id: "fase0-onboarding", label: "FASE 0 - Onboarding", icon: FileUp },
         { id: "fase1-posizionamento", label: "FASE 1 - Posizionamento", icon: Target },
         { id: "fase2-outline", label: "FASE 2 - Outline", icon: BookOpen },
