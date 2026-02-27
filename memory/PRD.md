@@ -34,6 +34,10 @@ Italian
 - ✅ Added `profilo-dati` → DatiPersonali for personal data management
 - ✅ Added LegalPagesGenerator button in DomainConfiguration (FASE 7)
 - ✅ Updated PartnerSidebar with new "Dati Personali" item
+- ✅ Fixed dark text on dark background in FASE 5 (ProduzioneVideo) and FASE 8 (CalendarioEditoriale)
+- ✅ Removed "Le tue Risorse" section from Partner Dashboard
+- ✅ Refactored PartnerFilesPage to show only partner files (script, posizionamento, video, audio, PDF, distinte)
+- ✅ Extended ContrattoPartnership from 8 to 15 articles (complete contract)
 
 ## Known Issues
 ### P0 - Critical
