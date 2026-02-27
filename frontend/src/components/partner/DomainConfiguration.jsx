@@ -476,6 +476,50 @@ export function DomainConfiguration({ partner, isAdmin = false, onNavigate }) {
           )}
         </div>
       )}
+
+      {/* Legal Pages Generator Section */}
+      {onNavigate && (
+        <div className="bg-white rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center" style={{ background: '#7B68AE20' }}>
+              <FileText className="w-7 h-7" style={{ color: '#7B68AE' }} />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-xl font-bold" style={{ color: '#1E2128' }}>
+                Pagine Legali
+              </h2>
+              <p className="text-sm" style={{ color: '#9CA3AF' }}>
+                Genera Privacy Policy, Termini e Condizioni, Cookie Policy
+              </p>
+            </div>
+          </div>
+          
+          <div className="p-4 rounded-xl mb-4" style={{ background: '#FEF3C7', border: '1px solid #F59E0B30' }}>
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#F59E0B' }} />
+              <div>
+                <p className="text-sm font-bold" style={{ color: '#92400E' }}>
+                  Disclaimer Importante
+                </p>
+                <p className="text-xs mt-1" style={{ color: '#78350F' }}>
+                  I documenti generati sono <strong>bozze di partenza</strong> e non sostituiscono la consulenza legale professionale. 
+                  Per la conformità GDPR completa, ti consigliamo di rivolgerti a un avvocato o usare servizi come Iubenda.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <button
+            onClick={() => onNavigate('legal-pages')}
+            className="w-full py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all hover:opacity-90"
+            style={{ background: '#7B68AE' }}
+            data-testid="open-legal-pages-btn"
+          >
+            <FileText className="w-4 h-4" />
+            Apri Costruttore Pagine Legali
+          </button>
+        </div>
+      )}
     </div>
   );
 }
