@@ -270,47 +270,6 @@ export function PartnerFilesPage({ partner }) {
         })}
       </div>
 
-      {/* YouTube Videos Section */}
-      {youtubeVideos.length > 0 && (activeCategory === "all" || activeCategory === "video") && (
-        <div className="bg-white rounded-2xl border border-red-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-red-100 flex items-center gap-2 bg-red-50/30">
-            <Youtube className="w-5 h-5 text-red-500"/>
-            <span className="font-bold text-[#1E2128]">Video su YouTube</span>
-            <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-600">
-              {youtubeVideos.length}
-            </span>
-          </div>
-          <div className="divide-y divide-[#ECEDEF]">
-            {youtubeVideos.map(v => (
-              <div key={v.video_id} className="px-6 py-4 flex items-center gap-4 hover:bg-[#FAFAF7] transition-colors">
-                {v.thumbnail ? (
-                  <img src={v.thumbnail} alt={v.title} className="w-24 h-14 rounded-lg object-cover"/>
-                ) : (
-                  <div className="w-24 h-14 rounded-lg bg-gray-100 flex items-center justify-center">
-                    <Play className="w-6 h-6 text-gray-400"/>
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm text-[#1E2128] truncate">{v.title}</div>
-                  <div className="text-xs text-[#9CA3AF]">
-                    Posizione: {v.position + 1} • {new Date(v.added_at).toLocaleDateString('it-IT')}
-                  </div>
-                </div>
-                <a 
-                  href={v.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
-                >
-                  <ExternalLink className="w-3.5 h-3.5"/>
-                  Apri
-                </a>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Files List */}
       {filteredFiles.length > 0 && (
         <div className="bg-white rounded-2xl border border-[#ECEDEF] overflow-hidden">
