@@ -39,6 +39,8 @@ import { MasterclassVideocorso } from "./components/partner/MasterclassVideocors
 import { ServiziExtra } from "./components/partner/ServiziExtra";
 import { VideoEditorAndrea } from "./components/partner/VideoEditorAndrea";
 import { LegalPagesGenerator } from "./components/partner/LegalPagesGenerator";
+import { ContrattoPartnership } from "./components/partner/ContrattoPartnership";
+import { DatiPersonali } from "./components/partner/DatiPersonali";
 import { PartnerProfileHub } from "./components/partner/PartnerProfileHub";
 import { DomainConfiguration } from "./components/partner/DomainConfiguration";
 import { EmailAutomation } from "./components/partner/EmailAutomation";
