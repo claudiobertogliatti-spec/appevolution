@@ -38,6 +38,18 @@ Italian
 - ✅ Removed "Le tue Risorse" section from Partner Dashboard
 - ✅ Refactored PartnerFilesPage to show only partner files (script, posizionamento, video, audio, PDF, distinte)
 - ✅ Extended ContrattoPartnership from 8 to 15 articles (complete contract)
+- ✅ Reordered Profilo sidebar: Dati Personali → Contratto → Brand Kit → I Miei File
+- ✅ Renamed "Bonus Strategici" to "Risorse Gratis" and moved to Servizi Extra
+- ✅ Replaced YouTube video upload with generic video upload in I Miei File
+
+### Analisi Strategica App (Feb 2026)
+- ✅ Created public landing page at `/analisi-strategica`
+- ✅ Registration flow with form validation
+- ✅ 8-question questionnaire for project evaluation
+- ✅ Stripe checkout integration for €67 payment
+- ✅ Client dashboard with 7 bonus materials
+- ✅ Backend API: `/api/clienti/*` routes
+- ✅ Admin routes for managing clients and status updates
 
 ## Known Issues
 ### P0 - Critical
