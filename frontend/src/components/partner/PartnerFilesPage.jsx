@@ -235,10 +235,16 @@ export function PartnerFilesPage({ partner }) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {/* Video Upload */}
           <div className="border-2 border-dashed border-red-200 rounded-xl p-4 text-center hover:border-red-400 cursor-pointer transition-colors bg-red-50/30"
-               onClick={() => youtubeStatus.authenticated ? setShowVideoModal(true) : alert("YouTube non configurato. Contatta il supporto.")}>
-            <Youtube className="w-6 h-6 text-red-500 mx-auto mb-2"/>
-            <div className="font-bold text-xs text-[#1E2128]">Video YouTube</div>
-            <div className="text-[10px] text-[#9CA3AF]">Carica su YouTube</div>
+               onClick={() => {
+                 const input = document.createElement('input');
+                 input.type = 'file';
+                 input.accept = 'video/*';
+                 input.onchange = (e) => handleDocUpload(e, "video");
+                 input.click();
+               }}>
+            <FileVideo className="w-6 h-6 text-red-500 mx-auto mb-2"/>
+            <div className="font-bold text-xs text-[#1E2128]">Video</div>
+            <div className="text-[10px] text-[#9CA3AF]">MP4, MOV, AVI...</div>
           </div>
           
           {/* Document Upload */}
