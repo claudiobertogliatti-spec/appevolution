@@ -953,8 +953,8 @@ export default function App() {
             {nav==="coursebuilder"&&<CourseBuilderWizard partnerId={demoPartner?.id||"demo"} positioningData={{trasformazione:"Demo",target:"Demo",problema:"Demo",soluzione:"Demo"}} onComplete={()=>setNav("fase3-script")}/>}
             
             {/* FASE 3 - Script (Masterclass + testi moduli) */}
-            {nav==="fase3-script"&&<MasterclassVideocorso partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
-            {nav==="masterclass"&&<MasterclassVideocorso partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
+            {nav==="fase3-script"&&<ScriptBuilder partner={demoPartner} onBack={()=>setNav("dashboard")} onComplete={()=>setNav("fase5-masterclass")}/>}
+            {nav==="masterclass"&&<ScriptBuilder partner={demoPartner} onBack={()=>setNav("dashboard")} onComplete={()=>setNav("fase5-masterclass")}/>}
             
             {/* FASE 4 - Copy Core (funnel + foto/logo) */}
             {nav==="fase4-copycore"&&<FunnelReviewBuilder partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
