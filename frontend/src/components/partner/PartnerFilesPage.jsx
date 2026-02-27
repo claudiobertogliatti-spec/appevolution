@@ -234,64 +234,6 @@ export function PartnerFilesPage({ partner }) {
         )}
       </div>
 
-      {/* YouTube Video Upload Modal */}
-      {showVideoModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowVideoModal(false)}>
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
-                <Youtube className="w-5 h-5 text-red-500"/>
-              </div>
-              <div>
-                <h3 className="font-bold text-lg text-[#1E2128]">Carica Video su YouTube</h3>
-                <p className="text-xs text-[#9CA3AF]">Il video verrà aggiunto alla tua playlist</p>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-[#1E2128] mb-1">Titolo del Video *</label>
-                <input
-                  type="text"
-                  value={videoTitle}
-                  onChange={e => setVideoTitle(e.target.value)}
-                  placeholder="Es: Lezione 1 - Introduzione"
-                  className="w-full p-3 rounded-xl border border-[#ECEDEF] text-sm focus:outline-none focus:border-[#F5C518]"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-semibold text-[#1E2128] mb-1">File Video</label>
-                <input
-                  ref={videoInputRef}
-                  type="file"
-                  accept="video/*"
-                  onChange={handleVideoUpload}
-                  disabled={!videoTitle.trim() || uploadingVideo}
-                  className="w-full p-2 text-sm"
-                />
-              </div>
-              
-              {uploadingVideo && (
-                <div className="flex items-center gap-2 text-sm text-red-500">
-                  <Loader2 className="w-4 h-4 animate-spin"/>
-                  Caricamento su YouTube in corso...
-                </div>
-              )}
-            </div>
-            
-            <div className="flex justify-end gap-2 mt-6">
-              <button
-                onClick={() => setShowVideoModal(false)}
-                className="px-4 py-2 rounded-lg text-sm font-semibold text-[#5F6572] hover:bg-[#FAFAF7] transition-colors"
-              >
-                Annulla
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Category Filter */}
       <div className="flex gap-2 flex-wrap">
         <button
