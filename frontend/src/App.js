@@ -922,6 +922,7 @@ export default function App() {
 
           {mode==="admin"&&<>
             {nav==="overview"&&<AdminOverview stats={stats} agents={agents} partners={partners} alerts={alerts} onNavigate={setNav}/>}
+            {nav==="clienti"&&<AdminClientiPanel/>}
             {nav==="agenti"&&<AgentDashboard/>}
             {nav==="orion"&&<OrionLeadScoring/>}
             {nav==="approvals"&&<ApprovalDashboard/>}
