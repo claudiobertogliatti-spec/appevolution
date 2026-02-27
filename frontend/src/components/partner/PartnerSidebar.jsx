@@ -84,6 +84,7 @@ const getSidebarGroups = (partnerPhase) => {
         { id: "profilo-bonus", label: "Bonus Strategici", icon: Star, badge: "7" },
         { id: "profilo-files", label: "I Miei File", icon: FolderOpen },
         { id: "profilo-contratto", label: "Contratto", icon: FileSignature },
+        { id: "profilo-dati", label: "Dati Personali", icon: User },
         { id: "profilo-brandkit", label: "Brand Kit", icon: Palette },
       ]
     },
