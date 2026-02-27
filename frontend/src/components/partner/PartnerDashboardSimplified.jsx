@@ -469,30 +469,6 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) 
           </ul>
         </section>
 
-        {/* RESOURCES */}
-        <section>
-          <SectionHeading 
-            title="Le tue Risorse" 
-            onHelp={() => openVideoHelp("Come usare le risorse")}
-            helpText="Come si usano?"
-          />
-          <div className="grid grid-cols-2 gap-3">
-            <ResourceCard 
-              emoji="📁"
-              title="Documenti"
-              description="Contratto, ricevute, copy approvati"
-              onClick={() => onNavigate('documenti-partner')}
-            />
-            <ResourceCard 
-              emoji="📋"
-              title="Template"
-              description="Materiali in arrivo..."
-              onClick={() => {}}
-              disabled={true}
-            />
-          </div>
-        </section>
-
         {/* ACHIEVEMENTS */}
         <section>
           <SectionHeading 
