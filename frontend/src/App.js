@@ -934,28 +934,76 @@ export default function App() {
           </>}
 
           {mode==="partner"&&<>
+            {/* DASHBOARD */}
+            {nav==="dashboard"&&<PartnerDashboardSimplified partner={demoPartner} onNavigate={setNav} onOpenChat={()=>setNav("supporto")}/>}
             {nav==="home"&&<PartnerDashboardSimplified partner={demoPartner} onNavigate={setNav} onOpenChat={()=>setNav("supporto")}/>}
-            {nav==="onboarding-docs"&&<OnboardingDocuments partner={demoPartner} onComplete={()=>setNav("home")}/>}
+            
+            {/* FASE 0 - Onboarding (ex "Parti da Qui") */}
+            {nav==="fase0-onboarding"&&<PartnerCourse partner={demoPartner} modules={modules}/>}
             {nav==="corso"&&<PartnerCourse partner={demoPartner} modules={modules}/>}
-            {nav==="masterclass"&&<MasterclassVideocorso partner={demoPartner} onBack={()=>setNav("home")}/>}
-            {nav==="coursebuilder"&&<CourseBuilderWizard partnerId={demoPartner?.id||"demo"} positioningData={{trasformazione:"Demo",target:"Demo",problema:"Demo",soluzione:"Demo"}} onComplete={()=>setNav("consigli-registrazione")}/>}
-            {nav==="funnel"&&<FunnelReviewBuilder partner={demoPartner} onBack={()=>setNav("home")}/>}
-            {nav==="funnel-analytics"&&<FunnelAnalytics partner={demoPartner}/>}
-            {nav==="avatar-checkout"&&<AvatarCheckout partner={demoPartner} onBack={()=>setNav("masterclass")}/>}
+            {nav==="onboarding-docs"&&<OnboardingDocuments partner={demoPartner} onComplete={()=>setNav("dashboard")}/>}
+            
+            {/* FASE 1 - Posizionamento */}
+            {nav==="fase1-posizionamento"&&<WizardPosizionamento partner={demoPartner} onComplete={()=>setNav("fase2-outline")}/>}
+            {nav==="documenti"&&<WizardPosizionamento partner={demoPartner} onComplete={()=>setNav("fase2-outline")}/>}
+            
+            {/* FASE 2 - Outline */}
+            {nav==="fase2-outline"&&<CourseBuilderWizard partnerId={demoPartner?.id||"demo"} positioningData={{trasformazione:"Demo",target:"Demo",problema:"Demo",soluzione:"Demo"}} onComplete={()=>setNav("fase3-script")}/>}
+            {nav==="coursebuilder"&&<CourseBuilderWizard partnerId={demoPartner?.id||"demo"} positioningData={{trasformazione:"Demo",target:"Demo",problema:"Demo",soluzione:"Demo"}} onComplete={()=>setNav("fase3-script")}/>}
+            
+            {/* FASE 3 - Script (Masterclass + testi moduli) */}
+            {nav==="fase3-script"&&<MasterclassVideocorso partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
+            {nav==="masterclass"&&<MasterclassVideocorso partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
+            
+            {/* FASE 4 - Copy Core (funnel + foto/logo) */}
+            {nav==="fase4-copycore"&&<FunnelReviewBuilder partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
+            {nav==="funnel"&&<FunnelReviewBuilder partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
+            
+            {/* FASE 5 - Masterclass (produzione video) */}
+            {nav==="fase5-masterclass"&&<ProduzioneVideo partner={demoPartner}/>}
             {nav==="consigli-registrazione"&&<ProduzioneVideo partner={demoPartner}/>}
-            {nav==="files"&&<PartnerFilesPage partner={demoPartner}/>}
-            {nav==="bonus"&&<BonusStrategici partner={demoPartner}/>}
-            {nav==="brandkit"&&<BrandKitEditor partner={demoPartner}/>}
+            
+            {/* FASE 6 - Videocorso */}
+            {nav==="fase6-videocorso"&&<VideoEditorAndrea partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
+            {nav==="video-editor"&&<VideoEditorAndrea partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
+            
+            {/* FASE 7 - Dominio */}
+            {nav==="fase7-dominio"&&<DomainConfiguration partner={demoPartner}/>}
+            {nav==="domain-config"&&<DomainConfiguration partner={demoPartner}/>}
+            
+            {/* FASE 8 - Pre-Lancio (calendario editoriale) */}
+            {nav==="fase8-prelancio"&&<CalendarioEditoriale partner={demoPartner}/>}
             {nav==="calendario"&&<CalendarioEditoriale partner={demoPartner}/>}
-            {nav==="documenti"&&demoPartner?.phase==="F0"?<OnboardingDocuments partner={demoPartner} onComplete={()=>setNav("home")}/>:<>{nav==="documenti"&&<WizardPosizionamento partner={demoPartner} onComplete={()=>setNav("masterclass")}/>}</>}
+            
+            {/* FASE 9 - Lancio (verifica finale) */}
+            {nav==="fase9-lancio"&&<FunnelAnalytics partner={demoPartner}/>}
+            {nav==="funnel-analytics"&&<FunnelAnalytics partner={demoPartner}/>}
+            
+            {/* PROFILO - Bonus */}
+            {nav==="profilo-bonus"&&<BonusStrategici partner={demoPartner}/>}
+            {nav==="bonus"&&<BonusStrategici partner={demoPartner}/>}
+            
+            {/* PROFILO - I Miei File */}
+            {nav==="profilo-files"&&<PartnerFilesPage partner={demoPartner}/>}
+            {nav==="files"&&<PartnerFilesPage partner={demoPartner}/>}
+            
+            {/* PROFILO - Contratto */}
+            {nav==="profilo-contratto"&&<LegalPagesGenerator partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
+            {nav==="legal-pages"&&<LegalPagesGenerator partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
+            
+            {/* PROFILO - Brand Kit */}
+            {nav==="profilo-brandkit"&&<BrandKitEditor partner={demoPartner}/>}
+            {nav==="brandkit"&&<BrandKitEditor partner={demoPartner}/>}
+            
+            {/* SERVIZI EXTRA */}
+            {nav==="avatar-checkout"&&<AvatarCheckout partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
+            {nav==="servizi-extra"&&<ServiziExtra partner={demoPartner}/>}
+            
+            {/* ALTRI */}
             {nav==="risorse"&&<PartnerResources/>}
             {nav==="renewal"&&<RenewalPlans partnerName={demoPartner?.name||"Partner"} currentRevenue={demoPartner?.revenue||0} onSelectPlan={(plan)=>console.log(plan)}/>}
-            {nav==="supporto"&&<ValentinaChat partner={demoPartner} onBack={()=>setNav("home")}/>}
-            {nav==="servizi-extra"&&<ServiziExtra partner={demoPartner}/>}
-            {nav==="video-editor"&&<VideoEditorAndrea partner={demoPartner} onBack={()=>setNav("home")}/>}
-            {nav==="legal-pages"&&<LegalPagesGenerator partner={demoPartner} onBack={()=>setNav("home")}/>}
+            {nav==="supporto"&&<ValentinaChat partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
             {nav==="profilo-hub"&&<PartnerProfileHub partner={demoPartner} onNavigate={setNav}/>}
-            {nav==="domain-config"&&<DomainConfiguration partner={demoPartner}/>}
             {nav==="email-automation"&&<EmailAutomation partner={demoPartner}/>}
           </>}
         </div>
