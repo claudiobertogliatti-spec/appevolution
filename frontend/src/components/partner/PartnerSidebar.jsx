@@ -4,7 +4,8 @@ import {
   FolderOpen, MessageCircle, LogOut, ChevronRight, ChevronDown, 
   HelpCircle, Sparkles, Check, Lock, Rocket, ShoppingBag, Scissors, 
   Scale, UserCircle, Globe, Mail, BarChart3, UsersRound, Video,
-  PlayCircle, X, Users, Lightbulb, Star, FileUp
+  PlayCircle, X, Users, Lightbulb, Star, FileUp, FileSignature,
+  PenTool, Image, Clapperboard, MonitorPlay, CheckCircle2, User
 } from "lucide-react";
 
 // =====================================================
@@ -13,78 +14,78 @@ import {
 
 // Regole di sblocco basate sulle fasi
 const UNLOCK_RULES = {
-  // F0 - Pre-onboarding: documenti obbligatori
-  "onboarding-docs": 0, // Documenti Onboarding (solo F0)
+  // Dashboard sempre visibile
+  "dashboard": 0,
   
-  // F1 - Primo login: sbloccati di default
-  "home": 1,
-  "corso": 1,           // Parti da Qui (include Team Evolution)
-  "bonus": 1,           // Bonus Strategici (disponibile subito)
-  "files": 1,           // I Miei File (disponibile subito)
+  // FASE 0 - Onboarding
+  "fase0-onboarding": 0,
   
-  // F2 - Dopo Profilo Hub completato (nella Home)
-  "brandkit": 2,        // Brand Kit
-  "documenti": 2,       // Posizionamento
+  // FASE 1 - Posizionamento
+  "fase1-posizionamento": 1,
   
-  // F3 - Dopo Posizionamento approvato
-  "masterclass": 3,     // Masterclass
+  // FASE 2 - Outline
+  "fase2-outline": 2,
   
-  // F5 - Dopo prima lezione caricata
-  "consigli-registrazione": 5, // Consigli Registrazione
-  "video-editor": 5,    // Video Editor
+  // FASE 3 - Script
+  "fase3-script": 3,
   
-  // F7 - Dopo Masterclass pronta
-  "funnel": 7,          // Il tuo Funnel
-  "email-automation": 7,// Email Automatiche
-  "domain-config": 7,   // Dominio Funnel
-  "legal-pages": 7,     // Pagine Legali
-  "calendario": 7,      // Calendario Editoriale 30 giorni
+  // FASE 4 - Copy Core
+  "fase4-copycore": 4,
   
-  // F8 - Dopo Funnel approvato + Stripe
-  "funnel-analytics": 8,// Analytics Funnel
+  // FASE 5 - Masterclass
+  "fase5-masterclass": 5,
   
-  // Servizi Extra - sempre visibili ma alcuni bloccati
-  "avatar-checkout": 5, // Avatar PRO
-  "servizi-extra": 1,   // Altri servizi
+  // FASE 6 - Videocorso
+  "fase6-videocorso": 6,
+  
+  // FASE 7 - Dominio
+  "fase7-dominio": 7,
+  
+  // FASE 8 - Pre-Lancio
+  "fase8-prelancio": 8,
+  
+  // FASE 9 - Lancio
+  "fase9-lancio": 9,
+  
+  // Profilo - sempre visibile
+  "profilo-bonus": 0,
+  "profilo-files": 0,
+  "profilo-contratto": 0,
+  "profilo-brandkit": 0,
+  
+  // Servizi Extra - sempre visibili
+  "avatar-checkout": 0,
+  "servizi-extra": 0,
 };
 
-// Funzione per generare i gruppi della sidebar in base alla fase
+// Funzione per generare i gruppi della sidebar
 const getSidebarGroups = (partnerPhase) => {
-  const isF0 = partnerPhase === "F0";
-  
   return [
     {
-      id: "percorso",
-      label: "📚 Percorso",
+      id: "fasi",
+      label: "📋 Percorso",
       items: [
-        // Mostra "Documenti Onboarding" solo in F0
-        ...(isF0 ? [{ id: "onboarding-docs", label: "Documenti Onboarding", icon: FileUp, badge: "URGENTE", badgeColor: "red" }] : []),
-        { id: "corso", label: "Parti da Qui", icon: PlayCircle, badge: isF0 ? null : "START" },
-        { id: "bonus", label: "Bonus Strategici", icon: Star, badge: "7" },
-        { id: "files", label: "I Miei File", icon: FolderOpen },
-        { id: "brandkit", label: "Brand Kit", icon: Palette },
-        { id: "documenti", label: "Posizionamento", icon: Target },
-        { id: "masterclass", label: "Masterclass", icon: Mic },
+        { id: "dashboard", label: "DASHBOARD", icon: Home },
+        { id: "fase0-onboarding", label: "FASE 0 - Onboarding", icon: FileUp },
+        { id: "fase1-posizionamento", label: "FASE 1 - Posizionamento", icon: Target },
+        { id: "fase2-outline", label: "FASE 2 - Outline", icon: BookOpen },
+        { id: "fase3-script", label: "FASE 3 - Script", icon: PenTool },
+        { id: "fase4-copycore", label: "FASE 4 - Copy Core", icon: Image },
+        { id: "fase5-masterclass", label: "FASE 5 - Masterclass", icon: Mic },
+        { id: "fase6-videocorso", label: "FASE 6 - Videocorso", icon: Clapperboard },
+        { id: "fase7-dominio", label: "FASE 7 - Dominio", icon: Globe },
+        { id: "fase8-prelancio", label: "FASE 8 - Pre-Lancio", icon: Calendar },
+        { id: "fase9-lancio", label: "FASE 9 - Lancio", icon: CheckCircle2 },
       ]
     },
     {
-      id: "lancio",
-      label: "🚀 Lancio",
+      id: "profilo",
+      label: "👤 Profilo",
       items: [
-        { id: "calendario", label: "Calendario Editoriale", icon: Calendar },
-        { id: "funnel", label: "Il tuo Funnel", icon: Rocket },
-        { id: "email-automation", label: "Email Automatiche", icon: Mail },
-        { id: "domain-config", label: "Dominio Funnel", icon: Globe },
-        { id: "funnel-analytics", label: "Analytics Funnel", icon: BarChart3 },
-      ]
-    },
-    {
-      id: "produzione",
-      label: "🎬 Produzione Video",
-      items: [
-        { id: "consigli-registrazione", label: "Consigli Registrazione", icon: Lightbulb },
-        { id: "video-editor", label: "Video Editor", icon: Scissors },
-        { id: "legal-pages", label: "Pagine Legali", icon: Scale },
+        { id: "profilo-bonus", label: "Bonus Strategici", icon: Star, badge: "7" },
+        { id: "profilo-files", label: "I Miei File", icon: FolderOpen },
+        { id: "profilo-contratto", label: "Contratto", icon: FileSignature },
+        { id: "profilo-brandkit", label: "Brand Kit", icon: Palette },
       ]
     },
     {
