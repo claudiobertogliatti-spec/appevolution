@@ -838,6 +838,11 @@ export default function App() {
     );
   }
 
+  // Public route: Analisi Strategica (no auth required)
+  if (window.location.pathname === "/analisi-strategica") {
+    return <AnalisiStrategicaApp />;
+  }
+
   // Not authenticated - show login
   if (!isAuthenticated) {
     return <LoginPage onLogin={handleLogin} />;
