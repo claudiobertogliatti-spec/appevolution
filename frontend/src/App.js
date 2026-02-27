@@ -51,6 +51,7 @@ import { OnboardingDocumentsAdmin } from "./components/admin/OnboardingDocuments
 import ApprovalDashboard from "./components/admin/ApprovalDashboard";
 import { TeamEvolution } from "./components/shared/TeamEvolution";
 import { OnboardingDocuments } from "./components/partner/OnboardingDocuments";
+import { AnalisiStrategicaApp } from "./components/cliente/AnalisiStrategicaApp";
 import "./styles/design-system.css";
 
 // Use relative URL in production (same domain), absolute URL in development
