@@ -330,7 +330,7 @@ export function PartnerFilesPage({ partner }) {
       )}
 
       {/* Empty State */}
-      {allFiles.length === 0 && youtubeVideos.length === 0 && (
+      {allFiles.length === 0 && (
         <div className="bg-white rounded-2xl border border-[#ECEDEF] p-12 text-center">
           <FolderOpen className="w-16 h-16 text-[#9CA3AF] mx-auto mb-4"/>
           <h3 className="font-bold text-lg text-[#1E2128] mb-2">Nessun file caricato</h3>
