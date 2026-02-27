@@ -123,11 +123,11 @@ export function ProduzioneVideo({ partner }) {
         <div className="bg-gradient-to-br from-[#1a2332] to-[#2c3e55] rounded-xl p-5">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-              <Video className="w-6 h-6 text-[#1E2128]" />
+              <Video className="w-6 h-6 text-white" />
             </div>
             <div className="flex-1">
-              <h2 className="text-lg font-extrabold text-[#1E2128]">Produzione Video — ANDREA</h2>
-              <p className="text-sm text-[#5F6572]">Surgical Cut & Recording Support</p>
+              <h2 className="text-lg font-extrabold text-white">Produzione Video — ANDREA</h2>
+              <p className="text-sm text-white/70">Surgical Cut & Recording Support</p>
             </div>
             <div className="text-right">
               <div className={`text-sm font-bold px-3 py-1 rounded-full

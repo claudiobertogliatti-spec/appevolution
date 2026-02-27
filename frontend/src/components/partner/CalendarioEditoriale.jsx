@@ -31,8 +31,8 @@ export function CalendarioEditoriale({ partner }) {
               <Calendar className="w-6 h-6 text-black" />
             </div>
             <div>
-              <h2 className="text-xl font-extrabold text-[#1E2128]">Calendario Editoriale 30 Giorni</h2>
-              <p className="text-sm text-[#5F6572]">Piano contenuti pre-lancio strutturato</p>
+              <h2 className="text-xl font-extrabold text-white">Calendario Editoriale 30 Giorni</h2>
+              <p className="text-sm text-white/70">Piano contenuti pre-lancio strutturato</p>
             </div>
           </div>
           <div className="flex gap-4 mt-4">
@@ -42,9 +42,9 @@ export function CalendarioEditoriale({ partner }) {
               { icon: "🎵", label: "TikTok", count: 4 },
               { icon: "📝", label: "Blog/Email", count: 4 },
             ].map(p => (
-              <div key={p.label} className="bg-[#FAFAF7] rounded-lg px-4 py-2 flex items-center gap-2">
+              <div key={p.label} className="bg-white/10 rounded-lg px-4 py-2 flex items-center gap-2">
                 <span className="text-lg">{p.icon}</span>
-                <span className="text-xs font-bold text-[#5F6572]">{p.label}</span>
+                <span className="text-xs font-bold text-white/80">{p.label}</span>
                 <span className="font-mono text-sm font-bold text-[#F5C518]">{p.count}</span>
               </div>
             ))}
