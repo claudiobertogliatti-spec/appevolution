@@ -971,7 +971,7 @@ export default function App() {
             {nav==="video-editor"&&<VideoEditorAndrea partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
             
             {/* FASE 7 - Dominio */}
-            {nav==="fase7-dominio"&&<DomainConfiguration partner={demoPartner}/>}
+            {nav==="fase7-dominio"&&<DomainConfiguration partner={demoPartner} onNavigate={setNav}/>}
             {nav==="domain-config"&&<DomainConfiguration partner={demoPartner}/>}
             
             {/* FASE 8 - Pre-Lancio (calendario editoriale) */}
