@@ -82,17 +82,17 @@ const getSidebarGroups = (partnerPhase) => {
       id: "profilo",
       label: "👤 Profilo",
       items: [
-        { id: "profilo-bonus", label: "Bonus Strategici", icon: Star, badge: "7" },
-        { id: "profilo-files", label: "I Miei File", icon: FolderOpen },
-        { id: "profilo-contratto", label: "Contratto", icon: FileSignature },
         { id: "profilo-dati", label: "Dati Personali", icon: User },
+        { id: "profilo-contratto", label: "Contratto", icon: FileSignature },
         { id: "profilo-brandkit", label: "Brand Kit", icon: Palette },
+        { id: "profilo-files", label: "I Miei File", icon: FolderOpen },
       ]
     },
     {
       id: "servizi",
       label: "⭐ Servizi Extra",
       items: [
+        { id: "profilo-bonus", label: "Risorse Gratis", icon: Gift, badge: "7" },
         { id: "avatar-checkout", label: "Avatar PRO", icon: Video, badge: "DELEGA" },
         { id: "servizi-extra", label: "Altri Servizi", icon: ShoppingBag },
       ]
