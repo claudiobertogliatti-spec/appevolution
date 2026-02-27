@@ -308,28 +308,6 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
 
       {/* Main Navigation - Grouped */}
       <div className="flex-1 overflow-y-auto px-3 py-2">
-        
-        {/* Home - Always visible */}
-        <button
-          onClick={() => onNavigate('home')}
-          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all mb-2"
-          style={{ 
-            background: currentNav === 'home' ? '#FFF3C4' : 'transparent',
-            borderLeft: currentNav === 'home' ? '3px solid #F2C418' : '3px solid transparent',
-            color: currentNav === 'home' ? '#1E2128' : '#3B4049'
-          }}
-        >
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center"
-               style={{ 
-                 background: currentNav === 'home' ? '#F2C418' : '#FFF8DC',
-                 color: currentNav === 'home' ? '#1E2128' : '#C4990A'
-               }}>
-            <Home className="w-3.5 h-3.5" />
-          </div>
-          <span className={`text-sm flex-1 ${currentNav === 'home' ? 'font-bold' : 'font-medium'}`}>
-            Home
-          </span>
-        </button>
 
         {/* Grouped Navigation */}
         {getSidebarGroups(partnerPhase).map(group => (
