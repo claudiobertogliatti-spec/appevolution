@@ -84,43 +84,13 @@ const FILE_CATEGORIES = {
 
 export function PartnerFilesPage({ partner }) {
   const [files, setFiles] = useState({});
-  const [youtubeVideos, setYoutubeVideos] = useState([]);
-  const [youtubeStatus, setYoutubeStatus] = useState({ authenticated: false, loading: true });
   const [uploading, setUploading] = useState(false);
-  const [uploadingVideo, setUploadingVideo] = useState(false);
-  const [videoTitle, setVideoTitle] = useState("");
-  const [showVideoModal, setShowVideoModal] = useState(false);
   const [activeCategory, setActiveCategory] = useState("all");
-  const fileInputRef = useRef(null);
   const docInputRef = useRef(null);
-  const videoInputRef = useRef(null);
 
   useEffect(() => {
     loadFiles();
-    loadYoutubeVideos();
-    checkYoutubeStatus();
   }, [partner]);
-
-  const checkYoutubeStatus = async () => {
-    try {
-      const r = await axios.get(`${API}/youtube/status`);
-      setYoutubeStatus({ authenticated: r.data.authenticated, loading: false });
-    } catch (e) {
-      setYoutubeStatus({ authenticated: false, loading: false });
-    }
-  };
-
-  const loadYoutubeVideos = async () => {
-    if (!partner?.id) return;
-    try {
-      const r = await axios.get(`${API}/youtube/partner/${partner.id}/videos`);
-      if (r.data.success) {
-        setYoutubeVideos(r.data.videos || []);
-      }
-    } catch (e) {
-      console.error('Error loading YouTube videos:', e);
-    }
-  };
 
   const loadFiles = async () => {
     if (!partner?.id) return;
@@ -131,35 +101,6 @@ export function PartnerFilesPage({ partner }) {
       }
     } catch (e) {
       console.error('Error loading files:', e);
-    }
-  };
-
-  const handleVideoUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file || !partner?.id || !videoTitle.trim()) return;
-    
-    setUploadingVideo(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("video_title", videoTitle);
-      fd.append("lesson_title", videoTitle);
-      fd.append("module_title", "Videocorso");
-      
-      await axios.post(`${API}/youtube/partner/${partner.id}/upload`, fd, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
-      
-      setShowVideoModal(false);
-      setVideoTitle("");
-      setTimeout(loadYoutubeVideos, 5000);
-      alert("✅ Video in caricamento! Apparirà nella tua playlist YouTube a breve.");
-    } catch (e) {
-      console.error('Video upload error:', e);
-      alert("Errore durante il caricamento: " + (e.response?.data?.detail || e.message));
-    } finally {
-      setUploadingVideo(false);
-      if (videoInputRef.current) videoInputRef.current.value = '';
     }
   };
 
