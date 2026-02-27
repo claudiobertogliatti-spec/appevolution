@@ -51,6 +51,7 @@ const UNLOCK_RULES = {
   "profilo-bonus": 0,
   "profilo-files": 0,
   "profilo-contratto": 0,
+  "profilo-dati": 0,
   "profilo-brandkit": 0,
   
   // Servizi Extra - sempre visibili
