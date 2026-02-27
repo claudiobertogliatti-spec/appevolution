@@ -13,7 +13,7 @@ const STATUS_CONFIG = {
   error: { color: '#EF4444', bg: '#FEE2E2', label: 'Errore', icon: XCircle }
 };
 
-export function DomainConfiguration({ partner, isAdmin = false }) {
+export function DomainConfiguration({ partner, isAdmin = false, onNavigate }) {
   const [domainRequest, setDomainRequest] = useState(null);
   const [newDomain, setNewDomain] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
