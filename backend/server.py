@@ -10941,6 +10941,11 @@ async def get_partner_avatar_payments(partner_id: str):
 # Include router
 app.include_router(api_router)
 
+# Include clienti router
+from routers.clienti import router as clienti_router, set_db as set_clienti_db
+set_clienti_db(db)
+app.include_router(clienti_router)
+
 # Logging
 logging.basicConfig(
     level=logging.INFO,
