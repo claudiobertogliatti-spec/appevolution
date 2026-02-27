@@ -3,7 +3,7 @@ Clienti Router - Handles potential clients who purchase the Strategic Analysis
 """
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, EmailStr
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime, timezone
 from bson import ObjectId
 import os
@@ -75,7 +75,7 @@ async def register_cliente(data: ClienteRegister):
         raise HTTPException(status_code=500, detail="Database not initialized")
     
     # Check if email already exists
-    existing = db.clienti.find_one({"email": data.email})
+    existing = await db.clienti.find_one({"email": data.email})
     if existing:
         raise HTTPException(status_code=409, detail="Email già registrata")
     
@@ -94,7 +94,7 @@ async def register_cliente(data: ClienteRegister):
         "notes": None
     }
     
-    result = db.clienti.insert_one(cliente_doc)
+    result = await db.clienti.insert_one(cliente_doc)
     
     return {
         "success": True,
@@ -108,7 +108,7 @@ async def login_cliente(data: ClienteLogin):
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
     
-    cliente = db.clienti.find_one({"email": data.email})
+    cliente = await db.clienti.find_one({"email": data.email})
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente non trovato")
     
@@ -127,7 +127,7 @@ async def save_questionnaire(cliente_id: str, data: QuestionnaireData):
         raise HTTPException(status_code=500, detail="Database not initialized")
     
     try:
-        result = db.clienti.update_one(
+        result = await db.clienti.update_one(
             {"_id": ObjectId(cliente_id)},
             {"$set": {
                 "questionnaire": data.answers,
@@ -195,7 +195,7 @@ async def verify_payment(data: PaymentVerify):
             cliente_id = session.metadata.get("cliente_id")
             
             if cliente_id:
-                db.clienti.update_one(
+                await db.clienti.update_one(
                     {"_id": ObjectId(cliente_id)},
                     {"$set": {
                         "has_paid": True,
@@ -218,7 +218,7 @@ async def get_cliente(cliente_id: str):
         raise HTTPException(status_code=500, detail="Database not initialized")
     
     try:
-        cliente = db.clienti.find_one({"_id": ObjectId(cliente_id)})
+        cliente = await db.clienti.find_one({"_id": ObjectId(cliente_id)})
         if not cliente:
             raise HTTPException(status_code=404, detail="Cliente non trovato")
         
@@ -239,7 +239,7 @@ async def list_clienti(status: Optional[str] = None, has_paid: Optional[bool] = 
     if has_paid is not None:
         query["has_paid"] = has_paid
     
-    clienti = list(db.clienti.find(query).sort("created_at", -1))
+    clienti = await db.clienti.find(query).sort("created_at", -1).to_list(100)
     return [serialize_cliente(c) for c in clienti]
 
 @router.put("/admin/{cliente_id}/status")
@@ -256,7 +256,7 @@ async def update_cliente_status(cliente_id: str, data: UpdateStatus):
         if data.notes:
             update_data["notes"] = data.notes
         
-        result = db.clienti.update_one(
+        result = await db.clienti.update_one(
             {"_id": ObjectId(cliente_id)},
             {"$set": update_data}
         )
