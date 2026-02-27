@@ -1,194 +1,481 @@
 import React, { useState, useEffect } from "react";
-import { loadStripe } from "@stripe/stripe-js";
 import axios from "axios";
 import { API } from "../../utils/api-config";
+import { 
+  User, Mail, Lock, ArrowRight, Loader2, Eye, EyeOff, AlertTriangle,
+  CheckCircle, Target, Clock, Gift, Briefcase, TrendingUp, Lightbulb,
+  Zap, CreditCard, Check, ArrowLeft, LogOut, FileText, Video, Phone
+} from "lucide-react";
 
-import { AnalisiStrategicaLanding } from "./AnalisiStrategicaLanding";
-import { AnalisiRegistrazione } from "./AnalisiRegistrazione";
-import { AnalisiQuestionario } from "./AnalisiQuestionario";
-import { ClienteDashboard } from "./ClienteDashboard";
-
-// Stripe promise - will be initialized with key from backend
-let stripePromise = null;
-
-const STEPS = {
-  LANDING: "landing",
-  REGISTER: "register",
-  QUESTIONNAIRE: "questionnaire",
-  PAYMENT: "payment",
-  DASHBOARD: "dashboard"
-};
+// Questions
+const QUESTIONS = [
+  { id: "attivita", question: "Raccontaci brevemente la tua attività, il tuo ruolo e da quanto tempo lavori in questo ambito.", type: "textarea", placeholder: "Descrivi la tua attività...", icon: Briefcase },
+  { id: "guadagno", question: "Come guadagni principalmente oggi?", type: "radio", options: ["Consulenze / sessioni 1:1", "Servizi a progetto", "Corsi o formazione in presenza", "Corsi online / prodotti digitali"], icon: TrendingUp },
+  { id: "difficolta", question: "Qual è la difficoltà principale che stai vivendo in questo momento?", type: "radio", options: ["Guadagno limitato dal mio tempo", "Agenda piena ma entrate instabili", "Difficoltà ad acquisire nuovi clienti", "Scarsa presenza online", "Confusione su come crescere"], icon: Target },
+  { id: "prodotto_digitale", question: "Hai mai pensato di trasformare le tue competenze in un prodotto digitale?", type: "radio", options: ["Sì, ma non so da dove iniziare", "Sì, ci ho provato senza risultati", "Ci sto pensando ora seriamente", "No, ma sono curioso di capire se ha senso"], icon: Lightbulb },
+  { id: "tipo_prodotto", question: "Che tipo di prodotto ti incuriosisce di più?", type: "radio", options: ["Videocorso", "eBook / guida pratica", "Percorso misto (video + supporto)", "Non lo so ancora"], icon: Zap },
+  { id: "tecnologia", question: "Quanto ti senti a tuo agio con strumenti digitali e tecnologia?", type: "scale", options: ["Per niente", "Poco", "Abbastanza", "Molto"], icon: Zap },
+  { id: "investimento", question: "Se trovassi un progetto sensato, saresti disposto a investire?", type: "radio", options: ["Sì, se vedo chiarezza e senso", "Sì, ma con cautela", "Dipende dall'investimento", "Al momento no"], icon: CreditCard },
+  { id: "aspettative", question: "Cosa ti aspetti da questa Valutazione Strategica?", type: "textarea", placeholder: "Scrivilo liberamente: chiarezza, conferme, una direzione...", icon: Target }
+];
 
 export function AnalisiStrategicaApp() {
-  const [step, setStep] = useState(STEPS.LANDING);
-  const [userData, setUserData] = useState(null);
-  const [questionnaireData, setQuestionnaireData] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
+  const [isLoginMode, setIsLoginMode] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  
+  // Form data
+  const [formData, setFormData] = useState({
+    nome: "", cognome: "", email: "", telefono: "", password: ""
+  });
+  
+  // Questionnaire
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [answers, setAnswers] = useState({});
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const [paymentError, setPaymentError] = useState(null);
 
-  // Check if user is already logged in
+  // Check saved session
   useEffect(() => {
-    const savedCliente = localStorage.getItem("cliente_data");
-    if (savedCliente) {
+    const saved = localStorage.getItem("cliente_session");
+    if (saved) {
       try {
-        const cliente = JSON.parse(savedCliente);
-        setUserData(cliente);
-        // If they've already paid, go to dashboard
-        if (cliente.has_paid) {
-          setStep(STEPS.DASHBOARD);
-        }
+        const data = JSON.parse(saved);
+        setUser(data);
+        setIsLoggedIn(true);
+        if (data.questionnaire) setAnswers(data.questionnaire);
       } catch (e) {
-        localStorage.removeItem("cliente_data");
+        localStorage.removeItem("cliente_session");
       }
     }
-  }, []);
-
-  // Handle starting the analysis flow
-  const handleStartAnalisi = () => {
-    if (userData && userData.has_paid) {
-      setStep(STEPS.DASHBOARD);
-    } else if (userData) {
-      setStep(STEPS.QUESTIONNAIRE);
-    } else {
-      setStep(STEPS.REGISTER);
-    }
-  };
-
-  // Handle registration complete
-  const handleRegistrationComplete = (data) => {
-    setUserData(data);
-    localStorage.setItem("cliente_data", JSON.stringify(data));
-    setStep(STEPS.QUESTIONNAIRE);
-  };
-
-  // Handle questionnaire complete - proceed to payment
-  const handleQuestionnaireComplete = async (answers) => {
-    setQuestionnaireData(answers);
-    setIsProcessingPayment(true);
-    setPaymentError(null);
-
-    try {
-      // Save questionnaire answers
-      await axios.post(`${API}/clienti/${userData.id}/questionnaire`, {
-        answers: answers
-      });
-
-      // Create Stripe checkout session
-      const response = await axios.post(`${API}/clienti/create-checkout-session`, {
-        cliente_id: userData.id,
-        email: userData.email,
-        nome: userData.nome,
-        cognome: userData.cognome
-      });
-
-      if (response.data.checkout_url) {
-        // Redirect to Stripe Checkout
-        window.location.href = response.data.checkout_url;
-      } else {
-        throw new Error("No checkout URL received");
-      }
-    } catch (error) {
-      console.error("Payment error:", error);
-      setPaymentError(error.response?.data?.detail || "Errore durante il pagamento. Riprova.");
-      setIsProcessingPayment(false);
-    }
-  };
-
-  // Handle logout
-  const handleLogout = () => {
-    localStorage.removeItem("cliente_data");
-    setUserData(null);
-    setQuestionnaireData(null);
-    setStep(STEPS.LANDING);
-  };
-
-  // Check for payment success on mount (redirect back from Stripe)
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const paymentStatus = urlParams.get("payment");
-    const sessionId = urlParams.get("session_id");
-
-    if (paymentStatus === "success" && sessionId) {
-      // Verify payment and update user
-      verifyPayment(sessionId);
-    } else if (paymentStatus === "cancelled") {
-      setPaymentError("Pagamento annullato. Puoi riprovare quando vuoi.");
-      setStep(STEPS.QUESTIONNAIRE);
+    
+    // Check payment return
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("payment") === "success") {
+      verifyPayment(params.get("session_id"));
     }
   }, []);
 
   const verifyPayment = async (sessionId) => {
     try {
-      const response = await axios.post(`${API}/clienti/verify-payment`, {
-        session_id: sessionId
-      });
-
-      if (response.data.success) {
-        const updatedUser = { ...userData, has_paid: true, status: "pending" };
-        setUserData(updatedUser);
-        localStorage.setItem("cliente_data", JSON.stringify(updatedUser));
-        setStep(STEPS.DASHBOARD);
-        
-        // Clean URL
-        window.history.replaceState({}, document.title, window.location.pathname);
+      const res = await axios.post(`${API}/clienti/verify-payment`, { session_id: sessionId });
+      if (res.data.success) {
+        const updated = { ...user, has_paid: true, status: "pending" };
+        setUser(updated);
+        localStorage.setItem("cliente_session", JSON.stringify(updated));
+        window.history.replaceState({}, "", window.location.pathname);
       }
-    } catch (error) {
-      console.error("Payment verification error:", error);
-      setPaymentError("Errore nella verifica del pagamento. Contatta il supporto.");
+    } catch (e) {
+      console.error("Payment verification error:", e);
     }
   };
 
-  // Render based on current step
-  const renderStep = () => {
-    switch (step) {
-      case STEPS.LANDING:
-        return <AnalisiStrategicaLanding onStartAnalisi={handleStartAnalisi} />;
-      
-      case STEPS.REGISTER:
-        return (
-          <AnalisiRegistrazione 
-            onComplete={handleRegistrationComplete}
-            onBack={() => setStep(STEPS.LANDING)}
-          />
-        );
-      
-      case STEPS.QUESTIONNAIRE:
-        return (
-          <AnalisiQuestionario 
-            userData={userData}
-            onComplete={handleQuestionnaireComplete}
-            onBack={() => setStep(STEPS.REGISTER)}
-            isProcessingPayment={isProcessingPayment}
-          />
-        );
-      
-      case STEPS.DASHBOARD:
-        return (
-          <ClienteDashboard 
-            cliente={userData}
-            onLogout={handleLogout}
-          />
-        );
-      
-      default:
-        return <AnalisiStrategicaLanding onStartAnalisi={handleStartAnalisi} />;
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError("");
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    if (!formData.nome || !formData.cognome || !formData.email || !formData.telefono || !formData.password) {
+      setError("Compila tutti i campi");
+      return;
+    }
+    if (formData.password.length < 6) {
+      setError("Password minimo 6 caratteri");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await axios.post(`${API}/clienti/register`, formData);
+      if (res.data.success) {
+        const userData = { id: res.data.cliente_id, ...formData, has_paid: false, status: "registered" };
+        setUser(userData);
+        setIsLoggedIn(true);
+        localStorage.setItem("cliente_session", JSON.stringify(userData));
+      }
+    } catch (err) {
+      setError(err.response?.status === 409 ? "Email già registrata. Effettua il login." : "Errore di registrazione");
+    } finally {
+      setLoading(false);
     }
   };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    if (!formData.email || !formData.password) {
+      setError("Inserisci email e password");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await axios.post(`${API}/clienti/login`, { email: formData.email, password: formData.password });
+      if (res.data.success) {
+        setUser(res.data.cliente);
+        setIsLoggedIn(true);
+        localStorage.setItem("cliente_session", JSON.stringify(res.data.cliente));
+        if (res.data.cliente.questionnaire) setAnswers(res.data.cliente.questionnaire);
+      }
+    } catch (err) {
+      setError(err.response?.status === 404 ? "Email non trovata" : err.response?.status === 401 ? "Password errata" : "Errore di login");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("cliente_session");
+    setUser(null);
+    setIsLoggedIn(false);
+    setAnswers({});
+    setCurrentQuestion(0);
+  };
+
+  const handleAnswerChange = (questionId, value) => {
+    setAnswers({ ...answers, [questionId]: value });
+  };
+
+  const handleSubmitQuestionnaire = async () => {
+    // Check all questions answered
+    const unanswered = QUESTIONS.filter(q => !answers[q.id]);
+    if (unanswered.length > 0) {
+      setError(`Rispondi a tutte le domande (mancano ${unanswered.length})`);
+      return;
+    }
+
+    setIsProcessingPayment(true);
+    try {
+      // Save questionnaire
+      await axios.post(`${API}/clienti/${user.id}/questionnaire`, { answers });
+      
+      // Create checkout
+      const res = await axios.post(`${API}/clienti/create-checkout-session`, {
+        cliente_id: user.id,
+        email: user.email,
+        nome: user.nome,
+        cognome: user.cognome
+      });
+      
+      if (res.data.checkout_url) {
+        window.location.href = res.data.checkout_url;
+      }
+    } catch (err) {
+      setError("Errore durante il pagamento. Riprova.");
+      setIsProcessingPayment(false);
+    }
+  };
+
+  // ============ RENDER LOGIN/REGISTER PAGE ============
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen" style={{ background: '#FAFAF7' }}>
+        {/* Header */}
+        <header className="border-b" style={{ borderColor: '#ECEDEF', background: '#FFFFFF' }}>
+          <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
+              <span className="text-lg font-black text-[#1E2128]">E</span>
+            </div>
+            <div>
+              <div className="font-black text-base text-[#1E2128]">Evolution<span style={{ color: '#F5C518' }}>PRO</span></div>
+              <div className="text-[10px] font-medium text-[#9CA3AF]">Analisi Strategica</div>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-5xl mx-auto px-6 py-12">
+          <div className="grid md:grid-cols-2 gap-12 items-start">
+            {/* Left: Info */}
+            <div>
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold mb-6"
+                   style={{ background: '#FEF9E7', color: '#C4990A', border: '1px solid #F5C518' }}>
+                <Clock className="w-4 h-4" />
+                Solo 4 progetti al mese
+              </div>
+              
+              <h1 className="text-3xl md:text-4xl font-black text-[#1E2128] leading-tight mb-4">
+                Verifica se il tuo Progetto è pronto per diventare un'{" "}
+                <span style={{ color: '#F5C518' }}>Accademia Digitale</span>
+              </h1>
+              
+              <p className="text-base text-[#5F6572] mb-8">
+                Analisi Strategica selettiva per Professionisti che vogliono costruire un Asset Digitale serio.
+              </p>
+
+              {/* What you get */}
+              <div className="space-y-3">
+                {[
+                  { icon: FileText, text: "Analisi profilo e posizionamento" },
+                  { icon: Target, text: "Valutazione reale del mercato" },
+                  { icon: Video, text: "Videocall personalizzata entro 48h" },
+                  { icon: Gift, text: "7 Bonus formativi inclusi" }
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-3 text-sm text-[#1E2128]">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#FEF9E7' }}>
+                      <item.icon className="w-4 h-4 text-[#F5C518]" />
+                    </div>
+                    {item.text}
+                  </div>
+                ))}
+              </div>
+
+              {/* Price */}
+              <div className="mt-8 p-4 rounded-xl" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+                <div className="flex items-center gap-3">
+                  <span className="text-lg text-[#9CA3AF] line-through">€147</span>
+                  <span className="text-3xl font-black" style={{ color: '#F5C518' }}>€67</span>
+                  <span className="text-xs font-bold px-2 py-1 rounded" style={{ background: '#D1FAE5', color: '#059669' }}>-55%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Form */}
+            <div className="p-6 rounded-2xl" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+              <div className="flex gap-2 mb-6">
+                <button onClick={() => setIsLoginMode(false)}
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${!isLoginMode ? 'bg-[#F5C518] text-black' : 'bg-[#FAFAF7] text-[#9CA3AF]'}`}>
+                  Registrati
+                </button>
+                <button onClick={() => setIsLoginMode(true)}
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${isLoginMode ? 'bg-[#F5C518] text-black' : 'bg-[#FAFAF7] text-[#9CA3AF]'}`}>
+                  Accedi
+                </button>
+              </div>
+
+              <form onSubmit={isLoginMode ? handleLogin : handleRegister} className="space-y-4">
+                {!isLoginMode && (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <input type="text" name="nome" value={formData.nome} onChange={handleChange} placeholder="Nome"
+                        className="p-3 rounded-xl text-sm" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }} />
+                      <input type="text" name="cognome" value={formData.cognome} onChange={handleChange} placeholder="Cognome"
+                        className="p-3 rounded-xl text-sm" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }} />
+                    </div>
+                    <input type="tel" name="telefono" value={formData.telefono} onChange={handleChange} placeholder="Telefono"
+                      className="w-full p-3 rounded-xl text-sm" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }} />
+                  </>
+                )}
+                
+                <div className="relative">
+                  <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Email"
+                    className="w-full p-3 pl-10 rounded-xl text-sm" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }} />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" />
+                </div>
+
+                <div className="relative">
+                  <input type={showPassword ? "text" : "password"} name="password" value={formData.password} onChange={handleChange} 
+                    placeholder={isLoginMode ? "Password" : "Password (min 6 caratteri)"}
+                    className="w-full p-3 pl-10 pr-10 rounded-xl text-sm" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }} />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2">
+                    {showPassword ? <EyeOff className="w-4 h-4 text-[#9CA3AF]" /> : <Eye className="w-4 h-4 text-[#9CA3AF]" />}
+                  </button>
+                </div>
+
+                {error && (
+                  <div className="flex items-center gap-2 p-3 rounded-xl text-xs" style={{ background: '#FEE2E2', color: '#DC2626' }}>
+                    <AlertTriangle className="w-4 h-4" />{error}
+                  </div>
+                )}
+
+                <button type="submit" disabled={loading}
+                  className="w-full py-3.5 rounded-xl font-bold bg-[#F5C518] text-black hover:bg-[#e0b115] flex items-center justify-center gap-2">
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>{isLoginMode ? "Accedi" : "Registrati e Continua"}<ArrowRight className="w-4 h-4" /></>}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ============ RENDER LOGGED IN: HOME + QUESTIONNAIRE ============
+  const question = QUESTIONS[currentQuestion];
+  const progress = ((currentQuestion + 1) / QUESTIONS.length) * 100;
+  const allAnswered = QUESTIONS.every(q => answers[q.id]);
+
+  // If already paid, show success
+  if (user?.has_paid) {
+    return (
+      <div className="min-h-screen" style={{ background: '#FAFAF7' }}>
+        <header className="border-b" style={{ borderColor: '#ECEDEF', background: '#FFFFFF' }}>
+          <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
+                <span className="text-lg font-black text-[#1E2128]">E</span>
+              </div>
+              <span className="font-black text-[#1E2128]">Evolution<span style={{ color: '#F5C518' }}>PRO</span></span>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-[#9CA3AF]">Ciao, <span className="text-[#1E2128] font-semibold">{user.nome}</span></span>
+              <button onClick={handleLogout} className="text-sm text-[#9CA3AF] hover:text-[#1E2128]"><LogOut className="w-4 h-4" /></button>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-2xl mx-auto px-6 py-16 text-center">
+          <div className="w-20 h-20 rounded-full mx-auto mb-6 flex items-center justify-center" style={{ background: '#D1FAE5' }}>
+            <CheckCircle className="w-10 h-10 text-[#059669]" />
+          </div>
+          <h1 className="text-2xl font-bold text-[#1E2128] mb-4">Grazie per il tuo acquisto!</h1>
+          <p className="text-[#5F6572] mb-8">
+            Riceverai un'email con il link per prenotare la tua <strong>videocall di Analisi Strategica</strong> entro 48 ore.
+          </p>
+          <div className="p-6 rounded-xl text-left" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+            <h3 className="font-bold text-[#1E2128] mb-3">Cosa succede ora:</h3>
+            <ul className="space-y-2 text-sm text-[#5F6572]">
+              <li className="flex items-start gap-2"><CheckCircle className="w-4 h-4 text-[#059669] mt-0.5" />Analizziamo le tue risposte</li>
+              <li className="flex items-start gap-2"><CheckCircle className="w-4 h-4 text-[#059669] mt-0.5" />Ti contattiamo per fissare la videocall</li>
+              <li className="flex items-start gap-2"><CheckCircle className="w-4 h-4 text-[#059669] mt-0.5" />Durante la call ricevi l'Analisi completa</li>
+              <li className="flex items-start gap-2"><CheckCircle className="w-4 h-4 text-[#059669] mt-0.5" />Accedi subito ai 7 Bonus formativi</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div data-testid="analisi-strategica-app">
-      {paymentError && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl bg-red-500/90 text-white text-sm font-semibold shadow-lg">
-          {paymentError}
-          <button 
-            onClick={() => setPaymentError(null)}
-            className="ml-4 opacity-70 hover:opacity-100"
-          >
-            ✕
-          </button>
+    <div className="min-h-screen" style={{ background: '#FAFAF7' }}>
+      {/* Header */}
+      <header className="border-b" style={{ borderColor: '#ECEDEF', background: '#FFFFFF' }}>
+        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
+              <span className="text-lg font-black text-[#1E2128]">E</span>
+            </div>
+            <span className="font-black text-[#1E2128]">Evolution<span style={{ color: '#F5C518' }}>PRO</span></span>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-[#9CA3AF]">Ciao, <span className="text-[#1E2128] font-semibold">{user?.nome}</span></span>
+            <button onClick={handleLogout} className="text-sm text-[#9CA3AF] hover:text-[#1E2128]"><LogOut className="w-4 h-4" /></button>
+          </div>
         </div>
-      )}
-      {renderStep()}
+      </header>
+
+      <div className="max-w-4xl mx-auto px-6 py-8">
+        {/* Welcome Section */}
+        <div className="p-6 rounded-2xl mb-8" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+          <h1 className="text-xl font-bold text-[#1E2128] mb-2">Benvenuto/a nell'Analisi Strategica</h1>
+          <p className="text-sm text-[#5F6572] mb-4">
+            Completa il questionario qui sotto per permetterci di analizzare il tuo progetto. 
+            Dopo il pagamento di <strong>€67</strong>, riceverai:
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { icon: Video, label: "Videocall 1:1", sub: "entro 48h" },
+              { icon: FileText, label: "Report Analisi", sub: "personalizzato" },
+              { icon: Target, label: "Valutazione", sub: "del mercato" },
+              { icon: Gift, label: "7 Bonus", sub: "inclusi" }
+            ].map((item, i) => (
+              <div key={i} className="p-3 rounded-xl text-center" style={{ background: '#FAFAF7' }}>
+                <item.icon className="w-6 h-6 mx-auto mb-1 text-[#F5C518]" />
+                <div className="text-xs font-bold text-[#1E2128]">{item.label}</div>
+                <div className="text-[10px] text-[#9CA3AF]">{item.sub}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Progress */}
+        <div className="mb-6">
+          <div className="flex justify-between text-sm text-[#9CA3AF] mb-2">
+            <span>Domanda {currentQuestion + 1} di {QUESTIONS.length}</span>
+            <span>{Math.round(progress)}% completato</span>
+          </div>
+          <div className="h-2 rounded-full" style={{ background: '#ECEDEF' }}>
+            <div className="h-full bg-[#F5C518] rounded-full transition-all" style={{ width: `${progress}%` }} />
+          </div>
+        </div>
+
+        {/* Question Card */}
+        <div className="p-6 rounded-2xl mb-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: '#FEF9E7' }}>
+              <question.icon className="w-6 h-6 text-[#F5C518]" />
+            </div>
+            <h2 className="text-lg font-bold text-[#1E2128] flex-1">{question.question}</h2>
+          </div>
+
+          {question.type === "textarea" && (
+            <textarea value={answers[question.id] || ""} onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+              placeholder={question.placeholder} rows={4}
+              className="w-full p-4 rounded-xl text-sm resize-none" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }} />
+          )}
+
+          {question.type === "radio" && (
+            <div className="space-y-2">
+              {question.options.map((opt, i) => (
+                <button key={i} onClick={() => handleAnswerChange(question.id, opt)}
+                  className="w-full p-4 rounded-xl text-left flex items-center gap-3 transition-all text-sm"
+                  style={{ background: answers[question.id] === opt ? '#FEF9E7' : '#FAFAF7', border: answers[question.id] === opt ? '2px solid #F5C518' : '1px solid #ECEDEF' }}>
+                  <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center"
+                    style={{ borderColor: answers[question.id] === opt ? '#F5C518' : '#9CA3AF', background: answers[question.id] === opt ? '#F5C518' : 'transparent' }}>
+                    {answers[question.id] === opt && <Check className="w-3 h-3 text-black" />}
+                  </div>
+                  {opt}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {question.type === "scale" && (
+            <div className="grid grid-cols-4 gap-2">
+              {question.options.map((opt, i) => (
+                <button key={i} onClick={() => handleAnswerChange(question.id, opt)}
+                  className="p-4 rounded-xl text-center transition-all"
+                  style={{ background: answers[question.id] === opt ? '#FEF9E7' : '#FAFAF7', border: answers[question.id] === opt ? '2px solid #F5C518' : '1px solid #ECEDEF' }}>
+                  <div className="text-2xl mb-1">{["😕", "🤔", "🙂", "😃"][i]}</div>
+                  <span className="text-xs text-[#5F6572]">{opt}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Navigation */}
+          <div className="flex justify-between mt-6">
+            <button onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))} disabled={currentQuestion === 0}
+              className="px-5 py-2.5 rounded-xl text-sm font-semibold text-[#5F6572] flex items-center gap-2 disabled:opacity-30">
+              <ArrowLeft className="w-4 h-4" />Precedente
+            </button>
+            {currentQuestion < QUESTIONS.length - 1 ? (
+              <button onClick={() => setCurrentQuestion(currentQuestion + 1)} disabled={!answers[question.id]}
+                className="px-5 py-2.5 rounded-xl text-sm font-bold bg-[#F5C518] text-black flex items-center gap-2 disabled:opacity-30">
+                Successiva<ArrowRight className="w-4 h-4" />
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        {/* Question dots */}
+        <div className="flex justify-center gap-2 mb-8">
+          {QUESTIONS.map((q, i) => (
+            <button key={i} onClick={() => setCurrentQuestion(i)}
+              className={`w-3 h-3 rounded-full transition-all ${i === currentQuestion ? 'bg-[#F5C518] scale-125' : answers[q.id] ? 'bg-[#10B981]' : 'bg-[#ECEDEF]'}`} />
+          ))}
+        </div>
+
+        {/* Submit */}
+        {error && (
+          <div className="flex items-center gap-2 p-3 rounded-xl text-sm mb-4" style={{ background: '#FEE2E2', color: '#DC2626' }}>
+            <AlertTriangle className="w-4 h-4" />{error}
+          </div>
+        )}
+
+        <button onClick={handleSubmitQuestionnaire} disabled={!allAnswered || isProcessingPayment}
+          className="w-full py-4 rounded-xl font-bold text-lg bg-[#F5C518] text-black flex items-center justify-center gap-3 disabled:opacity-50">
+          {isProcessingPayment ? <><Loader2 className="w-5 h-5 animate-spin" />Elaborazione...</> : 
+           <>Completa e Paga €67<CreditCard className="w-5 h-5" /></>}
+        </button>
+        
+        <p className="text-center text-xs text-[#9CA3AF] mt-3">
+          Pagamento sicuro con Stripe • Videocall entro 48h
+        </p>
+      </div>
     </div>
   );
 }
