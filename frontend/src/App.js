@@ -28,6 +28,7 @@ import { PartnerSidebarLight } from "./components/partner/PartnerSidebar";
 import { PartnerFilesPage } from "./components/partner/PartnerFilesPage";
 import { BonusStrategici } from "./components/partner/BonusStrategici";
 import { AdminSidebarLight } from "./components/admin/AdminSidebarLight";
+import { ScriptBuilder } from "./components/partner/ScriptBuilder";
 import { ValentinaChat } from "./components/chat/ValentinaChat";
 import { LoginPage } from "./components/auth/LoginPage";
 import { WebhookDashboard } from "./components/admin/WebhookDashboard";
