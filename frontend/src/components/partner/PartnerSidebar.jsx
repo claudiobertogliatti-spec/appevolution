@@ -308,6 +308,28 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
       {/* Main Navigation - Grouped */}
       <div className="flex-1 overflow-y-auto px-3 py-2">
 
+        {/* DASHBOARD - Always visible at top */}
+        <button
+          onClick={() => onNavigate('dashboard')}
+          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all mb-2"
+          style={{ 
+            background: currentNav === 'dashboard' ? '#FFF3C4' : 'transparent',
+            borderLeft: currentNav === 'dashboard' ? '3px solid #F2C418' : '3px solid transparent',
+            color: currentNav === 'dashboard' ? '#1E2128' : '#3B4049'
+          }}
+        >
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+               style={{ 
+                 background: currentNav === 'dashboard' ? '#F2C418' : '#FFF8DC',
+                 color: currentNav === 'dashboard' ? '#1E2128' : '#C4990A'
+               }}>
+            <Home className="w-3.5 h-3.5" />
+          </div>
+          <span className={`text-sm flex-1 ${currentNav === 'dashboard' ? 'font-bold' : 'font-medium'}`}>
+            DASHBOARD
+          </span>
+        </button>
+
         {/* Grouped Navigation */}
         {getSidebarGroups(partnerPhase).map(group => (
           <div key={group.id} className="mb-2">
