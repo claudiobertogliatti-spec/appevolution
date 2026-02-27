@@ -112,6 +112,94 @@ const CONTRACT_ARTICLES = [
       { icon: "📜", text: "Allegati: Informativa privacy, scheda progetto, termini d'uso piattaforma" },
     ]
   },
+  {
+    num: 9,
+    title: "Proprietà Intellettuale",
+    subtitle: "Chi possiede cosa",
+    summary: "Tu mantieni la proprietà dei tuoi contenuti originali. EvolutionPro mantiene la proprietà delle proprie tecnologie, strategie e metodologie. I materiali co-creati sono di proprietà congiunta.",
+    points: [
+      { icon: "📚", text: "I tuoi contenuti (testi, video, slides) restano di tua proprietà" },
+      { icon: "⚙️", text: "Funnel, strategie di marketing, automazioni → proprietà EvolutionPro" },
+      { icon: "🤝", text: "Materiali creati insieme (es. copy vendita) → licenza d'uso reciproca" },
+      { icon: "🎨", text: "Il brand del corso può essere usato da te anche dopo la fine del contratto" },
+    ]
+  },
+  {
+    num: 10,
+    title: "Gestione dei Pagamenti",
+    subtitle: "Come funziona il flusso dei soldi",
+    summary: "EvolutionPro incassa i pagamenti dei clienti e gestisce fatturazione, rimborsi e contestazioni. La tua quota viene liquidata mensilmente.",
+    points: [
+      { icon: "💳", text: "Pagamenti clienti incassati tramite Stripe su account EvolutionPro" },
+      { icon: "🧾", text: "EvolutionPro emette fattura al cliente finale" },
+      { icon: "📊", text: "Report vendite disponibile in dashboard in tempo reale" },
+      { icon: "💰", text: "Liquidazione della tua quota: entro il 15 del mese successivo" },
+    ],
+    alert: { type: "info", text: "Rimborsi e contestazioni sono gestiti da EvolutionPro. Se il rimborso avviene dopo la liquidazione, la quota verrà trattenuta dal prossimo pagamento." }
+  },
+  {
+    num: 11,
+    title: "Garanzia Soddisfatti o Rimborsati",
+    subtitle: "La garanzia che offriamo ai tuoi clienti",
+    summary: "Offriamo 30 giorni di garanzia soddisfatti o rimborsati ai clienti. In caso di rimborso, la tua quota viene proporzionalmente ridotta.",
+    points: [
+      { icon: "✅", text: "Garanzia 30 giorni dalla data di acquisto" },
+      { icon: "📧", text: "Cliente richiede rimborso via email con motivazione" },
+      { icon: "💸", text: "Rimborso elaborato entro 14 giorni lavorativi" },
+      { icon: "📉", text: "La tua quota viene ridotta proporzionalmente al rimborso" },
+    ]
+  },
+  {
+    num: 12,
+    title: "Supporto e Assistenza",
+    subtitle: "Come ti supportiamo durante il percorso",
+    summary: "Hai accesso a supporto tecnico e strategico tramite diversi canali. Il team EvolutionPro è disponibile per guidarti in ogni fase.",
+    points: [
+      { icon: "📱", text: "Gruppo Telegram dedicato per supporto rapido" },
+      { icon: "📧", text: "Email assistenza@evolution-pro.it per richieste formali" },
+      { icon: "📹", text: "Call strategiche mensili con il team (se previste dal pacchetto)" },
+      { icon: "📚", text: "Accesso al videocorso formativo completo" },
+    ]
+  },
+  {
+    num: 13,
+    title: "Responsabilità e Limitazioni",
+    subtitle: "Cosa è coperto e cosa no",
+    summary: "Entrambe le parti operano con diligenza professionale. Non ci sono garanzie sui risultati di vendita specifici. La responsabilità è limitata all'importo del contratto.",
+    points: [
+      { icon: "⚠️", text: "Nessuna garanzia di risultati di vendita specifici" },
+      { icon: "📊", text: "I risultati dipendono da molteplici fattori (mercato, impegno, timing)" },
+      { icon: "🛡️", text: "Responsabilità limitata al valore del contratto" },
+      { icon: "💼", text: "Esclusione danni indiretti (es. mancato guadagno, danno reputazionale)" },
+    ],
+    alert: { type: "warn", text: "EvolutionPro non è responsabile per guasti tecnici di terze parti (Systeme.io, Stripe, YouTube, etc.) fuori dal proprio controllo." }
+  },
+  {
+    num: 14,
+    title: "Obblighi Fiscali",
+    subtitle: "Chi paga cosa al fisco",
+    summary: "Ognuno è responsabile dei propri obblighi fiscali. Tu devi avere una posizione fiscale regolare (P.IVA o regime occasionale secondo i limiti di legge).",
+    points: [
+      { icon: "🧾", text: "Tu emetti fattura a EvolutionPro per la tua quota mensile" },
+      { icon: "📋", text: "Sei responsabile della tua dichiarazione dei redditi" },
+      { icon: "💶", text: "IVA: applicata secondo il tuo regime fiscale" },
+      { icon: "📄", text: "Conserva tutte le ricevute per almeno 10 anni" },
+    ],
+    alert: { type: "info", text: "Se non hai P.IVA, puoi operare in regime di prestazione occasionale fino ai limiti di legge (€5.000 annui). Oltre quel limite, dovrai aprire partita IVA." }
+  },
+  {
+    num: 15,
+    title: "Disposizioni Varie",
+    subtitle: "Altre clausole importanti",
+    summary: "Clausole residuali che completano il contratto: cessione, forza maggiore, intero accordo, validità delle clausole.",
+    points: [
+      { icon: "🔄", text: "Cessione: non puoi cedere il contratto a terzi senza consenso scritto" },
+      { icon: "⚡", text: "Forza maggiore: sospensione obblighi in caso di eventi straordinari" },
+      { icon: "📑", text: "Intero accordo: questo contratto sostituisce ogni accordo precedente" },
+      { icon: "✂️", text: "Separabilità: se una clausola è nulla, le altre restano valide" },
+    ],
+    alert: { type: "good", text: "Questo contratto è stato redatto per tutelare entrambe le parti in modo equo e trasparente." }
+  },
 ];
 
 // Article Card component
