@@ -1,267 +1,100 @@
 # Evolution PRO OS - Product Requirements Document
-**Version:** 27.0
-**Last Updated:** 2026-02-18
 
 ## Original Problem Statement
-Build "Evolution PRO OS", a proprietary web application for business workflow automation with AI agents, partner management, funnel deployment, video production, and lead monetization.
+Building "Evolution PRO OS," a proprietary web application for business workflow automation featuring:
+- A functional AI orchestrator (VALENTINA) capable of executing real tasks
+- Integration with OpenClaw for GUI automation on local machines
+- Partner-facing dashboard with structured sidebar guiding users through multi-phase program (F0-F9)
+- Admin dashboard with demo mode to view partner features unlocked
 
-## Core Features Implemented
+## User's Preferred Language
+Italian
 
-### Authentication & Users
-- [x] Admin login (Claudio/Antonella)
-- [x] Partner login system
-- [x] Role-based access control
+## Core Architecture
+- **Frontend**: React with Shadcn/UI components
+- **Backend**: FastAPI (server.py monolith - needs refactoring)
+- **Database**: MongoDB Atlas
+- **AI**: Claude via Emergent LLM Key (for VALENTINA)
 
-### Partner Management
-- [x] Partner pipeline (F0-F10 phases)
-- [x] Partner Profile Hub (connected to backend)
-- [x] Document management
-- [x] Domain configuration
-- [x] **Onboarding Documents Upload** - F0 partners upload contracts, IDs, payment proof
-- [x] **Admin Onboarding Review** - Verify/reject partner documents
+## What's Been Implemented
 
-### AI Agents (9 Agents)
-- [x] VALENTINA - Chat support (with session persistence)
-- [x] ANDREA - Video editing
-- [x] STEFANIA - Copy Factory & War Mode Ads
-- [x] GAIA - Funnel Deployer
-- [x] ATLAS - LTV tracking
-- [x] LUCA - Compliance
-- [x] ORION - Lead Scoring & Intelligence (with session persistence)
-- [x] Agent Hub Dashboard
-- [x] **Team Evolution Page** - Agent overview for Admin & Partner
+### Completed (Dec 2025)
+- ✅ Partner Sidebar restructured with Dashboard, Percorso (F0-F9), Profilo, Servizi Extra
+- ✅ Admin "Demo Mode" - all phases unlocked when viewing partner dashboard
+- ✅ VALENTINA AI agent with delegation capability to OpenClaw
+- ✅ OpenClaw local setup with NVIDIA Kimi K2.5 (free tier)
+- ✅ ScriptBuilder component for FASE 3
+- ✅ ContrattoPartnership component for contract viewing
+- ✅ DatiPersonali component for personal/business data
+- ✅ LegalPagesGenerator with disclaimer integrated in Dominio page (FASE 7)
+- ✅ Telegram bot integration for OpenClaw communication
 
-### Lead Management & Monetization
-- [x] CSV Import from Systeme.io (13.246 contacts)
-- [x] ORION Lead Scoring with custom tags
-- [x] Temperature segmentation (HOT/WARM/COLD/FROZEN)
-- [x] Tag-based automation triggers
+### Refactoring Done (Feb 2026)
+- ✅ Separated `profilo-contratto` → ContrattoPartnership (not LegalPagesGenerator)
+- ✅ Added `profilo-dati` → DatiPersonali for personal data management
+- ✅ Added LegalPagesGenerator button in DomainConfiguration (FASE 7)
+- ✅ Updated PartnerSidebar with new "Dati Personali" item
 
-### Sales & Payments
-- [x] Stripe integration for Avatar service
-- [x] Sales KPI Dashboard
-- [x] Tripwire €7 tracking ready
-- [x] Webhook endpoint for Systeme.io sales
+## Known Issues
+### P0 - Critical
+- **OpenClaw execution fails**: "Agent was aborted" error on local machine
+  - Gateway connects to Telegram but task execution fails
+  - Likely context size or model timeout issue
 
-### Integrations
-- [x] Systeme.io (contacts, tags, webhooks)
-- [x] Stripe (checkout, webhooks)
-- [x] Telegram (notifications)
-- [x] HeyGen (avatar generation)
-- [x] Cloudinary (file storage)
-- [x] Claude/OpenAI (via Emergent LLM Key)
-- [x] **MongoDB Atlas** (cloud database)
-- [x] **YouTube Data API** (playlist management, video uploads)
+### P1 - High
+- **YouTube API Token Expired**: `invalid_grant: Token has been expired or revoked`
+  - Blocks video upload functionality
+  - Needs re-authentication in Google Cloud Console
 
-## Recent Changes (2026-02-18)
+### P2 - Medium
+- Unreadable text on dark blue backgrounds (some pages)
+- Backend refactoring needed (server.py monolith)
 
-### Session 30 - OpenClaw Integration IMPLEMENTED ✅
+## Backlog / Future Tasks
 
-1. **OpenClaw Integration System**
-   - Creato `/app/backend/openclaw_integration.py`
-   - Task inviati via Telegram Bot a OpenClaw
-   - Azioni supportate: create_pipeline_column, move_contact_to_column, create_funnel, create_automation
+### P1 - High Priority
+- Create page/view for FASE 2 - OUTLINE
+- Create page/view for FASE 9 - LANCIO (final verification)
 
-2. **API Endpoints OpenClaw**
-   - `POST /api/openclaw/task` - Crea task generico
-   - `POST /api/openclaw/pipeline/column` - Crea colonna
-   - `POST /api/openclaw/pipeline/move` - Sposta contatto
-   - `POST /api/openclaw/funnel` - Crea funnel
-   - `POST /api/openclaw/callback` - Callback completamento
-   - `GET /api/openclaw/tasks/pending` - Task in attesa
+### P2 - Medium Priority
+- Backend refactoring: Break server.py into /routers structure
+- Implement Landing Page & Funnel Builder (drag-and-drop)
+- Implement Historical Data Tracking
 
-3. **VALENTINA + OpenClaw**
-   - Pattern matching per rilevare richieste GUI
-   - Invio automatico a OpenClaw quando API non disponibile
-   - Risposta con Task ID e conferma invio
-
-### Session 29 - Approval Workflow System IMPLEMENTED ✅
-
-1. **Sistema di Approvazione Task**
-   - Creato `/app/backend/approval_workflow.py` con matrice di approvazione
-   - Task che richiedono SEMPRE approvazione: email, copy, script, campagne
-   - Task che non richiedono approvazione: lettura dati (ORION, MARTA, ATLAS)
-   - Sistema di revisioni (max 3 tentativi con feedback)
-
-2. **API Endpoints Approvazioni**
-   - `GET /api/agent-tasks/approvals` - Lista task in attesa
-   - `GET /api/agent-tasks/approval-stats` - Statistiche
-   - `PATCH /api/agent-tasks/{id}/approve` - Approva task
-   - `PATCH /api/agent-tasks/{id}/reject` - Rifiuta con feedback
-
-3. **Dashboard Approvazioni (Frontend)**
-   - Componente `ApprovalDashboard.jsx` con UI completa
-   - Statistiche: In Attesa, Approvati Oggi, Rifiutati, Stale >4h
-   - Preview output generato
-   - Storico revisioni
-   - Selezione reviewer (Antonella/Claudio)
-
-4. **Background Worker Aggiornato**
-   - Gestisce workflow: pending → awaiting_approval → approved → completed
-   - Rigenerazione automatica con feedback dopo rifiuto
-
-1. **VALENTINA Task Execution Working End-to-End**
-   - Implemented `_add_systeme_tag()` method with NLP parameter extraction
-   - Added regex parsing to extract email and tag_name from natural language messages
-   - Example: "Aggiungi il tag test_valentina al contatto info@danieleandolfi.com" → Task created and executed
-   - **Verified**: Tags successfully added on Systeme.io (multiple tests passed)
-
-2. **CRITICAL FIX: Honest Response for Unsupported Operations**
-   - VALENTINA now explicitly blocks and explains when operations are NOT supported
-   - Unsupported: Creating pipeline columns, creating funnels, creating automations
-   - Supported: Adding tags, reading lead stats, migrating segments, generating copy
-   - Fixed bug where "sposta contatto" keyword was blocking valid tag operations
-
-3. **Background Worker Confirmed Working**
-   - Tasks created in `agent_tasks` collection with status tracking
-   - Background worker processes pending tasks every 60 seconds
-   - Tasks transition: pending → in_progress → completed/failed
-   - Results stored with full Systeme.io response
-
-4. **ORION Expanded Actions** (NEW)
-   - `analyze_lead`: Analisi dettagliata lead specifico per email
-   - `get_leads_to_reactivate`: Identifica COLD/FROZEN da riattivare  
-   - `get_lead_trends`: Trend e statistiche nel tempo
-   - `get_segment_details`: Breakdown approfondito per segmento
-   - `get_conversion_potential`: Calcolo potenziale revenue con tassi conversione
-   - `migrate_leads_segment`: **Migrazione lead tra segmenti con update DB reale**
-
-### Session 27 - Complete Agent System + Integrated Services
-
-1. **VALENTINA AI Overhaul**
-   - Fixed memory persistence bug (sessions now cached)
-   - Corrected LLM model name
-   - Added honesty rules (no more fake "completed" actions)
-   
-2. **Internal/External Scope System**
-   - Actions now filtered by scope (internal for admin, external for partners)
-   - Partners get contextual help based on their phase (F0-F10)
-   - Admin has full access to all data and operations
-
-3. **Integrated Services** (`/app/backend/integrated_services.py`)
-   - **Systeme.io Client**: Full API integration
-     - Get/create contacts
-     - Manage tags (add/remove)
-     - Subscribe to campaigns
-   - **Resend Email Service**: Transactional emails
-     - Send single emails
-     - Campaign emails to multiple recipients
-     - Welcome email templates
-   - **Background Job Executor**: 
-     - Processes pending agent tasks every 60 seconds
-     - Supports immediate execution with `execute_now=True`
-     - Task status tracking (pending/in_progress/completed/failed)
-
-4. **New API Endpoints**
-   - `POST /api/email/send` - Send single email
-   - `POST /api/email/campaign` - Send campaign to multiple recipients  
-   - `POST /api/email/welcome/{partner_id}` - Send welcome email
-   - `POST /api/systeme/tag/add` - Add tag to contact
-   - `GET /api/systeme/contacts` - List contacts
-   - `GET /api/systeme/tags` - List all tags
-   - `POST /api/systeme/sync-contacts` - Sync contacts to local DB
-   - `POST /api/jobs/task` - Create agent task
-   - `POST /api/jobs/process` - Process pending tasks manually
-   - `GET /api/jobs/status` - Get background worker status
-
-5. **8 Agents Integrated** with scope filtering
-
-3. **Agent Task System (NEW)**
-   - Sistema per tracciare task assegnati agli agenti
-   - **Endpoints**:
-     - `POST /api/agent-tasks` - Crea task
-     - `GET /api/agent-tasks` - Lista task
-     - `PATCH /api/agent-tasks/{id}/status` - Aggiorna stato
-     - `GET /api/agent-tasks/summary/dashboard` - Dashboard task
-
-4. **Bonus Strategici Section** (`/components/partner/BonusStrategici.jsx`)
-   - 7 strategic bonus guides for partners
-   - Chapter-based reading experience
-   - Progress tracking with session persistence
-   - Completion badges per bonus
-   - Responsive design matching Evolution PRO theme
-
-2. **Contract PDF Generation** (`/api/partners/{id}/contract-pdf`)
-   - Dynamic PDF generation using reportlab
-   - Partner-specific data: name, email, date, phase
-   - Professional formatting with Evolution PRO branding
-   - 15 contract articles summary
-   - Signature section
-   - Download filename: `Contratto_EvolutionPRO_{Name}_{Date}.pdf`
-
-3. **Welcome Email Integration**
-   - Enhanced `send_partner_welcome_email()` function
-   - Adds `welcome_partner` tag to Systeme.io for automation trigger
-   - Telegram notification to admin on new partner registration
-   - Email content logged to database for tracking
-   - New endpoint: `POST /api/onboarding/send-welcome-email/{partner_id}`
-
-4. **PartnerFilesPage.jsx Updates**
-   - Connected "Scarica il tuo contratto (PDF)" button to real endpoint
-   - Added data-testid for testing: `download-contract-pdf-btn`
-
-## Database Collections
-- `users` - Authentication
-- `partners` - Partner data
-- `agents` - AI agent configurations
-- `systeme_contacts` - 13,246 contacts from Systeme.io
-- `payments` - Sales records
-- `orion_analysis` - Lead scoring results
-- `webhook_logs` - Webhook activity
-- `onboarding_documents` - Partner onboarding files
-- `email_logs` - Email tracking
-
-## API Endpoints (Key)
-- `POST /api/systeme/import-csv` - Import contacts from CSV
-- `GET /api/sales/kpi` - Sales KPI data
-- `POST /api/webhooks/systeme` - Systeme.io webhook receiver
-- `POST /api/orion/analyze-list` - Run ORION analysis
-- `GET /api/orion/segments` - Get lead segments
-- `GET /api/partners/{id}/contract-pdf` - Generate partner contract PDF
-- `POST /api/onboarding/send-welcome-email/{id}` - Send welcome email + Systeme.io tag
-- `GET /api/partners/{id}/onboarding-documents` - List onboarding docs
-- `POST /api/partners/{id}/onboarding-documents/upload` - Upload onboarding doc
-
-## Technical Debt
-- **CRITICAL:** `server.py` is 10,000+ lines - needs refactoring into APIRouter modules
-- `App.js` has complex conditional rendering - needs proper routing
-- YouTube token expired (needs re-authentication)
-
-## Backlog (Prioritized)
-
-### P0 (Immediate)
-- ✅ Production data fix verified
-- ✅ Bonus Strategici implementation
-- ✅ Contract PDF download
-- ✅ Welcome email with Systeme.io tag
-- ✅ **VALENTINA action execution system validated** (tags added to real Systeme.io contacts)
-
-### P1 (High Priority)
-- [ ] Connect ORION insights to 9 AI agents
-- [ ] Implement locked section video modal
-- [ ] Re-authenticate YouTube API token
-- [ ] Create Systeme.io welcome automation
-
-### P2 (Medium Priority)
-- [ ] Backend refactoring (split server.py - now 10,000+ lines!)
-  - ✅ Created `/app/backend/ARCHITECTURE.md` with migration plan
-  - ✅ Created `/app/backend/routers/` folder structure
-  - ✅ Prepared `auth.py`, `orion.py` router templates
-  - [ ] Gradual endpoint migration (Phase 2)
-- [ ] Advanced post-launch metrics dashboard
-- [ ] Implement historical tracking for ORION trends
-
-### P3 (Future)
-- [ ] Frontend refactoring
-- [ ] Academy videos system
-- [ ] Multi-tenant support
+## 3rd Party Integrations
+| Service | Status | Purpose |
+|---------|--------|---------|
+| MongoDB Atlas | ✅ Working | Primary database |
+| Systeme.io API | ✅ Working | Contact/tag management |
+| Anthropic Claude | ✅ Working | VALENTINA AI (Emergent Key) |
+| Telegram Bot | ✅ Working | OpenClaw bridge |
+| OpenClaw + NVIDIA Kimi | ⚠️ Partial | GUI automation |
+| YouTube Data API v3 | ❌ Broken | Video uploads |
+| Stripe | ✅ Working | Payments |
+| Cloudinary | ✅ Working | Media storage |
 
 ## Credentials (Test)
-- Admin: `claudio@evolutionpro.it` / `Evolution2026!`
-- Partner F0: `testf0@evolutionpro.it` / `Test2026!`
-- Partner F0 ID: `d248c632-869d-4a13-b94a-dbf2425fa143`
-- API Keys: stored in `/app/backend/.env`
+- Admin: claudio@evolutionpro.it / Evolution2026!
+- OpenClaw Bot Token: 8424701823:AAGtRwk4ZUthZxYAer4vfnLmTxzs3c3jkIs
 
-## Test Reports
-- Latest: `/app/test_reports/iteration_7.json` - 100% pass rate
-- Tests: `/app/backend/tests/test_bonus_contract_email.py`
+## File Structure
+```
+/app
+├── backend/
+│   ├── server.py               # Monolith (needs refactoring)
+│   ├── valentina_ai.py         # AI orchestrator
+│   ├── openclaw_integration.py # Telegram bridge
+│   └── routers/                # Future refactoring target
+└── frontend/
+    └── src/
+        ├── App.js              # Main router
+        ├── components/
+        │   └── partner/
+        │       ├── PartnerSidebar.jsx
+        │       ├── ContrattoPartnership.jsx
+        │       ├── DatiPersonali.jsx
+        │       ├── DomainConfiguration.jsx
+        │       ├── LegalPagesGenerator.jsx
+        │       └── ...
+        └── ...
+```
