@@ -29,14 +29,14 @@ from agent_hub_service import AgentAnalyticsHub, init_agent_hub
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection - Always use MongoDB Atlas
-ATLAS_URL = "mongodb+srv://evolution_admin:Evoluzione74@cluster0.4cgj8wx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-ATLAS_DB = "evolution_pro"
+# MongoDB connection - Read from environment variables
+mongo_url = os.environ.get('MONGO_URL', '')
+db_name = os.environ.get('DB_NAME', 'evolution_pro')
 
-# Force Atlas connection for consistency between preview and production
-mongo_url = ATLAS_URL
-db_name = ATLAS_DB
-print(f"🔗 Connected to MongoDB Atlas: cluster0.4cgj8wx.mongodb.net / {db_name}")
+if not mongo_url:
+    raise ValueError("MONGO_URL environment variable is required")
+
+print(f"🔗 Connecting to MongoDB: {db_name}")
 
 client = AsyncIOMotorClient(mongo_url)
 db = client[db_name]
