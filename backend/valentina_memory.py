@@ -12,7 +12,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 logger = logging.getLogger(__name__)
 
 # MongoDB connection - Use Atlas if local not available
-ATLAS_URL = "mongodb+srv://evolution_admin:Evoluzione74@cluster0.4cgj8wx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+ATLAS_URL = os.environ.get("MONGO_URL", "")
 ATLAS_DB = "evolution_pro"
 
 _mongo_url = os.environ.get("MONGO_URL", "")

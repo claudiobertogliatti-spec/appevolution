@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 # MongoDB Connection
 # ============================================================================
-ATLAS_URL = "mongodb+srv://evolution_admin:Evoluzione74@cluster0.4cgj8wx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+ATLAS_URL = os.environ.get("MONGO_URL", "")
 ATLAS_DB = "evolution_pro"
 
 _mongo_url = os.environ.get("MONGO_URL", "")
