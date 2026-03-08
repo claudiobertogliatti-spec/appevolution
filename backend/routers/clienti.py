@@ -2,6 +2,7 @@
 Clienti Router - Handles potential clients who purchase the Strategic Analysis
 """
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import Response
 from pydantic import BaseModel, EmailStr
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timezone
