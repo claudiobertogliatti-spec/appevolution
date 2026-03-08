@@ -4,66 +4,21 @@ import {
   PenTool, Shield, Handshake, User, ArrowRight, Check
 } from "lucide-react";
 
-// Agent configuration with Evolution PRO colors
+// Agent configuration with Evolution PRO colors - 6 Core Agents
 const AGENTS = [
-  {
-    id: "orion",
-    name: "Orion",
-    role: "Sales Intelligence",
-    icon: Target,
-    color: "#5B9EF5",
-    emoji: "🎯",
-    desc: "Analizza i dati di vendita, qualifica i lead e ottimizza la strategia commerciale del partner.",
-    tasks: [
-      "Scoring e qualifica lead automatica",
-      "Analisi pattern di acquisto",
-      "Suggerimenti strategici per le conversioni",
-      "Report vendite settimanali"
-    ]
-  },
   {
     id: "valentina",
     name: "Valentina",
     role: "Orchestratrice",
     icon: Link2,
-    color: "#E87CA0",
-    emoji: "🔗",
-    desc: "Gestisce il flusso di lavoro tra partner e agenti, assicurando che ogni task venga completato nei tempi.",
+    color: "#EC4899",
+    emoji: "💬",
+    desc: "Gestisce il flusso di lavoro tra partner e agenti, onboarding e consulenza strategica.",
     tasks: [
       "Coordinamento task tra agenti",
-      "Promemoria e follow-up al partner",
-      "Gestione priorità e scadenze",
+      "Onboarding nuovi partner",
+      "Consulenza strategica",
       "Interfaccia diretta con il partner"
-    ]
-  },
-  {
-    id: "marta",
-    name: "Marta",
-    role: "CRM & Revenue",
-    icon: DollarSign,
-    color: "#4ECBA0",
-    emoji: "💰",
-    desc: "Gestisce i contatti, traccia la pipeline commerciale e monitora il fatturato del partner.",
-    tasks: [
-      "Gestione database contatti e lead",
-      "Tracciamento pipeline e revenue",
-      "Segmentazione clienti automatica",
-      "Dashboard fatturato in tempo reale"
-    ]
-  },
-  {
-    id: "gaia",
-    name: "Gaia",
-    role: "Funnel & Incident",
-    icon: Rocket,
-    color: "#F59E42",
-    emoji: "🚀",
-    desc: "Costruisce, pubblica e ottimizza le pagine del funnel: opt-in, landing, ordine, thank you page. Gestisce anche gli alert di sistema.",
-    tasks: [
-      "Generazione pagine funnel personalizzate",
-      "A/B testing automatico",
-      "Ottimizzazione tassi di conversione",
-      "Gestione incident e alert"
     ]
   },
   {
@@ -71,9 +26,9 @@ const AGENTS = [
     name: "Andrea",
     role: "Video Production",
     icon: Video,
-    color: "#7C8CF5",
+    color: "#8B5CF6",
     emoji: "🎬",
-    desc: "Gestisce tutta la produzione video: editing masterclass, videocorso, sottotitoli, avatar AI e contenuti.",
+    desc: "Gestisce tutta la produzione video: editing masterclass, videocorso, sottotitoli, avatar AI.",
     tasks: [
       "Editing video con tagli e transizioni",
       "Sottotitoli automatici",
@@ -82,48 +37,63 @@ const AGENTS = [
     ]
   },
   {
+    id: "marco",
+    name: "Marco",
+    role: "Accountability",
+    icon: Target,
+    color: "#F59E0B",
+    emoji: "📋",
+    desc: "Sistema di accountability settimanale. Ti tiene in movimento verso i tuoi obiettivi.",
+    tasks: [
+      "Check-in settimanali (lunedì e venerdì)",
+      "Monitoraggio obiettivi",
+      "Follow-up su impegni non rispettati",
+      "Escalation a Claudio se necessario"
+    ]
+  },
+  {
+    id: "gaia",
+    name: "Gaia",
+    role: "Supporto Tecnico",
+    icon: Rocket,
+    color: "#0EA5E9",
+    emoji: "🔧",
+    desc: "Risolve i problemi tecnici: Systeme.io, Stripe, funnel, configurazioni.",
+    tasks: [
+      "Diagnosi problemi tecnici",
+      "Guida step-by-step alle soluzioni",
+      "Monitoraggio funnel health",
+      "Escalation per problemi critici"
+    ]
+  },
+  {
     id: "stefania",
     name: "Stefania",
-    role: "Copy & Traffico",
+    role: "Orchestrazione",
     icon: PenTool,
-    color: "#D17CEF",
-    emoji: "✍️",
-    desc: "Scrive tutti i testi e gestisce le campagne ADV: headline, email, pagine funnel, bio, post social — nel tono di voce del partner.",
+    color: "#10B981",
+    emoji: "🎯",
+    desc: "Sistema nervoso centrale. Smista i messaggi all'agente giusto e monitora il sistema.",
     tasks: [
-      "Copy pagine funnel e landing",
-      "Sequenze email automatiche",
-      "Gestione campagne ADV",
-      "Adattamento al tono di voce del partner"
+      "Routing intelligente dei messaggi",
+      "Monitoraggio giornaliero partner",
+      "Identificazione situazioni critiche",
+      "Report giornalieri a Claudio"
     ]
   },
   {
-    id: "luca",
-    name: "Luca",
-    role: "Compliance",
-    icon: Shield,
-    color: "#8899AA",
-    emoji: "🛡️",
-    desc: "Assicura la conformità legale: GDPR, privacy policy, termini e condizioni, cookie, disclaimer.",
+    id: "main",
+    name: "Main",
+    role: "Sistema Centrale",
+    icon: Layers,
+    color: "#6B7280",
+    emoji: "🎛️",
+    desc: "Coordinamento generale del sistema Evolution PRO.",
     tasks: [
-      "Generazione pagine legali GDPR-compliant",
-      "Privacy policy e cookie policy",
-      "Termini e condizioni di vendita",
-      "Aggiornamenti normativi automatici"
-    ]
-  },
-  {
-    id: "atlas",
-    name: "Atlas",
-    role: "Post-Sale & LTV",
-    icon: Handshake,
-    color: "#3CC8B4",
-    emoji: "🤝",
-    desc: "Si occupa di tutto ciò che succede dopo la vendita: onboarding clienti, follow-up, soddisfazione, retention e lifetime value.",
-    tasks: [
-      "Onboarding automatico nuovi clienti",
-      "Sequenze follow-up personalizzate",
-      "Monitoraggio soddisfazione cliente",
-      "Strategie di retention e upselling"
+      "Gestione dati partner",
+      "Sincronizzazione agenti",
+      "Metriche di sistema",
+      "Health check continuo"
     ]
   }
 ];
