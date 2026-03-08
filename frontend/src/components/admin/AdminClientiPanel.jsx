@@ -373,6 +373,33 @@ export function AdminClientiPanel() {
                 </div>
               </div>
 
+              {/* Generate Analysis Button */}
+              {selectedCliente.questionnaire && (
+                <div>
+                  <h4 className="text-xs font-bold text-[#9CA3AF] mb-3">DOCUMENTO ANALISI</h4>
+                  <button
+                    onClick={() => loadAnalysis(selectedCliente.id)}
+                    disabled={generatingAnalysis}
+                    className="w-full py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-[#F5C518] to-[#e0b115] text-black hover:from-[#e0b115] hover:to-[#c49a12] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {generatingAnalysis ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Generazione in corso...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        Genera Analisi Strategica
+                      </>
+                    )}
+                  </button>
+                  <p className="text-xs text-[#9CA3AF] text-center mt-2">
+                    Documento AI personalizzato per la videocall
+                  </p>
+                </div>
+              )}
+
               {/* Questionnaire Answers */}
               {selectedCliente.questionnaire && (
                 <div>
@@ -413,6 +440,100 @@ export function AdminClientiPanel() {
           </div>
         )}
       </div>
+
+      {/* Analysis Modal */}
+      {showAnalysis && analysis && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-[#ECEDEF] flex items-center justify-between bg-gradient-to-r from-[#F5C518]/10 to-transparent">
+              <div>
+                <h2 className="text-xl font-bold text-[#1E2128]">
+                  Analisi Strategica - {selectedCliente?.nome} {selectedCliente?.cognome}
+                </h2>
+                <p className="text-sm text-[#9CA3AF]">Documento generato con AI</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={downloadAnalysis}
+                  className="px-4 py-2 rounded-xl bg-[#F5C518] text-black font-semibold text-sm hover:bg-[#e0b115] transition-colors flex items-center gap-2"
+                >
+                  <FileDown className="w-4 h-4" />
+                  Scarica
+                </button>
+                <button
+                  onClick={() => { setShowAnalysis(false); setAnalysis(null); }}
+                  className="p-2 hover:bg-black/5 rounded-lg"
+                >
+                  <X className="w-5 h-5 text-[#9CA3AF]" />
+                </button>
+              </div>
+            </div>
+            
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="prose prose-sm max-w-none">
+                {analysis.split('\n').map((line, i) => {
+                  // Handle headers
+                  if (line.startsWith('# ')) {
+                    return <h1 key={i} className="text-2xl font-bold text-[#1E2128] mt-6 mb-4">{line.slice(2)}</h1>;
+                  }
+                  if (line.startsWith('## ')) {
+                    return <h2 key={i} className="text-xl font-bold text-[#1E2128] mt-6 mb-3 border-b border-[#ECEDEF] pb-2">{line.slice(3)}</h2>;
+                  }
+                  if (line.startsWith('### ')) {
+                    return <h3 key={i} className="text-lg font-bold text-[#1E2128] mt-4 mb-2">{line.slice(4)}</h3>;
+                  }
+                  // Handle bold
+                  if (line.includes('**')) {
+                    const parts = line.split(/\*\*(.*?)\*\*/g);
+                    return (
+                      <p key={i} className="text-[#5F6572] mb-2">
+                        {parts.map((part, j) => 
+                          j % 2 === 1 ? <strong key={j} className="text-[#1E2128]">{part}</strong> : part
+                        )}
+                      </p>
+                    );
+                  }
+                  // Handle list items
+                  if (line.startsWith('- ')) {
+                    return <li key={i} className="text-[#5F6572] ml-4 mb-1">{line.slice(2)}</li>;
+                  }
+                  // Handle numbered lists
+                  if (/^\d+\.\s/.test(line)) {
+                    return <li key={i} className="text-[#5F6572] ml-4 mb-1 list-decimal">{line.replace(/^\d+\.\s/, '')}</li>;
+                  }
+                  // Handle horizontal rule
+                  if (line === '---') {
+                    return <hr key={i} className="my-6 border-[#ECEDEF]" />;
+                  }
+                  // Empty line
+                  if (!line.trim()) {
+                    return <br key={i} />;
+                  }
+                  // Regular paragraph
+                  return <p key={i} className="text-[#5F6572] mb-2">{line}</p>;
+                })}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-[#ECEDEF] bg-[#FAFAF7] flex items-center justify-between">
+              <p className="text-xs text-[#9CA3AF]">
+                💡 Puoi scaricare questo documento e modificarlo prima della videocall
+              </p>
+              <button
+                onClick={() => generateAnalysis(selectedCliente.id)}
+                disabled={generatingAnalysis}
+                className="px-4 py-2 rounded-xl bg-white border border-[#ECEDEF] text-sm font-semibold text-[#5F6572] hover:border-[#F5C518] transition-colors flex items-center gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${generatingAnalysis ? 'animate-spin' : ''}`} />
+                Rigenera
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
