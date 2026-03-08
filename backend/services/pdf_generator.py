@@ -220,7 +220,7 @@ def parse_markdown_to_elements(markdown_text, styles):
         
         # Regular paragraph
         text = process_inline_formatting(line)
-        elements.append(Paragraph(text, styles['BodyText']))
+        elements.append(Paragraph(text, styles['CustomBody']))
         i += 1
     
     return elements
