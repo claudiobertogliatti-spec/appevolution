@@ -10903,14 +10903,26 @@ async def get_system_alerts():
 
 @api_router.post("/agent-hub/activate/{agent_id}")
 async def activate_agent(agent_id: str):
-    """Activate an agent"""
+    """Activate an agent - creates if doesn't exist"""
+    agent_id_upper = agent_id.upper()
+    
+    # Upsert: create if not exists, update if exists
     result = await db.agents.update_one(
-        {"id": agent_id.upper()},
-        {"$set": {"status": "ACTIVE", "activated_at": datetime.now(timezone.utc).isoformat()}}
+        {"id": agent_id_upper},
+        {
+            "$set": {
+                "status": "ACTIVE", 
+                "activated_at": datetime.now(timezone.utc).isoformat()
+            },
+            "$setOnInsert": {
+                "id": agent_id_upper,
+                "budget": 10,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
     )
-    if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Agent non trovato")
-    return {"success": True, "agent": agent_id.upper(), "status": "ACTIVE"}
+    return {"success": True, "agent": agent_id_upper, "status": "ACTIVE"}
 
 # =============================================================================
 # EMAIL QUEUE MANAGEMENT
