@@ -564,7 +564,7 @@ function PartnerCourse({ partner, modules }) {
             </div>
             <div>
               <h2 className="text-lg font-bold" style={{ color: '#1E2128' }}>Il Tuo Team Evolution</h2>
-              <p className="text-xs" style={{ color: '#9CA3AF' }}>8 agenti AI + supervisione umana di Claudio e Antonella</p>
+              <p className="text-xs" style={{ color: '#9CA3AF' }}>6 agenti AI + supervisione umana di Claudio e Antonella</p>
             </div>
           </div>
         </div>
