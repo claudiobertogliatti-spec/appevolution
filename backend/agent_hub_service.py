@@ -98,21 +98,41 @@ class AgentAnalyticsHub:
             metrics["warm_leads"] = len([s for s in scores if 40 <= s < 70])
             metrics["cold_leads"] = len([s for s in scores if s < 40])
             
-        elif agent_id == "MARTA":
-            # Revenue metrics
+        elif agent_id == "MARCO":
+            # Accountability metrics
             now = datetime.now(timezone.utc)
-            month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            week_start = now - timedelta(days=7)
             
-            payments = await self.db.payments.find({
-                "created_at": {"$gte": month_start.isoformat()}
-            }).to_list(500)
+            # Count check-ins sent this week
+            checkins = await self.db.marco_checkins.count_documents({
+                "created_at": {"$gte": week_start.isoformat()}
+            })
+            metrics["checkins_sent"] = checkins
             
-            metrics["mrr"] = sum(p.get("amount", 0) for p in payments)
-            metrics["transactions"] = len(payments)
-            metrics["avg_order_value"] = round(metrics["mrr"] / len(payments), 2) if payments else 0
+            # Count inactive partners (no activity > 7 days)
+            partners = await self.db.partners.find({}, {"last_activity": 1, "updated_at": 1}).to_list(500)
+            inactive = 0
+            for p in partners:
+                last = p.get("last_activity") or p.get("updated_at")
+                if last:
+                    try:
+                        if isinstance(last, str):
+                            last = datetime.fromisoformat(last.replace("Z", "+00:00"))
+                        if (now - last).days > 7:
+                            inactive += 1
+                    except:
+                        pass
+            metrics["inactive_partners"] = inactive
+            metrics["response_rate"] = 0  # TODO: track responses to check-ins
             
         elif agent_id == "GAIA":
-            # Funnel metrics from Systeme.io stats
+            # Technical support metrics
+            tickets = await self.db.support_tickets.count_documents({})
+            resolved = await self.db.support_tickets.count_documents({"status": "resolved"})
+            metrics["tickets_total"] = tickets
+            metrics["tickets_resolved"] = resolved
+            
+            # Funnel health from Systeme.io stats
             stats = await self.db.systeme_stats.find_one({"partner_id": "global"}, {"_id": 0})
             if stats:
                 metrics["total_contacts"] = stats.get("total_contacts", 0)
@@ -127,39 +147,23 @@ class AgentAnalyticsHub:
             metrics["completed"] = len([v for v in videos if v.get("status") == "completed"])
             
         elif agent_id == "STEFANIA":
-            # Copy & email metrics
-            emails = await self.db.email_queue.find({}).to_list(500)
-            metrics["emails_sent"] = len([e for e in emails if e.get("status") == "sent_to_systeme"])
-            metrics["emails_pending"] = len([e for e in emails if e.get("status") == "pending"])
-            metrics["sequences_active"] = await self.db.email_sequences.count_documents({"is_active": True})
-            
-        elif agent_id == "LUCA":
-            # Compliance metrics
-            partners = await self.db.partners.find({}, {"contract_end": 1}).to_list(500)
+            # Orchestration metrics
             now = datetime.now(timezone.utc)
-            metrics["total_contracts"] = len(partners)
+            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
             
-            expiring = 0
-            for p in partners:
-                if p.get("contract_end"):
-                    try:
-                        end = datetime.fromisoformat(p["contract_end"].replace("Z", "+00:00"))
-                        if (end - now).days <= 30:
-                            expiring += 1
-                    except:
-                        pass
-            metrics["expiring_30_days"] = expiring
+            # Routes handled today
+            routes = await self.db.stefania_routes.count_documents({
+                "created_at": {"$gte": today_start.isoformat()}
+            })
+            metrics["routes_today"] = routes
             
-        elif agent_id == "ATLAS":
-            # LTV & retention metrics
-            partners = await self.db.partners.find({}, {"revenue": 1, "phase": 1}).to_list(500)
-            revenues = [p.get("revenue", 0) for p in partners]
-            metrics["avg_ltv"] = round(sum(revenues) / len(revenues), 2) if revenues else 0
-            metrics["total_revenue"] = sum(revenues)
+            # Escalations to Claudio
+            escalations = await self.db.stefania_escalations.count_documents({})
+            metrics["escalations"] = escalations
             
-            # Churn risk (partners stuck in early phases)
-            stuck = len([p for p in partners if p.get("phase") in ["F0", "F1"]])
-            metrics["churn_risk_count"] = stuck
+            # Daily reports generated
+            reports = await self.db.stefania_reports.count_documents({})
+            metrics["daily_reports"] = reports
             
         elif agent_id == "VALENTINA":
             # Conversation metrics
