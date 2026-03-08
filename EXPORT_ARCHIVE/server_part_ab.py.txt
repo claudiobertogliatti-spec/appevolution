@@ -1,0 +1,2000 @@
+    # Check if document already exists (not rejected)
+    existing = await db.onboarding_documents.find_one({
+        "partner_id": partner_id,
+        "document_type": document_type,
+        "status": {"$ne": "rejected"}
+    })
+    
+    if existing:
+        raise HTTPException(status_code=400, detail=f"Document '{document_type}' already uploaded. Delete it first to upload a new one.")
+    
+    # Use file storage to upload
+    result = await file_storage.upload_file(file, partner_id, "document")
+    
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result.get("error", "Upload failed"))
+    
+    # Create onboarding document record
+    onboarding_doc = OnboardingDocument(
+        file_id=result["file_id"],
+        document_type=document_type,
+        partner_id=partner_id,
+        original_name=result["original_name"],
+        stored_name=result["stored_name"],
+        internal_url=result["internal_url"],
+        size=result["size"],
+        size_readable=result["size_readable"],
+        status="uploaded",
+        uploaded_at=result["uploaded_at"]
+    )
+    
+    await db.onboarding_documents.insert_one(onboarding_doc.model_dump())
+    
+    # Update partner onboarding status
+    await update_partner_onboarding_status(partner_id)
+    
+    # Create notification for admin
+    await db.notifications.insert_one({
+        "id": str(uuid.uuid4()),
+        "type": "document",
+        "title": f"Nuovo documento caricato",
+        "message": f"{partner.get('name', 'Partner')} ha caricato: {document_type.replace('_', ' ').title()}",
+        "time": datetime.now(timezone.utc).isoformat(),
+        "read": False,
+        "partner_id": partner_id
+    })
+    
+    return {
+        "success": True,
+        "document": onboarding_doc.model_dump()
+    }
+
+@api_router.delete("/partners/{partner_id}/onboarding-documents/{document_type}")
+async def delete_onboarding_document(partner_id: str, document_type: str):
+    """Delete an onboarding document"""
+    # Find the document
+    doc = await db.onboarding_documents.find_one({
+        "partner_id": partner_id,
+        "document_type": document_type
+    }, {"_id": 0})
+    
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    if doc.get("status") == "verified":
+        raise HTTPException(status_code=400, detail="Cannot delete a verified document")
+    
+    # Delete from file storage
+    if doc.get("internal_url"):
+        internal_path = doc["internal_url"].replace("/api/files/", "")
+        file_storage.delete_file(internal_path)
+    
+    # Delete from database
+    await db.onboarding_documents.delete_one({
+        "partner_id": partner_id,
+        "document_type": document_type
+    })
+    
+    # Update partner onboarding status
+    await update_partner_onboarding_status(partner_id)
+    
+    return {"success": True, "deleted": document_type}
+
+@api_router.post("/partners/{partner_id}/onboarding-documents/{document_type}/verify")
+async def verify_onboarding_document(partner_id: str, document_type: str, admin_email: str = "admin"):
+    """Mark an onboarding document as verified (Admin only)"""
+    result = await db.onboarding_documents.update_one(
+        {"partner_id": partner_id, "document_type": document_type},
+        {"$set": {
+            "status": "verified",
+            "verified_at": datetime.now(timezone.utc).isoformat(),
+            "verified_by": admin_email
+        }}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Update partner onboarding status
+    await update_partner_onboarding_status(partner_id)
+    
+    # Check if all documents are verified
+    docs = await db.onboarding_documents.find({"partner_id": partner_id}, {"_id": 0}).to_list(10)
+    all_verified = all(d.get("status") == "verified" for d in docs) if len(docs) == len(ONBOARDING_DOC_TYPES) else False
+    
+    if all_verified:
+        # Update partner phase to F1 if still in F0
+        partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+        if partner and partner.get("phase") == "F0":
+            await db.partners.update_one(
+                {"id": partner_id},
+                {"$set": {"phase": "F1"}}
+            )
+            
+            # Create notification
+            await db.notifications.insert_one({
+                "id": str(uuid.uuid4()),
+                "type": "phase_change",
+                "title": f"Documenti verificati",
+                "message": f"{partner.get('name', 'Partner')} è passato alla fase F1!",
+                "time": datetime.now(timezone.utc).isoformat(),
+                "read": False,
+                "partner_id": partner_id
+            })
+    
+    return {"success": True, "status": "verified", "all_verified": all_verified}
+
+@api_router.post("/partners/{partner_id}/onboarding-documents/{document_type}/reject")
+async def reject_onboarding_document(partner_id: str, document_type: str, reason: str = ""):
+    """Reject an onboarding document (Admin only)"""
+    result = await db.onboarding_documents.update_one(
+        {"partner_id": partner_id, "document_type": document_type},
+        {"$set": {
+            "status": "rejected",
+            "rejection_reason": reason
+        }}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Update partner onboarding status
+    await update_partner_onboarding_status(partner_id)
+    
+    return {"success": True, "status": "rejected", "reason": reason}
+
+async def update_partner_onboarding_status(partner_id: str):
+    """Helper to update partner's onboarding document status"""
+    docs = await db.onboarding_documents.find(
+        {"partner_id": partner_id, "status": {"$ne": "rejected"}},
+        {"_id": 0}
+    ).to_list(10)
+    
+    uploaded_types = [d["document_type"] for d in docs]
+    verified_count = sum(1 for d in docs if d.get("status") == "verified")
+    
+    await db.partners.update_one(
+        {"id": partner_id},
+        {"$set": {
+            "onboarding_status.documents_uploaded": len(uploaded_types),
+            "onboarding_status.documents_verified": verified_count,
+            "onboarding_status.documents_complete": len(uploaded_types) == len(ONBOARDING_DOC_TYPES),
+            "onboarding_status.documents_all_verified": verified_count == len(ONBOARDING_DOC_TYPES),
+            "onboarding_status.last_document_upload": datetime.now(timezone.utc).isoformat() if docs else None
+        }}
+    )
+
+@api_router.get("/admin/onboarding-documents/pending")
+async def get_pending_onboarding_documents():
+    """Get all pending onboarding documents for Admin review"""
+    documents = await db.onboarding_documents.find(
+        {"status": "uploaded"},
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Enrich with partner info
+    for doc in documents:
+        partner = await db.partners.find_one({"id": doc["partner_id"]}, {"_id": 0, "name": 1, "email": 1, "phase": 1})
+        if partner:
+            doc["partner_name"] = partner.get("name", "Unknown")
+            doc["partner_email"] = partner.get("email", "")
+            doc["partner_phase"] = partner.get("phase", "F0")
+    
+    return {
+        "success": True,
+        "documents": documents,
+        "total": len(documents)
+    }
+
+# =============================================================================
+# ROUTES - ALERTS
+# =============================================================================
+
+@api_router.get("/alerts", response_model=List[Alert])
+async def get_alerts():
+    alerts = await db.alerts.find({}, {"_id": 0}).to_list(100)
+    return alerts
+
+@api_router.delete("/alerts/{alert_id}")
+async def delete_alert(alert_id: str):
+    result = await db.alerts.delete_one({"id": alert_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    return {"status": "deleted"}
+
+@api_router.post("/alerts")
+async def create_alert(agent: str, type: str, msg: str, partner: str):
+    alert = Alert(
+        agent=agent,
+        type=type,
+        msg=msg,
+        partner=partner,
+        time="adesso"
+    )
+    await db.alerts.insert_one(alert.model_dump())
+    return alert
+
+# =============================================================================
+# ROUTES - MODULES
+# =============================================================================
+
+@api_router.get("/modules")
+async def get_modules():
+    modules = await db.modules.find({}, {"_id": 0}).to_list(100)
+    return modules
+
+# =============================================================================
+# ROUTES - POSITIONING (Partner Documents)
+# =============================================================================
+
+class PositioningData(BaseModel):
+    partner_id: str
+    partner_name: str
+    answers: Dict[str, str]  # All wizard answers
+    canvas: Optional[str] = None  # Generated canvas text
+
+@api_router.post("/positioning/save")
+async def save_positioning(data: PositioningData):
+    """Save partner positioning data from wizard"""
+    doc = {
+        "partner_id": data.partner_id,
+        "partner_name": data.partner_name,
+        "answers": data.answers,
+        "canvas": data.canvas,
+        "status": "completed",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Upsert - update if exists, insert if new
+    await db.partner_positioning.update_one(
+        {"partner_id": data.partner_id},
+        {"$set": doc},
+        upsert=True
+    )
+    
+    return {"success": True, "partner_id": data.partner_id}
+
+@api_router.get("/positioning/{partner_id}")
+async def get_positioning(partner_id: str):
+    """Get partner positioning data"""
+    positioning = await db.partner_positioning.find_one(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    )
+    return positioning or {"partner_id": partner_id, "status": "not_started"}
+
+@api_router.get("/positioning/generate")
+async def generate_positioning_canvas(partner_id: str, partner_name: str, partner_niche: str, answers: str):
+    """Generate positioning canvas (placeholder for AI generation)"""
+    # For now just return the answers - can be enhanced with AI later
+    return {"canvas": answers, "status": "generated"}
+
+# =============================================================================
+# ROUTES - PARTNER DOCUMENTS (Admin View)
+# =============================================================================
+
+@api_router.get("/partner-documents/{partner_id}")
+async def get_partner_documents(partner_id: str):
+    """Get all documents for a partner (positioning + scripts)"""
+    # Get positioning data
+    positioning = await db.partner_positioning.find_one(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    )
+    
+    # Get masterclass script
+    script = await db.masterclass_scripts.find_one(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    )
+    
+    # Get course structure
+    course = await db.course_structures.find_one(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    )
+    
+    return {
+        "partner_id": partner_id,
+        "positioning": positioning,
+        "masterclass_script": script,
+        "course_structure": course
+    }
+
+@api_router.get("/partner-documents/all/summary")
+async def get_all_partner_documents_summary():
+    """Get summary of all partner documents for Admin dashboard"""
+    # Get all partners
+    partners = await db.partners.find({}, {"_id": 0}).to_list(100)
+    
+    summaries = []
+    for partner in partners:
+        pid = partner.get("id")
+        
+        # Check positioning
+        pos = await db.partner_positioning.find_one({"partner_id": pid}, {"_id": 0, "status": 1, "updated_at": 1})
+        
+        # Check script
+        script = await db.masterclass_scripts.find_one({"partner_id": pid}, {"_id": 0, "status": 1, "updated_at": 1})
+        
+        # Check course
+        course = await db.course_structures.find_one({"partner_id": pid}, {"_id": 0, "updated_at": 1})
+        
+        summaries.append({
+            "partner_id": pid,
+            "partner_name": partner.get("name"),
+            "partner_phase": partner.get("phase"),
+            "positioning": {
+                "status": pos.get("status") if pos else "not_started",
+                "updated_at": pos.get("updated_at") if pos else None
+            },
+            "script": {
+                "status": script.get("status") if script else "not_started",
+                "updated_at": script.get("updated_at") if script else None
+            },
+            "course": {
+                "has_structure": course is not None,
+                "updated_at": course.get("updated_at") if course else None
+            }
+        })
+    
+    return summaries
+
+# =============================================================================
+# ROUTES - CHAT (VALENTINA)
+# =============================================================================
+
+def build_system_prompt(partner_name: str, partner_niche: str, partner_phase: str, modules_done: int):
+    phase_label = PHASE_LABELS.get(partner_phase, partner_phase)
+    return f"""Sei VALENTINA, l'Orchestratrice di Evolution PRO LLC. Il tuo ruolo è guidare i Partner nel percorso operativo con tono professionale, diretto e caldo. Non sei un chatbot generico: sei parte del team Evolution PRO.
+
+CONTESTO PARTNER ATTUALE:
+- Nome: {partner_name}
+- Nicchia: {partner_niche}
+- Fase corrente: {partner_phase} — {phase_label}
+- Moduli completati: {modules_done}/10
+
+REGOLE OPERATIVE (non derogabili):
+1. Non anticipare mai le fasi — ogni step deve essere completato nell'ordine stabilito
+2. Al termine del Modulo 1, il Partner DEVE scrivere "ATTIVAZIONE OK" su Telegram
+3. Non prendere decisioni strategiche al posto di Claudio — scala se necessario
+4. Non discutere termini contrattuali — rimanda a Claudio
+5. Se la domanda supera il tuo ambito operativo, di' chiaramente che stai escalando ad Antonella
+6. Rispondi sempre in italiano, in modo conciso e operativo
+7. Non inventare informazioni sul progetto — se non sai, di' che verifichi
+
+COSA PUOI FARE:
+- Spiegare come funziona ogni modulo del videocorso operativo
+- Ricordare cosa il Partner deve consegnare e quando
+- Dare supporto tecnico su Drive, Systeme.io, Telegram
+- Rispondere a domande sul metodo EVO (Ecosistema, Validazione, Ottimizzazione)
+- Rassicurare il Partner sui tempi e sul processo
+
+Rispondi in modo naturale, come farebbe un membro senior del team. Massimo 3-4 frasi per risposta, a meno che non sia necessario un elenco operativo."""
+
+@api_router.post("/chat")
+async def chat_with_valentina(request: ChatRequest):
+    try:
+        # Import VALENTINA AI module
+        from valentina_ai import valentina_ai
+        
+        # Build context
+        context = {
+            "name": request.partner_name,
+            "phase": request.partner_phase,
+            "niche": request.partner_niche,
+            "is_admin": request.context.get("is_admin", False) if request.context else False
+        }
+        
+        # Get response from VALENTINA AI
+        response = await valentina_ai.chat(
+            partner_id=request.session_id or request.partner_name or "anonymous",
+            message=request.message,
+            context=context
+        )
+        
+        # Save to chat history
+        user_msg = ChatMessage(
+            session_id=request.session_id,
+            role="user",
+            content=request.message
+        )
+        await db.chat_messages.insert_one(user_msg.model_dump())
+        
+        assistant_msg = ChatMessage(
+            session_id=request.session_id,
+            role="assistant",
+            content=response
+        )
+        await db.chat_messages.insert_one(assistant_msg.model_dump())
+        
+        return {"response": response, "reply": response, "timestamp": assistant_msg.timestamp}
+        
+    except Exception as e:
+        logging.error(f"Chat error: {e}")
+        # Fallback response
+        fallback = f"Ciao! Sono VALENTINA. Al momento ho qualche difficoltà tecnica, ma sono qui per aiutarti. Riprova tra poco! 🙏"
+        return {"response": fallback, "reply": fallback, "error": str(e)}
+
+@api_router.get("/chat/{session_id}")
+async def get_chat_history(session_id: str):
+    messages = await db.chat_messages.find(
+        {"session_id": session_id},
+        {"_id": 0}
+    ).sort("timestamp", 1).to_list(100)
+    return messages
+
+@api_router.delete("/chat/{session_id}")
+async def clear_chat_history(session_id: str):
+    await db.chat_messages.delete_many({"session_id": session_id})
+    # Also reset VALENTINA LLM session to clear conversation memory
+    from valentina_ai import valentina_reset_session
+    valentina_reset_session(session_id)
+    return {"status": "cleared", "llm_session_reset": True}
+
+
+@api_router.post("/chat/reset/{session_id}")
+async def reset_valentina_session(session_id: str):
+    """Reset VALENTINA's conversation memory for a session"""
+    from valentina_ai import valentina_reset_session
+    reset = valentina_reset_session(session_id)
+    if reset:
+        return {"success": True, "message": f"Session {session_id} reset successfully"}
+    return {"success": True, "message": f"No active session found for {session_id}"}
+
+
+@api_router.get("/chat/sessions/active")
+async def get_active_valentina_sessions():
+    """Get list of active VALENTINA sessions (admin only)"""
+    from valentina_ai import valentina_get_active_sessions
+    sessions = valentina_get_active_sessions()
+    return {"active_sessions": sessions, "count": len(sessions)}
+
+
+# =============================================================================
+# VALENTINA MEMORY SYSTEM API
+# =============================================================================
+
+from valentina_memory import valentina_memory
+
+@api_router.post("/valentina/memory/knowledge")
+async def add_valentina_knowledge(
+    category: str,
+    content: str,
+    user_id: str = "claudio"
+):
+    """
+    Aggiungi una conoscenza alla memoria di VALENTINA.
+    
+    Categories: preference, rule, decision, fact, correction
+    """
+    valid_categories = ["preference", "rule", "decision", "fact", "correction"]
+    if category not in valid_categories:
+        raise HTTPException(status_code=400, detail=f"Categoria non valida. Usa: {valid_categories}")
+    
+    await valentina_memory.add_knowledge(
+        user_id=user_id,
+        category=category,
+        content=content,
+        source="manual"
+    )
+    
+    return {
+        "success": True,
+        "category": category,
+        "content": content,
+        "message": f"Conoscenza aggiunta alla memoria di VALENTINA"
+    }
+
+@api_router.get("/valentina/memory/knowledge")
+async def get_valentina_knowledge(
+    user_id: str = "claudio",
+    category: str = None
+):
+    """Recupera la knowledge base di VALENTINA"""
+    knowledge = await valentina_memory.get_knowledge(user_id, category)
+    
+    return {
+        "user_id": user_id,
+        "category": category,
+        "knowledge": knowledge
+    }
+
+
+# =============================================================================
+# AGENT TASK SYSTEM - Track and execute tasks assigned to agents
+# =============================================================================
+
+class AgentTaskCreate(BaseModel):
+    title: str
+    description: str
+    agent: str  # VALENTINA, STEFANIA, ORION, GAIA, MARTA, ATLAS, LUCA, ANDREA
+    priority: str = "medium"  # low, medium, high, urgent
+    partner_id: Optional[str] = None
+    due_date: Optional[str] = None
+    created_by: str = "valentina"
+
+
+@api_router.post("/agent-tasks")
+async def create_agent_task(task: AgentTaskCreate):
+    """Create a task assigned to an agent"""
+    valid_agents = ["VALENTINA", "STEFANIA", "ORION", "GAIA", "MARTA", "ATLAS", "LUCA", "ANDREA"]
+    if task.agent.upper() not in valid_agents:
+        raise HTTPException(status_code=400, detail=f"Agente non valido. Usa: {valid_agents}")
+    
+    task_doc = {
+        "id": str(uuid.uuid4()),
+        "title": task.title,
+        "description": task.description,
+        "agent": task.agent.upper(),
+        "priority": task.priority,
+        "partner_id": task.partner_id,
+        "due_date": task.due_date,
+        "status": "pending",  # pending, in_progress, completed, failed
+        "created_by": task.created_by,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "completed_at": None,
+        "result": None
+    }
+    
+    await db.agent_tasks.insert_one(task_doc)
+    task_doc.pop("_id", None)
+    
+    return {"success": True, "task": task_doc}
+
+
+@api_router.get("/agent-tasks")
+async def list_agent_tasks(
+    agent: str = None,
+    status: str = None,
+    limit: int = 50
+):
+    """List agent tasks with optional filters"""
+    query = {}
+    if agent:
+        query["agent"] = agent.upper()
+    if status:
+        query["status"] = status
+    
+    tasks = await db.agent_tasks.find(query, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    return {"tasks": tasks, "count": len(tasks)}
+
+
+# NOTE: Static routes BEFORE parametric routes to avoid conflicts
+@api_router.get("/agent-tasks/summary/dashboard")
+async def get_tasks_dashboard():
+    """Get task dashboard summary"""
+    pending = await db.agent_tasks.count_documents({"status": "pending"})
+    in_progress = await db.agent_tasks.count_documents({"status": "in_progress"})
+    completed = await db.agent_tasks.count_documents({"status": "completed"})
+    failed = await db.agent_tasks.count_documents({"status": "failed"})
+    
+    # Get tasks by agent
+    agents_stats = {}
+    for agent in ["VALENTINA", "ORION", "MARTA", "STEFANIA", "ANDREA", "GAIA", "ATLAS", "LUCA"]:
+        count = await db.agent_tasks.count_documents({"agent": agent})
+        if count > 0:
+            agents_stats[agent] = count
+    
+    # Recent tasks
+    recent = await db.agent_tasks.find(
+        {}, {"_id": 0}
+    ).sort("created_at", -1).limit(10).to_list(10)
+    
+    return {
+        "summary": {
+            "pending": pending,
+            "in_progress": in_progress,
+            "completed": completed,
+            "failed": failed,
+            "total_active": pending + in_progress
+        },
+        "by_agent": agents_stats,
+        "recent_tasks": recent
+    }
+
+
+# =============================================================================
+# APPROVAL WORKFLOW ENDPOINTS
+# =============================================================================
+
+from approval_workflow import (
+    requires_approval,
+    get_task_scope,
+    create_task_with_approval,
+    approve_task,
+    reject_task,
+    get_pending_approvals,
+    get_approval_stats
+)
+
+
+class ApproveRequest(BaseModel):
+    reviewer: str
+    notes: Optional[str] = None
+
+
+class RejectRequest(BaseModel):
+    reviewer: str
+    feedback: str
+
+
+@api_router.get("/agent-tasks/approvals")
+async def list_pending_approvals(
+    agent: Optional[str] = None,
+    partner_id: Optional[str] = None
+):
+    """Lista task in attesa di approvazione"""
+    tasks = await get_pending_approvals(db, agent, partner_id)
+    return {"tasks": tasks, "count": len(tasks)}
+
+
+@api_router.get("/agent-tasks/approval-stats")
+async def get_approval_statistics():
+    """Statistiche approvazioni"""
+    stats = await get_approval_stats(db)
+    return stats
+
+
+# Parametric routes AFTER static routes
+@api_router.get("/agent-tasks/{task_id}")
+async def get_agent_task(task_id: str):
+    """Get a specific task"""
+    task = await db.agent_tasks.find_one({"id": task_id}, {"_id": 0})
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
+
+
+@api_router.get("/agent-tasks/{task_id}/preview")
+async def get_task_preview(task_id: str):
+    """Ottieni l'output generato di un task per la preview"""
+    task = await db.agent_tasks.find_one({"id": task_id}, {"_id": 0})
+    
+    if not task:
+        raise HTTPException(status_code=404, detail="Task non trovato")
+    
+    return {
+        "task_id": task_id,
+        "title": task.get("title"),
+        "agent": task.get("agent"),
+        "status": task.get("status"),
+        "output": task.get("result", {}).get("output"),
+        "preview_url": task.get("preview_url"),
+        "revisions": task.get("revisions", []),
+        "approval": task.get("approval"),
+        "partner_id": task.get("partner_id"),
+        "created_at": task.get("created_at")
+    }
+
+
+@api_router.patch("/agent-tasks/{task_id}/status")
+async def update_task_status(task_id: str, status: str, result: str = None):
+    """Update task status"""
+    valid_statuses = ["pending", "in_progress", "completed", "failed"]
+    if status not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Status non valido. Usa: {valid_statuses}")
+    
+    update_data = {
+        "status": status,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    if status == "completed":
+        update_data["completed_at"] = datetime.now(timezone.utc).isoformat()
+    
+    if result:
+        update_data["result"] = result
+    
+    result_update = await db.agent_tasks.update_one(
+        {"id": task_id},
+        {"$set": update_data}
+    )
+    
+    if result_update.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    return {"success": True, "task_id": task_id, "new_status": status}
+
+
+@api_router.get("/agent-tasks/summary/dashboard")
+async def get_tasks_dashboard():
+    """Get summary of all agent tasks for dashboard"""
+    # Count by status
+    pending = await db.agent_tasks.count_documents({"status": "pending"})
+    in_progress = await db.agent_tasks.count_documents({"status": "in_progress"})
+    completed = await db.agent_tasks.count_documents({"status": "completed"})
+    failed = await db.agent_tasks.count_documents({"status": "failed"})
+    
+    # Count by agent
+    agents_stats = {}
+    for agent in ["VALENTINA", "STEFANIA", "ORION", "GAIA", "MARTA", "ATLAS", "LUCA", "ANDREA"]:
+        count = await db.agent_tasks.count_documents({"agent": agent, "status": {"$in": ["pending", "in_progress"]}})
+        if count > 0:
+            agents_stats[agent] = count
+    
+    # Recent tasks
+    recent = await db.agent_tasks.find(
+        {"status": {"$in": ["pending", "in_progress"]}},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(10).to_list(10)
+    
+    return {
+        "summary": {
+            "pending": pending,
+            "in_progress": in_progress,
+            "completed": completed,
+            "failed": failed,
+            "total_active": pending + in_progress
+        },
+        "by_agent": agents_stats,
+        "recent_tasks": recent
+    }
+
+
+# =============================================================================
+# OPENCLAW INTEGRATION - Azioni GUI su Systeme.io
+# =============================================================================
+
+from openclaw_integration import (
+    requires_openclaw,
+    OpenClawTask,
+    send_openclaw_task,
+    create_pipeline_column,
+    move_contact_to_column,
+    create_funnel,
+    create_automation,
+    handle_openclaw_callback,
+    get_pending_openclaw_tasks
+)
+
+
+class OpenClawTaskRequest(BaseModel):
+    action: str
+    params: Dict
+    priority: str = "normal"
+    description: str = ""
+    partner_id: Optional[str] = None
+
+
+class OpenClawCallbackRequest(BaseModel):
+    task_id: str
+    status: str  # "done" or "fail"
+    result: Optional[str] = None
+
+
+@api_router.post("/openclaw/task")
+async def create_openclaw_task(request: OpenClawTaskRequest):
+    """Crea e invia un task a OpenClaw via Telegram"""
+    task = OpenClawTask(
+        action=request.action,
+        params=request.params,
+        priority=request.priority,
+        description=request.description,
+        partner_id=request.partner_id
+    )
+    
+    result = await send_openclaw_task(task, db)
+    return result
+
+
+@api_router.post("/openclaw/pipeline/column")
+async def create_pipeline_column_endpoint(
+    column_name: str,
+    pipeline_name: str = "default",
+    position: str = "end"
+):
+    """Crea una colonna nella pipeline Systeme.io (via OpenClaw)"""
+    result = await create_pipeline_column(column_name, pipeline_name, position, db)
+    return result
+
+
+@api_router.post("/openclaw/pipeline/move")
+async def move_contact_endpoint(
+    email: str,
+    target_column: str,
+    pipeline_name: str = "default"
+):
+    """Sposta un contatto in una colonna della pipeline (via OpenClaw)"""
+    result = await move_contact_to_column(email, target_column, pipeline_name, db)
+    return result
+
+
+@api_router.post("/openclaw/funnel")
+async def create_funnel_endpoint(
+    funnel_name: str,
+    template: str = "blank",
+    pages: List[str] = None
+):
+    """Crea un nuovo funnel su Systeme.io (via OpenClaw)"""
+    result = await create_funnel(funnel_name, template, pages, db)
+    return result
+
+
+@api_router.post("/openclaw/callback")
+async def openclaw_callback(request: OpenClawCallbackRequest):
+    """Callback da OpenClaw quando un task è completato"""
+    result = await handle_openclaw_callback(
+        request.task_id,
+        request.status,
+        request.result,
+        db
+    )
+    return result
+
+
+@api_router.get("/openclaw/tasks/pending")
+async def list_pending_openclaw_tasks():
+    """Lista task OpenClaw in attesa"""
+    tasks = await get_pending_openclaw_tasks(db)
+    return {"tasks": tasks, "count": len(tasks)}
+
+
+@api_router.get("/openclaw/tasks")
+async def list_all_openclaw_tasks(limit: int = 50):
+    """Lista tutti i task OpenClaw"""
+    tasks = await db.openclaw_tasks.find(
+        {},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    return {"tasks": tasks, "count": len(tasks)}
+
+
+# =============================================================================
+# INTEGRATED SERVICES - Systeme.io & Background Jobs
+# =============================================================================
+
+from integrated_services import (
+    systeme_client, job_executor,
+    add_systeme_tag as integrated_add_tag, 
+    send_welcome_email as systeme_send_welcome,
+    trigger_email_campaign,
+    create_agent_task
+)
+
+
+class TagRequest(BaseModel):
+    email: str
+    tag_name: str
+
+
+class CampaignRequest(BaseModel):
+    segment_tag: str  # Tag to filter contacts (e.g., "lead_cold")
+    campaign_tag: str  # Tag to trigger email automation
+
+
+class AgentTaskRequest(BaseModel):
+    agent: str
+    title: str
+    task_type: str
+    data: Optional[Dict] = None
+    priority: str = "medium"
+    execute_now: bool = False
+
+
+@api_router.post("/systeme/welcome/{partner_id}")
+async def api_send_welcome_via_systeme(partner_id: str):
+    """Send welcome email sequence to partner via Systeme.io automation"""
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    email = partner.get("email")
+    name = partner.get("name", "Partner")
+    
+    if not email:
+        raise HTTPException(status_code=400, detail="Partner has no email")
+    
+    result = await systeme_send_welcome(email, name)
+    
+    if result.get("success"):
+        await db.partners.update_one(
+            {"id": partner_id},
+            {"$set": {
+                "welcome_email_sent": True, 
+                "welcome_email_date": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    
+    return result
+
+
+@api_router.post("/systeme/campaign")
+async def api_trigger_campaign(request: CampaignRequest):
+    """Trigger email campaign to a segment via Systeme.io"""
+    result = await trigger_email_campaign(request.segment_tag, request.campaign_tag)
+    return result
+
+
+@api_router.post("/systeme/tag/add")
+async def api_add_systeme_tag(request: TagRequest):
+    """Add tag to contact in Systeme.io"""
+    result = await integrated_add_tag(request.email, request.tag_name)
+    return result
+
+
+@api_router.get("/systeme/contacts")
+async def api_get_systeme_contacts(limit: int = 100, page: int = 1):
+    """Get contacts from Systeme.io"""
+    try:
+        contacts = await systeme_client.get_contacts(limit=limit, page=page)
+        return contacts
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get("/systeme/tags")
+async def api_get_systeme_tags():
+    """Get all tags from Systeme.io"""
+    try:
+        tags = await systeme_client.get_tags()
+        return {"tags": tags}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/systeme/sync-contacts")
+async def api_sync_systeme_contacts():
+    """Sync contacts from Systeme.io to local database"""
+    task = await create_agent_task(
+        agent="GAIA",
+        title="Sync Systeme.io Contacts",
+        task_type="sync_contacts",
+        execute_now=True
+    )
+    return task
+
+
+@api_router.post("/jobs/task")
+async def api_create_task(request: AgentTaskRequest):
+    """Create an agent task (optionally execute immediately)"""
+    result = await create_agent_task(
+        agent=request.agent,
+        title=request.title,
+        task_type=request.task_type,
+        data=request.data,
+        priority=request.priority,
+        execute_now=request.execute_now
+    )
+    return result
+
+
+@api_router.post("/jobs/process")
+async def api_process_pending_tasks():
+    """Manually trigger processing of pending tasks"""
+    await job_executor.process_pending_tasks()
+    return {"success": True, "message": "Pending tasks processed"}
+
+
+@api_router.get("/jobs/status")
+async def api_get_job_status():
+    """Get status of background job system"""
+    pending = await db.agent_tasks.count_documents({"status": "pending"})
+    in_progress = await db.agent_tasks.count_documents({"status": "in_progress"})
+    completed_today = await db.agent_tasks.count_documents({
+        "status": "completed",
+        "completed_at": {"$gte": datetime.now(timezone.utc).replace(hour=0, minute=0, second=0).isoformat()}
+    })
+    
+    return {
+        "pending": pending,
+        "in_progress": in_progress,
+        "completed_today": completed_today,
+        "worker_running": job_executor.running
+    }
+
+
+@api_router.post("/valentina/memory/feedback")
+async def add_valentina_feedback(
+    original_response: str,
+    correction: str,
+    feedback_type: str = "correction",
+    user_id: str = "claudio"
+):
+    """
+    Invia feedback a VALENTINA per migliorare le risposte future.
+    
+    feedback_type: correction, improvement, positive
+    """
+    await valentina_memory.save_feedback(
+        user_id=user_id,
+        original_response=original_response,
+        correction=correction,
+        feedback_type=feedback_type
+    )
+    
+    return {
+        "success": True,
+        "feedback_type": feedback_type,
+        "message": "Feedback salvato. VALENTINA imparerà da questo!"
+    }
+
+@api_router.get("/valentina/memory/conversations")
+async def get_valentina_conversations(
+    user_id: str = "claudio",
+    limit: int = 50,
+    only_important: bool = False
+):
+    """Recupera lo storico conversazioni di VALENTINA"""
+    if only_important:
+        conversations = await valentina_memory.get_important_conversations(user_id, limit)
+    else:
+        conversations = await valentina_memory.get_recent_conversations(user_id, limit)
+    
+    return {
+        "user_id": user_id,
+        "conversations": conversations,
+        "count": len(conversations)
+    }
+
+@api_router.post("/valentina/memory/mark-important")
+async def mark_conversation_important(
+    user_id: str = "claudio",
+    content_snippet: str = ""
+):
+    """Marca un messaggio come importante per la memoria a lungo termine"""
+    await valentina_memory.mark_as_important(user_id, content_snippet)
+    
+    return {
+        "success": True,
+        "message": "Messaggio marcato come importante"
+    }
+
+@api_router.get("/valentina/memory/stats")
+async def get_valentina_memory_stats(user_id: str = "claudio"):
+    """Statistiche sulla memoria di VALENTINA"""
+    await valentina_memory.connect()
+    
+    total_conversations = await valentina_memory.db.valentina_conversations.count_documents({"user_id": user_id})
+    important_conversations = await valentina_memory.db.valentina_conversations.count_documents({"user_id": user_id, "is_important": True})
+    knowledge_count = await valentina_memory.db.valentina_knowledge.count_documents({"user_id": user_id, "active": True})
+    feedback_count = await valentina_memory.db.valentina_feedback.count_documents({"user_id": user_id})
+    corrections_count = await valentina_memory.db.valentina_feedback.count_documents({"user_id": user_id, "feedback_type": "correction"})
+    
+    return {
+        "user_id": user_id,
+        "stats": {
+            "total_conversations": total_conversations,
+            "important_conversations": important_conversations,
+            "knowledge_entries": knowledge_count,
+            "total_feedback": feedback_count,
+            "corrections_learned": corrections_count
+        },
+        "message": f"VALENTINA ha {knowledge_count} conoscenze e ha imparato da {corrections_count} correzioni"
+    }
+
+# =============================================================================
+# ROUTES - STEFANIA (Copy & Marketing Tutor)
+# =============================================================================
+
+def build_stefania_system_prompt(partner_name: str, partner_niche: str, current_block: str = None, script_context: dict = None):
+    """Build the system prompt for STEFANIA - Copy & Marketing tutor"""
+    
+    block_hints = {
+        "hook": "Il GANCIO deve distruggere lo status quo. Non spiegare COME funziona qualcosa, ma PERCHÉ il metodo attuale del mercato è sbagliato. Deve essere provocatorio e far sentire il pubblico 'chiamato in causa'.",
+        "grande_promessa": "La GRANDE PROMESSA deve essere specifica, misurabile e credibile. Non 'migliorare la vita' ma '€10.000 in 30 giorni' o 'perdere 5kg in 2 settimane'. Deve creare desiderio immediato.",
+        "metodo": "IL METODO deve avere un nome memorabile e 3 pilastri chiari. Non spiegare tutto il 'come' - mostra solo la mappa del tesoro, non il tesoro stesso. Lascia che vogliano saperne di più.",
+        "case_history": "La CASE HISTORY deve essere specifica: nome, situazione di partenza, risultato numerico, tempo impiegato. Le storie astratte non vendono, i numeri sì.",
+        "offerta": "L'OFFERTA deve essere irresistibile: prezzo ancorato alto, poi scontato, con bonus che valgono più del corso stesso. Stack di valore visivo.",
+        "cta": "La CTA deve essere urgente e specifica: 'clicca ora', 'solo 10 posti', 'scade domani'. Mai 'se ti interessa'."
+    }
+    
+    block_context = ""
+    if current_block and current_block in block_hints:
+        block_context = f"\n\nBLOCCO ATTUALE: {current_block.upper()}\n{block_hints[current_block]}"
+    
+    script_summary = ""
+    if script_context:
+        filled_blocks = [k for k, v in script_context.items() if v.strip()]
+        if filled_blocks:
+            script_summary = f"\n\nBLOCCHI GIÀ COMPILATI: {', '.join(filled_blocks)}"
+    
+    return f"""Sei STEFANIA, tutor specializzata in copywriting persuasivo e marketing per videocorsi.
+Il tuo ruolo è guidare i partner di Evolution PRO nella creazione della loro Masterclass TRASFORMATIVA.
+
+PARTNER ATTUALE:
+- Nome: {partner_name}
+- Nicchia: {partner_niche}
+{block_context}
+{script_summary}
+
+🎯 IL TUO OBIETTIVO PRIMARIO:
+Trasformare contenuti "enciclopedici" in messaggi che VENDONO. Non stiamo creando un corso, stiamo creando un'ESPERIENZA che distrugge i dubbi del pubblico.
+
+❌ ERRORI COMUNI DA CORREGGERE:
+1. Spiegare il "COME" invece del "PERCHÉ" → Devi forzare il partner a spiegare PERCHÉ il suo metodo funziona, non come
+2. Contenuto troppo accademico/educativo → La Masterclass non è una lezione, è una vendita elegante
+3. Linguaggio generico ("migliorare", "aiutare") → Devi spingere per numeri, risultati specifici
+4. Mancanza di urgenza e scarsità → Ogni blocco deve creare tensione
+
+✅ COME INTERAGIRE:
+- Analizza criticamente ogni input del partner
+- Se è troppo "da professore", FERMALO e chiedi di riscrivere in modo più persuasivo
+- Dai esempi concreti di come riformulare
+- Non approvare mai un blocco mediocre - alza sempre l'asticella
+- Usa un tono diretto ma incoraggiante: "Buon inizio, ma possiamo renderlo magnetico così..."
+
+📊 STRUTTURA MASTERCLASS (6 BLOCCHI):
+1. HOOK - Distruzione dello status quo (il grande errore che tutti fanno)
+2. GRANDE PROMESSA - Risultato specifico e desiderabile
+3. IL METODO - Framework proprietario in 3 pilastri
+4. CASE HISTORY - Prova sociale con numeri reali
+5. OFFERTA - Stack di valore irresistibile
+6. CTA - Call to action urgente
+
+⚠️ ALERT ADMIN:
+Se dopo 2-3 tentativi il partner non riesce a produrre contenuto sufficientemente persuasivo, segnala che è necessario un intervento di Claudio.
+
+Rispondi in italiano, in modo diretto e operativo. Non fare complimenti vuoti - dai feedback costruttivo e actionable."""
+
+@api_router.post("/stefania/chat")
+async def chat_with_stefania(request: StefaniaChatRequest):
+    """Chat with STEFANIA - Copy & Marketing tutor for Masterclass creation"""
+    try:
+        session_id = f"stefania_{request.session_id}"
+        
+        # Get chat history
+        history = await db.chat_messages.find(
+            {"session_id": session_id}, 
+            {"_id": 0}
+        ).sort("timestamp", 1).to_list(50)
+        
+        # Build STEFANIA chat
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=session_id,
+            system_message=build_stefania_system_prompt(
+                request.partner_name,
+                request.partner_niche,
+                request.current_block,
+                request.script_context
+            )
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        
+        # Add history
+        for msg in history:
+            if msg["role"] == "user":
+                await chat.send_message(UserMessage(text=msg["content"]))
+        
+        # Save user message
+        user_msg = ChatMessage(
+            session_id=session_id,
+            role="user",
+            content=request.message
+        )
+        await db.chat_messages.insert_one(user_msg.model_dump())
+        
+        # Get response
+        response = await chat.send_message(UserMessage(text=request.message))
+        
+        # Save assistant response
+        assistant_msg = ChatMessage(
+            session_id=session_id,
+            role="assistant",
+            content=response
+        )
+        await db.chat_messages.insert_one(assistant_msg.model_dump())
+        
+        return {"response": response, "timestamp": assistant_msg.timestamp, "tutor": "STEFANIA"}
+        
+    except Exception as e:
+        logging.error(f"Stefania chat error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/stefania/review-script")
+async def stefania_review_script(request: ScriptReviewRequest):
+    """Have STEFANIA review a complete script and provide feedback"""
+    try:
+        script_text = "\n\n".join([
+            f"**{block.upper()}**:\n{content}" 
+            for block, content in request.script_blocks.items() 
+            if content.strip()
+        ])
+        
+        review_prompt = f"""Analizza lo script Masterclass completo di {request.partner_name} ({request.partner_niche}):
+
+{script_text}
+
+Fornisci:
+1. PUNTEGGIO PERSUASIVITÀ (1-10)
+2. BLOCCHI DA RIVEDERE (se ce ne sono)
+3. FEEDBACK SPECIFICO per ogni blocco debole
+4. VERDETTO FINALE: APPROVATO / DA RIVEDERE / NECESSITA INTERVENTO CLAUDIO"""
+
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"review_{request.partner_id}_{datetime.now().timestamp()}",
+            system_message=build_stefania_system_prompt(request.partner_name, request.partner_niche)
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        
+        review = await chat.send_message(UserMessage(text=review_prompt))
+        
+        # Determine if admin alert is needed
+        needs_admin = "NECESSITA INTERVENTO CLAUDIO" in review.upper() or "DA RIVEDERE" in review.upper()
+        
+        # Create notification if needed
+        if needs_admin and "NECESSITA INTERVENTO" in review.upper():
+            notification = Notification(
+                type="script_review",
+                icon="📝",
+                title="Script Masterclass - Richiede Attenzione",
+                body=f"STEFANIA segnala che lo script di {request.partner_name} necessita revisione di Claudio",
+                time=datetime.now().strftime("%H:%M"),
+                partner=request.partner_name,
+                action="masterclass"
+            )
+            await db.notifications.insert_one(notification.model_dump())
+        
+        return {
+            "review": review,
+            "needs_admin_review": needs_admin,
+            "partner_id": request.partner_id,
+            "reviewed_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+    except Exception as e:
+        logging.error(f"Script review error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# =============================================================================
+# ROUTES - STEFANIA COPY FACTORY (Master Input, Drafting Engine, Admin Review)
+# =============================================================================
+
+@api_router.get("/stefania/success-cases")
+async def get_success_cases():
+    """Get Evolution PRO Success Cases - Master Input database"""
+    cases = await db.success_cases.find({}, {"_id": 0}).to_list(50)
+    if not cases:
+        # Return seed data if empty
+        return EVOLUTION_PRO_SUCCESS_CASES
+    return cases
+
+@api_router.post("/stefania/success-cases")
+async def add_success_case(
+    partner_name: str = Form(...),
+    niche: str = Form(...),
+    result: str = Form(...),
+    hook_example: str = Form(None),
+    grande_promessa_example: str = Form(None),
+    metodo_name: str = Form(None),
+    testimonial_quote: str = Form(None)
+):
+    """Add a new success case to the Master Input database"""
+    case = SuccessCase(
+        partner_name=partner_name,
+        niche=niche,
+        result=result,
+        hook_example=hook_example,
+        grande_promessa_example=grande_promessa_example,
+        metodo_name=metodo_name,
+        testimonial_quote=testimonial_quote
+    )
+    await db.success_cases.insert_one(case.model_dump())
+    return {"success": True, "case_id": case.id}
+
+@api_router.get("/stefania/golden-rules")
+async def get_golden_rules():
+    """Get the 10 Golden Rules of Copy Core"""
+    return {
+        "rules": GOLDEN_RULES_COPY_CORE,
+        "principles": COPY_CORE_PRINCIPLES
+    }
+
+@api_router.post("/stefania/generate-draft")
+async def generate_script_draft(request: DraftGenerationRequest):
+    """STEFANIA Drafting Engine - Generate a complete script draft based on Golden Rules"""
+    try:
+        # Get success cases for reference
+        success_cases = await db.success_cases.find({}, {"_id": 0}).to_list(10)
+        if not success_cases:
+            success_cases = EVOLUTION_PRO_SUCCESS_CASES
+        
+        # Find similar niche cases for inspiration
+        similar_cases = [c for c in success_cases if c.get("niche", "").lower() in request.partner_niche.lower() 
+                        or request.partner_niche.lower() in c.get("niche", "").lower()]
+        if not similar_cases:
+            similar_cases = success_cases[:2]  # Use first 2 as fallback
+        
+        # Build comprehensive prompt with Golden Rules
+        rules_text = "\n".join([f"REGOLA {r['num']}: {r['title']} - {r['description']}" for r in GOLDEN_RULES_COPY_CORE])
+        
+        examples_text = "\n\n".join([
+            f"CASO SUCCESSO: {c['partner_name']} ({c['niche']})\n"
+            f"- Risultato: {c['result']}\n"
+            f"- Hook: {c.get('hook_example', 'N/A')}\n"
+            f"- Grande Promessa: {c.get('grande_promessa_example', 'N/A')}\n"
+            f"- Nome Metodo: {c.get('metodo_name', 'N/A')}"
+            for c in similar_cases
+        ])
+        
+        positioning = ""
+        if request.positioning_data:
+            positioning = f"""
+DATI POSIZIONAMENTO DEL PARTNER:
+- Problema principale: {request.positioning_data.get('problema', 'Non specificato')}
+- Target ideale: {request.positioning_data.get('target', 'Non specificato')}
+- Trasformazione promessa: {request.positioning_data.get('trasformazione', 'Non specificato')}
+- Differenziazione: {request.positioning_data.get('differenziazione', 'Non specificato')}
+"""
+        
+        draft_prompt = f"""Sei STEFANIA, la Copy Strategist di Evolution PRO. Devi generare una bozza completa della Masterclass per {request.partner_name}, esperto in {request.partner_niche}.
+
+{positioning}
+
+🎯 LE 10 REGOLE D'ORO CHE DEVI APPLICARE:
+{rules_text}
+
+📚 CASI DI SUCCESSO DA CUI PRENDERE ISPIRAZIONE:
+{examples_text}
+
+🧠 I 3 PRINCIPI CARDINE:
+1. SCHWARTZ (Ossessione per il Problema): Descrivi il dolore del lead meglio di quanto lui sappia fare
+2. TODD BROWN (Meccanismo Unico): Crea un nome proprietario per il metodo che lo renda unico
+3. HALBERT (Ritmo del Desiderio): Paragrafi brevi, domande retoriche, linguaggio parlato
+
+📝 GENERA UNA BOZZA COMPLETA PER OGNI BLOCCO:
+
+BLOCCO 1 - HOOK:
+Distruggi lo status quo. Qual è la più grande bugia del mercato di {request.partner_niche}?
+
+BLOCCO 2 - GRANDE PROMESSA:
+Risultato specifico con numeri. Usa la Regola 7 (Iper-Specificità).
+
+BLOCCO 3 - IL METODO:
+Crea un nome proprietario (Regola 10). 3 pilastri. Mostra la mappa, non il tesoro.
+
+BLOCCO 4 - CASE HISTORY:
+Storie con numeri reali. Nome, situazione iniziale, risultato, tempo.
+
+BLOCCO 5 - OFFERTA:
+Stack di valore 10X. Bonus che valgono più del corso. Affare stupido da rifiutare.
+
+BLOCCO 6 - CTA:
+Imperativo, mai condizionale. Urgenza genuina.
+
+Rispondi in formato JSON con questa struttura:
+{{"hook": "testo...", "grande_promessa": "testo...", "metodo": "testo...", "case_history": "testo...", "offerta": "testo...", "cta": "testo..."}}
+"""
+
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"draft_{request.partner_id}_{datetime.now().timestamp()}",
+            system_message="Sei STEFANIA, Copy Strategist di Evolution PRO. Genera copy persuasivo seguendo le 10 Regole d'Oro."
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        
+        response = await chat.send_message(UserMessage(text=draft_prompt))
+        
+        # Try to parse JSON from response
+        import re
+        json_match = re.search(r'\{[\s\S]*\}', response)
+        draft_blocks = {}
+        
+        if json_match:
+            try:
+                draft_blocks = json.loads(json_match.group())
+            except json.JSONDecodeError:
+                # If JSON parsing fails, return the raw text with structure hints
+                draft_blocks = {
+                    "hook": response,
+                    "grande_promessa": "",
+                    "metodo": "",
+                    "case_history": "",
+                    "offerta": "",
+                    "cta": ""
+                }
+        else:
+            draft_blocks = {
+                "hook": response,
+                "grande_promessa": "",
+                "metodo": "",
+                "case_history": "",
+                "offerta": "",
+                "cta": ""
+            }
+        
+        # Save as draft
+        existing = await db.masterclass_scripts.find_one({"partner_id": request.partner_id})
+        if existing:
+            await db.masterclass_scripts.update_one(
+                {"partner_id": request.partner_id},
+                {"$set": {
+                    "blocks": draft_blocks,
+                    "status": "ai_draft",
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+        else:
+            script = MasterclassScript(
+                partner_id=request.partner_id,
+                partner_name=request.partner_name,
+                status="ai_draft",
+                blocks=draft_blocks
+            )
+            await db.masterclass_scripts.insert_one(script.model_dump())
+        
+        return {
+            "success": True,
+            "draft_blocks": draft_blocks,
+            "status": "ai_draft",
+            "message": "Bozza generata da STEFANIA. Ora puoi modificarla o inviarla per Admin Review."
+        }
+        
+    except Exception as e:
+        logging.error(f"Draft generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# =============================================================================
+# ADMIN REVIEW MODE - Script editing workflow
+# =============================================================================
+
+@api_router.get("/stefania/admin-review/pending")
+async def get_pending_admin_reviews():
+    """Get all scripts pending Admin review (status: in_review or ai_draft)"""
+    scripts = await db.masterclass_scripts.find(
+        {"status": {"$in": ["in_review", "ai_draft", "needs_revision"]}},
+        {"_id": 0}
+    ).to_list(50)
+    
+    # Enrich with partner info
+    enriched = []
+    for script in scripts:
+        partner = await db.partners.find_one({"id": script["partner_id"]}, {"_id": 0})
+        script["partner_info"] = partner
+        enriched.append(script)
+    
+    return enriched
+
+@api_router.post("/masterclass/script/{partner_id}/send-to-admin")
+async def send_script_to_admin_review(partner_id: str):
+    """Partner sends script to Admin (Claudio/Antonella) for final editing"""
+    script = await db.masterclass_scripts.find_one({"partner_id": partner_id}, {"_id": 0})
+    if not script:
+        raise HTTPException(status_code=404, detail="Script not found")
+    
+    await db.masterclass_scripts.update_one(
+        {"partner_id": partner_id},
+        {"$set": {
+            "status": "in_review",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Create notification for admins
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    notification = Notification(
+        type="script_review",
+        icon="📝",
+        title="Script Pronto per Revisione Admin",
+        body=f"{partner['name']} ha inviato la Masterclass per editing finale",
+        time=datetime.now().strftime("%H:%M"),
+        partner=partner["name"],
+        action="admin_review"
+    )
+    await db.notifications.insert_one(notification.model_dump())
+    
+    return {"success": True, "status": "in_review", "message": "Script inviato a Claudio/Antonella per editing finale"}
+
+@api_router.post("/masterclass/script/{partner_id}/admin-edit")
+async def admin_edit_script(partner_id: str, edit: AdminEditRequest):
+    """Admin (Claudio/Antonella) edits the script before sending to partner for approval"""
+    script = await db.masterclass_scripts.find_one({"partner_id": partner_id}, {"_id": 0})
+    if not script:
+        raise HTTPException(status_code=404, detail="Script not found")
+    
+    # Save admin edit record
+    admin_edit = AdminScriptEdit(
+        script_id=script.get("id", partner_id),
+        partner_id=partner_id,
+        admin_user=edit.admin_user,
+        original_blocks=script.get("blocks", {}),
+        edited_blocks=edit.blocks,
+        admin_notes=edit.admin_notes
+    )
+    await db.admin_script_edits.insert_one(admin_edit.model_dump())
+    
+    # Update script with admin edits
+    await db.masterclass_scripts.update_one(
+        {"partner_id": partner_id},
+        {"$set": {
+            "blocks": edit.blocks,
+            "status": "pending_partner_approval",
+            "admin_edited_by": edit.admin_user,
+            "admin_notes": edit.admin_notes,
+            "admin_edited_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Create notification for partner
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    notification = Notification(
+        type="script_review",
+        icon="✏️",
+        title="Script Modificato - Richiede Approvazione",
+        body=f"{edit.admin_user} ha completato l'editing della tua Masterclass",
+        time=datetime.now().strftime("%H:%M"),
+        partner=partner["name"],
+        action="partner_approval"
+    )
+    await db.notifications.insert_one(notification.model_dump())
+    
+    return {
+        "success": True,
+        "status": "pending_partner_approval",
+        "admin_user": edit.admin_user,
+        "message": f"Script modificato da {edit.admin_user}. In attesa di approvazione dal partner."
+    }
+
+@api_router.post("/masterclass/script/{partner_id}/partner-approve")
+async def partner_approve_admin_edit(partner_id: str, approved: bool = True, feedback: str = None):
+    """Partner approves or requests revision of Admin edits"""
+    script = await db.masterclass_scripts.find_one({"partner_id": partner_id}, {"_id": 0})
+    if not script:
+        raise HTTPException(status_code=404, detail="Script not found")
+    
+    if approved:
+        new_status = "approved"
+        message = "Script approvato! Pronto per la produzione video."
+        
+        # Update admin edit record
+        await db.admin_script_edits.update_one(
+            {"partner_id": partner_id, "status": "pending_partner_approval"},
+            {"$set": {
+                "status": "approved_by_partner",
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    else:
+        new_status = "revision_requested"
+        message = "Richiesta di revisione inviata all'Admin."
+        
+        # Update admin edit record
+        await db.admin_script_edits.update_one(
+            {"partner_id": partner_id, "status": "pending_partner_approval"},
+            {"$set": {
+                "status": "revision_requested",
+                "partner_feedback": feedback,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        # Notify admin
+        partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+        notification = Notification(
+            type="script_review",
+            icon="🔄",
+            title="Revisione Richiesta",
+            body=f"{partner['name']} ha richiesto modifiche allo script: {feedback[:50] if feedback else 'Nessun dettaglio'}",
+            time=datetime.now().strftime("%H:%M"),
+            partner=partner["name"],
+            action="admin_review"
+        )
+        await db.notifications.insert_one(notification.model_dump())
+    
+    await db.masterclass_scripts.update_one(
+        {"partner_id": partner_id},
+        {"$set": {
+            "status": new_status,
+            "partner_feedback": feedback,
+            "partner_approved_at": datetime.now(timezone.utc).isoformat() if approved else None,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"success": True, "status": new_status, "message": message}
+
+@api_router.get("/masterclass/script/{partner_id}/edit-history")
+async def get_script_edit_history(partner_id: str):
+    """Get edit history for a script"""
+    edits = await db.admin_script_edits.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(20)
+    return edits
+
+# =============================================================================
+# STEFANIA WAR MODE - ADS & TRAFFIC ROUTES
+# =============================================================================
+
+@api_router.post("/stefania/war-mode/generate-hooks")
+async def generate_ad_hooks(request: AdHookRequest):
+    """Ads Script Generator - Extract 5 powerful hooks from Copy Core for Meta/Google ads"""
+    try:
+        # Get the partner's script
+        script = await db.masterclass_scripts.find_one({"partner_id": request.partner_id}, {"_id": 0})
+        
+        # Get success cases for inspiration
+        success_cases = await db.success_cases.find({}, {"_id": 0}).to_list(5)
+        if not success_cases:
+            success_cases = EVOLUTION_PRO_SUCCESS_CASES[:3]
+        
+        # Build Copy Core context
+        copy_core = ""
+        if script and script.get("blocks"):
+            copy_core = f"""
+COPY CORE DEL PARTNER:
+- Hook originale: {script['blocks'].get('hook', '')}
+- Grande Promessa: {script['blocks'].get('grande_promessa', '')}
+- Metodo: {script['blocks'].get('metodo', '')}
+"""
+        
+        # Platform-specific guidelines
+        platform_guidelines = {
+            "meta": "Facebook/Instagram: Max 125 caratteri per l'hook principale. Usa emoji strategicamente. Focus su scroll-stopping opener.",
+            "google": "Google Ads: Max 30 caratteri per headline. Focus su keyword intent. Usa numeri e benefici concreti.",
+            "tiktok": "TikTok: Linguaggio casual e diretto. Pattern interrupt nei primi 3 secondi. Usa domande provocatorie."
+        }
+        
+        hook_prompt = f"""Sei STEFANIA in War Mode - Ads Specialist. Devi generare 5 HOOK PUBBLICITARI potenti per {request.partner_name} ({request.partner_niche}).
+
+{copy_core}
+
+PIATTAFORMA: {request.platform.upper()}
+LINEE GUIDA: {platform_guidelines.get(request.platform, platform_guidelines['meta'])}
+
+🎯 REGOLE PER GLI HOOK ADS:
+1. Pattern Interrupt: Inizia con qualcosa che FERMA lo scroll
+2. Curiosity Gap: Crea un vuoto informativo che spinge a cliccare
+3. Specificity: Usa numeri precisi (4.7kg, €2.347, 22 giorni)
+4. Enemy Frame: Identifica un nemico comune (i guru, il sistema, le bugie)
+5. Identity Trigger: Parla direttamente al target ideale
+
+📚 ESEMPI DA SUCCESSI EVOLUTION PRO:
+{chr(10).join([f"- {c['partner_name']}: {c.get('hook_example', 'N/A')}" for c in success_cases])}
+
+Genera 5 hook diversi, ognuno con un angolo unico:
+1. HOOK CURIOSITÀ: Pattern interrupt + mistero
+2. HOOK PROVOCAZIONE: Sfida lo status quo
+3. HOOK RISULTATO: Numero specifico + timeframe
+4. HOOK STORIA: Mini-narrative hook
+5. HOOK DOMANDA: Domanda provocatoria
+
+Rispondi in formato JSON:
+{{"hooks": ["hook1", "hook2", "hook3", "hook4", "hook5"], "platform_tips": "suggerimenti specifici"}}
+"""
+
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"hooks_{request.partner_id}_{datetime.now().timestamp()}",
+            system_message="Sei STEFANIA War Mode - Ads Specialist di Evolution PRO. Genera copy per ads ad alta conversione."
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        
+        response = await chat.send_message(UserMessage(text=hook_prompt))
+        
+        # Parse JSON response
+        import re
+        json_match = re.search(r'\{[\s\S]*\}', response)
+        hooks_data = {"hooks": [], "platform_tips": ""}
+        
+        if json_match:
+            try:
+                hooks_data = json.loads(json_match.group())
+            except json.JSONDecodeError:
+                hooks_data["hooks"] = [response]
+        
+        # Save to campaign if exists, or create new
+        existing_campaign = await db.ads_campaigns.find_one({"partner_id": request.partner_id, "platform": request.platform})
+        
+        if existing_campaign:
+            await db.ads_campaigns.update_one(
+                {"partner_id": request.partner_id, "platform": request.platform},
+                {"$set": {
+                    "hooks": hooks_data.get("hooks", []),
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+        else:
+            campaign = AdsCampaign(
+                partner_id=request.partner_id,
+                partner_name=request.partner_name,
+                platform=request.platform,
+                campaign_name=f"{request.partner_name} - {request.platform.upper()} Campaign",
+                hooks=hooks_data.get("hooks", [])
+            )
+            await db.ads_campaigns.insert_one(campaign.model_dump())
+        
+        return {
+            "success": True,
+            "hooks": hooks_data.get("hooks", []),
+            "platform": request.platform,
+            "platform_tips": hooks_data.get("platform_tips", ""),
+            "partner_id": request.partner_id
+        }
+        
+    except Exception as e:
+        logging.error(f"Hook generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/stefania/war-mode/campaigns")
+async def get_all_campaigns():
+    """Get all ad campaigns for Admin dashboard"""
+    campaigns = await db.ads_campaigns.find({}, {"_id": 0}).sort("updated_at", -1).to_list(100)
+    return campaigns
+
+@api_router.get("/stefania/war-mode/campaigns/{partner_id}")
+async def get_partner_campaigns(partner_id: str):
+    """Get campaigns for a specific partner"""
+    campaigns = await db.ads_campaigns.find({"partner_id": partner_id}, {"_id": 0}).to_list(20)
+    return campaigns
+
+@api_router.post("/stefania/war-mode/campaigns/{campaign_id}/update-metrics")
+async def update_campaign_metrics(
+    campaign_id: str,
+    spend: float = 0,
+    leads: int = 0,
+    conversions: int = 0,
+    revenue: float = 0
+):
+    """Performance Bridge - Update campaign metrics (simulating MARTA API connection)"""
+    campaign = await db.ads_campaigns.find_one({"id": campaign_id}, {"_id": 0})
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    
+    # Calculate metrics
+    cpl = spend / leads if leads > 0 else 0
+    roas = revenue / spend if spend > 0 else 0
+    
+    # Update campaign
+    await db.ads_campaigns.update_one(
+        {"id": campaign_id},
+        {"$set": {
+            "spend_total": campaign.get("spend_total", 0) + spend,
+            "leads": campaign.get("leads", 0) + leads,
+            "cpl": cpl,
+            "roas": roas,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Auto-Optimization Logic: Check CPL threshold
+    cpl_threshold = campaign.get("cpl_max_threshold", 15.0)
+    alerts = []
+    
+    if cpl > cpl_threshold and leads > 0:
+        # Create Low Performance Alert
+        alert = PerformanceAlert(
+            partner_id=campaign["partner_id"],
+            campaign_id=campaign_id,
+            alert_type="cpl_exceeded",
+            severity="critical" if cpl > cpl_threshold * 1.5 else "warning",
+            current_value=cpl,
+            threshold_value=cpl_threshold,
+            message=f"CPL di €{cpl:.2f} supera la soglia di €{cpl_threshold:.2f}",
+            suggested_action="Considerare cambio creatività. Testa un nuovo hook dalla lista generata o rivedi il targeting."
+        )
+        await db.performance_alerts.insert_one(alert.model_dump())
+        alerts.append(alert.model_dump())
+        
+        # Create notification for Claudio
+        notification = Notification(
+            type="escalation",
+            icon="📉",
+            title="LOW PERFORMANCE - STEFANIA Alert",
+            body=f"CPL {campaign['partner_name']} ({campaign['platform']}) a €{cpl:.2f} - Superata soglia €{cpl_threshold:.2f}",
+            time=datetime.now().strftime("%H:%M"),
+            partner=campaign["partner_name"],
+            action="war_mode"
+        )
+        await db.notifications.insert_one(notification.model_dump())
+    
+    # Low ROAS alert
+    if roas < 1.0 and revenue > 0:
+        alert = PerformanceAlert(
+            partner_id=campaign["partner_id"],
+            campaign_id=campaign_id,
+            alert_type="low_roas",
+            severity="warning",
+            current_value=roas,
+            threshold_value=1.0,
+            message=f"ROAS di {roas:.2f}x è sotto break-even",
+            suggested_action="Ottimizza la landing page o rivedi l'offerta. Considera aumentare il prezzo del corso."
+        )
+        await db.performance_alerts.insert_one(alert.model_dump())
+        alerts.append(alert.model_dump())
+    
+    return {
+        "success": True,
+        "campaign_id": campaign_id,
+        "metrics": {"spend": spend, "leads": leads, "cpl": cpl, "roas": roas},
+        "alerts_triggered": len(alerts),
+        "alerts": alerts
+    }
+
+@api_router.get("/stefania/war-mode/performance/{partner_id}")
+async def get_partner_performance(partner_id: str):
+    """Performance Bridge - Get performance metrics aggregated (MARTA connection)"""
+    campaigns = await db.ads_campaigns.find({"partner_id": partner_id}, {"_id": 0}).to_list(10)
+    alerts = await db.performance_alerts.find({"partner_id": partner_id, "resolved": False}, {"_id": 0}).to_list(20)
+    
+    # Aggregate metrics
+    total_spend = sum(c.get("spend_total", 0) for c in campaigns)
+    total_leads = sum(c.get("leads", 0) for c in campaigns)
+    avg_cpl = total_spend / total_leads if total_leads > 0 else 0
+    
+    return {
+        "partner_id": partner_id,
+        "campaigns_count": len(campaigns),
+        "campaigns": campaigns,
+        "aggregated": {
+            "total_spend": total_spend,
+            "total_leads": total_leads,
+            "avg_cpl": avg_cpl
+        },
+        "active_alerts": alerts
+    }
+
+@api_router.get("/stefania/war-mode/alerts")
+async def get_performance_alerts(resolved: bool = False):
+    """Get all performance alerts for Admin dashboard"""
+    alerts = await db.performance_alerts.find({"resolved": resolved}, {"_id": 0}).sort("created_at", -1).to_list(50)
+    return alerts
+
+@api_router.post("/stefania/war-mode/alerts/{alert_id}/resolve")
+async def resolve_performance_alert(alert_id: str):
+    """Resolve a performance alert"""
+    await db.performance_alerts.update_one(
+        {"id": alert_id},
+        {"$set": {"resolved": True}}
+    )
+    return {"success": True, "alert_id": alert_id}
+
+@api_router.post("/stefania/war-mode/generate-utm")
+async def generate_utm_link(request: UTMGeneratorRequest):
+    """Tracking Automatizzato - Generate UTM tracked links"""
+    # Sanitize values for URL
+    def sanitize(value: str) -> str:
+        return value.lower().replace(" ", "_").replace("-", "_")
+    
+    # Build UTM parameters
+    utm_params = {
+        "utm_source": sanitize(request.source),
+        "utm_medium": sanitize(request.medium),
+        "utm_campaign": sanitize(request.campaign_name),
+        "utm_content": sanitize(request.content) if request.content else f"hook_{datetime.now().strftime('%Y%m%d')}",
+        "utm_term": sanitize(request.partner_name)
+    }
+    
+    # Add Evolution PRO tracking ID
+    utm_params["evo_partner_id"] = request.partner_id
+    utm_params["evo_timestamp"] = datetime.now().strftime("%Y%m%d%H%M")
+    
+    # Build full URL
+    from urllib.parse import urlencode, urlparse, parse_qs
+    
+    base_url = request.destination_url
+    if "?" in base_url:
+        full_url = f"{base_url}&{urlencode(utm_params)}"
+    else:
+        full_url = f"{base_url}?{urlencode(utm_params)}"
+    
+    # Save to campaign
+    await db.ads_campaigns.update_one(
+        {"partner_id": request.partner_id, "platform": request.source},
+        {"$set": {
+            "utm_params": utm_params,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {
+        "success": True,
+        "tracked_url": full_url,
+        "utm_params": utm_params,
+        "short_preview": full_url[:80] + "..." if len(full_url) > 80 else full_url
+    }
+
+@api_router.post("/stefania/war-mode/campaigns/{campaign_id}/set-threshold")
+async def set_cpl_threshold(campaign_id: str, cpl_max: float):
+    """Set CPL max threshold for auto-optimization alerts"""
+    await db.ads_campaigns.update_one(
+        {"id": campaign_id},
+        {"$set": {
+            "cpl_max_threshold": cpl_max,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    return {"success": True, "campaign_id": campaign_id, "new_threshold": cpl_max}
+
+@api_router.get("/stefania/war-mode/dashboard")
+async def get_war_mode_dashboard():
+    """Complete War Mode dashboard data for Admin"""
+    campaigns = await db.ads_campaigns.find({}, {"_id": 0}).to_list(100)
+    alerts = await db.performance_alerts.find({"resolved": False}, {"_id": 0}).to_list(50)
+    
+    # Aggregate by platform
+    by_platform = {}
+    for c in campaigns:
+        platform = c.get("platform", "other")
+        if platform not in by_platform:
+            by_platform[platform] = {"campaigns": 0, "spend": 0, "leads": 0, "qualified_leads": 0, "ltv_total": 0, "revenue": 0}
+        by_platform[platform]["campaigns"] += 1
+        by_platform[platform]["spend"] += c.get("spend_total", 0)
+        by_platform[platform]["leads"] += c.get("leads", 0)
+        by_platform[platform]["qualified_leads"] += c.get("qualified_leads", 0)
+        by_platform[platform]["ltv_total"] += c.get("ltv_avg", 0) * c.get("conversions", 0)
+        by_platform[platform]["revenue"] += c.get("revenue", 0)
+    
+    # Calculate platform comparison
+    meta_data = by_platform.get("meta", {"spend": 0, "leads": 0, "qualified_leads": 0, "revenue": 0})
+    linkedin_data = by_platform.get("linkedin", {"spend": 0, "leads": 0, "qualified_leads": 0, "revenue": 0})
+    
+    # Calculate averages
+    total_spend = sum(c.get("spend_total", 0) for c in campaigns)
+    total_leads = sum(c.get("leads", 0) for c in campaigns)
+    
+    return {
+        "overview": {
+            "total_campaigns": len(campaigns),
+            "total_spend": total_spend,
+            "total_leads": total_leads,
+            "avg_cpl": total_spend / total_leads if total_leads > 0 else 0,
+            "active_alerts": len(alerts)
+        },
+        "by_platform": by_platform,
+        "platform_comparison": {
+            "meta": {
+                "cpl": meta_data["spend"] / meta_data["leads"] if meta_data["leads"] > 0 else 0,
+                "roas": meta_data["revenue"] / meta_data["spend"] if meta_data["spend"] > 0 else 0,
+                "lead_quality": meta_data["qualified_leads"] / meta_data["leads"] if meta_data["leads"] > 0 else 0
+            },
+            "linkedin": {
+                "cpl": linkedin_data["spend"] / linkedin_data["leads"] if linkedin_data["leads"] > 0 else 0,
+                "roas": linkedin_data["revenue"] / linkedin_data["spend"] if linkedin_data["spend"] > 0 else 0,
+                "lead_quality": linkedin_data["qualified_leads"] / linkedin_data["leads"] if linkedin_data["leads"] > 0 else 0
+            }
+        },
+        "campaigns": campaigns[:10],  # Latest 10
+        "critical_alerts": [a for a in alerts if a.get("severity") == "critical"][:5]
+    }
+
+# =============================================================================
+# STEFANIA WAR MODE - MULTI-CHANNEL (META & LINKEDIN)
+# =============================================================================
+
+@api_router.post("/stefania/war-mode/hook-gallery")
+async def generate_hook_gallery(request: HookGalleryRequest):
+    """Generate 3-variant Hook Gallery for Meta (Pain, Secret, Result angles)"""
+    try:
+        # Get Copy Core for context
+        script = await db.masterclass_scripts.find_one({"partner_id": request.partner_id}, {"_id": 0})
+        copy_context = ""
+        if script and script.get("blocks"):
+            copy_context = f"""
+COPY CORE DISPONIBILE:
+- Hook: {script['blocks'].get('hook', 'N/A')[:200]}
+- Grande Promessa: {script['blocks'].get('grande_promessa', 'N/A')[:200]}
+- Case History: {script['blocks'].get('case_history', 'N/A')[:200]}
+"""
+
+        prompt = f"""Sei STEFANIA in War Mode per META ADS. Genera 3 HOOK VIDEO per {request.partner_name} ({request.partner_niche}).
+
+{copy_context}
+
+🎯 STRATEGIA: Hook Gallery (primi 5 secondi del video)
+Il targeting è BROAD - il copy deve FILTRARE i curiosi dai potenziali clienti.
+
+GENERA 3 HOOK DIVERSI:
+
+1️⃣ ANGOLO DEL DOLORE (Emotional Trigger)
+Pattern: "Sei stanco di [frustrazione comune]?"
+Obiettivo: Colpire chi sta vivendo il problema ORA
+
+2️⃣ ANGOLO DEL SEGRETO (Curiosity Gap)  
+Pattern: "Ecco come [nemico comune] ti sta nascondendo [verità scomoda]"
+Obiettivo: Creare suspense e pattern interrupt
+
+3️⃣ ANGOLO DEL RISULTATO (Social Proof)
+Pattern: "Il sistema esatto che ha generato [numero specifico] per [nome/tipo cliente]"
+Obiettivo: Proof + Specificity
+
+REGOLE:
+- Max 50 parole per hook (primi 5 sec video)
+- Linguaggio diretto, parlato
+- Numeri specifici quando possibile
+- NO gergo tecnico
+
+Rispondi in JSON:

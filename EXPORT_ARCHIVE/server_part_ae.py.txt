@@ -1,0 +1,2000 @@
+@api_router.get("/heygen/orders/{partner_id}")
+async def get_partner_avatar_orders(partner_id: str):
+    """Get all avatar orders for a partner"""
+    orders = await db.avatar_orders.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    return {"orders": orders}
+
+@api_router.get("/heygen/lessons/{partner_id}")
+async def get_partner_avatar_lessons(partner_id: str):
+    """Get all avatar lesson videos for a partner"""
+    lessons = await db.avatar_lessons.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    return {"lessons": lessons}
+
+# =============================================================================
+# VIDEO EDITOR (ANDREA) - EDITING BASE
+# =============================================================================
+
+class VideoTrimRequest(BaseModel):
+    video_path: str
+    start_time: float
+    end_time: float
+    output_name: Optional[str] = None
+
+class VideoCutRequest(BaseModel):
+    video_path: str
+    cut_start: float
+    cut_end: float
+    output_name: Optional[str] = None
+
+class VideoMergeRequest(BaseModel):
+    video_paths: List[str]
+    output_name: Optional[str] = None
+    transition: str = "none"
+
+class IntroOutroRequest(BaseModel):
+    video_path: str
+    intro_path: Optional[str] = "auto"
+    outro_path: Optional[str] = "auto"
+    partner_name: str = "Partner"
+    output_name: Optional[str] = None
+
+class TextOverlayRequest(BaseModel):
+    video_path: str
+    text: str
+    start_time: float = 0
+    end_time: Optional[float] = None
+    position: str = "center"
+    font_size: int = 48
+    font_color: str = "white"
+    bg_color: Optional[str] = None
+    output_name: Optional[str] = None
+
+class BurnSubtitlesRequest(BaseModel):
+    video_path: str
+    srt_path: str
+    font_size: int = 24
+    position: str = "bottom"
+    output_name: Optional[str] = None
+
+@api_router.post("/editor/upload")
+async def editor_upload_video(file: UploadFile = File(...)):
+    """Upload video for editing"""
+    try:
+        from pathlib import Path
+        
+        # Save to editor uploads folder
+        upload_path = Path("/app/storage/editor/uploads")
+        upload_path.mkdir(parents=True, exist_ok=True)
+        
+        filename = f"{datetime.now().timestamp()}_{file.filename}"
+        file_path = upload_path / filename
+        
+        content = await file.read()
+        with open(file_path, 'wb') as f:
+            f.write(content)
+        
+        # Get video info
+        info = video_editor.get_video_info(str(file_path))
+        
+        return {
+            "success": True,
+            "filename": filename,
+            "path": str(file_path),
+            "info": info
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/editor/video-info")
+async def get_video_info(path: str):
+    """Get video metadata"""
+    info = video_editor.get_video_info(path)
+    return info
+
+@api_router.post("/editor/trim")
+async def editor_trim_video(request: VideoTrimRequest):
+    """Trim video to specific segment"""
+    from pathlib import Path
+    
+    output_name = request.output_name or f"trimmed_{datetime.now().timestamp()}.mp4"
+    output_path = Path("/app/storage/editor/exports") / output_name
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    result = video_editor.trim_video(
+        request.video_path,
+        str(output_path),
+        request.start_time,
+        request.end_time
+    )
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail=result.get("error"))
+    
+    return result
+
+@api_router.post("/editor/cut")
+async def editor_cut_segment(request: VideoCutRequest):
+    """Remove a segment from video"""
+    from pathlib import Path
+    
+    output_name = request.output_name or f"cut_{datetime.now().timestamp()}.mp4"
+    output_path = Path("/app/storage/editor/exports") / output_name
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    result = video_editor.cut_segment(
+        request.video_path,
+        str(output_path),
+        request.cut_start,
+        request.cut_end
+    )
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail=result.get("error"))
+    
+    return result
+
+@api_router.post("/editor/merge")
+async def editor_merge_videos(request: VideoMergeRequest):
+    """Merge multiple videos"""
+    from pathlib import Path
+    
+    output_name = request.output_name or f"merged_{datetime.now().timestamp()}.mp4"
+    output_path = Path("/app/storage/editor/exports") / output_name
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    result = video_editor.merge_videos(
+        request.video_paths,
+        str(output_path),
+        request.transition
+    )
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail=result.get("error"))
+    
+    return result
+
+@api_router.post("/editor/intro-outro")
+async def editor_add_intro_outro(request: IntroOutroRequest):
+    """Add intro and/or outro to video"""
+    from pathlib import Path
+    
+    output_name = request.output_name or f"branded_{datetime.now().timestamp()}.mp4"
+    output_path = Path("/app/storage/editor/exports") / output_name
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    result = video_editor.add_intro_outro(
+        request.video_path,
+        str(output_path),
+        request.intro_path,
+        request.outro_path,
+        request.partner_name
+    )
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail=result.get("error"))
+    
+    return result
+
+@api_router.post("/editor/subtitles/generate")
+async def editor_generate_subtitles(video_path: str, language: str = "it"):
+    """Generate subtitles using Whisper"""
+    result = await video_editor.generate_subtitles(video_path, language)
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail=result.get("error"))
+    
+    return result
+
+@api_router.post("/editor/subtitles/burn")
+async def editor_burn_subtitles(request: BurnSubtitlesRequest):
+    """Burn subtitles into video"""
+    from pathlib import Path
+    
+    output_name = request.output_name or f"subtitled_{datetime.now().timestamp()}.mp4"
+    output_path = Path("/app/storage/editor/exports") / output_name
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    result = video_editor.burn_subtitles(
+        request.video_path,
+        request.srt_path,
+        str(output_path),
+        request.font_size,
+        position=request.position
+    )
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail=result.get("error"))
+    
+    return result
+
+@api_router.post("/editor/text-overlay")
+async def editor_add_text_overlay(request: TextOverlayRequest):
+    """Add text overlay to video"""
+    from pathlib import Path
+    
+    output_name = request.output_name or f"overlay_{datetime.now().timestamp()}.mp4"
+    output_path = Path("/app/storage/editor/exports") / output_name
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    result = video_editor.add_text_overlay(
+        request.video_path,
+        str(output_path),
+        request.text,
+        request.start_time,
+        request.end_time,
+        request.position,
+        request.font_size,
+        request.font_color,
+        request.bg_color
+    )
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail=result.get("error"))
+    
+    return result
+
+@api_router.get("/editor/files/{filename}")
+async def editor_get_file(filename: str):
+    """Serve exported video file"""
+    from pathlib import Path
+    
+    # Check in exports folder
+    file_path = Path("/app/storage/editor/exports") / filename
+    if not file_path.exists():
+        # Check in uploads
+        file_path = Path("/app/storage/editor/uploads") / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    return FileResponse(str(file_path), media_type="video/mp4", filename=filename)
+
+@api_router.get("/editor/subtitles/{filename}")
+async def editor_get_subtitles(filename: str):
+    """Serve SRT subtitle file"""
+    from pathlib import Path
+    
+    file_path = Path("/app/storage/editor/subtitles") / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Subtitle file not found")
+    
+    return FileResponse(str(file_path), media_type="text/plain", filename=filename)
+
+# =============================================================================
+# FUNNEL EXPORT SERVICE (for Systeme.io)
+# =============================================================================
+
+class FunnelSection(BaseModel):
+    id: int
+    icon: str
+    title: str
+    subtitle: str = ""
+    content: Dict[str, Any]
+
+class FunnelExportRequest(BaseModel):
+    partner_data: Dict[str, Any]
+    funnel_sections: List[FunnelSection]
+    approved_sections: List[int]
+
+@api_router.post("/funnel/export")
+async def export_funnel_for_systeme(request: FunnelExportRequest):
+    """
+    Generate HTML export document for Systeme.io manual import
+    """
+    try:
+        # Convert sections to dict format
+        sections = [s.model_dump() for s in request.funnel_sections]
+        
+        result = funnel_export_service.generate_funnel_export(
+            partner_data=request.partner_data,
+            funnel_sections=sections,
+            approved_sections=request.approved_sections
+        )
+        
+        if not result.get("success"):
+            raise HTTPException(status_code=500, detail="Export generation failed")
+        
+        # Save export record to database
+        export_record = {
+            "partner_id": request.partner_data.get("id", "unknown"),
+            "partner_name": request.partner_data.get("name", "Partner"),
+            "filename": result.get("filename"),
+            "sections_exported": result.get("sections_exported"),
+            "approved_sections": request.approved_sections,
+            "generated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.funnel_exports.insert_one(export_record)
+        
+        return result
+        
+    except Exception as e:
+        logging.error(f"Funnel export error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/funnel/exports")
+async def list_funnel_exports(partner_id: Optional[str] = None):
+    """List all funnel exports"""
+    exports = funnel_export_service.list_exports(partner_id)
+    return {"exports": exports, "count": len(exports)}
+
+@api_router.get("/funnel/export/download/{filename}")
+async def download_funnel_export(filename: str):
+    """Download a funnel export file"""
+    from pathlib import Path
+    
+    filepath = Path("/app/storage/funnel_exports") / filename
+    if not filepath.exists():
+        raise HTTPException(status_code=404, detail="Export file not found")
+    
+    return FileResponse(
+        str(filepath), 
+        media_type="text/html", 
+        filename=filename,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+@api_router.get("/funnel/export/preview/{filename}")
+async def preview_funnel_export(filename: str):
+    """Preview a funnel export file in browser"""
+    from pathlib import Path
+    
+    filepath = Path("/app/storage/funnel_exports") / filename
+    if not filepath.exists():
+        raise HTTPException(status_code=404, detail="Export file not found")
+    
+    return FileResponse(str(filepath), media_type="text/html")
+
+# =============================================================================
+# LEGAL PAGES GENERATOR (ANDREA)
+# =============================================================================
+
+class LegalPageRequest(BaseModel):
+    page_type: str  # privacy_policy, terms_conditions, cookie_policy, disclaimer
+    business_data: Dict[str, Any]
+    custom_sections: Optional[List[str]] = None
+
+class AllLegalPagesRequest(BaseModel):
+    business_data: Dict[str, Any]
+
+@api_router.get("/legal/templates")
+async def get_legal_templates():
+    """Get list of available legal page templates"""
+    return legal_generator.list_available_templates()
+
+@api_router.get("/legal/template/{page_type}")
+async def get_legal_template_info(page_type: str):
+    """Get detailed info about a specific template"""
+    info = legal_generator.get_template_info(page_type)
+    if "error" in info:
+        raise HTTPException(status_code=404, detail=info["error"])
+    return info
+
+@api_router.post("/legal/generate")
+async def generate_legal_page(request: LegalPageRequest):
+    """Generate a single legal page"""
+    result = await legal_generator.generate_legal_page(
+        request.page_type,
+        request.business_data,
+        request.custom_sections
+    )
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail=result.get("error"))
+    
+    # Save to database for partner
+    partner_id = request.business_data.get("partner_id")
+    if partner_id:
+        await db.legal_pages.update_one(
+            {"partner_id": partner_id, "page_type": request.page_type},
+            {"$set": {
+                "partner_id": partner_id,
+                "page_type": request.page_type,
+                "content_html": result.get("content_html"),
+                "content_text": result.get("content_text"),
+                "business_data": request.business_data,
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }},
+            upsert=True
+        )
+    
+    return result
+
+@api_router.post("/legal/generate-all")
+async def generate_all_legal_pages(request: AllLegalPagesRequest):
+    """Generate all legal pages at once"""
+    result = await legal_generator.generate_all_legal_pages(request.business_data)
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail="Some pages failed to generate")
+    
+    # Save all to database
+    partner_id = request.business_data.get("partner_id")
+    if partner_id:
+        for page_type, page_result in result.get("results", {}).items():
+            if page_result.get("success"):
+                await db.legal_pages.update_one(
+                    {"partner_id": partner_id, "page_type": page_type},
+                    {"$set": {
+                        "partner_id": partner_id,
+                        "page_type": page_type,
+                        "content_html": page_result.get("content_html"),
+                        "content_text": page_result.get("content_text"),
+                        "business_data": request.business_data,
+                        "generated_at": datetime.now(timezone.utc).isoformat(),
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }},
+                    upsert=True
+                )
+    
+    return result
+
+@api_router.get("/legal/partner/{partner_id}")
+async def get_partner_legal_pages(partner_id: str):
+    """Get all generated legal pages for a partner"""
+    pages = await db.legal_pages.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).to_list(length=10)
+    
+    return {
+        "partner_id": partner_id,
+        "pages": pages,
+        "count": len(pages)
+    }
+
+@api_router.get("/legal/partner/{partner_id}/{page_type}")
+async def get_partner_legal_page(partner_id: str, page_type: str):
+    """Get specific legal page for a partner"""
+    page = await db.legal_pages.find_one(
+        {"partner_id": partner_id, "page_type": page_type},
+        {"_id": 0}
+    )
+    
+    if not page:
+        raise HTTPException(status_code=404, detail="Legal page not found")
+    
+    return page
+
+@api_router.delete("/legal/partner/{partner_id}/{page_type}")
+async def delete_partner_legal_page(partner_id: str, page_type: str):
+    """Delete a legal page"""
+    result = await db.legal_pages.delete_one(
+        {"partner_id": partner_id, "page_type": page_type}
+    )
+    
+    return {
+        "success": result.deleted_count > 0,
+        "deleted": result.deleted_count
+    }
+
+# =============================================================================
+# SYSTEME.IO WEBHOOKS - AUTO-SYNC & AUTOMATIONS
+# =============================================================================
+
+import hmac
+import hashlib
+
+SYSTEME_WEBHOOK_SECRET = os.environ.get('SYSTEME_WEBHOOK_SECRET', '')
+
+# Webhook Event Types
+WEBHOOK_EVENTS = {
+    "new_sale": "Nuova vendita",
+    "new_order": "Nuovo ordine",
+    "new_subscriber": "Nuovo iscritto",
+    "form_subscribed": "Form compilato",
+    "tag_added": "Tag aggiunto",
+    "course_access": "Accesso corso",
+    "refund": "Rimborso"
+}
+
+# Tag-to-Phase mapping for auto-progression
+TAG_PHASE_MAP = {
+    "F0-Completato": "F1",
+    "F1-Completato": "F2",
+    "F2-Completato": "F3",
+    "F3-Completato": "F4",
+    "F4-Completato": "F5",
+    "F5-Completato": "F6",
+    "F6-Completato": "F7",
+    "F7-Completato": "F8",
+    "F8-Completato": "F9",
+    "F9-Completato": "F10",
+    "Posizionamento-Completato": "F3",
+    "Masterclass-Completata": "F4",
+    "Video-Prodotti": "F6",
+    "Corso-Pubblicato": "F7",
+    "Lancio-Completato": "F9"
+}
+
+# Lead scoring rules
+LEAD_SCORE_RULES = {
+    "form_subscribed": 10,
+    "webinar_registered": 25,
+    "ebook_downloaded": 15,
+    "video_watched": 5,
+    "call_booked": 50,
+    "checkout_started": 40,
+    "new_sale": 100
+}
+
+class WebhookPayload(BaseModel):
+    event_type: str
+    data: Dict[str, Any]
+    timestamp: Optional[str] = None
+    signature: Optional[str] = None
+
+class WebhookLog(BaseModel):
+    event_type: str
+    payload: Dict[str, Any]
+    processed: bool
+    actions_taken: List[str]
+    created_at: str
+
+def verify_webhook_signature(payload: str, signature: str) -> bool:
+    """Verify webhook signature using HMAC-SHA256"""
+    if not SYSTEME_WEBHOOK_SECRET:
+        return True  # Skip verification if no secret configured
+    
+    expected = hmac.new(
+        SYSTEME_WEBHOOK_SECRET.encode(),
+        payload.encode(),
+        hashlib.sha256
+    ).hexdigest()
+    
+    return hmac.compare_digest(signature, expected)
+
+async def log_webhook(event_type: str, payload: dict, processed: bool, actions: List[str]):
+    """Log webhook to database"""
+    await db.webhook_logs.insert_one({
+        "event_type": event_type,
+        "payload": payload,
+        "processed": processed,
+        "actions_taken": actions,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+
+async def send_telegram_alert(message: str):
+    """Send Telegram notification for webhook events"""
+    try:
+        from valentina_ai import telegram_notify
+        await telegram_notify(
+            notification_type="webhook_alert",
+            message=message
+        )
+    except Exception as e:
+        logger.error(f"Failed to send Telegram alert: {e}")
+
+# -----------------------------------------------------------------------------
+# WEBHOOK HANDLERS
+# -----------------------------------------------------------------------------
+
+async def handle_new_sale(data: dict) -> List[str]:
+    """Handle new sale - Auto-onboard partner"""
+    actions = []
+    
+    contact_email = data.get("email", data.get("contact_email", ""))
+    contact_name = data.get("name", data.get("contact_name", ""))
+    product_name = data.get("product_name", data.get("product", ""))
+    amount = data.get("amount", data.get("price", 0))
+    order_id = data.get("order_id", data.get("id", str(uuid.uuid4())))
+    
+    if not contact_email:
+        return ["⚠️ Email mancante nel payload"]
+    
+    # Check if this is a partner program sale
+    is_partner_sale = any(kw in product_name.lower() for kw in ["partner", "academy", "evolution", "programma"])
+    
+    if is_partner_sale:
+        # Check if partner already exists
+        existing = await db.partners.find_one({"email": contact_email})
+        
+        if not existing:
+            # Create new partner
+            partner_id = f"p{str(uuid.uuid4())[:8]}"
+            new_partner = {
+                "id": partner_id,
+                "name": contact_name or contact_email.split("@")[0].title(),
+                "email": contact_email,
+                "phone": data.get("phone", ""),
+                "niche": "",
+                "phase": "F0",
+                "status": "active",
+                "revenue": 0,
+                "systeme_id": data.get("contact_id", ""),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "source": "systeme_webhook",
+                "order_id": order_id
+            }
+            
+            await db.partners.insert_one(new_partner)
+            actions.append(f"✅ Partner creato: {contact_name} ({contact_email})")
+            
+            # Send welcome notification
+            await send_telegram_alert(
+                f"🎉 <b>Nuovo Partner!</b>\n\n"
+                f"👤 {contact_name}\n"
+                f"📧 {contact_email}\n"
+                f"💰 {product_name}: €{amount}\n"
+                f"🆔 {partner_id}"
+            )
+            actions.append("📱 Notifica Telegram inviata")
+            
+            # Create auth user
+            import bcrypt
+            temp_password = f"Evo{str(uuid.uuid4())[:6]}!"
+            hashed = bcrypt.hashpw(temp_password.encode(), bcrypt.gensalt()).decode()
+            
+            await db.users.insert_one({
+                "email": contact_email,
+                "password": hashed,
+                "name": contact_name,
+                "role": "partner",
+                "partner_id": partner_id,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+            actions.append(f"🔐 Account creato (password temporanea generata)")
+        else:
+            actions.append(f"ℹ️ Partner già esistente: {contact_email}")
+    
+    # Record payment/order
+    await db.payments.insert_one({
+        "partner_email": contact_email,
+        "order_id": order_id,
+        "product": product_name,
+        "amount": float(amount) if amount else 0,
+        "currency": data.get("currency", "EUR"),
+        "status": "completed",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    actions.append(f"💳 Pagamento registrato: €{amount}")
+    
+    return actions
+
+# =============================================================================
+# EMAIL SEQUENCE TRIGGER SYSTEM
+# =============================================================================
+
+async def trigger_email_sequence(partner_id: str, contact_email: str, contact_name: str, trigger_type: str) -> List[str]:
+    """
+    Trigger email sequence for a contact via Systeme.io
+    Returns list of actions taken
+    """
+    actions = []
+    
+    try:
+        # Find active sequences for this partner with matching trigger
+        sequences = await db.email_sequences.find({
+            "partner_id": partner_id,
+            "trigger": trigger_type,
+            "is_active": True
+        }).to_list(10)
+        
+        # Also check for automations (single emails)
+        automations = await db.email_automations.find({
+            "partner_id": partner_id,
+            "trigger": trigger_type,
+            "is_active": True
+        }).to_list(10)
+        
+        if not sequences and not automations:
+            # Try global/default sequences
+            sequences = await db.email_sequences.find({
+                "partner_id": "global",
+                "trigger": trigger_type,
+                "is_active": True
+            }).to_list(5)
+            automations = await db.email_automations.find({
+                "partner_id": "global",
+                "trigger": trigger_type,
+                "is_active": True
+            }).to_list(5)
+        
+        if not sequences and not automations:
+            actions.append(f"ℹ️ Nessuna sequenza attiva per trigger '{trigger_type}'")
+            return actions
+        
+        # Get Systeme.io credentials for partner or global
+        credentials = await db.systeme_credentials.find_one({"partner_id": partner_id})
+        if not credentials:
+            credentials = await db.systeme_credentials.find_one({"partner_id": "global"})
+        
+        # Create email queue entry for each sequence
+        for sequence in sequences:
+            # Create a meaningful tag name for Systeme.io native automation
+            tag_name = sequence.get("systeme_tag") or f"evo_seq_{sequence.get('name', 'default').lower().replace(' ', '_')[:20]}"
+            
+            queue_entry = {
+                "id": str(uuid.uuid4()),
+                "type": "sequence",
+                "sequence_id": sequence.get("id"),
+                "sequence_name": sequence.get("name"),
+                "partner_id": partner_id,
+                "contact_email": contact_email,
+                "contact_name": contact_name,
+                "systeme_tag": tag_name,
+                "status": "triggered_via_systeme",
+                "triggered_by": trigger_type,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            await db.email_queue.insert_one(queue_entry)
+            
+            # Add tag to Systeme.io to trigger native automation
+            if credentials and credentials.get("api_key"):
+                try:
+                    await add_systeme_tag(credentials["api_key"], contact_email, tag_name)
+                    actions.append(f"🏷️ Tag '{tag_name}' → Systeme.io (sequenza nativa attivata)")
+                    
+                    # Update queue entry status
+                    await db.email_queue.update_one(
+                        {"id": queue_entry["id"]},
+                        {"$set": {"status": "sent_to_systeme", "sent_at": datetime.now(timezone.utc).isoformat()}}
+                    )
+                except Exception as e:
+                    logging.error(f"Error adding Systeme.io tag: {e}")
+                    actions.append(f"⚠️ Errore tag Systeme.io: {str(e)}")
+            else:
+                actions.append(f"📧 Sequenza '{sequence.get('name')}' pronta (connetti Systeme.io per attivare)")
+        
+        # Process single automations - also via Systeme.io tags
+        for automation in automations:
+            tag_name = automation.get("systeme_tag") or f"evo_auto_{automation.get('name', 'default').lower().replace(' ', '_')[:20]}"
+            
+            queue_entry = {
+                "id": str(uuid.uuid4()),
+                "type": "single",
+                "automation_id": automation.get("id"),
+                "automation_name": automation.get("name"),
+                "partner_id": partner_id,
+                "contact_email": contact_email,
+                "contact_name": contact_name,
+                "systeme_tag": tag_name,
+                "delay_hours": automation.get("delay_hours", 0),
+                "status": "triggered_via_systeme",
+                "triggered_by": trigger_type,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.email_queue.insert_one(queue_entry)
+            
+            # Add tag to Systeme.io
+            if credentials and credentials.get("api_key"):
+                try:
+                    await add_systeme_tag(credentials["api_key"], contact_email, tag_name)
+                    delay_info = f" (delay: +{automation.get('delay_hours')}h)" if automation.get("delay_hours", 0) > 0 else ""
+                    actions.append(f"🏷️ Tag '{tag_name}' → Systeme.io{delay_info}")
+                    
+                    await db.email_queue.update_one(
+                        {"id": queue_entry["id"]},
+                        {"$set": {"status": "sent_to_systeme", "sent_at": datetime.now(timezone.utc).isoformat()}}
+                    )
+                except Exception as e:
+                    logging.error(f"Error adding automation tag: {e}")
+            else:
+                actions.append(f"✉️ Email '{automation.get('name')}' pronta (connetti Systeme.io)")
+        
+        # Send notification to partner/admin
+        try:
+            await telegram_notify(
+                notification_type="info",
+                message=f"📧 Automazione Email via Systeme.io\n\n👤 {contact_name}\n📧 {contact_email}\n🎯 Trigger: {trigger_type}\n📋 Sequenze: {len(sequences)}\n✉️ Automazioni: {len(automations)}\n\n🏷️ Tag aggiunti per attivare le email native"
+            )
+        except Exception as e:
+            logging.error(f"Failed to send sequence notification: {e}")
+        
+    except Exception as e:
+        logging.error(f"Error triggering email sequence: {e}")
+        actions.append(f"❌ Errore trigger sequenza: {str(e)}")
+    
+    return actions
+
+async def add_systeme_tag(api_key: str, email: str, tag_name: str):
+    """Add a tag to a contact in Systeme.io"""
+    try:
+        # First, find the contact by email
+        contacts_response = await systeme_api_request(api_key, f"/contacts?email={email}")
+        contacts = contacts_response.get("items", [])
+        
+        if not contacts:
+            logging.warning(f"Contact {email} not found in Systeme.io")
+            return
+        
+        contact_id = contacts[0].get("id")
+        
+        # Add tag to contact
+        await systeme_api_request(
+            api_key, 
+            f"/contacts/{contact_id}/tags",
+            method="POST",
+            data={"name": tag_name}
+        )
+        logging.info(f"Tag '{tag_name}' added to contact {email} in Systeme.io")
+        
+    except Exception as e:
+        logging.error(f"Error adding tag in Systeme.io: {e}")
+        raise
+
+async def handle_new_subscriber(data: dict) -> List[str]:
+    """Handle new subscriber - Create lead for ORION"""
+    actions = []
+    
+    email = data.get("email", "")
+    name = data.get("name", "")
+    source = data.get("source", data.get("funnel_name", "unknown"))
+    tags = data.get("tags", [])
+    partner_id = data.get("partner_id", "global")
+    
+    if not email:
+        return ["⚠️ Email mancante"]
+    
+    # Create or update lead in ORION system
+    lead_score = LEAD_SCORE_RULES.get("form_subscribed", 10)
+    
+    existing_lead = await db.leads.find_one({"email": email})
+    
+    if existing_lead:
+        # Update existing lead
+        new_score = existing_lead.get("score", 0) + lead_score
+        await db.leads.update_one(
+            {"email": email},
+            {"$set": {
+                "score": new_score,
+                "last_activity": datetime.now(timezone.utc).isoformat(),
+                "sources": list(set(existing_lead.get("sources", []) + [source]))
+            }}
+        )
+        actions.append(f"📊 Lead aggiornato: {email} (score: {new_score})")
+    else:
+        # Create new lead
+        await db.leads.insert_one({
+            "email": email,
+            "name": name,
+            "score": lead_score,
+            "status": "new",
+            "sources": [source],
+            "tags": tags,
+            "partner_id": partner_id,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "last_activity": datetime.now(timezone.utc).isoformat()
+        })
+        actions.append(f"🎯 Nuovo lead creato: {name} ({email}) - Score: {lead_score}")
+        
+        # TRIGGER EMAIL SEQUENCE for new subscribers
+        sequence_actions = await trigger_email_sequence(
+            partner_id=partner_id,
+            contact_email=email,
+            contact_name=name,
+            trigger_type="new_subscriber"
+        )
+        actions.extend(sequence_actions)
+    
+    # High-score lead alert
+    if lead_score >= 40 or (existing_lead and existing_lead.get("score", 0) + lead_score >= 80):
+        await send_telegram_alert(
+            f"🔥 <b>Lead Hot!</b>\n\n"
+            f"👤 {name}\n"
+            f"📧 {email}\n"
+            f"📊 Score: {lead_score}\n"
+            f"📍 Fonte: {source}"
+        )
+        actions.append("🔔 Alert lead hot inviato")
+    
+    return actions
+
+async def handle_tag_added(data: dict) -> List[str]:
+    """Handle tag added - Auto-progress phases"""
+    actions = []
+    
+    email = data.get("email", data.get("contact_email", ""))
+    tag_name = data.get("tag", data.get("tag_name", ""))
+    
+    if not email or not tag_name:
+        return ["⚠️ Email o tag mancante"]
+    
+    # Check if tag triggers phase progression
+    if tag_name in TAG_PHASE_MAP:
+        new_phase = TAG_PHASE_MAP[tag_name]
+        
+        # Find partner
+        partner = await db.partners.find_one({"email": email})
+        
+        if partner:
+            old_phase = partner.get("phase", "F0")
+            
+            # Update phase
+            await db.partners.update_one(
+                {"email": email},
+                {"$set": {
+                    "phase": new_phase,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            actions.append(f"🚀 Fase aggiornata: {old_phase} → {new_phase}")
+            
+            # Send notification
+            await send_telegram_alert(
+                f"📈 <b>Fase Aggiornata!</b>\n\n"
+                f"👤 {partner.get('name')}\n"
+                f"🏷️ Tag: {tag_name}\n"
+                f"📊 {old_phase} → {new_phase}"
+            )
+            actions.append("📱 Notifica Telegram inviata")
+            
+            # Check for achievement unlock
+            await check_achievement_unlock(partner.get("id"), new_phase)
+            actions.append("🏆 Badge verificati")
+        else:
+            # Update lead score if not a partner
+            lead = await db.leads.find_one({"email": email})
+            if lead:
+                await db.leads.update_one(
+                    {"email": email},
+                    {"$push": {"tags": tag_name}}
+                )
+                actions.append(f"🏷️ Tag aggiunto al lead: {tag_name}")
+    else:
+        actions.append(f"ℹ️ Tag ricevuto (no action): {tag_name}")
+    
+    return actions
+
+async def handle_course_access(data: dict) -> List[str]:
+    """Handle course access - Update partner stats"""
+    actions = []
+    
+    student_email = data.get("student_email", data.get("email", ""))
+    course_name = data.get("course_name", data.get("course", ""))
+    partner_email = data.get("partner_email", "")  # The course owner
+    
+    if partner_email:
+        # Find partner and update client count
+        partner = await db.partners.find_one({"email": partner_email})
+        
+        if partner:
+            # Increment client count
+            current_clients = partner.get("clients", 0)
+            await db.partners.update_one(
+                {"email": partner_email},
+                {"$set": {
+                    "clients": current_clients + 1,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            actions.append(f"👥 Clienti aggiornati: {current_clients} → {current_clients + 1}")
+            
+            # Record the enrollment
+            await db.partner_students.insert_one({
+                "partner_id": partner.get("id"),
+                "student_email": student_email,
+                "course_name": course_name,
+                "enrolled_at": datetime.now(timezone.utc).isoformat()
+            })
+            actions.append(f"📚 Iscrizione registrata: {student_email} → {course_name}")
+            
+            # Check for milestone (10, 50, 100 clients)
+            new_count = current_clients + 1
+            if new_count in [10, 25, 50, 100, 250, 500]:
+                await send_telegram_alert(
+                    f"🎉 <b>Milestone!</b>\n\n"
+                    f"👤 {partner.get('name')}\n"
+                    f"🏆 {new_count} clienti raggiunti!"
+                )
+                actions.append(f"🎉 Milestone {new_count} clienti!")
+    
+    return actions
+
+async def handle_refund(data: dict) -> List[str]:
+    """Handle refund - Alert admin"""
+    actions = []
+    
+    email = data.get("email", "")
+    product = data.get("product_name", "")
+    amount = data.get("amount", 0)
+    reason = data.get("reason", "Non specificato")
+    
+    await send_telegram_alert(
+        f"⚠️ <b>Rimborso!</b>\n\n"
+        f"📧 {email}\n"
+        f"📦 {product}\n"
+        f"💰 €{amount}\n"
+        f"📝 Motivo: {reason}"
+    )
+    actions.append("⚠️ Alert rimborso inviato")
+    
+    # Log refund
+    await db.refunds.insert_one({
+        "email": email,
+        "product": product,
+        "amount": float(amount) if amount else 0,
+        "reason": reason,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    actions.append("📋 Rimborso registrato")
+    
+    return actions
+
+async def check_achievement_unlock(partner_id: str, phase: str):
+    """Check and unlock achievements based on phase"""
+    phase_achievements = {
+        "F1": {"id": "first_step", "name": "Primo Passo", "emoji": "🚀"},
+        "F3": {"id": "positioned", "name": "Posizionato", "emoji": "🎯"},
+        "F4": {"id": "maestro", "name": "Maestro", "emoji": "🎓"},
+        "F6": {"id": "regista", "name": "Regista", "emoji": "🎬"},
+        "F7": {"id": "online", "name": "Online!", "emoji": "🌟"},
+        "F10": {"id": "top_partner", "name": "Top Partner", "emoji": "💎"}
+    }
+    
+    if phase in phase_achievements:
+        achievement = phase_achievements[phase]
+        
+        # Check if already unlocked
+        existing = await db.achievements.find_one({
+            "partner_id": partner_id,
+            "achievement_id": achievement["id"]
+        })
+        
+        if not existing:
+            await db.achievements.insert_one({
+                "partner_id": partner_id,
+                "achievement_id": achievement["id"],
+                "name": achievement["name"],
+                "emoji": achievement["emoji"],
+                "unlocked_at": datetime.now(timezone.utc).isoformat()
+            })
+
+# -----------------------------------------------------------------------------
+# WEBHOOK ENDPOINTS
+# -----------------------------------------------------------------------------
+
+@api_router.post("/webhooks/systeme")
+async def receive_systeme_webhook(
+    payload: Dict[str, Any],
+    background_tasks: BackgroundTasks
+):
+    """
+    Main webhook endpoint for Systeme.io events
+    
+    Supported events:
+    - new_sale / new_order: Auto-onboard partner
+    - new_subscriber / form_subscribed: Create lead
+    - tag_added: Auto-progress phases
+    - course_access: Update client stats
+    - refund: Alert admin
+    """
+    event_type = payload.get("event_type", payload.get("event", "unknown"))
+    data = payload.get("data", payload)
+    
+    logger.info(f"Webhook received: {event_type}")
+    
+    actions = []
+    processed = True
+    
+    try:
+        if event_type in ["new_sale", "new_order", "sale", "order"]:
+            actions = await handle_new_sale(data)
+        
+        elif event_type in ["new_subscriber", "subscriber", "form_subscribed", "optin"]:
+            actions = await handle_new_subscriber(data)
+        
+        elif event_type in ["tag_added", "tag", "contact_tagged"]:
+            actions = await handle_tag_added(data)
+        
+        elif event_type in ["course_access", "enrollment", "student_enrolled"]:
+            actions = await handle_course_access(data)
+        
+        elif event_type in ["refund", "chargeback"]:
+            actions = await handle_refund(data)
+        
+        else:
+            actions = [f"ℹ️ Evento non gestito: {event_type}"]
+            processed = False
+    
+    except Exception as e:
+        logger.error(f"Webhook processing error: {e}")
+        actions = [f"❌ Errore: {str(e)}"]
+        processed = False
+    
+    # Log webhook
+    background_tasks.add_task(log_webhook, event_type, payload, processed, actions)
+    
+    return {
+        "success": processed,
+        "event_type": event_type,
+        "actions_taken": actions
+    }
+
+@api_router.get("/webhooks/logs")
+async def get_webhook_logs(limit: int = 50, event_type: Optional[str] = None):
+    """Get webhook logs for admin dashboard"""
+    query = {}
+    if event_type:
+        query["event_type"] = event_type
+    
+    logs = await db.webhook_logs.find(
+        query,
+        {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    # Stats
+    total = await db.webhook_logs.count_documents({})
+    processed = await db.webhook_logs.count_documents({"processed": True})
+    
+    return {
+        "logs": logs,
+        "stats": {
+            "total": total,
+            "processed": processed,
+            "failed": total - processed
+        }
+    }
+
+@api_router.get("/webhooks/stats")
+async def get_webhook_stats():
+    """Get webhook statistics"""
+    # Count by event type
+    pipeline = [
+        {"$group": {"_id": "$event_type", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}}
+    ]
+    event_counts = await db.webhook_logs.aggregate(pipeline).to_list(100)
+    
+    # Recent activity
+    recent = await db.webhook_logs.find(
+        {},
+        {"_id": 0, "event_type": 1, "created_at": 1, "processed": 1}
+    ).sort("created_at", -1).limit(10).to_list(10)
+    
+    # Leads stats
+    total_leads = await db.leads.count_documents({})
+    hot_leads = await db.leads.count_documents({"score": {"$gte": 80}})
+    
+    return {
+        "events_by_type": {item["_id"]: item["count"] for item in event_counts},
+        "recent_activity": recent,
+        "leads": {
+            "total": total_leads,
+            "hot": hot_leads
+        }
+    }
+
+# =============================================================================
+# TRIPWIRE €7 - SALES KPI & TRACKING
+# =============================================================================
+
+@api_router.get("/sales/kpi")
+async def get_sales_kpi():
+    """
+    Get sales KPIs for Tripwire and all products.
+    Tracks conversions from Systeme.io webhooks.
+    """
+    from datetime import timedelta
+    
+    now = datetime.now(timezone.utc)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start = today_start - timedelta(days=today_start.weekday())
+    month_start = today_start.replace(day=1)
+    
+    # All-time stats
+    all_payments = await db.payments.find({}, {"_id": 0}).to_list(10000)
+    
+    total_revenue = sum(p.get("amount", 0) for p in all_payments)
+    total_orders = len(all_payments)
+    
+    # Tripwire specific (€7 offers)
+    tripwire_payments = [p for p in all_payments if p.get("amount", 0) <= 10 or "tripwire" in p.get("product", "").lower()]
+    tripwire_revenue = sum(p.get("amount", 0) for p in tripwire_payments)
+    tripwire_count = len(tripwire_payments)
+    
+    # Time-based stats
+    def count_in_period(payments, start_date):
+        count = 0
+        revenue = 0
+        for p in payments:
+            created = p.get("created_at", "")
+            if created:
+                try:
+                    dt = datetime.fromisoformat(created.replace("Z", "+00:00"))
+                    if dt >= start_date:
+                        count += 1
+                        revenue += p.get("amount", 0)
+                except:
+                    pass
+        return count, revenue
+    
+    today_count, today_revenue = count_in_period(all_payments, today_start)
+    week_count, week_revenue = count_in_period(all_payments, week_start)
+    month_count, month_revenue = count_in_period(all_payments, month_start)
+    
+    # Conversion rate (if we have contact data)
+    total_contacts = await db.systeme_contacts.count_documents({})
+    conversion_rate = (total_orders / total_contacts * 100) if total_contacts > 0 else 0
+    
+    # Product breakdown
+    product_pipeline = [
+        {"$group": {
+            "_id": "$product",
+            "count": {"$sum": 1},
+            "revenue": {"$sum": "$amount"}
+        }},
+        {"$sort": {"revenue": -1}}
+    ]
+    products = await db.payments.aggregate(product_pipeline).to_list(20)
+    
+    return {
+        "summary": {
+            "total_revenue": round(total_revenue, 2),
+            "total_orders": total_orders,
+            "average_order_value": round(total_revenue / total_orders, 2) if total_orders > 0 else 0,
+            "conversion_rate": round(conversion_rate, 2)
+        },
+        "tripwire": {
+            "revenue": round(tripwire_revenue, 2),
+            "orders": tripwire_count,
+            "target_price": 7
+        },
+        "periods": {
+            "today": {"orders": today_count, "revenue": round(today_revenue, 2)},
+            "this_week": {"orders": week_count, "revenue": round(week_revenue, 2)},
+            "this_month": {"orders": month_count, "revenue": round(month_revenue, 2)}
+        },
+        "products": [
+            {"product": p["_id"] or "Unknown", "orders": p["count"], "revenue": round(p["revenue"], 2)}
+            for p in products
+        ],
+        "total_contacts": total_contacts
+    }
+
+@api_router.post("/sales/record")
+async def record_manual_sale(
+    email: str,
+    product: str,
+    amount: float,
+    order_id: Optional[str] = None,
+    source: str = "manual"
+):
+    """
+    Manually record a sale (useful for tracking sales from external sources).
+    """
+    payment = {
+        "partner_email": email,
+        "order_id": order_id or f"MAN-{str(uuid.uuid4())[:8]}",
+        "product": product,
+        "amount": amount,
+        "currency": "EUR",
+        "status": "completed",
+        "source": source,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.payments.insert_one(payment)
+    
+    # Update contact score if exists
+    await db.systeme_contacts.update_one(
+        {"email": email},
+        {"$addToSet": {"tags": {"name": "purchased", "added_at": datetime.now(timezone.utc).isoformat()}}}
+    )
+    
+    return {
+        "success": True,
+        "payment": {k: v for k, v in payment.items() if k != "_id"}
+    }
+
+@api_router.get("/sales/recent")
+async def get_recent_sales(limit: int = 20):
+    """Get recent sales for the dashboard"""
+    sales = await db.payments.find(
+        {},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    return {"sales": sales, "count": len(sales)}
+
+@api_router.get("/leads")
+async def get_leads(status: Optional[str] = None, min_score: int = 0):
+    """Get all leads with optional filtering"""
+    query = {"score": {"$gte": min_score}}
+    if status:
+        query["status"] = status
+    
+    leads = await db.leads.find(query, {"_id": 0}).sort("score", -1).to_list(500)
+    return {"leads": leads, "count": len(leads)}
+
+@api_router.patch("/leads/{email}/score")
+async def update_lead_score(email: str, score_delta: int):
+    """Manually adjust lead score"""
+    lead = await db.leads.find_one({"email": email})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    new_score = max(0, lead.get("score", 0) + score_delta)
+    await db.leads.update_one(
+        {"email": email},
+        {"$set": {"score": new_score}}
+    )
+    
+    return {"email": email, "old_score": lead.get("score", 0), "new_score": new_score}
+
+@api_router.get("/partners/{partner_id}/achievements")
+async def get_partner_achievements(partner_id: str):
+    """Get achievements for a partner"""
+    achievements = await db.achievements.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).to_list(100)
+    
+    return {"achievements": achievements}
+
+@api_router.get("/partners/{partner_id}/students")
+async def get_partner_students(partner_id: str):
+    """Get students enrolled in partner's courses"""
+    students = await db.partner_students.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).sort("enrolled_at", -1).to_list(500)
+    
+    return {"students": students, "count": len(students)}
+
+# =============================================================================
+# TELEGRAM NOTIFICATIONS
+# =============================================================================
+
+from valentina_ai import telegram_notifier, telegram_notify
+
+class TelegramAdminSetup(BaseModel):
+    chat_id: str
+
+class TelegramNotifyRequest(BaseModel):
+    notification_type: str  # new_partner, phase_complete, alert
+    partner_name: Optional[str] = None
+    partner_email: Optional[str] = None
+    old_phase: Optional[str] = None
+    new_phase: Optional[str] = None
+    alert_type: Optional[str] = None
+    message: Optional[str] = None
+
+@api_router.post("/telegram/setup-admin")
+async def setup_telegram_admin(request: TelegramAdminSetup):
+    """Register admin chat ID for notifications"""
+    # Save to database
+    await db.telegram_admins.update_one(
+        {"chat_id": request.chat_id},
+        {"$set": {"chat_id": request.chat_id, "created_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+    
+    # Add to notifier
+    if request.chat_id not in telegram_notifier.admin_chat_ids:
+        telegram_notifier.admin_chat_ids.append(request.chat_id)
+    
+    # Send confirmation
+    result = await telegram_notifier.send_message(
+        request.chat_id,
+        "✅ <b>Evolution PRO OS</b>\n\nNotifiche Telegram attivate! Riceverai alert per:\n• Nuovi partner\n• Fasi completate\n• Alert di sistema"
+    )
+    
+    return {"success": True, "chat_id": request.chat_id, "telegram_result": result}
+
+@api_router.get("/telegram/admins")
+async def get_telegram_admins():
+    """Get list of registered admin chat IDs"""
+    admins = await db.telegram_admins.find({}, {"_id": 0}).to_list(100)
+    return {"admins": admins, "count": len(admins)}
+
+@api_router.post("/telegram/notify")
+async def send_telegram_notification(request: TelegramNotifyRequest):
+    """Send a notification via Telegram"""
+    result = await telegram_notify(
+        notification_type=request.notification_type,
+        partner_name=request.partner_name,
+        partner_email=request.partner_email,
+        old_phase=request.old_phase,
+        new_phase=request.new_phase,
+        alert_type=request.alert_type,
+        message=request.message
+    )
+    return {"success": True, "result": result}
+
+@api_router.get("/telegram/updates")
+async def get_telegram_updates():
+    """Get recent Telegram updates (for discovering chat IDs)"""
+    result = await telegram_notifier.get_updates()
+    
+    # Extract chat IDs from updates
+    chat_ids = []
+    if result.get("ok") and result.get("result"):
+        for update in result["result"]:
+            if "message" in update and "chat" in update["message"]:
+                chat_id = str(update["message"]["chat"]["id"])
+                if chat_id not in chat_ids:
+                    chat_ids.append(chat_id)
+    
+    return {"updates": result, "discovered_chat_ids": chat_ids}
+
+@api_router.post("/telegram/test")
+async def test_telegram_notification(chat_id: str):
+    """Send a test notification to verify Telegram setup"""
+    result = await telegram_notifier.send_message(
+        chat_id,
+        "🧪 <b>Test Notification</b>\n\nSe vedi questo messaggio, le notifiche Telegram funzionano correttamente!\n\n— Evolution PRO OS"
+    )
+    return {"success": result.get("ok", False), "result": result}
+
+@api_router.post("/telegram/webhook")
+async def telegram_webhook(request: Request):
+    """
+    Webhook endpoint for receiving Telegram messages.
+    Processes incoming messages and responds via VALENTINA AI.
+    """
+    try:
+        update = await request.json()
+        logging.info(f"Telegram webhook received: {update}")
+        
+        # Extract message data
+        message = update.get("message", {})
+        if not message:
+            return {"ok": True}  # Ignore non-message updates
+        
+        chat_id = str(message.get("chat", {}).get("id", ""))
+        text = message.get("text", "")
+        from_user = message.get("from", {})
+        user_name = from_user.get("first_name", "Utente")
+        username = from_user.get("username", "")
+        
+        if not chat_id or not text:
+            return {"ok": True}
+        
+        # Check if this is a command
+        if text.startswith("/"):
+            if text == "/start":
+                welcome_msg = f"""👋 <b>Ciao {user_name}!</b>
+
+Sono <b>VALENTINA</b>, l'assistente AI di Evolution PRO.
+
+Sono qui per aiutarti nel tuo percorso. Puoi chiedermi:
+• Informazioni sul programma
+• Aiuto con le fasi del percorso
+• Supporto tecnico
+
+Scrivimi pure! 💬"""
+                await telegram_notifier.send_message(chat_id, welcome_msg)
+                return {"ok": True}
+            
+            elif text == "/help":
+                help_msg = """📚 <b>Comandi disponibili:</b>
+
+/start - Inizia la conversazione
+/help - Mostra questo messaggio
+/stato - Verifica lo stato del tuo account
+
+Oppure scrivimi liberamente e ti aiuterò! 😊"""
+                await telegram_notifier.send_message(chat_id, help_msg)
+                return {"ok": True}
+            
+            elif text == "/stato":
+                # Check if user is a partner
+                partner = await db.partners.find_one({"telegram_chat_id": chat_id})
+                if partner:
+                    status_msg = f"""📊 <b>Il tuo stato:</b>
+
+👤 Nome: {partner.get('nome', 'N/A')} {partner.get('cognome', '')}
+📍 Fase attuale: {partner.get('current_phase', 'F0')}
+📅 Registrazione: {partner.get('created_at', 'N/A')[:10] if partner.get('created_at') else 'N/A'}
+
+Continua così! 🚀"""
+                else:
+                    status_msg = """ℹ️ Non ho trovato un account partner associato a questo chat.
+
+Se sei un partner Evolution PRO, contatta il supporto per collegare il tuo account Telegram."""
+                
+                await telegram_notifier.send_message(chat_id, status_msg)
+                return {"ok": True}
+        
+        # Regular message - respond via VALENTINA
+        try:
+            from valentina_ai import valentina_ai
+            
+            # Check if this is the founder/admin
+            admin_chat_id = os.environ.get("TELEGRAM_ADMIN_CHAT_ID", "")
+            is_founder = (chat_id == admin_chat_id)
+            
+            # Try to find partner by telegram chat_id
+            partner = await db.partners.find_one({"telegram_chat_id": chat_id})
+            partner_id = str(partner["_id"]) if partner else f"telegram_{chat_id}"
+            
+            # Build context - IMPORTANT: include founder identification
+            context = {
+                "platform": "telegram",
+                "chat_id": chat_id,
+                "username": username,
+                "user_name": user_name,
+                "is_founder": is_founder,
+                "is_admin": is_founder
+            }
+            
+            # If founder, use special context
+            if is_founder:
+                context["name"] = "Claudio"
+                context["email"] = "claudio@evolutionpro.it"
+                partner_id = "claudio"  # Use founder ID for memory
+                logging.info(f"Founder message received from chat_id {chat_id}")
+            elif partner:
+                context["name"] = f"{partner.get('nome', '')} {partner.get('cognome', '')}".strip()
+                context["partner_name"] = context["name"]
+                context["current_phase"] = partner.get("current_phase", "F0")
+                context["phase"] = partner.get("current_phase", "F0")
+            
+            # OPTIMIZATION: Quick responses for simple messages (no Claude)
+            text_lower = text.lower()
+            quick_response = None
+            
+            # Saluti semplici
+            if text_lower in ["ciao", "hey", "buongiorno", "buonasera", "salve", "hi", "hello"]:
+                quick_response = f"Ciao {user_name}! 👋 Come posso aiutarti oggi?"
+            
+            # Ringraziamenti
+            elif text_lower in ["grazie", "grazie mille", "thanks", "thx"]:
+                quick_response = f"Prego {user_name}! 😊 Se hai altre domande, sono qui!"
+            
+            # OK/conferme
+            elif text_lower in ["ok", "va bene", "capito", "perfetto"]:
+                quick_response = f"Perfetto! Se hai bisogno di altro, scrivimi pure. 👍"
+            
+            # Se abbiamo una risposta rapida, usala senza chiamare Claude
+            if quick_response:
+                await telegram_notifier.send_message(chat_id, quick_response)
+                # Log conversation
+                await db.telegram_conversations.insert_one({
+                    "chat_id": chat_id,
+                    "username": username,
+                    "user_name": user_name,
+                    "partner_id": partner_id,
+                    "is_founder": is_founder,
+                    "user_message": text,
+                    "bot_response": quick_response,
+                    "response_type": "quick",  # Quick = no Claude
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                })
+                return {"ok": True}
+            
+            # For complex messages, use VALENTINA (may use Claude)
+            response = await valentina_ai.chat(partner_id, text, context)
+            
+            # Send response
+            await telegram_notifier.send_message(chat_id, response)
+            
+            # Log conversation - track if Claude was used
+            response_type = "ai"  # Full Claude response
+            if "Task inviato a OpenClaw" in response:
+                response_type = "openclaw"
+            elif "RISULTATO AZIONE ESEGUITA" in response:
+                response_type = "action"
+            
+            await db.telegram_conversations.insert_one({
+                "chat_id": chat_id,
+                "username": username,
+                "user_name": user_name,
+                "partner_id": partner_id,
+                "is_founder": is_founder,
+                "user_message": text,
+                "bot_response": response,
+                "response_type": response_type,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
+            
+        except Exception as ai_error:
+            logging.error(f"VALENTINA AI error: {ai_error}")
+            # Fallback response
+            fallback_msg = f"""Mi scuso {user_name}, ma sto avendo qualche difficoltà tecnica in questo momento. 🙏
+
+Il team sta lavorando per risolvere. Riprova tra poco!
+
+Se hai urgenza, contatta il supporto Evolution PRO."""
+            await telegram_notifier.send_message(chat_id, fallback_msg)
+        
+        return {"ok": True}
+        
+    except Exception as e:
+        logging.error(f"Telegram webhook error: {e}")
+        return {"ok": False, "error": str(e)}
+
+@api_router.post("/telegram/set-webhook")
+async def set_telegram_webhook(webhook_url: str = None):
+    """
+    Set or update the Telegram webhook URL.
+    If no URL provided, uses the current server URL.
+    """
+    telegram_token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    if not telegram_token:
+        raise HTTPException(status_code=500, detail="Telegram bot token not configured")
+    
+    # If no URL provided, try to construct from environment
+    if not webhook_url:
+        backend_url = os.environ.get("REACT_APP_BACKEND_URL", "")
+        if backend_url:
+            webhook_url = f"{backend_url}/api/telegram/webhook"
+        else:
+            raise HTTPException(status_code=400, detail="Webhook URL required")
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                f"https://api.telegram.org/bot{telegram_token}/setWebhook",
+                json={"url": webhook_url}
+            )
+            result = response.json()
+            
+            if result.get("ok"):
+                logging.info(f"Telegram webhook set to: {webhook_url}")
+                return {"success": True, "webhook_url": webhook_url, "result": result}
+            else:
+                return {"success": False, "error": result.get("description", "Unknown error")}
+                
+    except Exception as e:
+        logging.error(f"Error setting Telegram webhook: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/telegram/webhook-info")
+async def get_telegram_webhook_info():
+    """Get current webhook information from Telegram"""
+    telegram_token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    if not telegram_token:
+        raise HTTPException(status_code=500, detail="Telegram bot token not configured")
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(
+                f"https://api.telegram.org/bot{telegram_token}/getWebhookInfo"
+            )
+            return response.json()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Load admin chat IDs from database on startup
+async def load_telegram_admins():
+    """Load admin chat IDs from database"""
+    admins = await db.telegram_admins.find({}, {"_id": 0}).to_list(100)
+    for admin in admins:
+        if admin.get("chat_id") and admin["chat_id"] not in telegram_notifier.admin_chat_ids:
+            telegram_notifier.admin_chat_ids.append(admin["chat_id"])
+    logging.info(f"Loaded {len(telegram_notifier.admin_chat_ids)} Telegram admin(s)")
+
+# =============================================================================
+# ROOT & CONTROL
+# =============================================================================
+
+@api_router.get("/health")
+async def health_check():
+    """Health check endpoint for deployment - must respond quickly"""
+    return {"status": "healthy", "service": "evolution-pro-os"}
+
+@api_router.get("/")
+async def root():
+    return {"message": "Evolution PRO OS API v3.0", "status": "online"}
+
+@api_router.get("/control")
+async def control_dashboard():
+    """Dashboard control endpoint - returns system status"""
+    agents = await db.agents.find({}, {"_id": 0}).to_list(100)
+    stats = await get_stats()
+    
+    return {
+        "system": "Evolution PRO OS",
+        "version": "3.0",
+        "status": "operational",
+        "agents": agents,
+        "stats": stats,
+        "youtube_authenticated": youtube_uploader.is_authenticated(),
+        "endpoints": {
+            "dashboard": "/",
+            "agents": "/api/agents",
+            "partners": "/api/partners",
+            "alerts": "/api/alerts",
+            "videos": "/api/videos/jobs",
+            "youtube": "/api/youtube/status",
+            "files": "/api/files",
+            "compliance": "/api/compliance/pending",
+            "gaia_templates": "/api/gaia/templates",
+            "tts": "/api/tts/voices",
+            "chat": "/api/chat"
+        }
+    }
+
+# =============================================================================
+# DOMAIN CONFIGURATION
+# =============================================================================
+
+class DomainRequest(BaseModel):
+    partner_id: str
+    partner_name: str
+    domain: str
+    partner_email: Optional[str] = None
+
+class DomainDnsParams(BaseModel):
+    dns_params: Dict[str, str]
+    status: str = "configuring"
+
+class DomainStatusUpdate(BaseModel):
+    status: str  # pending, configuring, active, error
+
+@api_router.post("/domain/request")
+async def create_domain_request(request: DomainRequest):
+    """Partner submits a domain configuration request"""
+    # Check if domain already requested
+    existing = await db.domain_requests.find_one({
+        "$or": [
+            {"partner_id": request.partner_id},
+            {"domain": request.domain.lower()}
+        ]
+    })
+    
+    if existing:
+        if existing.get("partner_id") == request.partner_id:
+            raise HTTPException(status_code=400, detail="Hai già una richiesta dominio attiva")
+        else:
+            raise HTTPException(status_code=400, detail="Questo dominio è già stato richiesto")
+    
+    domain_doc = {
+        "id": str(uuid.uuid4()),
+        "partner_id": request.partner_id,
+        "partner_name": request.partner_name,
+        "partner_email": request.partner_email,
+        "domain": request.domain.lower(),
+        "status": "pending",
+        "dns_params": None,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.domain_requests.insert_one(domain_doc)
+    
+    # Send Telegram notification to admins
+    try:
+        await telegram_notify(
+            notification_type="alert",
+            message=f"🌐 Nuova richiesta dominio\n\nPartner: {request.partner_name}\nDominio: {request.domain}\n\nConfigura i parametri DNS in Systeme.io"
+        )
+    except Exception as e:
+        logging.error(f"Failed to send domain notification: {e}")
+    
+    return {"success": True, "domain_request": {k: v for k, v in domain_doc.items() if k != "_id"}}
+
+@api_router.get("/domain/partner/{partner_id}")
+async def get_partner_domain_request(partner_id: str):
+    """Get domain request for a partner"""
+    domain = await db.domain_requests.find_one({"partner_id": partner_id}, {"_id": 0})
+    return {"domain_request": domain}
+
+@api_router.get("/domain/all")
+async def get_all_domain_requests():
+    """Admin: Get all domain requests"""
+    domains = await db.domain_requests.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return {"domains": domains, "count": len(domains)}
+
+@api_router.put("/domain/{domain_id}/dns-params")
+async def update_domain_dns_params(domain_id: str, data: DomainDnsParams):
+    """Admin adds DNS parameters from Systeme.io"""
+    domain = await db.domain_requests.find_one({"id": domain_id})
+    if not domain:
+        raise HTTPException(status_code=404, detail="Richiesta dominio non trovata")
+    
+    await db.domain_requests.update_one(
+        {"id": domain_id},
+        {"$set": {
+            "dns_params": data.dns_params,
+            "status": data.status,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Notify partner via Telegram if we have their email
+    try:
+        await telegram_notify(
+            notification_type="alert",
+            message=f"📋 Parametri DNS pronti per {domain.get('partner_name')}\n\nDominio: {domain.get('domain')}\nIl partner può ora configurare il DNS."
+        )
+    except Exception as e:
+        logging.error(f"Failed to send DNS ready notification: {e}")
+    
+    updated = await db.domain_requests.find_one({"id": domain_id}, {"_id": 0})
+    return {"success": True, "domain_request": updated}
+
+@api_router.put("/domain/{domain_id}/status")
+async def update_domain_status(domain_id: str, data: DomainStatusUpdate):
+    """Admin updates domain status"""
+    domain = await db.domain_requests.find_one({"id": domain_id})
+    if not domain:
+        raise HTTPException(status_code=404, detail="Richiesta dominio non trovata")
+    
+    await db.domain_requests.update_one(
+        {"id": domain_id},
+        {"$set": {
+            "status": data.status,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Notify if domain is now active
+    if data.status == "active":
+        try:
+            await telegram_notify(
+                notification_type="alert",
+                message=f"✅ Dominio ATTIVO!\n\nPartner: {domain.get('partner_name')}\nDominio: {domain.get('domain')}\n\nIl funnel è ora raggiungibile!"
+            )
+        except Exception as e:
+            logging.error(f"Failed to send domain active notification: {e}")
+    
+    updated = await db.domain_requests.find_one({"id": domain_id}, {"_id": 0})
+    return {"success": True, "domain_request": updated}
+
+@api_router.delete("/domain/{domain_id}")
+async def delete_domain_request(domain_id: str):
+    """Admin deletes a domain request"""
+    result = await db.domain_requests.delete_one({"id": domain_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Richiesta dominio non trovata")
+    return {"success": True, "deleted": domain_id}
+
+# =============================================================================
+# EMAIL AUTOMATION (via Systeme.io)
+# =============================================================================
+
+class EmailAutomationTemplate(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    partner_id: str
+    name: str
+    trigger: str  # new_subscriber, purchase, tag_added, form_submitted
+    delay_hours: int = 0
+    subject: str
+    body: str
+    is_active: bool = True
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class EmailAutomationCreate(BaseModel):
+    partner_id: str
+    name: str
+    trigger: str
+    delay_hours: int = 0
+    subject: str
+    body: str
+    systeme_tag: Optional[str] = None  # Custom tag for Systeme.io automation
+
+class EmailSequenceStep(BaseModel):
+    day: int
+    subject: str
+    body: str
+    email_type: str = "nurture"  # nurture, sales, reminder, followup
+
+class EmailSequenceCreate(BaseModel):
+    partner_id: str
+    name: str
+    trigger: str
+    steps: List[EmailSequenceStep]
+    systeme_tag: Optional[str] = None  # Custom tag for Systeme.io automation
+
+# Predefined email templates for Evolution PRO partners
+EMAIL_TEMPLATES = {
+    "welcome_subscriber": {
+        "name": "Benvenuto Nuovo Iscritto",
+        "trigger": "new_subscriber",
+        "delay_hours": 0,
+        "subject": "Benvenuto/a! Ecco il tuo regalo 🎁",
+        "body": """Ciao {nome},
+
+Grazie per esserti iscritto/a!
+
+Come promesso, ecco il link per scaricare il tuo regalo:
+👉 [LINK_RISORSA]
+
+Nei prossimi giorni ti invierò contenuti esclusivi che ti aiuteranno a [BENEFICIO_PRINCIPALE].
+
+A presto,
+{partner_name}
+
+P.S. Se hai domande, rispondi a questa email. Leggo personalmente ogni messaggio!"""
+    },
+    "day2_value": {
+        "name": "Giorno 2 - Valore",
+        "trigger": "sequence",
+        "delay_hours": 48,
+        "subject": "Il segreto che nessuno ti dice su {topic}",
+        "body": """Ciao {nome},
+
+Oggi voglio condividere con te qualcosa di importante...
+
+[CONTENUTO_VALORE]
+
+Se vuoi approfondire, ho preparato una Masterclass gratuita dove ti spiego tutto nel dettaglio:
+👉 [LINK_MASTERCLASS]
+
+A domani,
+{partner_name}"""
+    },
+    "day4_case_study": {
+        "name": "Giorno 4 - Case Study",
+        "trigger": "sequence",
+        "delay_hours": 96,
+        "subject": "Come [NOME_CLIENTE] ha ottenuto [RISULTATO]",
+        "body": """Ciao {nome},
+
+Voglio raccontarti la storia di [NOME_CLIENTE]...
+
+[STORIA_SUCCESSO]
+
+Vuoi ottenere risultati simili? Ecco come posso aiutarti:
+👉 [LINK_OFFERTA]
+
+{partner_name}"""
+    },
+    "day7_offer": {
+        "name": "Giorno 7 - Offerta",
+        "trigger": "sequence",
+        "delay_hours": 168,
+        "subject": "🎯 [NOME], ecco la tua opportunità",
+        "body": """Ciao {nome},
+
+In questi giorni ti ho mostrato:
+✅ [BENEFICIO_1]
+✅ [BENEFICIO_2]
+✅ [BENEFICIO_3]
+
+Ora tocca a te decidere se vuoi passare all'azione.
+
+Ho preparato un'offerta speciale per te:
+👉 [LINK_OFFERTA]
+
+⏰ L'offerta scade tra 48 ore.
+
+{partner_name}
+
+P.S. Se hai dubbi, rispondimi. Sono qui per aiutarti!"""
+    },
+    "purchase_thank_you": {
+        "name": "Grazie per l'acquisto",
+        "trigger": "purchase",
+        "delay_hours": 0,
+        "subject": "🎉 Benvenuto/a nel programma!",
+        "body": """Ciao {nome},
+
+CONGRATULAZIONI! 🎉
+
+Hai fatto la scelta giusta investendo su te stesso/a.
+
+Ecco i prossimi passi:
+
+1️⃣ Accedi all'area riservata: [LINK_CORSO]
+2️⃣ Completa il modulo introduttivo
+3️⃣ Unisciti alla community: [LINK_COMMUNITY]
+
+Se hai bisogno di supporto tecnico, scrivi a support@{domain}
+
+A presto nella tua nuova avventura!
+{partner_name}"""
+    },
+    "cart_abandoned": {
+        "name": "Carrello Abbandonato",
+        "trigger": "cart_abandoned",
+        "delay_hours": 2,
+        "subject": "Hai dimenticato qualcosa? 🛒",
+        "body": """Ciao {nome},
+
+Ho notato che hai lasciato qualcosa nel carrello...
+
+Forse hai avuto un imprevisto? Nessun problema!
+
+Il tuo carrello è ancora attivo:
+👉 [LINK_CHECKOUT]
+
+Se hai domande o dubbi che ti bloccano, rispondimi. Sono qui per aiutarti a prendere la decisione giusta per te.
+
+{partner_name}"""
+    }
+}
+
+# Predefined REACTIVATION SEQUENCES for cold leads
+REACTIVATION_SEQUENCES = {

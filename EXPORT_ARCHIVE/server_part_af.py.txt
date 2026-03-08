@@ -1,0 +1,1218 @@
+    "cold_revival_3wave": {
+        "name": "Riattivazione 3 Wave - Cold Lead Revival",
+        "trigger": "tag_added",
+        "systeme_tag": "evo_reactivation",
+        "steps": [
+            {
+                "day": 1,
+                "subject": "Mi sei mancato/a... 💭",
+                "body": """Ciao {nome},
+
+È passato un po' di tempo dall'ultima volta che ci siamo sentiti.
+
+Mi chiedevo come stai e se hai ancora quell'obiettivo che ti aveva portato qui la prima volta.
+
+Sai, ho visto molte persone nella tua situazione raggiungere risultati incredibili semplicemente facendo il primo passo.
+
+Se vuoi riprendere da dove avevi lasciato, sono qui.
+
+Un saluto,
+{partner_name}
+
+P.S. Rispondi a questa email se hai 2 minuti - mi farebbe piacere sapere come stai.""",
+                "email_type": "reactivation"
+            },
+            {
+                "day": 3,
+                "subject": "Ho qualcosa per te (gratis) 🎁",
+                "body": """Ciao {nome},
+
+Dato che non ci sentiamo da un po', ho pensato di farti un regalo.
+
+Ho preparato [NOME_LEAD_MAGNET] - completamente gratuito.
+
+È perfetto per te se vuoi [BENEFICIO_PRINCIPALE].
+
+👉 Scaricalo qui: [LINK_LEAD_MAGNET]
+
+Nessun impegno, nessuna carta di credito richiesta. Solo valore puro.
+
+Fammi sapere cosa ne pensi!
+
+{partner_name}""",
+                "email_type": "value"
+            },
+            {
+                "day": 7,
+                "subject": "Ultima chance + regalo speciale ⏰",
+                "body": """Ciao {nome},
+
+Questa è l'ultima email che ti scrivo per un po'.
+
+Prima di salutarti, volevo offrirti qualcosa di speciale:
+
+🎯 Accesso esclusivo al mio [NOME_OFFERTA] a soli €7 (invece di €67)
+
+Questo è il prezzo più basso che abbia mai offerto, e lo faccio solo perché voglio darti una seconda possibilità.
+
+👉 Approfitta ora: [LINK_TRIPWIRE]
+
+⏰ L'offerta scade tra 48 ore.
+
+Se non fa per te, nessun problema. Ti auguro il meglio!
+
+{partner_name}
+
+P.S. Se clicchi e poi hai ripensamenti, nessun problema. Ma almeno dai un'occhiata a cosa potresti ottenere.""",
+                "email_type": "offer"
+            }
+        ]
+    },
+    "hot_lead_tripwire": {
+        "name": "Hot Lead → Tripwire €7",
+        "trigger": "tag_added",
+        "systeme_tag": "evo_hot_lead",
+        "steps": [
+            {
+                "day": 0,
+                "subject": "🔥 Offerta esclusiva per te (solo €7)",
+                "body": """Ciao {nome},
+
+Ho notato che sei molto interessato/a a [ARGOMENTO].
+
+Per questo motivo, voglio farti un'offerta che non faccio a tutti:
+
+Puoi accedere a [NOME_OFFERTA] a soli €7 invece di €67.
+
+Cosa include:
+✅ [BENEFICIO_1]
+✅ [BENEFICIO_2]
+✅ [BENEFICIO_3]
+
+👉 Approfitta ora: [LINK_TRIPWIRE]
+
+Questa offerta è disponibile solo per 48 ore.
+
+{partner_name}""",
+                "email_type": "offer"
+            },
+            {
+                "day": 1,
+                "subject": "Hai visto l'offerta? ⏰",
+                "body": """Ciao {nome},
+
+Volevo assicurarmi che avessi visto l'email di ieri.
+
+L'offerta a €7 per [NOME_OFFERTA] scade domani.
+
+Se hai dubbi o domande, rispondimi - sono qui per aiutarti.
+
+👉 Link diretto: [LINK_TRIPWIRE]
+
+{partner_name}""",
+                "email_type": "reminder"
+            }
+        ]
+    },
+    "warm_nurture_5day": {
+        "name": "Warm Lead Nurturing - 5 giorni",
+        "trigger": "tag_added",
+        "systeme_tag": "evo_warm_nurture",
+        "steps": [
+            {
+                "day": 0,
+                "subject": "Ecco cosa ho preparato per te 📚",
+                "body": """Ciao {nome},
+
+Nei prossimi giorni ti invierò alcuni contenuti esclusivi che ti aiuteranno a [OBIETTIVO_PRINCIPALE].
+
+Iniziamo subito con qualcosa di pratico:
+
+[CONTENUTO_VALORE_1]
+
+Domani ti invierò il secondo contenuto. Resta sintonizzato/a!
+
+{partner_name}""",
+                "email_type": "nurture"
+            },
+            {
+                "day": 2,
+                "subject": "Il metodo che ha cambiato tutto 💡",
+                "body": """Ciao {nome},
+
+Oggi voglio parlarti di [METODO/STRATEGIA].
+
+[CONTENUTO_VALORE_2]
+
+Questo è esattamente ciò che insegno nella mia Masterclass gratuita:
+👉 [LINK_MASTERCLASS]
+
+{partner_name}""",
+                "email_type": "nurture"
+            },
+            {
+                "day": 4,
+                "subject": "La storia di [NOME_CLIENTE] 🌟",
+                "body": """Ciao {nome},
+
+Lascia che ti racconti cosa è successo a [NOME_CLIENTE]...
+
+[CASE_STUDY]
+
+Se vuoi risultati simili, ho qualcosa per te:
+👉 [LINK_OFFERTA]
+
+{partner_name}""",
+                "email_type": "case_study"
+            },
+            {
+                "day": 5,
+                "subject": "Pronto/a per il prossimo passo? 🚀",
+                "body": """Ciao {nome},
+
+In questi giorni ti ho mostrato:
+✅ [RECAP_1]
+✅ [RECAP_2]
+✅ [RECAP_3]
+
+Ora hai due scelte:
+1. Continuare da solo/a (va benissimo!)
+2. Accelerare con il mio supporto
+
+Se scegli la seconda, ho un'offerta speciale per te:
+[NOME_OFFERTA] a soli €7
+
+👉 Scopri di più: [LINK_TRIPWIRE]
+
+{partner_name}""",
+                "email_type": "offer"
+            }
+        ]
+    }
+}
+
+@api_router.get("/email-automation/reactivation-sequences")
+async def get_reactivation_sequences():
+    """Get predefined reactivation sequences"""
+    return {"sequences": REACTIVATION_SEQUENCES}
+
+@api_router.post("/email-automation/create-reactivation/{sequence_type}")
+async def create_reactivation_sequence(sequence_type: str, partner_id: str):
+    """Create a predefined reactivation sequence for a partner"""
+    if sequence_type not in REACTIVATION_SEQUENCES:
+        raise HTTPException(status_code=400, detail=f"Tipo sequenza non valido. Usa: {list(REACTIVATION_SEQUENCES.keys())}")
+    
+    template = REACTIVATION_SEQUENCES[sequence_type]
+    
+    sequence = {
+        "id": str(uuid.uuid4()),
+        "partner_id": partner_id,
+        "name": template["name"],
+        "trigger": template["trigger"],
+        "systeme_tag": template["systeme_tag"],
+        "steps": template["steps"],
+        "is_active": True,
+        "is_predefined": True,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.email_sequences.insert_one(sequence)
+    
+    return {"success": True, "sequence": {k: v for k, v in sequence.items() if k != "_id"}}
+
+@api_router.get("/email-automation/templates")
+async def get_email_templates():
+    """Get predefined email templates"""
+    return {"templates": EMAIL_TEMPLATES}
+
+@api_router.get("/email-automation/partner/{partner_id}")
+async def get_partner_email_automations(partner_id: str):
+    """Get all email automations for a partner"""
+    automations = await db.email_automations.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).to_list(100)
+    
+    sequences = await db.email_sequences.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).to_list(50)
+    
+    return {
+        "automations": automations,
+        "sequences": sequences
+    }
+
+@api_router.post("/email-automation/create")
+async def create_email_automation(data: EmailAutomationCreate):
+    """Create a single email automation"""
+    automation = {
+        "id": str(uuid.uuid4()),
+        **data.model_dump(),
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.email_automations.insert_one(automation)
+    
+    return {"success": True, "automation": {k: v for k, v in automation.items() if k != "_id"}}
+
+@api_router.post("/email-automation/sequence")
+async def create_email_sequence(data: EmailSequenceCreate):
+    """Create an email sequence (drip campaign)"""
+    sequence = {
+        "id": str(uuid.uuid4()),
+        "partner_id": data.partner_id,
+        "name": data.name,
+        "trigger": data.trigger,
+        "steps": [s.model_dump() for s in data.steps],
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.email_sequences.insert_one(sequence)
+    
+    return {"success": True, "sequence": {k: v for k, v in sequence.items() if k != "_id"}}
+
+@api_router.put("/email-automation/{automation_id}/toggle")
+async def toggle_email_automation(automation_id: str):
+    """Toggle automation active/inactive"""
+    automation = await db.email_automations.find_one({"id": automation_id})
+    if not automation:
+        raise HTTPException(status_code=404, detail="Automazione non trovata")
+    
+    new_status = not automation.get("is_active", True)
+    await db.email_automations.update_one(
+        {"id": automation_id},
+        {"$set": {"is_active": new_status}}
+    )
+    
+    return {"success": True, "is_active": new_status}
+
+@api_router.delete("/email-automation/{automation_id}")
+async def delete_email_automation(automation_id: str):
+    """Delete an email automation"""
+    result = await db.email_automations.delete_one({"id": automation_id})
+    if result.deleted_count == 0:
+        # Try sequences
+        result = await db.email_sequences.delete_one({"id": automation_id})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Automazione non trovata")
+    
+    return {"success": True}
+
+@api_router.post("/email-automation/generate-sequence")
+async def generate_email_sequence_ai(partner_id: str, partner_name: str, partner_niche: str, sequence_type: str = "nurture"):
+    """Generate an email sequence using AI (STEFANIA)"""
+    
+    # Use Claude to generate a personalized sequence
+    prompt = f"""Genera una sequenza email di 5 giorni per un {sequence_type} funnel.
+
+PARTNER: {partner_name}
+NICCHIA: {partner_niche}
+
+La sequenza deve seguire questo schema:
+- Giorno 1: Email di benvenuto + delivery del lead magnet
+- Giorno 2: Email di valore (insegnamento)
+- Giorno 4: Case study/testimonianza
+- Giorno 6: Soft pitch dell'offerta
+- Giorno 7: Email di urgenza finale
+
+Per ogni email fornisci:
+- subject: Oggetto accattivante
+- body: Corpo email (usa {{nome}} come variabile per il nome)
+
+Rispondi in JSON con questo formato:
+{{
+  "steps": [
+    {{"day": 1, "subject": "...", "body": "...", "email_type": "welcome"}},
+    ...
+  ]
+}}"""
+    
+    try:
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            model="claude-sonnet-4-20250514"
+        )
+        response = await chat.send_async(prompt)
+        
+        # Parse JSON response
+        import re
+        json_match = re.search(r'\{[\s\S]*\}', response)
+        if json_match:
+            sequence_data = json.loads(json_match.group())
+            
+            # Save sequence
+            sequence = {
+                "id": str(uuid.uuid4()),
+                "partner_id": partner_id,
+                "name": f"Sequenza {sequence_type.capitalize()} - AI Generated",
+                "trigger": "new_subscriber",
+                "steps": sequence_data.get("steps", []),
+                "is_active": False,  # Requires review before activation
+                "ai_generated": True,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            await db.email_sequences.insert_one(sequence)
+            
+            return {"success": True, "sequence": {k: v for k, v in sequence.items() if k != "_id"}}
+        else:
+            raise HTTPException(status_code=500, detail="Errore nel parsing della risposta AI")
+            
+    except Exception as e:
+        logging.error(f"Error generating email sequence: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore nella generazione: {str(e)}")
+
+# =============================================================================
+# ORION - LEAD SCORING & INTELLIGENCE
+# =============================================================================
+
+@api_router.get("/orion/score/{email}")
+async def orion_score_single_lead(email: str):
+    """Score a single lead by email"""
+    # Find lead in database or Systeme.io contacts
+    lead = await db.leads.find_one({"email": email}, {"_id": 0})
+    
+    if not lead:
+        # Try systeme contacts
+        contact = await db.systeme_contacts.find_one({"email": email}, {"_id": 0})
+        if contact:
+            lead = {
+                "email": contact.get("email"),
+                "name": f"{contact.get('first_name', '')} {contact.get('last_name', '')}".strip(),
+                "tags": contact.get("tags", []),
+                "source": contact.get("source", ""),
+                "last_activity": contact.get("updated_at")
+            }
+    
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead non trovato")
+    
+    scored = await orion_scoring.score_lead(lead)
+    
+    # Update lead in database with score
+    await db.leads.update_one(
+        {"email": email},
+        {"$set": {"score": scored["score"], "temperature": scored["temperature"], "scored_at": scored["scored_at"]}},
+        upsert=True
+    )
+    
+    return {
+        "lead": {"email": email, "name": lead.get("name", "")},
+        "scoring": scored
+    }
+
+@api_router.post("/orion/analyze-list")
+async def orion_analyze_lead_list(limit: int = 1000):
+    """
+    Analyze and score all Systeme.io contacts
+    Use for initial 13K lead analysis
+    """
+    # Get contacts from Systeme.io cache
+    contacts = await db.systeme_contacts.find({}, {"_id": 0}).limit(limit).to_list(limit)
+    
+    if not contacts:
+        return {"error": "Nessun contatto trovato. Sincronizza prima i contatti da Systeme.io"}
+    
+    # Analyze with ORION
+    results = await orion_scoring.analyze_systeme_contacts(contacts)
+    
+    # Save scoring results
+    await db.orion_analysis.insert_one({
+        "id": str(uuid.uuid4()),
+        "type": "list_analysis",
+        "total_analyzed": results["total"],
+        "hot_count": len(results["hot"]),
+        "warm_count": len(results["warm"]),
+        "cold_count": len(results["cold"]),
+        "frozen_count": len(results["frozen"]),
+        "average_score": results["average_score"],
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    # Update agent status
+    await db.agents.update_one(
+        {"id": "ORION"},
+        {"$set": {"status": "ACTIVE", "last_activity": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    # Generate monetization segments
+    segments = await orion_scoring.get_monetization_segments(results)
+    
+    return {
+        "analysis": {
+            "total": results["total"],
+            "average_score": results["average_score"],
+            "distribution": {
+                "hot": len(results["hot"]),
+                "warm": len(results["warm"]),
+                "cold": len(results["cold"]),
+                "frozen": len(results["frozen"])
+            }
+        },
+        "segments": segments,
+        "top_hot_leads": results["hot"][:20],  # Top 20 hot leads
+        "analyzed_at": datetime.now(timezone.utc).isoformat()
+    }
+
+@api_router.get("/orion/segments")
+async def orion_get_segments():
+    """Get current lead segments for monetization"""
+    # Get latest analysis
+    analysis = await db.orion_analysis.find_one(
+        {"type": "list_analysis"},
+        {"_id": 0},
+        sort=[("created_at", -1)]
+    )
+    
+    if not analysis:
+        return {"error": "Nessuna analisi disponibile. Esegui prima /orion/analyze-list"}
+    
+    # Get scored leads by temperature
+    hot_leads = await db.leads.find(
+        {"temperature": "hot"},
+        {"_id": 0, "email": 1, "name": 1, "score": 1}
+    ).sort("score", -1).limit(50).to_list(50)
+    
+    warm_leads = await db.leads.find(
+        {"temperature": "warm"},
+        {"_id": 0, "email": 1, "name": 1, "score": 1}
+    ).sort("score", -1).limit(100).to_list(100)
+    
+    return {
+        "last_analysis": analysis,
+        "segments": {
+            "hot": {"count": len(hot_leads), "leads": hot_leads},
+            "warm": {"count": len(warm_leads), "leads": warm_leads[:50]}
+        }
+    }
+
+@api_router.post("/orion/tag-segment/{segment}")
+async def orion_tag_segment(segment: str, tag_name: str):
+    """
+    Tag all leads in a segment for Systeme.io automation
+    segment: hot, warm, cold, frozen
+    """
+    valid_segments = ["hot", "warm", "cold", "frozen"]
+    if segment not in valid_segments:
+        raise HTTPException(status_code=400, detail=f"Segmento non valido. Usa: {valid_segments}")
+    
+    # Get leads in segment
+    leads = await db.leads.find(
+        {"temperature": segment},
+        {"email": 1}
+    ).to_list(1000)
+    
+    if not leads:
+        return {"error": f"Nessun lead trovato nel segmento {segment}"}
+    
+    # Get Systeme.io credentials
+    credentials = await db.systeme_credentials.find_one({"partner_id": "global"})
+    
+    tagged_count = 0
+    errors = []
+    
+    if credentials and credentials.get("api_key"):
+        for lead in leads[:100]:  # Limit to 100 per batch
+            try:
+                await add_systeme_tag(credentials["api_key"], lead["email"], tag_name)
+                tagged_count += 1
+            except Exception as e:
+                errors.append(f"{lead['email']}: {str(e)}")
+    else:
+        return {"error": "Credenziali Systeme.io non configurate"}
+    
+    return {
+        "success": True,
+        "segment": segment,
+        "tag": tag_name,
+        "tagged_count": tagged_count,
+        "errors": errors[:10] if errors else []
+    }
+
+# =============================================================================
+# ORION - RE-TAGGING & SEGMENTATION SYSTEM
+# =============================================================================
+
+@api_router.post("/orion/retag-contacts")
+async def orion_retag_contacts():
+    """
+    Analizza tutti i contatti e li classifica in base ai tag Evolution PRO.
+    Esclude i partner attivi e segmenta i lead per azioni di riattivazione.
+    """
+    # Tags che identificano PARTNER ATTIVI (da escludere)
+    PARTNER_TAGS = [
+        "fase0_attivazione", "fase1_allineamento", "fase2_masterclass", 
+        "fase3_copy_core", "fase4_outline", "fase5_registrazione",
+        "fase6_accademia", "fase7_pre_lancio", "fase8_lancio",
+        "fase9_ottimizzazione", "fase10_scalabilita",
+        "stato_cliente", "stato_partner_attivo", "action_partner_attivo"
+    ]
+    
+    # Score thresholds
+    HOT_THRESHOLD = 70
+    WARM_THRESHOLD = 40
+    COLD_THRESHOLD = 20
+    
+    results = {
+        "partners_excluded": 0,
+        "hot_leads": 0,
+        "warm_leads": 0,
+        "cold_leads": 0,
+        "frozen_leads": 0,
+        "total_processed": 0,
+        "contacts_updated": 0
+    }
+    
+    # Process all contacts
+    contacts = await db.systeme_contacts.find({}).to_list(50000)
+    
+    for contact in contacts:
+        results["total_processed"] += 1
+        
+        tags = contact.get("tags", [])
+        tag_names = []
+        for tag in tags:
+            if isinstance(tag, dict):
+                tag_names.append(tag.get("name", "").lower().replace(" ", "_"))
+            else:
+                tag_names.append(str(tag).lower().replace(" ", "_"))
+        
+        # Check if partner
+        is_partner = any(pt in tn for tn in tag_names for pt in PARTNER_TAGS)
+        
+        if is_partner:
+            results["partners_excluded"] += 1
+            segment = "partner"
+            score = 200
+        else:
+            # Calculate score based on tags
+            score = 0
+            for tn in tag_names:
+                for tag_key, tag_score in orion_scoring.TAG_SCORE_MAP.items():
+                    if tag_key in tn:
+                        score += tag_score
+                        break
+            
+            # Assign segment
+            if score >= HOT_THRESHOLD:
+                segment = "hot"
+                results["hot_leads"] += 1
+            elif score >= WARM_THRESHOLD:
+                segment = "warm"
+                results["warm_leads"] += 1
+            elif score >= COLD_THRESHOLD:
+                segment = "cold"
+                results["cold_leads"] += 1
+            else:
+                segment = "frozen"
+                results["frozen_leads"] += 1
+        
+        # Update contact with segment and score
+        await db.systeme_contacts.update_one(
+            {"_id": contact["_id"]},
+            {"$set": {
+                "orion_score": score,
+                "orion_segment": segment,
+                "orion_updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        results["contacts_updated"] += 1
+    
+    # Save analysis results
+    await db.orion_analysis.insert_one({
+        "id": str(uuid.uuid4()),
+        "type": "retag_analysis",
+        "results": results,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "success": True,
+        "analysis": results,
+        "message": f"Processati {results['total_processed']} contatti. Partner esclusi: {results['partners_excluded']}"
+    }
+
+@api_router.get("/orion/leads-by-segment/{segment}")
+async def get_leads_by_segment(segment: str, limit: int = 100, skip: int = 0):
+    """
+    Get leads by ORION segment: hot, warm, cold, frozen, partner
+    """
+    valid_segments = ["hot", "warm", "cold", "frozen", "partner"]
+    if segment not in valid_segments:
+        raise HTTPException(status_code=400, detail=f"Segmento non valido. Usa: {valid_segments}")
+    
+    leads = await db.systeme_contacts.find(
+        {"orion_segment": segment},
+        {"_id": 0, "email": 1, "first_name": 1, "last_name": 1, "orion_score": 1, "tags": 1}
+    ).sort("orion_score", -1).skip(skip).limit(limit).to_list(limit)
+    
+    total = await db.systeme_contacts.count_documents({"orion_segment": segment})
+    
+    return {
+        "segment": segment,
+        "leads": leads,
+        "count": len(leads),
+        "total": total
+    }
+
+@api_router.post("/orion/bulk-tag")
+async def orion_bulk_tag(segment: str, new_tag: str, limit: int = 500):
+    """
+    Add a tag to all contacts in a segment (in local DB).
+    Use this to prepare contacts before syncing to Systeme.io.
+    """
+    valid_segments = ["hot", "warm", "cold", "frozen"]
+    if segment not in valid_segments:
+        raise HTTPException(status_code=400, detail=f"Segmento non valido. Usa: {valid_segments}")
+    
+    tag_obj = {"name": new_tag, "added_at": datetime.now(timezone.utc).isoformat(), "source": "orion"}
+    
+    result = await db.systeme_contacts.update_many(
+        {"orion_segment": segment},
+        {"$addToSet": {"tags": tag_obj}}
+    )
+    
+    return {
+        "success": True,
+        "segment": segment,
+        "tag_added": new_tag,
+        "contacts_updated": result.modified_count
+    }
+
+@api_router.get("/orion/export-segment/{segment}")
+async def export_segment_emails(segment: str):
+    """
+    Export emails from a segment for use in Systeme.io campaigns.
+    Returns a list of emails that can be copied to Systeme.io.
+    """
+    valid_segments = ["hot", "warm", "cold", "frozen", "partner"]
+    if segment not in valid_segments:
+        raise HTTPException(status_code=400, detail=f"Segmento non valido. Usa: {valid_segments}")
+    
+    contacts = await db.systeme_contacts.find(
+        {"orion_segment": segment},
+        {"_id": 0, "email": 1}
+    ).to_list(50000)
+    
+    emails = [c["email"] for c in contacts if c.get("email")]
+    
+    return {
+        "segment": segment,
+        "count": len(emails),
+        "emails": emails
+    }
+
+@api_router.post("/orion/import-segment-csv")
+async def import_segment_csv(
+    file: UploadFile = File(...),
+    segment: str = Form(...),
+    tag_to_add: str = Form(default="")
+):
+    """
+    Import a CSV and assign all contacts to a specific ORION segment.
+    Use this to import contacts from Systeme.io pipeline columns.
+    
+    Segments: hot, warm, cold, partner
+    """
+    import csv
+    import io
+    
+    valid_segments = ["hot", "warm", "cold", "frozen", "partner"]
+    if segment not in valid_segments:
+        raise HTTPException(status_code=400, detail=f"Segmento non valido. Usa: {valid_segments}")
+    
+    # Score mapping
+    segment_scores = {"hot": 80, "warm": 50, "cold": 25, "frozen": 0, "partner": 200}
+    
+    try:
+        content = await file.read()
+        
+        # Try different encodings
+        for encoding in ['utf-8', 'utf-8-sig', 'latin-1', 'cp1252']:
+            try:
+                text_content = content.decode(encoding)
+                break
+            except UnicodeDecodeError:
+                continue
+        else:
+            raise HTTPException(status_code=400, detail="Impossibile decodificare il file CSV")
+        
+        csv_reader = csv.DictReader(io.StringIO(text_content))
+        
+        updated_count = 0
+        new_count = 0
+        emails_processed = []
+        
+        for row in csv_reader:
+            email = row.get('email', row.get('Email', row.get('E-mail', ''))).strip().lower()
+            
+            if not email or '@' not in email:
+                continue
+            
+            emails_processed.append(email)
+            
+            # Build tag list
+            new_tags = []
+            if tag_to_add:
+                new_tags.append({
+                    "name": tag_to_add,
+                    "added_at": datetime.now(timezone.utc).isoformat(),
+                    "source": "orion_import"
+                })
+            
+            # Check if contact exists
+            existing = await db.systeme_contacts.find_one({"email": email})
+            
+            if existing:
+                # Update existing contact
+                update_data = {
+                    "orion_segment": segment,
+                    "orion_score": segment_scores[segment],
+                    "orion_updated_at": datetime.now(timezone.utc).isoformat()
+                }
+                
+                if new_tags:
+                    await db.systeme_contacts.update_one(
+                        {"email": email},
+                        {
+                            "$set": update_data,
+                            "$addToSet": {"tags": {"$each": new_tags}}
+                        }
+                    )
+                else:
+                    await db.systeme_contacts.update_one(
+                        {"email": email},
+                        {"$set": update_data}
+                    )
+                updated_count += 1
+            else:
+                # Create new contact
+                new_contact = {
+                    "id": str(uuid.uuid4()),
+                    "partner_id": "global",
+                    "email": email,
+                    "first_name": row.get('firstName', row.get('first_name', row.get('Nome', ''))),
+                    "last_name": row.get('lastName', row.get('last_name', row.get('Cognome', ''))),
+                    "tags": new_tags,
+                    "orion_segment": segment,
+                    "orion_score": segment_scores[segment],
+                    "orion_updated_at": datetime.now(timezone.utc).isoformat(),
+                    "synced_at": datetime.now(timezone.utc).isoformat(),
+                    "import_source": f"segment_csv_{segment}"
+                }
+                await db.systeme_contacts.insert_one(new_contact)
+                new_count += 1
+        
+        # Get updated totals
+        segment_totals = {}
+        for seg in valid_segments:
+            segment_totals[seg] = await db.systeme_contacts.count_documents({"orion_segment": seg})
+        
+        return {
+            "success": True,
+            "segment": segment,
+            "tag_added": tag_to_add or None,
+            "emails_processed": len(emails_processed),
+            "updated": updated_count,
+            "new": new_count,
+            "segment_totals": segment_totals,
+            "message": f"Importati {len(emails_processed)} contatti nel segmento {segment.upper()}"
+        }
+        
+    except Exception as e:
+        logging.error(f"Segment CSV import error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# =============================================================================
+# AGENT HUB - CENTRALIZED BUSINESS INTELLIGENCE
+# =============================================================================
+
+@api_router.get("/agent-hub/status")
+async def get_all_agents_status():
+    """Get status and metrics for all 9 agents"""
+    return await agent_hub.get_all_agents_status()
+
+@api_router.get("/agent-hub/agent/{agent_id}")
+async def get_single_agent_status(agent_id: str):
+    """Get detailed status for a specific agent"""
+    return await agent_hub.get_agent_status(agent_id.upper())
+
+@api_router.get("/agent-hub/summary")
+async def get_business_summary():
+    """Get comprehensive business summary from all agents"""
+    return await agent_hub.get_business_summary()
+
+@api_router.get("/agent-hub/alerts")
+async def get_system_alerts():
+    """Get all active alerts across agents"""
+    summary = await agent_hub.get_business_summary()
+    return {
+        "alerts": summary.get("alerts", []),
+        "opportunities": summary.get("opportunities", []),
+        "health": summary.get("health", {})
+    }
+
+@api_router.post("/agent-hub/activate/{agent_id}")
+async def activate_agent(agent_id: str):
+    """Activate an agent"""
+    result = await db.agents.update_one(
+        {"id": agent_id.upper()},
+        {"$set": {"status": "ACTIVE", "activated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Agent non trovato")
+    return {"success": True, "agent": agent_id.upper(), "status": "ACTIVE"}
+
+# =============================================================================
+# EMAIL QUEUE MANAGEMENT
+# =============================================================================
+
+@api_router.get("/email-queue/{partner_id}")
+async def get_email_queue(partner_id: str, status: Optional[str] = None):
+    """Get email queue for a partner"""
+    query = {"partner_id": partner_id}
+    if status:
+        query["status"] = status
+    
+    queue = await db.email_queue.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    
+    # Stats
+    stats = {
+        "total": len(queue),
+        "pending": len([q for q in queue if q.get("status") == "pending"]),
+        "scheduled": len([q for q in queue if q.get("status") == "scheduled"]),
+        "sent": len([q for q in queue if q.get("status") == "sent"]),
+        "active_sequences": len([q for q in queue if q.get("status") == "active" and q.get("type") == "sequence"])
+    }
+    
+    return {"queue": queue, "stats": stats}
+
+@api_router.post("/email-queue/trigger-test")
+async def trigger_test_sequence(partner_id: str, email: str, name: str = "Test User"):
+    """Manually trigger email sequence for testing"""
+    actions = await trigger_email_sequence(
+        partner_id=partner_id,
+        contact_email=email,
+        contact_name=name,
+        trigger_type="new_subscriber"
+    )
+    return {"success": True, "actions": actions}
+
+@api_router.delete("/email-queue/{queue_id}")
+async def cancel_queued_email(queue_id: str):
+    """Cancel a queued email"""
+    result = await db.email_queue.update_one(
+        {"id": queue_id},
+        {"$set": {"status": "cancelled", "cancelled_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Email in coda non trovata")
+    return {"success": True}
+
+@api_router.get("/email-queue/stats/global")
+async def get_global_email_stats():
+    """Get global email queue statistics"""
+    pipeline = [
+        {"$group": {
+            "_id": "$status",
+            "count": {"$sum": 1}
+        }}
+    ]
+    
+    stats_raw = await db.email_queue.aggregate(pipeline).to_list(10)
+    stats = {item["_id"]: item["count"] for item in stats_raw}
+    
+    # Recent activity
+    recent = await db.email_queue.find(
+        {},
+        {"_id": 0, "contact_email": 1, "contact_name": 1, "sequence_name": 1, "automation_name": 1, "status": 1, "created_at": 1}
+    ).sort("created_at", -1).limit(10).to_list(10)
+    
+    return {
+        "stats": stats,
+        "recent_activity": recent
+    }
+
+# =============================================================================
+# STRIPE CHECKOUT - AVATAR SERVICE PAYMENT
+# =============================================================================
+
+# Fixed service packages (server-side only - security)
+AVATAR_SERVICE_PACKAGES = {
+    "single_lesson": {
+        "name": "Lezione Singola",
+        "price": 120.00,
+        "description": "Produzione professionale per 1 lezione del tuo videocorso",
+        "includes": ["1 Lezione professionale", "Script ottimizzato", "Editing completo", "Sottotitoli"]
+    },
+    "bundle_3": {
+        "name": "Bundle 3 Lezioni",
+        "price": 300.00,
+        "description": "Produzione professionale per 3 lezioni (sconto 17%)",
+        "includes": ["3 Lezioni professionali", "Script ottimizzati", "Editing completo", "Sottotitoli", "Intro/Outro brandizzate"]
+    },
+    "bundle_5": {
+        "name": "Bundle 5 Lezioni",
+        "price": 450.00,
+        "description": "Produzione professionale per 5 lezioni (sconto 25%)",
+        "includes": ["5 Lezioni professionali", "Script premium", "Editing avanzato", "Sottotitoli animati", "Intro/Outro brandizzate", "Revisione inclusa"]
+    },
+    "bundle_10": {
+        "name": "Bundle 10 Lezioni",
+        "price": 800.00,
+        "description": "Produzione professionale per videocorso completo (fino a 10 lezioni)",
+        "includes": ["Fino a 10 Lezioni", "Script premium", "Editing cinematografico", "Sottotitoli animati", "Branding completo", "2 revisioni incluse", "Supporto prioritario"]
+    },
+    "bundle_15": {
+        "name": "Bundle 15 Lezioni",
+        "price": 1200.00,
+        "description": "Produzione professionale per videocorso completo (fino a 15 lezioni)",
+        "includes": ["Fino a 15 Lezioni", "Script premium", "Editing cinematografico", "Sottotitoli animati", "Branding completo", "3 revisioni incluse", "Supporto prioritario", "Consulenza strategica"]
+    }
+}
+
+class AvatarPaymentRequest(BaseModel):
+    package_id: str
+    partner_id: str
+    partner_name: str
+    partner_email: Optional[str] = None
+    origin_url: str
+    lesson_details: Optional[str] = None
+
+@api_router.get("/avatar-packages")
+async def get_avatar_packages():
+    """Get available avatar service packages"""
+    return {"packages": AVATAR_SERVICE_PACKAGES}
+
+@api_router.post("/avatar-checkout")
+async def create_avatar_checkout(request: Request, data: AvatarPaymentRequest):
+    """Create Stripe checkout session for avatar service"""
+    
+    # Validate package
+    if data.package_id not in AVATAR_SERVICE_PACKAGES:
+        raise HTTPException(status_code=400, detail="Pacchetto non valido")
+    
+    package = AVATAR_SERVICE_PACKAGES[data.package_id]
+    
+    # Get Stripe API key
+    stripe_api_key = os.environ.get("STRIPE_API_KEY")
+    if not stripe_api_key:
+        raise HTTPException(status_code=500, detail="Stripe non configurato")
+    
+    # Build dynamic URLs from frontend origin
+    success_url = f"{data.origin_url}/avatar-payment-success?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{data.origin_url}/avatar-payment-cancel"
+    
+    # Initialize Stripe checkout
+    host_url = str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
+    
+    # Create checkout session
+    checkout_request = CheckoutSessionRequest(
+        amount=package["price"],
+        currency="eur",
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata={
+            "package_id": data.package_id,
+            "package_name": package["name"],
+            "partner_id": data.partner_id,
+            "partner_name": data.partner_name,
+            "partner_email": data.partner_email or "",
+            "lesson_details": data.lesson_details or "",
+            "service_type": "avatar_production"
+        }
+    )
+    
+    try:
+        session = await stripe_checkout.create_checkout_session(checkout_request)
+        
+        # Create payment transaction record
+        transaction = {
+            "id": str(uuid.uuid4()),
+            "session_id": session.session_id,
+            "partner_id": data.partner_id,
+            "partner_name": data.partner_name,
+            "partner_email": data.partner_email,
+            "package_id": data.package_id,
+            "package_name": package["name"],
+            "amount": package["price"],
+            "currency": "eur",
+            "status": "pending",
+            "payment_status": "initiated",
+            "lesson_details": data.lesson_details,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.payment_transactions.insert_one(transaction)
+        
+        return {
+            "success": True,
+            "checkout_url": session.url,
+            "session_id": session.session_id,
+            "package": package
+        }
+        
+    except Exception as e:
+        logging.error(f"Stripe checkout error: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore creazione checkout: {str(e)}")
+
+@api_router.get("/avatar-checkout/status/{session_id}")
+async def get_avatar_checkout_status(session_id: str):
+    """Get payment status for avatar checkout"""
+    
+    stripe_api_key = os.environ.get("STRIPE_API_KEY")
+    if not stripe_api_key:
+        raise HTTPException(status_code=500, detail="Stripe non configurato")
+    
+    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url="")
+    
+    try:
+        status = await stripe_checkout.get_checkout_status(session_id)
+        
+        # Update transaction in database
+        update_data = {
+            "status": status.status,
+            "payment_status": status.payment_status,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        # If paid, trigger production workflow
+        if status.payment_status == "paid":
+            # Check if not already processed
+            existing = await db.payment_transactions.find_one({
+                "session_id": session_id,
+                "payment_status": "paid"
+            })
+            
+            if not existing:
+                update_data["paid_at"] = datetime.now(timezone.utc).isoformat()
+                
+                # Get transaction details for notification
+                transaction = await db.payment_transactions.find_one({"session_id": session_id})
+                if transaction:
+                    # Send Telegram notification
+                    try:
+                        await telegram_notify(
+                            notification_type="alert",
+                            message=f"💰 NUOVO PAGAMENTO AVATAR!\n\nPartner: {transaction.get('partner_name')}\nPacchetto: {transaction.get('package_name')}\nImporto: €{transaction.get('amount')}\n\n📋 Dettagli: {transaction.get('lesson_details', 'N/D')}\n\n▶️ Avvia produzione avatar!"
+                        )
+                    except Exception as e:
+                        logging.error(f"Failed to send payment notification: {e}")
+        
+        await db.payment_transactions.update_one(
+            {"session_id": session_id},
+            {"$set": update_data}
+        )
+        
+        return {
+            "session_id": session_id,
+            "status": status.status,
+            "payment_status": status.payment_status,
+            "amount_total": status.amount_total,
+            "currency": status.currency,
+            "metadata": status.metadata
+        }
+        
+    except Exception as e:
+        logging.error(f"Error checking payment status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/webhook/stripe")
+async def stripe_webhook(request: Request):
+    """Handle Stripe webhook events"""
+    
+    stripe_api_key = os.environ.get("STRIPE_API_KEY")
+    if not stripe_api_key:
+        raise HTTPException(status_code=500, detail="Stripe non configurato")
+    
+    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url="")
+    
+    try:
+        body = await request.body()
+        signature = request.headers.get("Stripe-Signature")
+        
+        webhook_response = await stripe_checkout.handle_webhook(body, signature)
+        
+        logging.info(f"Stripe webhook received: {webhook_response.event_type}")
+        
+        # Update transaction based on webhook event
+        if webhook_response.session_id:
+            update_data = {
+                "payment_status": webhook_response.payment_status,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            if webhook_response.payment_status == "paid":
+                update_data["paid_at"] = datetime.now(timezone.utc).isoformat()
+            
+            await db.payment_transactions.update_one(
+                {"session_id": webhook_response.session_id},
+                {"$set": update_data}
+            )
+        
+        return {"received": True}
+        
+    except Exception as e:
+        logging.error(f"Stripe webhook error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.get("/avatar-payments/{partner_id}")
+async def get_partner_avatar_payments(partner_id: str):
+    """Get all avatar payments for a partner"""
+    
+    payments = await db.payment_transactions.find(
+        {"partner_id": partner_id, "service_type": "avatar_production"},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    
+    return {"payments": payments, "total": len(payments)}
+
+# Include router
+app.include_router(api_router)
+
+# Include clienti router
+from routers.clienti import router as clienti_router, set_db as set_clienti_db
+set_clienti_db(db)
+app.include_router(clienti_router)
+
+# Logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Background task holder
+background_tasks = set()
+
+@app.on_event("startup")
+async def start_background_services():
+    """Start background job worker"""
+    try:
+        from integrated_services import job_executor
+        import asyncio
+        
+        # Create background task for job worker (runs every 60 seconds)
+        task = asyncio.create_task(job_executor.start_worker(interval_seconds=60))
+        background_tasks.add(task)
+        task.add_done_callback(background_tasks.discard)
+        
+        logging.info("Background job worker started")
+    except Exception as e:
+        logging.warning(f"Could not start background worker: {e}")
+
+@app.on_event("shutdown")
+async def shutdown_db_client():
+    """Shutdown database and background services"""
+    try:
+        from integrated_services import job_executor
+        job_executor.stop_worker()
+    except:
+        pass
+    client.close()

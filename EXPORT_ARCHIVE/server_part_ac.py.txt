@@ -1,0 +1,2000 @@
+{{"pain": "hook dolore...", "secret": "hook segreto...", "result": "hook risultato...", "targeting_note": "suggerimento targeting broad"}}
+"""
+
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"hookgallery_{request.partner_id}_{datetime.now().timestamp()}",
+            system_message="Sei STEFANIA War Mode - Meta Ads Specialist. Genera hook video che fermano lo scroll."
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        
+        response = await chat.send_message(UserMessage(text=prompt))
+        
+        # Parse JSON
+        import re
+        json_match = re.search(r'\{[\s\S]*\}', response)
+        hook_gallery = {"pain": "", "secret": "", "result": "", "targeting_note": ""}
+        
+        if json_match:
+            try:
+                hook_gallery = json.loads(json_match.group())
+            except json.JSONDecodeError:
+                hook_gallery["pain"] = response
+        
+        # Save to campaign
+        existing = await db.ads_campaigns.find_one({"partner_id": request.partner_id, "platform": "meta"})
+        if existing:
+            await db.ads_campaigns.update_one(
+                {"partner_id": request.partner_id, "platform": "meta"},
+                {"$set": {
+                    "hook_gallery": hook_gallery,
+                    "targeting_type": "broad",
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+        else:
+            campaign = AdsCampaign(
+                partner_id=request.partner_id,
+                partner_name=request.partner_name,
+                platform="meta",
+                campaign_name=f"{request.partner_name} - Meta Hook Gallery",
+                hook_gallery=hook_gallery,
+                targeting_type="broad"
+            )
+            await db.ads_campaigns.insert_one(campaign.model_dump())
+        
+        return {
+            "success": True,
+            "hook_gallery": hook_gallery,
+            "platform": "meta",
+            "partner_id": request.partner_id
+        }
+        
+    except Exception as e:
+        logging.error(f"Hook gallery error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/stefania/war-mode/linkedin-content")
+async def generate_linkedin_content(request: LinkedInContentRequest):
+    """Generate LinkedIn-specific content (Thought Leadership, ABM, Lead Gen Forms)"""
+    try:
+        # Get Copy Core
+        script = await db.masterclass_scripts.find_one({"partner_id": request.partner_id}, {"_id": 0})
+        copy_context = ""
+        if script and script.get("blocks"):
+            copy_context = f"""
+COPY CORE (trasforma in tono LinkedIn):
+- Metodo: {script['blocks'].get('metodo', 'N/A')[:300]}
+- Grande Promessa: {script['blocks'].get('grande_promessa', 'N/A')[:200]}
+"""
+
+        content_prompts = {
+            "thought_leadership": f"""Sei STEFANIA per LINKEDIN ADS. Trasforma il Copy Core di {request.partner_name} ({request.partner_niche}) in un POST THOUGHT LEADERSHIP.
+
+{copy_context}
+
+🎯 OBIETTIVO: Sembrare un'analisi di mercato, NON pubblicità
+
+STRUTTURA THOUGHT LEADERSHIP:
+1. Osservazione di mercato provocatoria (pattern industry)
+2. Dati o insight esclusivo (anche senza numeri reali, usa logica)
+3. Framework/metodologia come soluzione
+4. CTA soft ("Commenta se anche tu...")
+
+TONO: Professionale ma accessibile. Come un post di un CEO rispettato.
+LUNGHEZZA: 150-200 parole max
+
+Rispondi in JSON:
+{{"post_text": "testo post...", "headline": "headline per l'ad", "cta_type": "engagement/lead_form"}}
+""",
+            "abm_ad": f"""Sei STEFANIA per LINKEDIN ABM (Account-Based Marketing). Crea un AD per {request.partner_name} ({request.partner_niche}).
+
+TARGET SPECIFICO: {request.target_segment or "Titolari di agenzie o consulenti senior"}
+
+{copy_context}
+
+🎯 OBIETTIVO: Colpire decision-maker di alto livello
+
+STRUTTURA ABM AD:
+1. Problema specifico del segmento target
+2. Credenziale/autorità di {request.partner_name}
+3. Offerta esclusiva per il segmento
+4. CTA per download risorsa o call
+
+TONO: Diretto, executive-level, no fluff.
+
+Rispondi in JSON:
+{{"ad_copy": "testo ad...", "headline": "headline", "target_criteria": "criteri targeting linkedin"}}
+""",
+            "lead_gen_form": f"""Sei STEFANIA per LINKEDIN LEAD GEN FORMS. Crea il copy per un form nativo LinkedIn per {request.partner_name} ({request.partner_niche}).
+
+{copy_context}
+
+🎯 OBIETTIVO: Massimizzare conversioni con form pre-compilato
+
+STRUTTURA LEAD GEN FORM:
+1. Headline che promette valore immediato
+2. Descrizione breve del "lead magnet" (es. guida, checklist, case study)
+3. 3 bullet points del valore
+4. Privacy-friendly CTA
+
+VANTAGGI FORM NATIVO: Email aziendale reale, dati pre-compilati, zero attrito.
+
+Rispondi in JSON:
+{{"form_headline": "headline form", "form_description": "descrizione", "bullet_points": ["punto1", "punto2", "punto3"], "lead_magnet_name": "nome risorsa"}}
+"""
+        }
+        
+        prompt = content_prompts.get(request.content_type, content_prompts["thought_leadership"])
+        
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"linkedin_{request.partner_id}_{datetime.now().timestamp()}",
+            system_message="Sei STEFANIA War Mode - LinkedIn B2B Specialist. Crea contenuti che costruiscono autorità."
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        
+        response = await chat.send_message(UserMessage(text=prompt))
+        
+        # Parse JSON
+        import re
+        json_match = re.search(r'\{[\s\S]*\}', response)
+        linkedin_content = {}
+        
+        if json_match:
+            try:
+                linkedin_content = json.loads(json_match.group())
+            except json.JSONDecodeError:
+                linkedin_content = {"content": response}
+        
+        # Save to campaign
+        existing = await db.ads_campaigns.find_one({"partner_id": request.partner_id, "platform": "linkedin"})
+        if existing:
+            current_content = existing.get("linkedin_content", {})
+            current_content[request.content_type] = linkedin_content
+            await db.ads_campaigns.update_one(
+                {"partner_id": request.partner_id, "platform": "linkedin"},
+                {"$set": {
+                    "linkedin_content": current_content,
+                    "targeting_type": "abm" if request.content_type == "abm_ad" else existing.get("targeting_type", "professional"),
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+        else:
+            campaign = AdsCampaign(
+                partner_id=request.partner_id,
+                partner_name=request.partner_name,
+                platform="linkedin",
+                campaign_name=f"{request.partner_name} - LinkedIn {request.content_type}",
+                linkedin_content={request.content_type: linkedin_content},
+                targeting_type="abm" if request.content_type == "abm_ad" else "professional"
+            )
+            await db.ads_campaigns.insert_one(campaign.model_dump())
+        
+        return {
+            "success": True,
+            "content_type": request.content_type,
+            "linkedin_content": linkedin_content,
+            "platform": "linkedin",
+            "partner_id": request.partner_id
+        }
+        
+    except Exception as e:
+        logging.error(f"LinkedIn content error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/stefania/war-mode/cross-platform-analysis")
+async def analyze_cross_platform(partner_id: str):
+    """Auto-Pivot Analysis: Compare Meta vs LinkedIn and suggest budget shifts"""
+    try:
+        meta_campaign = await db.ads_campaigns.find_one({"partner_id": partner_id, "platform": "meta"}, {"_id": 0})
+        linkedin_campaign = await db.ads_campaigns.find_one({"partner_id": partner_id, "platform": "linkedin"}, {"_id": 0})
+        
+        analysis = {
+            "partner_id": partner_id,
+            "meta": None,
+            "linkedin": None,
+            "recommended_platform": "meta",
+            "pivot_suggestion": None,
+            "budget_recommendation": None
+        }
+        
+        if meta_campaign:
+            meta_cpl = meta_campaign.get("cpl", 0)
+            meta_roas = meta_campaign.get("roas", 0)
+            meta_ltv = meta_campaign.get("ltv_avg", 0)
+            meta_threshold = meta_campaign.get("cpl_max_threshold", 15)
+            
+            analysis["meta"] = {
+                "cpl": meta_cpl,
+                "roas": meta_roas,
+                "ltv_avg": meta_ltv,
+                "leads": meta_campaign.get("leads", 0),
+                "qualified_leads": meta_campaign.get("qualified_leads", 0),
+                "cpl_exceeded": meta_cpl > meta_threshold if meta_cpl > 0 else False,
+                "hook_gallery": meta_campaign.get("hook_gallery")
+            }
+        
+        if linkedin_campaign:
+            linkedin_cpl = linkedin_campaign.get("cpl", 0)
+            linkedin_roas = linkedin_campaign.get("roas", 0)
+            linkedin_ltv = linkedin_campaign.get("ltv_avg", 0)
+            linkedin_qual_rate = linkedin_campaign.get("qualified_leads", 0) / linkedin_campaign.get("leads", 1) if linkedin_campaign.get("leads", 0) > 0 else 0
+            
+            analysis["linkedin"] = {
+                "cpl": linkedin_cpl,
+                "roas": linkedin_roas,
+                "ltv_avg": linkedin_ltv,
+                "leads": linkedin_campaign.get("leads", 0),
+                "qualified_leads": linkedin_campaign.get("qualified_leads", 0),
+                "qualification_rate": linkedin_qual_rate,
+                "content_types": list(linkedin_campaign.get("linkedin_content", {}).keys()) if linkedin_campaign.get("linkedin_content") else []
+            }
+        
+        # Auto-Pivot Logic
+        if analysis["meta"] and analysis["linkedin"]:
+            meta_cpl_exceeded = analysis["meta"]["cpl_exceeded"]
+            linkedin_better_ltv = (analysis["linkedin"]["ltv_avg"] > analysis["meta"]["ltv_avg"]) if analysis["linkedin"]["ltv_avg"] > 0 else False
+            linkedin_better_quality = (analysis["linkedin"]["qualified_leads"] / max(analysis["linkedin"]["leads"], 1)) > (analysis["meta"]["qualified_leads"] / max(analysis["meta"]["leads"], 1)) if analysis["meta"].get("leads", 0) > 0 else False
+            
+            if meta_cpl_exceeded and (linkedin_better_ltv or linkedin_better_quality):
+                analysis["recommended_platform"] = "linkedin"
+                analysis["pivot_suggestion"] = f"""⚠️ AUTO-PIVOT SUGGERITO: CPL Meta (€{analysis['meta']['cpl']:.2f}) ha superato la soglia.
+
+LinkedIn mostra:
+- LTV medio più alto: €{analysis['linkedin']['ltv_avg']:.0f} vs €{analysis['meta']['ltv_avg']:.0f}
+- Tasso qualificazione lead: {analysis['linkedin'].get('qualification_rate', 0)*100:.0f}%
+
+RACCOMANDAZIONE: Sposta 30-50% del budget da Meta a LinkedIn per ottimizzare il ROAS complessivo."""
+                
+                analysis["budget_recommendation"] = {
+                    "action": "shift_to_linkedin",
+                    "percentage": 40,
+                    "reason": "higher_ltv_and_lead_quality"
+                }
+                
+                # Create alert
+                alert = PerformanceAlert(
+                    partner_id=partner_id,
+                    campaign_id=meta_campaign.get("id", ""),
+                    alert_type="auto_pivot_suggested",
+                    severity="warning",
+                    current_value=analysis["meta"]["cpl"],
+                    threshold_value=meta_campaign.get("cpl_max_threshold", 15),
+                    message=f"Auto-Pivot: Considera shift budget a LinkedIn (LTV {analysis['linkedin']['ltv_avg']:.0f}€ vs Meta {analysis['meta']['ltv_avg']:.0f}€)",
+                    suggested_action="Sposta 40% budget da Meta a LinkedIn per lead di qualità superiore"
+                )
+                await db.performance_alerts.insert_one(alert.model_dump())
+            
+            elif meta_cpl_exceeded:
+                analysis["pivot_suggestion"] = f"⚠️ CPL Meta alto (€{analysis['meta']['cpl']:.2f}). LinkedIn non ha ancora dati sufficienti per un pivot. Considera di lanciare test su LinkedIn."
+        
+        return analysis
+        
+    except Exception as e:
+        logging.error(f"Cross-platform analysis error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/stefania/war-mode/multi-channel/{partner_id}")
+async def get_multi_channel_data(partner_id: str):
+    """Get all multi-channel data for a partner (Meta + LinkedIn)"""
+    meta = await db.ads_campaigns.find_one({"partner_id": partner_id, "platform": "meta"}, {"_id": 0})
+    linkedin = await db.ads_campaigns.find_one({"partner_id": partner_id, "platform": "linkedin"}, {"_id": 0})
+    
+    return {
+        "partner_id": partner_id,
+        "meta": meta,
+        "linkedin": linkedin,
+        "has_meta": meta is not None,
+        "has_linkedin": linkedin is not None
+    }
+
+@api_router.post("/stefania/war-mode/campaigns/{campaign_id}/update-ltv")
+async def update_campaign_ltv(campaign_id: str, ltv_avg: float, qualified_leads: int = None):
+    """Update LTV and qualified lead data for a campaign (for comparison analysis)"""
+    update_data = {
+        "ltv_avg": ltv_avg,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    if qualified_leads is not None:
+        update_data["qualified_leads"] = qualified_leads
+    
+    await db.ads_campaigns.update_one({"id": campaign_id}, {"$set": update_data})
+    return {"success": True, "campaign_id": campaign_id, "ltv_avg": ltv_avg}
+
+# =============================================================================
+# STEFANIA REAL-TIME API INTEGRATION (Meta + LinkedIn)
+# =============================================================================
+
+# Import the ads integration module
+try:
+    from ads_api_integration import UnifiedAdsService, MartaCRMBridge
+    ads_service_available = True
+except ImportError:
+    ads_service_available = False
+    logging.warning("ads_api_integration module not available")
+
+@api_router.post("/stefania/api/store-credentials")
+async def store_partner_api_credentials(
+    partner_id: str = Form(...),
+    meta_access_token: str = Form(None),
+    meta_ad_account_id: str = Form(None),
+    linkedin_access_token: str = Form(None),
+    linkedin_ad_account_urn: str = Form(None)
+):
+    """
+    Store Meta/LinkedIn API credentials for a partner
+    Required for real-time metrics fetching
+    """
+    if not ads_service_available:
+        raise HTTPException(status_code=503, detail="Ads integration service not available")
+    
+    service = UnifiedAdsService(db)
+    result = await service.store_partner_api_credentials(
+        partner_id,
+        meta_access_token,
+        meta_ad_account_id,
+        linkedin_access_token,
+        linkedin_ad_account_urn
+    )
+    return result
+
+@api_router.get("/stefania/api/credentials/{partner_id}")
+async def get_partner_credentials_status(partner_id: str):
+    """Check which API credentials are configured for a partner"""
+    creds = await db.partner_api_credentials.find_one({"partner_id": partner_id}, {"_id": 0})
+    
+    if not creds:
+        return {
+            "partner_id": partner_id,
+            "meta_configured": False,
+            "linkedin_configured": False
+        }
+    
+    return {
+        "partner_id": partner_id,
+        "meta_configured": bool(creds.get("meta_access_token") and creds.get("meta_ad_account_id")),
+        "linkedin_configured": bool(creds.get("linkedin_access_token") and creds.get("linkedin_ad_account_urn")),
+        "updated_at": creds.get("updated_at")
+    }
+
+@api_router.post("/stefania/api/sync-metrics/{partner_id}")
+async def sync_partner_metrics_realtime(
+    partner_id: str,
+    cpl_threshold_meta: float = 15.0,
+    cpl_threshold_linkedin: float = 25.0
+):
+    """
+    Sync real-time metrics from Meta/LinkedIn APIs
+    Triggers Smart-Optimization alerts if CPL exceeds threshold
+    """
+    if not ads_service_available:
+        raise HTTPException(status_code=503, detail="Ads integration service not available")
+    
+    service = UnifiedAdsService(db)
+    result = await service.sync_and_check_alerts(
+        partner_id,
+        cpl_threshold_meta,
+        cpl_threshold_linkedin
+    )
+    
+    # If alerts were triggered, create notifications
+    if result["alerts_triggered"] > 0:
+        partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+        for alert in result["alerts"]:
+            notification = Notification(
+                type="escalation",
+                icon="⚠️",
+                title=f"SMART-OPTIMIZATION Alert - {alert['platform'].upper()}",
+                body=alert["message"],
+                time=datetime.now().strftime("%H:%M"),
+                partner=partner["name"] if partner else partner_id,
+                action="war_mode"
+            )
+            await db.notifications.insert_one(notification.model_dump())
+    
+    return result
+
+@api_router.get("/stefania/api/roi/{partner_id}")
+async def get_partner_roi_realtime(partner_id: str, days: int = 30):
+    """
+    Calculate real ROI using CRM data from MARTA
+    Shows actual revenue vs ad spend
+    """
+    if not ads_service_available:
+        raise HTTPException(status_code=503, detail="Ads integration service not available")
+    
+    service = UnifiedAdsService(db)
+    roi_data = await service.calculate_partner_roi(partner_id, days)
+    return roi_data
+
+@api_router.post("/stefania/api/crm/sale")
+async def record_crm_sale(
+    partner_id: str = Form(...),
+    amount: float = Form(...),
+    utm_source: str = Form(None),
+    utm_campaign: str = Form(None),
+    customer_email: str = Form(None)
+):
+    """
+    Record a sale in MARTA CRM for ROI attribution
+    Links ad spend to actual revenue
+    """
+    marta = MartaCRMBridge(db) if ads_service_available else None
+    if not marta:
+        # Fallback direct insert
+        sale_id = f"sale_{datetime.now().timestamp()}"
+        sale_doc = {
+            "id": sale_id,
+            "partner_id": partner_id,
+            "amount": amount,
+            "utm_source": utm_source,
+            "utm_campaign": utm_campaign,
+            "customer_email": customer_email,
+            "sale_date": datetime.now(timezone.utc),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.crm_sales.insert_one(sale_doc)
+        # Return without _id
+        return {
+            "id": sale_id,
+            "partner_id": partner_id,
+            "amount": amount,
+            "utm_source": utm_source,
+            "created_at": sale_doc["created_at"]
+        }
+    
+    return await marta.record_sale(partner_id, amount, utm_source, utm_campaign, customer_email)
+
+@api_router.get("/stefania/api/crm/sales/{partner_id}")
+async def get_partner_crm_sales(partner_id: str, days: int = 30):
+    """Get CRM sales data for a partner"""
+    end_date = datetime.now(timezone.utc)
+    start_date = end_date - timedelta(days=days)
+    
+    sales = await db.crm_sales.find({
+        "partner_id": partner_id,
+        "sale_date": {"$gte": start_date, "$lte": end_date}
+    }, {"_id": 0}).to_list(500)
+    
+    total_revenue = sum(s.get("amount", 0) for s in sales)
+    
+    # Group by UTM source
+    by_source = {}
+    for sale in sales:
+        source = sale.get("utm_source", "direct")
+        if source not in by_source:
+            by_source[source] = {"revenue": 0, "count": 0}
+        by_source[source]["revenue"] += sale.get("amount", 0)
+        by_source[source]["count"] += 1
+    
+    return {
+        "partner_id": partner_id,
+        "total_sales": len(sales),
+        "total_revenue": total_revenue,
+        "by_source": by_source,
+        "sales": sales[:50]  # Return latest 50
+    }
+
+@api_router.post("/stefania/api/smart-optimization/check")
+async def run_smart_optimization_check(
+    partner_id: str = Form(...),
+    cpl_meta: float = Form(0),
+    cpl_linkedin: float = Form(0),
+    threshold_meta: float = Form(15.0),
+    threshold_linkedin: float = Form(25.0)
+):
+    """
+    Manual Smart-Optimization check
+    Compare current CPL against Business Plan thresholds
+    """
+    alerts = []
+    
+    # Check Meta CPL
+    if cpl_meta > 0 and cpl_meta > threshold_meta:
+        severity = "critical" if cpl_meta > threshold_meta * 1.5 else "warning"
+        alert = {
+            "id": f"alert_meta_{datetime.now().timestamp()}",
+            "partner_id": partner_id,
+            "platform": "meta",
+            "alert_type": "cpl_exceeded",
+            "severity": severity,
+            "current_value": cpl_meta,
+            "threshold_value": threshold_meta,
+            "message": f"CPL Meta di €{cpl_meta:.2f} supera la soglia Business Plan di €{threshold_meta:.2f}",
+            "suggested_action": "Pausa campagne con performance bassa. Testa nuovi hook dalla Hook Gallery. Considera shift budget a LinkedIn se la qualità lead è superiore.",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.performance_alerts.insert_one(alert)
+        alerts.append(alert)
+    
+    # Check LinkedIn CPL
+    if cpl_linkedin > 0 and cpl_linkedin > threshold_linkedin:
+        severity = "critical" if cpl_linkedin > threshold_linkedin * 1.5 else "warning"
+        alert = {
+            "id": f"alert_linkedin_{datetime.now().timestamp()}",
+            "partner_id": partner_id,
+            "platform": "linkedin",
+            "alert_type": "cpl_exceeded",
+            "severity": severity,
+            "current_value": cpl_linkedin,
+            "threshold_value": threshold_linkedin,
+            "message": f"CPL LinkedIn di €{cpl_linkedin:.2f} supera la soglia Business Plan di €{threshold_linkedin:.2f}",
+            "suggested_action": "Verifica targeting ABM. Analizza qualità dei lead. Considera ottimizzazione lead form o cambio creatività.",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.performance_alerts.insert_one(alert)
+        alerts.append(alert)
+    
+    # Create notification if alerts triggered
+    if alerts:
+        partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+        notification = Notification(
+            type="escalation",
+            icon="📉",
+            title="STEFANIA Smart-Optimization Alert",
+            body=f"{len(alerts)} alert CPL per {partner['name'] if partner else partner_id}",
+            time=datetime.now().strftime("%H:%M"),
+            partner=partner["name"] if partner else partner_id,
+            action="war_mode"
+        )
+        await db.notifications.insert_one(notification.model_dump())
+    
+    return {
+        "partner_id": partner_id,
+        "alerts_triggered": len(alerts),
+        "alerts": alerts,
+        "status": "critical" if any(a["severity"] == "critical" for a in alerts) else "warning" if alerts else "ok"
+    }
+
+# =============================================================================
+# ATLAS MODULE - POST-SALE & LTV ROUTES
+# =============================================================================
+
+# Gamification unlock conditions
+UNLOCK_CONDITIONS = {
+    "progress_50": {"type": "progress", "threshold": 50, "label": "Completa 50% del corso"},
+    "progress_100": {"type": "progress", "threshold": 100, "label": "Completa tutto il corso"},
+    "referral_1": {"type": "referral", "threshold": 1, "label": "Porta 1 amico"},
+    "referral_3": {"type": "referral", "threshold": 3, "label": "Porta 3 amici"},
+    "streak_7": {"type": "streak", "threshold": 7, "label": "7 giorni consecutivi"},
+    "streak_30": {"type": "streak", "threshold": 30, "label": "30 giorni consecutivi"},
+    "quiz_perfect": {"type": "quiz", "threshold": 100, "label": "Quiz con punteggio perfetto"},
+    "feedback_given": {"type": "feedback", "threshold": 1, "label": "Lascia un feedback"}
+}
+
+@api_router.get("/atlas/students/{partner_id}")
+async def get_partner_students(partner_id: str, status: str = None):
+    """Get all students for a partner's academy"""
+    query = {"partner_id": partner_id}
+    if status:
+        query["status"] = status
+    
+    students = await db.academy_students.find(query, {"_id": 0}).to_list(500)
+    
+    # Calculate summary stats
+    total = len(students)
+    active = len([s for s in students if s.get("status") == "active"])
+    completed = len([s for s in students if s.get("status") == "completed"])
+    avg_progress = sum(s.get("progress_percent", 0) for s in students) / total if total > 0 else 0
+    
+    return {
+        "partner_id": partner_id,
+        "total_students": total,
+        "active": active,
+        "completed": completed,
+        "avg_progress": avg_progress,
+        "students": students
+    }
+
+@api_router.post("/atlas/students/enroll")
+async def enroll_student(
+    partner_id: str = Form(...),
+    email: str = Form(...),
+    name: str = Form(...),
+    utm_source: str = Form(None),
+    referral_code: str = Form(None)
+):
+    """Enroll a new student in the academy"""
+    # Generate unique referral code for this student
+    student_referral_code = f"{partner_id[:4]}_{name[:3]}_{str(uuid.uuid4())[:6]}".upper()
+    
+    student = AcademyStudent(
+        partner_id=partner_id,
+        email=email,
+        name=name,
+        utm_source=utm_source,
+        referral_code=student_referral_code,
+        referred_by=referral_code
+    )
+    
+    await db.academy_students.insert_one(student.model_dump())
+    
+    # If referred, update referral record
+    if referral_code:
+        await db.referral_records.update_one(
+            {"referral_code": referral_code, "status": "pending"},
+            {"$set": {"status": "converted", "conversion_value": 497}}  # Default course value
+        )
+    
+    return {
+        "success": True,
+        "student_id": student.id,
+        "referral_code": student_referral_code
+    }
+
+@api_router.post("/atlas/students/{student_id}/progress")
+async def update_student_progress(
+    student_id: str,
+    progress_percent: float = Form(...),
+    completed_module: str = Form(None)
+):
+    """Update student progress and check for bonus unlocks"""
+    student = await db.academy_students.find_one({"id": student_id}, {"_id": 0})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    
+    update_data = {
+        "progress_percent": progress_percent,
+        "last_activity": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Track completed modules
+    completed_modules = student.get("completed_modules", [])
+    if completed_module and completed_module not in completed_modules:
+        completed_modules.append(completed_module)
+        update_data["completed_modules"] = completed_modules
+        update_data["gamification_points"] = student.get("gamification_points", 0) + 50
+    
+    # Check status update
+    if progress_percent >= 100:
+        update_data["status"] = "completed"
+    
+    await db.academy_students.update_one({"id": student_id}, {"$set": update_data})
+    
+    # Check for bonus unlocks (Dynamic Content Unlock)
+    unlocked_bonuses = await check_and_unlock_bonuses(student["partner_id"], student_id, progress_percent)
+    
+    return {
+        "success": True,
+        "progress": progress_percent,
+        "points": update_data.get("gamification_points", student.get("gamification_points", 0)),
+        "new_unlocks": unlocked_bonuses
+    }
+
+async def check_and_unlock_bonuses(partner_id: str, student_id: str, progress: float) -> List[Dict]:
+    """Check if student qualifies for any bonus unlocks"""
+    student = await db.academy_students.find_one({"id": student_id}, {"_id": 0})
+    if not student:
+        return []
+    
+    already_unlocked = student.get("unlocked_bonuses", [])
+    
+    # Get available bonuses
+    bonuses = await db.bonus_content.find(
+        {"partner_id": partner_id, "is_active": True},
+        {"_id": 0}
+    ).to_list(50)
+    
+    newly_unlocked = []
+    
+    for bonus in bonuses:
+        if bonus["id"] in already_unlocked:
+            continue
+        
+        condition = bonus.get("unlock_condition", "")
+        threshold = bonus.get("unlock_threshold", 0)
+        
+        unlocked = False
+        
+        if condition.startswith("progress_"):
+            unlocked = progress >= threshold
+        elif condition == "referral_1":
+            referral_count = await db.referral_records.count_documents({
+                "referrer_student_id": student_id,
+                "status": "converted"
+            })
+            unlocked = referral_count >= 1
+        elif condition == "referral_3":
+            referral_count = await db.referral_records.count_documents({
+                "referrer_student_id": student_id,
+                "status": "converted"
+            })
+            unlocked = referral_count >= 3
+        elif condition == "feedback_given":
+            feedback_count = await db.student_feedback.count_documents({"student_id": student_id})
+            unlocked = feedback_count >= 1
+        
+        if unlocked:
+            already_unlocked.append(bonus["id"])
+            newly_unlocked.append({
+                "bonus_id": bonus["id"],
+                "title": bonus["title"],
+                "points": bonus.get("points_value", 100)
+            })
+    
+    if newly_unlocked:
+        new_points = sum(b["points"] for b in newly_unlocked)
+        await db.academy_students.update_one(
+            {"id": student_id},
+            {
+                "$set": {"unlocked_bonuses": already_unlocked},
+                "$inc": {"gamification_points": new_points}
+            }
+        )
+    
+    return newly_unlocked
+
+@api_router.get("/atlas/bonuses/{partner_id}")
+async def get_partner_bonuses(partner_id: str):
+    """Get all bonus content for a partner"""
+    bonuses = await db.bonus_content.find({"partner_id": partner_id}, {"_id": 0}).to_list(50)
+    return bonuses
+
+@api_router.post("/atlas/bonuses")
+async def create_bonus_content(
+    partner_id: str = Form(...),
+    title: str = Form(...),
+    description: str = Form(...),
+    content_type: str = Form("video"),
+    unlock_condition: str = Form("progress_50"),
+    unlock_threshold: int = Form(50),
+    points_value: int = Form(100)
+):
+    """Create a new bonus content"""
+    bonus = BonusContent(
+        partner_id=partner_id,
+        title=title,
+        description=description,
+        content_type=content_type,
+        unlock_condition=unlock_condition,
+        unlock_threshold=unlock_threshold,
+        points_value=points_value
+    )
+    
+    await db.bonus_content.insert_one(bonus.model_dump())
+    return {"success": True, "bonus_id": bonus.id}
+
+# =============================================================================
+# ATLAS - FEEDBACK-TO-COPY BRIDGE (STEFANIA)
+# =============================================================================
+
+@api_router.post("/atlas/feedback")
+async def submit_student_feedback(
+    partner_id: str = Form(...),
+    student_id: str = Form(...),
+    content: str = Form(...),
+    feedback_type: str = Form("comment"),
+    module_id: str = Form(None)
+):
+    """Submit student feedback for analysis"""
+    feedback = StudentFeedback(
+        partner_id=partner_id,
+        student_id=student_id,
+        content=content,
+        feedback_type=feedback_type,
+        module_id=module_id
+    )
+    
+    await db.student_feedback.insert_one(feedback.model_dump())
+    
+    # Check for bonus unlock
+    await check_and_unlock_bonuses(partner_id, student_id, 0)
+    
+    return {"success": True, "feedback_id": feedback.id}
+
+@api_router.get("/atlas/feedback/{partner_id}")
+async def get_partner_feedback(partner_id: str, analyzed: bool = None):
+    """Get all feedback for a partner"""
+    query = {"partner_id": partner_id}
+    if analyzed is not None:
+        query["analyzed"] = analyzed
+    
+    feedback = await db.student_feedback.find(query, {"_id": 0}).sort("created_at", -1).to_list(200)
+    return feedback
+
+@api_router.post("/atlas/feedback/analyze/{partner_id}")
+async def analyze_feedback_for_copy(partner_id: str):
+    """
+    STEFANIA analyzes student feedback to extract copy angles
+    Runs Feedback-to-Copy Bridge analysis
+    """
+    # Get unanalyzed feedback
+    feedback_list = await db.student_feedback.find(
+        {"partner_id": partner_id, "analyzed": False},
+        {"_id": 0}
+    ).to_list(100)
+    
+    if not feedback_list:
+        return {"message": "No new feedback to analyze", "angles": []}
+    
+    # Get partner info
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    partner_name = partner["name"] if partner else "Partner"
+    partner_niche = partner.get("niche", "coaching")
+    
+    # Build analysis prompt for STEFANIA
+    feedback_texts = "\n".join([
+        f"[{f['feedback_type'].upper()}] {f['content']}" 
+        for f in feedback_list[:30]  # Limit to 30 for API
+    ])
+    
+    analysis_prompt = f"""Sei STEFANIA, Copy Strategist di Evolution PRO. Analizza i feedback degli studenti di {partner_name} ({partner_niche}) per estrarre nuovi angoli di copy per il marketing.
+
+FEEDBACK DEGLI STUDENTI:
+{feedback_texts}
+
+🎯 OBIETTIVO: Identifica pattern ricorrenti che possono diventare:
+1. PAIN POINTS: Frustrazioni o problemi che i potenziali clienti hanno
+2. SUCCESS STORIES: Trasformazioni o risultati che gli studenti hanno ottenuto
+3. OBIEZIONI: Dubbi o resistenze che possiamo anticipare nel copy
+4. DESIDERI: Aspirazioni o obiettivi che motivano all'acquisto
+
+Per ogni angolo trovato, genera:
+- Un headline per un hook pubblicitario
+- Una breve descrizione dell'angolo
+- Il tipo (pain_point, success_story, objection, desire)
+- Score di rilevanza (0.0-1.0) basato su quanti feedback lo supportano
+
+Rispondi in JSON:
+{{"angles": [
+    {{"type": "pain_point", "headline": "...", "description": "...", "relevance_score": 0.8}},
+    ...
+]}}
+"""
+
+    try:
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"atlas_analysis_{partner_id}_{datetime.now().timestamp()}",
+            system_message="Sei STEFANIA, Copy Strategist. Estrai insight di marketing dai feedback degli studenti."
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        
+        response = await chat.send_message(UserMessage(text=analysis_prompt))
+        
+        # Parse JSON response
+        import re
+        json_match = re.search(r'\{[\s\S]*\}', response)
+        angles_data = {"angles": []}
+        
+        if json_match:
+            try:
+                angles_data = json.loads(json_match.group())
+            except json.JSONDecodeError:
+                pass
+        
+        # Save angles to database
+        saved_angles = []
+        feedback_ids = [f["id"] for f in feedback_list]
+        
+        for angle in angles_data.get("angles", []):
+            suggestion = CopyAngleSuggestion(
+                partner_id=partner_id,
+                angle_type=angle.get("type", "pain_point"),
+                headline=angle.get("headline", ""),
+                description=angle.get("description", ""),
+                relevance_score=angle.get("relevance_score", 0.5),
+                source_feedbacks=feedback_ids[:10]
+            )
+            await db.copy_angle_suggestions.insert_one(suggestion.model_dump())
+            saved_angles.append({
+                "id": suggestion.id,
+                "type": suggestion.angle_type,
+                "headline": suggestion.headline,
+                "relevance_score": suggestion.relevance_score
+            })
+        
+        # Mark feedback as analyzed
+        await db.student_feedback.update_many(
+            {"id": {"$in": feedback_ids}},
+            {"$set": {"analyzed": True}}
+        )
+        
+        # Create notification
+        if saved_angles:
+            notification = Notification(
+                type="insight",
+                icon="💡",
+                title="ATLAS: Nuovi Angoli di Copy",
+                body=f"STEFANIA ha estratto {len(saved_angles)} nuovi angoli dai feedback di {partner_name}",
+                time=datetime.now().strftime("%H:%M"),
+                partner=partner_name,
+                action="atlas"
+            )
+            await db.notifications.insert_one(notification.model_dump())
+        
+        return {
+            "success": True,
+            "feedback_analyzed": len(feedback_list),
+            "angles_extracted": len(saved_angles),
+            "angles": saved_angles
+        }
+        
+    except Exception as e:
+        logging.error(f"Feedback analysis error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/atlas/copy-angles/{partner_id}")
+async def get_copy_angle_suggestions(partner_id: str, unused_only: bool = False):
+    """Get STEFANIA's copy angle suggestions"""
+    query = {"partner_id": partner_id}
+    if unused_only:
+        query["used_in_campaign"] = False
+    
+    angles = await db.copy_angle_suggestions.find(
+        query, {"_id": 0}
+    ).sort("relevance_score", -1).to_list(50)
+    
+    return angles
+
+@api_router.post("/atlas/copy-angles/{angle_id}/use")
+async def mark_angle_as_used(angle_id: str):
+    """Mark a copy angle as used in a campaign"""
+    await db.copy_angle_suggestions.update_one(
+        {"id": angle_id},
+        {"$set": {"used_in_campaign": True}}
+    )
+    return {"success": True}
+
+# =============================================================================
+# ATLAS - LTV DASHBOARD
+# =============================================================================
+
+@api_router.get("/atlas/ltv-dashboard/{partner_id}")
+async def get_ltv_dashboard(partner_id: str):
+    """
+    LTV Dashboard: Shows complete asset value for a partner
+    - Active students
+    - Completion rate
+    - Referral value
+    - Total LTV
+    """
+    # Get students
+    students = await db.academy_students.find({"partner_id": partner_id}, {"_id": 0}).to_list(1000)
+    
+    total_students = len(students)
+    active_students = len([s for s in students if s.get("status") == "active"])
+    completed_students = len([s for s in students if s.get("status") == "completed"])
+    churned_students = len([s for s in students if s.get("status") in ["inactive", "churned"]])
+    
+    # Calculate completion rate
+    completion_rate = (completed_students / total_students * 100) if total_students > 0 else 0
+    
+    # Average progress
+    avg_progress = sum(s.get("progress_percent", 0) for s in students) / total_students if total_students > 0 else 0
+    
+    # Get referral data
+    referrals = await db.referral_records.find({"partner_id": partner_id}, {"_id": 0}).to_list(500)
+    total_referrals = len(referrals)
+    converted_referrals = len([r for r in referrals if r.get("status") == "converted"])
+    referral_revenue = sum(r.get("conversion_value", 0) for r in referrals if r.get("status") == "converted")
+    
+    # Get sales data
+    sales = await db.crm_sales.find({"partner_id": partner_id}, {"_id": 0}).to_list(500)
+    direct_revenue = sum(s.get("amount", 0) for s in sales)
+    
+    # Calculate LTV metrics
+    base_course_value = 497  # Default course price
+    total_asset_value = (total_students * base_course_value) + referral_revenue
+    
+    avg_ltv = total_asset_value / total_students if total_students > 0 else 0
+    
+    # Gamification stats
+    total_points = sum(s.get("gamification_points", 0) for s in students)
+    top_students = sorted(students, key=lambda x: x.get("gamification_points", 0), reverse=True)[:5]
+    
+    # Bonus unlocks
+    total_unlocks = sum(len(s.get("unlocked_bonuses", [])) for s in students)
+    
+    return {
+        "partner_id": partner_id,
+        "students": {
+            "total": total_students,
+            "active": active_students,
+            "completed": completed_students,
+            "churned": churned_students,
+            "completion_rate": completion_rate,
+            "avg_progress": avg_progress
+        },
+        "referrals": {
+            "total": total_referrals,
+            "converted": converted_referrals,
+            "conversion_rate": (converted_referrals / total_referrals * 100) if total_referrals > 0 else 0,
+            "revenue": referral_revenue
+        },
+        "revenue": {
+            "direct": direct_revenue,
+            "referral": referral_revenue,
+            "total": direct_revenue + referral_revenue
+        },
+        "ltv": {
+            "total_asset_value": total_asset_value,
+            "avg_ltv_per_student": avg_ltv,
+            "base_course_value": base_course_value
+        },
+        "gamification": {
+            "total_points_earned": total_points,
+            "total_bonuses_unlocked": total_unlocks,
+            "top_students": [{
+                "name": s.get("name"),
+                "points": s.get("gamification_points", 0),
+                "progress": s.get("progress_percent", 0)
+            } for s in top_students]
+        }
+    }
+
+@api_router.post("/atlas/referral/create")
+async def create_referral(
+    partner_id: str = Form(...),
+    referrer_student_id: str = Form(...),
+    referred_email: str = Form(...)
+):
+    """Create a new referral record"""
+    student = await db.academy_students.find_one({"id": referrer_student_id}, {"_id": 0})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    
+    referral_code = student.get("referral_code", f"REF_{referrer_student_id[:8]}")
+    
+    referral = ReferralRecord(
+        partner_id=partner_id,
+        referrer_student_id=referrer_student_id,
+        referred_email=referred_email,
+        referral_code=referral_code
+    )
+    
+    await db.referral_records.insert_one(referral.model_dump())
+    
+    return {
+        "success": True,
+        "referral_id": referral.id,
+        "referral_code": referral_code,
+        "share_link": f"https://systeme.io/{partner_id}?ref={referral_code}"
+    }
+
+@api_router.get("/atlas/referrals/{partner_id}")
+async def get_partner_referrals(partner_id: str):
+    """Get all referrals for a partner"""
+    referrals = await db.referral_records.find({"partner_id": partner_id}, {"_id": 0}).to_list(500)
+    return referrals
+
+# =============================================================================
+# ROUTES - ANDREA (Video Production Support)
+# =============================================================================
+
+def build_andrea_system_prompt(partner_name: str, partner_niche: str, current_block: str = None, recording_status: str = None):
+    """Build the system prompt for ANDREA - Video Production tutor"""
+    
+    block_tips = {
+        "hook": "Il GANCIO deve essere registrato con energia ALTA. Guarda dritto in camera, voce forte e sicura. Questo è il momento di 'svegliare' il pubblico.",
+        "grande_promessa": "La GRANDE PROMESSA richiede convinzione assoluta. Rallenta leggermente, sottolinea i numeri con pause strategiche.",
+        "metodo": "IL METODO va spiegato con chiarezza didattica ma NON monotona. Usa le mani per i 3 pilastri, crea movimento.",
+        "case_history": "La CASE HISTORY è storytelling: abbassa leggermente il tono quando descrivi il 'prima', poi alzalo per il 'dopo'. Sorridi raccontando il successo.",
+        "offerta": "L'OFFERTA deve essere presentata con entusiasmo genuino. Ogni bonus è un regalo - fai trasparire la generosità.",
+        "cta": "La CTA finale: guarda fisso in camera, voce decisa, pausa prima del comando. 'Clicca. Ora.' - non 'se ti interessa clicca'."
+    }
+    
+    status_context = ""
+    if recording_status == "setup":
+        status_context = """
+🎬 FASE ATTUALE: PRE-FLIGHT CHECK
+Stai guidando il partner attraverso la checklist di setup. Verifica:
+- Sfondo ordinato e professionale
+- Luce frontale (no controluce)
+- Microfono a 15-20cm dalla bocca
+- Inquadratura dal petto in su, occhi al terzo superiore
+- Ambiente silenzioso
+- Script pronto e leggibile
+"""
+    elif recording_status == "recording":
+        status_context = """
+🎬 FASE ATTUALE: REGISTRAZIONE IN CORSO
+Fornisci coaching energetico:
+- Ricorda di NON spiegare ma GUIDARE
+- Voce alta, tono convinto
+- Se sbaglia, non fermarsi - taglio chirurgico in post
+- Un blocco alla volta, pause tra i blocchi
+"""
+    elif recording_status == "review":
+        status_context = """
+🎬 FASE ATTUALE: REVIEW VIDEO CARICATO
+Analizza il video e fornisci feedback su:
+- Qualità audio (rumore, volume, chiarezza)
+- Qualità video (luce, inquadratura, sfondo)
+- Energia e presenza scenica
+- Suggerimenti specifici per migliorare
+"""
+    
+    block_context = ""
+    if current_block and current_block in block_tips:
+        block_context = f"\n\n📍 BLOCCO ATTUALE: {current_block.upper()}\n{block_tips[current_block]}"
+    
+    return f"""Sei ANDREA, il tutor di produzione video di Evolution PRO.
+Il tuo ruolo è guidare i partner nella registrazione professionale della loro Masterclass.
+
+PARTNER ATTUALE:
+- Nome: {partner_name}
+- Nicchia: {partner_niche}
+{status_context}
+{block_context}
+
+🎯 IL TUO OBIETTIVO:
+Trasformare il partner in un presentatore sicuro e magnetico. Non deve sembrare un robot che legge, ma un esperto appassionato che GUIDA il pubblico.
+
+💪 IL TUO STILE:
+- Incoraggiante ma tecnico
+- Pratico e orientato all'azione
+- Dai feedback specifici e actionable
+- Se qualcosa non va, dillo chiaramente ma con tatto
+
+📋 CHECKLIST PRE-REGISTRAZIONE:
+1. ✅ Sfondo ordinato e coerente con il brand
+2. ✅ Luce frontale (ring light o finestra davanti)
+3. ✅ Microfono esterno a 15-20cm (no audio integrato)
+4. ✅ Inquadratura: dal petto in su, occhi al terzo superiore
+5. ✅ Ambiente silenzioso (spegni notifiche, condizionatore)
+6. ✅ Script suddiviso in blocchi, pronto sul teleprompter
+
+🎬 WORKFLOW:
+1. Test video 30 secondi (Blocco 1 - Gancio)
+2. Verifica tecnica audio/video
+3. Registrazione blocco per blocco
+4. Upload immediato → Surgical Cut automatico
+5. Review e approvazione
+6. Assembly finale con Intro/Outro
+
+⚠️ ERRORI COMUNI DA CORREGGERE:
+- Voce troppo bassa o monotona → "Alza il volume del 20%, come se parlassi a qualcuno in fondo alla stanza"
+- Sguardo che fugge → "Fissa l'obiettivo come se fosse il tuo miglior cliente"
+- Lettura robotica → "Parla come se stessi raccontando a un amico, non leggendo"
+- Energia calante → "Pausa, respiro profondo, ricorda PERCHÉ fai questo"
+
+Rispondi in italiano, con tono incoraggiante ma professionale. Massimo 4-5 frasi per risposta."""
+
+@api_router.post("/andrea/chat")
+async def chat_with_andrea(request: AndreaChatRequest):
+    """Chat with ANDREA - Video Production tutor"""
+    try:
+        session_id = f"andrea_{request.session_id}"
+        
+        # Get chat history
+        history = await db.chat_messages.find(
+            {"session_id": session_id}, 
+            {"_id": 0}
+        ).sort("timestamp", 1).to_list(50)
+        
+        # Build ANDREA chat
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=session_id,
+            system_message=build_andrea_system_prompt(
+                request.partner_name,
+                request.partner_niche,
+                request.current_block,
+                request.recording_status
+            )
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        
+        # Add history
+        for msg in history:
+            if msg["role"] == "user":
+                await chat.send_message(UserMessage(text=msg["content"]))
+        
+        # Save user message
+        user_msg = ChatMessage(
+            session_id=session_id,
+            role="user",
+            content=request.message
+        )
+        await db.chat_messages.insert_one(user_msg.model_dump())
+        
+        # Get response
+        response = await chat.send_message(UserMessage(text=request.message))
+        
+        # Save assistant response
+        assistant_msg = ChatMessage(
+            session_id=session_id,
+            role="assistant",
+            content=response
+        )
+        await db.chat_messages.insert_one(assistant_msg.model_dump())
+        
+        return {"response": response, "timestamp": assistant_msg.timestamp, "tutor": "ANDREA"}
+        
+    except Exception as e:
+        logging.error(f"Andrea chat error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/andrea/preflight/{partner_id}")
+async def get_preflight_check(partner_id: str):
+    """Get pre-flight checklist for a partner"""
+    preflight = await db.preflight_checks.find_one(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    )
+    if not preflight:
+        return {
+            "partner_id": partner_id,
+            "checklist": {
+                "sfondo_ordinato": False,
+                "luce_frontale": False,
+                "microfono_posizionato": False,
+                "inquadratura_corretta": False,
+                "silenzio_ambiente": False,
+                "script_pronto": False
+            },
+            "test_video_uploaded": False,
+            "test_video_approved": False
+        }
+    return preflight
+
+@api_router.post("/andrea/preflight/{partner_id}")
+async def update_preflight_check(partner_id: str, checklist: Dict[str, bool]):
+    """Update pre-flight checklist"""
+    existing = await db.preflight_checks.find_one({"partner_id": partner_id})
+    
+    if existing:
+        await db.preflight_checks.update_one(
+            {"partner_id": partner_id},
+            {"$set": {
+                "checklist": checklist,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    else:
+        preflight = PreFlightCheck(partner_id=partner_id, checklist=checklist)
+        await db.preflight_checks.insert_one(preflight.model_dump())
+    
+    return {"success": True}
+
+@api_router.get("/andrea/blocks/{partner_id}")
+async def get_video_blocks(partner_id: str):
+    """Get all video blocks for a partner's production"""
+    blocks = await db.video_blocks.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).sort("created_at", 1).to_list(10)
+    
+    if not blocks:
+        # Initialize blocks from approved script
+        script = await db.masterclass_scripts.find_one({"partner_id": partner_id}, {"_id": 0})
+        if script and script.get("blocks"):
+            block_labels = {
+                "hook": "Il Gancio",
+                "grande_promessa": "Grande Promessa", 
+                "metodo": "Il Metodo",
+                "case_history": "Case History",
+                "offerta": "L'Offerta",
+                "cta": "Call to Action"
+            }
+            blocks = []
+            for block_type, label in block_labels.items():
+                content = script["blocks"].get(block_type, "")
+                if content.strip():
+                    block = VideoBlock(
+                        partner_id=partner_id,
+                        block_type=block_type,
+                        block_label=label,
+                        script_content=content
+                    )
+                    await db.video_blocks.insert_one(block.model_dump())
+                    blocks.append(block.model_dump())
+    
+    return blocks
+
+@api_router.post("/andrea/blocks/{partner_id}/{block_type}/upload")
+async def upload_block_video(
+    partner_id: str,
+    block_type: str,
+    file: UploadFile = File(...)
+):
+    """Upload a video for a specific block and trigger Surgical Cut"""
+    # Upload the file
+    result = await file_storage.upload_file(file, partner_id, "video")
+    
+    if not result["success"]:
+        raise HTTPException(status_code=500, detail="Upload failed")
+    
+    # Update block status
+    await db.video_blocks.update_one(
+        {"partner_id": partner_id, "block_type": block_type},
+        {"$set": {
+            "status": "uploaded",
+            "video_file": result["stored_name"],
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Trigger Surgical Cut processing in background
+    # Note: In production, this would be a background task
+    
+    return {
+        "success": True,
+        "block_type": block_type,
+        "video_file": result["stored_name"],
+        "message": "Video caricato! ANDREA sta applicando il Surgical Cut..."
+    }
+
+@api_router.post("/andrea/blocks/{partner_id}/{block_type}/approve")
+async def approve_block_video(partner_id: str, block_type: str):
+    """Approve a block video after review"""
+    await db.video_blocks.update_one(
+        {"partner_id": partner_id, "block_type": block_type},
+        {"$set": {
+            "status": "approved",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Check if all blocks are approved
+    blocks = await db.video_blocks.find({"partner_id": partner_id}, {"_id": 0}).to_list(10)
+    all_approved = all(b.get("status") == "approved" for b in blocks if b.get("script_content"))
+    
+    if all_approved:
+        # Create notification for admin
+        partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+        notification = Notification(
+            type="video",
+            icon="🎬",
+            title="Masterclass Pronta per Assembly",
+            body=f"Tutti i blocchi video di {partner['name']} sono approvati. Pronto per assembly finale.",
+            time=datetime.now().strftime("%H:%M"),
+            partner=partner["name"],
+            action="andrea"
+        )
+        await db.notifications.insert_one(notification.model_dump())
+    
+    return {"success": True, "all_approved": all_approved}
+
+@api_router.post("/andrea/assembly/{partner_id}")
+async def assemble_final_video(partner_id: str, request: VideoAssemblyRequest):
+    """Assemble all approved blocks into final video with intro/outro"""
+    blocks = await db.video_blocks.find(
+        {"partner_id": partner_id, "status": "approved"},
+        {"_id": 0}
+    ).to_list(10)
+    
+    if not blocks:
+        raise HTTPException(status_code=400, detail="No approved blocks to assemble")
+    
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    brandkit = await db.brand_kits.find_one({"partner_id": partner_id}, {"_id": 0})
+    
+    # In production, this would trigger FFmpeg concatenation
+    # For now, we simulate the process
+    
+    assembly_result = {
+        "partner_id": partner_id,
+        "partner_name": partner["name"],
+        "blocks_assembled": len(blocks),
+        "include_intro": request.include_intro,
+        "include_outro": request.include_outro,
+        "status": "processing",
+        "message": "Assembly in corso... ANDREA sta concatenando i blocchi con Intro/Outro brandizzate."
+    }
+    
+    # Create notification
+    notification = Notification(
+        type="video",
+        icon="🎬",
+        title="Assembly Video Avviato",
+        body=f"ANDREA sta assemblando la Masterclass di {partner['name']} ({len(blocks)} blocchi)",
+        time=datetime.now().strftime("%H:%M"),
+        partner=partner["name"],
+        action="andrea"
+    )
+    await db.notifications.insert_one(notification.model_dump())
+    
+    return assembly_result
+
+# =============================================================================
+# ROUTES - MASTERCLASS SCRIPTS
+# =============================================================================
+
+@api_router.get("/masterclass/script/{partner_id}")
+async def get_masterclass_script(partner_id: str):
+    """Get the masterclass script for a partner"""
+    script = await db.masterclass_scripts.find_one(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    )
+    if not script:
+        # Return empty template
+        return {
+            "partner_id": partner_id,
+            "status": "new",
+            "blocks": {
+                "hook": "",
+                "grande_promessa": "",
+                "metodo": "",
+                "case_history": "",
+                "offerta": "",
+                "cta": ""
+            }
+        }
+    return script
+
+@api_router.post("/masterclass/script/{partner_id}")
+async def save_masterclass_script(partner_id: str, update: MasterclassScriptUpdate):
+    """Save or update masterclass script"""
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    existing = await db.masterclass_scripts.find_one({"partner_id": partner_id})
+    
+    if existing:
+        await db.masterclass_scripts.update_one(
+            {"partner_id": partner_id},
+            {"$set": {
+                "blocks": update.blocks,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    else:
+        script = MasterclassScript(
+            partner_id=partner_id,
+            partner_name=partner["name"],
+            blocks=update.blocks
+        )
+        await db.masterclass_scripts.insert_one(script.model_dump())
+    
+    return {"success": True, "partner_id": partner_id}
+
+@api_router.post("/masterclass/script/{partner_id}/submit")
+async def submit_script_for_review(partner_id: str):
+    """Submit script for STEFANIA review"""
+    script = await db.masterclass_scripts.find_one({"partner_id": partner_id}, {"_id": 0})
+    if not script:
+        raise HTTPException(status_code=404, detail="Script not found")
+    
+    # Get review from STEFANIA
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    review_result = await stefania_review_script(ScriptReviewRequest(
+        partner_id=partner_id,
+        partner_name=partner["name"],
+        script_blocks=script["blocks"]
+    ))
+    
+    # Update script status
+    new_status = "needs_revision" if review_result["needs_admin_review"] else "approved"
+    await db.masterclass_scripts.update_one(
+        {"partner_id": partner_id},
+        {"$set": {
+            "status": new_status,
+            "stefania_feedback": review_result["review"],
+            "last_review_at": review_result["reviewed_at"]
+        }}
+    )
+    
+    return {
+        "status": new_status,
+        "feedback": review_result["review"],
+        "needs_admin_review": review_result["needs_admin_review"]
+    }
+
+# =============================================================================
+# ROUTES - BRAND KIT
+# =============================================================================
+
+@api_router.get("/brandkit/{partner_id}")
+async def get_brand_kit(partner_id: str):
+    """Get brand kit for a partner"""
+    brandkit = await db.brand_kits.find_one(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    )
+    if not brandkit:
+        partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+        if not partner:
+            raise HTTPException(status_code=404, detail="Partner not found")
+        return {
+            "partner_id": partner_id,
+            "nome_partner": partner["name"],
+            "brand_color": "#F5C518",
+            "brand_color_secondary": "#1a2332",
+            "logo_url": None,
+            "tagline": None
+        }
+    return brandkit
+
+@api_router.post("/brandkit/{partner_id}")
+async def update_brand_kit(partner_id: str, update: PartnerBrandKitUpdate):
+    """Update brand kit for a partner"""
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    existing = await db.brand_kits.find_one({"partner_id": partner_id})
+    
+    update_data = {k: v for k, v in update.model_dump().items() if v is not None}
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    if existing:
+        await db.brand_kits.update_one(
+            {"partner_id": partner_id},
+            {"$set": update_data}
+        )
+    else:
+        brandkit = PartnerBrandKit(
+            partner_id=partner_id,
+            nome_partner=partner["name"],
+            **update_data
+        )
+        await db.brand_kits.insert_one(brandkit.model_dump())
+    
+    return {"success": True, "partner_id": partner_id}
+
+# =============================================================================
+# ROUTES - NOTIFICATIONS
+# =============================================================================
+
+@api_router.get("/notifications")
+async def get_notifications(limit: int = 20):
+    """Get recent notifications"""
+    notifications = await db.notifications.find(
+        {},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    return notifications
+
+@api_router.post("/notifications/{notification_id}/read")
+async def mark_notification_read(notification_id: str):
+    """Mark a notification as read"""
+    await db.notifications.update_one(
+        {"id": notification_id},
+        {"$set": {"read": True}}
+    )
+    return {"success": True}
+
+@api_router.post("/notifications/mark-all-read")
+async def mark_all_notifications_read():
+    """Mark all notifications as read"""
+    await db.notifications.update_many({}, {"$set": {"read": True}})
+    return {"success": True}
+
+# =============================================================================
+# ROUTES - FILE STORAGE (Native File Manager)
+# =============================================================================
+
+@api_router.post("/files/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    partner_id: str = Form(...),
+    category: str = Form(default="document")
+):
+    """Upload a file (video or document) for a partner"""
+    result = await file_storage.upload_file(file, partner_id, category)
+    
+    if result["success"]:
+        # Save file metadata to database
+        file_record = StoredFile(
+            file_id=result["file_id"],
+            original_name=result["original_name"],
+            stored_name=result["stored_name"],
+            file_type=result["file_type"],
+            partner_id=partner_id,
+            status=result["status"],
+            internal_url=result["internal_url"],
+            size=result["size"],
+            uploaded_at=result["uploaded_at"]
+        )
+        await db.files.insert_one(file_record.model_dump())
+        
+        # Update agent status (ANDREA for videos, LUCA for documents)
+        if result["file_type"] == "video":
+            await db.agents.update_one({"id": "ANDREA"}, {"$set": {"status": "ACTIVE"}})
+        else:
+            await db.agents.update_one({"id": "LUCA"}, {"$set": {"status": "ACTIVE"}})
+    
+    return result
+
+@api_router.get("/files")
+async def list_files(
+    category: str = "all",
+    status: str = "all",
+    partner_id: Optional[str] = None
+):
+    """List files in storage"""
+    return file_storage.list_files(category, status, partner_id)
+
+@api_router.get("/files/partner/{partner_id}")
+async def get_partner_files(partner_id: str):
+    """Get all files for a specific partner"""
+    # Get files from database
+    files = await db.files.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Also get onboarding documents
+    onboarding_docs = await db.onboarding_documents.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).to_list(10)
+    
+    # Categorize files
+    categorized = {
+        "video": [],
+        "document": [],
+        "image": [],
+        "audio": [],
+        "onboarding": onboarding_docs
+    }
+    
+    for f in files:
+        cat = f.get("category", "document")
+        if cat in categorized:
+            categorized[cat].append(f)
+        else:
+            categorized["document"].append(f)
+    
+    return {
+        "files": categorized,
+        "total": len(files) + len(onboarding_docs),
+        "partner_id": partner_id
+    }
+
+@api_router.get("/files/{path:path}")
+async def serve_file(path: str):
+    """Serve a file from storage"""
+    file_path = file_storage.get_file_path(path)
+    if not file_path:
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path)
+
+@api_router.get("/storage/stats")
+async def get_storage_stats():
+    """Get storage usage statistics"""
+    return file_storage.get_storage_stats()
+
+@api_router.post("/files/documents/{filename}/verify")
+async def verify_document(filename: str):
+    """Mark a document as verified (LUCA compliance check)"""
+    result = file_storage.verify_document(filename)
+    if result["success"]:
+        # Update database
+        await db.files.update_one(
+            {"stored_name": filename},
+            {"$set": {
+                "status": "verified",
+                "verified_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    return result
+
+@api_router.delete("/files/documents/{filename}/reject")
+async def reject_document(filename: str, reason: str = ""):
+    """Reject and delete a document"""
+    result = file_storage.reject_document(filename, reason)
+    if result["success"]:
+        await db.files.delete_one({"stored_name": filename})
+    return result
+
+# =============================================================================
+# ROUTES - VIDEO PROCESSING (ANDREA Pipeline)
+# =============================================================================
+
+@api_router.post("/videos/process")
+async def start_video_processing(request: VideoProcessRequest, background_tasks: BackgroundTasks):
+    """Start video processing job"""
+    # Create job record
+    job = VideoJob(
+        partner_id=request.partner_id,
+        partner_name=request.partner_name,
+        input_file=request.input_file,
+        status="queued"
+    )
+    
+    await db.video_jobs.insert_one(job.model_dump())
+    
+    # Update ANDREA status
+    await db.agents.update_one({"id": "ANDREA"}, {"$set": {"status": "ACTIVE"}})
+    
+    # Add processing to background tasks
+    background_tasks.add_task(
+        process_video_background,
+        job.id,
+        request.input_file,
+        request.partner_name,
+        request.auto_trim,
+        request.remove_fillers,
+        request.apply_speed,
+        request.normalize,
+        request.add_branding
+    )
+    
+    return {"job_id": job.id, "status": "queued", "message": "Video processing started"}
+
+async def process_video_background(
+    job_id: str, input_file: str, partner_name: str,
+    auto_trim: bool, remove_fillers: bool, apply_speed: bool,
+    normalize: bool, add_branding: bool
+):
+    """Background task for video processing"""
+    try:
+        # Update status to processing
+        await db.video_jobs.update_one(
+            {"id": job_id},
+            {"$set": {"status": "processing", "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        
+        # Process video
+        result = await video_processor.process_video(
+            job_id, input_file, partner_name,
+            auto_trim, remove_fillers, apply_speed,
+            normalize, add_branding
+        )
+        
+        # Update job with result
+        if result["success"]:
+            await db.video_jobs.update_one(
+                {"id": job_id},
+                {"$set": {
+                    "status": "completed",
+                    "output_file": result["output_file"],
+                    "processing_result": result,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+        else:
+            await db.video_jobs.update_one(
+                {"id": job_id},
+                {"$set": {
+                    "status": "failed",
+                    "processing_result": result,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            
+            # Create alert for failed processing
+            alert = Alert(
+                agent="ANDREA",
+                type="BLOCCO",
+                msg=f"Video processing failed: {result.get('error', 'Unknown error')}",
+                partner=partner_name,
+                time="adesso"
+            )
+            await db.alerts.insert_one(alert.model_dump())
+        
+    except Exception as e:
+        logging.exception(f"Video processing background task failed: {e}")
+        await db.video_jobs.update_one(
+            {"id": job_id},
+            {"$set": {
+                "status": "failed",
+                "processing_result": {"error": str(e)},
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+
+@api_router.get("/videos/jobs")
+async def list_video_jobs(status: Optional[str] = None, partner_id: Optional[str] = None):
+    """List video processing jobs"""
+    query = {}
+    if status:
+        query["status"] = status
+    if partner_id:
+        query["partner_id"] = partner_id
+    
+    jobs = await db.video_jobs.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return jobs
+
+@api_router.get("/videos/jobs/{job_id}")
+async def get_video_job(job_id: str):
+    """Get video job details"""
+    job = await db.video_jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job
+
+@api_router.post("/videos/jobs/{job_id}/approve")
+async def approve_video(job_id: str):
+    """Approve a processed video"""
+    job = await db.video_jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    if job["status"] != "completed":
+        raise HTTPException(status_code=400, detail="Video must be in 'completed' status to approve")
+    
+    # Move to approved folder
+    result = video_processor.approve_video(job_id)
+    
+    if result["success"]:
+        # Generate YouTube-ready URL placeholder (actual upload requires YouTube API)
+        youtube_placeholder = f"https://youtube.com/upload?title={job['partner_name']}_Evolution_PRO"
+        
+        await db.video_jobs.update_one(
+            {"id": job_id},
+            {"$set": {
+                "status": "approved",
+                "youtube_url": youtube_placeholder,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        # Update ANDREA budget (increment for completed work)
+        await db.agents.update_one(
+            {"id": "ANDREA"},
+            {"$inc": {"budget": 5}}
+        )
+        
+        return {
+            "success": True,
+            "job_id": job_id,
+            "status": "approved",
+            "internal_url": result["internal_url"],
+            "youtube_ready": True,
+            "message": "Video approved! Ready for YouTube upload to Evolution PRO channel."
+        }
+    
+    return result
+
+@api_router.delete("/videos/jobs/{job_id}")
+async def delete_video_job(job_id: str):
+    """Delete a video job and associated files"""
+    job = await db.video_jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    # Delete associated files
+    if job.get("output_file"):
+        try:
+            processed_path = Path(f"/app/storage/videos/processed/{job['output_file']}")
+            if processed_path.exists():
+                processed_path.unlink()
+        except:
+            pass
+    
+    await db.video_jobs.delete_one({"id": job_id})
+    return {"status": "deleted", "job_id": job_id}
+
+# =============================================================================
+# ROUTES - COMPLIANCE DASHBOARD (LUCA)
+# =============================================================================
+
+@api_router.get("/compliance/pending")
+async def get_pending_documents():
+    """Get documents pending verification for compliance dashboard"""
+    docs = file_storage.list_files(category="document", status="pending")
+    return {
+        "count": len(docs),
+        "documents": docs
+    }
+
+@api_router.get("/compliance/stats")
+async def get_compliance_stats():
+    """Get compliance statistics for LUCA dashboard"""
+    all_docs = file_storage.list_files(category="document")
+    pending = [d for d in all_docs if d["status"] == "pending"]
+    verified = [d for d in all_docs if d["status"] == "verified"]
+    
+    return {
+        "total_documents": len(all_docs),
+        "pending_count": len(pending),
+        "verified_count": len(verified),
+        "verification_rate": round(len(verified) / max(len(all_docs), 1) * 100, 1)
+    }
+
+# =============================================================================
+# ROUTES - STATS
+# =============================================================================
+
+@api_router.get("/stats")
+async def get_stats():
+    partners = await db.partners.find({}, {"_id": 0}).to_list(100)
+    alerts = await db.alerts.find({}, {"_id": 0}).to_list(100)
+    
+    total_partners = len(partners)
+    active_partners = sum(1 for p in partners if p.get("phase") not in ["F0", "F10"])
+    total_revenue = sum(p.get("revenue", 0) for p in partners)
+    alerts_count = len(alerts)
+    
+    # Phase distribution
+    phase_dist = {}
+    for p in partners:
+        phase = p.get("phase", "F0")
+        phase_dist[phase] = phase_dist.get(phase, 0) + 1
+    
+    # Video processing stats
+    video_jobs = await db.video_jobs.find({}, {"_id": 0}).to_list(1000)
+    videos_processing = sum(1 for j in video_jobs if j.get("status") == "processing")
+    videos_pending_approval = sum(1 for j in video_jobs if j.get("status") == "completed")
+    videos_approved = sum(1 for j in video_jobs if j.get("status") == "approved")
+    videos_uploaded = sum(1 for j in video_jobs if j.get("status") == "uploaded")
+    
+    # Storage stats
+    storage_stats = file_storage.get_storage_stats()
+    
+    # YouTube auth status
+    youtube_auth = youtube_uploader.is_authenticated()
+    
+    return {
+        "total_partners": total_partners,
+        "active_partners": active_partners,
+        "total_revenue": total_revenue,
+        "alerts_count": alerts_count,
+        "phase_distribution": phase_dist,
+        "videos": {
+            "processing": videos_processing,
+            "pending_approval": videos_pending_approval,
+            "approved": videos_approved,
+            "uploaded": videos_uploaded
+        },
+        "storage": storage_stats,
+        "youtube_authenticated": youtube_auth
+    }
+
+# =============================================================================
+# ROUTES - YOUTUBE UPLOAD
+# =============================================================================
+
+@api_router.post("/youtube/config")
+async def set_youtube_config(file: UploadFile = File(...)):
+    """Upload YouTube OAuth client_secret.json"""
+    try:
+        content = await file.read()
+        config = json.loads(content.decode())
+        youtube_uploader.set_client_config(config)
+        return {"success": True, "message": "YouTube config saved"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.get("/youtube/auth-url")
+async def get_youtube_auth_url():
+    """Get OAuth authorization URL"""
+    try:
+        url = youtube_uploader.get_auth_url()
+        return {"auth_url": url}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.post("/youtube/complete-auth")
+async def complete_youtube_auth(auth_code: str):
+    """Complete OAuth flow with authorization code"""
+    success = youtube_uploader.complete_auth(auth_code)
+    if success:
+        return {"success": True, "message": "YouTube authentication completed"}
+    raise HTTPException(status_code=400, detail="Authentication failed")
+
+@api_router.get("/youtube/status")
+async def get_youtube_status():
+    """Check YouTube authentication status"""
+    return {
+        "authenticated": youtube_uploader.is_authenticated(),
+        "config_exists": Path("/app/storage/client_secret.json").exists()
+    }
+
+@api_router.post("/youtube/upload/{job_id}")
+async def upload_to_youtube(job_id: str, request: YouTubeUploadRequest, background_tasks: BackgroundTasks):
+    """Upload approved video to YouTube"""
+    if not youtube_uploader.is_authenticated():
+        raise HTTPException(status_code=401, detail="YouTube not authenticated")
+    
+    job = await db.video_jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    if job["status"] != "approved":
+        raise HTTPException(status_code=400, detail="Video must be approved first")
+    
+    # Get partner info
+    partner = await db.partners.find_one({"id": job["partner_id"]}, {"_id": 0})
+    partner_niche = partner.get("niche", "Business") if partner else "Business"
+    
+    # Get transcription from processing result
+    transcription = ""
+    if job.get("processing_result"):
+        for step in job["processing_result"].get("processing_steps", []):
+            if step.get("step") == "filler_detection":
+                transcription = step.get("transcription_text", "")
+                break
+    
+    # Start upload in background
+    background_tasks.add_task(
+        youtube_upload_background,
+        job_id,
+        job["partner_name"],
+        partner_niche,
+        request.title,
+        request.lesson_title,
+        request.module_title,

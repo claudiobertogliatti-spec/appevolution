@@ -1,0 +1,2000 @@
+from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks, Request
+from fastapi.responses import FileResponse
+from dotenv import load_dotenv
+from starlette.middleware.cors import CORSMiddleware
+from motor.motor_asyncio import AsyncIOMotorClient
+import os
+import logging
+import json
+from pathlib import Path
+from pydantic import BaseModel, Field, ConfigDict
+from typing import List, Optional, Dict, Any
+import uuid
+from datetime import datetime, timezone, timedelta
+from emergentintegrations.llm.chat import LlmChat, UserMessage
+from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
+import httpx
+
+# Import custom modules
+from video_processor import video_processor, VideoProcessor
+from file_storage import file_storage, FileStorageManager
+from youtube_uploader import youtube_uploader, YouTubeUploader
+from tts_generator import tts_generator, TTSGenerator
+from video_editor_service import video_editor, VideoEditorService
+from legal_pages_service import legal_generator, LegalPagesGenerator
+from funnel_export_service import funnel_export_service, FunnelExportService
+from orion_service import OrionLeadScoring, init_orion
+from agent_hub_service import AgentAnalyticsHub, init_agent_hub
+
+ROOT_DIR = Path(__file__).parent
+load_dotenv(ROOT_DIR / '.env')
+
+# MongoDB connection - Read from environment variables
+mongo_url = os.environ.get('MONGO_URL', '')
+db_name = os.environ.get('DB_NAME', 'evolution_pro')
+
+if not mongo_url:
+    raise ValueError("MONGO_URL environment variable is required")
+
+print(f"🔗 Connecting to MongoDB: {db_name}")
+
+client = AsyncIOMotorClient(mongo_url)
+db = client[db_name]
+
+# Initialize AI Agents
+orion_scoring = init_orion(db)
+agent_hub = init_agent_hub(db)
+
+# Emergent LLM Key
+EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
+
+# Create the main app
+app = FastAPI(title="Evolution PRO OS", version="3.0")
+
+# CORS Configuration - MUST be before routers
+# Allow specific origins for production + wildcard for development
+ALLOWED_ORIGINS = [
+    "https://app.evolution-pro.it",
+    "https://www.app.evolution-pro.it",
+    "https://evolution-pro.it",
+    "https://www.evolution-pro.it",
+    "http://localhost:3000",
+    "http://localhost:8001",
+]
+
+# Add any preview URLs from environment
+cors_env = os.environ.get('CORS_ORIGINS', '')
+if cors_env and cors_env != '*':
+    ALLOWED_ORIGINS.extend([o.strip() for o in cors_env.split(',') if o.strip()])
+
+# Add current preview URL dynamically
+react_backend_url = os.environ.get('REACT_APP_BACKEND_URL', '')
+if react_backend_url and react_backend_url not in ALLOWED_ORIGINS:
+    ALLOWED_ORIGINS.append(react_backend_url)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
+
+api_router = APIRouter(prefix="/api")
+
+# =============================================================================
+# MODELS
+# =============================================================================
+
+class Agent(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str
+    role: str
+    status: str  # ACTIVE, IDLE, ALERT
+    budget: int
+    category: str
+
+class Partner(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    niche: str = ""
+    phase: str = "F1"
+    revenue: int = 0
+    contract: str = ""
+    alert: bool = False
+    modules: List[int] = Field(default_factory=lambda: [0]*10)
+
+class PartnerCreate(BaseModel):
+    name: str
+    niche: str = ""
+    phase: str = "F1"
+    contract: str = ""
+
+class Alert(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    agent: str
+    type: str  # BUDGET, BLOCCO
+    msg: str
+    time: str
+    partner: str
+
+class ChatMessage(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    session_id: str
+    role: str
+    content: str
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class ChatRequest(BaseModel):
+    session_id: str = ""
+    message: str
+    partner_name: str = "Partner"
+    partner_niche: str = ""
+    partner_phase: str = "F1"
+    modules_done: int = 0
+    context: Optional[Dict[str, Any]] = None
+
+class VideoJob(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    partner_id: str
+    partner_name: str
+    input_file: str
+    status: str = "queued"  # queued, processing, completed, approved, uploaded, failed
+    output_file: Optional[str] = None
+    processing_result: Optional[dict] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    youtube_url: Optional[str] = None
+    youtube_video_id: Optional[str] = None
+
+class VideoProcessRequest(BaseModel):
+    partner_id: str
+    partner_name: str
+    input_file: str
+    auto_trim: bool = True
+    remove_fillers: bool = True
+    apply_speed: bool = True
+    normalize: bool = True
+    add_branding: bool = True
+
+class YouTubeUploadRequest(BaseModel):
+    job_id: str
+    title: str
+    lesson_title: str
+    module_title: str
+    privacy_status: str = "unlisted"
+
+class SystemeTemplate(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    category: str  # lead_gen, masterclass, vendita, webinar, altri
+    share_link: str
+    description: str = ""
+    brand_variables: List[str] = Field(default_factory=lambda: ["Nome_Partner", "Colore_Brand"])
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class BrandKit(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    partner_id: str
+    nome_partner: str
+    colore_brand: str = "#F5C518"
+    logo_url: Optional[str] = None
+    email_partner: Optional[str] = None
+    telefono: Optional[str] = None
+    sito_web: Optional[str] = None
+    social_instagram: Optional[str] = None
+    social_linkedin: Optional[str] = None
+
+class TTSRequest(BaseModel):
+    text: str
+    voice: str = "onyx"
+    type: str = "intro"  # intro or outro
+    partner_name: str
+
+# =============================================================================
+# MASTERCLASS & STEFANIA MODELS
+# =============================================================================
+
+class MasterclassScript(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    partner_id: str
+    partner_name: str
+    status: str = "draft"  # draft, in_review, approved, needs_revision
+    blocks: Dict[str, str] = Field(default_factory=lambda: {
+        "hook": "",
+        "grande_promessa": "",
+        "metodo": "",
+        "case_history": "",
+        "offerta": "",
+        "cta": ""
+    })
+    stefania_feedback: Optional[str] = None
+    last_review_at: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class MasterclassScriptUpdate(BaseModel):
+    blocks: Dict[str, str]
+
+class PartnerBrandKit(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    partner_id: str
+    nome_partner: str
+    brand_color: str = "#F5C518"
+    brand_color_secondary: str = "#1a2332"
+    logo_url: Optional[str] = None
+    tagline: Optional[str] = None
+    email: Optional[str] = None
+    website: Optional[str] = None
+    social_instagram: Optional[str] = None
+    social_linkedin: Optional[str] = None
+    social_youtube: Optional[str] = None
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class PartnerBrandKitUpdate(BaseModel):
+    brand_color: Optional[str] = None
+    brand_color_secondary: Optional[str] = None
+    logo_url: Optional[str] = None
+    tagline: Optional[str] = None
+    email: Optional[str] = None
+    website: Optional[str] = None
+    social_instagram: Optional[str] = None
+    social_linkedin: Optional[str] = None
+    social_youtube: Optional[str] = None
+
+class StefaniaChatRequest(BaseModel):
+    session_id: str
+    message: str
+    partner_id: str
+    partner_name: str
+    partner_niche: str
+    current_block: Optional[str] = None  # hook, grande_promessa, etc.
+    script_context: Optional[Dict[str, str]] = None
+
+class ScriptReviewRequest(BaseModel):
+    partner_id: str
+    partner_name: str
+    script_blocks: Dict[str, str]
+
+class SuccessCase(BaseModel):
+    """Model for Evolution PRO Success Cases - Master Input"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    partner_name: str
+    niche: str
+    result: str  # e.g., "€15.000 in 45 giorni"
+    hook_example: Optional[str] = None
+    grande_promessa_example: Optional[str] = None
+    metodo_name: Optional[str] = None
+    testimonial_quote: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class DraftGenerationRequest(BaseModel):
+    """Request to generate a script draft via STEFANIA"""
+    partner_id: str
+    partner_name: str
+    partner_niche: str
+    positioning_data: Optional[Dict[str, str]] = None  # From wizard posizionamento
+
+class AdminScriptEdit(BaseModel):
+    """Admin edit for script before partner approval"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    script_id: str
+    partner_id: str
+    admin_user: str  # "Claudio" or "Antonella"
+    original_blocks: Dict[str, str]
+    edited_blocks: Dict[str, str]
+    admin_notes: Optional[str] = None
+    status: str = "pending_partner_approval"  # pending_partner_approval, approved_by_partner, revision_requested
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class AdminEditRequest(BaseModel):
+    """Request from Admin to edit script"""
+    blocks: Dict[str, str]
+    admin_user: str
+    admin_notes: Optional[str] = None
+
+# =============================================================================
+# STEFANIA WAR MODE - ADS & TRAFFIC MODELS
+# =============================================================================
+
+class AdsCampaign(BaseModel):
+    """Model for tracking ad campaigns"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    partner_id: str
+    partner_name: str
+    platform: str  # meta, linkedin, google, tiktok
+    campaign_name: str
+    status: str = "active"  # active, paused, stopped
+    hooks: List[str] = Field(default_factory=list)  # Generated hooks
+    hook_gallery: Optional[Dict[str, str]] = None  # {pain, secret, result} for Meta
+    linkedin_content: Optional[Dict[str, Any]] = None  # {thought_leadership, abm_targeting, lead_form}
+    budget_daily: float = 0
+    spend_total: float = 0
+    leads: int = 0
+    qualified_leads: int = 0  # For LinkedIn lead quality tracking
+    conversions: int = 0
+    revenue: float = 0
+    cpl: float = 0  # Cost Per Lead
+    cpl_qualified: float = 0  # Cost per Qualified Lead
+    roas: float = 0  # Return on Ad Spend
+    ltv_avg: float = 0  # Average Lifetime Value of leads from this platform
+    cpl_max_threshold: float = 15.0  # Default €15 max CPL
+    targeting_type: str = "broad"  # broad (Meta), abm (LinkedIn), custom
+    utm_params: Dict[str, str] = Field(default_factory=dict)
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class AdsPerformanceMetrics(BaseModel):
+    """Performance metrics from MARTA"""
+    model_config = ConfigDict(extra="ignore")
+    partner_id: str
+    date: str
+    impressions: int = 0
+    clicks: int = 0
+    ctr: float = 0  # Click Through Rate
+    spend: float = 0
+    leads: int = 0
+    qualified_leads: int = 0
+    cpl: float = 0
+    conversions: int = 0
+    revenue: float = 0
+    roas: float = 0
+    ltv_avg: float = 0
+
+class AdHookRequest(BaseModel):
+    """Request to generate ad hooks from Copy Core"""
+    partner_id: str
+    partner_name: str
+    partner_niche: str
+    platform: str = "meta"  # meta, linkedin
+    hook_type: Optional[str] = None  # pain, secret, result (for Hook Gallery)
+
+class HookGalleryRequest(BaseModel):
+    """Request to generate 3-variant Hook Gallery for Meta"""
+    partner_id: str
+    partner_name: str
+    partner_niche: str
+    masterclass_topic: Optional[str] = None
+
+class LinkedInContentRequest(BaseModel):
+    """Request to generate LinkedIn-specific content"""
+    partner_id: str
+    partner_name: str
+    partner_niche: str
+    content_type: str = "thought_leadership"  # thought_leadership, abm_ad, lead_gen_form
+    target_segment: Optional[str] = None  # e.g., "agency_owners", "senior_consultants"
+
+class CrossPlatformAnalysis(BaseModel):
+    """Model for cross-platform performance comparison"""
+    model_config = ConfigDict(extra="ignore")
+    partner_id: str
+    meta_data: Optional[Dict] = None
+    linkedin_data: Optional[Dict] = None
+    recommended_platform: str = "meta"
+    pivot_suggestion: Optional[str] = None
+    ltv_comparison: Optional[Dict] = None
+
+class UTMGeneratorRequest(BaseModel):
+    """Request to generate UTM tracked links"""
+    partner_id: str
+    partner_name: str
+    destination_url: str
+    campaign_name: str
+    medium: str = "paid"  # paid, organic, email
+    source: str = "meta"  # meta, linkedin, google, tiktok, email
+    content: Optional[str] = None  # Ad variation identifier
+
+class PerformanceAlert(BaseModel):
+    """Alert for low performance campaigns"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    partner_id: str
+    campaign_id: str
+    alert_type: str  # cpl_exceeded, low_roas, budget_depleted
+    severity: str = "warning"  # warning, critical
+    current_value: float
+    threshold_value: float
+    message: str
+    suggested_action: str
+    resolved: bool = False
+
+# =============================================================================
+# ATLAS MODULE - POST-SALE & LTV MODELS
+# =============================================================================
+
+class AcademyStudent(BaseModel):
+    """Model for Academy student tracking"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    partner_id: str
+    email: str
+    name: str
+    enrolled_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    status: str = "active"  # active, completed, inactive, churned
+    progress_percent: float = 0
+    completed_modules: List[str] = Field(default_factory=list)
+    unlocked_bonuses: List[str] = Field(default_factory=list)
+    gamification_points: int = 0
+    last_activity: Optional[str] = None
+    referral_code: Optional[str] = None
+    referred_by: Optional[str] = None
+    utm_source: Optional[str] = None
+
+class BonusContent(BaseModel):
+    """Dynamic bonus content that can be unlocked"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    partner_id: str
+    title: str
+    description: str
+    content_type: str  # video, pdf, template, webinar, coaching
+    unlock_condition: str  # progress_50, all_modules, referral_1, quiz_perfect, streak_7
+    unlock_threshold: int = 0  # For numeric conditions
+    points_value: int = 100
+    is_active: bool = True
+
+class StudentFeedback(BaseModel):
+    """Student feedback/comments for Copy Bridge analysis"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    partner_id: str
+    student_id: str
+    module_id: Optional[str] = None
+    feedback_type: str  # question, comment, testimonial, complaint
+    content: str
+    sentiment: Optional[str] = None  # positive, neutral, negative
+    analyzed: bool = False
+    copy_angle_extracted: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class CopyAngleSuggestion(BaseModel):
+    """STEFANIA's copy angle suggestions from feedback analysis"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    partner_id: str
+    angle_type: str  # pain_point, success_story, objection, desire
+    headline: str
+    description: str
+    source_feedbacks: List[str] = Field(default_factory=list)  # List of feedback IDs
+    relevance_score: float = 0.0
+    used_in_campaign: bool = False
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class ReferralRecord(BaseModel):
+    """Track referrals for LTV calculation"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    partner_id: str
+    referrer_student_id: str
+    referred_email: str
+    referral_code: str
+    status: str = "pending"  # pending, converted, expired
+    conversion_value: float = 0
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+# =============================================================================
+# ANDREA - VIDEO PRODUCTION MODELS
+# =============================================================================
+
+class AndreaChatRequest(BaseModel):
+    session_id: str
+    message: str
+    partner_id: str
+    partner_name: str
+    partner_niche: str
+    current_block: Optional[str] = None
+    recording_status: Optional[str] = None  # setup, recording, review
+
+class VideoBlock(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    partner_id: str
+    block_type: str  # hook, grande_promessa, metodo, case_history, offerta, cta
+    block_label: str
+    script_content: str
+    status: str = "pending"  # pending, recording, uploaded, approved, needs_revision
+    video_file: Optional[str] = None
+    duration: Optional[float] = None
+    feedback: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class PreFlightCheck(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    partner_id: str
+    checklist: Dict[str, bool] = Field(default_factory=lambda: {
+        "sfondo_ordinato": False,
+        "luce_frontale": False,
+        "microfono_posizionato": False,
+        "inquadratura_corretta": False,
+        "silenzio_ambiente": False,
+        "script_pronto": False
+    })
+    test_video_uploaded: bool = False
+    test_video_approved: bool = False
+    feedback: Optional[str] = None
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class VideoAssemblyRequest(BaseModel):
+    partner_id: str
+    include_intro: bool = True
+    include_outro: bool = True
+    upload_to_youtube: bool = False
+
+class Notification(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    type: str  # modulo, escalation, video, file, script_review
+    icon: str
+    title: str
+    body: str
+    time: str
+    partner: str
+    read: bool = False
+    action: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class StoredFile(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    file_id: str
+    original_name: str
+    stored_name: str
+    file_type: str  # video, document
+    partner_id: str
+    status: str  # raw, processed, approved, pending, verified
+    internal_url: str
+    size: int
+    uploaded_at: str
+    verified_by: Optional[str] = None
+    verified_at: Optional[str] = None
+
+# =============================================================================
+# SEED DATA
+# =============================================================================
+
+INITIAL_AGENTS = [
+    {"id": "MAIN", "role": "Sistema Centrale", "status": "ACTIVE", "budget": 12, "category": "Coordinamento"},
+    {"id": "VALENTINA", "role": "Orchestratrice", "status": "ACTIVE", "budget": 28, "category": "Partner Contact"},
+    {"id": "ORION", "role": "Sales Intelligence", "status": "IDLE", "budget": 4, "category": "Acquisizione"},
+    {"id": "MARTA", "role": "CRM & Revenue", "status": "ACTIVE", "budget": 19, "category": "Piattaforma"},
+    {"id": "GAIA", "role": "Funnel & Incident", "status": "ALERT", "budget": 41, "category": "Esecuzione Tech"},
+    {"id": "ANDREA", "role": "Video Production", "status": "IDLE", "budget": 7, "category": "Produzione"},
+    {"id": "STEFANIA", "role": "Copy & Traffico", "status": "ACTIVE", "budget": 33, "category": "ADV & Copy"},
+    {"id": "LUCA", "role": "Compliance", "status": "IDLE", "budget": 2, "category": "Verifica"},
+    {"id": "ATLAS", "role": "Post-Sale & LTV", "status": "IDLE", "budget": 0, "category": "Retention"},
+]
+
+INITIAL_PARTNERS = [
+    {"id": "1", "name": "Marco Ferretti", "niche": "Business Coach", "phase": "F5", "revenue": 0, "contract": "2025-01-10", "alert": False, "modules": [1,1,1,1,0,0,0,0,0,0]},
+    {"id": "2", "name": "Sara Lombardi", "niche": "Psicologa", "phase": "F3", "revenue": 0, "contract": "2025-01-22", "alert": True, "modules": [1,1,1,0,0,0,0,0,0,0]},
+    {"id": "3", "name": "Luca Marini", "niche": "Formatore HR", "phase": "F8", "revenue": 4200, "contract": "2024-11-05", "alert": False, "modules": [1,1,1,1,1,1,1,1,0,0]},
+    {"id": "4", "name": "Giulia Rossi", "niche": "Life Coach", "phase": "F9", "revenue": 8700, "contract": "2024-10-12", "alert": False, "modules": [1,1,1,1,1,1,1,1,1,0]},
+    {"id": "5", "name": "Antonio Bianchi", "niche": "Consulente Fiscale", "phase": "F1", "revenue": 0, "contract": "2025-02-01", "alert": True, "modules": [1,0,0,0,0,0,0,0,0,0]},
+]
+
+INITIAL_ALERTS = [
+    {"id": "1", "agent": "GAIA", "type": "BUDGET", "msg": "Budget al 41% — monitorare consumo mensile", "time": "14 min fa", "partner": "Marco Ferretti"},
+    {"id": "2", "agent": "VALENTINA", "type": "BLOCCO", "msg": "Sara Lombardi non ha inviato ATTIVAZIONE OK", "time": "2h fa", "partner": "Sara Lombardi"},
+    {"id": "3", "agent": "VALENTINA", "type": "BLOCCO", "msg": "Antonio Bianchi — nessuna risposta da 48h", "time": "1g fa", "partner": "Antonio Bianchi"},
+]
+
+MODULES_DATA = [
+    {"num": 0, "title": "Introduzione", "lessons": [
+        {"title": "Complimenti per la scelta", "ytId": "dQw4w9WgXcQ", "done": True},
+        {"title": "Come funziona Evolution PRO", "ytId": "dQw4w9WgXcQ", "done": True},
+        {"title": "Il tuo ruolo nella Partnership", "ytId": "dQw4w9WgXcQ", "done": True},
+    ]},
+    {"num": 1, "title": "Attivazione", "lessons": [
+        {"title": "Regole operative", "ytId": "dQw4w9WgXcQ", "done": True},
+        {"title": "Drive, Systeme, Telegram", "ytId": "dQw4w9WgXcQ", "done": True},
+        {"title": "File di Posizionamento", "ytId": "dQw4w9WgXcQ", "done": True},
+        {"title": "Completare l'ATTIVAZIONE", "ytId": "dQw4w9WgXcQ", "done": True},
+    ]},
+    {"num": 2, "title": "Masterclass Gratuita", "lessons": [
+        {"title": "Perché è obbligatoria", "ytId": "dQw4w9WgXcQ", "done": True},
+        {"title": "Struttura Masterclass", "ytId": "dQw4w9WgXcQ", "done": True},
+        {"title": "Usare lo script", "ytId": "dQw4w9WgXcQ", "done": True},
+        {"title": "Verifica tecnica", "ytId": "dQw4w9WgXcQ", "done": True},
+    ]},
+    {"num": 3, "title": "Videocorso & Bonus", "lessons": [
+        {"title": "Struttura del Videocorso", "ytId": "dQw4w9WgXcQ", "done": True},
+        {"title": "Cosa registrare", "ytId": "dQw4w9WgXcQ", "done": True},
+        {"title": "Bonus e materiali", "ytId": "dQw4w9WgXcQ", "done": True},
+        {"title": "Consegna materiali grezzi", "ytId": "dQw4w9WgXcQ", "done": True},
+    ]},
+    {"num": 4, "title": "Editing & Branding", "lessons": [
+        {"title": "Come funziona l'editing", "ytId": None, "done": False},
+        {"title": "Materiali di branding richiesti", "ytId": None, "done": False},
+    ]},
+    {"num": 5, "title": "Accademia & Funnel", "lessons": [
+        {"title": "Area studenti", "ytId": None, "done": False},
+        {"title": "Funnel e automazioni", "ytId": None, "done": False},
+    ]},
+    {"num": 6, "title": "Pre-Lancio", "lessons": [
+        {"title": "Calendario editoriale 30gg", "ytId": None, "done": False},
+        {"title": "Test del sistema", "ytId": None, "done": False},
+    ]},
+    {"num": 7, "title": "Lancio", "lessons": [
+        {"title": "Allineamento finale", "ytId": None, "done": False},
+        {"title": "Lancio ufficiale", "ytId": None, "done": False},
+    ]},
+    {"num": 8, "title": "Monitoraggio & Ottimizzazione", "lessons": [
+        {"title": "Lettura dati", "ytId": None, "done": False},
+        {"title": "Ottimizzazioni nel tempo", "ytId": None, "done": False},
+    ]},
+    {"num": 9, "title": "Scalabilità & Asset", "lessons": [
+        {"title": "Trasformare il corso in asset", "ytId": None, "done": False},
+    ]},
+]
+
+PHASE_LABELS = {
+    "F0": "Pre-Onboarding", "F1": "Attivazione", "F2": "Posizionamento", "F3": "Masterclass",
+    "F4": "Struttura Corso", "F5": "Produzione", "F6": "Accademia", "F7": "Pre-Lancio",
+    "F8": "Lancio", "F9": "Ottimizzazione", "F10": "Scalabilità"
+}
+
+# =============================================================================
+# STEFANIA - MASTER INPUT: SUCCESSI EVOLUTION PRO
+# =============================================================================
+
+EVOLUTION_PRO_SUCCESS_CASES = [
+    {
+        "id": "success-1",
+        "partner_name": "Marco Ferretti",
+        "niche": "Business Coach",
+        "result": "€28.000 in 60 giorni",
+        "hook_example": "Il 90% dei business coach fallisce perché insegna teoria. Io ho scoperto che il vero problema è la mancanza di un sistema PRATICO.",
+        "grande_promessa_example": "Trasforma la tua consulenza in un videocorso che genera €10.000/mese in automatico, anche mentre dormi.",
+        "metodo_name": "Sistema BCA (Business Coach Accelerator)",
+        "testimonial_quote": "In 60 giorni ho generato più di quanto facevo in 6 mesi di consulenze one-to-one."
+    },
+    {
+        "id": "success-2", 
+        "partner_name": "Giulia Rossi",
+        "niche": "Life Coach",
+        "result": "€15.000 in 45 giorni",
+        "hook_example": "Tutti ti dicono di 'credere in te stesso'. Ma nessuno ti spiega COME farlo concretamente in 30 giorni.",
+        "grande_promessa_example": "Il mio metodo ti permette di eliminare l'auto-sabotaggio e raggiungere i tuoi obiettivi in 30 giorni, garantito.",
+        "metodo_name": "Metodo RIT (Riprogrammazione Identità Trasformativa)",
+        "testimonial_quote": "Ho finalmente capito perché fallivo sempre. Il metodo RIT ha cambiato tutto."
+    },
+    {
+        "id": "success-3",
+        "partner_name": "Luca Marini", 
+        "niche": "Formatore HR",
+        "result": "€32.000 in 90 giorni",
+        "hook_example": "Le aziende spendono migliaia in formazione HR che non funziona. Il problema? Formano le persone sbagliate nel modo sbagliato.",
+        "grande_promessa_example": "Riduci il turnover del 40% in 90 giorni con il mio sistema di selezione e onboarding predittivo.",
+        "metodo_name": "Framework PEO (Predict, Engage, Optimize)",
+        "testimonial_quote": "Abbiamo ridotto il turnover dal 35% al 12% in tre mesi. ROI incredibile."
+    },
+    {
+        "id": "success-4",
+        "partner_name": "Sara Lombardi",
+        "niche": "Psicologa",
+        "result": "€12.000 in 30 giorni",
+        "hook_example": "La terapia tradizionale richiede anni. Ma cosa succederebbe se potessi risolvere l'ansia in sole 6 sessioni?",
+        "grande_promessa_example": "Elimina l'ansia cronica in 6 settimane con il protocollo scientificamente validato che ha già aiutato 500+ persone.",
+        "metodo_name": "Protocollo RESET",
+        "testimonial_quote": "Dopo anni di terapia senza risultati, in 6 settimane ho finalmente risolto la mia ansia."
+    }
+]
+
+# =============================================================================
+# STEFANIA - LE 10 REGOLE D'ORO DEL COPY CORE
+# Ispirate ai maestri: Eugene Schwartz, Todd Brown, Gary Halbert
+# =============================================================================
+
+GOLDEN_RULES_COPY_CORE = [
+    {
+        "num": 1,
+        "title": "Vendi la Nuova Identità, non il Prodotto",
+        "master": "Eugene Schwartz",
+        "description": "Non vendi un corso, vendi il Punto B: la persona che il lead diventerà dopo aver seguito il tuo metodo.",
+        "example": "Non 'Impara il marketing' → 'Diventa il consulente che le aziende chiamano quando hanno bisogno di risultati veri'"
+    },
+    {
+        "num": 2,
+        "title": "Uccidi gli Aggettivi Deboli",
+        "master": "Gary Halbert",
+        "description": "Niente 'fantastico', 'innovativo', 'unico'. Solo fatti, numeri e prove concrete.",
+        "example": "Non 'Risultati fantastici' → '€4.700 in 22 giorni con 3 clienti'"
+    },
+    {
+        "num": 3,
+        "title": "La Regola dell'Uno",
+        "master": "Eugene Schwartz",
+        "description": "Un solo grande problema, una sola grande idea, una sola azione richiesta. La confusione uccide le conversioni.",
+        "example": "Tutta la Masterclass ruota attorno a UN problema centrale e UNA soluzione"
+    },
+    {
+        "num": 4,
+        "title": "Usa il 'Perché' Sempre",
+        "master": "Robert Cialdini",
+        "description": "Ogni affermazione deve essere seguita da una spiegazione logica. Il cervello accetta più facilmente quando c'è un 'perché'.",
+        "example": "'Questo funziona PERCHÉ attiva il meccanismo di...' non solo 'Questo funziona'"
+    },
+    {
+        "num": 5,
+        "title": "Entra nel Dialogo Interno del Cliente",
+        "master": "Eugene Schwartz",
+        "description": "Rispondi ai dubbi e alle obiezioni PRIMA che vengano formulati. Se il lead pensa 'mi legge nel pensiero', la vendita è fatta.",
+        "example": "'So cosa stai pensando: e se non funziona per me? Ecco perché...'"
+    },
+    {
+        "num": 6,
+        "title": "Crea un Nemico Comune",
+        "master": "Gary Halbert",
+        "description": "Dai la colpa del fallimento del lead a un fattore ESTERNO: il sistema, i vecchi guru, la tecnologia obsoleta. Mai al lead stesso.",
+        "example": "'Non è colpa tua se hai fallito. È colpa del metodo sbagliato che ti hanno insegnato'"
+    },
+    {
+        "num": 7,
+        "title": "Sii Iper-Specifico",
+        "master": "Claude Hopkins",
+        "description": "La specificità crea credibilità. I numeri dispari e precisi battono sempre i numeri tondi.",
+        "example": "'Perdi 4.7kg in 22 giorni' batte SEMPRE 'Perdi peso velocemente'"
+    },
+    {
+        "num": 8,
+        "title": "Bullet Points 'Fascinations'",
+        "master": "Gary Bencivenga",
+        "description": "Elenchi puntati che promettono un segreto senza svelarlo del tutto. Creano curiosità irresistibile.",
+        "example": "'Il trucco controintuitivo che i coach da €10k/mese usano (e che nessuno ti dirà mai)'"
+    },
+    {
+        "num": 9,
+        "title": "L'Offerta deve essere un 'Affare Stupido' da Rifiutare",
+        "master": "Dan Kennedy",
+        "description": "Il valore percepito deve essere 10X il prezzo. Stack visivo dei bonus che valgono più del corso principale.",
+        "example": "Valore totale: €4.997 → Oggi solo €497 + 5 Bonus (valore €2.000)"
+    },
+    {
+        "num": 10,
+        "title": "Il Meccanismo Unico (Big Idea)",
+        "master": "Todd Brown",
+        "description": "Isola un 'pezzo' del metodo del partner e battezzalo con un nome proprietario. Questo rende la soluzione logicamente superiore a qualsiasi altra.",
+        "example": "'Il Sistema XYZ' o 'Il Protocollo ABC' - deve avere un NOME che nessun altro può copiare"
+    }
+]
+
+# Principi cardine del Copy Core (i 3 Maestri)
+COPY_CORE_PRINCIPLES = {
+    "schwartz": {
+        "name": "Eugene Schwartz - L'Ossessione per il Problema",
+        "principle": "Prima di scrivere i benefici, descrivi il dolore del lead meglio di quanto il lead sappia fare. Se il lead pensa 'Questa persona mi legge nel pensiero', la vendita è già fatta."
+    },
+    "brown": {
+        "name": "Todd Brown - Il Meccanismo Unico", 
+        "principle": "Non basta dire che il partner è bravo. Devi isolare un 'pezzo' del metodo e battezzarlo con un nome proprietario. Questo rende la soluzione logicamente superiore a qualsiasi altra."
+    },
+    "halbert": {
+        "name": "Gary Halbert - Il Ritmo del Desiderio",
+        "principle": "Usa paragrafi brevi, domande retoriche e linguaggio parlato. Il copy deve scorrere come una conversazione al bar, non come un manuale tecnico."
+    }
+}
+
+# Initial GAIA Systeme.io Templates
+INITIAL_GAIA_TEMPLATES = [
+    {
+        "id": "masterclass-transformation",
+        "name": "Masterclass Transformation Template",
+        "category": "masterclass",
+        "share_link": "https://systeme.io/share/masterclass-transformation",
+        "description": "Template completo per Masterclass Trasformativa: Opt-in page, Watch page, sequenza email post-visione. Include tutti i 6 blocchi strategici pre-configurati.",
+        "brand_variables": ["Brand_Color", "Logo_URL", "Nome_Partner", "Tagline", "Hook_Text", "Grande_Promessa", "Metodo_Nome", "CTA_Button"],
+        "includes": ["opt_in_page", "watch_page", "email_sequence", "thank_you_page"],
+        "created_at": "2026-02-11T00:00:00Z"
+    },
+    {
+        "id": "lead-gen-basic",
+        "name": "Lead Gen — Freebie Download",
+        "category": "lead_gen",
+        "share_link": "https://systeme.io/share/lead-gen-basic",
+        "description": "Funnel semplice per acquisire lead con un freebie scaricabile. Include landing page e sequenza email di nurturing.",
+        "brand_variables": ["Brand_Color", "Logo_URL", "Nome_Partner", "Freebie_Name"],
+        "includes": ["landing_page", "thank_you_page", "email_sequence"],
+        "created_at": "2026-02-11T00:00:00Z"
+    },
+    {
+        "id": "webinar-evergreen",
+        "name": "Webinar Evergreen Funnel",
+        "category": "webinar",
+        "share_link": "https://systeme.io/share/webinar-evergreen",
+        "description": "Funnel per webinar evergreen con replay automatico. Include registrazione, reminder, replay page e offerta.",
+        "brand_variables": ["Brand_Color", "Logo_URL", "Nome_Partner", "Webinar_Title", "Webinar_Date"],
+        "includes": ["registration_page", "thank_you_page", "reminder_emails", "replay_page", "offer_page"],
+        "created_at": "2026-02-11T00:00:00Z"
+    },
+    {
+        "id": "sales-page-pro",
+        "name": "Sales Page PRO — Long Form",
+        "category": "vendita",
+        "share_link": "https://systeme.io/share/sales-page-pro",
+        "description": "Sales page lunga e persuasiva con tutti gli elementi: hook, storia, benefici, testimonial, FAQ, garanzia, CTA multiple.",
+        "brand_variables": ["Brand_Color", "Logo_URL", "Nome_Partner", "Product_Name", "Price", "Testimonials"],
+        "includes": ["sales_page", "checkout_page", "upsell_page", "thank_you_page"],
+        "created_at": "2026-02-11T00:00:00Z"
+    }
+]
+
+# Initial Notifications for demo
+INITIAL_NOTIFICATIONS = [
+    {"id": "n1", "type": "modulo", "icon": "✅", "title": "Modulo Completato", "body": "Marco Ferretti ha completato M4 – Editing & Branding", "time": "12 min fa", "partner": "Marco Ferretti", "read": False, "action": "partner"},
+    {"id": "n2", "type": "escalation", "icon": "🚨", "title": "Escalation VALENTINA", "body": "Sara Lombardi non risponde da 72h – richiede intervento Antonella", "time": "2h fa", "partner": "Sara Lombardi", "read": False, "action": "alert"},
+    {"id": "n3", "type": "video", "icon": "🎬", "title": "Video Pronto", "body": "ANDREA ha completato editing M3L2 per Luca Marini", "time": "3h fa", "partner": "Luca Marini", "read": True, "action": "andrea"},
+    {"id": "n4", "type": "file", "icon": "📁", "title": "Nuovo File Caricato", "body": "Antonio Bianchi ha caricato Scheda Posizionamento.pdf", "time": "5h fa", "partner": "Antonio Bianchi", "read": True, "action": "partner"},
+]
+
+# =============================================================================
+# STARTUP - SEED DATA
+# =============================================================================
+
+@app.on_event("startup")
+async def seed_database():
+    # Seed agents
+    if await db.agents.count_documents({}) == 0:
+        await db.agents.insert_many(INITIAL_AGENTS)
+        logging.info("Seeded agents collection")
+    
+    # Seed partners
+    if await db.partners.count_documents({}) == 0:
+        await db.partners.insert_many(INITIAL_PARTNERS)
+        logging.info("Seeded partners collection")
+    
+    # Seed alerts
+    if await db.alerts.count_documents({}) == 0:
+        await db.alerts.insert_many(INITIAL_ALERTS)
+        logging.info("Seeded alerts collection")
+    
+    # Seed modules
+    if await db.modules.count_documents({}) == 0:
+        await db.modules.insert_many(MODULES_DATA)
+        logging.info("Seeded modules collection")
+    
+    # Seed GAIA templates
+    if await db.systeme_templates.count_documents({}) == 0:
+        await db.systeme_templates.insert_many(INITIAL_GAIA_TEMPLATES)
+        logging.info("Seeded GAIA templates collection")
+    
+    # Seed notifications
+    if await db.notifications.count_documents({}) == 0:
+        await db.notifications.insert_many(INITIAL_NOTIFICATIONS)
+        logging.info("Seeded notifications collection")
+    
+    # Seed Evolution PRO Success Cases (Master Input for STEFANIA)
+    if await db.success_cases.count_documents({}) == 0:
+        await db.success_cases.insert_many(EVOLUTION_PRO_SUCCESS_CASES)
+        logging.info("Seeded Evolution PRO success cases collection")
+
+# =============================================================================
+# AUTHENTICATION
+# =============================================================================
+
+from auth import AuthService, LoginRequest, RegisterRequest, Token, decode_token, UserResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+security = HTTPBearer(auto_error=False)
+auth_service = None  # Will be initialized after db connection
+
+@api_router.on_event("startup")
+async def init_auth():
+    global auth_service
+    auth_service = AuthService(db)
+    await auth_service.seed_default_users()
+    # Load Telegram admins
+    await load_telegram_admins()
+
+@api_router.post("/auth/login", response_model=Token)
+async def login(request: LoginRequest):
+    """Login and get access token"""
+    global auth_service
+    if not auth_service:
+        auth_service = AuthService(db)
+    
+    token = await auth_service.login(request.email, request.password)
+    
+    if not token:
+        raise HTTPException(
+            status_code=401,
+            detail="Email o password non corretti"
+        )
+    
+    return token
+
+@api_router.post("/auth/register")
+async def register(request: RegisterRequest):
+    """Register a new partner user and send welcome email"""
+    global auth_service
+    if not auth_service:
+        auth_service = AuthService(db)
+    
+    try:
+        user = await auth_service.create_user(request)
+        
+        # Create partner record if role is partner
+        if request.role == "partner":
+            partner_id = str(uuid.uuid4())
+            new_partner = {
+                "id": partner_id,
+                "name": request.name,
+                "email": request.email,
+                "phase": "F1",
+                "niche": "",
+                "revenue": 0,
+                "contract": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                "alert": False,
+                "modules": [],
+                "onboarding_status": {
+                    "welcome_email_sent": False,
+                    "systeme_account_created": False,
+                    "systeme_email_sent": False,
+                    "registered_at": datetime.now(timezone.utc).isoformat()
+                }
+            }
+            await db.partners.insert_one(new_partner)
+            
+            # Update user with partner_id
+            await db.users.update_one(
+                {"id": user["id"]},
+                {"$set": {"partner_id": partner_id}}
+            )
+            user["partner_id"] = partner_id
+            
+            # Send welcome email automatically
+            try:
+                await send_partner_welcome_email(request.email, request.name)
+                await db.partners.update_one(
+                    {"id": partner_id},
+                    {"$set": {"onboarding_status.welcome_email_sent": True, "onboarding_status.welcome_email_date": datetime.now(timezone.utc).isoformat()}}
+                )
+            except Exception as e:
+                logging.error(f"Failed to send welcome email: {e}")
+        
+        return {"success": True, "user": user, "message": "Utente registrato con successo"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+async def send_partner_welcome_email(email: str, name: str):
+    """Send welcome email to new partner with app instructions
+    
+    This function:
+    1. Logs the email content to database
+    2. Adds 'welcome_partner' tag to Systeme.io to trigger automation
+    3. Sends notification via Telegram
+    """
+    subject = "🎉 Benvenuto in Evolution PRO - Le tue credenziali"
+    
+    html_content = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #F2C418 0%, #FADA5E 100%); padding: 30px; text-align: center;">
+            <h1 style="color: #1E2128; margin: 0;">Benvenuto in Evolution PRO!</h1>
+        </div>
+        
+        <div style="padding: 30px; background: #fff;">
+            <p>Ciao <strong>{name}</strong>! 👋</p>
+            
+            <p>Il tuo account Evolution PRO è stato creato con successo. Ecco come iniziare:</p>
+            
+            <div style="background: #FAFAF7; padding: 20px; border-radius: 12px; margin: 20px 0;">
+                <h3 style="color: #1E2128; margin-top: 0;">📱 Accedi all'App</h3>
+                <p><strong>URL:</strong> <a href="https://app.evolution-pro.it" style="color: #F2C418;">https://app.evolution-pro.it</a></p>
+                <p><strong>Email:</strong> {email}</p>
+                <p><strong>Password:</strong> quella che hai scelto durante la registrazione</p>
+            </div>
+            
+            <div style="background: #FFF8DC; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #F2C418;">
+                <h3 style="color: #1E2128; margin-top: 0;">🚀 Primi Passi</h3>
+                <ol style="margin: 0; padding-left: 20px;">
+                    <li>Accedi all'app con le tue credenziali</li>
+                    <li>Guarda il <strong>Video di Benvenuto</strong> nella sezione "Parti da Qui"</li>
+                    <li>Compila il tuo <strong>Profilo Hub</strong></li>
+                    <li>Inizia il percorso di <strong>Posizionamento</strong></li>
+                </ol>
+            </div>
+            
+            <div style="background: #1E2128; color: white; padding: 20px; border-radius: 12px; margin: 20px 0;">
+                <h3 style="color: #F2C418; margin-top: 0;">👥 Il Tuo Team</h3>
+                <p style="margin-bottom: 0;">Hai a disposizione un team di <strong>8 agenti AI</strong> coordinati da <strong>Valentina</strong>. Per qualsiasi domanda, parla con lei direttamente dall'app!</p>
+            </div>
+            
+            <p style="color: #666; font-size: 14px;">
+                <strong>Nota:</strong> A breve riceverai una seconda email con le istruzioni per accedere alla piattaforma Systeme.io dove pubblicherai il tuo corso.
+            </p>
+        </div>
+        
+        <div style="background: #FAFAF7; padding: 20px; text-align: center; color: #666; font-size: 12px;">
+            <p>© 2026 Evolution PRO - Tutti i diritti riservati</p>
+            <p>Claudio Bertogliatti & Team</p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    logging.info(f"Welcome email prepared for {email}")
+    
+    # Store email in database for tracking
+    await db.email_logs.insert_one({
+        "type": "welcome",
+        "to": email,
+        "name": name,
+        "subject": subject,
+        "html_content": html_content,
+        "sent_at": datetime.now(timezone.utc).isoformat(),
+        "status": "queued"
+    })
+    
+    # Trigger Systeme.io automation by adding welcome tag
+    systeme_api_key = os.environ.get('SYSTEME_API_KEY')
+    if systeme_api_key:
+        try:
+            await add_systeme_tag(systeme_api_key, email, "welcome_partner")
+            await db.email_logs.update_one(
+                {"to": email, "type": "welcome"},
+                {"$set": {"systeme_tag_added": True, "status": "sent_via_systeme"}}
+            )
+            logging.info(f"Welcome tag added to {email} in Systeme.io")
+        except Exception as e:
+            logging.warning(f"Could not add Systeme.io tag for {email}: {e}")
+    
+    # Send Telegram notification to admin
+    try:
+        telegram_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+        admin_chat_id = os.environ.get('TELEGRAM_ADMIN_CHAT_ID')
+        if telegram_token and admin_chat_id:
+            message = f"🎉 *Nuovo Partner Registrato!*\n\n👤 *Nome:* {name}\n📧 *Email:* {email}\n\n✅ Email di benvenuto inviata"
+            async with httpx.AsyncClient() as client:
+                await client.post(
+                    f"https://api.telegram.org/bot{telegram_token}/sendMessage",
+                    json={"chat_id": admin_chat_id, "text": message, "parse_mode": "Markdown"}
+                )
+    except Exception as e:
+        logging.warning(f"Could not send Telegram notification: {e}")
+    
+    return True
+
+
+@api_router.post("/onboarding/send-systeme-email/{partner_id}")
+async def send_systeme_instructions_email(partner_id: str, systeme_email: str = None, systeme_password: str = None):
+    """Send Systeme.io platform instructions email to partner (called by team after creating sub-account)"""
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    email = partner.get("email")
+    name = partner.get("name", "Partner")
+    
+    subject = "📚 Le tue credenziali Systeme.io - Evolution PRO"
+    
+    html_content = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #1E2128 0%, #2D3038 100%); padding: 30px; text-align: center;">
+            <h1 style="color: #F2C418; margin: 0;">Piattaforma Systeme.io</h1>
+        </div>
+        
+        <div style="padding: 30px; background: #fff;">
+            <p>Ciao <strong>{name}</strong>! 👋</p>
+            
+            <p>Il tuo account sulla piattaforma <strong>Systeme.io</strong> è stato creato. Ecco le tue credenziali:</p>
+            
+            <div style="background: #FAFAF7; padding: 20px; border-radius: 12px; margin: 20px 0;">
+                <h3 style="color: #1E2128; margin-top: 0;">🔐 Credenziali Systeme.io</h3>
+                <p><strong>URL:</strong> <a href="https://systeme.io/dashboard" style="color: #F2C418;">https://systeme.io/dashboard</a></p>
+                <p><strong>Email:</strong> {systeme_email or email}</p>
+                <p><strong>Password:</strong> {systeme_password or "[Ti verrà comunicata separatamente]"}</p>
+            </div>
+            
+            <div style="background: #FFF8DC; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #F2C418;">
+                <h3 style="color: #1E2128; margin-top: 0;">📖 Cosa è Systeme.io?</h3>
+                <p>Systeme.io è la piattaforma dove:</p>
+                <ul style="margin: 0; padding-left: 20px;">
+                    <li>Pubblicherai il tuo <strong>videocorso</strong></li>
+                    <li>Gestirai il tuo <strong>funnel di vendita</strong></li>
+                    <li>Invierai le <strong>email automatiche</strong> ai tuoi lead</li>
+                    <li>Riceverai i <strong>pagamenti</strong> dai tuoi clienti</li>
+                </ul>
+            </div>
+            
+            <div style="background: #E8F5E9; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #4CAF50;">
+                <h3 style="color: #1E2128; margin-top: 0;">✅ Prossimi Passi</h3>
+                <ol style="margin: 0; padding-left: 20px;">
+                    <li>Accedi a Systeme.io con le credenziali sopra</li>
+                    <li>Esplora la dashboard (non modificare nulla per ora)</li>
+                    <li>Continua il percorso sull'app Evolution PRO</li>
+                    <li>Quando sarà il momento, <strong>GAIA</strong> configurerà tutto per te!</li>
+                </ol>
+            </div>
+            
+            <p style="color: #666; font-size: 14px;">
+                <strong>Importante:</strong> Non modificare le impostazioni di Systeme.io autonomamente. Il team Evolution PRO configurerà tutto al momento giusto del tuo percorso.
+            </p>
+        </div>
+        
+        <div style="background: #FAFAF7; padding: 20px; text-align: center; color: #666; font-size: 12px;">
+            <p>© 2026 Evolution PRO - Tutti i diritti riservati</p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    # Log and store
+    logging.info(f"Systeme.io instructions email prepared for {email}")
+    
+    await db.email_logs.insert_one({
+        "type": "systeme_instructions",
+        "to": email,
+        "partner_id": partner_id,
+        "subject": subject,
+        "sent_at": datetime.now(timezone.utc).isoformat(),
+        "status": "sent"
+    })
+    
+    # Update partner onboarding status
+    await db.partners.update_one(
+        {"id": partner_id},
+        {"$set": {
+            "onboarding_status.systeme_email_sent": True,
+            "onboarding_status.systeme_email_date": datetime.now(timezone.utc).isoformat(),
+            "onboarding_status.systeme_email": systeme_email,
+        }}
+    )
+    
+    return {"success": True, "message": f"Email istruzioni Systeme.io inviata a {email}"}
+
+
+@api_router.post("/onboarding/send-welcome-email/{partner_id}")
+async def resend_welcome_email(partner_id: str):
+    """Send or resend welcome email to partner"""
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    email = partner.get("email")
+    name = partner.get("name", "Partner")
+    
+    if not email:
+        raise HTTPException(status_code=400, detail="Partner email not found")
+    
+    try:
+        await send_partner_welcome_email(email, name)
+        await db.partners.update_one(
+            {"id": partner_id},
+            {"$set": {
+                "onboarding_status.welcome_email_sent": True,
+                "onboarding_status.welcome_email_date": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        return {"success": True, "message": f"Email di benvenuto inviata a {email}"}
+    except Exception as e:
+        logging.error(f"Failed to send welcome email: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore invio email: {str(e)}")
+
+
+@api_router.patch("/onboarding/systeme-account/{partner_id}")
+async def mark_systeme_account_created(partner_id: str, systeme_email: str = None):
+    """Mark that Systeme.io sub-account has been created for partner"""
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    await db.partners.update_one(
+        {"id": partner_id},
+        {"$set": {
+            "onboarding_status.systeme_account_created": True,
+            "onboarding_status.systeme_account_date": datetime.now(timezone.utc).isoformat(),
+            "onboarding_status.systeme_email": systeme_email,
+        }}
+    )
+    
+    return {"success": True, "message": "Account Systeme.io contrassegnato come creato"}
+
+
+@api_router.get("/onboarding/status")
+async def get_onboarding_status():
+    """Get onboarding status for all partners (for admin dashboard)"""
+    partners = await db.partners.find(
+        {},
+        {"_id": 0, "id": 1, "name": 1, "email": 1, "phase": 1, "onboarding_status": 1, "contract": 1}
+    ).to_list(100)
+    
+    # Add default onboarding_status if missing
+    for p in partners:
+        if "onboarding_status" not in p:
+            p["onboarding_status"] = {
+                "welcome_email_sent": False,
+                "systeme_account_created": False,
+                "systeme_email_sent": False
+            }
+    
+    return {"partners": partners}
+
+@api_router.get("/auth/me")
+async def get_current_user(credentials: HTTPAuthorizationCredentials = None):
+    """Get current authenticated user"""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    
+    token_data = decode_token(credentials.credentials)
+    
+    if not token_data:
+        raise HTTPException(status_code=401, detail="Token non valido o scaduto")
+    
+    global auth_service
+    if not auth_service:
+        auth_service = AuthService(db)
+    
+    user = await auth_service.get_user_by_id(token_data.user_id)
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+    
+    return UserResponse(
+        id=user["id"],
+        email=user["email"],
+        name=user["name"],
+        role=user["role"],
+        is_active=user.get("is_active", True),
+        partner_id=user.get("partner_id"),
+        phase=user.get("phase"),
+        admin_type=user.get("admin_type")
+    )
+
+@api_router.post("/auth/verify")
+async def verify_token(credentials: HTTPAuthorizationCredentials = None):
+    """Verify if token is valid"""
+    if not credentials:
+        return {"valid": False, "error": "No token provided"}
+    
+    token_data = decode_token(credentials.credentials)
+    
+    if not token_data:
+        return {"valid": False, "error": "Invalid or expired token"}
+    
+    return {"valid": True, "user_id": token_data.user_id, "role": token_data.role}
+
+@api_router.get("/auth/users")
+async def list_users():
+    """List all users (admin only)"""
+    users = await db.users.find({}, {"_id": 0, "hashed_password": 0}).to_list(100)
+    return {"users": users, "count": len(users)}
+
+# =============================================================================
+# ROUTES - AGENTS
+# =============================================================================
+
+@api_router.get("/agents", response_model=List[Agent])
+async def get_agents():
+    agents = await db.agents.find({}, {"_id": 0}).to_list(100)
+    return agents
+
+@api_router.patch("/agents/{agent_id}")
+async def update_agent(agent_id: str, status: Optional[str] = None, budget: Optional[int] = None):
+    update = {}
+    if status:
+        update["status"] = status
+    if budget is not None:
+        update["budget"] = budget
+    if update:
+        await db.agents.update_one({"id": agent_id}, {"$set": update})
+    agent = await db.agents.find_one({"id": agent_id}, {"_id": 0})
+    return agent
+
+# =============================================================================
+# ROUTES - PARTNERS
+# =============================================================================
+
+@api_router.get("/partners", response_model=List[Partner])
+async def get_partners():
+    partners = await db.partners.find({}, {"_id": 0}).to_list(100)
+    return partners
+
+@api_router.get("/partners/{partner_id}")
+async def get_partner(partner_id: str):
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    return partner
+
+@api_router.post("/partners", response_model=Partner)
+async def create_partner(data: PartnerCreate):
+    partner = Partner(**data.model_dump())
+    doc = partner.model_dump()
+    await db.partners.insert_one(doc)
+    return partner
+
+@api_router.patch("/partners/{partner_id}")
+async def update_partner(partner_id: str, phase: Optional[str] = None, alert: Optional[bool] = None, modules: Optional[List[int]] = None):
+    # Get current partner data for comparison
+    current_partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    old_phase = current_partner.get("phase") if current_partner else None
+    
+    update = {}
+    if phase:
+        update["phase"] = phase
+    if alert is not None:
+        update["alert"] = alert
+    if modules:
+        update["modules"] = modules
+    if update:
+        await db.partners.update_one({"id": partner_id}, {"$set": update})
+    
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    
+    # Send Telegram notification if phase changed
+    if phase and old_phase and phase != old_phase and partner:
+        try:
+            from valentina_ai import telegram_notify
+            await telegram_notify(
+                notification_type="phase_complete",
+                partner_name=partner.get("name", "Partner"),
+                old_phase=old_phase,
+                new_phase=phase
+            )
+            logging.info(f"Telegram notification sent: {partner.get('name')} {old_phase} → {phase}")
+        except Exception as e:
+            logging.error(f"Failed to send Telegram notification: {e}")
+    
+    return partner
+
+# =============================================================================
+# ROUTES - PARTNER PROFILE (Extended)
+# =============================================================================
+
+class PartnerProfileUpdate(BaseModel):
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    company: Optional[str] = None
+    vat_number: Optional[str] = None
+    address: Optional[str] = None
+    contract_type: Optional[str] = None
+    contract_start: Optional[str] = None
+    contract_end: Optional[str] = None
+    social_instagram: Optional[str] = None
+    social_linkedin: Optional[str] = None
+    social_youtube: Optional[str] = None
+
+# Complete Partner Profile Hub Model
+class PartnerProfileHub(BaseModel):
+    # Identity
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    city: Optional[str] = None
+    bio: Optional[str] = None
+    photo: Optional[str] = None
+    # Social
+    website: Optional[str] = None
+    instagram: Optional[str] = None
+    linkedin: Optional[str] = None
+    youtube: Optional[str] = None
+    # Positioning
+    whoYouAre: Optional[str] = None
+    targetAudience: Optional[str] = None
+    problem: Optional[str] = None
+    solution: Optional[str] = None
+    pitch: Optional[str] = None
+    differentiator: Optional[str] = None
+    # Offer
+    offerName: Optional[str] = None
+    offerPrice: Optional[str] = None
+    offerIncludes: Optional[str] = None
+    offerGuarantee: Optional[str] = None
+    # Brand Kit
+    logo: Optional[str] = None
+    primaryColor: Optional[str] = None
+    accentColor: Optional[str] = None
+    textColor: Optional[str] = None
+    bgColor: Optional[str] = None
+    fontPrimary: Optional[str] = None
+    fontSecondary: Optional[str] = None
+    toneOfVoice: Optional[str] = None
+    keywords: Optional[str] = None
+    # Media
+    heroPhoto: Optional[str] = None
+    introVideo: Optional[str] = None
+    voiceSample: Optional[str] = None
+    # Progress
+    progress: Optional[Dict[str, int]] = None
+    currentStep: Optional[int] = None
+
+@api_router.get("/partner-hub/{partner_id}")
+async def get_partner_hub(partner_id: str):
+    """Get complete partner hub profile - all data Andrea needs"""
+    # Get base partner data
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    # Get hub profile data
+    hub_profile = await db.partner_hub.find_one({"partner_id": partner_id}, {"_id": 0})
+    
+    # Get brand kit
+    brand_kit = await db.partner_brand_kits.find_one({"partner_id": partner_id}, {"_id": 0})
+    
+    # Merge all data
+    result = {
+        "id": partner.get("id"),
+        "name": partner.get("name", ""),
+        "email": partner.get("email", ""),
+        "phone": partner.get("phone", ""),
+        "niche": partner.get("niche", ""),
+        "phase": partner.get("phase", "F1"),
+        "revenue": partner.get("revenue", 0),
+        "created_at": partner.get("created_at", ""),
+        # Hub profile data (overrides if exists)
+        "city": "",
+        "bio": "",
+        "photo": None,
+        "website": "",
+        "instagram": "",
+        "linkedin": "",
+        "youtube": "",
+        "whoYouAre": "",
+        "targetAudience": "",
+        "problem": "",
+        "solution": "",
+        "pitch": "",
+        "differentiator": "",
+        "offerName": "",
+        "offerPrice": "",
+        "offerIncludes": "",
+        "offerGuarantee": "",
+        "logo": None,
+        "primaryColor": "#2C5F8A",
+        "accentColor": "#F2C418",
+        "textColor": "#1E2128",
+        "bgColor": "#FAFAF7",
+        "fontPrimary": "Nunito Bold",
+        "fontSecondary": "Nunito Regular",
+        "toneOfVoice": "",
+        "keywords": "",
+        "heroPhoto": None,
+        "introVideo": None,
+        "voiceSample": None,
+        "progress": {
+            "positioning": 0,
+            "masterclass": 0,
+            "videocorso": 0,
+            "funnel": 0
+        },
+        "currentStep": 1
+    }
+    
+    # Merge hub profile
+    if hub_profile:
+        for key, value in hub_profile.items():
+            if key not in ["_id", "partner_id"] and value is not None:
+                result[key] = value
+    
+    # Merge brand kit
+    if brand_kit:
+        result["logo"] = brand_kit.get("logo", result["logo"])
+        result["primaryColor"] = brand_kit.get("primary_color", result["primaryColor"])
+        result["accentColor"] = brand_kit.get("accent_color", result["accentColor"])
+        result["textColor"] = brand_kit.get("text_color", result["textColor"])
+        result["bgColor"] = brand_kit.get("bg_color", result["bgColor"])
+        result["fontPrimary"] = brand_kit.get("font_primary", result["fontPrimary"])
+        result["fontSecondary"] = brand_kit.get("font_secondary", result["fontSecondary"])
+    
+    return result
+
+@api_router.put("/partner-hub/{partner_id}")
+async def update_partner_hub(partner_id: str, data: PartnerProfileHub):
+    """Update partner hub profile"""
+    # Check partner exists
+    partner = await db.partners.find_one({"id": partner_id})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    update_data["partner_id"] = partner_id
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    # Upsert hub profile
+    await db.partner_hub.update_one(
+        {"partner_id": partner_id},
+        {"$set": update_data},
+        upsert=True
+    )
+    
+    # Also update main partner name if changed
+    if data.name:
+        await db.partners.update_one(
+            {"id": partner_id},
+            {"$set": {"name": data.name}}
+        )
+    
+    # Return updated profile
+    return await get_partner_hub(partner_id)
+
+@api_router.patch("/partner-hub/{partner_id}/field")
+async def update_partner_hub_field(partner_id: str, field: str, value: str):
+    """Update a single field in partner hub profile"""
+    # Check partner exists
+    partner = await db.partners.find_one({"id": partner_id})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    # Update the specific field
+    await db.partner_hub.update_one(
+        {"partner_id": partner_id},
+        {
+            "$set": {
+                field: value,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+    
+    return {"success": True, "field": field, "value": value}
+
+class PaymentRecord(BaseModel):
+    partner_id: str
+    amount: float
+    description: str
+    date: str
+    status: str = "paid"  # paid, pending, overdue
+    invoice_number: Optional[str] = None
+
+@api_router.get("/partners/{partner_id}/profile")
+async def get_partner_profile(partner_id: str):
+    """Get extended partner profile"""
+    # Get base partner data
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    # Get extended profile data
+    profile = await db.partner_profiles.find_one({"partner_id": partner_id}, {"_id": 0})
+    
+    # Merge data
+    result = {**partner}
+    if profile:
+        result.update(profile)
+    
+    # Calculate contract end if not set
+    if not result.get("contract_end") and result.get("contract"):
+        contract_start = datetime.fromisoformat(result["contract"].replace("Z", "+00:00")) if "T" in result["contract"] else datetime.strptime(result["contract"], "%Y-%m-%d")
+        contract_type = result.get("contract_type", "standard")
+        months = 12 if contract_type in ["standard", "premium"] else 24
+        contract_end = contract_start + timedelta(days=months * 30)
+        result["contract_end"] = contract_end.strftime("%Y-%m-%d")
+        result["contract_start"] = result["contract"]
+    
+    return result
+
+@api_router.patch("/partners/{partner_id}/profile")
+async def update_partner_profile(partner_id: str, data: PartnerProfileUpdate):
+    """Update extended partner profile"""
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    update_data["partner_id"] = partner_id
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    # Update or create profile
+    await db.partner_profiles.update_one(
+        {"partner_id": partner_id},
+        {"$set": update_data},
+        upsert=True
+    )
+    
+    # Also update base partner if contract changed
+    if data.contract_start:
+        await db.partners.update_one(
+            {"id": partner_id},
+            {"$set": {"contract": data.contract_start}}
+        )
+    
+    return {"success": True, "partner_id": partner_id}
+
+@api_router.get("/partners/{partner_id}/payments")
+async def get_partner_payments(partner_id: str):
+    """Get partner payment history"""
+    payments = await db.partner_payments.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).sort("date", -1).to_list(100)
+    return payments
+
+@api_router.post("/partners/{partner_id}/payments")
+async def add_partner_payment(partner_id: str, payment: PaymentRecord):
+    """Add a payment record"""
+    payment_data = payment.model_dump()
+    payment_data["id"] = str(uuid.uuid4())
+    payment_data["created_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.partner_payments.insert_one(payment_data)
+    
+    # Update partner revenue
+    if payment.status == "paid":
+        await db.partners.update_one(
+            {"id": partner_id},
+            {"$inc": {"revenue": payment.amount}}
+        )
+    
+    return {"success": True, "payment_id": payment_data["id"]}
+
+@api_router.post("/partners/{partner_id}/send-documents")
+async def send_partner_documents(partner_id: str, email: str = None):
+    """Send documents to partner via email (placeholder)"""
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    # Get profile for email
+    profile = await db.partner_profiles.find_one({"partner_id": partner_id}, {"_id": 0})
+    target_email = email or (profile.get("email") if profile else None)
+    
+    if not target_email:
+        raise HTTPException(status_code=400, detail="No email address available")
+    
+    # TODO: Implement actual email sending with SendGrid/Resend
+    # For now, just log and return success
+    logging.info(f"Would send documents to {target_email} for partner {partner_id}")
+    
+    return {"success": True, "email": target_email, "message": "Documents queued for sending"}
+
+@api_router.get("/partners/{partner_id}/export-pdf")
+async def export_partner_pdf(partner_id: str):
+    """Export partner documents as PDF (returns text for now)"""
+    from fastapi.responses import PlainTextResponse
+    
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    profile = await db.partner_profiles.find_one({"partner_id": partner_id}, {"_id": 0})
+    positioning = await db.partner_positioning.find_one({"partner_id": partner_id}, {"_id": 0})
+    script = await db.masterclass_scripts.find_one({"partner_id": partner_id}, {"_id": 0})
+    
+    # Generate text content
+    content = f"""═══════════════════════════════════════════════════════════════
+    PROFILO PARTNER — {partner.get('name', 'Partner')}
+═══════════════════════════════════════════════════════════════
+
+📋 ANAGRAFICA
+Nome: {partner.get('name', '—')}
+Email: {profile.get('email', '—') if profile else '—'}
+Telefono: {profile.get('phone', '—') if profile else '—'}
+Azienda: {profile.get('company', '—') if profile else '—'}
+P.IVA: {profile.get('vat_number', '—') if profile else '—'}
+Nicchia: {partner.get('niche', '—')}
+
+📄 CONTRATTO
+Data Inizio: {partner.get('contract', '—')}
+Tipo: {profile.get('contract_type', 'standard') if profile else 'standard'}
+
+📊 STATO
+Fase Attuale: {partner.get('phase', 'F1')}
+Revenue Generato: €{partner.get('revenue', 0):,}
+
+"""
+    
+    if positioning and positioning.get('canvas'):
+        content += f"\n📝 POSIZIONAMENTO\n{positioning['canvas']}\n"
+    
+    if script and script.get('blocks'):
+        content += "\n🎤 SCRIPT MASTERCLASS\n"
+        for key, value in script['blocks'].items():
+            if value:
+                content += f"\n[{key.upper()}]\n{value}\n"
+    
+    content += f"""
+═══════════════════════════════════════════════════════════════
+    Generato da Evolution PRO OS — {datetime.now().strftime("%d/%m/%Y %H:%M")}
+═══════════════════════════════════════════════════════════════"""
+    
+    return PlainTextResponse(content, media_type="text/plain")
+
+
+@api_router.get("/partners/{partner_id}/contract-pdf")
+async def get_partner_contract_pdf(partner_id: str):
+    """Generate and return the partner's contract as a professionally formatted PDF"""
+    from fastapi.responses import StreamingResponse
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm, cm
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.colors import HexColor
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, PageBreak
+    from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
+    import io
+    
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    profile = await db.partner_profiles.find_one({"partner_id": partner_id}, {"_id": 0})
+    
+    # Create PDF buffer
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer, 
+        pagesize=A4,
+        rightMargin=2*cm, 
+        leftMargin=2*cm,
+        topMargin=2*cm, 
+        bottomMargin=2*cm
+    )
+    
+    # Custom styles
+    styles = getSampleStyleSheet()
+    
+    # Title style
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Title'],
+        fontSize=24,
+        textColor=HexColor('#1E2128'),
+        spaceAfter=12,
+        alignment=TA_CENTER
+    )
+    
+    # Subtitle style
+    subtitle_style = ParagraphStyle(
+        'CustomSubtitle',
+        parent=styles['Normal'],
+        fontSize=12,
+        textColor=HexColor('#F5C518'),
+        spaceBefore=6,
+        spaceAfter=20,
+        alignment=TA_CENTER
+    )
+    
+    # Article title style
+    article_title_style = ParagraphStyle(
+        'ArticleTitle',
+        parent=styles['Heading2'],
+        fontSize=14,
+        textColor=HexColor('#1E2128'),
+        spaceBefore=16,
+        spaceAfter=8,
+        leftIndent=0
+    )
+    
+    # Body text style
+    body_style = ParagraphStyle(
+        'CustomBody',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=HexColor('#3B4049'),
+        spaceBefore=4,
+        spaceAfter=4,
+        alignment=TA_JUSTIFY,
+        leading=14
+    )
+    
+    # Info box style
+    info_style = ParagraphStyle(
+        'InfoBox',
+        parent=styles['Normal'],
+        fontSize=9,
+        textColor=HexColor('#5F6572'),
+        spaceBefore=4,
+        spaceAfter=4,
+        leftIndent=10,
+        rightIndent=10
+    )
+    
+    # Build document elements
+    elements = []
+    
+    # Header
+    elements.append(Paragraph("CONTRATTO DI PARTNERSHIP", title_style))
+    elements.append(Paragraph("Evolution PRO - Collaborazione per Videocorsi", subtitle_style))
+    elements.append(Spacer(1, 20))
+    
+    # Partner info table
+    contract_date = partner.get('contract', datetime.now().strftime('%Y-%m-%d'))
+    if isinstance(contract_date, str) and '-' in contract_date:
+        try:
+            from datetime import datetime as dt
+            cd = dt.strptime(contract_date.split('T')[0], '%Y-%m-%d')
+            contract_date_formatted = cd.strftime('%d/%m/%Y')
+            contract_end = (cd + timedelta(days=365)).strftime('%d/%m/%Y')
+        except:
+            contract_date_formatted = contract_date
+            contract_end = "Da calcolare"
+    else:
+        contract_date_formatted = str(contract_date)
+        contract_end = "Da calcolare"
+    
+    partner_data = [
+        ['Partner:', partner.get('name', 'N/D')],
+        ['Email:', profile.get('email', partner.get('email', 'N/D')) if profile else partner.get('email', 'N/D')],
+        ['Nicchia:', partner.get('niche', 'N/D')],
+        ['Data Firma:', contract_date_formatted],
+        ['Scadenza:', contract_end],
+        ['Fase Attuale:', partner.get('phase', 'F1')],
+    ]
+    
+    t = Table(partner_data, colWidths=[4*cm, 10*cm])
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (0, -1), HexColor('#FEF9E7')),
+        ('TEXTCOLOR', (0, 0), (0, -1), HexColor('#C4990A')),
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
+        ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ('BOX', (0, 0), (-1, -1), 1, HexColor('#F5C518')),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, HexColor('#ECEDEF')),
+    ]))
+    elements.append(t)
+    elements.append(Spacer(1, 30))
+    
+    # Contract articles (summary version)
+    contract_articles = [
+        ("Art. 1 - Oggetto del Contratto", 
+         "Le Parti collaborano per creare, promuovere e vendere il videocorso del Partner. Il Partner fornisce i contenuti originali, Evolution PRO fornisce strategia, tecnologia e supporto operativo."),
+        ("Art. 2 - Durata", 
+         "La partnership ha durata di 12 mesi dalla data di firma. Non è previsto rinnovo automatico."),
+        ("Art. 3 - Diritti e Obblighi", 
+         "Il Partner si impegna a fornire i materiali nei tempi concordati. Evolution PRO si impegna a eseguire il programma operativo con professionalità."),
+        ("Art. 4 - Proprietà Intellettuale", 
+         "I contenuti originali del Partner restano di sua proprietà. Evolution PRO ha licenza d'uso temporanea per la durata della partnership."),
+        ("Art. 5 - Corrispettivi", 
+         f"Investimento iniziale: €2.500. Royalty: 10% delle vendite nette per 12 mesi a favore di Evolution PRO."),
+        ("Art. 6 - Riservatezza", 
+         "Tutte le informazioni scambiate sono confidenziali. L'obbligo vale per la durata del contratto + 2 mesi."),
+        ("Art. 7 - Recesso e Risoluzione", 
+         "Non è previsto recesso ordinario. Risoluzione possibile solo per grave inadempimento."),
+        ("Art. 8 - Servizi Forniti", 
+         "Inclusi: Posizionamento, piattaforma Systeme.io, funnel, copy, editing, piano editoriale lancio, gruppo Telegram, videocorso formativo."),
+        ("Art. 9 - Clausola Fiscale", 
+         "Evolution PRO LLC opera da Torino (sede operativa). Fatture esenti IVA con reverse charge."),
+        ("Art. 10 - Protezione Dati", 
+         "Il Partner è titolare del trattamento dei dati dei suoi clienti. Evolution PRO opera come responsabile del trattamento."),
+        ("Art. 11 - Salvaguardia", 
+         "Questo contratto sostituisce qualsiasi accordo precedente."),
+        ("Art. 12 - Tutela del Brand", 
+         "Il marchio Evolution PRO è proprietà esclusiva. Divieto di utilizzo post-contratto per 60 giorni."),
+        ("Art. 13 - Comunicazioni", 
+         "Comunicazioni formali via PEC o raccomandata. Comunicazioni operative via email o Telegram."),
+        ("Art. 14 - Foro Competente", 
+         "Legge applicabile: italiana. Foro competente esclusivo: Tribunale di Torino."),
+        ("Art. 15 - Clausola Finale", 
+         "Il contratto entra in vigore alla firma. Clausole speciali approvate ex art. 1341-1342 c.c."),
+    ]
+    
+    for art_title, art_text in contract_articles:
+        elements.append(Paragraph(art_title, article_title_style))
+        elements.append(Paragraph(art_text, body_style))
+    
+    elements.append(Spacer(1, 30))
+    
+    # Signature section
+    elements.append(Paragraph("<b>FIRME</b>", article_title_style))
+    elements.append(Spacer(1, 10))
+    
+    sig_data = [
+        ['Per Evolution PRO LLC', f'Partner: {partner.get("name", "")}'],
+        ['_________________________', '_________________________'],
+        ['Claudio Bertogliatti', partner.get('name', '')],
+        ['Amministratore', ''],
+    ]
+    
+    sig_table = Table(sig_data, colWidths=[7*cm, 7*cm])
+    sig_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('TOPPADDING', (0, 0), (-1, -1), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+    ]))
+    elements.append(sig_table)
+    
+    elements.append(Spacer(1, 30))
+    
+    # Footer
+    footer_style = ParagraphStyle(
+        'Footer',
+        parent=styles['Normal'],
+        fontSize=8,
+        textColor=HexColor('#9CA3AF'),
+        alignment=TA_CENTER
+    )
+    elements.append(Paragraph(f"Documento generato il {datetime.now().strftime('%d/%m/%Y alle %H:%M')}", footer_style))
+    elements.append(Paragraph("Evolution PRO LLC - Delaware, USA - EIN: 30-1375330", footer_style))
+    elements.append(Paragraph("Sede operativa: Torino, Italia - assistenza@evolution-pro.it", footer_style))
+    
+    # Build PDF
+    doc.build(elements)
+    buffer.seek(0)
+    
+    # Return as downloadable file
+    filename = f"Contratto_EvolutionPRO_{partner.get('name', 'Partner').replace(' ', '_')}_{contract_date_formatted.replace('/', '-')}.pdf"
+    
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )
+
+
+# =============================================================================
+# ROUTES - ONBOARDING DOCUMENTS (Partner Upload during Registration)
+# =============================================================================
+
+class OnboardingDocument(BaseModel):
+    """Model for onboarding documents"""
+    file_id: str
+    document_type: str  # contratto_firmato, documenti_personali, distinta_pagamento
+    partner_id: str
+    original_name: str
+    stored_name: str
+    internal_url: str
+    size: int
+    size_readable: str
+    status: str = "uploaded"  # uploaded, verified, rejected
+    uploaded_at: str
+    verified_at: Optional[str] = None
+    verified_by: Optional[str] = None
+    rejection_reason: Optional[str] = None
+
+ONBOARDING_DOC_TYPES = ["contratto_firmato", "documenti_personali", "distinta_pagamento"]
+
+@api_router.get("/partners/{partner_id}/onboarding-documents")
+async def get_onboarding_documents(partner_id: str):
+    """Get all onboarding documents for a partner"""
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    documents = await db.onboarding_documents.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).to_list(10)
+    
+    # Check completion status
+    uploaded_types = [d["document_type"] for d in documents if d.get("status") != "rejected"]
+    all_uploaded = all(dt in uploaded_types for dt in ONBOARDING_DOC_TYPES)
+    all_verified = all(d.get("status") == "verified" for d in documents) if documents else False
+    
+    return {
+        "success": True,
+        "documents": documents,
+        "completion": {
+            "total_required": len(ONBOARDING_DOC_TYPES),
+            "uploaded": len(uploaded_types),
+            "all_uploaded": all_uploaded,
+            "all_verified": all_verified
+        }
+    }
+
+@api_router.post("/partners/{partner_id}/onboarding-documents/upload")
+async def upload_onboarding_document(
+    partner_id: str,
+    file: UploadFile = File(...),
+    document_type: str = Form(...)
+):
+    """Upload an onboarding document for a partner"""
+    # Validate partner exists
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    # Validate document type
+    if document_type not in ONBOARDING_DOC_TYPES:
+        raise HTTPException(status_code=400, detail=f"Invalid document type. Must be one of: {ONBOARDING_DOC_TYPES}")
+    
