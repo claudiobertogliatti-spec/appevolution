@@ -15,36 +15,13 @@ class AgentAnalyticsHub:
     Coordinates analysis and generates unified business insights
     """
     
+    # 6 Core Agents as per Evolution PRO OS architecture
     AGENTS = {
-        "MAIN": {
-            "name": "Sistema Centrale",
-            "category": "Coordinamento",
-            "emoji": "🎛️",
-            "metrics": ["total_partners", "active_funnels", "system_health"]
-        },
         "VALENTINA": {
             "name": "Orchestratrice",
             "category": "Partner Contact",
             "emoji": "💬",
             "metrics": ["conversations", "response_time", "satisfaction"]
-        },
-        "ORION": {
-            "name": "Sales Intelligence",
-            "category": "Acquisizione",
-            "emoji": "🎯",
-            "metrics": ["lead_score_avg", "hot_leads", "conversion_rate"]
-        },
-        "MARTA": {
-            "name": "CRM & Revenue",
-            "category": "Piattaforma",
-            "emoji": "💰",
-            "metrics": ["mrr", "revenue_growth", "payment_success"]
-        },
-        "GAIA": {
-            "name": "Funnel & Incident",
-            "category": "Esecuzione Tech",
-            "emoji": "⚡",
-            "metrics": ["funnel_conversion", "error_rate", "uptime"]
         },
         "ANDREA": {
             "name": "Video Production",
@@ -52,23 +29,29 @@ class AgentAnalyticsHub:
             "emoji": "🎬",
             "metrics": ["videos_produced", "avg_delivery_time", "quality_score"]
         },
+        "MARCO": {
+            "name": "Accountability",
+            "category": "Accountability Settimanale",
+            "emoji": "📋",
+            "metrics": ["checkins_sent", "response_rate", "inactive_partners"]
+        },
+        "GAIA": {
+            "name": "Supporto Tecnico",
+            "category": "Esecuzione Tech",
+            "emoji": "🔧",
+            "metrics": ["tickets_resolved", "avg_resolution_time", "funnel_health"]
+        },
         "STEFANIA": {
-            "name": "Copy & Traffico",
-            "category": "ADV & Copy",
-            "emoji": "✍️",
-            "metrics": ["email_open_rate", "ctr", "copy_generated"]
+            "name": "Orchestrazione",
+            "category": "Coordinamento",
+            "emoji": "🎯",
+            "metrics": ["routes_today", "escalations", "daily_reports"]
         },
-        "LUCA": {
-            "name": "Compliance",
-            "category": "Verifica",
-            "emoji": "⚖️",
-            "metrics": ["contracts_active", "expiring_soon", "compliance_score"]
-        },
-        "ATLAS": {
-            "name": "Post-Sale & LTV",
-            "category": "Retention",
-            "emoji": "🏆",
-            "metrics": ["avg_ltv", "churn_risk", "upsell_opportunities"]
+        "MAIN": {
+            "name": "Sistema Centrale",
+            "category": "Coordinamento",
+            "emoji": "🎛️",
+            "metrics": ["total_partners", "active_funnels", "system_health"]
         }
     }
     
