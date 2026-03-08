@@ -12,7 +12,7 @@ import stripe
 router = APIRouter(prefix="/api/clienti", tags=["clienti"])
 
 # Initialize Stripe
-stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
+stripe.api_key = os.environ.get("STRIPE_API_KEY") or os.environ.get("STRIPE_SECRET_KEY")
 
 # MongoDB connection will be set from server.py
 db = None
