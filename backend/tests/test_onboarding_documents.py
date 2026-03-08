@@ -9,7 +9,7 @@ import requests
 import os
 import io
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://optimistic-mclaren.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://magical-borg-1.preview.emergentagent.com')
 PARTNER_ID_F0 = "d248c632-869d-4a13-b94a-dbf2425fa143"
 ADMIN_EMAIL = "claudio@evolutionpro.it"
 ADMIN_PASSWORD = "Evolution2026!"
