@@ -9668,6 +9668,11 @@ async def load_telegram_admins():
 # ROOT & CONTROL
 # =============================================================================
 
+@api_router.get("/health")
+async def health_check():
+    """Health check endpoint for deployment - must respond quickly"""
+    return {"status": "healthy", "service": "evolution-pro-os"}
+
 @api_router.get("/")
 async def root():
     return {"message": "Evolution PRO OS API v3.0", "status": "online"}
