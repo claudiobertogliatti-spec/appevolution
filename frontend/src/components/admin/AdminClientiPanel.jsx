@@ -477,13 +477,22 @@ export function AdminClientiPanel() {
                 <p className="text-sm text-[#9CA3AF]">Documento generato con AI</p>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={downloadAnalysis}
-                  className="px-4 py-2 rounded-xl bg-[#F5C518] text-black font-semibold text-sm hover:bg-[#e0b115] transition-colors flex items-center gap-2"
-                >
-                  <FileDown className="w-4 h-4" />
-                  Scarica
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={downloadAnalysisPDF}
+                    className="px-4 py-2 rounded-xl bg-[#F5C518] text-black font-semibold text-sm hover:bg-[#e0b115] transition-colors flex items-center gap-2"
+                  >
+                    <FileDown className="w-4 h-4" />
+                    PDF
+                  </button>
+                  <button
+                    onClick={downloadAnalysisMD}
+                    className="px-4 py-2 rounded-xl bg-white border border-[#ECEDEF] text-[#5F6572] font-semibold text-sm hover:border-[#F5C518] transition-colors flex items-center gap-2"
+                  >
+                    <FileText className="w-4 h-4" />
+                    MD
+                  </button>
+                </div>
                 <button
                   onClick={() => { setShowAnalysis(false); setAnalysis(null); }}
                   className="p-2 hover:bg-black/5 rounded-lg"
