@@ -46,13 +46,15 @@ Italian
 - ✅ Created public landing page at `/analisi-strategica`
 - ✅ Registration flow with form validation
 - ✅ 8-question questionnaire for project evaluation
-- ✅ Stripe checkout integration for €67 payment
+- ✅ Stripe checkout integration for €67 payment (LIVE key configured)
 - ✅ Client dashboard with 7 bonus materials
 - ✅ Backend API: `/api/clienti/*` routes (async with Motor)
 - ✅ Admin routes for managing clients and status updates
 - ✅ **Mar 2026**: Fixed funnel flow - questionnaire only after payment
 - ✅ **Mar 2026**: CTA button updated to "Acquista e Registrati — €67"
 - ✅ **Mar 2026**: Separated registration and payment steps for robustness
+- ✅ **Mar 2026**: AI-powered analysis document generator (Claude via Emergent Key)
+- ✅ **Mar 2026**: Analysis modal with markdown rendering and download
 
 ## Known Issues
 ### P0 - Critical
