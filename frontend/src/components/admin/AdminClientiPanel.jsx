@@ -3,7 +3,7 @@ import {
   Users, Search, Filter, Eye, CheckCircle, XCircle, 
   Clock, AlertTriangle, ChevronRight, Mail, Phone,
   FileText, Calendar, Target, X, Loader2, RefreshCw,
-  ArrowRight, MapPin
+  ArrowRight, MapPin, Sparkles, Download, FileDown
 } from "lucide-react";
 import axios from "axios";
 import { API } from "../../utils/api-config";
@@ -38,6 +38,9 @@ export function AdminClientiPanel() {
   const [filterPaid, setFilterPaid] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [updating, setUpdating] = useState(false);
+  const [generatingAnalysis, setGeneratingAnalysis] = useState(false);
+  const [analysis, setAnalysis] = useState(null);
+  const [showAnalysis, setShowAnalysis] = useState(false);
 
   useEffect(() => {
     loadClienti();
