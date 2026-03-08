@@ -42,14 +42,17 @@ Italian
 - ✅ Renamed "Bonus Strategici" to "Risorse Gratis" and moved to Servizi Extra
 - ✅ Replaced YouTube video upload with generic video upload in I Miei File
 
-### Analisi Strategica App (Feb 2026)
+### Analisi Strategica App (Feb-Mar 2026)
 - ✅ Created public landing page at `/analisi-strategica`
 - ✅ Registration flow with form validation
 - ✅ 8-question questionnaire for project evaluation
 - ✅ Stripe checkout integration for €67 payment
 - ✅ Client dashboard with 7 bonus materials
-- ✅ Backend API: `/api/clienti/*` routes
+- ✅ Backend API: `/api/clienti/*` routes (async with Motor)
 - ✅ Admin routes for managing clients and status updates
+- ✅ **Mar 2026**: Fixed funnel flow - questionnaire only after payment
+- ✅ **Mar 2026**: CTA button updated to "Acquista e Registrati — €67"
+- ✅ **Mar 2026**: Separated registration and payment steps for robustness
 
 ## Known Issues
 ### P0 - Critical
