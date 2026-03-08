@@ -111,8 +111,8 @@ export function AdminClientiPanel() {
     }
   };
 
-  // Download analysis as text file
-  const downloadAnalysis = () => {
+  // Download analysis as text file (markdown)
+  const downloadAnalysisMD = () => {
     if (!analysis || !selectedCliente) return;
     const blob = new Blob([analysis], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
@@ -123,6 +123,29 @@ export function AdminClientiPanel() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  // Download analysis as PDF
+  const downloadAnalysisPDF = async () => {
+    if (!selectedCliente) return;
+    try {
+      const response = await axios.get(
+        `${API}/clienti/admin/${selectedCliente.id}/analysis/pdf`,
+        { responseType: 'blob' }
+      );
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Analisi_Strategica_${selectedCliente.nome}_${selectedCliente.cognome}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Error downloading PDF:", e);
+      alert("Errore nel download del PDF. Assicurati che l'analisi sia stata generata.");
+    }
   };
 
   // Filter clienti
