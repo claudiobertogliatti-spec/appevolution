@@ -9568,14 +9568,22 @@ Se sei un partner Evolution PRO, contatta il supporto per collegare il tuo accou
             # Send response
             await telegram_notifier.send_message(chat_id, response)
             
-            # Log conversation
+            # Log conversation - track if Claude was used
+            response_type = "ai"  # Full Claude response
+            if "Task inviato a OpenClaw" in response:
+                response_type = "openclaw"
+            elif "RISULTATO AZIONE ESEGUITA" in response:
+                response_type = "action"
+            
             await db.telegram_conversations.insert_one({
                 "chat_id": chat_id,
                 "username": username,
                 "user_name": user_name,
                 "partner_id": partner_id,
+                "is_founder": is_founder,
                 "user_message": text,
                 "bot_response": response,
+                "response_type": response_type,
                 "timestamp": datetime.now(timezone.utc).isoformat()
             })
             
