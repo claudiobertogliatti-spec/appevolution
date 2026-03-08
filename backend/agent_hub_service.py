@@ -221,28 +221,28 @@ class AgentAnalyticsHub:
         }
     
     async def _generate_alerts(self) -> List[Dict]:
-        """Generate system-wide alerts"""
+        """Generate system-wide alerts based on 6 core agents"""
         alerts = []
         
-        # Check for expiring contracts
-        luca_metrics = await self._calculate_agent_metrics("LUCA")
-        if luca_metrics.get("expiring_30_days", 0) > 0:
+        # Check for inactive partners (MARCO)
+        marco_metrics = await self._calculate_agent_metrics("MARCO")
+        if marco_metrics.get("inactive_partners", 0) > 0:
             alerts.append({
-                "agent": "LUCA",
+                "agent": "MARCO",
                 "type": "warning",
-                "message": f"⚠️ {luca_metrics['expiring_30_days']} contratti in scadenza nei prossimi 30 giorni"
+                "message": f"⚠️ {marco_metrics['inactive_partners']} partner inattivi da oltre 7 giorni"
             })
         
-        # Check for stuck partners
-        atlas_metrics = await self._calculate_agent_metrics("ATLAS")
-        if atlas_metrics.get("churn_risk_count", 0) > 5:
+        # Check for funnel health (GAIA)
+        gaia_metrics = await self._calculate_agent_metrics("GAIA")
+        if gaia_metrics.get("funnel_health") == "NEEDS_ATTENTION":
             alerts.append({
-                "agent": "ATLAS",
+                "agent": "GAIA",
                 "type": "warning",
-                "message": f"⚠️ {atlas_metrics['churn_risk_count']} partner fermi in fase iniziale (rischio churn)"
+                "message": f"⚠️ Funnel richiede attenzione - conversion rate basso"
             })
         
-        # Check for pending video productions
+        # Check for pending video productions (ANDREA)
         andrea_metrics = await self._calculate_agent_metrics("ANDREA")
         if andrea_metrics.get("pending", 0) > 3:
             alerts.append({
@@ -253,31 +253,35 @@ class AgentAnalyticsHub:
         
         return alerts
     
-    async def _generate_opportunities(self, orion: Dict, marta: Dict) -> List[Dict]:
-        """Generate revenue opportunities"""
+    async def _generate_opportunities_v2(self, marco: Dict, gaia: Dict) -> List[Dict]:
+        """Generate opportunities based on new agent structure"""
         opportunities = []
         
-        hot_leads = orion.get("hot_leads", 0)
-        if hot_leads > 0:
-            potential = hot_leads * 7 * 0.2  # 20% conversion on €7 tripwire
+        # Opportunity: Re-engage inactive partners
+        inactive = marco.get("inactive_partners", 0)
+        if inactive > 0:
             opportunities.append({
-                "agent": "ORION",
-                "type": "revenue",
-                "message": f"🔥 {hot_leads} lead HOT pronti per offerta tripwire",
-                "potential": f"€{potential:.0f}+"
+                "agent": "MARCO",
+                "type": "reengagement",
+                "message": f"🔄 {inactive} partner da riattivare con check-in",
+                "potential": f"+{inactive * 500}€ potenziale"
             })
         
-        warm_leads = orion.get("warm_leads", 0)
-        if warm_leads > 0:
-            potential = warm_leads * 7 * 0.08  # 8% after nurturing
+        # Opportunity: Improve funnel conversion
+        contacts = gaia.get("total_contacts", 0)
+        if contacts > 1000 and gaia.get("conversion_rate", 0) < 2:
             opportunities.append({
-                "agent": "ORION",
-                "type": "nurture",
-                "message": f"🟡 {warm_leads} lead WARM da nurturare",
-                "potential": f"€{potential:.0f}+"
+                "agent": "GAIA",
+                "type": "optimization",
+                "message": f"📈 Ottimizza funnel: {contacts:,} contatti con bassa conversione",
+                "potential": "+50% conversioni possibili"
             })
         
         return opportunities
+    
+    async def _generate_opportunities(self, orion: Dict, marta: Dict) -> List[Dict]:
+        """Legacy function - kept for compatibility"""
+        return []
 
 
 # Singleton instance
