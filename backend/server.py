@@ -9499,23 +9499,70 @@ Se sei un partner Evolution PRO, contatta il supporto per collegare il tuo accou
         try:
             from valentina_ai import valentina_ai
             
+            # Check if this is the founder/admin
+            admin_chat_id = os.environ.get("TELEGRAM_ADMIN_CHAT_ID", "")
+            is_founder = (chat_id == admin_chat_id)
+            
             # Try to find partner by telegram chat_id
             partner = await db.partners.find_one({"telegram_chat_id": chat_id})
             partner_id = str(partner["_id"]) if partner else f"telegram_{chat_id}"
             
-            # Build context
+            # Build context - IMPORTANT: include founder identification
             context = {
                 "platform": "telegram",
                 "chat_id": chat_id,
                 "username": username,
-                "user_name": user_name
+                "user_name": user_name,
+                "is_founder": is_founder,
+                "is_admin": is_founder
             }
             
-            if partner:
-                context["partner_name"] = f"{partner.get('nome', '')} {partner.get('cognome', '')}".strip()
+            # If founder, use special context
+            if is_founder:
+                context["name"] = "Claudio"
+                context["email"] = "claudio@evolutionpro.it"
+                partner_id = "claudio"  # Use founder ID for memory
+                logging.info(f"Founder message received from chat_id {chat_id}")
+            elif partner:
+                context["name"] = f"{partner.get('nome', '')} {partner.get('cognome', '')}".strip()
+                context["partner_name"] = context["name"]
                 context["current_phase"] = partner.get("current_phase", "F0")
+                context["phase"] = partner.get("current_phase", "F0")
             
-            # Get response from VALENTINA
+            # OPTIMIZATION: Quick responses for simple messages (no Claude)
+            text_lower = text.lower()
+            quick_response = None
+            
+            # Saluti semplici
+            if text_lower in ["ciao", "hey", "buongiorno", "buonasera", "salve", "hi", "hello"]:
+                quick_response = f"Ciao {user_name}! 👋 Come posso aiutarti oggi?"
+            
+            # Ringraziamenti
+            elif text_lower in ["grazie", "grazie mille", "thanks", "thx"]:
+                quick_response = f"Prego {user_name}! 😊 Se hai altre domande, sono qui!"
+            
+            # OK/conferme
+            elif text_lower in ["ok", "va bene", "capito", "perfetto"]:
+                quick_response = f"Perfetto! Se hai bisogno di altro, scrivimi pure. 👍"
+            
+            # Se abbiamo una risposta rapida, usala senza chiamare Claude
+            if quick_response:
+                await telegram_notifier.send_message(chat_id, quick_response)
+                # Log conversation
+                await db.telegram_conversations.insert_one({
+                    "chat_id": chat_id,
+                    "username": username,
+                    "user_name": user_name,
+                    "partner_id": partner_id,
+                    "is_founder": is_founder,
+                    "user_message": text,
+                    "bot_response": quick_response,
+                    "response_type": "quick",  # Quick = no Claude
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                })
+                return {"ok": True}
+            
+            # For complex messages, use VALENTINA (may use Claude)
             response = await valentina_ai.chat(partner_id, text, context)
             
             # Send response
