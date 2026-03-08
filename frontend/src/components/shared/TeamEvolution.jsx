@@ -223,7 +223,7 @@ export function TeamEvolution({ isAdmin = false }) {
         <div className="flex items-center gap-4 mb-6">
           <div className="flex-1 h-px" style={{ background: '#ECEDEF' }}></div>
           <h2 className="text-lg font-bold px-4" style={{ color: '#1E2128' }}>
-            8 Agenti Specializzati
+            6 Agenti Specializzati
           </h2>
           <div className="flex-1 h-px" style={{ background: '#ECEDEF' }}></div>
         </div>
