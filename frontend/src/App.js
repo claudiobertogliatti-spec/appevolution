@@ -494,16 +494,14 @@ function PartnerCourse({ partner, modules }) {
   const phaseIdx=PHASES.indexOf(partner.phase);const done=(partner.modules||[]).filter(Boolean).length;
   const cm=activeModule!==null?modules[activeModule]:null;const cl=cm?.lessons[activeLesson];
   
-  // Team Evolution Data
+  // Team Evolution Data - 6 Core Agents
   const TEAM_AGENTS = [
-    { id: "orion", name: "Orion", role: "Sales Intelligence", emoji: "🎯", color: "#5B9EF5", desc: "Analizza lead e ottimizza le conversioni" },
-    { id: "valentina", name: "Valentina", role: "Orchestratrice", emoji: "🔗", color: "#E87CA0", desc: "Coordina il flusso di lavoro" },
-    { id: "marta", name: "Marta", role: "CRM & Revenue", emoji: "💰", color: "#4ECBA0", desc: "Gestisce contatti e fatturato" },
-    { id: "gaia", name: "Gaia", role: "Funnel & Incident", emoji: "🚀", color: "#F59E42", desc: "Costruisce e ottimizza il funnel" },
-    { id: "andrea", name: "Andrea", role: "Video Production", emoji: "🎬", color: "#7C8CF5", desc: "Editing video e avatar AI" },
-    { id: "stefania", name: "Stefania", role: "Copy & Traffico", emoji: "✍️", color: "#D17CEF", desc: "Scrive testi persuasivi" },
-    { id: "luca", name: "Luca", role: "Compliance", emoji: "🛡️", color: "#8899AA", desc: "Conformità GDPR e legale" },
-    { id: "atlas", name: "Atlas", role: "Post-Sale & LTV", emoji: "🤝", color: "#3CC8B4", desc: "Onboarding e retention clienti" },
+    { id: "valentina", name: "Valentina", role: "Orchestratrice", emoji: "💬", color: "#EC4899", desc: "Onboarding, consulenza e coordinamento team" },
+    { id: "andrea", name: "Andrea", role: "Video Production", emoji: "🎬", color: "#8B5CF6", desc: "Editing video, produzione e avatar AI" },
+    { id: "marco", name: "Marco", role: "Accountability", emoji: "📋", color: "#F59E0B", desc: "Check-in settimanali e motivazione" },
+    { id: "gaia", name: "Gaia", role: "Supporto Tecnico", emoji: "🔧", color: "#0EA5E9", desc: "Assistenza tecnica e funnel health" },
+    { id: "stefania", name: "Stefania", role: "Orchestrazione", emoji: "🎯", color: "#10B981", desc: "Routing messaggi e monitoraggio giornaliero" },
+    { id: "main", name: "Main", role: "Sistema Centrale", emoji: "🎛️", color: "#6B7280", desc: "Coordinamento generale del sistema" },
   ];
 
   return (
