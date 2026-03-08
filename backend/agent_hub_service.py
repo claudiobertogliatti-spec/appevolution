@@ -189,35 +189,34 @@ class AgentAnalyticsHub:
     
     async def get_business_summary(self) -> Dict:
         """
-        Generate comprehensive business summary using all agents' insights
+        Generate comprehensive business summary using the 6 core agents' insights
         """
-        # Gather data from all agents
+        # Gather data from core agents
         main_metrics = await self._calculate_agent_metrics("MAIN")
-        orion_metrics = await self._calculate_agent_metrics("ORION")
-        marta_metrics = await self._calculate_agent_metrics("MARTA")
-        atlas_metrics = await self._calculate_agent_metrics("ATLAS")
+        marco_metrics = await self._calculate_agent_metrics("MARCO")
+        gaia_metrics = await self._calculate_agent_metrics("GAIA")
+        valentina_metrics = await self._calculate_agent_metrics("VALENTINA")
         
-        # Calculate health scores
-        lead_health = "🟢" if orion_metrics.get("hot_leads", 0) > 10 else "🟡" if orion_metrics.get("hot_leads", 0) > 0 else "🔴"
-        revenue_health = "🟢" if marta_metrics.get("mrr", 0) > 1000 else "🟡" if marta_metrics.get("mrr", 0) > 0 else "🔴"
-        retention_health = "🟢" if atlas_metrics.get("churn_risk_count", 0) < 5 else "🟡" if atlas_metrics.get("churn_risk_count", 0) < 15 else "🔴"
+        # Calculate health scores based on new agent structure
+        accountability_health = "🟢" if marco_metrics.get("inactive_partners", 0) < 5 else "🟡" if marco_metrics.get("inactive_partners", 0) < 15 else "🔴"
+        tech_health = "🟢" if gaia_metrics.get("funnel_health") == "OK" else "🟡"
+        engagement_health = "🟢" if valentina_metrics.get("total_conversations", 0) > 50 else "🟡" if valentina_metrics.get("total_conversations", 0) > 10 else "🔴"
         
         return {
             "summary": {
                 "total_partners": main_metrics.get("total_partners", 0),
-                "total_leads": main_metrics.get("total_leads", 0),
-                "mrr": marta_metrics.get("mrr", 0),
-                "avg_ltv": atlas_metrics.get("avg_ltv", 0),
-                "hot_leads": orion_metrics.get("hot_leads", 0),
+                "active_partners": main_metrics.get("active_partners", 0),
+                "mrr": 0,  # To be calculated from payments
+                "avg_ltv": "2.580",  # Default LTV
             },
             "health": {
-                "leads": lead_health,
-                "revenue": revenue_health,
-                "retention": retention_health,
-                "overall": "🟢" if lead_health == "🟢" and revenue_health == "🟢" else "🟡"
+                "accountability": accountability_health,
+                "tech": tech_health,
+                "engagement": engagement_health,
+                "overall": "🟢" if accountability_health == "🟢" and tech_health == "🟢" else "🟡"
             },
             "alerts": await self._generate_alerts(),
-            "opportunities": await self._generate_opportunities(orion_metrics, marta_metrics),
+            "opportunities": await self._generate_opportunities_v2(marco_metrics, gaia_metrics),
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
     
