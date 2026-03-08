@@ -9425,6 +9425,181 @@ async def test_telegram_notification(chat_id: str):
     )
     return {"success": result.get("ok", False), "result": result}
 
+@api_router.post("/telegram/webhook")
+async def telegram_webhook(request: Request):
+    """
+    Webhook endpoint for receiving Telegram messages.
+    Processes incoming messages and responds via VALENTINA AI.
+    """
+    try:
+        update = await request.json()
+        logging.info(f"Telegram webhook received: {update}")
+        
+        # Extract message data
+        message = update.get("message", {})
+        if not message:
+            return {"ok": True}  # Ignore non-message updates
+        
+        chat_id = str(message.get("chat", {}).get("id", ""))
+        text = message.get("text", "")
+        from_user = message.get("from", {})
+        user_name = from_user.get("first_name", "Utente")
+        username = from_user.get("username", "")
+        
+        if not chat_id or not text:
+            return {"ok": True}
+        
+        # Check if this is a command
+        if text.startswith("/"):
+            if text == "/start":
+                welcome_msg = f"""👋 <b>Ciao {user_name}!</b>
+
+Sono <b>VALENTINA</b>, l'assistente AI di Evolution PRO.
+
+Sono qui per aiutarti nel tuo percorso. Puoi chiedermi:
+• Informazioni sul programma
+• Aiuto con le fasi del percorso
+• Supporto tecnico
+
+Scrivimi pure! 💬"""
+                await telegram_notifier.send_message(chat_id, welcome_msg)
+                return {"ok": True}
+            
+            elif text == "/help":
+                help_msg = """📚 <b>Comandi disponibili:</b>
+
+/start - Inizia la conversazione
+/help - Mostra questo messaggio
+/stato - Verifica lo stato del tuo account
+
+Oppure scrivimi liberamente e ti aiuterò! 😊"""
+                await telegram_notifier.send_message(chat_id, help_msg)
+                return {"ok": True}
+            
+            elif text == "/stato":
+                # Check if user is a partner
+                partner = await db.partners.find_one({"telegram_chat_id": chat_id})
+                if partner:
+                    status_msg = f"""📊 <b>Il tuo stato:</b>
+
+👤 Nome: {partner.get('nome', 'N/A')} {partner.get('cognome', '')}
+📍 Fase attuale: {partner.get('current_phase', 'F0')}
+📅 Registrazione: {partner.get('created_at', 'N/A')[:10] if partner.get('created_at') else 'N/A'}
+
+Continua così! 🚀"""
+                else:
+                    status_msg = """ℹ️ Non ho trovato un account partner associato a questo chat.
+
+Se sei un partner Evolution PRO, contatta il supporto per collegare il tuo account Telegram."""
+                
+                await telegram_notifier.send_message(chat_id, status_msg)
+                return {"ok": True}
+        
+        # Regular message - respond via VALENTINA
+        try:
+            from valentina_ai import valentina_ai
+            
+            # Try to find partner by telegram chat_id
+            partner = await db.partners.find_one({"telegram_chat_id": chat_id})
+            partner_id = str(partner["_id"]) if partner else f"telegram_{chat_id}"
+            
+            # Build context
+            context = {
+                "platform": "telegram",
+                "chat_id": chat_id,
+                "username": username,
+                "user_name": user_name
+            }
+            
+            if partner:
+                context["partner_name"] = f"{partner.get('nome', '')} {partner.get('cognome', '')}".strip()
+                context["current_phase"] = partner.get("current_phase", "F0")
+            
+            # Get response from VALENTINA
+            response = await valentina_ai.chat(partner_id, text, context)
+            
+            # Send response
+            await telegram_notifier.send_message(chat_id, response)
+            
+            # Log conversation
+            await db.telegram_conversations.insert_one({
+                "chat_id": chat_id,
+                "username": username,
+                "user_name": user_name,
+                "partner_id": partner_id,
+                "user_message": text,
+                "bot_response": response,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
+            
+        except Exception as ai_error:
+            logging.error(f"VALENTINA AI error: {ai_error}")
+            # Fallback response
+            fallback_msg = f"""Mi scuso {user_name}, ma sto avendo qualche difficoltà tecnica in questo momento. 🙏
+
+Il team sta lavorando per risolvere. Riprova tra poco!
+
+Se hai urgenza, contatta il supporto Evolution PRO."""
+            await telegram_notifier.send_message(chat_id, fallback_msg)
+        
+        return {"ok": True}
+        
+    except Exception as e:
+        logging.error(f"Telegram webhook error: {e}")
+        return {"ok": False, "error": str(e)}
+
+@api_router.post("/telegram/set-webhook")
+async def set_telegram_webhook(webhook_url: str = None):
+    """
+    Set or update the Telegram webhook URL.
+    If no URL provided, uses the current server URL.
+    """
+    telegram_token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    if not telegram_token:
+        raise HTTPException(status_code=500, detail="Telegram bot token not configured")
+    
+    # If no URL provided, try to construct from environment
+    if not webhook_url:
+        backend_url = os.environ.get("REACT_APP_BACKEND_URL", "")
+        if backend_url:
+            webhook_url = f"{backend_url}/api/telegram/webhook"
+        else:
+            raise HTTPException(status_code=400, detail="Webhook URL required")
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                f"https://api.telegram.org/bot{telegram_token}/setWebhook",
+                json={"url": webhook_url}
+            )
+            result = response.json()
+            
+            if result.get("ok"):
+                logging.info(f"Telegram webhook set to: {webhook_url}")
+                return {"success": True, "webhook_url": webhook_url, "result": result}
+            else:
+                return {"success": False, "error": result.get("description", "Unknown error")}
+                
+    except Exception as e:
+        logging.error(f"Error setting Telegram webhook: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/telegram/webhook-info")
+async def get_telegram_webhook_info():
+    """Get current webhook information from Telegram"""
+    telegram_token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    if not telegram_token:
+        raise HTTPException(status_code=500, detail="Telegram bot token not configured")
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(
+                f"https://api.telegram.org/bot{telegram_token}/getWebhookInfo"
+            )
+            return response.json()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Load admin chat IDs from database on startup
 async def load_telegram_admins():
     """Load admin chat IDs from database"""
