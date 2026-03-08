@@ -55,6 +55,7 @@ Italian
 - ✅ **Mar 2026**: Separated registration and payment steps for robustness
 - ✅ **Mar 2026**: AI-powered analysis document generator (Claude via Emergent Key)
 - ✅ **Mar 2026**: Analysis modal with markdown rendering and download
+- ✅ **Mar 2026**: **PDF Export with Evolution PRO branding** (logo, colors, structured layout)
 
 ## Known Issues
 ### P0 - Critical
