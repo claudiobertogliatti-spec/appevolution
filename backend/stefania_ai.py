@@ -1,12 +1,10 @@
 """
 STEFANIA AI - Agente Orchestrazione (smistamento e monitoraggio)
 Evolution PRO OS
-
-NOTA: Stefania NON interagisce con i partner direttamente.
-Lavora in background, monitora lo stato di tutti e smista.
 """
 
 import os
+import json
 import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, List
@@ -49,22 +47,6 @@ Regola di priorità: se una situazione può coinvolgere più agenti, attiva prim
 
 ---
 
-MONITORAGGIO PROATTIVO:
-
-Ogni giorno verifichi queste condizioni e attivi automaticamente:
-
-1. Partner inattivi da più di 7 giorni → attiva MARCO
-
-2. Partner con problemi tecnici ricorrenti (stesso problema >2 volte) → attiva GAIA + segnala a Claudio
-
-3. Partner in fase 7 (pre-lancio) senza completamento checklist lancio → attiva VALENTINA
-
-4. Partner con piano continuità in scadenza entro 30 giorni → segnala a Claudio
-
-5. Alert aperti non risolti da più di 48h → escalation a Claudio
-
----
-
 QUANDO SCALA DIRETTAMENTE A CLAUDIO (bypassando gli altri agenti):
 - Abbandono dichiarato da un partner.
 - Richiesta rimborso.
@@ -84,165 +66,253 @@ NON FAI MAI:
 Rispondi sempre in italiano con report strutturati."""
 
 
+ROUTING_SYSTEM_PROMPT = """
+Sei STEFANIA, orchestratrice di Business Evolution PRO.
+Analizza il messaggio del partner e rispondi SOLO con un JSON nel formato:
+{
+  "agente_destinatario": "VALENTINA|ANDREA|MARCO|GAIA|CLAUDIO",
+  "motivo": "motivo in una frase",
+  "messaggio": "eventuale messaggio da mostrare al partner mentre viene smistato"
+}
+
+Regole di routing:
+- Domanda strategica, dubbi metodo, onboarding → VALENTINA
+- Revisione contenuti, produzione video, blocco corso → ANDREA
+- Inattività, impegni, check-in → MARCO
+- Problema tecnico, errore piattaforma, strumenti → GAIA
+- Rimborso, abbandono, questione legale, crisi → CLAUDIO
+"""
+
+
+def route_message(messaggio: str, contesto: dict) -> dict:
+    """
+    STEFANIA analizza il messaggio e restituisce agente destinatario + motivo.
+    """
+    if not EMERGENT_LLM_KEY:
+        return {"agente_destinatario": "VALENTINA", "motivo": "fallback - no API key", "messaggio": ""}
+    
+    try:
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"stefania_routing_{datetime.now().strftime('%Y%m%d%H%M%S')}",
+            system_message=ROUTING_SYSTEM_PROMPT
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        
+        prompt = f"Partner: {contesto.get('nome_partner', 'N/A')}\nFase: {contesto.get('fase_attuale', 'N/A')}\nMessaggio: {messaggio}"
+        
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(asyncio.run, chat.send_message(UserMessage(text=prompt)))
+                    raw = future.result()
+            else:
+                raw = asyncio.run(chat.send_message(UserMessage(text=prompt)))
+        except RuntimeError:
+            raw = asyncio.run(chat.send_message(UserMessage(text=prompt)))
+        
+        # Parse JSON response
+        raw = raw.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        
+        return json.loads(raw)
+        
+    except json.JSONDecodeError as e:
+        logger.error(f"[STEFANIA] Risposta non JSON: {raw}")
+        # Fallback to keyword-based routing
+        return _keyword_routing(messaggio)
+    except Exception as e:
+        logger.error(f"[STEFANIA] Errore route_message: {e}")
+        return _keyword_routing(messaggio)
+
+
+def _keyword_routing(messaggio: str) -> dict:
+    """Fallback keyword-based routing"""
+    messaggio_lower = messaggio.lower()
+    
+    # Check for Claudio-level issues first
+    if any(kw in messaggio_lower for kw in ["rimborso", "abbandono", "legale", "contratto", "cancellare", "disdetta"]):
+        return {"agente_destinatario": "CLAUDIO", "motivo": "Questione critica rilevata", "messaggio": "Sto passando la tua richiesta direttamente a Claudio."}
+    
+    # Technical issues
+    if any(kw in messaggio_lower for kw in ["tecnico", "errore", "bug", "systeme", "stripe", "non funziona", "problema"]):
+        return {"agente_destinatario": "GAIA", "motivo": "Problema tecnico", "messaggio": "Ti metto in contatto con GAIA per supporto tecnico."}
+    
+    # Content/production issues
+    if any(kw in messaggio_lower for kw in ["video", "registrazione", "modulo", "contenuto", "produzione", "revisione"]):
+        return {"agente_destinatario": "ANDREA", "motivo": "Produzione contenuti", "messaggio": "Ti metto in contatto con ANDREA per la produzione."}
+    
+    # Accountability
+    if any(kw in messaggio_lower for kw in ["inattivo", "fermo", "impegno", "settimana", "check-in"]):
+        return {"agente_destinatario": "MARCO", "motivo": "Accountability", "messaggio": "Ti metto in contatto con MARCO."}
+    
+    # Default to VALENTINA
+    return {"agente_destinatario": "VALENTINA", "motivo": "Supporto generale", "messaggio": "Ti metto in contatto con VALENTINA."}
+
+
+def run_daily_monitoring(partner_ids=None) -> dict:
+    """
+    Ciclo di monitoraggio giornaliero di STEFANIA.
+    Controlla inattivi, pre-lancio, alert aperti, piani in scadenza.
+    Restituisce un dict con azioni intraprese e situazioni critiche.
+    """
+    try:
+        # Try to get data from database
+        try:
+            from motor.motor_asyncio import AsyncIOMotorClient
+            mongo_url = os.environ.get("MONGO_URL", "")
+            db_name = os.environ.get("DB_NAME", "evolution_pro")
+            
+            if mongo_url:
+                import asyncio
+                
+                async def fetch_data():
+                    client = AsyncIOMotorClient(mongo_url)
+                    db = client[db_name]
+                    
+                    # Get active partners
+                    query = {"status": {"$in": ["active", "attivo"]}}
+                    if partner_ids:
+                        from bson import ObjectId
+                        query["_id"] = {"$in": [ObjectId(pid) for pid in partner_ids]}
+                    
+                    partners = await db.partners.find(query).to_list(100)
+                    alerts = await db.alerts.find({"status": "open"}).to_list(100)
+                    client.close()
+                    return partners, alerts
+                
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        import concurrent.futures
+                        with concurrent.futures.ThreadPoolExecutor() as executor:
+                            future = executor.submit(asyncio.run, fetch_data())
+                            partner_attivi, alert_aperti = future.result()
+                    else:
+                        partner_attivi, alert_aperti = asyncio.run(fetch_data())
+                except RuntimeError:
+                    partner_attivi, alert_aperti = asyncio.run(fetch_data())
+            else:
+                partner_attivi = []
+                alert_aperti = []
+        except Exception as db_error:
+            logger.warning(f"[STEFANIA] Could not fetch from DB: {db_error}")
+            partner_attivi = []
+            alert_aperti = []
+
+        azioni = []
+        critici = []
+        today = datetime.now(timezone.utc)
+
+        for p in partner_attivi:
+            nome = p.get("nome", "Partner")
+            
+            # Calculate days inactive
+            last_activity = p.get("last_activity") or p.get("updated_at")
+            giorni_inattivo = 0
+            if last_activity:
+                if isinstance(last_activity, str):
+                    last_activity = datetime.fromisoformat(last_activity.replace("Z", "+00:00"))
+                giorni_inattivo = (today - last_activity).days
+            
+            fase = p.get("current_phase", p.get("fase_attuale", ""))
+            piano = p.get("piano_attivo", "")
+            
+            # Calculate days to plan expiry
+            plan_expiry = p.get("plan_expiry_date")
+            giorni_a_scadenza = 999
+            if plan_expiry:
+                if isinstance(plan_expiry, str):
+                    plan_expiry = datetime.fromisoformat(plan_expiry.replace("Z", "+00:00"))
+                giorni_a_scadenza = (plan_expiry - today).days
+
+            # Partner inattivi >7 giorni → trigger MARCO
+            if giorni_inattivo > 7:
+                azioni.append({
+                    "trigger": "MARCO",
+                    "partner": nome,
+                    "motivo": f"Inattivo da {giorni_inattivo} giorni"
+                })
+
+            # Pre-lancio senza checklist → trigger VALENTINA
+            if "F7" in str(fase) or "lancio" in str(fase).lower():
+                if not p.get("checklist_lancio_completa", False):
+                    azioni.append({
+                        "trigger": "VALENTINA",
+                        "partner": nome,
+                        "motivo": "In fase lancio senza checklist completa"
+                    })
+
+            # Piano in scadenza entro 30 giorni → segnala a Claudio
+            if 0 < giorni_a_scadenza <= 30:
+                critici.append({
+                    "tipo": "RINNOVO",
+                    "partner": nome,
+                    "piano": piano,
+                    "giorni_rimasti": giorni_a_scadenza
+                })
+
+        # Alert aperti da >48h → escalation Claudio
+        for alert in alert_aperti:
+            created = alert.get("created_at")
+            ore_aperto = 0
+            if created:
+                if isinstance(created, str):
+                    created = datetime.fromisoformat(created.replace("Z", "+00:00"))
+                ore_aperto = int((today - created).total_seconds() / 3600)
+            
+            if ore_aperto > 48:
+                critici.append({
+                    "tipo": "ALERT_SCADUTO",
+                    "partner": alert.get("partner_name", "N/A"),
+                    "alert": alert.get("type", "N/A"),
+                    "ore": ore_aperto
+                })
+
+        return {
+            "partner_analizzati": len(partner_attivi),
+            "azioni_attivate": azioni,
+            "situazioni_critiche": critici,
+            "alert_aperti_totali": len(alert_aperti),
+            "data": datetime.utcnow().isoformat()
+        }
+
+    except Exception as e:
+        logger.error(f"[STEFANIA] Errore run_daily_monitoring: {e}")
+        return {
+            "partner_analizzati": 0,
+            "azioni_attivate": [],
+            "situazioni_critiche": [],
+            "alert_aperti_totali": 0,
+            "data": datetime.utcnow().isoformat(),
+            "error": str(e)
+        }
+
+
+def ask_stefania(messaggio: str, contesto: dict) -> str:
+    """Send message to STEFANIA for routing analysis"""
+    result = route_message(messaggio, contesto)
+    return f"Agente destinatario: {result.get('agente_destinatario')}\nMotivo: {result.get('motivo')}"
+
+
 class StefaniaAI:
     """STEFANIA AI Agent - Orchestration System"""
     
     def __init__(self):
-        self.routing_rules = {
-            "strategica": "VALENTINA",
-            "metodo": "VALENTINA",
-            "onboarding": "VALENTINA",
-            "nicchia": "VALENTINA",
-            "posizionamento": "VALENTINA",
-            "video": "ANDREA",
-            "registrazione": "ANDREA",
-            "modulo": "ANDREA",
-            "contenuto": "ANDREA",
-            "produzione": "ANDREA",
-            "inattivo": "MARCO",
-            "accountability": "MARCO",
-            "impegno": "MARCO",
-            "check-in": "MARCO",
-            "tecnico": "GAIA",
-            "errore": "GAIA",
-            "bug": "GAIA",
-            "systeme": "GAIA",
-            "stripe": "GAIA",
-            "rimborso": "CLAUDIO",
-            "abbandono": "CLAUDIO",
-            "legale": "CLAUDIO",
-            "contratto": "CLAUDIO"
-        }
+        pass
     
-    def route_message(self, message: str) -> str:
-        """Determine which agent should handle a message"""
-        message_lower = message.lower()
-        
-        # Check for Claudio-level issues first
-        claudio_keywords = ["rimborso", "abbandono", "legale", "contratto", "cancellare", "disdetta"]
-        for keyword in claudio_keywords:
-            if keyword in message_lower:
-                return "CLAUDIO"
-        
-        # Check routing rules
-        for keyword, agent in self.routing_rules.items():
-            if keyword in message_lower:
-                return agent
-        
-        # Default to VALENTINA for general queries
-        return "VALENTINA"
+    def route(self, messaggio: str, contesto: dict) -> dict:
+        """Route a message to the appropriate agent"""
+        return route_message(messaggio, contesto)
     
-    def _build_context(self, system_data: dict) -> str:
-        """Build context string from system data"""
-        context_parts = []
-        
-        if system_data.get("tutti_i_partner_attivi"):
-            context_parts.append(f"- Tutti i partner attivi: {system_data['tutti_i_partner_attivi']}")
-        if system_data.get("alert_aperti"):
-            context_parts.append(f"- Alert aperti: {system_data['alert_aperti']}")
-        if system_data.get("partner_inattivi_7gg"):
-            context_parts.append(f"- Partner inattivi da più di 7 giorni: {system_data['partner_inattivi_7gg']}")
-        if system_data.get("partner_in_fase_lancio"):
-            context_parts.append(f"- Partner in fase lancio: {system_data['partner_in_fase_lancio']}")
-        
-        return "\n".join(context_parts) if context_parts else "Nessun contesto disponibile"
-    
-    async def generate_daily_report(self, system_data: dict) -> str:
-        """Generate daily report for Claudio"""
-        today = datetime.now().strftime("%d/%m/%Y")
-        
-        partner_count = system_data.get("partner_attivi_count", 0)
-        alert_count = system_data.get("alert_count", 0)
-        new_alerts = system_data.get("new_alerts_today", 0)
-        inactive_list = system_data.get("partner_inattivi_7gg", [])
-        prelaunch_list = system_data.get("partner_in_fase_lancio", [])
-        expiring_list = system_data.get("piani_in_scadenza_30gg", [])
-        actions_today = system_data.get("azioni_oggi", [])
-        critical_situations = system_data.get("situazioni_critiche", [])
-        
-        report = f"""REPORT STEFANIA — {today}
-
-Partner attivi: {partner_count}
-Alert aperti: {alert_count} | Nuovi oggi: {new_alerts}
-Partner inattivi >7gg: {', '.join(inactive_list) if inactive_list else 'Nessuno'}
-Partner in pre-lancio: {', '.join(prelaunch_list) if prelaunch_list else 'Nessuno'}
-Piani in scadenza 30gg: {', '.join(expiring_list) if expiring_list else 'Nessuno'}
-
-Azioni attivate oggi:
-{chr(10).join(['- ' + a for a in actions_today]) if actions_today else '- Nessuna azione automatica'}
-
-Situazioni che richiedono tua attenzione:
-{chr(10).join(['- ' + s for s in critical_situations]) if critical_situations else '- Nessuna situazione critica'}"""
-        
-        return report
-    
-    async def check_and_trigger(self, partners_data: List[dict], db) -> List[dict]:
-        """Check all partners and trigger appropriate agents"""
-        triggers = []
-        today = datetime.now(timezone.utc)
-        
-        for partner in partners_data:
-            partner_id = str(partner.get("_id", ""))
-            nome = partner.get("nome", "Partner")
-            
-            # Check inactivity
-            last_activity = partner.get("last_activity")
-            if last_activity:
-                if isinstance(last_activity, str):
-                    last_activity = datetime.fromisoformat(last_activity.replace("Z", "+00:00"))
-                days_inactive = (today - last_activity).days
-                
-                if days_inactive >= 7:
-                    triggers.append({
-                        "partner_id": partner_id,
-                        "partner_name": nome,
-                        "trigger_type": "inactivity",
-                        "agent": "MARCO",
-                        "message": f"[TRIGGER STEFANIA] {nome} inattivo da {days_inactive} giorni. Attiva protocollo accountability.",
-                        "days": days_inactive
-                    })
-            
-            # Check pre-launch phase
-            current_phase = partner.get("current_phase", "")
-            if current_phase == "F7":
-                checklist_complete = partner.get("checklist_lancio_completata", False)
-                if not checklist_complete:
-                    triggers.append({
-                        "partner_id": partner_id,
-                        "partner_name": nome,
-                        "trigger_type": "prelaunch_incomplete",
-                        "agent": "VALENTINA",
-                        "message": f"[PRE-LANCIO] {nome} è in fase 7. Checklist lancio non completata."
-                    })
-            
-            # Check plan expiration
-            plan_expiry = partner.get("plan_expiry_date")
-            if plan_expiry:
-                if isinstance(plan_expiry, str):
-                    plan_expiry = datetime.fromisoformat(plan_expiry.replace("Z", "+00:00"))
-                days_to_expiry = (plan_expiry - today).days
-                
-                if 0 < days_to_expiry <= 30:
-                    piano = partner.get("piano_attivo", "N/A")
-                    triggers.append({
-                        "partner_id": partner_id,
-                        "partner_name": nome,
-                        "trigger_type": "plan_expiring",
-                        "agent": "CLAUDIO",
-                        "message": f"[RINNOVO] {nome} — piano {piano} scade tra {days_to_expiry} giorni. Check-in consigliato."
-                    })
-        
-        return triggers
-    
-    async def analyze_situation(self, message: str, partner_data: dict = None) -> dict:
-        """Analyze a situation and recommend routing"""
-        agent = self.route_message(message)
-        
-        return {
-            "recommended_agent": agent,
-            "analysis": f"Messaggio analizzato. Situazione pertinente a {agent}.",
-            "priority": "HIGH" if agent == "CLAUDIO" else "NORMAL"
-        }
+    def daily_report(self, partner_ids=None) -> dict:
+        """Generate daily monitoring report"""
+        return run_daily_monitoring(partner_ids)
 
 
 # Global instance
