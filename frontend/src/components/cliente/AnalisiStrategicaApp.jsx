@@ -77,7 +77,7 @@ export function AnalisiStrategicaApp() {
     setError("");
   };
 
-  // Register and redirect to payment page
+  // Register and go directly to Stripe checkout
   const handleRegisterAndPay = async (e) => {
     e.preventDefault();
     if (!formData.nome || !formData.cognome || !formData.email || !formData.telefono || !formData.password) {
@@ -90,16 +90,39 @@ export function AnalisiStrategicaApp() {
     }
 
     setLoading(true);
+    setError("");
     try {
-      // Register
+      // Step 1: Register
       const regRes = await axios.post(`${API}/clienti/register`, formData);
       if (regRes.data.success) {
-        const userData = { id: regRes.data.cliente_id, ...formData, has_paid: false, status: "registered" };
+        const clienteId = regRes.data.cliente_id;
+        const userData = { id: clienteId, ...formData, has_paid: false, status: "registered" };
         localStorage.setItem("cliente_session", JSON.stringify(userData));
         
-        // Set user logged in - they will be redirected to payment page
-        setUser(userData);
-        setIsLoggedIn(true);
+        // Step 2: Create Stripe checkout and redirect immediately
+        try {
+          const checkoutRes = await axios.post(`${API}/clienti/create-checkout-session`, {
+            cliente_id: clienteId,
+            email: formData.email,
+            nome: formData.nome,
+            cognome: formData.cognome
+          });
+          
+          if (checkoutRes.data.checkout_url) {
+            window.location.href = checkoutRes.data.checkout_url;
+            return; // Don't setLoading(false) - we're redirecting
+          } else {
+            // Fallback: show payment page if no checkout URL
+            setUser(userData);
+            setIsLoggedIn(true);
+          }
+        } catch (stripeErr) {
+          console.error("Stripe error:", stripeErr);
+          // Stripe failed but registration succeeded - show payment page
+          setUser(userData);
+          setIsLoggedIn(true);
+          setError("Impossibile avviare il pagamento. Riprova.");
+        }
       }
     } catch (err) {
       if (err.response?.status === 409) {
