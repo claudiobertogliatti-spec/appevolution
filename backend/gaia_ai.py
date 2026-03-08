@@ -22,8 +22,12 @@ Systeme.io, Descript, Stripe, l'app Evolution PRO OS, e gli strumenti consigliat
 
 ---
 
-CONTESTO DISPONIBILE (variabili iniettate a runtime):
-{context}
+CONTESTO DISPONIBILE:
+- Nome partner: {nome_partner}
+- Piano attivo: {piano_attivo}
+- URL accademia: {accademia_url}
+- Strumenti configurati: {strumenti_configurati}
+- Errore segnalato: {errore_segnalato}
 
 ---
 
@@ -60,23 +64,6 @@ Dopo la diagnosi:
 
 ---
 
-ESCALATION TECNICA (30 minuti senza risoluzione):
-
-"Il problema richiede un intervento diretto.
-Sto segnalando a Claudio con tutti i dettagli.
-Nel frattempo: [workaround temporaneo se disponibile]."
-
----
-
-STRUMENTI CHE SUPPORTI:
-- Systeme.io (configurazione corsi, automazioni, Stripe, pagine)
-- Descript (editing video, overdub, pubblicazione)
-- App Evolution PRO OS (accessi, percorso, documenti)
-- Email/DNS (configurazione dominio accademia)
-- Zoom/Meet (problemi registrazione, link sessioni)
-
----
-
 NON FAI MAI:
 - Non gestisci rimborsi o modifiche contrattuali → Claudio diretto.
 - Non dai soluzioni su strumenti fuori dallo stack Evolution PRO.
@@ -85,6 +72,47 @@ NON FAI MAI:
 - Non improvvisi soluzioni non verificate — se non sei certa, dillo e scala.
 
 Rispondi sempre in italiano."""
+
+
+def ask_gaia(user_message: str, context: dict) -> str:
+    """
+    Invia un messaggio a GAIA con il contesto del partner.
+    Restituisce la risposta dell'agente come stringa.
+    """
+    if not EMERGENT_LLM_KEY:
+        return "Errore: API key non configurata. Contatta il supporto."
+    
+    try:
+        # Fill context with defaults
+        filled_context = {
+            "nome_partner": context.get("nome_partner", "Partner"),
+            "piano_attivo": context.get("piano_attivo", "N/A"),
+            "accademia_url": context.get("accademia_url", "Non configurato"),
+            "strumenti_configurati": context.get("strumenti_configurati", "N/A"),
+            "errore_segnalato": context.get("errore_segnalato", "Non specificato")
+        }
+        
+        prompt_with_context = GAIA_SYSTEM_PROMPT.format(**filled_context)
+        
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"gaia_{context.get('partner_id', 'unknown')}_{datetime.now().strftime('%Y%m%d%H')}",
+            system_message=prompt_with_context
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        
+        import asyncio
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(asyncio.run, chat.send_message(UserMessage(text=user_message)))
+                return future.result()
+        else:
+            return asyncio.run(chat.send_message(UserMessage(text=user_message)))
+            
+    except Exception as e:
+        logger.error(f"[GAIA] Errore ask_gaia: {e}")
+        return f"Mi scuso, ho riscontrato un errore tecnico. Riprova tra poco."
 
 
 class GaiaAI:
@@ -100,47 +128,11 @@ class GaiaAI:
             "email_not_delivered": "Email non ricevute: controlla la cartella spam e aggiungi il dominio ai contatti sicuri."
         }
     
-    def _build_context(self, partner_data: dict) -> str:
-        """Build context string from partner data"""
-        context_parts = []
-        
-        if partner_data.get("nome"):
-            context_parts.append(f"- Nome partner: {partner_data.get('nome')} {partner_data.get('cognome', '')}")
-        if partner_data.get("piano_attivo"):
-            context_parts.append(f"- Piano attivo: {partner_data['piano_attivo']}")
-        if partner_data.get("accademia_url"):
-            context_parts.append(f"- URL accademia: {partner_data['accademia_url']}")
-        if partner_data.get("strumenti_configurati"):
-            context_parts.append(f"- Strumenti configurati: {partner_data['strumenti_configurati']}")
-        if partner_data.get("errore_segnalato"):
-            context_parts.append(f"- Errore segnalato: {partner_data['errore_segnalato']}")
-        
-        return "\n".join(context_parts) if context_parts else "Nessun contesto disponibile"
-    
     async def chat(self, partner_id: str, message: str, partner_data: dict = None) -> str:
         """Send message to GAIA and get response"""
-        if not EMERGENT_LLM_KEY:
-            return "Errore: API key non configurata. Contatta il supporto."
-        
-        try:
-            context = self._build_context(partner_data or {})
-            system_prompt = GAIA_SYSTEM_PROMPT.replace("{context}", context)
-            
-            session_id = f"gaia_{partner_id}_{datetime.now().strftime('%Y%m%d%H')}"
-            
-            chat = LlmChat(
-                api_key=EMERGENT_LLM_KEY,
-                session_id=session_id,
-                system_message=system_prompt
-            ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-            
-            response = await chat.send_message(UserMessage(text=message))
-            
-            return response
-            
-        except Exception as e:
-            logger.error(f"GAIA chat error: {e}")
-            return f"Mi scuso, ho riscontrato un errore tecnico. Riprova tra poco."
+        context = partner_data or {}
+        context["partner_id"] = partner_id
+        return ask_gaia(message, context)
     
     def check_known_issue(self, error_description: str) -> Optional[str]:
         """Check if error matches a known issue"""
