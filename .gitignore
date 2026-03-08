@@ -41,3 +41,7 @@ client_secret*.json
 frontend/node_modules/.cache/default-development/4.pack
 frontend/node_modules/.cache/default-development/9.pack
 storage/client_secret*.json*
+-e 
+# Environment files
+*.env
+*.env.*
