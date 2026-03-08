@@ -77,6 +77,54 @@ export function AdminClientiPanel() {
     }
   };
 
+  // Generate AI Analysis
+  const generateAnalysis = async (clienteId) => {
+    setGeneratingAnalysis(true);
+    setAnalysis(null);
+    try {
+      const res = await axios.post(`${API}/clienti/admin/${clienteId}/generate-analysis`);
+      if (res.data.success) {
+        setAnalysis(res.data.analysis);
+        setShowAnalysis(true);
+      }
+    } catch (e) {
+      console.error("Error generating analysis:", e);
+      alert(e.response?.data?.detail || "Errore nella generazione dell'analisi");
+    } finally {
+      setGeneratingAnalysis(false);
+    }
+  };
+
+  // Load existing analysis
+  const loadAnalysis = async (clienteId) => {
+    try {
+      const res = await axios.get(`${API}/clienti/admin/${clienteId}/analysis`);
+      if (res.data.success) {
+        setAnalysis(res.data.analysis);
+        setShowAnalysis(true);
+      } else {
+        // No analysis exists, generate new one
+        generateAnalysis(clienteId);
+      }
+    } catch (e) {
+      console.error("Error loading analysis:", e);
+    }
+  };
+
+  // Download analysis as text file
+  const downloadAnalysis = () => {
+    if (!analysis || !selectedCliente) return;
+    const blob = new Blob([analysis], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Analisi_${selectedCliente.nome}_${selectedCliente.cognome}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   // Filter clienti
   const filteredClienti = clienti.filter(c => {
     if (filterStatus !== "all" && c.status !== filterStatus) return false;
