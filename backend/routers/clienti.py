@@ -485,3 +485,43 @@ async def get_analysis(cliente_id: str):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/admin/{cliente_id}/analysis/pdf")
+async def download_analysis_pdf(cliente_id: str):
+    """Download analysis as branded PDF"""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+    
+    try:
+        cliente = await db.clienti.find_one({"_id": ObjectId(cliente_id)})
+        if not cliente:
+            raise HTTPException(status_code=404, detail="Cliente non trovato")
+        
+        analysis = cliente.get("analysis")
+        if not analysis:
+            raise HTTPException(status_code=400, detail="Analisi non ancora generata")
+        
+        # Generate PDF
+        from services.pdf_generator import generate_analysis_pdf
+        
+        pdf_bytes = generate_analysis_pdf(
+            analysis_text=analysis,
+            cliente_nome=cliente.get("nome", ""),
+            cliente_cognome=cliente.get("cognome", "")
+        )
+        
+        filename = f"Analisi_Strategica_{cliente.get('nome')}_{cliente.get('cognome')}.pdf"
+        
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Errore generazione PDF: {str(e)}")
