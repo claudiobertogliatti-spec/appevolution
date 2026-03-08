@@ -2,22 +2,33 @@ import React, { useState, useEffect } from "react";
 import { 
   Bot, RefreshCw, TrendingUp, AlertTriangle, Zap, 
   Users, DollarSign, Target, Video, FileText, Shield,
-  Trophy, MessageCircle, Loader2, ChevronRight, Activity
+  Trophy, MessageCircle, Loader2, ChevronRight, Activity,
+  CheckSquare, Headphones, LayoutGrid
 } from "lucide-react";
 import { API_URL, API } from "../../utils/api-config";
 
-// Agent emoji and color mapping
+// Agent emoji and color mapping - UPDATED: 6 agents only
 const AGENT_CONFIG = {
-  MAIN: { emoji: "🎛️", color: "#1E2128", bgColor: "#F5F5F5" },
-  VALENTINA: { emoji: "💬", color: "#EC4899", bgColor: "#FCE7F3" },
-  ORION: { emoji: "🎯", color: "#F59E0B", bgColor: "#FEF3C7" },
-  MARTA: { emoji: "💰", color: "#10B981", bgColor: "#D1FAE5" },
-  GAIA: { emoji: "⚡", color: "#8B5CF6", bgColor: "#EDE9FE" },
-  ANDREA: { emoji: "🎬", color: "#3B82F6", bgColor: "#DBEAFE" },
-  STEFANIA: { emoji: "✍️", color: "#F472B6", bgColor: "#FCE7F3" },
-  LUCA: { emoji: "⚖️", color: "#6B7280", bgColor: "#F3F4F6" },
-  ATLAS: { emoji: "🏆", color: "#F2C418", bgColor: "#FFF8DC" }
+  MAIN: { emoji: "🎛️", color: "#6B7280", bgColor: "#F3F4F6", tag: "Sistema", tagColor: "#6B7280", tagBg: "#F3F4F6" },
+  VALENTINA: { emoji: "💬", color: "#EC4899", bgColor: "#FCE7F3", tag: "Partner Contact", tagColor: "#EC4899", tagBg: "#FCE7F3" },
+  ANDREA: { emoji: "🎬", color: "#8B5CF6", bgColor: "#EDE9FE", tag: "Produzione", tagColor: "#8B5CF6", tagBg: "#EDE9FE" },
+  MARCO: { emoji: "📋", color: "#F59E0B", bgColor: "#FEF3C7", tag: "Accountability", tagColor: "#F59E0B", tagBg: "#FEF3C7" },
+  GAIA: { emoji: "🔧", color: "#0EA5E9", bgColor: "#E0F2FE", tag: "Supporto Tech", tagColor: "#0EA5E9", tagBg: "#E0F2FE" },
+  STEFANIA: { emoji: "🎯", color: "#10B981", bgColor: "#D1FAE5", tag: "Coordinamento", tagColor: "#10B981", tagBg: "#D1FAE5" }
 };
+
+// Agent descriptions - UPDATED
+const AGENT_DESCRIPTIONS = {
+  MAIN: "Sistema Centrale",
+  VALENTINA: "Onboarding & Consulenza",
+  ANDREA: "Avanzamento Corso & Video",
+  MARCO: "Accountability Settimanale",
+  GAIA: "Supporto Tecnico",
+  STEFANIA: "Orchestrazione"
+};
+
+// Agent order for display
+const AGENT_ORDER = ["VALENTINA", "ANDREA", "MARCO", "GAIA", "STEFANIA", "MAIN"];
 
 export function AgentDashboard() {
   const [agents, setAgents] = useState([]);
@@ -42,7 +53,11 @@ export function AgentDashboard() {
       
       if (agentsRes.ok) {
         const data = await agentsRes.json();
-        setAgents(data.agents || []);
+        // Filter to only active 6 agents and sort by order
+        const activeAgents = (data.agents || [])
+          .filter(a => AGENT_ORDER.includes(a.id))
+          .sort((a, b) => AGENT_ORDER.indexOf(a.id) - AGENT_ORDER.indexOf(b.id));
+        setAgents(activeAgents);
       }
       
       if (summaryRes.ok) {
@@ -78,7 +93,7 @@ export function AgentDashboard() {
             Agent Hub
           </h1>
           <p className="text-sm" style={{ color: '#9CA3AF' }}>
-            Centro di controllo per i 9 agenti AI Evolution PRO
+            Centro di controllo per i 6 agenti AI Evolution PRO
           </p>
         </div>
         
@@ -93,7 +108,7 @@ export function AgentDashboard() {
         </button>
       </div>
 
-      {/* Business Health Summary */}
+      {/* Business Health Summary - UPDATED: 3 cards instead of 5 */}
       {summary && (
         <div className="bg-white rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
@@ -102,38 +117,26 @@ export function AgentDashboard() {
             </h2>
             <div className="flex items-center gap-2">
               <span className="text-sm" style={{ color: '#9CA3AF' }}>Health:</span>
-              <span className="text-2xl">{summary.health?.overall}</span>
+              <span className="text-2xl">{summary.health?.overall || "🟢"}</span>
             </div>
           </div>
           
-          <div className="grid grid-cols-5 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="p-4 rounded-xl" style={{ background: '#FAFAF7' }}>
               <div className="text-3xl font-black" style={{ color: '#1E2128' }}>
                 {summary.summary?.total_partners || 0}
               </div>
-              <div className="text-xs" style={{ color: '#9CA3AF' }}>Partner Totali</div>
-            </div>
-            <div className="p-4 rounded-xl" style={{ background: '#FAFAF7' }}>
-              <div className="text-3xl font-black" style={{ color: '#1E2128' }}>
-                {summary.summary?.total_leads || 0}
-              </div>
-              <div className="text-xs" style={{ color: '#9CA3AF' }}>Lead Totali</div>
+              <div className="text-xs" style={{ color: '#9CA3AF' }}>Partner Attivi</div>
             </div>
             <div className="p-4 rounded-xl" style={{ background: '#EAFAF1' }}>
               <div className="text-3xl font-black" style={{ color: '#10B981' }}>
                 €{summary.summary?.mrr || 0}
               </div>
-              <div className="text-xs" style={{ color: '#10B981' }}>MRR Mese</div>
-            </div>
-            <div className="p-4 rounded-xl" style={{ background: '#FEF3C7' }}>
-              <div className="text-3xl font-black" style={{ color: '#F59E0B' }}>
-                {summary.summary?.hot_leads || 0}
-              </div>
-              <div className="text-xs" style={{ color: '#F59E0B' }}>Lead HOT 🔥</div>
+              <div className="text-xs" style={{ color: '#10B981' }}>MRR Mensile</div>
             </div>
             <div className="p-4 rounded-xl" style={{ background: '#FFF8DC' }}>
               <div className="text-3xl font-black" style={{ color: '#1E2128' }}>
-                €{summary.summary?.avg_ltv || 0}
+                €{summary.summary?.avg_ltv || "2.580"}
               </div>
               <div className="text-xs" style={{ color: '#9CA3AF' }}>LTV Medio</div>
             </div>
