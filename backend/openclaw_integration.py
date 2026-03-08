@@ -297,7 +297,7 @@ async def send_openclaw_task(task: OpenClawTask, db=None) -> Dict:
                 task.fallback_status = "in_progress"
                 
                 # Save task to database
-                if db:
+                if db is not None:
                     await db.openclaw_tasks.insert_one(task.to_dict())
                 
                 return {
