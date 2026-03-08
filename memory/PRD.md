@@ -6,6 +6,7 @@ Building "Evolution PRO OS," a proprietary web application for business workflow
 - Integration with OpenClaw for GUI automation on local machines
 - Partner-facing dashboard with structured sidebar guiding users through multi-phase program (F0-F9)
 - Admin dashboard with demo mode to view partner features unlocked
+- Multi-agent AI system with 6 core agents
 
 ## User's Preferred Language
 Italian
@@ -14,9 +15,33 @@ Italian
 - **Frontend**: React with Shadcn/UI components
 - **Backend**: FastAPI (server.py monolith - needs refactoring)
 - **Database**: MongoDB Atlas
-- **AI**: Claude via Emergent LLM Key (for VALENTINA)
+- **AI**: Claude via Emergent LLM Key (for VALENTINA and all agents)
 
 ## What's Been Implemented
+
+### Multi-Agent AI System (Mar 2026)
+- ✅ **VALENTINA** - Main orchestrator, partner contact (108+ conversations)
+- ✅ **ANDREA** - Video production and editing
+- ✅ **MARCO** - Accountability settimanale, check-in system
+- ✅ **GAIA** - Supporto tecnico, funnel health monitoring
+- ✅ **STEFANIA** - Orchestrazione, routing e daily monitoring
+- ✅ **MAIN** - Sistema centrale, coordinamento
+
+### Agent Hub Dashboard (Mar 2026)
+- ✅ Agent Hub UI at `/admin/agenti` with all 6 agents displayed
+- ✅ Business Summary with Partner Attivi, MRR, LTV
+- ✅ Real-time alerts (MARCO inactive partners, GAIA funnel health)
+- ✅ Opportunities section (reengagement, funnel optimization)
+- ✅ Per-agent metrics and status indicators
+- ✅ Backend API: `/api/agent-hub/status`, `/api/agent-hub/summary`
+- ✅ Agent activation endpoint with upsert capability
+
+### Agent Router API (Mar 2026)
+- ✅ `/api/agents/marco/checkin` - Weekly check-in
+- ✅ `/api/agents/marco/message` - Direct message handling
+- ✅ `/api/agents/gaia/support` - Technical support requests
+- ✅ `/api/agents/stefania/route` - Message routing
+- ✅ `/api/agents/stefania/daily-report` - Daily monitoring report
 
 ### Completed (Dec 2025)
 - ✅ Partner Sidebar restructured with Dashboard, Percorso (F0-F9), Profilo, Servizi Extra
@@ -61,7 +86,7 @@ Italian
 ### P0 - Critical
 - **OpenClaw execution fails**: "Agent was aborted" error on local machine
   - Gateway connects to Telegram but task execution fails
-  - Likely context size or model timeout issue
+  - Likely context size or model timeout issue on user's local machine
 
 ### P1 - High
 - **YouTube API Token Expired**: `invalid_grant: Token has been expired or revoked`
@@ -70,11 +95,15 @@ Italian
 
 ### P2 - Medium
 - Unreadable text on dark blue backgrounds (some pages)
-- Backend refactoring needed (server.py monolith)
+- Backend refactoring needed (server.py monolith 11k+ lines)
 
 ## Backlog / Future Tasks
 
+### P0 - Immediate
+- Frontend UI for interacting with MARCO, GAIA, STEFANIA agents individually
+
 ### P1 - High Priority
+- Complete Stefania's daily report implementation and delivery
 - Create page/view for FASE 2 - OUTLINE
 - Create page/view for FASE 9 - LANCIO (final verification)
 
@@ -88,12 +117,14 @@ Italian
 |---------|--------|---------|
 | MongoDB Atlas | ✅ Working | Primary database |
 | Systeme.io API | ✅ Working | Contact/tag management |
-| Anthropic Claude | ✅ Working | VALENTINA AI (Emergent Key) |
-| Telegram Bot | ✅ Working | OpenClaw bridge |
-| OpenClaw + NVIDIA Kimi | ⚠️ Partial | GUI automation |
-| YouTube Data API v3 | ❌ Broken | Video uploads |
+| Anthropic Claude | ✅ Working | All AI agents (Emergent Key) |
+| Telegram Bot | ✅ Working | OpenClaw bridge, VALENTINA messages |
+| OpenClaw + NVIDIA Kimi | ⚠️ Partial | GUI automation (local machine issue) |
+| YouTube Data API v3 | ❌ Broken | Video uploads (expired token) |
 | Stripe | ✅ Working | Payments |
 | Cloudinary | ✅ Working | Media storage |
+| APScheduler | ✅ Working | Backend cron jobs |
+| ReportLab | ✅ Working | PDF generation |
 
 ## Credentials (Test)
 - Admin: claudio@evolutionpro.it / Evolution2026!
@@ -105,18 +136,30 @@ Italian
 ├── backend/
 │   ├── server.py               # Monolith (needs refactoring)
 │   ├── valentina_ai.py         # AI orchestrator
+│   ├── andrea_ai.py            # Video production agent
+│   ├── marco_ai.py             # Accountability agent
+│   ├── gaia_ai.py              # Technical support agent
+│   ├── stefania_ai.py          # Orchestration agent
+│   ├── agent_hub_service.py    # Agent metrics & analytics
+│   ├── scheduler.py            # APScheduler cron jobs
 │   ├── openclaw_integration.py # Telegram bridge
-│   └── routers/                # Future refactoring target
+│   ├── routers/
+│   │   ├── clienti.py          # Client funnel routes
+│   │   └── agents_router.py    # Agent API routes
+│   └── services/
+│       └── pdf_generator.py    # PDF generation service
 └── frontend/
     └── src/
         ├── App.js              # Main router
         ├── components/
-        │   └── partner/
-        │       ├── PartnerSidebar.jsx
-        │       ├── ContrattoPartnership.jsx
-        │       ├── DatiPersonali.jsx
-        │       ├── DomainConfiguration.jsx
-        │       ├── LegalPagesGenerator.jsx
-        │       └── ...
+        │   ├── admin/
+        │   │   ├── AgentDashboard.jsx    # Agent Hub UI
+        │   │   └── AdminClientiPanel.jsx
+        │   ├── partner/
+        │   │   ├── PartnerSidebar.jsx
+        │   │   ├── ContrattoPartnership.jsx
+        │   │   └── ...
+        │   └── cliente/
+        │       └── AnalisiStrategicaApp.jsx
         └── ...
 ```
