@@ -22,8 +22,13 @@ Un meccanismo preciso che garantisce che i partner mantengano gli impegni presi.
 
 ---
 
-CONTESTO DISPONIBILE (variabili iniettate a runtime):
-{context}
+CONTESTO DISPONIBILE:
+- Nome partner: {nome_partner}
+- Piano attivo: {piano_attivo}
+- Obiettivi della settimana: {obiettivi_settimana}
+- Settimane consecutive inattive: {settimane_consecutive_inattive}
+- Ultimo check-in: {ultimo_check_in}
+- Fase attuale: {fase_attuale}
 
 ---
 
@@ -67,31 +72,6 @@ Sto segnalando la situazione a Claudio per una valutazione."
 
 ---
 
-SCALA INATTIVITÀ (nessuna risposta ai messaggi):
-
-1 settimana senza risposta:
-"Non ho ricevuto riscontro questa settimana.
-Stai bene? Hai bisogno di supporto su qualcosa di specifico?"
-
-2 settimane senza risposta:
-"[AVVISO FORMALE] Sono due settimane senza aggiornamenti.
-Il contratto richiede partecipazione attiva. Rispondimi entro 48 ore,
-altrimenti passo la segnalazione a Claudio."
-
-3 settimane senza risposta:
-→ Escalation immediata e obbligatoria a Claudio.
-
----
-
-QUANDO SCALARE AD ALTRI AGENTI:
-
-- Partner bloccato su un contenuto specifico → ANDREA.
-- Partner ha domande strategiche → VALENTINA.
-- Partner ha problemi tecnici → GAIA.
-- Situazione contrattuale critica → Claudio diretto.
-
----
-
 NON FAI MAI:
 - Non dai consigli su come migliorare il corso o il contenuto → ANDREA.
 - Non gestisci domande strategiche → VALENTINA.
@@ -102,55 +82,60 @@ NON FAI MAI:
 Rispondi sempre in italiano."""
 
 
+def ask_marco(user_message: str, context: dict) -> str:
+    """
+    Invia un messaggio a MARCO con il contesto del partner.
+    Restituisce la risposta dell'agente come stringa.
+    """
+    if not EMERGENT_LLM_KEY:
+        return "Errore: API key non configurata. Contatta il supporto."
+    
+    try:
+        # Fill context with defaults
+        filled_context = {
+            "nome_partner": context.get("nome_partner", "Partner"),
+            "piano_attivo": context.get("piano_attivo", "N/A"),
+            "obiettivi_settimana": context.get("obiettivi_settimana", "Non definiti"),
+            "settimane_consecutive_inattive": context.get("settimane_consecutive_inattive", 0),
+            "ultimo_check_in": context.get("ultimo_check_in", "mai"),
+            "fase_attuale": context.get("fase_attuale", "N/A")
+        }
+        
+        prompt_with_context = MARCO_SYSTEM_PROMPT.format(**filled_context)
+        
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"marco_{context.get('partner_id', 'unknown')}_{datetime.now().strftime('%Y%m%d')}",
+            system_message=prompt_with_context
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        
+        import asyncio
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # If already in async context, create task
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(asyncio.run, chat.send_message(UserMessage(text=user_message)))
+                return future.result()
+        else:
+            return asyncio.run(chat.send_message(UserMessage(text=user_message)))
+            
+    except Exception as e:
+        logger.error(f"[MARCO] Errore ask_marco: {e}")
+        return f"Mi scuso, ho riscontrato un errore tecnico. Riprova tra poco."
+
+
 class MarcoAI:
     """MARCO AI Agent - Accountability System"""
     
     def __init__(self):
         self.chat_sessions = {}
     
-    def _build_context(self, partner_data: dict) -> str:
-        """Build context string from partner data"""
-        context_parts = []
-        
-        if partner_data.get("nome"):
-            context_parts.append(f"- Nome partner: {partner_data.get('nome')} {partner_data.get('cognome', '')}")
-        if partner_data.get("piano_attivo"):
-            context_parts.append(f"- Piano attivo: {partner_data['piano_attivo']}")
-        if partner_data.get("obiettivi_settimana"):
-            context_parts.append(f"- Obiettivi della settimana: {partner_data['obiettivi_settimana']}")
-        if partner_data.get("settimane_consecutive_inattive"):
-            context_parts.append(f"- Settimane consecutive inattive: {partner_data['settimane_consecutive_inattive']}")
-        if partner_data.get("ultimo_check_in"):
-            context_parts.append(f"- Ultimo check-in: {partner_data['ultimo_check_in']}")
-        if partner_data.get("fase_attuale"):
-            context_parts.append(f"- Fase attuale: {partner_data['fase_attuale']}")
-        
-        return "\n".join(context_parts) if context_parts else "Nessun contesto disponibile"
-    
     async def chat(self, partner_id: str, message: str, partner_data: dict = None) -> str:
         """Send message to MARCO and get response"""
-        if not EMERGENT_LLM_KEY:
-            return "Errore: API key non configurata. Contatta il supporto."
-        
-        try:
-            context = self._build_context(partner_data or {})
-            system_prompt = MARCO_SYSTEM_PROMPT.replace("{context}", context)
-            
-            session_id = f"marco_{partner_id}_{datetime.now().strftime('%Y%m%d')}"
-            
-            chat = LlmChat(
-                api_key=EMERGENT_LLM_KEY,
-                session_id=session_id,
-                system_message=system_prompt
-            ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-            
-            response = await chat.send_message(UserMessage(text=message))
-            
-            return response
-            
-        except Exception as e:
-            logger.error(f"MARCO chat error: {e}")
-            return f"Mi scuso, ho riscontrato un errore tecnico. Riprova tra poco."
+        context = partner_data or {}
+        context["partner_id"] = partner_id
+        return ask_marco(message, context)
     
     async def send_weekly_checkin(self, partner_data: dict) -> str:
         """Generate weekly check-in message"""
