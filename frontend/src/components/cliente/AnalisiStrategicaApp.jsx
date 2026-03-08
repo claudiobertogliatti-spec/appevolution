@@ -77,7 +77,7 @@ export function AnalisiStrategicaApp() {
     setError("");
   };
 
-  // Register and immediately go to payment
+  // Register and redirect to payment page
   const handleRegisterAndPay = async (e) => {
     e.preventDefault();
     if (!formData.nome || !formData.cognome || !formData.email || !formData.telefono || !formData.password) {
@@ -97,25 +97,18 @@ export function AnalisiStrategicaApp() {
         const userData = { id: regRes.data.cliente_id, ...formData, has_paid: false, status: "registered" };
         localStorage.setItem("cliente_session", JSON.stringify(userData));
         
-        // Immediately create checkout
-        const checkoutRes = await axios.post(`${API}/clienti/create-checkout-session`, {
-          cliente_id: regRes.data.cliente_id,
-          email: formData.email,
-          nome: formData.nome,
-          cognome: formData.cognome
-        });
-        
-        if (checkoutRes.data.checkout_url) {
-          window.location.href = checkoutRes.data.checkout_url;
-        }
+        // Set user logged in - they will be redirected to payment page
+        setUser(userData);
+        setIsLoggedIn(true);
       }
     } catch (err) {
       if (err.response?.status === 409) {
         setError("Email già registrata. Effettua il login.");
         setIsLoginMode(true);
       } else {
-        setError("Errore di registrazione");
+        setError(err.response?.data?.detail || "Errore di registrazione");
       }
+    } finally {
       setLoading(false);
     }
   };
