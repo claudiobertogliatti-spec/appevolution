@@ -11227,6 +11227,23 @@ from routers.clienti import router as clienti_router, set_db as set_clienti_db
 set_clienti_db(db)
 app.include_router(clienti_router)
 
+# Include agents router (MARCO, GAIA, STEFANIA)
+from routers.agents_router import router as agents_router
+app.include_router(agents_router, prefix="/api/agents", tags=["agents"])
+
+# Start scheduler for automated jobs
+from scheduler import start_scheduler, stop_scheduler
+
+@app.on_event("startup")
+async def startup_scheduler():
+    start_scheduler()
+    logging.info("[STARTUP] Scheduler avviato")
+
+@app.on_event("shutdown")
+async def shutdown_scheduler():
+    stop_scheduler()
+    logging.info("[SHUTDOWN] Scheduler fermato")
+
 # Logging
 logging.basicConfig(
     level=logging.INFO,
