@@ -39,7 +39,7 @@ const TOOLS_NAV = [
   { id: "compliance", label: "Documenti & Compliance", icon: FileText },
 ];
 
-export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminUser, alerts, onLogout, onSwitchToPartner, currentUser }) {
+export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminUser, alerts, onLogout, onSwitchToPartner, onSwitchToCliente, currentUser }) {
   const [toolsOpen, setToolsOpen] = useState(false);
   const navItems = adminUser === "antonella" ? ANTONELLA_NAV : CLAUDIO_NAV;
   const isToolNav = TOOLS_NAV.some(t => t.id === currentNav);
@@ -64,46 +64,54 @@ export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminU
         </div>
       </div>
 
-      {/* Admin/Partner Toggle */}
-      <div className="px-4 py-3">
-        <div className="flex rounded-lg p-1" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
+      {/* Mode Selector */}
+      <div className="px-4 py-3 space-y-2">
+        {/* Admin Button - Full Width */}
+        <button 
+          className="w-full py-2.5 text-sm font-bold rounded-xl transition-all"
+          style={{ background: '#F2C418', color: '#1E2128', boxShadow: '0 4px 20px rgba(242,196,24,0.25)' }}
+        >
+          Admin
+        </button>
+        
+        {/* Cliente / Partner Row */}
+        <div className="flex gap-2">
           <button 
-            className="flex-1 py-1.5 text-xs font-bold rounded-md transition-all"
-            style={{ background: '#F2C418', color: '#1E2128', boxShadow: '0 4px 20px rgba(242,196,24,0.25)' }}
+            onClick={onSwitchToCliente}
+            className="flex-1 py-2 text-xs font-bold rounded-lg transition-all hover:bg-[#FAFAF7]"
+            style={{ background: '#FAFAF7', color: '#5F6572', border: '1px solid #ECEDEF' }}
           >
-            Admin
+            Cliente
           </button>
           <button 
             onClick={onSwitchToPartner}
-            className="flex-1 py-1.5 text-xs font-bold rounded-md transition-all"
-            style={{ color: '#9CA3AF' }}
+            className="flex-1 py-2 text-xs font-bold rounded-lg transition-all hover:bg-[#FAFAF7]"
+            style={{ background: '#FAFAF7', color: '#5F6572', border: '1px solid #ECEDEF' }}
           >
             Partner
           </button>
         </div>
-      </div>
 
-      {/* Admin Switcher */}
-      <div className="px-4 pb-2">
-        <div className="flex rounded-lg p-1" style={{ background: '#FAFAF7' }}>
+        {/* Claudio / Antonella Row */}
+        <div className="flex gap-2">
           <button 
             onClick={() => { setAdminUser("claudio"); onNavigate("overview"); }}
-            className={`flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all ${
-              adminUser === "claudio" ? '' : ''
-            }`}
+            className="flex-1 py-2 text-xs font-bold rounded-lg transition-all"
             style={{ 
-              background: adminUser === "claudio" ? '#1E2128' : 'transparent',
-              color: adminUser === "claudio" ? '#F2C418' : '#9CA3AF'
+              background: adminUser === "claudio" ? '#1E2128' : '#FAFAF7',
+              color: adminUser === "claudio" ? '#F2C418' : '#9CA3AF',
+              border: adminUser === "claudio" ? 'none' : '1px solid #ECEDEF'
             }}
           >
             Claudio
           </button>
           <button 
             onClick={() => { setAdminUser("antonella"); onNavigate("overview"); }}
-            className={`flex-1 py-1.5 text-[11px] font-bold rounded-md transition-all`}
+            className="flex-1 py-2 text-xs font-bold rounded-lg transition-all"
             style={{ 
-              background: adminUser === "antonella" ? '#7B68AE' : 'transparent',
-              color: adminUser === "antonella" ? 'white' : '#9CA3AF'
+              background: adminUser === "antonella" ? '#7B68AE' : '#FAFAF7',
+              color: adminUser === "antonella" ? 'white' : '#9CA3AF',
+              border: adminUser === "antonella" ? 'none' : '1px solid #ECEDEF'
             }}
           >
             Antonella
