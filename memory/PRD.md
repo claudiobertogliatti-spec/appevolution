@@ -31,9 +31,20 @@ Italian
 ### Homepage Unificata (Mar 2026) - NEW
 - ✅ Homepage unica per tutti gli utenti (nuovi e registrati)
 - ✅ Login tramite modal (pulsante "Accedi" nell'header)
-- ✅ Sezioni: Hero, "Come Funziona", Stats, CTA finale
+- ✅ Sezioni: Hero, Footer (rimossi "Come Funziona", Stats, CTA)
 - ✅ CTA "Richiedi l'Analisi Strategica" per nuovi utenti
 - ✅ Pulsante "Sei già Partner? Accedi" per utenti esistenti
+- ✅ Testo aggiornato: "Dall'idea al tuo primo studente in 60 giorni"
+
+### Dashboard Cliente (Mar 2026) - NEW
+- ✅ Nuova ClienteDashboard.jsx con 5 sezioni:
+  1. **Video Benvenuto** - Placeholder "Video in arrivo" (2-3 min da Claudio)
+  2. **7 Bonus Formativi** - Gli stessi bonus della landing
+  3. **Roadmap Partnership** - 10 fasi (F0-F9) + servizi post-lancio
+  4. **Corso con Avatar** - Spiegazione servizio Delega AI Avatar
+  5. **Studio di Fattibilità** - Processo (call 60min → 24h → documento)
+- ✅ Banner "Videocall entro 24h" 
+- ✅ Integrato in AnalisiStrategicaApp.jsx post-questionario
 
 ### Piano Continuità System (Mar 2026)
 - ✅ Backend endpoint `GET/PUT /api/partners/{id}/piano-continuita`
