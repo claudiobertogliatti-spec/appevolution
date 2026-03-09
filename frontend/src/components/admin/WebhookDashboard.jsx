@@ -131,9 +131,7 @@ function LeadCard({ lead }) {
 export function WebhookDashboard() {
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState(null);
-  const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("logs");
   const [eventFilter, setEventFilter] = useState("");
 
   useEffect(() => {
@@ -143,15 +141,13 @@ export function WebhookDashboard() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [logsRes, statsRes, leadsRes] = await Promise.all([
+      const [logsRes, statsRes] = await Promise.all([
         axios.get(`${API}/webhooks/logs?limit=50`),
-        axios.get(`${API}/webhooks/stats`),
-        axios.get(`${API}/leads?min_score=0`)
+        axios.get(`${API}/webhooks/stats`)
       ]);
       
       setLogs(logsRes.data.logs || []);
       setStats(statsRes.data);
-      setLeads(leadsRes.data.leads || []);
     } catch (e) {
       console.error("Failed to load webhook data:", e);
     } finally {
