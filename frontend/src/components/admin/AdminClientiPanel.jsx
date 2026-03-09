@@ -225,10 +225,10 @@ export function AdminClientiPanel() {
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: "Totale", value: stats.total, icon: Users, color: "#5F6572" },
-          { label: "Pagati", value: stats.paid, icon: CheckCircle, color: "#10B981" },
-          { label: "In attesa", value: stats.pending, icon: Clock, color: "#F5C518" },
-          { label: "Approvati", value: stats.approved, icon: Target, color: "#10B981" }
+          { label: "Totale", value: stats.totale, icon: Users, color: "#5F6572" },
+          { label: "Questionario ✓", value: stats.questionario_completato, icon: FileText, color: "#3B82F6" },
+          { label: "Call fissata", value: stats.call_fissata, icon: Calendar, color: "#F5C518" },
+          { label: "Convertiti", value: stats.convertiti, icon: CheckCircle, color: "#10B981" }
         ].map((stat, i) => (
           <div key={i} className="bg-white rounded-xl p-4 border border-[#ECEDEF]">
             <div className="flex items-center gap-3">
