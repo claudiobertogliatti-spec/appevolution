@@ -200,6 +200,8 @@ export function ClienteDashboard({ cliente, onLogout }) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [selectedBonus, setSelectedBonus] = useState(null);
+  const [expandedBonus, setExpandedBonus] = useState(null);
 
   // Aggiorna stato quando cambiano le props del cliente
   useEffect(() => {
