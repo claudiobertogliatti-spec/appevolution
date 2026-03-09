@@ -371,15 +371,20 @@ export function AnalisiStrategicaApp() {
     );
   }
 
-  // ============ PAID - QUESTIONNAIRE ALREADY COMPLETED - SHOW DASHBOARD ============
-  if (user?.questionnaire && Object.keys(user.questionnaire).length === QUESTIONS.length) {
+  // ============ PAID - SHOW CLIENT DASHBOARD ============
+  // After payment, show the new dashboard with pre-call questionnaire
+  if (user?.has_paid) {
     return (
       <ClienteDashboard 
         cliente={{ 
           id: user.id, 
-          nome: `${user.nome} ${user.cognome || ''}`.trim(),
+          nome: user.nome,
+          cognome: user.cognome,
           email: user.email,
-          status: user.status || "pending",
+          stato: user.stato || "pagato",
+          data_acquisto: user.paid_at || user.created_at,
+          questionario: user.questionario || { completato: false, risposte: null },
+          // Legacy support
           questionnaire: user.questionnaire
         }} 
         onLogout={handleLogout} 
@@ -387,7 +392,7 @@ export function AnalisiStrategicaApp() {
     );
   }
 
-  // ============ PAID - SHOW QUESTIONNAIRE ============
+  // ============ NOT PAID - SHOW PAYMENT REQUIRED ============
   const question = QUESTIONS[currentQuestion];
   const progress = ((currentQuestion + 1) / QUESTIONS.length) * 100;
   const allAnswered = QUESTIONS.every(q => answers[q.id]);
