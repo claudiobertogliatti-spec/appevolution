@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, EyeOff, Loader2, AlertCircle, Mail, Lock, ArrowRight, Clock, FileText, Target, Gift, Video, X, CheckCircle, Sparkles, Users, TrendingUp } from "lucide-react";
+import { Eye, EyeOff, Loader2, AlertCircle, Mail, Lock, ArrowRight, Clock, FileText, Target, Gift, Video, X, CheckCircle, Sparkles } from "lucide-react";
 import axios from "axios";
 import { API } from "../../utils/api-config";
 
