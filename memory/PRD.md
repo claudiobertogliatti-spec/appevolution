@@ -68,11 +68,16 @@ Italian
 
 ### P1 - High
 - **YouTube API Token Expired**: `invalid_grant: Token has been expired or revoked`
+- **Systeme.io MCP 404 errors**: Some API endpoints return 404 (need to verify correct paths)
 
 ### P2 - Medium
 - Backend refactoring needed (server.py monolith 11k+ lines)
 
 ## Backlog / Future Tasks
+
+### P0 - Immediate
+- Test funnel "Analisi Strategica" (€67) - Simulare webhook per verificare creazione clienti
+- Promuovere partner test a F10+ per verificare pagine post-lancio
 
 ### P1 - High Priority
 - Implementare endpoint per studenti accademia
