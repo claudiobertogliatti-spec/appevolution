@@ -138,6 +138,50 @@ export function LoginPage({ onLogin }) {
         </div>
       </section>
 
+      {/* Come Funziona - 3 Step */}
+      <section className="py-16" style={{ background: '#FFFFFF' }}>
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl md:text-3xl font-black text-[#1E2128] mb-3">Come Funziona</h2>
+            <p className="text-[#5F6572]">3 semplici step per iniziare il tuo percorso</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              { 
+                step: "1", 
+                title: "Analisi Strategica", 
+                desc: "Acquisti l'analisi a €67, compili il questionario e fissi una videocall di 60 minuti con Claudio.",
+                color: "#F5C518"
+              },
+              { 
+                step: "2", 
+                title: "Studio di Fattibilità", 
+                desc: "Il Team Evolution prepara in 24h uno studio personalizzato per valutare il potenziale del tuo progetto.",
+                color: "#3B82F6"
+              },
+              { 
+                step: "3", 
+                title: "Partnership", 
+                desc: "Se il progetto è idoneo, entri in Partnership e il team AI + Claudio + Antonella ti guidano fino al lancio.",
+                color: "#10B981"
+              }
+            ].map((item, i) => (
+              <div key={i} className="text-center">
+                <div 
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 font-black text-2xl text-white"
+                  style={{ background: item.color }}
+                >
+                  {item.step}
+                </div>
+                <h3 className="font-bold text-[#1E2128] mb-2 text-lg">{item.title}</h3>
+                <p className="text-sm text-[#5F6572]">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="py-8 border-t" style={{ borderColor: '#ECEDEF' }}>
         <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
