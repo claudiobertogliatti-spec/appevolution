@@ -994,6 +994,7 @@ export default function App() {
           alerts={alerts}
           onLogout={handleLogout}
           onSwitchToPartner={() => { setMode("partner"); setNav("home"); }}
+          onSwitchToCliente={() => { window.location.href = "/analisi-strategica"; }}
           currentUser={currentUser}
         />
       )}
