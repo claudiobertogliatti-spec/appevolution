@@ -11,6 +11,10 @@ import { API, API_URL } from "../../utils/api-config";
 const EVENT_CONFIG = {
   new_sale: { icon: ShoppingCart, color: "#34C77B", label: "Nuova Vendita" },
   new_order: { icon: ShoppingCart, color: "#34C77B", label: "Nuovo Ordine" },
+  payment_received: { icon: ShoppingCart, color: "#34C77B", label: "Pagamento Ricevuto" },
+  commission_calculated: { icon: TrendingUp, color: "#8B5CF6", label: "Commissione Calcolata" },
+  plan_renewed: { icon: CheckCircle, color: "#3B82F6", label: "Piano Rinnovato" },
+  plan_expired: { icon: AlertTriangle, color: "#EF4444", label: "Piano Scaduto" },
   new_subscriber: { icon: Users, color: "#3B82F6", label: "Nuovo Iscritto" },
   form_subscribed: { icon: Users, color: "#3B82F6", label: "Form Compilato" },
   tag_added: { icon: Tag, color: "#F59E0B", label: "Tag Aggiunto" },
