@@ -113,19 +113,23 @@ Italian
 ## Backlog / Future Tasks
 
 ### P0 - Immediate
-- Test funnel "Analisi Strategica" (€67) - Simulare webhook per verificare creazione clienti
+- Test funnel "Analisi Strategica" (€67) end-to-end - Simulare registrazione, pagamento, questionario
 - Promuovere partner test a F10+ per verificare pagine post-lancio
+- Integrare URL video di benvenuto (quando disponibile)
 
 ### P1 - High Priority
 - Implementare endpoint per studenti accademia
 - Implementare endpoint per impegni settimanali (MARCO)
 - Implementare endpoint per report mensile
 - Aggiungere colonna "Piano Continuità" nella Pipeline Partner
+- Fix OpenClaw "Agent was aborted" error (richiede log dal client locale)
 
 ### P2 - Medium Priority
 - Backend refactoring: Break server.py into /routers structure
 - Create page/view for FASE 2 - OUTLINE
 - Create page/view for FASE 9 - LANCIO
+- Fix Systeme.io MCP API 404 errors
+- Rinnovare YouTube API Token
 
 ## 3rd Party Integrations
 | Service | Status | Purpose |
