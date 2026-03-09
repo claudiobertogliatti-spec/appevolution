@@ -34,9 +34,9 @@ const ANTONELLA_NAV = [
 const TOOLS_NAV = [
   { id: "webhooks", label: "Webhooks", icon: Webhook },
   { id: "systeme", label: "Systeme.io", icon: Database },
-  { id: "gaia", label: "GAIA Funnel", icon: Zap },
-  { id: "warmode", label: "War Mode Ads", icon: AlertTriangle },
-  { id: "compliance", label: "LUCA Compliance", icon: FileText },
+  { id: "gaia", label: "Template Funnel", icon: Zap },
+  { id: "warmode", label: "Campagne Ads", icon: AlertTriangle },
+  { id: "compliance", label: "Documenti & Compliance", icon: FileText },
 ];
 
 export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminUser, alerts, onLogout, onSwitchToPartner, currentUser }) {
