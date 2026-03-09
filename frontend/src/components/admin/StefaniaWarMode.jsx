@@ -241,10 +241,10 @@ export function StefaniaWarMode({ partners }) {
           </div>
           <div className="flex-1">
             <h2 className="text-xl font-extrabold text-[#1E2128] flex items-center gap-2">
-              STEFANIA — WAR MODE
-              <span className="text-xs bg-red-500 text-[#1E2128] px-2 py-0.5 rounded-full animate-pulse">MULTI-CHANNEL</span>
+              Campagne Ads Partner
+              <span className="text-xs bg-[#F5C518] text-[#1E2128] px-2 py-0.5 rounded-full">ADS</span>
             </h2>
-            <p className="text-sm text-[#5F6572]">Meta (Visceral) + LinkedIn (Authority) · Auto-Pivot · LTV Tracking</p>
+            <p className="text-sm text-[#5F6572]">Gestione campagne Meta Ads per i partner in fase Growth e Scala</p>
           </div>
           <button onClick={loadData} className="p-2 text-[#9CA3AF] hover:text-[#1E2128]">
             <RefreshCw className="w-5 h-5" />
