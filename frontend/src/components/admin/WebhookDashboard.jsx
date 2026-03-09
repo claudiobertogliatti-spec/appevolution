@@ -210,32 +210,31 @@ export function WebhookDashboard() {
         </div>
       </div>
 
-      {/* Stats Grid */}
+      {/* Stats Grid - Metriche Piano Continuità */}
       <div className="grid grid-cols-4 gap-4">
         <StatCard 
           icon={Webhook} 
           value={stats?.events_by_type ? Object.values(stats.events_by_type).reduce((a, b) => a + b, 0) : 0}
-          label="Eventi Totali"
+          label="Tutti gli eventi ricevuti da Systeme.io"
           color="#3B82F6"
         />
         <StatCard 
-          icon={ShoppingCart}
-          value={stats?.events_by_type?.new_sale || stats?.events_by_type?.new_order || 0}
-          label="Vendite"
+          icon={CreditCard}
+          value={stats?.payments_received || 0}
+          label="Fee mensili + upfront partner"
           color="#34C77B"
-          trend={12}
         />
         <StatCard 
-          icon={Target}
-          value={stats?.leads?.total || leads.length}
-          label="Lead Totali"
+          icon={TrendingUp}
+          value={`€${stats?.commissions_total || 0}`}
+          label="% sul fatturato accademie partner"
+          color="#8B5CF6"
+        />
+        <StatCard 
+          icon={Calendar}
+          value={stats?.renewals_expiring || 0}
+          label="Piani con rinnovo nei prossimi 30 giorni"
           color="#F59E0B"
-        />
-        <StatCard 
-          icon={Zap}
-          value={stats?.leads?.hot || leads.filter(l => l.score >= 80).length}
-          label="Lead Hot"
-          color="#EF4444"
         />
       </div>
 
