@@ -341,32 +341,33 @@ export function ClienteDashboard({ cliente, onLogout }) {
                 </p>
 
                 <div className="space-y-6">
-                  {QUESTIONS.map((q, i) => (
+                  {QUESTIONS.map((q, idx) => (
                     <div 
                       key={q.id} 
-                      className={`${q.important ? 'p-4 rounded-xl border-2 border-[#F5C518] bg-[#FEF9E7]/30' : ''}`}
+                      className={`space-y-2 ${q.important ? 'p-4 rounded-xl' : ''}`}
+                      style={q.important ? { border: '2px solid #F5C518', background: '#FEF9E7' } : {}}
                     >
                       {q.important && (
-                        <div className="flex items-center gap-1 mb-2">
+                        <div className="flex items-center gap-2 mb-2">
                           <Star className="w-4 h-4 text-[#F5C518]" fill="#F5C518" />
-                          <span className="text-xs font-bold text-[#C4990A]">LA PIÙ IMPORTANTE</span>
+                          <span className="text-xs font-bold text-[#C4990A] uppercase">La più importante</span>
                         </div>
                       )}
-                      <label className="block text-sm font-bold text-[#1E2128] mb-2">
-                        {i + 1}. {q.question}
+                      <label className="block text-sm font-bold text-[#1E2128]">
+                        {idx + 1}. {q.question}
                       </label>
                       <textarea
                         value={risposte[q.id]}
                         onChange={(e) => handleChange(q.id, e.target.value)}
                         placeholder={q.placeholder}
-                        rows={3}
-                        className="w-full p-3 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#F5C518]"
-                        style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}
+                        rows={q.important ? 4 : 3}
+                        className="w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F5C518]"
+                        style={{ background: q.important ? '#FFFFFF' : '#FAFAF7', border: '1px solid #ECEDEF' }}
                         data-testid={`question-${q.id}`}
                       />
-                      <div className="text-xs text-right mt-1" style={{ color: risposte[q.id].length >= 10 ? '#10B981' : '#9CA3AF' }}>
-                        {risposte[q.id].length}/10+ caratteri
-                      </div>
+                      {risposte[q.id].length > 0 && risposte[q.id].length < 10 && (
+                        <p className="text-xs text-red-500">Minimo 10 caratteri ({10 - risposte[q.id].length} rimanenti)</p>
+                      )}
                     </div>
                   ))}
                 </div>
