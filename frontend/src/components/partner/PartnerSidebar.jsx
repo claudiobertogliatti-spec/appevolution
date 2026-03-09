@@ -67,8 +67,8 @@ const UNLOCK_RULES = {
 };
 
 // Funzione per generare i gruppi della sidebar
-const getSidebarGroups = (partnerPhase) => {
-  const currentPhaseNum = parseInt(partnerPhase?.replace('F', '') || '1');
+const getSidebarGroups = (phaseNum) => {
+  const currentPhaseNum = phaseNum;
   const isPostLancio = currentPhaseNum >= 10;
   
   const groups = [
