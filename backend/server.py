@@ -2300,6 +2300,10 @@ async def get_alerts():
         
         print(f"[ALERTS] Checking for clients without questionnaire. Threshold: {threshold}")
         
+        # Count documents first
+        total_clients = await db.clienti.count_documents({})
+        print(f"[ALERTS] Total clients in DB: {total_clients}")
+        
         # Find clients who paid more than 24h ago but haven't completed questionnaire
         pipeline = [
             {
