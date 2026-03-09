@@ -9,6 +9,7 @@ Building "Evolution PRO OS," a proprietary web application for business workflow
 - Multi-agent AI system with 6 core agents
 - Piano Continuità system for post-launch partner management
 - **Systeme.io è l'unica fonte di verità per la gestione dei lead** (App gestisce solo clienti e partner)
+- **Funnel Analisi Strategica €67** per acquisizione nuovi clienti
 
 ## User's Preferred Language
 Italian
@@ -21,7 +22,16 @@ Italian
 
 ## What's Been Implemented
 
-### Lead Management Cleanup (Mar 2026) - NEW
+### UI/UX Miglioramenti Funnel Cliente (Mar 2026) - NEW
+- ✅ Landing Page: Nuovo titolo "La tua competenza merita un sistema che lavora anche quando tu non ci sei"
+- ✅ Landing Page: Sottotitolo con team AI (VALENTINA, ANDREA, MARCO, GAIA, STEFANIA) + Claudio e Antonella
+- ✅ Landing Page: Sezione "Come Funziona" con 3 step (Analisi Strategica, Studio di Fattibilità, Partnership)
+- ✅ Questionario: Domanda 7 ("Perché proprio adesso?") evidenziata con bordo giallo #F5C518 e label "★ La più importante"
+- ✅ Post-Questionario: 3 card risorse preparatorie (Guida Accademia, 3 Errori Formatori, Percorso Completo)
+- ✅ Admin Clienti: Dropdown stati pulito (solo: Pagato, Questionario ✓, Call fissata, Proposta inviata, Partner ✓, Non convertito)
+- ✅ Alert automatico: Clienti che pagano ma non compilano questionario entro 24h
+
+### Lead Management Cleanup (Mar 2026)
 - ✅ Rimosso `OrionLeadScoring.jsx` - Lead gestiti esclusivamente in Systeme.io
 - ✅ Rimossa tab "Lead Scoring" da `WebhookDashboard.jsx`
 - ✅ Rimosso componente `LeadCard` da WebhookDashboard
