@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Users, Film, FileText, BarChart3, MessageCircle, AlertTriangle, Settings, ChevronDown, ChevronRight, LogOut, Database, Edit3, Trophy, Zap, HelpCircle, Webhook, Bot, Target, DollarSign, UsersRound, FileCheck, ClipboardCheck, UserPlus } from "lucide-react";
+import { LayoutDashboard, Users, Film, FileText, BarChart3, MessageCircle, AlertTriangle, Settings, ChevronDown, ChevronRight, LogOut, Database, Edit3, Trophy, Zap, HelpCircle, Webhook, Bot, DollarSign, UsersRound, FileCheck, ClipboardCheck, UserPlus } from "lucide-react";
 
 const CLAUDIO_NAV = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
