@@ -643,7 +643,17 @@ MODULES_DATA = [
 PHASE_LABELS = {
     "F0": "Pre-Onboarding", "F1": "Attivazione", "F2": "Posizionamento", "F3": "Masterclass",
     "F4": "Struttura Corso", "F5": "Produzione", "F6": "Accademia", "F7": "Pre-Lancio",
-    "F8": "Lancio", "F9": "Ottimizzazione", "F10": "Scalabilità"
+    "F8": "Lancio", "F9": "Ottimizzazione", 
+    # Post-Lancio phases (Piano Continuità)
+    "F10": "La mia Accademia", "F11": "I miei Studenti", "F12": "Impegni Settimana", "F13": "Report Mensile"
+}
+
+# Piano Continuità configuration
+PIANI_CONTINUITA = {
+    "starter": {"fee_mensile": 29, "commissione_percentuale": 15, "label": "Starter"},
+    "builder": {"fee_mensile": 49, "commissione_percentuale": 10, "label": "Builder"},
+    "pro": {"fee_mensile": 79, "commissione_percentuale": 7, "label": "Pro"},
+    "elite": {"fee_mensile": 99, "commissione_percentuale": 5, "label": "Elite"}
 }
 
 # =============================================================================
