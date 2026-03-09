@@ -4,9 +4,10 @@
 Building "Evolution PRO OS," a proprietary web application for business workflow automation featuring:
 - A functional AI orchestrator (VALENTINA) capable of executing real tasks
 - Integration with OpenClaw for GUI automation on local machines
-- Partner-facing dashboard with structured sidebar guiding users through multi-phase program (F0-F9)
+- Partner-facing dashboard with structured sidebar guiding users through multi-phase program (F0-F13)
 - Admin dashboard with demo mode to view partner features unlocked
 - Multi-agent AI system with 6 core agents
+- Piano Continuità system for post-launch partner management
 
 ## User's Preferred Language
 Italian
@@ -19,147 +20,96 @@ Italian
 
 ## What's Been Implemented
 
+### Piano Continuità System (Mar 2026) - NEW
+- ✅ Backend endpoint `GET/PUT /api/partners/{id}/piano-continuita`
+- ✅ 4 piani disponibili: Starter (€29+15%), Builder (€49+10%), Pro (€79+7%), Elite (€99+5%)
+- ✅ Auto-calcolo data rinnovo (+12 mesi)
+- ✅ Sezione "Piano Continuità" nel modal scheda partner admin
+- ✅ Banner "Partner senza Piano Continuità" per F8/F9
+
+### Post-Lancio Phases (Mar 2026) - NEW
+- ✅ F10 - La mia Accademia
+- ✅ F11 - I miei Studenti
+- ✅ F12 - Impegni Settimana
+- ✅ F13 - Report Mensile
+- ✅ Sidebar condizionale: sezione "Post-Lancio" visibile solo per F10+
+- ✅ 4 nuove pagine frontend (`PostLancioPages.jsx`)
+- ✅ Banner "Attiva Piano Continuità" per partner F8/F9 senza piano
+
 ### Multi-Agent AI System (Mar 2026)
-- ✅ **VALENTINA** - Main orchestrator, partner contact (108+ conversations)
-- ✅ **ANDREA** - Video production and editing
+- ✅ **VALENTINA** - Onboarding & Consulenza (108+ conversations)
+- ✅ **ANDREA** - Avanzamento Corso & Video
 - ✅ **MARCO** - Accountability settimanale, check-in system
-- ✅ **GAIA** - Supporto tecnico, funnel health monitoring
+- ✅ **GAIA** - Supporto Tech, funnel health monitoring
 - ✅ **STEFANIA** - Orchestrazione, routing e daily monitoring
-- ✅ **MAIN** - Sistema centrale, coordinamento
+- ✅ **MAIN** - Sistema Centrale, coordinamento
 
 ### Agent Hub Dashboard (Mar 2026)
 - ✅ Agent Hub UI at `/admin/agenti` with all 6 agents displayed
 - ✅ Business Summary with Partner Attivi, MRR, LTV
-- ✅ Real-time alerts (MARCO inactive partners, GAIA funnel health)
-- ✅ Opportunities section (reengagement, funnel optimization)
-- ✅ Per-agent metrics and status indicators
-- ✅ Backend API: `/api/agent-hub/status`, `/api/agent-hub/summary`
-- ✅ Agent activation endpoint with upsert capability
+- ✅ ORION rimosso dalla sidebar admin
+- ✅ Team Evolution aggiornato con 6 agenti
 
-### Agent Router API (Mar 2026)
-- ✅ `/api/agents/marco/checkin` - Weekly check-in
-- ✅ `/api/agents/marco/message` - Direct message handling
-- ✅ `/api/agents/gaia/support` - Technical support requests
-- ✅ `/api/agents/stefania/route` - Message routing
-- ✅ `/api/agents/stefania/daily-report` - Daily monitoring report
-
-### Completed (Dec 2025)
-- ✅ Partner Sidebar restructured with Dashboard, Percorso (F0-F9), Profilo, Servizi Extra
-- ✅ Admin "Demo Mode" - all phases unlocked when viewing partner dashboard
-- ✅ VALENTINA AI agent with delegation capability to OpenClaw
-- ✅ OpenClaw local setup with NVIDIA Kimi K2.5 (free tier)
-- ✅ ScriptBuilder component for FASE 3
-- ✅ ContrattoPartnership component for contract viewing
-- ✅ DatiPersonali component for personal/business data
-- ✅ LegalPagesGenerator with disclaimer integrated in Dominio page (FASE 7)
-- ✅ Telegram bot integration for OpenClaw communication
-
-### Refactoring Done (Feb 2026)
-- ✅ Separated `profilo-contratto` → ContrattoPartnership (not LegalPagesGenerator)
-- ✅ Added `profilo-dati` → DatiPersonali for personal data management
-- ✅ Added LegalPagesGenerator button in DomainConfiguration (FASE 7)
-- ✅ Updated PartnerSidebar with new "Dati Personali" item
-- ✅ Fixed dark text on dark background in FASE 5 (ProduzioneVideo) and FASE 8 (CalendarioEditoriale)
-- ✅ Removed "Le tue Risorse" section from Partner Dashboard
-- ✅ Refactored PartnerFilesPage to show only partner files (script, posizionamento, video, audio, PDF, distinte)
-- ✅ Extended ContrattoPartnership from 8 to 15 articles (complete contract)
-- ✅ Reordered Profilo sidebar: Dati Personali → Contratto → Brand Kit → I Miei File
-- ✅ Renamed "Bonus Strategici" to "Risorse Gratis" and moved to Servizi Extra
-- ✅ Replaced YouTube video upload with generic video upload in I Miei File
-
-### Analisi Strategica App (Feb-Mar 2026)
-- ✅ Created public landing page at `/analisi-strategica`
-- ✅ Registration flow with form validation
-- ✅ 8-question questionnaire for project evaluation
-- ✅ Stripe checkout integration for €67 payment (LIVE key configured)
-- ✅ Client dashboard with 7 bonus materials
-- ✅ Backend API: `/api/clienti/*` routes (async with Motor)
-- ✅ Admin routes for managing clients and status updates
-- ✅ **Mar 2026**: Fixed funnel flow - questionnaire only after payment
-- ✅ **Mar 2026**: CTA button updated to "Acquista e Registrati — €67"
-- ✅ **Mar 2026**: Separated registration and payment steps for robustness
-- ✅ **Mar 2026**: AI-powered analysis document generator (Claude via Emergent Key)
-- ✅ **Mar 2026**: Analysis modal with markdown rendering and download
-- ✅ **Mar 2026**: **PDF Export with Evolution PRO branding** (logo, colors, structured layout)
+### UI Fixes (Mar 2026)
+- ✅ Sezione Approvazioni: colori corretti per tema chiaro
+- ✅ Team Evolution: aggiornato a 6 agenti con ruoli corretti
 
 ## Known Issues
 ### P0 - Critical
 - **OpenClaw execution fails**: "Agent was aborted" error on local machine
-  - Gateway connects to Telegram but task execution fails
-  - Likely context size or model timeout issue on user's local machine
 
 ### P1 - High
 - **YouTube API Token Expired**: `invalid_grant: Token has been expired or revoked`
-  - Blocks video upload functionality
-  - Needs re-authentication in Google Cloud Console
 
 ### P2 - Medium
-- Unreadable text on dark blue backgrounds (some pages)
 - Backend refactoring needed (server.py monolith 11k+ lines)
 
 ## Backlog / Future Tasks
 
-### P0 - Immediate
-- Frontend UI for interacting with MARCO, GAIA, STEFANIA agents individually
-
 ### P1 - High Priority
-- Complete Stefania's daily report implementation and delivery
-- Create page/view for FASE 2 - OUTLINE
-- Create page/view for FASE 9 - LANCIO (final verification)
+- Implementare endpoint per studenti accademia
+- Implementare endpoint per impegni settimanali (MARCO)
+- Implementare endpoint per report mensile
+- Aggiungere colonna "Piano Continuità" nella Pipeline Partner
 
 ### P2 - Medium Priority
 - Backend refactoring: Break server.py into /routers structure
-- Implement Landing Page & Funnel Builder (drag-and-drop)
-- Implement Historical Data Tracking
+- Create page/view for FASE 2 - OUTLINE
+- Create page/view for FASE 9 - LANCIO
 
 ## 3rd Party Integrations
 | Service | Status | Purpose |
 |---------|--------|---------|
 | MongoDB Atlas | ✅ Working | Primary database |
-| Systeme.io API | ✅ Working | Contact/tag management |
 | Anthropic Claude | ✅ Working | All AI agents (Emergent Key) |
 | Telegram Bot | ✅ Working | OpenClaw bridge, VALENTINA messages |
 | OpenClaw + NVIDIA Kimi | ⚠️ Partial | GUI automation (local machine issue) |
 | YouTube Data API v3 | ❌ Broken | Video uploads (expired token) |
 | Stripe | ✅ Working | Payments |
-| Cloudinary | ✅ Working | Media storage |
 | APScheduler | ✅ Working | Backend cron jobs |
 | ReportLab | ✅ Working | PDF generation |
-
-## Credentials (Test)
-- Admin: claudio@evolutionpro.it / Evolution2026!
-- OpenClaw Bot Token: 8424701823:AAGtRwk4ZUthZxYAer4vfnLmTxzs3c3jkIs
 
 ## File Structure
 ```
 /app
 ├── backend/
-│   ├── server.py               # Monolith (needs refactoring)
-│   ├── valentina_ai.py         # AI orchestrator
-│   ├── andrea_ai.py            # Video production agent
-│   ├── marco_ai.py             # Accountability agent
-│   ├── gaia_ai.py              # Technical support agent
-│   ├── stefania_ai.py          # Orchestration agent
-│   ├── agent_hub_service.py    # Agent metrics & analytics
-│   ├── scheduler.py            # APScheduler cron jobs
-│   ├── openclaw_integration.py # Telegram bridge
-│   ├── routers/
-│   │   ├── clienti.py          # Client funnel routes
-│   │   └── agents_router.py    # Agent API routes
-│   └── services/
-│       └── pdf_generator.py    # PDF generation service
+│   ├── server.py               # Monolith (added piano_continuita endpoints)
+│   ├── agent_hub_service.py    # Updated with 6 core agents + MARCO
+│   └── routers/
+│       ├── clienti.py
+│       └── agents_router.py
 └── frontend/
     └── src/
-        ├── App.js              # Main router
+        ├── App.js              # Added PostLancio routes
         ├── components/
         │   ├── admin/
-        │   │   ├── AgentDashboard.jsx    # Agent Hub UI
-        │   │   └── AdminClientiPanel.jsx
+        │   │   ├── AdminSidebarLight.jsx  # ORION removed
+        │   │   ├── ApprovalDashboard.jsx  # Light theme fix
+        │   │   └── PartnerProfileModal.jsx # Piano Continuità section
         │   ├── partner/
-        │   │   ├── PartnerSidebar.jsx
-        │   │   ├── ContrattoPartnership.jsx
-        │   │   └── ...
-        │   └── cliente/
-        │       └── AnalisiStrategicaApp.jsx
+        │   │   ├── PartnerSidebar.jsx     # Post-Lancio group (F10+)
+        │   │   └── PostLancioPages.jsx    # NEW: 4 post-lancio pages
+        │   └── shared/
+        │       └── TeamEvolution.jsx      # Updated to 6 agents
         └── ...
 ```
