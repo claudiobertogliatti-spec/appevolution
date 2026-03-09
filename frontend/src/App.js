@@ -1082,6 +1082,22 @@ export default function App() {
           
           {showPartnerProfile&&selectedPartner&&<PartnerProfileModal partner={selectedPartner} onClose={()=>{setShowPartnerProfile(false);}} onUpdate={loadData}/>}
 
+          {/* VISTA CLIENTE (demo per admin) */}
+          {mode==="cliente"&&(
+            <ClienteDashboard 
+              cliente={{
+                id: "demo-cliente",
+                nome: "Cliente Demo",
+                cognome: "",
+                email: "demo@cliente.it",
+                stato: "pagato",
+                data_acquisto: new Date().toISOString(),
+                questionario: { completato: false, risposte: null }
+              }}
+              onLogout={() => { setMode("admin"); setNav("overview"); }}
+            />
+          )}
+
           {mode==="admin"&&<>
             {nav==="overview"&&<AdminOverview stats={stats} agents={agents} partners={partners} alerts={alerts} onNavigate={setNav}/>}
             {nav==="clienti"&&<AdminClientiPanel/>}
