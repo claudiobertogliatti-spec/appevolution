@@ -74,7 +74,7 @@ export function LoginPage({ onLogin }) {
               
               <p className="text-lg text-[#5F6572] mb-8 leading-relaxed">
                 Il sistema operativo completo per creare, lanciare e scalare la tua accademia online. 
-                Dall'idea al primo studente in 90 giorni.
+                Dall'idea al tuo primo studente in 60 giorni.
               </p>
 
               {/* CTA Buttons */}
