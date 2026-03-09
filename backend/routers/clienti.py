@@ -37,6 +37,16 @@ class ClienteLogin(BaseModel):
 class QuestionnaireData(BaseModel):
     answers: Dict[str, Any]
 
+# New: Pre-call questionnaire model
+class QuestionarioPreCall(BaseModel):
+    expertise: str
+    cliente_ideale: str
+    pubblico_esistente: str
+    esperienze_passate: str
+    ostacolo_principale: str
+    obiettivo_12_mesi: str
+    perche_adesso: str
+
 class CheckoutRequest(BaseModel):
     cliente_id: str
     email: str
@@ -47,8 +57,15 @@ class PaymentVerify(BaseModel):
     session_id: str
 
 class UpdateStatus(BaseModel):
-    status: str  # pending, in_review, completed, approved, not_approved, roadmap
+    status: str  # pagato, questionario_completato, call_fissata, proposta_inviata, convertito, non_convertito
     notes: Optional[str] = None
+
+class FissaCallRequest(BaseModel):
+    data_call: str
+    note: Optional[str] = None
+
+class NoteClaudoRequest(BaseModel):
+    note: str
 
 # Helper to serialize MongoDB documents
 def serialize_cliente(cliente):
@@ -60,11 +77,30 @@ def serialize_cliente(cliente):
         "cognome": cliente.get("cognome"),
         "email": cliente.get("email"),
         "telefono": cliente.get("telefono"),
-        "status": cliente.get("status", "pending"),
+        "stato": cliente.get("stato", "pagato"),
         "has_paid": cliente.get("has_paid", False),
-        "questionnaire": cliente.get("questionnaire"),
+        "data_acquisto": cliente.get("data_acquisto") or cliente.get("paid_at"),
         "created_at": cliente.get("created_at"),
-        "paid_at": cliente.get("paid_at"),
+        # Questionario pre-call
+        "questionario": cliente.get("questionario", {
+            "completato": False,
+            "data_compilazione": None,
+            "risposte": None
+        }),
+        # Legacy questionnaire (old flow)
+        "questionnaire": cliente.get("questionnaire"),
+        # Call info
+        "call": cliente.get("call", {
+            "data_call": None,
+            "note_claudio": None,
+            "esito": None
+        }),
+        # Conversione
+        "conversione": cliente.get("conversione", {
+            "data_proposta": None,
+            "data_risposta": None,
+            "convertito": None
+        }),
         "notes": cliente.get("notes")
     }
 
