@@ -53,6 +53,7 @@ import { TeamEvolution } from "./components/shared/TeamEvolution";
 import { OnboardingDocuments } from "./components/partner/OnboardingDocuments";
 import { AnalisiStrategicaApp } from "./components/cliente/AnalisiStrategicaApp";
 import { AdminClientiPanel } from "./components/admin/AdminClientiPanel";
+import { ClienteDashboard } from "./components/cliente/ClienteDashboard";
 import { MiaAccademiaPage, MieiStudentiPage, ImpegniSettimanaPage, ReportMensilePage, PianoContinuitaBanner } from "./components/partner/PostLancioPages";
 import "./styles/design-system.css";
 
