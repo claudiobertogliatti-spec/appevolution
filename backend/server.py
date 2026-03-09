@@ -8721,7 +8721,7 @@ async def send_telegram_alert(message: str):
 # -----------------------------------------------------------------------------
 
 async def handle_new_sale(data: dict) -> List[str]:
-    """Handle new sale - Auto-onboard partner"""
+    """Handle new sale - Auto-onboard partner or create Analisi Strategica client"""
     actions = []
     
     contact_email = data.get("email", data.get("contact_email", ""))
@@ -8732,6 +8732,72 @@ async def handle_new_sale(data: dict) -> List[str]:
     
     if not contact_email:
         return ["⚠️ Email mancante nel payload"]
+    
+    # Check if this is an "Analisi Strategica" sale (€67 funnel)
+    is_analisi_sale = any(kw in product_name.lower() for kw in ["analisi strategica", "analisi", "strategica", "67"])
+    
+    if is_analisi_sale:
+        # Check if client already exists in clienti collection
+        existing = await db.clienti.find_one({"email": contact_email})
+        
+        if not existing:
+            # Create new client for Analisi Strategica
+            client_id = f"c{str(uuid.uuid4())[:8]}"
+            new_client = {
+                "id": client_id,
+                "nome": contact_name or contact_email.split("@")[0].title(),
+                "email": contact_email,
+                "telefono": data.get("phone", ""),
+                "has_paid": True,
+                "payment_date": datetime.now(timezone.utc).isoformat(),
+                "order_id": order_id,
+                "amount": float(amount) if amount else 67,
+                "questionario_completato": False,
+                "risposte_questionario": {},
+                "status": "pagato",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "source": "systeme_webhook"
+            }
+            
+            await db.clienti.insert_one(new_client)
+            actions.append(f"✅ Cliente Analisi Strategica creato: {contact_name} ({contact_email})")
+            
+            # Send welcome notification
+            await send_telegram_alert(
+                f"💰 <b>Nuova Analisi Strategica!</b>\n\n"
+                f"👤 {contact_name}\n"
+                f"📧 {contact_email}\n"
+                f"💵 €{amount or 67}\n"
+                f"🆔 {client_id}"
+            )
+            actions.append("📱 Notifica Telegram inviata")
+        else:
+            # Update existing client
+            await db.clienti.update_one(
+                {"email": contact_email},
+                {"$set": {
+                    "has_paid": True,
+                    "payment_date": datetime.now(timezone.utc).isoformat(),
+                    "order_id": order_id,
+                    "status": "pagato"
+                }}
+            )
+            actions.append(f"✅ Cliente Analisi Strategica aggiornato: {contact_email}")
+        
+        # Record payment
+        await db.payments.insert_one({
+            "client_email": contact_email,
+            "order_id": order_id,
+            "product": "Analisi Strategica",
+            "amount": float(amount) if amount else 67,
+            "currency": data.get("currency", "EUR"),
+            "status": "completed",
+            "type": "analisi_strategica",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        actions.append(f"💳 Pagamento registrato: €{amount or 67}")
+        
+        return actions
     
     # Check if this is a partner program sale
     is_partner_sale = any(kw in product_name.lower() for kw in ["partner", "academy", "evolution", "programma"])
