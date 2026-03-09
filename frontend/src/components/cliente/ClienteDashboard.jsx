@@ -95,6 +95,11 @@ export function ClienteDashboard({ cliente, onLogout }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Aggiorna stato quando cambiano le props del cliente
+  useEffect(() => {
+    setQuestionarioCompletato(cliente?.questionario?.completato || false);
+  }, [cliente?.questionario?.completato]);
+
   const clienteName = cliente?.nome || "Benvenuto";
   const clienteEmail = cliente?.email || "";
 
