@@ -212,18 +212,19 @@ const ApprovalDashboard = () => {
           {tasks.map((task) => (
             <div 
               key={task.id} 
-              className="bg-gray-800/50 border border-gray-700 rounded-xl overflow-hidden"
+              className="bg-white rounded-xl overflow-hidden shadow-sm"
+              style={{ border: '1px solid #ECEDEF' }}
               data-testid={`approval-task-${task.id}`}
             >
               {/* Task Header */}
               <div 
-                className="p-4 cursor-pointer hover:bg-gray-800/80 transition-colors"
+                className="p-4 cursor-pointer transition-colors hover:bg-gray-50"
                 onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
                     {/* Status Indicator */}
-                    <div className="w-2 h-2 rounded-full bg-orange-500 mt-2 animate-pulse"></div>
+                    <div className="w-2 h-2 rounded-full mt-2 animate-pulse" style={{ background: '#F59E0B' }}></div>
                     
                     <div>
                       <div className="flex items-center gap-2 mb-1">
@@ -232,18 +233,18 @@ const ApprovalDashboard = () => {
                           <span className="ml-1">{task.agent}</span>
                         </span>
                         {task.approval?.revision_count > 0 && (
-                          <span className="px-2 py-0.5 rounded-full text-xs bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
+                          <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: '#FEF3C7', color: '#B45309', border: '1px solid #FCD34D' }}>
                             Revisione #{task.approval.revision_count}
                           </span>
                         )}
                       </div>
                       
-                      <h3 className="text-white font-medium">{task.title}</h3>
+                      <h3 className="font-medium" style={{ color: '#1E2128' }}>{task.title}</h3>
                       
-                      <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
+                      <div className="flex items-center gap-4 mt-1 text-xs" style={{ color: '#9CA3AF' }}>
                         <span>Creato: {formatTimeAgo(task.created_at)}</span>
                         {task.partner_id && (
-                          <span className="text-purple-400">Partner: {task.partner_id}</span>
+                          <span style={{ color: '#8B5CF6' }}>Partner: {task.partner_id}</span>
                         )}
                       </div>
                     </div>
@@ -251,9 +252,9 @@ const ApprovalDashboard = () => {
                   
                   <div className="flex items-center gap-2">
                     {expandedTask === task.id ? (
-                      <ChevronUp className="w-5 h-5 text-gray-400" />
+                      <ChevronUp className="w-5 h-5" style={{ color: '#9CA3AF' }} />
                     ) : (
-                      <ChevronDown className="w-5 h-5 text-gray-400" />
+                      <ChevronDown className="w-5 h-5" style={{ color: '#9CA3AF' }} />
                     )}
                   </div>
                 </div>
@@ -261,15 +262,15 @@ const ApprovalDashboard = () => {
               
               {/* Expanded Content */}
               {expandedTask === task.id && (
-                <div className="border-t border-gray-700 p-4 space-y-4">
+                <div className="p-4 space-y-4" style={{ borderTop: '1px solid #ECEDEF', background: '#FAFAF7' }}>
                   {/* Output Preview */}
                   <div>
-                    <h4 className="text-sm font-medium text-gray-400 mb-2 flex items-center gap-2">
+                    <h4 className="text-sm font-medium mb-2 flex items-center gap-2" style={{ color: '#5F6572' }}>
                       <Eye className="w-4 h-4" />
                       Output Generato
                     </h4>
-                    <div className="bg-gray-900 rounded-lg p-4 max-h-96 overflow-y-auto">
-                      <pre className="text-gray-300 text-sm whitespace-pre-wrap font-mono">
+                    <div className="bg-white rounded-lg p-4 max-h-96 overflow-y-auto" style={{ border: '1px solid #ECEDEF' }}>
+                      <pre className="text-sm whitespace-pre-wrap font-mono" style={{ color: '#374151' }}>
                         {task.result?.output || task.result?.message || 'Nessun output disponibile'}
                       </pre>
                     </div>
@@ -278,15 +279,15 @@ const ApprovalDashboard = () => {
                   {/* Previous Revisions */}
                   {task.revisions?.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-medium text-gray-400 mb-2">Revisioni Precedenti</h4>
+                      <h4 className="text-sm font-medium mb-2" style={{ color: '#5F6572' }}>Revisioni Precedenti</h4>
                       <div className="space-y-2">
                         {task.revisions.map((rev, idx) => (
-                          <div key={idx} className="bg-gray-900/50 rounded-lg p-3 text-sm">
+                          <div key={idx} className="bg-white rounded-lg p-3 text-sm" style={{ border: '1px solid #ECEDEF' }}>
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-yellow-400">Versione {rev.version}</span>
-                              <span className="text-gray-500 text-xs">{formatTimeAgo(rev.created_at)}</span>
+                              <span style={{ color: '#B45309' }}>Versione {rev.version}</span>
+                              <span className="text-xs" style={{ color: '#9CA3AF' }}>{formatTimeAgo(rev.created_at)}</span>
                             </div>
-                            <p className="text-red-400 text-xs mb-1">Feedback: {rev.feedback}</p>
+                            <p className="text-xs" style={{ color: '#EF4444' }}>Feedback: {rev.feedback}</p>
                           </div>
                         ))}
                       </div>
@@ -295,7 +296,7 @@ const ApprovalDashboard = () => {
                   
                   {/* Feedback Input (for rejection) */}
                   <div>
-                    <h4 className="text-sm font-medium text-gray-400 mb-2">Feedback (obbligatorio per rifiuto)</h4>
+                    <h4 className="text-sm font-medium mb-2" style={{ color: '#5F6572' }}>Feedback (obbligatorio per rifiuto)</h4>
                     <textarea
                       value={selectedTask === task.id ? feedback : ''}
                       onChange={(e) => {
@@ -303,7 +304,8 @@ const ApprovalDashboard = () => {
                         setFeedback(e.target.value);
                       }}
                       placeholder="Es: Il blocco 3 è troppo generico, aggiungi un esempio concreto..."
-                      className="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white text-sm placeholder-gray-500 focus:border-yellow-500 focus:outline-none"
+                      className="w-full rounded-lg p-3 text-sm focus:outline-none focus:ring-2"
+                      style={{ background: 'white', border: '1px solid #ECEDEF', color: '#1E2128' }}
                       rows={3}
                     />
                   </div>
@@ -313,7 +315,8 @@ const ApprovalDashboard = () => {
                     <button
                       onClick={() => handleReject(task.id)}
                       disabled={actionLoading || (selectedTask === task.id && !feedback.trim())}
-                      className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ background: '#FEE2E2', color: '#DC2626', border: '1px solid #FECACA' }}
                     >
                       <XCircle className="w-4 h-4" />
                       Rifiuta
@@ -321,7 +324,8 @@ const ApprovalDashboard = () => {
                     <button
                       onClick={() => handleApprove(task.id)}
                       disabled={actionLoading}
-                      className="flex items-center gap-2 px-4 py-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 rounded-lg transition-colors disabled:opacity-50"
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                      style={{ background: '#D1FAE5', color: '#059669', border: '1px solid #A7F3D0' }}
                     >
                       <CheckCircle className="w-4 h-4" />
                       Approva
