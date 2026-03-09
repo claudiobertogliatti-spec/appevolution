@@ -66,6 +66,7 @@ export function AdminClientiPanel() {
 
   useEffect(() => {
     loadClienti();
+    loadStats();
   }, []);
 
   const loadClienti = async () => {
@@ -77,6 +78,15 @@ export function AdminClientiPanel() {
       console.error("Error loading clienti:", e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadStats = async () => {
+    try {
+      const res = await axios.get(`${API}/clienti/stats`);
+      setStats(res.data);
+    } catch (e) {
+      console.error("Error loading stats:", e);
     }
   };
 
