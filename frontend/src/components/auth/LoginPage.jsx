@@ -68,13 +68,13 @@ export function LoginPage({ onLogin }) {
               </div>
               
               <h1 className="text-4xl md:text-5xl font-black text-[#1E2128] leading-tight mb-6">
-                Trasforma le tue competenze in un'{" "}
-                <span style={{ color: '#F5C518' }}>Accademia Digitale</span>
+                La tua competenza merita un{" "}
+                <span style={{ color: '#F5C518' }}>sistema che lavora anche quando tu non ci sei</span>
               </h1>
               
               <p className="text-lg text-[#5F6572] mb-8 leading-relaxed">
-                Il sistema operativo completo per creare, lanciare e scalare la tua accademia online. 
-                Dall'idea al tuo primo studente in 60 giorni.
+                Un team di agenti AI (VALENTINA, ANDREA, MARCO, GAIA, STEFANIA) + Claudio e Antonella 
+                ti guidano dall'idea al tuo primo studente in 60 giorni.
               </p>
 
               {/* CTA Buttons */}
