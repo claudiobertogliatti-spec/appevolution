@@ -2298,12 +2298,6 @@ async def get_alerts():
         now = datetime.now(timezone.utc)
         threshold = now - timedelta(hours=24)
         
-        print(f"[ALERTS] Checking for clients without questionnaire. Threshold: {threshold}")
-        
-        # Count documents first
-        total_clients = await db.clienti.count_documents({})
-        print(f"[ALERTS] Total clients in DB: {total_clients}")
-        
         # Find clients who paid more than 24h ago but haven't completed questionnaire
         pipeline = [
             {
@@ -2318,14 +2312,10 @@ async def get_alerts():
             }
         ]
         
-        count = 0
         clienti_cursor = db.clienti.aggregate(pipeline)
         async for cliente in clienti_cursor:
-            count += 1
-            print(f"[ALERTS] Found client #{count}: {cliente.get('nome')} {cliente.get('cognome')}")
             # Check if paid more than 24h ago
             paid_at = cliente.get("paid_at") or cliente.get("data_acquisto") or cliente.get("created_at")
-            print(f"[ALERTS] paid_at: {paid_at}")
             if paid_at:
                 if isinstance(paid_at, str):
                     try:
