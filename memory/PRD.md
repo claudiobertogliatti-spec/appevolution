@@ -8,6 +8,7 @@ Building "Evolution PRO OS," a proprietary web application for business workflow
 - Admin dashboard with demo mode to view partner features unlocked
 - Multi-agent AI system with 6 core agents
 - Piano Continuità system for post-launch partner management
+- **Systeme.io è l'unica fonte di verità per la gestione dei lead** (App gestisce solo clienti e partner)
 
 ## User's Preferred Language
 Italian
@@ -20,7 +21,14 @@ Italian
 
 ## What's Been Implemented
 
-### Piano Continuità System (Mar 2026) - NEW
+### Lead Management Cleanup (Mar 2026) - NEW
+- ✅ Rimosso `OrionLeadScoring.jsx` - Lead gestiti esclusivamente in Systeme.io
+- ✅ Rimossa tab "Lead Scoring" da `WebhookDashboard.jsx`
+- ✅ Rimosso componente `LeadCard` da WebhookDashboard
+- ✅ Aggiornate "Automazioni Attive" (Lead Scoring → Sync Systeme.io)
+- ✅ Rimosso import e routing di OrionLeadScoring da App.js
+
+### Piano Continuità System (Mar 2026)
 - ✅ Backend endpoint `GET/PUT /api/partners/{id}/piano-continuita`
 - ✅ 4 piani disponibili: Starter (€29+15%), Builder (€49+10%), Pro (€79+7%), Elite (€99+5%)
 - ✅ Auto-calcolo data rinnovo (+12 mesi)
