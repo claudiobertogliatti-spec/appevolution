@@ -5,7 +5,8 @@ import {
   HelpCircle, Sparkles, Check, Lock, Rocket, ShoppingBag, Scissors, 
   Scale, UserCircle, Globe, Mail, BarChart3, UsersRound, Video,
   PlayCircle, X, Users, Lightbulb, Star, FileUp, FileSignature,
-  PenTool, Image, Clapperboard, MonitorPlay, CheckCircle2, User, Gift
+  PenTool, Image, Clapperboard, MonitorPlay, CheckCircle2, User, Gift,
+  TrendingUp
 } from "lucide-react";
 
 // =====================================================
