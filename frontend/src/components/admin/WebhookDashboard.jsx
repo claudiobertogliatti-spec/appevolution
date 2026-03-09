@@ -88,46 +88,6 @@ function WebhookLogItem({ log }) {
   );
 }
 
-function LeadCard({ lead }) {
-  const getScoreColor = (score) => {
-    if (score >= 80) return '#34C77B';
-    if (score >= 50) return '#F59E0B';
-    return '#9CA3AF';
-  };
-  
-  return (
-    <div className="flex items-center gap-3 p-4 border rounded-xl" style={{ background: 'white', borderColor: '#ECEDEF' }}>
-      <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm"
-           style={{ background: '#F2C418', color: '#1E2128' }}>
-        {lead.name?.split(" ").map(n => n[0]).join("") || lead.email[0].toUpperCase()}
-      </div>
-      
-      <div className="flex-1 min-w-0">
-        <div className="font-bold text-sm truncate" style={{ color: '#1E2128' }}>
-          {lead.name || lead.email.split("@")[0]}
-        </div>
-        <div className="text-xs truncate" style={{ color: '#9CA3AF' }}>{lead.email}</div>
-      </div>
-      
-      <div className="text-right">
-        <div className="text-lg font-black" style={{ color: getScoreColor(lead.score) }}>
-          {lead.score}
-        </div>
-        <div className="text-[10px]" style={{ color: '#9CA3AF' }}>score</div>
-      </div>
-      
-      <div className="flex gap-1">
-        {lead.tags?.slice(0, 2).map((tag, i) => (
-          <span key={i} className="text-[9px] font-bold px-1.5 py-0.5 rounded" 
-                style={{ background: '#F2C41820', color: '#C4990A' }}>
-            {tag}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function WebhookDashboard() {
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState(null);
@@ -279,7 +239,6 @@ export function WebhookDashboard() {
             )}
           </div>
         </div>
-      </div>
 
       {/* Quick Actions */}
       <div className="rounded-xl p-5 border" style={{ background: '#FAFAF7', borderColor: '#ECEDEF' }}>

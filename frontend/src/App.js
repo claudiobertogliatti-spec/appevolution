@@ -45,7 +45,7 @@ import { PartnerProfileHub } from "./components/partner/PartnerProfileHub";
 import { DomainConfiguration } from "./components/partner/DomainConfiguration";
 import { EmailAutomation } from "./components/partner/EmailAutomation";
 import { AgentDashboard } from "./components/admin/AgentDashboard";
-import { OrionLeadScoring } from "./components/admin/OrionLeadScoring";
+// OrionLeadScoring rimosso - Lead gestiti esclusivamente in Systeme.io
 import { SalesKPIDashboard } from "./components/admin/SalesKPIDashboard";
 import { OnboardingDocumentsAdmin } from "./components/admin/OnboardingDocumentsAdmin";
 import ApprovalDashboard from "./components/admin/ApprovalDashboard";
@@ -1046,7 +1046,7 @@ export default function App() {
             {nav==="overview"&&<AdminOverview stats={stats} agents={agents} partners={partners} alerts={alerts} onNavigate={setNav}/>}
             {nav==="clienti"&&<AdminClientiPanel/>}
             {nav==="agenti"&&<AgentDashboard/>}
-            {nav==="orion"&&<OrionLeadScoring/>}
+            {/* OrionLeadScoring rimosso - Lead gestiti esclusivamente in Systeme.io */}
             {nav==="approvals"&&<ApprovalDashboard/>}
             {nav==="sales-kpi"&&<SalesKPIDashboard/>}
             {nav==="partner"&&<AdminPartners partners={partners} onSelect={(p)=>{setSelectedPartner(p);setShowPartnerProfile(true);}}/>}
