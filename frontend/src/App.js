@@ -263,20 +263,42 @@ function AdminAgents({ agents }) {
 }
 
 function AdminPartners({ partners, onSelect }) {
+  // Helper per badge piano continuità
+  const getPianoBadge = (p) => {
+    const piano = p.piano_continuita?.piano_attivo;
+    const phase = parseInt(p.phase?.replace("F", "") || "1");
+    
+    if (piano) {
+      const colors = {
+        starter: { bg: "#FED7AA", text: "#C2410C" },
+        builder: { bg: "#BFDBFE", text: "#1D4ED8" },
+        pro: { bg: "#DDD6FE", text: "#7C3AED" },
+        elite: { bg: "#FEF3C4", text: "#C4990A" }
+      };
+      const c = colors[piano] || colors.starter;
+      return <span className="text-xs font-bold px-2 py-0.5 rounded" style={{ background: c.bg, color: c.text }}>{piano.charAt(0).toUpperCase() + piano.slice(1)}</span>;
+    }
+    if (phase >= 8) {
+      return <span className="text-xs font-bold text-red-500">— da attivare</span>;
+    }
+    return <span className="text-xs" style={{ color: '#9CA3AF' }}>—</span>;
+  };
+
   return (
     <div className="rounded-xl overflow-hidden" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
-      <div className="grid grid-cols-5 text-[10px] font-bold uppercase tracking-wider px-5 py-3" style={{ color: '#9CA3AF', borderBottom: '1px solid #ECEDEF' }}>
-        <span>Partner</span><span>Fase</span><span>Revenue</span><span>Contratto</span><span>Stato</span>
+      <div className="grid grid-cols-6 text-[10px] font-bold uppercase tracking-wider px-5 py-3" style={{ color: '#9CA3AF', borderBottom: '1px solid #ECEDEF' }}>
+        <span>Partner</span><span>Fase</span><span>Revenue</span><span>Piano</span><span>Contratto</span><span>Stato</span>
       </div>
       <div className="divide-y" style={{ borderColor: '#ECEDEF' }}>
         {(partners||[]).map(p=>(
-          <div key={p.id} className="grid grid-cols-5 items-center px-5 py-3 cursor-pointer transition-colors hover:bg-[#FAFAF7]" onClick={()=>onSelect(p)}>
+          <div key={p.id} className="grid grid-cols-6 items-center px-5 py-3 cursor-pointer transition-colors hover:bg-[#FAFAF7]" onClick={()=>onSelect(p)}>
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: '#F2C418', color: '#1E2128' }}>{p.name.split(" ").map(n=>n[0]).join("")}</div>
               <div><div className="text-sm font-bold" style={{ color: '#1E2128' }}>{p.name}</div><div className="text-xs" style={{ color: '#9CA3AF' }}>{p.niche}</div></div>
             </div>
             <div><span className="font-mono text-xs font-bold px-2 py-1 rounded" style={{ background: '#FFF3C4', color: '#C4990A' }}>{p.phase}</span></div>
             <div className="font-mono text-sm" style={{ color: '#5F6572' }}>{p.revenue>0?`€${p.revenue.toLocaleString()}`:"—"}</div>
+            <div>{getPianoBadge(p)}</div>
             <div className="text-sm" style={{ color: '#9CA3AF' }}>{p.contract}</div>
             <div>{p.alert?<span className="text-xs font-bold text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3"/>Alert</span>:<span className="text-xs font-bold text-green-500 flex items-center gap-1"><Check className="w-3 h-3"/>OK</span>}</div>
           </div>
