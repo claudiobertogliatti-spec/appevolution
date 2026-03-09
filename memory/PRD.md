@@ -28,6 +28,13 @@ Italian
 - ✅ Aggiornate "Automazioni Attive" (Lead Scoring → Sync Systeme.io)
 - ✅ Rimosso import e routing di OrionLeadScoring da App.js
 
+### Homepage Unificata (Mar 2026) - NEW
+- ✅ Homepage unica per tutti gli utenti (nuovi e registrati)
+- ✅ Login tramite modal (pulsante "Accedi" nell'header)
+- ✅ Sezioni: Hero, "Come Funziona", Stats, CTA finale
+- ✅ CTA "Richiedi l'Analisi Strategica" per nuovi utenti
+- ✅ Pulsante "Sei già Partner? Accedi" per utenti esistenti
+
 ### Piano Continuità System (Mar 2026)
 - ✅ Backend endpoint `GET/PUT /api/partners/{id}/piano-continuita`
 - ✅ 4 piani disponibili: Starter (€29+15%), Builder (€49+10%), Pro (€79+7%), Elite (€99+5%)
