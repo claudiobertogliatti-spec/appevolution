@@ -371,44 +371,19 @@ export function AnalisiStrategicaApp() {
     );
   }
 
-  // ============ PAID - QUESTIONNAIRE ALREADY COMPLETED ============
+  // ============ PAID - QUESTIONNAIRE ALREADY COMPLETED - SHOW DASHBOARD ============
   if (user?.questionnaire && Object.keys(user.questionnaire).length === QUESTIONS.length) {
     return (
-      <div className="min-h-screen" style={{ background: '#FAFAF7' }}>
-        <header className="border-b" style={{ borderColor: '#ECEDEF', background: '#FFFFFF' }}>
-          <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
-                <span className="text-lg font-black text-[#1E2128]">E</span>
-              </div>
-              <span className="font-black text-[#1E2128]">Evolution<span style={{ color: '#F5C518' }}>PRO</span></span>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-[#9CA3AF]">Ciao, <span className="text-[#1E2128] font-semibold">{user.nome}</span></span>
-              <button onClick={handleLogout} className="text-sm text-[#9CA3AF] hover:text-[#1E2128]"><LogOut className="w-4 h-4" /></button>
-            </div>
-          </div>
-        </header>
-
-        <div className="max-w-2xl mx-auto px-6 py-16 text-center">
-          <div className="w-20 h-20 rounded-full mx-auto mb-6 flex items-center justify-center" style={{ background: '#D1FAE5' }}>
-            <CheckCircle className="w-10 h-10 text-[#059669]" />
-          </div>
-          <h1 className="text-2xl font-bold text-[#1E2128] mb-4">Questionario completato!</h1>
-          <p className="text-[#5F6572] mb-8">
-            Grazie {user.nome}! Riceverai un'email con il link per prenotare la tua <strong>videocall di Analisi Strategica</strong> entro 48 ore.
-          </p>
-          <div className="p-6 rounded-xl text-left" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-            <h3 className="font-bold text-[#1E2128] mb-3">Cosa succede ora:</h3>
-            <ul className="space-y-2 text-sm text-[#5F6572]">
-              <li className="flex items-start gap-2"><CheckCircle className="w-4 h-4 text-[#059669] mt-0.5" />Analizziamo le tue risposte</li>
-              <li className="flex items-start gap-2"><CheckCircle className="w-4 h-4 text-[#059669] mt-0.5" />Ti contattiamo per fissare la videocall</li>
-              <li className="flex items-start gap-2"><CheckCircle className="w-4 h-4 text-[#059669] mt-0.5" />Durante la call ricevi l'Analisi completa</li>
-              <li className="flex items-start gap-2"><CheckCircle className="w-4 h-4 text-[#059669] mt-0.5" />Accedi ai 7 Bonus formativi</li>
-            </ul>
-          </div>
-        </div>
-      </div>
+      <ClienteDashboard 
+        cliente={{ 
+          id: user.id, 
+          nome: `${user.nome} ${user.cognome || ''}`.trim(),
+          email: user.email,
+          status: user.status || "pending",
+          questionnaire: user.questionnaire
+        }} 
+        onLogout={handleLogout} 
+      />
     );
   }
 
