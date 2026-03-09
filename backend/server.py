@@ -2291,6 +2291,60 @@ async def get_pending_onboarding_documents():
 @api_router.get("/alerts", response_model=List[Alert])
 async def get_alerts():
     alerts = await db.alerts.find({}, {"_id": 0}).to_list(100)
+    
+    # Add automatic alerts for clients who haven't completed questionnaire after 24h
+    try:
+        from datetime import datetime, timezone, timedelta
+        now = datetime.now(timezone.utc)
+        threshold = now - timedelta(hours=24)
+        
+        # Find clients who paid more than 24h ago but haven't completed questionnaire
+        pipeline = [
+            {
+                "$match": {
+                    "has_paid": True,
+                    "$or": [
+                        {"questionario.completato": False},
+                        {"questionario.completato": {"$exists": False}},
+                        {"questionario": {"$exists": False}}
+                    ]
+                }
+            }
+        ]
+        
+        clienti_cursor = db.clienti.aggregate(pipeline)
+        async for cliente in clienti_cursor:
+            # Check if paid more than 24h ago
+            paid_at = cliente.get("paid_at") or cliente.get("data_acquisto") or cliente.get("created_at")
+            if paid_at:
+                if isinstance(paid_at, str):
+                    try:
+                        paid_date = datetime.fromisoformat(paid_at.replace('Z', '+00:00'))
+                    except:
+                        continue
+                else:
+                    paid_date = paid_at
+                
+                if paid_date.tzinfo is None:
+                    paid_date = paid_date.replace(tzinfo=timezone.utc)
+                
+                if paid_date < threshold:
+                    nome = f"{cliente.get('nome', '')} {cliente.get('cognome', '')}".strip() or cliente.get('email', 'Cliente')
+                    alert_id = f"cliente-questionario-{cliente.get('_id')}"
+                    
+                    # Check if this alert already exists
+                    if not any(a.get('id') == alert_id for a in alerts):
+                        alerts.append({
+                            "id": alert_id,
+                            "agent": "SISTEMA",
+                            "type": "warning",
+                            "msg": f"⚠️ {nome} — ha pagato ma non ha compilato il questionario",
+                            "partner": cliente.get('email', ''),
+                            "time": "più di 24h fa"
+                        })
+    except Exception as e:
+        logging.error(f"Error generating client alerts: {e}")
+    
     return alerts
 
 @api_router.delete("/alerts/{alert_id}")
