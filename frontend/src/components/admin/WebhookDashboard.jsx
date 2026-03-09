@@ -275,10 +275,12 @@ export function WebhookDashboard() {
                 style={{ background: '#FAFAF7', borderColor: '#ECEDEF', color: '#5F6572' }}
               >
                 <option value="">Tutti gli eventi</option>
+                <option value="payment_received">Pagamenti</option>
+                <option value="commission_calculated">Commissioni</option>
+                <option value="plan_renewed">Rinnovi</option>
+                <option value="plan_expired">Scadenze</option>
                 <option value="new_sale">Vendite</option>
                 <option value="new_subscriber">Iscritti</option>
-                <option value="tag_added">Tag</option>
-                <option value="course_access">Corsi</option>
                 <option value="refund">Rimborsi</option>
               </select>
               <ChevronDown className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" 
