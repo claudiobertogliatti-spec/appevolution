@@ -7285,6 +7285,60 @@ async def sync_systeme_contacts(request: SystemeIOSyncRequest):
         logging.error(f"Error syncing Systeme.io contacts: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+async def get_piano_continuita_stats() -> dict:
+    """Calculate Piano Continuità stats from partners collection"""
+    from datetime import timedelta
+    
+    now = datetime.now(timezone.utc)
+    thirty_days_later = now + timedelta(days=30)
+    
+    # Get all partners with piano_continuita
+    partners = await db.partners.find(
+        {"piano_continuita.piano_attivo": {"$ne": None}},
+        {"_id": 0, "piano_continuita": 1, "name": 1, "email": 1}
+    ).to_list(500)
+    
+    partner_attivi = len(partners)
+    mrr_totale = 0
+    fee_mensili = 0
+    commissioni_mese = 0
+    rinnovi_30gg = 0
+    
+    for p in partners:
+        piano = p.get("piano_continuita", {})
+        
+        # Sum MRR
+        mrr_totale += piano.get("mrr", 0)
+        
+        # Sum monthly fees
+        fee_mensili += piano.get("fee_mensile", 0)
+        
+        # Sum commissions (calculate from MRR and percentage)
+        mrr = piano.get("mrr", 0)
+        percentage = piano.get("commissione_percentuale", 0)
+        commissioni_mese += (mrr * percentage / 100)
+        
+        # Count expiring plans
+        data_rinnovo = piano.get("data_rinnovo")
+        if data_rinnovo:
+            try:
+                if isinstance(data_rinnovo, str):
+                    rinnovo_date = datetime.fromisoformat(data_rinnovo.replace("Z", "+00:00"))
+                else:
+                    rinnovo_date = data_rinnovo
+                if now <= rinnovo_date <= thirty_days_later:
+                    rinnovi_30gg += 1
+            except:
+                pass
+    
+    return {
+        "partner_attivi": partner_attivi,
+        "mrr_totale": int(mrr_totale),
+        "fee_mensili": int(fee_mensili),
+        "commissioni_mese": int(commissioni_mese),
+        "rinnovi_30gg": rinnovi_30gg
+    }
+
 async def calculate_systeme_stats(partner_id: str) -> dict:
     """Calculate aggregated stats from synced contacts"""
     from datetime import timedelta
