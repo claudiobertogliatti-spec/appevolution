@@ -2350,7 +2350,9 @@ async def get_alerts():
                             "time": "più di 24h fa"
                         })
     except Exception as e:
-        logging.error(f"Error generating client alerts: {e}")
+        print(f"[ALERTS] Error generating client alerts: {e}")
+        import traceback
+        traceback.print_exc()
     
     return alerts
 
