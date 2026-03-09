@@ -72,15 +72,117 @@ const QUESTIONS = [
   }
 ];
 
-// I 7 Bonus Formativi
+// I 7 Bonus Formativi (stessi della sezione Partner)
 const BONUS_DATA = [
-  { id: 1, title: "Il Blueprint", icon: Target, color: "#F5C518" },
-  { id: 2, title: "Argomenti che Vendono", icon: Lightbulb, color: "#10B981" },
-  { id: 3, title: "Durata delle Lezioni", icon: Clock, color: "#3B82F6" },
-  { id: 4, title: "Funnel di Vendita", icon: Rocket, color: "#8B5CF6" },
-  { id: 5, title: "ADV: Quando Funzionano", icon: Megaphone, color: "#EF4444" },
-  { id: 6, title: "Profili Social", icon: Users, color: "#EC4899" },
-  { id: 7, title: "Non Fare Tutto da Solo", icon: Shield, color: "#F97316" }
+  {
+    id: 1,
+    title: "Il Blueprint",
+    subtitle: "Che Evita il Fallimento del 90% dei Corsi",
+    icon: Target,
+    color: "#F5C518",
+    chapters: [
+      { id: "intro", title: "Introduzione", icon: BookOpen },
+      { id: "cap1", title: "Il Vero Nemico", icon: AlertTriangle },
+      { id: "cap2", title: "Corso vs Percorso", icon: Target },
+      { id: "cap3", title: "L'Errore Comune", icon: Lightbulb },
+      { id: "cap4", title: "Dal Punto A al B", icon: ChevronRight },
+      { id: "cap5", title: "I Moduli", icon: BookOpen },
+      { id: "cap6", title: "Il Blueprint", icon: CheckCircle },
+      { id: "checklist", title: "Checklist", icon: CheckCircle },
+    ],
+    summary: "Scopri perché la maggior parte dei videocorsi fallisce ancor prima di essere registrata."
+  },
+  {
+    id: 2,
+    title: "Argomenti che Vendono",
+    subtitle: "Ed Eliminare il Superfluo",
+    icon: Lightbulb,
+    color: "#10B981",
+    chapters: [
+      { id: "intro", title: "Introduzione", icon: BookOpen },
+      { id: "cap1", title: "Meno è Meglio", icon: Target },
+      { id: "cap2", title: "Il Filtro", icon: Lightbulb },
+      { id: "cap3", title: "Cosa Tagliare", icon: AlertTriangle },
+      { id: "checklist", title: "Checklist", icon: CheckCircle },
+    ],
+    summary: "Perché scegliere meno argomenti è spesso la decisione che fa vendere di più."
+  },
+  {
+    id: 3,
+    title: "Durata delle Lezioni",
+    subtitle: "La Scelta che Influenza le Vendite",
+    icon: Clock,
+    color: "#3B82F6",
+    chapters: [
+      { id: "intro", title: "Introduzione", icon: BookOpen },
+      { id: "cap1", title: "Come Studia Online", icon: Users },
+      { id: "cap2", title: "La Durata Ideale", icon: Clock },
+      { id: "cap3", title: "Struttura Efficace", icon: Target },
+      { id: "checklist", title: "Checklist", icon: CheckCircle },
+    ],
+    summary: "Come ragiona davvero una persona che studia online e quale durata funziona meglio."
+  },
+  {
+    id: 4,
+    title: "Funnel di Vendita",
+    subtitle: "La Struttura Minima Indispensabile",
+    icon: Rocket,
+    color: "#8B5CF6",
+    chapters: [
+      { id: "intro", title: "Introduzione", icon: BookOpen },
+      { id: "cap1", title: "Cos'è un Funnel", icon: Rocket },
+      { id: "cap2", title: "Gli Elementi Base", icon: Target },
+      { id: "cap3", title: "La Sequenza", icon: ChevronRight },
+      { id: "cap4", title: "Errori da Evitare", icon: AlertTriangle },
+      { id: "checklist", title: "Checklist", icon: CheckCircle },
+    ],
+    summary: "Senza questa struttura il corso NON vende. Scopri il minimo indispensabile."
+  },
+  {
+    id: 5,
+    title: "ADV: Quando Funzionano",
+    subtitle: "E Quando Sono Solo Spreco",
+    icon: Megaphone,
+    color: "#EF4444",
+    chapters: [
+      { id: "intro", title: "Introduzione", icon: BookOpen },
+      { id: "cap1", title: "Il Mito della Pubblicità", icon: Megaphone },
+      { id: "cap2", title: "Quando Investire", icon: Target },
+      { id: "cap3", title: "Quando Evitare", icon: AlertTriangle },
+      { id: "checklist", title: "Checklist", icon: CheckCircle },
+    ],
+    summary: "La pubblicità non è una soluzione universale. Scopri quando funziona davvero."
+  },
+  {
+    id: 6,
+    title: "Profili Social",
+    subtitle: "La Funzione Reale (Non Estetica)",
+    icon: Users,
+    color: "#EC4899",
+    chapters: [
+      { id: "intro", title: "Introduzione", icon: BookOpen },
+      { id: "cap1", title: "Lo Scopo Vero", icon: Target },
+      { id: "cap2", title: "Contenuti che Convertono", icon: Lightbulb },
+      { id: "cap3", title: "La Strategia Minima", icon: ChevronRight },
+      { id: "checklist", title: "Checklist", icon: CheckCircle },
+    ],
+    summary: "I social non servono a essere creativi. Servono a guidare verso il tuo corso."
+  },
+  {
+    id: 7,
+    title: "Non Fare Tutto da Solo",
+    subtitle: "Il Punto che Nessuno Ama Affrontare",
+    icon: Shield,
+    color: "#F97316",
+    chapters: [
+      { id: "intro", title: "Introduzione", icon: BookOpen },
+      { id: "cap1", title: "Il Limite del Fai-da-Te", icon: AlertTriangle },
+      { id: "cap2", title: "Cosa Delegare", icon: Target },
+      { id: "cap3", title: "Il Sistema", icon: Lightbulb },
+      { id: "checklist", title: "Checklist", icon: CheckCircle },
+    ],
+    summary: "Non è questione di bravura. È questione di sistema e di sapere quando chiedere aiuto."
+  }
 ];
 
 export function ClienteDashboard({ cliente, onLogout }) {
