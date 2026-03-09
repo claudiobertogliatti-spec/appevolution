@@ -58,6 +58,11 @@ export function AdminClientiPanel() {
   const [generatingAnalysis, setGeneratingAnalysis] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [showAnalysis, setShowAnalysis] = useState(false);
+  const [showQuestionarioModal, setShowQuestionarioModal] = useState(false);
+  const [showFissaCallModal, setShowFissaCallModal] = useState(false);
+  const [notesClaudio, setNotesClaudio] = useState("");
+  const [dataCall, setDataCall] = useState("");
+  const [stats, setStats] = useState({ totale: 0, questionario_completato: 0, call_fissata: 0, convertiti: 0 });
 
   useEffect(() => {
     loadClienti();
