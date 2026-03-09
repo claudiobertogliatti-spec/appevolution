@@ -4,7 +4,7 @@ import {
   Target, Lightbulb, Rocket, Megaphone, Users, Shield,
   ChevronRight, Calendar, Video, FileText, ArrowRight,
   Map, Sparkles, User, GraduationCap, TrendingUp, Award,
-  AlertTriangle, Star, Loader2
+  AlertTriangle, Star, Loader2, BookOpen, ChevronDown
 } from "lucide-react";
 import axios from "axios";
 import { API } from "../../utils/api-config";
