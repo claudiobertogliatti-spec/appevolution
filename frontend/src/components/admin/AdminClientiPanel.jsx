@@ -370,8 +370,11 @@ export function AdminClientiPanel() {
             <div className="bg-white rounded-2xl border border-[#ECEDEF] overflow-hidden">
               <div className="divide-y divide-[#ECEDEF]">
                 {filteredClienti.map((cliente) => {
-                  const statusConf = STATUS_CONFIG[cliente.status] || STATUS_CONFIG.registered;
+                  const stato = cliente.stato || cliente.status || "pagato";
+                  const statusConf = STATUS_CONFIG[stato] || STATUS_CONFIG.pagato;
                   const StatusIcon = statusConf.icon;
+                  const hasQuestionario = cliente.questionario?.completato;
+                  const needsAlert = needsQuestionarioAlert(cliente);
                   return (
                     <div 
                       key={cliente.id}
@@ -395,16 +398,34 @@ export function AdminClientiPanel() {
                           </span>
                           {cliente.has_paid && (
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-600">
-                              PAGATO
+                              €67
                             </span>
                           )}
                         </div>
                         <div className="text-sm text-[#9CA3AF] truncate">{cliente.email}</div>
                       </div>
 
+                      {/* Questionario Column */}
+                      <div className="text-center min-w-[100px]">
+                        {hasQuestionario ? (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setSelectedCliente(cliente); setShowQuestionarioModal(true); }}
+                            className="text-xs font-bold text-[#3B82F6] hover:underline"
+                          >
+                            ✓ Vedi risposte
+                          </button>
+                        ) : needsAlert ? (
+                          <span className="text-xs font-bold text-[#EF4444] flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3" /> Non compilato
+                          </span>
+                        ) : (
+                          <span className="text-xs text-[#9CA3AF]">⏳ In attesa</span>
+                        )}
+                      </div>
+
                       {/* Status */}
                       <div 
-                        className="px-3 py-1.5 rounded-full flex items-center gap-1.5"
+                        className="px-3 py-1.5 rounded-full flex items-center gap-1.5 min-w-[120px] justify-center"
                         style={{ background: statusConf.bg }}
                       >
                         <StatusIcon className="w-3.5 h-3.5" style={{ color: statusConf.color }} />
