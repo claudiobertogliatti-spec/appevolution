@@ -36,7 +36,16 @@ Italian
 - ✅ Pulsante "Sei già Partner? Accedi" per utenti esistenti
 - ✅ Testo aggiornato: "Dall'idea al tuo primo studente in 60 giorni"
 
-### Dashboard Cliente (Mar 2026) - NEW
+### Questionario Pre-Call (Mar 2026) - NEW
+- ✅ Backend: Nuovo modello cliente con `questionario`, `call`, `conversione`
+- ✅ Endpoint questionario: POST/GET `/api/clienti/{id}/questionario`
+- ✅ Endpoint call/conversione: fissa-call, converti-partner, segna-non-adatto
+- ✅ Area Cliente: Progress bar 3 step, form 7 domande, sidebar team
+- ✅ Admin: Nuove metriche (Questionario ✓, Call fissata, Convertiti)
+- ✅ Admin: Modal risposte con note Claudio + azioni rapide
+- ✅ Alert: Clienti che non compilano dopo 24h
+
+### Dashboard Cliente (Mar 2026)
 - ✅ Nuova ClienteDashboard.jsx con 5 sezioni:
   1. **Video Benvenuto** - Placeholder "Video in arrivo" (2-3 min da Claudio)
   2. **7 Bonus Formativi** - Gli stessi bonus della landing
