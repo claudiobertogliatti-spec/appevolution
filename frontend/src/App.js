@@ -982,7 +982,39 @@ export default function App() {
     <div className="flex h-screen overflow-hidden" style={{ background: '#FAFAF7', color: '#1E2128' }}>
 
       {/* SIDEBAR - Light Theme for both modes */}
-      {mode === "partner" ? (
+      {mode === "cliente" ? (
+        /* Sidebar minima per vista Cliente */
+        <div className="w-64 min-w-64 flex flex-col h-full border-r overflow-hidden" 
+             style={{ background: '#FFFFFF', borderColor: '#F0EFEB' }}>
+          <div className="p-5 border-b" style={{ borderColor: '#F0EFEB' }}>
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
+                   style={{ background: '#F2C418' }}>
+                <span className="text-lg font-black text-[#1E2128]">E</span>
+              </div>
+              <div>
+                <div className="font-black text-base" style={{ color: '#2D3239' }}>
+                  Evolution<span style={{ color: '#F2C418' }}>Pro</span>
+                </div>
+                <div className="text-[10px] font-medium" style={{ color: '#9CA3AF' }}>Vista Cliente</div>
+              </div>
+            </div>
+          </div>
+          <div className="px-4 py-3 space-y-2">
+            <button 
+              onClick={() => { setMode("admin"); setNav("overview"); }}
+              className="w-full py-2.5 text-sm font-bold rounded-xl transition-all hover:bg-[#FAFAF7]"
+              style={{ background: '#FAFAF7', color: '#5F6572', border: '1px solid #ECEDEF' }}
+            >
+              ← Torna Admin
+            </button>
+            <div className="p-3 rounded-xl bg-[#FEF9E7] border border-[#F5C518]/30">
+              <div className="text-xs font-bold text-[#C4990A] mb-1">MODALITÀ DEMO</div>
+              <div className="text-xs text-[#5F6572]">Stai visualizzando come appare l'area cliente dopo l'acquisto dell'Analisi Strategica</div>
+            </div>
+          </div>
+        </div>
+      ) : mode === "partner" ? (
         <PartnerSidebarLight 
           currentNav={nav}
           onNavigate={setNav}
