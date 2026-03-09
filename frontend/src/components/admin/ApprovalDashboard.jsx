@@ -134,16 +134,17 @@ const ApprovalDashboard = () => {
   }
 
   return (
-    <div className="p-6 space-y-6" data-testid="approval-dashboard">
+    <div className="p-6 space-y-6" data-testid="approval-dashboard" style={{ background: '#FAFAF7', minHeight: '100vh' }}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Approvazioni</h1>
-          <p className="text-gray-400 text-sm">Revisiona e approva gli output degli agenti AI</p>
+          <h1 className="text-2xl font-bold" style={{ color: '#1E2128' }}>Approvazioni</h1>
+          <p className="text-sm" style={{ color: '#9CA3AF' }}>Revisiona e approva gli output degli agenti AI</p>
         </div>
         <button 
           onClick={fetchData}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-gray-300 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all hover:opacity-90"
+          style={{ background: '#F2C418', color: '#1E2128' }}
         >
           <RefreshCw className="w-4 h-4" />
           Aggiorna
@@ -152,46 +153,47 @@ const ApprovalDashboard = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-orange-400 mb-2">
+        <div className="bg-white rounded-xl p-4 shadow-sm" style={{ border: '1px solid #ECEDEF', borderTop: '3px solid #F59E0B' }}>
+          <div className="flex items-center gap-2 mb-2" style={{ color: '#F59E0B' }}>
             <Clock className="w-5 h-5" />
             <span className="text-sm font-medium">In Attesa</span>
           </div>
-          <span className="text-3xl font-bold text-white">{stats.pending}</span>
+          <span className="text-3xl font-bold" style={{ color: '#1E2128' }}>{stats.pending}</span>
         </div>
         
-        <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-green-400 mb-2">
+        <div className="bg-white rounded-xl p-4 shadow-sm" style={{ border: '1px solid #ECEDEF', borderTop: '3px solid #10B981' }}>
+          <div className="flex items-center gap-2 mb-2" style={{ color: '#10B981' }}>
             <CheckCircle className="w-5 h-5" />
             <span className="text-sm font-medium">Approvati Oggi</span>
           </div>
-          <span className="text-3xl font-bold text-white">{stats.approved_today}</span>
+          <span className="text-3xl font-bold" style={{ color: '#1E2128' }}>{stats.approved_today}</span>
         </div>
         
-        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-red-400 mb-2">
+        <div className="bg-white rounded-xl p-4 shadow-sm" style={{ border: '1px solid #ECEDEF', borderTop: '3px solid #EF4444' }}>
+          <div className="flex items-center gap-2 mb-2" style={{ color: '#EF4444' }}>
             <XCircle className="w-5 h-5" />
             <span className="text-sm font-medium">Rifiutati Oggi</span>
           </div>
-          <span className="text-3xl font-bold text-white">{stats.rejected_today}</span>
+          <span className="text-3xl font-bold" style={{ color: '#1E2128' }}>{stats.rejected_today}</span>
         </div>
         
-        <div className={`rounded-xl p-4 ${stats.stale_over_4h > 0 ? 'bg-red-500/10 border border-red-500/20' : 'bg-gray-800 border border-gray-700'}`}>
-          <div className="flex items-center gap-2 text-yellow-400 mb-2">
+        <div className="bg-white rounded-xl p-4 shadow-sm" style={{ border: '1px solid #ECEDEF', borderTop: stats.stale_over_4h > 0 ? '3px solid #EF4444' : '3px solid #F2C418' }}>
+          <div className="flex items-center gap-2 mb-2" style={{ color: '#F2C418' }}>
             <AlertTriangle className="w-5 h-5" />
             <span className="text-sm font-medium">&gt;4h Attesa</span>
           </div>
-          <span className="text-3xl font-bold text-white">{stats.stale_over_4h}</span>
+          <span className="text-3xl font-bold" style={{ color: '#1E2128' }}>{stats.stale_over_4h}</span>
         </div>
       </div>
 
       {/* Reviewer Selection */}
-      <div className="flex items-center gap-4 bg-gray-800/50 rounded-lg p-3">
-        <span className="text-gray-400 text-sm">Reviewer:</span>
+      <div className="flex items-center gap-4 bg-white rounded-xl p-4 shadow-sm" style={{ border: '1px solid #ECEDEF' }}>
+        <span className="text-sm font-medium" style={{ color: '#5F6572' }}>Reviewer:</span>
         <select 
           value={reviewerName}
           onChange={(e) => setReviewerName(e.target.value)}
-          className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-1.5 text-white text-sm"
+          className="rounded-lg px-3 py-2 text-sm font-medium focus:outline-none"
+          style={{ background: '#FAFAF7', border: '1px solid #ECEDEF', color: '#1E2128' }}
         >
           <option value="Antonella">Antonella</option>
           <option value="Claudio">Claudio</option>
@@ -200,10 +202,10 @@ const ApprovalDashboard = () => {
 
       {/* Tasks List */}
       {tasks.length === 0 ? (
-        <div className="bg-gray-800/50 rounded-xl p-12 text-center">
-          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-white mb-2">Tutto approvato!</h3>
-          <p className="text-gray-400">Non ci sono task in attesa di revisione.</p>
+        <div className="bg-white rounded-xl p-12 text-center shadow-sm" style={{ border: '1px solid #ECEDEF' }}>
+          <CheckCircle className="w-16 h-16 mx-auto mb-4" style={{ color: '#10B981' }} />
+          <h3 className="text-xl font-bold mb-2" style={{ color: '#1E2128' }}>Tutto approvato!</h3>
+          <p style={{ color: '#9CA3AF' }}>Non ci sono task in attesa di revisione.</p>
         </div>
       ) : (
         <div className="space-y-4">
