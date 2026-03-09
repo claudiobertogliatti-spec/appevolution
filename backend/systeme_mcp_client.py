@@ -98,14 +98,21 @@ def get_active_subscriptions() -> List[dict]:
     if not is_configured():
         return []
     try:
+        # Systeme.io API uses /api/orders for subscription data
         r = httpx.get(
-            f"{SYSTEME_MCP_BASE_URL}/subscriptions",
-            params={"status": "active"},
+            f"{SYSTEME_MCP_BASE_URL}/orders",
+            params={"type": "subscription", "status": "active"},
             headers=_headers(),
             timeout=10
         )
         r.raise_for_status()
-        return r.json().get("subscriptions", [])
+        return r.json().get("orders", r.json().get("subscriptions", []))
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 404:
+            logger.warning("[SYSTEME MCP] Endpoint subscriptions non disponibile - uso fallback")
+            return []
+        logger.error(f"[SYSTEME MCP] get_active_subscriptions error: {e}")
+        return []
     except Exception as e:
         logger.error(f"[SYSTEME MCP] get_active_subscriptions error: {e}")
         return []
@@ -116,14 +123,41 @@ def get_expiring_plans(days: int = 30) -> List[dict]:
     if not is_configured():
         return []
     try:
+        # Systeme.io API may not have this endpoint - use local calculation
         r = httpx.get(
-            f"{SYSTEME_MCP_BASE_URL}/subscriptions",
-            params={"status": "active", "expiring_in_days": days},
+            f"{SYSTEME_MCP_BASE_URL}/orders",
+            params={"type": "subscription", "status": "active"},
             headers=_headers(),
             timeout=10
         )
         r.raise_for_status()
-        return r.json().get("subscriptions", [])
+        orders = r.json().get("orders", [])
+        
+        # Filter locally for expiring in N days
+        from datetime import timedelta
+        now = datetime.now(timezone.utc)
+        cutoff = now + timedelta(days=days)
+        
+        expiring = []
+        for order in orders:
+            end_date = order.get("subscription_end_date") or order.get("next_billing_date")
+            if end_date:
+                try:
+                    if isinstance(end_date, str):
+                        end = datetime.fromisoformat(end_date.replace("Z", "+00:00"))
+                    else:
+                        end = end_date
+                    if now <= end <= cutoff:
+                        expiring.append(order)
+                except:
+                    pass
+        return expiring
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 404:
+            logger.warning("[SYSTEME MCP] Endpoint orders non disponibile")
+            return []
+        logger.error(f"[SYSTEME MCP] get_expiring_plans error: {e}")
+        return []
     except Exception as e:
         logger.error(f"[SYSTEME MCP] get_expiring_plans error: {e}")
         return []
