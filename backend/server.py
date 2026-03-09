@@ -1640,6 +1640,94 @@ async def add_partner_payment(partner_id: str, payment: PaymentRecord):
     
     return {"success": True, "payment_id": payment_data["id"]}
 
+# =============================================================================
+# PIANO CONTINUITÀ ENDPOINTS
+# =============================================================================
+
+@api_router.get("/partners/{partner_id}/piano-continuita")
+async def get_piano_continuita(partner_id: str):
+    """Get partner's Piano Continuità"""
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0, "piano_continuita": 1, "phase": 1})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    piano = partner.get("piano_continuita", {
+        "piano_attivo": None,
+        "data_attivazione": None,
+        "data_rinnovo": None,
+        "mrr": 0,
+        "commissione_percentuale": 0,
+        "fee_mensile": 0,
+        "ultimo_check_in_ai": None,
+        "note": ""
+    })
+    
+    # Add plan details if active
+    if piano.get("piano_attivo") and piano["piano_attivo"] in PIANI_CONTINUITA:
+        plan_config = PIANI_CONTINUITA[piano["piano_attivo"]]
+        piano["fee_mensile"] = plan_config["fee_mensile"]
+        piano["commissione_percentuale"] = plan_config["commissione_percentuale"]
+        piano["piano_label"] = plan_config["label"]
+    
+    return piano
+
+@api_router.put("/partners/{partner_id}/piano-continuita")
+async def update_piano_continuita(partner_id: str, data: dict):
+    """Update partner's Piano Continuità"""
+    partner = await db.partners.find_one({"id": partner_id})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    piano_attivo = data.get("piano_attivo")
+    data_attivazione = data.get("data_attivazione")
+    mrr = data.get("mrr", 0)
+    note = data.get("note", "")
+    
+    # Calculate fee and commission based on plan
+    fee_mensile = 0
+    commissione_percentuale = 0
+    if piano_attivo and piano_attivo in PIANI_CONTINUITA:
+        plan_config = PIANI_CONTINUITA[piano_attivo]
+        fee_mensile = plan_config["fee_mensile"]
+        commissione_percentuale = plan_config["commissione_percentuale"]
+    
+    # Calculate renewal date (12 months from activation)
+    data_rinnovo = None
+    if data_attivazione:
+        try:
+            activation_date = datetime.fromisoformat(data_attivazione.replace("Z", "+00:00"))
+            renewal_date = activation_date.replace(year=activation_date.year + 1)
+            data_rinnovo = renewal_date.isoformat()
+        except:
+            pass
+    
+    piano_continuita = {
+        "piano_attivo": piano_attivo,
+        "data_attivazione": data_attivazione,
+        "data_rinnovo": data_rinnovo,
+        "mrr": mrr,
+        "commissione_percentuale": commissione_percentuale,
+        "fee_mensile": fee_mensile,
+        "ultimo_check_in_ai": partner.get("piano_continuita", {}).get("ultimo_check_in_ai"),
+        "note": note
+    }
+    
+    await db.partners.update_one(
+        {"id": partner_id},
+        {"$set": {"piano_continuita": piano_continuita}}
+    )
+    
+    # If activating a plan and partner is at F9, advance to F10
+    current_phase = partner.get("phase", "F1")
+    if piano_attivo and current_phase in ["F8", "F9"]:
+        await db.partners.update_one(
+            {"id": partner_id},
+            {"$set": {"phase": "F10"}}
+        )
+        piano_continuita["phase_advanced"] = True
+    
+    return {"success": True, "piano_continuita": piano_continuita}
+
 @api_router.post("/partners/{partner_id}/send-documents")
 async def send_partner_documents(partner_id: str, email: str = None):
     """Send documents to partner via email (placeholder)"""
