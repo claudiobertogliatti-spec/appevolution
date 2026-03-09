@@ -362,7 +362,7 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
         </button>
 
         {/* Grouped Navigation */}
-        {getSidebarGroups(partnerPhase).map(group => (
+        {getSidebarGroups(currentPhaseNum).map(group => (
           <div key={group.id} className="mb-2">
             {/* Group Header */}
             <button
