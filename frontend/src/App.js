@@ -301,19 +301,120 @@ function AdminAlerts({ alerts, onDismiss }) {
 
 // ─── COMPLIANCE ────────────────────────────────────────────────────────────────
 function ComplianceDashboard() {
-  const [docs,setDocs]=useState([]);const [stats,setStats]=useState({});
-  useEffect(()=>{(async()=>{try{const[d,s]=await Promise.all([axios.get(`${API}/compliance/pending`),axios.get(`${API}/compliance/stats`)]);setDocs(d.data.documents);setStats(s.data);}catch(e){}})();},[]);
+  const [docs,setDocs]=useState([]);
+  const [stats,setStats]=useState({});
+  const [showAddDoc,setShowAddDoc]=useState(false);
+  const [partners,setPartners]=useState([]);
+  const [newDoc,setNewDoc]=useState({partner_id:"",tipo:"contratto_standard",note:""});
+  const [uploading,setUploading]=useState(false);
+  
+  const TIPI_DOCUMENTO = [
+    {id:"contratto_standard",label:"Contratto Standard",desc:"Per nuovi partner F1-F9"},
+    {id:"contratto_piano_continuita",label:"Contratto Piano Continuità",desc:"Per partner F10+ con piano attivo"},
+    {id:"modifica_contratto",label:"Modifica Contratto",desc:"Per variazioni su contratti esistenti"}
+  ];
+  
+  useEffect(()=>{(async()=>{try{
+    const[d,s,p]=await Promise.all([
+      axios.get(`${API}/compliance/pending`),
+      axios.get(`${API}/compliance/stats`),
+      axios.get(`${API}/partners`)
+    ]);
+    setDocs(d.data.documents||[]);
+    setStats(s.data);
+    setPartners(p.data||[]);
+  }catch(e){}})();},[]);
+  
+  const handleUpload=async(e)=>{
+    const file=e.target.files[0];
+    if(!file||!newDoc.partner_id)return;
+    setUploading(true);
+    try{
+      const fd=new FormData();
+      fd.append("file",file);
+      fd.append("partner_id",newDoc.partner_id);
+      fd.append("category","compliance");
+      fd.append("tipo_documento",newDoc.tipo);
+      fd.append("note",newDoc.note);
+      await axios.post(`${API}/files/upload`,fd);
+      setShowAddDoc(false);
+      setNewDoc({partner_id:"",tipo:"contratto_standard",note:""});
+      const r=await axios.get(`${API}/compliance/pending`);
+      setDocs(r.data.documents||[]);
+    }catch(e){}finally{setUploading(false);}
+  };
+  
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-4 gap-4"><KPICard label="Totali" value={stats.total_documents||0} icon={FileText}/><KPICard label="Da Verificare" value={stats.pending_count||0} delta={stats.pending_count>0?"Attenzione":"OK"} deltaType={stats.pending_count>0?"warn":"up"} icon={Clock}/><KPICard label="Verificati" value={stats.verified_count||0} icon={FileCheck}/><KPICard label="Tasso" value={`${stats.verification_rate||0}%`} icon={TrendingUp}/></div>
-      {!docs.length?<div className="bg-white border border-[#ECEDEF] rounded-xl p-12 text-center"><CheckCircle className="w-10 h-10 text-green-400 mx-auto mb-3"/><div className="font-bold">Nessun documento in attesa</div></div>:docs.map(doc=>(
+      <div className="flex items-center justify-between">
+        <div className="grid grid-cols-4 gap-4 flex-1">
+          <KPICard label="Totali" value={stats.total_documents||0} icon={FileText}/>
+          <KPICard label="Da Verificare" value={stats.pending_count||0} delta={stats.pending_count>0?"Attenzione":"OK"} deltaType={stats.pending_count>0?"warn":"up"} icon={Clock}/>
+          <KPICard label="Verificati" value={stats.verified_count||0} icon={FileCheck}/>
+          <KPICard label="Tasso" value={`${stats.verification_rate||0}%`} icon={TrendingUp}/>
+        </div>
+        <button onClick={()=>setShowAddDoc(true)} className="ml-4 flex items-center gap-2 bg-[#F5C518] text-black rounded-lg px-4 py-2 text-sm font-bold hover:bg-[#e0a800] transition-colors">
+          <Plus className="w-4 h-4"/>Nuovo Documento
+        </button>
+      </div>
+      
+      {/* Form Nuovo Documento */}
+      {showAddDoc&&(
+        <div className="bg-white border border-[#F5C518]/30 rounded-xl p-5">
+          <h3 className="font-bold text-sm mb-4 flex items-center gap-2"><FileText className="w-4 h-4"/>Nuovo Documento</h3>
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="text-xs font-bold text-[#9CA3AF] uppercase mb-1 block">Partner</label>
+              <select value={newDoc.partner_id} onChange={e=>setNewDoc({...newDoc,partner_id:e.target.value})} className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm">
+                <option value="">-- Seleziona Partner --</option>
+                {partners.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-[#9CA3AF] uppercase mb-1 block">Tipo Documento</label>
+              <select value={newDoc.tipo} onChange={e=>setNewDoc({...newDoc,tipo:e.target.value})} className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm">
+                {TIPI_DOCUMENTO.map(t=><option key={t.id} value={t.id}>{t.label}</option>)}
+              </select>
+              <p className="text-[10px] text-[#9CA3AF] mt-1">{TIPI_DOCUMENTO.find(t=>t.id===newDoc.tipo)?.desc}</p>
+            </div>
+            <div className="col-span-2">
+              <label className="text-xs font-bold text-[#9CA3AF] uppercase mb-1 block">Note</label>
+              <textarea value={newDoc.note} onChange={e=>setNewDoc({...newDoc,note:e.target.value})} placeholder="Note opzionali..." className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm" rows={2}/>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <label className={`flex-1 flex items-center justify-center gap-2 bg-[#F5C518] text-black rounded-lg px-4 py-2 text-sm font-bold cursor-pointer hover:bg-[#e0a800] ${!newDoc.partner_id&&"opacity-50 cursor-not-allowed"}`}>
+              <Upload className="w-4 h-4"/>{uploading?"Caricamento...":"Allega File"}
+              <input type="file" className="hidden" onChange={handleUpload} disabled={!newDoc.partner_id||uploading}/>
+            </label>
+            <button onClick={()=>setShowAddDoc(false)} className="bg-[#FAFAF7] border border-[#ECEDEF] px-4 py-2 rounded-lg text-sm font-bold">Annulla</button>
+          </div>
+        </div>
+      )}
+      
+      {/* Tipi Documento */}
+      <div className="grid grid-cols-3 gap-4">
+        {TIPI_DOCUMENTO.map(tipo=>(
+          <div key={tipo.id} className="bg-white border border-[#ECEDEF] rounded-xl p-4">
+            <div className="font-bold text-sm mb-1">{tipo.label}</div>
+            <p className="text-xs text-[#9CA3AF]">{tipo.desc}</p>
+            <div className="mt-3 text-lg font-bold text-[#F5C518]">{docs.filter(d=>d.tipo_documento===tipo.id).length}</div>
+          </div>
+        ))}
+      </div>
+      
+      {/* Lista Documenti */}
+      {!docs.length?<div className="bg-white border border-[#ECEDEF] rounded-xl p-12 text-center"><CheckCircle className="w-10 h-10 text-green-400 mx-auto mb-3"/><div className="font-bold">Nessun documento in attesa</div><p className="text-sm text-[#9CA3AF] mt-1">Usa "+ Nuovo Documento" per aggiungere contratti</p></div>:docs.map(doc=>(
         <div key={doc.filename} className="bg-white border border-[#ECEDEF] rounded-xl p-4 flex items-center gap-4">
           <div className="w-11 h-11 rounded-xl bg-blue-500/20 flex items-center justify-center"><FileText className="w-5 h-5 text-blue-400"/></div>
-          <div className="flex-1"><div className="font-bold text-sm">{doc.filename}</div><div className="text-xs text-[#9CA3AF]">{doc.partner_id} · {doc.size_readable}</div></div>
+          <div className="flex-1">
+            <div className="font-bold text-sm">{doc.filename}</div>
+            <div className="text-xs text-[#9CA3AF]">{doc.partner_id} · {doc.size_readable} · {TIPI_DOCUMENTO.find(t=>t.id===doc.tipo_documento)?.label||"Standard"}</div>
+          </div>
           <div className="flex gap-2">
             <button onClick={()=>window.open(`${API}/${doc.internal_url}`,"_blank")} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FAFAF7] border border-[#ECEDEF] flex items-center gap-1"><Eye className="w-3 h-3"/>Anteprima</button>
-            <button onClick={async()=>{await axios.post(`${API}/files/documents/${doc.filename}/verify`);}} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-green-500/20 text-green-400 flex items-center gap-1"><Check className="w-3 h-3"/>Verifica</button>
-            <button onClick={async()=>{await axios.delete(`${API}/files/documents/${doc.filename}/reject`);}} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 flex items-center gap-1"><XCircle className="w-3 h-3"/>Rifiuta</button>
+            <button onClick={async()=>{await axios.post(`${API}/files/documents/${doc.filename}/verify`);const r=await axios.get(`${API}/compliance/pending`);setDocs(r.data.documents||[]);}} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-green-500/20 text-green-400 flex items-center gap-1"><Check className="w-3 h-3"/>Verifica</button>
+            <button onClick={async()=>{await axios.delete(`${API}/files/documents/${doc.filename}/reject`);const r=await axios.get(`${API}/compliance/pending`);setDocs(r.data.documents||[]);}} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 flex items-center gap-1"><XCircle className="w-3 h-3"/>Rifiuta</button>
           </div>
         </div>
       ))}
