@@ -1000,7 +1000,7 @@ export default function App() {
               </div>
             </div>
           </div>
-          <div className="px-4 py-3 space-y-2">
+          <div className="px-4 py-3 space-y-3">
             <button 
               onClick={() => { setMode("admin"); setNav("overview"); }}
               className="w-full py-2.5 text-sm font-bold rounded-xl transition-all hover:bg-[#FAFAF7]"
@@ -1008,9 +1008,41 @@ export default function App() {
             >
               ← Torna Admin
             </button>
+            
+            {/* Selettore Stato Cliente Demo */}
+            <div className="p-3 rounded-xl" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
+              <div className="text-xs font-bold text-[#5F6572] mb-2">STATO CLIENTE DEMO</div>
+              <div className="space-y-1.5">
+                <button
+                  onClick={() => setNav("cliente-pre")}
+                  className={`w-full px-3 py-2 rounded-lg text-xs font-bold text-left transition-all ${
+                    nav === "cliente-pre" || nav === "overview" 
+                      ? 'bg-[#F5C518] text-[#1E2128]' 
+                      : 'bg-white text-[#5F6572] hover:bg-[#FEF9E7]'
+                  }`}
+                  style={{ border: '1px solid #ECEDEF' }}
+                >
+                  📝 Pre-Questionario
+                  <div className="text-[10px] font-normal opacity-70">Ha pagato, deve compilare</div>
+                </button>
+                <button
+                  onClick={() => setNav("cliente-post")}
+                  className={`w-full px-3 py-2 rounded-lg text-xs font-bold text-left transition-all ${
+                    nav === "cliente-post" 
+                      ? 'bg-[#10B981] text-white' 
+                      : 'bg-white text-[#5F6572] hover:bg-[#D1FAE5]'
+                  }`}
+                  style={{ border: '1px solid #ECEDEF' }}
+                >
+                  ✅ Post-Questionario
+                  <div className="text-[10px] font-normal opacity-70">Ha compilato, attende call</div>
+                </button>
+              </div>
+            </div>
+
             <div className="p-3 rounded-xl bg-[#FEF9E7] border border-[#F5C518]/30">
               <div className="text-xs font-bold text-[#C4990A] mb-1">MODALITÀ DEMO</div>
-              <div className="text-xs text-[#5F6572]">Stai visualizzando come appare l'area cliente dopo l'acquisto dell'Analisi Strategica</div>
+              <div className="text-xs text-[#5F6572]">Visualizzi l'area cliente come la vede chi ha acquistato l'Analisi Strategica</div>
             </div>
           </div>
         </div>
