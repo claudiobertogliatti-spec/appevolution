@@ -1,124 +1,133 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
-  CheckCircle, Clock, Gift, Play, Lock,
+  CheckCircle, Clock, Gift, Play, Lock, Send,
   Target, Lightbulb, Rocket, Megaphone, Users, Shield,
   ChevronRight, Calendar, Video, FileText, ArrowRight,
   Map, Sparkles, User, GraduationCap, TrendingUp, Award,
-  Download, ExternalLink
+  AlertTriangle, Star, Loader2
 } from "lucide-react";
+import axios from "axios";
+import { API } from "../../utils/api-config";
 
-// I 7 Bonus Formativi (stessi della landing)
-const BONUS_DATA = [
+// Progress Steps
+const PROGRESS_STEPS = [
+  { id: 1, label: "Acquisto", icon: CheckCircle, status: "completed" },
+  { id: 2, label: "Questionario", icon: FileText, status: "current" },
+  { id: 3, label: "Call con Claudio", icon: Video, status: "pending" }
+];
+
+// Team members for info box
+const TEAM_MEMBERS = [
+  { name: "VALENTINA", role: "strategia e onboarding", color: "#F5C518" },
+  { name: "ANDREA", role: "produzione contenuti", color: "#F5C518" },
+  { name: "MARCO", role: "accountability settimanale", color: "#F5C518" },
+  { name: "GAIA", role: "supporto tecnico", color: "#F5C518" },
+  { name: "Claudio", role: "supervisione e call strategiche", isHuman: true },
+  { name: "Antonella", role: "comunicazione e social", isHuman: true }
+];
+
+// Questions for pre-call questionnaire
+const QUESTIONS = [
   {
-    id: 1,
-    title: "Il Blueprint",
-    subtitle: "Che Evita il Fallimento del 90% dei Corsi",
-    icon: Target,
-    color: "#F5C518",
-    chapters: ["Introduzione", "Il Vero Nemico", "Corso vs Percorso", "L'Errore Comune", "Dal Punto A al B", "I Moduli", "Il Blueprint", "Checklist"],
-    summary: "Scopri perché la maggior parte dei videocorsi fallisce ancor prima di essere registrata."
+    id: "expertise",
+    question: "In cosa sei riconosciuto/a come esperto/a?",
+    placeholder: "Es. coach di comunicazione per manager, nutrizionista specializzata in donne over 40, consulente fiscale per freelance...",
+    important: false
   },
   {
-    id: 2,
-    title: "Argomenti che Vendono",
-    subtitle: "Ed Eliminare il Superfluo",
-    icon: Lightbulb,
-    color: "#10B981",
-    chapters: ["Introduzione", "Meno è Meglio", "Il Filtro", "Cosa Tagliare", "Checklist"],
-    summary: "Perché scegliere meno argomenti è spesso la decisione che fa vendere di più."
+    id: "cliente_ideale",
+    question: "Chi è il tuo cliente ideale?",
+    placeholder: "Chi vorresti aiutare con la tua accademia? Età, professione, problema principale...",
+    important: false
   },
   {
-    id: 3,
-    title: "Durata delle Lezioni",
-    subtitle: "La Scelta che Influenza le Vendite",
-    icon: Clock,
-    color: "#3B82F6",
-    chapters: ["Introduzione", "Come Studia Online", "La Durata Ideale", "Struttura Efficace", "Checklist"],
-    summary: "Come ragiona davvero una persona che studia online."
+    id: "pubblico_esistente",
+    question: "Hai già un pubblico? (community, email list, social)",
+    placeholder: "Es. 2.000 follower Instagram, newsletter da 500 iscritti, gruppo Facebook da 300 persone. Se no, scrivi 'No'.",
+    important: false
   },
   {
-    id: 4,
-    title: "Funnel di Vendita",
-    subtitle: "La Struttura Minima Indispensabile",
-    icon: Rocket,
-    color: "#8B5CF6",
-    chapters: ["Introduzione", "Cos'è un Funnel", "Gli Elementi Base", "La Sequenza", "Errori da Evitare", "Checklist"],
-    summary: "Senza questa struttura il corso NON vende."
+    id: "esperienze_passate",
+    question: "Hai già provato a vendere qualcosa online?",
+    placeholder: "Corsi, consulenze, infoprodotti... Come è andata? Se non hai mai provato, scrivi 'No, prima volta'.",
+    important: false
   },
   {
-    id: 5,
-    title: "ADV: Quando Funzionano",
-    subtitle: "E Quando Sono Solo Spreco",
-    icon: Megaphone,
-    color: "#EF4444",
-    chapters: ["Introduzione", "Il Mito della Pubblicità", "Quando Investire", "Quando Evitare", "Checklist"],
-    summary: "La pubblicità non è una soluzione universale."
+    id: "ostacolo_principale",
+    question: "Qual è il principale ostacolo che finora ti ha bloccato/a dal digitalizzare la tua competenza?",
+    placeholder: "Tempo, tecnica, non sapere da dove iniziare, paura che non funzioni, altro...",
+    important: false
   },
   {
-    id: 6,
-    title: "Profili Social",
-    subtitle: "La Funzione Reale (Non Estetica)",
-    icon: Users,
-    color: "#EC4899",
-    chapters: ["Introduzione", "Lo Scopo Vero", "Contenuti che Convertono", "La Strategia Minima", "Checklist"],
-    summary: "I social servono a guidare verso il tuo corso."
+    id: "obiettivo_12_mesi",
+    question: "Cosa vorresti ottenere nei prossimi 12 mesi?",
+    placeholder: "Un obiettivo concreto: un numero di studenti, un fatturato extra, liberarti da X ore di lavoro...",
+    important: false
   },
   {
-    id: 7,
-    title: "Non Fare Tutto da Solo",
-    subtitle: "Il Punto che Nessuno Ama Affrontare",
-    icon: Shield,
-    color: "#F97316",
-    chapters: ["Introduzione", "Il Limite del Fai-da-Te", "Cosa Delegare", "Il Sistema", "Checklist"],
-    summary: "Non è questione di bravura. È questione di sistema."
+    id: "perche_adesso",
+    question: "Perché proprio adesso? Cosa è cambiato?",
+    placeholder: "Questa è la domanda più importante. Cosa ti ha spinto/a ad agire oggi, in questo momento?",
+    important: true
   }
 ];
 
-// Roadmap Partnership - 10 Fasi + Post-Lancio
-const ROADMAP_PHASES = [
-  { phase: "F0", title: "Onboarding", desc: "Contratto e setup iniziale", icon: FileText, color: "#9CA3AF" },
-  { phase: "F1", title: "Posizionamento", desc: "Definisci chi sei e chi aiuti", icon: Target, color: "#7c3aed" },
-  { phase: "F2", title: "Struttura Corso", desc: "AI genera la struttura", icon: Lightbulb, color: "#db2777" },
-  { phase: "F3", title: "Masterclass", desc: "Script della masterclass", icon: FileText, color: "#db2777" },
-  { phase: "F4", title: "Revisione", desc: "Controllo moduli", icon: CheckCircle, color: "#db2777" },
-  { phase: "F5", title: "Produzione Video", desc: "Registra i tuoi video", icon: Video, color: "#0369a1" },
-  { phase: "F6", title: "Academy Setup", desc: "Configura Systeme.io", icon: GraduationCap, color: "#0369a1" },
-  { phase: "F7", title: "Pre-Lancio", desc: "Email, social, calendario", icon: Calendar, color: "#db2777" },
-  { phase: "F8", title: "Lancio", desc: "Go live!", icon: Rocket, color: "#16a34a" },
-  { phase: "F9", title: "Ottimizzazione", desc: "Analizza e migliora", icon: TrendingUp, color: "#f59e0b" },
-];
-
-const POST_LAUNCH_SERVICES = [
-  { title: "Accademia PRO", desc: "Gestione avanzata studenti", icon: GraduationCap },
-  { title: "Scaling Ads", desc: "Campagne Meta & LinkedIn", icon: Megaphone },
-  { title: "Webinar Evergreen", desc: "Vendita automatica 24/7", icon: Video },
-  { title: "Nuovo Corso", desc: "Espandi con un secondo asset", icon: Award },
-];
-
-// Struttura Studio di Fattibilità
-const STUDIO_FATTIBILITA_SECTIONS = [
-  { title: "Introduzione", desc: "Contesto, obiettivo e problema attuale", icon: FileText },
-  { title: "Analisi del Profilo", desc: "Punti di forza e punti critici", icon: User },
-  { title: "Analisi del Mercato", desc: "Target reale e potenziale", icon: Target },
-  { title: "Proposta", desc: "Asset consigliato e struttura corso", icon: Lightbulb },
-  { title: "Timeline", desc: "Tempistiche di sviluppo e lancio", icon: Calendar },
-  { title: "Esito", desc: "Valutazione idoneità Partnership", icon: CheckCircle },
+// Resources after completion
+const RISORSE_POST_INVIO = [
+  { title: "Come funziona la tua Accademia Digitale", desc: "Guida rapida al percorso" },
+  { title: "I 3 errori più comuni dei formatori online", desc: "Evita le trappole classiche" },
+  { title: "Cosa succede dopo la call", desc: "Il percorso completo spiegato" }
 ];
 
 export function ClienteDashboard({ cliente, onLogout }) {
-  const [activeSection, setActiveSection] = useState("video");
-  const [selectedBonus, setSelectedBonus] = useState(null);
-  const [selectedChapter, setSelectedChapter] = useState(null);
+  const [questionarioCompletato, setQuestionarioCompletato] = useState(
+    cliente?.questionario?.completato || false
+  );
+  const [risposte, setRisposte] = useState({
+    expertise: "",
+    cliente_ideale: "",
+    pubblico_esistente: "",
+    esperienze_passate: "",
+    ostacolo_principale: "",
+    obiettivo_12_mesi: "",
+    perche_adesso: ""
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const clienteName = cliente?.nome?.split(" ")[0] || "Benvenuto";
+  const clienteName = cliente?.nome || "Benvenuto";
+  const clienteEmail = cliente?.email || "";
 
-  const navItems = [
-    { id: "video", label: "Video Benvenuto", icon: Play },
-    { id: "bonus", label: "7 Bonus", icon: Gift },
-    { id: "roadmap", label: "Roadmap Partnership", icon: Map },
-    { id: "avatar", label: "Corso con Avatar", icon: Sparkles },
-    { id: "studio", label: "Studio di Fattibilità", icon: FileText },
-  ];
+  // Check if all fields have at least 10 characters
+  const isFormValid = Object.values(risposte).every(v => v.trim().length >= 10);
+
+  const handleChange = (id, value) => {
+    setRisposte(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleSubmit = async () => {
+    if (!isFormValid) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      await axios.post(`${API}/clienti/${cliente.id}/questionario`, risposte);
+      setQuestionarioCompletato(true);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Errore durante l'invio");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get progress status
+  const getStepStatus = (stepId) => {
+    if (stepId === 1) return "completed";
+    if (stepId === 2) return questionarioCompletato ? "completed" : "current";
+    if (stepId === 3) return questionarioCompletato ? "current" : "pending";
+    return "pending";
+  };
 
   return (
     <div className="min-h-screen" style={{ background: '#FAFAF7' }} data-testid="cliente-dashboard">
@@ -146,360 +155,221 @@ export function ClienteDashboard({ cliente, onLogout }) {
       </header>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* Welcome Banner */}
-        <div className="rounded-2xl p-6 mb-8" style={{ background: 'linear-gradient(135deg, #F5C518 0%, #E5B000 100%)' }}>
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <h1 className="text-2xl font-black text-[#1E2128] mb-1">Benvenuto in Evolution PRO!</h1>
-              <p className="text-[#1E2128]/70">La tua Analisi Strategica è in preparazione. Esplora i tuoi contenuti.</p>
-            </div>
-            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/30">
-              <Clock className="w-4 h-4 text-[#1E2128]" />
-              <span className="text-sm font-bold text-[#1E2128]">Videocall entro 24h</span>
-            </div>
-          </div>
-        </div>
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Welcome Header */}
+            <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+              <h1 className="text-2xl font-black text-[#1E2128] mb-2">
+                Benvenuto/a {clienteName}! 🎉
+              </h1>
+              <p className="text-[#5F6572]">
+                Hai fatto il primo passo. Ora prepariamo insieme la tua analisi — 
+                Claudio ti contatterà entro 48 ore per fissare la call.
+              </p>
 
-        {/* Navigation Tabs */}
-        <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => { setActiveSection(item.id); setSelectedBonus(null); }}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap transition-all ${
-                activeSection === item.id
-                  ? "bg-[#F5C518] text-[#1E2128]"
-                  : "bg-white border border-[#ECEDEF] text-[#5F6572] hover:border-[#F5C518]"
-              }`}
-              data-testid={`nav-${item.id}`}
-            >
-              <item.icon className="w-4 h-4" />
-              {item.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Section: Video Benvenuto */}
-        {activeSection === "video" && (
-          <div className="space-y-6">
-            <div className="rounded-2xl overflow-hidden" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-              <div className="aspect-video bg-[#1E2128] flex items-center justify-center relative">
-                <div className="text-center">
-                  <div className="w-20 h-20 rounded-full bg-[#F5C518]/20 flex items-center justify-center mx-auto mb-4">
-                    <Play className="w-10 h-10 text-[#F5C518]" />
-                  </div>
-                  <p className="text-white/60 text-sm">Video in arrivo</p>
-                  <p className="text-white font-bold mt-2">2-3 minuti di benvenuto da Claudio</p>
-                </div>
-                <div className="absolute bottom-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10">
-                  <Clock className="w-3 h-3 text-white/60" />
-                  <span className="text-xs text-white/60">~3 min</span>
-                </div>
-              </div>
-              <div className="p-6">
-                <h2 className="text-xl font-bold text-[#1E2128] mb-2">Messaggio di Benvenuto</h2>
-                <p className="text-[#5F6572]">
-                  Un breve video introduttivo dove ti spiego come funziona il percorso e cosa aspettarti 
-                  dalla tua Analisi Strategica.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Section: 7 Bonus */}
-        {activeSection === "bonus" && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-3 mb-2">
-              <Gift className="w-6 h-6 text-[#F5C518]" />
-              <h2 className="text-xl font-bold text-[#1E2128]">I tuoi 7 Bonus Formativi</h2>
-            </div>
-            <p className="text-[#5F6572] mb-6">
-              Questi bonus ti preparano a capire cosa serve davvero per creare un videocorso che vende.
-            </p>
-
-            {selectedBonus ? (
-              <div className="rounded-2xl overflow-hidden" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-                <div className="p-6 border-b border-[#ECEDEF]" style={{ background: `${selectedBonus.color}10` }}>
-                  <button 
-                    onClick={() => { setSelectedBonus(null); setSelectedChapter(null); }}
-                    className="text-sm text-[#9CA3AF] hover:text-[#1E2128] mb-4 flex items-center gap-1"
-                  >
-                    ← Torna ai bonus
-                  </button>
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-xl flex items-center justify-center" style={{ background: `${selectedBonus.color}30` }}>
-                      <selectedBonus.icon className="w-7 h-7" style={{ color: selectedBonus.color }} />
-                    </div>
-                    <div>
-                      <span className="text-xs font-bold text-[#9CA3AF]">BONUS #{selectedBonus.id}</span>
-                      <h3 className="text-xl font-bold text-[#1E2128]">{selectedBonus.title}</h3>
-                      <p className="text-sm text-[#5F6572]">{selectedBonus.subtitle}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-6">
-                  <h4 className="text-sm font-bold text-[#9CA3AF] mb-4">CAPITOLI</h4>
-                  <div className="space-y-2">
-                    {selectedBonus.chapters.map((chapter, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setSelectedChapter(i)}
-                        className={`w-full p-4 rounded-xl text-left flex items-center gap-3 transition-colors ${
-                          selectedChapter === i
-                            ? "bg-[#F5C518]/10 border-2 border-[#F5C518]"
-                            : "bg-[#FAFAF7] border border-[#ECEDEF] hover:border-[#F5C518]"
-                        }`}
-                      >
+              {/* Progress Bar */}
+              <div className="mt-6 flex items-center gap-4">
+                {PROGRESS_STEPS.map((step, i) => {
+                  const status = getStepStatus(step.id);
+                  return (
+                    <React.Fragment key={step.id}>
+                      <div className="flex items-center gap-2">
                         <div 
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold"
-                          style={{ background: selectedChapter === i ? selectedBonus.color : '#ECEDEF', color: selectedChapter === i ? '#fff' : '#5F6572' }}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                            status === "completed" 
+                              ? "bg-green-500 text-white"
+                              : status === "current"
+                              ? "bg-[#F5C518] text-[#1E2128]"
+                              : "bg-[#ECEDEF] text-[#9CA3AF]"
+                          }`}
                         >
-                          {i + 1}
+                          {status === "completed" ? <CheckCircle className="w-4 h-4" /> : step.id}
                         </div>
-                        <span className="text-[#1E2128] flex-1">{chapter}</span>
-                        <Play className="w-4 h-4 text-[#9CA3AF]" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                        <span className={`text-sm font-medium ${
+                          status === "completed" ? "text-green-600" :
+                          status === "current" ? "text-[#1E2128]" : "text-[#9CA3AF]"
+                        }`}>
+                          {step.label}
+                        </span>
+                      </div>
+                      {i < PROGRESS_STEPS.length - 1 && (
+                        <div className={`flex-1 h-0.5 ${
+                          getStepStatus(PROGRESS_STEPS[i + 1].id) !== "pending" 
+                            ? "bg-green-500" : "bg-[#ECEDEF]"
+                        }`} />
+                      )}
+                    </React.Fragment>
+                  );
+                })}
               </div>
-            ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {BONUS_DATA.map((bonus) => (
-                  <button
-                    key={bonus.id}
-                    onClick={() => setSelectedBonus(bonus)}
-                    className="p-5 rounded-2xl text-left transition-all hover:scale-[1.02]"
-                    style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}
-                    data-testid={`bonus-${bonus.id}`}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${bonus.color}20` }}>
-                        <bonus.icon className="w-6 h-6" style={{ color: bonus.color }} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <span className="text-xs font-bold text-[#9CA3AF]">BONUS #{bonus.id}</span>
-                        <h3 className="font-bold text-[#1E2128] truncate">{bonus.title}</h3>
-                        <p className="text-xs text-[#5F6572] truncate">{bonus.subtitle}</p>
-                      </div>
-                    </div>
-                    <div className="mt-4 flex items-center justify-between">
-                      <span className="text-xs text-[#9CA3AF]">{bonus.chapters.length} capitoli</span>
-                      <ChevronRight className="w-4 h-4 text-[#9CA3AF]" />
-                    </div>
-                  </button>
-                ))}
+            </div>
+
+            {/* Urgency Banner (if not completed) */}
+            {!questionarioCompletato && (
+              <div className="rounded-xl p-4 flex items-start gap-3" style={{ background: '#FEF9E7', border: '1px solid #F5C518' }}>
+                <Clock className="w-5 h-5 text-[#C4990A] flex-shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-bold text-[#1E2128]">⏱ Completa il questionario prima della call</div>
+                  <p className="text-sm text-[#5F6572]">
+                    Claudio legge le tue risposte prima di incontrarsi con te. 
+                    Più sei specifico/a, più la call sarà utile per te.
+                  </p>
+                </div>
               </div>
             )}
-          </div>
-        )}
 
-        {/* Section: Roadmap Partnership */}
-        {activeSection === "roadmap" && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-3 mb-2">
-              <Map className="w-6 h-6 text-[#F5C518]" />
-              <h2 className="text-xl font-bold text-[#1E2128]">Roadmap Partnership</h2>
-            </div>
-            <p className="text-[#5F6572] mb-6">
-              Il percorso completo: dall'idea al tuo primo studente in 60 giorni, più i servizi post-lancio per scalare.
-            </p>
+            {/* Questionnaire OR Confirmation */}
+            {!questionarioCompletato ? (
+              <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+                <h2 className="text-xl font-bold text-[#1E2128] mb-1">Raccontaci il tuo progetto</h2>
+                <p className="text-sm text-[#5F6572] mb-6">
+                  7 domande — circa 5 minuti. Non ci sono risposte giuste o sbagliate: sii diretto/a.
+                </p>
 
-            {/* 10 Fasi */}
-            <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-              <h3 className="font-bold text-[#1E2128] mb-4 flex items-center gap-2">
-                <Rocket className="w-5 h-5 text-[#F5C518]" />
-                Le 10 Fasi del Percorso
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                {ROADMAP_PHASES.map((phase, i) => (
-                  <div 
-                    key={i}
-                    className="p-4 rounded-xl text-center"
-                    style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}
-                  >
-                    <div className="w-10 h-10 rounded-full mx-auto mb-2 flex items-center justify-center" style={{ background: `${phase.color}20` }}>
-                      <phase.icon className="w-5 h-5" style={{ color: phase.color }} />
-                    </div>
-                    <div className="text-xs font-bold mb-1" style={{ color: phase.color }}>{phase.phase}</div>
-                    <div className="text-sm font-bold text-[#1E2128]">{phase.title}</div>
-                    <div className="text-[10px] text-[#9CA3AF]">{phase.desc}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Post-Lancio */}
-            <div className="rounded-2xl p-6" style={{ background: 'linear-gradient(135deg, #1E2128 0%, #2D3748 100%)' }}>
-              <h3 className="font-bold text-white mb-4 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-[#F5C518]" />
-                Servizi Post-Lancio
-              </h3>
-              <p className="text-white/60 text-sm mb-4">
-                Dopo il lancio, puoi continuare a crescere con questi servizi avanzati.
-              </p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {POST_LAUNCH_SERVICES.map((service, i) => (
-                  <div 
-                    key={i}
-                    className="p-4 rounded-xl"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
-                  >
-                    <service.icon className="w-6 h-6 text-[#F5C518] mb-2" />
-                    <div className="text-sm font-bold text-white">{service.title}</div>
-                    <div className="text-xs text-white/60">{service.desc}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Section: Corso con Avatar */}
-        {activeSection === "avatar" && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-3 mb-2">
-              <Sparkles className="w-6 h-6 text-[#F5C518]" />
-              <h2 className="text-xl font-bold text-[#1E2128]">Crea il Corso con l'Avatar AI</h2>
-            </div>
-            <p className="text-[#5F6572] mb-6">
-              Non vuoi metterti davanti alla telecamera? Nessun problema. 
-              Puoi creare il tuo intero videocorso usando un avatar digitale che parla con la tua voce.
-            </p>
-
-            <div className="rounded-2xl overflow-hidden" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-              <div className="aspect-video bg-gradient-to-br from-[#7B68AE] to-[#9B8BC4] flex items-center justify-center relative">
-                <div className="text-center">
-                  <div className="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-4">
-                    <User className="w-12 h-12 text-white" />
-                  </div>
-                  <p className="text-white font-bold text-xl mb-2">Avatar AI Personalizzato</p>
-                  <p className="text-white/70">Il tuo clone digitale che insegna per te</p>
-                </div>
-                <div className="absolute top-4 right-4 px-3 py-1.5 rounded-lg bg-white/20 text-white text-xs font-bold">
-                  SERVIZIO DELEGA
-                </div>
-              </div>
-              <div className="p-6">
-                <h3 className="text-lg font-bold text-[#1E2128] mb-3">Come Funziona</h3>
-                <div className="grid md:grid-cols-3 gap-4">
-                  {[
-                    { step: "1", title: "Carica una foto", desc: "Una foto frontale del tuo viso" },
-                    { step: "2", title: "Registra la voce", desc: "30 secondi per clonare la tua voce" },
-                    { step: "3", title: "Ricevi i video", desc: "ANDREA crea le lezioni per te" }
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[#F5C518] flex items-center justify-center flex-shrink-0">
-                        <span className="text-sm font-bold text-[#1E2128]">{item.step}</span>
-                      </div>
-                      <div>
-                        <div className="font-bold text-[#1E2128]">{item.title}</div>
-                        <div className="text-xs text-[#5F6572]">{item.desc}</div>
+                <div className="space-y-6">
+                  {QUESTIONS.map((q, i) => (
+                    <div 
+                      key={q.id} 
+                      className={`${q.important ? 'p-4 rounded-xl border-2 border-[#F5C518] bg-[#FEF9E7]/30' : ''}`}
+                    >
+                      {q.important && (
+                        <div className="flex items-center gap-1 mb-2">
+                          <Star className="w-4 h-4 text-[#F5C518]" fill="#F5C518" />
+                          <span className="text-xs font-bold text-[#C4990A]">LA PIÙ IMPORTANTE</span>
+                        </div>
+                      )}
+                      <label className="block text-sm font-bold text-[#1E2128] mb-2">
+                        {i + 1}. {q.question}
+                      </label>
+                      <textarea
+                        value={risposte[q.id]}
+                        onChange={(e) => handleChange(q.id, e.target.value)}
+                        placeholder={q.placeholder}
+                        rows={3}
+                        className="w-full p-3 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#F5C518]"
+                        style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}
+                        data-testid={`question-${q.id}`}
+                      />
+                      <div className="text-xs text-right mt-1" style={{ color: risposte[q.id].length >= 10 ? '#10B981' : '#9CA3AF' }}>
+                        {risposte[q.id].length}/10+ caratteri
                       </div>
                     </div>
                   ))}
                 </div>
-                <div className="mt-6 p-4 rounded-xl bg-[#FEF9E7] border border-[#F5C518]/30">
-                  <p className="text-sm text-[#5F6572]">
-                    <strong className="text-[#1E2128]">Disponibile con la Partnership.</strong> Questo servizio 
-                    è incluso nel piano Partnership e ti permette di delegare completamente la produzione video.
+
+                {error && (
+                  <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  onClick={handleSubmit}
+                  disabled={!isFormValid || loading}
+                  className="w-full mt-6 py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ background: '#F5C518', color: '#1E2128' }}
+                  data-testid="submit-questionario"
+                >
+                  {loading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      Invia le mie risposte <ArrowRight className="w-5 h-5" />
+                    </>
+                  )}
+                </button>
+                {!isFormValid && (
+                  <p className="text-xs text-center mt-2 text-[#9CA3AF]">
+                    Completa tutte le domande (minimo 10 caratteri ciascuna)
+                  </p>
+                )}
+              </div>
+            ) : (
+              /* Post-submission confirmation */
+              <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h2 className="text-xl font-bold text-[#1E2128] mb-2">✅ Risposte inviate!</h2>
+                  <p className="text-[#5F6572]">
+                    Claudio leggerà le tue risposte prima della call.
+                    <br />
+                    Ti contatterà entro 48 ore all'email <strong>{clienteEmail}</strong> per fissare 
+                    il giorno e l'ora che preferisci.
                   </p>
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* Section: Studio di Fattibilità */}
-        {activeSection === "studio" && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-3 mb-2">
-              <FileText className="w-6 h-6 text-[#F5C518]" />
-              <h2 className="text-xl font-bold text-[#1E2128]">Studio di Fattibilità</h2>
-            </div>
-            <p className="text-[#5F6572] mb-6">
-              Il documento che riceverai dopo la videocall di 60 minuti. 
-              Preparato dal Team Evolution in 24 ore.
-            </p>
-
-            {/* Process Timeline */}
-            <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-              <h3 className="font-bold text-[#1E2128] mb-4">Il Processo</h3>
-              <div className="flex items-center gap-4 flex-wrap">
-                {[
-                  { icon: Calendar, label: "Prenoti la call", desc: "Ricevi email con calendario" },
-                  { icon: Video, label: "Videocall 60 min", desc: "Analizziamo insieme il progetto" },
-                  { icon: Clock, label: "24 ore", desc: "Il team prepara lo studio" },
-                  { icon: FileText, label: "Consegna", desc: "Ricevi il documento completo" }
-                ].map((step, i) => (
-                  <React.Fragment key={i}>
-                    <div className="flex-1 min-w-[140px] text-center">
-                      <div className="w-12 h-12 rounded-full bg-[#F5C518]/20 flex items-center justify-center mx-auto mb-2">
-                        <step.icon className="w-6 h-6 text-[#F5C518]" />
+                <div className="border-t pt-6" style={{ borderColor: '#ECEDEF' }}>
+                  <h3 className="font-bold text-[#1E2128] mb-4">Nel frattempo puoi guardare questi materiali preparatori:</h3>
+                  <div className="grid gap-3">
+                    {RISORSE_POST_INVIO.map((risorsa, i) => (
+                      <div 
+                        key={i}
+                        className="p-4 rounded-xl flex items-center gap-4 hover:bg-[#FAFAF7] transition-colors cursor-pointer"
+                        style={{ border: '1px solid #ECEDEF' }}
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-[#F5C518]/20 flex items-center justify-center">
+                          <FileText className="w-5 h-5 text-[#F5C518]" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-bold text-[#1E2128] text-sm">{risorsa.title}</div>
+                          <div className="text-xs text-[#9CA3AF]">{risorsa.desc}</div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-[#9CA3AF]" />
                       </div>
-                      <div className="text-sm font-bold text-[#1E2128]">{step.label}</div>
-                      <div className="text-xs text-[#9CA3AF]">{step.desc}</div>
-                    </div>
-                    {i < 3 && <ArrowRight className="w-5 h-5 text-[#ECEDEF] hidden md:block" />}
-                  </React.Fragment>
-                ))}
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
+          </div>
 
-            {/* Document Structure */}
-            <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-              <h3 className="font-bold text-[#1E2128] mb-4">Cosa Contiene il Documento</h3>
-              <div className="grid md:grid-cols-2 gap-3">
-                {STUDIO_FATTIBILITA_SECTIONS.map((section, i) => (
-                  <div 
-                    key={i}
-                    className="flex items-start gap-3 p-4 rounded-xl"
-                    style={{ background: '#FAFAF7' }}
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-[#F5C518]/20 flex items-center justify-center flex-shrink-0">
-                      <section.icon className="w-5 h-5 text-[#F5C518]" />
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Team Info Box */}
+            <div className="rounded-2xl p-6 sticky top-24" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+              <h3 className="font-bold text-[#1E2128] mb-1">Il tuo team ti aspetta</h3>
+              <p className="text-xs text-[#5F6572] mb-4">
+                Dopo la call, se il progetto è adatto, avrai accesso a:
+              </p>
+              
+              <div className="space-y-3">
+                {TEAM_MEMBERS.map((member, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div 
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
+                      style={{ 
+                        background: member.isHuman ? '#FAFAF7' : '#FEF9E7',
+                        color: member.isHuman ? '#5F6572' : '#C4990A'
+                      }}
+                    >
+                      {member.isHuman ? '👤' : '🟡'}
                     </div>
                     <div>
-                      <div className="font-bold text-[#1E2128]">{section.title}</div>
-                      <div className="text-xs text-[#5F6572]">{section.desc}</div>
+                      <div className="text-sm font-bold text-[#1E2128]">{member.name}</div>
+                      <div className="text-xs text-[#9CA3AF]">{member.role}</div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Esito Box */}
-            <div className="rounded-2xl p-6" style={{ background: 'linear-gradient(135deg, #F5C518 0%, #E5B000 100%)' }}>
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-xl bg-white/30 flex items-center justify-center">
-                  <CheckCircle className="w-8 h-8 text-[#1E2128]" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-[#1E2128]">L'Esito Finale</h3>
-                  <p className="text-[#1E2128]/70 text-sm">
-                    Il documento conclude con una valutazione chiara: sei idoneo alla Partnership oppure 
-                    ti forniamo una roadmap per prepararti al meglio.
-                  </p>
-                </div>
-              </div>
+            {/* Contact Box */}
+            <div className="rounded-2xl p-6" style={{ background: '#1E2128' }}>
+              <h3 className="font-bold text-white mb-2">Hai domande?</h3>
+              <p className="text-xs text-white/60 mb-4">
+                Contattaci per qualsiasi informazione.
+              </p>
+              <a 
+                href="mailto:assistenza@evolution-pro.it"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm bg-[#F5C518] text-[#1E2128]"
+              >
+                Scrivici <ArrowRight className="w-4 h-4" />
+              </a>
             </div>
-          </div>
-        )}
-
-        {/* CTA Section */}
-        <div className="mt-8 p-6 rounded-2xl" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <h3 className="font-bold text-[#1E2128]">Hai domande?</h3>
-              <p className="text-sm text-[#5F6572]">Contattaci per qualsiasi informazione sulla Partnership.</p>
-            </div>
-            <a 
-              href="mailto:assistenza@evolution-pro.it"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm bg-[#F5C518] text-[#1E2128] hover:scale-105 transition-all"
-            >
-              Contattaci <ArrowRight className="w-4 h-4" />
-            </a>
           </div>
         </div>
       </div>
