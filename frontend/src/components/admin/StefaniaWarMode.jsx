@@ -251,23 +251,19 @@ export function StefaniaWarMode({ partners }) {
           </button>
         </div>
 
-        {/* Tabs */}
+        {/* Tabs - Simplified */}
         <div className="flex gap-2 mt-4">
           {[
             { id: "overview", label: "Overview", icon: BarChart3 },
-            { id: "meta", label: "Meta Ads", icon: Facebook },
-            { id: "linkedin", label: "LinkedIn Ads", icon: Linkedin },
-            { id: "analysis", label: "Cross-Platform", icon: ArrowLeftRight },
-            { id: "api", label: "API Config", icon: Key },
-            { id: "roi", label: "ROI (MARTA)", icon: Receipt }
+            { id: "meta", label: "Meta Ads", icon: Facebook }
           ].map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
                 activeTab === tab.id 
-                  ? "bg-[#ECEDEF] text-[#1E2128] border border-white/20" 
-                  : "text-[#9CA3AF] hover:text-[#5F6572]"
+                  ? "bg-[#F5C518] text-[#1E2128]" 
+                  : "bg-[#FAFAF7] text-[#9CA3AF] hover:text-[#5F6572]"
               }`}
             >
               <tab.icon className="w-4 h-4" /> {tab.label}
