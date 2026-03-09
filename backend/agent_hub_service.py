@@ -18,13 +18,13 @@ class AgentAnalyticsHub:
     # 6 Core Agents as per Evolution PRO OS architecture
     AGENTS = {
         "VALENTINA": {
-            "name": "Orchestratrice",
+            "name": "Onboarding & Consulenza",
             "category": "Partner Contact",
             "emoji": "💬",
             "metrics": ["conversations", "response_time", "satisfaction"]
         },
         "ANDREA": {
-            "name": "Video Production",
+            "name": "Avanzamento Corso & Video",
             "category": "Produzione",
             "emoji": "🎬",
             "metrics": ["videos_produced", "avg_delivery_time", "quality_score"]
@@ -37,7 +37,7 @@ class AgentAnalyticsHub:
         },
         "GAIA": {
             "name": "Supporto Tecnico",
-            "category": "Esecuzione Tech",
+            "category": "Supporto Tech",
             "emoji": "🔧",
             "metrics": ["tickets_resolved", "avg_resolution_time", "funnel_health"]
         },

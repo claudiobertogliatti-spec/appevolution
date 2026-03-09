@@ -9,7 +9,7 @@ const AGENTS = [
   {
     id: "valentina",
     name: "Valentina",
-    role: "Orchestratrice",
+    role: "Onboarding & Consulenza",
     icon: Link2,
     color: "#EC4899",
     emoji: "💬",
@@ -24,7 +24,7 @@ const AGENTS = [
   {
     id: "andrea",
     name: "Andrea",
-    role: "Video Production",
+    role: "Avanzamento Corso & Video",
     icon: Video,
     color: "#8B5CF6",
     emoji: "🎬",

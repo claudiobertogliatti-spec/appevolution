@@ -104,3 +104,4 @@ storage/client_secret*.json*
 frontend/node_modules/.cache/default-development/5.pack
 frontend/node_modules/.cache/default-development/0.pack
 frontend/node_modules/.cache/default-development/2.pack
+frontend/node_modules/.cache/default-development/7.pack
