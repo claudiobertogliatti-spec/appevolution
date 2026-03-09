@@ -691,6 +691,145 @@ export function AdminClientiPanel() {
           </div>
         </div>
       )}
+
+      {/* Modal Vedi Risposte Questionario */}
+      {showQuestionarioModal && selectedCliente && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="p-6 border-b border-[#ECEDEF] flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-[#1E2128]">Risposte Questionario</h2>
+                <p className="text-sm text-[#9CA3AF]">{selectedCliente.nome} {selectedCliente.cognome}</p>
+              </div>
+              <button onClick={() => setShowQuestionarioModal(false)} className="p-2 hover:bg-[#FAFAF7] rounded-lg">
+                <X className="w-5 h-5 text-[#9CA3AF]" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 overflow-y-auto flex-1">
+              {selectedCliente.questionario?.risposte ? (
+                <div className="space-y-4">
+                  {Object.entries(QUESTIONARIO_LABELS).map(([key, label]) => (
+                    <div key={key} className={`p-4 rounded-xl ${key === 'perche_adesso' ? 'border-2 border-[#F5C518] bg-[#FEF9E7]/30' : 'bg-[#FAFAF7]'}`}>
+                      {key === 'perche_adesso' && (
+                        <div className="flex items-center gap-1 mb-2">
+                          <Target className="w-4 h-4 text-[#F5C518]" />
+                          <span className="text-xs font-bold text-[#C4990A]">LA PIÙ IMPORTANTE</span>
+                        </div>
+                      )}
+                      <div className="text-xs font-bold text-[#9CA3AF] mb-1">{label}</div>
+                      <div className="text-sm text-[#1E2128]">{selectedCliente.questionario.risposte[key] || "—"}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <AlertTriangle className="w-12 h-12 text-[#F5C518] mx-auto mb-3" />
+                  <p className="text-[#9CA3AF]">Questionario non ancora compilato</p>
+                </div>
+              )}
+
+              {/* Note Claudio */}
+              <div className="mt-6 pt-6 border-t border-[#ECEDEF]">
+                <label className="block text-sm font-bold text-[#1E2128] mb-2">Note interne di Claudio</label>
+                <textarea
+                  value={notesClaudio || selectedCliente.call?.note_claudio || ""}
+                  onChange={(e) => setNotesClaudio(e.target.value)}
+                  placeholder="Aggiungi note per la call..."
+                  rows={3}
+                  className="w-full p-3 rounded-xl border border-[#ECEDEF] text-sm focus:outline-none focus:border-[#F5C518]"
+                />
+                <button
+                  onClick={saveNotesClaudio}
+                  disabled={updating}
+                  className="mt-2 px-4 py-2 rounded-lg bg-[#1E2128] text-white text-sm font-bold hover:bg-black transition-colors"
+                >
+                  Salva note
+                </button>
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="p-4 border-t border-[#ECEDEF] bg-[#FAFAF7] flex items-center gap-3">
+              <button
+                onClick={() => convertiInPartner(selectedCliente.id)}
+                disabled={updating || selectedCliente.stato === "convertito"}
+                className="flex-1 py-2.5 rounded-xl bg-[#10B981] text-white font-bold text-sm hover:bg-[#059669] transition-colors disabled:opacity-50"
+              >
+                ✓ Converti in Partner
+              </button>
+              <button
+                onClick={() => { setShowQuestionarioModal(false); setShowFissaCallModal(true); }}
+                className="flex-1 py-2.5 rounded-xl bg-[#F5C518] text-[#1E2128] font-bold text-sm hover:bg-[#e0b115] transition-colors"
+              >
+                📅 Fissa Call
+              </button>
+              <button
+                onClick={() => segnaNonAdatto(selectedCliente.id)}
+                disabled={updating}
+                className="px-4 py-2.5 rounded-xl bg-white border border-[#ECEDEF] text-[#EF4444] font-bold text-sm hover:bg-red-50 transition-colors"
+              >
+                ✗ Non adatto
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Fissa Call */}
+      {showFissaCallModal && selectedCliente && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md">
+            {/* Header */}
+            <div className="p-6 border-b border-[#ECEDEF]">
+              <h2 className="text-xl font-bold text-[#1E2128]">Fissa Call</h2>
+              <p className="text-sm text-[#9CA3AF]">Con {selectedCliente.nome} {selectedCliente.cognome}</p>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-[#1E2128] mb-2">Data e ora</label>
+                <input
+                  type="datetime-local"
+                  value={dataCall}
+                  onChange={(e) => setDataCall(e.target.value)}
+                  className="w-full p-3 rounded-xl border border-[#ECEDEF] text-sm focus:outline-none focus:border-[#F5C518]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-[#1E2128] mb-2">Note (opzionale)</label>
+                <textarea
+                  value={notesClaudio}
+                  onChange={(e) => setNotesClaudio(e.target.value)}
+                  placeholder="Note per la call..."
+                  rows={2}
+                  className="w-full p-3 rounded-xl border border-[#ECEDEF] text-sm focus:outline-none focus:border-[#F5C518]"
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-[#ECEDEF] bg-[#FAFAF7] flex items-center gap-3">
+              <button
+                onClick={() => setShowFissaCallModal(false)}
+                className="flex-1 py-2.5 rounded-xl bg-white border border-[#ECEDEF] text-[#5F6572] font-bold text-sm"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={fissaCall}
+                disabled={!dataCall || updating}
+                className="flex-1 py-2.5 rounded-xl bg-[#F5C518] text-[#1E2128] font-bold text-sm hover:bg-[#e0b115] transition-colors disabled:opacity-50"
+              >
+                {updating ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Conferma Call"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
