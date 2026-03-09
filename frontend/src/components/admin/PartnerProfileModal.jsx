@@ -123,6 +123,14 @@ export function PartnerProfileModal({ partner, onClose, onUpdate }) {
   const [editData, setEditData] = useState({});
   const [exporting, setExporting] = useState(false);
   const [sending, setSending] = useState(false);
+  const [pianoContinuita, setPianoContinuita] = useState(null);
+  const [editingPiano, setEditingPiano] = useState(false);
+  const [pianoData, setPianoData] = useState({
+    piano_attivo: null,
+    data_attivazione: "",
+    mrr: 0,
+    note: ""
+  });
 
   useEffect(() => {
     loadPartnerData();
