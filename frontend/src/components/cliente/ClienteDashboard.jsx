@@ -439,6 +439,30 @@ export function ClienteDashboard({ cliente, onLogout }) {
                   </div>
                 </div>
 
+                {/* 3 Risorse Preparatorie */}
+                <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+                  <h3 className="font-bold text-[#1E2128] mb-4">Materiali preparatori</h3>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    {[
+                      { title: "Come funziona la tua Accademia Digitale", desc: "Guida rapida", icon: GraduationCap, color: "#F5C518" },
+                      { title: "I 3 errori più comuni dei formatori online", desc: "Evita le trappole", icon: AlertTriangle, color: "#EF4444" },
+                      { title: "Cosa succede dopo la call", desc: "Il percorso completo", icon: Map, color: "#3B82F6" }
+                    ].map((risorsa, i) => (
+                      <div 
+                        key={i}
+                        className="p-4 rounded-xl flex flex-col items-center text-center hover:bg-[#FAFAF7] transition-colors cursor-pointer"
+                        style={{ border: '1px solid #ECEDEF' }}
+                      >
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3" style={{ background: `${risorsa.color}20` }}>
+                          <risorsa.icon className="w-6 h-6" style={{ color: risorsa.color }} />
+                        </div>
+                        <div className="font-bold text-[#1E2128] text-sm mb-1">{risorsa.title}</div>
+                        <div className="text-xs text-[#9CA3AF]">{risorsa.desc}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 {/* I 7 Bonus Formativi */}
                 <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
                   <div className="flex items-center gap-3 mb-4">
