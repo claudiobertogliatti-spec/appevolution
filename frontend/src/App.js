@@ -71,9 +71,9 @@ const API = getApiUrl();
 const PHASE_LABELS = {
   F0:"Pre-Onboarding",F1:"Attivazione",F2:"Posizionamento",F3:"Masterclass",
   F4:"Struttura Corso",F5:"Produzione",F6:"Accademia",F7:"Pre-Lancio",
-  F8:"Lancio",F9:"Ottimizzazione",F10:"Scalabilità"
+  F8:"Lancio",F9:"Ottimizzazione",F10:"Scalabilità",F11:"La mia Accademia",F12:"I miei Studenti",F13:"Impegni Settimana"
 };
-const PHASES = ["F0","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10"];
+const PHASES = ["F0","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","F13"];
 
 const PHASE_ACTIONS = {
   F0:{title:"Firma il contratto",desc:"Il tuo percorso inizia qui. Firma il contratto e carica i documenti richiesti.",cta:"Carica Documenti",nav:"documenti",tutor:"VALENTINA",color:"#6b7280"},
