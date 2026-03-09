@@ -292,38 +292,130 @@ export function ClienteDashboard({ cliente, onLogout }) {
                 )}
               </div>
             ) : (
-              /* Post-submission confirmation */
-              <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-                <div className="text-center mb-6">
-                  <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle className="w-8 h-8 text-green-600" />
+              /* Post-submission - Area con bonus, video e servizi */
+              <div className="space-y-6">
+                {/* Conferma invio */}
+                <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+                  <div className="flex items-start gap-4">
+                    <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                      <CheckCircle className="w-7 h-7 text-green-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-[#1E2128] mb-1">✅ Questionario completato!</h2>
+                      <p className="text-[#5F6572]">
+                        Il Team Evolution ti contatterà entro 48 ore all'email <strong>{clienteEmail}</strong> per 
+                        fissare la videocall strategica di 60 minuti.
+                      </p>
+                    </div>
                   </div>
-                  <h2 className="text-xl font-bold text-[#1E2128] mb-2">✅ Risposte inviate!</h2>
-                  <p className="text-[#5F6572]">
-                    Claudio leggerà le tue risposte prima della call.
-                    <br />
-                    Ti contatterà entro 48 ore all'email <strong>{clienteEmail}</strong> per fissare 
-                    il giorno e l'ora che preferisci.
-                  </p>
                 </div>
 
-                <div className="border-t pt-6" style={{ borderColor: '#ECEDEF' }}>
-                  <h3 className="font-bold text-[#1E2128] mb-4">Nel frattempo puoi guardare questi materiali preparatori:</h3>
-                  <div className="grid gap-3">
-                    {RISORSE_POST_INVIO.map((risorsa, i) => (
-                      <div 
-                        key={i}
-                        className="p-4 rounded-xl flex items-center gap-4 hover:bg-[#FAFAF7] transition-colors cursor-pointer"
+                {/* Video di Benvenuto */}
+                <div className="rounded-2xl overflow-hidden" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+                  <div className="aspect-video bg-[#1E2128] flex items-center justify-center relative">
+                    <div className="text-center">
+                      <div className="w-20 h-20 rounded-full bg-[#F5C518]/20 flex items-center justify-center mx-auto mb-4">
+                        <Play className="w-10 h-10 text-[#F5C518]" />
+                      </div>
+                      <p className="text-white/60 text-sm">Video in arrivo</p>
+                      <p className="text-white font-bold mt-2">Messaggio di benvenuto da Claudio</p>
+                    </div>
+                    <div className="absolute bottom-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10">
+                      <Clock className="w-3 h-3 text-white/60" />
+                      <span className="text-xs text-white/60">~3 min</span>
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-bold text-[#1E2128]">Video di Benvenuto</h3>
+                    <p className="text-sm text-[#5F6572]">Un messaggio personale per iniziare il tuo percorso</p>
+                  </div>
+                </div>
+
+                {/* I 7 Bonus Formativi */}
+                <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+                  <div className="flex items-center gap-3 mb-4">
+                    <Gift className="w-6 h-6 text-[#F5C518]" />
+                    <h3 className="text-lg font-bold text-[#1E2128]">I tuoi 7 Bonus Formativi</h3>
+                  </div>
+                  <p className="text-sm text-[#5F6572] mb-4">
+                    Accedi subito ai bonus promessi. Ti preparano a capire cosa serve per creare un videocorso che vende.
+                  </p>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    {BONUS_DATA.map((bonus) => (
+                      <div
+                        key={bonus.id}
+                        className="p-4 rounded-xl flex items-center gap-3 hover:bg-[#FAFAF7] transition-colors cursor-pointer"
                         style={{ border: '1px solid #ECEDEF' }}
                       >
-                        <div className="w-10 h-10 rounded-lg bg-[#F5C518]/20 flex items-center justify-center">
-                          <FileText className="w-5 h-5 text-[#F5C518]" />
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${bonus.color}20` }}>
+                          <bonus.icon className="w-5 h-5" style={{ color: bonus.color }} />
                         </div>
-                        <div className="flex-1">
-                          <div className="font-bold text-[#1E2128] text-sm">{risorsa.title}</div>
-                          <div className="text-xs text-[#9CA3AF]">{risorsa.desc}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-bold text-[#9CA3AF]">BONUS #{bonus.id}</div>
+                          <div className="font-bold text-[#1E2128] text-sm truncate">{bonus.title}</div>
                         </div>
                         <ChevronRight className="w-4 h-4 text-[#9CA3AF]" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Servizio Avatar AI */}
+                <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #7B68AE 0%, #9B8BC4 100%)' }}>
+                  <div className="p-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Sparkles className="w-5 h-5 text-white" />
+                      <span className="text-xs font-bold text-white/80 uppercase">Servizio Extra</span>
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-2">Crea il Corso con l'Avatar AI</h3>
+                    <p className="text-white/80 text-sm mb-4">
+                      Non vuoi metterti davanti alla telecamera? Nessun problema. 
+                      Puoi creare il tuo intero videocorso usando un avatar digitale che parla con la tua voce.
+                    </p>
+                    <div className="grid grid-cols-3 gap-3 mb-4">
+                      {[
+                        { step: "1", title: "Carica foto" },
+                        { step: "2", title: "Registra voce" },
+                        { step: "3", title: "Ricevi video" }
+                      ].map((item, i) => (
+                        <div key={i} className="text-center p-3 rounded-xl bg-white/10">
+                          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-1">
+                            <span className="text-sm font-bold text-white">{item.step}</span>
+                          </div>
+                          <div className="text-xs text-white/80">{item.title}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <button className="w-full py-3 rounded-xl font-bold text-sm bg-white text-[#7B68AE] hover:bg-white/90 transition-colors flex items-center justify-center gap-2">
+                      Scopri di più <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Roadmap Partnership Preview */}
+                <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+                  <div className="flex items-center gap-3 mb-4">
+                    <Map className="w-6 h-6 text-[#F5C518]" />
+                    <h3 className="text-lg font-bold text-[#1E2128]">Il Percorso Partnership</h3>
+                  </div>
+                  <p className="text-sm text-[#5F6572] mb-4">
+                    Dopo la call strategica, se il progetto è idoneo, questo sarà il tuo percorso:
+                  </p>
+                  <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                    {[
+                      { phase: "F1", label: "Posizionamento" },
+                      { phase: "F2", label: "Struttura" },
+                      { phase: "F3", label: "Masterclass" },
+                      { phase: "F5", label: "Video" },
+                      { phase: "F8", label: "Lancio" },
+                      { phase: "F10+", label: "Scala" }
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-center gap-2 flex-shrink-0">
+                        <div className="px-3 py-2 rounded-lg text-center" style={{ background: '#FEF9E7' }}>
+                          <div className="text-xs font-bold text-[#C4990A]">{item.phase}</div>
+                          <div className="text-[10px] text-[#5F6572]">{item.label}</div>
+                        </div>
+                        {i < 5 && <ArrowRight className="w-3 h-3 text-[#ECEDEF]" />}
                       </div>
                     ))}
                   </div>
