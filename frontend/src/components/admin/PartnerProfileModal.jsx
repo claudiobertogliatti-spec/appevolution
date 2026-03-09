@@ -643,6 +643,155 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                 </div>
               </SectionCard>
 
+              {/* Piano Continuità Section */}
+              <SectionCard 
+                title="Piano Continuità" 
+                icon={CreditCard}
+                action={
+                  !editingPiano && (
+                    <button 
+                      onClick={() => setEditingPiano(true)}
+                      className="text-[10px] font-bold text-[#F5C518] hover:opacity-80"
+                    >
+                      {pianoContinuita?.piano_attivo ? "Modifica" : "+ Attiva"}
+                    </button>
+                  )
+                }
+              >
+                {/* Banner for F8/F9 without plan */}
+                {["F8", "F9"].includes(partner.phase) && !pianoContinuita?.piano_attivo && !editingPiano && (
+                  <div className="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                    <div className="flex items-center gap-2 text-amber-700 text-sm font-medium">
+                      <AlertCircle className="w-4 h-4" />
+                      Partner senza Piano Continuità — da attivare
+                    </div>
+                  </div>
+                )}
+
+                {/* Active plan badge */}
+                {pianoContinuita?.piano_attivo && !editingPiano && (
+                  <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200">
+                    <div className="flex items-center gap-2 text-green-700 text-sm font-medium">
+                      <Check className="w-4 h-4" />
+                      Piano {PIANI_CONTINUITA[pianoContinuita.piano_attivo]?.label || pianoContinuita.piano_attivo} attivo
+                    </div>
+                  </div>
+                )}
+
+                {editingPiano ? (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-[10px] font-bold text-[#9CA3AF] uppercase">Piano</label>
+                      <select
+                        value={pianoData.piano_attivo || ""}
+                        onChange={e => setPianoData({...pianoData, piano_attivo: e.target.value || null})}
+                        className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm mt-1"
+                      >
+                        <option value="">-- Seleziona Piano --</option>
+                        <option value="starter">Starter (€29/mese + 15%)</option>
+                        <option value="builder">Builder (€49/mese + 10%)</option>
+                        <option value="pro">Pro (€79/mese + 7%)</option>
+                        <option value="elite">Elite (€99/mese + 5%)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-[#9CA3AF] uppercase">MRR Accademia (€)</label>
+                      <input
+                        type="number"
+                        value={pianoData.mrr}
+                        onChange={e => setPianoData({...pianoData, mrr: parseInt(e.target.value) || 0})}
+                        className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm mt-1"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-[#9CA3AF] uppercase">Data Attivazione</label>
+                      <input
+                        type="date"
+                        value={pianoData.data_attivazione}
+                        onChange={e => setPianoData({...pianoData, data_attivazione: e.target.value})}
+                        className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm mt-1"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-[#9CA3AF] uppercase">Note</label>
+                      <textarea
+                        value={pianoData.note}
+                        onChange={e => setPianoData({...pianoData, note: e.target.value})}
+                        className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm mt-1"
+                        rows={2}
+                        placeholder="Note opzionali..."
+                      />
+                    </div>
+
+                    {/* Auto-calculated fields */}
+                    {pianoData.piano_attivo && (
+                      <div className="pt-3 border-t border-[#ECEDEF] space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-[#9CA3AF]">Fee mensile:</span>
+                          <span className="font-bold">€{PIANI_CONTINUITA[pianoData.piano_attivo]?.fee_mensile}/mese</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-[#9CA3AF]">Commissione:</span>
+                          <span className="font-bold">{PIANI_CONTINUITA[pianoData.piano_attivo]?.commissione}%</span>
+                        </div>
+                        {pianoData.data_attivazione && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-[#9CA3AF]">Rinnovo:</span>
+                            <span className="font-bold">
+                              {new Date(new Date(pianoData.data_attivazione).setFullYear(new Date(pianoData.data_attivazione).getFullYear() + 1)).toLocaleDateString("it-IT")}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 pt-2">
+                      <button
+                        onClick={() => setEditingPiano(false)}
+                        className="flex-1 py-2 px-4 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium"
+                      >
+                        Annulla
+                      </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await axios.put(`${API}/partners/${partner.id}/piano-continuita`, pianoData);
+                            await loadPartnerData();
+                            setEditingPiano(false);
+                            onUpdate && onUpdate();
+                          } catch (e) {
+                            console.error("Failed to save piano:", e);
+                          }
+                        }}
+                        className="flex-1 py-2 px-4 bg-[#F5C518] text-[#1E2128] rounded-lg text-sm font-bold"
+                      >
+                        Salva Piano
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between py-2">
+                      <span className="text-[10px] font-bold text-[#9CA3AF] uppercase">Piano attivo</span>
+                      {pianoContinuita?.piano_attivo ? (
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${PIANI_CONTINUITA[pianoContinuita.piano_attivo]?.bg} ${PIANI_CONTINUITA[pianoContinuita.piano_attivo]?.color}`}>
+                          {PIANI_CONTINUITA[pianoContinuita.piano_attivo]?.label}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-[#9CA3AF]">—</span>
+                      )}
+                    </div>
+                    <InfoField label="MRR Accademia" value={pianoContinuita?.mrr ? `€${pianoContinuita.mrr.toLocaleString()}` : "—"} icon={DollarSign} />
+                    <InfoField label="Fee mensile" value={pianoContinuita?.fee_mensile ? `€${pianoContinuita.fee_mensile}/mese` : "—"} icon={CreditCard} />
+                    <InfoField label="Commissione" value={pianoContinuita?.commissione_percentuale ? `${pianoContinuita.commissione_percentuale}%` : "—"} icon={TrendingUp} />
+                    <InfoField label="Attivazione" value={pianoContinuita?.data_attivazione ? new Date(pianoContinuita.data_attivazione).toLocaleDateString("it-IT") : "—"} icon={Calendar} />
+                    <InfoField label="Rinnovo" value={pianoContinuita?.data_rinnovo ? new Date(pianoContinuita.data_rinnovo).toLocaleDateString("it-IT") : "—"} icon={Calendar} />
+                    <InfoField label="Ultimo check-in AI" value={pianoContinuita?.ultimo_check_in_ai ? new Date(pianoContinuita.ultimo_check_in_ai).toLocaleDateString("it-IT") : "—"} icon={Clock} />
+                  </div>
+                )}
+              </SectionCard>
+
               {/* Quick Stats */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-white border border-[#ECEDEF] rounded-xl p-4 text-center">
