@@ -426,6 +426,41 @@ export function SystemeIODashboard({ partnerId, partnerName }) {
         <TagsDistribution tags={stats?.contacts_by_tag} />
       </div>
       
+      {/* Piano Continuità Riepilogo */}
+      <div className="bg-white border border-[#ECEDEF] rounded-xl p-6" data-testid="systeme-piano-continuita">
+        <h3 className="text-sm font-bold text-[#5F6572] uppercase tracking-wider mb-6 flex items-center gap-2">
+          <BarChart3 className="w-4 h-4 text-[#F5C518]" />
+          Piano Continuità — Riepilogo Systeme.io
+        </h3>
+        <div className="grid grid-cols-5 gap-4">
+          <div className="text-center p-4 bg-[#FAFAF7] rounded-lg">
+            <div className="font-mono text-2xl font-bold text-[#1E2128]">{stats?.piano_continuita?.partner_attivi || 0}</div>
+            <div className="text-xs text-[#9CA3AF] mt-1">Partner con piano attivo</div>
+          </div>
+          <div className="text-center p-4 bg-[#FAFAF7] rounded-lg">
+            <div className="font-mono text-2xl font-bold text-[#10B981]">€{(stats?.piano_continuita?.mrr_totale || 0).toLocaleString()}</div>
+            <div className="text-xs text-[#9CA3AF] mt-1">MRR totale piani</div>
+          </div>
+          <div className="text-center p-4 bg-[#FAFAF7] rounded-lg">
+            <div className="font-mono text-2xl font-bold text-[#3B82F6]">€{(stats?.piano_continuita?.fee_mensili || 0).toLocaleString()}</div>
+            <div className="text-xs text-[#9CA3AF] mt-1">Fee mensili attive</div>
+          </div>
+          <div className="text-center p-4 bg-[#FAFAF7] rounded-lg">
+            <div className="font-mono text-2xl font-bold text-[#8B5CF6]">€{(stats?.piano_continuita?.commissioni_mese || 0).toLocaleString()}</div>
+            <div className="text-xs text-[#9CA3AF] mt-1">Commissioni questo mese</div>
+          </div>
+          <div className="text-center p-4 bg-[#FAFAF7] rounded-lg">
+            <div className="font-mono text-2xl font-bold text-[#F59E0B]">{stats?.piano_continuita?.rinnovi_30gg || 0}</div>
+            <div className="text-xs text-[#9CA3AF] mt-1">Prossimi rinnovi (30gg)</div>
+          </div>
+        </div>
+        {isDemoMode && (
+          <div className="mt-4 text-xs text-center text-[#9CA3AF]">
+            I dati saranno reali dopo aver connesso l'account Systeme.io
+          </div>
+        )}
+      </div>
+      
       {/* Recent Contacts */}
       <RecentContacts contacts={recent_contacts || []} />
       
