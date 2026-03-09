@@ -339,9 +339,8 @@ export function AdminClientiPanel() {
           onChange={(e) => setFilterStatus(e.target.value)}
           className="px-4 py-2.5 rounded-xl border border-[#ECEDEF] text-sm focus:outline-none focus:border-[#F5C518]"
         >
-          <option value="all">Tutti gli stati</option>
-          {Object.entries(STATUS_CONFIG).map(([key, val]) => (
-            <option key={key} value={key}>{val.label}</option>
+          {STATUS_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </select>
 
