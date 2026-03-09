@@ -129,8 +129,8 @@ const ApprovalDashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <RefreshCw className="w-8 h-8 animate-spin text-yellow-500" />
+      <div className="flex items-center justify-center h-64" style={{ background: '#FAFAF7' }}>
+        <RefreshCw className="w-8 h-8 animate-spin" style={{ color: '#F2C418' }} />
       </div>
     );
   }
