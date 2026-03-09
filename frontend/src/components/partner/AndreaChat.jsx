@@ -75,7 +75,7 @@ export function AndreaChat({ partner, currentBlock, recordingStatus }) {
             <div className="text-sm font-extrabold text-[#1E2128] flex items-center gap-2">
               ANDREA
               <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">
-                Video Production Coach
+                Avanzamento Corso & Video Coach
               </span>
             </div>
             <div className="text-xs text-[#9CA3AF]">Surgical Cut & Recording Support</div>

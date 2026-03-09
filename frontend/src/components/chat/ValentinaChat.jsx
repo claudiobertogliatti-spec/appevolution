@@ -302,7 +302,7 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
           <h2 className="font-bold text-[#1E2128]">VALENTINA</h2>
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-xs text-[#9CA3AF]">Online • Orchestratrice AI</span>
+            <span className="text-xs text-[#9CA3AF]">Online • Onboarding & Consulenza AI</span>
           </div>
         </div>
         
