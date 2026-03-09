@@ -6,6 +6,7 @@ import {
   CheckCircle, Target, Clock, Gift, Briefcase, TrendingUp, Lightbulb,
   Zap, CreditCard, Check, ArrowLeft, LogOut, FileText, Video, Phone
 } from "lucide-react";
+import { ClienteDashboard } from "./ClienteDashboard";
 
 // Questions
 const QUESTIONS = [
