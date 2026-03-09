@@ -86,7 +86,10 @@ const PHASE_ACTIONS = {
   F7:{title:"Prepara il lancio",desc:"STEFANIA crea email, post social e calendario dei 30 giorni.",cta:"Apri Calendario Editoriale",nav:"calendario",tutor:"STEFANIA",color:"#db2777"},
   F8:{title:"Lancio attivo 🚀",desc:"Stai lanciando! Monitora le conversioni e chiedi supporto a VALENTINA.",cta:"Supporto Live",nav:"supporto",tutor:"VALENTINA",color:"#16a34a"},
   F9:{title:"Ottimizza le performance",desc:"Analizza i dati e ottimizza il funnel con STEFANIA.",cta:"Analizza Metriche",nav:"calendario",tutor:"VALENTINA",color:"#f59e0b"},
-  F10:{title:"Scala il business",desc:"Rinnova il piano e scegli come scalare: ads, webinar evergreen, nuovo corso.",cta:"Scopri i Piani di Rinnovo",nav:"renewal",tutor:"VALENTINA",color:"#F5C518"},
+  F10:{title:"La mia Accademia",desc:"Gestisci la tua accademia: studenti, metriche e contenuti.",cta:"Apri Accademia",nav:"accademia",tutor:"VALENTINA",color:"#F5C518"},
+  F11:{title:"I miei Studenti",desc:"Monitora i progressi dei tuoi studenti e le conversioni.",cta:"Vedi Studenti",nav:"studenti",tutor:"MARCO",color:"#10B981"},
+  F12:{title:"Impegni Settimana",desc:"Pianifica le tue attività settimanali e mantieni il ritmo.",cta:"Vedi Impegni",nav:"impegni",tutor:"MARCO",color:"#3B82F6"},
+  F13:{title:"Report Mensile",desc:"Analizza le performance del mese e pianifica il prossimo.",cta:"Vedi Report",nav:"report",tutor:"VALENTINA",color:"#8B5CF6"},
 };
 
 const PHASE_TOOLS = {
@@ -100,7 +103,10 @@ const PHASE_TOOLS = {
   F7:[{icon:"📅",label:"Calendario",nav:"calendario",desc:"30 giorni editoriale"},{icon:"📋",label:"Template",nav:"risorse",desc:"Scarica risorse"}],
   F8:[{icon:"📅",label:"Calendario",nav:"calendario",desc:"Post programmati"},{icon:"💬",label:"VALENTINA",nav:"supporto",desc:"Supporto live"}],
   F9:[{icon:"📅",label:"Calendario",nav:"calendario",desc:"Ottimizza contenuti"},{icon:"🎬",label:"Produzione",nav:"produzione",desc:"Nuovi video"}],
-  F10:[{icon:"🚀",label:"Piani Rinnovo",nav:"renewal",desc:"Top · Elite · Star"},{icon:"💬",label:"VALENTINA",nav:"supporto",desc:"Strategia avanzata"}],
+  F10:[{icon:"🎓",label:"Accademia",nav:"accademia",desc:"Gestisci academy"},{icon:"💬",label:"VALENTINA",nav:"supporto",desc:"Strategia avanzata"}],
+  F11:[{icon:"👥",label:"Studenti",nav:"studenti",desc:"Lista studenti"},{icon:"📊",label:"Metriche",nav:"accademia",desc:"Performance"}],
+  F12:[{icon:"📋",label:"Impegni",nav:"impegni",desc:"Task settimana"},{icon:"💬",label:"MARCO",nav:"supporto",desc:"Accountability"}],
+  F13:[{icon:"📈",label:"Report",nav:"report",desc:"Analisi mensile"},{icon:"💬",label:"VALENTINA",nav:"supporto",desc:"Consulenza"}],
 };
 
 const RESOURCES = [
