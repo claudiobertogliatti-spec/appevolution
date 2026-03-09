@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { 
-  Webhook, RefreshCw, CheckCircle, XCircle, AlertTriangle,
-  Users, Target, Tag, ShoppingCart, BookOpen, ArrowDownCircle,
-  Clock, TrendingUp, Zap, Filter, ChevronDown, CreditCard, Calendar
+  Webhook, RefreshCw, CheckCircle, 
+  Users, Tag, ShoppingCart, BookOpen, ArrowDownCircle,
+  Clock, TrendingUp, ChevronDown, CreditCard, Calendar
 } from "lucide-react";
 import axios from "axios";
 import { API, API_URL } from "../../utils/api-config";
@@ -234,30 +234,8 @@ export function WebhookDashboard() {
         />
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 border-b" style={{ borderColor: '#ECEDEF' }}>
-        {[
-          { id: "logs", label: "Log Eventi", icon: Clock },
-          { id: "leads", label: "Lead Scoring", icon: Target },
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold transition-all border-b-2 -mb-px ${
-              activeTab === tab.id 
-                ? 'border-[#F2C418] text-[#1E2128]' 
-                : 'border-transparent text-[#9CA3AF] hover:text-[#5F6572]'
-            }`}
-          >
-            <tab.icon className="w-4 h-4" />
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Content */}
-      {activeTab === "logs" && (
-        <div className="rounded-xl border overflow-hidden" style={{ background: 'white', borderColor: '#ECEDEF' }}>
+      {/* Log Eventi */}
+      <div className="rounded-xl border overflow-hidden" style={{ background: 'white', borderColor: '#ECEDEF' }}>
           {/* Filter */}
           <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: '#ECEDEF' }}>
             <span className="text-sm font-bold" style={{ color: '#1E2128' }}>
@@ -301,46 +279,7 @@ export function WebhookDashboard() {
             )}
           </div>
         </div>
-      )}
-
-      {activeTab === "leads" && (
-        <div className="space-y-3">
-          {/* Hot Leads */}
-          {leads.filter(l => l.score >= 80).length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: '#1E2128' }}>
-                <Zap className="w-4 h-4" style={{ color: '#EF4444' }} />
-                Lead Hot (Score ≥ 80)
-              </h3>
-              <div className="space-y-2">
-                {leads.filter(l => l.score >= 80).map((lead, i) => (
-                  <LeadCard key={i} lead={lead} />
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {/* All Leads */}
-          <h3 className="text-sm font-bold mb-3" style={{ color: '#1E2128' }}>
-            Tutti i Lead ({leads.length})
-          </h3>
-          <div className="space-y-2">
-            {leads.length === 0 ? (
-              <div className="rounded-xl border p-12 text-center" style={{ background: 'white', borderColor: '#ECEDEF' }}>
-                <Target className="w-12 h-12 mx-auto mb-3" style={{ color: '#ECEDEF' }} />
-                <div className="font-bold" style={{ color: '#9CA3AF' }}>Nessun lead</div>
-                <div className="text-sm" style={{ color: '#9CA3AF' }}>
-                  I lead verranno creati automaticamente dai webhook
-                </div>
-              </div>
-            ) : (
-              leads.slice(0, 20).map((lead, i) => (
-                <LeadCard key={i} lead={lead} />
-              ))
-            )}
-          </div>
-        </div>
-      )}
+      </div>
 
       {/* Quick Actions */}
       <div className="rounded-xl p-5 border" style={{ background: '#FAFAF7', borderColor: '#ECEDEF' }}>
@@ -356,8 +295,8 @@ export function WebhookDashboard() {
           <div className="flex items-center gap-3 p-3 rounded-lg border" style={{ background: 'white', borderColor: '#ECEDEF' }}>
             <CheckCircle className="w-5 h-5 text-green-500" />
             <div>
-              <div className="text-sm font-bold" style={{ color: '#1E2128' }}>Lead Scoring</div>
-              <div className="text-xs" style={{ color: '#9CA3AF' }}>Punteggio automatico lead</div>
+              <div className="text-sm font-bold" style={{ color: '#1E2128' }}>Sync Systeme.io</div>
+              <div className="text-xs" style={{ color: '#9CA3AF' }}>Dati in tempo reale</div>
             </div>
           </div>
           <div className="flex items-center gap-3 p-3 rounded-lg border" style={{ background: 'white', borderColor: '#ECEDEF' }}>
