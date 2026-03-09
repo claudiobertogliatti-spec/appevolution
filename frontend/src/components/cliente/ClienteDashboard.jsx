@@ -72,11 +72,15 @@ const QUESTIONS = [
   }
 ];
 
-// Resources after completion
-const RISORSE_POST_INVIO = [
-  { title: "Come funziona la tua Accademia Digitale", desc: "Guida rapida al percorso" },
-  { title: "I 3 errori più comuni dei formatori online", desc: "Evita le trappole classiche" },
-  { title: "Cosa succede dopo la call", desc: "Il percorso completo spiegato" }
+// I 7 Bonus Formativi
+const BONUS_DATA = [
+  { id: 1, title: "Il Blueprint", icon: Target, color: "#F5C518" },
+  { id: 2, title: "Argomenti che Vendono", icon: Lightbulb, color: "#10B981" },
+  { id: 3, title: "Durata delle Lezioni", icon: Clock, color: "#3B82F6" },
+  { id: 4, title: "Funnel di Vendita", icon: Rocket, color: "#8B5CF6" },
+  { id: 5, title: "ADV: Quando Funzionano", icon: Megaphone, color: "#EF4444" },
+  { id: 6, title: "Profili Social", icon: Users, color: "#EC4899" },
+  { id: 7, title: "Non Fare Tutto da Solo", icon: Shield, color: "#F97316" }
 ];
 
 export function ClienteDashboard({ cliente, onLogout }) {
