@@ -12,13 +12,21 @@ import { API } from "../../utils/api-config"; // API configured
 const PHASE_LABELS = {
   F0: "Pre-Onboarding", F1: "Attivazione", F2: "Posizionamento", F3: "Masterclass",
   F4: "Struttura Corso", F5: "Produzione", F6: "Accademia", F7: "Pre-Lancio",
-  F8: "Lancio", F9: "Ottimizzazione", F10: "Scalabilità"
+  F8: "Lancio", F9: "Ottimizzazione", 
+  F10: "La mia Accademia", F11: "I miei Studenti", F12: "Impegni Settimana", F13: "Report Mensile"
 };
 
 const CONTRACT_TYPES = {
-  standard: { label: "Standard", duration: 12, color: "text-blue-400", bg: "bg-blue-500/20" },
-  premium: { label: "Premium", duration: 12, color: "text-purple-400", bg: "bg-purple-500/20" },
-  elite: { label: "Elite", duration: 24, color: "text-yellow-400", bg: "bg-yellow-500/20" }
+  standard: { label: "Standard", duration: 12, color: "text-blue-600", bg: "bg-blue-50" },
+  premium: { label: "Premium", duration: 12, color: "text-purple-600", bg: "bg-purple-50" },
+  elite: { label: "Elite", duration: 24, color: "text-yellow-600", bg: "bg-yellow-50" }
+};
+
+const PIANI_CONTINUITA = {
+  starter: { fee_mensile: 29, commissione: 15, label: "Starter", color: "text-green-600", bg: "bg-green-50" },
+  builder: { fee_mensile: 49, commissione: 10, label: "Builder", color: "text-blue-600", bg: "bg-blue-50" },
+  pro: { fee_mensile: 79, commissione: 7, label: "Pro", color: "text-purple-600", bg: "bg-purple-50" },
+  elite: { fee_mensile: 99, commissione: 5, label: "Elite", color: "text-amber-600", bg: "bg-amber-50" }
 };
 
 function InfoField({ label, value, icon: Icon, editable, onEdit }) {
