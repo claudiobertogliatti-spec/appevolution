@@ -1122,9 +1122,23 @@ export default function App() {
                 nome: "Cliente Demo",
                 cognome: "",
                 email: "demo@cliente.it",
-                stato: "pagato",
+                stato: nav === "cliente-post" ? "questionario_completato" : "pagato",
                 data_acquisto: new Date().toISOString(),
-                questionario: { completato: false, risposte: null }
+                questionario: nav === "cliente-post" 
+                  ? { 
+                      completato: true, 
+                      data_compilazione: new Date().toISOString(),
+                      risposte: {
+                        expertise: "Coach di business per imprenditori digitali con 8 anni di esperienza nel settore",
+                        cliente_ideale: "Professionisti 35-50 anni che vogliono creare la loro prima accademia online",
+                        pubblico_esistente: "Newsletter 1.200 iscritti, LinkedIn 3.500 follower, gruppo Facebook 800 membri",
+                        esperienze_passate: "Ho venduto consulenze 1:1 per 5 anni, mai creato un corso strutturato",
+                        ostacolo_principale: "Non so da dove iniziare tecnicamente e ho paura di non avere abbastanza contenuti",
+                        obiettivo_12_mesi: "Lanciare il mio primo videocorso e generare almeno €30.000 di fatturato extra",
+                        perche_adesso: "Ho raggiunto il limite delle consulenze 1:1, voglio scalare senza lavorare più ore"
+                      }
+                    }
+                  : { completato: false, risposte: null }
               }}
               onLogout={() => { setMode("admin"); setNav("overview"); }}
             />
