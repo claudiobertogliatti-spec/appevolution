@@ -47,6 +47,12 @@ const UNLOCK_RULES = {
   // FASE 9 - Lancio
   "fase9-lancio": 9,
   
+  // Post-Lancio (F10+) - Visible only after F10
+  "post-accademia": 10,
+  "post-studenti": 10,
+  "post-impegni": 10,
+  "post-report": 10,
+  
   // Profilo - sempre visibile
   "profilo-bonus": 0,
   "profilo-files": 0,
