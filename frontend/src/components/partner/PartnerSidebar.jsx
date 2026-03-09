@@ -67,7 +67,10 @@ const UNLOCK_RULES = {
 
 // Funzione per generare i gruppi della sidebar
 const getSidebarGroups = (partnerPhase) => {
-  return [
+  const currentPhaseNum = parseInt(partnerPhase?.replace('F', '') || '1');
+  const isPostLancio = currentPhaseNum >= 10;
+  
+  const groups = [
     {
       id: "fasi",
       label: "📋 Percorso",
@@ -83,7 +86,24 @@ const getSidebarGroups = (partnerPhase) => {
         { id: "fase8-prelancio", label: "FASE 8 - Pre-Lancio", icon: Calendar },
         { id: "fase9-lancio", label: "FASE 9 - Lancio", icon: CheckCircle2 },
       ]
-    },
+    }
+  ];
+  
+  // Add Post-Lancio section only for F10+ partners
+  if (isPostLancio) {
+    groups.push({
+      id: "post-lancio",
+      label: "🚀 Post-Lancio",
+      items: [
+        { id: "post-accademia", label: "La mia Accademia", icon: BarChart3 },
+        { id: "post-studenti", label: "I miei Studenti", icon: Users },
+        { id: "post-impegni", label: "Impegni Settimana", icon: Calendar },
+        { id: "post-report", label: "Report Mensile", icon: TrendingUp },
+      ]
+    });
+  }
+  
+  groups.push(
     {
       id: "profilo",
       label: "👤 Profilo",
@@ -103,7 +123,9 @@ const getSidebarGroups = (partnerPhase) => {
         { id: "servizi-extra", label: "Altri Servizi", icon: ShoppingBag },
       ]
     }
-  ];
+  );
+  
+  return groups;
 };
 
 // Gruppi della sidebar (per compatibilità - usa la funzione sopra dove possibile)
