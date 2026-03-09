@@ -159,7 +159,7 @@ async def login_cliente(data: ClienteLogin):
 
 @router.post("/{cliente_id}/questionnaire")
 async def save_questionnaire(cliente_id: str, data: QuestionnaireData):
-    """Save questionnaire answers"""
+    """Save questionnaire answers (legacy)"""
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
     
@@ -176,6 +176,229 @@ async def save_questionnaire(cliente_id: str, data: QuestionnaireData):
             raise HTTPException(status_code=404, detail="Cliente non trovato")
         
         return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================================================
+# QUESTIONARIO PRE-CALL (nuovo sistema)
+# ============================================================================
+
+@router.post("/{cliente_id}/questionario")
+async def save_questionario_precall(cliente_id: str, data: QuestionarioPreCall):
+    """Save pre-call questionnaire answers"""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+    
+    try:
+        now = datetime.now(timezone.utc).isoformat()
+        result = await db.clienti.update_one(
+            {"_id": ObjectId(cliente_id)},
+            {"$set": {
+                "questionario": {
+                    "completato": True,
+                    "data_compilazione": now,
+                    "risposte": {
+                        "expertise": data.expertise,
+                        "cliente_ideale": data.cliente_ideale,
+                        "pubblico_esistente": data.pubblico_esistente,
+                        "esperienze_passate": data.esperienze_passate,
+                        "ostacolo_principale": data.ostacolo_principale,
+                        "obiettivo_12_mesi": data.obiettivo_12_mesi,
+                        "perche_adesso": data.perche_adesso
+                    }
+                },
+                "stato": "questionario_completato"
+            }}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Cliente non trovato")
+        
+        return {"success": True, "message": "Questionario salvato con successo"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{cliente_id}/questionario")
+async def get_questionario_precall(cliente_id: str):
+    """Get pre-call questionnaire for a client"""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+    
+    try:
+        cliente = await db.clienti.find_one({"_id": ObjectId(cliente_id)})
+        if not cliente:
+            raise HTTPException(status_code=404, detail="Cliente non trovato")
+        
+        return {
+            "success": True,
+            "questionario": cliente.get("questionario", {
+                "completato": False,
+                "data_compilazione": None,
+                "risposte": None
+            })
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{cliente_id}/fissa-call")
+async def fissa_call(cliente_id: str, data: FissaCallRequest):
+    """Set call date for a client"""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+    
+    try:
+        result = await db.clienti.update_one(
+            {"_id": ObjectId(cliente_id)},
+            {"$set": {
+                "call.data_call": data.data_call,
+                "call.note_claudio": data.note,
+                "stato": "call_fissata"
+            }}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Cliente non trovato")
+        
+        return {"success": True, "message": "Call fissata"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{cliente_id}/note-claudio")
+async def save_note_claudio(cliente_id: str, data: NoteClaudoRequest):
+    """Save Claudio's internal notes"""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+    
+    try:
+        result = await db.clienti.update_one(
+            {"_id": ObjectId(cliente_id)},
+            {"$set": {"call.note_claudio": data.note}}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Cliente non trovato")
+        
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{cliente_id}/converti-partner")
+async def converti_in_partner(cliente_id: str):
+    """Convert client to partner (creates new partner record)"""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+    
+    try:
+        cliente = await db.clienti.find_one({"_id": ObjectId(cliente_id)})
+        if not cliente:
+            raise HTTPException(status_code=404, detail="Cliente non trovato")
+        
+        # Check if partner already exists
+        existing_partner = await db.partners.find_one({"email": cliente.get("email")})
+        if existing_partner:
+            # Update cliente status
+            await db.clienti.update_one(
+                {"_id": ObjectId(cliente_id)},
+                {"$set": {
+                    "stato": "convertito",
+                    "conversione.data_risposta": datetime.now(timezone.utc).isoformat(),
+                    "conversione.convertito": True
+                }}
+            )
+            return {
+                "success": True,
+                "partner_id": str(existing_partner["_id"]),
+                "message": "Partner già esistente, stato aggiornato"
+            }
+        
+        # Create new partner
+        now = datetime.now(timezone.utc).isoformat()
+        new_partner = {
+            "name": f"{cliente.get('nome', '')} {cliente.get('cognome', '')}".strip(),
+            "email": cliente.get("email"),
+            "phone": cliente.get("telefono"),
+            "niche": "—",
+            "phase": "F1",
+            "current_phase": "F1",
+            "status": "active",
+            "created_at": now,
+            "source": "analisi_strategica",
+            "cliente_id": str(cliente_id),
+            "admin_user": "Claudio",
+            "admin_notes": f"Convertito da Analisi Strategica il {now[:10]}"
+        }
+        
+        result = await db.partners.insert_one(new_partner)
+        
+        # Update cliente status
+        await db.clienti.update_one(
+            {"_id": ObjectId(cliente_id)},
+            {"$set": {
+                "stato": "convertito",
+                "conversione.data_risposta": now,
+                "conversione.convertito": True,
+                "partner_id": str(result.inserted_id)
+            }}
+        )
+        
+        return {
+            "success": True,
+            "partner_id": str(result.inserted_id),
+            "message": "Cliente convertito in Partner F1"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{cliente_id}/segna-non-adatto")
+async def segna_non_adatto(cliente_id: str):
+    """Mark client as not suitable"""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+    
+    try:
+        result = await db.clienti.update_one(
+            {"_id": ObjectId(cliente_id)},
+            {"$set": {
+                "stato": "non_convertito",
+                "conversione.data_risposta": datetime.now(timezone.utc).isoformat(),
+                "conversione.convertito": False
+            }}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Cliente non trovato")
+        
+        return {"success": True, "message": "Cliente segnato come non adatto"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/stats")
+async def get_clienti_stats():
+    """Get statistics for admin dashboard"""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+    
+    try:
+        total = await db.clienti.count_documents({"has_paid": True})
+        questionario_completato = await db.clienti.count_documents({
+            "has_paid": True,
+            "questionario.completato": True
+        })
+        call_fissata = await db.clienti.count_documents({
+            "has_paid": True,
+            "stato": "call_fissata"
+        })
+        convertiti = await db.clienti.count_documents({
+            "has_paid": True,
+            "stato": "convertito"
+        })
+        
+        return {
+            "totale": total,
+            "questionario_completato": questionario_completato,
+            "call_fissata": call_fissata,
+            "convertiti": convertiti
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
