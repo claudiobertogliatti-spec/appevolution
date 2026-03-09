@@ -180,9 +180,89 @@ export function AdminClientiPanel() {
     }
   };
 
+  // Fissa call
+  const fissaCall = async () => {
+    if (!selectedCliente || !dataCall) return;
+    setUpdating(true);
+    try {
+      await axios.post(`${API}/clienti/${selectedCliente.id}/fissa-call`, {
+        data_call: dataCall,
+        note: notesClaudio
+      });
+      setShowFissaCallModal(false);
+      setDataCall("");
+      await loadClienti();
+      await loadStats();
+    } catch (e) {
+      console.error("Error fixing call:", e);
+      alert("Errore nel fissare la call");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // Save Claudio notes
+  const saveNotesClaudio = async () => {
+    if (!selectedCliente) return;
+    setUpdating(true);
+    try {
+      await axios.post(`${API}/clienti/${selectedCliente.id}/note-claudio`, {
+        note: notesClaudio
+      });
+      alert("Note salvate!");
+    } catch (e) {
+      console.error("Error saving notes:", e);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // Converti in partner
+  const convertiInPartner = async (clienteId) => {
+    if (!confirm("Sei sicuro di voler convertire questo cliente in Partner F1?")) return;
+    setUpdating(true);
+    try {
+      const res = await axios.post(`${API}/clienti/${clienteId}/converti-partner`);
+      alert(res.data.message);
+      await loadClienti();
+      await loadStats();
+      setShowQuestionarioModal(false);
+    } catch (e) {
+      console.error("Error converting to partner:", e);
+      alert("Errore nella conversione");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // Segna non adatto
+  const segnaNonAdatto = async (clienteId) => {
+    if (!confirm("Sei sicuro di voler segnare questo cliente come non adatto?")) return;
+    setUpdating(true);
+    try {
+      await axios.post(`${API}/clienti/${clienteId}/segna-non-adatto`);
+      await loadClienti();
+      await loadStats();
+    } catch (e) {
+      console.error("Error marking as not suitable:", e);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // Check if cliente hasn't completed questionnaire after 24h
+  const needsQuestionarioAlert = (cliente) => {
+    if (cliente.questionario?.completato) return false;
+    const dataAcquisto = new Date(cliente.data_acquisto || cliente.paid_at || cliente.created_at);
+    const now = new Date();
+    const hoursDiff = (now - dataAcquisto) / (1000 * 60 * 60);
+    return hoursDiff > 24;
+  };
+
   // Filter clienti
   const filteredClienti = clienti.filter(c => {
-    if (filterStatus !== "all" && c.status !== filterStatus) return false;
+    const stato = c.stato || c.status;
+    if (filterStatus !== "all" && stato !== filterStatus) return false;
     if (filterPaid === "paid" && !c.has_paid) return false;
     if (filterPaid === "unpaid" && c.has_paid) return false;
     if (searchQuery) {
@@ -195,14 +275,6 @@ export function AdminClientiPanel() {
     }
     return true;
   });
-
-  // Stats
-  const stats = {
-    total: clienti.length,
-    paid: clienti.filter(c => c.has_paid).length,
-    pending: clienti.filter(c => c.status === "pending").length,
-    approved: clienti.filter(c => c.status === "approved").length
-  };
 
   return (
     <div className="p-6 space-y-6" style={{ background: '#FAFAF7', minHeight: '100vh' }}>
