@@ -448,21 +448,56 @@ export function ClienteDashboard({ cliente, onLogout }) {
                   <p className="text-sm text-[#5F6572] mb-4">
                     Accedi subito ai bonus promessi. Ti preparano a capire cosa serve per creare un videocorso che vende.
                   </p>
-                  <div className="grid md:grid-cols-2 gap-3">
+                  <div className="space-y-3">
                     {BONUS_DATA.map((bonus) => (
                       <div
                         key={bonus.id}
-                        className="p-4 rounded-xl flex items-center gap-3 hover:bg-[#FAFAF7] transition-colors cursor-pointer"
+                        className="rounded-xl overflow-hidden"
                         style={{ border: '1px solid #ECEDEF' }}
                       >
-                        <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${bonus.color}20` }}>
-                          <bonus.icon className="w-5 h-5" style={{ color: bonus.color }} />
+                        {/* Bonus Header */}
+                        <div
+                          onClick={() => setExpandedBonus(expandedBonus === bonus.id ? null : bonus.id)}
+                          className="p-4 flex items-center gap-3 cursor-pointer hover:bg-[#FAFAF7] transition-colors"
+                        >
+                          <div 
+                            className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0"
+                            style={{ background: bonus.color }}
+                          >
+                            {bonus.id}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-bold text-[#1E2128]">{bonus.title}</div>
+                            <div className="text-xs text-[#9CA3AF]">{bonus.subtitle}</div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-[#9CA3AF]">{bonus.chapters.length} capitoli</span>
+                            <ChevronDown 
+                              className={`w-4 h-4 text-[#9CA3AF] transition-transform ${expandedBonus === bonus.id ? 'rotate-180' : ''}`} 
+                            />
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs font-bold text-[#9CA3AF]">BONUS #{bonus.id}</div>
-                          <div className="font-bold text-[#1E2128] text-sm truncate">{bonus.title}</div>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-[#9CA3AF]" />
+                        
+                        {/* Chapters (expanded) */}
+                        {expandedBonus === bonus.id && (
+                          <div className="border-t border-[#ECEDEF] p-4 bg-[#FAFAF7]">
+                            <p className="text-sm text-[#5F6572] mb-3">{bonus.summary}</p>
+                            <div className="grid grid-cols-2 gap-2">
+                              {bonus.chapters.map((chapter, i) => {
+                                const ChapterIcon = chapter.icon;
+                                return (
+                                  <div 
+                                    key={i}
+                                    className="flex items-center gap-2 p-2 rounded-lg bg-white hover:bg-[#FEF9E7] cursor-pointer transition-colors"
+                                  >
+                                    <ChapterIcon className="w-4 h-4" style={{ color: bonus.color }} />
+                                    <span className="text-xs text-[#1E2128]">{chapter.title}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
