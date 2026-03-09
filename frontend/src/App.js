@@ -989,6 +989,12 @@ export default function App() {
             {nav==="fase9-lancio"&&<FunnelAnalytics partner={demoPartner}/>}
             {nav==="funnel-analytics"&&<FunnelAnalytics partner={demoPartner}/>}
             
+            {/* POST-LANCIO (F10+) */}
+            {nav==="post-accademia"&&<MiaAccademiaPage partner={demoPartner}/>}
+            {nav==="post-studenti"&&<MieiStudentiPage partner={demoPartner}/>}
+            {nav==="post-impegni"&&<ImpegniSettimanaPage partner={demoPartner}/>}
+            {nav==="post-report"&&<ReportMensilePage partner={demoPartner}/>}
+            
             {/* PROFILO - Bonus */}
             {nav==="profilo-bonus"&&<BonusStrategici partner={demoPartner}/>}
             {nav==="bonus"&&<BonusStrategici partner={demoPartner}/>}
