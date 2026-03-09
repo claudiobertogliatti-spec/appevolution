@@ -7366,6 +7366,8 @@ async def get_systeme_stats(partner_id: str, refresh: bool = False):
     
     if not credentials:
         # Return mock data for demo/unconnected state
+        # Include Piano Continuità summary
+        piano_stats = await get_piano_continuita_stats()
         return {
             "connected": False,
             "partner_id": partner_id,
@@ -7387,6 +7389,7 @@ async def get_systeme_stats(partner_id: str, refresh: bool = False):
                 "hot": 45,
                 "customer": 12
             },
+            "piano_continuita": piano_stats,
             "message": "Dati demo - Connetti Systeme.io per dati reali"
         }
     
