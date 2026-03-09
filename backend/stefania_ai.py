@@ -159,9 +159,29 @@ def run_daily_monitoring(partner_ids=None) -> dict:
     """
     Ciclo di monitoraggio giornaliero di STEFANIA.
     Controlla inattivi, pre-lancio, alert aperti, piani in scadenza.
+    Usa Systeme.io MCP per dati MRR e piani reali.
     Restituisce un dict con azioni intraprese e situazioni critiche.
     """
     try:
+        # Import Systeme.io MCP client per dati reali
+        try:
+            from systeme_mcp_client import get_mrr_summary, get_expiring_plans, is_configured as mcp_configured
+            use_mcp = mcp_configured()
+        except ImportError:
+            use_mcp = False
+            logger.warning("[STEFANIA] systeme_mcp_client non disponibile - uso dati locali")
+        
+        # Get MRR summary from Systeme.io (if configured)
+        mrr_data = {}
+        piani_scadenza = []
+        if use_mcp:
+            try:
+                mrr_data = get_mrr_summary()
+                piani_scadenza = get_expiring_plans(30)
+                logger.info(f"[STEFANIA] Dati MRR da Systeme.io: MRR={mrr_data.get('mrr_totale', 0)}, Piani={mrr_data.get('piani_attivi', 0)}")
+            except Exception as mcp_err:
+                logger.warning(f"[STEFANIA] Errore MCP: {mcp_err}")
+        
         # Try to get data from database
         try:
             from motor.motor_asyncio import AsyncIOMotorClient
@@ -211,6 +231,7 @@ def run_daily_monitoring(partner_ids=None) -> dict:
 
         for p in partner_attivi:
             nome = p.get("nome", "Partner")
+            partner_email = p.get("email", "")
             
             # Calculate days inactive
             last_activity = p.get("last_activity") or p.get("updated_at")
@@ -257,6 +278,16 @@ def run_daily_monitoring(partner_ids=None) -> dict:
                     "giorni_rimasti": giorni_a_scadenza
                 })
 
+        # Add expiring plans from Systeme.io MCP
+        for plan in piani_scadenza:
+            critici.append({
+                "tipo": "RINNOVO_SYSTEME",
+                "partner": plan.get("customer_email", "N/A"),
+                "piano": plan.get("plan_name", "N/A"),
+                "giorni_rimasti": plan.get("days_until_expiry", 0),
+                "amount": plan.get("amount", 0)
+            })
+
         # Alert aperti da >48h → escalation Claudio
         for alert in alert_aperti:
             created = alert.get("created_at")
@@ -279,6 +310,9 @@ def run_daily_monitoring(partner_ids=None) -> dict:
             "azioni_attivate": azioni,
             "situazioni_critiche": critici,
             "alert_aperti_totali": len(alert_aperti),
+            "mrr_systeme": mrr_data,
+            "piani_scadenza_systeme": len(piani_scadenza),
+            "mcp_configured": use_mcp,
             "data": datetime.utcnow().isoformat()
         }
 
