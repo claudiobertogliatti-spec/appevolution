@@ -8,17 +8,34 @@ import {
 import axios from "axios";
 import { API } from "../../utils/api-config";
 
-// Status configuration
+// Status configuration (nuovo modello)
 const STATUS_CONFIG = {
+  pagato: { label: "Pagato", color: "#9CA3AF", icon: Clock, bg: "#9CA3AF20" },
+  questionario_completato: { label: "Questionario ✓", color: "#3B82F6", icon: FileText, bg: "#3B82F620" },
+  call_fissata: { label: "Call fissata", color: "#F5C518", icon: Calendar, bg: "#F5C51820" },
+  proposta_inviata: { label: "Proposta inviata", color: "#F59E0B", icon: Target, bg: "#F59E0B20" },
+  convertito: { label: "Partner ✓", color: "#10B981", icon: CheckCircle, bg: "#10B98120" },
+  non_convertito: { label: "Non convertito", color: "#EF4444", icon: XCircle, bg: "#EF444420" },
+  // Legacy statuses
   registered: { label: "Registrato", color: "#9CA3AF", icon: Clock, bg: "#9CA3AF20" },
-  pending: { label: "In attesa videocall", color: "#F5C518", icon: Clock, bg: "#F5C51820" },
+  pending: { label: "In attesa", color: "#F5C518", icon: Clock, bg: "#F5C51820" },
   in_review: { label: "In revisione", color: "#3B82F6", icon: FileText, bg: "#3B82F620" },
   approved: { label: "Approvato", color: "#10B981", icon: CheckCircle, bg: "#10B98120" },
-  not_approved: { label: "Non idoneo", color: "#EF4444", icon: XCircle, bg: "#EF444420" },
-  roadmap: { label: "Roadmap", color: "#F59E0B", icon: MapPin, bg: "#F59E0B20" }
+  not_approved: { label: "Non idoneo", color: "#EF4444", icon: XCircle, bg: "#EF444420" }
 };
 
-// Questionnaire labels
+// Questionario pre-call labels
+const QUESTIONARIO_LABELS = {
+  expertise: "In cosa sei esperto/a",
+  cliente_ideale: "Cliente ideale",
+  pubblico_esistente: "Pubblico esistente",
+  esperienze_passate: "Esperienze passate",
+  ostacolo_principale: "Ostacolo principale",
+  obiettivo_12_mesi: "Obiettivo 12 mesi",
+  perche_adesso: "Perché adesso"
+};
+
+// Legacy questionnaire labels
 const QUESTION_LABELS = {
   attivita: "Attività e ruolo",
   guadagno: "Come guadagna oggi",
