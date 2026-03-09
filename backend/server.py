@@ -2330,16 +2330,17 @@ async def get_alerts():
                 
                 if paid_date < threshold:
                     nome = f"{cliente.get('nome', '')} {cliente.get('cognome', '')}".strip() or cliente.get('email', 'Cliente')
-                    alert_id = f"cliente-questionario-{cliente.get('_id')}"
+                    client_id = cliente.get('id') or str(cliente.get('_id', ''))
+                    alert_id = f"cliente-questionario-{client_id}"
                     
                     # Check if this alert already exists
                     if not any(a.get('id') == alert_id for a in alerts):
                         alerts.append({
                             "id": alert_id,
                             "agent": "SISTEMA",
-                            "type": "warning",
+                            "type": "BLOCCO",
                             "msg": f"⚠️ {nome} — ha pagato ma non ha compilato il questionario",
-                            "partner": cliente.get('email', ''),
+                            "partner": nome,
                             "time": "più di 24h fa"
                         })
     except Exception as e:
