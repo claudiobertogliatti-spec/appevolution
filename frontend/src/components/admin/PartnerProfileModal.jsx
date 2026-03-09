@@ -140,15 +140,25 @@ export function PartnerProfileModal({ partner, onClose, onUpdate }) {
     if (!partner?.id) return;
     setLoading(true);
     try {
-      const [profileRes, docsRes, paymentsRes] = await Promise.all([
+      const [profileRes, docsRes, paymentsRes, pianoRes] = await Promise.all([
         axios.get(`${API}/partners/${partner.id}/profile`),
         axios.get(`${API}/partner-documents/${partner.id}`),
-        axios.get(`${API}/partners/${partner.id}/payments`)
+        axios.get(`${API}/partners/${partner.id}/payments`),
+        axios.get(`${API}/partners/${partner.id}/piano-continuita`).catch(() => ({ data: null }))
       ]);
       setProfileData(profileRes.data);
       setDocuments(docsRes.data);
       setPayments(paymentsRes.data || []);
       setEditData(profileRes.data);
+      if (pianoRes.data) {
+        setPianoContinuita(pianoRes.data);
+        setPianoData({
+          piano_attivo: pianoRes.data.piano_attivo || null,
+          data_attivazione: pianoRes.data.data_attivazione?.split("T")[0] || "",
+          mrr: pianoRes.data.mrr || 0,
+          note: pianoRes.data.note || ""
+        });
+      }
     } catch (e) {
       // Use partner data as fallback
       setProfileData({
