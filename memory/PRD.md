@@ -36,17 +36,21 @@ Italian
   - `analisi_workflow.py`: Orchestratore completo (validazione → AI → DOCX)
   - `genera_analisi.js`: Generatore DOCX con branding Evolution PRO
   - Endpoint `/api/clienti/{id}/avvia-analisi` - Avvia workflow in background
-  - Endpoint `/api/clienti/{id}/workflow-status` - Polling stato (attesa, generazione_ai, generazione_docx, completato)
-  - Endpoint `/api/clienti/{id}/scarica-docx` - Download DOCX generato
-  - Mount static files `/api/static/analisi/` per download pubblico
-- ✅ **AI Enrichment:** Claude (via Emergent LLM Key) arricchisce le 7 risposte del questionario con considerazioni strategiche personalizzate
-- ✅ **DOCX Template:** Documento professionale con sezioni numerate (1-7), risposte cliente, arricchimenti AI, diagnosi finale
+  - Endpoint `/api/clienti/{id}/workflow-status` - Polling stato
+  - Endpoint `/api/clienti/{id}/scarica-docx` - Download DOCX
+  - Endpoint `/api/clienti/admin/analisi-da-revisionare` - Lista per revisione admin
+  - Endpoint `/api/clienti/admin/{id}/approva-analisi` - Approva analisi
+  - Mount static files `/api/static/analisi/` per download
+- ✅ **AI Enrichment:** Claude (via Emergent LLM Key) arricchisce le 7 risposte
+- ✅ **DOCX Template:** Documento professionale con sezioni numerate
 - ✅ **Frontend Admin:**
   - Nuova colonna "Analisi" nella tabella clienti
-  - Pulsante "⬇ DOCX" per scaricare l'analisi
-  - Pulsante "✨ Genera" per avviare manualmente il workflow
-  - Indicatore "In corso" durante la generazione
-  - Nuovo stato "Analisi pronta" (viola)
+  - Sezione "Analisi Strategiche da Revisionare" in Approvazioni (con preview AI)
+  - Pulsanti "Scarica DOCX" e "Approva"
+- ✅ **Frontend Cliente:**
+  - Download DOCX automatico nella pagina post-questionario
+  - Avvio automatico workflow dopo submit questionario
+- ✅ **Nuove credenziali admin:** claudio.bertogliatti@gmail.com / Evoluzione74
 
 ### Lead Management Cleanup (Mar 2026)
 - ✅ Rimosso `OrionLeadScoring.jsx` - Lead gestiti esclusivamente in Systeme.io
