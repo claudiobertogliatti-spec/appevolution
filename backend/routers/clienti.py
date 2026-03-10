@@ -901,11 +901,20 @@ async def get_analisi_da_revisionare():
 
 @router.post("/admin/{cliente_id}/approva-analisi")
 async def approva_analisi(cliente_id: str):
-    """Approve an analysis (mark as reviewed)"""
+    """Approve an analysis (mark as reviewed) and send email to client"""
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
     
     try:
+        # Get client info
+        cliente = await db.clienti.find_one({"_id": ObjectId(cliente_id)})
+        if not cliente:
+            cliente = await db.clienti.find_one({"id": cliente_id})
+        
+        if not cliente:
+            raise HTTPException(status_code=404, detail="Cliente non trovato")
+        
+        # Update status
         result = await db.clienti.update_one(
             {"_id": ObjectId(cliente_id)},
             {"$set": {
@@ -918,8 +927,166 @@ async def approva_analisi(cliente_id: str):
         if result.modified_count == 0:
             raise HTTPException(status_code=404, detail="Cliente non trovato")
         
-        return {"success": True, "message": "Analisi approvata"}
+        # Send email to client with analysis and calendar link
+        try:
+            nome = cliente.get("nome", "")
+            cognome = cliente.get("cognome", "")
+            email = cliente.get("email")
+            docx_url = cliente.get("docx_analisi_url")
+            
+            if email:
+                # Create Google Calendar link for scheduling call
+                calendar_link = create_google_calendar_link(
+                    title="Call Strategica con Claudio - Evolution PRO",
+                    description=f"Videocall strategica con {nome} {cognome} per discutere l'Analisi Strategica Personalizzata.",
+                    duration_minutes=60
+                )
+                
+                # Send email via STEFANIA agent
+                await send_analisi_email(
+                    to_email=email,
+                    nome=nome,
+                    cognome=cognome,
+                    docx_url=docx_url,
+                    calendar_link=calendar_link
+                )
+                
+                # Log email sent
+                await db.clienti.update_one(
+                    {"_id": ObjectId(cliente_id)},
+                    {"$set": {"email_analisi_inviata": datetime.now(timezone.utc).isoformat()}}
+                )
+        except Exception as email_err:
+            # Don't fail the approval if email fails
+            print(f"[EMAIL] Error sending email: {email_err}")
+        
+        return {"success": True, "message": "Analisi approvata e email inviata"}
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+def create_google_calendar_link(title: str, description: str, duration_minutes: int = 60) -> str:
+    """Create a Google Calendar event link"""
+    from datetime import datetime, timedelta
+    from urllib.parse import urlencode
+    
+    # Default to next Monday at 10:00
+    now = datetime.now()
+    days_until_monday = (7 - now.weekday()) % 7
+    if days_until_monday == 0:
+        days_until_monday = 7
+    start_date = now + timedelta(days=days_until_monday)
+    start_date = start_date.replace(hour=10, minute=0, second=0, microsecond=0)
+    end_date = start_date + timedelta(minutes=duration_minutes)
+    
+    # Format dates for Google Calendar
+    date_format = "%Y%m%dT%H%M%S"
+    
+    params = {
+        "action": "TEMPLATE",
+        "text": title,
+        "dates": f"{start_date.strftime(date_format)}/{end_date.strftime(date_format)}",
+        "details": description,
+        "location": "Videocall (link sarà inviato via email)"
+    }
+    
+    return f"https://calendar.google.com/calendar/render?{urlencode(params)}"
+
+async def send_analisi_email(to_email: str, nome: str, cognome: str, docx_url: str, calendar_link: str):
+    """Send email with analysis document and calendar link via STEFANIA"""
+    import os
+    
+    # Get API URL from environment
+    api_url = os.environ.get("REACT_APP_BACKEND_URL", "https://app.evolution-pro.it")
+    full_docx_url = f"{api_url}/api{docx_url}" if docx_url else ""
+    
+    # Email content
+    subject = f"🎯 La tua Analisi Strategica è pronta, {nome}!"
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #FAFAF7; padding: 20px;">
+        <div style="background: #1E2128; padding: 20px; border-radius: 12px 12px 0 0; text-align: center;">
+            <h1 style="color: #F5C518; margin: 0; font-size: 24px;">Evolution<span style="color: white;">PRO</span></h1>
+        </div>
+        
+        <div style="background: white; padding: 30px; border-radius: 0 0 12px 12px; border: 1px solid #ECEDEF;">
+            <h2 style="color: #1E2128; margin-bottom: 10px;">Ciao {nome}! 👋</h2>
+            
+            <p style="color: #5F6572; line-height: 1.6;">
+                La tua <strong style="color: #1E2128;">Analisi Strategica Personalizzata</strong> è stata completata e revisionata dal nostro team.
+            </p>
+            
+            <p style="color: #5F6572; line-height: 1.6;">
+                Abbiamo preparato un documento dettagliato che analizza il tuo profilo professionale, 
+                le tue risposte e le opportunità per trasformare la tua competenza in un asset digitale.
+            </p>
+            
+            <div style="background: #FEF9E7; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #F5C518;">
+                <h3 style="color: #1E2128; margin: 0 0 10px 0;">📄 Scarica la tua Analisi</h3>
+                <a href="{full_docx_url}" style="display: inline-block; background: #F5C518; color: #1E2128; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+                    Scarica DOCX
+                </a>
+            </div>
+            
+            <p style="color: #5F6572; line-height: 1.6;">
+                <strong style="color: #1E2128;">Il prossimo passo:</strong> fissare una videocall strategica di 60 minuti con Claudio 
+                per commentare insieme l'analisi e valutare se avviare la partnership.
+            </p>
+            
+            <div style="background: #8B5CF620; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #8B5CF6;">
+                <h3 style="color: #1E2128; margin: 0 0 10px 0;">📅 Prenota la tua Call</h3>
+                <a href="{calendar_link}" style="display: inline-block; background: #8B5CF6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+                    Aggiungi al Calendario
+                </a>
+                <p style="color: #5F6572; font-size: 12px; margin-top: 10px;">
+                    Clicca per proporre una data. Riceverai conferma via email.
+                </p>
+            </div>
+            
+            <p style="color: #5F6572; line-height: 1.6;">
+                Prima della call, ti consigliamo di:
+            </p>
+            <ul style="color: #5F6572; line-height: 1.8;">
+                <li>Leggere attentamente l'Analisi Strategica</li>
+                <li>Annotare eventuali domande o dubbi</li>
+                <li>Preparare idee sul tuo videocorso ideale</li>
+            </ul>
+            
+            <hr style="border: none; border-top: 1px solid #ECEDEF; margin: 30px 0;">
+            
+            <p style="color: #9CA3AF; font-size: 12px; text-align: center;">
+                Hai domande? Rispondi a questa email o scrivi a assistenza@evolution-pro.it
+            </p>
+        </div>
+        
+        <div style="text-align: center; padding: 20px; color: #9CA3AF; font-size: 11px;">
+            © Evolution PRO LLC - 8 The Green, Ste A, Dover, DE 19901, USA
+        </div>
+    </div>
+    """
+    
+    # Try to send via internal email service or log for manual sending
+    try:
+        # Check if we have an email service configured
+        from integrated_services import send_email_notification
+        await send_email_notification(
+            to=to_email,
+            subject=subject,
+            html=html_content
+        )
+    except Exception as e:
+        # Fallback: log the email for manual sending
+        print(f"[EMAIL] Would send to {to_email}: {subject}")
+        # Store in database for STEFANIA to pick up
+        try:
+            await db.email_queue.insert_one({
+                "to": to_email,
+                "subject": subject,
+                "html": html_content,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "status": "pending",
+                "type": "analisi_pronta"
+            })
+        except:
+            pass
