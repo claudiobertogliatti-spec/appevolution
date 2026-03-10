@@ -102,7 +102,12 @@ def serialize_cliente(cliente):
             "data_risposta": None,
             "convertito": None
         }),
-        "notes": cliente.get("notes")
+        "notes": cliente.get("notes"),
+        # Workflow analisi
+        "workflow_status": cliente.get("workflow_status"),
+        "docx_analisi_url": cliente.get("docx_analisi_url"),
+        "testo_ai": cliente.get("testo_ai"),
+        "analisi_generata_at": cliente.get("analisi_generata_at")
     }
 
 # Routes
