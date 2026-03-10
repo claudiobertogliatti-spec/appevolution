@@ -348,7 +348,7 @@ export function ClienteDashboard({ cliente, onLogout }) {
               <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
                 <h2 className="text-xl font-bold text-[#1E2128] mb-1">Raccontaci il tuo progetto</h2>
                 <p className="text-sm text-[#5F6572] mb-6">
-                  7 domande — circa 5 minuti. Non ci sono risposte giuste o sbagliate: sii diretto/a.
+                  7 domande — circa 5 minuti. Non ci sono risposte giuste o sbagliate: sii il più dettagliato possibile!
                 </p>
 
                 <div className="space-y-6">
