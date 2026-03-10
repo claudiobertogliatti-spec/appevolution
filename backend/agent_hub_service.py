@@ -86,17 +86,12 @@ class AgentAnalyticsHub:
         
         if agent_id == "MAIN":
             metrics["total_partners"] = await self.db.partners.count_documents({})
-            metrics["active_partners"] = await self.db.partners.count_documents({"status": "active"})
+            # Fix: conta partner con fase F1-F13 (escludi null, F0, e fasi non valide)
+            valid_phases = ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "F13"]
+            metrics["active_partners"] = await self.db.partners.count_documents({
+                "phase": {"$in": valid_phases}
+            })
             metrics["total_leads"] = await self.db.leads.count_documents({})
-            
-        elif agent_id == "ORION":
-            # Lead scoring metrics
-            leads = await self.db.leads.find({}, {"score": 1}).to_list(1000)
-            scores = [l.get("score", 0) for l in leads if l.get("score")]
-            metrics["lead_score_avg"] = round(sum(scores) / len(scores), 1) if scores else 0
-            metrics["hot_leads"] = len([s for s in scores if s >= 70])
-            metrics["warm_leads"] = len([s for s in scores if 40 <= s < 70])
-            metrics["cold_leads"] = len([s for s in scores if s < 40])
             
         elif agent_id == "MARCO":
             # Accountability metrics
@@ -279,7 +274,7 @@ class AgentAnalyticsHub:
         
         return opportunities
     
-    async def _generate_opportunities(self, orion: Dict, marta: Dict) -> List[Dict]:
+    async def _generate_opportunities(self, *args) -> List[Dict]:
         """Legacy function - kept for compatibility"""
         return []
 
