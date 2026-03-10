@@ -930,7 +930,6 @@ export default function App() {
     {id:"onboarding-admin",label:"Onboarding Docs",icon:FileCheck},
     {id:"andrea",label:"ANDREA — Editing Feed",icon:Film},
     {id:"copyfactory",label:"STEFANIA — Copy Factory",icon:Edit3},
-    {id:"atlas",label:"ATLAS",icon:Trophy},
     {id:"compliance",label:"LUCA",icon:Shield},
     {id:"valentina",label:"VALENTINA",icon:MessageCircle,dot:true},
   ];
