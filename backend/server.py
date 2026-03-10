@@ -974,7 +974,6 @@ async def register(request: RegisterRequest):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-
 async def send_partner_welcome_email(email: str, name: str):
     """Send welcome email to new partner with app instructions
     
@@ -1074,7 +1073,6 @@ async def send_partner_welcome_email(email: str, name: str):
     
     return True
 
-
 @api_router.post("/onboarding/send-systeme-email/{partner_id}")
 async def send_systeme_instructions_email(partner_id: str, systeme_email: str = None, systeme_password: str = None):
     """Send Systeme.io platform instructions email to partner (called by team after creating sub-account)"""
@@ -1163,7 +1161,6 @@ async def send_systeme_instructions_email(partner_id: str, systeme_email: str = 
     
     return {"success": True, "message": f"Email istruzioni Systeme.io inviata a {email}"}
 
-
 @api_router.post("/onboarding/send-welcome-email/{partner_id}")
 async def resend_welcome_email(partner_id: str):
     """Send or resend welcome email to partner"""
@@ -1191,7 +1188,6 @@ async def resend_welcome_email(partner_id: str):
         logging.error(f"Failed to send welcome email: {e}")
         raise HTTPException(status_code=500, detail=f"Errore invio email: {str(e)}")
 
-
 @api_router.patch("/onboarding/systeme-account/{partner_id}")
 async def mark_systeme_account_created(partner_id: str, systeme_email: str = None):
     """Mark that Systeme.io sub-account has been created for partner"""
@@ -1209,7 +1205,6 @@ async def mark_systeme_account_created(partner_id: str, systeme_email: str = Non
     )
     
     return {"success": True, "message": "Account Systeme.io contrassegnato come creato"}
-
 
 @api_router.get("/onboarding/status")
 async def get_onboarding_status():
@@ -1796,7 +1791,6 @@ Revenue Generato: €{partner.get('revenue', 0):,}
     
     return PlainTextResponse(content, media_type="text/plain")
 
-
 @api_router.get("/partners/{partner_id}/contract-pdf")
 async def get_partner_contract_pdf(partner_id: str):
     """Generate and return the partner's contract as a professionally formatted PDF"""
@@ -2024,7 +2018,6 @@ async def get_partner_contract_pdf(partner_id: str):
             "Content-Disposition": f"attachment; filename={filename}"
         }
     )
-
 
 # =============================================================================
 # ROUTES - ONBOARDING DOCUMENTS (Partner Upload during Registration)
@@ -2582,7 +2575,6 @@ async def clear_chat_history(session_id: str):
     valentina_reset_session(session_id)
     return {"status": "cleared", "llm_session_reset": True}
 
-
 @api_router.post("/chat/reset/{session_id}")
 async def reset_valentina_session(session_id: str):
     """Reset VALENTINA's conversation memory for a session"""
@@ -2592,14 +2584,12 @@ async def reset_valentina_session(session_id: str):
         return {"success": True, "message": f"Session {session_id} reset successfully"}
     return {"success": True, "message": f"No active session found for {session_id}"}
 
-
 @api_router.get("/chat/sessions/active")
 async def get_active_valentina_sessions():
     """Get list of active VALENTINA sessions (admin only)"""
     from valentina_ai import valentina_get_active_sessions
     sessions = valentina_get_active_sessions()
     return {"active_sessions": sessions, "count": len(sessions)}
-
 
 # =============================================================================
 # VALENTINA MEMORY SYSTEM API
@@ -2650,7 +2640,6 @@ async def get_valentina_knowledge(
         "knowledge": knowledge
     }
 
-
 # =============================================================================
 # AGENT TASK SYSTEM - Track and execute tasks assigned to agents
 # =============================================================================
@@ -2663,7 +2652,6 @@ class AgentTaskCreate(BaseModel):
     partner_id: Optional[str] = None
     due_date: Optional[str] = None
     created_by: str = "valentina"
-
 
 @api_router.post("/agent-tasks")
 async def create_agent_task(task: AgentTaskCreate):
@@ -2693,7 +2681,6 @@ async def create_agent_task(task: AgentTaskCreate):
     
     return {"success": True, "task": task_doc}
 
-
 @api_router.get("/agent-tasks")
 async def list_agent_tasks(
     agent: str = None,
@@ -2710,7 +2697,6 @@ async def list_agent_tasks(
     tasks = await db.agent_tasks.find(query, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
     
     return {"tasks": tasks, "count": len(tasks)}
-
 
 # NOTE: Static routes BEFORE parametric routes to avoid conflicts
 @api_router.get("/agent-tasks/summary/dashboard")
@@ -2745,7 +2731,6 @@ async def get_tasks_dashboard():
         "recent_tasks": recent
     }
 
-
 # =============================================================================
 # APPROVAL WORKFLOW ENDPOINTS
 # =============================================================================
@@ -2760,16 +2745,13 @@ from approval_workflow import (
     get_approval_stats
 )
 
-
 class ApproveRequest(BaseModel):
     reviewer: str
     notes: Optional[str] = None
 
-
 class RejectRequest(BaseModel):
     reviewer: str
     feedback: str
-
 
 @api_router.get("/agent-tasks/approvals")
 async def list_pending_approvals(
@@ -2780,13 +2762,11 @@ async def list_pending_approvals(
     tasks = await get_pending_approvals(db, agent, partner_id)
     return {"tasks": tasks, "count": len(tasks)}
 
-
 @api_router.get("/agent-tasks/approval-stats")
 async def get_approval_statistics():
     """Statistiche approvazioni"""
     stats = await get_approval_stats(db)
     return stats
-
 
 # Parametric routes AFTER static routes
 @api_router.get("/agent-tasks/{task_id}")
@@ -2796,7 +2776,6 @@ async def get_agent_task(task_id: str):
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
-
 
 @api_router.get("/agent-tasks/{task_id}/preview")
 async def get_task_preview(task_id: str):
@@ -2818,7 +2797,6 @@ async def get_task_preview(task_id: str):
         "partner_id": task.get("partner_id"),
         "created_at": task.get("created_at")
     }
-
 
 @api_router.patch("/agent-tasks/{task_id}/status")
 async def update_task_status(task_id: str, status: str, result: str = None):
@@ -2847,7 +2825,6 @@ async def update_task_status(task_id: str, status: str, result: str = None):
         raise HTTPException(status_code=404, detail="Task not found")
     
     return {"success": True, "task_id": task_id, "new_status": status}
-
 
 @api_router.get("/agent-tasks/summary/dashboard")
 async def get_tasks_dashboard():
@@ -2883,7 +2860,6 @@ async def get_tasks_dashboard():
         "recent_tasks": recent
     }
 
-
 # =============================================================================
 # OPENCLAW INTEGRATION - Azioni GUI su Systeme.io
 # =============================================================================
@@ -2900,7 +2876,6 @@ from openclaw_integration import (
     get_pending_openclaw_tasks
 )
 
-
 class OpenClawTaskRequest(BaseModel):
     action: str
     params: Dict
@@ -2908,12 +2883,10 @@ class OpenClawTaskRequest(BaseModel):
     description: str = ""
     partner_id: Optional[str] = None
 
-
 class OpenClawCallbackRequest(BaseModel):
     task_id: str
     status: str  # "done" or "fail"
     result: Optional[str] = None
-
 
 @api_router.post("/openclaw/task")
 async def create_openclaw_task(request: OpenClawTaskRequest):
@@ -2929,7 +2902,6 @@ async def create_openclaw_task(request: OpenClawTaskRequest):
     result = await send_openclaw_task(task, db)
     return result
 
-
 @api_router.post("/openclaw/pipeline/column")
 async def create_pipeline_column_endpoint(
     column_name: str,
@@ -2939,7 +2911,6 @@ async def create_pipeline_column_endpoint(
     """Crea una colonna nella pipeline Systeme.io (via OpenClaw)"""
     result = await create_pipeline_column(column_name, pipeline_name, position, db)
     return result
-
 
 @api_router.post("/openclaw/pipeline/move")
 async def move_contact_endpoint(
@@ -2951,7 +2922,6 @@ async def move_contact_endpoint(
     result = await move_contact_to_column(email, target_column, pipeline_name, db)
     return result
 
-
 @api_router.post("/openclaw/funnel")
 async def create_funnel_endpoint(
     funnel_name: str,
@@ -2961,7 +2931,6 @@ async def create_funnel_endpoint(
     """Crea un nuovo funnel su Systeme.io (via OpenClaw)"""
     result = await create_funnel(funnel_name, template, pages, db)
     return result
-
 
 @api_router.post("/openclaw/callback")
 async def openclaw_callback(request: OpenClawCallbackRequest):
@@ -2974,13 +2943,11 @@ async def openclaw_callback(request: OpenClawCallbackRequest):
     )
     return result
 
-
 @api_router.get("/openclaw/tasks/pending")
 async def list_pending_openclaw_tasks():
     """Lista task OpenClaw in attesa"""
     tasks = await get_pending_openclaw_tasks(db)
     return {"tasks": tasks, "count": len(tasks)}
-
 
 @api_router.get("/openclaw/tasks")
 async def list_all_openclaw_tasks(limit: int = 50):
@@ -2991,7 +2958,6 @@ async def list_all_openclaw_tasks(limit: int = 50):
     ).sort("created_at", -1).limit(limit).to_list(limit)
     
     return {"tasks": tasks, "count": len(tasks)}
-
 
 # =============================================================================
 # INTEGRATED SERVICES - Systeme.io & Background Jobs
@@ -3005,16 +2971,13 @@ from integrated_services import (
     create_agent_task
 )
 
-
 class TagRequest(BaseModel):
     email: str
     tag_name: str
 
-
 class CampaignRequest(BaseModel):
     segment_tag: str  # Tag to filter contacts (e.g., "lead_cold")
     campaign_tag: str  # Tag to trigger email automation
-
 
 class AgentTaskRequest(BaseModel):
     agent: str
@@ -3023,7 +2986,6 @@ class AgentTaskRequest(BaseModel):
     data: Optional[Dict] = None
     priority: str = "medium"
     execute_now: bool = False
-
 
 @api_router.post("/systeme/welcome/{partner_id}")
 async def api_send_welcome_via_systeme(partner_id: str):
@@ -3051,20 +3013,17 @@ async def api_send_welcome_via_systeme(partner_id: str):
     
     return result
 
-
 @api_router.post("/systeme/campaign")
 async def api_trigger_campaign(request: CampaignRequest):
     """Trigger email campaign to a segment via Systeme.io"""
     result = await trigger_email_campaign(request.segment_tag, request.campaign_tag)
     return result
 
-
 @api_router.post("/systeme/tag/add")
 async def api_add_systeme_tag(request: TagRequest):
     """Add tag to contact in Systeme.io"""
     result = await integrated_add_tag(request.email, request.tag_name)
     return result
-
 
 @api_router.get("/systeme/contacts")
 async def api_get_systeme_contacts(limit: int = 100, page: int = 1):
@@ -3075,7 +3034,6 @@ async def api_get_systeme_contacts(limit: int = 100, page: int = 1):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @api_router.get("/systeme/tags")
 async def api_get_systeme_tags():
     """Get all tags from Systeme.io"""
@@ -3084,7 +3042,6 @@ async def api_get_systeme_tags():
         return {"tags": tags}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @api_router.post("/systeme/sync-contacts")
 async def api_sync_systeme_contacts():
@@ -3096,7 +3053,6 @@ async def api_sync_systeme_contacts():
         execute_now=True
     )
     return task
-
 
 @api_router.post("/jobs/task")
 async def api_create_task(request: AgentTaskRequest):
@@ -3111,13 +3067,11 @@ async def api_create_task(request: AgentTaskRequest):
     )
     return result
 
-
 @api_router.post("/jobs/process")
 async def api_process_pending_tasks():
     """Manually trigger processing of pending tasks"""
     await job_executor.process_pending_tasks()
     return {"success": True, "message": "Pending tasks processed"}
-
 
 @api_router.get("/jobs/status")
 async def api_get_job_status():
@@ -3135,7 +3089,6 @@ async def api_get_job_status():
         "completed_today": completed_today,
         "worker_running": job_executor.running
     }
-
 
 @api_router.post("/valentina/memory/feedback")
 async def add_valentina_feedback(
@@ -4710,8 +4663,7 @@ UNLOCK_CONDITIONS = {
     "feedback_given": {"type": "feedback", "threshold": 1, "label": "Lascia un feedback"}
 }
 
-@api_router.get("/atlas/students/{partner_id}")
-async def get_partner_students(partner_id: str, status: str = None):
+def get_partner_students(partner_id: str, status: str = None):
     """Get all students for a partner's academy"""
     query = {"partner_id": partner_id}
     if status:
@@ -4734,8 +4686,7 @@ async def get_partner_students(partner_id: str, status: str = None):
         "students": students
     }
 
-@api_router.post("/atlas/students/enroll")
-async def enroll_student(
+def enroll_student(
     partner_id: str = Form(...),
     email: str = Form(...),
     name: str = Form(...),
@@ -4770,8 +4721,7 @@ async def enroll_student(
         "referral_code": student_referral_code
     }
 
-@api_router.post("/atlas/students/{student_id}/progress")
-async def update_student_progress(
+def update_student_progress(
     student_id: str,
     progress_percent: float = Form(...),
     completed_module: str = Form(None)
@@ -4872,14 +4822,12 @@ async def check_and_unlock_bonuses(partner_id: str, student_id: str, progress: f
     
     return newly_unlocked
 
-@api_router.get("/atlas/bonuses/{partner_id}")
-async def get_partner_bonuses(partner_id: str):
+def get_partner_bonuses(partner_id: str):
     """Get all bonus content for a partner"""
     bonuses = await db.bonus_content.find({"partner_id": partner_id}, {"_id": 0}).to_list(50)
     return bonuses
 
-@api_router.post("/atlas/bonuses")
-async def create_bonus_content(
+def create_bonus_content(
     partner_id: str = Form(...),
     title: str = Form(...),
     description: str = Form(...),
@@ -4906,8 +4854,7 @@ async def create_bonus_content(
 # ATLAS - FEEDBACK-TO-COPY BRIDGE (STEFANIA)
 # =============================================================================
 
-@api_router.post("/atlas/feedback")
-async def submit_student_feedback(
+def submit_student_feedback(
     partner_id: str = Form(...),
     student_id: str = Form(...),
     content: str = Form(...),
@@ -4930,8 +4877,7 @@ async def submit_student_feedback(
     
     return {"success": True, "feedback_id": feedback.id}
 
-@api_router.get("/atlas/feedback/{partner_id}")
-async def get_partner_feedback(partner_id: str, analyzed: bool = None):
+def get_partner_feedback(partner_id: str, analyzed: bool = None):
     """Get all feedback for a partner"""
     query = {"partner_id": partner_id}
     if analyzed is not None:
@@ -4940,8 +4886,7 @@ async def get_partner_feedback(partner_id: str, analyzed: bool = None):
     feedback = await db.student_feedback.find(query, {"_id": 0}).sort("created_at", -1).to_list(200)
     return feedback
 
-@api_router.post("/atlas/feedback/analyze/{partner_id}")
-async def analyze_feedback_for_copy(partner_id: str):
+def analyze_feedback_for_copy(partner_id: str):
     """
     STEFANIA analyzes student feedback to extract copy angles
     Runs Feedback-to-Copy Bridge analysis
@@ -5061,8 +5006,7 @@ Rispondi in JSON:
         logging.error(f"Feedback analysis error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@api_router.get("/atlas/copy-angles/{partner_id}")
-async def get_copy_angle_suggestions(partner_id: str, unused_only: bool = False):
+def get_copy_angle_suggestions(partner_id: str, unused_only: bool = False):
     """Get STEFANIA's copy angle suggestions"""
     query = {"partner_id": partner_id}
     if unused_only:
@@ -5074,8 +5018,7 @@ async def get_copy_angle_suggestions(partner_id: str, unused_only: bool = False)
     
     return angles
 
-@api_router.post("/atlas/copy-angles/{angle_id}/use")
-async def mark_angle_as_used(angle_id: str):
+def mark_angle_as_used(angle_id: str):
     """Mark a copy angle as used in a campaign"""
     await db.copy_angle_suggestions.update_one(
         {"id": angle_id},
@@ -5087,8 +5030,7 @@ async def mark_angle_as_used(angle_id: str):
 # ATLAS - LTV DASHBOARD
 # =============================================================================
 
-@api_router.get("/atlas/ltv-dashboard/{partner_id}")
-async def get_ltv_dashboard(partner_id: str):
+def get_ltv_dashboard(partner_id: str):
     """
     LTV Dashboard: Shows complete asset value for a partner
     - Active students
@@ -5170,8 +5112,7 @@ async def get_ltv_dashboard(partner_id: str):
         }
     }
 
-@api_router.post("/atlas/referral/create")
-async def create_referral(
+def create_referral(
     partner_id: str = Form(...),
     referrer_student_id: str = Form(...),
     referred_email: str = Form(...)
@@ -5199,8 +5140,7 @@ async def create_referral(
         "share_link": f"https://systeme.io/{partner_id}?ref={referral_code}"
     }
 
-@api_router.get("/atlas/referrals/{partner_id}")
-async def get_partner_referrals(partner_id: str):
+def get_partner_referrals(partner_id: str):
     """Get all referrals for a partner"""
     referrals = await db.referral_records.find({"partner_id": partner_id}, {"_id": 0}).to_list(500)
     return referrals
@@ -7752,20 +7692,17 @@ async def stefania_create_tag(name: str):
     client = get_systeme_client()
     return await client.create_tag(name)
 
-@api_router.get("/systeme/marta/contacts")
-async def marta_get_contacts(limit: int = 100, page: int = 1):
+def marta_get_contacts(limit: int = 100, page: int = 1):
     """MARTA: Recupera contatti CRM"""
     client = get_systeme_client()
     return await client.get_contacts(limit=limit, page=page)
 
-@api_router.post("/systeme/marta/contact")
-async def marta_create_contact(email: str, first_name: str = None, last_name: str = None):
+def marta_create_contact(email: str, first_name: str = None, last_name: str = None):
     """MARTA: Crea nuovo contatto"""
     client = get_systeme_client()
     return await client.create_contact(email=email, first_name=first_name, last_name=last_name)
 
-@api_router.get("/systeme/marta/orders")
-async def marta_get_orders(limit: int = 100):
+def marta_get_orders(limit: int = 100):
     """MARTA: Recupera ordini"""
     client = get_systeme_client()
     return await client.get_orders(limit=limit)
@@ -7782,14 +7719,12 @@ async def andrea_get_course_students(course_id: str):
     client = get_systeme_client()
     return await client.get_course_students(course_id)
 
-@api_router.get("/systeme/orion/products")
-async def orion_get_products():
+def orion_get_products():
     """ORION: Recupera prodotti"""
     client = get_systeme_client()
     return await client.get_products()
 
-@api_router.get("/systeme/atlas/courses")
-async def atlas_get_courses():
+def atlas_get_courses():
     """ATLAS: Recupera corsi per LTV analysis"""
     client = get_systeme_client()
     return await client.get_courses()
@@ -7879,14 +7814,12 @@ async def gaia_create_contact_with_phase(request: CreateContactWithPhaseRequest)
 
 # --- MARTA: CRM completo ---
 
-@api_router.post("/systeme/marta/move-phase")
-async def marta_move_contact_phase(request: MoveToPhaseRequest):
+def marta_move_contact_phase(request: MoveToPhaseRequest):
     """MARTA: Sposta contatto a nuova fase (CRM)"""
     client = get_systeme_client()
     return await client.move_contact_to_phase(request.contact_id, request.phase)
 
-@api_router.post("/systeme/marta/create-partner")
-async def marta_create_partner(request: CreateContactWithPhaseRequest):
+def marta_create_partner(request: CreateContactWithPhaseRequest):
     """MARTA: Crea nuovo partner con fase"""
     client = get_systeme_client()
     return await client.create_contact_with_phase(
@@ -7896,8 +7829,7 @@ async def marta_create_partner(request: CreateContactWithPhaseRequest):
         phase=request.phase
     )
 
-@api_router.post("/systeme/marta/bulk-tag")
-async def marta_bulk_tag(request: BulkTagRequest):
+def marta_bulk_tag(request: BulkTagRequest):
     """MARTA: Aggiunge tag a multipli contatti"""
     client = get_systeme_client()
     return await client.bulk_add_tag(request.contact_ids, request.tag_id)
@@ -7918,16 +7850,14 @@ async def andrea_notify_course_access(contact_id: str):
 
 # --- ATLAS: LTV e studenti ---
 
-@api_router.post("/systeme/atlas/enroll")
-async def atlas_enroll_student(request: EnrollStudentRequest):
+def atlas_enroll_student(request: EnrollStudentRequest):
     """ATLAS: Iscrive studente per tracking LTV"""
     client = get_systeme_client()
     return await client.enroll_student(request.course_id, request.contact_id)
 
 # --- ORION: Sales triggers ---
 
-@api_router.post("/systeme/orion/trigger-sales")
-async def orion_trigger_sales_automation(request: TriggerAutomationRequest):
+def orion_trigger_sales_automation(request: TriggerAutomationRequest):
     """ORION: Triggera automazione sales"""
     client = get_systeme_client()
     return await client.trigger_automation(request.contact_id, request.tag_name)
@@ -10687,8 +10617,7 @@ Rispondi in JSON con questo formato:
 # ORION - LEAD SCORING & INTELLIGENCE
 # =============================================================================
 
-@api_router.get("/orion/score/{email}")
-async def orion_score_single_lead(email: str):
+def orion_score_single_lead(email: str):
     """Score a single lead by email"""
     # Find lead in database or Systeme.io contacts
     lead = await db.leads.find_one({"email": email}, {"_id": 0})
@@ -10722,8 +10651,7 @@ async def orion_score_single_lead(email: str):
         "scoring": scored
     }
 
-@api_router.post("/orion/analyze-list")
-async def orion_analyze_lead_list(limit: int = 1000):
+def orion_analyze_lead_list(limit: int = 1000):
     """
     Analyze and score all Systeme.io contacts
     Use for initial 13K lead analysis
@@ -10775,8 +10703,7 @@ async def orion_analyze_lead_list(limit: int = 1000):
         "analyzed_at": datetime.now(timezone.utc).isoformat()
     }
 
-@api_router.get("/orion/segments")
-async def orion_get_segments():
+def orion_get_segments():
     """Get current lead segments for monetization"""
     # Get latest analysis
     analysis = await db.orion_analysis.find_one(
@@ -10807,8 +10734,7 @@ async def orion_get_segments():
         }
     }
 
-@api_router.post("/orion/tag-segment/{segment}")
-async def orion_tag_segment(segment: str, tag_name: str):
+def orion_tag_segment(segment: str, tag_name: str):
     """
     Tag all leads in a segment for Systeme.io automation
     segment: hot, warm, cold, frozen
@@ -10854,8 +10780,7 @@ async def orion_tag_segment(segment: str, tag_name: str):
 # ORION - RE-TAGGING & SEGMENTATION SYSTEM
 # =============================================================================
 
-@api_router.post("/orion/retag-contacts")
-async def orion_retag_contacts():
+def orion_retag_contacts():
     """
     Analizza tutti i contatti e li classifica in base ai tag Evolution PRO.
     Esclude i partner attivi e segmenta i lead per azioni di riattivazione.
@@ -10953,8 +10878,7 @@ async def orion_retag_contacts():
         "message": f"Processati {results['total_processed']} contatti. Partner esclusi: {results['partners_excluded']}"
     }
 
-@api_router.get("/orion/leads-by-segment/{segment}")
-async def get_leads_by_segment(segment: str, limit: int = 100, skip: int = 0):
+def get_leads_by_segment(segment: str, limit: int = 100, skip: int = 0):
     """
     Get leads by ORION segment: hot, warm, cold, frozen, partner
     """
@@ -10976,8 +10900,7 @@ async def get_leads_by_segment(segment: str, limit: int = 100, skip: int = 0):
         "total": total
     }
 
-@api_router.post("/orion/bulk-tag")
-async def orion_bulk_tag(segment: str, new_tag: str, limit: int = 500):
+def orion_bulk_tag(segment: str, new_tag: str, limit: int = 500):
     """
     Add a tag to all contacts in a segment (in local DB).
     Use this to prepare contacts before syncing to Systeme.io.
@@ -11000,8 +10923,7 @@ async def orion_bulk_tag(segment: str, new_tag: str, limit: int = 500):
         "contacts_updated": result.modified_count
     }
 
-@api_router.get("/orion/export-segment/{segment}")
-async def export_segment_emails(segment: str):
+def export_segment_emails(segment: str):
     """
     Export emails from a segment for use in Systeme.io campaigns.
     Returns a list of emails that can be copied to Systeme.io.
@@ -11023,8 +10945,7 @@ async def export_segment_emails(segment: str):
         "emails": emails
     }
 
-@api_router.post("/orion/import-segment-csv")
-async def import_segment_csv(
+def import_segment_csv(
     file: UploadFile = File(...),
     segment: str = Form(...),
     tag_to_add: str = Form(default="")
