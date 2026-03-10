@@ -72,6 +72,12 @@ class StefaniaRouteRequest(BaseModel):
 class StefaniaMonitorRequest(BaseModel):
     partner_ids: Optional[List[str]] = None  # None = tutti i partner attivi
 
+class MarcoRunRequest(BaseModel):
+    partner_id: Optional[str] = None  # Se None, processa tutti i partner F3+
+
+class AndreaRunRequest(BaseModel):
+    partner_id: Optional[str] = None  # Se None, processa tutti i partner F4+
+
 
 # ─────────────────────────────────────────────
 # MARCO — Accountability Settimanale
