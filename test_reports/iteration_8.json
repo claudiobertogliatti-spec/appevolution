@@ -1,0 +1,62 @@
+{
+  "summary": "All 5 backend fixes verified successfully. ObjectId bug on onboarding endpoint fixed, GET /api/agents returns 6 agents with MARCO, agent-hub summary shows 25 active partners, and both MARCO/ANDREA run endpoints return 200.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "✅ GET /api/partner/5/onboarding returns 200 (ObjectId bug FIXED)",
+    "✅ GET /api/agents returns 6 agents: STEFANIA, VALENTINA, MAIN, GAIA, ANDREA, MARCO",
+    "✅ MARCO agent present with role='Accountability', category='Coaching', status='ACTIVE'",
+    "✅ GET /api/agent-hub/summary returns active_partners=25 (> 0)",
+    "✅ POST /api/agents/marco/run returns 200 with success=true, contacted 20 partners",
+    "✅ POST /api/agents/andrea/run returns 200 with success=true, reviewed 12 partners",
+    "✅ Onboarding endpoint handles string IDs correctly (helper functions find_partner/update_partner working)",
+    "✅ All agents have required fields: id, role, status, budget, category",
+    "✅ Agent-hub summary includes health info: accountability, tech, engagement, overall",
+    "✅ API health check returns 200"
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_onboarding_agents.py",
+    "/app/test_reports/pytest/pytest_results_onboarding_agents.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_onboarding_agents.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "N/A - backend only testing"
+  },
+  "seed_data_creation": "None - used existing partners in database",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All 5 fixes verified: 1) ObjectId bug fixed via find_partner() and update_partner() helper functions in onboarding.py, 2) GET /api/agents returns 6 agents including MARCO, 3) agent-hub summary shows 25 active partners, 4) MARCO run endpoint works (contacted 20 partners in F3+), 5) ANDREA run endpoint works (reviewed 12 partners in F4+).",
+  "verified_fixes": {
+    "objectid_bug": "FIXED - /api/partner/5/onboarding returns 200 instead of 500",
+    "marco_agent": "PRESENT - GET /api/agents includes MARCO with correct role/category",
+    "active_partners": "WORKING - agent-hub summary shows 25 active partners",
+    "marco_run": "WORKING - POST /api/agents/marco/run returns 200, contacted 20 partners",
+    "andrea_run": "WORKING - POST /api/agents/andrea/run returns 200, reviewed 12 partners"
+  },
+  "api_endpoints_tested": {
+    "GET /api/partner/5/onboarding": "200 - Returns onboarding status with payment info",
+    "GET /api/agents": "200 - Returns 6 agents including MARCO",
+    "GET /api/agent-hub/summary": "200 - Returns summary with 25 active partners",
+    "POST /api/agents/marco/run": "200 - Generates check-ins for F3+ partners",
+    "POST /api/agents/andrea/run": "200 - Generates video plans for F4+ partners",
+    "GET /api/health": "200 - API healthy"
+  },
+  "test_execution_details": {
+    "total_tests": 12,
+    "passed": 12,
+    "failed": 0,
+    "duration": "14.19s"
+  }
+}
