@@ -167,7 +167,7 @@ async def scarica_contratto(partner_id: str):
         raise HTTPException(status_code=500, detail="Database not initialized")
     
     try:
-        partner = await db.partners.find_one({"_id": ObjectId(partner_id)})
+        partner = await find_partner(partner_id)
         if not partner:
             raise HTTPException(status_code=404, detail="Partner non trovato")
         
@@ -317,16 +317,13 @@ async def upload_distinta(partner_id: str, file: UploadFile = File(...)):
         
         url = f"/static/documenti/{partner_id}/distinta_pagamento{ext}"
         
-        await db.partners.update_one(
-            {"_id": ObjectId(partner_id)},
-            {"$set": {
+        await update_partner(partner_id, {"$set": {
                 "onboarding.distinta.url": url,
                 "onboarding.distinta.caricata_at": datetime.now(timezone.utc).isoformat(),
                 "onboarding.distinta.approvata": None,
                 "onboarding.step_corrente": 5,
                 "stato": "In revisione",
-            }}
-        )
+            }})
         
         return {"success": True, "url": url}
     except Exception as e:
@@ -343,7 +340,7 @@ async def get_onboarding(partner_id: str):
         raise HTTPException(status_code=500, detail="Database not initialized")
     
     try:
-        partner = await db.partners.find_one({"_id": ObjectId(partner_id)})
+        partner = await find_partner(partner_id)
         if not partner:
             raise HTTPException(status_code=404, detail="Partner non trovato")
         
