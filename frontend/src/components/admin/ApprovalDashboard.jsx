@@ -97,6 +97,28 @@ const ApprovalDashboard = () => {
     }
   };
 
+  const handleApprovaAnalisi = async (clienteId) => {
+    setActionLoading(true);
+    try {
+      const response = await fetch(`${API}/clienti/admin/${clienteId}/approva-analisi`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (response.ok) {
+        fetchData();
+      }
+    } catch (error) {
+      console.error('Error approving analysis:', error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const downloadDocx = (clienteId) => {
+    window.open(`${API}/clienti/${clienteId}/scarica-docx`, '_blank');
+  };
+
   const getAgentIcon = (agent) => {
     switch (agent?.toUpperCase()) {
       case 'STEFANIA': return <Mail className="w-4 h-4" />;
