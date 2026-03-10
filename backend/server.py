@@ -7222,16 +7222,6 @@ async def andrea_get_course_students(course_id: str):
     client = get_systeme_client()
     return await client.get_course_students(course_id)
 
-def orion_get_products():
-    """ORION: Recupera prodotti"""
-    client = get_systeme_client()
-    return await client.get_products()
-
-def atlas_get_courses():
-    """ATLAS: Recupera corsi per LTV analysis"""
-    client = get_systeme_client()
-    return await client.get_courses()
-
 # =============================================================================
 # SYSTEME.IO WRITE ACTIONS (Nuovi endpoint per azioni di scrittura)
 # =============================================================================
