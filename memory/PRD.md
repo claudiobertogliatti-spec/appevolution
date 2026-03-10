@@ -59,9 +59,11 @@ Italian
 ### Fix Urgenti (Mar 10, 2026) - DEPLOYED
 - ✅ **PROBLEMA 1:** Crash 500 su endpoint onboarding → Fixato con helper `find_partner()` e `update_partner()`
 - ✅ **PROBLEMA 4:** MARCO non in GET /api/agents → Già presente (6 agenti totali)
-- ✅ **UI Cliente Pre-Questionario:** Nuovi testi "Benvenuto in Evolution PRO" + "Raccontaci il tuo progetto"
+- ✅ **UI Cliente Pre-Questionario:** Nuovi testi "✅ Benvenuto in Evolution PRO" + "Raccontaci il tuo progetto"
 - ✅ **UI Cliente Post-Questionario:** Nuovi testi "Complimenti + Siamo al secondo step"
 - ✅ **Counter active_partners:** 25 partner attivi (era 0/1)
+- ✅ **7 Bonus Strategici arricchiti:** Aggiunta sezione keyPoints con punti chiave per ogni bonus
+- ✅ **Avatar PRO completo:** Sezione offerta commerciale completa con prezzi pacchetti (3, 5, 10, 15 lezioni) e descrizione workflow
 
 ### Onboarding Partner con Upload Documenti (Mar 2026) - NEW
 - ✅ **Backend (`routers/onboarding.py`):**
