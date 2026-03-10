@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timezone
 from bson import ObjectId
+from bson.errors import InvalidId
 from pathlib import Path
 import aiofiles
 import os
@@ -23,6 +24,43 @@ db = None
 def set_db(database):
     global db
     db = database
+
+# Helper function to build partner query (handles both ObjectId and string IDs)
+def build_partner_query(partner_id: str):
+    """Costruisce la query giusta indipendentemente dal formato dell'id."""
+    try:
+        return {"_id": ObjectId(partner_id)}
+    except (InvalidId, TypeError):
+        # Prova come stringa nel campo 'id'
+        return {"$or": [{"id": partner_id}, {"id": str(partner_id)}]}
+
+async def find_partner(partner_id: str):
+    """Helper to find partner with either ObjectId or string ID."""
+    # First try with ObjectId
+    try:
+        partner = await db.partners.find_one({"_id": ObjectId(partner_id)})
+        if partner:
+            return partner
+    except (InvalidId, TypeError):
+        pass
+    
+    # Fallback to string ID field
+    partner = await db.partners.find_one({"id": partner_id})
+    return partner
+
+async def update_partner(partner_id: str, update_data: dict):
+    """Helper to update partner with either ObjectId or string ID."""
+    # First try with ObjectId
+    try:
+        result = await db.partners.update_one({"_id": ObjectId(partner_id)}, update_data)
+        if result.matched_count > 0:
+            return result
+    except (InvalidId, TypeError):
+        pass
+    
+    # Fallback to string ID field
+    result = await db.partners.update_one({"id": partner_id}, update_data)
+    return result
 
 # Directories
 CONTRATTI_DIR = Path("/app/backend/static/contratti")
