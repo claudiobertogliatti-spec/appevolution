@@ -566,8 +566,8 @@ class StoredFile(BaseModel):
 # =============================================================================
 
 INITIAL_AGENTS = [
-    {"id": "VALENTINA", "role": "Business Strategist", "status": "ACTIVE", "budget": 28, "category": "Strategia"},
-    {"id": "STEFANIA", "role": "Content & Social", "status": "ACTIVE", "budget": 12, "category": "Comunicazione"},
+    {"id": "VALENTINA", "role": "Onboarding & Consulenza Partner", "status": "ACTIVE", "budget": 28, "category": "Strategia"},
+    {"id": "STEFANIA", "role": "Orchestrazione", "status": "ACTIVE", "budget": 12, "category": "Comunicazione"},
     {"id": "GAIA", "role": "Tech Support", "status": "ACTIVE", "budget": 8, "category": "Supporto"},
     {"id": "ANDREA", "role": "Video Production", "status": "ACTIVE", "budget": 15, "category": "Produzione"},
     {"id": "MARCO", "role": "Accountability", "status": "ACTIVE", "budget": 6, "category": "Coaching"},
