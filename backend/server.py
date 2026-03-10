@@ -11517,6 +11517,9 @@ from routers.clienti import router as clienti_router, set_db as set_clienti_db
 set_clienti_db(db)
 app.include_router(clienti_router)
 
+# Mount static files for DOCX downloads
+app.mount("/api/static", StaticFiles(directory="/app/backend/static"), name="static")
+
 # Include agents router (MARCO, GAIA, STEFANIA)
 from routers.agents_router import router as agents_router
 app.include_router(agents_router, prefix="/api/agents", tags=["agents"])
