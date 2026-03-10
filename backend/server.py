@@ -7319,20 +7319,6 @@ async def andrea_notify_course_access(contact_id: str):
     client = get_systeme_client()
     return await client.send_notification_email(contact_id, "course_access")
 
-# --- ATLAS: LTV e studenti ---
-
-def atlas_enroll_student(request: EnrollStudentRequest):
-    """ATLAS: Iscrive studente per tracking LTV"""
-    client = get_systeme_client()
-    return await client.enroll_student(request.course_id, request.contact_id)
-
-# --- ORION: Sales triggers ---
-
-def orion_trigger_sales_automation(request: TriggerAutomationRequest):
-    """ORION: Triggera automazione sales"""
-    client = get_systeme_client()
-    return await client.trigger_automation(request.contact_id, request.tag_name)
-
 # =============================================================================
 # CLOUDINARY FILE UPLOAD SERVICE
 # =============================================================================
