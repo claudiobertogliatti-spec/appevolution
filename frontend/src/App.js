@@ -23,6 +23,7 @@ import { AndreaChat } from "./components/partner/AndreaChat";
 import { AtlasModule } from "./components/partner/AtlasModule";
 import { CourseBuilderWizard } from "./components/partner/CourseBuilderWizard";
 import { RenewalPlans } from "./components/partner/RenewalPlans";
+import PartnerOnboarding from "./components/partner/PartnerOnboarding";
 import { PartnerDashboardSimplified } from "./components/partner/PartnerDashboardSimplified";
 import { PartnerSidebarLight } from "./components/partner/PartnerSidebar";
 import { PartnerFilesPage } from "./components/partner/PartnerFilesPage";
