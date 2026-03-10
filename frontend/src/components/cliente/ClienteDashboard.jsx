@@ -568,10 +568,36 @@ export function ClienteDashboard({ cliente, onLogout }) {
                           </div>
                         </div>
                         
-                        {/* Chapters (expanded) */}
+                        {/* Chapters (expanded) con KeyPoints */}
                         {expandedBonus === bonus.id && (
                           <div className="border-t border-[#ECEDEF] p-4 bg-[#FAFAF7]">
-                            <p className="text-sm text-[#5F6572] mb-3">{bonus.summary}</p>
+                            {/* Summary */}
+                            <div className="bg-[#FEF9E7] border border-[#F5C518]/20 rounded-lg p-3 mb-4">
+                              <p className="text-sm text-[#C4990A] font-medium">
+                                💡 <strong>In sintesi:</strong> {bonus.summary}
+                              </p>
+                            </div>
+                            
+                            {/* Key Points */}
+                            {bonus.keyPoints && (
+                              <div className="mb-4">
+                                <div className="font-bold text-sm text-[#1E2128] mb-2 flex items-center gap-2">
+                                  <Lightbulb className="w-4 h-4 text-[#F5C518]" />
+                                  Punti Chiave
+                                </div>
+                                <ul className="space-y-2">
+                                  {bonus.keyPoints.map((point, idx) => (
+                                    <li key={idx} className="flex items-start gap-2 text-sm text-[#5F6572]">
+                                      <CheckCircle className="w-4 h-4 text-[#10B981] mt-0.5 flex-shrink-0" />
+                                      {point}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            
+                            {/* Chapters List */}
+                            <div className="font-bold text-sm text-[#1E2128] mb-2">Capitoli:</div>
                             <div className="grid grid-cols-2 gap-2">
                               {bonus.chapters.map((chapter, i) => {
                                 const ChapterIcon = chapter.icon;
