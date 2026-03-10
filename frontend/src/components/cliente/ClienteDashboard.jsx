@@ -1127,10 +1127,10 @@ export function ClienteDashboard({ cliente, onLogout }) {
             )}
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
+          {/* Sidebar - sticky */}
+          <div className="lg:sticky lg:top-24 space-y-6 self-start">
             {/* Team Info Box */}
-            <div className="rounded-2xl p-6 sticky top-24" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+            <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
               <h3 className="font-bold text-[#1E2128] mb-1">Il tuo team ti aspetta</h3>
               <p className="text-xs text-[#5F6572] mb-4">
                 Dopo la call, se il progetto è adatto, avrai accesso a:
