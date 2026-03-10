@@ -28,7 +28,6 @@ const ANTONELLA_NAV = [
   { id: "onboarding-admin", label: "Onboarding Docs", icon: FileCheck },
   { id: "andrea", label: "ANDREA — Editing Feed", icon: Film },
   { id: "copyfactory", label: "STEFANIA — Copy Factory", icon: Edit3 },
-  { id: "atlas", label: "ATLAS", icon: Trophy },
 ];
 
 const TOOLS_NAV = [
