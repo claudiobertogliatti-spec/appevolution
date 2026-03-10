@@ -421,7 +421,11 @@ export function ClienteDashboard({ cliente, onLogout }) {
                       <CheckCircle className="w-7 h-7 text-green-600" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-bold text-[#1E2128] mb-1">✅ Questionario completato!</h2>
+                      <h2 className="text-xl font-bold text-[#1E2128] mb-1">Complimenti {clienteName}!</h2>
+                      <p className="text-[#5F6572] mb-2">
+                        Siamo al secondo step! Non ci resta che fissare in calendario la data e l'ora.
+                      </p>
+                      <h3 className="text-lg font-bold text-[#1E2128] mb-1">✅ Questionario completato!</h3>
                       <p className="text-[#5F6572]">
                         Il Team Evolution ti contatterà entro 48 ore all'email <strong>{clienteEmail}</strong> per 
                         fissare la videocall strategica di 60 minuti.
