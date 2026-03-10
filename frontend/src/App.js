@@ -20,7 +20,6 @@ import { StefaniaChat } from "./components/partner/StefaniaChat";
 import { BrandKitEditor } from "./components/partner/BrandKitEditor";
 import { ProduzioneVideo } from "./components/partner/ProduzioneVideo";
 import { AndreaChat } from "./components/partner/AndreaChat";
-import { AtlasModule } from "./components/partner/AtlasModule";
 import { CourseBuilderWizard } from "./components/partner/CourseBuilderWizard";
 import { RenewalPlans } from "./components/partner/RenewalPlans";
 import PartnerOnboarding from "./components/partner/PartnerOnboarding";
