@@ -80,6 +80,27 @@ def valida_risposte(risposte: dict) -> dict:
     return {"ok": len(campi_ko) == 0, "campi_ko": campi_ko}
 
 
+async def aggiungi_tag_systeme(email: str, tag: str) -> bool:
+    """Aggiunge un tag Systeme.io a un contatto."""
+    try:
+        import httpx
+        api_key = os.environ.get("SYSTEME_MCP_WRITE_KEY", "")
+        if not api_key:
+            logging.warning(f"[SYSTEME] SYSTEME_MCP_WRITE_KEY non configurata")
+            return False
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(
+                "https://api.systeme.io/api/contacts/tags",
+                headers={"X-API-Key": api_key, "Content-Type": "application/json"},
+                json={"email": email, "tags": [tag]}
+            )
+        logging.info(f"[SYSTEME] Tag '{tag}' → {email}: {resp.status_code}")
+        return resp.status_code in (200, 201)
+    except Exception as e:
+        logging.warning(f"[SYSTEME] Errore tag: {e}")
+        return False
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # STEP 2 — GENERAZIONE TESTO AI (Claude via Emergent)
 # ═══════════════════════════════════════════════════════════════════════════════
