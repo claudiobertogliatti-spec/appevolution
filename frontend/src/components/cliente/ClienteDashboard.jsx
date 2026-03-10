@@ -16,12 +16,13 @@ const PROGRESS_STEPS = [
   { id: 3, label: "Call con Claudio", icon: Video, status: "pending" }
 ];
 
-// Team members for info box
+// Team members for info box (aggiunto Stefania)
 const TEAM_MEMBERS = [
   { name: "VALENTINA", role: "strategia e onboarding", color: "#F5C518" },
   { name: "ANDREA", role: "produzione contenuti", color: "#F5C518" },
   { name: "MARCO", role: "accountability settimanale", color: "#F5C518" },
   { name: "GAIA", role: "supporto tecnico", color: "#F5C518" },
+  { name: "STEFANIA", role: "coordinatrice", color: "#F5C518" },
   { name: "Claudio", role: "supervisione e call strategiche", isHuman: true },
   { name: "Antonella", role: "comunicazione e social", isHuman: true }
 ];
