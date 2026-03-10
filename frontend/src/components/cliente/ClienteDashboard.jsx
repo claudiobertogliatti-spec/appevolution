@@ -605,16 +605,56 @@ export function ClienteDashboard({ cliente, onLogout }) {
                   </div>
                 </div>
 
-                {/* Roadmap Partnership Preview */}
+                {/* Roadmap Partnership con dettagli contratto */}
                 <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
                   <div className="flex items-center gap-3 mb-4">
                     <Map className="w-6 h-6 text-[#F5C518]" />
-                    <h3 className="text-lg font-bold text-[#1E2128]">Il Percorso Partnership</h3>
+                    <h3 className="text-lg font-bold text-[#1E2128]">Il Percorso Partnership Evolution PRO</h3>
                   </div>
+                  
                   <p className="text-sm text-[#5F6572] mb-4">
-                    Dopo la call strategica, se il progetto è idoneo, questo sarà il tuo percorso:
+                    Dopo la call strategica, se il progetto supera la fase di Analisi Strategica e viene considerato idoneo, 
+                    potrai accedere alla <strong>Partnership Evolution PRO</strong>. Ecco cosa prevede:
                   </p>
-                  <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                  
+                  {/* Investment Info */}
+                  <div className="p-4 rounded-xl mb-4" style={{ background: '#FEF9E7', border: '1px solid #F5C518' }}>
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[#F5C518] flex items-center justify-center flex-shrink-0">
+                        <Target className="w-5 h-5 text-[#1E2128]" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-[#1E2128] mb-1">Investimento Partnership</div>
+                        <div className="text-sm text-[#5F6572]">
+                          <strong className="text-[#1E2128]">€2.790</strong> (IVA inclusa) — investimento una tantum.<br/>
+                          <span className="text-xs">Valore complessivo progetto: €9.349 di cui il 70% sostenuto da Evolution PRO</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* What's Included */}
+                  <div className="mb-4">
+                    <div className="font-bold text-sm text-[#1E2128] mb-2">Cosa include la Partnership:</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        "Consulenza strategica personalizzata",
+                        "Infrastruttura tecnica (funnel, automazioni)",
+                        "Editing video professionale",
+                        "Copywriting pagine di vendita",
+                        "Supporto lancio e promozione",
+                        "Accesso alla piattaforma Evolution PRO"
+                      ].map((item, i) => (
+                        <div key={i} className="flex items-center gap-2 text-xs text-[#5F6572]">
+                          <CheckCircle className="w-3 h-3 text-[#10B981]" />
+                          <span>{item}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Timeline */}
+                  <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-4">
                     {[
                       { phase: "F1", label: "Posizionamento" },
                       { phase: "F2", label: "Struttura" },
@@ -631,6 +671,40 @@ export function ClienteDashboard({ cliente, onLogout }) {
                         {i < 5 && <ArrowRight className="w-3 h-3 text-[#ECEDEF]" />}
                       </div>
                     ))}
+                  </div>
+                  
+                  {/* Contract & Documents Info */}
+                  <div className="p-4 rounded-xl" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
+                    <div className="font-bold text-sm text-[#1E2128] mb-3 flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-[#F5C518]" />
+                      Come procedere dopo l'approvazione
+                    </div>
+                    <div className="space-y-3 text-sm text-[#5F6572]">
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-[#F5C518] flex items-center justify-center flex-shrink-0 text-xs font-bold text-[#1E2128]">1</div>
+                        <div>
+                          <div className="font-bold text-[#1E2128]">Firma del Contratto di Partnership</div>
+                          <div className="text-xs">Contratto di 12 mesi (non soggetto a proroghe automatiche)</div>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-[#F5C518] flex items-center justify-center flex-shrink-0 text-xs font-bold text-[#1E2128]">2</div>
+                        <div>
+                          <div className="font-bold text-[#1E2128]">Distinta di Pagamento</div>
+                          <div className="text-xs">€2.790 in soluzione unica o max 3 rate mensili (previa approvazione)</div>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-[#F5C518] flex items-center justify-center flex-shrink-0 text-xs font-bold text-[#1E2128]">3</div>
+                        <div>
+                          <div className="font-bold text-[#1E2128]">Documenti Personali</div>
+                          <div className="text-xs">Carta d'identità + Codice Fiscale</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-4 p-3 rounded-lg bg-[#3B82F6]/10 text-xs text-[#3B82F6]">
+                      <strong>Nota:</strong> Questi documenti ti verranno richiesti solo dopo la call strategica e l'approvazione del progetto.
+                    </div>
                   </div>
                 </div>
               </div>
