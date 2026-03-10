@@ -492,10 +492,11 @@ export function ClienteDashboard({ cliente, onLogout }) {
                 <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
                   <div className="flex items-center gap-3 mb-4">
                     <Gift className="w-6 h-6 text-[#F5C518]" />
-                    <h3 className="text-lg font-bold text-[#1E2128]">I tuoi 7 Bonus Formativi</h3>
+                    <h3 className="text-lg font-bold text-[#1E2128]">Risorse Gratis: I 7 Bonus Strategici</h3>
                   </div>
                   <p className="text-sm text-[#5F6572] mb-4">
-                    Accedi subito ai bonus promessi. Ti preparano a capire cosa serve per creare un videocorso che vende.
+                    7 micro-corsi che ti preparano a costruire un videocorso che vende. 
+                    Ogni bonus affronta un aspetto critico che determina il successo o il fallimento di un progetto formativo online.
                   </p>
                   <div className="space-y-3">
                     {BONUS_DATA.map((bonus) => (
