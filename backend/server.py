@@ -25,6 +25,7 @@ from legal_pages_service import legal_generator, LegalPagesGenerator
 from funnel_export_service import funnel_export_service, FunnelExportService
 from orion_service import OrionLeadScoring, init_orion
 from agent_hub_service import AgentAnalyticsHub, init_agent_hub
+from analisi_workflow import esegui_workflow_analisi
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
