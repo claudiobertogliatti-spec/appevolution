@@ -856,6 +856,43 @@ async def seed_database():
         await db.agents.insert_many(INITIAL_AGENTS)
         logging.info("Seeded agents collection")
     
+    # FIX A: Rimuovi agenti ibernati dal database
+    hibernated_agents = ["ORION", "MARTA", "LUCA", "ATLAS"]
+    delete_result = await db.agents.delete_many({"id": {"$in": hibernated_agents}})
+    if delete_result.deleted_count > 0:
+        logging.info(f"Rimossi {delete_result.deleted_count} agenti ibernati: {hibernated_agents}")
+    
+    # FIX B: Correggi i ruoli di VALENTINA e STEFANIA
+    await db.agents.update_one(
+        {"id": "VALENTINA"},
+        {"$set": {
+            "role": "Onboarding & Consulenza Partner",
+            "category": "Partner Contact",
+            "description": "Supporta i partner dall'onboarding fino al post-lancio"
+        }}
+    )
+    await db.agents.update_one(
+        {"id": "STEFANIA"},
+        {"$set": {
+            "role": "Orchestrazione",
+            "category": "Coordinamento",
+            "description": "Smista le richieste agli agenti specializzati"
+        }}
+    )
+    logging.info("Ruoli VALENTINA e STEFANIA corretti")
+    
+    # Assicurati che MAIN esista
+    main_exists = await db.agents.find_one({"id": "MAIN"})
+    if not main_exists:
+        await db.agents.insert_one({
+            "id": "MAIN",
+            "role": "Sistema Centrale",
+            "status": "ACTIVE",
+            "budget": 100,
+            "category": "Coordinamento"
+        })
+        logging.info("Agente MAIN creato")
+    
     # Seed partners
     if await db.partners.count_documents({}) == 0:
         await db.partners.insert_many(INITIAL_PARTNERS)
@@ -868,7 +905,7 @@ async def seed_database():
     
     # Seed modules
     if await db.modules.count_documents({}) == 0:
-        await db.modules.insert_many(MODULES_DATA)
+        await db.modules.insert_many(INITIAL_MODULES_DATA)
         logging.info("Seeded modules collection")
     
     # Seed GAIA templates
