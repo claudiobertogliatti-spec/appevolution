@@ -499,8 +499,9 @@ export function ClienteDashboard({ cliente, onLogout }) {
                     <h3 className="text-lg font-bold text-[#1E2128]">Risorse Gratis: I 7 Bonus Strategici</h3>
                   </div>
                   <p className="text-sm text-[#5F6572] mb-4">
-                    7 micro-corsi che ti preparano a costruire un videocorso che vende. 
-                    Ogni bonus affronta un aspetto critico che determina il successo o il fallimento di un progetto formativo online.
+                    Nel frattempo goditi questi 7 Bonus che ti preparano a costruire un videocorso che vende. 
+                    Ogni bonus affronta un aspetto critico che determina il successo o il fallimento di un progetto formativo online. 
+                    Buona lettura!
                   </p>
                   <div className="space-y-3">
                     {BONUS_DATA.map((bonus) => (
