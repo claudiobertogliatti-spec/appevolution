@@ -11517,6 +11517,11 @@ from routers.clienti import router as clienti_router, set_db as set_clienti_db
 set_clienti_db(db)
 app.include_router(clienti_router)
 
+# Include onboarding router
+from routers.onboarding import router as onboarding_router, set_db as set_onboarding_db
+set_onboarding_db(db)
+app.include_router(onboarding_router)
+
 # Mount static files for DOCX downloads
 app.mount("/api/static", StaticFiles(directory="/app/backend/static"), name="static")
 
