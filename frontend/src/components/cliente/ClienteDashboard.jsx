@@ -285,11 +285,11 @@ export function ClienteDashboard({ cliente, onLogout }) {
             {/* Welcome Header */}
             <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
               <h1 className="text-2xl font-black text-[#1E2128] mb-2">
-                Benvenuto/a {clienteName}! 🎉
+                ✅ Benvenuto in Evolution PRO
               </h1>
               <p className="text-[#5F6572]">
-                Hai fatto il primo passo. Ora prepariamo insieme la tua analisi — 
-                Claudio ti contatterà entro 48 ore per fissare la call.
+                Hai fatto il primo passo importante verso la costruzione della tua Accademia Digitale. 
+                Ora prepariamo insieme la tua Analisi Strategica.
               </p>
 
               {/* Progress Bar */}
