@@ -7305,28 +7305,6 @@ async def gaia_create_contact_with_phase(request: CreateContactWithPhaseRequest)
         phase=request.phase
     )
 
-# --- MARTA: CRM completo ---
-
-def marta_move_contact_phase(request: MoveToPhaseRequest):
-    """MARTA: Sposta contatto a nuova fase (CRM)"""
-    client = get_systeme_client()
-    return await client.move_contact_to_phase(request.contact_id, request.phase)
-
-def marta_create_partner(request: CreateContactWithPhaseRequest):
-    """MARTA: Crea nuovo partner con fase"""
-    client = get_systeme_client()
-    return await client.create_contact_with_phase(
-        email=request.email,
-        first_name=request.first_name,
-        last_name=request.last_name,
-        phase=request.phase
-    )
-
-def marta_bulk_tag(request: BulkTagRequest):
-    """MARTA: Aggiunge tag a multipli contatti"""
-    client = get_systeme_client()
-    return await client.bulk_add_tag(request.contact_ids, request.tag_id)
-
 # --- ANDREA: Gestione corsi ---
 
 @api_router.post("/systeme/andrea/enroll")
