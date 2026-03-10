@@ -877,3 +877,49 @@ async def download_analysis_pdf(cliente_id: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Errore generazione PDF: {str(e)}")
+
+# ============================================================================
+# ANALISI DA REVISIONARE (per Admin Approvazioni)
+# ============================================================================
+
+@router.get("/admin/analisi-da-revisionare")
+async def get_analisi_da_revisionare():
+    """Get all analyses ready for review (stato = analisi_pronta and not reviewed)"""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+    
+    try:
+        # Find clients with generated analysis that haven't been reviewed yet
+        clienti = await db.clienti.find({
+            "docx_analisi_url": {"$exists": True, "$ne": None},
+            "analisi_revisionata": {"$ne": True}
+        }).sort("analisi_generata_at", -1).to_list(100)
+        
+        return [serialize_cliente(c) for c in clienti]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/admin/{cliente_id}/approva-analisi")
+async def approva_analisi(cliente_id: str):
+    """Approve an analysis (mark as reviewed)"""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+    
+    try:
+        result = await db.clienti.update_one(
+            {"_id": ObjectId(cliente_id)},
+            {"$set": {
+                "analisi_revisionata": True,
+                "analisi_revisionata_at": datetime.now(timezone.utc).isoformat(),
+                "stato": "analisi_approvata"
+            }}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Cliente non trovato")
+        
+        return {"success": True, "message": "Analisi approvata"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
