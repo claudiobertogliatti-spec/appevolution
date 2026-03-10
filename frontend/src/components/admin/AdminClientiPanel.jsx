@@ -187,6 +187,29 @@ export function AdminClientiPanel() {
     }
   };
 
+  // Download DOCX from workflow
+  const downloadDOCX = async (clienteId) => {
+    try {
+      window.open(`${API}/clienti/${clienteId}/scarica-docx`, '_blank');
+    } catch (e) {
+      console.error("Error downloading DOCX:", e);
+      alert("Errore nel download del DOCX");
+    }
+  };
+
+  // Avvia workflow analisi
+  const avviaAnalisi = async (clienteId) => {
+    try {
+      await axios.post(`${API}/clienti/${clienteId}/avvia-analisi`);
+      alert("Workflow analisi avviato! Il documento sarà pronto in circa 30 secondi.");
+      // Reload after a delay to check status
+      setTimeout(() => loadClienti(), 5000);
+    } catch (e) {
+      console.error("Error starting analysis workflow:", e);
+      alert("Errore nell'avvio del workflow");
+    }
+  };
+
   // Fissa call
   const fissaCall = async () => {
     if (!selectedCliente || !dataCall) return;
