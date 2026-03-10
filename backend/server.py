@@ -5538,7 +5538,9 @@ async def get_stats():
     alerts = await db.alerts.find({}, {"_id": 0}).to_list(100)
     
     total_partners = len(partners)
-    active_partners = sum(1 for p in partners if p.get("phase") not in ["F0", "F10"])
+    # Fix: conta partner con fase >= F1 (escludi null, F0, e fasi non valide)
+    valid_active_phases = ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "F13"]
+    active_partners = sum(1 for p in partners if p.get("phase") in valid_active_phases or (p.get("fase") and p.get("fase") != "F0"))
     total_revenue = sum(p.get("revenue", 0) for p in partners)
     alerts_count = len(alerts)
     
