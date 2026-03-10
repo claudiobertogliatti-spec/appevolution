@@ -123,14 +123,37 @@ class ApprovaStep(BaseModel):
 # ============================================================================
 
 @router.post("/{partner_id}/profilo")
-async def salva_profilo(partner_id: str, dati: ProfiloDati):
+async def salva_profilo(partner_id: str, body: ProfiloRequest):
     """Salva i dati anagrafici e genera il contratto precompilato."""
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
     
     try:
+        # Estrai i dati dal body - accetta sia {"dati":{...}} che {...} direttamente
+        if body.dati:
+            dati_dict = body.dati.dict()
+        else:
+            # Campi diretti nel body
+            dati_dict = {
+                "nome": body.nome or "",
+                "cognome": body.cognome or "",
+                "azienda": body.azienda or "",
+                "indirizzo": body.indirizzo or "",
+                "citta": body.citta or "",
+                "cap": body.cap or "",
+                "prov": body.prov or "",
+                "codice_fiscale": body.codice_fiscale or "",
+                "partita_iva": body.partita_iva or "",
+                "email": body.email or "",
+                "pec": body.pec or "",
+                "iban": body.iban or "",
+            }
+        
+        nome = dati_dict.get("nome", "Partner")
+        cognome = dati_dict.get("cognome", "")
+        
         # Genera il contratto precompilato
-        nome_file = f"Contratto_{dati.nome}_{dati.cognome}_{datetime.now().strftime('%Y%m%d')}.docx"
+        nome_file = f"Contratto_{nome}_{cognome}_{datetime.now().strftime('%Y%m%d')}.docx"
         output_path = str(CONTRATTI_DIR / nome_file)
         
         # Chiama genera_contratto.py
