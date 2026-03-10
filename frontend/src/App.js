@@ -1178,6 +1178,9 @@ export default function App() {
             {nav==="corso"&&<PartnerCourse partner={demoPartner} modules={modules}/>}
             {nav==="onboarding-docs"&&<OnboardingDocuments partner={demoPartner} onComplete={()=>setNav("dashboard")}/>}
             
+            {/* ONBOARDING CONTRATTUALE (dopo conversione da cliente) */}
+            {nav==="onboarding-partner"&&<PartnerOnboarding partnerId={demoPartner?.id} partnerNome={demoPartner?.name||"Partner"} onComplete={()=>setNav("fase1-posizionamento")}/>}
+            
             {/* FASE 1 - Posizionamento */}
             {nav==="fase1-posizionamento"&&<WizardPosizionamento partner={demoPartner} onComplete={()=>setNav("fase2-outline")}/>}
             {nav==="documenti"&&<WizardPosizionamento partner={demoPartner} onComplete={()=>setNav("fase2-outline")}/>}
