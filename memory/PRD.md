@@ -39,17 +39,27 @@ Italian
   - Endpoint `/api/clienti/{id}/workflow-status` - Polling stato
   - Endpoint `/api/clienti/{id}/scarica-docx` - Download DOCX
   - Endpoint `/api/clienti/admin/analisi-da-revisionare` - Lista per revisione admin
-  - Endpoint `/api/clienti/admin/{id}/approva-analisi` - Approva analisi
+  - Endpoint `/api/clienti/admin/{id}/approva-analisi` - Approva analisi + EMAIL AUTOMATICA con link Google Calendar
   - Mount static files `/api/static/analisi/` per download
 - ✅ **AI Enrichment:** Claude (via Emergent LLM Key) arricchisce le 7 risposte
 - ✅ **DOCX Template:** Documento professionale con sezioni numerate
+- ✅ **Email automatica:** Inviata al cliente quando l'analisi viene approvata, contiene:
+  - Link scarica DOCX
+  - Link Google Calendar per fissare la call strategica
+  - Istruzioni preparazione call
 - ✅ **Frontend Admin:**
   - Nuova colonna "Analisi" nella tabella clienti
-  - Sezione "Analisi Strategiche da Revisionare" in Approvazioni (con preview AI)
+  - Sezione "✨ Analisi Strategiche da Revisionare" in Approvazioni (con preview AI)
   - Pulsanti "Scarica DOCX" e "Approva"
-- ✅ **Frontend Cliente:**
-  - Download DOCX automatico nella pagina post-questionario
-  - Avvio automatico workflow dopo submit questionario
+- ✅ **Frontend Cliente (Post-Questionario):**
+  - Download DOCX automatico
+  - Team con STEFANIA coordinatrice aggiunta
+  - Avatar PRO con info complete (€120/lezione, pacchetti 3/6/12)
+  - Percorso Partnership dettagliato con:
+    - Investimento €2.790 (IVA inclusa)
+    - Timeline fasi F1-F10+
+    - Procedura: firma contratto → distinta pagamento → documenti (CI + CF)
+  - Bonus Strategici (7 micro-corsi)
 - ✅ **Nuove credenziali admin:** claudio.bertogliatti@gmail.com / Evoluzione74
 
 ### Lead Management Cleanup (Mar 2026)
