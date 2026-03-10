@@ -158,7 +158,6 @@ async def salva_profilo(partner_id: str, body: ProfiloRequest):
         
         # Chiama genera_contratto.py
         script_path = Path("/app/backend/genera_contratto.py")
-        dati_dict = dati.dict()
         dati_dict["data_firma"] = datetime.now().strftime("%d/%m/%Y")
         
         result = subprocess.run(
