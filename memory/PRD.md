@@ -38,14 +38,23 @@ Italian
   - LUCA ($2) - Compliance → RIMOSSO
   - ATLAS ($0) - Post-Sale & LTV → RIMOSSO
 - ✅ **Agenti attivi rimanenti:**
-  - VALENTINA (Orchestratrice)
-  - STEFANIA (Copy & Traffico)
+  - VALENTINA (Onboarding & Consulenza Partner) - **RUOLO CORRETTO**
+  - STEFANIA (Orchestrazione) - **RUOLO CORRETTO**
   - GAIA (Funnel & Incident)
   - ANDREA (Video Production)
   - MARCO (Accountability)
   - MAIN (Sistema Centrale)
 - ✅ Rimossi ~1000 linee di codice morto dal backend
 - ✅ Rimossa voce "ATLAS" dalla sidebar admin
+- ✅ **FIX A:** Agenti ibernati eliminati anche dal database MongoDB
+- ✅ **FIX B:** Ruoli VALENTINA e STEFANIA corretti nel database
+- ✅ **FIX C:** Endpoint `/api/agents/marco/run` - Genera check-in per partner F3+
+- ✅ **FIX D:** Counter `active_partners` ora mostra 25 (era 0/1)
+- ✅ **FIX E:** Endpoint `/api/agents/andrea/run` - Genera piani video per partner F4+
+- ✅ **Scheduler aggiornato:**
+  - MARCO: ogni lunedì ore 9:00 (IT)
+  - ANDREA: ogni giovedì ore 10:00 (IT)
+  - STEFANIA: ogni giorno ore 7:00 (IT)
 
 ### Onboarding Partner con Upload Documenti (Mar 2026) - NEW
 - ✅ **Backend (`routers/onboarding.py`):**
