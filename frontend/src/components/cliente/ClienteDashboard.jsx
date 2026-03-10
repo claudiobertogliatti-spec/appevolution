@@ -96,7 +96,58 @@ const BONUS_DATA = [
       "Il fallimento non dipende dal contenuto, ma dalla struttura",
       "La differenza tra un corso che vende e uno che no",
       "Come costruire un blueprint che guida lo studente al risultato"
-    ]
+    ],
+    fullContent: `La maggior parte dei videocorsi fallisce prima ancora di essere registrata la prima lezione.
+
+Non perché l'autore non sia competente.
+Non perché il contenuto non sia valido.
+
+Ma perché il corso nasce senza una strategia.
+
+Molti professionisti partono da questo ragionamento:
+• "I clienti mi fanno sempre le stesse domande"
+• "Potrei spiegare tutto in un corso"
+• "Registro i contenuti e poi lo metto online"
+
+Registrano le lezioni. Caricano il corso sulla piattaforma. Aspettano le vendite.
+
+E le vendite non arrivano.
+
+Il motivo è semplice.
+
+Un corso non vende perché è ben spiegato.
+Vende perché risolve un problema specifico in modo chiaro.
+
+**I tre errori fatali**
+
+**1. Registrare prima di validare l'idea**
+Registrare è facile. Validare è difficile.
+Validare significa capire:
+• se il problema è reale
+• se le persone sono disposte a pagare per risolverlo
+• se è un problema urgente
+
+**2. Non avere un target specifico**
+"Il mio corso va bene per tutti." È il modo più veloce per non vendere a nessuno.
+Un corso efficace deve essere chiaro su:
+• a chi è rivolto
+• a chi NON è rivolto
+• in quale situazione si trova la persona
+• quale risultato può ottenere
+
+**3. Pensare alla vendita solo dopo**
+Molti professionisti pensano: "Prima creo il corso. Poi vediamo come venderlo."
+È l'ordine sbagliato. Il sistema di vendita deve essere progettato prima dei contenuti.
+
+**Il Blueprint corretto**
+L'ordine giusto è questo:
+1. Validare l'idea
+2. Definire il cliente ideale
+3. Costruire l'offerta
+4. Strutturare il funnel
+5. Registrare il corso
+
+Seguendo questo ordine eviti di investire mesi su un prodotto che nessuno vuole comprare.`
   },
   {
     id: 2,
@@ -116,7 +167,49 @@ const BONUS_DATA = [
       "Perché più contenuto = meno valore percepito",
       "Il filtro per decidere cosa includere e cosa no",
       "Come tagliare senza perdere profondità"
-    ]
+    ],
+    fullContent: `Molti professionisti vogliono creare corsi completi.
+
+È comprensibile.
+
+Ma esiste un paradosso.
+
+**Più un corso è completo, meno vende.**
+
+Perché?
+
+Perché un corso molto ampio appare:
+• complesso
+• lungo
+• impegnativo
+
+Le persone non vogliono sapere tutto.
+Vogliono risolvere una cosa precisa.
+
+**L'errore tipico**
+
+Quando costruisci un corso senti il bisogno di:
+• aggiungere moduli
+• approfondire
+• spiegare ogni dettaglio
+
+Ma ogni modulo deve servire al risultato principale.
+Se non serve, va eliminato.
+
+**Come scegliere gli argomenti giusti**
+
+1. Identifica un risultato specifico
+2. Elimina ciò che non contribuisce a quel risultato
+3. Trasforma ogni modulo in un mini risultato
+
+Ogni modulo deve produrre un avanzamento concreto.
+
+**La formula**
+
+Corso che vende =
+• 1 problema specifico
+• 1 soluzione chiara
+• 1 risultato concreto`
   },
   {
     id: 3,
@@ -136,7 +229,50 @@ const BONUS_DATA = [
       "I dati reali sull'attenzione degli studenti online",
       "La durata ideale per ogni tipo di contenuto",
       "Come strutturare lezioni che vengono completate"
-    ]
+    ],
+    fullContent: `Molti professionisti pensano che lezioni lunghe e approfondite aumentino il valore percepito.
+
+Online spesso accade il contrario.
+
+Un corso troppo lungo viene percepito come:
+• pesante
+• impegnativo
+• difficile da completare
+
+E quando qualcosa sembra difficile da completare, il cervello rimanda.
+
+**Come ragiona chi studia online**
+
+Chi compra un corso digitale:
+• ha poco tempo
+• ha molte distrazioni
+• vuole risultati veloci
+• abbandona se non vede progressi
+
+Per questo la struttura delle lezioni è fondamentale.
+
+**Durata consigliata**
+
+| Tipo | Durata |
+|------|--------|
+| Video lezioni | 5–15 minuti massimo |
+| Moduli | 30–45 minuti complessivi |
+| Durata del corso | risultati visibili entro 2–4 settimane |
+
+Questo permette allo studente di percepire progresso rapidamente.
+
+**Struttura ideale della lezione**
+
+1. **Introduzione (1–2 minuti)** — Cosa imparerai e perché è importante.
+2. **Contenuto principale (8–10 minuti)** — La parte centrale della spiegazione.
+3. **Azione pratica (2–3 minuti)** — Cosa fare subito.
+
+Lezioni brevi aumentano:
+• completamento
+• soddisfazione
+• recensioni positive
+
+E le recensioni generano nuove vendite.`
   },
   {
     id: 4,
@@ -157,7 +293,46 @@ const BONUS_DATA = [
       "Cos'è veramente un funnel (e cosa non è)",
       "I 4 elementi che non possono mancare",
       "Gli errori che bloccano le vendite"
-    ]
+    ],
+    fullContent: `Un buon corso senza un sistema di vendita rimane invisibile.
+
+Un funnel non è marketing aggressivo.
+
+È un percorso che aiuta una persona a:
+• capire il problema
+• riconoscersi nella situazione
+• vedere la soluzione
+• prendere una decisione
+
+**Il Funnel minimo efficace**
+
+**1. Lead Magnet**
+Un contenuto gratuito che:
+• risolve un micro problema
+• dimostra competenza
+• raccoglie email
+
+**2. Sequenza Email**
+5–7 email che:
+• costruiscono fiducia
+• educano sul problema
+• introducono la soluzione
+
+**3. Pagina di vendita**
+Deve includere:
+• headline chiara
+• problema → soluzione → risultato
+• testimonianze
+• garanzia
+• call to action
+
+**4. Checkout**
+Deve essere:
+• semplice
+• veloce
+• senza frizioni
+
+Senza questi quattro elementi, le vendite dipendono dal caso.`
   },
   {
     id: 5,
@@ -177,7 +352,31 @@ const BONUS_DATA = [
       "Perché le ads non salvano un corso che non vende",
       "I prerequisiti per investire in pubblicità",
       "Come capire se sei pronto per scalare"
-    ]
+    ],
+    fullContent: `Molti pensano che la pubblicità sia la soluzione.
+
+La verità è diversa.
+
+**La pubblicità amplifica ciò che già funziona.**
+
+Se il sistema non funziona, amplifica il problema.
+
+**Quando le ads funzionano**
+• Hai già venduto senza ads
+• Il funnel converte almeno 1–2%
+• Conosci il costo di acquisizione cliente
+• Hai margini sufficienti
+
+**Quando sono uno spreco**
+• Non hai mai venduto il corso
+• Non hai un funnel testato
+• Non sai chi è il cliente ideale
+• Il budget è troppo limitato
+
+**Regola d'oro**
+
+Prima vendi senza ads.
+Poi scala con ads.`
   },
   {
     id: 6,
@@ -197,7 +396,38 @@ const BONUS_DATA = [
       "Lo scopo vero dei social per un formatore",
       "Contenuti che portano vendite (non like)",
       "La strategia minima che funziona"
-    ]
+    ],
+    fullContent: `I social non sono vetrine estetiche.
+
+Sono strumenti di acquisizione.
+
+**L'errore più comune**
+
+Creare contenuti belli senza uno scopo preciso.
+
+Risultato:
+• like
+• commenti
+• ma zero vendite
+
+**La funzione dei social**
+
+1. Attirare il target giusto
+2. Educare sul problema
+3. Guidare verso il funnel
+
+**Il percorso**
+
+Post → Profilo → Link in bio → Lead magnet → Funnel → Vendita
+
+**Le metriche che contano**
+
+Non follower.
+
+Ma:
+• click sul link
+• iscritti email
+• vendite`
   },
   {
     id: 7,
@@ -217,7 +447,50 @@ const BONUS_DATA = [
       "Perché il fai-da-te ha un limite matematico",
       "Cosa delegare per primo (e cosa no)",
       "Come Evolution PRO ti aiuta in questo"
-    ]
+    ],
+    fullContent: `Molti professionisti cercano di gestire tutto da soli.
+
+Contenuto. Video. Grafica. Tecnica. Marketing.
+
+Questo rallenta tutto.
+
+**Cosa delegare**
+• montaggio video
+• grafica
+• gestione tecnica
+• supporto clienti
+• ads management
+
+**Cosa non delegare all'inizio**
+• contenuto del corso
+• strategia
+• relazione con i clienti
+
+**Quando delegare**
+
+Quando:
+• un'attività ti blocca per settimane
+• il tuo tempo vale più del costo del freelancer
+• il progetto è validato e devi scalare
+
+**Come iniziare**
+
+1. Identifica il collo di bottiglia
+2. Trova 2–3 freelancer
+3. Testa con piccoli progetti
+4. Costruisci relazioni
+
+**Ricorda**
+
+Il tuo lavoro non è fare tutto.
+
+Il tuo lavoro è:
+• creare valore
+• definire una trasformazione
+• costruire un'offerta
+• vendere in modo etico
+
+Tutto il resto è sistema.`
   }
 ];
 
