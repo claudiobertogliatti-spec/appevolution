@@ -65,6 +65,17 @@ Italian
 - ✅ **7 Bonus Strategici arricchiti:** Aggiunta sezione keyPoints con punti chiave per ogni bonus
 - ✅ **Avatar PRO completo:** Sezione offerta commerciale completa con prezzi pacchetti (3, 5, 10, 15 lezioni) e descrizione workflow
 
+### Fix Chirurgici (Mar 10, 2026) - DEPLOYED
+- ✅ **PROBLEMA A:** `/api/partner/5/profilo` 422 → Fixato modello `ProfiloRequest` per accettare sia `{dati:{...}}` che campi diretti
+- ✅ **PROBLEMA B:** `/api/partner/5/onboarding` 500 → Già fixato con helper `find_partner()`
+- ✅ **PROBLEMA C:** `/api/clienti-analisi` 404 → Aggiunti 6 endpoint per workflow analisi strategica:
+  - `GET /api/clienti-analisi` - Lista clienti
+  - `POST /api/clienti-analisi/{id}/questionario` - Salva risposte
+  - `GET /api/clienti-analisi/{id}/questionario` - Recupera risposte
+  - `POST /api/clienti-analisi/{id}/avvia-analisi` - Avvia workflow
+  - `GET /api/clienti-analisi/{id}/workflow-status` - Stato workflow
+  - `GET /api/clienti-analisi/{id}/scarica-docx` - Download DOCX
+
 ### Onboarding Partner con Upload Documenti (Mar 2026) - NEW
 - ✅ **Backend (`routers/onboarding.py`):**
   - `POST /api/partner/{id}/profilo` - Salva dati anagrafici + genera contratto DOCX
