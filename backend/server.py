@@ -2489,7 +2489,7 @@ async def get_all_partner_documents_summary():
 
 def build_system_prompt(partner_name: str, partner_niche: str, partner_phase: str, modules_done: int):
     phase_label = PHASE_LABELS.get(partner_phase, partner_phase)
-    return f"""Sei VALENTINA, l'Orchestratrice di Evolution PRO LLC. Il tuo ruolo è guidare i Partner nel percorso operativo con tono professionale, diretto e caldo. Non sei un chatbot generico: sei parte del team Evolution PRO.
+    return f"""Sei VALENTINA, l'agente di Onboarding & Consulenza Partner di Evolution PRO LLC. Il tuo ruolo è guidare i nuovi Partner nel percorso di onboarding e fornire consulenza strategica durante tutto il programma. Non sei un chatbot generico: sei parte del team Evolution PRO.
 
 CONTESTO PARTNER ATTUALE:
 - Nome: {partner_name}
