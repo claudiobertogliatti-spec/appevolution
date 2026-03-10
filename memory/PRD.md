@@ -31,7 +31,31 @@ Italian
 - ✅ Admin Clienti: Dropdown stati pulito (ora include anche "Analisi pronta")
 - ✅ Alert automatico: Clienti che pagano ma non compilano questionario entro 24h
 
-### Workflow Generazione DOCX Analisi Strategica (Mar 2026) - NEW
+### Onboarding Partner con Upload Documenti (Mar 2026) - NEW
+- ✅ **Backend (`routers/onboarding.py`):**
+  - `POST /api/partner/{id}/profilo` - Salva dati anagrafici + genera contratto DOCX
+  - `GET /api/partner/{id}/scarica-contratto` - Download contratto precompilato
+  - `POST /api/partner/{id}/upload-contratto` - Upload contratto firmato
+  - `POST /api/partner/{id}/conferma-pagamento` - Conferma bonifico/online
+  - `POST /api/partner/{id}/upload-documenti` - Upload CI fronte/retro + CF
+  - `POST /api/partner/{id}/upload-distinta` - Upload distinta pagamento
+  - `GET /api/partner/{id}/onboarding` - Stato onboarding completo
+  - `POST /api/partner/{id}/approva` - Admin approva/rifiuta step
+  - `GET /api/partner/payment-info` - Info pagamento (IBAN, BIC, importo)
+- ✅ **Frontend (`PartnerOnboarding.jsx`):**
+  - Step 1: Form profilo completo (nome, cognome, indirizzo, CF, P.IVA, email, IBAN)
+  - Step 2: Download + Upload contratto firmato
+  - Step 3: Pagamento €2.790 (bonifico IBAN o carta online)
+  - Step 4: Upload CI fronte + retro + Codice Fiscale
+  - Step 5: Upload distinta di pagamento
+  - Progress bar 5 step con stati (completato/corrente/pending)
+  - Stato finale "In revisione" o "Completato"
+- ✅ **Info Pagamento:**
+  - IBAN: LT94 3250 0974 4929 5781
+  - BIC: REVOLT21
+  - Banca: Revolut Bank UAB
+  - Importo: €2.790,00
+  - Intestatario: Evolution PRO LLC
 - ✅ **Backend:**
   - `analisi_workflow.py`: Orchestratore completo (validazione → AI → DOCX)
   - `genera_analisi.js`: Generatore DOCX con branding Evolution PRO
