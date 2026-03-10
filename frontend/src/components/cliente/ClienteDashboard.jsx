@@ -841,7 +841,7 @@ export function ClienteDashboard({ cliente, onLogout }) {
                           </div>
                         </div>
                         
-                        {/* Chapters (expanded) con KeyPoints */}
+                        {/* Chapters (expanded) con contenuto completo */}
                         {expandedBonus === bonus.id && (
                           <div className="border-t border-[#ECEDEF] p-4 bg-[#FAFAF7]">
                             {/* Summary */}
@@ -866,6 +866,44 @@ export function ClienteDashboard({ cliente, onLogout }) {
                                     </li>
                                   ))}
                                 </ul>
+                              </div>
+                            )}
+                            
+                            {/* Full Content */}
+                            {bonus.fullContent && (
+                              <div className="mb-4 p-4 rounded-xl bg-white border border-[#ECEDEF]">
+                                <div className="font-bold text-sm text-[#1E2128] mb-3 flex items-center gap-2">
+                                  <BookOpen className="w-4 h-4 text-[#F5C518]" />
+                                  Contenuto Completo del Modulo
+                                </div>
+                                <div className="prose prose-sm max-w-none text-[#5F6572]">
+                                  {bonus.fullContent.split('\n\n').map((paragraph, idx) => {
+                                    // Handle bold text **text**
+                                    const formattedText = paragraph.split('**').map((part, i) => 
+                                      i % 2 === 1 ? <strong key={i} className="text-[#1E2128]">{part}</strong> : part
+                                    );
+                                    
+                                    // Check if it's a list item
+                                    if (paragraph.startsWith('•') || paragraph.startsWith('1.') || paragraph.startsWith('2.') || paragraph.startsWith('3.') || paragraph.startsWith('4.') || paragraph.startsWith('5.')) {
+                                      return (
+                                        <ul key={idx} className="my-2 space-y-1">
+                                          {paragraph.split('\n').map((item, itemIdx) => (
+                                            <li key={itemIdx} className="flex items-start gap-2 text-sm">
+                                              <span className="text-[#F5C518] mt-1">•</span>
+                                              <span>{item.replace(/^[•\d.]\s*/, '')}</span>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      );
+                                    }
+                                    
+                                    return (
+                                      <p key={idx} className="mb-3 text-sm leading-relaxed">
+                                        {formattedText}
+                                      </p>
+                                    );
+                                  })}
+                                </div>
                               </div>
                             )}
                             
