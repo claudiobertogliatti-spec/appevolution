@@ -31,6 +31,22 @@ Italian
 - ✅ Admin Clienti: Dropdown stati pulito (ora include anche "Analisi pronta")
 - ✅ Alert automatico: Clienti che pagano ma non compilano questionario entro 24h
 
+### Pulizia Agenti (Mar 2026) - NEW
+- ✅ **Rimossi agenti ibernati che consumavano budget:**
+  - ORION ($4) - Sales Intelligence → RIMOSSO
+  - MARTA ($19) - CRM & Revenue → RIMOSSO  
+  - LUCA ($2) - Compliance → RIMOSSO
+  - ATLAS ($0) - Post-Sale & LTV → RIMOSSO
+- ✅ **Agenti attivi rimanenti:**
+  - VALENTINA (Orchestratrice)
+  - STEFANIA (Copy & Traffico)
+  - GAIA (Funnel & Incident)
+  - ANDREA (Video Production)
+  - MARCO (Accountability)
+  - MAIN (Sistema Centrale)
+- ✅ Rimossi ~1000 linee di codice morto dal backend
+- ✅ Rimossa voce "ATLAS" dalla sidebar admin
+
 ### Onboarding Partner con Upload Documenti (Mar 2026) - NEW
 - ✅ **Backend (`routers/onboarding.py`):**
   - `POST /api/partner/{id}/profilo` - Salva dati anagrafici + genera contratto DOCX
