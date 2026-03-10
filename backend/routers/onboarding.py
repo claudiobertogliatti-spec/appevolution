@@ -80,18 +80,35 @@ PAYMENT_LINK = os.environ.get("PAYMENT_LINK_PARTNERSHIP", "https://pay.evolution
 # ============================================================================
 
 class ProfiloDati(BaseModel):
-    nome: str
-    cognome: str
+    nome: Optional[str] = ""
+    cognome: Optional[str] = ""
     azienda: Optional[str] = ""
-    indirizzo: str
-    citta: str
-    cap: str
-    prov: str
-    codice_fiscale: str
+    indirizzo: Optional[str] = ""
+    citta: Optional[str] = ""
+    cap: Optional[str] = ""
+    prov: Optional[str] = ""
+    codice_fiscale: Optional[str] = ""
     partita_iva: Optional[str] = ""
-    email: str
+    email: Optional[str] = ""
     pec: Optional[str] = ""
-    iban: str
+    iban: Optional[str] = ""
+
+class ProfiloRequest(BaseModel):
+    """Accetta sia {dati: {...}} che i campi direttamente"""
+    dati: Optional[ProfiloDati] = None
+    # Campi diretti (fallback)
+    nome: Optional[str] = None
+    cognome: Optional[str] = None
+    azienda: Optional[str] = None
+    indirizzo: Optional[str] = None
+    citta: Optional[str] = None
+    cap: Optional[str] = None
+    prov: Optional[str] = None
+    codice_fiscale: Optional[str] = None
+    partita_iva: Optional[str] = None
+    email: Optional[str] = None
+    pec: Optional[str] = None
+    iban: Optional[str] = None
 
 class ConfermaPagamento(BaseModel):
     metodo: str  # "bonifico" | "online"
