@@ -905,7 +905,7 @@ async def seed_database():
     
     # Seed modules
     if await db.modules.count_documents({}) == 0:
-        await db.modules.insert_many(INITIAL_MODULES_DATA)
+        await db.modules.insert_many(MODULES_DATA)
         logging.info("Seeded modules collection")
     
     # Seed GAIA templates
