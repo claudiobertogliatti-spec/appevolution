@@ -214,6 +214,86 @@ const ApprovalDashboard = () => {
         </div>
       </div>
 
+      {/* Analisi Strategiche da Revisionare */}
+      {analisiDaRevisionare.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5" style={{ color: '#8B5CF6' }} />
+            <h2 className="text-lg font-bold" style={{ color: '#1E2128' }}>Analisi Strategiche da Revisionare</h2>
+            <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: '#8B5CF620', color: '#8B5CF6' }}>
+              {analisiDaRevisionare.length}
+            </span>
+          </div>
+          
+          <div className="grid gap-4">
+            {analisiDaRevisionare.map((cliente) => (
+              <div 
+                key={cliente.id}
+                className="bg-white rounded-xl p-4 shadow-sm"
+                style={{ border: '1px solid #ECEDEF', borderLeft: '4px solid #8B5CF6' }}
+                data-testid={`analisi-review-${cliente.id}`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#F5C518] to-[#c49a12] flex items-center justify-center">
+                        <span className="text-sm font-bold text-black">
+                          {cliente.nome?.[0]}{cliente.cognome?.[0]}
+                        </span>
+                      </div>
+                      <div>
+                        <h3 className="font-bold" style={{ color: '#1E2128' }}>
+                          {cliente.nome} {cliente.cognome}
+                        </h3>
+                        <p className="text-xs" style={{ color: '#9CA3AF' }}>{cliente.email}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-4 text-xs" style={{ color: '#5F6572' }}>
+                      <span>📄 DOCX generato</span>
+                      {cliente.analisi_generata_at && (
+                        <span>⏱ {formatTimeAgo(cliente.analisi_generata_at)}</span>
+                      )}
+                    </div>
+                    
+                    {/* Preview testo AI */}
+                    {cliente.testo_ai?.COMPETENZA_ARRICCHITA && (
+                      <div className="mt-3 p-3 rounded-lg" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
+                        <p className="text-xs font-medium mb-1" style={{ color: '#5F6572' }}>Competenza (AI):</p>
+                        <p className="text-sm" style={{ color: '#1E2128' }}>
+                          {cliente.testo_ai.COMPETENZA_ARRICCHITA.substring(0, 200)}...
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex flex-col gap-2 ml-4">
+                    <button
+                      onClick={() => downloadDocx(cliente.id)}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold transition-all hover:opacity-90"
+                      style={{ background: '#8B5CF620', color: '#8B5CF6', border: '1px solid #8B5CF6' }}
+                    >
+                      <Download className="w-4 h-4" />
+                      Scarica DOCX
+                    </button>
+                    
+                    <button
+                      onClick={() => handleApprovaAnalisi(cliente.id)}
+                      disabled={actionLoading}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold transition-all hover:opacity-90"
+                      style={{ background: '#10B981', color: 'white' }}
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      Approva
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Reviewer Selection */}
       <div className="flex items-center gap-4 bg-white rounded-xl p-4 shadow-sm" style={{ border: '1px solid #ECEDEF' }}>
         <span className="text-sm font-medium" style={{ color: '#5F6572' }}>Reviewer:</span>
