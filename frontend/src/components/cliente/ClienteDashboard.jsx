@@ -225,7 +225,17 @@ export function ClienteDashboard({ cliente, onLogout }) {
     setError(null);
     
     try {
+      // 1. Salva le risposte del questionario
       await axios.post(`${API}/clienti/${cliente.id}/questionario`, risposte);
+      
+      // 2. Avvia automaticamente il workflow di generazione analisi
+      try {
+        await axios.post(`${API}/clienti/${cliente.id}/avvia-analisi`);
+        console.log("Workflow analisi avviato in background");
+      } catch (workflowErr) {
+        console.warn("Errore avvio workflow (non bloccante):", workflowErr);
+      }
+      
       setQuestionarioCompletato(true);
     } catch (err) {
       setError(err.response?.data?.detail || "Errore durante l'invio");
