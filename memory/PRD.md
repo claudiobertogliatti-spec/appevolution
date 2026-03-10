@@ -28,8 +28,25 @@ Italian
 - ✅ Landing Page: Sezione "Come Funziona" con 3 step (Analisi Strategica, Studio di Fattibilità, Partnership)
 - ✅ Questionario: Domanda 7 ("Perché proprio adesso?") evidenziata con bordo giallo #F5C518 e label "★ La più importante"
 - ✅ Post-Questionario: 3 card risorse preparatorie (Guida Accademia, 3 Errori Formatori, Percorso Completo)
-- ✅ Admin Clienti: Dropdown stati pulito (solo: Pagato, Questionario ✓, Call fissata, Proposta inviata, Partner ✓, Non convertito)
+- ✅ Admin Clienti: Dropdown stati pulito (ora include anche "Analisi pronta")
 - ✅ Alert automatico: Clienti che pagano ma non compilano questionario entro 24h
+
+### Workflow Generazione DOCX Analisi Strategica (Mar 2026) - NEW
+- ✅ **Backend:**
+  - `analisi_workflow.py`: Orchestratore completo (validazione → AI → DOCX)
+  - `genera_analisi.js`: Generatore DOCX con branding Evolution PRO
+  - Endpoint `/api/clienti/{id}/avvia-analisi` - Avvia workflow in background
+  - Endpoint `/api/clienti/{id}/workflow-status` - Polling stato (attesa, generazione_ai, generazione_docx, completato)
+  - Endpoint `/api/clienti/{id}/scarica-docx` - Download DOCX generato
+  - Mount static files `/api/static/analisi/` per download pubblico
+- ✅ **AI Enrichment:** Claude (via Emergent LLM Key) arricchisce le 7 risposte del questionario con considerazioni strategiche personalizzate
+- ✅ **DOCX Template:** Documento professionale con sezioni numerate (1-7), risposte cliente, arricchimenti AI, diagnosi finale
+- ✅ **Frontend Admin:**
+  - Nuova colonna "Analisi" nella tabella clienti
+  - Pulsante "⬇ DOCX" per scaricare l'analisi
+  - Pulsante "✨ Genera" per avviare manualmente il workflow
+  - Indicatore "In corso" durante la generazione
+  - Nuovo stato "Analisi pronta" (viola)
 
 ### Lead Management Cleanup (Mar 2026)
 - ✅ Rimosso `OrionLeadScoring.jsx` - Lead gestiti esclusivamente in Systeme.io
