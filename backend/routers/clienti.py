@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from bson import ObjectId
 import os
 import stripe
+import asyncio
 
 router = APIRouter(prefix="/api/clienti", tags=["clienti"])
 
