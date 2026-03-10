@@ -452,6 +452,31 @@ export function AdminClientiPanel() {
                         )}
                       </div>
 
+                      {/* Analisi Column */}
+                      <div className="text-center min-w-[100px]">
+                        {cliente.docx_analisi_url ? (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); downloadDOCX(cliente.id); }}
+                            className="text-xs font-bold text-[#8B5CF6] hover:underline flex items-center gap-1 justify-center"
+                          >
+                            <Download className="w-3 h-3" /> DOCX
+                          </button>
+                        ) : cliente.workflow_status === 'generazione_ai' || cliente.workflow_status === 'generazione_docx' ? (
+                          <span className="text-xs text-[#F5C518] flex items-center gap-1 justify-center">
+                            <Loader2 className="w-3 h-3 animate-spin" /> In corso
+                          </span>
+                        ) : hasQuestionario && !cliente.docx_analisi_url ? (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); avviaAnalisi(cliente.id); }}
+                            className="text-xs font-bold text-[#10B981] hover:underline flex items-center gap-1 justify-center"
+                          >
+                            <Sparkles className="w-3 h-3" /> Genera
+                          </button>
+                        ) : (
+                          <span className="text-xs text-[#9CA3AF]">—</span>
+                        )}
+                      </div>
+
                       {/* Status */}
                       <div 
                         className="px-3 py-1.5 rounded-full flex items-center gap-1.5 min-w-[120px] justify-center"
