@@ -56,6 +56,13 @@ Italian
   - ANDREA: ogni giovedì ore 10:00 (IT)
   - STEFANIA: ogni giorno ore 7:00 (IT)
 
+### Fix Urgenti (Mar 10, 2026) - DEPLOYED
+- ✅ **PROBLEMA 1:** Crash 500 su endpoint onboarding → Fixato con helper `find_partner()` e `update_partner()`
+- ✅ **PROBLEMA 4:** MARCO non in GET /api/agents → Già presente (6 agenti totali)
+- ✅ **UI Cliente Pre-Questionario:** Nuovi testi "Benvenuto in Evolution PRO" + "Raccontaci il tuo progetto"
+- ✅ **UI Cliente Post-Questionario:** Nuovi testi "Complimenti + Siamo al secondo step"
+- ✅ **Counter active_partners:** 25 partner attivi (era 0/1)
+
 ### Onboarding Partner con Upload Documenti (Mar 2026) - NEW
 - ✅ **Backend (`routers/onboarding.py`):**
   - `POST /api/partner/{id}/profilo` - Salva dati anagrafici + genera contratto DOCX
