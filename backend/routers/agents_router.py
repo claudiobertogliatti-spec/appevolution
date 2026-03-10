@@ -1,20 +1,32 @@
 """
 Router FastAPI per gli agenti AI di Business Evolution PRO.
-Aggiunge endpoint per MARCO, GAIA, STEFANIA, con routing via STEFANIA.
+Aggiunge endpoint per MARCO, GAIA, STEFANIA, ANDREA con routing via STEFANIA.
 """
 
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional, List
 import logging
-from datetime import datetime, timezone
+import os
+from datetime import datetime, timezone, timedelta
+from motor.motor_asyncio import AsyncIOMotorClient
 
 from marco_ai import ask_marco, marco_ai, MARCO_SYSTEM_PROMPT
 from gaia_ai import ask_gaia, gaia_ai, GAIA_SYSTEM_PROMPT
 from stefania_ai import route_message, run_daily_monitoring, stefania_ai
+from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# Database connection
+mongo_url = os.environ.get('MONGO_URL', '')
+db_name = os.environ.get('DB_NAME', 'evolution_pro')
+client = AsyncIOMotorClient(mongo_url)
+db = client[db_name]
+
+# Emergent LLM Key
+EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
 
 
 # ─────────────────────────────────────────────
