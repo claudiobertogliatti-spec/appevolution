@@ -10484,6 +10484,136 @@ app.include_router(onboarding_router)
 # Mount static files for DOCX downloads
 app.mount("/api/static", StaticFiles(directory="/app/backend/static"), name="static")
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# CLIENTI ANALISI ENDPOINTS - /api/clienti-analisi
+# ═══════════════════════════════════════════════════════════════════════════════
+
+try:
+    from analisi_workflow import esegui_workflow_analisi, valida_risposte, aggiungi_tag_systeme
+    ANALISI_MODULE_OK = True
+except ImportError as e:
+    logging.warning(f"[WARN] analisi_workflow non disponibile: {e}")
+    ANALISI_MODULE_OK = False
+
+@api_router.get("/clienti-analisi")
+async def lista_clienti_analisi():
+    """Lista tutti i clienti dell'Analisi Strategica."""
+    from datetime import timedelta
+    clienti = await db.clienti_analisi.find({}).to_list(200)
+    now = datetime.now(timezone.utc)
+    result = []
+    for c in clienti:
+        c["id"] = str(c.get("_id", c.get("id", "")))
+        c.pop("_id", None)
+        data_acq = c.get("data_acquisto")
+        q_completato = c.get("questionario", {}).get("completato", False)
+        stato = c.get("stato", "pagato")
+        # Flag: non ha compilato il questionario da oltre 24h
+        c["non_compilato_24h"] = False
+        if stato == "pagato" and not q_completato and data_acq:
+            try:
+                if isinstance(data_acq, str):
+                    data_acq = datetime.fromisoformat(data_acq.replace('Z', '+00:00'))
+                if (now - data_acq).total_seconds() > 86400:
+                    c["non_compilato_24h"] = True
+            except:
+                pass
+        result.append(c)
+    return result
+
+@api_router.post("/clienti-analisi/{cliente_id}/questionario")
+async def salva_questionario_analisi(cliente_id: str, body: dict, background_tasks: BackgroundTasks):
+    """Salva le risposte del questionario e avvia il workflow."""
+    try:
+        query = {"_id": ObjectId(cliente_id)}
+    except:
+        query = {"$or": [{"id": cliente_id}, {"id": str(cliente_id)}]}
+    
+    await db.clienti_analisi.update_one(query, {"$set": {
+        "questionario.completato": True,
+        "questionario.risposte": body,
+        "questionario.data_compilazione": datetime.now(timezone.utc),
+        "stato": "questionario_completato",
+        "workflow_status": "attesa"
+    }})
+    
+    if ANALISI_MODULE_OK:
+        background_tasks.add_task(esegui_workflow_analisi, cliente_id, db)
+    
+    return {"success": True}
+
+@api_router.get("/clienti-analisi/{cliente_id}/questionario")
+async def get_questionario_analisi(cliente_id: str):
+    """Recupera le risposte del questionario di un cliente."""
+    try:
+        query = {"_id": ObjectId(cliente_id)}
+    except:
+        query = {"$or": [{"id": cliente_id}, {"id": str(cliente_id)}]}
+    
+    cliente = await db.clienti_analisi.find_one(query)
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente non trovato")
+    return cliente.get("questionario", {})
+
+@api_router.post("/clienti-analisi/{cliente_id}/avvia-analisi")
+async def avvia_analisi_cliente(cliente_id: str, background_tasks: BackgroundTasks):
+    """Avvia manualmente il workflow di analisi."""
+    if not ANALISI_MODULE_OK:
+        raise HTTPException(status_code=503, detail="Modulo analisi non disponibile")
+    
+    try:
+        query = {"_id": ObjectId(cliente_id)}
+    except:
+        query = {"$or": [{"id": cliente_id}, {"id": str(cliente_id)}]}
+    
+    await db.clienti_analisi.update_one(query, {"$set": {"workflow_status": "avviato"}})
+    background_tasks.add_task(esegui_workflow_analisi, cliente_id, db)
+    return {"avviato": True}
+
+@api_router.get("/clienti-analisi/{cliente_id}/workflow-status")
+async def get_workflow_status_analisi(cliente_id: str):
+    """Ottiene lo stato del workflow di analisi."""
+    try:
+        query = {"_id": ObjectId(cliente_id)}
+    except:
+        query = {"$or": [{"id": cliente_id}, {"id": str(cliente_id)}]}
+    
+    c = await db.clienti_analisi.find_one(query, {
+        "workflow_status": 1, "docx_analisi_url": 1, 
+        "validazione_campi_ko": 1, "analisi_completata_at": 1
+    })
+    if not c:
+        raise HTTPException(status_code=404, detail="Cliente non trovato")
+    
+    return {
+        "workflow_status": c.get("workflow_status", "attesa"),
+        "docx_url": c.get("docx_analisi_url"),
+        "campi_ko": c.get("validazione_campi_ko"),
+        "completata_at": c.get("analisi_completata_at")
+    }
+
+@api_router.get("/clienti-analisi/{cliente_id}/scarica-docx")
+async def scarica_docx_analisi(cliente_id: str):
+    """Download del file DOCX dell'analisi."""
+    try:
+        query = {"_id": ObjectId(cliente_id)}
+    except:
+        query = {"$or": [{"id": cliente_id}, {"id": str(cliente_id)}]}
+    
+    c = await db.clienti_analisi.find_one(query)
+    if not c or not c.get("docx_analisi_url"):
+        raise HTTPException(status_code=404, detail="Analisi non ancora generata")
+    
+    file_path = Path("/app/backend") / c["docx_analisi_url"].lstrip("/")
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File non trovato")
+    
+    return FileResponse(
+        path=str(file_path), 
+        filename=file_path.name,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+
 # Include agents router (MARCO, GAIA, STEFANIA)
 from routers.agents_router import router as agents_router
 app.include_router(agents_router, prefix="/api/agents", tags=["agents"])
