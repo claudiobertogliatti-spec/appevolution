@@ -185,9 +185,9 @@ async def salva_profilo(partner_id: str, body: ProfiloRequest):
                 "onboarding.profilo.compilato_at": datetime.now(timezone.utc).isoformat(),
                 "onboarding.contratto.docx_generato_url": docx_url,
                 # Aggiorna anche i campi principali
-                "nome": dati.nome,
-                "cognome": dati.cognome,
-                "email": dati.email,
+                "nome": dati_dict.get("nome", ""),
+                "cognome": dati_dict.get("cognome", ""),
+                "email": dati_dict.get("email", ""),
                 "anagrafica": dati_dict,
             }})
         
