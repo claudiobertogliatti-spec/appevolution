@@ -7210,21 +7210,6 @@ async def stefania_create_tag(name: str):
     client = get_systeme_client()
     return await client.create_tag(name)
 
-def marta_get_contacts(limit: int = 100, page: int = 1):
-    """MARTA: Recupera contatti CRM"""
-    client = get_systeme_client()
-    return await client.get_contacts(limit=limit, page=page)
-
-def marta_create_contact(email: str, first_name: str = None, last_name: str = None):
-    """MARTA: Crea nuovo contatto"""
-    client = get_systeme_client()
-    return await client.create_contact(email=email, first_name=first_name, last_name=last_name)
-
-def marta_get_orders(limit: int = 100):
-    """MARTA: Recupera ordini"""
-    client = get_systeme_client()
-    return await client.get_orders(limit=limit)
-
 @api_router.get("/systeme/andrea/courses")
 async def andrea_get_courses():
     """ANDREA: Recupera corsi"""
