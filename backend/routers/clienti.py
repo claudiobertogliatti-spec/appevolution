@@ -241,6 +241,93 @@ async def get_questionario_precall(cliente_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# ============================================================================
+# WORKFLOW ANALISI STRATEGICA AUTOMATICA
+# ============================================================================
+
+@router.post("/{cliente_id}/avvia-analisi")
+async def avvia_analisi(cliente_id: str):
+    """
+    Avvia il workflow completo di generazione analisi in background.
+    Chiamato automaticamente quando il cliente invia il questionario.
+    """
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+    
+    try:
+        # Import del workflow
+        from analisi_workflow import esegui_workflow_analisi
+        
+        # Avvia in background per non bloccare la risposta al browser
+        asyncio.create_task(esegui_workflow_analisi(str(cliente_id), db))
+        
+        return {"status": "avviato", "messaggio": "Analisi in elaborazione"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{cliente_id}/workflow-status")
+async def workflow_status(cliente_id: str):
+    """Stato corrente del workflow (polling dal frontend)"""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+    
+    try:
+        cliente = await db.clienti.find_one(
+            {"_id": ObjectId(cliente_id)},
+            {"workflow_status": 1, "docx_analisi_url": 1, "validazione_campi_ko": 1}
+        )
+        if not cliente:
+            # Prova con id stringa
+            cliente = await db.clienti.find_one(
+                {"id": cliente_id},
+                {"workflow_status": 1, "docx_analisi_url": 1, "validazione_campi_ko": 1}
+            )
+        
+        if not cliente:
+            raise HTTPException(status_code=404, detail="Cliente non trovato")
+        
+        return {
+            "workflow_status": cliente.get("workflow_status", "attesa"),
+            "docx_url": cliente.get("docx_analisi_url"),
+            "campi_ko": cliente.get("validazione_campi_ko", [])
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{cliente_id}/scarica-docx")
+async def scarica_docx(cliente_id: str):
+    """Download del DOCX generato"""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+    
+    from fastapi.responses import FileResponse
+    from pathlib import Path
+    
+    try:
+        cliente = await db.clienti.find_one({"_id": ObjectId(cliente_id)})
+        if not cliente:
+            cliente = await db.clienti.find_one({"id": cliente_id})
+        
+        if not cliente or not cliente.get("docx_analisi_path"):
+            raise HTTPException(status_code=404, detail="DOCX non disponibile")
+        
+        docx_path = cliente["docx_analisi_path"]
+        
+        if not Path(docx_path).exists():
+            raise HTTPException(status_code=404, detail="File non trovato sul server")
+        
+        return FileResponse(
+            path=docx_path,
+            filename=Path(docx_path).name,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/{cliente_id}/fissa-call")
 async def fissa_call(cliente_id: str, data: FissaCallRequest):
     """Set call date for a client"""
