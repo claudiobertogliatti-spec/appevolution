@@ -3,11 +3,12 @@ import { API } from '../../utils/api-config';
 import { 
   Clock, CheckCircle, XCircle, AlertTriangle, 
   Eye, RefreshCw, User, FileText, Mail, MessageSquare,
-  ChevronDown, ChevronUp
+  ChevronDown, ChevronUp, Download, Sparkles, ExternalLink
 } from 'lucide-react';
 
 const ApprovalDashboard = () => {
   const [tasks, setTasks] = useState([]);
+  const [analisiDaRevisionare, setAnalisiDaRevisionare] = useState([]);
   const [stats, setStats] = useState({
     pending: 0,
     approved_today: 0,
