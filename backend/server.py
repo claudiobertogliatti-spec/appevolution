@@ -2670,7 +2670,7 @@ class AgentTaskCreate(BaseModel):
 @api_router.post("/agent-tasks")
 async def create_agent_task(task: AgentTaskCreate):
     """Create a task assigned to an agent"""
-    valid_agents = ["VALENTINA", "STEFANIA", "ORION", "GAIA", "MARTA", "ATLAS", "LUCA", "ANDREA"]
+    valid_agents = ["VALENTINA", "STEFANIA", "GAIA", "ANDREA", "MARCO"]
     if task.agent.upper() not in valid_agents:
         raise HTTPException(status_code=400, detail=f"Agente non valido. Usa: {valid_agents}")
     
