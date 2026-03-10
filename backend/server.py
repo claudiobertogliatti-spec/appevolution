@@ -43,7 +43,6 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[db_name]
 
 # Initialize AI Agents
-orion_scoring = init_orion(db)
 agent_hub = init_agent_hub(db)
 
 # Emergent LLM Key
