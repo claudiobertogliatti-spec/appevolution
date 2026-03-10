@@ -24,16 +24,19 @@ const ApprovalDashboard = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const [tasksRes, statsRes] = await Promise.all([
+      const [tasksRes, statsRes, analisiRes] = await Promise.all([
         fetch(`${API}/agent-tasks/approvals`),
-        fetch(`${API}/agent-tasks/approval-stats`)
+        fetch(`${API}/agent-tasks/approval-stats`),
+        fetch(`${API}/clienti/admin/analisi-da-revisionare`)
       ]);
       
       const tasksData = await tasksRes.json();
       const statsData = await statsRes.json();
+      const analisiData = await analisiRes.json();
       
       setTasks(tasksData.tasks || []);
       setStats(statsData);
+      setAnalisiDaRevisionare(analisiData || []);
     } catch (error) {
       console.error('Error fetching approval data:', error);
     } finally {
