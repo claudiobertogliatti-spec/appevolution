@@ -246,6 +246,13 @@ class AuthService:
                 "password": "Evolution2026!",
                 "role": "admin",
                 "admin_type": "antonella"
+            },
+            {
+                "email": "claudio.bertogliatti@gmail.com",
+                "name": "Claudio Bertogliatti",
+                "password": "Evoluzione74",
+                "role": "admin",
+                "admin_type": "claudio"
             }
         ]
         
