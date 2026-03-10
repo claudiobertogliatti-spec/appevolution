@@ -558,12 +558,12 @@ export function ClienteDashboard({ cliente, onLogout }) {
                   </div>
                 </div>
 
-                {/* Servizio Avatar PRO (copiato da Partner AvatarCheckout) */}
+                {/* Servizio Avatar PRO (offerta commerciale completa come Partner) */}
                 <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #1E2128 0%, #2D3038 100%)', border: '2px solid #F5C518' }}>
                   <div className="p-6">
                     <div className="flex items-center gap-2 mb-3">
                       <Sparkles className="w-5 h-5 text-[#F5C518]" />
-                      <span className="text-xs font-bold text-[#F5C518] uppercase">Servizio Premium</span>
+                      <span className="text-xs font-bold text-[#F5C518] uppercase">Servizio Premium — Delega Totale</span>
                     </div>
                     <h3 className="text-xl font-bold text-white mb-2">🎬 Avatar PRO — Il Tuo Clone Digitale che Insegna per Te</h3>
                     <p className="text-white/80 text-sm mb-4">
@@ -571,6 +571,15 @@ export function ClienteDashboard({ cliente, onLogout }) {
                       Con il nostro servizio Avatar PRO, creiamo un <strong className="text-white">avatar AI professionale</strong> con la tua voce 
                       e il tuo stile che parla, sorride e insegna esattamente come faresti tu.
                     </p>
+                    
+                    {/* Come funziona */}
+                    <div className="p-3 rounded-xl bg-white/5 mb-4">
+                      <p className="text-sm text-white/90">
+                        💡 <strong className="text-[#F5C518]">Come funziona:</strong> Tu ci invii il tuo script (o lo scriviamo noi), 
+                        noi creiamo il video con il tuo avatar che parla in modo naturale e coinvolgente. 
+                        Ricevi il video pronto per essere caricato nel tuo corso.
+                      </p>
+                    </div>
                     
                     <div className="grid grid-cols-2 gap-3 mb-4">
                       {[
@@ -589,15 +598,41 @@ export function ClienteDashboard({ cliente, onLogout }) {
                       ))}
                     </div>
                     
-                    <div className="p-3 rounded-xl bg-[#F5C518]/10 mb-4">
-                      <div className="flex items-center justify-between">
+                    {/* Pricing Box */}
+                    <div className="p-4 rounded-xl bg-[#F5C518]/10 mb-4">
+                      <div className="flex items-center justify-between mb-3">
                         <div>
-                          <div className="text-xs text-[#F5C518] font-bold">A partire da</div>
-                          <div className="text-2xl font-black text-white">€120<span className="text-sm font-normal text-white/60">/lezione</span></div>
+                          <div className="text-xs text-[#F5C518] font-bold">Prezzo per lezione</div>
+                          <div className="text-3xl font-black text-white">€120<span className="text-sm font-normal text-white/60"> IVA incl.</span></div>
                         </div>
                         <div className="text-right">
                           <div className="text-xs text-white/60">Pacchetti disponibili</div>
-                          <div className="text-sm font-bold text-[#F5C518]">3, 6, 12 lezioni</div>
+                          <div className="text-sm font-bold text-[#F5C518]">3, 5, 10, 15 lezioni</div>
+                        </div>
+                      </div>
+                      
+                      {/* Package options */}
+                      <div className="grid grid-cols-4 gap-2 text-center">
+                        <div className="p-2 rounded-lg bg-white/5">
+                          <div className="text-xs text-white/60">3 lezioni</div>
+                          <div className="font-bold text-white">€360</div>
+                        </div>
+                        <div className="p-2 rounded-lg bg-white/5">
+                          <div className="text-xs text-white/60">5 lezioni</div>
+                          <div className="font-bold text-white">€550</div>
+                          <div className="text-[10px] text-[#10B981]">-8%</div>
+                        </div>
+                        <div className="p-2 rounded-lg bg-[#F5C518]/20 border border-[#F5C518]/50">
+                          <div className="text-[10px] text-[#F5C518]">POPOLARE</div>
+                          <div className="text-xs text-white/60">10 lezioni</div>
+                          <div className="font-bold text-white">€1.000</div>
+                          <div className="text-[10px] text-[#10B981]">-17%</div>
+                        </div>
+                        <div className="p-2 rounded-lg bg-white/5">
+                          <div className="text-[10px] text-[#10B981]">BEST VALUE</div>
+                          <div className="text-xs text-white/60">15 lezioni</div>
+                          <div className="font-bold text-white">€1.350</div>
+                          <div className="text-[10px] text-[#10B981]">-25%</div>
                         </div>
                       </div>
                     </div>
@@ -607,6 +642,10 @@ export function ClienteDashboard({ cliente, onLogout }) {
                     >
                       Scopri il servizio Avatar PRO <ArrowRight className="w-4 h-4" />
                     </button>
+                    
+                    <p className="text-center text-xs text-white/40 mt-3">
+                      Questo servizio sarà disponibile dopo la call strategica con Claudio
+                    </p>
                   </div>
                 </div>
 
