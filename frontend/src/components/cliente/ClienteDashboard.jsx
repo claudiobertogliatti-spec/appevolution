@@ -720,25 +720,17 @@ export function ClienteDashboard({ cliente, onLogout }) {
                 )}
               </div>
             ) : (
-              /* Post-submission - Area con bonus, video e servizi */
+              /* Post-submission - Mini Corso Gratuito */
               <div className="space-y-6">
-                {/* Conferma invio */}
-                <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-                  <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                      <CheckCircle className="w-7 h-7 text-green-600" />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-bold text-[#1E2128] mb-1">Complimenti {clienteName}!</h2>
-                      <p className="text-[#5F6572] mb-2">
-                        Siamo al secondo step! Non ci resta che fissare in calendario la data e l'ora.
-                      </p>
-                      <h3 className="text-lg font-bold text-[#1E2128] mb-1">✅ Questionario completato!</h3>
-                      <p className="text-[#5F6572]">
-                        Il Team Evolution ti contatterà entro 48 ore all'email <strong>{clienteEmail}</strong> per 
-                        fissare la videocall strategica di 60 minuti.
-                      </p>
-                    </div>
+                {/* Conferma breve (senza banner bianco grande) */}
+                <div className="rounded-xl p-4 flex items-start gap-3" style={{ background: '#10B98115', border: '1px solid #10B981' }}>
+                  <CheckCircle className="w-5 h-5 text-[#10B981] flex-shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-bold text-[#1E2128]">✅ Questionario completato!</div>
+                    <p className="text-sm text-[#5F6572]">
+                      Il Team Evolution ti contatterà entro 48 ore all'email <strong>{clienteEmail}</strong> per 
+                      fissare la videocall strategica di 60 minuti.
+                    </p>
                   </div>
                 </div>
 
@@ -800,327 +792,196 @@ export function ClienteDashboard({ cliente, onLogout }) {
                   </div>
                 </div>
 
-                {/* I 7 Bonus Strategici (copiato da Partner) */}
-                <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-                  <div className="flex items-center gap-3 mb-4">
-                    <Gift className="w-6 h-6 text-[#F5C518]" />
-                    <h3 className="text-lg font-bold text-[#1E2128]">Risorse Gratis: I 7 Bonus Strategici</h3>
+                {/* ═══════════════════════════════════════════════════════════════════════
+                    MINI CORSO GRATUITO - 7 MODULI
+                    ═══════════════════════════════════════════════════════════════════════ */}
+                
+                {/* Header Mini Corso */}
+                <div className="rounded-2xl p-6" style={{ background: 'linear-gradient(135deg, #1E2128 0%, #2D3038 100%)', border: '2px solid #F5C518' }}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Gift className="w-5 h-5 text-[#F5C518]" />
+                    <span className="text-xs font-bold text-[#F5C518] uppercase">Mini Corso Gratuito — 7 moduli</span>
                   </div>
-                  <p className="text-sm text-[#5F6572] mb-4">
-                    Nel frattempo goditi questi 7 Bonus che ti preparano a costruire un videocorso che vende. 
-                    Ogni bonus affronta un aspetto critico che determina il successo o il fallimento di un progetto formativo online. 
-                    Buona lettura!
+                  <h2 className="text-2xl font-black text-white mb-2">
+                    Come Creare un Videocorso che Vende Davvero
+                  </h2>
+                  <p className="text-white/70 text-sm">
+                    La guida strategica per evitare gli errori che fanno fallire il 90% dei corsi online
                   </p>
-                  <div className="space-y-3">
-                    {BONUS_DATA.map((bonus) => (
+                </div>
+
+                {/* Introduzione */}
+                <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+                  <h3 className="text-lg font-bold text-[#1E2128] mb-4 flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-[#F5C518]" />
+                    Introduzione
+                  </h3>
+                  <div className="prose prose-sm max-w-none text-[#5F6572] space-y-4">
+                    <p>Se stai leggendo questa guida è molto probabile che tu sia una persona competente.</p>
+                    <p>Hai esperienza. Hai lavorato con clienti reali. Hai costruito competenze che hanno valore.</p>
+                    <p>E forse ti sei già posto questa domanda: <strong className="text-[#1E2128]">"Posso trasformare quello che so in un videocorso?"</strong></p>
+                    <p>La risposta è sì.</p>
+                    <p>Ma c'è un punto che quasi nessuno dice chiaramente: <strong className="text-[#1E2128]">Creare un corso è facile. Creare un corso che venda è un'altra cosa.</strong></p>
+                    <p>Ogni anno migliaia di professionisti registrano videocorsi che:</p>
+                    <ul className="space-y-1 ml-4">
+                      <li className="flex items-center gap-2"><span className="text-red-500">✗</span> non vendono</li>
+                      <li className="flex items-center gap-2"><span className="text-red-500">✗</span> vendono pochissimo</li>
+                      <li className="flex items-center gap-2"><span className="text-red-500">✗</span> vengono abbandonati dagli studenti</li>
+                      <li className="flex items-center gap-2"><span className="text-red-500">✗</span> non generano entrate nel tempo</li>
+                    </ul>
+                    <p>E quasi mai il problema è la qualità del contenuto. <strong className="text-[#1E2128]">Il problema è la mancanza di struttura strategica prima della registrazione.</strong></p>
+                    <p>In questo mini corso gratuito vedremo i principi fondamentali per evitare gli errori più comuni e costruire le basi di un progetto digitale sostenibile.</p>
+                  </div>
+                </div>
+
+                {/* I 7 Moduli */}
+                <div className="space-y-4">
+                  {BONUS_DATA.map((modulo) => (
+                    <div
+                      key={modulo.id}
+                      className="rounded-2xl overflow-hidden"
+                      style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}
+                    >
+                      {/* Module Header */}
                       <div
-                        key={bonus.id}
-                        className="rounded-xl overflow-hidden"
-                        style={{ border: '1px solid #ECEDEF' }}
+                        onClick={() => setExpandedBonus(expandedBonus === modulo.id ? null : modulo.id)}
+                        className="p-5 flex items-center gap-4 cursor-pointer hover:bg-[#FAFAF7] transition-colors"
                       >
-                        {/* Bonus Header */}
-                        <div
-                          onClick={() => setExpandedBonus(expandedBonus === bonus.id ? null : bonus.id)}
-                          className="p-4 flex items-center gap-3 cursor-pointer hover:bg-[#FAFAF7] transition-colors"
+                        <div 
+                          className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
+                          style={{ background: modulo.color }}
                         >
-                          <div 
-                            className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0"
-                            style={{ background: bonus.color }}
-                          >
-                            {bonus.id}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-bold text-[#1E2128]">{bonus.title}</div>
-                            <div className="text-xs text-[#9CA3AF]">{bonus.subtitle}</div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-[#9CA3AF]">{bonus.chapters.length} capitoli</span>
-                            <ChevronDown 
-                              className={`w-4 h-4 text-[#9CA3AF] transition-transform ${expandedBonus === bonus.id ? 'rotate-180' : ''}`} 
-                            />
-                          </div>
+                          {modulo.id}
                         </div>
-                        
-                        {/* Chapters (expanded) con contenuto completo */}
-                        {expandedBonus === bonus.id && (
-                          <div className="border-t border-[#ECEDEF] p-4 bg-[#FAFAF7]">
-                            {/* Summary */}
-                            <div className="bg-[#FEF9E7] border border-[#F5C518]/20 rounded-lg p-3 mb-4">
-                              <p className="text-sm text-[#C4990A] font-medium">
-                                💡 <strong>In sintesi:</strong> {bonus.summary}
-                              </p>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs text-[#9CA3AF] font-medium mb-1">MODULO {modulo.id}</div>
+                          <div className="font-bold text-[#1E2128] text-lg">{modulo.title}</div>
+                          <div className="text-sm text-[#5F6572]">{modulo.subtitle}</div>
+                        </div>
+                        <ChevronDown 
+                          className={`w-5 h-5 text-[#9CA3AF] transition-transform flex-shrink-0 ${expandedBonus === modulo.id ? 'rotate-180' : ''}`} 
+                        />
+                      </div>
+                      
+                      {/* Module Content (expanded) */}
+                      {expandedBonus === modulo.id && (
+                        <div className="border-t border-[#ECEDEF] p-5 bg-[#FAFAF7]">
+                          {/* Key Points */}
+                          <div className="bg-[#FEF9E7] border border-[#F5C518]/30 rounded-xl p-4 mb-4">
+                            <div className="font-bold text-sm text-[#C4990A] mb-2 flex items-center gap-2">
+                              <Lightbulb className="w-4 h-4" />
+                              Punti Chiave
                             </div>
-                            
-                            {/* Key Points */}
-                            {bonus.keyPoints && (
-                              <div className="mb-4">
-                                <div className="font-bold text-sm text-[#1E2128] mb-2 flex items-center gap-2">
-                                  <Lightbulb className="w-4 h-4 text-[#F5C518]" />
-                                  Punti Chiave
-                                </div>
-                                <ul className="space-y-2">
-                                  {bonus.keyPoints.map((point, idx) => (
-                                    <li key={idx} className="flex items-start gap-2 text-sm text-[#5F6572]">
-                                      <CheckCircle className="w-4 h-4 text-[#10B981] mt-0.5 flex-shrink-0" />
-                                      {point}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            
-                            {/* Full Content */}
-                            {bonus.fullContent && (
-                              <div className="mb-4 p-4 rounded-xl bg-white border border-[#ECEDEF]">
-                                <div className="font-bold text-sm text-[#1E2128] mb-3 flex items-center gap-2">
-                                  <BookOpen className="w-4 h-4 text-[#F5C518]" />
-                                  Contenuto Completo del Modulo
-                                </div>
-                                <div className="prose prose-sm max-w-none text-[#5F6572]">
-                                  {bonus.fullContent.split('\n\n').map((paragraph, idx) => {
-                                    // Handle bold text **text**
-                                    const formattedText = paragraph.split('**').map((part, i) => 
-                                      i % 2 === 1 ? <strong key={i} className="text-[#1E2128]">{part}</strong> : part
-                                    );
-                                    
-                                    // Check if it's a list item
-                                    if (paragraph.startsWith('•') || paragraph.startsWith('1.') || paragraph.startsWith('2.') || paragraph.startsWith('3.') || paragraph.startsWith('4.') || paragraph.startsWith('5.')) {
-                                      return (
-                                        <ul key={idx} className="my-2 space-y-1">
-                                          {paragraph.split('\n').map((item, itemIdx) => (
-                                            <li key={itemIdx} className="flex items-start gap-2 text-sm">
-                                              <span className="text-[#F5C518] mt-1">•</span>
-                                              <span>{item.replace(/^[•\d.]\s*/, '')}</span>
-                                            </li>
-                                          ))}
-                                        </ul>
-                                      );
-                                    }
-                                    
-                                    return (
-                                      <p key={idx} className="mb-3 text-sm leading-relaxed">
-                                        {formattedText}
-                                      </p>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
-                            
-                            {/* Chapters List */}
-                            <div className="font-bold text-sm text-[#1E2128] mb-2">Capitoli:</div>
-                            <div className="grid grid-cols-2 gap-2">
-                              {bonus.chapters.map((chapter, i) => {
-                                const ChapterIcon = chapter.icon;
+                            <ul className="space-y-2">
+                              {modulo.keyPoints.map((point, idx) => (
+                                <li key={idx} className="flex items-start gap-2 text-sm text-[#5F6572]">
+                                  <CheckCircle className="w-4 h-4 text-[#10B981] mt-0.5 flex-shrink-0" />
+                                  {point}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          
+                          {/* Full Content */}
+                          <div className="bg-white rounded-xl p-5 border border-[#ECEDEF]">
+                            <div className="prose prose-sm max-w-none text-[#5F6572]">
+                              {modulo.fullContent.split('\n\n').map((paragraph, idx) => {
+                                // Handle bold headers **text**
+                                if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
+                                  return (
+                                    <h4 key={idx} className="font-bold text-[#1E2128] mt-4 mb-2">
+                                      {paragraph.replace(/\*\*/g, '')}
+                                    </h4>
+                                  );
+                                }
+                                
+                                // Handle list items starting with • or numbers
+                                if (paragraph.includes('\n•') || paragraph.startsWith('•')) {
+                                  const lines = paragraph.split('\n');
+                                  return (
+                                    <ul key={idx} className="my-3 space-y-1">
+                                      {lines.map((line, i) => (
+                                        <li key={i} className="flex items-start gap-2 text-sm">
+                                          <span className="text-[#F5C518] mt-1 flex-shrink-0">•</span>
+                                          <span>{line.replace(/^•\s*/, '')}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  );
+                                }
+                                
+                                // Handle inline bold
+                                const parts = paragraph.split(/(\*\*[^*]+\*\*)/g);
+                                const formattedParts = parts.map((part, i) => {
+                                  if (part.startsWith('**') && part.endsWith('**')) {
+                                    return <strong key={i} className="text-[#1E2128]">{part.slice(2, -2)}</strong>;
+                                  }
+                                  return part;
+                                });
+                                
                                 return (
-                                  <div 
-                                    key={i}
-                                    className="flex items-center gap-2 p-2 rounded-lg bg-white hover:bg-[#FEF9E7] cursor-pointer transition-colors"
-                                  >
-                                    <ChapterIcon className="w-4 h-4" style={{ color: bonus.color }} />
-                                    <span className="text-xs text-[#1E2128]">{chapter.title}</span>
-                                  </div>
+                                  <p key={idx} className="mb-3 text-sm leading-relaxed">
+                                    {formattedParts}
+                                  </p>
                                 );
                               })}
                             </div>
                           </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
 
-                {/* Servizio Avatar PRO (offerta commerciale completa come Partner) */}
-                <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #1E2128 0%, #2D3038 100%)', border: '2px solid #F5C518' }}>
-                  <div className="p-6">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Sparkles className="w-5 h-5 text-[#F5C518]" />
-                      <span className="text-xs font-bold text-[#F5C518] uppercase">Servizio Premium — Delega Totale</span>
-                    </div>
-                    <h3 className="text-xl font-bold text-white mb-2">🎬 Avatar PRO — Il Tuo Clone Digitale che Insegna per Te</h3>
-                    <p className="text-white/80 text-sm mb-4">
-                      Immagina di poter <strong className="text-white">moltiplicare la tua presenza</strong> senza registrare un singolo video. 
-                      Con il nostro servizio Avatar PRO, creiamo un <strong className="text-white">avatar AI professionale</strong> con la tua voce 
-                      e il tuo stile che parla, sorride e insegna esattamente come faresti tu.
-                    </p>
-                    
-                    {/* Come funziona */}
-                    <div className="p-3 rounded-xl bg-white/5 mb-4">
-                      <p className="text-sm text-white/90">
-                        💡 <strong className="text-[#F5C518]">Come funziona:</strong> Tu ci invii il tuo script (o lo scriviamo noi), 
-                        noi creiamo il video con il tuo avatar che parla in modo naturale e coinvolgente. 
-                        Ricevi il video pronto per essere caricato nel tuo corso.
-                      </p>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-3 mb-4">
-                      {[
-                        { title: "Qualità Cinematografica", desc: "Risoluzione 1080p HD" },
-                        { title: "Espressioni Naturali", desc: "Sorrisi e gesti realistici" },
-                        { title: "Script Ottimizzato", desc: "Copy persuasivo incluso" },
-                        { title: "Consegna Rapida", desc: "48-72h per lezione" }
-                      ].map((item, i) => (
-                        <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-white/5">
-                          <CheckCircle className="w-4 h-4 text-[#10B981] mt-0.5 flex-shrink-0" />
-                          <div>
-                            <div className="text-xs font-bold text-white">{item.title}</div>
-                            <div className="text-[10px] text-white/60">{item.desc}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    
-                    {/* Pricing Box */}
-                    <div className="p-4 rounded-xl bg-[#F5C518]/10 mb-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <div className="text-xs text-[#F5C518] font-bold">Prezzo per lezione</div>
-                          <div className="text-3xl font-black text-white">€120<span className="text-sm font-normal text-white/60"> IVA incl.</span></div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xs text-white/60">Pacchetti disponibili</div>
-                          <div className="text-sm font-bold text-[#F5C518]">3, 5, 10, 15 lezioni</div>
-                        </div>
-                      </div>
-                      
-                      {/* Package options */}
-                      <div className="grid grid-cols-4 gap-2 text-center">
-                        <div className="p-2 rounded-lg bg-white/5">
-                          <div className="text-xs text-white/60">3 lezioni</div>
-                          <div className="font-bold text-white">€360</div>
-                        </div>
-                        <div className="p-2 rounded-lg bg-white/5">
-                          <div className="text-xs text-white/60">5 lezioni</div>
-                          <div className="font-bold text-white">€550</div>
-                          <div className="text-[10px] text-[#10B981]">-8%</div>
-                        </div>
-                        <div className="p-2 rounded-lg bg-[#F5C518]/20 border border-[#F5C518]/50">
-                          <div className="text-[10px] text-[#F5C518]">POPOLARE</div>
-                          <div className="text-xs text-white/60">10 lezioni</div>
-                          <div className="font-bold text-white">€1.000</div>
-                          <div className="text-[10px] text-[#10B981]">-17%</div>
-                        </div>
-                        <div className="p-2 rounded-lg bg-white/5">
-                          <div className="text-[10px] text-[#10B981]">BEST VALUE</div>
-                          <div className="text-xs text-white/60">15 lezioni</div>
-                          <div className="font-bold text-white">€1.350</div>
-                          <div className="text-[10px] text-[#10B981]">-25%</div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <button 
-                      className="w-full py-3 rounded-xl font-bold text-sm bg-[#F5C518] text-[#1E2128] hover:bg-[#F5C518]/90 transition-colors flex items-center justify-center gap-2"
-                    >
-                      Scopri il servizio Avatar PRO <ArrowRight className="w-4 h-4" />
-                    </button>
-                    
-                    <p className="text-center text-xs text-white/40 mt-3">
-                      Questo servizio sarà disponibile dopo la call strategica con Claudio
-                    </p>
-                  </div>
-                </div>
-
-                {/* Roadmap Partnership con dettagli contratto */}
+                {/* Conclusione */}
                 <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-                  <div className="flex items-center gap-3 mb-4">
-                    <Map className="w-6 h-6 text-[#F5C518]" />
-                    <h3 className="text-lg font-bold text-[#1E2128]">Il Percorso Partnership Evolution PRO</h3>
+                  <h3 className="text-lg font-bold text-[#1E2128] mb-4 flex items-center gap-2">
+                    <Star className="w-5 h-5 text-[#F5C518]" />
+                    Conclusione: La domanda che conta davvero
+                  </h3>
+                  <div className="prose prose-sm max-w-none text-[#5F6572] space-y-4">
+                    <p>Se hai letto tutti i moduli di questa guida, ormai è chiaro un punto:</p>
+                    <p><strong className="text-[#1E2128]">Creare un videocorso non è difficile. Costruire un progetto digitale che venda nel tempo è un'altra cosa.</strong></p>
+                    <p>Serve:</p>
+                    <ul className="space-y-1 ml-4">
+                      <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-[#10B981]" /> una struttura strategica</li>
+                      <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-[#10B981]" /> un posizionamento chiaro</li>
+                      <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-[#10B981]" /> un problema reale da risolvere</li>
+                      <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-[#10B981]" /> un percorso formativo credibile</li>
+                      <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-[#10B981]" /> un sistema di acquisizione clienti</li>
+                    </ul>
+                    <p>Quando questi elementi sono allineati, un corso può diventare un vero asset digitale.</p>
+                    <p>Quando mancano, il rischio è sempre lo stesso: <em>mesi di lavoro, energia e aspettative… per un prodotto che il mercato non compra.</em></p>
                   </div>
-                  
-                  <p className="text-sm text-[#5F6572] mb-4">
-                    Dopo la call strategica, se il progetto supera la fase di Analisi Strategica e viene considerato idoneo, 
-                    potrai accedere alla <strong>Partnership Evolution PRO</strong>. Ecco cosa prevede:
+                </div>
+
+                {/* CTA - Prossimo Passo */}
+                <div className="rounded-2xl p-6" style={{ background: 'linear-gradient(135deg, #F5C518 0%, #E5B517 100%)' }}>
+                  <h3 className="text-lg font-bold text-[#1E2128] mb-2">
+                    Prima di creare il corso, serve una verifica
+                  </h3>
+                  <p className="text-sm text-[#1E2128]/80 mb-4">
+                    Durante la <strong>Call Strategica di Analisi</strong> lavoriamo insieme su tre aspetti fondamentali:
                   </p>
-                  
-                  {/* Investment Info */}
-                  <div className="p-4 rounded-xl mb-4" style={{ background: '#FEF9E7', border: '1px solid #F5C518' }}>
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[#F5C518] flex items-center justify-center flex-shrink-0">
-                        <Target className="w-5 h-5 text-[#1E2128]" />
-                      </div>
-                      <div>
-                        <div className="font-bold text-[#1E2128] mb-1">Investimento Partnership</div>
-                        <div className="text-sm text-[#5F6572]">
-                          <strong className="text-[#1E2128]">€2.790</strong> (IVA inclusa) — investimento una tantum.<br/>
-                          <span className="text-xs">Valore complessivo progetto: €9.349 di cui il 70% sostenuto da Evolution PRO</span>
-                        </div>
-                      </div>
+                  <div className="grid md:grid-cols-3 gap-3 mb-4">
+                    <div className="bg-white/30 rounded-xl p-3">
+                      <div className="font-bold text-[#1E2128] text-sm mb-1">1. Verifica del problema</div>
+                      <div className="text-xs text-[#1E2128]/70">Capire se è reale, urgente e pagato</div>
+                    </div>
+                    <div className="bg-white/30 rounded-xl p-3">
+                      <div className="font-bold text-[#1E2128] text-sm mb-1">2. Studio di fattibilità</div>
+                      <div className="text-xs text-[#1E2128]/70">Corso, percorso o accademia?</div>
+                    </div>
+                    <div className="bg-white/30 rounded-xl p-3">
+                      <div className="font-bold text-[#1E2128] text-sm mb-1">3. Roadmap strategica</div>
+                      <div className="text-xs text-[#1E2128]/70">Target, struttura, vendita</div>
                     </div>
                   </div>
-                  
-                  {/* What's Included */}
-                  <div className="mb-4">
-                    <div className="font-bold text-sm text-[#1E2128] mb-2">Cosa include la Partnership:</div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        "Consulenza strategica personalizzata",
-                        "Infrastruttura tecnica (funnel, automazioni)",
-                        "Editing video professionale",
-                        "Copywriting pagine di vendita",
-                        "Supporto lancio e promozione",
-                        "Accesso alla piattaforma Evolution PRO"
-                      ].map((item, i) => (
-                        <div key={i} className="flex items-center gap-2 text-xs text-[#5F6572]">
-                          <CheckCircle className="w-3 h-3 text-[#10B981]" />
-                          <span>{item}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Timeline */}
-                  <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-4">
-                    {[
-                      { phase: "F1", label: "Posizionamento" },
-                      { phase: "F2", label: "Struttura" },
-                      { phase: "F3", label: "Masterclass" },
-                      { phase: "F5", label: "Video" },
-                      { phase: "F8", label: "Lancio" },
-                      { phase: "F10+", label: "Scala" }
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-center gap-2 flex-shrink-0">
-                        <div className="px-3 py-2 rounded-lg text-center" style={{ background: '#FEF9E7' }}>
-                          <div className="text-xs font-bold text-[#C4990A]">{item.phase}</div>
-                          <div className="text-[10px] text-[#5F6572]">{item.label}</div>
-                        </div>
-                        {i < 5 && <ArrowRight className="w-3 h-3 text-[#ECEDEF]" />}
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {/* Contract & Documents Info */}
-                  <div className="p-4 rounded-xl" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
-                    <div className="font-bold text-sm text-[#1E2128] mb-3 flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-[#F5C518]" />
-                      Come procedere dopo l'approvazione
-                    </div>
-                    <div className="space-y-3 text-sm text-[#5F6572]">
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full bg-[#F5C518] flex items-center justify-center flex-shrink-0 text-xs font-bold text-[#1E2128]">1</div>
-                        <div>
-                          <div className="font-bold text-[#1E2128]">Firma del Contratto di Partnership</div>
-                          <div className="text-xs">Contratto di 12 mesi (non soggetto a proroghe automatiche)</div>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full bg-[#F5C518] flex items-center justify-center flex-shrink-0 text-xs font-bold text-[#1E2128]">2</div>
-                        <div>
-                          <div className="font-bold text-[#1E2128]">Distinta di Pagamento</div>
-                          <div className="text-xs">€2.790 in soluzione unica o max 3 rate mensili (previa approvazione)</div>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full bg-[#F5C518] flex items-center justify-center flex-shrink-0 text-xs font-bold text-[#1E2128]">3</div>
-                        <div>
-                          <div className="font-bold text-[#1E2128]">Documenti Personali</div>
-                          <div className="text-xs">Carta d'identità + Codice Fiscale</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-4 p-3 rounded-lg bg-[#3B82F6]/10 text-xs text-[#3B82F6]">
-                      <strong>Nota:</strong> Questi documenti ti verranno richiesti solo dopo la call strategica e l'approvazione del progetto.
-                    </div>
+                  <div className="flex items-center gap-3 p-3 bg-white/20 rounded-xl">
+                    <Calendar className="w-5 h-5 text-[#1E2128]" />
+                    <span className="text-sm text-[#1E2128]">
+                      <strong>Prossimo step:</strong> Ti contatteremo entro 48h per fissare la call strategica
+                    </span>
                   </div>
                 </div>
               </div>
