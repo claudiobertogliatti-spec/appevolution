@@ -416,17 +416,14 @@ async def approva_step(partner_id: str, body: ApprovaStep):
             approvato_field = "approvato"
             approvato_at_field = "approvato_at"
         
-        await db.partners.update_one(
-            {"_id": ObjectId(partner_id)},
-            {"$set": {
+        await update_partner(partner_id, {"$set": {
                 f"{field_prefix}.{approvato_field}": approvato,
                 f"{field_prefix}.{approvato_at_field}": datetime.now(timezone.utc).isoformat(),
                 f"{field_prefix}.note_admin": note,
-            }}
-        )
+            }})
         
         # Controlla se tutti e 3 gli step sono approvati
-        partner = await db.partners.find_one({"_id": ObjectId(partner_id)})
+        partner = await find_partner(partner_id)
         onb = partner.get("onboarding", {})
         
         tutti_approvati = (
@@ -437,15 +434,12 @@ async def approva_step(partner_id: str, body: ApprovaStep):
         
         if tutti_approvati:
             # Sblocca il percorso: avanza F1 → F2
-            await db.partners.update_one(
-                {"_id": ObjectId(partner_id)},
-                {"$set": {
+            await update_partner(partner_id, {"$set": {
                     "onboarding.completato": True,
                     "onboarding.completato_at": datetime.now(timezone.utc).isoformat(),
-                    "fase": "F2",
+                    "phase": "F2",
                     "stato": "OK",
-                }}
-            )
+                }})
         
         return {
             "success": True,
