@@ -127,10 +127,11 @@ async def genera_testo_ai(risposte: dict, nome: str) -> dict:
         
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
-            system_prompt=SYSTEM_PROMPT_ANALISI
-        ).with_model("anthropic", "claude-sonnet-4-20250514")
+            session_id=f"analisi_{nome}_{datetime.now().timestamp()}",
+            system_message=SYSTEM_PROMPT_ANALISI
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
         
-        response = await chat.send_message_async(
+        response = await chat.send_message(
             UserMessage(text=build_prompt_ai(risposte, nome))
         )
         
