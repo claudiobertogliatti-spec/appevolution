@@ -130,11 +130,12 @@ Italian
 ## Backlog / Future Tasks
 
 ### P0 - Immediate
-- Test funnel "Analisi Strategica" (€67) end-to-end - Simulare registrazione, pagamento, questionario
-- Promuovere partner test a F10+ per verificare pagine post-lancio
+- Integrare avvio automatico workflow analisi dopo compilazione questionario (nel frontend ClienteDashboard)
 - Integrare URL video di benvenuto (quando disponibile)
+- Test completo funnel "Analisi Strategica" end-to-end
 
 ### P1 - High Priority
+- Promuovere partner test a F10+ per verificare pagine post-lancio
 - Implementare endpoint per studenti accademia
 - Implementare endpoint per impegni settimanali (MARCO)
 - Implementare endpoint per report mensile
