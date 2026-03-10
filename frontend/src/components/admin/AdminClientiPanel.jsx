@@ -12,6 +12,7 @@ import { API } from "../../utils/api-config";
 const STATUS_CONFIG = {
   pagato: { label: "Pagato", color: "#9CA3AF", icon: Clock, bg: "#9CA3AF20" },
   questionario_completato: { label: "Questionario ✓", color: "#3B82F6", icon: FileText, bg: "#3B82F620" },
+  analisi_pronta: { label: "Analisi pronta", color: "#8B5CF6", icon: Sparkles, bg: "#8B5CF620" },
   call_fissata: { label: "Call fissata", color: "#F5C518", icon: Calendar, bg: "#F5C51820" },
   proposta_inviata: { label: "Proposta inviata", color: "#F59E0B", icon: Target, bg: "#F59E0B20" },
   convertito: { label: "Partner ✓", color: "#10B981", icon: CheckCircle, bg: "#10B98120" },
@@ -23,6 +24,7 @@ const STATUS_OPTIONS = [
   { value: "all", label: "Tutti gli stati" },
   { value: "pagato", label: "Pagato" },
   { value: "questionario_completato", label: "Questionario ✓" },
+  { value: "analisi_pronta", label: "Analisi pronta" },
   { value: "call_fissata", label: "Call fissata" },
   { value: "proposta_inviata", label: "Proposta inviata" },
   { value: "convertito", label: "Partner ✓" },
