@@ -429,6 +429,43 @@ export function ClienteDashboard({ cliente, onLogout }) {
                   </div>
                 </div>
 
+                {/* Analisi Strategica - Download DOCX */}
+                {cliente?.docx_analisi_url ? (
+                  <div className="rounded-2xl p-6" style={{ background: 'linear-gradient(135deg, #8B5CF620 0%, #F5C51820 100%)', border: '2px solid #8B5CF6' }}>
+                    <div className="flex items-start gap-4">
+                      <div className="w-14 h-14 rounded-full bg-[#8B5CF6] flex items-center justify-center flex-shrink-0">
+                        <Sparkles className="w-7 h-7 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h2 className="text-xl font-bold text-[#1E2128] mb-1">📄 La tua Analisi Strategica è pronta!</h2>
+                        <p className="text-[#5F6572] mb-4">
+                          Abbiamo preparato un documento personalizzato basato sulle tue risposte. 
+                          Scaricalo e portalo con te alla videocall.
+                        </p>
+                        <button
+                          onClick={() => window.open(`${API}/clienti/${cliente.id}/scarica-docx`, '_blank')}
+                          className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all hover:opacity-90"
+                          style={{ background: '#8B5CF6', color: 'white' }}
+                          data-testid="download-analisi-docx"
+                        >
+                          <Download className="w-5 h-5" />
+                          Scarica Analisi Strategica (DOCX)
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : cliente?.workflow_status === 'generazione_ai' || cliente?.workflow_status === 'generazione_docx' ? (
+                  <div className="rounded-2xl p-6" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
+                    <div className="flex items-center gap-4">
+                      <Loader2 className="w-8 h-8 text-[#F5C518] animate-spin" />
+                      <div>
+                        <h3 className="font-bold text-[#1E2128]">Stiamo preparando la tua Analisi Strategica...</h3>
+                        <p className="text-sm text-[#5F6572]">Sarà disponibile tra pochi secondi</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
                 {/* Video di Benvenuto */}
                 <div className="rounded-2xl overflow-hidden" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
                   <div className="aspect-video bg-[#1E2128] flex items-center justify-center relative">
