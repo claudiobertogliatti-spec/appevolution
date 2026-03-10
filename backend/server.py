@@ -2725,7 +2725,7 @@ async def get_tasks_dashboard():
     
     # Get tasks by agent
     agents_stats = {}
-    for agent in ["VALENTINA", "ORION", "MARTA", "STEFANIA", "ANDREA", "GAIA", "ATLAS", "LUCA"]:
+    for agent in ["VALENTINA", "STEFANIA", "ANDREA", "GAIA", "MARCO"]:
         count = await db.agent_tasks.count_documents({"agent": agent})
         if count > 0:
             agents_stats[agent] = count
