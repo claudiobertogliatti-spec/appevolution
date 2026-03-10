@@ -139,9 +139,7 @@ async def salva_profilo(partner_id: str, dati: ProfiloDati):
             docx_url = f"/static/contratti/{nome_file}"
         
         # Aggiorna il partner in MongoDB
-        await db.partners.update_one(
-            {"_id": ObjectId(partner_id)},
-            {"$set": {
+        await update_partner(partner_id, {"$set": {
                 "onboarding.step_corrente": 2,
                 "onboarding.profilo.compilato": True,
                 "onboarding.profilo.dati": dati_dict,
@@ -152,8 +150,7 @@ async def salva_profilo(partner_id: str, dati: ProfiloDati):
                 "cognome": dati.cognome,
                 "email": dati.email,
                 "anagrafica": dati_dict,
-            }}
-        )
+            }})
         
         return {"success": True, "docx_url": docx_url}
     except Exception as e:
@@ -183,13 +180,10 @@ async def scarica_contratto(partner_id: str):
             raise HTTPException(status_code=404, detail="File contratto non trovato")
         
         # Registra il download
-        await db.partners.update_one(
-            {"_id": ObjectId(partner_id)},
-            {"$set": {
+        await update_partner(partner_id, {"$set": {
                 "onboarding.contratto.scaricato": True,
                 "onboarding.contratto.scaricato_at": datetime.now(timezone.utc).isoformat()
-            }}
-        )
+            }})
         
         return FileResponse(
             path=str(file_path),
@@ -224,15 +218,12 @@ async def upload_contratto_firmato(partner_id: str, file: UploadFile = File(...)
         
         file_url = f"/static/documenti/{partner_id}/contratto_firmato{ext}"
         
-        await db.partners.update_one(
-            {"_id": ObjectId(partner_id)},
-            {"$set": {
+        await update_partner(partner_id, {"$set": {
                 "onboarding.step_corrente": 3,
                 "onboarding.contratto.firmato_url": file_url,
                 "onboarding.contratto.firmato_at": datetime.now(timezone.utc).isoformat(),
                 "onboarding.contratto.approvato": None,
-            }}
-        )
+            }})
         
         return {"success": True, "url": file_url}
     except Exception as e:
@@ -249,15 +240,12 @@ async def conferma_pagamento(partner_id: str, body: ConfermaPagamento):
         raise HTTPException(status_code=500, detail="Database not initialized")
     
     try:
-        await db.partners.update_one(
-            {"_id": ObjectId(partner_id)},
-            {"$set": {
+        await update_partner(partner_id, {"$set": {
                 "onboarding.step_corrente": 4,
                 "onboarding.pagamento.metodo": body.metodo,
                 "onboarding.pagamento.confermato": True,
                 "onboarding.pagamento.confermato_at": datetime.now(timezone.utc).isoformat(),
-            }}
-        )
+            }})
         
         return {"success": True}
     except Exception as e:
@@ -294,17 +282,14 @@ async def upload_documenti(
                 await f.write(await upload.read())
             urls[nome_file] = f"/static/documenti/{partner_id}/{nome_file}{ext}"
         
-        await db.partners.update_one(
-            {"_id": ObjectId(partner_id)},
-            {"$set": {
+        await update_partner(partner_id, {"$set": {
                 "onboarding.step_corrente": 5,
                 "onboarding.documenti.ci_fronte_url": urls["ci_fronte"],
                 "onboarding.documenti.ci_retro_url": urls["ci_retro"],
                 "onboarding.documenti.codice_fiscale_url": urls["codice_fiscale"],
                 "onboarding.documenti.caricati_at": datetime.now(timezone.utc).isoformat(),
                 "onboarding.documenti.approvati": None,
-            }}
-        )
+            }})
         
         return {"success": True, "urls": urls}
     except Exception as e:
