@@ -921,7 +921,6 @@ export default function App() {
     {id:"gaia",label:"GAIA",icon:Zap},
     {id:"copyfactory",label:"STEFANIA — Copy Factory",icon:Edit3},
     {id:"warmode",label:"STEFANIA — War Mode",icon:Target},
-    {id:"atlas",label:"ATLAS",icon:Trophy},
     {id:"compliance",label:"LUCA",icon:Shield},
   ];
   const antonellaNav=[
