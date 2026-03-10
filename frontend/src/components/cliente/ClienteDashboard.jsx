@@ -553,34 +553,54 @@ export function ClienteDashboard({ cliente, onLogout }) {
                   </div>
                 </div>
 
-                {/* Servizio Avatar AI */}
-                <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #7B68AE 0%, #9B8BC4 100%)' }}>
+                {/* Servizio Avatar PRO (copiato da Partner AvatarCheckout) */}
+                <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #1E2128 0%, #2D3038 100%)', border: '2px solid #F5C518' }}>
                   <div className="p-6">
                     <div className="flex items-center gap-2 mb-3">
-                      <Sparkles className="w-5 h-5 text-white" />
-                      <span className="text-xs font-bold text-white/80 uppercase">Servizio Extra</span>
+                      <Sparkles className="w-5 h-5 text-[#F5C518]" />
+                      <span className="text-xs font-bold text-[#F5C518] uppercase">Servizio Premium</span>
                     </div>
-                    <h3 className="text-xl font-bold text-white mb-2">Crea il Corso con l'Avatar AI</h3>
+                    <h3 className="text-xl font-bold text-white mb-2">🎬 Avatar PRO — Il Tuo Clone Digitale che Insegna per Te</h3>
                     <p className="text-white/80 text-sm mb-4">
-                      Non vuoi metterti davanti alla telecamera? Nessun problema. 
-                      Puoi creare il tuo intero videocorso usando un avatar digitale che parla con la tua voce.
+                      Immagina di poter <strong className="text-white">moltiplicare la tua presenza</strong> senza registrare un singolo video. 
+                      Con il nostro servizio Avatar PRO, creiamo un <strong className="text-white">avatar AI professionale</strong> con la tua voce 
+                      e il tuo stile che parla, sorride e insegna esattamente come faresti tu.
                     </p>
-                    <div className="grid grid-cols-3 gap-3 mb-4">
+                    
+                    <div className="grid grid-cols-2 gap-3 mb-4">
                       {[
-                        { step: "1", title: "Carica foto" },
-                        { step: "2", title: "Registra voce" },
-                        { step: "3", title: "Ricevi video" }
+                        { title: "Qualità Cinematografica", desc: "Risoluzione 1080p HD" },
+                        { title: "Espressioni Naturali", desc: "Sorrisi e gesti realistici" },
+                        { title: "Script Ottimizzato", desc: "Copy persuasivo incluso" },
+                        { title: "Consegna Rapida", desc: "48-72h per lezione" }
                       ].map((item, i) => (
-                        <div key={i} className="text-center p-3 rounded-xl bg-white/10">
-                          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-1">
-                            <span className="text-sm font-bold text-white">{item.step}</span>
+                        <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-white/5">
+                          <CheckCircle className="w-4 h-4 text-[#10B981] mt-0.5 flex-shrink-0" />
+                          <div>
+                            <div className="text-xs font-bold text-white">{item.title}</div>
+                            <div className="text-[10px] text-white/60">{item.desc}</div>
                           </div>
-                          <div className="text-xs text-white/80">{item.title}</div>
                         </div>
                       ))}
                     </div>
-                    <button className="w-full py-3 rounded-xl font-bold text-sm bg-white text-[#7B68AE] hover:bg-white/90 transition-colors flex items-center justify-center gap-2">
-                      Scopri di più <ArrowRight className="w-4 h-4" />
+                    
+                    <div className="p-3 rounded-xl bg-[#F5C518]/10 mb-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-xs text-[#F5C518] font-bold">A partire da</div>
+                          <div className="text-2xl font-black text-white">€120<span className="text-sm font-normal text-white/60">/lezione</span></div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs text-white/60">Pacchetti disponibili</div>
+                          <div className="text-sm font-bold text-[#F5C518]">3, 6, 12 lezioni</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <button 
+                      className="w-full py-3 rounded-xl font-bold text-sm bg-[#F5C518] text-[#1E2128] hover:bg-[#F5C518]/90 transition-colors flex items-center justify-center gap-2"
+                    >
+                      Scopri il servizio Avatar PRO <ArrowRight className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
