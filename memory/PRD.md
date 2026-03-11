@@ -222,6 +222,20 @@ Italian
 - ✅ Sezione Approvazioni: colori corretti per tema chiaro
 - ✅ Team Evolution: aggiornato a 6 agenti con ruoli corretti
 
+### DEPLOY 11: OPENCLAW Data Intelligence Agent (Mar 11, 2026)
+- ✅ **Backend `openclaw_agent.py`**: Agente per data intelligence che:
+  - Recupera contatti e ordini da Systeme.io API
+  - Calcola MRR dagli ordini degli ultimi 30 giorni
+  - Aggiorna collezione `dashboard_stats` in MongoDB
+  - Invia notifiche Telegram per nuovi ordini
+- ✅ **Integrazione Agent Hub**: `agent_hub_service.py` ora legge MRR da `dashboard_stats`
+- ✅ **Scheduler**: OPENCLAW esegue ogni 30 minuti automaticamente
+- ✅ **API Endpoints**:
+  - `POST /api/agents/openclaw/run` - Esecuzione manuale
+  - `GET /api/agents/openclaw/status` - Stato configurazione
+  - `GET /api/agents/openclaw/logs` - Ultimi log esecuzione
+- ✅ **Frontend Agent Hub**: Mostra MRR in tempo reale nel Business Summary
+
 ## Known Issues
 ### P0 - Critical
 - **OpenClaw execution fails**: "Agent was aborted" error on local machine
