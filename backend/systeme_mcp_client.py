@@ -44,11 +44,11 @@ def is_configured() -> bool:
 def get_contact_by_email(email: str) -> Optional[dict]:
     """Recupera contatto da Systeme.io per email."""
     if not is_configured():
-        logger.warning("[SYSTEME MCP] Chiavi non configurate - modalità demo")
+        logger.warning("[SYSTEME] Chiavi non configurate - modalità demo")
         return None
     try:
         r = httpx.get(
-            f"{SYSTEME_MCP_BASE_URL}/contacts",
+            f"{SYSTEME_BASE_URL}/contacts",
             params={"email": email},
             headers=_headers(),
             timeout=10
@@ -57,7 +57,7 @@ def get_contact_by_email(email: str) -> Optional[dict]:
         data = r.json()
         return data.get("contacts", [None])[0]
     except Exception as e:
-        logger.error(f"[SYSTEME MCP] get_contact_by_email error: {e}")
+        logger.error(f"[SYSTEME] get_contact_by_email error: {e}")
         return None
 
 
@@ -67,7 +67,7 @@ def get_partner_orders(email: str) -> List[dict]:
         return []
     try:
         r = httpx.get(
-            f"{SYSTEME_MCP_BASE_URL}/orders",
+            f"{SYSTEME_BASE_URL}/orders",
             params={"email": email},
             headers=_headers(),
             timeout=10
@@ -75,7 +75,7 @@ def get_partner_orders(email: str) -> List[dict]:
         r.raise_for_status()
         return r.json().get("orders", [])
     except Exception as e:
-        logger.error(f"[SYSTEME MCP] get_partner_orders error: {e}")
+        logger.error(f"[SYSTEME] get_partner_orders error: {e}")
         return []
 
 
@@ -85,14 +85,14 @@ def get_accademia_revenue(course_id: str) -> dict:
         return {"revenue": 0, "students": 0, "demo_mode": True}
     try:
         r = httpx.get(
-            f"{SYSTEME_MCP_BASE_URL}/courses/{course_id}/stats",
+            f"{SYSTEME_BASE_URL}/courses/{course_id}/stats",
             headers=_headers(),
             timeout=10
         )
         r.raise_for_status()
         return r.json()
     except Exception as e:
-        logger.error(f"[SYSTEME MCP] get_accademia_revenue error: {e}")
+        logger.error(f"[SYSTEME] get_accademia_revenue error: {e}")
         return {"revenue": 0, "students": 0, "error": str(e)}
 
 
@@ -103,7 +103,7 @@ def get_active_subscriptions() -> List[dict]:
     try:
         # Systeme.io API uses /api/orders for subscription data
         r = httpx.get(
-            f"{SYSTEME_MCP_BASE_URL}/orders",
+            f"{SYSTEME_BASE_URL}/orders",
             params={"type": "subscription", "status": "active"},
             headers=_headers(),
             timeout=10
@@ -112,12 +112,12 @@ def get_active_subscriptions() -> List[dict]:
         return r.json().get("orders", r.json().get("subscriptions", []))
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 404:
-            logger.warning("[SYSTEME MCP] Endpoint subscriptions non disponibile - uso fallback")
+            logger.warning("[SYSTEME] Endpoint subscriptions non disponibile - uso fallback")
             return []
-        logger.error(f"[SYSTEME MCP] get_active_subscriptions error: {e}")
+        logger.error(f"[SYSTEME] get_active_subscriptions error: {e}")
         return []
     except Exception as e:
-        logger.error(f"[SYSTEME MCP] get_active_subscriptions error: {e}")
+        logger.error(f"[SYSTEME] get_active_subscriptions error: {e}")
         return []
 
 
@@ -128,7 +128,7 @@ def get_expiring_plans(days: int = 30) -> List[dict]:
     try:
         # Systeme.io API may not have this endpoint - use local calculation
         r = httpx.get(
-            f"{SYSTEME_MCP_BASE_URL}/orders",
+            f"{SYSTEME_BASE_URL}/orders",
             params={"type": "subscription", "status": "active"},
             headers=_headers(),
             timeout=10
@@ -157,12 +157,12 @@ def get_expiring_plans(days: int = 30) -> List[dict]:
         return expiring
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 404:
-            logger.warning("[SYSTEME MCP] Endpoint orders non disponibile")
+            logger.warning("[SYSTEME] Endpoint orders non disponibile")
             return []
-        logger.error(f"[SYSTEME MCP] get_expiring_plans error: {e}")
+        logger.error(f"[SYSTEME] get_expiring_plans error: {e}")
         return []
     except Exception as e:
-        logger.error(f"[SYSTEME MCP] get_expiring_plans error: {e}")
+        logger.error(f"[SYSTEME] get_expiring_plans error: {e}")
         return []
 
 
@@ -195,7 +195,7 @@ def get_mrr_summary() -> dict:
             "demo_mode": False
         }
     except Exception as e:
-        logger.error(f"[SYSTEME MCP] get_mrr_summary error: {e}")
+        logger.error(f"[SYSTEME] get_mrr_summary error: {e}")
         return {
             "mrr_totale": 0,
             "piani_attivi": 0,
@@ -217,14 +217,14 @@ def get_contacts_stats() -> dict:
         }
     try:
         r = httpx.get(
-            f"{SYSTEME_MCP_BASE_URL}/contacts/stats",
+            f"{SYSTEME_BASE_URL}/contacts/stats",
             headers=_headers(),
             timeout=10
         )
         r.raise_for_status()
         return r.json()
     except Exception as e:
-        logger.error(f"[SYSTEME MCP] get_contacts_stats error: {e}")
+        logger.error(f"[SYSTEME] get_contacts_stats error: {e}")
         return {"total_contacts": 0, "error": str(e)}
 
 
@@ -233,14 +233,14 @@ def get_funnel_stats(funnel_id: str = None) -> dict:
     if not is_configured():
         return {"conversions": 0, "visits": 0, "demo_mode": True}
     try:
-        url = f"{SYSTEME_MCP_BASE_URL}/funnels"
+        url = f"{SYSTEME_BASE_URL}/funnels"
         if funnel_id:
             url = f"{url}/{funnel_id}/stats"
         r = httpx.get(url, headers=_headers(), timeout=10)
         r.raise_for_status()
         return r.json()
     except Exception as e:
-        logger.error(f"[SYSTEME MCP] get_funnel_stats error: {e}")
+        logger.error(f"[SYSTEME] get_funnel_stats error: {e}")
         return {"conversions": 0, "error": str(e)}
 
 
@@ -249,20 +249,20 @@ def get_funnel_stats(funnel_id: str = None) -> dict:
 def add_tag_to_contact(email: str, tag: str) -> bool:
     """Aggiunge un tag a un contatto Systeme.io."""
     if not SYSTEME_MCP_WRITE_KEY:
-        logger.warning("[SYSTEME MCP] Write key non configurata - operazione saltata")
+        logger.warning("[SYSTEME] Write key non configurata - operazione saltata")
         return False
     try:
         r = httpx.post(
-            f"{SYSTEME_MCP_BASE_URL}/contacts/tag",
+            f"{SYSTEME_BASE_URL}/contacts/tag",
             json={"email": email, "tag": tag},
             headers=_headers(write=True),
             timeout=10
         )
         r.raise_for_status()
-        logger.info(f"[SYSTEME MCP] Tag '{tag}' aggiunto a {email}")
+        logger.info(f"[SYSTEME] Tag '{tag}' aggiunto a {email}")
         return True
     except Exception as e:
-        logger.error(f"[SYSTEME MCP] add_tag_to_contact error: {e}")
+        logger.error(f"[SYSTEME] add_tag_to_contact error: {e}")
         return False
 
 
@@ -272,36 +272,36 @@ def remove_tag_from_contact(email: str, tag: str) -> bool:
         return False
     try:
         r = httpx.delete(
-            f"{SYSTEME_MCP_BASE_URL}/contacts/tag",
+            f"{SYSTEME_BASE_URL}/contacts/tag",
             json={"email": email, "tag": tag},
             headers=_headers(write=True),
             timeout=10
         )
         r.raise_for_status()
-        logger.info(f"[SYSTEME MCP] Tag '{tag}' rimosso da {email}")
+        logger.info(f"[SYSTEME] Tag '{tag}' rimosso da {email}")
         return True
     except Exception as e:
-        logger.error(f"[SYSTEME MCP] remove_tag_from_contact error: {e}")
+        logger.error(f"[SYSTEME] remove_tag_from_contact error: {e}")
         return False
 
 
 def trigger_automation(automation_id: str, email: str) -> bool:
     """Attiva un'automazione Systeme.io per un contatto specifico."""
     if not SYSTEME_MCP_WRITE_KEY:
-        logger.warning("[SYSTEME MCP] Write key non configurata - automazione saltata")
+        logger.warning("[SYSTEME] Write key non configurata - automazione saltata")
         return False
     try:
         r = httpx.post(
-            f"{SYSTEME_MCP_BASE_URL}/automations/{automation_id}/trigger",
+            f"{SYSTEME_BASE_URL}/automations/{automation_id}/trigger",
             json={"email": email},
             headers=_headers(write=True),
             timeout=10
         )
         r.raise_for_status()
-        logger.info(f"[SYSTEME MCP] Automazione {automation_id} attivata per {email}")
+        logger.info(f"[SYSTEME] Automazione {automation_id} attivata per {email}")
         return True
     except Exception as e:
-        logger.error(f"[SYSTEME MCP] trigger_automation error: {e}")
+        logger.error(f"[SYSTEME] trigger_automation error: {e}")
         return False
 
 
@@ -317,7 +317,7 @@ PIANO_TAGS = {
 def activate_piano_continuita(email: str, piano: str) -> bool:
     """Attiva un piano continuità aggiungendo il tag corrispondente."""
     if piano not in PIANO_TAGS:
-        logger.error(f"[SYSTEME MCP] Piano non valido: {piano}")
+        logger.error(f"[SYSTEME] Piano non valido: {piano}")
         return False
     
     tag = PIANO_TAGS[piano]
