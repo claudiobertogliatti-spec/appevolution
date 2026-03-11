@@ -3019,6 +3019,13 @@ from openclaw_integration import (
     get_pending_openclaw_tasks
 )
 
+from openclaw_agent import (
+    run_openclaw,
+    get_openclaw_status,
+    send_telegram as openclaw_send_telegram,
+    OPENCLAW_CONFIG
+)
+
 class OpenClawTaskRequest(BaseModel):
     action: str
     params: Dict
