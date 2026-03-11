@@ -137,6 +137,10 @@ class ChatRequest(BaseModel):
     partner_phase: str = "F1"
     modules_done: int = 0
     context: Optional[Dict[str, Any]] = None
+    # Nuovi campi per contesto utente
+    user_role: Optional[str] = None      # "admin" | "partner" | "cliente"
+    user_name: Optional[str] = None      # nome dell'utente loggato
+    partner_id: Optional[str] = None     # id del partner (se ruolo partner)
 
 class VideoJob(BaseModel):
     model_config = ConfigDict(extra="ignore")
