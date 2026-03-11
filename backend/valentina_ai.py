@@ -497,10 +497,16 @@ Verifica la configurazione di OpenClaw nel sistema."""
                 context_str += action_context
             
             # Choose appropriate system prompt
+            # Usa il context_block iniettato dal backend se disponibile
+            context_block = context.get("context_block", "") if context else ""
+            
             if is_founder:
+                # Per il fondatore, usa VALENTINA_FOUNDER_PROMPT (operativo avanzato)
                 system_prompt = VALENTINA_FOUNDER_PROMPT.format(context=context_str)
             else:
-                system_prompt = VALENTINA_SYSTEM_PROMPT.format(context=context_str)
+                # Per partner e clienti, usa il nuovo VALENTINA_SYSTEM_PROMPT multi-modale
+                # Inietta il context_block all'inizio
+                system_prompt = VALENTINA_SYSTEM_PROMPT + "\n\n" + context_block + "\n\n" + context_str
             
             # Get or create LLM session - REFRESH if action result exists
             # We need to update the system prompt when we have action results
