@@ -2557,48 +2557,53 @@ COSA PUOI FARE:
 
 Rispondi in modo naturale, come farebbe un membro senior del team. Massimo 3-4 frasi per risposta, a meno che non sia necessario un elenco operativo."""
 
-def build_context_block(req: ChatRequest) -> str:
-    """Costruisce il blocco di contesto da iniettare nel system prompt degli agenti."""
-    role = getattr(req, 'user_role', None)
-    name = getattr(req, 'user_name', None)
-    phase = getattr(req, 'partner_phase', None)
-    partner_name = getattr(req, 'partner_name', None)
-    partner_id = getattr(req, 'partner_id', None)
-    niche = getattr(req, 'partner_niche', None)
-    
-    if role == "admin":
-        return (
-            "\n\n[CONTESTO SESSIONE]\n"
-            "Stai parlando con CLAUDIO BERTOGLIATTI — Fondatore e Admin di Evolution PRO.\n"
-            "Non è un partner. È il creatore del sistema.\n"
-            "Modalità attiva: SUPERVISIONE FONDATORE.\n"
-            "Rispondi come faresti con il tuo capo, non con un cliente.\n"
-            "Tono diretto, operativo, senza protocolli da partner.\n"
-            "IMPORTANTE: Non usare emoji. Non delegare a GAIA/OpenClaw senza che venga richiesto.\n"
-        )
-    elif role == "partner":
-        return (
-            f"\n\n[CONTESTO SESSIONE]\n"
-            f"Stai parlando con il partner: {partner_name or name or 'Partner'}\n"
-            f"ID partner: {partner_id or 'non specificato'}\n"
-            f"Fase attuale: {phase or 'non specificata'}\n"
-            f"Nicchia: {niche or 'non specificata'}\n"
-            f"Modalità attiva: ASSISTENZA PARTNER.\n"
-            f"Non chiedere chi è — lo sai già. Usa queste informazioni.\n"
-        )
-    elif role == "cliente":
-        return (
-            "\n\n[CONTESTO SESSIONE]\n"
-            "Stai parlando con un cliente che ha acquistato l'Analisi Strategica (€67).\n"
-            "Non è ancora un partner. La call non è ancora avvenuta.\n"
-            "Modalità attiva: PRE-PARTNERSHIP.\n"
-            "Non anticipare il contenuto dell'analisi. Orienta verso i materiali e la call.\n"
-        )
-    else:
-        return (
-            "\n\n[CONTESTO SESSIONE]\n"
-            "Utente non identificato. Tratta come potenziale lead.\n"
-        )
+def build_context_block(req) -> str:
+    """Costruisce il blocco contesto. Mai crasha — sempre ritorna una stringa."""
+    try:
+        # Supporta sia oggetti Pydantic che dict
+        if isinstance(req, dict):
+            role = req.get('user_role', '') or ''
+            name = req.get('user_name', '') or ''
+            phase = req.get('partner_phase', '') or ''
+            partner_name = req.get('partner_name', '') or name
+            partner_id = req.get('partner_id', '') or ''
+            niche = req.get('partner_niche', '') or ''
+        else:
+            role = getattr(req, 'user_role', '') or ''
+            name = getattr(req, 'user_name', '') or ''
+            phase = getattr(req, 'partner_phase', '') or ''
+            partner_name = getattr(req, 'partner_name', None) or name or ''
+            partner_id = getattr(req, 'partner_id', '') or ''
+            niche = getattr(req, 'partner_niche', '') or ''
+
+        if role == 'admin':
+            return (
+                "\n\n[CONTESTO SESSIONE]\n"
+                "Stai parlando con CLAUDIO BERTOGLIATTI — Fondatore e Admin di Evolution PRO.\n"
+                "Non è un partner. È il creatore del sistema.\n"
+                "Modalità: SUPERVISIONE FONDATORE.\n"
+                "Rispondi in modo diretto e operativo. Niente emoji. Niente protocolli da partner.\n"
+            )
+        elif role == 'partner':
+            return (
+                f"\n\n[CONTESTO SESSIONE]\n"
+                f"Partner: {partner_name} | Fase: {phase} | ID: {partner_id} | Nicchia: {niche}\n"
+                f"Modalità: ASSISTENZA PARTNER.\n"
+                f"Sai già chi è. Non chiedergli chi è. Usa queste informazioni nella risposta.\n"
+            )
+        elif role == 'cliente':
+            return (
+                "\n\n[CONTESTO SESSIONE]\n"
+                "Cliente post-acquisto Analisi Strategica (€67). Non ancora partner.\n"
+                "Modalità: PRE-PARTNERSHIP.\n"
+                "Non mandare l'analisi. Orienta verso i materiali e la prenotazione della call.\n"
+            )
+        else:
+            return "\n\n[CONTESTO SESSIONE]\nUtente non identificato.\n"
+    except Exception as e:
+        # MAI crashare — ritorna stringa vuota in caso di qualsiasi errore
+        print(f"[build_context_block] errore: {e}")
+        return ""
 
 @api_router.post("/chat")
 async def chat_with_agent(request: ChatRequest):
