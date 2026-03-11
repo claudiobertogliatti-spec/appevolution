@@ -49,13 +49,18 @@ def get_contact_by_email(email: str) -> Optional[dict]:
     try:
         r = httpx.get(
             f"{SYSTEME_BASE_URL}/contacts",
-            params={"email": email},
+            params={"email": email, "limit": 10},
             headers=_headers(),
             timeout=10
         )
         r.raise_for_status()
         data = r.json()
-        return data.get("contacts", [None])[0]
+        # Systeme.io API usa "items" invece di "contacts"
+        items = data.get("items", [])
+        for item in items:
+            if item.get("email", "").lower() == email.lower():
+                return item
+        return items[0] if items else None
     except Exception as e:
         logger.error(f"[SYSTEME] get_contact_by_email error: {e}")
         return None
@@ -68,12 +73,13 @@ def get_partner_orders(email: str) -> List[dict]:
     try:
         r = httpx.get(
             f"{SYSTEME_BASE_URL}/orders",
-            params={"email": email},
+            params={"contactEmail": email, "limit": 100},
             headers=_headers(),
             timeout=10
         )
         r.raise_for_status()
-        return r.json().get("orders", [])
+        # Systeme.io API usa "items"
+        return r.json().get("items", [])
     except Exception as e:
         logger.error(f"[SYSTEME] get_partner_orders error: {e}")
         return []
