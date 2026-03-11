@@ -192,6 +192,10 @@ class AgentAnalyticsHub:
         gaia_metrics = await self._calculate_agent_metrics("GAIA")
         valentina_metrics = await self._calculate_agent_metrics("VALENTINA")
         
+        # Get MRR from dashboard_stats (updated by OPENCLAW agent)
+        dashboard_data = await self.db.dashboard_stats.find_one({"_id": "overview"})
+        mrr_value = dashboard_data.get("mrr", 0) if dashboard_data else 0
+        
         # Calculate health scores based on new agent structure
         accountability_health = "🟢" if marco_metrics.get("inactive_partners", 0) < 5 else "🟡" if marco_metrics.get("inactive_partners", 0) < 15 else "🔴"
         tech_health = "🟢" if gaia_metrics.get("funnel_health") == "OK" else "🟡"
@@ -201,7 +205,7 @@ class AgentAnalyticsHub:
             "summary": {
                 "total_partners": main_metrics.get("total_partners", 0),
                 "active_partners": main_metrics.get("active_partners", 0),
-                "mrr": 0,  # To be calculated from payments
+                "mrr": mrr_value,
                 "avg_ltv": "2.580",  # Default LTV
             },
             "health": {
