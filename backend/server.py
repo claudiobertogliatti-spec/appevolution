@@ -141,6 +141,7 @@ class ChatRequest(BaseModel):
     user_role: Optional[str] = None      # "admin" | "partner" | "cliente"
     user_name: Optional[str] = None      # nome dell'utente loggato
     partner_id: Optional[str] = None     # id del partner (se ruolo partner)
+    agent: Optional[str] = "VALENTINA"   # agente da usare: VALENTINA, MARCO, ANDREA, GAIA, STEFANIA, MAIN
 
 class VideoJob(BaseModel):
     model_config = ConfigDict(extra="ignore")
