@@ -576,6 +576,7 @@ INITIAL_AGENTS = [
     {"id": "GAIA", "role": "Tech Support", "status": "ACTIVE", "budget": 8, "category": "Supporto"},
     {"id": "ANDREA", "role": "Video Production", "status": "ACTIVE", "budget": 15, "category": "Produzione"},
     {"id": "MARCO", "role": "Accountability", "status": "ACTIVE", "budget": 6, "category": "Coaching"},
+    {"id": "OPENCLAW", "role": "Data Intelligence & Notifiche", "status": "ACTIVE", "budget": 0, "category": "Sistema"},
 ]
 
 INITIAL_PARTNERS = [
