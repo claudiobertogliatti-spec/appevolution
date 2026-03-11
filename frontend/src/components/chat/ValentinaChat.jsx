@@ -242,8 +242,14 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
       } else {
         // Chat normale con VALENTINA via API
         const response = await axios.post(`${API}/chat`, {
+          agent: "VALENTINA",
           partner_id: partner?.id || "1",
           message: userInput,
+          user_role: isAdmin ? "admin" : (partner?.id ? "partner" : "cliente"),
+          user_name: partner?.name || "Utente",
+          partner_name: partner?.name,
+          partner_phase: partner?.phase,
+          partner_niche: partner?.niche,
           context: {
             phase: partner?.phase,
             name: partner?.name,
