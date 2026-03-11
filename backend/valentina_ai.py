@@ -247,6 +247,10 @@ class ValentinaAI:
         if not context:
             return False
         
+        # Check user_role first (from request body)
+        if context.get("user_role") == "admin":
+            return True
+        
         # Check is_admin flag
         if context.get("is_admin"):
             return True
