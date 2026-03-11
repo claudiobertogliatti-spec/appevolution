@@ -90,13 +90,20 @@ def get_accademia_revenue(course_id: str) -> dict:
     if not is_configured():
         return {"revenue": 0, "students": 0, "demo_mode": True}
     try:
+        # Usa /courses/{id} per ottenere info sul corso
         r = httpx.get(
-            f"{SYSTEME_BASE_URL}/courses/{course_id}/stats",
+            f"{SYSTEME_BASE_URL}/courses/{course_id}",
             headers=_headers(),
             timeout=10
         )
         r.raise_for_status()
-        return r.json()
+        course = r.json()
+        return {
+            "revenue": course.get("totalRevenue", 0),
+            "students": course.get("studentsCount", 0),
+            "name": course.get("name", ""),
+            "id": course_id
+        }
     except Exception as e:
         logger.error(f"[SYSTEME] get_accademia_revenue error: {e}")
         return {"revenue": 0, "students": 0, "error": str(e)}
@@ -107,18 +114,20 @@ def get_active_subscriptions() -> List[dict]:
     if not is_configured():
         return []
     try:
-        # Systeme.io API uses /api/orders for subscription data
+        # Systeme.io API usa /orders con filtri
         r = httpx.get(
             f"{SYSTEME_BASE_URL}/orders",
-            params={"type": "subscription", "status": "active"},
+            params={"limit": 100},
             headers=_headers(),
             timeout=10
         )
         r.raise_for_status()
-        return r.json().get("orders", r.json().get("subscriptions", []))
+        items = r.json().get("items", [])
+        # Filtra per ordini con subscription attiva
+        return [o for o in items if o.get("subscriptionStatus") == "active"]
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 404:
-            logger.warning("[SYSTEME] Endpoint subscriptions non disponibile - uso fallback")
+            logger.warning("[SYSTEME] Endpoint orders non disponibile")
             return []
         logger.error(f"[SYSTEME] get_active_subscriptions error: {e}")
         return []
