@@ -506,7 +506,10 @@ Verifica la configurazione di OpenClaw nel sistema."""
             
             if is_founder:
                 # Per il fondatore, usa VALENTINA_FOUNDER_PROMPT (operativo avanzato)
+                # MA inietta sempre il context_block per mantenere la coerenza
                 system_prompt = VALENTINA_FOUNDER_PROMPT.format(context=context_str)
+                if context_block:
+                    system_prompt = system_prompt + "\n\n" + context_block
             else:
                 # Per partner e clienti, usa il nuovo VALENTINA_SYSTEM_PROMPT multi-modale
                 # Inietta il context_block all'inizio
