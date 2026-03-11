@@ -9274,13 +9274,61 @@ async def get_telegram_updates():
     return {"updates": result, "discovered_chat_ids": chat_ids}
 
 @api_router.post("/telegram/test")
-async def test_telegram_notification(chat_id: str):
-    """Send a test notification to verify Telegram setup"""
-    result = await telegram_notifier.send_message(
-        chat_id,
-        "🧪 <b>Test Notification</b>\n\nSe vedi questo messaggio, le notifiche Telegram funzionano correttamente!\n\n— Evolution PRO OS"
-    )
-    return {"success": result.get("ok", False), "result": result}
+async def test_telegram_notification(request: Request):
+    """
+    Invia un messaggio Telegram di test.
+    Body: {"message": "testo", "chat_id": "opzionale"}
+    """
+    try:
+        body = await request.json()
+        message = body.get("message", "Test da Evolution PRO OS")
+        chat_id = body.get("chat_id", None)
+        
+        if chat_id:
+            # Usa il chat_id fornito
+            result = await telegram_notifier.send_message(chat_id, message)
+        else:
+            # Usa OpenClaw send_telegram che usa env var
+            result = await openclaw_send_telegram(message)
+        
+        return {"success": result.get("ok", False), "result": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ═══════════════════════════════════════════════════════════════
+# OPENCLAW AGENT ENDPOINTS
+# ═══════════════════════════════════════════════════════════════
+
+@api_router.post("/agents/openclaw/run")
+async def openclaw_run():
+    """Esegue un ciclo manuale di OpenClaw."""
+    try:
+        result = await run_openclaw(db=db)
+        return {"success": True, "result": result}
+    except Exception as e:
+        logging.error(f"[OpenClaw] Errore run: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/agents/openclaw/status")
+async def openclaw_status():
+    """Ritorna lo stato corrente di OpenClaw."""
+    return await get_openclaw_status()
+
+@api_router.get("/agents/openclaw/logs")
+async def openclaw_logs():
+    """Ultimi log da MongoDB."""
+    try:
+        logs = await db.openclaw_logs.find().sort("timestamp", -1).limit(20).to_list(20)
+        for log in logs:
+            log["_id"] = str(log["_id"])
+        return {"logs": logs}
+    except Exception as e:
+        return {"logs": [], "error": str(e)}
+
+@api_router.get("/openclaw/config")
+async def openclaw_config():
+    """Configurazione OpenClaw."""
+    return OPENCLAW_CONFIG
 
 @api_router.post("/telegram/webhook")
 async def telegram_webhook(request: Request):
