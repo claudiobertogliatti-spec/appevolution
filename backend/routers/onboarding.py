@@ -151,31 +151,37 @@ async def salva_profilo(partner_id: str, body: ProfiloRequest):
         
         nome = dati_dict.get("nome", "Partner")
         cognome = dati_dict.get("cognome", "")
-        
-        # Genera il contratto precompilato
-        nome_file = f"Contratto_{nome}_{cognome}_{datetime.now().strftime('%Y%m%d')}.docx"
-        output_path = str(CONTRATTI_DIR / nome_file)
-        
-        # Chiama genera_contratto.py
-        script_path = Path("/app/backend/genera_contratto.py")
         dati_dict["data_firma"] = datetime.now().strftime("%d/%m/%Y")
+        dati_dict["partner_id"] = partner_id
         
-        result = subprocess.run(
-            ["python3", str(script_path), json.dumps(dati_dict), output_path],
-            capture_output=True, text=True, timeout=30
-        )
-        
-        # Se il generatore non esiste o fallisce, crea un placeholder
-        if result.returncode != 0:
-            # Fallback: crea un file placeholder
-            import shutil
-            template_path = Path("/app/backend/contratto_template_unpacked")
-            if template_path.exists():
-                # Crea un DOCX semplice copiando il template
-                pass
-            docx_url = None
-        else:
-            docx_url = f"/static/contratti/{nome_file}"
+        # Genera il contratto precompilato usando il nuovo generatore PDF
+        docx_url = None
+        try:
+            from genera_contratto_pdf import genera_contratto_pdf, get_contratto_url
+            
+            nome_file = f"Contratto_{nome}_{cognome}_{partner_id}_{datetime.now().strftime('%Y%m%d')}.pdf"
+            output_path = genera_contratto_pdf(dati_dict, nome_file)
+            docx_url = get_contratto_url(nome_file)
+            print(f"[CONTRATTO] Generato: {output_path}")
+        except Exception as gen_error:
+            print(f"[CONTRATTO] Errore generazione: {gen_error}")
+            # Fallback: prova il vecchio generatore DOCX
+            try:
+                script_path = Path("/app/backend/genera_contratto.py")
+                nome_file_docx = f"Contratto_{nome}_{cognome}_{datetime.now().strftime('%Y%m%d')}.docx"
+                output_path = str(CONTRATTI_DIR / nome_file_docx)
+                
+                result = subprocess.run(
+                    ["python3", str(script_path), json.dumps(dati_dict), output_path],
+                    capture_output=True, text=True, timeout=30
+                )
+                
+                if result.returncode == 0 and Path(output_path).exists():
+                    docx_url = f"/static/contratti/{nome_file_docx}"
+                else:
+                    print(f"[CONTRATTO] Fallback DOCX fallito: {result.stderr[:200] if result.stderr else 'no output'}")
+            except Exception as docx_error:
+                print(f"[CONTRATTO] Anche fallback DOCX fallito: {docx_error}")
         
         # Aggiorna il partner in MongoDB
         await update_partner(partner_id, {"$set": {
