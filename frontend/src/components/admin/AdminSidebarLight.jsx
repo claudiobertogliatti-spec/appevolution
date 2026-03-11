@@ -11,6 +11,7 @@ const CLAUDIO_NAV = [
   { id: "sales-kpi", label: "Sales KPI", icon: DollarSign, badge: "€7" },
   { id: "documenti-partner", label: "Documenti Partner", icon: FileText },
   { id: "onboarding-admin", label: "Onboarding Docs", icon: FileCheck },
+  { id: "youtube-heygen", label: "YouTube × HeyGen", icon: Film },
   { id: "andrea", label: "Editing", icon: Film },
   { id: "metriche", label: "Post-Lancio", icon: BarChart3 },
   { id: "valentina", label: "VALENTINA", icon: MessageCircle, dot: true },
