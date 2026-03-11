@@ -2589,30 +2589,66 @@ Modalità: PRE-PARTNERSHIP.
         return "[CONTESTO SESSIONE]\nUtente non identificato. Tratta come potenziale lead."
 
 @api_router.post("/chat")
-async def chat_with_valentina(request: ChatRequest):
+async def chat_with_agent(request: ChatRequest):
+    """
+    Endpoint unificato per chat con tutti gli agenti.
+    Il campo 'agent' determina quale agente risponde.
+    """
     try:
-        # Import VALENTINA AI module
-        from valentina_ai import valentina_ai
+        from agent_prompts import AGENT_SYSTEM_PROMPTS, get_agent_prompt
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        
+        # Determina l'agente da usare (default: VALENTINA)
+        agent_id = (request.agent or "VALENTINA").upper()
+        
+        # Verifica che l'agente esista
+        if agent_id not in AGENT_SYSTEM_PROMPTS:
+            raise HTTPException(status_code=400, detail=f"Agente '{agent_id}' non trovato. Disponibili: {list(AGENT_SYSTEM_PROMPTS.keys())}")
+        
+        # Ottieni il system prompt dell'agente
+        system_prompt = get_agent_prompt(agent_id)
         
         # Build context block per il system prompt
         context_block = build_context_block(request)
         
-        # Build context dictionary
-        context = {
-            "name": request.partner_name or request.user_name,
-            "phase": request.partner_phase,
-            "niche": request.partner_niche,
-            "is_admin": request.user_role == "admin" or (request.context.get("is_admin", False) if request.context else False),
-            "user_role": request.user_role,
-            "context_block": context_block  # Passa il blocco di contesto
-        }
+        # Inietta il contesto nel system prompt
+        full_system_prompt = system_prompt + "\n\n" + context_block
         
-        # Get response from VALENTINA AI
-        response = await valentina_ai.chat(
-            partner_id=request.session_id or request.partner_id or request.partner_name or "anonymous",
-            message=request.message,
-            context=context
-        )
+        # Per VALENTINA, usa il modulo dedicato che ha memoria, azioni, etc.
+        if agent_id == "VALENTINA":
+            from valentina_ai import valentina_ai
+            
+            # Build context dictionary per VALENTINA
+            context = {
+                "name": request.partner_name or request.user_name,
+                "phase": request.partner_phase,
+                "niche": request.partner_niche,
+                "is_admin": request.user_role == "admin" or (request.context.get("is_admin", False) if request.context else False),
+                "user_role": request.user_role,
+                "context_block": context_block
+            }
+            
+            response = await valentina_ai.chat(
+                partner_id=request.session_id or request.partner_id or request.partner_name or "anonymous",
+                message=request.message,
+                context=context
+            )
+        else:
+            # Per altri agenti, usa LlmChat direttamente
+            EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+            if not EMERGENT_LLM_KEY:
+                raise HTTPException(status_code=500, detail="EMERGENT_LLM_KEY non configurata")
+            
+            # Crea sessione unica per agente
+            session_key = f"{agent_id}_{request.session_id or request.partner_id or 'anonymous'}"
+            
+            llm = LlmChat(
+                api_key=EMERGENT_LLM_KEY,
+                session_id=session_key,
+                system_message=full_system_prompt
+            ).with_model("anthropic", "claude-haiku-4-5-20251001")
+            
+            response = await llm.send_message(UserMessage(text=request.message))
         
         # Save to chat history
         user_msg = ChatMessage(
@@ -2629,13 +2665,25 @@ async def chat_with_valentina(request: ChatRequest):
         )
         await db.chat_messages.insert_one(assistant_msg.model_dump())
         
-        return {"response": response, "reply": response, "timestamp": assistant_msg.timestamp}
+        # Aggiorna metriche budget agente (semplificato - token stimati)
+        estimated_tokens = len(request.message.split()) + len(response.split()) * 2
+        try:
+            await db.agents.update_one(
+                {"name": agent_id},
+                {"$inc": {"budget_used": estimated_tokens * 0.00001}}  # ~$0.00001 per token
+            )
+        except Exception as budget_err:
+            logging.warning(f"Budget update error: {budget_err}")
         
+        return {"response": response, "reply": response, "agent": agent_id, "timestamp": assistant_msg.timestamp}
+        
+    except HTTPException:
+        raise
     except Exception as e:
-        logging.error(f"Chat error: {e}")
-        # Fallback response
-        fallback = f"Ciao! Sono VALENTINA. Al momento ho qualche difficoltà tecnica, ma sono qui per aiutarti. Riprova tra poco! 🙏"
-        return {"response": fallback, "reply": fallback, "error": str(e)}
+        logging.error(f"Chat error with agent {request.agent}: {e}")
+        agent_name = (request.agent or "VALENTINA").upper()
+        fallback = f"Ciao! Sono {agent_name}. Al momento ho qualche difficoltà tecnica. Riprova tra poco!"
+        return {"response": fallback, "reply": fallback, "agent": agent_name, "error": str(e)}
 
 @api_router.get("/chat/{session_id}")
 async def get_chat_history(session_id: str):
