@@ -1,10 +1,9 @@
 """
-Systeme.io MCP Client
-Integrazione con le API MCP di Systeme.io per Evolution PRO OS
+Systeme.io API Client
+Integrazione con le API di Systeme.io per Evolution PRO OS
 
 Chiavi richieste:
-- SYSTEME_MCP_READ_KEY: chiave con permessi READ ONLY
-- SYSTEME_MCP_WRITE_KEY: chiave con permessi READ + WRITE
+- SYSTEME_API_KEY: chiave API standard di Systeme.io
 """
 
 import os
@@ -15,25 +14,29 @@ from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
-SYSTEME_MCP_READ_KEY = os.getenv("SYSTEME_MCP_READ_KEY")
-SYSTEME_MCP_WRITE_KEY = os.getenv("SYSTEME_MCP_WRITE_KEY")
-SYSTEME_MCP_BASE_URL = os.getenv("SYSTEME_MCP_BASE_URL", "https://api.systeme.io/mcp/v1")
+# Usa SYSTEME_API_KEY come chiave principale
+SYSTEME_API_KEY = os.getenv("SYSTEME_API_KEY")
+# Fallback alle vecchie chiavi MCP per compatibilità
+SYSTEME_MCP_READ_KEY = os.getenv("SYSTEME_MCP_READ_KEY", SYSTEME_API_KEY)
+SYSTEME_MCP_WRITE_KEY = os.getenv("SYSTEME_MCP_WRITE_KEY", SYSTEME_API_KEY)
+# URL base corretto per Systeme.io API
+SYSTEME_BASE_URL = "https://api.systeme.io/api"
 
 
 def _headers(write: bool = False) -> dict:
-    """Genera headers per le richieste API."""
-    key = SYSTEME_MCP_WRITE_KEY if write else SYSTEME_MCP_READ_KEY
+    """Genera headers per le richieste API Systeme.io."""
+    key = SYSTEME_API_KEY or SYSTEME_MCP_WRITE_KEY if write else SYSTEME_API_KEY or SYSTEME_MCP_READ_KEY
     if not key:
-        logger.warning(f"[SYSTEME MCP] Chiave {'WRITE' if write else 'READ'} non configurata")
+        logger.warning(f"[SYSTEME] Chiave API non configurata")
     return {
-        "Authorization": f"Bearer {key}" if key else "",
+        "X-API-Key": key if key else "",
         "Content-Type": "application/json"
     }
 
 
 def is_configured() -> bool:
-    """Verifica se le chiavi MCP sono configurate."""
-    return bool(SYSTEME_MCP_READ_KEY)
+    """Verifica se le chiavi API sono configurate."""
+    return bool(SYSTEME_API_KEY or SYSTEME_MCP_READ_KEY)
 
 
 # ─── LETTURA ────────────────────────────────────────────────────
