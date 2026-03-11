@@ -913,6 +913,7 @@ export default function App() {
     {id:"documenti-partner",label:"Documenti Partner",icon:FileText},
     {id:"onboarding-admin",label:"Onboarding Docs",icon:FileCheck},
     {id:"andrea",label:"Editing",icon:Film},
+    {id:"youtube-heygen",label:"YouTube × HeyGen",icon:Film},
     {id:"metriche",label:"Post-Lancio",icon:BarChart3},
     {id:"valentina",label:"VALENTINA",icon:MessageCircle,dot:true},
   ];
