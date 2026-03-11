@@ -154,34 +154,22 @@ async def salva_profilo(partner_id: str, body: ProfiloRequest):
         dati_dict["data_firma"] = datetime.now().strftime("%d/%m/%Y")
         dati_dict["partner_id"] = partner_id
         
-        # Genera il contratto precompilato usando il nuovo generatore PDF
+        # Genera il contratto DOCX usando il generatore python-docx
         docx_url = None
         try:
-            from genera_contratto_pdf import genera_contratto_pdf, get_contratto_url
+            from genera_contratto import genera_contratto
             
-            nome_file = f"Contratto_{nome}_{cognome}_{partner_id}_{datetime.now().strftime('%Y%m%d')}.pdf"
-            output_path = genera_contratto_pdf(dati_dict, nome_file)
-            docx_url = get_contratto_url(nome_file)
-            print(f"[CONTRATTO] Generato: {output_path}")
+            nome_file = f"Contratto_{nome}_{cognome}_{partner_id}.docx".replace(" ", "_")
+            output_path = str(CONTRATTI_DIR / nome_file)
+            
+            result_path = genera_contratto(dati_dict, output_path)
+            if Path(result_path).exists():
+                docx_url = f"/static/contratti/{Path(result_path).name}"
+                print(f"[CONTRATTO] Generato DOCX: {result_path}")
+            else:
+                print(f"[CONTRATTO] File non creato: {result_path}")
         except Exception as gen_error:
-            print(f"[CONTRATTO] Errore generazione: {gen_error}")
-            # Fallback: prova il vecchio generatore DOCX
-            try:
-                script_path = Path("/app/backend/genera_contratto.py")
-                nome_file_docx = f"Contratto_{nome}_{cognome}_{datetime.now().strftime('%Y%m%d')}.docx"
-                output_path = str(CONTRATTI_DIR / nome_file_docx)
-                
-                result = subprocess.run(
-                    ["python3", str(script_path), json.dumps(dati_dict), output_path],
-                    capture_output=True, text=True, timeout=30
-                )
-                
-                if result.returncode == 0 and Path(output_path).exists():
-                    docx_url = f"/static/contratti/{nome_file_docx}"
-                else:
-                    print(f"[CONTRATTO] Fallback DOCX fallito: {result.stderr[:200] if result.stderr else 'no output'}")
-            except Exception as docx_error:
-                print(f"[CONTRATTO] Anche fallback DOCX fallito: {docx_error}")
+            print(f"[CONTRATTO] Errore generazione DOCX: {gen_error}")
         
         # Aggiorna il partner in MongoDB
         await update_partner(partner_id, {"$set": {
