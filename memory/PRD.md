@@ -22,6 +22,29 @@ Italian
 
 ## What's Been Implemented
 
+### DEPLOY 8: Routing Agenti + System Prompt Completi (Mar 11, 2026) - NEW
+- ✅ **PROBLEMA CRITICO RISOLTO:** Tutti gli agenti rispondevano come VALENTINA
+- ✅ **Creato `/app/backend/agent_prompts.py`:** File dedicato con 6 system prompt completi
+  - VALENTINA: Onboarding & Consulenza Partner (3 modalità: Admin, Partner, Pre-Partner)
+  - MARCO: Accountability settimanale (scala scuse, scala inattività)
+  - ANDREA: Produzione video & revisione contenuti
+  - GAIA: Supporto tecnico (diagnosi, risoluzione, escalation)
+  - STEFANIA: Orchestrazione e monitoraggio proattivo
+  - MAIN: Sistema centrale, dati aggregati
+- ✅ **`ChatRequest` model aggiornato:** Aggiunto campo `agent` (default: VALENTINA)
+- ✅ **`/api/chat` endpoint riscritto:** Routing basato su campo `agent`
+- ✅ **Frontend `ValentinaChat.jsx` aggiornato:** Passa `agent`, `user_role`, `partner_phase`, etc.
+- ✅ **Test passati:**
+  - MARCO → risponde come MARCO (accountability)
+  - ANDREA → risponde come ANDREA (produzione video)
+  - GAIA → risponde come GAIA (supporto tecnico)
+  - STEFANIA → risponde come STEFANIA (orchestrazione)
+  - VALENTINA → risponde come VALENTINA
+  - Admin context → tono colleghi ("Ciao Boss!")
+  - Partner context → risposta corretta su cambio nicchia
+
+## What's Been Implemented
+
 ### UI/UX Miglioramenti Funnel Cliente (Mar 2026) - NEW
 - ✅ Landing Page: Nuovo titolo "La tua competenza merita un sistema che lavora anche quando tu non ci sei"
 - ✅ Landing Page: Sottotitolo con team AI (VALENTINA, ANDREA, MARCO, GAIA, STEFANIA) + Claudio e Antonella
