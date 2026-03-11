@@ -10707,6 +10707,10 @@ app.mount("/api/static", StaticFiles(directory="/app/backend/static"), name="sta
 from routers.agents_router import router as agents_router
 app.include_router(agents_router, prefix="/api/agents", tags=["agents"])
 
+# Include YouTube HeyGen router
+from routers.youtube_heygen import router as youtube_heygen_router
+app.include_router(youtube_heygen_router, prefix="/api", tags=["youtube-heygen"])
+
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler
 
