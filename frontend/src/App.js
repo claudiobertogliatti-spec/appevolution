@@ -55,6 +55,7 @@ import { AnalisiStrategicaApp } from "./components/cliente/AnalisiStrategicaApp"
 import { AdminClientiPanel } from "./components/admin/AdminClientiPanel";
 import { ClienteDashboard } from "./components/cliente/ClienteDashboard";
 import { MiaAccademiaPage, MieiStudentiPage, ImpegniSettimanaPage, ReportMensilePage, PianoContinuitaBanner } from "./components/partner/PostLancioPages";
+import YouTubeHeygenHub from "./components/admin/YouTubeHeygenHub";
 import "./styles/design-system.css";
 
 // Use relative URL in production (same domain), absolute URL in development
