@@ -284,8 +284,8 @@ async def send_openclaw_task(task: OpenClawTask, db=None) -> Dict:
                 f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
                 json={
                     "chat_id": OPENCLAW_CHAT_ID,
-                    "text": message,
-                    "parse_mode": "Markdown"
+                    "text": message
+                    # NOTA: rimosso parse_mode per evitare errori con caratteri speciali
                 },
                 timeout=10
             )
