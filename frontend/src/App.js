@@ -1187,8 +1187,10 @@ export default function App() {
         onNavigate={(page) => {
           if (page === 'questionario') {
             window.location.href = "/questionario";
+          } else if (page === 'analisi-attivazione') {
+            window.location.href = "/analisi-attivazione";
           } else if (page === 'sblocca-analisi') {
-            window.location.href = "/sblocca-analisi";
+            window.location.href = "/analisi-attivazione";
           }
         }}
         onLogout={handleClienteLogout}
