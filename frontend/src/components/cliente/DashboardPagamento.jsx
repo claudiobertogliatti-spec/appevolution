@@ -22,7 +22,7 @@ export function DashboardPagamento({ user, onPaymentSuccess }) {
   const verifyPayment = async (userId) => {
     setCheckingPayment(true);
     try {
-      const response = await fetch(`${API}/api/cliente-analisi/verify-payment?user_id=${userId}`, {
+      const response = await fetch(`${API}/cliente-analisi/verify-payment?user_id=${userId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
