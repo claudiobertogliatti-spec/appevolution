@@ -52,7 +52,7 @@ export function DashboardPagamento({ user, onPaymentSuccess }) {
     setError(null);
 
     try {
-      const response = await fetch(`${API}/api/cliente-analisi/checkout?user_id=${user?.id}`, {
+      const response = await fetch(`${API}/cliente-analisi/checkout?user_id=${user?.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
