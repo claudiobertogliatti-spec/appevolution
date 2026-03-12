@@ -110,422 +110,186 @@ const QUESTIONS = [
 const BONUS_DATA = [
   {
     id: 1,
-    title: "Il Blueprint",
-    subtitle: "Che Evita il Fallimento del 90% dei Corsi",
-    icon: Target,
-    color: "#F5C518",
-    chapters: [
-      { id: "intro", title: "Introduzione", icon: BookOpen },
-      { id: "cap1", title: "Il Vero Nemico", icon: AlertTriangle },
-      { id: "cap2", title: "Corso vs Percorso", icon: Target },
-      { id: "cap3", title: "L'Errore Comune", icon: Lightbulb },
-      { id: "cap4", title: "Dal Punto A al B", icon: ChevronRight },
-      { id: "cap5", title: "I Moduli", icon: BookOpen },
-      { id: "cap6", title: "Il Blueprint", icon: CheckCircle },
-      { id: "checklist", title: "Checklist", icon: CheckCircle },
-    ],
-    summary: "Scopri perché la maggior parte dei videocorsi fallisce ancor prima di essere registrata e come evitare questo destino.",
-    keyPoints: [
-      "Il fallimento non dipende dal contenuto, ma dalla struttura",
-      "La differenza tra un corso che vende e uno che no",
-      "Come costruire un blueprint che guida lo studente al risultato"
-    ],
-    fullContent: `La maggior parte dei videocorsi fallisce prima ancora di essere registrata la prima lezione.
+    title: "Il Blueprint che Evita il Fallimento del 90% dei Corsi",
+    content: `La maggior parte dei corsi fallisce prima ancora di essere registrata.
 
-Non perché l'autore non sia competente.
-Non perché il contenuto non sia valido.
+Il motivo è semplice: si parte dai contenuti invece che dal problema.
 
-Ma perché il corso nasce senza una strategia.
+Molti professionisti pensano:
 
-Molti professionisti partono da questo ragionamento:
-• "I clienti mi fanno sempre le stesse domande"
-• "Potrei spiegare tutto in un corso"
-• "Registro i contenuti e poi lo metto online"
+"Ho tante cose da insegnare, faccio un corso."
 
-Registrano le lezioni. Caricano il corso sulla piattaforma. Aspettano le vendite.
+Il mercato però non compra contenuti.
 
-E le vendite non arrivano.
+**Compra soluzioni.**
 
-Il motivo è semplice.
+La prima domanda da farsi non è:
 
-Un corso non vende perché è ben spiegato.
-Vende perché risolve un problema specifico in modo chiaro.
+Cosa posso insegnare?
 
-**I tre errori fatali**
+Ma:
 
-**1. Registrare prima di validare l'idea**
-Registrare è facile. Validare è difficile.
-Validare significa capire:
-• se il problema è reale
-• se le persone sono disposte a pagare per risolverlo
-• se è un problema urgente
+**Quale problema urgente posso aiutare a risolvere?**
 
-**2. Non avere un target specifico**
-"Il mio corso va bene per tutti." È il modo più veloce per non vendere a nessuno.
-Un corso efficace deve essere chiaro su:
-• a chi è rivolto
-• a chi NON è rivolto
-• in quale situazione si trova la persona
-• quale risultato può ottenere
+**Punto chiave:**
 
-**3. Pensare alla vendita solo dopo**
-Molti professionisti pensano: "Prima creo il corso. Poi vediamo come venderlo."
-È l'ordine sbagliato. Il sistema di vendita deve essere progettato prima dei contenuti.
-
-**Il Blueprint corretto**
-L'ordine giusto è questo:
-1. Validare l'idea
-2. Definire il cliente ideale
-3. Costruire l'offerta
-4. Strutturare il funnel
-5. Registrare il corso
-
-Seguendo questo ordine eviti di investire mesi su un prodotto che nessuno vuole comprare.`
+Un corso nasce da un problema chiaro, non da una lista di argomenti.`
   },
   {
     id: 2,
     title: "Argomenti che Vendono",
-    subtitle: "Ed Eliminare il Superfluo",
-    icon: Lightbulb,
-    color: "#10B981",
-    chapters: [
-      { id: "intro", title: "Introduzione", icon: BookOpen },
-      { id: "cap1", title: "Meno è Meglio", icon: Target },
-      { id: "cap2", title: "Il Filtro", icon: Lightbulb },
-      { id: "cap3", title: "Cosa Tagliare", icon: AlertTriangle },
-      { id: "checklist", title: "Checklist", icon: CheckCircle },
-    ],
-    summary: "Perché scegliere meno argomenti è spesso la decisione che fa vendere di più. Il paradosso della semplicità.",
-    keyPoints: [
-      "Perché più contenuto = meno valore percepito",
-      "Il filtro per decidere cosa includere e cosa no",
-      "Come tagliare senza perdere profondità"
-    ],
-    fullContent: `Molti professionisti vogliono creare corsi completi.
+    content: `Un errore molto comune è voler insegnare tutto.
 
-È comprensibile.
+Si creano corsi lunghi, pieni di moduli, che cercano di coprire ogni possibile aspetto.
 
-Ma esiste un paradosso.
+Il risultato?
 
-**Più un corso è completo, meno vende.**
+Un percorso dispersivo che confonde lo studente e riduce le vendite.
 
-Perché?
+I corsi che funzionano fanno l'opposto:
 
-Perché un corso molto ampio appare:
-• complesso
-• lungo
-• impegnativo
+**selezionano pochi passaggi essenziali e costruiscono un percorso chiaro.**
 
-Le persone non vogliono sapere tutto.
-Vogliono risolvere una cosa precisa.
+**Punto chiave:**
 
-**L'errore tipico**
-
-Quando costruisci un corso senti il bisogno di:
-• aggiungere moduli
-• approfondire
-• spiegare ogni dettaglio
-
-Ma ogni modulo deve servire al risultato principale.
-Se non serve, va eliminato.
-
-**Come scegliere gli argomenti giusti**
-
-1. Identifica un risultato specifico
-2. Elimina ciò che non contribuisce a quel risultato
-3. Trasforma ogni modulo in un mini risultato
-
-Ogni modulo deve produrre un avanzamento concreto.
-
-**La formula**
-
-Corso che vende =
-• 1 problema specifico
-• 1 soluzione chiara
-• 1 risultato concreto`
+Un buon corso elimina il superfluo prima ancora di registrare le lezioni.`
   },
   {
     id: 3,
-    title: "Durata delle Lezioni",
-    subtitle: "La Scelta che Influenza le Vendite",
-    icon: Clock,
-    color: "#3B82F6",
-    chapters: [
-      { id: "intro", title: "Introduzione", icon: BookOpen },
-      { id: "cap1", title: "Come Studia Online", icon: Users },
-      { id: "cap2", title: "La Durata Ideale", icon: Clock },
-      { id: "cap3", title: "Struttura Efficace", icon: Target },
-      { id: "checklist", title: "Checklist", icon: CheckCircle },
-    ],
-    summary: "Come ragiona davvero una persona che studia online e quale durata funziona meglio per massimizzare il completamento.",
-    keyPoints: [
-      "I dati reali sull'attenzione degli studenti online",
-      "La durata ideale per ogni tipo di contenuto",
-      "Come strutturare lezioni che vengono completate"
-    ],
-    fullContent: `Molti professionisti pensano che lezioni lunghe e approfondite aumentino il valore percepito.
+    title: "La Durata delle Lezioni",
+    content: `Molti corsi online hanno lezioni troppo lunghe.
 
-Online spesso accade il contrario.
+Video da 30 o 40 minuti sembrano completi… ma spesso vengono abbandonati.
 
-Un corso troppo lungo viene percepito come:
-• pesante
-• impegnativo
-• difficile da completare
+Nel digitale la regola è semplice:
 
-E quando qualcosa sembra difficile da completare, il cervello rimanda.
+**lezioni brevi, chiare e focalizzate.**
 
-**Come ragiona chi studia online**
+Quando ogni lezione risolve un micro problema specifico, lo studente resta coinvolto e completa il percorso.
 
-Chi compra un corso digitale:
-• ha poco tempo
-• ha molte distrazioni
-• vuole risultati veloci
-• abbandona se non vede progressi
+**Punto chiave:**
 
-Per questo la struttura delle lezioni è fondamentale.
-
-**Durata consigliata**
-
-| Tipo | Durata |
-|------|--------|
-| Video lezioni | 5–15 minuti massimo |
-| Moduli | 30–45 minuti complessivi |
-| Durata del corso | risultati visibili entro 2–4 settimane |
-
-Questo permette allo studente di percepire progresso rapidamente.
-
-**Struttura ideale della lezione**
-
-1. **Introduzione (1–2 minuti)** — Cosa imparerai e perché è importante.
-2. **Contenuto principale (8–10 minuti)** — La parte centrale della spiegazione.
-3. **Azione pratica (2–3 minuti)** — Cosa fare subito.
-
-Lezioni brevi aumentano:
-• completamento
-• soddisfazione
-• recensioni positive
-
-E le recensioni generano nuove vendite.`
+La struttura delle lezioni influenza direttamente l'esperienza dello studente.`
   },
   {
     id: 4,
-    title: "Funnel di Vendita",
-    subtitle: "La Struttura Minima Indispensabile",
-    icon: Rocket,
-    color: "#8B5CF6",
-    chapters: [
-      { id: "intro", title: "Introduzione", icon: BookOpen },
-      { id: "cap1", title: "Cos'è un Funnel", icon: Rocket },
-      { id: "cap2", title: "Gli Elementi Base", icon: Target },
-      { id: "cap3", title: "La Sequenza", icon: ChevronRight },
-      { id: "cap4", title: "Errori da Evitare", icon: AlertTriangle },
-      { id: "checklist", title: "Checklist", icon: CheckCircle },
-    ],
-    summary: "Senza questa struttura il corso NON vende. Scopri il minimo indispensabile per convertire visitatori in studenti.",
-    keyPoints: [
-      "Cos'è veramente un funnel (e cosa non è)",
-      "I 4 elementi che non possono mancare",
-      "Gli errori che bloccano le vendite"
-    ],
-    fullContent: `Un buon corso senza un sistema di vendita rimane invisibile.
+    title: "Il Funnel di Vendita",
+    content: `Un corso non si vende da solo.
 
-Un funnel non è marketing aggressivo.
+Molti professionisti pensano che basti pubblicarlo su una piattaforma.
 
-È un percorso che aiuta una persona a:
-• capire il problema
-• riconoscersi nella situazione
-• vedere la soluzione
-• prendere una decisione
+In realtà ogni corso ha bisogno di una struttura minima di vendita:
 
-**Il Funnel minimo efficace**
+• una pagina che spiega il problema
+• una presentazione che mostra la soluzione
+• un percorso che accompagna il cliente alla decisione.
 
-**1. Lead Magnet**
-Un contenuto gratuito che:
-• risolve un micro problema
-• dimostra competenza
-• raccoglie email
+Questo sistema è chiamato **funnel di vendita**.
 
-**2. Sequenza Email**
-5–7 email che:
-• costruiscono fiducia
-• educano sul problema
-• introducono la soluzione
+**Punto chiave:**
 
-**3. Pagina di vendita**
-Deve includere:
-• headline chiara
-• problema → soluzione → risultato
-• testimonianze
-• garanzia
-• call to action
-
-**4. Checkout**
-Deve essere:
-• semplice
-• veloce
-• senza frizioni
-
-Senza questi quattro elementi, le vendite dipendono dal caso.`
+Il corso è il prodotto. Il funnel è il sistema che lo vende.`
   },
   {
     id: 5,
-    title: "ADV: Quando Funzionano",
-    subtitle: "E Quando Sono Solo Spreco",
-    icon: Megaphone,
-    color: "#EF4444",
-    chapters: [
-      { id: "intro", title: "Introduzione", icon: BookOpen },
-      { id: "cap1", title: "Il Mito della Pubblicità", icon: Megaphone },
-      { id: "cap2", title: "Quando Investire", icon: Target },
-      { id: "cap3", title: "Quando Evitare", icon: AlertTriangle },
-      { id: "checklist", title: "Checklist", icon: CheckCircle },
-    ],
-    summary: "La pubblicità non è una soluzione universale. Scopri quando funziona davvero e quando è meglio aspettare.",
-    keyPoints: [
-      "Perché le ads non salvano un corso che non vende",
-      "I prerequisiti per investire in pubblicità",
-      "Come capire se sei pronto per scalare"
-    ],
-    fullContent: `Molti pensano che la pubblicità sia la soluzione.
+    title: "Le ADV",
+    content: `Le campagne pubblicitarie possono accelerare molto la crescita di un corso.
 
-La verità è diversa.
+Ma funzionano solo quando la struttura strategica è già chiara.
 
-**La pubblicità amplifica ciò che già funziona.**
+Se il posizionamento è confuso o il messaggio non è forte, le ADV amplificano il problema invece di risolverlo.
 
-Se il sistema non funziona, amplifica il problema.
+Per questo le campagne funzionano solo quando il progetto è già solido.
 
-**Quando le ads funzionano**
-• Hai già venduto senza ads
-• Il funnel converte almeno 1–2%
-• Conosci il costo di acquisizione cliente
-• Hai margini sufficienti
+**Punto chiave:**
 
-**Quando sono uno spreco**
-• Non hai mai venduto il corso
-• Non hai un funnel testato
-• Non sai chi è il cliente ideale
-• Il budget è troppo limitato
-
-**Regola d'oro**
-
-Prima vendi senza ads.
-Poi scala con ads.`
+Le ADV accelerano ciò che funziona già.`
   },
   {
     id: 6,
-    title: "Profili Social",
-    subtitle: "La Funzione Reale (Non Estetica)",
-    icon: Users,
-    color: "#EC4899",
-    chapters: [
-      { id: "intro", title: "Introduzione", icon: BookOpen },
-      { id: "cap1", title: "Lo Scopo Vero", icon: Target },
-      { id: "cap2", title: "Contenuti che Convertono", icon: Lightbulb },
-      { id: "cap3", title: "La Strategia Minima", icon: ChevronRight },
-      { id: "checklist", title: "Checklist", icon: CheckCircle },
-    ],
-    summary: "I social non servono a essere creativi. Servono a guidare verso il tuo corso. Ecco la strategia minima che funziona.",
-    keyPoints: [
-      "Lo scopo vero dei social per un formatore",
-      "Contenuti che portano vendite (non like)",
-      "La strategia minima che funziona"
-    ],
-    fullContent: `I social non sono vetrine estetiche.
+    title: "I Social",
+    content: `Molti professionisti pensano che i social servano per pubblicare contenuti ogni giorno.
 
-Sono strumenti di acquisizione.
+In realtà la funzione principale dei social è molto più semplice:
 
-**L'errore più comune**
+**costruire fiducia.**
 
-Creare contenuti belli senza uno scopo preciso.
+I social non vendono direttamente il corso.
 
-Risultato:
-• like
-• commenti
-• ma zero vendite
+Aiutano le persone a capire chi sei, cosa fai e perché dovrebbero fidarsi di te.
 
-**La funzione dei social**
+**Punto chiave:**
 
-1. Attirare il target giusto
-2. Educare sul problema
-3. Guidare verso il funnel
-
-**Il percorso**
-
-Post → Profilo → Link in bio → Lead magnet → Funnel → Vendita
-
-**Le metriche che contano**
-
-Non follower.
-
-Ma:
-• click sul link
-• iscritti email
-• vendite`
+I social costruiscono relazione prima della vendita.`
   },
   {
     id: 7,
     title: "Non Fare Tutto da Solo",
-    subtitle: "Il Punto che Nessuno Ama Affrontare",
-    icon: Users,
-    color: "#F97316",
-    chapters: [
-      { id: "intro", title: "Introduzione", icon: BookOpen },
-      { id: "cap1", title: "Il Limite del Fai-da-Te", icon: AlertTriangle },
-      { id: "cap2", title: "Cosa Delegare", icon: Target },
-      { id: "cap3", title: "Il Sistema", icon: Lightbulb },
-      { id: "checklist", title: "Checklist", icon: CheckCircle },
-    ],
-    summary: "Non è questione di bravura. È questione di sistema e di sapere quando chiedere aiuto. Questo bonus può cambiarti la vita.",
-    keyPoints: [
-      "Perché il fai-da-te ha un limite matematico",
-      "Cosa delegare per primo (e cosa no)",
-      "Come Evolution PRO ti aiuta in questo"
-    ],
-    fullContent: `Molti professionisti cercano di gestire tutto da soli.
+    content: `Il più grande ostacolo alla riuscita di un corso online non è la competenza.
 
-Contenuto. Video. Grafica. Tecnica. Marketing.
+È cercare di fare tutto da soli.
 
-Questo rallenta tutto.
+Strategia, contenuti, video, marketing, piattaforma, vendite.
 
-**Cosa delegare**
-• montaggio video
-• grafica
-• gestione tecnica
-• supporto clienti
-• ads management
+Quando una persona prova a gestire tutto insieme, il progetto rallenta o si blocca.
 
-**Cosa non delegare all'inizio**
-• contenuto del corso
-• strategia
-• relazione con i clienti
+I progetti che funzionano di solito hanno una struttura chiara e un sistema che guida ogni fase.
 
-**Quando delegare**
+**Punto chiave:**
 
-Quando:
-• un'attività ti blocca per settimane
-• il tuo tempo vale più del costo del freelancer
-• il progetto è validato e devi scalare
-
-**Come iniziare**
-
-1. Identifica il collo di bottiglia
-2. Trova 2–3 freelancer
-3. Testa con piccoli progetti
-4. Costruisci relazioni
-
-**Ricorda**
-
-Il tuo lavoro non è fare tutto.
-
-Il tuo lavoro è:
-• creare valore
-• definire una trasformazione
-• costruire un'offerta
-• vendere in modo etico
-
-Tutto il resto è sistema.`
+Un sistema riduce l'incertezza e accelera i risultati.`
   }
 ];
+
+// Introduzione del Mini Corso
+const INTRO_MINI_CORSO = `Se stai leggendo questa guida è molto probabile che tu sia una persona competente.
+
+Hai esperienza. Hai lavorato con clienti reali. Hai costruito competenze che hanno valore.
+
+Ed è naturale che prima o poi arrivi questa domanda:
+
+**"Posso trasformare quello che so fare in un videocorso?"**
+
+La risposta è sì.
+
+Ma c'è una cosa che quasi nessuno dice chiaramente:
+
+**Creare un videocorso è facile.
+Creare un progetto digitale che venda nel tempo è tutta un'altra cosa.**
+
+Ogni anno migliaia di professionisti registrano videocorsi che:
+
+✗ non vendono
+✗ vendono pochissimo
+✗ vengono abbandonati dagli studenti
+✗ non generano entrate nel tempo
+
+E quasi mai il problema è la qualità del contenuto.
+
+**Il problema è che manca una struttura strategica prima di iniziare.**
+
+In questa breve guida vedremo i principi fondamentali che permettono di evitare gli errori più comuni e costruire le basi di un progetto digitale sostenibile.`;
+
+// Conclusione del Mini Corso
+const CONCLUSIONE_MINI_CORSO = `Se hai letto tutti i moduli di questa guida, ormai è chiaro un punto.
+
+**Creare un videocorso non è difficile.**
+
+**Costruire un progetto digitale che venda nel tempo è un'altra cosa.**
+
+Serve:
+
+• un problema reale da risolvere
+• un posizionamento chiaro
+• un percorso formativo credibile
+• una struttura di vendita
+• un sistema che coordini tutto
+
+Quando questi elementi sono allineati, un corso può diventare un vero asset digitale.
+
+Quando mancano, il rischio è sempre lo stesso: mesi di lavoro per un prodotto che il mercato non compra.
+
+**Per questo la call strategica di analisi serve prima di tutto a verificare la fattibilità del progetto.**`;
 
 export function ClienteDashboard({ cliente, onLogout }) {
   const [questionarioCompletato, setQuestionarioCompletato] = useState(
