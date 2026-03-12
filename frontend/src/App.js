@@ -1077,7 +1077,8 @@ export default function App() {
             const updatedUser = { ...currentUser, pagamento_analisi: true, cliente_id: data.cliente_id };
             setCurrentUser(updatedUser);
             localStorage.setItem("user", JSON.stringify(updatedUser));
-            window.location.href = "/dashboard-cliente";
+            // Reindirizza alla pagina analisi in preparazione (senza query params)
+            window.location.href = "/analisi-in-preparazione";
           }
         } catch (e) {
           console.error("Payment verification error:", e);
