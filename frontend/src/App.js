@@ -231,6 +231,23 @@ function AdminOverview({ stats, agents, partners, alerts, onNavigate }) {
         <KPICard label="Budget AI" value={`$${stats.total_ai_budget||0}`} delta={`$${900-(stats.total_ai_budget||0)} disponibili`} deltaType="warn" icon={Activity} accent="#F59E0B" />
         <KPICard label="Alert Aperti" value={alerts.length} delta={alerts.length>0?"Richiedono attenzione":"Tutto OK"} deltaType={alerts.length>0?"down":"up"} icon={AlertTriangle} accent={alerts.length>0?"#EF4444":"#10B981"} />
       </div>
+      
+      {/* Card Clienti Analisi */}
+      <div className="rounded-xl overflow-hidden cursor-pointer hover:shadow-lg transition-shadow" style={{ background: '#F5C51815', border: '2px solid #F5C518' }} onClick={()=>onNavigate("clienti-analisi")}>
+        <div className="px-5 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
+              <FileText className="w-5 h-5" style={{ color: '#1E2128' }} />
+            </div>
+            <div>
+              <div className="font-bold" style={{ color: '#1E2128' }}>Clienti Analisi Strategica</div>
+              <div className="text-xs" style={{ color: '#5F6572' }}>Visualizza clienti registrati, questionari e pagamenti</div>
+            </div>
+          </div>
+          <ChevronRight className="w-5 h-5" style={{ color: '#F5C518' }} />
+        </div>
+      </div>
+      
       {alertPartners.length>0 && (
         <div className="rounded-xl p-4" style={{ background: '#FDECEF', border: '1px solid #EF467F30' }}>
           <div className="flex items-center gap-2 mb-3"><AlertCircle className="w-4 h-4 text-red-500"/><span className="font-bold text-sm text-red-500">{alertPartners.length} partner richiedono attenzione</span></div>
