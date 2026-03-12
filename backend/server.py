@@ -1491,6 +1491,91 @@ async def save_questionario_cliente(request: QuestionarioRequest):
         "redirect_to": "/dashboard-cliente"
     }
 
+# ═══════════════════════════════════════════════════════════════════════════
+# ADMIN - Gestione Clienti Analisi
+# ═══════════════════════════════════════════════════════════════════════════
+
+@api_router.get("/admin/clienti-analisi")
+async def get_clienti_analisi_admin():
+    """
+    Restituisce tutti i clienti analisi per il pannello admin.
+    """
+    try:
+        # Trova tutti gli utenti con user_type = cliente_analisi
+        clienti = await db.users.find(
+            {"user_type": "cliente_analisi"},
+            {"_id": 0, "password": 0}
+        ).sort("data_registrazione", -1).to_list(1000)
+        
+        # Per ogni cliente, recupera anche i dati del questionario se presente
+        for cliente in clienti:
+            if cliente.get("questionario_id"):
+                questionario = await db.questionari_analisi.find_one(
+                    {"id": cliente["questionario_id"]},
+                    {"_id": 0}
+                )
+                if questionario:
+                    cliente["questionario_dettagli"] = questionario
+        
+        # Calcola statistiche
+        stats = {
+            "totale": len(clienti),
+            "registrati": len([c for c in clienti if not c.get("questionario_compilato")]),
+            "questionario_compilato": len([c for c in clienti if c.get("questionario_compilato") and not c.get("pagamento_analisi")]),
+            "pagato": len([c for c in clienti if c.get("pagamento_analisi") and not c.get("analisi_generata")]),
+            "analisi_pronta": len([c for c in clienti if c.get("analisi_generata")])
+        }
+        
+        return {
+            "success": True,
+            "clienti": clienti,
+            "stats": stats
+        }
+    except Exception as e:
+        logging.error(f"Error loading clienti analisi: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/admin/clienti-analisi/{user_id}")
+async def get_cliente_analisi_detail(user_id: str):
+    """
+    Restituisce i dettagli di un singolo cliente analisi.
+    """
+    cliente = await db.users.find_one(
+        {"id": user_id, "user_type": "cliente_analisi"},
+        {"_id": 0, "password": 0}
+    )
+    
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente non trovato")
+    
+    # Recupera questionario
+    if cliente.get("questionario_id"):
+        questionario = await db.questionari_analisi.find_one(
+            {"id": cliente["questionario_id"]},
+            {"_id": 0}
+        )
+        cliente["questionario_dettagli"] = questionario
+    
+    return cliente
+
+@api_router.post("/admin/clienti-analisi/{user_id}/genera-analisi")
+async def genera_analisi_cliente(user_id: str):
+    """
+    Imposta analisi_generata = true per un cliente.
+    """
+    result = await db.users.update_one(
+        {"id": user_id, "user_type": "cliente_analisi"},
+        {"$set": {
+            "analisi_generata": True,
+            "analisi_generata_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Cliente non trovato")
+    
+    return {"success": True, "message": "Analisi segnata come generata"}
+
 @api_router.post("/onboarding/send-systeme-email/{partner_id}")
 async def send_systeme_instructions_email(partner_id: str, systeme_email: str = None, systeme_password: str = None):
     """Send Systeme.io platform instructions email to partner (called by team after creating sub-account)"""
