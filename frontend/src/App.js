@@ -970,14 +970,70 @@ export default function App() {
     );
   }
 
-  // Public route: Analisi Strategica (no auth required)
+  // Public route: Analisi Strategica Landing (nuovo flusso - registrazione separata)
   if (window.location.pathname === "/analisi-strategica") {
+    return (
+      <AnalisiStrategicaLanding 
+        onRegisterSuccess={(data) => {
+          // Auto-login dopo registrazione
+          if (data.token) {
+            localStorage.setItem("access_token", data.token);
+            localStorage.setItem("user", JSON.stringify(data.user));
+            setCurrentUser(data.user);
+            setIsAuthenticated(true);
+            // Redirect to payment page
+            window.location.href = "/";
+          }
+        }} 
+      />
+    );
+  }
+
+  // Public route: Vecchia pagina Analisi Strategica (per clienti già paganti)
+  if (window.location.pathname === "/analisi-strategica-app") {
     return <AnalisiStrategicaApp />;
   }
 
   // Not authenticated - show login
   if (!isAuthenticated) {
     return <LoginPage onLogin={handleLogin} />;
+  }
+
+  // Cliente Analisi che non ha pagato - mostra pagina pagamento
+  if (currentUser?.user_type === "cliente_analisi" && !currentUser?.pagamento_analisi) {
+    return (
+      <DashboardPagamento 
+        user={currentUser}
+        onPaymentSuccess={(data) => {
+          // Aggiorna user con stato pagamento
+          const updatedUser = { ...currentUser, pagamento_analisi: true, cliente_id: data.cliente_id };
+          setCurrentUser(updatedUser);
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+          // Redirect to questionnaire
+          window.location.reload();
+        }}
+      />
+    );
+  }
+
+  // Cliente Analisi che ha pagato - mostra dashboard cliente
+  if (currentUser?.user_type === "cliente_analisi" && currentUser?.pagamento_analisi) {
+    return (
+      <ClienteDashboard 
+        cliente={{
+          id: currentUser.cliente_id || currentUser.id,
+          nome: currentUser.nome || currentUser.name?.split(" ")[0] || "Cliente",
+          cognome: currentUser.cognome || currentUser.name?.split(" ")[1] || "",
+          email: currentUser.email,
+          stato: "pagato",
+          questionario: null
+        }}
+        onQuestionarioCompleted={(data) => {
+          console.log("Questionario completato:", data);
+        }}
+        onLogout={handleLogout}
+      />
+    );
   }
 
   return (
