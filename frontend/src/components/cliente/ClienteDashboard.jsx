@@ -894,56 +894,213 @@ export function ClienteDashboard({ cliente, onLogout }) {
                 </div>
               </div>
             ) : (
-              /* Post-submission - Mini Corso Gratuito */
+              /* POST-QUESTIONARIO - Nuova struttura */
               <div className="space-y-6">
-                {/* Conferma breve (senza banner bianco grande) */}
-                <div className="rounded-xl p-4 flex items-start gap-3" style={{ background: '#10B98115', border: '1px solid #10B981' }}>
-                  <CheckCircle className="w-5 h-5 text-[#10B981] flex-shrink-0 mt-0.5" />
-                  <div>
-                    <div className="font-bold text-[#1E2128]">✅ Questionario completato!</div>
-                    <p className="text-sm text-[#5F6572]">
-                      Il Team Evolution ti contatterà entro 48 ore all'email <strong>{clienteEmail}</strong> per 
-                      fissare la videocall strategica di 60 minuti.
-                    </p>
+                
+                {/* ═══════════════════════════════════════════════════════════════════════
+                    CONFERMA COMPLETAMENTO
+                    ═══════════════════════════════════════════════════════════════════════ */}
+                <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+                  <h2 className="text-2xl font-black text-[#1E2128] mb-4">
+                    ✅ Questionario completato!
+                  </h2>
+                  <p className="text-[#5F6572] mb-4">
+                    Grazie per aver condiviso le informazioni sul tuo progetto.
+                  </p>
+                  <p className="text-[#5F6572]">
+                    Il team Evolution inizierà ora l'analisi strategica delle tue risposte.
+                  </p>
+                </div>
+
+                {/* ═══════════════════════════════════════════════════════════════════════
+                    COSA SUCCEDE ADESSO - 3 STEP
+                    ═══════════════════════════════════════════════════════════════════════ */}
+                <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+                  <h3 className="text-lg font-bold text-[#1E2128] mb-6 flex items-center gap-2">
+                    📍 Cosa succede adesso
+                  </h3>
+                  
+                  <div className="space-y-6">
+                    {/* Step 1 */}
+                    <div className="flex gap-4">
+                      <div className="w-8 h-8 rounded-full bg-[#F5C518] flex items-center justify-center flex-shrink-0">
+                        <span className="font-bold text-[#1E2128] text-sm">1</span>
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-[#1E2128] mb-1">Analizziamo il tuo progetto</h4>
+                        <p className="text-sm text-[#5F6572]">Studieremo le informazioni che hai inserito nel questionario.</p>
+                      </div>
+                    </div>
+                    
+                    {/* Step 2 */}
+                    <div className="flex gap-4">
+                      <div className="w-8 h-8 rounded-full bg-[#F5C518] flex items-center justify-center flex-shrink-0">
+                        <span className="font-bold text-[#1E2128] text-sm">2</span>
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-[#1E2128] mb-1">Prepariamo la tua Analisi Strategica</h4>
+                        <p className="text-sm text-[#5F6572]">Valuteremo il potenziale del progetto e la possibile struttura della tua Accademia Digitale.</p>
+                      </div>
+                    </div>
+                    
+                    {/* Step 3 */}
+                    <div className="flex gap-4">
+                      <div className="w-8 h-8 rounded-full bg-[#F5C518] flex items-center justify-center flex-shrink-0">
+                        <span className="font-bold text-[#1E2128] text-sm">3</span>
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-[#1E2128] mb-1">Ti contatteremo per la Call Strategica</h4>
+                        <p className="text-sm text-[#5F6572]">Entro 48 ore riceverai una email per fissare una videocall di analisi con Claudio.</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Analisi Strategica - Download DOCX */}
-                {cliente?.docx_analisi_url ? (
-                  <div className="rounded-2xl p-6" style={{ background: 'linear-gradient(135deg, #8B5CF620 0%, #F5C51820 100%)', border: '2px solid #8B5CF6' }}>
-                    <div className="flex items-start gap-4">
-                      <div className="w-14 h-14 rounded-full bg-[#8B5CF6] flex items-center justify-center flex-shrink-0">
-                        <Sparkles className="w-7 h-7 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <h2 className="text-xl font-bold text-[#1E2128] mb-1">📄 La tua Analisi Strategica è pronta!</h2>
-                        <p className="text-[#5F6572] mb-4">
-                          Abbiamo preparato un documento personalizzato basato sulle tue risposte. 
-                          Scaricalo e portalo con te alla videocall.
-                        </p>
-                        <button
-                          onClick={() => window.open(`${API}/clienti/${cliente.id}/scarica-docx`, '_blank')}
-                          className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all hover:opacity-90"
-                          style={{ background: '#8B5CF6', color: 'white' }}
-                          data-testid="download-analisi-docx"
-                        >
-                          <Download className="w-5 h-5" />
-                          Scarica Analisi Strategica (DOCX)
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ) : cliente?.workflow_status === 'generazione_ai' || cliente?.workflow_status === 'generazione_docx' ? (
-                  <div className="rounded-2xl p-6" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
-                    <div className="flex items-center gap-4">
-                      <Loader2 className="w-8 h-8 text-[#F5C518] animate-spin" />
+                {/* ═══════════════════════════════════════════════════════════════════════
+                    I 3 ASPETTI DELLA CALL
+                    ═══════════════════════════════════════════════════════════════════════ */}
+                <div className="rounded-2xl p-6" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
+                  <p className="text-[#5F6572] mb-5">
+                    Durante la call lavoreremo insieme su <strong className="text-[#1E2128]">tre aspetti fondamentali</strong>:
+                  </p>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <Target className="w-5 h-5 text-[#F5C518] flex-shrink-0 mt-0.5" />
                       <div>
-                        <h3 className="font-bold text-[#1E2128]">Stiamo preparando la tua Analisi Strategica...</h3>
-                        <p className="text-sm text-[#5F6572]">Sarà disponibile tra pochi secondi</p>
+                        <span className="font-bold text-[#1E2128]">Verifica del problema</span>
+                        <p className="text-sm text-[#5F6572]">Capire se il problema che vuoi risolvere è reale, urgente e pagato dal mercato.</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-3">
+                      <Lightbulb className="w-5 h-5 text-[#F5C518] flex-shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold text-[#1E2128]">Studio di fattibilità</span>
+                        <p className="text-sm text-[#5F6572]">Valutare se il progetto è più adatto a diventare un corso, un percorso o una accademia.</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-3">
+                      <Map className="w-5 h-5 text-[#F5C518] flex-shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold text-[#1E2128]">Roadmap strategica</span>
+                        <p className="text-sm text-[#5F6572]">Definire target, struttura e possibili modelli di vendita.</p>
                       </div>
                     </div>
                   </div>
-                ) : null}
+                </div>
+
+                {/* ═══════════════════════════════════════════════════════════════════════
+                    VIDEO DI BENVENUTO
+                    ═══════════════════════════════════════════════════════════════════════ */}
+                <div className="rounded-2xl overflow-hidden" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+                  <div className="p-6 pb-4">
+                    <h3 className="text-lg font-bold text-[#1E2128] mb-2 flex items-center gap-2">
+                      🎥 Messaggio di benvenuto
+                    </h3>
+                    <p className="text-sm text-[#5F6572]">
+                      Prima della call puoi guardare questo breve video di Claudio.
+                    </p>
+                    <p className="text-sm text-[#9CA3AF] mt-1">Durata: circa 3 minuti.</p>
+                  </div>
+                  <div className="aspect-video bg-[#1E2128] flex items-center justify-center relative mx-6 mb-6 rounded-xl overflow-hidden">
+                    <div className="text-center">
+                      <div className="w-20 h-20 rounded-full bg-[#F5C518]/20 flex items-center justify-center mx-auto mb-4 cursor-pointer hover:bg-[#F5C518]/30 transition-colors">
+                        <Play className="w-10 h-10 text-[#F5C518]" />
+                      </div>
+                      <p className="text-white font-bold">VIDEO DI BENVENUTO</p>
+                    </div>
+                    <div className="absolute bottom-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10">
+                      <Clock className="w-3 h-3 text-white/60" />
+                      <span className="text-xs text-white/60">~3 min</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ═══════════════════════════════════════════════════════════════════════
+                    MINI CORSO GRATUITO - 7 MODULI
+                    ═══════════════════════════════════════════════════════════════════════ */}
+                <div className="rounded-2xl p-6" style={{ background: 'linear-gradient(135deg, #1E2128 0%, #2D3038 100%)', border: '2px solid #F5C518' }}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Gift className="w-5 h-5 text-[#F5C518]" />
+                    <span className="text-xs font-bold text-[#F5C518] uppercase">Mini Corso Gratuito</span>
+                  </div>
+                  <h2 className="text-2xl font-black text-white mb-2">
+                    Come Creare un Videocorso che Vende Davvero
+                  </h2>
+                  <p className="text-white/70 text-sm">
+                    Per prepararti al meglio alla call strategica abbiamo preparato una breve guida in 7 moduli che spiega i principi fondamentali per costruire un progetto digitale sostenibile.
+                  </p>
+                </div>
+
+                {/* Lista 7 Moduli */}
+                <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+                  <div className="space-y-4">
+                    {BONUS_DATA.map((modulo, idx) => (
+                      <div 
+                        key={modulo.id}
+                        className="flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-all hover:bg-[#FAFAF7]"
+                        style={{ border: expandedBonus === modulo.id ? '2px solid #F5C518' : '1px solid #ECEDEF', background: expandedBonus === modulo.id ? '#FEF9E7' : 'transparent' }}
+                        onClick={() => setExpandedBonus(expandedBonus === modulo.id ? null : modulo.id)}
+                      >
+                        <div className="w-8 h-8 rounded-full bg-[#F5C518] flex items-center justify-center flex-shrink-0">
+                          <span className="font-bold text-[#1E2128] text-sm">{idx + 1}</span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-bold text-[#1E2128]">{modulo.title}</h4>
+                            <ChevronDown className={`w-5 h-5 text-[#9CA3AF] transition-transform ${expandedBonus === modulo.id ? 'rotate-180' : ''}`} />
+                          </div>
+                          {expandedBonus === modulo.id && (
+                            <div className="mt-3 pt-3 border-t border-[#ECEDEF]">
+                              <div className="text-sm text-[#5F6572] space-y-2">
+                                {modulo.fullContent.split('\n').filter(p => p.trim()).map((paragraph, pIdx) => {
+                                  // Handle bullet points
+                                  if (paragraph.trim().startsWith('•') || paragraph.trim().startsWith('-')) {
+                                    return (
+                                      <p key={pIdx} className="ml-4 text-sm">
+                                        {paragraph}
+                                      </p>
+                                    );
+                                  }
+                                  
+                                  // Handle inline bold
+                                  const parts = paragraph.split(/(\*\*[^*]+\*\*)/g);
+                                  const formattedParts = parts.map((part, i) => {
+                                    if (part.startsWith('**') && part.endsWith('**')) {
+                                      return <strong key={i} className="text-[#1E2128]">{part.slice(2, -2)}</strong>;
+                                    }
+                                    return part;
+                                  });
+                                  
+                                  return (
+                                    <p key={pIdx} className="text-sm leading-relaxed">
+                                      {formattedParts}
+                                    </p>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ═══════════════════════════════════════════════════════════════════════
+                    MESSAGGIO FINALE
+                    ═══════════════════════════════════════════════════════════════════════ */}
+                <div className="rounded-xl p-4 flex items-center gap-3" style={{ background: '#FEF9E7', border: '1px solid #F5C518' }}>
+                  <Calendar className="w-5 h-5 text-[#C4990A] flex-shrink-0" />
+                  <p className="text-sm text-[#5F6572]">
+                    Il team Evolution ti contatterà entro <strong className="text-[#1E2128]">48 ore</strong> per fissare la call strategica.
+                  </p>
+                </div>
+
+              </div>
+            )}
 
                 {/* Video di Benvenuto */}
                 <div className="rounded-2xl overflow-hidden" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
