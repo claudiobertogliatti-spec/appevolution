@@ -1265,7 +1265,7 @@ async def create_analisi_checkout(user_id: str = None, email: str = None):
             }
         )
         
-        session = checkout.create_checkout_session(session_request)
+        session = await checkout.create_checkout_session(session_request)
         
         # Salva riferimento sessione
         await db.users.update_one(
