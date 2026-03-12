@@ -298,6 +298,40 @@ AVAILABLE_ACTIONS = {
         "description": "Invia reminder a un partner",
         "keywords": ["invia reminder", "sollecita", "ricorda a", "notifica partner"]
     },
+    
+    # =========================================================================
+    # OPENCLAW - GUI Automation (Browser Automation via Telegram)
+    # =========================================================================
+    "openclaw_create_pipeline_column": {
+        "agent": "OPENCLAW",
+        "scope": "internal",
+        "description": "Crea una nuova colonna nella pipeline Systeme.io via browser",
+        "keywords": ["crea colonna", "nuova colonna", "aggiungi colonna", "colonna pipeline", "crea una colonna"]
+    },
+    "openclaw_move_contact": {
+        "agent": "OPENCLAW",
+        "scope": "internal",
+        "description": "Sposta un contatto in una colonna della pipeline via browser",
+        "keywords": ["sposta contatto", "muovi contatto", "sposta in colonna", "move contact", "cambia colonna contatto"]
+    },
+    "openclaw_create_funnel": {
+        "agent": "OPENCLAW",
+        "scope": "internal",
+        "description": "Crea un nuovo funnel su Systeme.io via browser",
+        "keywords": ["crea funnel", "nuovo funnel", "crea un funnel", "funnel systeme"]
+    },
+    "openclaw_create_automation": {
+        "agent": "OPENCLAW",
+        "scope": "internal",
+        "description": "Crea una nuova automazione su Systeme.io via browser",
+        "keywords": ["crea automazione", "nuova automazione", "workflow systeme", "crea workflow"]
+    },
+    "openclaw_browser_task": {
+        "agent": "OPENCLAW",
+        "scope": "internal",
+        "description": "Esegui un task generico via browser automation",
+        "keywords": ["apri browser", "vai su", "clicca su", "naviga", "esegui nel browser", "automazione browser", "fai click"]
+    },
 }
 
 
