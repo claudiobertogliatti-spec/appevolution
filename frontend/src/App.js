@@ -54,7 +54,6 @@ import { OnboardingDocuments } from "./components/partner/OnboardingDocuments";
 import { AnalisiStrategicaApp } from "./components/cliente/AnalisiStrategicaApp";
 import { AdminClientiPanel } from "./components/admin/AdminClientiPanel";
 import { ClienteDashboard } from "./components/cliente/ClienteDashboard";
-import { AnalisiStrategicaLanding } from "./components/cliente/AnalisiStrategicaLanding";
 import { DashboardPagamento } from "./components/cliente/DashboardPagamento";
 import { DashboardCliente } from "./components/cliente/DashboardCliente";
 import { QuestionarioCliente } from "./components/cliente/QuestionarioCliente";
