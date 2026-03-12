@@ -979,6 +979,12 @@ export default function App() {
   // HOMEPAGE PUBBLICA - Punto di ingresso al sistema
   // ═══════════════════════════════════════════════════════════════════════════
 
+  // Redirect /analisi-strategica alla homepage (registrazione ora via modale)
+  if (window.location.pathname === "/analisi-strategica") {
+    window.location.href = "/";
+    return null;
+  }
+
   if (window.location.pathname === "/" && !isAuthenticated) {
     return <Homepage />;
   }
