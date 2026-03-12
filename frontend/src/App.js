@@ -1168,8 +1168,8 @@ export default function App() {
     // Route: Analisi in Preparazione - mostra dopo il pagamento
     if (window.location.pathname === "/analisi-in-preparazione") {
       if (!currentUser.pagamento_analisi) {
-        // Non ha ancora pagato, torna all'attivazione
-        window.location.href = "/analisi-attivazione";
+        // Non ha ancora pagato, torna alla homepage
+        window.location.href = "/";
         return null;
       }
       return (
