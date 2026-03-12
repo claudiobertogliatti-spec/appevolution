@@ -54,6 +54,8 @@ import { OnboardingDocuments } from "./components/partner/OnboardingDocuments";
 import { AnalisiStrategicaApp } from "./components/cliente/AnalisiStrategicaApp";
 import { AdminClientiPanel } from "./components/admin/AdminClientiPanel";
 import { ClienteDashboard } from "./components/cliente/ClienteDashboard";
+import { AnalisiStrategicaLanding } from "./components/cliente/AnalisiStrategicaLanding";
+import { DashboardPagamento } from "./components/cliente/DashboardPagamento";
 import { MiaAccademiaPage, MieiStudentiPage, ImpegniSettimanaPage, ReportMensilePage, PianoContinuitaBanner } from "./components/partner/PostLancioPages";
 import YouTubeHeygenHub from "./components/admin/YouTubeHeygenHub";
 import "./styles/design-system.css";
