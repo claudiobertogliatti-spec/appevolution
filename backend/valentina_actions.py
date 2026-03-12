@@ -1548,6 +1548,191 @@ class ValentinaActionDispatcher:
             "message": f"💰 **Revenue di {partner_name}**\n\n📈 **Totale guadagnato:** €{total_revenue:,.2f}\n🛒 **Ordini completati:** {total_orders}\n\n{'🎉 Ottimo lavoro!' if total_revenue > 0 else '💪 Il primo ordine arriverà presto!'}"
         }
     
+    # =========================================================================
+    # OPENCLAW - Browser Automation via Telegram
+    # =========================================================================
+    
+    async def _openclaw_create_pipeline_column(self, context: Dict = None) -> Dict:
+        """Crea una colonna nella pipeline via OpenClaw"""
+        from openclaw_integration import create_pipeline_column
+        
+        # Estrai nome colonna dal messaggio
+        column_name = "Nuova Colonna"
+        if context and "_original_message" in context:
+            msg = context["_original_message"]
+            # Cerca pattern come "colonna X" o "chiamata X"
+            import re
+            match = re.search(r'(?:colonna|chiamata|nome)\s+["\']?([^"\']+)["\']?', msg, re.IGNORECASE)
+            if match:
+                column_name = match.group(1).strip()
+        
+        result = await create_pipeline_column(column_name, db=db)
+        
+        if result.get("success"):
+            return {
+                "success": True,
+                "agent": "OPENCLAW",
+                "action": "create_pipeline_column",
+                "task_id": result.get("task_id"),
+                "message": f"🦞 **Task inviato a OpenClaw**\n\n📋 Azione: Creare colonna '{column_name}'\n🆔 Task ID: {result.get('task_id')}\n\nOpenClaw sta eseguendo l'automazione sul tuo browser..."
+            }
+        else:
+            return {
+                "success": False,
+                "agent": "OPENCLAW",
+                "error": result.get("error"),
+                "message": f"❌ Errore OpenClaw: {result.get('error')}"
+            }
+    
+    async def _openclaw_move_contact(self, context: Dict = None) -> Dict:
+        """Sposta un contatto in una colonna via OpenClaw"""
+        from openclaw_integration import move_contact_to_column
+        
+        email = None
+        target_column = None
+        
+        if context and "_original_message" in context:
+            msg = context["_original_message"]
+            import re
+            # Cerca email
+            email_match = re.search(r'[\w\.-]+@[\w\.-]+', msg)
+            if email_match:
+                email = email_match.group(0)
+            # Cerca colonna
+            col_match = re.search(r'(?:colonna|in)\s+["\']?([^"\']+)["\']?', msg, re.IGNORECASE)
+            if col_match:
+                target_column = col_match.group(1).strip()
+        
+        if not email or not target_column:
+            return {
+                "success": False,
+                "agent": "OPENCLAW",
+                "message": "❌ Specifica l'email del contatto e la colonna di destinazione.\n\nEsempio: 'Sposta mario@email.com nella colonna Qualificati'"
+            }
+        
+        result = await move_contact_to_column(email, target_column, db=db)
+        
+        if result.get("success"):
+            return {
+                "success": True,
+                "agent": "OPENCLAW",
+                "task_id": result.get("task_id"),
+                "message": f"🦞 **Task inviato a OpenClaw**\n\n📋 Azione: Spostare {email} in '{target_column}'\n🆔 Task ID: {result.get('task_id')}\n\nOpenClaw sta eseguendo l'automazione..."
+            }
+        else:
+            return {
+                "success": False,
+                "agent": "OPENCLAW",
+                "error": result.get("error"),
+                "message": f"❌ Errore: {result.get('error')}"
+            }
+    
+    async def _openclaw_create_funnel(self, context: Dict = None) -> Dict:
+        """Crea un funnel via OpenClaw"""
+        from openclaw_integration import create_funnel
+        
+        funnel_name = "Nuovo Funnel"
+        if context and "_original_message" in context:
+            msg = context["_original_message"]
+            import re
+            match = re.search(r'(?:funnel|chiamato)\s+["\']?([^"\']+)["\']?', msg, re.IGNORECASE)
+            if match:
+                funnel_name = match.group(1).strip()
+        
+        # Categoria B richiede approvazione
+        result = await create_funnel(funnel_name, approval_status="approved", db=db)
+        
+        if result.get("success"):
+            return {
+                "success": True,
+                "agent": "OPENCLAW",
+                "task_id": result.get("task_id"),
+                "message": f"🦞 **Task inviato a OpenClaw**\n\n📋 Azione: Creare funnel '{funnel_name}'\n🆔 Task ID: {result.get('task_id')}\n\nOpenClaw sta creando il funnel su Systeme.io..."
+            }
+        else:
+            return {
+                "success": False,
+                "agent": "OPENCLAW",
+                "error": result.get("error"),
+                "message": f"❌ Errore: {result.get('error')}"
+            }
+    
+    async def _openclaw_create_automation(self, context: Dict = None) -> Dict:
+        """Crea un'automazione via OpenClaw"""
+        from openclaw_integration import create_automation
+        
+        automation_name = "Nuova Automazione"
+        trigger_tag = ""
+        
+        if context and "_original_message" in context:
+            msg = context["_original_message"]
+            import re
+            name_match = re.search(r'(?:automazione|workflow)\s+["\']?([^"\']+)["\']?', msg, re.IGNORECASE)
+            if name_match:
+                automation_name = name_match.group(1).strip()
+            tag_match = re.search(r'(?:tag|trigger)\s+["\']?([^"\']+)["\']?', msg, re.IGNORECASE)
+            if tag_match:
+                trigger_tag = tag_match.group(1).strip()
+        
+        result = await create_automation(
+            automation_name=automation_name,
+            trigger_tag=trigger_tag or "default_trigger",
+            action_type="send_email",
+            action_params={},
+            approval_status="approved",
+            db=db
+        )
+        
+        if result.get("success"):
+            return {
+                "success": True,
+                "agent": "OPENCLAW",
+                "task_id": result.get("task_id"),
+                "message": f"🦞 **Task inviato a OpenClaw**\n\n📋 Azione: Creare automazione '{automation_name}'\n🏷️ Trigger: {trigger_tag or 'da configurare'}\n🆔 Task ID: {result.get('task_id')}\n\nOpenClaw sta creando l'automazione..."
+            }
+        else:
+            return {
+                "success": False,
+                "agent": "OPENCLAW",
+                "error": result.get("error"),
+                "message": f"❌ Errore: {result.get('error')}"
+            }
+    
+    async def _openclaw_browser_task(self, context: Dict = None) -> Dict:
+        """Esegue un task generico via browser"""
+        from openclaw_integration import OpenClawTask, send_openclaw_task
+        
+        task_description = "Task generico"
+        if context and "_original_message" in context:
+            task_description = context["_original_message"]
+        
+        task = OpenClawTask(
+            action="browser_generic_task",
+            params={
+                "description": task_description,
+                "instructions": task_description
+            },
+            priority="normal",
+            description=task_description
+        )
+        
+        result = await send_openclaw_task(task, db)
+        
+        if result.get("success"):
+            return {
+                "success": True,
+                "agent": "OPENCLAW",
+                "task_id": result.get("task_id"),
+                "message": f"🦞 **Task inviato a OpenClaw**\n\n📋 Istruzioni: {task_description[:100]}...\n🆔 Task ID: {result.get('task_id')}\n\nOpenClaw sta eseguendo l'automazione sul browser..."
+            }
+        else:
+            return {
+                "success": False,
+                "agent": "OPENCLAW",
+                "error": result.get("error"),
+                "message": f"❌ Errore: {result.get('error')}"
+            }
+    
     async def log_action(self, action_id: str, result: Dict, user_id: str):
         """Log executed action for tracking"""
         await db.valentina_actions.insert_one({
