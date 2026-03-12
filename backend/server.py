@@ -1245,8 +1245,8 @@ async def create_analisi_checkout(user_id: str = None, email: str = None):
         session_request = CheckoutSessionRequest(
             amount=67.00,  # €67.00
             currency="eur",
-            success_url=f"{frontend_url}?payment=success&user_id={user['id']}",
-            cancel_url=f"{frontend_url}?payment=cancelled",
+            success_url=f"{frontend_url}/analisi-in-preparazione?payment=success&user_id={user['id']}",
+            cancel_url=f"{frontend_url}/analisi-attivazione?payment=cancelled",
             metadata={
                 "user_id": user["id"],
                 "tipo": "analisi_strategica",
