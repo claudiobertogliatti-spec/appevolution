@@ -965,6 +965,40 @@ export function ClienteDashboard({ cliente, onLogout }) {
               <div className="space-y-6">
                 
                 {/* ═══════════════════════════════════════════════════════════════════════
+                    PROGRESS BAR - POST QUESTIONARIO
+                    ═══════════════════════════════════════════════════════════════════════ */}
+                <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+                  <div className="flex items-center gap-2 mb-4">
+                    {/* Step 1 - Acquisto (Completato) */}
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-[#10B981] flex items-center justify-center">
+                        <CheckCircle className="w-5 h-5 text-white" />
+                      </div>
+                      <span className="text-sm font-medium text-[#10B981]">Acquisto</span>
+                    </div>
+                    <div className="flex-1 h-1 bg-[#10B981] rounded mx-2"></div>
+                    {/* Step 2 - Questionario (Completato) */}
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-[#10B981] flex items-center justify-center">
+                        <CheckCircle className="w-5 h-5 text-white" />
+                      </div>
+                      <span className="text-sm font-medium text-[#10B981]">Questionario</span>
+                    </div>
+                    <div className="flex-1 h-1 bg-[#10B981] rounded mx-2"></div>
+                    {/* Step 3 - Call (Completato) */}
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-[#10B981] flex items-center justify-center">
+                        <CheckCircle className="w-5 h-5 text-white" />
+                      </div>
+                      <span className="text-sm font-medium text-[#10B981]">Call con Claudio</span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-[#10B981] font-medium">
+                    ✅ Complimenti... hai terminato questo processo
+                  </p>
+                </div>
+
+                {/* ═══════════════════════════════════════════════════════════════════════
                     CONFERMA COMPLETAMENTO
                     ═══════════════════════════════════════════════════════════════════════ */}
                 <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
