@@ -933,7 +933,7 @@ async def seed_database():
 # AUTHENTICATION
 # =============================================================================
 
-from auth import AuthService, LoginRequest, RegisterRequest, Token, decode_token, UserResponse
+from auth import AuthService, LoginRequest, RegisterRequest, Token, decode_token, UserResponse, create_access_token
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 security = HTTPBearer(auto_error=False)
