@@ -688,6 +688,41 @@ export function ClienteDashboard({ cliente, onLogout }) {
             {/* PRE-QUESTIONARIO INTRO PAGE */}
             {!questionarioCompletato && !showQuestionario ? (
               <div className="rounded-2xl p-8" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+                
+                {/* PROGRESS BAR - PRE QUESTIONARIO */}
+                <div className="mb-8">
+                  <p className="text-sm text-[#5F6572] mb-4">
+                    ✅ Sei nella fase <strong>1/3</strong> del processo che porta alla costruzione della tua Accademia Digitale.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    {/* Step 1 - Acquisto (Completato) */}
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-[#10B981] flex items-center justify-center">
+                        <CheckCircle className="w-5 h-5 text-white" />
+                      </div>
+                      <span className="text-sm font-medium text-[#10B981]">Acquisto</span>
+                    </div>
+                    <div className="flex-1 h-1 bg-[#ECEDEF] rounded mx-2">
+                      <div className="h-full w-0 bg-[#10B981] rounded"></div>
+                    </div>
+                    {/* Step 2 - Questionario (Da fare) */}
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-[#ECEDEF] flex items-center justify-center">
+                        <span className="text-sm font-bold text-[#9CA3AF]">2</span>
+                      </div>
+                      <span className="text-sm font-medium text-[#9CA3AF]">Questionario</span>
+                    </div>
+                    <div className="flex-1 h-1 bg-[#ECEDEF] rounded mx-2"></div>
+                    {/* Step 3 - Call (Da fare) */}
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-[#ECEDEF] flex items-center justify-center">
+                        <span className="text-sm font-bold text-[#9CA3AF]">3</span>
+                      </div>
+                      <span className="text-sm font-medium text-[#9CA3AF]">Call con Claudio</span>
+                    </div>
+                  </div>
+                </div>
+
                 <h2 className="text-2xl font-black text-[#1E2128] mb-4">
                   ✅ Benvenuto in Evolution PRO
                 </h2>
