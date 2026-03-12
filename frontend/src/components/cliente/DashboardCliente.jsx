@@ -273,86 +273,148 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
 
   // ═══════════════════════════════════════════════════════════════════════════
   // STATO 2: questionario_compilato = true, pagamento_analisi = false
+  // PAGINA ATTIVAZIONE ANALISI STRATEGICA
   // ═══════════════════════════════════════════════════════════════════════════
   if (questionarioCompilato && !pagamentoAnalisi) {
+    const processSteps = [
+      { id: 1, label: 'Questionario', status: 'completed' },
+      { id: 2, label: 'Analisi Strategica', status: 'active' },
+      { id: 3, label: 'Call con Claudio', status: 'pending' }
+    ];
+
     return (
       <div className="min-h-screen" style={{ background: '#FAFAF7' }}>
         <Header />
-        <div className="max-w-4xl mx-auto px-6 py-12">
-          {/* Success Message */}
-          <div className="text-center mb-12">
+        <div className="max-w-3xl mx-auto px-6 py-12">
+          
+          {/* SEZIONE 1 — PROGRESSO PROCESSO */}
+          <div className="mb-12">
+            <p className="text-sm font-medium text-center mb-6" style={{ color: '#9CA3AF' }}>
+              Il percorso della tua Accademia Digitale
+            </p>
+            
+            <div className="flex items-center justify-center gap-4">
+              {processSteps.map((step, index) => (
+                <React.Fragment key={step.id}>
+                  <div className="flex flex-col items-center">
+                    <div 
+                      className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
+                        step.status === 'pending' ? 'opacity-40' : ''
+                      }`}
+                      style={{ 
+                        background: step.status === 'completed' ? '#22C55E' : step.status === 'active' ? '#F5C518' : '#ECEDEF',
+                        color: step.status === 'pending' ? '#9CA3AF' : '#1E2128'
+                      }}
+                    >
+                      {step.status === 'completed' ? (
+                        <CheckCircle className="w-5 h-5" />
+                      ) : (
+                        step.id
+                      )}
+                    </div>
+                    <span 
+                      className={`mt-2 text-sm font-medium ${step.status === 'pending' ? 'opacity-40' : ''}`}
+                      style={{ color: step.status === 'pending' ? '#9CA3AF' : '#1E2128' }}
+                    >
+                      {step.label}
+                    </span>
+                  </div>
+                  {index < processSteps.length - 1 && (
+                    <div 
+                      className="w-16 h-0.5 mt-[-20px]" 
+                      style={{ background: step.status === 'completed' ? '#22C55E' : '#ECEDEF' }}
+                    />
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+
+          {/* SEZIONE 2 — CONFERMA QUESTIONARIO */}
+          <div className="text-center mb-10">
             <div 
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold mb-4"
               style={{ background: '#F0FDF4', color: '#166534' }}
             >
               <CheckCircle className="w-4 h-4" />
-              Questionario completato!
+              Questionario completato
             </div>
             <h1 className="text-3xl font-black mb-4" style={{ color: '#1E2128' }}>
-              Il tuo progetto è stato ricevuto
+              Questionario completato
             </h1>
-            <p className="text-lg max-w-2xl mx-auto" style={{ color: '#5F6572' }}>
-              Abbiamo ricevuto le tue risposte.<br />
-              Il prossimo passo è sbloccare la tua Analisi Strategica Personalizzata.
+            <div className="text-lg" style={{ color: '#5F6572' }}>
+              <p className="mb-2">Abbiamo ricevuto tutte le informazioni sul tuo progetto.</p>
+              <p>Ora possiamo preparare la tua <strong style={{ color: '#1E2128' }}>Analisi Strategica personalizzata</strong>.</p>
+            </div>
+          </div>
+
+          {/* SEZIONE 3 — COSA RICEVERAI */}
+          <div className="rounded-2xl p-6 mb-8" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+            <h2 className="text-lg font-bold mb-4" style={{ color: '#1E2128' }}>
+              Cosa include la tua Analisi Strategica
+            </h2>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {[
+                'Analisi del tuo posizionamento professionale',
+                'Valutazione reale del mercato',
+                'Diagnosi della fattibilità del progetto',
+                'Struttura consigliata per la tua Accademia Digitale',
+                'Strategie di monetizzazione possibili',
+                'Preparazione della call strategica'
+              ].map((item, index) => (
+                <div key={index} className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#F5C518' }} />
+                  <span className="text-sm" style={{ color: '#5F6572' }}>{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* SEZIONE 4 — MESSAGGIO IMPORTANTE */}
+          <div 
+            className="rounded-2xl p-6 mb-8"
+            style={{ background: '#FFF8DC', border: '1px solid #F5C51840' }}
+          >
+            <p className="text-sm leading-relaxed" style={{ color: '#78590A' }}>
+              L'Analisi Strategica è il passaggio che ci permette di capire se il tuo progetto è realmente adatto alla partnership Evolution PRO.
+            </p>
+            <p className="text-sm leading-relaxed mt-3" style={{ color: '#78590A' }}>
+              Se il progetto risulta idoneo potremo valutare insieme la costruzione della tua Accademia Digitale.
+            </p>
+            <p className="text-sm leading-relaxed mt-3" style={{ color: '#78590A' }}>
+              Se invece non è ancora pronto riceverai indicazioni precise su come prepararlo.
             </p>
           </div>
 
-          <ProgressBar />
-
-          {/* CTA Card */}
-          <div className="rounded-2xl overflow-hidden" style={{ background: '#FFFFFF', border: '2px solid #F5C518' }}>
-            <div className="p-8">
-              <div className="flex items-start gap-6">
-                <div 
-                  className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0" 
-                  style={{ background: '#FFF8DC' }}
-                >
-                  <CreditCard className="w-7 h-7" style={{ color: '#C4990A' }} />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold mb-4" style={{ color: '#1E2128' }}>
-                    Il nostro team analizzerà:
-                  </h3>
-                  <ul className="space-y-2 mb-6">
-                    <li className="flex items-center gap-2" style={{ color: '#5F6572' }}>
-                      <CheckCircle className="w-4 h-4" style={{ color: '#F5C518' }} />
-                      Posizionamento
-                    </li>
-                    <li className="flex items-center gap-2" style={{ color: '#5F6572' }}>
-                      <CheckCircle className="w-4 h-4" style={{ color: '#F5C518' }} />
-                      Mercato
-                    </li>
-                    <li className="flex items-center gap-2" style={{ color: '#5F6572' }}>
-                      <CheckCircle className="w-4 h-4" style={{ color: '#F5C518' }} />
-                      Fattibilità dell'accademia digitale
-                    </li>
-                  </ul>
-                </div>
+          {/* SEZIONE 5 — INVESTIMENTO */}
+          <div className="rounded-2xl overflow-hidden mb-8" style={{ background: '#1E2128' }}>
+            <div className="p-6 text-center">
+              <h2 className="text-lg font-bold mb-4" style={{ color: '#FFFFFF' }}>
+                Attiva la tua Analisi Strategica
+              </h2>
+              <div className="mb-3">
+                <span className="text-sm" style={{ color: '#9CA3AF' }}>Una tantum</span>
+                <div className="text-4xl font-black" style={{ color: '#F5C518' }}>€67</div>
               </div>
-            </div>
-            
-            {/* Price & CTA */}
-            <div className="p-6" style={{ background: '#1E2128' }}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-sm" style={{ color: '#9CA3AF' }}>Investimento</span>
-                  <div>
-                    <span className="text-3xl font-black" style={{ color: '#F5C518' }}>€67</span>
-                    <span className="text-sm ml-2" style={{ color: '#9CA3AF' }}>una tantum</span>
-                  </div>
-                </div>
-                <button
-                  onClick={() => onNavigate('sblocca-analisi')}
-                  className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all hover:opacity-90"
-                  style={{ background: '#F5C518', color: '#1E2128' }}
-                  data-testid="sblocca-analisi-btn"
-                >
-                  Sblocca la tua Analisi Strategica
-                  <ArrowRight className="w-5 h-5" />
-                </button>
-              </div>
+              <p className="text-sm" style={{ color: '#9CA3AF' }}>
+                L'analisi verrà preparata dal team Evolution PRO e discussa insieme durante la call strategica.
+              </p>
             </div>
           </div>
+
+          {/* SEZIONE 6 — CTA PRINCIPALE */}
+          <div className="text-center">
+            <button
+              onClick={() => onNavigate('sblocca-analisi')}
+              className="inline-flex items-center gap-3 px-10 py-4 rounded-xl font-black text-lg uppercase tracking-wide transition-all hover:opacity-90 hover:scale-105"
+              style={{ background: '#F5C518', color: '#1E2128' }}
+              data-testid="attiva-analisi-btn"
+            >
+              Attiva la tua Analisi Strategica
+              <ArrowRight className="w-6 h-6" />
+            </button>
+          </div>
+
         </div>
       </div>
     );
@@ -360,94 +422,147 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
 
   // ═══════════════════════════════════════════════════════════════════════════
   // STATO 3: pagamento_analisi = true, analisi_generata = false
+  // PAGINA ANALISI IN PREPARAZIONE
   // ═══════════════════════════════════════════════════════════════════════════
   if (pagamentoAnalisi && !analisiGenerata) {
+    const processSteps = [
+      { id: 1, label: 'Questionario', status: 'completed' },
+      { id: 2, label: 'Analisi Strategica', status: 'completed' },
+      { id: 3, label: 'Call con Claudio', status: 'active' }
+    ];
+
     return (
       <div className="min-h-screen" style={{ background: '#FAFAF7' }}>
         <Header />
-        <div className="max-w-5xl mx-auto px-6 py-12">
-          {/* Success Message */}
-          <div className="text-center mb-12">
+        <div className="max-w-3xl mx-auto px-6 py-12">
+          
+          {/* Progress bar */}
+          <div className="mb-12">
+            <p className="text-sm font-medium text-center mb-6" style={{ color: '#9CA3AF' }}>
+              Il percorso della tua Accademia Digitale
+            </p>
+            
+            <div className="flex items-center justify-center gap-4">
+              {processSteps.map((step, index) => (
+                <React.Fragment key={step.id}>
+                  <div className="flex flex-col items-center">
+                    <div 
+                      className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm"
+                      style={{ 
+                        background: step.status === 'completed' ? '#22C55E' : '#F5C518',
+                        color: '#1E2128'
+                      }}
+                    >
+                      {step.status === 'completed' ? (
+                        <CheckCircle className="w-5 h-5" />
+                      ) : (
+                        step.id
+                      )}
+                    </div>
+                    <span className="mt-2 text-sm font-medium" style={{ color: '#1E2128' }}>
+                      {step.label}
+                    </span>
+                  </div>
+                  {index < processSteps.length - 1 && (
+                    <div 
+                      className="w-16 h-0.5 mt-[-20px]" 
+                      style={{ background: '#22C55E' }}
+                    />
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+
+          {/* Titolo */}
+          <div className="text-center mb-10">
             <div 
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold mb-4"
               style={{ background: '#F0FDF4', color: '#166534' }}
             >
               <CheckCircle className="w-4 h-4" />
-              Pagamento completato!
+              Pagamento completato
             </div>
             <h1 className="text-3xl font-black mb-4" style={{ color: '#1E2128' }}>
               La tua Analisi Strategica è in preparazione
             </h1>
-            <p className="text-lg max-w-2xl mx-auto" style={{ color: '#5F6572' }}>
-              Il nostro team sta analizzando il tuo progetto.<br />
-              Riceverai un contatto entro <strong>48 ore</strong> per la videocall strategica.
+            <p className="text-lg" style={{ color: '#5F6572' }}>
+              Il team Evolution PRO sta analizzando le informazioni che hai fornito.
+            </p>
+            <p className="text-lg mt-2" style={{ color: '#5F6572' }}>
+              A breve riceverai la tua Analisi Strategica e il link per prenotare la call con Claudio.
             </p>
           </div>
 
-          {/* Two Column Layout */}
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* Left: Video */}
-            <div>
-              <div className="rounded-2xl overflow-hidden" style={{ background: '#1E2128' }}>
-                <div className="p-4" style={{ borderBottom: '1px solid #333' }}>
-                  <h2 className="font-bold" style={{ color: '#FFFFFF' }}>
-                    Video di Benvenuto
-                  </h2>
-                  <p className="text-sm" style={{ color: '#9CA3AF' }}>
-                    Claudio ti spiega cosa aspettarti
-                  </p>
-                </div>
-                
-                <div className="relative" style={{ aspectRatio: '16/9' }}>
-                  {!videoPlaying ? (
+          {/* Video */}
+          <div className="rounded-2xl overflow-hidden mb-8" style={{ background: '#1E2128' }}>
+            <div className="p-4" style={{ borderBottom: '1px solid #333' }}>
+              <h2 className="font-bold" style={{ color: '#FFFFFF' }}>
+                Video di Benvenuto
+              </h2>
+              <p className="text-sm" style={{ color: '#9CA3AF' }}>
+                Un messaggio da Claudio
+              </p>
+            </div>
+            
+            <div className="relative" style={{ aspectRatio: '16/9' }}>
+              {!videoPlaying ? (
+                <div 
+                  className="absolute inset-0 flex items-center justify-center cursor-pointer group"
+                  onClick={() => setVideoPlaying(true)}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  <div className="relative z-10 text-center">
                     <div 
-                      className="absolute inset-0 flex items-center justify-center cursor-pointer group"
-                      onClick={() => setVideoPlaying(true)}
+                      className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform"
+                      style={{ background: '#F5C518' }}
                     >
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                      <div className="relative z-10 text-center">
-                        <div 
-                          className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform"
-                          style={{ background: '#F5C518' }}
-                        >
-                          <PlayCircle className="w-8 h-8" style={{ color: '#1E2128' }} />
-                        </div>
-                        <span className="text-white font-medium">Guarda il video</span>
-                      </div>
+                      <PlayCircle className="w-8 h-8" style={{ color: '#1E2128' }} />
                     </div>
-                  ) : (
-                    <video 
-                      className="w-full h-full object-cover"
-                      controls
-                      autoPlay
-                      playsInline
-                    >
-                      <source src="/api/static/uploads/Quick_Avatar_Video.mp4" type="video/mp4" />
-                    </video>
-                  )}
+                    <span className="text-white font-medium">Guarda il video</span>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <video 
+                  className="w-full h-full object-cover"
+                  controls
+                  autoPlay
+                  playsInline
+                >
+                  <source src="/api/static/uploads/Quick_Avatar_Video.mp4" type="video/mp4" />
+                </video>
+              )}
+            </div>
+          </div>
 
-              {/* What happens next */}
-              <div className="mt-6 p-6 rounded-xl" style={{ background: '#FFF8DC', border: '1px solid #F5C51830' }}>
-                <h3 className="font-bold mb-3" style={{ color: '#92700C' }}>
-                  Cosa succede ora?
-                </h3>
-                <ol className="space-y-2 text-sm" style={{ color: '#78590A' }}>
-                  <li className="flex items-start gap-2">
-                    <span className="font-bold">1.</span>
-                    <span>Il nostro team analizza le tue risposte al questionario</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="font-bold">2.</span>
-                    <span>Prepariamo un documento di analisi personalizzato</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="font-bold">3.</span>
-                    <span>Ti contattiamo entro 48h per fissare la videocall</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="font-bold">4.</span>
+          {/* Messaggio finale */}
+          <div 
+            className="rounded-2xl p-6 text-center"
+            style={{ background: '#FFF8DC', border: '1px solid #F5C51840' }}
+          >
+            <Clock className="w-8 h-8 mx-auto mb-3" style={{ color: '#C4990A' }} />
+            <p className="font-bold" style={{ color: '#92700C' }}>
+              Ti contatteremo entro 48 ore.
+            </p>
+            <p className="text-sm mt-2" style={{ color: '#78590A' }}>
+              Controlla la tua email per aggiornamenti sul tuo progetto.
+            </p>
+          </div>
+
+          {/* Contact */}
+          <div className="mt-8 text-center">
+            <p className="text-sm" style={{ color: '#9CA3AF' }}>
+              Hai domande? Scrivi a{' '}
+              <a href="mailto:supporto@evolution-pro.it" className="font-medium" style={{ color: '#F5C518' }}>
+                supporto@evolution-pro.it
+              </a>
+            </p>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
                     <span>Nella call discutiamo insieme i risultati dell'analisi</span>
                   </li>
                 </ol>
