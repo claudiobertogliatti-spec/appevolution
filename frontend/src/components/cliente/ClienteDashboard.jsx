@@ -638,8 +638,8 @@ export function ClienteDashboard({ cliente, onLogout }) {
               </div>
             </div>
 
-            {/* Urgency Banner (if not completed) */}
-            {!questionarioCompletato && (
+            {/* Urgency Banner (if not completed and already in questionario) */}
+            {!questionarioCompletato && showQuestionario && (
               <div className="rounded-xl p-4 flex items-start gap-3" style={{ background: '#FEF9E7', border: '1px solid #F5C518' }}>
                 <Clock className="w-5 h-5 text-[#C4990A] flex-shrink-0 mt-0.5" />
                 <div>
@@ -652,8 +652,81 @@ export function ClienteDashboard({ cliente, onLogout }) {
               </div>
             )}
 
-            {/* Questionnaire OR Confirmation */}
-            {!questionarioCompletato ? (
+            {/* PRE-QUESTIONARIO INTRO PAGE */}
+            {!questionarioCompletato && !showQuestionario ? (
+              <div className="rounded-2xl p-8" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+                <h2 className="text-2xl font-black text-[#1E2128] mb-4">
+                  ✅ Benvenuto in Evolution PRO
+                </h2>
+                
+                <p className="text-[#5F6572] mb-6 leading-relaxed">
+                  Hai completato correttamente l'accesso alla fase di Analisi Strategica.
+                </p>
+
+                <p className="text-[#5F6572] mb-4 leading-relaxed">
+                  Il prossimo passo è <strong>raccontarci il tuo progetto</strong>.<br />
+                  Ti faremo alcune domande semplici che ci aiuteranno a capire se la tua competenza può diventare una Accademia Digitale sostenibile nel tempo.
+                </p>
+
+                <div className="flex items-center gap-2 mb-6 text-[#5F6572]">
+                  <Clock className="w-5 h-5 text-[#F5C518]" />
+                  <span><strong>Tempo richiesto:</strong> circa 5 minuti.</span>
+                </div>
+
+                <div className="rounded-xl p-4 mb-6" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
+                  <p className="text-[#5F6572] leading-relaxed">
+                    Non esistono risposte giuste o sbagliate.<br />
+                    <strong>Più sarai concreto e dettagliato, più la nostra analisi sarà precisa e utile.</strong>
+                  </p>
+                </div>
+
+                {/* Sezione "Perché ti chiediamo queste informazioni" */}
+                <div className="mb-8">
+                  <h3 className="text-lg font-bold text-[#1E2128] mb-4 flex items-center gap-2">
+                    <Target className="w-5 h-5 text-[#F5C518]" />
+                    Perché ti chiediamo queste informazioni?
+                  </h3>
+                  <p className="text-[#5F6572] mb-3">Le tue risposte ci permettono di:</p>
+                  <ul className="space-y-2 text-[#5F6572]">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-[#10B981] flex-shrink-0 mt-1" />
+                      <span>capire il tuo posizionamento</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-[#10B981] flex-shrink-0 mt-1" />
+                      <span>analizzare il potenziale del mercato</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-[#10B981] flex-shrink-0 mt-1" />
+                      <span>valutare la fattibilità del progetto</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-[#10B981] flex-shrink-0 mt-1" />
+                      <span>preparare la call strategica</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <p className="text-[#5F6572] mb-8 leading-relaxed">
+                  Una volta completato il questionario, il team Evolution analizzerà il tuo progetto e preparerà la tua <strong>Analisi Strategica</strong>.
+                </p>
+
+                <p className="text-[#5F6572] mb-6 font-medium">
+                  Quando sei pronto puoi iniziare.
+                </p>
+
+                <button
+                  onClick={() => setShowQuestionario(true)}
+                  className="w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all hover:opacity-90"
+                  style={{ background: '#F5C518', color: '#1E2128' }}
+                  data-testid="inizia-questionario-btn"
+                >
+                  INIZIA IL QUESTIONARIO
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              </div>
+            ) : !questionarioCompletato && showQuestionario ? (
+              /* QUESTIONARIO FORM */
               <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
                 <h2 className="text-xl font-bold text-[#1E2128] mb-1">Raccontaci il tuo progetto</h2>
                 <p className="text-sm text-[#5F6572] mb-6">
