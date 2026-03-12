@@ -28,10 +28,10 @@ APP_URL = os.environ.get("APP_URL", os.environ.get("REACT_APP_BACKEND_URL", "htt
 CAMPI_OBBLIGATORI = {
     "expertise":            {"min": 20, "label": "In cosa sei esperto"},
     "cliente_ideale":       {"min": 20, "label": "Il tuo cliente ideale"},
+    "risultato_concreto":   {"min": 20, "label": "Risultato concreto"},
     "pubblico_esistente":   {"min": 15, "label": "Presenza online"},
     "esperienze_passate":   {"min": 15, "label": "Esperienze di vendita online"},
     "ostacolo_principale":  {"min": 20, "label": "L'ostacolo principale"},
-    "obiettivo_12_mesi":    {"min": 25, "label": "Obiettivo 12 mesi"},
     "perche_adesso":        {"min": 20, "label": "Perché proprio adesso"},
 }
 
