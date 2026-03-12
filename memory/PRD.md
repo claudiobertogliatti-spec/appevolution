@@ -26,10 +26,18 @@
 | Route | Componente | Descrizione |
 |-------|------------|-------------|
 | `/analisi-strategica` | AnalisiStrategicaLanding.jsx | Landing + Registrazione |
-| `/dashboard-cliente` | DashboardCliente.jsx | Dashboard con progress bar 4 step |
+| `/dashboard-cliente` | DashboardCliente.jsx | Dashboard dinamica basata su stato |
 | `/questionario` | QuestionarioCliente.jsx | 7 domande strategiche |
 | `/sblocca-analisi` | SbloccaAnalisi.jsx | Pagamento Stripe €67 |
-| `/analisi-in-preparazione` | AnalisiInPreparazione.jsx | Video + Mini corso |
+
+**Dashboard Cliente - 4 Stati Dinamici:**
+
+| Stato | Condizione | Contenuto |
+|-------|------------|-----------|
+| 1 | questionario_compilato=false | "Benvenuto in Evolution PRO" + CTA Questionario |
+| 2 | questionario_compilato=true, pagamento_analisi=false | "Il tuo progetto è stato ricevuto" + CTA Pagamento €67 |
+| 3 | pagamento_analisi=true, analisi_generata=false | "Analisi in preparazione" + Video + Mini Corso 7 moduli |
+| 4 | analisi_generata=true | "Analisi pronta" + CTA Prenota Call |
 
 **Progress Bar Cliente:**
 1. Registrazione ✓
@@ -41,6 +49,7 @@
 - `user_type: "cliente_analisi"`
 - `questionario_compilato: boolean`
 - `pagamento_analisi: boolean`
+- `analisi_generata: boolean`
 
 ### FLUSSO 2: PARTNER
 
