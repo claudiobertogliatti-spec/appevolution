@@ -3,7 +3,7 @@ import { LayoutDashboard, Users, Film, FileText, BarChart3, MessageCircle, Alert
 
 const CLAUDIO_NAV = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
-  { id: "clienti", label: "Clienti Analisi", icon: UserPlus, dot: true },
+  { id: "clienti-analisi", label: "Clienti Analisi", icon: UserPlus, dot: true },
   { id: "partner", label: "Partner", icon: Users },
   { id: "team", label: "Team Evolution", icon: UsersRound },
   { id: "agenti", label: "Agent Hub", icon: Bot },
@@ -19,7 +19,7 @@ const CLAUDIO_NAV = [
 
 const ANTONELLA_NAV = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
-  { id: "clienti", label: "Clienti Analisi", icon: UserPlus, dot: true },
+  { id: "clienti-analisi", label: "Clienti Analisi", icon: UserPlus, dot: true },
   { id: "partner", label: "Partner", icon: Users },
   { id: "team", label: "Team Evolution", icon: UsersRound },
   { id: "agenti", label: "Agent Hub", icon: Bot },
