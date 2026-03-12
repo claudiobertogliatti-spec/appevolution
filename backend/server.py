@@ -1176,12 +1176,8 @@ async def register_cliente_analisi(request: ClienteAnalisiRegisterRequest):
     
     await db.users.insert_one(new_user)
     
-    # Login automatico - genera token
-    global auth_service
-    if not auth_service:
-        auth_service = AuthService(db)
-    
-    token_data = auth_service.create_access_token(data={
+    # Login automatico - genera token usando la funzione standalone
+    access_token = create_access_token(data={
         "sub": user_id,
         "email": request.email.lower(),
         "role": "cliente",
@@ -1214,7 +1210,7 @@ async def register_cliente_analisi(request: ClienteAnalisiRegisterRequest):
             "pagamento_analisi": False,
             "data_registrazione": new_user["data_registrazione"]
         },
-        "token": token_data.access_token,
+        "token": access_token,
         "message": "Account creato con successo! Ora completa il pagamento."
     }
 
