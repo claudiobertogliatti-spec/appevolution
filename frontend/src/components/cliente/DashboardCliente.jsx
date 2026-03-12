@@ -148,69 +148,124 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
   );
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // STATO 1: questionario_compilato = false
+  // STATO 1: questionario_compilato = false - INTRODUZIONE AL QUESTIONARIO
   // ═══════════════════════════════════════════════════════════════════════════
   if (!questionarioCompilato) {
+    const processSteps = [
+      { id: 1, label: 'Questionario', active: true },
+      { id: 2, label: 'Analisi Strategica', active: false },
+      { id: 3, label: 'Call con Claudio', active: false }
+    ];
+
     return (
       <div className="min-h-screen" style={{ background: '#FAFAF7' }}>
         <Header />
-        <div className="max-w-4xl mx-auto px-6 py-12">
-          {/* Welcome Section */}
-          <div className="text-center mb-12">
-            <h1 className="text-3xl font-black mb-4" style={{ color: '#1E2128' }}>
+        <div className="max-w-3xl mx-auto px-6 py-12">
+          
+          {/* SEZIONE 1 — PROGRESSO PROCESSO */}
+          <div className="mb-12">
+            <p className="text-sm font-medium text-center mb-6" style={{ color: '#9CA3AF' }}>
+              Il processo per valutare il tuo progetto
+            </p>
+            
+            <div className="flex items-center justify-center gap-4">
+              {processSteps.map((step, index) => (
+                <React.Fragment key={step.id}>
+                  <div className="flex flex-col items-center">
+                    <div 
+                      className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
+                        step.active ? '' : 'opacity-40'
+                      }`}
+                      style={{ 
+                        background: step.active ? '#F5C518' : '#ECEDEF',
+                        color: step.active ? '#1E2128' : '#9CA3AF'
+                      }}
+                    >
+                      {step.id}
+                    </div>
+                    <span 
+                      className={`mt-2 text-sm font-medium ${step.active ? '' : 'opacity-40'}`}
+                      style={{ color: step.active ? '#1E2128' : '#9CA3AF' }}
+                    >
+                      {step.label}
+                    </span>
+                  </div>
+                  {index < processSteps.length - 1 && (
+                    <div 
+                      className="w-16 h-0.5 mt-[-20px]" 
+                      style={{ background: '#ECEDEF' }}
+                    />
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+
+          {/* SEZIONE 2 — MESSAGGIO DI BENVENUTO */}
+          <div className="text-center mb-10">
+            <h1 className="text-3xl font-black mb-6" style={{ color: '#1E2128' }}>
               Benvenuto in Evolution PRO
             </h1>
-            <p className="text-lg max-w-2xl mx-auto" style={{ color: '#5F6572' }}>
-              Il primo passo è raccontarci il tuo progetto.<br />
-              Compila il questionario strategico per permetterci di valutare se la tua competenza può diventare una Accademia Digitale sostenibile.
+            <div className="text-lg leading-relaxed" style={{ color: '#5F6572' }}>
+              <p className="mb-4">
+                Hai attivato la fase di <strong style={{ color: '#1E2128' }}>Analisi Strategica</strong>.
+              </p>
+              <p className="mb-4">
+                Il primo passo è raccontarci il tuo progetto.
+              </p>
+              <p>
+                Ti faremo alcune domande semplici che ci aiuteranno a capire se la tua competenza può diventare una <strong style={{ color: '#1E2128' }}>Accademia Digitale sostenibile</strong>.
+              </p>
+            </div>
+          </div>
+
+          {/* SEZIONE 3 — SPIEGAZIONE QUESTIONARIO */}
+          <div 
+            className="rounded-2xl p-6 mb-10 text-center"
+            style={{ background: '#FFF8DC', border: '1px solid #F5C51840' }}
+          >
+            <p className="font-bold mb-2" style={{ color: '#92700C' }}>
+              Tempo richiesto: circa 5 minuti
+            </p>
+            <p style={{ color: '#78590A' }}>
+              Non esistono risposte giuste o sbagliate.<br />
+              Più sarai concreto nelle risposte, più l'analisi sarà precisa e utile.
             </p>
           </div>
 
-          <ProgressBar />
-
-          {/* CTA Card */}
-          <div className="rounded-2xl p-8" style={{ background: '#FFFFFF', border: '2px solid #F5C518' }}>
-            <div className="flex items-start gap-6">
-              <div 
-                className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0" 
-                style={{ background: '#FFF8DC' }}
-              >
-                <FileText className="w-7 h-7" style={{ color: '#C4990A' }} />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-bold mb-2" style={{ color: '#1E2128' }}>
-                  Prossimo passo: Questionario Strategico
-                </h3>
-                <p className="mb-6" style={{ color: '#5F6572' }}>
-                  Rispondi a 7 domande per aiutarci a capire la tua competenza, il tuo pubblico ideale e i tuoi obiettivi.
-                </p>
-                <button
-                  onClick={() => onNavigate('questionario')}
-                  className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-lg transition-all hover:opacity-90"
-                  style={{ background: '#F5C518', color: '#1E2128' }}
-                  data-testid="start-questionario-btn"
-                >
-                  Compila il Questionario Strategico
-                  <ArrowRight className="w-5 h-5" />
-                </button>
-              </div>
+          {/* SEZIONE 4 — PERCHÉ FACCIAMO QUESTE DOMANDE */}
+          <div className="mb-10">
+            <h2 className="text-lg font-bold mb-4 text-center" style={{ color: '#1E2128' }}>
+              Perché ti chiediamo queste informazioni?
+            </h2>
+            <div className="flex flex-col items-center gap-3">
+              {[
+                'capire il tuo posizionamento',
+                'analizzare il potenziale del mercato',
+                'valutare la fattibilità del progetto',
+                'preparare la tua Analisi Strategica'
+              ].map((item, index) => (
+                <div key={index} className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5" style={{ color: '#F5C518' }} />
+                  <span style={{ color: '#5F6572' }}>{item}</span>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Info Box */}
-          <div className="mt-8 p-6 rounded-xl" style={{ background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
-            <div className="flex items-start gap-3">
-              <Clock className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#22C55E' }} />
-              <div>
-                <p className="font-medium" style={{ color: '#166534' }}>
-                  Tempo richiesto: circa 5 minuti
-                </p>
-                <p className="text-sm mt-1" style={{ color: '#15803D' }}>
-                  Prenditi il tempo necessario per rispondere con attenzione. Le tue risposte ci aiuteranno a valutare il potenziale del tuo progetto.
-                </p>
-              </div>
-            </div>
+          {/* SEZIONE 5 — CTA */}
+          <div className="text-center">
+            <button
+              onClick={() => onNavigate('questionario')}
+              className="inline-flex items-center gap-3 px-10 py-4 rounded-xl font-black text-lg uppercase tracking-wide transition-all hover:opacity-90 hover:scale-105"
+              style={{ background: '#F5C518', color: '#1E2128' }}
+              data-testid="start-questionario-btn"
+            >
+              Inizia il Questionario
+              <ArrowRight className="w-6 h-6" />
+            </button>
           </div>
+
         </div>
       </div>
     );
