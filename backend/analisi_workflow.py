@@ -178,14 +178,16 @@ async def genera_testo_ai(risposte: dict, nome: str) -> dict:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# STEP 3 — GENERAZIONE DOCX (via Node.js)
+# STEP 3 — GENERAZIONE DOCX (via Python)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 async def genera_docx(cliente: dict, testo_ai: dict, risposte: dict) -> tuple:
     """
-    Chiama genera_analisi.js passando i dati come JSON.
+    Genera il DOCX dell'Analisi Strategica usando il nuovo template professionale.
     Ritorna (path assoluto, nome file).
     """
+    from genera_analisi_docx import genera_analisi_strategica
+    
     nome = cliente.get("nome", "Cliente")
     cognome = cliente.get("cognome", "")
     nome_completo = f"{nome} {cognome}".strip()
@@ -194,6 +196,7 @@ async def genera_docx(cliente: dict, testo_ai: dict, risposte: dict) -> tuple:
     nome_file = f"Analisi_Strategica_{nome_pulito}_{data_str}.docx"
     output_path = str(DOCX_DIR / nome_file)
 
+    # Prepara i dati per il template
     dati_docx = {
         "NOME_CLIENTE": nome_completo,
         "AMBITO": risposte.get("expertise", ""),
@@ -204,7 +207,8 @@ async def genera_docx(cliente: dict, testo_ai: dict, risposte: dict) -> tuple:
         "RISPOSTA_PUBBLICO": risposte.get("pubblico_esistente", ""),
         "RISPOSTA_ESPERIENZA": risposte.get("esperienze_passate", ""),
         "RISPOSTA_OSTACOLO": risposte.get("ostacolo_principale", ""),
-        "RISPOSTA_OBIETTIVO": risposte.get("obiettivo_12_mesi", ""),
+        "RISPOSTA_OBIETTIVO": risposte.get("obiettivo_12_mesi", risposte.get("risultato_concreto", "")),
+        "RISPOSTA_RISULTATO": risposte.get("risultato_concreto", ""),
         "RISPOSTA_PERCHE_ORA": risposte.get("perche_adesso", ""),
         # Arricchimenti AI
         "COMPETENZA_ARRICCHITA": testo_ai.get("COMPETENZA_ARRICCHITA", ""),
@@ -213,18 +217,13 @@ async def genera_docx(cliente: dict, testo_ai: dict, risposte: dict) -> tuple:
         "ESPERIENZA_ARRICCHITA": testo_ai.get("ESPERIENZA_ARRICCHITA", ""),
         "OSTACOLO_ARRICCHITO": testo_ai.get("OSTACOLO_ARRICCHITO", ""),
         "OBIETTIVO_ARRICCHITO": testo_ai.get("OBIETTIVO_ARRICCHITO", ""),
+        "RISULTATO_ARRICCHITO": testo_ai.get("RISULTATO_ARRICCHITO", ""),
         "PERCHE_ORA_ARRICCHITO": testo_ai.get("PERCHE_ORA_ARRICCHITO", ""),
+        "FATTIBILITA": testo_ai.get("FATTIBILITA", "ALTA"),
     }
 
-    script_path = Path(__file__).parent / "genera_analisi.js"
-
-    result = subprocess.run(
-        ["node", str(script_path), json.dumps(dati_docx), output_path],
-        capture_output=True, text=True, timeout=60
-    )
-
-    if result.returncode != 0:
-        raise RuntimeError(f"Errore generazione DOCX: {result.stderr}")
+    # Genera il documento
+    genera_analisi_strategica(dati_docx, output_path)
 
     return output_path, nome_file
 
