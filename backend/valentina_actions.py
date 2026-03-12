@@ -463,6 +463,20 @@ class ValentinaActionDispatcher:
             elif action_id == "get_my_progress":
                 return await self._get_my_progress(context)
             
+            # =========================================================================
+            # OPENCLAW actions - Browser Automation via Telegram
+            # =========================================================================
+            elif action_id == "openclaw_create_pipeline_column":
+                return await self._openclaw_create_pipeline_column(context)
+            elif action_id == "openclaw_move_contact":
+                return await self._openclaw_move_contact(context)
+            elif action_id == "openclaw_create_funnel":
+                return await self._openclaw_create_funnel(context)
+            elif action_id == "openclaw_create_automation":
+                return await self._openclaw_create_automation(context)
+            elif action_id == "openclaw_browser_task":
+                return await self._openclaw_browser_task(context)
+            
             else:
                 return {
                     "success": False,
