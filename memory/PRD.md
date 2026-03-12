@@ -19,6 +19,29 @@
 
 ---
 
+## STRUTTURA ROUTES
+
+### Routes Pubbliche
+| Route | Componente | Descrizione |
+|-------|------------|-------------|
+| `/` | Homepage.jsx | Punto di ingresso - scelta tra Cliente/Partner |
+| `/analisi-strategica` | AnalisiStrategicaLanding.jsx | Registrazione cliente |
+| `/partner-login` | PartnerLogin.jsx | Login partner |
+
+### Routes Cliente (Autenticate)
+| Route | Componente | Descrizione |
+|-------|------------|-------------|
+| `/dashboard-cliente` | DashboardCliente.jsx | Dashboard dinamica 4 stati |
+| `/questionario` | QuestionarioCliente.jsx | 7 domande strategiche |
+| `/sblocca-analisi` | SbloccaAnalisi.jsx | Pagamento Stripe €67 |
+
+### Routes Partner/Admin (Autenticate)
+| Route | Componente | Descrizione |
+|-------|------------|-------------|
+| `/dashboard-partner` | Dashboard principale | Area partner/admin |
+
+---
+
 ## DUE FLUSSI SEPARATI (Implementato 12 Mar 2026)
 
 ### FLUSSO 1: CLIENTE ANALISI
