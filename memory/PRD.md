@@ -17,66 +17,144 @@
 - **Pagamenti**: Stripe
 - **Automazioni**: Telegram Bot + Systeme.io
 
-## Flusso Nuovo Onboarding Cliente Analisi (IMPLEMENTATO - Mar 2026)
+---
 
-### Step 1: Registrazione (SENZA pagamento)
-- **URL Pubblico**: `/analisi-strategica`
-- **Componente**: `AnalisiStrategicaLanding.jsx`
-- **API**: `POST /api/cliente-analisi/register`
-- **Risultato**: Crea utente con `user_type: cliente_analisi`, `pagamento_analisi: false`
-- Auto-login dopo registrazione
+## DUE FLUSSI SEPARATI (Implementato 12 Mar 2026)
 
-### Step 2: Pagamento
-- **Componente**: `DashboardPagamento.jsx` (mostrato post-login se non pagato)
-- **API**: `POST /api/cliente-analisi/checkout` → redirect Stripe
-- **API**: `POST /api/cliente-analisi/verify-payment` → verifica e aggiorna stato
-- **Risultato**: Crea record `clienti`, imposta `pagamento_analisi: true`
+### FLUSSO 1: CLIENTE ANALISI
 
-### Step 3: Questionario
-- **Componente**: `ClienteDashboard.jsx` (mostrato post-pagamento)
-- Flusso: Pre-Questionnaire → Questionnaire → Post-Questionnaire
+| Route | Componente | Descrizione |
+|-------|------------|-------------|
+| `/analisi-strategica` | AnalisiStrategicaLanding.jsx | Landing + Registrazione |
+| `/dashboard-cliente` | DashboardCliente.jsx | Dashboard con progress bar 4 step |
+| `/questionario` | QuestionarioCliente.jsx | 7 domande strategiche |
+| `/sblocca-analisi` | SbloccaAnalisi.jsx | Pagamento Stripe €67 |
+| `/analisi-in-preparazione` | AnalisiInPreparazione.jsx | Video + Mini corso |
 
-## Endpoints Chiave
+**Progress Bar Cliente:**
+1. Registrazione ✓
+2. Questionario
+3. Analisi Strategica
+4. Call con Claudio
 
-### Autenticazione
-- `POST /api/auth/login` - Login utente
-- `POST /api/auth/register` - Registrazione partner
+**Database Fields:**
+- `user_type: "cliente_analisi"`
+- `questionario_compilato: boolean`
+- `pagamento_analisi: boolean`
 
-### Cliente Analisi (NUOVO)
-- `POST /api/cliente-analisi/register` - Registrazione cliente (no pagamento)
-- `POST /api/cliente-analisi/checkout` - Crea sessione Stripe
-- `POST /api/cliente-analisi/verify-payment` - Verifica pagamento
-- `GET /api/cliente-analisi/status/{user_id}` - Stato cliente
+### FLUSSO 2: PARTNER
 
-### Partner
-- `GET /api/partners` - Lista partner
-- `POST /api/chat` - Chat con VALENTINA (supporta OpenClaw)
+| Route | Componente | Descrizione |
+|-------|------------|-------------|
+| `/partner-login` | PartnerLogin.jsx | Login dedicato partner |
+| `/dashboard-partner` | Dashboard admin/partner | Dashboard con fasi F0-F10 |
 
-## File Principali
-- `/app/frontend/src/App.js` - Routing e logica principale
-- `/app/frontend/src/components/cliente/AnalisiStrategicaLanding.jsx` - Landing registrazione
-- `/app/frontend/src/components/cliente/DashboardPagamento.jsx` - Pagina pagamento
-- `/app/frontend/src/components/cliente/ClienteDashboard.jsx` - Dashboard cliente (>1200 righe)
-- `/app/backend/server.py` - Backend monolite (>11000 righe)
+**Fasi Programma Partner:**
+- F0 Pre-Onboarding → F10 Scalabilità
 
-## Credenziali Test
+---
+
+## 7 DOMANDE QUESTIONARIO
+
+1. **In cosa sei riconosciuto/a come esperto/a?**
+   - Descrivi in modo semplice la tua competenza principale.
+
+2. **Chi è il tuo cliente ideale?**
+   - Descrivi la persona che vorresti aiutare con la tua accademia: età o fase della vita, professione, problema principale, situazione attuale.
+
+3. **Quale risultato concreto vorresti aiutarlo a ottenere?**
+   - Dopo il tuo percorso, cosa cambia per questa persona? Quale trasformazione prometti?
+
+4. **Hai già un pubblico o persone che ti seguono?**
+   - Social, community, newsletter, clienti. Se non hai ancora un pubblico, scrivi "No".
+
+5. **Hai già venduto qualcosa online o lavori già con clienti su questo tema?**
+   - Consulenze, corsi, workshop, percorsi 1:1. Se è la prima volta, scrivi: "No, è la mia prima esperienza online".
+
+6. **Qual è il principale ostacolo che finora ti ha bloccato dal digitalizzare la tua competenza?**
+   - Es: mancanza di tempo, difficoltà tecniche, non sapere da dove iniziare, paura che non funzioni, mancanza di pubblico, difficoltà a strutturare il percorso.
+
+7. **Perché proprio adesso?**
+   - Cosa è cambiato rispetto ai mesi scorsi? Perché senti che questo è il momento giusto per costruire la tua Accademia Digitale?
+
+---
+
+## API ENDPOINTS CLIENTE ANALISI
+
+| Endpoint | Metodo | Descrizione |
+|----------|--------|-------------|
+| `/api/cliente-analisi/register` | POST | Registrazione nuovo cliente |
+| `/api/cliente-analisi/questionario` | POST | Salva risposte questionario |
+| `/api/cliente-analisi/checkout` | POST | Crea sessione Stripe €67 |
+| `/api/cliente-analisi/verify-payment` | POST | Verifica pagamento |
+| `/api/cliente-analisi/status/{user_id}` | GET | Status utente |
+
+---
+
+## FILE PRINCIPALI
+
+### Frontend
+- `/app/frontend/src/App.js` - Routing e gestione flussi
+- `/app/frontend/src/components/cliente/AnalisiStrategicaLanding.jsx` - Registrazione
+- `/app/frontend/src/components/cliente/DashboardCliente.jsx` - Dashboard cliente
+- `/app/frontend/src/components/cliente/QuestionarioCliente.jsx` - 7 domande
+- `/app/frontend/src/components/cliente/SbloccaAnalisi.jsx` - Pagamento €67
+- `/app/frontend/src/components/cliente/AnalisiInPreparazione.jsx` - Post-pagamento
+- `/app/frontend/src/components/partner/PartnerLogin.jsx` - Login partner
+
+### Backend
+- `/app/backend/server.py` - Monolite backend (>11k righe)
+- `/app/backend/valentina_actions.py` - Azioni AI + OpenClaw
+- `/app/backend/genera_analisi_docx.py` - Generazione DOCX
+
+---
+
+## CREDENZIALI TEST
 - **Admin**: claudio.bertogliatti@gmail.com / Evoluzione74
+- **Cliente**: Registrazione via /analisi-strategica
 
-## Issues Noti
+---
 
-### P0 - Verifica Utente
+## SICUREZZA
+
+- Cliente analisi → accesso SOLO a /dashboard-cliente e flusso cliente
+- Partner → accesso SOLO a /dashboard-partner e flusso partner
+- Redirect automatico in base a user_type
+
+---
+
+## ISSUES NOTI
+
+### P1 - Verifica Utente
 - Test end-to-end OpenClaw da chat app → Telegram → automazione locale
 
 ### P1 - Bloccato
 - Autonomia agenti via tag Systeme.io (in attesa creazione automazioni utente)
 
 ### P2 - Backlog
-- Refactoring `server.py` (monolite critico)
-- Refactoring `ClienteDashboard.jsx` (>1200 righe)
+- Refactoring `server.py` (monolite critico >11k righe)
+- Refactoring `ClienteDashboard.jsx` (>1200 righe - vecchio componente)
 - Refresh token YouTube API
 - Verifica template contratto partner
 
-## Changelog Recente
-- **Mar 12, 2026**: Implementato nuovo flusso onboarding separato registrazione/pagamento
-- **Mar 12, 2026**: Creati componenti `AnalisiStrategicaLanding.jsx` e `DashboardPagamento.jsx`
-- **Mar 12, 2026**: Integrazione Stripe con emergentintegrations funzionante
+---
+
+## CHANGELOG
+
+### 12 Mar 2026
+- ✅ Implementato nuovo flusso CLIENTE ANALISI separato
+- ✅ Creato `/analisi-strategica` landing + registrazione
+- ✅ Creato `/dashboard-cliente` con progress bar 4 step
+- ✅ Creato `/questionario` con 7 domande definitive
+- ✅ Creato `/sblocca-analisi` con pagamento Stripe €67
+- ✅ Creato `/analisi-in-preparazione` con video + mini corso
+- ✅ Creato `/partner-login` separato per partner
+- ✅ Implementato redirect automatico a `/dashboard-partner`
+- ✅ Implementata sicurezza: separazione accessi cliente/partner
+- ✅ Tutti i test passati (14/14 backend, 100% frontend)
+
+### Sessione precedente
+- ✅ Connesso VALENTINA a OpenClaw
+- ✅ Redesignato funnel cliente (vecchio)
+- ✅ Implementato template DOCX professionale
+- ✅ Risolto problema Telegram Bot
