@@ -174,6 +174,13 @@
 ## CHANGELOG
 
 ### 12 Mar 2026 - Sessione 2
+- ✅ Creata Homepage pubblica su `/` come punto di ingresso
+- ✅ Header con logo e link partner
+- ✅ Hero con titolo e sottotitolo
+- ✅ 5 benefici con check
+- ✅ CTA principale → /analisi-strategica
+- ✅ CTA secondaria → /partner-login
+- ✅ Footer con slogan e link sito
 - ✅ Dashboard cliente dinamica con 4 stati basati su condizioni utente
 - ✅ STATO 1: Benvenuto + CTA Questionario (questionario_compilato=false)
 - ✅ STATO 2: Progetto ricevuto + CTA Pagamento €67 (questionario=true, pagamento=false)
