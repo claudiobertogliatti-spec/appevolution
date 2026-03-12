@@ -405,7 +405,7 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
           {/* SEZIONE 6 — CTA PRINCIPALE */}
           <div className="text-center">
             <button
-              onClick={() => onNavigate('sblocca-analisi')}
+              onClick={() => onNavigate('analisi-attivazione')}
               className="inline-flex items-center gap-3 px-10 py-4 rounded-xl font-black text-lg uppercase tracking-wide transition-all hover:opacity-90 hover:scale-105"
               style={{ background: '#F5C518', color: '#1E2128' }}
               data-testid="attiva-analisi-btn"
