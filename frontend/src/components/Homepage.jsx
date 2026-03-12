@@ -63,7 +63,7 @@ export function Homepage() {
                 className="text-lg mb-8" 
                 style={{ color: '#5F6572' }}
               >
-                Analisi Strategica selettiva per professionisti che vogliono trasformare la propria competenza in un asset digitale.
+                Analisi Strategica selettiva per professionisti che vogliono trasformare la propria competenza in una Accademia Digitale sostenibile.
               </p>
 
               {/* Benefits */}
