@@ -36,7 +36,7 @@ export function AnalisiStrategicaLanding({ onRegisterSuccess }) {
     setError(null);
 
     try {
-      const response = await fetch(`${API}/api/cliente-analisi/register`, {
+      const response = await fetch(`${API}/cliente-analisi/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
