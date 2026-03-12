@@ -975,70 +975,203 @@ export default function App() {
     );
   }
 
-  // Public route: Analisi Strategica Landing (nuovo flusso - registrazione separata)
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FLUSSO 1: CLIENTE ANALISI (Routes Pubbliche)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // Landing + Registrazione Cliente Analisi
   if (window.location.pathname === "/analisi-strategica") {
     return (
       <AnalisiStrategicaLanding 
         onRegisterSuccess={(data) => {
-          // Auto-login dopo registrazione
           if (data.token) {
             localStorage.setItem("access_token", data.token);
             localStorage.setItem("user", JSON.stringify(data.user));
             setCurrentUser(data.user);
             setIsAuthenticated(true);
-            // Redirect to payment page
-            window.location.href = "/";
+            // Redirect alla dashboard cliente
+            window.location.href = "/dashboard-cliente";
           }
         }} 
       />
     );
   }
 
-  // Public route: Vecchia pagina Analisi Strategica (per clienti già paganti)
-  if (window.location.pathname === "/analisi-strategica-app") {
-    return <AnalisiStrategicaApp />;
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FLUSSO 2: PARTNER (Login Separato)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  if (window.location.pathname === "/partner-login") {
+    if (isAuthenticated && currentUser?.user_type !== "cliente_analisi") {
+      // Già loggato come partner/admin, redirect alla dashboard
+      window.location.href = "/dashboard-partner";
+      return null;
+    }
+    return (
+      <PartnerLogin 
+        onLogin={(user, token) => {
+          setCurrentUser(user);
+          setIsAuthenticated(true);
+          loadData();
+          window.location.href = "/dashboard-partner";
+        }}
+      />
+    );
   }
 
-  // Not authenticated - show login
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ROUTES PROTETTE - Richiedono Autenticazione
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // Se non autenticato e sulla homepage, mostra login admin/partner
   if (!isAuthenticated) {
+    // Redirect in base al path
+    if (window.location.pathname.startsWith("/dashboard-cliente") || 
+        window.location.pathname === "/questionario" ||
+        window.location.pathname === "/sblocca-analisi" ||
+        window.location.pathname === "/analisi-in-preparazione") {
+      // Utente cliente non loggato, redirect a registrazione
+      window.location.href = "/analisi-strategica";
+      return null;
+    }
+    // Altrimenti mostra login per partner/admin
     return <LoginPage onLogin={handleLogin} />;
   }
 
-  // Cliente Analisi che non ha pagato - mostra pagina pagamento
-  if (currentUser?.user_type === "cliente_analisi" && !currentUser?.pagamento_analisi) {
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CLIENTE ANALISI - Routes Autenticate
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  if (currentUser?.user_type === "cliente_analisi") {
+    const handleClienteLogout = () => {
+      handleLogout();
+      window.location.href = "/analisi-strategica";
+    };
+
+    // Verifica payment success da Stripe
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment');
+    
+    if (paymentStatus === 'success' && !currentUser.pagamento_analisi) {
+      // Verifica pagamento e aggiorna stato
+      const verifyAndRedirect = async () => {
+        try {
+          const response = await fetch(`${API}/cliente-analisi/verify-payment?user_id=${currentUser.id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          const data = await response.json();
+          if (data.success && data.paid) {
+            const updatedUser = { ...currentUser, pagamento_analisi: true, cliente_id: data.cliente_id };
+            setCurrentUser(updatedUser);
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+            window.location.href = "/analisi-in-preparazione";
+          }
+        } catch (e) {
+          console.error("Payment verification error:", e);
+        }
+      };
+      verifyAndRedirect();
+      return (
+        <div className="min-h-screen flex items-center justify-center" style={{ background: '#FAFAF7' }}>
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-xl bg-[#F5C518] flex items-center justify-center mx-auto mb-4 animate-pulse">
+              <span className="text-2xl font-black text-black">E</span>
+            </div>
+            <div className="text-sm text-[#9CA3AF]">Verifica pagamento in corso...</div>
+          </div>
+        </div>
+      );
+    }
+
+    // Route: Questionario
+    if (window.location.pathname === "/questionario") {
+      if (currentUser.questionario_compilato) {
+        // Questionario già compilato
+        window.location.href = currentUser.pagamento_analisi ? "/analisi-in-preparazione" : "/sblocca-analisi";
+        return null;
+      }
+      return (
+        <QuestionarioCliente 
+          user={currentUser}
+          onComplete={(data) => {
+            const updatedUser = { ...currentUser, questionario_compilato: true };
+            setCurrentUser(updatedUser);
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+            window.location.href = "/sblocca-analisi";
+          }}
+          onLogout={handleClienteLogout}
+        />
+      );
+    }
+
+    // Route: Sblocca Analisi (Pagamento)
+    if (window.location.pathname === "/sblocca-analisi") {
+      if (!currentUser.questionario_compilato) {
+        // Deve prima compilare il questionario
+        window.location.href = "/questionario";
+        return null;
+      }
+      if (currentUser.pagamento_analisi) {
+        // Già pagato
+        window.location.href = "/analisi-in-preparazione";
+        return null;
+      }
+      return (
+        <SbloccaAnalisi 
+          user={currentUser}
+          onPaymentSuccess={(data) => {
+            const updatedUser = { ...currentUser, pagamento_analisi: true, cliente_id: data.cliente_id };
+            setCurrentUser(updatedUser);
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+            window.location.href = "/analisi-in-preparazione";
+          }}
+          onLogout={handleClienteLogout}
+        />
+      );
+    }
+
+    // Route: Analisi in Preparazione
+    if (window.location.pathname === "/analisi-in-preparazione") {
+      if (!currentUser.pagamento_analisi) {
+        window.location.href = "/sblocca-analisi";
+        return null;
+      }
+      return (
+        <AnalisiInPreparazione 
+          user={currentUser}
+          onLogout={handleClienteLogout}
+        />
+      );
+    }
+
+    // Default: Dashboard Cliente
     return (
-      <DashboardPagamento 
+      <DashboardCliente 
         user={currentUser}
-        onPaymentSuccess={(data) => {
-          // Aggiorna user con stato pagamento
-          const updatedUser = { ...currentUser, pagamento_analisi: true, cliente_id: data.cliente_id };
-          setCurrentUser(updatedUser);
-          localStorage.setItem("user", JSON.stringify(updatedUser));
-          // Redirect to questionnaire
-          window.location.reload();
+        onNavigate={(page) => {
+          if (page === 'questionario') {
+            window.location.href = "/questionario";
+          }
         }}
+        onLogout={handleClienteLogout}
       />
     );
   }
 
-  // Cliente Analisi che ha pagato - mostra dashboard cliente
-  if (currentUser?.user_type === "cliente_analisi" && currentUser?.pagamento_analisi) {
-    return (
-      <ClienteDashboard 
-        cliente={{
-          id: currentUser.cliente_id || currentUser.id,
-          nome: currentUser.nome || currentUser.name?.split(" ")[0] || "Cliente",
-          cognome: currentUser.cognome || currentUser.name?.split(" ")[1] || "",
-          email: currentUser.email,
-          stato: "pagato",
-          questionario: null
-        }}
-        onQuestionarioCompleted={(data) => {
-          console.log("Questionario completato:", data);
-        }}
-        onLogout={handleLogout}
-      />
-    );
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PARTNER / ADMIN - Dashboard Principale
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // Blocca accesso cliente analisi alla dashboard partner
+  if (currentUser?.user_type === "cliente_analisi") {
+    window.location.href = "/dashboard-cliente";
+    return null;
+  }
+
+  // Route dashboard-partner (alias per homepage partner)
+  if (window.location.pathname === "/dashboard-partner") {
+    // Continua con il rendering della dashboard normale
   }
 
   return (
