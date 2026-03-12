@@ -1116,6 +1116,305 @@ async def send_partner_welcome_email(email: str, name: str):
     
     return True
 
+# =============================================================================
+# CLIENTE ANALISI - NUOVO FLUSSO ONBOARDING SEPARATO
+# =============================================================================
+
+class ClienteAnalisiRegisterRequest(BaseModel):
+    """Request per registrazione cliente analisi (prima del pagamento)"""
+    nome: str
+    cognome: str
+    email: str
+    telefono: str
+    password: str
+
+class ClienteAnalisiResponse(BaseModel):
+    """Response per cliente analisi"""
+    id: str
+    nome: str
+    cognome: str
+    email: str
+    telefono: str
+    user_type: str
+    pagamento_analisi: bool
+    data_registrazione: str
+    token: Optional[str] = None
+
+@api_router.post("/cliente-analisi/register")
+async def register_cliente_analisi(request: ClienteAnalisiRegisterRequest):
+    """
+    Registra un nuovo cliente per l'Analisi Strategica.
+    NON richiede pagamento - crea solo l'account.
+    Dopo la registrazione, l'utente deve completare il pagamento separatamente.
+    """
+    import bcrypt
+    
+    # Verifica se email già esiste
+    existing = await db.users.find_one({"email": request.email.lower()})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email già registrata. Effettua il login.")
+    
+    # Hash password
+    password_hash = bcrypt.hashpw(request.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    
+    # Crea utente
+    user_id = str(uuid.uuid4())
+    new_user = {
+        "id": user_id,
+        "nome": request.nome,
+        "cognome": request.cognome,
+        "name": f"{request.nome} {request.cognome}",  # Per compatibilità
+        "email": request.email.lower(),
+        "telefono": request.telefono,
+        "password_hash": password_hash,
+        "user_type": "cliente_analisi",
+        "role": "cliente",  # Per compatibilità con auth
+        "pagamento_analisi": False,
+        "data_registrazione": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.users.insert_one(new_user)
+    
+    # Login automatico - genera token
+    global auth_service
+    if not auth_service:
+        auth_service = AuthService(db)
+    
+    token_data = auth_service.create_access_token(data={
+        "sub": user_id,
+        "email": request.email.lower(),
+        "role": "cliente",
+        "user_type": "cliente_analisi"
+    })
+    
+    # Notifica Telegram
+    try:
+        telegram_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+        admin_chat_id = os.environ.get('TELEGRAM_ADMIN_CHAT_ID')
+        if telegram_token and admin_chat_id:
+            message = f"📝 Nuovo Cliente Analisi Registrato\n\n👤 {request.nome} {request.cognome}\n📧 {request.email}\n📱 {request.telefono}\n\n⏳ In attesa di pagamento €67"
+            async with httpx.AsyncClient() as client_http:
+                await client_http.post(
+                    f"https://api.telegram.org/bot{telegram_token}/sendMessage",
+                    json={"chat_id": admin_chat_id, "text": message}
+                )
+    except Exception as e:
+        logging.warning(f"Telegram notification failed: {e}")
+    
+    return {
+        "success": True,
+        "user": {
+            "id": user_id,
+            "nome": request.nome,
+            "cognome": request.cognome,
+            "email": request.email.lower(),
+            "telefono": request.telefono,
+            "user_type": "cliente_analisi",
+            "pagamento_analisi": False,
+            "data_registrazione": new_user["data_registrazione"]
+        },
+        "token": token_data.access_token,
+        "message": "Account creato con successo! Ora completa il pagamento."
+    }
+
+@api_router.post("/cliente-analisi/checkout")
+async def create_analisi_checkout(user_id: str = None, email: str = None):
+    """
+    Crea una sessione di checkout Stripe per il pagamento dell'Analisi Strategica (€67).
+    """
+    stripe_key = os.environ.get('STRIPE_API_KEY')
+    if not stripe_key:
+        raise HTTPException(status_code=500, detail="Stripe non configurato")
+    
+    # Trova l'utente
+    user = None
+    if user_id:
+        user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    elif email:
+        user = await db.users.find_one({"email": email.lower()}, {"_id": 0})
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+    
+    if user.get("pagamento_analisi"):
+        raise HTTPException(status_code=400, detail="Pagamento già effettuato")
+    
+    # URL di successo e cancellazione
+    frontend_url = os.environ.get('FRONTEND_URL', 'https://valentina-agent.preview.emergentagent.com')
+    
+    try:
+        checkout = StripeCheckout(api_key=stripe_key)
+        
+        session_request = CheckoutSessionRequest(
+            line_items=[{
+                "price_data": {
+                    "currency": "eur",
+                    "product_data": {
+                        "name": "Analisi Strategica Evolution PRO",
+                        "description": "Diagnosi professionale sulla fattibilità del tuo progetto digitale + Videocall strategica"
+                    },
+                    "unit_amount": 6700  # €67.00 in centesimi
+                },
+                "quantity": 1
+            }],
+            mode="payment",
+            success_url=f"{frontend_url}?payment=success&user_id={user['id']}",
+            cancel_url=f"{frontend_url}?payment=cancelled",
+            customer_email=user.get("email"),
+            metadata={
+                "user_id": user["id"],
+                "tipo": "analisi_strategica",
+                "importo": "67"
+            }
+        )
+        
+        session = checkout.create_checkout_session(session_request)
+        
+        # Salva riferimento sessione
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$set": {
+                "stripe_session_id": session.session_id,
+                "stripe_checkout_url": session.url,
+                "checkout_created_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        return {
+            "success": True,
+            "checkout_url": session.url,
+            "session_id": session.session_id
+        }
+        
+    except Exception as e:
+        logging.error(f"Stripe checkout error: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore creazione checkout: {str(e)}")
+
+@api_router.post("/cliente-analisi/verify-payment")
+async def verify_analisi_payment(user_id: str = None, session_id: str = None):
+    """
+    Verifica il pagamento e aggiorna lo stato dell'utente.
+    Chiamato dopo redirect da Stripe.
+    """
+    stripe_key = os.environ.get('STRIPE_API_KEY')
+    if not stripe_key:
+        raise HTTPException(status_code=500, detail="Stripe non configurato")
+    
+    # Trova utente
+    user = None
+    if user_id:
+        user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+    
+    # Se già pagato
+    if user.get("pagamento_analisi"):
+        return {"success": True, "already_paid": True, "message": "Pagamento già confermato"}
+    
+    # Verifica con Stripe
+    session_to_check = session_id or user.get("stripe_session_id")
+    if not session_to_check:
+        raise HTTPException(status_code=400, detail="Nessuna sessione di pagamento trovata")
+    
+    try:
+        checkout = StripeCheckout(api_key=stripe_key)
+        status = checkout.get_checkout_status(session_to_check)
+        
+        if status.payment_status == "paid":
+            # Aggiorna utente
+            await db.users.update_one(
+                {"id": user["id"]},
+                {"$set": {
+                    "pagamento_analisi": True,
+                    "data_pagamento": datetime.now(timezone.utc).isoformat(),
+                    "stripe_payment_status": "paid"
+                }}
+            )
+            
+            # Crea record cliente per il questionario
+            cliente_id = str(uuid.uuid4())
+            await db.clienti.insert_one({
+                "id": cliente_id,
+                "user_id": user["id"],
+                "nome": user.get("nome"),
+                "cognome": user.get("cognome"),
+                "email": user.get("email"),
+                "telefono": user.get("telefono"),
+                "questionario_completato": False,
+                "data_pagamento": datetime.now(timezone.utc).isoformat(),
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+            
+            # Aggiorna user con cliente_id
+            await db.users.update_one(
+                {"id": user["id"]},
+                {"$set": {"cliente_id": cliente_id}}
+            )
+            
+            # Notifica Telegram
+            try:
+                telegram_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+                admin_chat_id = os.environ.get('TELEGRAM_ADMIN_CHAT_ID')
+                if telegram_token and admin_chat_id:
+                    message = f"💰 PAGAMENTO RICEVUTO €67\n\n👤 {user.get('nome')} {user.get('cognome')}\n📧 {user.get('email')}\n\n✅ Cliente pronto per questionario"
+                    async with httpx.AsyncClient() as client_http:
+                        await client_http.post(
+                            f"https://api.telegram.org/bot{telegram_token}/sendMessage",
+                            json={"chat_id": admin_chat_id, "text": message}
+                        )
+            except:
+                pass
+            
+            return {
+                "success": True,
+                "paid": True,
+                "cliente_id": cliente_id,
+                "redirect_to": "/questionario"
+            }
+        else:
+            return {
+                "success": False,
+                "paid": False,
+                "status": status.payment_status,
+                "message": "Pagamento non ancora completato"
+            }
+            
+    except Exception as e:
+        logging.error(f"Payment verification error: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore verifica pagamento: {str(e)}")
+
+@api_router.get("/cliente-analisi/status/{user_id}")
+async def get_cliente_analisi_status(user_id: str):
+    """
+    Ritorna lo stato corrente del cliente analisi.
+    """
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+    
+    # Verifica se è cliente_analisi
+    if user.get("user_type") != "cliente_analisi":
+        raise HTTPException(status_code=400, detail="Utente non è un cliente analisi")
+    
+    # Cerca cliente collegato
+    cliente = None
+    if user.get("cliente_id"):
+        cliente = await db.clienti.find_one({"id": user["cliente_id"]}, {"_id": 0})
+    
+    return {
+        "user_id": user_id,
+        "nome": user.get("nome"),
+        "cognome": user.get("cognome"),
+        "email": user.get("email"),
+        "pagamento_analisi": user.get("pagamento_analisi", False),
+        "data_pagamento": user.get("data_pagamento"),
+        "questionario_completato": cliente.get("questionario_completato", False) if cliente else False,
+        "cliente_id": user.get("cliente_id"),
+        "can_access_questionario": user.get("pagamento_analisi", False)
+    }
+
 @api_router.post("/onboarding/send-systeme-email/{partner_id}")
 async def send_systeme_instructions_email(partner_id: str, systeme_email: str = None, systeme_password: str = None):
     """Send Systeme.io platform instructions email to partner (called by team after creating sub-account)"""
