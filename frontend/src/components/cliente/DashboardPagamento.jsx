@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { CreditCard, ArrowRight, Loader2, CheckCircle, FileText, Video, Calendar } from 'lucide-react';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -8,18 +8,7 @@ export function DashboardPagamento({ user, onPaymentSuccess }) {
   const [checkingPayment, setCheckingPayment] = useState(false);
   const [error, setError] = useState(null);
 
-  // Verifica pagamento se arriviamo da Stripe success
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const paymentStatus = urlParams.get('payment');
-    const userId = urlParams.get('user_id');
-
-    if (paymentStatus === 'success' && userId) {
-      verifyPayment(userId);
-    }
-  }, []);
-
-  const verifyPayment = async (userId) => {
+  const verifyPayment = useCallback(async (userId) => {
     setCheckingPayment(true);
     try {
       const response = await fetch(`${API}/api/cliente-analisi/verify-payment?user_id=${userId}`, {
@@ -45,7 +34,18 @@ export function DashboardPagamento({ user, onPaymentSuccess }) {
     } finally {
       setCheckingPayment(false);
     }
-  };
+  }, [onPaymentSuccess]);
+
+  // Verifica pagamento se arriviamo da Stripe success
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment');
+    const userId = urlParams.get('user_id');
+
+    if (paymentStatus === 'success' && userId) {
+      verifyPayment(userId);
+    }
+  }, [verifyPayment]);
 
   const handleProceedToPayment = async () => {
     setLoading(true);
