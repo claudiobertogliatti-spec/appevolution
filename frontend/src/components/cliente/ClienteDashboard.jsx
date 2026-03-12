@@ -1100,6 +1100,7 @@ export function ClienteDashboard({ cliente, onLogout }) {
                 </div>
 
               </div>
+            )}
           </div>
 
           {/* Sidebar - sticky */}
