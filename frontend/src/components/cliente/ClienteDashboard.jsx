@@ -809,17 +809,16 @@ export function ClienteDashboard({ cliente, onLogout }) {
                     </p>
                     <p className="text-sm text-[#9CA3AF] mt-1">Durata: circa 3 minuti.</p>
                   </div>
-                  <div className="aspect-video bg-[#1E2128] flex items-center justify-center relative mx-6 mb-6 rounded-xl overflow-hidden">
-                    <div className="text-center">
-                      <div className="w-20 h-20 rounded-full bg-[#F5C518]/20 flex items-center justify-center mx-auto mb-4 cursor-pointer hover:bg-[#F5C518]/30 transition-colors">
-                        <Play className="w-10 h-10 text-[#F5C518]" />
-                      </div>
-                      <p className="text-white font-bold">VIDEO DI BENVENUTO</p>
-                    </div>
-                    <div className="absolute bottom-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10">
-                      <Clock className="w-3 h-3 text-white/60" />
-                      <span className="text-xs text-white/60">~3 min</span>
-                    </div>
+                  <div className="mx-6 mb-6 rounded-xl overflow-hidden">
+                    <video 
+                      controls 
+                      className="w-full rounded-xl"
+                      poster=""
+                      data-testid="video-benvenuto"
+                    >
+                      <source src="https://customer-assets.emergentagent.com/job_valentina-agent/artifacts/ij5wirqf_Quick_Avatar_Video.mp4" type="video/mp4" />
+                      Il tuo browser non supporta il tag video.
+                    </video>
                   </div>
                 </div>
 
