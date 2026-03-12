@@ -1316,7 +1316,7 @@ async def verify_analisi_payment(user_id: str = None, session_id: str = None):
     
     try:
         checkout = StripeCheckout(api_key=stripe_key)
-        status = checkout.get_checkout_status(session_to_check)
+        status = await checkout.get_checkout_status(session_to_check)
         
         if status.payment_status == "paid":
             # Aggiorna utente
