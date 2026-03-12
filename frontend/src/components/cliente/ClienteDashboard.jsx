@@ -839,6 +839,33 @@ export function ClienteDashboard({ cliente, onLogout }) {
                   </p>
                 </div>
 
+                {/* Introduzione Mini Corso */}
+                <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+                  <div className="text-[#5F6572] space-y-3">
+                    {INTRO_MINI_CORSO.split('\n').filter(p => p.trim()).map((paragraph, pIdx) => {
+                      if (paragraph.trim().startsWith('✗')) {
+                        return (
+                          <p key={pIdx} className="ml-4 text-sm text-red-500">
+                            {paragraph}
+                          </p>
+                        );
+                      }
+                      const parts = paragraph.split(/(\*\*[^*]+\*\*)/g);
+                      const formattedParts = parts.map((part, i) => {
+                        if (part.startsWith('**') && part.endsWith('**')) {
+                          return <strong key={i} className="text-[#1E2128]">{part.slice(2, -2)}</strong>;
+                        }
+                        return part;
+                      });
+                      return (
+                        <p key={pIdx} className="text-sm leading-relaxed">
+                          {formattedParts}
+                        </p>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {/* Lista 7 Moduli */}
                 <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
                   <div className="space-y-4">
@@ -860,8 +887,7 @@ export function ClienteDashboard({ cliente, onLogout }) {
                           {expandedBonus === modulo.id && (
                             <div className="mt-3 pt-3 border-t border-[#ECEDEF]">
                               <div className="text-sm text-[#5F6572] space-y-2">
-                                {modulo.fullContent.split('\n').filter(p => p.trim()).map((paragraph, pIdx) => {
-                                  // Handle bullet points
+                                {modulo.content.split('\n').filter(p => p.trim()).map((paragraph, pIdx) => {
                                   if (paragraph.trim().startsWith('•') || paragraph.trim().startsWith('-')) {
                                     return (
                                       <p key={pIdx} className="ml-4 text-sm">
@@ -869,8 +895,6 @@ export function ClienteDashboard({ cliente, onLogout }) {
                                       </p>
                                     );
                                   }
-                                  
-                                  // Handle inline bold
                                   const parts = paragraph.split(/(\*\*[^*]+\*\*)/g);
                                   const formattedParts = parts.map((part, i) => {
                                     if (part.startsWith('**') && part.endsWith('**')) {
@@ -878,7 +902,6 @@ export function ClienteDashboard({ cliente, onLogout }) {
                                     }
                                     return part;
                                   });
-                                  
                                   return (
                                     <p key={pIdx} className="text-sm leading-relaxed">
                                       {formattedParts}
@@ -894,14 +917,69 @@ export function ClienteDashboard({ cliente, onLogout }) {
                   </div>
                 </div>
 
-                {/* ═══════════════════════════════════════════════════════════════════════
-                    MESSAGGIO FINALE
-                    ═══════════════════════════════════════════════════════════════════════ */}
-                <div className="rounded-xl p-4 flex items-center gap-3" style={{ background: '#FEF9E7', border: '1px solid #F5C518' }}>
-                  <Calendar className="w-5 h-5 text-[#C4990A] flex-shrink-0" />
-                  <p className="text-sm text-[#5F6572]">
-                    Il team Evolution ti contatterà entro <strong className="text-[#1E2128]">48 ore</strong> per fissare la call strategica.
+                {/* Conclusione Mini Corso */}
+                <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+                  <h3 className="text-lg font-bold text-[#1E2128] mb-4 flex items-center gap-2">
+                    <Star className="w-5 h-5 text-[#F5C518]" />
+                    Conclusione
+                  </h3>
+                  <div className="text-[#5F6572] space-y-3">
+                    {CONCLUSIONE_MINI_CORSO.split('\n').filter(p => p.trim()).map((paragraph, pIdx) => {
+                      if (paragraph.trim().startsWith('•')) {
+                        return (
+                          <p key={pIdx} className="ml-4 text-sm flex items-center gap-2">
+                            <CheckCircle className="w-4 h-4 text-[#10B981] flex-shrink-0" />
+                            {paragraph.replace('•', '').trim()}
+                          </p>
+                        );
+                      }
+                      const parts = paragraph.split(/(\*\*[^*]+\*\*)/g);
+                      const formattedParts = parts.map((part, i) => {
+                        if (part.startsWith('**') && part.endsWith('**')) {
+                          return <strong key={i} className="text-[#1E2128]">{part.slice(2, -2)}</strong>;
+                        }
+                        return part;
+                      });
+                      return (
+                        <p key={pIdx} className="text-sm leading-relaxed">
+                          {formattedParts}
+                        </p>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Call to Action finale */}
+                <div className="rounded-2xl p-6" style={{ background: 'linear-gradient(135deg, #F5C518 0%, #E5B517 100%)' }}>
+                  <p className="text-[#1E2128] mb-4">
+                    Durante la call lavoreremo insieme su <strong>tre aspetti fondamentali</strong>:
                   </p>
+                  <div className="space-y-3 mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center">
+                        <span className="font-bold text-[#1E2128]">1</span>
+                      </div>
+                      <span className="font-medium text-[#1E2128]">Verifica del problema</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center">
+                        <span className="font-bold text-[#1E2128]">2</span>
+                      </div>
+                      <span className="font-medium text-[#1E2128]">Studio di fattibilità</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center">
+                        <span className="font-bold text-[#1E2128]">3</span>
+                      </div>
+                      <span className="font-medium text-[#1E2128]">Roadmap strategica</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 bg-white/20 rounded-xl">
+                    <Calendar className="w-5 h-5 text-[#1E2128]" />
+                    <span className="text-sm text-[#1E2128]">
+                      <strong>Il team Evolution ti contatterà presto per fissare la videocall.</strong>
+                    </span>
+                  </div>
                 </div>
 
               </div>
