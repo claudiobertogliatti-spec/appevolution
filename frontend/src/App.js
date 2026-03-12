@@ -1164,10 +1164,19 @@ export default function App() {
       );
     }
 
-    // Route: Analisi in Preparazione - redirect alla dashboard
+    // Route: Analisi in Preparazione - mostra dopo il pagamento
     if (window.location.pathname === "/analisi-in-preparazione") {
-      window.location.href = "/dashboard-cliente";
-      return null;
+      if (!currentUser.pagamento_analisi) {
+        // Non ha ancora pagato, torna all'attivazione
+        window.location.href = "/analisi-attivazione";
+        return null;
+      }
+      return (
+        <AnalisiInPreparazione 
+          user={currentUser}
+          onLogout={handleClienteLogout}
+        />
+      );
     }
 
     // Default: Dashboard Cliente (mostra contenuto basato sullo stato)
