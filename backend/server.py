@@ -1405,6 +1405,14 @@ class QuestionarioRequest(BaseModel):
     """Request per salvare il questionario cliente"""
     user_id: str
     risposte: List[Dict[str, Any]]
+    # Campi strutturati
+    expertise: Optional[str] = None
+    cliente_target: Optional[str] = None
+    risultato_promesso: Optional[str] = None
+    pubblico_esistente: Optional[str] = None
+    esperienze_vendita: Optional[str] = None
+    ostacolo_principale: Optional[str] = None
+    motivazione: Optional[str] = None
     completato_at: Optional[str] = None
 
 @api_router.post("/cliente-analisi/questionario")
@@ -1426,19 +1434,35 @@ async def save_questionario_cliente(request: QuestionarioRequest):
         "id": questionario_id,
         "user_id": request.user_id,
         "risposte": request.risposte,
+        # Campi strutturati per facile accesso
+        "expertise": request.expertise,
+        "cliente_target": request.cliente_target,
+        "risultato_promesso": request.risultato_promesso,
+        "pubblico_esistente": request.pubblico_esistente,
+        "esperienze_vendita": request.esperienze_vendita,
+        "ostacolo_principale": request.ostacolo_principale,
+        "motivazione": request.motivazione,
         "completato_at": request.completato_at or datetime.now(timezone.utc).isoformat(),
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     
     await db.questionari_analisi.insert_one(questionario_doc)
     
-    # Aggiorna stato utente
+    # Aggiorna stato utente con i dati del questionario
     await db.users.update_one(
         {"id": request.user_id},
         {"$set": {
             "questionario_compilato": True,
             "questionario_id": questionario_id,
-            "questionario_completato_at": questionario_doc["completato_at"]
+            "questionario_completato_at": questionario_doc["completato_at"],
+            # Salva anche nel profilo utente per accesso rapido
+            "expertise": request.expertise,
+            "cliente_target": request.cliente_target,
+            "risultato_promesso": request.risultato_promesso,
+            "pubblico_esistente": request.pubblico_esistente,
+            "esperienze_vendita": request.esperienze_vendita,
+            "ostacolo_principale": request.ostacolo_principale,
+            "motivazione": request.motivazione
         }}
     )
     
@@ -1450,7 +1474,8 @@ async def save_questionario_cliente(request: QuestionarioRequest):
             nome = user.get('nome', '')
             cognome = user.get('cognome', '')
             email = user.get('email', '')
-            message = f"📋 QUESTIONARIO COMPLETATO\n\n👤 {nome} {cognome}\n📧 {email}\n\n✅ Pronto per analisi e pagamento"
+            expertise = request.expertise[:100] if request.expertise else 'N/D'
+            message = f"📋 QUESTIONARIO COMPLETATO\n\n👤 {nome} {cognome}\n📧 {email}\n💼 {expertise}\n\n✅ Pronto per analisi e pagamento"
             async with httpx.AsyncClient() as client_http:
                 await client_http.post(
                     f"https://api.telegram.org/bot{telegram_token}/sendMessage",
@@ -1463,7 +1488,7 @@ async def save_questionario_cliente(request: QuestionarioRequest):
         "success": True,
         "questionario_id": questionario_id,
         "message": "Questionario salvato con successo",
-        "redirect_to": "/sblocca-analisi"
+        "redirect_to": "/dashboard-cliente"
     }
 
 @api_router.post("/onboarding/send-systeme-email/{partner_id}")
