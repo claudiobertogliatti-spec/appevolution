@@ -30,32 +30,34 @@ export function Homepage() {
         </div>
       </header>
 
-      {/* Main Content - Two Columns */}
-      <main className="flex-1 flex items-center px-6 py-12">
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col justify-center px-6 py-12">
         <div className="max-w-6xl mx-auto w-full">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          
+          {/* Title - Centered */}
+          <h1 
+            className="text-3xl md:text-4xl lg:text-5xl font-black leading-tight mb-12 text-center" 
+            style={{ color: '#1E2128' }}
+          >
+            Scopri se la tua competenza può diventare una{' '}
+            <span style={{ color: '#F5C518' }}>Accademia Digitale</span>{' '}
+            che vende davvero
+          </h1>
+
+          {/* Two Columns */}
+          <div className="grid lg:grid-cols-2 gap-12 items-start">
             
             {/* Left Column - Image */}
-            <div className="flex justify-center lg:justify-start order-2 lg:order-1">
+            <div className="flex justify-center lg:justify-end">
               <img 
                 src="/images/hero-analisi.png" 
                 alt="Analisi Strategica" 
-                className="w-full max-w-lg rounded-2xl"
+                className="w-full max-w-md rounded-2xl"
               />
             </div>
 
             {/* Right Column - Content */}
-            <div className="order-1 lg:order-2">
-              {/* Title */}
-              <h1 
-                className="text-3xl md:text-4xl lg:text-5xl font-black leading-tight mb-6" 
-                style={{ color: '#1E2128' }}
-              >
-                Scopri se la tua competenza può diventare una{' '}
-                <span style={{ color: '#F5C518' }}>Accademia Digitale</span>{' '}
-                che vende davvero
-              </h1>
-
+            <div>
               {/* Subtitle */}
               <p 
                 className="text-lg mb-8" 
@@ -102,7 +104,7 @@ export function Homepage() {
               </p>
 
               {/* Partner Link */}
-              <div className="mt-10 pt-6" style={{ borderTop: '1px solid #ECEDEF' }}>
+              <div className="mt-8 pt-6" style={{ borderTop: '1px solid #ECEDEF' }}>
                 <a 
                   href="/partner-login"
                   className="text-sm transition-colors hover:opacity-70"
