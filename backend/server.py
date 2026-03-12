@@ -1174,7 +1174,8 @@ async def register_cliente_analisi(request: ClienteAnalisiRegisterRequest):
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     
-    await db.users.insert_one(new_user)
+    result = await db.users.insert_one(new_user)
+    logging.info(f"[CLIENTE-ANALISI] Inserted user {request.email} with id {result.inserted_id}")
     
     # Login automatico - genera token usando la funzione standalone
     access_token = create_access_token(data={
