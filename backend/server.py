@@ -1174,8 +1174,12 @@ async def register_cliente_analisi(request: ClienteAnalisiRegisterRequest):
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     
-    result = await db.users.insert_one(new_user)
-    logging.info(f"[CLIENTE-ANALISI] Inserted user {request.email} with id {result.inserted_id}")
+    try:
+        result = await db.users.insert_one(new_user)
+        logging.info(f"[CLIENTE-ANALISI] Inserted user {request.email} with id {result.inserted_id}")
+    except Exception as e:
+        logging.error(f"[CLIENTE-ANALISI] Failed to insert user {request.email}: {e}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     
     # Login automatico - genera token usando la funzione standalone
     access_token = create_access_token(data={
