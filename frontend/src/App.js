@@ -985,28 +985,6 @@ export default function App() {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // FLUSSO 1: CLIENTE ANALISI (Routes Pubbliche)
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  // Landing + Registrazione Cliente Analisi
-  if (window.location.pathname === "/analisi-strategica") {
-    return (
-      <AnalisiStrategicaLanding 
-        onRegisterSuccess={(data) => {
-          if (data.token) {
-            localStorage.setItem("access_token", data.token);
-            localStorage.setItem("user", JSON.stringify(data.user));
-            setCurrentUser(data.user);
-            setIsAuthenticated(true);
-            // Redirect alla dashboard cliente
-            window.location.href = "/dashboard-cliente";
-          }
-        }} 
-      />
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
   // FLUSSO 2: PARTNER (Login Separato)
   // ═══════════════════════════════════════════════════════════════════════════
 
