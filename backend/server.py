@@ -1401,6 +1401,71 @@ async def get_cliente_analisi_status(user_id: str):
         "can_access_questionario": user.get("pagamento_analisi", False)
     }
 
+class QuestionarioRequest(BaseModel):
+    """Request per salvare il questionario cliente"""
+    user_id: str
+    risposte: List[Dict[str, Any]]
+    completato_at: Optional[str] = None
+
+@api_router.post("/cliente-analisi/questionario")
+async def save_questionario_cliente(request: QuestionarioRequest):
+    """
+    Salva le risposte al questionario strategico del cliente.
+    """
+    # Trova l'utente
+    user = await db.users.find_one({"id": request.user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+    
+    if user.get("user_type") != "cliente_analisi":
+        raise HTTPException(status_code=400, detail="Solo i clienti analisi possono compilare questo questionario")
+    
+    # Salva questionario
+    questionario_id = str(uuid.uuid4())
+    questionario_doc = {
+        "id": questionario_id,
+        "user_id": request.user_id,
+        "risposte": request.risposte,
+        "completato_at": request.completato_at or datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.questionari_analisi.insert_one(questionario_doc)
+    
+    # Aggiorna stato utente
+    await db.users.update_one(
+        {"id": request.user_id},
+        {"$set": {
+            "questionario_compilato": True,
+            "questionario_id": questionario_id,
+            "questionario_completato_at": questionario_doc["completato_at"]
+        }}
+    )
+    
+    # Notifica Telegram
+    try:
+        telegram_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+        admin_chat_id = os.environ.get('TELEGRAM_ADMIN_CHAT_ID')
+        if telegram_token and admin_chat_id:
+            nome = user.get('nome', '')
+            cognome = user.get('cognome', '')
+            email = user.get('email', '')
+            message = f"📋 QUESTIONARIO COMPLETATO\n\n👤 {nome} {cognome}\n📧 {email}\n\n✅ Pronto per analisi e pagamento"
+            async with httpx.AsyncClient() as client_http:
+                await client_http.post(
+                    f"https://api.telegram.org/bot{telegram_token}/sendMessage",
+                    json={"chat_id": admin_chat_id, "text": message}
+                )
+    except Exception as e:
+        logging.warning(f"Telegram notification failed: {e}")
+    
+    return {
+        "success": True,
+        "questionario_id": questionario_id,
+        "message": "Questionario salvato con successo",
+        "redirect_to": "/sblocca-analisi"
+    }
+
 @api_router.post("/onboarding/send-systeme-email/{partner_id}")
 async def send_systeme_instructions_email(partner_id: str, systeme_email: str = None, systeme_password: str = None):
     """Send Systeme.io platform instructions email to partner (called by team after creating sub-account)"""
