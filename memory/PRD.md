@@ -5,161 +5,192 @@
 
 ---
 
-## FLUSSO CLIENTE ANALISI COMPLETO
+## ADMIN - GESTIONE CLIENTI ANALISI ✅ COMPLETATO
+
+### Flusso Operativo
+```
+Cliente compila questionario
+    ↓
+Cliente paga €67
+    ↓
+Admin apre scheda cliente
+    ↓
+Admin genera analisi AI
+    ↓
+Admin salva analisi
+    ↓
+Admin scarica PDF
+    ↓
+Admin segna pronto per call
+```
+
+### Sezione Admin: "Clienti Analisi"
+
+**Colonne Tabella:**
+- Nome
+- Cognome
+- Email / Telefono
+- Questionario ✓
+- Pagamento ✓
+- Analisi ✓
+- Stato Call
+- Data Aggiornamento
+- Azioni (Apri)
+
+**Filtri Rapidi:**
+- Tutti
+- Questionario completato
+- Pagato
+- Da generare
+- Analisi pronte
+- Call da fissare
+
+### Scheda Cliente (Modal)
+
+**SEZIONE 1 - Dati Cliente:**
+- Nome, Cognome, Email, Telefono, Data registrazione
+
+**SEZIONE 2 - Stato Processo:**
+- questionario_compilato → pagamento_analisi → analisi_generata → call_stato
+
+**SEZIONE 3 - Risposte Questionario:**
+1. expertise
+2. cliente_target
+3. risultato_promesso
+4. pubblico_esistente
+5. esperienze_vendita
+6. ostacolo_principale
+7. motivazione
+
+### Generazione Analisi AI
+
+**Condizioni per abilitare il pulsante:**
+- `questionario_compilato = true`
+- `pagamento_analisi = true`
+
+**Template Analisi Strategica:**
+- Copertina
+- Introduzione
+- Cos'è Evolution PRO
+- Perché il fai-da-te fallisce
+- Le tre strade possibili
+- Sintesi del progetto (personalizzata AI)
+- Analisi profilo professionale (AI)
+- Cliente ideale (AI)
+- Presenza online (AI)
+- Esperienza vendita (AI)
+- Ostacolo principale (AI)
+- Motivazione (AI)
+- Diagnosi strategica finale (AI)
+- Prossimi passi
+- Contatti
+
+**Output:**
+- Editor testo modificabile
+- Pulsante Salva
+- Pulsante Rigenera
+- Pulsante Scarica PDF
+
+### Gestione Stato Call
+
+**Stati disponibili:**
+- `da_fissare`
+- `fissata`
+- `completata`
+- `annullata`
+
+---
+
+## API ENDPOINTS ADMIN
+
+| Endpoint | Metodo | Descrizione |
+|----------|--------|-------------|
+| `/api/admin/clienti-analisi` | GET | Lista tutti i clienti con stats |
+| `/api/admin/clienti-analisi/{id}` | GET | Dettaglio singolo cliente |
+| `/api/admin/clienti-analisi/{id}/genera-analisi-ai` | POST | Genera analisi con Claude AI |
+| `/api/admin/clienti-analisi/{id}/salva-analisi` | POST | Salva analisi nel database |
+| `/api/admin/clienti-analisi/{id}/analisi-pdf` | GET | Scarica PDF (reportlab) |
+| `/api/admin/clienti-analisi/{id}/stato-call` | POST | Aggiorna stato call |
+
+---
+
+## FLUSSO CLIENTE COMPLETO
 
 ```
-/ (Homepage)
-    ↓
 /analisi-strategica (Registrazione)
     ↓
 /dashboard-cliente (Stato 1: Pre-Questionario)
     ↓
 /questionario (7 Domande)
     ↓
-/analisi-attivazione (Pagina Attivazione €67)
+/analisi-attivazione (Pagamento €67)
     ↓
-[Pagamento Stripe]
+[Stripe Checkout]
     ↓
-/analisi-in-preparazione (Conferma + Video + Mini Corso) ← AGGIORNATA
+/analisi-in-preparazione (Conferma + Video + Mini Corso)
+    ↓
+[Admin genera analisi]
     ↓
 /dashboard-cliente (Stato 4: Analisi Pronta → Prenota Call)
 ```
 
 ---
 
-## PAGINA /analisi-in-preparazione - AGGIORNATA 12 Mar 2026
-
-### Condizioni di Accesso
-- `pagamento_analisi = true` → Mostra pagina
-- `pagamento_analisi = false` → Redirect a homepage `/`
-
-### 6 Sezioni Implementate
-
-#### SEZIONE 1 — PROGRESSO PROCESSO
-Progress bar con 3 step:
-1. **Questionario** (COMPLETATO) ✓ verde
-2. **Analisi Strategica** (IN PREPARAZIONE) giallo
-3. **Call con Claudio** (IN ATTESA) grigio
-
-#### SEZIONE 2 — CONFERMA PAGAMENTO
-- Badge: "Pagamento completato"
-- Titolo: "Analisi Strategica attivata con successo"
-- Testo: ringraziamento e spiegazione analisi in corso
-
-#### SEZIONE 3 — COSA SUCCEDE ADESSO
-5 punti elenco:
-- Il team Evolution analizza il tuo posizionamento
-- Valutiamo il potenziale del mercato
-- Studiamo la struttura della tua possibile Accademia Digitale
-- Prepariamo il report strategico
-- Organizziamo la call strategica
-
-Box evidenziato: "Riceverai il link per prenotare la call entro 48 ore."
-
-#### SEZIONE 4 — VIDEO DI BENVENUTO
-- Titolo: "Un messaggio di benvenuto"
-- Video: `Quick_Avatar_Video.mp4`
-- Testo sotto: "In questo breve video ti spiego cosa succederà nelle prossime fasi."
-
-#### SEZIONE 5 — MINI CORSO INTRODUTTIVO
-Titolo: "Nel frattempo puoi iniziare da qui"
-Sottotitolo: "Mini corso gratuito: Come creare un videocorso che vende davvero."
-
-**7 Moduli Cliccabili:**
-| # | Titolo | Durata |
-|---|--------|--------|
-| 1 | Il Blueprint | 8 min |
-| 2 | Argomenti che vendono | 12 min |
-| 3 | Durata delle lezioni | 7 min |
-| 4 | Funnel di vendita | 15 min |
-| 5 | ADV | 11 min |
-| 6 | Profili social | 9 min |
-| 7 | Non fare tutto da solo | 10 min |
-
-#### SEZIONE 6 — PREPARAZIONE ALLA CALL
-Titolo: "Come prepararti alla call strategica"
-Testo intro + 3 punti:
-- Rivedi le risposte del questionario
-- Annota eventuali dubbi
-- Pensa all'obiettivo che vuoi raggiungere nei prossimi 12 mesi
-
----
-
-## PAGINA /analisi-attivazione
-
-### Condizioni di Accesso
-- `questionario_compilato = true` && `pagamento_analisi = false` → Mostra pagina
-- `questionario_compilato = false` → Redirect a `/questionario`
-- `pagamento_analisi = true` → Redirect a `/analisi-in-preparazione`
-
-### 6 Sezioni
-1. Progress bar (3 step)
-2. Conferma questionario
-3. Cosa include l'analisi (6 elementi)
-4. Messaggio qualificazione
-5. Investimento €67
-6. CTA → Stripe Checkout
-
----
-
 ## FILE PRINCIPALI
 
-### Frontend Cliente
-| File | Descrizione |
-|------|-------------|
-| `AttivazioneAnalisi.jsx` | Pagina attivazione €67 |
-| `AnalisiInPreparazione.jsx` | **AGGIORNATA** - 6 sezioni post-pagamento |
-| `DashboardCliente.jsx` | Dashboard dinamica 4 stati |
-| `QuestionarioCliente.jsx` | 7 domande strategiche |
-| `AnalisiStrategicaLanding.jsx` | Landing registrazione |
+### Admin
+- `/app/frontend/src/components/admin/AdminClientiAnalisiPanel.jsx` - **AGGIORNATO** - Pannello completo
+- `/app/backend/server.py` - Endpoints linee 1566-1850
 
----
-
-## CREDENZIALI TEST
-
-| Tipo | Email | Password |
-|------|-------|----------|
-| Admin | claudio.bertogliatti@gmail.com | Evoluzione74 |
-| Partner | testf0@evolutionpro.it | TestPartner123 |
-| Cliente con pagamento | att2_1773352332@test.com | TestCliente123 |
-| Cliente senza pagamento | test_attiv3@example.com | Test12345 |
+### Cliente
+- `/app/frontend/src/components/cliente/AttivazioneAnalisi.jsx`
+- `/app/frontend/src/components/cliente/AnalisiInPreparazione.jsx`
+- `/app/frontend/src/components/cliente/DashboardCliente.jsx`
+- `/app/frontend/src/components/cliente/QuestionarioCliente.jsx`
 
 ---
 
 ## CHANGELOG
 
-### 12 Mar 2026 - Sessione 3 (Continuazione)
-- ✅ **Pagina /analisi-in-preparazione COMPLETAMENTE AGGIORNATA** con 6 sezioni:
-  - Progress bar 3 step
-  - Conferma pagamento
-  - Cosa succede adesso (5 punti)
-  - Video benvenuto (Quick_Avatar_Video.mp4)
-  - Mini corso 7 moduli cliccabili
-  - Preparazione call (3 punti)
-- ✅ Redirect a homepage se `pagamento_analisi=false`
-- ✅ Test 100% passati
+### 12 Mar 2026 - Sessione 3 (Finale)
+- ✅ **ADMIN COMPLETO**: Pannello gestione clienti analisi con tutte le funzionalità
+  - Tabella con 9 colonne
+  - 6 filtri rapidi
+  - Scheda cliente con 3 sezioni
+  - Generazione analisi AI (Claude)
+  - Salvataggio nel database
+  - Download PDF (reportlab)
+  - Gestione stato call
+- ✅ Backend: 5 nuovi endpoints API
+- ✅ Test: 100% passati (13 backend + frontend verificato)
 
 ### 12 Mar 2026 - Sessione 3
-- ✅ Pagina /analisi-attivazione implementata
-- ✅ Pannello admin "Clienti Analisi Strategica" completato
-- ✅ Dashboard partner dedicata
+- ✅ Pagina /analisi-in-preparazione con 6 sezioni
+- ✅ Pagina /analisi-attivazione
 
 ---
 
-## ISSUES APERTI
+## CREDENZIALI
 
-### P1
-- Test end-to-end Stripe webhook
+| Tipo | Email | Password |
+|------|-------|----------|
+| Admin | claudio.bertogliatti@gmail.com | Evoluzione74 |
+| Cliente test | att2_1773352332@test.com | TestCliente123 |
 
-### P2 - Backlog
-- Refactoring `server.py` (>11k righe)
-- Refactoring `App.js` (>1.4k righe)
-- Login endpoint per cliente_analisi (attualmente usa auth generico)
+---
+
+## TECNOLOGIE USATE
+
+- **AI**: Claude Sonnet 4.5 via emergentintegrations (Emergent LLM Key)
+- **PDF**: reportlab
+- **Pagamenti**: Stripe
+- **Database**: MongoDB Atlas
 
 ---
 
 ## PROJECT HEALTH
 - **Backend:** ✅ Funzionante
-- **Frontend:** ✅ Funzionante
+- **Frontend:** ✅ Funzionante  
+- **AI Generation:** ✅ Funzionante (Claude)
+- **PDF Export:** ✅ Funzionante (reportlab)
 - **Stripe:** ✅ Checkout funzionante
-- **Video:** ✅ Quick_Avatar_Video.mp4 funzionante
