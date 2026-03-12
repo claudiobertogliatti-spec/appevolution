@@ -150,7 +150,15 @@
 
 ## CHANGELOG
 
-### 12 Mar 2026
+### 12 Mar 2026 - Sessione 2
+- ✅ Dashboard cliente dinamica con 4 stati basati su condizioni utente
+- ✅ STATO 1: Benvenuto + CTA Questionario (questionario_compilato=false)
+- ✅ STATO 2: Progetto ricevuto + CTA Pagamento €67 (questionario=true, pagamento=false)
+- ✅ STATO 3: Analisi in preparazione + Video + Mini Corso (pagamento=true, analisi=false)
+- ✅ STATO 4: Analisi pronta + CTA Prenota Call (analisi_generata=true)
+- ✅ Aggiunto campo `analisi_generata` al modello utente
+
+### 12 Mar 2026 - Sessione 1
 - ✅ Implementato nuovo flusso CLIENTE ANALISI separato
 - ✅ Creato `/analisi-strategica` landing + registrazione
 - ✅ Creato `/dashboard-cliente` con progress bar 4 step
