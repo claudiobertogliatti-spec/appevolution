@@ -32,43 +32,76 @@ const QUESTIONS = [
   {
     id: "expertise",
     question: "In cosa sei riconosciuto/a come esperto/a?",
-    placeholder: "Es. coach di comunicazione per manager, nutrizionista specializzata in donne over 40, consulente fiscale per freelance...",
+    description: "Descrivi la tua competenza principale.",
+    examples: [
+      "coach di comunicazione per manager",
+      "nutrizionista specializzata in donne over 40",
+      "consulente fiscale per freelance",
+      "formatore sulla gestione dello stress"
+    ],
     important: false
   },
   {
     id: "cliente_ideale",
     question: "Chi è il tuo cliente ideale?",
-    placeholder: "Chi vorresti aiutare con la tua accademia? Età, professione, problema principale...",
+    description: "Descrivi la persona che vorresti aiutare con la tua accademia.",
+    bullets: [
+      "età o fase della vita",
+      "professione",
+      "problema principale",
+      "situazione attuale"
+    ],
+    bulletPrefix: "Se puoi, indica:",
+    important: false
+  },
+  {
+    id: "risultato_concreto",
+    question: "Quale risultato concreto vorresti aiutarlo a ottenere?",
+    description: "In altre parole: dopo il tuo percorso, cosa cambia per questa persona? Quale trasformazione prometti?",
+    examples: [
+      "superare l'ansia nel parlare in pubblico",
+      "migliorare la gestione del tempo",
+      "imparare a gestire la propria alimentazione"
+    ],
     important: false
   },
   {
     id: "pubblico_esistente",
-    question: "Hai già un pubblico? (community, email list, social)",
-    placeholder: "Es. 2.000 follower Instagram, newsletter da 500 iscritti, gruppo Facebook da 300 persone. Se no, scrivi 'No'.",
+    question: "Hai già un pubblico o persone che ti seguono?",
+    description: "Social, community, newsletter, clienti.",
+    examples: [
+      "2.000 follower Instagram",
+      "newsletter da 500 iscritti",
+      "gruppo Facebook da 300 persone"
+    ],
+    note: "Se non hai ancora un pubblico, scrivi \"No\".",
     important: false
   },
   {
     id: "esperienze_passate",
-    question: "Hai già provato a vendere qualcosa online?",
-    placeholder: "Corsi, consulenze, infoprodotti... Come è andata? Se non hai mai provato, scrivi 'No, prima volta'.",
+    question: "Hai già venduto qualcosa online o lavori già con clienti su questo tema?",
+    description: "Consulenze, corsi, workshop, percorsi 1:1. Raccontaci cosa hai già proposto e com'è andata.",
+    note: "Se è la prima volta, puoi scrivere: \"No, è la mia prima esperienza online\".",
     important: false
   },
   {
     id: "ostacolo_principale",
-    question: "Qual è il principale ostacolo che finora ti ha bloccato/a dal digitalizzare la tua competenza?",
-    placeholder: "Tempo, tecnica, non sapere da dove iniziare, paura che non funzioni, altro...",
-    important: false
-  },
-  {
-    id: "obiettivo_12_mesi",
-    question: "Cosa vorresti ottenere nei prossimi 12 mesi?",
-    placeholder: "Un obiettivo concreto: un numero di studenti, un fatturato extra, liberarti da X ore di lavoro...",
+    question: "Qual è il principale ostacolo che finora ti ha bloccato dal digitalizzare la tua competenza?",
+    description: "Ad esempio:",
+    bullets: [
+      "mancanza di tempo",
+      "difficoltà tecniche",
+      "non sapere da dove iniziare",
+      "paura che non funzioni",
+      "mancanza di pubblico",
+      "difficoltà a strutturare il percorso"
+    ],
     important: false
   },
   {
     id: "perche_adesso",
-    question: "Perché proprio adesso? Cosa è cambiato?",
-    placeholder: "Questa è la domanda più importante. Cosa ti ha spinto/a ad agire oggi, in questo momento?",
+    question: "Perché proprio adesso?",
+    description: "Cosa è cambiato rispetto ai mesi scorsi? Perché senti che questo è il momento giusto per costruire la tua Accademia Digitale?",
     important: true
   }
 ];
