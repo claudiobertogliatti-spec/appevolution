@@ -1040,6 +1040,7 @@ export default function App() {
     if (window.location.pathname.startsWith("/dashboard-cliente") || 
         window.location.pathname === "/questionario" ||
         window.location.pathname === "/sblocca-analisi" ||
+        window.location.pathname === "/analisi-attivazione" ||
         window.location.pathname === "/analisi-in-preparazione") {
       // Utente cliente non loggato, redirect a registrazione
       window.location.href = "/analisi-strategica";
