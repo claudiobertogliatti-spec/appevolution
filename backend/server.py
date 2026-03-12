@@ -1563,10 +1563,443 @@ async def get_cliente_analisi_detail(user_id: str):
     
     return cliente
 
+# Template per l'Analisi Strategica Evolution PRO
+ANALISI_TEMPLATE = """
+# ANALISI STRATEGICA PERSONALIZZATA
+## Evolution PRO - Accademia Digitale
+
+---
+
+## INTRODUZIONE
+
+Gentile {nome} {cognome},
+
+grazie per aver richiesto l'Analisi Strategica Evolution PRO. Questo documento è stato preparato dal nostro team sulla base delle informazioni che hai condiviso nel questionario strategico.
+
+L'obiettivo di questa analisi è valutare il potenziale del tuo progetto e fornirti indicazioni concrete su come procedere.
+
+---
+
+## COS'È EVOLUTION PRO
+
+Evolution PRO è un programma di partnership per professionisti che vogliono trasformare le proprie competenze in un'Accademia Digitale. Non vendiamo corsi online: costruiamo insieme a te un asset digitale che genera valore nel tempo.
+
+Il nostro approccio si basa su:
+- **Posizionamento strategico**: trovare la tua unicità nel mercato
+- **Struttura formativa**: organizzare le tue competenze in un percorso trasformativo
+- **Modello di business**: creare un sistema di monetizzazione sostenibile
+- **Supporto tecnico**: gestire tutta la parte tecnologica
+
+---
+
+## PERCHÉ IL FAI-DA-TE FALLISCE
+
+La maggior parte dei professionisti che provano a creare un corso online da soli si blocca per tre motivi:
+
+1. **Mancanza di strategia**: partono dalla creazione dei contenuti senza un piano di vendita
+2. **Complessità tecnica**: perdono tempo su piattaforme, funnel, pagamenti
+3. **Isolamento**: non hanno un team che li supporta nelle decisioni
+
+Evolution PRO risolve questi problemi offrendo un percorso strutturato con supporto continuo.
+
+---
+
+## LE TRE STRADE POSSIBILI
+
+Dopo questa analisi, hai tre opzioni:
+
+1. **Procedere da solo**: hai tutte le informazioni per provare in autonomia
+2. **Valutare la partnership Evolution PRO**: se il progetto è idoneo, possiamo costruirlo insieme
+3. **Rimandare**: se non è il momento giusto, puoi tornare quando sarai pronto
+
+Non c'è una scelta giusta o sbagliata. L'importante è che sia consapevole.
+
+---
+
+## SINTESI DEL TUO PROGETTO
+
+Dalle risposte che hai fornito, emerge questo quadro:
+
+**Area di expertise**: {expertise}
+
+**Cliente ideale**: {cliente_target}
+
+**Risultato che vuoi aiutare a ottenere**: {risultato_promesso}
+
+---
+
+## ANALISI DEL PROFILO PROFESSIONALE
+
+{analisi_expertise}
+
+---
+
+## CLIENTE IDEALE
+
+{analisi_cliente_target}
+
+---
+
+## PRESENZA ONLINE E PUBBLICO
+
+**Hai già un pubblico che ti segue?** {pubblico_esistente}
+
+{analisi_pubblico}
+
+---
+
+## ESPERIENZA DI VENDITA
+
+**Hai già venduto qualcosa online?** {esperienze_vendita}
+
+{analisi_vendita}
+
+---
+
+## OSTACOLO PRINCIPALE
+
+**Cosa ti ha bloccato finora?** {ostacolo_principale}
+
+{analisi_ostacolo}
+
+---
+
+## PERCHÉ PROPRIO ADESSO
+
+**Motivazione attuale**: {motivazione}
+
+{analisi_motivazione}
+
+---
+
+## DIAGNOSI STRATEGICA FINALE
+
+{diagnosi_finale}
+
+---
+
+## PROSSIMI PASSI
+
+Se questa analisi ti è stata utile e vuoi approfondire, il passo successivo è una **call strategica** di 30 minuti dove:
+
+1. Discutiamo insieme i punti di questa analisi
+2. Rispondiamo alle tue domande
+3. Valutiamo se Evolution PRO è la soluzione giusta per te
+
+Non c'è alcun obbligo. La call serve a capire se possiamo lavorare insieme.
+
+---
+
+## CONTATTI
+
+**Email**: supporto@evolution-pro.it
+**Sito**: www.evolution-pro.it
+
+Grazie per la fiducia.
+
+Il team Evolution PRO
+"""
+
+@api_router.post("/admin/clienti-analisi/{user_id}/genera-analisi-ai")
+async def genera_analisi_ai(user_id: str):
+    """
+    Genera l'Analisi Strategica completa usando AI (Claude).
+    """
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    
+    # Recupera il cliente
+    cliente = await db.users.find_one(
+        {"id": user_id, "user_type": "cliente_analisi"},
+        {"_id": 0}
+    )
+    
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente non trovato")
+    
+    if not cliente.get("questionario_compilato"):
+        raise HTTPException(status_code=400, detail="Il cliente non ha completato il questionario")
+    
+    if not cliente.get("pagamento_analisi"):
+        raise HTTPException(status_code=400, detail="Il cliente non ha ancora pagato l'analisi")
+    
+    # Recupera i dettagli del questionario
+    questionario = await db.questionari_clienti.find_one(
+        {"user_id": user_id},
+        {"_id": 0}
+    )
+    
+    # Dati cliente
+    nome = cliente.get("nome", "")
+    cognome = cliente.get("cognome", "")
+    expertise = questionario.get("expertise", cliente.get("expertise", "Non specificato")) if questionario else cliente.get("expertise", "Non specificato")
+    cliente_target = questionario.get("cliente_target", cliente.get("cliente_target", "Non specificato")) if questionario else cliente.get("cliente_target", "Non specificato")
+    risultato_promesso = questionario.get("risultato_promesso", cliente.get("risultato_promesso", "Non specificato")) if questionario else cliente.get("risultato_promesso", "Non specificato")
+    pubblico_esistente = questionario.get("pubblico_esistente", cliente.get("pubblico_esistente", "Non specificato")) if questionario else cliente.get("pubblico_esistente", "Non specificato")
+    esperienze_vendita = questionario.get("esperienze_vendita", cliente.get("esperienze_vendita", "Non specificato")) if questionario else cliente.get("esperienze_vendita", "Non specificato")
+    ostacolo_principale = questionario.get("ostacolo_principale", cliente.get("ostacolo_principale", "Non specificato")) if questionario else cliente.get("ostacolo_principale", "Non specificato")
+    motivazione = questionario.get("motivazione", cliente.get("motivazione", "Non specificato")) if questionario else cliente.get("motivazione", "Non specificato")
+    
+    # Genera analisi personalizzate con AI
+    llm_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not llm_key:
+        raise HTTPException(status_code=500, detail="Chiave LLM non configurata")
+    
+    chat = LlmChat(
+        api_key=llm_key,
+        session_id=f"analisi_{user_id}_{datetime.now().timestamp()}",
+        system_message="""Sei un consulente strategico di Evolution PRO, un'azienda che aiuta professionisti a creare Accademie Digitali. 
+Il tuo compito è analizzare le risposte del questionario di un potenziale cliente e generare analisi personalizzate per ogni sezione.
+Rispondi sempre in italiano. Sii professionale ma anche empatico. Evita frasi generiche, personalizza ogni analisi basandoti sulle risposte specifiche.
+Non usare emoji. Mantieni un tono professionale e autorevole."""
+    ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+    
+    # Genera le sezioni personalizzate
+    prompt = f"""
+Analizza le seguenti risposte di un potenziale cliente Evolution PRO e genera le analisi per ogni sezione.
+
+DATI CLIENTE:
+- Nome: {nome} {cognome}
+- Expertise: {expertise}
+- Cliente target: {cliente_target}
+- Risultato promesso: {risultato_promesso}
+- Pubblico esistente: {pubblico_esistente}
+- Esperienze di vendita: {esperienze_vendita}
+- Ostacolo principale: {ostacolo_principale}
+- Motivazione: {motivazione}
+
+Per ogni sezione, scrivi un'analisi di 3-5 frasi. Sii specifico e personalizzato.
+
+Rispondi ESATTAMENTE in questo formato JSON:
+{{
+    "analisi_expertise": "Analisi dell'expertise del cliente...",
+    "analisi_cliente_target": "Analisi del cliente target...",
+    "analisi_pubblico": "Analisi della presenza online...",
+    "analisi_vendita": "Analisi dell'esperienza di vendita...",
+    "analisi_ostacolo": "Analisi dell'ostacolo principale...",
+    "analisi_motivazione": "Analisi della motivazione...",
+    "diagnosi_finale": "Diagnosi strategica finale di 4-6 frasi che riassume il potenziale del progetto e indica se è adatto per Evolution PRO..."
+}}
+"""
+    
+    try:
+        response = await chat.send_message(UserMessage(text=prompt))
+        
+        # Estrai il JSON dalla risposta
+        import json
+        import re
+        
+        # Cerca il JSON nella risposta
+        json_match = re.search(r'\{[\s\S]*\}', response)
+        if json_match:
+            analisi_json = json.loads(json_match.group())
+        else:
+            raise ValueError("JSON non trovato nella risposta")
+            
+    except Exception as e:
+        # Fallback con analisi generiche
+        print(f"Errore AI: {e}")
+        analisi_json = {
+            "analisi_expertise": f"La tua area di competenza in '{expertise}' rappresenta una base solida per costruire un'Accademia Digitale. Il mercato della formazione online in questo settore è in crescita e c'è spazio per professionisti che sanno comunicare il proprio valore.",
+            "analisi_cliente_target": f"Il target che hai identificato ('{cliente_target}') è un buon punto di partenza. Sarà importante definire con maggiore precisione le caratteristiche demografiche e psicografiche per creare contenuti mirati.",
+            "analisi_pubblico": f"La tua situazione attuale in termini di pubblico è '{pubblico_esistente}'. Questo influenzerà la strategia di lancio e i tempi necessari per raggiungere i primi risultati.",
+            "analisi_vendita": f"La tua esperienza di vendita ('{esperienze_vendita}') è un elemento importante nella valutazione. Chi ha già venduto ha una comprensione migliore del processo di conversione.",
+            "analisi_ostacolo": f"L'ostacolo che hai identificato ('{ostacolo_principale}') è comune tra i professionisti che vogliono lanciare un'Accademia Digitale. Evolution PRO offre supporto specifico per superare questo tipo di blocco.",
+            "analisi_motivazione": f"La tua motivazione ('{motivazione}') indica che sei in un momento di apertura al cambiamento. Questo è fondamentale per affrontare il percorso con la giusta energia.",
+            "diagnosi_finale": "Sulla base delle risposte fornite, il tuo progetto presenta elementi interessanti per una potenziale partnership Evolution PRO. Durante la call strategica approfondiremo insieme questi aspetti per capire se ci sono le condizioni per lavorare insieme. Non esistono progetti perfetti: l'importante è avere chiarezza sugli obiettivi e la volontà di investire tempo ed energia nel percorso."
+        }
+    
+    # Genera il documento finale
+    analisi_completa = ANALISI_TEMPLATE.format(
+        nome=nome,
+        cognome=cognome,
+        expertise=expertise,
+        cliente_target=cliente_target,
+        risultato_promesso=risultato_promesso,
+        pubblico_esistente=pubblico_esistente,
+        esperienze_vendita=esperienze_vendita,
+        ostacolo_principale=ostacolo_principale,
+        motivazione=motivazione,
+        analisi_expertise=analisi_json.get("analisi_expertise", ""),
+        analisi_cliente_target=analisi_json.get("analisi_cliente_target", ""),
+        analisi_pubblico=analisi_json.get("analisi_pubblico", ""),
+        analisi_vendita=analisi_json.get("analisi_vendita", ""),
+        analisi_ostacolo=analisi_json.get("analisi_ostacolo", ""),
+        analisi_motivazione=analisi_json.get("analisi_motivazione", ""),
+        diagnosi_finale=analisi_json.get("diagnosi_finale", "")
+    )
+    
+    return {
+        "success": True,
+        "analisi_testo": analisi_completa,
+        "cliente": {
+            "id": user_id,
+            "nome": nome,
+            "cognome": cognome
+        }
+    }
+
+@api_router.post("/admin/clienti-analisi/{user_id}/salva-analisi")
+async def salva_analisi_cliente(user_id: str, analisi_testo: str = None):
+    """
+    Salva l'analisi generata nel database del cliente.
+    """
+    if not analisi_testo:
+        raise HTTPException(status_code=400, detail="Testo analisi mancante")
+    
+    result = await db.users.update_one(
+        {"id": user_id, "user_type": "cliente_analisi"},
+        {"$set": {
+            "analisi_generata": True,
+            "analisi_testo": analisi_testo,
+            "analisi_data": datetime.now(timezone.utc).isoformat(),
+            "analisi_stato": "generata"
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Cliente non trovato")
+    
+    return {"success": True, "message": "Analisi salvata con successo"}
+
+@api_router.post("/admin/clienti-analisi/{user_id}/stato-call")
+async def aggiorna_stato_call(user_id: str, stato: str = "da_fissare"):
+    """
+    Aggiorna lo stato della call strategica.
+    """
+    stati_validi = ["da_fissare", "fissata", "completata", "annullata"]
+    if stato not in stati_validi:
+        raise HTTPException(status_code=400, detail=f"Stato non valido. Usa: {stati_validi}")
+    
+    result = await db.users.update_one(
+        {"id": user_id, "user_type": "cliente_analisi"},
+        {"$set": {
+            "call_stato": stato,
+            "call_stato_updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Cliente non trovato")
+    
+    return {"success": True, "message": f"Stato call aggiornato a: {stato}"}
+
+@api_router.get("/admin/clienti-analisi/{user_id}/analisi-pdf")
+async def scarica_analisi_pdf(user_id: str):
+    """
+    Genera e restituisce l'analisi in formato PDF.
+    """
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import cm
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+    from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
+    import io
+    from starlette.responses import StreamingResponse
+    
+    # Recupera il cliente e l'analisi
+    cliente = await db.users.find_one(
+        {"id": user_id, "user_type": "cliente_analisi"},
+        {"_id": 0}
+    )
+    
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente non trovato")
+    
+    if not cliente.get("analisi_testo"):
+        raise HTTPException(status_code=400, detail="Analisi non ancora generata")
+    
+    # Crea il PDF
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=2*cm,
+        leftMargin=2*cm,
+        topMargin=2*cm,
+        bottomMargin=2*cm
+    )
+    
+    # Stili
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(
+        name='CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=24,
+        spaceAfter=30,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#1E2128')
+    ))
+    styles.add(ParagraphStyle(
+        name='CustomHeading',
+        parent=styles['Heading2'],
+        fontSize=14,
+        spaceBefore=20,
+        spaceAfter=10,
+        textColor=colors.HexColor('#F5C518')
+    ))
+    styles.add(ParagraphStyle(
+        name='CustomBody',
+        parent=styles['Normal'],
+        fontSize=11,
+        alignment=TA_JUSTIFY,
+        spaceAfter=12,
+        leading=16
+    ))
+    
+    # Contenuto
+    story = []
+    
+    # Copertina
+    story.append(Spacer(1, 3*cm))
+    story.append(Paragraph("EVOLUTION PRO", styles['CustomTitle']))
+    story.append(Spacer(1, 1*cm))
+    story.append(Paragraph("ANALISI STRATEGICA PERSONALIZZATA", styles['CustomTitle']))
+    story.append(Spacer(1, 2*cm))
+    story.append(Paragraph(f"Preparata per: {cliente.get('nome', '')} {cliente.get('cognome', '')}", styles['CustomBody']))
+    story.append(Paragraph(f"Data: {datetime.now().strftime('%d/%m/%Y')}", styles['CustomBody']))
+    story.append(PageBreak())
+    
+    # Contenuto analisi
+    analisi_testo = cliente.get("analisi_testo", "")
+    
+    # Parse del markdown semplice
+    for line in analisi_testo.split('\n'):
+        line = line.strip()
+        if not line:
+            story.append(Spacer(1, 0.3*cm))
+        elif line.startswith('# '):
+            story.append(Paragraph(line[2:], styles['CustomTitle']))
+        elif line.startswith('## '):
+            story.append(Paragraph(line[3:], styles['CustomHeading']))
+        elif line.startswith('**') and line.endswith('**'):
+            story.append(Paragraph(f"<b>{line[2:-2]}</b>", styles['CustomBody']))
+        elif line.startswith('- '):
+            story.append(Paragraph(f"• {line[2:]}", styles['CustomBody']))
+        elif line == '---':
+            story.append(Spacer(1, 0.5*cm))
+        else:
+            # Gestisci bold inline
+            import re
+            line = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', line)
+            story.append(Paragraph(line, styles['CustomBody']))
+    
+    # Genera PDF
+    doc.build(story)
+    buffer.seek(0)
+    
+    filename = f"Analisi_Strategica_{cliente.get('cognome', 'Cliente')}_{datetime.now().strftime('%Y%m%d')}.pdf"
+    
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
 @api_router.post("/admin/clienti-analisi/{user_id}/genera-analisi")
 async def genera_analisi_cliente(user_id: str):
     """
-    Imposta analisi_generata = true per un cliente.
+    Imposta analisi_generata = true per un cliente (metodo legacy).
     """
     result = await db.users.update_one(
         {"id": user_id, "user_type": "cliente_analisi"},
