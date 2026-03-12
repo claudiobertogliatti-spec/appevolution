@@ -511,6 +511,7 @@ export function ClienteDashboard({ cliente, onLogout }) {
   const [error, setError] = useState(null);
   const [selectedBonus, setSelectedBonus] = useState(null);
   const [expandedBonus, setExpandedBonus] = useState(null);
+  const [showQuestionario, setShowQuestionario] = useState(false); // Pre-questionario intro
 
   // Aggiorna stato quando cambiano le props del cliente
   useEffect(() => {
