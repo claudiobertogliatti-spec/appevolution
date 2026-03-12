@@ -1,60 +1,91 @@
 import React, { useState } from 'react';
-import { CheckCircle, PlayCircle, ChevronDown, ChevronRight, Clock, BookOpen, LogOut } from 'lucide-react';
+import { CheckCircle, PlayCircle, ChevronRight, Clock, BookOpen, LogOut, ClipboardList, Target, MessageCircle, BarChart3, Users, Calendar, Lightbulb, Video, Megaphone, UserCircle, Handshake } from 'lucide-react';
 
+// 7 moduli del mini corso come da specifica
 const MINI_CORSO_MODULI = [
   {
     id: 1,
-    titolo: "Cos'è un'Accademia Digitale",
-    descrizione: "Scopri cosa significa creare un business basato sulla formazione online e perché è diverso da un semplice corso.",
-    durata: "8 min"
+    titolo: "Il Blueprint",
+    descrizione: "La struttura fondamentale per creare un videocorso che funziona e vende.",
+    durata: "8 min",
+    icon: Target
   },
   {
     id: 2,
-    titolo: "Il Posizionamento Strategico",
-    descrizione: "Come trovare la tua unicità nel mercato e differenziarti dai competitor in modo autentico.",
-    durata: "12 min"
+    titolo: "Argomenti che vendono",
+    descrizione: "Come scegliere argomenti che il mercato vuole davvero acquistare.",
+    durata: "12 min",
+    icon: Lightbulb
   },
   {
     id: 3,
-    titolo: "Il Cliente Ideale",
-    descrizione: "Come identificare con precisione le persone che hanno bisogno del tuo aiuto e sono pronte a investire.",
-    durata: "10 min"
+    titolo: "Durata delle lezioni",
+    descrizione: "Quanto devono durare le tue lezioni per massimizzare l'engagement.",
+    durata: "7 min",
+    icon: Clock
   },
   {
     id: 4,
-    titolo: "La Struttura del Percorso",
-    descrizione: "Come organizzare le tue conoscenze in un percorso trasformativo che porta risultati concreti.",
-    durata: "15 min"
+    titolo: "Funnel di vendita",
+    descrizione: "Come costruire un percorso che trasforma visitatori in clienti.",
+    durata: "15 min",
+    icon: BarChart3
   },
   {
     id: 5,
-    titolo: "Il Modello di Business",
-    descrizione: "Le diverse opzioni per monetizzare la tua competenza: corsi, membership, coaching, consulenze.",
-    durata: "11 min"
+    titolo: "ADV",
+    descrizione: "Le basi della pubblicità online per promuovere il tuo videocorso.",
+    durata: "11 min",
+    icon: Megaphone
   },
   {
     id: 6,
-    titolo: "Gli Strumenti Tecnici",
-    descrizione: "Panoramica delle piattaforme e degli strumenti necessari per lanciare la tua accademia.",
-    durata: "9 min"
+    titolo: "Profili social",
+    descrizione: "Come ottimizzare i tuoi profili social per attrarre il pubblico giusto.",
+    durata: "9 min",
+    icon: UserCircle
   },
   {
     id: 7,
-    titolo: "I Primi Passi Concreti",
-    descrizione: "Un piano d'azione chiaro per iniziare a costruire la tua accademia digitale partendo da zero.",
-    durata: "14 min"
+    titolo: "Non fare tutto da solo",
+    descrizione: "Perché delegare è fondamentale e come costruire il tuo team.",
+    durata: "10 min",
+    icon: Handshake
   }
 ];
 
 export function AnalisiInPreparazione({ user, onLogout }) {
   const [videoPlaying, setVideoPlaying] = useState(false);
-  const [expandedModule, setExpandedModule] = useState(null);
+  const [selectedModule, setSelectedModule] = useState(null);
+
+  // Steps per la progress bar
+  const processSteps = [
+    { id: 1, label: 'Questionario', status: 'completed' },
+    { id: 2, label: 'Analisi Strategica', status: 'active' },
+    { id: 3, label: 'Call con Claudio', status: 'pending' }
+  ];
+
+  // Lista "Cosa succede adesso"
+  const cosaSucdedeItems = [
+    "Il team Evolution analizza il tuo posizionamento",
+    "Valutiamo il potenziale del mercato",
+    "Studiamo la struttura della tua possibile Accademia Digitale",
+    "Prepariamo il report strategico",
+    "Organizziamo la call strategica"
+  ];
+
+  // Lista preparazione call
+  const preparazioneCallItems = [
+    "rivedi le risposte del questionario",
+    "annota eventuali dubbi",
+    "pensa all'obiettivo che vuoi raggiungere nei prossimi 12 mesi"
+  ];
 
   return (
     <div className="min-h-screen" style={{ background: '#FAFAF7' }}>
       {/* Header */}
       <header className="border-b" style={{ background: '#FFFFFF', borderColor: '#ECEDEF' }}>
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
               <span className="text-lg font-black" style={{ color: '#1E2128' }}>E</span>
@@ -69,6 +100,7 @@ export function AnalisiInPreparazione({ user, onLogout }) {
             onClick={onLogout}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-gray-100"
             style={{ color: '#5F6572' }}
+            data-testid="logout-btn"
           >
             <LogOut className="w-4 h-4" />
             Esci
@@ -76,193 +108,309 @@ export function AnalisiInPreparazione({ user, onLogout }) {
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto px-6 py-12">
-        {/* Progress Complete */}
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <span className="flex items-center gap-1 text-sm" style={{ color: '#22C55E' }}>
-            <CheckCircle className="w-4 h-4" /> Registrazione
-          </span>
-          <span style={{ color: '#22C55E' }}>→</span>
-          <span className="flex items-center gap-1 text-sm" style={{ color: '#22C55E' }}>
-            <CheckCircle className="w-4 h-4" /> Questionario
-          </span>
-          <span style={{ color: '#22C55E' }}>→</span>
-          <span className="flex items-center gap-1 text-sm" style={{ color: '#22C55E' }}>
-            <CheckCircle className="w-4 h-4" /> Analisi Strategica
-          </span>
-          <span style={{ color: '#ECEDEF' }}>→</span>
-          <span className="flex items-center gap-1 text-sm font-bold" style={{ color: '#F5C518' }}>
-            <Clock className="w-4 h-4" /> Call con Claudio
-          </span>
+      <div className="max-w-4xl mx-auto px-6 py-12">
+        
+        {/* ═══════════════════════════════════════════════════════════════════
+            SEZIONE 1 — PROGRESSO PROCESSO
+        ═══════════════════════════════════════════════════════════════════ */}
+        <div className="mb-12">
+          <p className="text-sm font-medium text-center mb-6" style={{ color: '#9CA3AF' }}>
+            Il percorso della tua Accademia Digitale
+          </p>
+          
+          <div className="flex items-center justify-center gap-4">
+            {processSteps.map((step, index) => (
+              <React.Fragment key={step.id}>
+                <div className="flex flex-col items-center">
+                  <div 
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
+                      step.status === 'pending' ? 'opacity-40' : ''
+                    }`}
+                    style={{ 
+                      background: step.status === 'completed' ? '#22C55E' : step.status === 'active' ? '#F5C518' : '#ECEDEF',
+                      color: step.status === 'pending' ? '#9CA3AF' : '#1E2128'
+                    }}
+                  >
+                    {step.status === 'completed' ? (
+                      <CheckCircle className="w-5 h-5" />
+                    ) : (
+                      step.id
+                    )}
+                  </div>
+                  <span 
+                    className={`mt-2 text-sm font-medium text-center ${step.status === 'pending' ? 'opacity-40' : ''}`}
+                    style={{ color: step.status === 'pending' ? '#9CA3AF' : '#1E2128' }}
+                  >
+                    {step.label}
+                  </span>
+                  {step.status === 'active' && (
+                    <span className="text-xs mt-0.5" style={{ color: '#C4990A' }}>IN PREPARAZIONE</span>
+                  )}
+                  {step.status === 'pending' && (
+                    <span className="text-xs mt-0.5 opacity-60" style={{ color: '#9CA3AF' }}>IN ATTESA</span>
+                  )}
+                </div>
+                {index < processSteps.length - 1 && (
+                  <div 
+                    className="w-16 h-0.5 mt-[-20px]" 
+                    style={{ background: step.status === 'completed' ? '#22C55E' : '#ECEDEF' }}
+                  />
+                )}
+              </React.Fragment>
+            ))}
+          </div>
         </div>
 
-        {/* Success Message */}
-        <div className="text-center mb-12">
+        {/* ═══════════════════════════════════════════════════════════════════
+            SEZIONE 2 — CONFERMA PAGAMENTO
+        ═══════════════════════════════════════════════════════════════════ */}
+        <div className="text-center mb-10">
           <div 
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold mb-4"
             style={{ background: '#F0FDF4', color: '#166534' }}
           >
             <CheckCircle className="w-4 h-4" />
-            Pagamento completato con successo!
+            Pagamento completato
           </div>
-          <h1 className="text-3xl font-black mb-4" style={{ color: '#1E2128' }}>
-            La tua Analisi Strategica è in preparazione
+          <h1 className="text-3xl font-black mb-4" style={{ color: '#1E2128' }} data-testid="page-title">
+            Analisi Strategica attivata con successo
           </h1>
-          <p className="text-lg max-w-2xl mx-auto" style={{ color: '#5F6572' }}>
-            Il nostro team analizzerà il tuo progetto e riceverai un contatto entro <strong>48 ore</strong> per la videocall strategica con Claudio.
-          </p>
+          <div className="text-lg max-w-2xl mx-auto" style={{ color: '#5F6572' }}>
+            <p className="mb-2">Grazie per aver attivato la tua Analisi Strategica.</p>
+            <p>Il team Evolution PRO sta analizzando le informazioni che hai inserito nel questionario per preparare il tuo <strong style={{ color: '#1E2128' }}>report strategico</strong>.</p>
+          </div>
         </div>
 
-        {/* Two Column Layout */}
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Left: Video */}
-          <div>
-            <div className="rounded-2xl overflow-hidden" style={{ background: '#1E2128' }}>
-              <div className="p-4" style={{ borderBottom: '1px solid #333' }}>
-                <h2 className="font-bold" style={{ color: '#FFFFFF' }}>
-                  Video di Benvenuto
-                </h2>
-                <p className="text-sm" style={{ color: '#9CA3AF' }}>
-                  Claudio ti spiega cosa aspettarti
-                </p>
-              </div>
-              
-              <div className="relative" style={{ aspectRatio: '16/9' }}>
-                {!videoPlaying ? (
-                  <div 
-                    className="absolute inset-0 flex items-center justify-center cursor-pointer group"
-                    onClick={() => setVideoPlaying(true)}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    <div className="relative z-10 text-center">
-                      <div 
-                        className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform"
-                        style={{ background: '#F5C518' }}
-                      >
-                        <PlayCircle className="w-8 h-8" style={{ color: '#1E2128' }} />
-                      </div>
-                      <span className="text-white font-medium">Guarda il video</span>
-                    </div>
-                  </div>
-                ) : (
-                  <video 
-                    className="w-full h-full object-cover"
-                    controls
-                    autoPlay
-                    playsInline
-                  >
-                    <source src="/api/static/uploads/Quick_Avatar_Video.mp4" type="video/mp4" />
-                  </video>
-                )}
-              </div>
+        {/* ═══════════════════════════════════════════════════════════════════
+            SEZIONE 3 — COSA STA SUCCEDENDO ORA
+        ═══════════════════════════════════════════════════════════════════ */}
+        <div className="rounded-2xl p-6 mb-8" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+          <div className="flex items-center gap-3 mb-4">
+            <div 
+              className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{ background: '#F5C51815' }}
+            >
+              <ClipboardList className="w-5 h-5" style={{ color: '#C4990A' }} />
             </div>
+            <h2 className="text-lg font-bold" style={{ color: '#1E2128' }}>
+              Cosa succede adesso
+            </h2>
+          </div>
+          
+          <div className="space-y-3 mb-4">
+            {cosaSucdedeItems.map((item, index) => (
+              <div key={index} className="flex items-start gap-3">
+                <div 
+                  className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                  style={{ background: '#F5C51820' }}
+                >
+                  <CheckCircle className="w-3.5 h-3.5" style={{ color: '#C4990A' }} />
+                </div>
+                <span className="text-sm" style={{ color: '#5F6572' }}>{item}</span>
+              </div>
+            ))}
+          </div>
+          
+          <div 
+            className="mt-4 p-3 rounded-xl text-sm font-medium text-center"
+            style={{ background: '#FFF8DC', color: '#92700C' }}
+          >
+            <Clock className="w-4 h-4 inline mr-2" />
+            Riceverai il link per prenotare la call entro 48 ore.
+          </div>
+        </div>
 
-            {/* What happens next */}
-            <div className="mt-6 p-6 rounded-xl" style={{ background: '#FFF8DC', border: '1px solid #F5C51830' }}>
-              <h3 className="font-bold mb-3" style={{ color: '#92700C' }}>
-                Cosa succede ora?
-              </h3>
-              <ol className="space-y-2 text-sm" style={{ color: '#78590A' }}>
-                <li className="flex items-start gap-2">
-                  <span className="font-bold">1.</span>
-                  <span>Il nostro team analizza le tue risposte al questionario</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="font-bold">2.</span>
-                  <span>Prepariamo un documento di analisi personalizzato</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="font-bold">3.</span>
-                  <span>Ti contattiamo entro 48h per fissare la videocall</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="font-bold">4.</span>
-                  <span>Nella call discutiamo insieme i risultati dell'analisi</span>
-                </li>
-              </ol>
+        {/* ═══════════════════════════════════════════════════════════════════
+            SEZIONE 4 — VIDEO DI BENVENUTO
+        ═══════════════════════════════════════════════════════════════════ */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <div 
+              className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{ background: '#F5C51815' }}
+            >
+              <Video className="w-5 h-5" style={{ color: '#C4990A' }} />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold" style={{ color: '#1E2128' }}>
+                Un messaggio di benvenuto
+              </h2>
             </div>
           </div>
-
-          {/* Right: Mini Corso */}
-          <div>
-            <div className="rounded-2xl overflow-hidden" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-              <div className="p-6" style={{ background: '#FAFAF7', borderBottom: '1px solid #ECEDEF' }}>
-                <div className="flex items-center gap-3">
-                  <div 
-                    className="w-12 h-12 rounded-xl flex items-center justify-center"
-                    style={{ background: '#F5C518' }}
-                  >
-                    <BookOpen className="w-6 h-6" style={{ color: '#1E2128' }} />
+          
+          <div className="rounded-2xl overflow-hidden" style={{ background: '#1E2128' }}>
+            <div className="relative" style={{ aspectRatio: '16/9' }}>
+              {!videoPlaying ? (
+                <div 
+                  className="absolute inset-0 flex items-center justify-center cursor-pointer group"
+                  onClick={() => setVideoPlaying(true)}
+                  data-testid="video-play-btn"
+                >
+                  {/* Placeholder image */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <img 
+                      src="/api/static/uploads/video-thumbnail.jpg" 
+                      alt="Video thumbnail"
+                      className="w-full h-full object-cover opacity-60"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
                   </div>
-                  <div>
-                    <h2 className="font-bold text-lg" style={{ color: '#1E2128' }}>
-                      Mini Corso Gratuito
-                    </h2>
-                    <p className="text-sm" style={{ color: '#5F6572' }}>
-                      7 moduli per iniziare a prepararti
-                    </p>
+                  <div className="relative z-10 text-center">
+                    <div 
+                      className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform shadow-2xl"
+                      style={{ background: '#F5C518' }}
+                    >
+                      <PlayCircle className="w-10 h-10" style={{ color: '#1E2128' }} />
+                    </div>
+                    <span className="text-white font-bold text-lg">Guarda il video</span>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <video 
+                  className="w-full h-full object-cover"
+                  controls
+                  autoPlay
+                  playsInline
+                  data-testid="video-player"
+                >
+                  <source src="/api/static/uploads/Quick_Avatar_Video.mp4" type="video/mp4" />
+                  Il tuo browser non supporta il tag video.
+                </video>
+              )}
+            </div>
+          </div>
+          
+          <p className="text-sm text-center mt-3" style={{ color: '#5F6572' }}>
+            In questo breve video ti spiego cosa succederà nelle prossime fasi.
+          </p>
+        </div>
 
-              <div className="divide-y" style={{ borderColor: '#ECEDEF' }}>
-                {MINI_CORSO_MODULI.map((modulo) => (
-                  <div key={modulo.id}>
-                    <button
-                      onClick={() => setExpandedModule(expandedModule === modulo.id ? null : modulo.id)}
-                      className="w-full p-4 flex items-center gap-4 text-left hover:bg-gray-50 transition-colors"
-                    >
-                      <div 
-                        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-sm font-bold"
-                        style={{ background: '#FFF8DC', color: '#C4990A' }}
-                      >
-                        {modulo.id}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-sm truncate" style={{ color: '#1E2128' }}>
-                          {modulo.titolo}
-                        </h3>
-                        <span className="text-xs" style={{ color: '#9CA3AF' }}>
-                          {modulo.durata}
-                        </span>
-                      </div>
-                      {expandedModule === modulo.id ? (
-                        <ChevronDown className="w-4 h-4" style={{ color: '#9CA3AF' }} />
-                      ) : (
-                        <ChevronRight className="w-4 h-4" style={{ color: '#9CA3AF' }} />
-                      )}
-                    </button>
-                    
-                    {expandedModule === modulo.id && (
-                      <div className="px-4 pb-4 pl-16">
-                        <p className="text-sm" style={{ color: '#5F6572' }}>
-                          {modulo.descrizione}
-                        </p>
-                        <button 
-                          className="mt-3 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:opacity-80"
-                          style={{ background: '#F5C518', color: '#1E2128' }}
-                        >
-                          <PlayCircle className="w-4 h-4" />
-                          Guarda il modulo
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
+        {/* ═══════════════════════════════════════════════════════════════════
+            SEZIONE 5 — MINI CORSO INTRODUTTIVO
+        ═══════════════════════════════════════════════════════════════════ */}
+        <div className="mb-8">
+          <div className="text-center mb-6">
+            <h2 className="text-xl font-bold mb-2" style={{ color: '#1E2128' }}>
+              Nel frattempo puoi iniziare da qui
+            </h2>
+            <p className="text-sm" style={{ color: '#5F6572' }}>
+              Mini corso gratuito: <strong style={{ color: '#1E2128' }}>Come creare un videocorso che vende davvero.</strong>
+            </p>
+          </div>
+
+          <div className="rounded-2xl overflow-hidden" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+            <div className="p-5" style={{ background: '#FAFAF7', borderBottom: '1px solid #ECEDEF' }}>
+              <div className="flex items-center gap-3">
+                <div 
+                  className="w-12 h-12 rounded-xl flex items-center justify-center"
+                  style={{ background: '#F5C518' }}
+                >
+                  <BookOpen className="w-6 h-6" style={{ color: '#1E2128' }} />
+                </div>
+                <div>
+                  <h3 className="font-bold" style={{ color: '#1E2128' }}>
+                    7 Moduli Gratuiti
+                  </h3>
+                  <p className="text-sm" style={{ color: '#5F6572' }}>
+                    Prepara le basi per la tua Accademia
+                  </p>
+                </div>
               </div>
+            </div>
+
+            <div className="divide-y" style={{ borderColor: '#ECEDEF' }}>
+              {MINI_CORSO_MODULI.map((modulo) => {
+                const IconComponent = modulo.icon;
+                return (
+                  <button
+                    key={modulo.id}
+                    onClick={() => setSelectedModule(selectedModule === modulo.id ? null : modulo.id)}
+                    className="w-full p-4 flex items-center gap-4 text-left hover:bg-gray-50 transition-colors group"
+                    data-testid={`modulo-${modulo.id}`}
+                  >
+                    <div 
+                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors"
+                      style={{ 
+                        background: selectedModule === modulo.id ? '#F5C518' : '#FFF8DC',
+                        color: selectedModule === modulo.id ? '#1E2128' : '#C4990A'
+                      }}
+                    >
+                      <IconComponent className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span 
+                          className="text-xs font-bold px-2 py-0.5 rounded"
+                          style={{ background: '#ECEDEF', color: '#5F6572' }}
+                        >
+                          {modulo.id}
+                        </span>
+                        <h4 className="font-medium text-sm group-hover:text-[#C4990A] transition-colors" style={{ color: '#1E2128' }}>
+                          {modulo.titolo}
+                        </h4>
+                      </div>
+                      <p className="text-xs mt-1" style={{ color: '#9CA3AF' }}>
+                        {modulo.durata} · {modulo.descrizione}
+                      </p>
+                    </div>
+                    <ChevronRight 
+                      className="w-5 h-5 transition-transform group-hover:translate-x-1" 
+                      style={{ color: '#9CA3AF' }} 
+                    />
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
 
-        {/* Contact Info */}
-        <div className="mt-12 text-center p-6 rounded-xl" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-          <p style={{ color: '#5F6572' }}>
-            Hai domande? Scrivi a{' '}
-            <a href="mailto:supporto@evolution-pro.it" className="font-medium" style={{ color: '#F5C518' }}>
-              supporto@evolution-pro.it
-            </a>
+        {/* ═══════════════════════════════════════════════════════════════════
+            SEZIONE 6 — PREPARAZIONE ALLA CALL
+        ═══════════════════════════════════════════════════════════════════ */}
+        <div className="rounded-2xl p-6" style={{ background: '#1E2128' }}>
+          <div className="flex items-center gap-3 mb-4">
+            <div 
+              className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{ background: '#F5C518' }}
+            >
+              <Calendar className="w-5 h-5" style={{ color: '#1E2128' }} />
+            </div>
+            <h2 className="text-lg font-bold" style={{ color: '#FFFFFF' }}>
+              Come prepararti alla call strategica
+            </h2>
+          </div>
+          
+          <p className="text-sm mb-4" style={{ color: '#9CA3AF' }}>
+            Durante la call analizzeremo insieme il tuo progetto e valuteremo se è adatto alla costruzione di una Accademia Digitale.
           </p>
+          
+          <div className="space-y-3">
+            {preparazioneCallItems.map((item, index) => (
+              <div key={index} className="flex items-start gap-3">
+                <div 
+                  className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                  style={{ background: '#F5C51830' }}
+                >
+                  <CheckCircle className="w-3.5 h-3.5" style={{ color: '#F5C518' }} />
+                </div>
+                <span className="text-sm capitalize" style={{ color: '#FFFFFF' }}>{item}</span>
+              </div>
+            ))}
+          </div>
+          
+          <div className="mt-6 pt-4" style={{ borderTop: '1px solid #333' }}>
+            <p className="text-xs text-center" style={{ color: '#5F6572' }}>
+              Hai domande? Scrivi a{' '}
+              <a href="mailto:supporto@evolution-pro.it" className="font-medium hover:underline" style={{ color: '#F5C518' }}>
+                supporto@evolution-pro.it
+              </a>
+            </p>
+          </div>
         </div>
+
       </div>
     </div>
   );
