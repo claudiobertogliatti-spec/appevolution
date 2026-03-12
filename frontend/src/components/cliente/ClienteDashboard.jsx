@@ -534,10 +534,10 @@ export function ClienteDashboard({ cliente, onLogout }) {
   const [risposte, setRisposte] = useState({
     expertise: "",
     cliente_ideale: "",
+    risultato_concreto: "",
     pubblico_esistente: "",
     esperienze_passate: "",
     ostacolo_principale: "",
-    obiettivo_12_mesi: "",
     perche_adesso: ""
   });
   const [loading, setLoading] = useState(false);
