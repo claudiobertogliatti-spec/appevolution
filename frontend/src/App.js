@@ -1065,7 +1065,7 @@ export default function App() {
             const updatedUser = { ...currentUser, pagamento_analisi: true, cliente_id: data.cliente_id };
             setCurrentUser(updatedUser);
             localStorage.setItem("user", JSON.stringify(updatedUser));
-            window.location.href = "/analisi-in-preparazione";
+            window.location.href = "/dashboard-cliente";
           }
         } catch (e) {
           console.error("Payment verification error:", e);
@@ -1087,8 +1087,8 @@ export default function App() {
     // Route: Questionario
     if (window.location.pathname === "/questionario") {
       if (currentUser.questionario_compilato) {
-        // Questionario già compilato
-        window.location.href = currentUser.pagamento_analisi ? "/analisi-in-preparazione" : "/sblocca-analisi";
+        // Questionario già compilato, torna alla dashboard
+        window.location.href = "/dashboard-cliente";
         return null;
       }
       return (
@@ -1098,23 +1098,23 @@ export default function App() {
             const updatedUser = { ...currentUser, questionario_compilato: true };
             setCurrentUser(updatedUser);
             localStorage.setItem("user", JSON.stringify(updatedUser));
-            window.location.href = "/sblocca-analisi";
+            window.location.href = "/dashboard-cliente";
           }}
           onLogout={handleClienteLogout}
         />
       );
     }
 
-    // Route: Sblocca Analisi (Pagamento)
+    // Route: Sblocca Analisi (Pagamento) - pagina dedicata
     if (window.location.pathname === "/sblocca-analisi") {
       if (!currentUser.questionario_compilato) {
         // Deve prima compilare il questionario
-        window.location.href = "/questionario";
+        window.location.href = "/dashboard-cliente";
         return null;
       }
       if (currentUser.pagamento_analisi) {
-        // Già pagato
-        window.location.href = "/analisi-in-preparazione";
+        // Già pagato, torna alla dashboard
+        window.location.href = "/dashboard-cliente";
         return null;
       }
       return (
@@ -1124,34 +1124,28 @@ export default function App() {
             const updatedUser = { ...currentUser, pagamento_analisi: true, cliente_id: data.cliente_id };
             setCurrentUser(updatedUser);
             localStorage.setItem("user", JSON.stringify(updatedUser));
-            window.location.href = "/analisi-in-preparazione";
+            window.location.href = "/dashboard-cliente";
           }}
           onLogout={handleClienteLogout}
         />
       );
     }
 
-    // Route: Analisi in Preparazione
+    // Route: Analisi in Preparazione - redirect alla dashboard
     if (window.location.pathname === "/analisi-in-preparazione") {
-      if (!currentUser.pagamento_analisi) {
-        window.location.href = "/sblocca-analisi";
-        return null;
-      }
-      return (
-        <AnalisiInPreparazione 
-          user={currentUser}
-          onLogout={handleClienteLogout}
-        />
-      );
+      window.location.href = "/dashboard-cliente";
+      return null;
     }
 
-    // Default: Dashboard Cliente
+    // Default: Dashboard Cliente (mostra contenuto basato sullo stato)
     return (
       <DashboardCliente 
         user={currentUser}
         onNavigate={(page) => {
           if (page === 'questionario') {
             window.location.href = "/questionario";
+          } else if (page === 'sblocca-analisi') {
+            window.location.href = "/sblocca-analisi";
           }
         }}
         onLogout={handleClienteLogout}
