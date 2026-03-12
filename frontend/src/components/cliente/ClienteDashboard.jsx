@@ -759,18 +759,40 @@ export function ClienteDashboard({ cliente, onLogout }) {
                 </button>
               </div>
             ) : !questionarioCompletato && showQuestionario ? (
-              /* QUESTIONARIO FORM */
-              <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-                <h2 className="text-xl font-bold text-[#1E2128] mb-1">Raccontaci il tuo progetto</h2>
-                <p className="text-sm text-[#5F6572] mb-6">
-                  7 domande — circa 5 minuti. Non ci sono risposte giuste o sbagliate: sii il più dettagliato possibile!
-                </p>
+              /* QUESTIONARIO FORM - 4 BLOCCHI */
+              <div className="rounded-2xl p-8" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+                
+                {/* BLOCCO 1 — Titolo */}
+                <div className="mb-8">
+                  <h2 className="text-2xl font-black text-[#1E2128] mb-4">Raccontaci il tuo progetto</h2>
+                  <p className="text-[#5F6572] mb-2">
+                    <strong>7 domande — circa 5 minuti</strong>
+                  </p>
+                  <p className="text-[#5F6572]">
+                    Non ci sono risposte giuste o sbagliate.<br />
+                    Più sarai concreto nelle risposte, più l'analisi strategica sarà utile e precisa.
+                  </p>
+                </div>
 
-                <div className="space-y-6">
+                {/* BLOCCO 2 — Spiegazione */}
+                <div className="rounded-xl p-5 mb-8" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
+                  <p className="text-[#5F6572] mb-3">
+                    Le informazioni che inserirai ci aiuteranno a capire se la tua competenza può essere trasformata in una <strong>Accademia Digitale</strong> sostenibile nel tempo.
+                  </p>
+                  <p className="text-[#5F6572] mb-3">
+                    Il nostro obiettivo non è creare semplicemente un videocorso, ma verificare se esistono le basi per costruire un <strong>vero asset digitale</strong>.
+                  </p>
+                  <p className="text-[#5F6572] font-medium">
+                    Rispondi nel modo più concreto possibile.
+                  </p>
+                </div>
+
+                {/* BLOCCO 3 — Il questionario */}
+                <div className="space-y-8">
                   {QUESTIONS.map((q, idx) => (
                     <div 
                       key={q.id} 
-                      className={`space-y-2 ${q.important ? 'p-4 rounded-xl' : ''}`}
+                      className={`space-y-3 ${q.important ? 'p-5 rounded-xl' : ''}`}
                       style={q.important ? { border: '2px solid #F5C518', background: '#FEF9E7' } : {}}
                     >
                       {q.important && (
@@ -779,15 +801,50 @@ export function ClienteDashboard({ cliente, onLogout }) {
                           <span className="text-xs font-bold text-[#C4990A] uppercase">La più importante</span>
                         </div>
                       )}
-                      <label className="block text-sm font-bold text-[#1E2128]">
+                      
+                      {/* Titolo domanda */}
+                      <label className="block text-base font-bold text-[#1E2128]">
                         {idx + 1}. {q.question}
                       </label>
+                      
+                      {/* Spiegazione */}
+                      <div className="text-sm text-[#5F6572]">
+                        {q.description && <p className="mb-2">{q.description}</p>}
+                        
+                        {/* Bullet prefix (es: "Se puoi, indica:") */}
+                        {q.bulletPrefix && <p className="mb-1">{q.bulletPrefix}</p>}
+                        
+                        {/* Bullets list */}
+                        {q.bullets && (
+                          <ul className="mb-2 space-y-0.5">
+                            {q.bullets.map((b, i) => (
+                              <li key={i}>• {b}</li>
+                            ))}
+                          </ul>
+                        )}
+                        
+                        {/* Examples */}
+                        {q.examples && (
+                          <div className="mb-2">
+                            <span className="text-[#9CA3AF]">Esempi: </span>
+                            {q.examples.map((ex, i) => (
+                              <span key={i} className="text-[#5F6572]">
+                                {ex}{i < q.examples.length - 1 ? ', ' : ''}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Note */}
+                        {q.note && <p className="text-[#9CA3AF] italic">{q.note}</p>}
+                      </div>
+                      
+                      {/* Campo risposta */}
                       <textarea
                         value={risposte[q.id]}
                         onChange={(e) => handleChange(q.id, e.target.value)}
-                        placeholder={q.placeholder}
-                        rows={q.important ? 4 : 3}
-                        className="w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F5C518]"
+                        rows={4}
+                        className="w-full p-4 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F5C518]"
                         style={{ background: q.important ? '#FFFFFF' : '#FAFAF7', border: '1px solid #ECEDEF' }}
                         data-testid={`question-${q.id}`}
                       />
@@ -799,32 +856,42 @@ export function ClienteDashboard({ cliente, onLogout }) {
                 </div>
 
                 {error && (
-                  <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm flex items-center gap-2">
+                  <div className="mt-6 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4" />
                     {error}
                   </div>
                 )}
 
-                <button
-                  onClick={handleSubmit}
-                  disabled={!isFormValid || loading}
-                  className="w-full mt-6 py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ background: '#F5C518', color: '#1E2128' }}
-                  data-testid="submit-questionario"
-                >
-                  {loading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <>
-                      Invia le mie risposte <ArrowRight className="w-5 h-5" />
-                    </>
-                  )}
-                </button>
-                {!isFormValid && (
-                  <p className="text-xs text-center mt-2 text-[#9CA3AF]">
-                    Completa tutte le domande (minimo 10 caratteri ciascuna)
+                {/* BLOCCO 4 — Pulsante finale */}
+                <div className="mt-10 pt-6" style={{ borderTop: '1px solid #ECEDEF' }}>
+                  <p className="text-[#5F6572] mb-2">
+                    Una volta inviato il questionario il team Evolution analizzerà il tuo progetto e preparerà la tua <strong>Analisi Strategica</strong>.
                   </p>
-                )}
+                  <p className="text-[#5F6572] mb-6">
+                    Riceverai presto una comunicazione per la call di analisi.
+                  </p>
+                  
+                  <button
+                    onClick={handleSubmit}
+                    disabled={!isFormValid || loading}
+                    className="w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+                    style={{ background: '#F5C518', color: '#1E2128' }}
+                    data-testid="submit-questionario"
+                  >
+                    {loading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        INVIA IL QUESTIONARIO
+                      </>
+                    )}
+                  </button>
+                  {!isFormValid && (
+                    <p className="text-xs text-center mt-3 text-[#9CA3AF]">
+                      Completa tutte le domande (minimo 10 caratteri ciascuna)
+                    </p>
+                  )}
+                </div>
               </div>
             ) : (
               /* Post-submission - Mini Corso Gratuito */
