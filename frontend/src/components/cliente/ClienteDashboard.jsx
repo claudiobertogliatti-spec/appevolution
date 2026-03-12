@@ -797,6 +797,38 @@ export function ClienteDashboard({ cliente, onLogout }) {
               /* QUESTIONARIO FORM - 4 BLOCCHI */
               <div className="rounded-2xl p-8" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
                 
+                {/* PROGRESS BAR - QUESTIONARIO */}
+                <div className="mb-8">
+                  <div className="flex items-center gap-2 mb-4">
+                    {/* Step 1 - Acquisto (Completato) */}
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-[#10B981] flex items-center justify-center">
+                        <CheckCircle className="w-5 h-5 text-white" />
+                      </div>
+                      <span className="text-sm font-medium text-[#10B981]">Acquisto</span>
+                    </div>
+                    <div className="flex-1 h-1 bg-[#10B981] rounded mx-2"></div>
+                    {/* Step 2 - Questionario (In corso) */}
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-[#F5C518] flex items-center justify-center">
+                        <span className="text-sm font-bold text-[#1E2128]">2</span>
+                      </div>
+                      <span className="text-sm font-medium text-[#1E2128]">Questionario</span>
+                    </div>
+                    <div className="flex-1 h-1 bg-[#ECEDEF] rounded mx-2"></div>
+                    {/* Step 3 - Call (Da fare) */}
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-[#ECEDEF] flex items-center justify-center">
+                        <span className="text-sm font-bold text-[#9CA3AF]">3</span>
+                      </div>
+                      <span className="text-sm font-medium text-[#9CA3AF]">Call con Claudio</span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-[#10B981] font-medium">
+                    ✅ Ottimo... ci sei quasi
+                  </p>
+                </div>
+
                 {/* BLOCCO 1 — Titolo */}
                 <div className="mb-8">
                   <h2 className="text-2xl font-black text-[#1E2128] mb-4">Raccontaci il tuo progetto</h2>
