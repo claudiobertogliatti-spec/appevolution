@@ -36,16 +36,16 @@ export function Homepage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             
             {/* Left Column - Image */}
-            <div className="flex justify-center lg:justify-start">
+            <div className="flex justify-center lg:justify-start order-2 lg:order-1">
               <img 
-                src="/images/hero-wheel.png" 
-                alt="Crea il tuo corso online" 
-                className="w-full max-w-lg"
+                src="/images/hero-analisi.png" 
+                alt="Analisi Strategica" 
+                className="w-full max-w-lg rounded-2xl"
               />
             </div>
 
             {/* Right Column - Content */}
-            <div>
+            <div className="order-1 lg:order-2">
               {/* Title */}
               <h1 
                 className="text-3xl md:text-4xl lg:text-5xl font-black leading-tight mb-6" 
@@ -65,13 +65,12 @@ export function Homepage() {
               </p>
 
               {/* Benefits */}
-              <div className="flex flex-col gap-3 mb-10">
+              <div className="flex flex-col gap-3 mb-8">
                 {[
                   'Analisi del tuo posizionamento',
                   'Valutazione reale del mercato',
                   'Diagnosi della fattibilità del progetto',
-                  'Videocall strategica entro 48 ore',
-                  'Accesso alla guida "Come creare un videocorso che vende"'
+                  'Videocall strategica entro 48 ore'
                 ].map((benefit, index) => (
                   <div 
                     key={index}
@@ -83,28 +82,34 @@ export function Homepage() {
                 ))}
               </div>
 
-              {/* CTAs */}
-              <div className="flex flex-col sm:flex-row gap-4">
-                {/* Primary CTA */}
-                <a
-                  href="/analisi-strategica"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-bold text-base transition-all hover:opacity-90 hover:scale-105"
-                  style={{ background: '#F5C518', color: '#1E2128' }}
-                  data-testid="cta-analisi-strategica"
-                >
-                  Richiedi l'Analisi Strategica
-                  <ArrowRight className="w-5 h-5" />
-                </a>
+              {/* Primary CTA */}
+              <a
+                href="/analisi-strategica"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-bold text-lg transition-all hover:opacity-90 hover:scale-105"
+                style={{ background: '#F5C518', color: '#1E2128' }}
+                data-testid="cta-analisi-strategica"
+              >
+                Richiedi l'Analisi Strategica
+                <ArrowRight className="w-5 h-5" />
+              </a>
 
-                {/* Secondary CTA */}
-                <a
+              {/* Scarcity Text */}
+              <p 
+                className="mt-4 text-sm font-medium"
+                style={{ color: '#9CA3AF' }}
+              >
+                Solo 4 nuovi progetti accettati ogni mese
+              </p>
+
+              {/* Partner Link */}
+              <div className="mt-10 pt-6" style={{ borderTop: '1px solid #ECEDEF' }}>
+                <a 
                   href="/partner-login"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-bold text-base transition-all hover:opacity-80"
-                  style={{ background: '#1E2128', color: '#FFFFFF' }}
-                  data-testid="cta-partner-login"
+                  className="text-sm transition-colors hover:opacity-70"
+                  style={{ color: '#5F6572' }}
                 >
-                  Area Partner
-                  <ArrowRight className="w-5 h-5" />
+                  Sei già partner Evolution PRO?{' '}
+                  <span className="font-medium" style={{ color: '#F5C518' }}>Accedi</span>
                 </a>
               </div>
             </div>
