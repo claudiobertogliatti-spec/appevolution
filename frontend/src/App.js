@@ -1173,9 +1173,53 @@ export default function App() {
     return null;
   }
 
-  // Route dashboard-partner (alias per homepage partner)
+  // Route dashboard-partner - Mostra sempre la dashboard partner dedicata
   if (window.location.pathname === "/dashboard-partner") {
-    // Continua con il rendering della dashboard normale
+    // Se l'utente è un partner (non admin), forza la modalità partner
+    if (currentUser?.role === "partner" || currentUser?.user_type === "partner") {
+      // Mostra la dashboard partner dedicata direttamente
+      return (
+        <div className="min-h-screen" style={{ background: '#FAFAF7' }}>
+          {/* Header Partner */}
+          <header className="border-b" style={{ background: '#FFFFFF', borderColor: '#ECEDEF' }}>
+            <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
+                  <span className="text-lg font-black" style={{ color: '#1E2128' }}>E</span>
+                </div>
+                <div>
+                  <span className="font-black text-lg" style={{ color: '#1E2128' }}>
+                    EVOLUTION <span style={{ color: '#F5C518' }}>PRO</span>
+                  </span>
+                  <div className="text-xs" style={{ color: '#9CA3AF' }}>Partner Dashboard</div>
+                </div>
+              </div>
+              <button 
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-gray-100"
+                style={{ color: '#5F6572' }}
+              >
+                <LogOut className="w-4 h-4" />
+                Esci
+              </button>
+            </div>
+          </header>
+          
+          {/* Partner Dashboard Content */}
+          <PartnerDashboardSimplified 
+            partner={demoPartner} 
+            onNavigate={(dest) => {
+              // Gestisci la navigazione - per ora resta sulla dashboard
+              console.log("Navigate to:", dest);
+            }} 
+            onOpenChat={() => {
+              console.log("Open chat");
+            }}
+          />
+        </div>
+      );
+    }
+    // Se è admin, mostra la dashboard admin normale (continua con il rendering)
   }
 
   return (
