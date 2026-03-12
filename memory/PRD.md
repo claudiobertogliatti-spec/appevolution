@@ -1,307 +1,82 @@
 # Evolution PRO OS - Product Requirements Document
 
-## Original Problem Statement
-Building "Evolution PRO OS," a proprietary web application for business workflow automation featuring:
-- A functional AI orchestrator (VALENTINA) capable of executing real tasks
-- Integration with OpenClaw for GUI automation on local machines
-- Partner-facing dashboard with structured sidebar guiding users through multi-phase program (F0-F13)
-- Admin dashboard with demo mode to view partner features unlocked
-- Multi-agent AI system with 6 core agents
-- Piano Continuità system for post-launch partner management
-- **Systeme.io è l'unica fonte di verità per la gestione dei lead** (App gestisce solo clienti e partner)
-- **Funnel Analisi Strategica €67** per acquisizione nuovi clienti
+## Progetto
+**Evolution PRO OS** - Applicazione web proprietaria per automazione workflow aziendali con sistema multi-agente AI.
 
-## User's Preferred Language
-Italian
+## Obiettivi Principali
+1. Sistema multi-agente AI (VALENTINA, ANDREA, GAIA, MARCO, STEFANIA) funzionante
+2. Integrazione OpenClaw per automazioni GUI locali
+3. Funnel acquisizione clienti per servizio "Analisi Strategica" (€67)
+4. Dashboard partner/admin con gestione completa onboarding
 
-## Core Architecture
-- **Frontend**: React with Shadcn/UI components
-- **Backend**: FastAPI (server.py monolith - needs refactoring)
+## Architettura Tecnica
+- **Frontend**: React + Tailwind CSS + Shadcn UI
+- **Backend**: FastAPI + Python
 - **Database**: MongoDB Atlas
-- **AI**: Claude via Emergent LLM Key (for VALENTINA and all agents)
+- **AI**: Claude via emergentintegrations (Emergent LLM Key)
+- **Pagamenti**: Stripe
+- **Automazioni**: Telegram Bot + Systeme.io
 
-## What's Been Implemented
+## Flusso Nuovo Onboarding Cliente Analisi (IMPLEMENTATO - Mar 2026)
 
-### DEPLOY 8: Routing Agenti + System Prompt Completi (Mar 11, 2026) - NEW
-- ✅ **PROBLEMA CRITICO RISOLTO:** Tutti gli agenti rispondevano come VALENTINA
-- ✅ **Creato `/app/backend/agent_prompts.py`:** File dedicato con 6 system prompt completi
-  - VALENTINA: Onboarding & Consulenza Partner (3 modalità: Admin, Partner, Pre-Partner)
-  - MARCO: Accountability settimanale (scala scuse, scala inattività)
-  - ANDREA: Produzione video & revisione contenuti
-  - GAIA: Supporto tecnico (diagnosi, risoluzione, escalation)
-  - STEFANIA: Orchestrazione e monitoraggio proattivo
-  - MAIN: Sistema centrale, dati aggregati
-- ✅ **`ChatRequest` model aggiornato:** Aggiunto campo `agent` (default: VALENTINA)
-- ✅ **`/api/chat` endpoint riscritto:** Routing basato su campo `agent`
-- ✅ **Frontend `ValentinaChat.jsx` aggiornato:** Passa `agent`, `user_role`, `partner_phase`, etc.
-- ✅ **Test passati:**
-  - MARCO → risponde come MARCO (accountability)
-  - ANDREA → risponde come ANDREA (produzione video)
-  - GAIA → risponde come GAIA (supporto tecnico)
-  - STEFANIA → risponde come STEFANIA (orchestrazione)
-  - VALENTINA → risponde come VALENTINA
-  - Admin context → tono colleghi ("Ciao Boss!")
-  - Partner context → risposta corretta su cambio nicchia
+### Step 1: Registrazione (SENZA pagamento)
+- **URL Pubblico**: `/analisi-strategica`
+- **Componente**: `AnalisiStrategicaLanding.jsx`
+- **API**: `POST /api/cliente-analisi/register`
+- **Risultato**: Crea utente con `user_type: cliente_analisi`, `pagamento_analisi: false`
+- Auto-login dopo registrazione
 
-## What's Been Implemented
+### Step 2: Pagamento
+- **Componente**: `DashboardPagamento.jsx` (mostrato post-login se non pagato)
+- **API**: `POST /api/cliente-analisi/checkout` → redirect Stripe
+- **API**: `POST /api/cliente-analisi/verify-payment` → verifica e aggiorna stato
+- **Risultato**: Crea record `clienti`, imposta `pagamento_analisi: true`
 
-### UI/UX Miglioramenti Funnel Cliente (Mar 2026) - NEW
-- ✅ Landing Page: Nuovo titolo "La tua competenza merita un sistema che lavora anche quando tu non ci sei"
-- ✅ Landing Page: Sottotitolo con team AI (VALENTINA, ANDREA, MARCO, GAIA, STEFANIA) + Claudio e Antonella
-- ✅ Landing Page: Sezione "Come Funziona" con 3 step (Analisi Strategica, Studio di Fattibilità, Partnership)
-- ✅ Questionario: Domanda 7 ("Perché proprio adesso?") evidenziata con bordo giallo #F5C518 e label "★ La più importante"
-- ✅ Post-Questionario: 3 card risorse preparatorie (Guida Accademia, 3 Errori Formatori, Percorso Completo)
-- ✅ Admin Clienti: Dropdown stati pulito (ora include anche "Analisi pronta")
-- ✅ Alert automatico: Clienti che pagano ma non compilano questionario entro 24h
+### Step 3: Questionario
+- **Componente**: `ClienteDashboard.jsx` (mostrato post-pagamento)
+- Flusso: Pre-Questionnaire → Questionnaire → Post-Questionnaire
 
-### Pulizia Agenti (Mar 2026) - NEW
-- ✅ **Rimossi agenti ibernati che consumavano budget:**
-  - ORION ($4) - Sales Intelligence → RIMOSSO
-  - MARTA ($19) - CRM & Revenue → RIMOSSO  
-  - LUCA ($2) - Compliance → RIMOSSO
-  - ATLAS ($0) - Post-Sale & LTV → RIMOSSO
-- ✅ **Agenti attivi rimanenti:**
-  - VALENTINA (Onboarding & Consulenza Partner) - **RUOLO CORRETTO**
-  - STEFANIA (Orchestrazione) - **RUOLO CORRETTO**
-  - GAIA (Funnel & Incident)
-  - ANDREA (Video Production)
-  - MARCO (Accountability)
-  - MAIN (Sistema Centrale)
-- ✅ Rimossi ~1000 linee di codice morto dal backend
-- ✅ Rimossa voce "ATLAS" dalla sidebar admin
-- ✅ **FIX A:** Agenti ibernati eliminati anche dal database MongoDB
-- ✅ **FIX B:** Ruoli VALENTINA e STEFANIA corretti nel database
-- ✅ **FIX C:** Endpoint `/api/agents/marco/run` - Genera check-in per partner F3+
-- ✅ **FIX D:** Counter `active_partners` ora mostra 25 (era 0/1)
-- ✅ **FIX E:** Endpoint `/api/agents/andrea/run` - Genera piani video per partner F4+
-- ✅ **Scheduler aggiornato:**
-  - MARCO: ogni lunedì ore 9:00 (IT)
-  - ANDREA: ogni giovedì ore 10:00 (IT)
-  - STEFANIA: ogni giorno ore 7:00 (IT)
+## Endpoints Chiave
 
-### Fix Urgenti (Mar 10, 2026) - DEPLOYED
-- ✅ **PROBLEMA 1:** Crash 500 su endpoint onboarding → Fixato con helper `find_partner()` e `update_partner()`
-- ✅ **PROBLEMA 4:** MARCO non in GET /api/agents → Già presente (6 agenti totali)
-- ✅ **UI Cliente Pre-Questionario:** Nuovi testi "✅ Benvenuto in Evolution PRO" + "Raccontaci il tuo progetto"
-- ✅ **UI Cliente Post-Questionario:** Nuovi testi "Complimenti + Siamo al secondo step"
-- ✅ **Counter active_partners:** 25 partner attivi (era 0/1)
-- ✅ **7 Bonus Strategici arricchiti:** Aggiunta sezione keyPoints con punti chiave per ogni bonus
-- ✅ **Avatar PRO completo:** Sezione offerta commerciale completa con prezzi pacchetti (3, 5, 10, 15 lezioni) e descrizione workflow
+### Autenticazione
+- `POST /api/auth/login` - Login utente
+- `POST /api/auth/register` - Registrazione partner
 
-### Fix Chirurgici (Mar 10, 2026) - DEPLOYED
-- ✅ **PROBLEMA A:** `/api/partner/5/profilo` 422 → Fixato modello `ProfiloRequest` per accettare sia `{dati:{...}}` che campi diretti
-- ✅ **PROBLEMA B:** `/api/partner/5/onboarding` 500 → Già fixato con helper `find_partner()`
-- ✅ **PROBLEMA C:** `/api/clienti-analisi` 404 → Aggiunti 6 endpoint per workflow analisi strategica:
-  - `GET /api/clienti-analisi` - Lista clienti
-  - `POST /api/clienti-analisi/{id}/questionario` - Salva risposte
-  - `GET /api/clienti-analisi/{id}/questionario` - Recupera risposte
-  - `POST /api/clienti-analisi/{id}/avvia-analisi` - Avvia workflow
-  - `GET /api/clienti-analisi/{id}/workflow-status` - Stato workflow
-  - `GET /api/clienti-analisi/{id}/scarica-docx` - Download DOCX
+### Cliente Analisi (NUOVO)
+- `POST /api/cliente-analisi/register` - Registrazione cliente (no pagamento)
+- `POST /api/cliente-analisi/checkout` - Crea sessione Stripe
+- `POST /api/cliente-analisi/verify-payment` - Verifica pagamento
+- `GET /api/cliente-analisi/status/{user_id}` - Stato cliente
 
-### Onboarding Partner con Upload Documenti (Mar 2026) - NEW
-- ✅ **Backend (`routers/onboarding.py`):**
-  - `POST /api/partner/{id}/profilo` - Salva dati anagrafici + genera contratto DOCX
-  - `GET /api/partner/{id}/scarica-contratto` - Download contratto precompilato
-  - `POST /api/partner/{id}/upload-contratto` - Upload contratto firmato
-  - `POST /api/partner/{id}/conferma-pagamento` - Conferma bonifico/online
-  - `POST /api/partner/{id}/upload-documenti` - Upload CI fronte/retro + CF
-  - `POST /api/partner/{id}/upload-distinta` - Upload distinta pagamento
-  - `GET /api/partner/{id}/onboarding` - Stato onboarding completo
-  - `POST /api/partner/{id}/approva` - Admin approva/rifiuta step
-  - `GET /api/partner/payment-info` - Info pagamento (IBAN, BIC, importo)
-- ✅ **Frontend (`PartnerOnboarding.jsx`):**
-  - Step 1: Form profilo completo (nome, cognome, indirizzo, CF, P.IVA, email, IBAN)
-  - Step 2: Download + Upload contratto firmato
-  - Step 3: Pagamento €2.790 (bonifico IBAN o carta online)
-  - Step 4: Upload CI fronte + retro + Codice Fiscale
-  - Step 5: Upload distinta di pagamento
-  - Progress bar 5 step con stati (completato/corrente/pending)
-  - Stato finale "In revisione" o "Completato"
-- ✅ **Info Pagamento:**
-  - IBAN: LT94 3250 0974 4929 5781
-  - BIC: REVOLT21
-  - Banca: Revolut Bank UAB
-  - Importo: €2.790,00
-  - Intestatario: Evolution PRO LLC
-- ✅ **Backend:**
-  - `analisi_workflow.py`: Orchestratore completo (validazione → AI → DOCX)
-  - `genera_analisi.js`: Generatore DOCX con branding Evolution PRO
-  - Endpoint `/api/clienti/{id}/avvia-analisi` - Avvia workflow in background
-  - Endpoint `/api/clienti/{id}/workflow-status` - Polling stato
-  - Endpoint `/api/clienti/{id}/scarica-docx` - Download DOCX
-  - Endpoint `/api/clienti/admin/analisi-da-revisionare` - Lista per revisione admin
-  - Endpoint `/api/clienti/admin/{id}/approva-analisi` - Approva analisi + EMAIL AUTOMATICA con link Google Calendar
-  - Mount static files `/api/static/analisi/` per download
-- ✅ **AI Enrichment:** Claude (via Emergent LLM Key) arricchisce le 7 risposte
-- ✅ **DOCX Template:** Documento professionale con sezioni numerate
-- ✅ **Email automatica:** Inviata al cliente quando l'analisi viene approvata, contiene:
-  - Link scarica DOCX
-  - Link Google Calendar per fissare la call strategica
-  - Istruzioni preparazione call
-- ✅ **Frontend Admin:**
-  - Nuova colonna "Analisi" nella tabella clienti
-  - Sezione "✨ Analisi Strategiche da Revisionare" in Approvazioni (con preview AI)
-  - Pulsanti "Scarica DOCX" e "Approva"
-- ✅ **Frontend Cliente (Post-Questionario):**
-  - Download DOCX automatico
-  - Team con STEFANIA coordinatrice aggiunta
-  - Avatar PRO con info complete (€120/lezione, pacchetti 3/6/12)
-  - Percorso Partnership dettagliato con:
-    - Investimento €2.790 (IVA inclusa)
-    - Timeline fasi F1-F10+
-    - Procedura: firma contratto → distinta pagamento → documenti (CI + CF)
-  - Bonus Strategici (7 micro-corsi)
-- ✅ **Nuove credenziali admin:** claudio.bertogliatti@gmail.com / Evoluzione74
+### Partner
+- `GET /api/partners` - Lista partner
+- `POST /api/chat` - Chat con VALENTINA (supporta OpenClaw)
 
-### Lead Management Cleanup (Mar 2026)
-- ✅ Rimosso `OrionLeadScoring.jsx` - Lead gestiti esclusivamente in Systeme.io
-- ✅ Rimossa tab "Lead Scoring" da `WebhookDashboard.jsx`
-- ✅ Rimosso componente `LeadCard` da WebhookDashboard
-- ✅ Aggiornate "Automazioni Attive" (Lead Scoring → Sync Systeme.io)
-- ✅ Rimosso import e routing di OrionLeadScoring da App.js
+## File Principali
+- `/app/frontend/src/App.js` - Routing e logica principale
+- `/app/frontend/src/components/cliente/AnalisiStrategicaLanding.jsx` - Landing registrazione
+- `/app/frontend/src/components/cliente/DashboardPagamento.jsx` - Pagina pagamento
+- `/app/frontend/src/components/cliente/ClienteDashboard.jsx` - Dashboard cliente (>1200 righe)
+- `/app/backend/server.py` - Backend monolite (>11000 righe)
 
-### Homepage Unificata (Mar 2026) - NEW
-- ✅ Homepage unica per tutti gli utenti (nuovi e registrati)
-- ✅ Login tramite modal (pulsante "Accedi" nell'header)
-- ✅ Sezioni: Hero, Footer (rimossi "Come Funziona", Stats, CTA)
-- ✅ CTA "Richiedi l'Analisi Strategica" per nuovi utenti
-- ✅ Pulsante "Sei già Partner? Accedi" per utenti esistenti
-- ✅ Testo aggiornato: "Dall'idea al tuo primo studente in 60 giorni"
+## Credenziali Test
+- **Admin**: claudio.bertogliatti@gmail.com / Evoluzione74
 
-### Questionario Pre-Call (Mar 2026) - NEW
-- ✅ Backend: Nuovo modello cliente con `questionario`, `call`, `conversione`
-- ✅ Endpoint questionario: POST/GET `/api/clienti/{id}/questionario`
-- ✅ Endpoint call/conversione: fissa-call, converti-partner, segna-non-adatto
-- ✅ Area Cliente: Progress bar 3 step, form 7 domande, sidebar team
-- ✅ Admin: Nuove metriche (Questionario ✓, Call fissata, Convertiti)
-- ✅ Admin: Modal risposte con note Claudio + azioni rapide
-- ✅ Alert: Clienti che non compilano dopo 24h
+## Issues Noti
 
-### Dashboard Cliente (Mar 2026)
-- ✅ Nuova ClienteDashboard.jsx con 5 sezioni:
-  1. **Video Benvenuto** - Placeholder "Video in arrivo" (2-3 min da Claudio)
-  2. **7 Bonus Formativi** - Gli stessi bonus della landing
-  3. **Roadmap Partnership** - 10 fasi (F0-F9) + servizi post-lancio
-  4. **Corso con Avatar** - Spiegazione servizio Delega AI Avatar
-  5. **Studio di Fattibilità** - Processo (call 60min → 24h → documento)
-- ✅ Banner "Videocall entro 24h" 
-- ✅ Integrato in AnalisiStrategicaApp.jsx post-questionario
+### P0 - Verifica Utente
+- Test end-to-end OpenClaw da chat app → Telegram → automazione locale
 
-### Piano Continuità System (Mar 2026)
-- ✅ Backend endpoint `GET/PUT /api/partners/{id}/piano-continuita`
-- ✅ 4 piani disponibili: Starter (€29+15%), Builder (€49+10%), Pro (€79+7%), Elite (€99+5%)
-- ✅ Auto-calcolo data rinnovo (+12 mesi)
-- ✅ Sezione "Piano Continuità" nel modal scheda partner admin
-- ✅ Banner "Partner senza Piano Continuità" per F8/F9
+### P1 - Bloccato
+- Autonomia agenti via tag Systeme.io (in attesa creazione automazioni utente)
 
-### Post-Lancio Phases (Mar 2026) - NEW
-- ✅ F10 - La mia Accademia
-- ✅ F11 - I miei Studenti
-- ✅ F12 - Impegni Settimana
-- ✅ F13 - Report Mensile
-- ✅ Sidebar condizionale: sezione "Post-Lancio" visibile solo per F10+
-- ✅ 4 nuove pagine frontend (`PostLancioPages.jsx`)
-- ✅ Banner "Attiva Piano Continuità" per partner F8/F9 senza piano
+### P2 - Backlog
+- Refactoring `server.py` (monolite critico)
+- Refactoring `ClienteDashboard.jsx` (>1200 righe)
+- Refresh token YouTube API
+- Verifica template contratto partner
 
-### Multi-Agent AI System (Mar 2026)
-- ✅ **VALENTINA** - Onboarding & Consulenza (108+ conversations)
-- ✅ **ANDREA** - Avanzamento Corso & Video
-- ✅ **MARCO** - Accountability settimanale, check-in system
-- ✅ **GAIA** - Supporto Tech, funnel health monitoring
-- ✅ **STEFANIA** - Orchestrazione, routing e daily monitoring
-- ✅ **MAIN** - Sistema Centrale, coordinamento
-
-### Agent Hub Dashboard (Mar 2026)
-- ✅ Agent Hub UI at `/admin/agenti` with all 6 agents displayed
-- ✅ Business Summary with Partner Attivi, MRR, LTV
-- ✅ ORION rimosso dalla sidebar admin
-- ✅ Team Evolution aggiornato con 6 agenti
-
-### UI Fixes (Mar 2026)
-- ✅ Sezione Approvazioni: colori corretti per tema chiaro
-- ✅ Team Evolution: aggiornato a 6 agenti con ruoli corretti
-
-### DEPLOY 11: OPENCLAW Data Intelligence Agent (Mar 11, 2026)
-- ✅ **Backend `openclaw_agent.py`**: Agente per data intelligence che:
-  - Recupera contatti e ordini da Systeme.io API
-  - Calcola MRR dagli ordini degli ultimi 30 giorni
-  - Aggiorna collezione `dashboard_stats` in MongoDB
-  - Invia notifiche Telegram per nuovi ordini
-- ✅ **Integrazione Agent Hub**: `agent_hub_service.py` ora legge MRR da `dashboard_stats`
-- ✅ **Scheduler**: OPENCLAW esegue ogni 30 minuti automaticamente
-- ✅ **API Endpoints**:
-  - `POST /api/agents/openclaw/run` - Esecuzione manuale
-  - `GET /api/agents/openclaw/status` - Stato configurazione
-  - `GET /api/agents/openclaw/logs` - Ultimi log esecuzione
-- ✅ **Frontend Agent Hub**: Mostra MRR in tempo reale nel Business Summary
-
-## Known Issues
-### P0 - Critical
-- **OpenClaw execution fails**: "Agent was aborted" error on local machine
-
-### P1 - High
-- **YouTube API Token Expired**: `invalid_grant: Token has been expired or revoked`
-- **Systeme.io MCP 404 errors**: Some API endpoints return 404 (need to verify correct paths)
-
-### P2 - Medium
-- Backend refactoring needed (server.py monolith 11k+ lines)
-
-## Backlog / Future Tasks
-
-### P0 - Immediate
-- Integrare avvio automatico workflow analisi dopo compilazione questionario (nel frontend ClienteDashboard)
-- Integrare URL video di benvenuto (quando disponibile)
-- Test completo funnel "Analisi Strategica" end-to-end
-
-### P1 - High Priority
-- Promuovere partner test a F10+ per verificare pagine post-lancio
-- Implementare endpoint per studenti accademia
-- Implementare endpoint per impegni settimanali (MARCO)
-- Implementare endpoint per report mensile
-- Aggiungere colonna "Piano Continuità" nella Pipeline Partner
-- Fix OpenClaw "Agent was aborted" error (richiede log dal client locale)
-
-### P2 - Medium Priority
-- Backend refactoring: Break server.py into /routers structure
-- Create page/view for FASE 2 - OUTLINE
-- Create page/view for FASE 9 - LANCIO
-- Fix Systeme.io MCP API 404 errors
-- Rinnovare YouTube API Token
-
-## 3rd Party Integrations
-| Service | Status | Purpose |
-|---------|--------|---------|
-| MongoDB Atlas | ✅ Working | Primary database |
-| Anthropic Claude | ✅ Working | All AI agents (Emergent Key) |
-| Telegram Bot | ✅ Working | OpenClaw bridge, VALENTINA messages |
-| OpenClaw + NVIDIA Kimi | ⚠️ Partial | GUI automation (local machine issue) |
-| YouTube Data API v3 | ❌ Broken | Video uploads (expired token) |
-| Stripe | ✅ Working | Payments |
-| APScheduler | ✅ Working | Backend cron jobs |
-| ReportLab | ✅ Working | PDF generation |
-
-## File Structure
-```
-/app
-├── backend/
-│   ├── server.py               # Monolith (added piano_continuita endpoints)
-│   ├── agent_hub_service.py    # Updated with 6 core agents + MARCO
-│   └── routers/
-│       ├── clienti.py
-│       └── agents_router.py
-└── frontend/
-    └── src/
-        ├── App.js              # Added PostLancio routes
-        ├── components/
-        │   ├── admin/
-        │   │   ├── AdminSidebarLight.jsx  # ORION removed
-        │   │   ├── ApprovalDashboard.jsx  # Light theme fix
-        │   │   └── PartnerProfileModal.jsx # Piano Continuità section
-        │   ├── partner/
-        │   │   ├── PartnerSidebar.jsx     # Post-Lancio group (F10+)
-        │   │   └── PostLancioPages.jsx    # NEW: 4 post-lancio pages
-        │   └── shared/
-        │       └── TeamEvolution.jsx      # Updated to 6 agents
-        └── ...
-```
+## Changelog Recente
+- **Mar 12, 2026**: Implementato nuovo flusso onboarding separato registrazione/pagamento
+- **Mar 12, 2026**: Creati componenti `AnalisiStrategicaLanding.jsx` e `DashboardPagamento.jsx`
+- **Mar 12, 2026**: Integrazione Stripe con emergentintegrations funzionante
