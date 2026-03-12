@@ -2,7 +2,9 @@ import React, { useState, useEffect } from "react";
 import { 
   Users, Search, Eye, CheckCircle, Clock, 
   FileText, CreditCard, Phone, Mail, Calendar,
-  X, Loader2, RefreshCw, Sparkles, ChevronRight
+  X, Loader2, RefreshCw, Sparkles, ChevronRight,
+  Download, Save, RotateCcw, CalendarCheck, Filter,
+  AlertCircle, User, Target, MessageSquare
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -12,8 +14,20 @@ const STATUS_CONFIG = {
   registrato: { label: "Registrato", color: "#9CA3AF", icon: Users },
   questionario: { label: "Questionario ✓", color: "#3B82F6", icon: FileText },
   pagato: { label: "Pagato", color: "#F5C518", icon: CreditCard },
-  analisi_pronta: { label: "Analisi Pronta", color: "#22C55E", icon: Sparkles }
+  analisi_da_generare: { label: "Da generare", color: "#EF4444", icon: AlertCircle },
+  analisi_pronta: { label: "Analisi Pronta", color: "#22C55E", icon: Sparkles },
+  call_da_fissare: { label: "Call da fissare", color: "#8B5CF6", icon: CalendarCheck }
 };
+
+// Filtri rapidi
+const FILTRI = [
+  { id: "all", label: "Tutti", icon: Users },
+  { id: "questionario", label: "Questionario ✓", icon: FileText },
+  { id: "pagato", label: "Pagato", icon: CreditCard },
+  { id: "analisi_da_generare", label: "Da generare", icon: AlertCircle },
+  { id: "analisi_pronta", label: "Analisi pronte", icon: Sparkles },
+  { id: "call_da_fissare", label: "Call da fissare", icon: CalendarCheck }
+];
 
 export function AdminClientiAnalisiPanel() {
   const [clienti, setClienti] = useState([]);
@@ -22,6 +36,15 @@ export function AdminClientiAnalisiPanel() {
   const [selectedCliente, setSelectedCliente] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  
+  // Stati per generazione analisi
+  const [generatingAnalisi, setGeneratingAnalisi] = useState(false);
+  const [analisiGenerata, setAnalisiGenerata] = useState(null);
+  const [savingAnalisi, setSavingAnalisi] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [updatingCall, setUpdatingCall] = useState(false);
+  const [showAnalisiEditor, setShowAnalisiEditor] = useState(false);
+  const [editedAnalisi, setEditedAnalisi] = useState("");
 
   useEffect(() => {
     loadClienti();
@@ -44,23 +67,126 @@ export function AdminClientiAnalisiPanel() {
   };
 
   const getClienteStatus = (cliente) => {
+    if (cliente.call_stato === "da_fissare") return "call_da_fissare";
     if (cliente.analisi_generata) return "analisi_pronta";
+    if (cliente.pagamento_analisi && !cliente.analisi_generata) return "analisi_da_generare";
     if (cliente.pagamento_analisi) return "pagato";
     if (cliente.questionario_compilato) return "questionario";
     return "registrato";
   };
 
-  const handleGeneraAnalisi = async (userId) => {
+  // Genera analisi con AI
+  const handleGeneraAnalisiAI = async () => {
+    if (!selectedCliente) return;
+    
+    setGeneratingAnalisi(true);
+    setAnalisiGenerata(null);
+    
     try {
-      const response = await fetch(`${API}/api/admin/clienti-analisi/${userId}/genera-analisi`, {
+      const response = await fetch(`${API}/api/admin/clienti-analisi/${selectedCliente.id}/genera-analisi-ai`, {
         method: 'POST'
       });
-      if (response.ok) {
-        loadClienti();
-        setSelectedCliente(null);
+      const data = await response.json();
+      
+      if (data.success) {
+        setAnalisiGenerata(data.analisi_testo);
+        setEditedAnalisi(data.analisi_testo);
+        setShowAnalisiEditor(true);
+      } else {
+        alert(data.detail || "Errore nella generazione");
       }
     } catch (e) {
       console.error("Error:", e);
+      alert("Errore nella generazione dell'analisi");
+    } finally {
+      setGeneratingAnalisi(false);
+    }
+  };
+
+  // Salva analisi
+  const handleSalvaAnalisi = async () => {
+    if (!selectedCliente || !editedAnalisi) return;
+    
+    setSavingAnalisi(true);
+    
+    try {
+      const response = await fetch(`${API}/api/admin/clienti-analisi/${selectedCliente.id}/salva-analisi?analisi_testo=${encodeURIComponent(editedAnalisi)}`, {
+        method: 'POST'
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        // Aggiorna il cliente localmente
+        setSelectedCliente(prev => ({
+          ...prev,
+          analisi_generata: true,
+          analisi_testo: editedAnalisi
+        }));
+        loadClienti();
+        alert("Analisi salvata con successo!");
+      }
+    } catch (e) {
+      console.error("Error:", e);
+      alert("Errore nel salvataggio");
+    } finally {
+      setSavingAnalisi(false);
+    }
+  };
+
+  // Scarica PDF
+  const handleScaricaPdf = async () => {
+    if (!selectedCliente) return;
+    
+    setDownloadingPdf(true);
+    
+    try {
+      const response = await fetch(`${API}/api/admin/clienti-analisi/${selectedCliente.id}/analisi-pdf`);
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || "Errore download");
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Analisi_${selectedCliente.cognome}_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Error:", e);
+      alert(e.message || "Errore nel download del PDF");
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  // Aggiorna stato call
+  const handleStatoCall = async (stato) => {
+    if (!selectedCliente) return;
+    
+    setUpdatingCall(true);
+    
+    try {
+      const response = await fetch(`${API}/api/admin/clienti-analisi/${selectedCliente.id}/stato-call?stato=${stato}`, {
+        method: 'POST'
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setSelectedCliente(prev => ({
+          ...prev,
+          call_stato: stato
+        }));
+        loadClienti();
+      }
+    } catch (e) {
+      console.error("Error:", e);
+    } finally {
+      setUpdatingCall(false);
     }
   };
 
@@ -70,7 +196,13 @@ export function AdminClientiAnalisiPanel() {
       `${c.nome} ${c.cognome} ${c.email}`.toLowerCase().includes(searchQuery.toLowerCase());
     
     const status = getClienteStatus(c);
-    const matchStatus = filterStatus === "all" || status === filterStatus;
+    let matchStatus = filterStatus === "all";
+    
+    if (filterStatus === "questionario") matchStatus = c.questionario_compilato && !c.pagamento_analisi;
+    if (filterStatus === "pagato") matchStatus = c.pagamento_analisi;
+    if (filterStatus === "analisi_da_generare") matchStatus = c.pagamento_analisi && !c.analisi_generata;
+    if (filterStatus === "analisi_pronta") matchStatus = c.analisi_generata;
+    if (filterStatus === "call_da_fissare") matchStatus = c.call_stato === "da_fissare";
     
     return matchSearch && matchStatus;
   });
@@ -82,13 +214,24 @@ export function AdminClientiAnalisiPanel() {
     });
   };
 
+  // Labels questionario
+  const QUESTIONARIO_LABELS = {
+    expertise: "1. In cosa sei riconosciuto come esperto?",
+    cliente_target: "2. Chi è il tuo cliente ideale?",
+    risultato_promesso: "3. Quale risultato vuoi aiutarlo a ottenere?",
+    pubblico_esistente: "4. Hai già un pubblico che ti segue?",
+    esperienze_vendita: "5. Hai già venduto qualcosa online?",
+    ostacolo_principale: "6. Qual è l'ostacolo che ti ha bloccato?",
+    motivazione: "7. Perché proprio adesso?"
+  };
+
   return (
     <div className="p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: '#1E2128' }}>
-            Clienti Analisi Strategica
+            Clienti Analisi
           </h1>
           <p className="text-sm" style={{ color: '#5F6572' }}>
             Gestisci i clienti che hanno richiesto l'Analisi Strategica
@@ -98,6 +241,7 @@ export function AdminClientiAnalisiPanel() {
           onClick={loadClienti}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           style={{ background: '#F5C518', color: '#1E2128' }}
+          data-testid="refresh-btn"
         >
           <RefreshCw className="w-4 h-4" />
           Aggiorna
@@ -105,22 +249,30 @@ export function AdminClientiAnalisiPanel() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-6 gap-3 mb-6">
         <div className="rounded-xl p-4" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
           <div className="text-2xl font-bold" style={{ color: '#1E2128' }}>{stats.totale || 0}</div>
-          <div className="text-sm" style={{ color: '#5F6572' }}>Totale clienti</div>
+          <div className="text-xs" style={{ color: '#5F6572' }}>Totale</div>
         </div>
-        <div className="rounded-xl p-4" style={{ background: '#3B82F620', border: '1px solid #3B82F640' }}>
+        <div className="rounded-xl p-4" style={{ background: '#3B82F615', border: '1px solid #3B82F630' }}>
           <div className="text-2xl font-bold" style={{ color: '#3B82F6' }}>{stats.questionario_compilato || 0}</div>
-          <div className="text-sm" style={{ color: '#3B82F6' }}>Questionario ✓</div>
+          <div className="text-xs" style={{ color: '#3B82F6' }}>Questionario ✓</div>
         </div>
-        <div className="rounded-xl p-4" style={{ background: '#F5C51820', border: '1px solid #F5C51840' }}>
+        <div className="rounded-xl p-4" style={{ background: '#F5C51815', border: '1px solid #F5C51830' }}>
           <div className="text-2xl font-bold" style={{ color: '#C4990A' }}>{stats.pagato || 0}</div>
-          <div className="text-sm" style={{ color: '#C4990A' }}>Pagato</div>
+          <div className="text-xs" style={{ color: '#C4990A' }}>Da generare</div>
         </div>
-        <div className="rounded-xl p-4" style={{ background: '#22C55E20', border: '1px solid #22C55E40' }}>
+        <div className="rounded-xl p-4" style={{ background: '#22C55E15', border: '1px solid #22C55E30' }}>
           <div className="text-2xl font-bold" style={{ color: '#22C55E' }}>{stats.analisi_pronta || 0}</div>
-          <div className="text-sm" style={{ color: '#22C55E' }}>Analisi pronta</div>
+          <div className="text-xs" style={{ color: '#22C55E' }}>Analisi pronte</div>
+        </div>
+        <div className="rounded-xl p-4" style={{ background: '#8B5CF615', border: '1px solid #8B5CF630' }}>
+          <div className="text-2xl font-bold" style={{ color: '#8B5CF6' }}>{stats.call_da_fissare || 0}</div>
+          <div className="text-xs" style={{ color: '#8B5CF6' }}>Call da fissare</div>
+        </div>
+        <div className="rounded-xl p-4" style={{ background: '#10B98115', border: '1px solid #10B98130' }}>
+          <div className="text-2xl font-bold" style={{ color: '#10B981' }}>{stats.call_completata || 0}</div>
+          <div className="text-xs" style={{ color: '#10B981' }}>Call completate</div>
         </div>
       </div>
 
@@ -135,20 +287,34 @@ export function AdminClientiAnalisiPanel() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F5C518]"
             style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}
+            data-testid="search-input"
           />
         </div>
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F5C518]"
-          style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}
-        >
-          <option value="all">Tutti gli stati</option>
-          <option value="registrato">Solo registrati</option>
-          <option value="questionario">Questionario completato</option>
-          <option value="pagato">Pagato</option>
-          <option value="analisi_pronta">Analisi pronta</option>
-        </select>
+      </div>
+
+      {/* Filtri rapidi */}
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {FILTRI.map(filtro => {
+          const IconComponent = filtro.icon;
+          const isActive = filterStatus === filtro.id;
+          return (
+            <button
+              key={filtro.id}
+              onClick={() => setFilterStatus(filtro.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive ? 'ring-2 ring-offset-1' : ''}`}
+              style={{ 
+                background: isActive ? '#F5C518' : '#FFFFFF', 
+                color: isActive ? '#1E2128' : '#5F6572',
+                border: '1px solid #ECEDEF',
+                ringColor: '#F5C518'
+              }}
+              data-testid={`filter-${filtro.id}`}
+            >
+              <IconComponent className="w-4 h-4" />
+              {filtro.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Lista clienti */}
@@ -166,65 +332,97 @@ export function AdminClientiAnalisiPanel() {
           <table className="w-full">
             <thead>
               <tr style={{ background: '#FAFAF7', borderBottom: '1px solid #ECEDEF' }}>
-                <th className="text-left px-4 py-3 text-sm font-medium" style={{ color: '#5F6572' }}>Cliente</th>
-                <th className="text-left px-4 py-3 text-sm font-medium" style={{ color: '#5F6572' }}>Contatti</th>
-                <th className="text-left px-4 py-3 text-sm font-medium" style={{ color: '#5F6572' }}>Stato</th>
-                <th className="text-left px-4 py-3 text-sm font-medium" style={{ color: '#5F6572' }}>Data registrazione</th>
-                <th className="text-left px-4 py-3 text-sm font-medium" style={{ color: '#5F6572' }}>Azioni</th>
+                <th className="text-left px-4 py-3 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>Nome</th>
+                <th className="text-left px-4 py-3 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>Cognome</th>
+                <th className="text-left px-4 py-3 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>Contatti</th>
+                <th className="text-center px-4 py-3 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>Quest.</th>
+                <th className="text-center px-4 py-3 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>Pag.</th>
+                <th className="text-center px-4 py-3 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>Analisi</th>
+                <th className="text-left px-4 py-3 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>Call</th>
+                <th className="text-left px-4 py-3 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>Aggiornato</th>
+                <th className="text-left px-4 py-3 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>Azioni</th>
               </tr>
             </thead>
             <tbody>
               {filteredClienti.map((cliente) => {
                 const status = getClienteStatus(cliente);
-                const statusConfig = STATUS_CONFIG[status];
-                const StatusIcon = statusConfig.icon;
+                const statusConfig = STATUS_CONFIG[status] || STATUS_CONFIG.registrato;
                 
                 return (
                   <tr 
                     key={cliente.id} 
-                    className="hover:bg-gray-50 transition-colors"
+                    className="hover:bg-gray-50 transition-colors cursor-pointer"
                     style={{ borderBottom: '1px solid #ECEDEF' }}
+                    onClick={() => setSelectedCliente(cliente)}
+                    data-testid={`cliente-row-${cliente.id}`}
                   >
-                    <td className="px-4 py-4">
-                      <div className="font-medium" style={{ color: '#1E2128' }}>
-                        {cliente.nome} {cliente.cognome}
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-sm" style={{ color: '#1E2128' }}>
+                        {cliente.nome}
                       </div>
-                      {cliente.expertise && (
-                        <div className="text-xs mt-1 truncate max-w-[200px]" style={{ color: '#9CA3AF' }}>
-                          {cliente.expertise}
-                        </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-sm" style={{ color: '#1E2128' }}>
+                        {cliente.cognome}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="text-xs" style={{ color: '#5F6572' }}>{cliente.email}</div>
+                      <div className="text-xs" style={{ color: '#9CA3AF' }}>{cliente.telefono || '-'}</div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {cliente.questionario_compilato ? (
+                        <CheckCircle className="w-5 h-5 mx-auto" style={{ color: '#22C55E' }} />
+                      ) : (
+                        <span className="text-gray-300">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-1 text-sm" style={{ color: '#5F6572' }}>
-                        <Mail className="w-4 h-4" />
-                        {cliente.email}
-                      </div>
-                      <div className="flex items-center gap-1 text-sm mt-1" style={{ color: '#5F6572' }}>
-                        <Phone className="w-4 h-4" />
-                        {cliente.telefono || '-'}
-                      </div>
+                    <td className="px-4 py-3 text-center">
+                      {cliente.pagamento_analisi ? (
+                        <CheckCircle className="w-5 h-5 mx-auto" style={{ color: '#22C55E' }} />
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3 text-center">
+                      {cliente.analisi_generata ? (
+                        <CheckCircle className="w-5 h-5 mx-auto" style={{ color: '#22C55E' }} />
+                      ) : cliente.pagamento_analisi ? (
+                        <AlertCircle className="w-5 h-5 mx-auto" style={{ color: '#EF4444' }} />
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
                       <span 
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
-                        style={{ background: `${statusConfig.color}20`, color: statusConfig.color }}
+                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+                        style={{ 
+                          background: cliente.call_stato === 'completata' ? '#22C55E20' : 
+                                     cliente.call_stato === 'da_fissare' ? '#8B5CF620' : 
+                                     cliente.call_stato === 'fissata' ? '#3B82F620' : '#9CA3AF20',
+                          color: cliente.call_stato === 'completata' ? '#22C55E' : 
+                                 cliente.call_stato === 'da_fissare' ? '#8B5CF6' : 
+                                 cliente.call_stato === 'fissata' ? '#3B82F6' : '#9CA3AF'
+                        }}
                       >
-                        <StatusIcon className="w-3 h-3" />
-                        {statusConfig.label}
+                        {cliente.call_stato || '-'}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-sm" style={{ color: '#5F6572' }}>
-                      {formatDate(cliente.data_registrazione)}
+                    <td className="px-4 py-3 text-xs" style={{ color: '#9CA3AF' }}>
+                      {formatDate(cliente.analisi_data || cliente.data_registrazione)}
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3">
                       <button
-                        onClick={() => setSelectedCliente(cliente)}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors hover:opacity-80"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedCliente(cliente);
+                        }}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:opacity-80"
                         style={{ background: '#F5C518', color: '#1E2128' }}
+                        data-testid={`btn-dettagli-${cliente.id}`}
                       >
-                        <Eye className="w-4 h-4" />
-                        Dettagli
+                        <Eye className="w-3 h-3" />
+                        Apri
                       </button>
                     </td>
                   </tr>
@@ -235,102 +433,305 @@ export function AdminClientiAnalisiPanel() {
         </div>
       )}
 
-      {/* Modal Dettagli Cliente */}
+      {/* Modal Scheda Cliente */}
       {selectedCliente && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-8 overflow-y-auto" style={{ background: 'rgba(0,0,0,0.6)' }}>
           <div 
-            className="relative w-full max-w-2xl rounded-2xl p-6 max-h-[90vh] overflow-y-auto"
+            className="relative w-full max-w-4xl rounded-2xl mb-8"
             style={{ background: '#FFFFFF' }}
           >
-            <button
-              onClick={() => setSelectedCliente(null)}
-              className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100"
-            >
-              <X className="w-5 h-5" style={{ color: '#9CA3AF' }} />
-            </button>
-
-            <h2 className="text-xl font-bold mb-4" style={{ color: '#1E2128' }}>
-              {selectedCliente.nome} {selectedCliente.cognome}
-            </h2>
-
-            {/* Info base */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="p-3 rounded-xl" style={{ background: '#FAFAF7' }}>
-                <div className="text-xs font-medium mb-1" style={{ color: '#9CA3AF' }}>Email</div>
-                <div className="text-sm" style={{ color: '#1E2128' }}>{selectedCliente.email}</div>
+            {/* Header Modal */}
+            <div className="sticky top-0 z-10 flex items-center justify-between p-6 rounded-t-2xl" style={{ background: '#1E2128' }}>
+              <div>
+                <h2 className="text-xl font-bold" style={{ color: '#FFFFFF' }}>
+                  {selectedCliente.nome} {selectedCliente.cognome}
+                </h2>
+                <p className="text-sm" style={{ color: '#9CA3AF' }}>{selectedCliente.email}</p>
               </div>
-              <div className="p-3 rounded-xl" style={{ background: '#FAFAF7' }}>
-                <div className="text-xs font-medium mb-1" style={{ color: '#9CA3AF' }}>Telefono</div>
-                <div className="text-sm" style={{ color: '#1E2128' }}>{selectedCliente.telefono || '-'}</div>
-              </div>
-              <div className="p-3 rounded-xl" style={{ background: '#FAFAF7' }}>
-                <div className="text-xs font-medium mb-1" style={{ color: '#9CA3AF' }}>Registrazione</div>
-                <div className="text-sm" style={{ color: '#1E2128' }}>{formatDate(selectedCliente.data_registrazione)}</div>
-              </div>
-              <div className="p-3 rounded-xl" style={{ background: '#FAFAF7' }}>
-                <div className="text-xs font-medium mb-1" style={{ color: '#9CA3AF' }}>Stato</div>
-                <div className="text-sm" style={{ color: '#1E2128' }}>
-                  {STATUS_CONFIG[getClienteStatus(selectedCliente)].label}
-                </div>
-              </div>
+              <button
+                onClick={() => {
+                  setSelectedCliente(null);
+                  setShowAnalisiEditor(false);
+                  setAnalisiGenerata(null);
+                }}
+                className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <X className="w-5 h-5" style={{ color: '#FFFFFF' }} />
+              </button>
             </div>
 
-            {/* Stato processo */}
-            <div className="mb-6">
-              <h3 className="text-sm font-bold mb-3" style={{ color: '#5F6572' }}>PROCESSO</h3>
-              <div className="flex items-center gap-2">
-                <div className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium ${selectedCliente.questionario_compilato ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                  <CheckCircle className="w-3 h-3" />
-                  Questionario
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-400" />
-                <div className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium ${selectedCliente.pagamento_analisi ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                  <CreditCard className="w-3 h-3" />
-                  Pagamento €67
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-400" />
-                <div className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium ${selectedCliente.analisi_generata ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                  <Sparkles className="w-3 h-3" />
-                  Analisi
-                </div>
-              </div>
-            </div>
-
-            {/* Risposte questionario */}
-            {selectedCliente.questionario_compilato && (
+            <div className="p-6">
+              {/* SEZIONE 1 — DATI CLIENTE */}
               <div className="mb-6">
-                <h3 className="text-sm font-bold mb-3" style={{ color: '#5F6572' }}>RISPOSTE QUESTIONARIO</h3>
-                <div className="space-y-3">
-                  {[
-                    { label: 'Expertise', value: selectedCliente.expertise },
-                    { label: 'Cliente target', value: selectedCliente.cliente_target },
-                    { label: 'Risultato promesso', value: selectedCliente.risultato_promesso },
-                    { label: 'Pubblico esistente', value: selectedCliente.pubblico_esistente },
-                    { label: 'Esperienze vendita', value: selectedCliente.esperienze_vendita },
-                    { label: 'Ostacolo principale', value: selectedCliente.ostacolo_principale },
-                    { label: 'Motivazione', value: selectedCliente.motivazione }
-                  ].map((item, i) => item.value && (
-                    <div key={i} className="p-3 rounded-xl" style={{ background: '#FAFAF7' }}>
-                      <div className="text-xs font-medium mb-1" style={{ color: '#9CA3AF' }}>{item.label}</div>
-                      <div className="text-sm" style={{ color: '#1E2128' }}>{item.value}</div>
-                    </div>
-                  ))}
+                <h3 className="text-sm font-bold uppercase tracking-wider mb-3" style={{ color: '#9CA3AF' }}>
+                  Dati Cliente
+                </h3>
+                <div className="grid grid-cols-5 gap-3">
+                  <div className="p-3 rounded-xl" style={{ background: '#FAFAF7' }}>
+                    <div className="text-xs font-medium mb-1" style={{ color: '#9CA3AF' }}>Nome</div>
+                    <div className="text-sm font-medium" style={{ color: '#1E2128' }}>{selectedCliente.nome}</div>
+                  </div>
+                  <div className="p-3 rounded-xl" style={{ background: '#FAFAF7' }}>
+                    <div className="text-xs font-medium mb-1" style={{ color: '#9CA3AF' }}>Cognome</div>
+                    <div className="text-sm font-medium" style={{ color: '#1E2128' }}>{selectedCliente.cognome}</div>
+                  </div>
+                  <div className="p-3 rounded-xl" style={{ background: '#FAFAF7' }}>
+                    <div className="text-xs font-medium mb-1" style={{ color: '#9CA3AF' }}>Email</div>
+                    <div className="text-sm" style={{ color: '#1E2128' }}>{selectedCliente.email}</div>
+                  </div>
+                  <div className="p-3 rounded-xl" style={{ background: '#FAFAF7' }}>
+                    <div className="text-xs font-medium mb-1" style={{ color: '#9CA3AF' }}>Telefono</div>
+                    <div className="text-sm" style={{ color: '#1E2128' }}>{selectedCliente.telefono || '-'}</div>
+                  </div>
+                  <div className="p-3 rounded-xl" style={{ background: '#FAFAF7' }}>
+                    <div className="text-xs font-medium mb-1" style={{ color: '#9CA3AF' }}>Data registrazione</div>
+                    <div className="text-sm" style={{ color: '#1E2128' }}>{formatDate(selectedCliente.data_registrazione)}</div>
+                  </div>
                 </div>
               </div>
-            )}
 
-            {/* Azioni */}
-            {selectedCliente.pagamento_analisi && !selectedCliente.analisi_generata && (
-              <div className="pt-4" style={{ borderTop: '1px solid #ECEDEF' }}>
-                <button
-                  onClick={() => handleGeneraAnalisi(selectedCliente.id)}
-                  className="w-full py-3 rounded-xl font-bold transition-colors hover:opacity-90"
-                  style={{ background: '#22C55E', color: '#FFFFFF' }}
-                >
-                  Segna analisi come completata
-                </button>
+              {/* SEZIONE 3 — STATO ANALISI */}
+              <div className="mb-6">
+                <h3 className="text-sm font-bold uppercase tracking-wider mb-3" style={{ color: '#9CA3AF' }}>
+                  Stato Processo
+                </h3>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${selectedCliente.questionario_compilato ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                    <CheckCircle className="w-4 h-4" />
+                    questionario_compilato
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                  <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${selectedCliente.pagamento_analisi ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                    <CreditCard className="w-4 h-4" />
+                    pagamento_analisi
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                  <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${selectedCliente.analisi_generata ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                    <Sparkles className="w-4 h-4" />
+                    analisi_generata
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                  <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${selectedCliente.call_stato ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-400'}`}>
+                    <CalendarCheck className="w-4 h-4" />
+                    {selectedCliente.call_stato || 'call_prenotata'}
+                  </div>
+                </div>
               </div>
-            )}
+
+              {/* SEZIONE 2 — RISPOSTE QUESTIONARIO */}
+              {selectedCliente.questionario_compilato && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-bold uppercase tracking-wider mb-3" style={{ color: '#9CA3AF' }}>
+                    Risposte Questionario
+                  </h3>
+                  <div className="space-y-3">
+                    {Object.entries(QUESTIONARIO_LABELS).map(([key, label]) => {
+                      const value = selectedCliente[key];
+                      if (!value) return null;
+                      return (
+                        <div key={key} className="p-4 rounded-xl" style={{ background: '#FAFAF7' }}>
+                          <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#C4990A' }}>
+                            {label}
+                          </div>
+                          <div className="text-sm" style={{ color: '#1E2128' }}>{value}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Editor Analisi Generata */}
+              {showAnalisiEditor && (
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-bold uppercase tracking-wider" style={{ color: '#22C55E' }}>
+                      ✨ Analisi Strategica Generata
+                    </h3>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleGeneraAnalisiAI}
+                        disabled={generatingAnalisi}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:opacity-80 disabled:opacity-50"
+                        style={{ background: '#ECEDEF', color: '#5F6572' }}
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        Rigenera
+                      </button>
+                    </div>
+                  </div>
+                  <textarea
+                    value={editedAnalisi}
+                    onChange={(e) => setEditedAnalisi(e.target.value)}
+                    className="w-full h-96 p-4 rounded-xl font-mono text-sm focus:outline-none focus:ring-2 focus:ring-[#F5C518]"
+                    style={{ background: '#FAFAF7', border: '1px solid #ECEDEF', color: '#1E2128' }}
+                    data-testid="analisi-editor"
+                  />
+                  
+                  <div className="flex gap-3 mt-4">
+                    <button
+                      onClick={handleSalvaAnalisi}
+                      disabled={savingAnalisi}
+                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-colors hover:opacity-90 disabled:opacity-50"
+                      style={{ background: '#22C55E', color: '#FFFFFF' }}
+                      data-testid="btn-salva-analisi"
+                    >
+                      {savingAnalisi ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                      Salva Analisi
+                    </button>
+                    <button
+                      onClick={handleScaricaPdf}
+                      disabled={downloadingPdf || !selectedCliente.analisi_generata}
+                      className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition-colors hover:opacity-90 disabled:opacity-50"
+                      style={{ background: '#3B82F6', color: '#FFFFFF' }}
+                      data-testid="btn-scarica-pdf"
+                    >
+                      {downloadingPdf ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+                      Scarica PDF
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Analisi già salvata (visualizzazione) */}
+              {selectedCliente.analisi_testo && !showAnalisiEditor && (
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-bold uppercase tracking-wider" style={{ color: '#22C55E' }}>
+                      ✅ Analisi Salvata
+                    </h3>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setEditedAnalisi(selectedCliente.analisi_testo);
+                          setShowAnalisiEditor(true);
+                        }}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:opacity-80"
+                        style={{ background: '#ECEDEF', color: '#5F6572' }}
+                      >
+                        <Eye className="w-3 h-3" />
+                        Visualizza/Modifica
+                      </button>
+                      <button
+                        onClick={handleScaricaPdf}
+                        disabled={downloadingPdf}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:opacity-80 disabled:opacity-50"
+                        style={{ background: '#3B82F6', color: '#FFFFFF' }}
+                      >
+                        {downloadingPdf ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                        PDF
+                      </button>
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-xl text-sm" style={{ background: '#F0FDF4', color: '#166534' }}>
+                    Analisi generata il {formatDate(selectedCliente.analisi_data)}
+                  </div>
+                </div>
+              )}
+
+              {/* BOTTONE GENERAZIONE ANALISI */}
+              {selectedCliente.questionario_compilato && selectedCliente.pagamento_analisi && !selectedCliente.analisi_generata && !showAnalisiEditor && (
+                <div className="mb-6 p-6 rounded-xl" style={{ background: '#FFF8DC', border: '2px solid #F5C518' }}>
+                  <div className="text-center">
+                    <Sparkles className="w-10 h-10 mx-auto mb-3" style={{ color: '#C4990A' }} />
+                    <h3 className="font-bold mb-2" style={{ color: '#1E2128' }}>Cliente pronto per l'analisi</h3>
+                    <p className="text-sm mb-4" style={{ color: '#5F6572' }}>
+                      Questionario compilato e pagamento ricevuto. Puoi generare l'Analisi Strategica.
+                    </p>
+                    <button
+                      onClick={handleGeneraAnalisiAI}
+                      disabled={generatingAnalisi}
+                      className="inline-flex items-center gap-2 px-8 py-3 rounded-xl font-bold transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+                      style={{ background: '#22C55E', color: '#FFFFFF' }}
+                      data-testid="btn-genera-analisi"
+                    >
+                      {generatingAnalisi ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          Generazione in corso...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-5 h-5" />
+                          Genera Analisi Strategica
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Bottone disabilitato se non ha pagato */}
+              {selectedCliente.questionario_compilato && !selectedCliente.pagamento_analisi && (
+                <div className="mb-6 p-6 rounded-xl" style={{ background: '#FEE2E2', border: '1px solid #FECACA' }}>
+                  <div className="text-center">
+                    <AlertCircle className="w-10 h-10 mx-auto mb-3" style={{ color: '#EF4444' }} />
+                    <h3 className="font-bold mb-2" style={{ color: '#991B1B' }}>Pagamento non ricevuto</h3>
+                    <p className="text-sm mb-4" style={{ color: '#B91C1C' }}>
+                      Il cliente ha compilato il questionario ma non ha ancora pagato l'Analisi Strategica (€67).
+                    </p>
+                    <button
+                      disabled
+                      className="inline-flex items-center gap-2 px-8 py-3 rounded-xl font-bold opacity-50 cursor-not-allowed"
+                      style={{ background: '#9CA3AF', color: '#FFFFFF' }}
+                    >
+                      <Sparkles className="w-5 h-5" />
+                      Genera Analisi Strategica
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* STATO CALL - Dopo salvataggio analisi */}
+              {selectedCliente.analisi_generata && (
+                <div className="p-6 rounded-xl" style={{ background: '#F5F3FF', border: '1px solid #DDD6FE' }}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-bold mb-1" style={{ color: '#5B21B6' }}>Stato Call Strategica</h3>
+                      <p className="text-sm" style={{ color: '#7C3AED' }}>
+                        Stato attuale: <strong>{selectedCliente.call_stato || 'non impostato'}</strong>
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      {!selectedCliente.call_stato && (
+                        <button
+                          onClick={() => handleStatoCall('da_fissare')}
+                          disabled={updatingCall}
+                          className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors hover:opacity-90 disabled:opacity-50"
+                          style={{ background: '#8B5CF6', color: '#FFFFFF' }}
+                          data-testid="btn-pronto-call"
+                        >
+                          {updatingCall ? <Loader2 className="w-4 h-4 animate-spin" /> : <CalendarCheck className="w-4 h-4" />}
+                          Segna come pronto per la call
+                        </button>
+                      )}
+                      {selectedCliente.call_stato === 'da_fissare' && (
+                        <button
+                          onClick={() => handleStatoCall('fissata')}
+                          disabled={updatingCall}
+                          className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors hover:opacity-90 disabled:opacity-50"
+                          style={{ background: '#3B82F6', color: '#FFFFFF' }}
+                        >
+                          {updatingCall ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
+                          Call fissata
+                        </button>
+                      )}
+                      {selectedCliente.call_stato === 'fissata' && (
+                        <button
+                          onClick={() => handleStatoCall('completata')}
+                          disabled={updatingCall}
+                          className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors hover:opacity-90 disabled:opacity-50"
+                          style={{ background: '#22C55E', color: '#FFFFFF' }}
+                        >
+                          {updatingCall ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                          Call completata
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
