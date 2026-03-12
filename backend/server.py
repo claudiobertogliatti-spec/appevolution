@@ -1528,7 +1528,10 @@ async def get_clienti_analisi_admin():
             "registrati": len([c for c in clienti if not c.get("questionario_compilato")]),
             "questionario_compilato": len([c for c in clienti if c.get("questionario_compilato") and not c.get("pagamento_analisi")]),
             "pagato": len([c for c in clienti if c.get("pagamento_analisi") and not c.get("analisi_generata")]),
-            "analisi_pronta": len([c for c in clienti if c.get("analisi_generata")])
+            "analisi_pronta": len([c for c in clienti if c.get("analisi_generata")]),
+            "call_da_fissare": len([c for c in clienti if c.get("call_stato") == "da_fissare"]),
+            "call_fissata": len([c for c in clienti if c.get("call_stato") == "fissata"]),
+            "call_completata": len([c for c in clienti if c.get("call_stato") == "completata"])
         }
         
         return {
