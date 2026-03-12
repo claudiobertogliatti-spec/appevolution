@@ -624,66 +624,6 @@ export function ClienteDashboard({ cliente, onLogout }) {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Welcome Header */}
-            <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-              <h1 className="text-2xl font-black text-[#1E2128] mb-2">
-                ✅ Benvenuto in Evolution PRO
-              </h1>
-              <p className="text-[#5F6572]">
-                Hai fatto il primo passo importante verso la costruzione della tua Accademia Digitale. 
-                Ora prepariamo insieme la tua Analisi Strategica.
-              </p>
-
-              {/* Progress Bar */}
-              <div className="mt-6 flex items-center gap-4">
-                {PROGRESS_STEPS.map((step, i) => {
-                  const status = getStepStatus(step.id);
-                  return (
-                    <React.Fragment key={step.id}>
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                            status === "completed" 
-                              ? "bg-green-500 text-white"
-                              : status === "current"
-                              ? "bg-[#F5C518] text-[#1E2128]"
-                              : "bg-[#ECEDEF] text-[#9CA3AF]"
-                          }`}
-                        >
-                          {status === "completed" ? <CheckCircle className="w-4 h-4" /> : step.id}
-                        </div>
-                        <span className={`text-sm font-medium ${
-                          status === "completed" ? "text-green-600" :
-                          status === "current" ? "text-[#1E2128]" : "text-[#9CA3AF]"
-                        }`}>
-                          {step.label}
-                        </span>
-                      </div>
-                      {i < PROGRESS_STEPS.length - 1 && (
-                        <div className={`flex-1 h-0.5 ${
-                          getStepStatus(PROGRESS_STEPS[i + 1].id) !== "pending" 
-                            ? "bg-green-500" : "bg-[#ECEDEF]"
-                        }`} />
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Urgency Banner (if not completed and already in questionario) */}
-            {!questionarioCompletato && showQuestionario && (
-              <div className="rounded-xl p-4 flex items-start gap-3" style={{ background: '#FEF9E7', border: '1px solid #F5C518' }}>
-                <Clock className="w-5 h-5 text-[#C4990A] flex-shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-bold text-[#1E2128]">⏱ Completa il questionario prima della call</div>
-                  <p className="text-sm text-[#5F6572]">
-                    Claudio legge le tue risposte prima di incontrarsi con te. 
-                    Più sei specifico/a, più la call sarà utile per te.
-                  </p>
-                </div>
-              </div>
-            )}
 
             {/* PRE-QUESTIONARIO INTRO PAGE */}
             {!questionarioCompletato && !showQuestionario ? (
