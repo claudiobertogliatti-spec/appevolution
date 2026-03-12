@@ -60,6 +60,7 @@ import { DashboardCliente } from "./components/cliente/DashboardCliente";
 import { QuestionarioCliente } from "./components/cliente/QuestionarioCliente";
 import { SbloccaAnalisi } from "./components/cliente/SbloccaAnalisi";
 import { AnalisiInPreparazione } from "./components/cliente/AnalisiInPreparazione";
+import { AttivazioneAnalisi } from "./components/cliente/AttivazioneAnalisi";
 import { PartnerLogin } from "./components/partner/PartnerLogin";
 import { Homepage } from "./components/Homepage";
 import { MiaAccademiaPage, MieiStudentiPage, ImpegniSettimanaPage, ReportMensilePage, PianoContinuitaBanner } from "./components/partner/PostLancioPages";
