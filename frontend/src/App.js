@@ -1330,6 +1330,7 @@ export default function App() {
           {mode==="admin"&&<>
             {nav==="overview"&&<AdminOverview stats={stats} agents={agents} partners={partners} alerts={alerts} onNavigate={setNav}/>}
             {nav==="clienti"&&<AdminClientiPanel/>}
+            {nav==="clienti-analisi"&&<AdminClientiAnalisiPanel/>}
             {nav==="agenti"&&<AgentDashboard/>}
             {/* OrionLeadScoring rimosso - Lead gestiti esclusivamente in Systeme.io */}
             {nav==="approvals"&&<ApprovalDashboard/>}
