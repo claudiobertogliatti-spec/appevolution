@@ -1056,7 +1056,7 @@ export default function App() {
       // Verifica pagamento e aggiorna stato
       const verifyAndRedirect = async () => {
         try {
-          const response = await fetch(`${API}/cliente-analisi/verify-payment?user_id=${currentUser.id}`, {
+          const response = await fetch(`${API}/api/cliente-analisi/verify-payment?user_id=${currentUser.id}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
           });
