@@ -1099,8 +1099,8 @@ export default function App() {
     // Route: Questionario
     if (window.location.pathname === "/questionario") {
       if (currentUser.questionario_compilato) {
-        // Questionario già compilato, torna alla dashboard
-        window.location.href = "/dashboard-cliente";
+        // Questionario già compilato, vai all'attivazione analisi
+        window.location.href = "/analisi-attivazione";
         return null;
       }
       return (
@@ -1110,8 +1110,29 @@ export default function App() {
             const updatedUser = { ...currentUser, questionario_compilato: true };
             setCurrentUser(updatedUser);
             localStorage.setItem("user", JSON.stringify(updatedUser));
-            window.location.href = "/dashboard-cliente";
+            // Reindirizza alla pagina di attivazione analisi
+            window.location.href = "/analisi-attivazione";
           }}
+          onLogout={handleClienteLogout}
+        />
+      );
+    }
+
+    // Route: Attivazione Analisi Strategica (dopo questionario, prima del pagamento)
+    if (window.location.pathname === "/analisi-attivazione") {
+      if (!currentUser.questionario_compilato) {
+        // Deve prima compilare il questionario
+        window.location.href = "/questionario";
+        return null;
+      }
+      if (currentUser.pagamento_analisi) {
+        // Già pagato, vai alla pagina analisi in preparazione
+        window.location.href = "/analisi-in-preparazione";
+        return null;
+      }
+      return (
+        <AttivazioneAnalisi 
+          user={currentUser}
           onLogout={handleClienteLogout}
         />
       );
