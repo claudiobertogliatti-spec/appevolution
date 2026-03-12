@@ -1243,25 +1243,15 @@ async def create_analisi_checkout(user_id: str = None, email: str = None):
         checkout = StripeCheckout(api_key=stripe_key)
         
         session_request = CheckoutSessionRequest(
-            line_items=[{
-                "price_data": {
-                    "currency": "eur",
-                    "product_data": {
-                        "name": "Analisi Strategica Evolution PRO",
-                        "description": "Diagnosi professionale sulla fattibilità del tuo progetto digitale + Videocall strategica"
-                    },
-                    "unit_amount": 6700  # €67.00 in centesimi
-                },
-                "quantity": 1
-            }],
-            mode="payment",
+            amount=67.00,  # €67.00
+            currency="eur",
             success_url=f"{frontend_url}?payment=success&user_id={user['id']}",
             cancel_url=f"{frontend_url}?payment=cancelled",
-            customer_email=user.get("email"),
             metadata={
                 "user_id": user["id"],
                 "tipo": "analisi_strategica",
-                "importo": "67"
+                "importo": "67",
+                "email": user.get("email", "")
             }
         )
         
