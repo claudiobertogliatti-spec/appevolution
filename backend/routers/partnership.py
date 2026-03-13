@@ -220,7 +220,7 @@ async def create_partnership_checkout(request: CheckoutRequest):
         raise HTTPException(status_code=404, detail="Utente non trovato")
     
     # URL di frontend
-    frontend_url = os.environ.get('FRONTEND_URL', 'https://business-flow-hub-4.preview.emergentagent.com')
+    frontend_url = os.environ.get('FRONTEND_URL', 'https://corso-builder.preview.emergentagent.com')
     
     try:
         from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
