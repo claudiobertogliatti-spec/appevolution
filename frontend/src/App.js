@@ -1330,53 +1330,79 @@ export default function App() {
                 <div className="font-black text-base" style={{ color: '#2D3239' }}>
                   Evolution<span style={{ color: '#F2C418' }}>Pro</span>
                 </div>
-                <div className="text-[10px] font-medium" style={{ color: '#9CA3AF' }}>Vista Cliente</div>
+                <div className="text-[10px] font-medium" style={{ color: '#9CA3AF' }}>
+                  {viewingCliente ? 'Vista Cliente' : 'Vista Cliente Demo'}
+                </div>
               </div>
             </div>
           </div>
           <div className="px-4 py-3 space-y-3">
             <button 
-              onClick={() => { setMode("admin"); setNav("overview"); }}
+              onClick={() => { setMode("admin"); setNav("clienti"); setViewingCliente(null); }}
               className="w-full py-2.5 text-sm font-bold rounded-xl transition-all hover:bg-[#FAFAF7]"
               style={{ background: '#FAFAF7', color: '#5F6572', border: '1px solid #ECEDEF' }}
             >
               ← Torna Admin
             </button>
             
-            {/* Selettore Stato Cliente Demo */}
-            <div className="p-3 rounded-xl" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
-              <div className="text-xs font-bold text-[#5F6572] mb-2">STATO CLIENTE DEMO</div>
-              <div className="space-y-1.5">
-                <button
-                  onClick={() => setNav("cliente-pre")}
-                  className={`w-full px-3 py-2 rounded-lg text-xs font-bold text-left transition-all ${
-                    nav === "cliente-pre" || nav === "overview" 
-                      ? 'bg-[#F5C518] text-[#1E2128]' 
-                      : 'bg-white text-[#5F6572] hover:bg-[#FEF9E7]'
-                  }`}
-                  style={{ border: '1px solid #ECEDEF' }}
-                >
-                  📝 Pre-Questionario
-                  <div className="text-[10px] font-normal opacity-70">Ha pagato, deve compilare</div>
-                </button>
-                <button
-                  onClick={() => setNav("cliente-post")}
-                  className={`w-full px-3 py-2 rounded-lg text-xs font-bold text-left transition-all ${
-                    nav === "cliente-post" 
-                      ? 'bg-[#10B981] text-white' 
-                      : 'bg-white text-[#5F6572] hover:bg-[#D1FAE5]'
-                  }`}
-                  style={{ border: '1px solid #ECEDEF' }}
-                >
-                  ✅ Post-Questionario
-                  <div className="text-[10px] font-normal opacity-70">Ha compilato, attende call</div>
-                </button>
+            {/* Info Cliente Visualizzato */}
+            {viewingCliente ? (
+              <div className="p-3 rounded-xl" style={{ background: '#3B82F610', border: '1px solid #3B82F630' }}>
+                <div className="text-xs font-bold text-[#3B82F6] mb-2">VISUALIZZANDO CLIENTE</div>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#F5C518] to-[#c49a12] flex items-center justify-center">
+                    <span className="text-xs font-bold text-black">
+                      {viewingCliente.nome?.[0]}{viewingCliente.cognome?.[0]}
+                    </span>
+                  </div>
+                  <div>
+                    <div className="font-bold text-sm text-[#1E2128]">{viewingCliente.nome} {viewingCliente.cognome}</div>
+                    <div className="text-xs text-[#9CA3AF]">{viewingCliente.email}</div>
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : (
+              /* Selettore Stato Cliente Demo */
+              <div className="p-3 rounded-xl" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
+                <div className="text-xs font-bold text-[#5F6572] mb-2">STATO CLIENTE DEMO</div>
+                <div className="space-y-1.5">
+                  <button
+                    onClick={() => setNav("cliente-pre")}
+                    className={`w-full px-3 py-2 rounded-lg text-xs font-bold text-left transition-all ${
+                      nav === "cliente-pre" || nav === "overview" 
+                        ? 'bg-[#F5C518] text-[#1E2128]' 
+                        : 'bg-white text-[#5F6572] hover:bg-[#FEF9E7]'
+                    }`}
+                    style={{ border: '1px solid #ECEDEF' }}
+                  >
+                    📝 Pre-Questionario
+                    <div className="text-[10px] font-normal opacity-70">Ha pagato, deve compilare</div>
+                  </button>
+                  <button
+                    onClick={() => setNav("cliente-post")}
+                    className={`w-full px-3 py-2 rounded-lg text-xs font-bold text-left transition-all ${
+                      nav === "cliente-post" 
+                        ? 'bg-[#10B981] text-white' 
+                        : 'bg-white text-[#5F6572] hover:bg-[#D1FAE5]'
+                    }`}
+                    style={{ border: '1px solid #ECEDEF' }}
+                  >
+                    ✅ Post-Questionario
+                    <div className="text-[10px] font-normal opacity-70">Ha compilato, attende call</div>
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="p-3 rounded-xl bg-[#FEF9E7] border border-[#F5C518]/30">
-              <div className="text-xs font-bold text-[#C4990A] mb-1">MODALITÀ DEMO</div>
-              <div className="text-xs text-[#5F6572]">Visualizzi l'area cliente come la vede chi ha acquistato l'Analisi Strategica</div>
+              <div className="text-xs font-bold text-[#C4990A] mb-1">
+                {viewingCliente ? 'VISTA REALE' : 'MODALITÀ DEMO'}
+              </div>
+              <div className="text-xs text-[#5F6572]">
+                {viewingCliente 
+                  ? `Stai visualizzando l'area come la vede ${viewingCliente.nome}` 
+                  : "Visualizzi l'area cliente come la vede chi ha acquistato l'Analisi Strategica"}
+              </div>
             </div>
           </div>
         </div>
