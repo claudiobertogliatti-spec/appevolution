@@ -1,5 +1,15 @@
 # Evolution PRO OS - Product Requirements Document
 
+**Ultimo aggiornamento:** 13 Marzo 2026
+
+## CICLO COMPLETO EVOLUTION PRO ✅
+
+```
+Posizionamento → Masterclass → Videocorso → Funnel → Lancio → Ottimizzazione → Continuità
+```
+
+---
+
 ## CONFIGURAZIONE EMAIL E CALENDARIO ✅
 
 ### Email: Systeme.io
