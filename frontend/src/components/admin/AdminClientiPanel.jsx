@@ -54,7 +54,7 @@ const QUESTION_LABELS = {
   aspettative: "Aspettative"
 };
 
-export function AdminClientiPanel() {
+export function AdminClientiPanel({ onViewAsCliente }) {
   const [clienti, setClienti] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCliente, setSelectedCliente] = useState(null);
