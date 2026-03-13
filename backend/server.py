@@ -2097,6 +2097,192 @@ async def aggiorna_stato_call(user_id: str, stato: str = "da_fissare"):
     
     return {"success": True, "message": f"Stato call aggiornato a: {stato}"}
 
+
+@api_router.post("/admin/clienti-analisi/{user_id}/genera-script-call")
+async def genera_script_call(user_id: str):
+    """
+    Genera uno Script Call personalizzato per la call strategica.
+    Lo script è diviso in 8 blocchi operativi per guidare Claudio durante la call.
+    """
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    
+    # Recupera il cliente
+    cliente = await db.users.find_one(
+        {"id": user_id, "user_type": "cliente_analisi"},
+        {"_id": 0}
+    )
+    
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente non trovato")
+    
+    if not cliente.get("questionario_compilato"):
+        raise HTTPException(status_code=400, detail="Il cliente non ha completato il questionario")
+    
+    if not cliente.get("pagamento_analisi"):
+        raise HTTPException(status_code=400, detail="Il cliente non ha ancora pagato l'analisi")
+    
+    # Recupera questionario e analisi
+    questionario = await db.questionari_clienti.find_one({"user_id": user_id}, {"_id": 0})
+    
+    # Dati cliente
+    nome = cliente.get("nome", "")
+    cognome = cliente.get("cognome", "")
+    expertise = questionario.get("expertise", cliente.get("expertise", "")) if questionario else cliente.get("expertise", "")
+    cliente_target = questionario.get("cliente_target", cliente.get("cliente_target", "")) if questionario else cliente.get("cliente_target", "")
+    risultato_promesso = questionario.get("risultato_promesso", cliente.get("risultato_promesso", "")) if questionario else cliente.get("risultato_promesso", "")
+    pubblico_esistente = questionario.get("pubblico_esistente", cliente.get("pubblico_esistente", "")) if questionario else cliente.get("pubblico_esistente", "")
+    esperienze_vendita = questionario.get("esperienze_vendita", cliente.get("esperienze_vendita", "")) if questionario else cliente.get("esperienze_vendita", "")
+    ostacolo_principale = questionario.get("ostacolo_principale", cliente.get("ostacolo_principale", "")) if questionario else cliente.get("ostacolo_principale", "")
+    motivazione = questionario.get("motivazione", cliente.get("motivazione", "")) if questionario else cliente.get("motivazione", "")
+    analisi_testo = cliente.get("analisi_testo", "")
+    punteggio = cliente.get("punteggio_fattibilita", "")
+    raccomandazione = cliente.get("raccomandazione_finale", "")
+    
+    llm_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not llm_key:
+        raise HTTPException(status_code=500, detail="Chiave LLM non configurata")
+    
+    chat = LlmChat(
+        api_key=llm_key,
+        session_id=f"script_call_{user_id}_{datetime.now().timestamp()}",
+        system_message="""Sei uno strategist senior di Evolution PRO.
+Devi creare uno SCRIPT CALL personalizzato da usare durante una call strategica con un potenziale partner.
+
+Lo script deve aiutare Claudio a:
+1. Aprire la call in modo chiaro
+2. Sintetizzare il progetto del cliente
+3. Evidenziare il problema principale emerso
+4. Mostrare l'opportunità concreta del progetto
+5. Formulare una diagnosi strategica netta
+6. Presentare in modo semplice la partnership Evolution PRO
+7. Accompagnare la transizione verso la proposta economica
+8. Prepararsi a gestire le obiezioni più probabili
+
+Tono: consulenziale, diretto, professionale.
+Non scrivere come fosse una landing page.
+Scrivi come una traccia operativa che Claudio può usare in call."""
+    ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+    
+    prompt = f"""Genera uno SCRIPT CALL personalizzato per la call strategica con questo cliente.
+
+DATI DEL CLIENTE:
+- Nome: {nome} {cognome}
+- Expertise: {expertise}
+- Cliente target: {cliente_target}
+- Risultato promesso: {risultato_promesso}
+- Pubblico esistente: {pubblico_esistente}
+- Esperienze vendita: {esperienze_vendita}
+- Ostacolo principale: {ostacolo_principale}
+- Motivazione: {motivazione}
+
+ANALISI GIÀ GENERATA:
+{analisi_testo[:2000] if analisi_testo else "Analisi non ancora generata"}
+
+PUNTEGGIO FATTIBILITÀ: {punteggio}/10
+RACCOMANDAZIONE: {raccomandazione}
+
+GENERA LO SCRIPT in formato JSON con questa struttura esatta:
+
+{{
+  "apertura_call": {{
+    "obiettivo": "Mettere ordine e guidare il tono della conversazione",
+    "script": "Testo da dire per aprire la call (ringraziamento + spiegazione cosa farete + anticipazione analisi/fattibilità/percorso)"
+  }},
+  "sintesi_progetto": {{
+    "obiettivo": "Riassumere chi è il cliente e cosa fa",
+    "script": "2-3 frasi su: chi è, cosa fa, chi aiuta, dove sta il potenziale"
+  }},
+  "problema_principale": {{
+    "obiettivo": "Evidenziare il collo di bottiglia reale",
+    "script": "Descrizione del limite del modello attuale e del rischio di restare fermo"
+  }},
+  "opportunita_concreta": {{
+    "obiettivo": "Far vedere perché il progetto può funzionare",
+    "script": "Quale formato è più adatto, cosa può diventare"
+  }},
+  "diagnosi_strategica": {{
+    "obiettivo": "Dare un esito chiaro",
+    "esito": "adatto | adatto con condizioni | non ancora pronto",
+    "script": "Spiegazione della diagnosi"
+  }},
+  "presentazione_partnership": {{
+    "obiettivo": "Spiegare la partnership Evolution PRO",
+    "script": "Cosa fate voi, cosa fa il partner, come si sviluppa il percorso"
+  }},
+  "transizione_offerta": {{
+    "obiettivo": "Passaggio morbido verso la proposta economica",
+    "script": "Come introdurre attivazione, contratto, documenti, pagamento"
+  }},
+  "obiezioni_probabili": {{
+    "obiettivo": "Preparare risposte alle obiezioni più probabili",
+    "obiezioni": [
+      {{
+        "obiezione": "Testo obiezione 1",
+        "risposta": "Come gestirla"
+      }},
+      {{
+        "obiezione": "Testo obiezione 2", 
+        "risposta": "Come gestirla"
+      }},
+      {{
+        "obiezione": "Testo obiezione 3",
+        "risposta": "Come gestirla"
+      }}
+    ]
+  }}
+}}
+
+Rispondi SOLO con il JSON, senza commenti aggiuntivi."""
+
+    try:
+        response = await chat.send_message(UserMessage(content=prompt))
+        script_text = response.content
+        
+        # Pulisci il JSON
+        if "```json" in script_text:
+            script_text = script_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in script_text:
+            script_text = script_text.split("```")[1].split("```")[0].strip()
+        
+        import json
+        script_json = json.loads(script_text)
+        
+        return {
+            "success": True,
+            "script": script_json,
+            "cliente": {
+                "id": user_id,
+                "nome": nome,
+                "cognome": cognome
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Errore generazione script: {str(e)}")
+
+
+@api_router.post("/admin/clienti-analisi/{user_id}/salva-script-call")
+async def salva_script_call(user_id: str, script_testo: str = None):
+    """
+    Salva lo script call generato nel database del cliente.
+    """
+    if not script_testo:
+        raise HTTPException(status_code=400, detail="Testo script mancante")
+    
+    result = await db.users.update_one(
+        {"id": user_id, "user_type": "cliente_analisi"},
+        {"$set": {
+            "script_call_generato": True,
+            "script_call_testo": script_testo,
+            "script_call_data": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Cliente non trovato")
+    
+    return {"success": True, "message": "Script call salvato"}
+
 @api_router.get("/admin/clienti-analisi/{user_id}/analisi-pdf")
 async def scarica_analisi_pdf(user_id: str):
     """
