@@ -3,7 +3,7 @@ import {
   TrendingUp, Users, DollarSign, Target, Sparkles, 
   RefreshCw, CheckCircle2, Circle, Clock, Trophy,
   BarChart3, Loader2, AlertCircle, Star, ArrowRight,
-  Calendar, Zap
+  Calendar, Zap, Video
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
