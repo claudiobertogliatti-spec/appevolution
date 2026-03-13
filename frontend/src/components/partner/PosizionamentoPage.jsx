@@ -199,7 +199,7 @@ function WizardStep({ step, value, onChange, onNext, onPrev, isFirst, isLast }) 
   );
 }
 
-function GenerateSection({ onGenerate, isGenerating }) {
+function GenerateSection({ onGenerate, isGenerating, error }) {
   return (
     <div className="bg-white rounded-2xl border border-[#ECEDEF] p-6 text-center">
       <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
@@ -211,15 +211,22 @@ function GenerateSection({ onGenerate, isGenerating }) {
         Genera la struttura del tuo corso
       </h2>
       <p className="text-sm mb-6 max-w-md mx-auto" style={{ color: '#5F6572' }}>
-        Stefania utilizzerà il tuo posizionamento per generare automaticamente 
+        L'AI utilizzerà il tuo posizionamento per generare automaticamente 
         la struttura del tuo videocorso.
       </p>
+      
+      {error && (
+        <div className="mb-4 p-3 rounded-lg text-sm" style={{ background: '#FEE2E2', color: '#991B1B' }}>
+          {error}
+        </div>
+      )}
       
       <button
         onClick={onGenerate}
         disabled={isGenerating}
         className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
         style={{ background: '#F2C418', color: '#1E2128' }}
+        data-testid="generate-structure-btn"
       >
         {isGenerating ? (
           <>
