@@ -54,6 +54,10 @@ export function AdminClientiAnalisiPanel() {
   const [scriptCallGenerato, setScriptCallGenerato] = useState(null);
   const [showScriptModal, setShowScriptModal] = useState(false);
   const [savingScript, setSavingScript] = useState(false);
+  
+  // Stato per nuovo flusso consulenziale
+  const [showAnalisiConsulenziale, setShowAnalisiConsulenziale] = useState(false);
+  const [clienteConsulenziale, setClienteConsulenziale] = useState(null);
 
   useEffect(() => {
     loadClienti();
