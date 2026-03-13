@@ -2,7 +2,7 @@ import { useState } from "react";
 import { 
   Home, Target, Mic, Film, Rocket, Calendar,
   MessageCircle, LogOut, Check, Lock, Users, 
-  HelpCircle, PlayCircle, X, Shield, TrendingUp
+  HelpCircle, PlayCircle, X, Shield, TrendingUp, UserCheck
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -16,6 +16,7 @@ const PROJECT_PHASES = [
   { id: "funnel", label: "Funnel", icon: Calendar, unlockPhase: 7 },
   { id: "lancio", label: "Lancio", icon: Rocket, unlockPhase: 8 },
   { id: "ottimizzazione", label: "Ottimizzazione", icon: TrendingUp, unlockPhase: 9 },
+  { id: "lead", label: "I miei Lead", icon: UserCheck, unlockPhase: 9 },
 ];
 
 const SUPPORT_ITEMS = [
