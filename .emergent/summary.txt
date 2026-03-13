@@ -1,137 +1,136 @@
 <analysis>**original_problem_statement:**
-The user is building Evolution PRO OS, a proprietary web application for business workflow automation. The user's primary goals are:
-1.  Make the main AI agent, VALENTINA, and a suite of subordinate agents (ANDREA, GAIA, MARCO, STEFANIA) functional orchestrators capable of executing real tasks. This includes fixing a critical bug where all agents were responding as VALENTINA and ensuring each agent has a unique, context-aware personality.
-2.  Integrate OpenClaw, a GUI automation tool on the user's local machine, to handle tasks that the Systeme.io API does not support. This is currently blocked.
-3.  Implement a new  agent on the backend to act as a data intelligence and notification service, pulling data from Systeme.io, updating a dashboard, and sending Telegram alerts.
-4.  Continuously evolve the frontend UI, including adding a YouTube x HeyGen Hub for generating video scripts.
-5.  Build a full funnel for acquiring new potential clients, including fixing partner contract generation (switching from a broken DOCX flow to a working PDF, and then back to a new, working DOCX flow).
-6.  Fix various API integrations, including the Systeme.io MCP API and a recurring Telegram webhook issue.
+The user is building Evolution PRO OS, a proprietary web application for business workflow automation.
 
 PRODUCT REQUIREMENTS:
-- A functional hybrid automation system where the cloud application delegates GUI tasks to a local agent (OpenClaw).
-- An in-app multi-agent AI system (VALENTINA, MARCO, ANDREA, GAIA, STEFANIA, OPENCLAW) that can intelligently delegate tasks and provide clear, role-specific feedback.
-- An admin-facing dashboard to manage partners, clients, and agents, including an overview with key metrics like MRR.
-- A public-facing funnel to sell an Analisi Strategica service for €67.
-- A robust, automated partner onboarding flow, including contract generation.
-- The application should manage leads and contacts primarily within Systeme.io, using the app for paying clients and partners.
+The initial goal was to create two distinct user flows: one for new clients purchasing an Analisi Strategica and another for existing partners, while also enhancing AI agent capabilities and fixing existing issues.
+
+Throughout the session, the user provided detailed requirements for several new, large features, expanding the project scope significantly:
+1.  **Client Onboarding Funnel:** A complete, multi-step funnel for new clients: Homepage -> Registration -> Pre-questionnaire Intro -> Questionnaire -> Payment Activation Page -> Stripe Payment -> Post-Payment Analysis in Preparation Page.
+2.  **Admin Analysis Generation:** A comprehensive admin panel to view clients, their questionnaire answers, and use an AI (Anthropic Claude) to generate a detailed Analisi Strategica. This includes saving the analysis, downloading it as a PDF, and marking the client's status. The AI prompt was iteratively refined to be highly detailed, including a feasibility score and a final recommendation.
+3.  **Client Notification System:** An automated system to notify the client when their analysis is ready. The client's dashboard updates to show a Prenota la call strategica button, and an email is triggered via a tag in Systeme.io.
+4.  **Hiding Analysis from Client:** A specific request to ensure the generated analysis document is *only* visible to the admin and is presented to the client during the strategic call, not shown on their dashboard.
+5.  **Partnership Activation Page:** A new, multi-step page () for clients who have been approved as partners after their strategic call. This page will handle viewing the analysis, downloading a contract, uploading the signed contract and personal documents, and processing an activation payment.
 
 **User's preferred language**: Italian. The next agent **MUST** respond in **Italian**.
 
 **what currently exists?**
-A full-stack application (React/FastAPI/MongoDB).
-- **Backend:** A series of critical DEPLOYs have been executed.
-    - **Agent Routing (FIXED):** A major bug where all agents responded as VALENTINA was fixed. The  endpoint now uses a dictionary to route requests to the correct agent's system prompt. All agent prompts are now consolidated in .
-    - **Agent Context (FIXED):** The  endpoint and the  function were made robust to safely inject user context (role, name, phase) into the system prompts, allowing agents to be context-aware. Style guides (no emojis/markdown) were enforced in prompts.
-    - **Contract Generation (RE-IMPLEMENTED):** The contract generation was completely overhauled. It was initially broken, then fixed to generate a PDF, and finally corrected to generate a  file using the  library, as requested. The endpoint  now returns a correct  URL.
-    - **Systeme.io API (FIXED):** The  was fixed by correcting the base API URL from  to  and updating the response parsing logic.
-    - **YouTube/HeyGen Hub (NEW):** A new feature was added to generate video scripts. This includes a new React component (), a new backend router (), and a working  endpoint.
-    - **Telegram Bot (FIXED):** The bot webhook URL was repeatedly updated to the correct preview URL, fixing its unresponsiveness. A bug causing notification failures due to Markdown parsing was also fixed by removing the  from the API call.
-    - **OpenClaw Agent (NEW):** A new backend agent, , has been created to fetch data from Systeme.io, calculate MRR, update a  collection in MongoDB, and send Telegram notifications for new orders. It is scheduled to run every 30 minutes.
-- **Frontend:**
-    - The  component was updated to pass the full user context to the backend.
-    - A new  component was created and integrated into the admin dashboard sidebar.
+A full-stack application (React/FastAPI/MongoDB) with a nearly complete and highly detailed client acquisition funnel and a sophisticated admin backend.
+- **Frontend:** The client journey from the homepage registration modal, through the questionnaire, to a payment activation page (), and finally to a post-payment confirmation page () is fully implemented. The  is dynamic, showing the correct state based on the user's progress (e.g., Analisi Pronta). The partner login flow correctly redirects to a dedicated partner dashboard. A feature-rich  allows admins to manage the entire client analysis lifecycle.
+- **Backend:** The monolithic  has been heavily modified with numerous new endpoints to support the admin functionality, including AI-powered analysis generation using Anthropic Claude, PDF creation with , and saving the analysis to the database. The notification system has been integrated with Systeme.io (via tagging) for sending emails, and all calendar links now point to a user-specified Google Calendar URL. A critical bug in the authentication response was fixed to ensure the frontend receives all necessary user status fields.
 
 **Last working item**:
-- Last item agent was working: The agent just completed **DEPLOY 11**, which involved creating and integrating the new  data intelligence agent. This included creating the agent logic in , adding all necessary API endpoints (, , ) to , adding the agent to the scheduler, and ensuring it updates a new  collection in MongoDB.
+- Last item agent was working: The agent started implementing the Attivazione Partnership page as requested by the user. This is a new, multi-step page for converting a qualified client into a partner.
 - Status: **IN PROGRESS**
-- Agent Testing Done: Y
-- Which testing method agent to use? frontend testing agent
+- Agent Testing Done: N
+- Which testing method agent to use? both (This is a complex feature involving file uploads and payment.)
 - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-- **Issue 1: OpenClaw execution fails with Agent was aborted on user's local machine (P0 - BLOCKER)**
-- **Issue 2: YouTube API Token Expired (P1)**
-- **Issue 3: Verify Partner Contract Content and Template (P2)**
+- **Issue 1: End-to-end verification of local OpenClaw automation (P1)**
+- **Issue 2: Agent Autonomy via Systeme.io Tags (P2 - BLOCKED)**
+- **Issue 3: YouTube API Token Expired (P2)**
+- **Issue 4: Verify Partner Contract Content and Template (P2)**
 
 Issues Detail:
-- **Issue 1: OpenClaw execution fails with Agent was aborted on user's local machine (P0 - BLOCKER)**
-    - Attempted fixes: The agent has identified that this is an issue with the user's local OpenClaw client, not the cloud backend. The  function was fixed to ensure Telegram notifications are sent reliably.
-    - Next debug checklist: Ask the user to trigger a GUI automation task and provide the exact error logs from their **local** OpenClaw terminal. This is needed to debug the client-side agent.
-    - Why fix this issue and what will be achieved with the fix? This is a critical blocker for all GUI automation, a core part of the user's vision.
-    - Status: BLOCKED
+- **Issue 1: End-to-end verification of local OpenClaw automation (P1)**
+    - Attempted fixes: None in this session.
+    - Next debug checklist: Ask the user to perform a test: 1. Chat with VALENTINA in the app. 2. Confirm a task message appears in their Telegram. 3. Confirm the automation runs on their local PC.
+    - Why fix this issue and what will be achieved with the fix? This is a core feature enabling the AI to perform GUI tasks.
+    - Status: USER VERIFICATION PENDING
     - Is recurring issue? Y
+    - Should Test frontend/backend/both after fix? manual testing by user
+- **Issue 2: Agent Autonomy via Systeme.io Tags (P2 - BLOCKED)**
+    - Attempted fixes: None. The strategy is defined, but work is stopped until the user confirms they have created the necessary automations in Systeme.io.
+    - Next debug checklist: Wait for user confirmation before proceeding with backend implementation.
+    - Why fix this issue and what will be achieved with the fix? Will allow the AI agents to autonomously communicate with users via email.
+    - Status: BLOCKED
+    - Is recurring issue? N
     - Should Test frontend/backend/both after fix? backend
-    - Blocked on other issue: User feedback/logs.
-- **Issue 2: YouTube API Token Expired (P1)**
+    - Blocked on other issue: User action required.
+- **Issue 3: YouTube API Token Expired (P2)**
     - Attempted fixes: None.
-    - Next debug checklist: Guide the user through the process of refreshing their YouTube API token and updating it in the  file.
-    - Why fix this issue and what will be achieved with the fix? It blocks all integrations with YouTube, such as video uploads or data fetching.
+    - Next debug checklist: Guide the user through refreshing their YouTube API token and updating it in the  file.
+    - Why fix this issue and what will be achieved with the fix? It blocks the YouTube x HeyGen Hub feature.
     - Status: NOT STARTED
     - Is recurring issue? Y
     - Should Test frontend/backend/both after fix? backend
-- **Issue 3: Verify Partner Contract Content and Template (P2)**
-    - Attempted fixes: The agent fixed the contract generation by creating a new script () that uses . This generates a valid  file. However, the user uploaded a  file, and a  template was never provided.
-    - Next debug checklist:
-        1.  Inform the user that the generated DOCX is created from scratch and may not match their intended layout/content.
-        2.  Ask the user to provide the  template file that was mentioned in .
-        3.  Replace the current  logic with one that loads the user's template and fills in the placeholders.
-    - Why fix this issue and what will be achieved with the fix? To ensure the legally binding partner contracts are generated with the correct content and formatting as per the user's requirements.
+- **Issue 4: Verify Partner Contract Content and Template (P2)**
+    - Attempted fixes: None. This is now relevant to the new Attivazione Partnership page.
+    - Next debug checklist: Ask the user for the official template, then create a backend endpoint to serve this contract for download on the  page.
+    - Why fix this issue and what will be achieved with the fix? Ensures partner contracts are legally correct.
     - Status: NOT STARTED
     - Is recurring issue? N
     - Should Test frontend/backend/both after fix? backend
 
 **In progress Task List**:
-- **Task 1: Verify frontend integration of OPENCLAW agent data (P0)**
-    - Where to resume: The backend is complete and  correctly calculates MRR and updates . The next step is to ensure the frontend dashboard (likely in  or a similar component) correctly reads and displays the  value from the  endpoint.
-    - What will be achieved with this? This will complete the loop for the new data intelligence agent, showing real-time business metrics on the main dashboard.
+- **Task 1: Implement Attivazione Partnership Page (P0)**
+    - Where to resume: The agent created the initial frontend file at . The immediate next steps are to build out the required backend endpoints to handle file uploads (contract, ID, tax code), payment processing (Stripe/Bank Transfer), and updating the user's role to 'partner'. After that, the frontend component needs to be fully implemented with all 5 steps.
+    - What will be achieved with this? This will complete the client-to-partner conversion funnel, a critical business process.
     - Status: IN PROGRESS
-    - Should Test frontend/backend/both after fix? frontend
-    - Blocked on something: None
+    - Should Test frontend/backend/both after fix? both
+    - Blocked on something: No.
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks:**
-    - **P1: Create Systeme.io automations:** Based on a previous user request, create automations for the tags: , , .
-    - **P1: Send automatic email with Google Calendar link:** When an analysis is approved, the system should email the client with the document and a link to book the strategic call.
+    - **P1: End-to-end testing of the complete client funnel.** While individual parts were tested, a full, seamless walkthrough from registration to seeing the Prenota la call button should be verified by the user.
 - **Future Tasks:**
-    - **P2: Backend Refactoring (CRITICAL):** The  monolith, now over 10,800 lines, must be progressively broken down into dedicated router files.
-    - **P2: Frontend Refactoring (CRITICAL):** The  component is over 1,100 lines and should be broken down into smaller, more manageable sub-components.
+    - **P2: Backend Refactoring (CRITICAL):** The  monolith (now >12k lines) is a significant source of technical debt and must be broken down into dedicated router files.
+    - **P2: Frontend Refactoring (CRITICAL):** The  file remains a monolith (now >1500 lines) and should be refactored to use a dedicated routing solution and move inline components to their own files.
     - **P2: Implement Historical Data Tracking:** Add logic to track lead/sales trends over time.
-    - **P2: Implement Funnel Page Builder:** A visual page editor within the app.
 
 **Completed work in this session**
-- **DEPLOY 8 (Agent Routing):** Fixed critical bug where all agents responded as VALENTINA. Implemented a router in  and consolidated all system prompts into .
-- **YouTube/HeyGen Script Generator:** Implemented a new end-to-end feature for generating video scripts, including a new UI component and backend logic.
-- **DEPLOY 9 & 10 (Critical Fixes & Regression):**
-  - Fixed a regression where agents responded with a generic error message by making  in  completely safe.
-  - Fixed agent context injection, ensuring agents are aware of the user's role (admin, partner, client).
-  - Enforced a professional communication style (no emojis/markdown) in agent prompts.
-  - Fixed contract generation to produce a valid  file using , replacing a faulty PDF-based approach.
-- **Systeme.io & Telegram API Fixes:**
-  - Corrected the base URL for the Systeme.io API, resolving 404 errors.
-  - Repeatedly fixed the Telegram bot's webhook URL.
-  - Resolved an issue with Telegram notifications failing due to Markdown parsing errors.
-- **DEPLOY 11 (OpenClaw Agent):** Created a new backend agent () for data intelligence, scheduled it to run periodically, and created all necessary API endpoints to fetch data from Systeme.io, update the database, and expose status.
+- **Partner Dashboard Fix:** Corrected routing logic in  to ensure logged-in partners are directed to the correct partner-specific dashboard ().
+- **Full Admin Analysis Generation Flow:**
+    - Implemented a complete backend and frontend solution for admins to manage Clienti Analisi.
+    - Integrated Anthropic Claude with a highly detailed, user-specified prompt to generate a structured Analisi Strategica.
+    - Added features to save the AI-generated text, download a formatted PDF, and update the client's status.
+- **Client Notification System:**
+    - Implemented a dynamic  that shows an Analisi Pronta state and a Prenota la call button when .
+    - Integrated with Systeme.io to add a tag to a contact when their analysis is saved, triggering an email automation.
+    - Replaced all hardcoded Calendly links with a user-provided Google Calendar link.
+- **New Client Funnel Pages:**
+    - Created : A new page shown after the questionnaire, detailing the analysis and prompting for a €67 payment via Stripe.
+    - Overhauled : The post-payment page, now showing a welcome video and an overview of next steps.
+- **Critical Auth Fixes:**
+    - Modified the  login modal to correctly handle logins for both clients and partners.
+    - Fixed a bug in  where the login endpoint did not return essential user status fields (, , etc.), which was breaking the frontend logic.
+- **Flow Refinement:** Updated the client dashboard () to hide the generated analysis, ensuring it's only presented by the admin during the strategic call.
 
 **Earlier issues found/mentioned but not fixed**
-- **Backend Latency:** This is a persistent issue directly linked to the size and complexity of the  monolith. While many fixes were made, the core architectural problem remains and is a top candidate for future refactoring.
+- ** monolith:** Not fixed, and has grown larger.
+- ** monolith:** Not fixed, and has grown larger.
 
 **Known issue recurrence from previous fork**
 - **Issue recurrence in previous fork:** Backend Latency and API Timeouts.
 - **Recurrence count:** 10+
-- **Status:** NOT STARTED (Though partially mitigated by bug fixes, the architectural issue remains).
+- **Status:** NOT STARTED. The monolithic architecture of  remains the root cause and the problem will likely worsen as complexity increases.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Dynamic Agent Routing:** The  endpoint uses a dictionary mapping () to dynamically select the correct system prompt based on the  field in the request body.
-- **Safe Context Injection:** The  function in  was refactored to be completely robust, using  and  to avoid crashing when optional fields are missing from the request.
-- **DOCX Generation:** A new script, , was implemented using the  library to create partner contracts from scratch. This replaced a broken process and a temporary PDF solution.
-- **Scheduled Data Agent:** The new  runs on a 30-minute interval via  to perform data synchronization from Systeme.io to the application's database.
-- **API Error Handling:** Fixed Telegram notifications by removing  to avoid errors with special characters. Replaced a generic technical difficulties fallback with proper  to expose real errors in logs.
+- **AI-Powered Document Generation:** Using Anthropic Claude via  with a detailed, structured prompt to generate a strategic analysis. The prompt itself is now a key piece of business logic.
+- **Tag-Based Automation:** Switched from direct API email sending (Resend) to tagging contacts in Systeme.io, offloading email/reminder logic to an external marketing automation platform.
+- **State-Driven Client Funnel:** The entire client journey is managed by state flags in the user's database document, which conditionally renders different components and pages in the frontend.
 
 **key DB schema**
-- **agents:** Contains documents for all 7 agents (VALENTINA, MARCO, ANDREA, GAIA, STEFANIA, MAIN, OPENCLAW).
-- **partners:** User data. A problem was noted where this collection appeared empty during a check, which might indicate an issue with DB connection or collection naming consistency.
-- **dashboard_stats:** New collection, storing aggregated data like .
+- **users:** (Added fields in this session)
+    - : (String) Full text of the AI-generated analysis.
+    - : (DateTime) Timestamp when the analysis was generated.
+    - : (String) e.g., 'generata'.
+    - : (String) e.g., 'da_fissare', 'completata'.
+    - : (Boolean) Flag to track if the notification was sent.
+    - : (String) e.g., '7/10', generated by the AI.
+    - : (String) Final recommendation from the AI.
+    - : (Boolean) Flag for the 24h reminder.
+    - : (DateTime) Timestamp for reminder logic.
 
 **changes in tech stack**
--  was added to  for contract generation.
+- : This library was installed for email, but the logic was replaced with Systeme.io tagging. The dependency might still be in  but is no longer used in the code.
+- : Used for generating PDF documents from the analysis text.
 
 **All files of reference**
 - **New Files:**
-    - 
-    - 
     - 
     - 
 - **Heavily Updated Files:**
@@ -144,64 +143,69 @@ Issues Detail:
     - 
 
 **Areas that need refactoring**:
-- : **CRITICAL.** Now over 10,800 lines. The primary source of technical debt.
-- : **CRITICAL.** Over 1,100 lines. Needs to be broken down.
+- **/app/frontend/src/App.js**: **CRITICAL.** This file is dangerously large and complex. It urgently needs to be refactored to use a standard routing library (like ) and to have its inline components extracted into separate files.
+- **/app/backend/server.py**: **CRITICAL.** This file has become even more of a monolith. The risk of regression and performance issues is extremely high. It should be broken down into smaller, domain-specific router files (e.g., , , ).
 
 **key api endpoints**
-- : Now handles routing for all text-based agents and accepts rich user context.
-- : Manually triggers the data intelligence agent.
-- : Returns the status of the OpenClaw agent and its dependencies.
-- : Generates 3 formats of video scripts for a given topic.
-- : Now correctly generates a  contract.
+- : **(NEW)** Triggers AI analysis generation.
+- : **(NEW)** Saves the generated analysis and tags the user in Systeme.io.
+- : **(NEW)** Generates and serves a PDF of the analysis.
+- : **(NEW)** Updates the client's call status.
+- : **(MODIFIED)** Now returns all necessary status fields for the frontend.
 
 **Critical Info for New Agent**
 - **You MUST communicate in Italian.**
-- Your first task should be to verify that the  value calculated by the new  agent is correctly displayed on the frontend admin dashboard.
-- The  issue is for the user's **local machine** and is different from the new cloud-side . Do not confuse them. You are blocked on user logs for the local issue.
-- The partner contract is now a  generated from scratch. The user may need to provide their official  template to ensure the content and formatting are correct.
+- The immediate priority is building the multi-step Attivazione Partnership page, which is a significant piece of work.
+- The notification system now relies on adding a tag in **Systeme.io**. The agent does not send emails directly. The user must have an automation set up in their Systeme.io account that triggers on the  tag.
+- The monolithic nature of  and  is the biggest technical risk to the project. While the user hasn't requested refactoring, be aware that any new feature increases this risk.
 
 **documents and test reports created in this job**
--  (Updated)
--  (Uploaded by user, but not used for DOCX generation)
+- 
+- 
+- 
+- 
+- 
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **Request (DEPLOY 10):** User reported a major regression from DEPLOY 9 where agents stopped working. Provided a new 5-point fix list. (COMPLETED)
-9.  **Report Bug (Telegram):** User reported the Telegram bot was unresponsive again. (COMPLETED)
-8.  **Confirmation:** User confirmed DEPLOY 9 fixes. (SUPERSEDED by regression report)
-7.  **Request (DEPLOY 9):** User reported 4 new critical bugs found in live testing, including context not being used, MARCO missing, contract URL null, and wrong agent tones. (COMPLETED)
-6.  **Request:** User asked to proceed with the next 3 suggested actions and uploaded the . (PARTIALLY COMPLETED - Contract generation fixed, Systeme.io API fixed, OpenClaw local issue still blocked)
-5.  **Confirmation:** User confirmed the fix for the YouTube/Heygen hub. (COMPLETED)
-4.  **Request (New Feature):** User uploaded  and asked to integrate it. (COMPLETED)
-3.  **Confirmation:** User confirmed DEPLOY 8 was successful and added the critical agent routing fix. (COMPLETED)
-2.  **Request (DEPLOY 8):** User provided a critical fix for agent routing, as all agents were responding as VALENTINA, and provided complete system prompts for all agents. (COMPLETED)
-1.  **Request (VALENTINA CONTEXT):** User provided a large, multi-part deploy request to make VALENTINA context-aware based on user role, along with a new system prompt and a 5-step test plan. (COMPLETED)
+10. **Request:** Implement the full admin flow for generating the Analisi Strategica using AI, saving it, and downloading it as a PDF. (COMPLETED)
+9.  **Request:** Refine the AI prompt for analysis generation to include a specific structure, a feasibility score, and a final recommendation. (COMPLETED)
+8.  **Request:** Modify the flow so the generated analysis is ONLY visible to the admin, not the client. (COMPLETED)
+7.  **Request:** Implement a system to notify the client when their analysis is ready, showing a Book Call button on their dashboard. (COMPLETED)
+6.  **Request:** Send an automatic email when the analysis is ready. (COMPLETED)
+5.  **Request:** Implement a reminder email if the call isn't booked within 24 hours. (COMPLETED - Backend logic is in place)
+4.  **Request:** Use Systeme.io for emails. (COMPLETED)
+3.  **Request:** Use  for all calendar links. (COMPLETED)
+2.  **Request:** Create the new  page with a detailed 5-step process for a client to become a partner. (IN PROGRESS)
+1.  **PENDING:** The implementation of the  page is the current active task.
 
 **Project Health Check:**
 - **Broken:**
-    - OpenClaw (local) task execution.
-    - YouTube Data API integration (expired token).
+    - YouTube Data API integration (Expired Token).
 - **Mocked:** None.
 
 **3rd Party Integrations**
 - **MongoDB Atlas:** Primary database. **Working**.
-- **Anthropic Claude (via ):** Powers AI agents. Uses **Emergent LLM Key**. **Working**.
-- **Telegram Bot API:** Used for notifications. **Working**.
-- **Systeme.io API:** **Working**. The client was fixed to use the correct endpoints.
-- **OpenClaw (User's Local Machine):** **BROKEN**.
+- **Anthropic Claude (via ):** Powers AI analysis generation. Uses **Emergent LLM Key**. **Working**.
+- **Telegram Bot API:** Used for notifications/OpenClaw. **Working**.
+- **Systeme.io API:** **Working** and now used for email notifications via tagging.
+- **OpenClaw (User's Local Machine):** Connection is **Working**, but end-to-end task execution needs user verification.
 - **YouTube Data API v3:** **BROKEN** (Expired Token).
-- **Stripe:** Assumed **Working**.
-- **apscheduler:** Backend cron jobs. **Working**.
-- **python-docx:** New dependency for contract generation. **Working**.
+- **Stripe:** Checkout session endpoint is **Working**. Webhook and full payment cycle are untested.
+- **python-docx:** Used for document generation. **Working**.
+- **reportlab:** Used for PDF generation. **Working**.
+- **Resend:** Installed but no longer used for email logic.
 
 **Testing status**
-- Testing agent used after significant changes: NO
+- Testing agent used after significant changes: YES, used multiple times to test the admin panel and client dashboard states. It was crucial for identifying and fixing a critical auth bug.
 - Troubleshoot agent used after agent stuck in loop: NO
 - Test files created: []
-- Known regressions: None currently, but DEPLOY 9 introduced a major regression that was fixed in DEPLOY 10.
+- Known regressions: None. The previous regression (partner login) was fixed.
 
 **Credentials to test flow:**
 - **Admin:**  / 
-- **Client/Partner:** Need to be found in the database or created for testing.
+- **Client with completed analysis:**  / 
+- **New Client:** Must be created via the registration modal on the homepage.
+- **Partner:** An existing partner account must be used to test the partner login flow.
 
 **What agent forgot to execute**
-- The agent correctly noted a discrepancy in the  collection count but moved on. This could be a sign of an intermittent database issue or misconfigured collection name that should be monitored.</analysis>
+- The agent correctly prioritized the user's numerous and large feature requests over legacy issues like the YouTube token or OpenClaw verification. These tasks were not forgotten but were deprioritized in favor of building out the core business funnel. The critical refactoring tasks for  and  also remain pending.</analysis>
