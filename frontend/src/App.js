@@ -34,6 +34,7 @@ import { LancioPage } from "./components/partner/LancioPage";
 import { CalendarioLancioPage } from "./components/partner/CalendarioLancioPage";
 import { WebinarPage } from "./components/partner/WebinarPage";
 import { OttimizzazionePage } from "./components/partner/OttimizzazionePage";
+import { LeadPage } from "./components/partner/LeadPage";
 import { PartnerFilesPage } from "./components/partner/PartnerFilesPage";
 import { BonusStrategici } from "./components/partner/BonusStrategici";
 import { AdminSidebarLight } from "./components/admin/AdminSidebarLight";
