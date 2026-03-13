@@ -845,6 +845,264 @@ export function AdminClientiAnalisiPanel() {
                   </div>
                 </div>
               )}
+
+              {/* SCRIPT CALL - Dopo analisi generata */}
+              {selectedCliente.analisi_generata && selectedCliente.questionario_compilato && selectedCliente.pagamento_analisi && (
+                <div className="mt-4 p-6 rounded-xl" style={{ background: '#FFF7ED', border: '1px solid #FDBA74' }}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="font-bold mb-1" style={{ color: '#C2410C' }}>
+                        <MessageSquare className="w-4 h-4 inline-block mr-2" />
+                        Script Call Strategica
+                      </h3>
+                      <p className="text-sm" style={{ color: '#EA580C' }}>
+                        {selectedCliente.script_call_generato 
+                          ? "Script già generato" 
+                          : "Genera uno script personalizzato per guidare la call"}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleGeneraScriptCall}
+                        disabled={generatingScript}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors hover:opacity-90 disabled:opacity-50"
+                        style={{ background: '#F97316', color: '#FFFFFF' }}
+                        data-testid="btn-genera-script"
+                      >
+                        {generatingScript ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Generando...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4" />
+                            {selectedCliente.script_call_generato ? 'Rigenera Script' : 'Genera Script Call'}
+                          </>
+                        )}
+                      </button>
+                      {selectedCliente.script_call_generato && (
+                        <button
+                          onClick={() => {
+                            try {
+                              setScriptCallGenerato(JSON.parse(selectedCliente.script_call_testo));
+                              setShowScriptModal(true);
+                            } catch(e) {
+                              alert("Errore nel caricamento dello script salvato");
+                            }
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors hover:opacity-90"
+                          style={{ background: '#ECEDEF', color: '#5F6572' }}
+                        >
+                          <Eye className="w-4 h-4" />
+                          Visualizza
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL SCRIPT CALL */}
+      {showScriptModal && scriptCallGenerato && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+            {/* Header */}
+            <div className="p-4 border-b flex items-center justify-between" style={{ background: '#FFF7ED', borderColor: '#FDBA74' }}>
+              <div>
+                <h2 className="font-bold text-lg" style={{ color: '#C2410C' }}>
+                  Script Call Strategica
+                </h2>
+                <p className="text-sm" style={{ color: '#EA580C' }}>
+                  {selectedCliente?.nome} {selectedCliente?.cognome}
+                </p>
+              </div>
+              <button 
+                onClick={() => setShowScriptModal(false)}
+                className="p-2 rounded-lg hover:bg-white/50 transition-colors"
+              >
+                <X className="w-5 h-5" style={{ color: '#C2410C' }} />
+              </button>
+            </div>
+            
+            {/* Content */}
+            <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 140px)' }}>
+              {/* Blocchi Script */}
+              <div className="space-y-6">
+                {/* Apertura Call */}
+                {scriptCallGenerato.apertura_call && (
+                  <div className="p-4 rounded-xl" style={{ background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
+                    <h4 className="font-bold text-sm uppercase tracking-wider mb-2" style={{ color: '#166534' }}>
+                      1. Apertura Call
+                    </h4>
+                    <p className="text-xs mb-2" style={{ color: '#22C55E' }}>
+                      <strong>Obiettivo:</strong> {scriptCallGenerato.apertura_call.obiettivo}
+                    </p>
+                    <p className="text-sm" style={{ color: '#14532D' }}>
+                      {scriptCallGenerato.apertura_call.script}
+                    </p>
+                  </div>
+                )}
+
+                {/* Sintesi Progetto */}
+                {scriptCallGenerato.sintesi_progetto && (
+                  <div className="p-4 rounded-xl" style={{ background: '#EFF6FF', border: '1px solid #BFDBFE' }}>
+                    <h4 className="font-bold text-sm uppercase tracking-wider mb-2" style={{ color: '#1E40AF' }}>
+                      2. Sintesi del Progetto
+                    </h4>
+                    <p className="text-xs mb-2" style={{ color: '#3B82F6' }}>
+                      <strong>Obiettivo:</strong> {scriptCallGenerato.sintesi_progetto.obiettivo}
+                    </p>
+                    <p className="text-sm" style={{ color: '#1E3A8A' }}>
+                      {scriptCallGenerato.sintesi_progetto.script}
+                    </p>
+                  </div>
+                )}
+
+                {/* Problema Principale */}
+                {scriptCallGenerato.problema_principale && (
+                  <div className="p-4 rounded-xl" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
+                    <h4 className="font-bold text-sm uppercase tracking-wider mb-2" style={{ color: '#991B1B' }}>
+                      3. Problema Principale
+                    </h4>
+                    <p className="text-xs mb-2" style={{ color: '#EF4444' }}>
+                      <strong>Obiettivo:</strong> {scriptCallGenerato.problema_principale.obiettivo}
+                    </p>
+                    <p className="text-sm" style={{ color: '#7F1D1D' }}>
+                      {scriptCallGenerato.problema_principale.script}
+                    </p>
+                  </div>
+                )}
+
+                {/* Opportunità */}
+                {scriptCallGenerato.opportunita_concreta && (
+                  <div className="p-4 rounded-xl" style={{ background: '#FFF7ED', border: '1px solid #FDBA74' }}>
+                    <h4 className="font-bold text-sm uppercase tracking-wider mb-2" style={{ color: '#C2410C' }}>
+                      4. Opportunità Concreta
+                    </h4>
+                    <p className="text-xs mb-2" style={{ color: '#F97316' }}>
+                      <strong>Obiettivo:</strong> {scriptCallGenerato.opportunita_concreta.obiettivo}
+                    </p>
+                    <p className="text-sm" style={{ color: '#9A3412' }}>
+                      {scriptCallGenerato.opportunita_concreta.script}
+                    </p>
+                  </div>
+                )}
+
+                {/* Diagnosi */}
+                {scriptCallGenerato.diagnosi_strategica && (
+                  <div className="p-4 rounded-xl" style={{ background: '#F5F3FF', border: '1px solid #DDD6FE' }}>
+                    <h4 className="font-bold text-sm uppercase tracking-wider mb-2" style={{ color: '#5B21B6' }}>
+                      5. Diagnosi Strategica
+                    </h4>
+                    <p className="text-xs mb-2" style={{ color: '#7C3AED' }}>
+                      <strong>Obiettivo:</strong> {scriptCallGenerato.diagnosi_strategica.obiettivo}
+                    </p>
+                    <div className="inline-block px-3 py-1 rounded-full text-xs font-bold mb-2"
+                         style={{ 
+                           background: scriptCallGenerato.diagnosi_strategica.esito === 'adatto' ? '#DCFCE7' : 
+                                       scriptCallGenerato.diagnosi_strategica.esito === 'adatto con condizioni' ? '#FEF9C3' : '#FEE2E2',
+                           color: scriptCallGenerato.diagnosi_strategica.esito === 'adatto' ? '#166534' : 
+                                  scriptCallGenerato.diagnosi_strategica.esito === 'adatto con condizioni' ? '#854D0E' : '#991B1B'
+                         }}>
+                      Esito: {scriptCallGenerato.diagnosi_strategica.esito}
+                    </div>
+                    <p className="text-sm" style={{ color: '#4C1D95' }}>
+                      {scriptCallGenerato.diagnosi_strategica.script}
+                    </p>
+                  </div>
+                )}
+
+                {/* Partnership */}
+                {scriptCallGenerato.presentazione_partnership && (
+                  <div className="p-4 rounded-xl" style={{ background: '#FFF8DC', border: '1px solid #F5C518' }}>
+                    <h4 className="font-bold text-sm uppercase tracking-wider mb-2" style={{ color: '#92700C' }}>
+                      6. Partnership Evolution PRO
+                    </h4>
+                    <p className="text-xs mb-2" style={{ color: '#C4990A' }}>
+                      <strong>Obiettivo:</strong> {scriptCallGenerato.presentazione_partnership.obiettivo}
+                    </p>
+                    <p className="text-sm" style={{ color: '#78350F' }}>
+                      {scriptCallGenerato.presentazione_partnership.script}
+                    </p>
+                  </div>
+                )}
+
+                {/* Transizione Offerta */}
+                {scriptCallGenerato.transizione_offerta && (
+                  <div className="p-4 rounded-xl" style={{ background: '#ECFDF5', border: '1px solid #A7F3D0' }}>
+                    <h4 className="font-bold text-sm uppercase tracking-wider mb-2" style={{ color: '#065F46' }}>
+                      7. Transizione alla Proposta
+                    </h4>
+                    <p className="text-xs mb-2" style={{ color: '#10B981' }}>
+                      <strong>Obiettivo:</strong> {scriptCallGenerato.transizione_offerta.obiettivo}
+                    </p>
+                    <p className="text-sm" style={{ color: '#064E3B' }}>
+                      {scriptCallGenerato.transizione_offerta.script}
+                    </p>
+                  </div>
+                )}
+
+                {/* Obiezioni */}
+                {scriptCallGenerato.obiezioni_probabili && (
+                  <div className="p-4 rounded-xl" style={{ background: '#FDF4FF', border: '1px solid #F0ABFC' }}>
+                    <h4 className="font-bold text-sm uppercase tracking-wider mb-3" style={{ color: '#86198F' }}>
+                      8. Obiezioni Probabili
+                    </h4>
+                    <p className="text-xs mb-3" style={{ color: '#C026D3' }}>
+                      <strong>Obiettivo:</strong> {scriptCallGenerato.obiezioni_probabili.obiettivo}
+                    </p>
+                    <div className="space-y-3">
+                      {scriptCallGenerato.obiezioni_probabili.obiezioni?.map((ob, idx) => (
+                        <div key={idx} className="p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.5)' }}>
+                          <p className="text-sm font-medium mb-1" style={{ color: '#701A75' }}>
+                            ❓ "{ob.obiezione}"
+                          </p>
+                          <p className="text-sm" style={{ color: '#86198F' }}>
+                            → {ob.risposta}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Footer */}
+            <div className="p-4 border-t flex items-center justify-between" style={{ background: '#FAFAF7', borderColor: '#ECEDEF' }}>
+              <button
+                onClick={handleCopiaScript}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors hover:opacity-90"
+                style={{ background: '#ECEDEF', color: '#5F6572' }}
+              >
+                <FileText className="w-4 h-4" />
+                Copia Script
+              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleGeneraScriptCall}
+                  disabled={generatingScript}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors hover:opacity-90 disabled:opacity-50"
+                  style={{ background: '#ECEDEF', color: '#5F6572' }}
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Rigenera
+                </button>
+                <button
+                  onClick={handleSalvaScriptCall}
+                  disabled={savingScript}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors hover:opacity-90 disabled:opacity-50"
+                  style={{ background: '#22C55E', color: '#FFFFFF' }}
+                >
+                  {savingScript ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  Salva Script
+                </button>
+              </div>
             </div>
           </div>
         </div>
