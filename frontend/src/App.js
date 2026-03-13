@@ -25,6 +25,7 @@ import { RenewalPlans } from "./components/partner/RenewalPlans";
 import PartnerOnboarding from "./components/partner/PartnerOnboarding";
 import { PartnerDashboardSimplified } from "./components/partner/PartnerDashboardSimplified";
 import { PartnerSidebarLight } from "./components/partner/PartnerSidebar";
+import { PosizionamentoPage } from "./components/partner/PosizionamentoPage";
 import { PartnerFilesPage } from "./components/partner/PartnerFilesPage";
 import { BonusStrategici } from "./components/partner/BonusStrategici";
 import { AdminSidebarLight } from "./components/admin/AdminSidebarLight";
