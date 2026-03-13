@@ -877,6 +877,7 @@ export default function App() {
   const [modules,setModules]=useState([]);
   const [stats,setStats]=useState({});
   const [selectedPartner,setSelectedPartner]=useState(null);
+  const [viewingCliente,setViewingCliente]=useState(null); // Cliente da visualizzare in modalità cliente
 
   // Get the partner data for the logged-in user (if they are a partner)
   // Falls back to demo partner for admin testing
