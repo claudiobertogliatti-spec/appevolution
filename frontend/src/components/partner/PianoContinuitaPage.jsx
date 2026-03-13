@@ -1,153 +1,168 @@
 import { useState } from "react";
 import { 
-  Shield, Rocket, Check, Server, BarChart3, 
-  Headphones, FileText, TrendingUp, Megaphone,
-  Target, Zap, ArrowRight, Loader2, CheckCircle2
+  Check, Sparkles, Shield, TrendingUp, Rocket, 
+  Phone, BarChart3, Users, Zap, Crown, ArrowRight,
+  Clock, HeadphonesIcon, LineChart, Target, Calendar,
+  Server, FileText, Megaphone
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CONFIGURAZIONE PIANI
+// CONFIGURAZIONE 3 PIANI
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const PIANO_CONTINUITA = {
-  id: "continuita",
-  title: "Piano Continuità",
-  subtitle: "Mantieni attiva la tua Accademia",
-  description: "Il Piano Continuità permette di mantenere attiva la tua Accademia Digitale e il sistema di vendita nel tempo.",
-  icon: Shield,
-  color: "#3B82F6",
-  services: [
-    { icon: Server, label: "Hosting accademia" },
-    { icon: Zap, label: "Funnel attivo" },
-    { icon: BarChart3, label: "Monitoraggio sistema" },
-    { icon: FileText, label: "Report mensile automatico" },
-    { icon: Headphones, label: "Supporto tecnico" },
-  ],
-  cta: "Attiva Piano Continuità",
-  field: "continuita_attiva"
-};
-
-const GROWTH_PARTNER = {
-  id: "growth",
-  title: "Growth Partner",
-  subtitle: "Accelera la crescita della tua Accademia",
-  description: "Con il programma Growth Partner il team Evolution ti affianca nell'ottimizzazione del tuo sistema di vendita.",
-  icon: Rocket,
-  color: "#F2C418",
-  services: [
-    { icon: BarChart3, label: "Analisi vendite" },
-    { icon: TrendingUp, label: "Ottimizzazione funnel" },
-    { icon: Target, label: "Strategie lancio" },
-    { icon: Megaphone, label: "Supporto marketing" },
-    { icon: Zap, label: "Nuove campagne" },
-  ],
-  cta: "Richiedi accesso",
-  field: "growth_partner_attivo"
-};
+const PIANI = [
+  {
+    id: "continuity",
+    name: "Continuity",
+    tagline: "Mantieni il sistema attivo",
+    price: "97",
+    period: "/mese",
+    popular: false,
+    color: "#3B82F6",
+    features: [
+      { text: "Hosting Accademia", icon: Server },
+      { text: "Monitoraggio tecnico", icon: BarChart3 },
+      { text: "Funnel attivo", icon: TrendingUp },
+      { text: "Report mensile automatico", icon: LineChart },
+      { text: "Supporto tecnico base", icon: HeadphonesIcon },
+    ],
+    cta: "Attiva Piano Continuity"
+  },
+  {
+    id: "growth",
+    name: "Growth",
+    tagline: "Per chi vuole crescere",
+    price: "197",
+    period: "/mese",
+    popular: true,
+    color: "#F2C418",
+    features: [
+      { text: "Tutto il piano Continuity", icon: Check, included: true },
+      { text: "Analisi vendite avanzata", icon: BarChart3 },
+      { text: "Ottimizzazione funnel", icon: Target },
+      { text: "Strategia mensile personalizzata", icon: Sparkles },
+      { text: "1 call strategica al mese", icon: Phone },
+    ],
+    cta: "Attiva Piano Growth"
+  },
+  {
+    id: "scale",
+    name: "Scale",
+    tagline: "Per scalare davvero",
+    price: "397",
+    period: "/mese",
+    popular: false,
+    color: "#8B5CF6",
+    features: [
+      { text: "Tutto il piano Growth", icon: Check, included: true },
+      { text: "Strategia di lancio periodica", icon: Rocket },
+      { text: "Supporto marketing avanzato", icon: Megaphone },
+      { text: "2 call strategiche al mese", icon: Phone },
+      { text: "Supporto prioritario 24/7", icon: Zap },
+    ],
+    cta: "Attiva Piano Scale"
+  }
+];
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // COMPONENTI
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function ServiceCard({ plan, isActive, isLoading, onActivate }) {
-  const Icon = plan.icon;
+function PlanCard({ plan, onSelect, isLoading }) {
+  const Icon = plan.popular ? Crown : Shield;
   
   return (
     <div 
-      className="bg-white rounded-2xl border overflow-hidden transition-all hover:shadow-lg"
-      style={{ borderColor: isActive ? plan.color : '#ECEDEF' }}
+      className={`relative rounded-2xl p-6 transition-all hover:scale-105 ${
+        plan.popular ? 'ring-2 ring-offset-2' : ''
+      }`}
+      style={{ 
+        background: 'white', 
+        border: `2px solid ${plan.popular ? plan.color : '#ECEDEF'}`,
+        ringColor: plan.color
+      }}
     >
+      {/* Popular Badge */}
+      {plan.popular && (
+        <div 
+          className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold"
+          style={{ background: plan.color, color: '#1E2128' }}
+        >
+          PIÙ POPOLARE
+        </div>
+      )}
+      
       {/* Header */}
-      <div 
-        className="p-6"
-        style={{ background: `${plan.color}10` }}
-      >
-        <div className="flex items-center gap-4 mb-4">
-          <div 
-            className="w-14 h-14 rounded-xl flex items-center justify-center"
-            style={{ background: `${plan.color}20`, color: plan.color }}
-          >
-            <Icon className="w-7 h-7" />
-          </div>
-          <div>
-            <h3 className="text-lg font-black" style={{ color: '#1E2128' }}>
-              {plan.title}
-            </h3>
-            <p className="text-sm" style={{ color: plan.color }}>
-              {plan.subtitle}
-            </p>
-          </div>
-          {isActive && (
-            <div 
-              className="ml-auto px-3 py-1 rounded-full text-xs font-bold"
-              style={{ background: '#DCFCE7', color: '#22C55E' }}
-            >
-              ✓ Attivo
-            </div>
-          )}
+      <div className="text-center mb-6">
+        <div 
+          className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+          style={{ background: `${plan.color}20`, color: plan.color }}
+        >
+          <Icon className="w-7 h-7" />
         </div>
         
-        <p className="text-sm leading-relaxed" style={{ color: '#5F6572' }}>
-          {plan.description}
+        <h3 className="text-xl font-black mb-1" style={{ color: '#1E2128' }}>
+          {plan.name}
+        </h3>
+        <p className="text-sm" style={{ color: '#5F6572' }}>
+          {plan.tagline}
         </p>
       </div>
       
-      {/* Services */}
-      <div className="p-6 border-t" style={{ borderColor: '#ECEDEF' }}>
-        <div className="text-xs font-bold uppercase tracking-wider mb-4" style={{ color: '#9CA3AF' }}>
-          Servizi inclusi
+      {/* Price */}
+      <div className="text-center mb-6">
+        <div className="flex items-baseline justify-center gap-1">
+          <span className="text-4xl font-black" style={{ color: '#1E2128' }}>
+            €{plan.price}
+          </span>
+          <span className="text-sm" style={{ color: '#9CA3AF' }}>
+            {plan.period}
+          </span>
         </div>
-        <ul className="space-y-3">
-          {plan.services.map((service, idx) => (
-            <li key={idx} className="flex items-center gap-3">
+      </div>
+      
+      {/* Features */}
+      <div className="space-y-3 mb-6">
+        {plan.features.map((feature, idx) => {
+          const FeatureIcon = feature.icon;
+          return (
+            <div key={idx} className="flex items-center gap-3">
               <div 
-                className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ background: `${plan.color}15`, color: plan.color }}
+                className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ 
+                  background: feature.included ? '#22C55E20' : `${plan.color}20`,
+                  color: feature.included ? '#22C55E' : plan.color
+                }}
               >
-                <service.icon className="w-4 h-4" />
+                <FeatureIcon className="w-3.5 h-3.5" />
               </div>
-              <span className="text-sm font-medium" style={{ color: '#1E2128' }}>
-                {service.label}
+              <span 
+                className="text-sm"
+                style={{ color: feature.included ? '#22C55E' : '#5F6572' }}
+              >
+                {feature.text}
               </span>
-              {isActive && (
-                <Check className="w-4 h-4 ml-auto" style={{ color: '#22C55E' }} />
-              )}
-            </li>
-          ))}
-        </ul>
+            </div>
+          );
+        })}
       </div>
       
       {/* CTA */}
-      <div className="p-6 border-t" style={{ borderColor: '#ECEDEF', background: '#FAFAF7' }}>
-        {isActive ? (
-          <div className="flex items-center justify-center gap-2 py-3 rounded-xl"
-               style={{ background: '#DCFCE7', color: '#22C55E' }}>
-            <CheckCircle2 className="w-5 h-5" />
-            <span className="font-bold">Piano attivo</span>
-          </div>
-        ) : (
-          <button
-            onClick={() => onActivate(plan)}
-            disabled={isLoading}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
-            style={{ background: plan.color, color: plan.color === '#F2C418' ? '#1E2128' : '#FFFFFF' }}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Elaborazione...
-              </>
-            ) : (
-              <>
-                {plan.cta}
-                <ArrowRight className="w-5 h-5" />
-              </>
-            )}
-          </button>
-        )}
-      </div>
+      <button
+        onClick={() => onSelect(plan)}
+        disabled={isLoading}
+        className="w-full py-4 rounded-xl font-bold text-sm transition-all hover:opacity-90 flex items-center justify-center gap-2 disabled:opacity-50"
+        style={{ 
+          background: plan.popular ? plan.color : '#1E2128',
+          color: plan.popular ? '#1E2128' : 'white'
+        }}
+        data-testid={`select-plan-${plan.id}`}
+      >
+        {plan.cta}
+        <ArrowRight className="w-4 h-4" />
+      </button>
     </div>
   );
 }
@@ -157,93 +172,162 @@ function ServiceCard({ plan, isActive, isLoading, onActivate }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function PianoContinuitaPage({ partner, onNavigate }) {
-  const [loading, setLoading] = useState(null);
-  const [continuitaAttiva, setContinuitaAttiva] = useState(partner?.continuita_attiva || false);
-  const [growthAttivo, setGrowthAttivo] = useState(partner?.growth_partner_attivo || false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [showConfirm, setShowConfirm] = useState(false);
   
-  const handleActivate = async (plan) => {
-    setLoading(plan.id);
+  const partnerId = partner?.id;
+  
+  const handleSelectPlan = (plan) => {
+    setSelectedPlan(plan);
+    setShowConfirm(true);
+  };
+  
+  const handleConfirmPlan = async () => {
+    if (!partnerId || !selectedPlan) return;
+    
+    setIsLoading(true);
     
     try {
-      // In produzione: chiamata API per attivare il piano
-      const response = await fetch(`${API}/api/partners/${partner?.id}/attiva-piano`, {
+      const res = await fetch(`${API}/api/partners/${partnerId}/attiva-piano`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ piano: plan.field })
+        body: JSON.stringify({ piano: selectedPlan.id })
       });
       
-      if (response.ok) {
-        if (plan.id === 'continuita') {
-          setContinuitaAttiva(true);
-        } else {
-          setGrowthAttivo(true);
-        }
-      } else {
-        // Simula attivazione per demo
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        if (plan.id === 'continuita') {
-          setContinuitaAttiva(true);
-        } else {
-          setGrowthAttivo(true);
-        }
+      if (res.ok) {
+        alert(`Piano ${selectedPlan.name} attivato con successo!`);
+        setShowConfirm(false);
+        onNavigate('ottimizzazione');
       }
     } catch (e) {
-      // Simula attivazione per demo
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      if (plan.id === 'continuita') {
-        setContinuitaAttiva(true);
-      } else {
-        setGrowthAttivo(true);
-      }
+      console.error("Error activating plan:", e);
+    } finally {
+      setIsLoading(false);
     }
-    
-    setLoading(null);
   };
   
   return (
     <div className="min-h-full" style={{ background: '#FAFAF7' }}>
-      <div className="max-w-5xl mx-auto p-6">
+      
+      {/* Hero Section */}
+      <div className="relative overflow-hidden">
+        <div 
+          className="absolute inset-0"
+          style={{ 
+            background: 'linear-gradient(135deg, #1E2128 0%, #2D3239 100%)'
+          }}
+        />
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 left-0 w-96 h-96 rounded-full blur-3xl" style={{ background: '#F2C418' }} />
+          <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full blur-3xl" style={{ background: '#3B82F6' }} />
+        </div>
         
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-black mb-2" style={{ color: '#1E2128' }}>
-            Piano Continuità & Growth
+        <div className="relative max-w-4xl mx-auto px-6 py-16 text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6"
+               style={{ background: '#F2C41820', border: '1px solid #F2C41850' }}>
+            <Sparkles className="w-4 h-4" style={{ color: '#F2C418' }} />
+            <span className="text-sm font-bold" style={{ color: '#F2C418' }}>
+              Piani Continuità Evolution PRO
+            </span>
+          </div>
+          
+          <h1 className="text-3xl md:text-4xl font-black mb-4 text-white">
+            Continua a far crescere la tua
+            <span className="block" style={{ color: '#F2C418' }}>Accademia Digitale</span>
           </h1>
-          <p className="text-sm max-w-lg mx-auto" style={{ color: '#5F6572' }}>
-            Scegli il livello di supporto per la tua Accademia Digitale.
-            Mantienila attiva o accelera la crescita con il nostro team.
+          
+          <p className="text-lg max-w-2xl mx-auto" style={{ color: '#9CA3AF' }}>
+            Dopo il lancio inizia la fase più importante: ottimizzare il tuo sistema 
+            di vendita e trasformare il tuo videocorso in una fonte stabile di entrate.
           </p>
         </div>
-        
-        {/* Cards */}
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Piano Continuità */}
-          <ServiceCard 
-            plan={PIANO_CONTINUITA}
-            isActive={continuitaAttiva}
-            isLoading={loading === 'continuita'}
-            onActivate={handleActivate}
-          />
-          
-          {/* Growth Partner */}
-          <ServiceCard 
-            plan={GROWTH_PARTNER}
-            isActive={growthAttivo}
-            isLoading={loading === 'growth'}
-            onActivate={handleActivate}
-          />
+      </div>
+      
+      {/* Plans Section */}
+      <div className="max-w-5xl mx-auto px-6 py-12 -mt-8">
+        <div className="grid md:grid-cols-3 gap-6">
+          {PIANI.map(plan => (
+            <PlanCard 
+              key={plan.id}
+              plan={plan}
+              onSelect={handleSelectPlan}
+              isLoading={isLoading}
+            />
+          ))}
         </div>
         
-        {/* Info Box */}
-        <div className="mt-8 p-6 rounded-2xl text-center" style={{ background: '#FFF8DC', border: '1px solid #F2C41840' }}>
-          <div className="text-sm" style={{ color: '#92700C' }}>
-            <strong>Hai domande sui piani?</strong>
-            <br />
-            Contatta il team Evolution PRO per una consulenza personalizzata.
+        {/* Trust Elements */}
+        <div className="mt-12 text-center">
+          <p className="text-sm mb-4" style={{ color: '#9CA3AF' }}>
+            Tutti i piani includono
+          </p>
+          <div className="flex flex-wrap justify-center gap-6">
+            {[
+              { icon: Shield, text: "Garanzia 30 giorni" },
+              { icon: Clock, text: "Cancellazione facile" },
+              { icon: HeadphonesIcon, text: "Supporto dedicato" },
+            ].map((item, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <item.icon className="w-4 h-4" style={{ color: '#22C55E' }} />
+                <span className="text-sm" style={{ color: '#5F6572' }}>{item.text}</span>
+              </div>
+            ))}
           </div>
         </div>
         
+        {/* Back Link */}
+        <div className="mt-8 text-center">
+          <button
+            onClick={() => onNavigate('ottimizzazione')}
+            className="text-sm font-medium transition-all hover:opacity-70"
+            style={{ color: '#5F6572' }}
+          >
+            ← Torna all'Ottimizzazione
+          </button>
+        </div>
       </div>
+      
+      {/* Confirmation Modal */}
+      {showConfirm && selectedPlan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-2xl max-w-md w-full p-6">
+            <div className="text-center mb-6">
+              <div 
+                className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                style={{ background: `${selectedPlan.color}20`, color: selectedPlan.color }}
+              >
+                <Crown className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-black mb-2" style={{ color: '#1E2128' }}>
+                Conferma attivazione
+              </h3>
+              <p className="text-sm" style={{ color: '#5F6572' }}>
+                Stai per attivare il piano <strong>{selectedPlan.name}</strong> a €{selectedPlan.price}/mese
+              </p>
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="flex-1 py-3 rounded-xl font-bold text-sm"
+                style={{ background: '#FAFAF7', color: '#5F6572', border: '1px solid #ECEDEF' }}
+              >
+                Annulla
+              </button>
+              <button
+                onClick={handleConfirmPlan}
+                disabled={isLoading}
+                className="flex-1 py-3 rounded-xl font-bold text-sm text-white disabled:opacity-50"
+                style={{ background: selectedPlan.color }}
+              >
+                {isLoading ? 'Attivazione...' : 'Conferma'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
     </div>
   );
 }
