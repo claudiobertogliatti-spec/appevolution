@@ -21,6 +21,7 @@ const SUPPORT_ITEMS = [
   { id: "team", label: "Il tuo team Evolution PRO", icon: Users },
   { id: "eventi", label: "Eventi live", icon: PlayCircle },
   { id: "supporto", label: "Supporto tecnico", icon: HelpCircle },
+  { id: "piano-continuita", label: "Piano Continuità", icon: Users },
 ];
 
 // Mapping fase partner → step corrente nel percorso
