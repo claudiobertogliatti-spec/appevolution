@@ -284,12 +284,9 @@ function ActivateLaunchSection({ onActivate, isActivating, isLaunched, disabled 
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function LancioPage({ partner, onNavigate, onLaunchComplete }) {
-  // Simula stati di completamento (in produzione verranno dal partner data)
+  const [isLoading, setIsLoading] = useState(true);
   const [systemChecks, setSystemChecks] = useState(
-    SYSTEM_CHECKS.map(check => ({
-      ...check,
-      ready: partner?.[check.field] ?? true // Per demo, tutti pronti
-    }))
+    SYSTEM_CHECKS.map(check => ({ ...check, ready: false }))
   );
   
   const [launchTasks, setLaunchTasks] = useState(
@@ -302,18 +299,68 @@ export function LancioPage({ partner, onNavigate, onLaunchComplete }) {
   const [isActivating, setIsActivating] = useState(false);
   const [isLaunched, setIsLaunched] = useState(false);
   
+  const partnerId = partner?.id;
   const allSystemReady = systemChecks.every(c => c.ready);
   const canLaunch = allSystemReady && isPublished;
   
+  // Carica stato lancio
+  useEffect(() => {
+    const loadLancioStatus = async () => {
+      if (!partnerId) {
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        const res = await fetch(`${API}/api/partner-journey/lancio/${partnerId}`);
+        if (res.ok) {
+          const data = await res.json();
+          
+          // Aggiorna system checks
+          setSystemChecks(SYSTEM_CHECKS.map(check => ({
+            ...check,
+            ready: data.system_checks?.[check.field] || false
+          })));
+          
+          if (data.funnel_url) {
+            setFunnelUrl(data.funnel_url);
+            setIsPublished(true);
+          }
+          
+          if (data.is_launched) {
+            setIsLaunched(true);
+          }
+        }
+      } catch (e) {
+        console.error("Error loading lancio status:", e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadLancioStatus();
+  }, [partnerId]);
+  
   const handlePublishFunnel = async () => {
+    if (!partnerId) return;
+    
     setIsPublishing(true);
     
-    // Simula chiamata OpenClaw
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    setIsPublished(true);
-    setFunnelUrl("https://systeme.io/funnel/demo");
-    setIsPublishing(false);
+    try {
+      const res = await fetch(`${API}/api/partner-journey/lancio/publish-funnel?partner_id=${partnerId}`, {
+        method: 'POST'
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setIsPublished(true);
+        setFunnelUrl(data.funnel_url);
+      }
+    } catch (e) {
+      console.error("Error publishing funnel:", e);
+    } finally {
+      setIsPublishing(false);
+    }
   };
   
   const handleToggleTask = (taskId) => {
@@ -323,26 +370,37 @@ export function LancioPage({ partner, onNavigate, onLaunchComplete }) {
   };
   
   const handleActivateLaunch = async () => {
+    if (!partnerId) return;
+    
     setIsActivating(true);
     
     try {
-      // Aggiorna stato partner nel backend
-      await fetch(`${API}/api/partners/${partner?.id}/launch`, {
-        method: 'POST'
+      const res = await fetch(`${API}/api/partner-journey/lancio/activate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ partner_id: partnerId })
       });
+      
+      if (res.ok) {
+        setIsLaunched(true);
+        if (onLaunchComplete) {
+          onLaunchComplete();
+        }
+      }
     } catch (e) {
-      // Continua comunque per demo
-    }
-    
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    setIsLaunched(true);
-    setIsActivating(false);
-    
-    if (onLaunchComplete) {
-      onLaunchComplete();
+      console.error("Error activating launch:", e);
+    } finally {
+      setIsActivating(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-full flex items-center justify-center" style={{ background: '#FAFAF7' }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#F2C418' }} />
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-full" style={{ background: '#FAFAF7' }}>
