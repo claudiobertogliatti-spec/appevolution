@@ -101,7 +101,8 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
         'masterclass': 'masterclass',
         'videocorso': 'videocorso',
         'funnel': 'funnel',
-        'lancio': 'calendario'
+        'lancio': 'lancio',
+        'ottimizzazione': 'ottimizzazione'
       };
       onNavigate(navMap[phase.id] || 'dashboard');
     } else {
