@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Check, X, Rocket, ExternalLink, Loader2, 
   CheckCircle2, Mail, MessageSquare, Users, Play,
