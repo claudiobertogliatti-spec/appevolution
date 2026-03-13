@@ -26,6 +26,7 @@ import PartnerOnboarding from "./components/partner/PartnerOnboarding";
 import { PartnerDashboardSimplified } from "./components/partner/PartnerDashboardSimplified";
 import { PartnerSidebarLight } from "./components/partner/PartnerSidebar";
 import { PosizionamentoPage } from "./components/partner/PosizionamentoPage";
+import { MasterclassPage } from "./components/partner/MasterclassPage";
 import { PartnerFilesPage } from "./components/partner/PartnerFilesPage";
 import { BonusStrategici } from "./components/partner/BonusStrategici";
 import { AdminSidebarLight } from "./components/admin/AdminSidebarLight";
