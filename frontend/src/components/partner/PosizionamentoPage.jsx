@@ -564,11 +564,13 @@ export function PosizionamentoPage({ partner, onNavigate, onComplete }) {
             structure={generatedStructure}
             onApprove={handleApprove}
             onRequestEdit={handleRequestEdit}
+            isSaving={isSaving}
           />
         ) : wizardCompleted ? (
           <GenerateSection 
             onGenerate={handleGenerate}
             isGenerating={isGenerating}
+            error={error}
           />
         ) : (
           <>
