@@ -755,27 +755,41 @@ export function AdminClientiAnalisiPanel() {
                     <Sparkles className="w-10 h-10 mx-auto mb-3" style={{ color: '#C4990A' }} />
                     <h3 className="font-bold mb-2" style={{ color: '#1E2128' }}>Cliente pronto per l'analisi</h3>
                     <p className="text-sm mb-4" style={{ color: '#5F6572' }}>
-                      Questionario compilato e pagamento ricevuto. Puoi generare l'Analisi Strategica.
+                      Questionario compilato e pagamento ricevuto. Usa il nuovo flusso consulenziale.
                     </p>
-                    <button
-                      onClick={handleGeneraAnalisiAI}
-                      disabled={generatingAnalisi}
-                      className="inline-flex items-center gap-2 px-8 py-3 rounded-xl font-bold transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
-                      style={{ background: '#22C55E', color: '#FFFFFF' }}
-                      data-testid="btn-genera-analisi"
-                    >
-                      {generatingAnalisi ? (
-                        <>
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                          Generazione in corso...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-5 h-5" />
-                          Genera Analisi Strategica
-                        </>
-                      )}
-                    </button>
+                    <div className="flex gap-3 justify-center">
+                      <button
+                        onClick={() => {
+                          setClienteConsulenziale(selectedCliente.id);
+                          setShowAnalisiConsulenziale(true);
+                        }}
+                        className="inline-flex items-center gap-2 px-8 py-3 rounded-xl font-bold transition-all hover:scale-105"
+                        style={{ background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)', color: '#FFFFFF' }}
+                        data-testid="btn-flusso-consulenziale"
+                      >
+                        <Briefcase className="w-5 h-5" />
+                        🆕 Flusso Consulenziale
+                      </button>
+                      <button
+                        onClick={handleGeneraAnalisiAI}
+                        disabled={generatingAnalisi}
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all hover:opacity-80 disabled:opacity-50"
+                        style={{ background: '#ECEDEF', color: '#5F6572' }}
+                        data-testid="btn-genera-analisi"
+                      >
+                        {generatingAnalisi ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Generazione...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-5 h-5" />
+                            Metodo Classico
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
