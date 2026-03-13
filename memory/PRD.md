@@ -337,6 +337,33 @@ Pagina di vendita accessibile quando il contratto si avvicina alla scadenza o il
 
 ## CHANGELOG
 
+### 13 Mar 2026 - Flusso Consulenziale Completo ✅ NEW
+- ✅ **NUOVO SISTEMA DI ANALISI CONSULENZIALE**
+  - Analisi Preliminare (interna, non visibile al cliente)
+  - Script Call con 8 blocchi per guidare Claudio
+  - Analisi Finale post-call con documento consulenziale professionale
+  - Revisione Admin + modifica bozza
+  - Approvazione e invio al cliente via Systeme.io
+- ✅ Backend nuovo router `analisi_consulenziale.py`:
+  - `GET /api/analisi-consulenziale/stato/{user_id}`
+  - `POST /api/analisi-consulenziale/genera-preliminare`
+  - `POST /api/analisi-consulenziale/genera-script-call`
+  - `POST /api/analisi-consulenziale/genera-finale`
+  - `PUT /api/analisi-consulenziale/modifica-finale`
+  - `POST /api/analisi-consulenziale/approva-invia`
+  - `GET /api/analisi-consulenziale/script-call-pdf/{user_id}` (PDF per Claudio)
+  - `GET /api/analisi-consulenziale/analisi-finale-pdf/{user_id}` (PDF per cliente)
+- ✅ Frontend nuovo componente `AnalisiConsulenziale.jsx`:
+  - Modal con 4 tab: Overview, Analisi Preliminare, Script Call, Analisi Finale
+  - Timeline visuale con 4 step
+  - Editor per modificare sezioni dell'analisi finale
+  - Download PDF script call e analisi finale
+- ✅ Integrazione in `AdminClientiAnalisiPanel.jsx`:
+  - Nuovo pulsante "Consulenziale" (viola) per clienti con questionario+pagamento
+  - Accesso rapido dalla tabella clienti
+- ✅ Tag Systeme.io: `analisi_finale_pronta` per email automatica
+- ✅ 4 stati: `questionario_ricevuto` → `analisi_preliminare_generata` → `analisi_finale_da_revisionare` → `analisi_consegnata`
+
 ### 13 Mar 2026 - Funnel Completo + Lead Management
 - ✅ Pagina Funnel con 5 blocchi completi:
   1. Generazione Funnel (6 pagine con preview/approva/modifica)
