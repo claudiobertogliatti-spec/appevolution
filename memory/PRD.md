@@ -159,27 +159,15 @@ La durata della partnership Evolution PRO è di **12 mesi** a partire dal moment
 
 | Endpoint | Descrizione |
 |----------|-------------|
-| `GET /api/partner-journey/progress/{partner_id}` | Stato complessivo percorso partner |
-| `GET /api/partner-journey/posizionamento/{partner_id}` | Dati posizionamento |
-| `POST /api/partner-journey/posizionamento/save-step` | Salva step wizard |
-| `POST /api/partner-journey/posizionamento/save-all` | Salva tutti i dati |
-| `POST /api/partner-journey/posizionamento/generate-structure` | Genera struttura corso (AI) |
-| `POST /api/partner-journey/posizionamento/approve-structure` | Approva struttura |
-| `GET /api/partner-journey/masterclass/{partner_id}` | Dati masterclass |
-| `POST /api/partner-journey/masterclass/save-blocks` | Salva blocchi script |
-| `POST /api/partner-journey/masterclass/generate-script` | Genera script (AI) |
-| `POST /api/partner-journey/masterclass/upload-video` | Upload video masterclass |
-| `GET /api/partner-journey/videocorso/{partner_id}` | Dati videocorso |
-| `POST /api/partner-journey/videocorso/upload-lesson` | Upload lezione |
-| `GET /api/partner-journey/funnel/{partner_id}` | Dati funnel |
-| `POST /api/partner-journey/funnel/generate` | Genera materiale marketing (AI) |
-| `POST /api/partner-journey/funnel/publish` | Pubblica su Systeme.io |
-| `GET /api/partner-journey/lancio/{partner_id}` | Stato lancio |
-| `POST /api/partner-journey/lancio/activate` | Attiva lancio |
+| `GET /api/partner-journey/ottimizzazione/{partner_id}` | Dati completi fase ottimizzazione |
+| `POST /api/partner-journey/ottimizzazione/genera-report` | Genera report AI |
+| `POST /api/partner-journey/ottimizzazione/salva-azioni` | Salva stato azioni |
+| `POST /api/partner-journey/ottimizzazione/crea-caso-studio` | Crea caso studio (se soglia raggiunta) |
+| `GET /api/partner-journey/ottimizzazione/caso-studio/{id}` | Dettagli caso studio |
 
 ---
 
-## API ENDPOINTS - PARTNERSHIP ACTIVATION
+## API ENDPOINTS - PARTNER JOURNEY ✅
 
 1. **Automazione "Analisi Pronta":**
    - Trigger: Tag `analisi_pronta` aggiunto
