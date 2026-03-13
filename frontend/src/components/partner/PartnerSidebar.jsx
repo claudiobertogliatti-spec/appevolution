@@ -28,8 +28,8 @@ const SUPPORT_ITEMS = [
 
 // Mapping fase partner → step corrente nel percorso
 const getProjectStep = (partnerPhase) => {
-  // Se LIVE o OTTIMIZZAZIONE, sblocca fase 6
-  if (partnerPhase === 'LIVE' || partnerPhase === 'OTTIMIZZAZIONE') return 5;
+  // Se LIVE o OTTIMIZZAZIONE, sblocca tutte le fasi (incluso Lead)
+  if (partnerPhase === 'LIVE' || partnerPhase === 'OTTIMIZZAZIONE') return 6;
   
   const phaseNum = parseInt(partnerPhase?.replace('F', '') || '1');
   if (phaseNum <= 2) return 0;  // Posizionamento
@@ -37,7 +37,7 @@ const getProjectStep = (partnerPhase) => {
   if (phaseNum <= 6) return 2;  // Videocorso
   if (phaseNum <= 7) return 3;  // Funnel
   if (phaseNum <= 8) return 4;  // Lancio
-  return 5;                      // Ottimizzazione
+  return 6;                      // Ottimizzazione + Lead
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
