@@ -1893,19 +1893,27 @@ Rispondi SOLO con un JSON valido in questo formato esatto:
         # Fallback con analisi generiche
         print(f"Errore AI: {e}")
         analisi_json = {
-            "analisi_expertise": f"La tua area di competenza in '{expertise}' rappresenta una base solida per costruire un'Accademia Digitale. Il mercato della formazione online in questo settore è in crescita e c'è spazio per professionisti che sanno comunicare il proprio valore.",
-            "analisi_cliente_target": f"Il target che hai identificato ('{cliente_target}') è un buon punto di partenza. Sarà importante definire con maggiore precisione le caratteristiche demografiche e psicografiche per creare contenuti mirati.",
-            "analisi_pubblico": f"La tua situazione attuale in termini di pubblico è '{pubblico_esistente}'. Questo influenzerà la strategia di lancio e i tempi necessari per raggiungere i primi risultati.",
-            "analisi_vendita": f"La tua esperienza di vendita ('{esperienze_vendita}') è un elemento importante nella valutazione. Chi ha già venduto ha una comprensione migliore del processo di conversione.",
-            "analisi_ostacolo": f"L'ostacolo che hai identificato ('{ostacolo_principale}') è comune tra i professionisti che vogliono lanciare un'Accademia Digitale. Evolution PRO offre supporto specifico per superare questo tipo di blocco.",
-            "analisi_motivazione": f"La tua motivazione ('{motivazione}') indica che sei in un momento di apertura al cambiamento. Questo è fondamentale per affrontare il percorso con la giusta energia.",
-            "diagnosi_finale": "Sulla base delle risposte fornite, il tuo progetto presenta elementi interessanti per una potenziale partnership Evolution PRO. Durante la call strategica approfondiremo insieme questi aspetti per capire se ci sono le condizioni per lavorare insieme. Non esistono progetti perfetti: l'importante è avere chiarezza sugli obiettivi e la volontà di investire tempo ed energia nel percorso."
+            "sintesi_progetto": f"Il professionista opera nel campo '{expertise}' con l'obiettivo di aiutare '{cliente_target}' a ottenere '{risultato_promesso}'. Si tratta di un progetto che merita approfondimento durante la call strategica.",
+            "analisi_competenza": f"La competenza dichiarata ('{expertise}') rappresenta una base da cui partire. Sarà importante verificare durante la call se questa competenza è sufficientemente definita e differenziata per creare un'Accademia Digitale di successo.",
+            "analisi_target": f"Il target identificato ('{cliente_target}') necessita di ulteriore definizione. Un target chiaro e specifico è fondamentale per creare contenuti mirati e una strategia di acquisizione efficace.",
+            "analisi_presenza": f"La situazione attuale ('{pubblico_esistente}') influenzerà la strategia di lancio. Non avere un pubblico non è un problema, ma richiede una strategia di acquisizione ben strutturata.",
+            "analisi_vendita": f"L'esperienza di vendita dichiarata ('{esperienze_vendita}') è un indicatore importante della validazione del mercato. Chi ha già venduto conosce meglio le obiezioni e i bisogni dei clienti.",
+            "analisi_ostacolo": f"L'ostacolo indicato ('{ostacolo_principale}') è comune tra i professionisti che vogliono digitalizzare la propria competenza. Riconoscere il blocco è il primo passo per superarlo.",
+            "analisi_motivazione": f"La motivazione ('{motivazione}') indica il livello di urgenza e determinazione. Questo aspetto è cruciale per il successo del percorso.",
+            "diagnosi_strategica": "Sulla base delle informazioni fornite, il progetto presenta elementi da approfondire. Durante la call strategica valuteremo insieme se esistono le condizioni per procedere con la partnership Evolution PRO.",
+            "punteggio_fattibilita": 6,
+            "spiegazione_punteggio": "Il punteggio riflette la necessità di approfondire alcuni aspetti del progetto durante la call strategica. I dati forniti permettono una valutazione preliminare, ma servono ulteriori dettagli.",
+            "raccomandazione_finale": "Consigliato procedere con la call strategica per valutare insieme i prossimi passi e definire con maggiore precisione il posizionamento del progetto."
         }
     
-    # Genera il documento finale
+    # Data analisi formattata
+    data_analisi = datetime.now().strftime("%d %B %Y")
+    
+    # Genera il documento finale con il nuovo template
     analisi_completa = ANALISI_TEMPLATE.format(
         nome=nome,
         cognome=cognome,
+        data_analisi=data_analisi,
         expertise=expertise,
         cliente_target=cliente_target,
         risultato_promesso=risultato_promesso,
@@ -1913,18 +1921,24 @@ Rispondi SOLO con un JSON valido in questo formato esatto:
         esperienze_vendita=esperienze_vendita,
         ostacolo_principale=ostacolo_principale,
         motivazione=motivazione,
-        analisi_expertise=analisi_json.get("analisi_expertise", ""),
-        analisi_cliente_target=analisi_json.get("analisi_cliente_target", ""),
-        analisi_pubblico=analisi_json.get("analisi_pubblico", ""),
+        sintesi_progetto=analisi_json.get("sintesi_progetto", ""),
+        analisi_competenza=analisi_json.get("analisi_competenza", ""),
+        analisi_target=analisi_json.get("analisi_target", ""),
+        analisi_presenza=analisi_json.get("analisi_presenza", ""),
         analisi_vendita=analisi_json.get("analisi_vendita", ""),
         analisi_ostacolo=analisi_json.get("analisi_ostacolo", ""),
         analisi_motivazione=analisi_json.get("analisi_motivazione", ""),
-        diagnosi_finale=analisi_json.get("diagnosi_finale", "")
+        diagnosi_strategica=analisi_json.get("diagnosi_strategica", ""),
+        punteggio_fattibilita=analisi_json.get("punteggio_fattibilita", 6),
+        spiegazione_punteggio=analisi_json.get("spiegazione_punteggio", ""),
+        raccomandazione_finale=analisi_json.get("raccomandazione_finale", "")
     )
     
     return {
         "success": True,
         "analisi_testo": analisi_completa,
+        "punteggio_fattibilita": analisi_json.get("punteggio_fattibilita", 6),
+        "raccomandazione": analisi_json.get("raccomandazione_finale", ""),
         "cliente": {
             "id": user_id,
             "nome": nome,
