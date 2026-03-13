@@ -1451,7 +1451,23 @@ export default function App() {
           {/* VISTA CLIENTE (demo per admin) */}
           {mode==="cliente"&&(
             <ClienteDashboard 
-              cliente={{
+              cliente={viewingCliente ? {
+                id: viewingCliente.id,
+                nome: viewingCliente.nome || "Cliente",
+                cognome: viewingCliente.cognome || "",
+                email: viewingCliente.email || "",
+                stato: viewingCliente.stato || viewingCliente.status || "pagato",
+                data_acquisto: viewingCliente.data_acquisto || viewingCliente.paid_at || viewingCliente.created_at,
+                questionario: viewingCliente.questionario || (viewingCliente.questionnaire ? {
+                  completato: true,
+                  data_compilazione: new Date().toISOString(),
+                  risposte: viewingCliente.questionnaire
+                } : { completato: false, risposte: null }),
+                analisi: viewingCliente.analisi_generata || viewingCliente.docx_analisi_url ? {
+                  pronta: true,
+                  testo: viewingCliente.analisi_generata
+                } : null
+              } : {
                 id: "demo-cliente",
                 nome: "Cliente Demo",
                 cognome: "",
@@ -1474,7 +1490,7 @@ export default function App() {
                     }
                   : { completato: false, risposte: null }
               }}
-              onLogout={() => { setMode("admin"); setNav("overview"); }}
+              onLogout={() => { setMode("admin"); setNav("overview"); setViewingCliente(null); }}
             />
           )}
 
