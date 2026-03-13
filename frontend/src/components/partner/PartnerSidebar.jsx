@@ -1,219 +1,74 @@
 import { useState } from "react";
 import { 
-  Home, BookOpen, Target, Mic, Film, FileText, Calendar, Palette, 
-  FolderOpen, MessageCircle, LogOut, ChevronRight, ChevronDown, 
-  HelpCircle, Sparkles, Check, Lock, Rocket, ShoppingBag, Scissors, 
-  Scale, UserCircle, Globe, Mail, BarChart3, UsersRound, Video,
-  PlayCircle, X, Users, Lightbulb, Star, FileUp, FileSignature,
-  PenTool, Image, Clapperboard, MonitorPlay, CheckCircle2, User, Gift,
-  TrendingUp
+  Home, Target, Mic, Film, Rocket, Calendar,
+  MessageCircle, LogOut, Check, Lock, Users, 
+  HelpCircle, PlayCircle, X
 } from "lucide-react";
 
-// =====================================================
-// CONFIGURAZIONE SIDEBAR RAGGRUPPATA
-// =====================================================
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONFIGURAZIONE - 5 FASI DEL PROGETTO
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// Regole di sblocco basate sulle fasi
-const UNLOCK_RULES = {
-  // Dashboard sempre visibile
-  "dashboard": 0,
-  
-  // FASE 0 - Onboarding
-  "fase0-onboarding": 0,
-  
-  // FASE 1 - Posizionamento
-  "fase1-posizionamento": 1,
-  
-  // FASE 2 - Outline
-  "fase2-outline": 2,
-  
-  // FASE 3 - Script
-  "fase3-script": 3,
-  
-  // FASE 4 - Copy Core
-  "fase4-copycore": 4,
-  
-  // FASE 5 - Masterclass
-  "fase5-masterclass": 5,
-  
-  // FASE 6 - Videocorso
-  "fase6-videocorso": 6,
-  
-  // FASE 7 - Dominio
-  "fase7-dominio": 7,
-  
-  // FASE 8 - Pre-Lancio
-  "fase8-prelancio": 8,
-  
-  // FASE 9 - Lancio
-  "fase9-lancio": 9,
-  
-  // Post-Lancio (F10+) - Visible only after F10
-  "post-accademia": 10,
-  "post-studenti": 10,
-  "post-impegni": 10,
-  "post-report": 10,
-  
-  // Profilo - sempre visibile
-  "profilo-bonus": 0,
-  "profilo-files": 0,
-  "profilo-contratto": 0,
-  "profilo-dati": 0,
-  "profilo-brandkit": 0,
-  
-  // Servizi Extra - sempre visibili
-  "avatar-checkout": 0,
-  "servizi-extra": 0,
+const PROJECT_PHASES = [
+  { id: "posizionamento", label: "Posizionamento", icon: Target, unlockPhase: 1 },
+  { id: "masterclass", label: "Masterclass", icon: Mic, unlockPhase: 3 },
+  { id: "videocorso", label: "Videocorso", icon: Film, unlockPhase: 5 },
+  { id: "funnel", label: "Funnel", icon: Calendar, unlockPhase: 7 },
+  { id: "lancio", label: "Lancio", icon: Rocket, unlockPhase: 8 },
+];
+
+const SUPPORT_ITEMS = [
+  { id: "team", label: "Il tuo team Evolution PRO", icon: Users },
+  { id: "eventi", label: "Eventi live", icon: PlayCircle },
+  { id: "supporto", label: "Supporto tecnico", icon: HelpCircle },
+];
+
+// Mapping fase partner → step corrente nel percorso
+const getProjectStep = (partnerPhase) => {
+  const phaseNum = parseInt(partnerPhase?.replace('F', '') || '1');
+  if (phaseNum <= 2) return 0;  // Posizionamento
+  if (phaseNum <= 4) return 1;  // Masterclass
+  if (phaseNum <= 6) return 2;  // Videocorso
+  if (phaseNum <= 7) return 3;  // Funnel
+  return 4;                      // Lancio
 };
 
-// Funzione per generare i gruppi della sidebar
-const getSidebarGroups = (phaseNum) => {
-  const currentPhaseNum = phaseNum;
-  const isPostLancio = currentPhaseNum >= 10;
-  
-  const groups = [
-    {
-      id: "fasi",
-      label: "📋 Percorso",
-      items: [
-        { id: "fase0-onboarding", label: "FASE 0 - Onboarding", icon: FileUp },
-        { id: "fase1-posizionamento", label: "FASE 1 - Posizionamento", icon: Target },
-        { id: "fase2-outline", label: "FASE 2 - Outline", icon: BookOpen },
-        { id: "fase3-script", label: "FASE 3 - Script", icon: PenTool },
-        { id: "fase4-copycore", label: "FASE 4 - Copy Core", icon: Image },
-        { id: "fase5-masterclass", label: "FASE 5 - Masterclass", icon: Mic },
-        { id: "fase6-videocorso", label: "FASE 6 - Videocorso", icon: Clapperboard },
-        { id: "fase7-dominio", label: "FASE 7 - Dominio", icon: Globe },
-        { id: "fase8-prelancio", label: "FASE 8 - Pre-Lancio", icon: Calendar },
-        { id: "fase9-lancio", label: "FASE 9 - Lancio", icon: CheckCircle2 },
-      ]
-    }
-  ];
-  
-  // Add Post-Lancio section only for F10+ partners
-  if (isPostLancio) {
-    groups.push({
-      id: "post-lancio",
-      label: "🚀 Post-Lancio",
-      items: [
-        { id: "post-accademia", label: "La mia Accademia", icon: BarChart3 },
-        { id: "post-studenti", label: "I miei Studenti", icon: Users },
-        { id: "post-impegni", label: "Impegni Settimana", icon: Calendar },
-        { id: "post-report", label: "Report Mensile", icon: TrendingUp },
-      ]
-    });
-  }
-  
-  groups.push(
-    {
-      id: "profilo",
-      label: "👤 Profilo",
-      items: [
-        { id: "profilo-dati", label: "Dati Personali", icon: User },
-        { id: "profilo-contratto", label: "Contratto", icon: FileSignature },
-        { id: "profilo-brandkit", label: "Brand Kit", icon: Palette },
-        { id: "profilo-files", label: "I Miei File", icon: FolderOpen },
-      ]
-    },
-    {
-      id: "servizi",
-      label: "⭐ Servizi Extra",
-      items: [
-        { id: "profilo-bonus", label: "Risorse Gratis", icon: Gift, badge: "7" },
-        { id: "avatar-checkout", label: "Avatar PRO", icon: Video, badge: "DELEGA" },
-        { id: "servizi-extra", label: "Altri Servizi", icon: ShoppingBag },
-      ]
-    }
-  );
-  
-  return groups;
-};
+// ═══════════════════════════════════════════════════════════════════════════════
+// MODAL BLOCCO
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// Gruppi della sidebar (per compatibilità - usa la funzione sopra dove possibile)
-const SIDEBAR_GROUPS = getSidebarGroups("F1");
-
-// Helper per ottenere la fase richiesta
-const getRequiredPhase = (itemId) => {
-  const phase = UNLOCK_RULES[itemId];
-  return phase !== undefined ? phase : 1;
-};
-
-// Helper per verificare se un item è sbloccato
-const isItemUnlocked = (itemId, partnerPhase) => {
-  const currentPhase = parseInt(partnerPhase?.replace('F', '') || '1');
-  const requiredPhase = getRequiredPhase(itemId);
-  return currentPhase >= requiredPhase;
-};
-
-// =====================================================
-// MODAL VIDEO BLOCCO
-// =====================================================
-function LockedModal({ isOpen, onClose, itemLabel, requiredPhase }) {
+function LockedModal({ isOpen, onClose, itemLabel }) {
   if (!isOpen) return null;
   
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-      <div className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl">
+      <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl">
         {/* Header */}
         <div className="p-4 flex items-center justify-between" style={{ background: '#FAFAF7', borderBottom: '1px solid #ECEDEF' }}>
           <div className="flex items-center gap-2">
             <Lock className="w-5 h-5" style={{ color: '#F59E0B' }} />
-            <span className="font-bold" style={{ color: '#1E2128' }}>Sezione Bloccata</span>
+            <span className="font-bold" style={{ color: '#1E2128' }}>Fase non ancora disponibile</span>
           </div>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-white transition-all">
             <X className="w-5 h-5" style={{ color: '#9CA3AF' }} />
           </button>
         </div>
         
-        {/* Video Placeholder */}
-        <div className="relative" style={{ aspectRatio: '16/9', background: 'linear-gradient(135deg, #1E2128 0%, #2D3038 100%)' }}>
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" 
-                 style={{ background: '#F2C41830', border: '2px solid #F2C418' }}>
-              <PlayCircle className="w-8 h-8" style={{ color: '#F2C418' }} />
-            </div>
-            <h3 className="text-lg font-bold text-white mb-2">Video in arrivo</h3>
-            <p className="text-sm text-white/70">
-              Claudio ti spiegherà come sbloccare questa sezione
-            </p>
-          </div>
-        </div>
-        
         {/* Content */}
         <div className="p-6">
           <h2 className="text-xl font-black mb-2" style={{ color: '#1E2128' }}>
-            "{itemLabel}" sarà disponibile presto!
+            {itemLabel}
           </h2>
-          <p className="text-sm mb-4" style={{ color: '#5F6572' }}>
-            Per accedere a questa sezione devi prima completare i passaggi precedenti del tuo percorso.
+          <p className="text-sm mb-6" style={{ color: '#5F6572' }}>
+            Questa fase si sbloccherà automaticamente quando avrai completato i passaggi precedenti del tuo progetto.
           </p>
-          
-          {/* Progress indicator */}
-          <div className="p-4 rounded-xl mb-4" style={{ background: '#FFF8DC', border: '1px solid #F2C41830' }}>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold"
-                   style={{ background: '#F2C418', color: '#1E2128' }}>
-                F{requiredPhase}
-              </div>
-              <div>
-                <div className="text-xs font-bold" style={{ color: '#92700C' }}>Fase richiesta</div>
-                <div className="text-sm font-bold" style={{ color: '#1E2128' }}>
-                  {requiredPhase === 2 && "Completa il Profilo Hub nella Home"}
-                  {requiredPhase === 3 && "Completa il Posizionamento"}
-                  {requiredPhase === 5 && "Registra la prima lezione video"}
-                  {requiredPhase === 7 && "Completa la Masterclass"}
-                  {requiredPhase === 8 && "Approva il Funnel + attiva Stripe"}
-                </div>
-              </div>
-            </div>
-          </div>
           
           <button 
             onClick={onClose}
             className="w-full py-3 rounded-xl font-bold transition-all hover:opacity-90"
             style={{ background: '#F2C418', color: '#1E2128' }}
           >
-            Ho capito, torno al percorso
+            Ho capito
           </button>
         </div>
       </div>
@@ -221,46 +76,49 @@ function LockedModal({ isOpen, onClose, itemLabel, requiredPhase }) {
   );
 }
 
-// =====================================================
+// ═══════════════════════════════════════════════════════════════════════════════
 // SIDEBAR COMPONENT
-// =====================================================
+// ═══════════════════════════════════════════════════════════════════════════════
+
 export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout, onOpenChat, onSwitchToAdmin, isAdmin }) {
-  const [expandedGroups, setExpandedGroups] = useState(['percorso', 'lancio', 'produzione', 'servizi']);
-  const [lockedModal, setLockedModal] = useState({ isOpen: false, itemLabel: '', requiredPhase: 1 });
+  const [lockedModal, setLockedModal] = useState({ isOpen: false, itemLabel: '' });
   
   const partnerPhase = partner?.phase || 'F1';
-  // Se è admin in modalità demo, sblocca tutto (F10)
-  const currentPhaseNum = isAdmin ? 10 : parseInt(partnerPhase.replace('F', '') || '1');
+  const currentStep = isAdmin ? 4 : getProjectStep(partnerPhase);
   
-  // Toggle group expansion
-  const toggleGroup = (groupId) => {
-    setExpandedGroups(prev => 
-      prev.includes(groupId) 
-        ? prev.filter(g => g !== groupId)
-        : [...prev, groupId]
-    );
+  const handlePhaseClick = (phase, index) => {
+    const isUnlocked = index <= currentStep;
+    if (isUnlocked) {
+      // Mappa fase → navigazione interna
+      const navMap = {
+        'posizionamento': 'documenti',
+        'masterclass': 'masterclass',
+        'videocorso': 'produzione',
+        'funnel': 'calendario',
+        'lancio': 'calendario'
+      };
+      onNavigate(navMap[phase.id] || 'dashboard');
+    } else {
+      setLockedModal({ isOpen: true, itemLabel: phase.label });
+    }
   };
   
-  // Handle item click - usa currentPhaseNum che è già 10 per admin
-  const handleItemClick = (item) => {
-    const requiredPhase = getRequiredPhase(item.id);
-    const isUnlocked = currentPhaseNum >= requiredPhase;
-    if (isUnlocked) {
-      onNavigate(item.id);
-    } else {
-      setLockedModal({
-        isOpen: true,
-        itemLabel: item.label,
-        requiredPhase: requiredPhase
-      });
-    }
+  const handleSupportClick = (itemId) => {
+    const navMap = {
+      'team': 'dashboard',
+      'eventi': 'dashboard',
+      'supporto': 'supporto'
+    };
+    onNavigate(navMap[itemId] || 'dashboard');
   };
 
   return (
     <div className="w-64 min-w-64 flex flex-col h-full border-r overflow-hidden" 
          style={{ background: '#FFFFFF', borderColor: '#F0EFEB' }}>
       
-      {/* Logo */}
+      {/* ══════════════════════════════════════════════════════════════════════
+          LOGO
+          ══════════════════════════════════════════════════════════════════════ */}
       <div className="p-5 border-b" style={{ borderColor: '#F0EFEB' }}>
         <div className="flex items-center gap-2.5">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
@@ -276,7 +134,9 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
         </div>
       </div>
 
-      {/* Admin/Partner Toggle */}
+      {/* ══════════════════════════════════════════════════════════════════════
+          ADMIN/PARTNER TOGGLE (solo per admin)
+          ══════════════════════════════════════════════════════════════════════ */}
       {isAdmin && (
         <div className="px-4 py-3">
           <div className="flex rounded-lg p-1" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
@@ -297,9 +157,11 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
         </div>
       )}
 
-      {/* User Card with Phase Progress */}
+      {/* ══════════════════════════════════════════════════════════════════════
+          USER CARD
+          ══════════════════════════════════════════════════════════════════════ */}
       <div className="px-4 py-3">
-        <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
                style={{ background: '#F2C418', color: '#1E2128' }}>
             {partner?.name?.split(" ").map(n => n[0]).join("") || "P"}
@@ -308,41 +170,25 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
             <div className="font-bold text-sm truncate" style={{ color: '#1E2128' }}>
               {partner?.name || "Partner"}
             </div>
-            <div className="text-xs flex items-center gap-1" style={{ color: '#9CA3AF' }}>
-              <span className="font-bold" style={{ color: '#F2C418' }}>{partnerPhase}</span>
-              <span>·</span>
-              <span>{partner?.niche || "Coach"}</span>
+            <div className="text-xs" style={{ color: '#9CA3AF' }}>
+              {partner?.niche || "Coach"}
             </div>
           </div>
-        </div>
-        
-        {/* Phase Progress Bar */}
-        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#ECEDEF' }}>
-          <div 
-            className="h-full rounded-full transition-all duration-500"
-            style={{ 
-              width: `${(currentPhaseNum / 10) * 100}%`,
-              background: 'linear-gradient(90deg, #F2C418 0%, #FADA5E 100%)'
-            }}
-          />
-        </div>
-        <div className="flex justify-between mt-1">
-          <span className="text-[10px]" style={{ color: '#9CA3AF' }}>Inizio</span>
-          <span className="text-[10px] font-bold" style={{ color: '#F2C418' }}>{Math.round((currentPhaseNum / 10) * 100)}%</span>
-          <span className="text-[10px]" style={{ color: '#9CA3AF' }}>Lancio</span>
         </div>
       </div>
 
       {/* Divider */}
       <div className="mx-4 my-1" style={{ height: 1, background: '#F5F4F1' }} />
 
-      {/* Main Navigation - Grouped */}
+      {/* ══════════════════════════════════════════════════════════════════════
+          MAIN NAVIGATION
+          ══════════════════════════════════════════════════════════════════════ */}
       <div className="flex-1 overflow-y-auto px-3 py-2">
 
-        {/* DASHBOARD - Always visible at top */}
+        {/* HOME */}
         <button
           onClick={() => onNavigate('dashboard')}
-          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all mb-2"
+          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all mb-4"
           style={{ 
             background: currentNav === 'dashboard' ? '#FFF3C4' : 'transparent',
             borderLeft: currentNav === 'dashboard' ? '3px solid #F2C418' : '3px solid transparent',
@@ -354,97 +200,106 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
                  background: currentNav === 'dashboard' ? '#F2C418' : '#FFF8DC',
                  color: currentNav === 'dashboard' ? '#1E2128' : '#C4990A'
                }}>
-            <Home className="w-3.5 h-3.5" />
+            <Home className="w-4 h-4" />
           </div>
           <span className={`text-sm flex-1 ${currentNav === 'dashboard' ? 'font-bold' : 'font-medium'}`}>
-            DASHBOARD
+            HOME
           </span>
         </button>
 
-        {/* Grouped Navigation */}
-        {getSidebarGroups(currentPhaseNum).map(group => (
-          <div key={group.id} className="mb-2">
-            {/* Group Header */}
-            <button
-              onClick={() => toggleGroup(group.id)}
-              className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-left transition-all hover:bg-[#FAFAF7]"
-            >
-              <span className="text-xs font-bold flex-1" style={{ color: '#5F6572' }}>
-                {group.label}
-              </span>
-              {expandedGroups.includes(group.id) ? (
-                <ChevronDown className="w-4 h-4" style={{ color: '#9CA3AF' }} />
-              ) : (
-                <ChevronRight className="w-4 h-4" style={{ color: '#9CA3AF' }} />
-              )}
-            </button>
-            
-            {/* Group Items */}
-            {expandedGroups.includes(group.id) && (
-              <nav className="space-y-0.5 mt-1">
-                {group.items.map(item => {
-                  const isActive = currentNav === item.id;
-                  const requiredPhase = getRequiredPhase(item.id);
-                  // Usa currentPhaseNum (già 10 per admin) invece di partnerPhase
-                  const isUnlocked = currentPhaseNum >= requiredPhase;
-                  const isCompleted = currentPhaseNum > requiredPhase;
-                  
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => handleItemClick(item)}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all ${
-                        !isUnlocked ? 'opacity-60' : ''
-                      }`}
-                      style={{ 
-                        background: isActive ? '#FFF3C4' : 'transparent',
-                        borderLeft: isActive ? '3px solid #F2C418' : '3px solid transparent',
-                        color: isActive ? '#1E2128' : isUnlocked ? '#3B4049' : '#9CA3AF'
-                      }}
-                    >
-                      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                           style={{ 
-                             background: isActive ? '#F2C418' : isCompleted ? '#EAFAF1' : isUnlocked ? '#FFF8DC' : '#F5F4F1',
-                             color: isActive ? '#1E2128' : isCompleted ? '#2D9F6F' : isUnlocked ? '#C4990A' : '#9CA3AF'
-                           }}>
-                        {!isUnlocked ? (
-                          <Lock className="w-3.5 h-3.5" />
-                        ) : isCompleted && !isActive ? (
-                          <Check className="w-3.5 h-3.5" />
-                        ) : (
-                          <item.icon className="w-3.5 h-3.5" />
-                        )}
-                      </div>
-                      <span className={`text-sm flex-1 ${isActive ? 'font-bold' : 'font-medium'}`}>
-                        {item.label}
-                      </span>
-                      {!isUnlocked && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-                              style={{ background: '#ECEDEF', color: '#9CA3AF' }}>
-                          F{requiredPhase}
-                        </span>
-                      )}
-                      {item.badge && isUnlocked && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                              style={{ 
-                                background: item.badgeColor === 'red' ? '#FEE2E2' : '#F2C418', 
-                                color: item.badgeColor === 'red' ? '#DC2626' : '#1E2128' 
-                              }}>
-                          {item.badge}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </nav>
-            )}
+        {/* ─────────────────────────────────────────────────────────────────────
+            IL TUO PROGETTO
+            ───────────────────────────────────────────────────────────────────── */}
+        <div className="mb-4">
+          <div className="px-2 py-2">
+            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#9CA3AF' }}>
+              Il tuo progetto
+            </span>
           </div>
-        ))}
+          
+          <nav className="space-y-1">
+            {PROJECT_PHASES.map((phase, index) => {
+              const isCompleted = index < currentStep;
+              const isCurrent = index === currentStep;
+              const isLocked = index > currentStep;
+              
+              return (
+                <button
+                  key={phase.id}
+                  onClick={() => handlePhaseClick(phase, index)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all ${
+                    isLocked ? 'opacity-50' : ''
+                  }`}
+                  style={{ 
+                    background: isCurrent ? '#FFF3C4' : 'transparent',
+                    borderLeft: isCurrent ? '3px solid #F2C418' : '3px solid transparent'
+                  }}
+                >
+                  {/* Stato: ✓ completata, → corrente, 🔒 bloccata */}
+                  <span 
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                    style={{ 
+                      background: isCompleted ? '#34C77B' : isCurrent ? '#F2C418' : '#ECEDEF',
+                      color: isCompleted ? 'white' : isCurrent ? '#1E2128' : '#9CA3AF'
+                    }}
+                  >
+                    {isCompleted ? (
+                      <Check className="w-3.5 h-3.5" />
+                    ) : isLocked ? (
+                      <Lock className="w-3 h-3" />
+                    ) : (
+                      <span className="text-xs">→</span>
+                    )}
+                  </span>
+                  
+                  {/* Label */}
+                  <span 
+                    className="text-sm flex-1"
+                    style={{ 
+                      color: isCompleted ? '#2D9F6F' : isCurrent ? '#1E2128' : '#9CA3AF',
+                      fontWeight: isCurrent ? 600 : 400
+                    }}
+                  >
+                    {phase.label}
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* ─────────────────────────────────────────────────────────────────────
+            SUPPORTO
+            ───────────────────────────────────────────────────────────────────── */}
+        <div className="mb-4">
+          <div className="px-2 py-2">
+            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#9CA3AF' }}>
+              Supporto
+            </span>
+          </div>
+          
+          <nav className="space-y-1">
+            {SUPPORT_ITEMS.map(item => (
+              <button
+                key={item.id}
+                onClick={() => handleSupportClick(item.id)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all hover:bg-[#FAFAF7]"
+                style={{ color: '#5F6572' }}
+              >
+                <item.icon className="w-4 h-4" style={{ color: '#9CA3AF' }} />
+                <span className="text-sm font-medium">{item.label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
+
       </div>
 
-      {/* Bottom Actions */}
+      {/* ══════════════════════════════════════════════════════════════════════
+          BOTTOM ACTIONS
+          ══════════════════════════════════════════════════════════════════════ */}
       <div className="p-3 border-t space-y-2" style={{ borderColor: '#F0EFEB' }}>
-        {/* Chat with Valentina */}
+        {/* Chat con Valentina */}
         <button 
           onClick={onOpenChat}
           className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-all hover:opacity-90"
@@ -458,7 +313,7 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
         {/* Logout */}
         <button 
           onClick={onLogout}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all"
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all hover:bg-[#FAFAF7]"
           style={{ color: '#9CA3AF' }}
         >
           <LogOut className="w-4 h-4" />
@@ -466,12 +321,11 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
         </button>
       </div>
       
-      {/* Locked Modal */}
+      {/* Modal Blocco */}
       <LockedModal 
         isOpen={lockedModal.isOpen}
-        onClose={() => setLockedModal({ ...lockedModal, isOpen: false })}
+        onClose={() => setLockedModal({ isOpen: false, itemLabel: '' })}
         itemLabel={lockedModal.itemLabel}
-        requiredPhase={lockedModal.requiredPhase}
       />
     </div>
   );
