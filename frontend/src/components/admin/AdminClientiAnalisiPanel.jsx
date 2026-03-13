@@ -47,6 +47,12 @@ export function AdminClientiAnalisiPanel() {
   const [updatingCall, setUpdatingCall] = useState(false);
   const [showAnalisiEditor, setShowAnalisiEditor] = useState(false);
   const [editedAnalisi, setEditedAnalisi] = useState("");
+  
+  // Stati per Script Call
+  const [generatingScript, setGeneratingScript] = useState(false);
+  const [scriptCallGenerato, setScriptCallGenerato] = useState(null);
+  const [showScriptModal, setShowScriptModal] = useState(false);
+  const [savingScript, setSavingScript] = useState(false);
 
   useEffect(() => {
     loadClienti();
