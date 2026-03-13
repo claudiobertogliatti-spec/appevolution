@@ -15,10 +15,12 @@ Posizionamento → Masterclass → Videocorso → Funnel → Lancio → Ottimizz
 ### Email: Systeme.io
 Le notifiche email sono gestite tramite **Systeme.io** usando i tag:
 - `analisi_pronta` → Triggera email "La tua Analisi è pronta"
+- `analisi_finale_pronta` → Triggera email con link al documento finale (NUOVO)
 - `reminder_analisi` → Triggera email reminder dopo 24h
 
 **Configurazione Systeme.io:**
 - Creare automazione che invia email quando tag `analisi_pronta` viene aggiunto
+- Creare automazione per `analisi_finale_pronta` con link al PDF
 - Creare automazione per `reminder_analisi`
 - Template email con link: https://calendar.app.google/ip1MfDcfcrju1WFh6
 
@@ -27,7 +29,70 @@ Link prenotazione call: `https://calendar.app.google/ip1MfDcfcrju1WFh6`
 
 ---
 
-## FLUSSO CLIENTE
+## NUOVO FLUSSO CONSULENZIALE ✅ (13 Mar 2026)
+
+```
+Pagamento Analisi (€67)
+    ↓
+Registrazione su app.evolution-pro.it
+    ↓
+Questionario progetto (7 domande)
+    ↓
+Admin: Genera Analisi Preliminare (INTERNA - non visibile al cliente)
+    ↓
+Admin: Genera Script Call (8 blocchi per Claudio)
+    ↓
+Call Strategica con Claudio
+    ↓
+Admin: Genera Analisi Finale (documento consulenziale)
+    ↓
+Admin: Revisione e modifica bozza
+    ↓
+Admin: Approva e Invia → Systeme.io tag "analisi_finale_pronta"
+    ↓
+Cliente riceve email con link al PDF
+```
+
+### Stati del Sistema
+1. `questionario_ricevuto` - Questionario compilato
+2. `analisi_preliminare_generata` - Analisi interna pronta
+3. `analisi_finale_da_revisionare` - Bozza finale da revisionare
+4. `analisi_consegnata` - Documento inviato al cliente
+
+### Struttura Script Call (8 Blocchi)
+1. **Apertura Call** - Creare connessione e fiducia
+2. **Comprendere il Cliente** - Domande per approfondire
+3. **Analisi del Problema** - Evidenziare difficoltà target
+4. **Valutazione Competenza** - Verificare esperienza e metodo
+5. **Presentazione Modello Accademia** - Mostrare possibilità
+6. **Verifica Fattibilità** - Valutare sostenibilità
+7. **Introduzione Partnership** - Spiegare Evolution PRO
+8. **Chiusura e Prossimi Passi** - Definire next steps
+
+### Struttura Analisi Finale
+- Copertina
+- Introduzione personalizzata
+- Profilo professionale
+- Problema del mercato
+- Potenziale di mercato
+- Ipotesi di Accademia Digitale
+- Modello di Business
+- Valutazione del progetto (punteggio 1-10)
+- Prossimi passi
+
+### Endpoint API
+- `GET /api/analisi-consulenziale/stato/{user_id}`
+- `POST /api/analisi-consulenziale/genera-preliminare`
+- `POST /api/analisi-consulenziale/genera-script-call`
+- `POST /api/analisi-consulenziale/genera-finale`
+- `PUT /api/analisi-consulenziale/modifica-finale`
+- `POST /api/analisi-consulenziale/approva-invia`
+- `GET /api/analisi-consulenziale/script-call-pdf/{user_id}`
+- `GET /api/analisi-consulenziale/analisi-finale-pdf/{user_id}`
+
+---
+
+## FLUSSO CLIENTE (Precedente)
 
 ```
 /analisi-strategica (Registrazione)
@@ -40,9 +105,9 @@ Link prenotazione call: `https://calendar.app.google/ip1MfDcfcrju1WFh6`
     ↓
 /analisi-in-preparazione
     ↓
-[Admin genera analisi AI]
+[Admin usa NUOVO FLUSSO CONSULENZIALE]
     ↓
-[Systeme.io: tag "analisi_pronta" → email automatica]
+[Systeme.io: tag "analisi_finale_pronta" → email automatica]
     ↓
 Dashboard: "La tua Analisi Strategica è pronta"
     ↓
