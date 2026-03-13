@@ -1,0 +1,65 @@
+{
+  "summary": "Tested Analisi Consulenziale feature - complete consultancy workflow with 4 states. All 18 backend tests pass (100%). Frontend modal works correctly with 4 tabs (Overview, Analisi Preliminare, Script Call, Analisi Finale). PDF exports working. Systeme.io tag integration for email automation.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_analisi_consulenziale.py",
+    "/app/test_reports/pytest/pytest_analisi_consulenziale.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_analisi_consulenziale.py"
+  ],
+  "success_rate": {
+    "backend": "100% (18/18 tests passed)",
+    "frontend": "100% - All features working"
+  },
+  "test_credentials": {
+    "admin_email": "claudio.bertogliatti@gmail.com",
+    "admin_password": "Evoluzione74",
+    "test_cliente_id": "0aad124a-4fd2-4159-b75a-86b3481ddb5f"
+  },
+  "seed_data_creation": "Test client 'Test Att' already has all workflow data from manual testing",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Analisi Consulenziale feature is complete. Test client 'Test Att' (id: 0aad124a-4fd2-4159-b75a-86b3481ddb5f) has all workflow steps completed: questionario_ricevuto → analisi_preliminare_generata → analisi_finale_da_revisionare → analisi_consegnata. The Consulenziale button appears for clients with questionario_compilato=true AND pagamento_analisi=true. Filter by 'Analisi pronte' to find eligible clients.",
+  "features_tested": {
+    "backend_endpoints": {
+      "GET /api/analisi-consulenziale/stato/{user_id}": "✅ Returns complete analysis state with timestamps",
+      "POST /api/analisi-consulenziale/genera-preliminare": "✅ Generates internal preliminary analysis with AI",
+      "POST /api/analisi-consulenziale/genera-script-call": "✅ Generates 8-block call script with AI",
+      "POST /api/analisi-consulenziale/genera-finale": "✅ Generates final analysis document with AI",
+      "PUT /api/analisi-consulenziale/modifica-finale": "✅ Admin can edit sections of final analysis",
+      "POST /api/analisi-consulenziale/approva-invia": "✅ Approves and sends to client via Systeme.io tag",
+      "GET /api/analisi-consulenziale/script-call-pdf/{user_id}": "✅ Downloads script PDF for Claudio",
+      "GET /api/analisi-consulenziale/analisi-finale-pdf/{user_id}": "✅ Downloads final analysis PDF for client"
+    },
+    "frontend_modal": {
+      "modal_opens": "✅ AnalisiConsulenziale modal opens from AdminClientiAnalisiPanel",
+      "tab_overview": "✅ Shows timeline with 4 steps and status cards",
+      "tab_analisi_preliminare": "✅ Shows internal analysis with profilo, punti forza, criticità, domande call, note",
+      "tab_script_call": "✅ Shows 8 expandable blocks with Scarica PDF button",
+      "tab_analisi_finale": "✅ Shows final document with editable sections and Scarica PDF Cliente button",
+      "consulenziale_button": "✅ Appears for clients with questionario+pagamento"
+    },
+    "workflow_states": {
+      "questionario_ricevuto": "✅ Initial state when questionnaire is submitted",
+      "analisi_preliminare_generata": "✅ After generating preliminary analysis",
+      "analisi_finale_da_revisionare": "✅ After generating final analysis",
+      "analisi_consegnata": "✅ After admin approves and sends to client"
+    }
+  },
+  "systeme_io_integration": {
+    "tag_used": "analisi_finale_pronta",
+    "purpose": "Triggers automated email to client when analysis is approved",
+    "note": "Systeme.io API may not respond if API key is not configured - this is expected behavior"
+  }
+}
