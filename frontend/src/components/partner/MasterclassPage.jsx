@@ -560,6 +560,7 @@ export function MasterclassPage({ partner, onNavigate, onComplete }) {
           <RecordingSection 
             onUpload={handleUpload}
             uploadStatus={uploadStatus}
+            fileInputRef={fileInputRef}
           />
         ) : generatedScript ? (
           // Script Generated
