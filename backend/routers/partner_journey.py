@@ -1971,3 +1971,698 @@ def generate_fallback_webinar_promo(partner: dict, titolo: str) -> dict:
             }
         ]
     }
+
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FUNNEL COMPLETE ENDPOINTS (Domain, Legal, Full State)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class FunnelApprovePagesRequest(BaseModel):
+    partner_id: str
+    page_id: str
+
+class FunnelApproveContentRequest(BaseModel):
+    partner_id: str
+
+class FunnelSaveDomainRequest(BaseModel):
+    partner_id: str
+    domain: str
+    email: Optional[str] = None
+
+class FunnelVerifyDomainRequest(BaseModel):
+    partner_id: str
+
+class FunnelGenerateLegalRequest(BaseModel):
+    partner_id: str
+
+class FunnelApproveLegalRequest(BaseModel):
+    partner_id: str
+    legal_id: str
+
+
+@router.get("/funnel-complete/{partner_id}")
+async def get_funnel_complete(partner_id: str):
+    """Recupera tutti i dati del funnel per la pagina completa"""
+    partner = await get_partner_or_404(partner_id)
+    
+    funnel = await db.partner_funnel.find_one(
+        {"partner_id": partner_id}, {"_id": 0}
+    )
+    
+    # Recupera posizionamento per contesto
+    posizionamento = await db.partner_posizionamento.find_one(
+        {"partner_id": partner_id}, {"_id": 0}
+    )
+    
+    return {
+        "success": True,
+        "partner_id": partner_id,
+        "partner_name": partner.get("name"),
+        "funnel_content": funnel.get("content") if funnel else None,
+        "page_states": funnel.get("page_states", {}) if funnel else {},
+        "content_approved": funnel.get("content_approved", False) if funnel else False,
+        "domain": funnel.get("domain") if funnel else None,
+        "legal": funnel.get("legal", {}) if funnel else {},
+        "publish_state": funnel.get("publish_state", "idle") if funnel else "idle",
+        "course_structure": posizionamento.get("course_structure") if posizionamento else None
+    }
+
+
+@router.post("/funnel/approve-page")
+async def approve_funnel_page(request: FunnelApprovePagesRequest):
+    """Approva una singola pagina del funnel"""
+    await get_partner_or_404(request.partner_id)
+    
+    await db.partner_funnel.update_one(
+        {"partner_id": request.partner_id},
+        {
+            "$set": {
+                f"page_states.{request.page_id}": "approved",
+                f"page_states.{request.page_id}_approved_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+    
+    return {"success": True, "message": f"Pagina {request.page_id} approvata"}
+
+
+@router.post("/funnel/approve-content")
+async def approve_funnel_content(request: FunnelApproveContentRequest):
+    """Approva tutti i contenuti del funnel"""
+    await get_partner_or_404(request.partner_id)
+    
+    await db.partner_funnel.update_one(
+        {"partner_id": request.partner_id},
+        {
+            "$set": {
+                "content_approved": True,
+                "content_approved_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+    
+    return {"success": True, "message": "Contenuti approvati"}
+
+
+@router.post("/funnel/save-domain")
+async def save_funnel_domain(request: FunnelSaveDomainRequest):
+    """Salva la configurazione del dominio"""
+    partner = await get_partner_or_404(request.partner_id)
+    
+    domain_data = {
+        "domain": request.domain,
+        "email": request.email,
+        "status": "inserted",
+        "inserted_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.partner_funnel.update_one(
+        {"partner_id": request.partner_id},
+        {
+            "$set": {
+                "domain": domain_data,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            },
+            "$setOnInsert": {
+                "partner_id": request.partner_id,
+                "partner_name": partner.get("name"),
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+    
+    return {
+        "success": True,
+        "domain": domain_data,
+        "message": "Dominio salvato. Configura i record DNS e verifica."
+    }
+
+
+@router.post("/funnel/verify-domain")
+async def verify_funnel_domain(request: FunnelVerifyDomainRequest):
+    """Verifica la configurazione DNS del dominio"""
+    partner = await get_partner_or_404(request.partner_id)
+    
+    funnel = await db.partner_funnel.find_one(
+        {"partner_id": request.partner_id}, {"_id": 0}
+    )
+    
+    if not funnel or not funnel.get("domain"):
+        raise HTTPException(status_code=400, detail="Nessun dominio configurato")
+    
+    domain = funnel.get("domain", {}).get("domain")
+    
+    # In produzione, qui verificheremmo il DNS con un lookup
+    # Per ora simuliamo la verifica come successo dopo inserimento
+    import socket
+    is_verified = False
+    
+    try:
+        # Tenta una risoluzione DNS
+        socket.gethostbyname(domain)
+        is_verified = True
+    except socket.gaierror:
+        # DNS non ancora propagato
+        is_verified = False
+    
+    new_status = "verified" if is_verified else "pending_dns"
+    
+    domain_data = funnel.get("domain", {})
+    domain_data["status"] = new_status
+    if is_verified:
+        domain_data["verified_at"] = datetime.now(timezone.utc).isoformat()
+    else:
+        domain_data["last_check"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.partner_funnel.update_one(
+        {"partner_id": request.partner_id},
+        {"$set": {"domain": domain_data}}
+    )
+    
+    return {
+        "success": True,
+        "domain": domain_data,
+        "verified": is_verified,
+        "message": "Dominio verificato!" if is_verified else "DNS non ancora propagato. Riprova tra qualche ora."
+    }
+
+
+@router.post("/funnel/generate-legal")
+async def generate_funnel_legal(request: FunnelGenerateLegalRequest):
+    """Genera tutte le pagine legali usando i dati del partner"""
+    partner = await get_partner_or_404(request.partner_id)
+    
+    funnel = await db.partner_funnel.find_one(
+        {"partner_id": request.partner_id}, {"_id": 0}
+    )
+    
+    domain = funnel.get("domain", {}).get("domain", "tuodominio.it") if funnel else "tuodominio.it"
+    email = funnel.get("domain", {}).get("email", f"info@{domain}") if funnel else f"info@{domain}"
+    partner_name = partner.get("name", "Il Titolare")
+    
+    # Templates delle pagine legali
+    legal_templates = {
+        "privacy": {
+            "title": "Privacy Policy",
+            "content": f"""INFORMATIVA SULLA PRIVACY
+            
+Ultimo aggiornamento: {datetime.now(timezone.utc).strftime('%d/%m/%Y')}
+
+TITOLARE DEL TRATTAMENTO
+{partner_name}
+Email: {email}
+Sito: {domain}
+
+TIPOLOGIE DI DATI RACCOLTI
+Il Titolare raccoglie, direttamente o tramite terze parti, i seguenti Dati Personali:
+- Dati di contatto: nome, email, numero di telefono
+- Dati di utilizzo: pagine visitate, tempo di permanenza
+- Dati tecnici: indirizzo IP, browser, sistema operativo
+
+FINALITÀ DEL TRATTAMENTO
+I Dati dell'Utente sono raccolti per:
+- Fornire il servizio richiesto
+- Inviare comunicazioni commerciali (previo consenso)
+- Analizzare l'utilizzo del sito
+
+BASE GIURIDICA
+- Esecuzione contrattuale
+- Consenso dell'interessato
+- Legittimo interesse del Titolare
+
+DIRITTI DELL'INTERESSATO
+L'Utente può esercitare i seguenti diritti:
+- Accesso ai propri dati
+- Rettifica o cancellazione
+- Limitazione del trattamento
+- Opposizione al trattamento
+- Portabilità dei dati
+
+Per esercitare i propri diritti, contattare: {email}
+
+CONSERVAZIONE DEI DATI
+I dati sono conservati per il tempo necessario alle finalità indicate."""
+        },
+        "cookie": {
+            "title": "Cookie Policy",
+            "content": f"""COOKIE POLICY
+
+Ultimo aggiornamento: {datetime.now(timezone.utc).strftime('%d/%m/%Y')}
+
+COSA SONO I COOKIE
+I cookie sono piccoli file di testo che vengono memorizzati sul dispositivo dell'utente durante la navigazione.
+
+COOKIE UTILIZZATI
+1. Cookie Tecnici (necessari)
+   - Session cookie per il funzionamento del sito
+   - Cookie di preferenze
+
+2. Cookie Analitici
+   - Google Analytics (statistiche anonime)
+
+3. Cookie di Marketing (previo consenso)
+   - Facebook Pixel
+   - Google Ads
+
+GESTIONE DEI COOKIE
+L'utente può gestire le preferenze sui cookie tramite il banner mostrato al primo accesso o dalle impostazioni del browser.
+
+DISABILITAZIONE
+Per disabilitare i cookie, modificare le impostazioni del browser:
+- Chrome: Impostazioni > Privacy > Cookie
+- Firefox: Opzioni > Privacy > Cookie
+- Safari: Preferenze > Privacy
+
+CONTATTI
+Per informazioni: {email}
+Sito: {domain}"""
+        },
+        "terms": {
+            "title": "Termini e Condizioni",
+            "content": f"""TERMINI E CONDIZIONI DI SERVIZIO
+
+Ultimo aggiornamento: {datetime.now(timezone.utc).strftime('%d/%m/%Y')}
+
+1. ACCETTAZIONE DEI TERMINI
+Utilizzando questo sito web e i suoi servizi, l'utente accetta i presenti Termini e Condizioni.
+
+2. SERVIZI OFFERTI
+{partner_name} offre:
+- Corsi online e materiale formativo
+- Masterclass e webinar
+- Servizi di consulenza
+
+3. PAGAMENTI E RIMBORSI
+- I pagamenti sono processati tramite provider sicuri
+- Garanzia soddisfatti o rimborsati entro 14 giorni dall'acquisto
+- Per richiedere un rimborso, contattare: {email}
+
+4. PROPRIETÀ INTELLETTUALE
+Tutti i contenuti (video, testi, grafiche) sono di proprietà di {partner_name} e protetti da copyright.
+È vietata la riproduzione senza autorizzazione.
+
+5. LIMITAZIONE DI RESPONSABILITÀ
+I risultati possono variare. I contenuti sono forniti a scopo educativo e non costituiscono consulenza professionale.
+
+6. MODIFICHE AI TERMINI
+Il Titolare si riserva di modificare i presenti Termini. Le modifiche saranno comunicate via email.
+
+7. CONTATTI
+{partner_name}
+Email: {email}
+Sito: {domain}
+
+8. LEGGE APPLICABILE
+I presenti Termini sono regolati dalla legge italiana."""
+        },
+        "disclaimer": {
+            "title": "Disclaimer",
+            "content": f"""DISCLAIMER - ESCLUSIONE DI RESPONSABILITÀ
+
+Ultimo aggiornamento: {datetime.now(timezone.utc).strftime('%d/%m/%Y')}
+
+INFORMAZIONI GENERALI
+Questo sito web è gestito da {partner_name}.
+
+NESSUNA GARANZIA DI RISULTATO
+I contenuti formativi sono forniti a scopo educativo. I risultati individuali possono variare in base a molteplici fattori.
+
+TESTIMONIANZE
+Le testimonianze presenti sul sito rappresentano esperienze individuali e non garantiscono risultati simili.
+
+CONSULENZA PROFESSIONALE
+I contenuti non sostituiscono consulenza professionale specifica. Per decisioni importanti, consultare professionisti qualificati.
+
+LINK ESTERNI
+Il sito può contenere link a siti esterni. Non siamo responsabili del contenuto di tali siti.
+
+ACCURATEZZA DELLE INFORMAZIONI
+Ci impegniamo a fornire informazioni accurate, ma non garantiamo che siano sempre aggiornate o prive di errori.
+
+CONTATTI
+Per domande: {email}"""
+        }
+    }
+    
+    # Salva tutte le pagine legali
+    legal_data = {}
+    for page_id, template in legal_templates.items():
+        legal_data[page_id] = {
+            "title": template["title"],
+            "content": template["content"],
+            "generated": True,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "approved": False
+        }
+    
+    await db.partner_funnel.update_one(
+        {"partner_id": request.partner_id},
+        {
+            "$set": {
+                "legal": legal_data,
+                "legal_generated_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            },
+            "$setOnInsert": {
+                "partner_id": request.partner_id,
+                "partner_name": partner.get("name"),
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+    
+    return {
+        "success": True,
+        "legal": legal_data,
+        "message": "Pagine legali generate"
+    }
+
+
+@router.post("/funnel/approve-legal")
+async def approve_funnel_legal(request: FunnelApproveLegalRequest):
+    """Approva una singola pagina legale"""
+    await get_partner_or_404(request.partner_id)
+    
+    await db.partner_funnel.update_one(
+        {"partner_id": request.partner_id},
+        {
+            "$set": {
+                f"legal.{request.legal_id}.approved": True,
+                f"legal.{request.legal_id}.approved_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+    
+    return {"success": True, "message": f"Pagina {request.legal_id} approvata"}
+
+
+@router.get("/funnel/legal-pdf/{partner_id}/{page_id}")
+async def download_legal_pdf(partner_id: str, page_id: str):
+    """Genera e scarica il PDF di una pagina legale"""
+    partner = await get_partner_or_404(partner_id)
+    
+    funnel = await db.partner_funnel.find_one(
+        {"partner_id": partner_id}, {"_id": 0}
+    )
+    
+    if not funnel or not funnel.get("legal", {}).get(page_id):
+        raise HTTPException(status_code=404, detail="Pagina legale non trovata")
+    
+    legal_page = funnel["legal"][page_id]
+    
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.enums import TA_JUSTIFY
+        import io
+        
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=50, bottomMargin=50)
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        # Title style
+        title_style = ParagraphStyle(
+            'Title',
+            parent=styles['Heading1'],
+            fontSize=18,
+            spaceAfter=30
+        )
+        
+        # Body style
+        body_style = ParagraphStyle(
+            'Body',
+            parent=styles['Normal'],
+            fontSize=10,
+            leading=14,
+            alignment=TA_JUSTIFY,
+            spaceAfter=12
+        )
+        
+        # Add title
+        elements.append(Paragraph(legal_page.get("title", "Documento Legale"), title_style))
+        elements.append(Spacer(1, 20))
+        
+        # Add content (split by newlines)
+        content = legal_page.get("content", "")
+        for paragraph in content.split("\n\n"):
+            if paragraph.strip():
+                elements.append(Paragraph(paragraph.strip().replace("\n", "<br/>"), body_style))
+        
+        doc.build(elements)
+        buffer.seek(0)
+        
+        from fastapi.responses import StreamingResponse
+        return StreamingResponse(
+            buffer,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename={page_id}-{partner_id}.pdf"
+            }
+        )
+        
+    except Exception as e:
+        logging.error(f"PDF generation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore generazione PDF: {str(e)}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# LEAD MANAGEMENT ENDPOINTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class LeadFilterRequest(BaseModel):
+    partner_id: str
+    date_from: Optional[str] = None
+    date_to: Optional[str] = None
+    funnel_origin: Optional[str] = None
+    status: Optional[str] = None
+    page: int = 1
+    limit: int = 50
+
+
+@router.get("/leads/{partner_id}")
+async def get_partner_leads(
+    partner_id: str,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    funnel_origin: Optional[str] = None,
+    status: Optional[str] = None,
+    page: int = 1,
+    limit: int = 50
+):
+    """Recupera tutti i lead del partner con filtri opzionali"""
+    partner = await get_partner_or_404(partner_id)
+    
+    # Build query
+    query = {"partner_id": partner_id}
+    
+    if date_from:
+        query["created_at"] = {"$gte": date_from}
+    if date_to:
+        if "created_at" in query:
+            query["created_at"]["$lte"] = date_to
+        else:
+            query["created_at"] = {"$lte": date_to}
+    if funnel_origin:
+        query["funnel_origin"] = funnel_origin
+    if status:
+        query["status"] = status
+    
+    # Get total count
+    total = await db.partner_leads.count_documents(query)
+    
+    # Get leads with pagination
+    skip = (page - 1) * limit
+    leads_cursor = db.partner_leads.find(
+        query, {"_id": 0}
+    ).sort("created_at", -1).skip(skip).limit(limit)
+    
+    leads = await leads_cursor.to_list(length=limit)
+    
+    # Get unique funnel origins for filter dropdown
+    funnel_origins = await db.partner_leads.distinct("funnel_origin", {"partner_id": partner_id})
+    
+    # Get stats
+    stats = {
+        "total_leads": total,
+        "leads_today": await db.partner_leads.count_documents({
+            "partner_id": partner_id,
+            "created_at": {"$gte": datetime.now(timezone.utc).strftime("%Y-%m-%d")}
+        }),
+        "leads_this_month": await db.partner_leads.count_documents({
+            "partner_id": partner_id,
+            "created_at": {"$gte": datetime.now(timezone.utc).strftime("%Y-%m-01")}
+        }),
+        "by_status": {}
+    }
+    
+    # Count by status
+    for s in ["new", "contacted", "qualified", "converted", "lost"]:
+        stats["by_status"][s] = await db.partner_leads.count_documents({
+            "partner_id": partner_id,
+            "status": s
+        })
+    
+    return {
+        "success": True,
+        "partner_id": partner_id,
+        "leads": leads,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": (total + limit - 1) // limit,
+        "funnel_origins": funnel_origins,
+        "stats": stats
+    }
+
+
+@router.post("/leads/export-csv/{partner_id}")
+async def export_leads_csv(partner_id: str):
+    """Esporta tutti i lead in formato CSV"""
+    partner = await get_partner_or_404(partner_id)
+    
+    # Get all leads
+    leads_cursor = db.partner_leads.find(
+        {"partner_id": partner_id}, {"_id": 0}
+    ).sort("created_at", -1)
+    
+    leads = await leads_cursor.to_list(length=10000)
+    
+    import csv
+    import io
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Header
+    writer.writerow([
+        "Nome", "Email", "Telefono", "Data", "Origine Funnel", "Status", "Note"
+    ])
+    
+    # Data
+    for lead in leads:
+        writer.writerow([
+            lead.get("name", ""),
+            lead.get("email", ""),
+            lead.get("phone", ""),
+            lead.get("created_at", ""),
+            lead.get("funnel_origin", ""),
+            lead.get("status", ""),
+            lead.get("notes", "")
+        ])
+    
+    output.seek(0)
+    
+    from fastapi.responses import StreamingResponse
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename=leads-{partner_id}-{datetime.now(timezone.utc).strftime('%Y%m%d')}.csv"
+        }
+    )
+
+
+@router.post("/leads/update-status")
+async def update_lead_status(partner_id: str, lead_id: str, status: str):
+    """Aggiorna lo status di un lead"""
+    await get_partner_or_404(partner_id)
+    
+    valid_statuses = ["new", "contacted", "qualified", "converted", "lost"]
+    if status not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Status non valido. Usa: {valid_statuses}")
+    
+    result = await db.partner_leads.update_one(
+        {"partner_id": partner_id, "id": lead_id},
+        {
+            "$set": {
+                "status": status,
+                "status_updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Lead non trovato")
+    
+    return {"success": True, "message": f"Status aggiornato a {status}"}
+
+
+@router.post("/leads/add-note")
+async def add_lead_note(partner_id: str, lead_id: str, note: str):
+    """Aggiunge una nota a un lead"""
+    await get_partner_or_404(partner_id)
+    
+    result = await db.partner_leads.update_one(
+        {"partner_id": partner_id, "id": lead_id},
+        {
+            "$set": {
+                "notes": note,
+                "notes_updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Lead non trovato")
+    
+    return {"success": True, "message": "Nota aggiunta"}
+
+
+# Webhook per ricevere lead da Systeme.io
+@router.post("/leads/webhook/{partner_id}")
+async def receive_lead_webhook(partner_id: str, data: dict):
+    """Webhook per ricevere lead da Systeme.io o altri sistemi"""
+    partner = await get_partner_or_404(partner_id)
+    
+    lead_data = {
+        "id": str(uuid.uuid4()),
+        "partner_id": partner_id,
+        "name": data.get("name", data.get("first_name", "")),
+        "email": data.get("email", ""),
+        "phone": data.get("phone", data.get("phone_number", "")),
+        "funnel_origin": data.get("funnel_origin", data.get("tag", "optin")),
+        "status": "new",
+        "source": data.get("source", "systeme.io"),
+        "raw_data": data,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Check for duplicate
+    existing = await db.partner_leads.find_one({
+        "partner_id": partner_id,
+        "email": lead_data["email"]
+    })
+    
+    if existing:
+        # Update existing lead with new interaction
+        await db.partner_leads.update_one(
+            {"partner_id": partner_id, "email": lead_data["email"]},
+            {
+                "$set": {"last_interaction": datetime.now(timezone.utc).isoformat()},
+                "$push": {"interactions": {"timestamp": datetime.now(timezone.utc).isoformat(), "type": data.get("type", "optin")}}
+            }
+        )
+        return {"success": True, "message": "Lead esistente aggiornato", "lead_id": existing.get("id")}
+    
+    # Insert new lead
+    await db.partner_leads.insert_one(lead_data)
+    
+    # Notify admin
+    await notify_telegram(
+        f"🎯 NUOVO LEAD!\n\n"
+        f"👤 Partner: {partner.get('name')}\n"
+        f"📧 {lead_data['email']}\n"
+        f"📍 Origine: {lead_data['funnel_origin']}"
+    )
+    
+    return {"success": True, "message": "Lead registrato", "lead_id": lead_data["id"]}
