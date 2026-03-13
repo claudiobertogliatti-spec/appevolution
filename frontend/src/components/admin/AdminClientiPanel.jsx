@@ -626,6 +626,23 @@ export function AdminClientiPanel({ onViewAsCliente }) {
                 </div>
               )}
 
+              {/* View As Cliente Button */}
+              {onViewAsCliente && (
+                <div>
+                  <h4 className="text-xs font-bold text-[#9CA3AF] mb-3">VISUALIZZAZIONE</h4>
+                  <button
+                    onClick={() => onViewAsCliente(selectedCliente)}
+                    className="w-full py-3 rounded-xl font-bold text-sm bg-[#3B82F6] text-white hover:bg-[#2563EB] transition-all flex items-center justify-center gap-2"
+                  >
+                    <Eye className="w-4 h-4" />
+                    Visualizza come Cliente
+                  </button>
+                  <p className="text-xs text-[#9CA3AF] text-center mt-2">
+                    Vedi l'area cliente come la vede {selectedCliente.nome}
+                  </p>
+                </div>
+              )}
+
               {/* Actions */}
               {selectedCliente.status === "approved" && (
                 <div className="p-4 rounded-xl bg-green-50 border border-green-200">
