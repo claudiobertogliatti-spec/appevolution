@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle, PlayCircle, ChevronRight, Clock, BookOpen, LogOut, ClipboardList, Target, MessageCircle, BarChart3, Users, Calendar, Lightbulb, Video, Megaphone, UserCircle, Handshake } from 'lucide-react';
+import { CheckCircle, PlayCircle, ChevronRight, Clock, BookOpen, LogOut, ClipboardList, Target, MessageCircle, BarChart3, Users, Calendar, Lightbulb, Video, Megaphone, UserCircle, Handshake, ArrowRight } from 'lucide-react';
 
 // 7 moduli del mini corso come da specifica
 const MINI_CORSO_MODULI = [
