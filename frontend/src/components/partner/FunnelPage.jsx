@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Check, Sparkles, Upload, ExternalLink, Mail, FileText, 
   ShoppingCart, Play, ChevronDown, ChevronRight, Eye,
-  RefreshCw, Rocket, Copy, CheckCircle2, Zap
+  RefreshCw, Rocket, Copy, CheckCircle2, Zap, Loader2
 } from "lucide-react";
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // STRUTTURA FUNNEL GENERATO
