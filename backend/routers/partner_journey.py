@@ -1094,3 +1094,374 @@ async def get_partner_journey_progress(partner_id: str):
         "current_step": current_step,
         "progress": progress
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# OTTIMIZZAZIONE ENDPOINTS (Fase 6 - Post Lancio)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class AzioneConsigliata(BaseModel):
+    id: int
+    label: str
+    status: str  # not_started, in_progress, completed
+    category: Optional[str] = None
+
+class SalvaAzioniRequest(BaseModel):
+    partner_id: str
+    azioni: List[AzioneConsigliata]
+
+class GeneraReportRequest(BaseModel):
+    partner_id: str
+
+class CreaCasoStudioRequest(BaseModel):
+    partner_id: str
+
+@router.get("/ottimizzazione/{partner_id}")
+async def get_ottimizzazione(partner_id: str):
+    """
+    Recupera tutti i dati della fase Ottimizzazione:
+    - KPI da Systeme.io
+    - Ultimo report AI
+    - Stato azioni
+    - Dati caso studio
+    - Stato partnership (scadenza)
+    """
+    partner = await get_partner_or_404(partner_id)
+    
+    # Recupera dati ottimizzazione salvati
+    ottimizzazione = await db.partner_ottimizzazione.find_one(
+        {"partner_id": partner_id}, {"_id": 0}
+    )
+    
+    # Calcola stato partnership (12 mesi)
+    from dateutil.relativedelta import relativedelta
+    data_pagamento = partner.get("data_pagamento_partnership") or partner.get("conversion_date")
+    
+    partnership_data = {
+        "stato": "attiva",
+        "data_attivazione": data_pagamento,
+        "data_scadenza": None,
+        "giorni_rimanenti": 365
+    }
+    
+    if data_pagamento:
+        try:
+            if isinstance(data_pagamento, str):
+                data_attivazione = datetime.fromisoformat(data_pagamento.replace("Z", "+00:00"))
+            else:
+                data_attivazione = data_pagamento
+            
+            data_scadenza = data_attivazione + relativedelta(months=12)
+            oggi = datetime.now(timezone.utc)
+            
+            giorni_rimanenti = (data_scadenza - oggi).days
+            
+            partnership_data = {
+                "stato": "scaduto" if giorni_rimanenti < 0 else "attiva",
+                "data_attivazione": data_attivazione.isoformat(),
+                "data_scadenza": data_scadenza.isoformat(),
+                "giorni_rimanenti": max(0, giorni_rimanenti)
+            }
+        except Exception as e:
+            logging.warning(f"Error calculating partnership dates: {e}")
+    
+    # Recupera KPI da Systeme.io
+    kpi_data = await get_partner_kpi_from_systeme(partner_id, partner)
+    
+    # Recupera azioni salvate o usa default
+    default_actions = [
+        {"id": 1, "label": "Pubblica 3 contenuti social sulla masterclass", "status": "not_started", "category": "marketing"},
+        {"id": 2, "label": "Ripromuovi la masterclass alla tua lista", "status": "not_started", "category": "marketing"},
+        {"id": 3, "label": "Raccogli 2 testimonianze dagli studenti", "status": "not_started", "category": "social_proof"},
+        {"id": 4, "label": "Aggiorna headline della opt-in page", "status": "not_started", "category": "conversion"},
+        {"id": 5, "label": "Rispondi ai commenti e messaggi", "status": "not_started", "category": "engagement"},
+        {"id": 6, "label": "Analizza i dati del funnel", "status": "not_started", "category": "analytics"},
+    ]
+    
+    azioni = ottimizzazione.get("azioni", default_actions) if ottimizzazione else default_actions
+    
+    return {
+        "success": True,
+        "partner_id": partner_id,
+        "partner_name": partner.get("name"),
+        "kpi": kpi_data,
+        "ultimo_report": ottimizzazione.get("ultimo_report") if ottimizzazione else None,
+        "azioni": azioni,
+        "caso_studio": {
+            "studenti": kpi_data.get("studenti_totali", 0),
+            "fatturato": kpi_data.get("fatturato_totale", 0),
+            "recensioni": kpi_data.get("recensioni", 0),
+            "caso_studio_creato": ottimizzazione.get("caso_studio_creato", False) if ottimizzazione else False,
+            "caso_studio_id": ottimizzazione.get("caso_studio_id") if ottimizzazione else None
+        },
+        "partnership": partnership_data
+    }
+
+
+async def get_partner_kpi_from_systeme(partner_id: str, partner: dict) -> dict:
+    """Helper per recuperare KPI da Systeme.io"""
+    try:
+        # Import del client Systeme.io
+        from systeme_mcp_client import get_accademia_revenue, get_contact_by_email, is_configured
+        
+        if not is_configured():
+            logging.warning("[OTTIMIZZAZIONE] Systeme.io non configurato - uso dati mock")
+            return {
+                "studenti_totali": 0,
+                "vendite_mese": 0,
+                "lead_generati": 0,
+                "conversione_funnel": 0,
+                "fatturato_totale": 0,
+                "recensioni": 0,
+                "demo_mode": True
+            }
+        
+        # Recupera dati corso/accademia partner
+        course_id = partner.get("systeme_course_id")
+        if course_id:
+            revenue_data = get_accademia_revenue(course_id)
+            studenti = revenue_data.get("students", 0)
+            fatturato = revenue_data.get("revenue", 0)
+        else:
+            studenti = 0
+            fatturato = 0
+        
+        # Recupera lead (contatti con tag specifico)
+        email = partner.get("email")
+        if email:
+            contact = get_contact_by_email(email)
+            # In una implementazione reale, conteresti i lead dal funnel
+            lead_count = 0  # Placeholder
+        else:
+            lead_count = 0
+        
+        # Calcola conversione
+        conversione = round((studenti / lead_count * 100), 1) if lead_count > 0 else 0
+        
+        return {
+            "studenti_totali": studenti,
+            "vendite_mese": fatturato,  # Semplificato
+            "lead_generati": lead_count,
+            "conversione_funnel": conversione,
+            "fatturato_totale": fatturato,
+            "recensioni": 0  # TODO: implementare raccolta recensioni
+        }
+        
+    except Exception as e:
+        logging.error(f"Error getting KPI from Systeme: {e}")
+        return {
+            "studenti_totali": 0,
+            "vendite_mese": 0,
+            "lead_generati": 0,
+            "conversione_funnel": 0,
+            "fatturato_totale": 0,
+            "recensioni": 0,
+            "error": str(e)
+        }
+
+
+@router.post("/ottimizzazione/genera-report")
+async def genera_report_ai(request: GeneraReportRequest):
+    """Genera un report AI analizzando i dati dell'Accademia"""
+    partner = await get_partner_or_404(request.partner_id)
+    
+    # Recupera KPI
+    kpi_data = await get_partner_kpi_from_systeme(request.partner_id, partner)
+    
+    # Recupera posizionamento per contesto
+    posizionamento = await db.partner_posizionamento.find_one(
+        {"partner_id": request.partner_id}, {"_id": 0}
+    )
+    
+    prompt = f"""Sei un consulente strategico di Evolution PRO. Analizza i dati dell'Accademia Digitale del partner e fornisci un report conciso.
+
+PARTNER: {partner.get('name')}
+NICCHIA: {partner.get('niche', 'N/D')}
+
+KPI ATTUALI:
+- Studenti totali: {kpi_data.get('studenti_totali', 0)}
+- Fatturato mese: €{kpi_data.get('vendite_mese', 0)}
+- Lead generati: {kpi_data.get('lead_generati', 0)}
+- Conversione funnel: {kpi_data.get('conversione_funnel', 0)}%
+
+POSIZIONAMENTO:
+- Studente ideale: {posizionamento.get('step_1_studente_ideale', 'N/D') if posizionamento else 'N/D'}
+- Obiettivo: {posizionamento.get('step_2_obiettivo', 'N/D') if posizionamento else 'N/D'}
+
+Genera un report in formato JSON con questa struttura esatta:
+{{
+  "cosa_funziona": "Una frase su cosa sta funzionando bene",
+  "cosa_migliorare": "Una frase sul principale punto di miglioramento",
+  "prossima_azione": "L'azione più importante da fare questa settimana"
+}}
+
+Se i dati sono a zero, suggerisci azioni per iniziare a generare traffico e lead.
+Rispondi SOLO con il JSON, senza altro testo."""
+
+    try:
+        llm = await get_llm_chat()
+        from emergentintegrations.llm.chat import UserMessage
+        
+        response = await llm.chat([UserMessage(text=prompt)])
+        response_text = response.text.strip()
+        
+        # Parse JSON
+        if "```json" in response_text:
+            json_start = response_text.find("```json") + 7
+            json_end = response_text.find("```", json_start)
+            response_text = response_text[json_start:json_end].strip()
+        elif "```" in response_text:
+            json_start = response_text.find("```") + 3
+            json_end = response_text.find("```", json_start)
+            response_text = response_text[json_start:json_end].strip()
+        
+        report_content = json.loads(response_text)
+        report_content["generato_il"] = datetime.now(timezone.utc).isoformat()
+        
+        # Salva report
+        await db.partner_ottimizzazione.update_one(
+            {"partner_id": request.partner_id},
+            {
+                "$set": {
+                    "ultimo_report": report_content,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                },
+                "$setOnInsert": {
+                    "partner_id": request.partner_id,
+                    "partner_name": partner.get("name"),
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+            },
+            upsert=True
+        )
+        
+        # Aggiungi alla history dei report
+        await db.partner_ottimizzazione.update_one(
+            {"partner_id": request.partner_id},
+            {"$push": {"report_history": report_content}}
+        )
+        
+        return {
+            "success": True,
+            "report": report_content
+        }
+        
+    except Exception as e:
+        logging.error(f"Error generating AI report: {e}")
+        # Fallback report
+        fallback_report = {
+            "cosa_funziona": "Il tuo sistema è impostato correttamente.",
+            "cosa_migliorare": "Aumenta la visibilità della masterclass sui social.",
+            "prossima_azione": "Pubblica 3 contenuti questa settimana parlando del problema che risolvi.",
+            "generato_il": datetime.now(timezone.utc).isoformat()
+        }
+        return {
+            "success": True,
+            "report": fallback_report,
+            "fallback": True
+        }
+
+
+@router.post("/ottimizzazione/salva-azioni")
+async def salva_azioni(request: SalvaAzioniRequest):
+    """Salva lo stato delle azioni consigliate"""
+    await get_partner_or_404(request.partner_id)
+    
+    azioni_dict = [a.dict() for a in request.azioni]
+    
+    await db.partner_ottimizzazione.update_one(
+        {"partner_id": request.partner_id},
+        {
+            "$set": {
+                "azioni": azioni_dict,
+                "azioni_updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+    
+    return {"success": True, "message": "Azioni salvate"}
+
+
+@router.post("/ottimizzazione/crea-caso-studio")
+async def crea_caso_studio(request: CreaCasoStudioRequest):
+    """Crea il caso studio Evolution PRO per il partner"""
+    partner = await get_partner_or_404(request.partner_id)
+    
+    # Verifica requisiti (10 studenti o €1000)
+    kpi_data = await get_partner_kpi_from_systeme(request.partner_id, partner)
+    studenti = kpi_data.get("studenti_totali", 0)
+    fatturato = kpi_data.get("fatturato_totale", 0)
+    
+    if studenti < 10 and fatturato < 1000:
+        raise HTTPException(
+            status_code=400, 
+            detail="Requisiti non raggiunti: servono almeno 10 studenti o €1.000 di fatturato"
+        )
+    
+    # Recupera posizionamento per contesto
+    posizionamento = await db.partner_posizionamento.find_one(
+        {"partner_id": request.partner_id}, {"_id": 0}
+    )
+    
+    # Genera caso studio
+    caso_studio_id = str(uuid.uuid4())
+    
+    caso_studio = {
+        "id": caso_studio_id,
+        "partner_id": request.partner_id,
+        "partner_name": partner.get("name"),
+        "niche": partner.get("niche"),
+        "studenti": studenti,
+        "fatturato": fatturato,
+        "recensioni": kpi_data.get("recensioni", 0),
+        "trasformazione": posizionamento.get("step_3_trasformazione") if posizionamento else None,
+        "metodo": posizionamento.get("step_4_metodo") if posizionamento else None,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "status": "draft"  # draft -> published
+    }
+    
+    # Salva caso studio
+    await db.casi_studio.insert_one(caso_studio)
+    
+    # Aggiorna stato partner
+    await db.partner_ottimizzazione.update_one(
+        {"partner_id": request.partner_id},
+        {
+            "$set": {
+                "caso_studio_creato": True,
+                "caso_studio_id": caso_studio_id,
+                "caso_studio_created_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+    
+    # Notifica admin
+    await notify_telegram(
+        f"🏆 NUOVO CASO STUDIO!\n\n"
+        f"👤 {partner.get('name')}\n"
+        f"📚 {studenti} studenti\n"
+        f"💰 €{fatturato} fatturato\n\n"
+        f"ID: {caso_studio_id}"
+    )
+    
+    return {
+        "success": True,
+        "caso_studio_id": caso_studio_id,
+        "message": "Caso studio creato con successo!"
+    }
+
+
+@router.get("/ottimizzazione/caso-studio/{caso_studio_id}")
+async def get_caso_studio(caso_studio_id: str):
+    """Recupera i dettagli di un caso studio"""
+    caso = await db.casi_studio.find_one({"id": caso_studio_id}, {"_id": 0})
+    
+    if not caso:
+        raise HTTPException(status_code=404, detail="Caso studio non trovato")
+    
+    return {
+        "success": True,
+        "caso_studio": caso
+    }
