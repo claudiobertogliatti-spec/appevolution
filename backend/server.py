@@ -11896,6 +11896,11 @@ app.include_router(agents_router, prefix="/api/agents", tags=["agents"])
 from routers.youtube_heygen import router as youtube_heygen_router
 app.include_router(youtube_heygen_router, prefix="/api", tags=["youtube-heygen"])
 
+# Include partnership activation router
+from routers.partnership import router as partnership_router, set_db as set_partnership_db
+set_partnership_db(db)
+app.include_router(partnership_router)
+
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler
 
