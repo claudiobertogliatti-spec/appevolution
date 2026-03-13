@@ -1481,7 +1481,11 @@ export default function App() {
           {mode==="admin"&&<>
             {nav==="overview"&&<AdminDashboardPro onOpenPartnerProject={(p)=>{setSelectedPartner(p);setMode("partner");setNav("dashboard");}}/>}
             {nav==="overview-old"&&<AdminOverview stats={stats} agents={agents} partners={partners} alerts={alerts} onNavigate={setNav}/>}
-            {nav==="clienti"&&<AdminClientiPanel/>}
+            {nav==="clienti"&&<AdminClientiPanel onViewAsCliente={(cliente) => {
+              setViewingCliente(cliente);
+              setMode("cliente");
+              setNav("cliente-post");
+            }}/>}
             {nav==="clienti-analisi"&&<AdminClientiAnalisiPanel/>}
             {nav==="agenti"&&<AgentDashboard/>}
             {/* OrionLeadScoring rimosso - Lead gestiti esclusivamente in Systeme.io */}
