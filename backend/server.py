@@ -3060,6 +3060,37 @@ async def update_piano_continuita(partner_id: str, data: dict):
     
     return {"success": True, "piano_continuita": piano_continuita}
 
+
+@api_router.post("/partners/{partner_id}/attiva-piano")
+async def attiva_piano_partner(partner_id: str, piano: str = None):
+    """
+    Attiva un piano per il partner (continuita_attiva o growth_partner_attivo).
+    """
+    partner = await db.partners.find_one({"id": partner_id})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner non trovato")
+    
+    valid_plans = ["continuita_attiva", "growth_partner_attivo"]
+    if piano not in valid_plans:
+        raise HTTPException(status_code=400, detail=f"Piano non valido. Usa: {valid_plans}")
+    
+    update_data = {
+        piano: True,
+        f"{piano}_data": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.partners.update_one(
+        {"id": partner_id},
+        {"$set": update_data}
+    )
+    
+    return {
+        "success": True, 
+        "message": f"Piano {piano} attivato con successo",
+        "piano": piano
+    }
+
+
 @api_router.post("/partners/{partner_id}/send-documents")
 async def send_partner_documents(partner_id: str, email: str = None):
     """Send documents to partner via email (placeholder)"""
