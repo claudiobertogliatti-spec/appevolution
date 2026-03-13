@@ -1126,6 +1126,18 @@ export function AdminClientiAnalisiPanel() {
           </div>
         </div>
       )}
+      
+      {/* Modal Analisi Consulenziale */}
+      {showAnalisiConsulenziale && clienteConsulenziale && (
+        <AnalisiConsulenziale 
+          clienteId={clienteConsulenziale}
+          onClose={() => {
+            setShowAnalisiConsulenziale(false);
+            setClienteConsulenziale(null);
+            loadClienti(); // Ricarica per aggiornare stati
+          }}
+        />
+      )}
     </div>
   );
 }
