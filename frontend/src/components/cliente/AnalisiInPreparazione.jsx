@@ -216,7 +216,36 @@ export function AnalisiInPreparazione({ user, onLogout }) {
             style={{ background: '#FFF8DC', color: '#92700C' }}
           >
             <Clock className="w-4 h-4 inline mr-2" />
-            Riceverai il link per prenotare la call entro 48 ore.
+            Riceverai a breve il link per prenotare la call strategica.
+          </div>
+        </div>
+
+        {/* CTA PRENOTA CALL */}
+        <div className="rounded-2xl p-6 mb-8" style={{ background: '#FFFFFF', border: '2px solid #F5C518' }}>
+          <div className="flex items-start gap-4">
+            <div 
+              className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: '#F5C51815' }}
+            >
+              <Calendar className="w-6 h-6" style={{ color: '#C4990A' }} />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold mb-1" style={{ color: '#1E2128' }}>
+                Prenota la tua call strategica
+              </h3>
+              <p className="text-sm mb-4" style={{ color: '#5F6572' }}>
+                Durante la videocall presenteremo la tua Analisi Strategica personalizzata e valuteremo insieme se il tuo progetto è adatto per la partnership Evolution PRO.
+              </p>
+              <button
+                onClick={() => window.open('https://calendly.com/evolution-pro/call-strategica', '_blank')}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all hover:opacity-90 hover:scale-105"
+                style={{ background: '#F5C518', color: '#1E2128' }}
+                data-testid="prenota-call-btn"
+              >
+                Prenota la tua call strategica
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
 
