@@ -91,7 +91,7 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
     if (isUnlocked) {
       // Mappa fase → navigazione interna
       const navMap = {
-        'posizionamento': 'documenti',
+        'posizionamento': 'posizionamento',
         'masterclass': 'masterclass',
         'videocorso': 'produzione',
         'funnel': 'calendario',
