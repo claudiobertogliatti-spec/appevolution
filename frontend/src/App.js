@@ -1527,9 +1527,11 @@ export default function App() {
             {nav==="fase4-copycore"&&<FunnelReviewBuilder partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
             {nav==="funnel"&&<FunnelReviewBuilder partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
             
-            {/* FASE 5 - Masterclass (produzione video) */}
-            {nav==="fase5-masterclass"&&<ProduzioneVideo partner={demoPartner}/>}
-            {nav==="consigli-registrazione"&&<ProduzioneVideo partner={demoPartner}/>}
+            {/* FASE 5 - Videocorso (produzione video) */}
+            {nav==="fase5-masterclass"&&<VideocorsoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("funnel")}/>}
+            {nav==="consigli-registrazione"&&<VideocorsoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("funnel")}/>}
+            {nav==="produzione"&&<VideocorsoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("funnel")}/>}
+            {nav==="videocorso"&&<VideocorsoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("funnel")}/>}
             
             {/* FASE 6 - Videocorso */}
             {nav==="fase6-videocorso"&&<VideoEditorAndrea partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
