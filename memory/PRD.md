@@ -1,6 +1,26 @@
 # Evolution PRO OS - Product Requirements Document
 
-## FLUSSO CLIENTE AGGIORNATO
+## SISTEMA CONTATTO CLIENTE ✅ COMPLETATO
+
+### Quando analisi_generata = true
+
+**Dashboard Cliente mostra:**
+- Badge: "Analisi completata"
+- Titolo: "La tua Analisi Strategica è pronta"
+- Testo: "Abbiamo completato lo studio del tuo progetto. Ora possiamo analizzarlo insieme durante la call strategica."
+- CTA prominente: "Prenota la tua call strategica" → Calendly
+
+**Email automatica inviata (quando admin salva analisi):**
+- Oggetto: "La tua Analisi Strategica è pronta"
+- Corpo: Messaggio + CTA "Prenota il tuo orario qui"
+
+**Reminder 24h:**
+- Se call non prenotata dopo 24 ore → email reminder
+- Endpoint: `POST /api/admin/clienti-analisi/send-reminders`
+
+---
+
+## FLUSSO COMPLETO
 
 ```
 /analisi-strategica (Registrazione)
@@ -11,9 +31,15 @@
     ↓
 [Stripe Checkout]
     ↓
-/analisi-in-preparazione
+/analisi-in-preparazione (Video + Mini Corso)
     ↓
-[Admin genera analisi AI - NON VISIBILE AL CLIENTE]
+[Admin genera analisi AI]
+    ↓
+Dashboard: "La tua Analisi Strategica è pronta" ← NUOVO
+    ↓
+[Email automatica al cliente]
+    ↓
+Prenota call
     ↓
 Call con Claudio (presentazione analisi)
     ↓
@@ -22,78 +48,60 @@ Proposta partnership
 
 ---
 
-## REGOLA FONDAMENTALE ⚠️
+## STATI DASHBOARD CLIENTE
 
-**L'analisi generata dall'admin NON è visibile al cliente.**
-
-Il cliente vede solo:
-- "Analisi Strategica in preparazione"
-- Pulsante per prenotare la call
-
-L'analisi viene presentata DURANTE la call strategica.
-Dopo la call, l'admin può eventualmente condividere il PDF.
+| Stato | Condizione | Cosa vede |
+|-------|------------|-----------|
+| 1 | questionario=false | "Benvenuto" + CTA Questionario |
+| 2 | questionario=true, pagamento=false | "Progetto ricevuto" + CTA Pagamento |
+| 3A | pagamento=true, analisi=false | "Analisi in preparazione" |
+| 3B | pagamento=true, analisi=true | **"Analisi pronta" + CTA Prenota Call** |
 
 ---
 
-## STATI CLIENTE (Dashboard)
+## LOGIN UNIFICATO
 
-| Stato | Condizione | Cosa vede il cliente |
-|-------|------------|---------------------|
-| 1 | questionario_compilato=false | "Benvenuto" + CTA Questionario |
-| 2 | questionario_compilato=true, pagamento=false | "Progetto ricevuto" + CTA Pagamento |
-| 3 | pagamento_analisi=true | "Analisi in preparazione" + Prenota Call |
-
-**NOTA:** NON esiste più uno stato "Analisi pronta" per il cliente.
-L'analisi resta SOLO nell'admin.
+Il pulsante "Accedi" in homepage ora supporta:
+- Clienti → redirect a `/dashboard-cliente`
+- Partner/Admin → redirect a `/dashboard-partner`
 
 ---
 
-## PANNELLO ADMIN
+## API EMAIL
 
-### Flusso Admin
-1. Visualizza lista clienti pagati
-2. Apre scheda cliente
-3. Genera Analisi Strategica (AI)
-4. Visualizza punteggio + raccomandazione
-5. Salva analisi
-6. Scarica PDF (per presentare in call)
-7. Aggiorna stato call
+| Endpoint | Descrizione |
+|----------|-------------|
+| `POST /admin/clienti-analisi/{id}/salva-analisi` | Salva + invia email automatica |
+| `POST /admin/clienti-analisi/send-reminders` | Invia reminder 24h |
 
-### Accesso Analisi
-- L'analisi è visibile SOLO nell'admin
-- Il PDF viene scaricato dall'admin
-- Il PDF viene presentato durante la call
-- Dopo la call, l'admin decide se condividere il PDF
+**Configurazione Resend:**
+- `RESEND_API_KEY` in .env
+- `SENDER_EMAIL` in .env (default: onboarding@resend.dev)
 
 ---
 
-## CREDENZIALI
+## CREDENZIALI TEST
 
 | Tipo | Email | Password |
 |------|-------|----------|
 | Admin | claudio.bertogliatti@gmail.com | Evoluzione74 |
-| Cliente test | att2_1773352332@test.com | TestCliente123 |
+| Cliente con analisi | att2_1773352332@test.com | TestCliente123 |
 
 ---
 
 ## CHANGELOG
 
-### 13 Mar 2026 - Aggiornamento Flusso
-- ✅ Rimosso stato "Analisi pronta" dalla dashboard cliente
-- ✅ L'analisi è ora visibile SOLO all'admin
-- ✅ Il cliente vede sempre "Analisi in preparazione" dopo il pagamento
-- ✅ Aggiunto pulsante "Prenota Call" nella pagina analisi in preparazione
-- ✅ L'analisi sarà presentata durante la call strategica
-
-### 13 Mar 2026 - Prompt AI
-- ✅ Struttura documento professionale (1200-1800 parole)
-- ✅ Punteggio fattibilità (1-10)
-- ✅ Raccomandazione finale
+### 13 Mar 2026 - Sistema Contatto Cliente
+- ✅ Dashboard cliente mostra "Analisi pronta" quando analisi_generata=true
+- ✅ CTA prominente "Prenota la tua call strategica"
+- ✅ Email automatica quando admin salva analisi (Resend)
+- ✅ Endpoint reminder 24h
+- ✅ Login unificato per clienti e partner
+- ✅ auth.py aggiornato per restituire campi cliente
 
 ---
 
 ## PROJECT HEALTH
 - **Backend:** ✅ Funzionante
 - **Frontend:** ✅ Funzionante  
-- **AI (Claude):** ✅ Funzionante
-- **PDF:** ✅ Funzionante
+- **Email (Resend):** ⚠️ Logica implementata, chiave da configurare
