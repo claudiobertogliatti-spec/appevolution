@@ -1633,6 +1633,9 @@ export default function App() {
             {/* OTTIMIZZAZIONE (Fase 6 - Post Lancio) */}
             {nav==="ottimizzazione"&&<OttimizzazionePage partner={demoPartner} onNavigate={setNav}/>}
             
+            {/* WEBINAR MENSILE */}
+            {nav==="webinar"&&<WebinarPage partner={demoPartner} onNavigate={setNav}/>}
+            
             {/* PIANI CONTINUITÀ */}
             {nav==="continuita"&&<PianoContinuitaPage partner={demoPartner} onNavigate={setNav}/>}
             {nav==="piano-continuita"&&<PianoContinuitaPage partner={demoPartner} onNavigate={setNav}/>}
