@@ -233,7 +233,14 @@ class AuthService:
                 is_active=user.get("is_active", True),
                 partner_id=user.get("partner_id"),
                 phase=user.get("phase"),
-                admin_type=user.get("admin_type")
+                admin_type=user.get("admin_type"),
+                # Campi cliente_analisi
+                user_type=user.get("user_type"),
+                questionario_compilato=user.get("questionario_compilato"),
+                pagamento_analisi=user.get("pagamento_analisi"),
+                analisi_generata=user.get("analisi_generata"),
+                nome=user.get("nome"),
+                cognome=user.get("cognome")
             )
         )
     
