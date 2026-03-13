@@ -217,7 +217,7 @@ function GeneratedScript({ script, onApprove, onEdit }) {
   );
 }
 
-function RecordingSection({ onUpload, uploadStatus }) {
+function RecordingSection({ onUpload, uploadStatus, fileInputRef }) {
   return (
     <div className="bg-white rounded-2xl border border-[#ECEDEF] p-6">
       <div className="flex items-center gap-3 mb-4">
@@ -277,11 +277,21 @@ function RecordingSection({ onUpload, uploadStatus }) {
         )}
       </div>
       
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="video/*"
+        className="hidden"
+        onChange={onUpload}
+      />
+      
       {uploadStatus === 'idle' && (
         <button
-          onClick={onUpload}
+          onClick={() => fileInputRef.current?.click()}
           className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition-all hover:scale-105"
           style={{ background: '#F2C418', color: '#1E2128' }}
+          data-testid="upload-masterclass-btn"
         >
           <Upload className="w-5 h-5" />
           Carica video masterclass
