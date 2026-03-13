@@ -93,6 +93,8 @@ export function AdminClientiAnalisiPanel() {
       if (data.success) {
         setAnalisiGenerata(data.analisi_testo);
         setEditedAnalisi(data.analisi_testo);
+        setPunteggioFattibilita(data.punteggio_fattibilita);
+        setRaccomandazione(data.raccomandazione);
         setShowAnalisiEditor(true);
       } else {
         alert(data.detail || "Errore nella generazione");
