@@ -40,6 +40,8 @@ export function AdminClientiAnalisiPanel() {
   // Stati per generazione analisi
   const [generatingAnalisi, setGeneratingAnalisi] = useState(false);
   const [analisiGenerata, setAnalisiGenerata] = useState(null);
+  const [punteggioFattibilita, setPunteggioFattibilita] = useState(null);
+  const [raccomandazione, setRaccomandazione] = useState(null);
   const [savingAnalisi, setSavingAnalisi] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [updatingCall, setUpdatingCall] = useState(false);
