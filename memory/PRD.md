@@ -187,7 +187,33 @@ La durata della partnership Evolution PRO è di **12 mesi** a partire dal moment
 
 ---
 
-## API ENDPOINTS - OTTIMIZZAZIONE ✅ NEW
+## PIANI CONTINUITÀ ✅ NEW - Marzo 2026
+
+**Route:** `/partner/continuita`
+
+Pagina di vendita accessibile quando il contratto si avvicina alla scadenza o il partner vuole crescere.
+
+### 3 PIANI:
+
+| Piano | Prezzo | Include |
+|-------|--------|---------|
+| **Continuity** | €97/mese | Hosting Accademia, Monitoraggio tecnico, Funnel attivo, Report mensile automatico, Supporto base |
+| **Growth** ⭐ | €197/mese | Tutto Continuity + Analisi vendite, Ottimizzazione funnel, Strategia mensile, 1 call/mese |
+| **Scale** | €397/mese | Tutto Growth + Lancio periodico, Marketing avanzato, 2 call/mese, Supporto prioritario |
+
+---
+
+## API ENDPOINTS - CALENDARIO LANCIO ✅ NEW
+
+| Endpoint | Descrizione |
+|----------|-------------|
+| `GET /api/partner-journey/lancio/calendario/{partner_id}` | Recupera calendario esistente |
+| `POST /api/partner-journey/lancio/genera-calendario` | Genera 30 giorni con AI |
+| `POST /api/partner-journey/lancio/export-calendario` | Export PDF/CSV/ICS |
+
+---
+
+## API ENDPOINTS - OTTIMIZZAZIONE ✅
 
 | Endpoint | Descrizione |
 |----------|-------------|
