@@ -561,60 +561,27 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
             </p>
           </div>
 
-        </div>
-      </div>
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // STATO 4: analisi_generata = true
-  // ═══════════════════════════════════════════════════════════════════════════
-  if (analisiGenerata) {
-    return (
-      <div className="min-h-screen" style={{ background: '#FAFAF7' }}>
-        <Header />
-        <div className="max-w-4xl mx-auto px-6 py-12">
-          {/* Success Message */}
-          <div className="text-center mb-12">
-            <div 
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold mb-4"
-              style={{ background: '#F0FDF4', color: '#166534' }}
-            >
-              <Sparkles className="w-4 h-4" />
-              Analisi completata!
-            </div>
-            <h1 className="text-3xl font-black mb-4" style={{ color: '#1E2128' }}>
-              La tua Analisi Strategica è pronta
-            </h1>
-            <p className="text-lg max-w-2xl mx-auto" style={{ color: '#5F6572' }}>
-              Abbiamo completato l'analisi del tuo progetto.
-            </p>
-          </div>
-
-          <ProgressBar />
-
-          {/* CTA Card */}
+          {/* CTA Prenota Call */}
           <div className="rounded-2xl p-8" style={{ background: '#FFFFFF', border: '2px solid #F5C518' }}>
             <div className="flex items-start gap-6">
               <div 
                 className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0" 
-                style={{ background: '#F0FDF4' }}
+                style={{ background: '#F5C51815' }}
               >
-                <Calendar className="w-7 h-7" style={{ color: '#22C55E' }} />
+                <Calendar className="w-7 h-7" style={{ color: '#C4990A' }} />
               </div>
               <div className="flex-1">
                 <h3 className="text-xl font-bold mb-2" style={{ color: '#1E2128' }}>
                   Prenota la tua call strategica
                 </h3>
-                <p className="mb-6" style={{ color: '#5F6572' }}>
-                  Durante la videocall analizzeremo insieme i risultati e definiremo i prossimi passi per la tua Accademia Digitale.
+                <p className="mb-4" style={{ color: '#5F6572' }}>
+                  Durante la videocall presenteremo l'Analisi Strategica del tuo progetto e valuteremo insieme i prossimi passi.
                 </p>
                 <button
                   onClick={() => {
-                    // Link al calendario Calendly o simile
                     window.open('https://calendly.com/evolution-pro/call-strategica', '_blank');
                   }}
-                  className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-lg transition-all hover:opacity-90"
+                  className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-lg transition-all hover:opacity-90 hover:scale-105"
                   style={{ background: '#F5C518', color: '#1E2128' }}
                   data-testid="prenota-call-btn"
                 >
@@ -625,25 +592,6 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
             </div>
           </div>
 
-          {/* Download Analisi */}
-          {user?.analisi_url && (
-            <div className="mt-8 p-6 rounded-xl" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <FileText className="w-5 h-5" style={{ color: '#F5C518' }} />
-                  <span className="font-medium" style={{ color: '#1E2128' }}>Scarica la tua Analisi Strategica</span>
-                </div>
-                <a
-                  href={user.analisi_url}
-                  download
-                  className="px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:opacity-80"
-                  style={{ background: '#F5C518', color: '#1E2128' }}
-                >
-                  Download PDF
-                </a>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     );
