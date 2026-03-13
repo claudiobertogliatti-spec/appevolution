@@ -1465,3 +1465,279 @@ async def get_caso_studio(caso_studio_id: str):
         "success": True,
         "caso_studio": caso
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CALENDARIO LANCIO ENDPOINTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class GeneraCalendarioRequest(BaseModel):
+    partner_id: str
+
+class ExportCalendarioRequest(BaseModel):
+    partner_id: str
+    format: str  # pdf, csv, gcal
+
+@router.get("/lancio/calendario/{partner_id}")
+async def get_calendario_lancio(partner_id: str):
+    """Recupera il calendario di lancio esistente"""
+    partner = await get_partner_or_404(partner_id)
+    
+    lancio = await db.partner_lancio.find_one(
+        {"partner_id": partner_id}, {"_id": 0}
+    )
+    
+    return {
+        "success": True,
+        "partner_id": partner_id,
+        "calendario": lancio.get("calendario", []) if lancio else []
+    }
+
+
+@router.post("/lancio/genera-calendario")
+async def genera_calendario_lancio(request: GeneraCalendarioRequest):
+    """Genera il calendario editoriale di 30 giorni usando AI"""
+    partner = await get_partner_or_404(request.partner_id)
+    
+    # Recupera posizionamento
+    posizionamento = await db.partner_posizionamento.find_one(
+        {"partner_id": request.partner_id}, {"_id": 0}
+    )
+    
+    prompt = f"""Sei un social media strategist esperto di lanci di corsi online.
+Genera un calendario editoriale di 30 giorni per il lancio di un videocorso.
+
+PARTNER: {partner.get('name')}
+NICCHIA: {partner.get('niche', 'N/D')}
+
+POSIZIONAMENTO:
+- Studente ideale: {posizionamento.get('step_1_studente_ideale', 'N/D') if posizionamento else 'N/D'}
+- Obiettivo: {posizionamento.get('step_2_obiettivo', 'N/D') if posizionamento else 'N/D'}
+- Trasformazione: {posizionamento.get('step_3_trasformazione', 'N/D') if posizionamento else 'N/D'}
+- Metodo: {posizionamento.get('step_4_metodo', 'N/D') if posizionamento else 'N/D'}
+
+STRUTTURA:
+- Settimana 1 (giorni 1-7): ATTENZIONE - Far emergere il problema
+- Settimana 2 (giorni 8-14): AUTORITÀ - Mostrare competenza  
+- Settimana 3 (giorni 15-21): COINVOLGIMENTO - Preparare il pubblico
+- Settimana 4 (giorni 22-30): LANCIO - Vendere
+
+Per ogni giorno genera:
+- giorno: numero (1-30)
+- tipo: tipo di contenuto (es. "Storia personale", "Mini lezione", etc.)
+- idea: descrizione breve dell'idea
+- formato: uno tra "post", "reel", "story", "live", "carousel"
+- obiettivo: obiettivo specifico del contenuto
+
+Rispondi SOLO in formato JSON con questa struttura:
+{{
+  "calendario": [
+    {{"giorno": 1, "tipo": "...", "idea": "...", "formato": "post", "obiettivo": "..."}}
+  ]
+}}"""
+
+    try:
+        llm = await get_llm_chat()
+        from emergentintegrations.llm.chat import UserMessage
+        
+        response = await llm.chat([UserMessage(text=prompt)])
+        response_text = response.text.strip()
+        
+        # Parse JSON
+        if "```json" in response_text:
+            json_start = response_text.find("```json") + 7
+            json_end = response_text.find("```", json_start)
+            response_text = response_text[json_start:json_end].strip()
+        elif "```" in response_text:
+            json_start = response_text.find("```") + 3
+            json_end = response_text.find("```", json_start)
+            response_text = response_text[json_start:json_end].strip()
+        
+        calendario_data = json.loads(response_text)
+        calendario = calendario_data.get("calendario", [])
+        
+        # Salva
+        await db.partner_lancio.update_one(
+            {"partner_id": request.partner_id},
+            {
+                "$set": {
+                    "calendario": calendario,
+                    "calendario_generated_at": datetime.now(timezone.utc).isoformat()
+                },
+                "$setOnInsert": {
+                    "partner_id": request.partner_id,
+                    "partner_name": partner.get("name"),
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+            },
+            upsert=True
+        )
+        
+        return {
+            "success": True,
+            "calendario": calendario
+        }
+        
+    except Exception as e:
+        logging.error(f"Calendario generation error: {e}")
+        # Fallback con calendario generico
+        fallback_calendario = generate_fallback_calendario()
+        return {
+            "success": True,
+            "calendario": fallback_calendario,
+            "fallback": True
+        }
+
+
+def generate_fallback_calendario():
+    """Genera un calendario di fallback se l'AI fallisce"""
+    settimane = {
+        1: {"tema": "Attenzione", "tipi": ["Storia personale", "Errore comune", "Contenuto educativo", "Problema del pubblico", "Statistica shock", "Domanda provocatoria", "Mito da sfatare"]},
+        2: {"tema": "Autorità", "tipi": ["Mini lezione", "Case study", "Dietro le quinte", "Testimonianza", "Processo creativo", "Tool che uso", "Lezione appresa"]},
+        3: {"tema": "Coinvolgimento", "tipi": ["FAQ", "Risposta a obiezione", "Invito masterclass", "Countdown", "Sneak peek", "Sondaggio", "Q&A"]},
+        4: {"tema": "Lancio", "tipi": ["Apertura iscrizioni", "Bonus reveal", "Testimonianza", "Scadenza reminder", "FAQ corso", "Behind the scenes", "Ultimo giorno", "Chiusura", "Risultati"]}
+    }
+    
+    formati = ["post", "reel", "story", "carousel", "post", "reel", "live"]
+    calendario = []
+    
+    for giorno in range(1, 31):
+        settimana = min((giorno - 1) // 7 + 1, 4)
+        config = settimane[settimana]
+        tipo_idx = (giorno - 1) % len(config["tipi"])
+        formato_idx = (giorno - 1) % len(formati)
+        
+        calendario.append({
+            "giorno": giorno,
+            "tipo": config["tipi"][tipo_idx],
+            "idea": f"Contenuto {config['tema'].lower()} - {config['tipi'][tipo_idx]}",
+            "formato": formati[formato_idx],
+            "obiettivo": f"Obiettivo settimana {settimana}: {config['tema']}"
+        })
+    
+    return calendario
+
+
+@router.post("/lancio/export-calendario")
+async def export_calendario(request: ExportCalendarioRequest):
+    """Esporta il calendario in PDF, CSV o Google Calendar"""
+    partner = await get_partner_or_404(request.partner_id)
+    
+    lancio = await db.partner_lancio.find_one(
+        {"partner_id": request.partner_id}, {"_id": 0}
+    )
+    
+    if not lancio or not lancio.get("calendario"):
+        raise HTTPException(status_code=400, detail="Calendario non trovato")
+    
+    calendario = lancio.get("calendario", [])
+    
+    if request.format == "csv":
+        # Export CSV
+        import csv
+        import io
+        
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["Giorno", "Tipo", "Idea", "Formato", "Obiettivo"])
+        
+        for g in calendario:
+            writer.writerow([g.get("giorno"), g.get("tipo"), g.get("idea"), g.get("formato"), g.get("obiettivo")])
+        
+        from fastapi.responses import StreamingResponse
+        output.seek(0)
+        
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename=calendario-lancio-{request.partner_id}.csv"}
+        )
+    
+    elif request.format == "gcal":
+        # Export ICS per Google Calendar
+        from datetime import timedelta
+        
+        ics_content = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Evolution PRO//Calendario Lancio//IT\n"
+        
+        start_date = datetime.now(timezone.utc).replace(hour=9, minute=0, second=0, microsecond=0)
+        
+        for g in calendario:
+            event_date = start_date + timedelta(days=g.get("giorno", 1) - 1)
+            date_str = event_date.strftime("%Y%m%dT%H%M%SZ")
+            
+            ics_content += f"""BEGIN:VEVENT
+DTSTART:{date_str}
+DTEND:{date_str}
+SUMMARY:Giorno {g.get('giorno')} - {g.get('tipo')}
+DESCRIPTION:{g.get('idea')} | Formato: {g.get('formato')} | {g.get('obiettivo')}
+END:VEVENT
+"""
+        
+        ics_content += "END:VCALENDAR"
+        
+        from fastapi.responses import Response
+        return Response(
+            content=ics_content,
+            media_type="text/calendar",
+            headers={"Content-Disposition": f"attachment; filename=calendario-lancio-{request.partner_id}.ics"}
+        )
+    
+    elif request.format == "pdf":
+        # Export PDF
+        try:
+            from reportlab.lib import colors
+            from reportlab.lib.pagesizes import A4
+            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            import io
+            
+            buffer = io.BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=A4)
+            elements = []
+            styles = getSampleStyleSheet()
+            
+            # Title
+            title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'], fontSize=20, spaceAfter=20)
+            elements.append(Paragraph(f"Calendario Lancio - {partner.get('name')}", title_style))
+            elements.append(Spacer(1, 20))
+            
+            # Table
+            data = [["Giorno", "Tipo", "Formato", "Obiettivo"]]
+            for g in calendario:
+                data.append([
+                    str(g.get("giorno")),
+                    g.get("tipo", "")[:30],
+                    g.get("formato", ""),
+                    g.get("obiettivo", "")[:40]
+                ])
+            
+            table = Table(data, colWidths=[50, 150, 80, 200])
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F2C418')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ]))
+            
+            elements.append(table)
+            doc.build(elements)
+            
+            buffer.seek(0)
+            from fastapi.responses import StreamingResponse
+            return StreamingResponse(
+                buffer,
+                media_type="application/pdf",
+                headers={"Content-Disposition": f"attachment; filename=calendario-lancio-{request.partner_id}.pdf"}
+            )
+            
+        except Exception as e:
+            logging.error(f"PDF generation error: {e}")
+            raise HTTPException(status_code=500, detail="Errore generazione PDF")
+    
+    else:
+        raise HTTPException(status_code=400, detail="Formato non supportato")
