@@ -160,6 +160,32 @@ const PHASE_INFO = {
     message: "Ci siamo! Hai costruito qualcosa di valore. Ora è il momento di condividerlo con il mondo.",
     stepIndex: 7
   },
+  LIVE: { 
+    name: "Ottimizzazione", 
+    tutor: "Stefania", 
+    tutorRole: "Growth Planner",
+    task: { 
+      title: "Ottimizza la tua Accademia", 
+      desc: "Monitora i KPI, analizza i dati e migliora continuamente le performance.",
+      cta: "Vai all'Ottimizzazione", 
+      action: "ottimizzazione" 
+    },
+    message: "La tua Accademia è live! Ora è il momento di ottimizzare e scalare i risultati.",
+    stepIndex: 8
+  },
+  OTTIMIZZAZIONE: { 
+    name: "Ottimizzazione", 
+    tutor: "Stefania", 
+    tutorRole: "Growth Planner",
+    task: { 
+      title: "Ottimizza la tua Accademia", 
+      desc: "Monitora i KPI, analizza i dati e migliora continuamente le performance.",
+      cta: "Vai all'Ottimizzazione", 
+      action: "ottimizzazione" 
+    },
+    message: "La tua Accademia è live! Ora è il momento di ottimizzare e scalare i risultati.",
+    stepIndex: 8
+  },
 };
 
 // Prossimo evento
