@@ -500,18 +500,35 @@ export function AdminClientiAnalisiPanel() {
                       {formatDate(cliente.analisi_data || cliente.data_registrazione)}
                     </td>
                     <td className="px-4 py-3">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedCliente(cliente);
-                        }}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:opacity-80"
-                        style={{ background: '#F5C518', color: '#1E2128' }}
-                        data-testid={`btn-dettagli-${cliente.id}`}
-                      >
-                        <Eye className="w-3 h-3" />
-                        Apri
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedCliente(cliente);
+                          }}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:opacity-80"
+                          style={{ background: '#F5C518', color: '#1E2128' }}
+                          data-testid={`btn-dettagli-${cliente.id}`}
+                        >
+                          <Eye className="w-3 h-3" />
+                          Apri
+                        </button>
+                        {cliente.questionario_compilato && cliente.pagamento_analisi && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setClienteConsulenziale(cliente.id);
+                              setShowAnalisiConsulenziale(true);
+                            }}
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:opacity-80"
+                            style={{ background: '#8B5CF6', color: 'white' }}
+                            data-testid={`btn-consulenziale-${cliente.id}`}
+                          >
+                            <Briefcase className="w-3 h-3" />
+                            Consulenziale
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
