@@ -12118,6 +12118,11 @@ from routers.partnership import router as partnership_router, set_db as set_part
 set_partnership_db(db)
 app.include_router(partnership_router)
 
+# Include partner journey router (Posizionamento, Masterclass, Videocorso, Funnel, Lancio)
+from routers.partner_journey import router as partner_journey_router, set_db as set_partner_journey_db
+set_partner_journey_db(db)
+app.include_router(partner_journey_router)
+
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler
 
