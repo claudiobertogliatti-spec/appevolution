@@ -1181,6 +1181,50 @@ export default function App() {
       );
     }
 
+    // Route: Attivazione Partnership - per clienti approvati dopo la call strategica
+    if (window.location.pathname === "/attivazione-partnership") {
+      // Verifica payment success da Stripe Partnership
+      const partnershipPaymentStatus = urlParams.get('payment');
+      if (partnershipPaymentStatus === 'success' && !currentUser.pagamento_verificato) {
+        // Verifica pagamento partnership
+        const verifyPartnershipPayment = async () => {
+          try {
+            const response = await fetch(`${API}/api/partnership/verify-payment?user_id=${currentUser.id}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await response.json();
+            if (data.success && data.paid) {
+              const updatedUser = { ...currentUser, pagamento_verificato: true };
+              setCurrentUser(updatedUser);
+              localStorage.setItem("user", JSON.stringify(updatedUser));
+              window.location.href = "/attivazione-partnership";
+            }
+          } catch (e) {
+            console.error("Partnership payment verification error:", e);
+          }
+        };
+        verifyPartnershipPayment();
+        return (
+          <div className="min-h-screen flex items-center justify-center" style={{ background: '#FAFAF7' }}>
+            <div className="text-center">
+              <div className="w-12 h-12 rounded-xl bg-[#F5C518] flex items-center justify-center mx-auto mb-4 animate-pulse">
+                <span className="text-2xl font-black text-black">E</span>
+              </div>
+              <div className="text-sm text-[#9CA3AF]">Verifica pagamento partnership in corso...</div>
+            </div>
+          </div>
+        );
+      }
+      
+      return (
+        <AttivazionePartnership 
+          user={currentUser}
+          onLogout={handleClienteLogout}
+        />
+      );
+    }
+
     // Default: Dashboard Cliente (mostra contenuto basato sullo stato)
     return (
       <DashboardCliente 
