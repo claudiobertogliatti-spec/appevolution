@@ -1558,6 +1558,7 @@ export default function App() {
             {nav==="post-studenti"&&<MieiStudentiPage partner={demoPartner}/>}
             {nav==="post-impegni"&&<ImpegniSettimanaPage partner={demoPartner}/>}
             {nav==="post-report"&&<ReportMensilePage partner={demoPartner}/>}
+            {nav==="piano-continuita"&&<PianoContinuitaPage partner={demoPartner} onNavigate={setNav}/>}
             
             {/* PROFILO - Bonus */}
             {nav==="profilo-bonus"&&<BonusStrategici partner={demoPartner}/>}
