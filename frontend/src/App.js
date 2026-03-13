@@ -1509,8 +1509,9 @@ export default function App() {
             {nav==="onboarding-partner"&&<PartnerOnboarding partnerId={demoPartner?.id} partnerNome={demoPartner?.name||"Partner"} onComplete={()=>setNav("fase1-posizionamento")}/>}
             
             {/* FASE 1 - Posizionamento */}
-            {nav==="fase1-posizionamento"&&<WizardPosizionamento partner={demoPartner} onComplete={()=>setNav("fase2-outline")}/>}
-            {nav==="documenti"&&<WizardPosizionamento partner={demoPartner} onComplete={()=>setNav("fase2-outline")}/>}
+            {nav==="fase1-posizionamento"&&<PosizionamentoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("masterclass")}/>}
+            {nav==="documenti"&&<PosizionamentoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("masterclass")}/>}
+            {nav==="posizionamento"&&<PosizionamentoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("masterclass")}/>}
             
             {/* FASE 2 - Outline */}
             {nav==="fase2-outline"&&<CourseBuilderWizard partnerId={demoPartner?.id||"demo"} positioningData={{trasformazione:"Demo",target:"Demo",problema:"Demo",soluzione:"Demo"}} onComplete={()=>setNav("fase3-script")}/>}
