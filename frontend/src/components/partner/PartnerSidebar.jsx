@@ -93,8 +93,8 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
       const navMap = {
         'posizionamento': 'posizionamento',
         'masterclass': 'masterclass',
-        'videocorso': 'produzione',
-        'funnel': 'calendario',
+        'videocorso': 'videocorso',
+        'funnel': 'funnel',
         'lancio': 'calendario'
       };
       onNavigate(navMap[phase.id] || 'dashboard');
