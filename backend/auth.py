@@ -57,6 +57,13 @@ class UserResponse(BaseModel):
     partner_id: Optional[str] = None
     phase: Optional[str] = None
     admin_type: Optional[str] = None
+    # Campi per cliente_analisi
+    user_type: Optional[str] = None
+    questionario_compilato: Optional[bool] = None
+    pagamento_analisi: Optional[bool] = None
+    analisi_generata: Optional[bool] = None
+    nome: Optional[str] = None
+    cognome: Optional[str] = None
 
 
 class Token(BaseModel):
