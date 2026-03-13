@@ -4,8 +4,9 @@ import {
   FileText, CreditCard, Phone, Mail, Calendar,
   X, Loader2, RefreshCw, Sparkles, ChevronRight,
   Download, Save, RotateCcw, CalendarCheck, Filter,
-  AlertCircle, User, Target, MessageSquare
+  AlertCircle, User, Target, MessageSquare, Briefcase
 } from "lucide-react";
+import { AnalisiConsulenziale } from "./AnalisiConsulenziale";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
