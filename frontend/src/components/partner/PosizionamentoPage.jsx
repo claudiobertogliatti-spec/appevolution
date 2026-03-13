@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
-import { ArrowRight, ArrowLeft, Check, Sparkles, MessageCircle, RefreshCw, ThumbsUp, Edit3 } from "lucide-react";
+import { ArrowRight, ArrowLeft, Check, Sparkles, MessageCircle, RefreshCw, ThumbsUp, Edit3, Loader2 } from "lucide-react";
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURAZIONE WIZARD
@@ -355,14 +357,83 @@ export function PosizionamentoPage({ partner, onNavigate, onComplete }) {
   const [generatedStructure, setGeneratedStructure] = useState(null);
   const [isCompleted, setIsCompleted] = useState(false);
   const [wizardCompleted, setWizardCompleted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState(null);
   
   const totalSteps = WIZARD_STEPS.length;
+  const partnerId = partner?.id;
+
+  // Carica dati esistenti all'avvio
+  useEffect(() => {
+    const loadPosizionamento = async () => {
+      if (!partnerId) {
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        const res = await fetch(`${API}/api/partner-journey/posizionamento/${partnerId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.posizionamento) {
+            // Ricostruisci answers dai dati salvati
+            const savedAnswers = {};
+            if (data.posizionamento.step_1_studente_ideale) savedAnswers[1] = data.posizionamento.step_1_studente_ideale;
+            if (data.posizionamento.step_2_obiettivo) savedAnswers[2] = data.posizionamento.step_2_obiettivo;
+            if (data.posizionamento.step_3_trasformazione) savedAnswers[3] = data.posizionamento.step_3_trasformazione;
+            if (data.posizionamento.step_4_metodo) savedAnswers[4] = data.posizionamento.step_4_metodo;
+            if (data.posizionamento.step_5_obiezioni) savedAnswers[5] = data.posizionamento.step_5_obiezioni;
+            setAnswers(savedAnswers);
+            
+            if (data.course_structure) {
+              setGeneratedStructure(data.course_structure);
+              setWizardCompleted(true);
+            }
+            if (data.is_completed) {
+              setIsCompleted(true);
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Error loading posizionamento:", e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadPosizionamento();
+  }, [partnerId]);
   
   const handleAnswerChange = (stepId, value) => {
     setAnswers(prev => ({ ...prev, [stepId]: value }));
   };
+
+  // Salva step singolo
+  const saveStep = async (stepNumber, content) => {
+    if (!partnerId) return;
+    
+    try {
+      await fetch(`${API}/api/partner-journey/posizionamento/save-step`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          partner_id: partnerId,
+          step_number: stepNumber,
+          content: content
+        })
+      });
+    } catch (e) {
+      console.error("Error saving step:", e);
+    }
+  };
   
-  const handleNext = () => {
+  const handleNext = async () => {
+    // Salva step corrente
+    if (answers[currentStep]) {
+      await saveStep(currentStep, answers[currentStep]);
+    }
+    
     if (currentStep < totalSteps) {
       setCurrentStep(prev => prev + 1);
     } else {
@@ -377,56 +448,69 @@ export function PosizionamentoPage({ partner, onNavigate, onComplete }) {
   };
   
   const handleGenerate = async () => {
+    if (!partnerId) return;
+    
     setIsGenerating(true);
+    setError(null);
     
-    // Simula chiamata API (in futuro sarà Stefania AI)
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    // Struttura generata basata sulle risposte
-    const studenteIdeale = answers[1] || '';
-    const obiettivo = answers[2] || '';
-    const metodo = answers[4] || '';
-    
-    setGeneratedStructure({
-      modules: [
-        {
-          title: "Modulo 1 — Fondamenta",
-          description: "Definisci le basi del tuo percorso e comprendi il punto di partenza.",
-          lessons: ["Introduzione al percorso", "Analisi della situazione attuale", "Definizione degli obiettivi"]
-        },
-        {
-          title: "Modulo 2 — Chiarezza",
-          description: "Costruisci una visione chiara di cosa vuoi ottenere.",
-          lessons: ["Il mindset vincente", "Identifica i tuoi punti di forza", "Elimina le credenze limitanti"]
-        },
-        {
-          title: "Modulo 3 — Strategia",
-          description: "Sviluppa la strategia per raggiungere i tuoi obiettivi.",
-          lessons: ["Il piano d'azione", "Le leve strategiche", "Timeline e milestone"]
-        },
-        {
-          title: "Modulo 4 — Azione",
-          description: "Implementa le azioni concrete per ottenere risultati.",
-          lessons: ["I primi passi", "Gestione degli ostacoli", "Monitoraggio dei progressi"]
-        },
-        {
-          title: "Modulo 5 — Scalabilità",
-          description: "Scala i risultati e rendi il sistema sostenibile.",
-          lessons: ["Ottimizzazione del processo", "Automazione", "Next level"]
-        }
-      ]
-    });
-    
-    setIsGenerating(false);
+    try {
+      // Prima salva tutti i dati
+      await fetch(`${API}/api/partner-journey/posizionamento/save-all`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          partner_id: partnerId,
+          step_1_studente_ideale: answers[1] || '',
+          step_2_obiettivo: answers[2] || '',
+          step_3_trasformazione: answers[3] || '',
+          step_4_metodo: answers[4] || '',
+          step_5_obiezioni: answers[5] || ''
+        })
+      });
+      
+      // Poi genera la struttura
+      const res = await fetch(`${API}/api/partner-journey/posizionamento/generate-structure`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ partner_id: partnerId })
+      });
+      
+      if (!res.ok) {
+        throw new Error('Errore nella generazione');
+      }
+      
+      const data = await res.json();
+      setGeneratedStructure(data.course_structure);
+      
+    } catch (e) {
+      console.error("Error generating structure:", e);
+      setError("Errore nella generazione. Riprova.");
+    } finally {
+      setIsGenerating(false);
+    }
   };
   
-  const handleApprove = () => {
-    setIsCompleted(true);
-    if (onComplete) onComplete(answers, generatedStructure);
+  const handleApprove = async () => {
+    if (!partnerId) return;
+    
+    setIsSaving(true);
+    try {
+      const res = await fetch(`${API}/api/partner-journey/posizionamento/approve-structure?partner_id=${partnerId}`, {
+        method: 'POST'
+      });
+      
+      if (res.ok) {
+        setIsCompleted(true);
+        if (onComplete) onComplete(answers, generatedStructure);
+      }
+    } catch (e) {
+      console.error("Error approving:", e);
+    } finally {
+      setIsSaving(false);
+    }
   };
   
   const handleRequestEdit = () => {
-    // Reset per permettere modifiche
     setGeneratedStructure(null);
     setWizardCompleted(false);
     setCurrentStep(1);
@@ -435,6 +519,14 @@ export function PosizionamentoPage({ partner, onNavigate, onComplete }) {
   const handleContinue = () => {
     onNavigate('masterclass');
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-full flex items-center justify-center" style={{ background: '#FAFAF7' }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#F2C418' }} />
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-full" style={{ background: '#FAFAF7' }}>
