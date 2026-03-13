@@ -1562,6 +1562,12 @@ export default function App() {
             {nav==="post-report"&&<ReportMensilePage partner={demoPartner}/>}
             {nav==="piano-continuita"&&<PianoContinuitaPage partner={demoPartner} onNavigate={setNav}/>}
             
+            {/* LANCIO */}
+            {nav==="lancio"&&<LancioPage partner={demoPartner} onNavigate={setNav} onLaunchComplete={()=>setNav("ottimizzazione")}/>}
+            
+            {/* OTTIMIZZAZIONE (Fase 6 - Post Lancio) */}
+            {nav==="ottimizzazione"&&<OttimizzazionePage partner={demoPartner} onNavigate={setNav}/>}
+            
             {/* PROFILO - Bonus */}
             {nav==="profilo-bonus"&&<BonusStrategici partner={demoPartner}/>}
             {nav==="bonus"&&<BonusStrategici partner={demoPartner}/>}
