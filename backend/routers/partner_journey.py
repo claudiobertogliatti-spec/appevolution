@@ -1760,3 +1760,214 @@ END:VEVENT
     
     else:
         raise HTTPException(status_code=400, detail="Formato non supportato")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WEBINAR MENSILE ENDPOINTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class GeneraWebinarRequest(BaseModel):
+    partner_id: str
+
+@router.get("/webinar/{partner_id}")
+async def get_webinar(partner_id: str):
+    """Recupera i dati del webinar mensile"""
+    partner = await get_partner_or_404(partner_id)
+    
+    webinar = await db.partner_webinar.find_one(
+        {"partner_id": partner_id}, {"_id": 0}
+    )
+    
+    return {
+        "success": True,
+        "partner_id": partner_id,
+        "webinar": webinar.get("webinar") if webinar else None,
+        "promozione": webinar.get("promozione") if webinar else None
+    }
+
+
+@router.post("/webinar/genera")
+async def genera_webinar(request: GeneraWebinarRequest):
+    """Genera titolo, scaletta e contenuti promozionali del webinar"""
+    partner = await get_partner_or_404(request.partner_id)
+    
+    # Recupera posizionamento e corso
+    posizionamento = await db.partner_posizionamento.find_one(
+        {"partner_id": request.partner_id}, {"_id": 0}
+    )
+    
+    studente_ideale = posizionamento.get("step_1_studente_ideale", "") if posizionamento else ""
+    obiettivo = posizionamento.get("step_2_obiettivo", "") if posizionamento else ""
+    trasformazione = posizionamento.get("step_3_trasformazione", "") if posizionamento else ""
+    metodo = posizionamento.get("step_4_metodo", "") if posizionamento else ""
+    course_structure = posizionamento.get("course_structure", {}) if posizionamento else {}
+    
+    corso_titolo = course_structure.get("corso_titolo", f"Corso di {partner.get('niche', 'formazione')}")
+    
+    prompt = f"""Sei un esperto di webinar marketing. Genera i contenuti per un webinar mensile di vendita corso.
+
+PARTNER: {partner.get('name')}
+NICCHIA: {partner.get('niche', 'N/D')}
+
+POSIZIONAMENTO:
+- Target: {studente_ideale}
+- Obiettivo studente: {obiettivo}
+- Trasformazione: {trasformazione}
+- Metodo: {metodo}
+
+CORSO DA VENDERE: {corso_titolo}
+
+Genera in formato JSON:
+{{
+  "webinar": {{
+    "titolo": "Titolo webinar accattivante basato sul problema del target (max 60 char)",
+    "sottotitolo": "Sottotitolo che promette la soluzione"
+  }},
+  "promozione": {{
+    "emails": [
+      {{
+        "tipo": "Email Invito",
+        "oggetto": "Oggetto email invito",
+        "corpo": "Testo completo email (200-300 parole)"
+      }},
+      {{
+        "tipo": "Email Reminder",
+        "oggetto": "Oggetto reminder",
+        "corpo": "Testo reminder (150 parole)"
+      }},
+      {{
+        "tipo": "Email Ultimo Posto",
+        "oggetto": "Oggetto urgenza",
+        "corpo": "Testo urgenza (100 parole)"
+      }}
+    ],
+    "social": [
+      {{
+        "tipo": "Post Annuncio",
+        "testo": "Post social annuncio webinar (150 parole max)"
+      }},
+      {{
+        "tipo": "Story 1 - Problema",
+        "testo": "Testo story sul problema (50 parole)"
+      }},
+      {{
+        "tipo": "Story 2 - Soluzione",
+        "testo": "Testo story sulla soluzione (50 parole)"
+      }},
+      {{
+        "tipo": "Story 3 - CTA",
+        "testo": "Testo story call to action (30 parole)"
+      }}
+    ]
+  }}
+}}
+
+Il titolo webinar deve seguire uno di questi pattern:
+- "Perché continui a [problema del target]"
+- "I 3 errori che ti impediscono di [risultato]"
+- "Come ottenere [risultato] senza [ostacolo]"
+
+Rispondi SOLO con il JSON."""
+
+    try:
+        llm = await get_llm_chat()
+        from emergentintegrations.llm.chat import UserMessage
+        
+        response = await llm.chat([UserMessage(text=prompt)])
+        response_text = response.text.strip()
+        
+        # Parse JSON
+        if "```json" in response_text:
+            json_start = response_text.find("```json") + 7
+            json_end = response_text.find("```", json_start)
+            response_text = response_text[json_start:json_end].strip()
+        elif "```" in response_text:
+            json_start = response_text.find("```") + 3
+            json_end = response_text.find("```", json_start)
+            response_text = response_text[json_start:json_end].strip()
+        
+        generated_data = json.loads(response_text)
+        webinar_data = generated_data.get("webinar", {})
+        promo_data = generated_data.get("promozione", {})
+        
+    except Exception as e:
+        logging.error(f"Webinar generation error: {e}")
+        # Fallback
+        webinar_data = {
+            "titolo": f"Come ottenere risultati nella {partner.get('niche', 'tua nicchia')} senza perdere tempo",
+            "sottotitolo": "Scopri il metodo in 3 passi che ha già aiutato decine di persone"
+        }
+        promo_data = generate_fallback_webinar_promo(partner, webinar_data["titolo"])
+    
+    # Salva
+    await db.partner_webinar.update_one(
+        {"partner_id": request.partner_id},
+        {
+            "$set": {
+                "webinar": webinar_data,
+                "promozione": promo_data,
+                "generated_at": datetime.now(timezone.utc).isoformat()
+            },
+            "$setOnInsert": {
+                "partner_id": request.partner_id,
+                "partner_name": partner.get("name"),
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+    
+    # Notifica admin
+    await notify_telegram(
+        f"📹 WEBINAR GENERATO\n\n👤 {partner.get('name')}\n📌 {webinar_data.get('titolo', 'N/D')}"
+    )
+    
+    return {
+        "success": True,
+        "webinar": webinar_data,
+        "promozione": promo_data
+    }
+
+
+def generate_fallback_webinar_promo(partner: dict, titolo: str) -> dict:
+    """Genera contenuti promozionali fallback"""
+    nome = partner.get("name", "")
+    niche = partner.get("niche", "il tuo settore")
+    
+    return {
+        "emails": [
+            {
+                "tipo": "Email Invito",
+                "oggetto": f"[Webinar GRATIS] {titolo}",
+                "corpo": f"Ciao,\n\nTi invito al mio prossimo webinar gratuito:\n\n\"{titolo}\"\n\nDurante questo evento di 45 minuti scoprirai:\n\n• Il problema principale che blocca la maggior parte delle persone in {niche}\n• I 3 passi del mio metodo per ottenere risultati concreti\n• Un caso studio reale di trasformazione\n\nRiserva il tuo posto gratuito cliccando qui sotto.\n\nA presto,\n{nome}"
+            },
+            {
+                "tipo": "Email Reminder",
+                "oggetto": f"Ci sei? Il webinar inizia domani",
+                "corpo": f"Ciao,\n\nTi ricordo che domani alle 21:00 inizia il webinar:\n\n\"{titolo}\"\n\nNon mancare, sarà un'occasione unica per scoprire come ottenere risultati concreti.\n\nA domani!\n{nome}"
+            },
+            {
+                "tipo": "Email Ultimo Posto",
+                "oggetto": f"⚠️ Ultimi posti disponibili",
+                "corpo": f"I posti per il webinar stanno per esaurirsi.\n\nSe vuoi scoprire il mio metodo per {niche}, questa è l'ultima occasione.\n\nRiserva il tuo posto ora.\n\n{nome}"
+            }
+        ],
+        "social": [
+            {
+                "tipo": "Post Annuncio",
+                "testo": f"🎯 WEBINAR GRATUITO\n\n\"{titolo}\"\n\nScopri i 3 passi per ottenere risultati concreti in {niche}.\n\n📅 Data: prossimamente\n⏰ Durata: 45 minuti\n💰 Costo: GRATIS\n\nLink in bio per riservare il tuo posto."
+            },
+            {
+                "tipo": "Story 1 - Problema",
+                "testo": f"❌ Ti senti bloccato?\n\nNel mio prossimo webinar ti spiego perché e come uscirne."
+            },
+            {
+                "tipo": "Story 2 - Soluzione",
+                "testo": f"✅ Esiste un metodo\n\nIn 45 minuti ti mostro i 3 passi che hanno funzionato per me e per i miei studenti."
+            },
+            {
+                "tipo": "Story 3 - CTA",
+                "testo": f"👉 Link in bio\n\nIscriviti GRATIS al webinar prima che i posti finiscano!"
+            }
+        ]
+    }
