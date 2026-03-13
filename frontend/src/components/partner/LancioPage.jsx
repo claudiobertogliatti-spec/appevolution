@@ -434,6 +434,30 @@ export function LancioPage({ partner, onNavigate, onLaunchComplete }) {
           onToggleTask={handleToggleTask}
         />
         
+        {/* Link Calendario Editoriale */}
+        <div className="bg-white rounded-2xl border border-[#ECEDEF] p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center"
+                 style={{ background: '#F2C41830', color: '#F2C418' }}>
+              <Calendar className="w-6 h-6" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold" style={{ color: '#1E2128' }}>Calendario Editoriale 30 Giorni</h3>
+              <p className="text-xs" style={{ color: '#5F6572' }}>
+                Piano contenuti completo per il tuo lancio
+              </p>
+            </div>
+            <button
+              onClick={() => onNavigate('calendario-lancio')}
+              className="px-4 py-2 rounded-xl font-bold text-sm transition-all hover:scale-105"
+              style={{ background: '#F2C418', color: '#1E2128' }}
+              data-testid="view-calendario-btn"
+            >
+              Visualizza
+            </button>
+          </div>
+        </div>
+        
         {/* 4️⃣ Attiva Lancio */}
         <ActivateLaunchSection 
           onActivate={handleActivateLaunch}
