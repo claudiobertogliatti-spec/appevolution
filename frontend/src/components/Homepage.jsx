@@ -434,10 +434,10 @@ export function Homepage() {
 
             {/* Title */}
             <h2 className="text-xl font-bold mb-2 text-center" style={{ color: '#1E2128' }}>
-              Area Partner
+              Accedi
             </h2>
             <p className="text-sm text-center mb-6" style={{ color: '#5F6572' }}>
-              Accedi con le credenziali fornite dal team
+              Accedi con le tue credenziali
             </p>
 
             {/* Form */}
