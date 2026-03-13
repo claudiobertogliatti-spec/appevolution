@@ -1474,7 +1474,8 @@ export default function App() {
           )}
 
           {mode==="admin"&&<>
-            {nav==="overview"&&<AdminOverview stats={stats} agents={agents} partners={partners} alerts={alerts} onNavigate={setNav}/>}
+            {nav==="overview"&&<AdminDashboardPro onOpenPartnerProject={(p)=>{setSelectedPartner(p);setMode("partner");setNav("dashboard");}}/>}
+            {nav==="overview-old"&&<AdminOverview stats={stats} agents={agents} partners={partners} alerts={alerts} onNavigate={setNav}/>}
             {nav==="clienti"&&<AdminClientiPanel/>}
             {nav==="clienti-analisi"&&<AdminClientiAnalisiPanel/>}
             {nav==="agenti"&&<AgentDashboard/>}
