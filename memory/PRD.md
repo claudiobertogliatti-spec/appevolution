@@ -164,6 +164,27 @@ Obiettivo: **trasformare i partner in casi studio**.
    - **Soglia unlock:** 10 studenti OPPURE €1.000 fatturato
    - Pulsante: "Crea il tuo Caso Studio Evolution"
 
+#### WEBINAR MENSILE EVOLUTION ✅ NEW - Marzo 2026
+
+**Route:** `/partner/webinar`
+
+Sistema per organizzare e promuovere webinar live mensili su Zoom per vendere il videocorso.
+
+**4 Sezioni:**
+1. **Header** - Titolo webinar generato AI, data suggerita, durata 45 min
+2. **Struttura Webinar** - Scaletta standard 6 blocchi:
+   - Introduzione (5 min)
+   - Il Problema (8 min)
+   - Il Metodo (12 min)
+   - Caso Studio (8 min)
+   - Presentazione Corso (7 min)
+   - Call To Action (5 min)
+3. **Promozione** - Contenuti generati AI:
+   - EMAIL: Invito, Reminder, Ultimo posto
+   - SOCIAL: Post annuncio, 3 Stories promozionali
+   - Ogni elemento ha "Copia testo"
+4. **Replay Automatico** - Flusso: Live → Registrazione → Replay 48h → Email follow-up
+
 ---
 
 ## LOGICA TEMPORALE PARTNERSHIP ✅ NEW
