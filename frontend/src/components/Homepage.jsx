@@ -119,13 +119,13 @@ export function Homepage() {
             </div>
           </div>
           
-          {/* Partner Link */}
+          {/* Login Link */}
           <button 
             onClick={() => setShowLoginModal(true)}
             className="text-sm font-medium transition-colors hover:opacity-70"
             style={{ color: '#5F6572' }}
           >
-            Sei già partner? <span style={{ color: '#F5C518' }}>Accedi</span>
+            Accedi
           </button>
         </div>
       </header>
