@@ -336,90 +336,116 @@ export function FunnelPage({ partner, onNavigate, onComplete }) {
   const [expandedElement, setExpandedElement] = useState(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   
+  const partnerId = partner?.id;
   const allGenerated = FUNNEL_ELEMENTS.every(el => generatedElements[el.id]);
   
-  const handleGenerate = async () => {
-    setIsGenerating(true);
-    setGenerationProgress(0);
-    
-    const generated = {};
-    
-    for (let i = 0; i < FUNNEL_ELEMENTS.length; i++) {
-      const element = FUNNEL_ELEMENTS[i];
-      setCurrentGeneratingElement(element.title);
-      
-      // Simula generazione AI
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Contenuto generato (in produzione verrà dall'AI)
-      if (element.id === "optin") {
-        generated[element.id] = {
-          headline: "Masterclass Gratuita: Come Trovare i Tuoi Primi 10 Clienti",
-          subheadline: "Senza social, senza ads, senza perdere tempo con strategie che non funzionano",
-          bullets: [
-            "Il metodo in 3 step per attrarre clienti ideali",
-            "L'errore che blocca il 90% dei professionisti",
-            "Come ho aiutato 50+ coach a trovare clienti"
-          ],
-          cta: "Accedi Gratis alla Masterclass"
-        };
-      } else if (element.id === "masterclass") {
-        generated[element.id] = {
-          headline: "Guarda la Masterclass Completa",
-          subheadline: "45 minuti che cambieranno il tuo modo di trovare clienti",
-          bullets: [
-            "Durata: 45 minuti",
-            "Accesso immediato",
-            "Workbook incluso"
-          ],
-          cta: "Inizia a Guardare"
-        };
-      } else if (element.id === "sales") {
-        generated[element.id] = {
-          headline: "Il Metodo Completo per Costruire un Flusso Clienti Stabile",
-          subheadline: "Il percorso step-by-step per professionisti che vogliono smettere di rincorrere clienti",
-          bullets: [
-            "5 moduli video + workbook",
-            "Accesso alla community privata",
-            "2 sessioni di coaching di gruppo",
-            "Template e script pronti all'uso",
-            "Garanzia soddisfatti o rimborsati 30 giorni"
-          ],
-          cta: "Iscriviti Ora - €497"
-        };
-      } else if (element.id === "checkout") {
-        generated[element.id] = {
-          headline: "Completa il tuo ordine",
-          subheadline: "Pagamento sicuro con Stripe",
-          cta: "Paga Ora"
-        };
-      } else if (element.id === "emails") {
-        generated[element.id] = { emailSequence: EMAIL_SEQUENCE };
+  // Carica dati esistenti
+  useEffect(() => {
+    const loadFunnel = async () => {
+      if (!partnerId) {
+        setIsLoading(false);
+        return;
       }
       
-      setGeneratedElements(prev => ({ ...prev, [element.id]: generated[element.id] }));
-      setGenerationProgress(Math.round(((i + 1) / FUNNEL_ELEMENTS.length) * 100));
-    }
+      try {
+        const res = await fetch(`${API}/api/partner-journey/funnel/${partnerId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.funnel?.content) {
+            setGeneratedElements(data.funnel.content);
+            setExpandedElement("optin");
+          }
+          if (data.is_published) {
+            setIsPublished(true);
+          }
+        }
+      } catch (e) {
+        console.error("Error loading funnel:", e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
-    setIsGenerating(false);
-    setExpandedElement("optin");
+    loadFunnel();
+  }, [partnerId]);
+  
+  const handleGenerate = async () => {
+    if (!partnerId) return;
+    
+    setIsGenerating(true);
+    setGenerationProgress(0);
+    setError(null);
+    
+    try {
+      // Simula progresso
+      const progressInterval = setInterval(() => {
+        setGenerationProgress(prev => Math.min(prev + 10, 90));
+      }, 500);
+      
+      setCurrentGeneratingElement("Analisi dati...");
+      
+      const res = await fetch(`${API}/api/partner-journey/funnel/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ partner_id: partnerId })
+      });
+      
+      clearInterval(progressInterval);
+      
+      if (!res.ok) {
+        throw new Error('Errore nella generazione');
+      }
+      
+      const data = await res.json();
+      setGeneratedElements(data.funnel_content);
+      setGenerationProgress(100);
+      setExpandedElement("optin");
+      
+    } catch (e) {
+      console.error("Error generating funnel:", e);
+      setError("Errore nella generazione. Riprova.");
+    } finally {
+      setIsGenerating(false);
+    }
   };
   
   const handlePublish = async () => {
+    if (!partnerId) return;
+    
     setIsPublishing(true);
     
-    // Simula pubblicazione su Systeme via OpenClaw
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    setIsPublishing(false);
-    setIsPublished(true);
+    try {
+      const res = await fetch(`${API}/api/partner-journey/funnel/publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ partner_id: partnerId })
+      });
+      
+      if (res.ok) {
+        setIsPublished(true);
+      }
+    } catch (e) {
+      console.error("Error publishing:", e);
+    } finally {
+      setIsPublishing(false);
+    }
   };
   
   const handleContinue = () => {
     if (onComplete) onComplete();
     onNavigate('lancio');
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-full flex items-center justify-center" style={{ background: '#FAFAF7' }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#F2C418' }} />
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-full" style={{ background: '#FAFAF7' }}>
