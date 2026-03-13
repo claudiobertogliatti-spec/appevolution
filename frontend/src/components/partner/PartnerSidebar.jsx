@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CONFIGURAZIONE - 5 FASI DEL PROGETTO
+// CONFIGURAZIONE - 6 FASI DEL PROGETTO
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const PROJECT_PHASES = [
@@ -15,6 +15,7 @@ const PROJECT_PHASES = [
   { id: "videocorso", label: "Videocorso", icon: Film, unlockPhase: 5 },
   { id: "funnel", label: "Funnel", icon: Calendar, unlockPhase: 7 },
   { id: "lancio", label: "Lancio", icon: Rocket, unlockPhase: 8 },
+  { id: "ottimizzazione", label: "Ottimizzazione", icon: TrendingUp, unlockPhase: 9 },
 ];
 
 const SUPPORT_ITEMS = [
