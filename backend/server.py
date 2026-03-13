@@ -12123,6 +12123,11 @@ from routers.partner_journey import router as partner_journey_router, set_db as 
 set_partner_journey_db(db)
 app.include_router(partner_journey_router)
 
+# Include analisi consulenziale router (Analisi Preliminare, Script Call, Analisi Finale)
+from routers.analisi_consulenziale import router as analisi_consulenziale_router, set_db as set_analisi_consulenziale_db
+set_analisi_consulenziale_db(db)
+app.include_router(analisi_consulenziale_router)
+
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler
 
