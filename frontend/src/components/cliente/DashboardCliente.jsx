@@ -423,7 +423,148 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // STATO 3: pagamento_analisi = true, analisi_generata = false
+  // STATO 3A: pagamento_analisi = true, analisi_generata = true
+  // LA TUA ANALISI STRATEGICA È PRONTA
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (pagamentoAnalisi && analisiGenerata) {
+    const processSteps = [
+      { id: 1, label: 'Questionario', status: 'completed' },
+      { id: 2, label: 'Analisi Strategica', status: 'completed' },
+      { id: 3, label: 'Call con Claudio', status: 'active' }
+    ];
+
+    return (
+      <div className="min-h-screen" style={{ background: '#FAFAF7' }}>
+        <Header />
+        <div className="max-w-3xl mx-auto px-6 py-12">
+          
+          {/* Progress bar */}
+          <div className="mb-12">
+            <p className="text-sm font-medium text-center mb-6" style={{ color: '#9CA3AF' }}>
+              Il percorso della tua Accademia Digitale
+            </p>
+            
+            <div className="flex items-center justify-center gap-4">
+              {processSteps.map((step, index) => (
+                <React.Fragment key={step.id}>
+                  <div className="flex flex-col items-center">
+                    <div 
+                      className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm"
+                      style={{ 
+                        background: step.status === 'completed' ? '#22C55E' : '#F5C518',
+                        color: '#1E2128'
+                      }}
+                    >
+                      {step.status === 'completed' ? (
+                        <CheckCircle className="w-5 h-5" />
+                      ) : (
+                        step.id
+                      )}
+                    </div>
+                    <span className="mt-2 text-sm font-medium" style={{ color: '#1E2128' }}>
+                      {step.label}
+                    </span>
+                  </div>
+                  {index < processSteps.length - 1 && (
+                    <div 
+                      className="w-16 h-0.5 mt-[-20px]" 
+                      style={{ background: '#22C55E' }}
+                    />
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+
+          {/* Titolo - ANALISI PRONTA */}
+          <div className="text-center mb-10">
+            <div 
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold mb-4"
+              style={{ background: '#F0FDF4', color: '#166534' }}
+            >
+              <Sparkles className="w-4 h-4" />
+              Analisi completata
+            </div>
+            <h1 className="text-3xl font-black mb-4" style={{ color: '#1E2128' }} data-testid="analisi-pronta-title">
+              La tua Analisi Strategica è pronta
+            </h1>
+            <p className="text-lg" style={{ color: '#5F6572' }}>
+              Abbiamo completato lo studio del tuo progetto.
+            </p>
+            <p className="text-lg mt-2" style={{ color: '#5F6572' }}>
+              Ora possiamo analizzarlo insieme durante la <strong style={{ color: '#1E2128' }}>call strategica</strong>.
+            </p>
+          </div>
+
+          {/* CTA Prenota Call - PROMINENTE */}
+          <div className="rounded-2xl p-8 mb-8" style={{ background: '#1E2128' }}>
+            <div className="text-center">
+              <div 
+                className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                style={{ background: '#F5C518' }}
+              >
+                <Calendar className="w-8 h-8" style={{ color: '#1E2128' }} />
+              </div>
+              <h3 className="text-2xl font-black mb-3" style={{ color: '#FFFFFF' }}>
+                Prenota la call strategica
+              </h3>
+              <p className="text-sm mb-6 max-w-md mx-auto" style={{ color: '#9CA3AF' }}>
+                Durante la videocall presenteremo la tua Analisi Strategica personalizzata e valuteremo insieme se il tuo progetto è adatto per la partnership Evolution PRO.
+              </p>
+              <button
+                onClick={() => {
+                  window.open('https://calendly.com/evolution-pro/call-strategica', '_blank');
+                }}
+                className="inline-flex items-center gap-3 px-8 py-4 rounded-xl font-black text-lg transition-all hover:scale-105"
+                style={{ background: '#F5C518', color: '#1E2128' }}
+                data-testid="prenota-call-btn"
+              >
+                Prenota la tua call strategica
+                <ArrowRight className="w-6 h-6" />
+              </button>
+            </div>
+          </div>
+
+          {/* Info box */}
+          <div className="rounded-xl p-6" style={{ background: '#FFF8DC', border: '1px solid #F5C51840' }}>
+            <div className="flex items-start gap-4">
+              <div 
+                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: '#F5C51830' }}
+              >
+                <FileText className="w-5 h-5" style={{ color: '#92700C' }} />
+              </div>
+              <div>
+                <h4 className="font-bold mb-1" style={{ color: '#78590A' }}>
+                  Cosa succede durante la call?
+                </h4>
+                <ul className="text-sm space-y-1" style={{ color: '#92700C' }}>
+                  <li>• Presenteremo la tua Analisi Strategica personalizzata</li>
+                  <li>• Analizzeremo insieme i punti di forza e le aree di miglioramento</li>
+                  <li>• Valuteremo se il tuo progetto è adatto per la partnership</li>
+                  <li>• Risponderemo a tutte le tue domande</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Contact */}
+          <div className="mt-8 text-center">
+            <p className="text-sm" style={{ color: '#9CA3AF' }}>
+              Hai domande? Scrivi a{' '}
+              <a href="mailto:supporto@evolution-pro.it" className="font-medium" style={{ color: '#F5C518' }}>
+                supporto@evolution-pro.it
+              </a>
+            </p>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STATO 3B: pagamento_analisi = true, analisi_generata = false
   // PAGINA ANALISI IN PREPARAZIONE
   // ═══════════════════════════════════════════════════════════════════════════
   if (pagamentoAnalisi && !analisiGenerata) {
