@@ -200,6 +200,79 @@ export function AdminClientiAnalisiPanel() {
     }
   };
 
+  // Genera Script Call
+  const handleGeneraScriptCall = async () => {
+    if (!selectedCliente) return;
+    
+    setGeneratingScript(true);
+    setScriptCallGenerato(null);
+    
+    try {
+      const response = await fetch(`${API}/api/admin/clienti-analisi/${selectedCliente.id}/genera-script-call`, {
+        method: 'POST'
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setScriptCallGenerato(data.script);
+        setShowScriptModal(true);
+      } else {
+        alert(data.detail || "Errore nella generazione");
+      }
+    } catch (e) {
+      console.error("Error:", e);
+      alert("Errore nella generazione dello script");
+    } finally {
+      setGeneratingScript(false);
+    }
+  };
+
+  // Salva Script Call
+  const handleSalvaScriptCall = async () => {
+    if (!selectedCliente || !scriptCallGenerato) return;
+    
+    setSavingScript(true);
+    
+    try {
+      const scriptText = JSON.stringify(scriptCallGenerato);
+      const response = await fetch(`${API}/api/admin/clienti-analisi/${selectedCliente.id}/salva-script-call?script_testo=${encodeURIComponent(scriptText)}`, {
+        method: 'POST'
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setSelectedCliente(prev => ({
+          ...prev,
+          script_call_generato: true
+        }));
+        loadClienti();
+        alert("Script call salvato!");
+      }
+    } catch (e) {
+      console.error("Error:", e);
+      alert("Errore nel salvataggio");
+    } finally {
+      setSavingScript(false);
+    }
+  };
+
+  // Copia Script negli appunti
+  const handleCopiaScript = () => {
+    if (!scriptCallGenerato) return;
+    
+    const scriptText = Object.entries(scriptCallGenerato)
+      .map(([key, value]) => {
+        if (key === "obiezioni_probabili") {
+          return `## OBIEZIONI PROBABILI\n${value.obiezioni?.map(o => `- ${o.obiezione}\n  → ${o.risposta}`).join('\n\n') || ''}`;
+        }
+        return `## ${key.toUpperCase().replace(/_/g, ' ')}\n**Obiettivo:** ${value.obiettivo || ''}\n\n${value.script || value.esito || ''}`;
+      })
+      .join('\n\n---\n\n');
+    
+    navigator.clipboard.writeText(scriptText);
+    alert("Script copiato negli appunti!");
+  };
+
   // Filtro clienti
   const filteredClienti = clienti.filter(c => {
     const matchSearch = searchQuery === "" || 
