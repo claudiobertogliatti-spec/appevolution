@@ -681,9 +681,12 @@ export function AttivazionePartnership({ user, onLogout }) {
                     <div className="space-y-4 p-4 rounded-xl" style={{ background: '#F0FDF4' }}>
                       <div className="text-sm" style={{ color: '#166534' }}>
                         <p className="font-bold mb-2">Coordinate bancarie:</p>
-                        <p>IBAN: IT00 X000 0000 0000 0000 0000 000</p>
-                        <p>Intestato a: Evolution PRO Srl</p>
-                        <p>Causale: Partnership - {user?.nome} {user?.cognome}</p>
+                        <p><strong>Banca:</strong> Revolut Bank UAB</p>
+                        <p><strong>IBAN:</strong> LT89 3250 0907 3099 5927</p>
+                        <p><strong>BIC/SWIFT:</strong> REVOLT21</p>
+                        <p><strong>Intestato a:</strong> Evolution PRO LLC</p>
+                        <p><strong>Importo:</strong> €2.790,00</p>
+                        <p><strong>Causale:</strong> Partnership - {user?.nome} {user?.cognome}</p>
                       </div>
                       
                       <label className="block">
