@@ -1950,11 +1950,8 @@ Rispondi SOLO con un JSON valido in questo formato esatto:
 async def salva_analisi_cliente(user_id: str, analisi_testo: str = None):
     """
     Salva l'analisi generata nel database del cliente.
-    Invia email automatica al cliente quando l'analisi è pronta.
+    Aggiunge tag 'analisi_pronta' in Systeme.io per triggerare email automatica.
     """
-    import asyncio
-    import resend
-    
     if not analisi_testo:
         raise HTTPException(status_code=400, detail="Testo analisi mancante")
     
@@ -1983,140 +1980,49 @@ async def salva_analisi_cliente(user_id: str, analisi_testo: str = None):
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Errore nel salvataggio")
     
-    # Invia email automatica al cliente
+    # Invia notifica tramite Systeme.io (aggiunge tag che triggera automazione email)
     email_sent = False
-    resend_api_key = os.environ.get("RESEND_API_KEY")
-    sender_email = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+    email_cliente = cliente.get("email", "")
+    nome_cliente = cliente.get("nome", "")
     
-    if resend_api_key:
-        resend.api_key = resend_api_key
+    try:
+        # Aggiungi tag "analisi_pronta" in Systeme.io
+        # Questo triggera l'automazione email configurata in Systeme.io
+        tag_result = await integrated_add_tag(email_cliente, "analisi_pronta")
         
-        nome_cliente = cliente.get("nome", "")
-        email_cliente = cliente.get("email", "")
-        
-        # Template email HTML
-        html_content = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-</head>
-<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #FAFAF7;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-        <tr>
-            <td>
-                <!-- Logo -->
-                <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 30px;">
-                    <tr>
-                        <td style="text-align: center;">
-                            <div style="background-color: #F5C518; width: 60px; height: 60px; border-radius: 15px; display: inline-block; line-height: 60px;">
-                                <span style="color: #1E2128; font-weight: bold; font-size: 28px;">E</span>
-                            </div>
-                            <div style="margin-top: 10px; color: #1E2128; font-weight: bold; font-size: 18px;">
-                                EVOLUTION <span style="color: #F5C518;">PRO</span>
-                            </div>
-                        </td>
-                    </tr>
-                </table>
-                
-                <!-- Contenuto principale -->
-                <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #FFFFFF; border-radius: 20px; padding: 40px;">
-                    <tr>
-                        <td style="text-align: center;">
-                            <div style="background-color: #F0FDF4; color: #166534; padding: 8px 16px; border-radius: 20px; display: inline-block; font-size: 14px; font-weight: bold; margin-bottom: 20px;">
-                                ✨ Analisi completata
-                            </div>
-                            <h1 style="color: #1E2128; font-size: 26px; margin: 0 0 20px 0;">
-                                La tua Analisi Strategica è pronta
-                            </h1>
-                            <p style="color: #5F6572; font-size: 16px; line-height: 1.6; margin: 0 0 15px 0;">
-                                Ciao {nome_cliente},
-                            </p>
-                            <p style="color: #5F6572; font-size: 16px; line-height: 1.6; margin: 0 0 15px 0;">
-                                Abbiamo completato lo studio del tuo progetto.
-                            </p>
-                            <p style="color: #5F6572; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
-                                Ora possiamo analizzarlo insieme durante la <strong style="color: #1E2128;">call strategica</strong>.
-                            </p>
-                            
-                            <!-- CTA Button -->
-                            <a href="https://calendly.com/evolution-pro/call-strategica" 
-                               style="display: inline-block; background-color: #F5C518; color: #1E2128; text-decoration: none; padding: 16px 32px; border-radius: 12px; font-weight: bold; font-size: 16px;">
-                                Prenota il tuo orario qui →
-                            </a>
-                            
-                            <p style="color: #9CA3AF; font-size: 14px; margin-top: 30px;">
-                                Durante la call presenteremo la tua Analisi Strategica personalizzata.
-                            </p>
-                        </td>
-                    </tr>
-                </table>
-                
-                <!-- Footer -->
-                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 30px;">
-                    <tr>
-                        <td style="text-align: center; color: #9CA3AF; font-size: 12px;">
-                            <p>Evolution PRO - Accademia Digitale</p>
-                            <p>supporto@evolution-pro.it</p>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
-</body>
-</html>
-"""
-        
-        try:
-            params = {
-                "from": sender_email,
-                "to": [email_cliente],
-                "subject": "La tua Analisi Strategica è pronta",
-                "html": html_content
-            }
-            
-            # Invio non bloccante
-            email_response = await asyncio.to_thread(resend.Emails.send, params)
+        if tag_result.get("success"):
             email_sent = True
-            
             # Aggiorna flag email inviata
             await db.users.update_one(
                 {"id": user_id},
                 {"$set": {
                     "email_analisi_inviata": True,
-                    "email_analisi_data": datetime.now(timezone.utc).isoformat()
+                    "email_analisi_data": datetime.now(timezone.utc).isoformat(),
+                    "systeme_tag_analisi_pronta": True
                 }}
             )
+            print(f"Tag 'analisi_pronta' aggiunto a {email_cliente} in Systeme.io")
+        else:
+            print(f"Errore aggiunta tag Systeme.io: {tag_result}")
             
-            print(f"Email 'Analisi pronta' inviata a {email_cliente}")
-            
-        except Exception as e:
-            print(f"Errore invio email: {e}")
+    except Exception as e:
+        print(f"Errore Systeme.io per {email_cliente}: {e}")
     
     return {
         "success": True, 
         "message": "Analisi salvata con successo",
-        "email_sent": email_sent
+        "email_sent": email_sent,
+        "systeme_tag_added": email_sent
     }
 
 # Endpoint per inviare email reminder (chiamato da cron o scheduler)
 @api_router.post("/admin/clienti-analisi/send-reminders")
 async def send_reminder_emails():
     """
-    Invia email reminder ai clienti con analisi pronta da più di 24 ore
+    Invia reminder tramite Systeme.io ai clienti con analisi pronta da più di 24 ore
     che non hanno ancora prenotato la call.
+    Aggiunge tag 'reminder_analisi' che triggera automazione in Systeme.io.
     """
-    import asyncio
-    import resend
-    
-    resend_api_key = os.environ.get("RESEND_API_KEY")
-    if not resend_api_key:
-        return {"success": False, "message": "RESEND_API_KEY non configurata"}
-    
-    resend.api_key = resend_api_key
-    sender_email = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
-    
     # Trova clienti con analisi pronta da più di 24h senza reminder
     cutoff_time = datetime.now(timezone.utc) - timedelta(hours=24)
     
@@ -2136,74 +2042,33 @@ async def send_reminder_emails():
         if not email_data:
             continue
             
-        email_datetime = datetime.fromisoformat(email_data.replace('Z', '+00:00'))
-        if email_datetime > cutoff_time:
-            continue  # Non sono ancora passate 24 ore
+        try:
+            email_datetime = datetime.fromisoformat(email_data.replace('Z', '+00:00'))
+            if email_datetime > cutoff_time:
+                continue  # Non sono ancora passate 24 ore
+        except:
+            continue
         
-        nome_cliente = cliente.get("nome", "")
         email_cliente = cliente.get("email", "")
         
-        html_content = f"""
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #FAFAF7;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-        <tr>
-            <td>
-                <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #FFFFFF; border-radius: 20px; padding: 40px;">
-                    <tr>
-                        <td style="text-align: center;">
-                            <div style="background-color: #FFF8DC; color: #92700C; padding: 8px 16px; border-radius: 20px; display: inline-block; font-size: 14px; font-weight: bold; margin-bottom: 20px;">
-                                ⏰ Promemoria
-                            </div>
-                            <h1 style="color: #1E2128; font-size: 24px; margin: 0 0 20px 0;">
-                                La tua Analisi Strategica ti aspetta
-                            </h1>
-                            <p style="color: #5F6572; font-size: 16px; line-height: 1.6; margin: 0 0 15px 0;">
-                                Ciao {nome_cliente},
-                            </p>
-                            <p style="color: #5F6572; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
-                                Non hai ancora prenotato la tua call strategica. La tua Analisi è pronta e ti aspetta!
-                            </p>
-                            <a href="https://calendly.com/evolution-pro/call-strategica" 
-                               style="display: inline-block; background-color: #F5C518; color: #1E2128; text-decoration: none; padding: 16px 32px; border-radius: 12px; font-weight: bold; font-size: 16px;">
-                                Prenota ora la tua call →
-                            </a>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
-</body>
-</html>
-"""
-        
         try:
-            params = {
-                "from": sender_email,
-                "to": [email_cliente],
-                "subject": "Reminder: La tua Analisi Strategica ti aspetta",
-                "html": html_content
-            }
+            # Aggiungi tag "reminder_analisi" in Systeme.io
+            tag_result = await integrated_add_tag(email_cliente, "reminder_analisi")
             
-            await asyncio.to_thread(resend.Emails.send, params)
-            
-            # Aggiorna flag reminder
-            await db.users.update_one(
-                {"id": cliente.get("id")},
-                {"$set": {
-                    "reminder_24h_inviato": True,
-                    "reminder_24h_data": datetime.now(timezone.utc).isoformat()
-                }}
-            )
-            
-            reminders_sent += 1
-            print(f"Reminder inviato a {email_cliente}")
-            
+            if tag_result.get("success"):
+                # Aggiorna flag reminder
+                await db.users.update_one(
+                    {"id": cliente.get("id")},
+                    {"$set": {
+                        "reminder_24h_inviato": True,
+                        "reminder_24h_data": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                reminders_sent += 1
+                print(f"Tag 'reminder_analisi' aggiunto a {email_cliente}")
+                
         except Exception as e:
-            print(f"Errore invio reminder a {email_cliente}: {e}")
+            print(f"Errore reminder Systeme.io per {email_cliente}: {e}")
     
     return {
         "success": True,
