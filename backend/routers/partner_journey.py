@@ -1582,6 +1582,25 @@ Rispondi SOLO in formato JSON con questa struttura:
         logging.error(f"Calendario generation error: {e}")
         # Fallback con calendario generico
         fallback_calendario = generate_fallback_calendario()
+        
+        # Save fallback calendario to database
+        await db.partner_lancio.update_one(
+            {"partner_id": request.partner_id},
+            {
+                "$set": {
+                    "calendario": fallback_calendario,
+                    "calendario_generated_at": datetime.now(timezone.utc).isoformat(),
+                    "calendario_fallback": True
+                },
+                "$setOnInsert": {
+                    "partner_id": request.partner_id,
+                    "partner_name": partner.get("name"),
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+            },
+            upsert=True
+        )
+        
         return {
             "success": True,
             "calendario": fallback_calendario,
