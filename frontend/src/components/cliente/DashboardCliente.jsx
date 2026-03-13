@@ -53,16 +53,16 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
   // Determina lo stato dell'utente
   const questionarioCompilato = user?.questionario_compilato || false;
   const pagamentoAnalisi = user?.pagamento_analisi || false;
-  // NOTA: analisiGenerata NON viene più usata per mostrare contenuti al cliente
-  // L'analisi è visibile SOLO all'admin e sarà presentata durante la call
+  const analisiGenerata = user?.analisi_generata || false;
+  // NOTA: Quando analisi_generata=true, il cliente vede "Analisi pronta" 
+  // ma NON vede il contenuto dell'analisi (sarà presentata durante la call)
 
   // Determina lo step corrente per la progress bar
-  // Il cliente vede solo fino alla call, l'analisi viene presentata durante la call
   const steps = [
     { id: 1, label: 'Registrazione', completed: true },
     { id: 2, label: 'Questionario', completed: questionarioCompilato },
     { id: 3, label: 'Pagamento', completed: pagamentoAnalisi },
-    { id: 4, label: 'Call con Claudio', completed: false } // Mai completato per il cliente
+    { id: 4, label: 'Call con Claudio', completed: false }
   ];
 
   const currentStep = steps.findIndex(s => !s.completed) + 1 || steps.length;
