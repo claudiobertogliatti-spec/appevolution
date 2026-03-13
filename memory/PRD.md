@@ -272,6 +272,28 @@ Pagina di vendita accessibile quando il contratto si avvicina alla scadenza o il
 
 ## CHANGELOG
 
+### 13 Mar 2026 - Funnel Completo + Lead Management
+- ✅ Pagina Funnel con 5 blocchi completi:
+  1. Generazione Funnel (6 pagine con preview/approva/modifica)
+  2. Revisione Contenuti (headline, sottotitolo, promessa, CTA, email)
+  3. Configurazione Dominio (salvataggio + verifica DNS)
+  4. Pagine Legali (Privacy, Cookie, Termini, Disclaimer con PDF)
+  5. Pubblicazione su Systeme.io
+- ✅ Backend endpoints nuovi in `partner_journey.py`:
+  - `GET /api/partner-journey/funnel-complete/{partner_id}`
+  - `POST /api/partner-journey/funnel/save-domain`
+  - `POST /api/partner-journey/funnel/verify-domain`
+  - `POST /api/partner-journey/funnel/generate-legal`
+  - `POST /api/partner-journey/funnel/approve-legal`
+  - `GET /api/partner-journey/funnel/legal-pdf/{partner_id}/{page_id}`
+- ✅ Nuova pagina Lead Management (`/partner/lead`):
+  - Tabella leads con Nome, Email, Telefono, Data, Origine, Status
+  - Filtri per data, funnel, status
+  - Export CSV
+  - Modifica status e note per singolo lead
+  - Webhook per ricevere lead da Systeme.io
+- ✅ Sidebar aggiornata con voce "I miei Lead"
+
 ### 13 Mar 2026 - Attivazione Partnership
 - ✅ Pagina `/attivazione-partnership` con 5 step
 - ✅ Backend router `/api/partnership/*` completo
