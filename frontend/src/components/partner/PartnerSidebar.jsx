@@ -90,7 +90,9 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
   const [lockedModal, setLockedModal] = useState({ isOpen: false, itemLabel: '' });
   
   const partnerPhase = partner?.phase || 'F1';
-  const currentStep = isAdmin ? 4 : getProjectStep(partnerPhase);
+  // Allow admins to access Ottimizzazione if partner is LIVE or OTTIMIZZAZIONE
+  const partnerStep = getProjectStep(partnerPhase);
+  const currentStep = isAdmin ? Math.max(4, partnerStep) : partnerStep;
   
   const handlePhaseClick = (phase, index) => {
     const isUnlocked = index <= currentStep;
