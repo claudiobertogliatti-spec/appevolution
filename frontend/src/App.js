@@ -1626,8 +1626,15 @@ export default function App() {
             {/* LANCIO */}
             {nav==="lancio"&&<LancioPage partner={demoPartner} onNavigate={setNav} onLaunchComplete={()=>setNav("ottimizzazione")}/>}
             
+            {/* CALENDARIO LANCIO */}
+            {nav==="calendario-lancio"&&<CalendarioLancioPage partner={demoPartner} onNavigate={setNav}/>}
+            
             {/* OTTIMIZZAZIONE (Fase 6 - Post Lancio) */}
             {nav==="ottimizzazione"&&<OttimizzazionePage partner={demoPartner} onNavigate={setNav}/>}
+            
+            {/* PIANI CONTINUITÀ */}
+            {nav==="continuita"&&<PianoContinuitaPage partner={demoPartner} onNavigate={setNav}/>}
+            {nav==="piano-continuita"&&<PianoContinuitaPage partner={demoPartner} onNavigate={setNav}/>}
             
             {/* PROFILO - Bonus */}
             {nav==="profilo-bonus"&&<BonusStrategici partner={demoPartner}/>}
