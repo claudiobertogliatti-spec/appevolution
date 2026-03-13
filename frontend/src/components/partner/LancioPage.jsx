@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { 
   Check, X, Rocket, ExternalLink, Loader2, 
   CheckCircle2, Mail, MessageSquare, Users, Play,
-  Globe, ShoppingCart, GraduationCap, Zap
+  Globe, ShoppingCart, GraduationCap, Zap, Calendar
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
