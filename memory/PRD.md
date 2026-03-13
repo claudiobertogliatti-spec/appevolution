@@ -99,9 +99,63 @@ Checklist finale prima del go-live:
 - ✅ Email attive
 - 🚀 Attivazione Accademia Digitale
 
+**Al clic su "Attiva Lancio":** `stato_progetto = OTTIMIZZAZIONE`
+
+### FASE 6: OTTIMIZZAZIONE ✅ NEW - Dicembre 2025
+
+Fase post-lancio che dura dal **mese 1 al mese 12**.
+Obiettivo: **trasformare i partner in casi studio**.
+
+**4 Sezioni:**
+
+1. **STATO ACCADEMIA** - KPI principali
+   - Studenti totali
+   - Vendite mese corrente
+   - Lead generati
+   - Conversione funnel %
+   - *Dati recuperati da Systeme.io API*
+
+2. **REPORT AI** - Analisi automatica
+   - Cosa sta funzionando
+   - Cosa migliorare
+   - Prossima azione consigliata
+   - Pulsante: "Genera report"
+
+3. **AZIONI CONSIGLIATE** - Checklist operativa
+   - Pubblica contenuti social
+   - Ripromuovi masterclass
+   - Raccogli testimonianze
+   - *Stati: non iniziata / in corso / completata*
+
+4. **CASO STUDIO** - Proof Generation
+   - Mostra: studenti, fatturato, recensioni
+   - **Soglia unlock:** 10 studenti OPPURE €1.000 fatturato
+   - Pulsante: "Crea il tuo Caso Studio Evolution"
+
 ---
 
-## API ENDPOINTS - PARTNER JOURNEY ✅ NEW
+## LOGICA TEMPORALE PARTNERSHIP ✅ NEW
+
+La durata della partnership Evolution PRO è di **12 mesi** a partire dal momento del pagamento.
+
+**Variabili:**
+- `data_pagamento` → data attivazione
+- `data_scadenza` = data_pagamento + 12 mesi
+- `giorni_rimanenti` = giorni fino a scadenza
+
+**Dashboard Partner mostra:**
+- Partnership Attiva/Scaduta
+- Data attivazione
+- Data scadenza
+- Giorni rimanenti
+
+**Scadenza:** Quando data corrente > data_scadenza:
+- `stato_partner = scaduto`
+- Messaggio: "La tua partnership è scaduta. Contatta il team Evolution PRO per il rinnovo o per attivare il Piano Continuità."
+
+---
+
+## API ENDPOINTS - OTTIMIZZAZIONE ✅ NEW
 
 | Endpoint | Descrizione |
 |----------|-------------|
