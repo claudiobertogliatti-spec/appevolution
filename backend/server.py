@@ -1566,147 +1566,199 @@ async def get_cliente_analisi_detail(user_id: str):
     
     return cliente
 
-# Template per l'Analisi Strategica Evolution PRO
+# ═══════════════════════════════════════════════════════════════════════════
+# TEMPLATE ANALISI STRATEGICA EVOLUTION PRO
+# ═══════════════════════════════════════════════════════════════════════════
+
 ANALISI_TEMPLATE = """
-# ANALISI STRATEGICA PERSONALIZZATA
+# ANALISI STRATEGICA
 ## Evolution PRO - Accademia Digitale
 
----
-
-## INTRODUZIONE
-
-Gentile {nome} {cognome},
-
-grazie per aver richiesto l'Analisi Strategica Evolution PRO. Questo documento è stato preparato dal nostro team sulla base delle informazioni che hai condiviso nel questionario strategico.
-
-L'obiettivo di questa analisi è valutare il potenziale del tuo progetto e fornirti indicazioni concrete su come procedere.
+Documento preparato per: **{nome} {cognome}**
+Data: {data_analisi}
 
 ---
 
-## COS'È EVOLUTION PRO
+# PARTE 1 — INTRODUZIONE
 
-Evolution PRO è un programma di partnership per professionisti che vogliono trasformare le proprie competenze in un'Accademia Digitale. Non vendiamo corsi online: costruiamo insieme a te un asset digitale che genera valore nel tempo.
+## CHE COS'È QUESTA ANALISI
 
-Il nostro approccio si basa su:
-- **Posizionamento strategico**: trovare la tua unicità nel mercato
-- **Struttura formativa**: organizzare le tue competenze in un percorso trasformativo
-- **Modello di business**: creare un sistema di monetizzazione sostenibile
-- **Supporto tecnico**: gestire tutta la parte tecnologica
+Questa Analisi Strategica ha l'obiettivo di valutare se la tua competenza professionale può essere trasformata in una Accademia Digitale sostenibile.
 
----
+Non si tratta di un documento promozionale. È una valutazione oggettiva basata sulle informazioni che hai condiviso nel questionario strategico.
 
-## PERCHÉ IL FAI-DA-TE FALLISCE
-
-La maggior parte dei professionisti che provano a creare un corso online da soli si blocca per tre motivi:
-
-1. **Mancanza di strategia**: partono dalla creazione dei contenuti senza un piano di vendita
-2. **Complessità tecnica**: perdono tempo su piattaforme, funnel, pagamenti
-3. **Isolamento**: non hanno un team che li supporta nelle decisioni
-
-Evolution PRO risolve questi problemi offrendo un percorso strutturato con supporto continuo.
+L'analisi ti aiuterà a:
+- Comprendere i punti di forza e le aree di miglioramento del tuo progetto
+- Capire se esistono le condizioni per costruire un'Accademia Digitale
+- Prepararti alla call strategica con maggiore consapevolezza
 
 ---
 
-## LE TRE STRADE POSSIBILI
+## IL PROBLEMA PIÙ COMUNE
 
-Dopo questa analisi, hai tre opzioni:
+La maggior parte dei videocorsi non vende. Non perché manchino le competenze, ma perché manca una strategia.
 
-1. **Procedere da solo**: hai tutte le informazioni per provare in autonomia
-2. **Valutare la partnership Evolution PRO**: se il progetto è idoneo, possiamo costruirlo insieme
-3. **Rimandare**: se non è il momento giusto, puoi tornare quando sarai pronto
+I problemi più frequenti sono:
 
-Non c'è una scelta giusta o sbagliata. L'importante è che sia consapevole.
+**Mancanza di posizionamento**
+Molti professionisti non sanno comunicare cosa li rende diversi. Il mercato è saturo di contenuti generici e chi non si differenzia non viene notato.
 
----
+**Contenuti generici**
+Creare un corso "su tutto" significa non essere rilevanti per nessuno. I corsi che vendono risolvono problemi specifici per persone specifiche.
 
-## SINTESI DEL TUO PROGETTO
+**Assenza di struttura**
+Un videocorso non è una raccolta di video. È un percorso che porta lo studente da un punto A a un punto B. Senza questa struttura, il corso non genera trasformazione.
 
-Dalle risposte che hai fornito, emerge questo quadro:
-
-**Area di expertise**: {expertise}
-
-**Cliente ideale**: {cliente_target}
-
-**Risultato che vuoi aiutare a ottenere**: {risultato_promesso}
+**Mancanza di sistema di acquisizione**
+Anche il miglior corso del mondo non si vende da solo. Serve un sistema per farsi trovare, costruire fiducia e convertire i visitatori in studenti.
 
 ---
 
-## ANALISI DEL PROFILO PROFESSIONALE
+## IL MODELLO EVOLUTION PRO
 
-{analisi_expertise}
+Evolution PRO è un programma di partnership per professionisti che vogliono creare un'Accademia Digitale.
+
+Il percorso si sviluppa in tre fasi:
+
+**FASE 1 — POSIZIONAMENTO**
+Definiamo insieme chi sei, chi aiuti e quale trasformazione offri. Questa è la base su cui costruire tutto il resto.
+
+**FASE 2 — CREAZIONE ACCADEMIA**
+Strutturiamo il percorso formativo, creiamo i contenuti e impostiamo la piattaforma. Non sei solo: il team Evolution PRO ti guida in ogni passaggio.
+
+**FASE 3 — LANCIO E ACQUISIZIONE**
+Costruiamo il sistema per attrarre studenti: funnel, contenuti, campagne. L'obiettivo è creare un flusso costante di nuovi iscritti.
+
+Il processo è guidato. Non è un corso da seguire da solo. È una partnership operativa.
 
 ---
 
-## CLIENTE IDEALE
-
-{analisi_cliente_target}
+# PARTE 2 — ANALISI PERSONALIZZATA
 
 ---
 
-## PRESENZA ONLINE E PUBBLICO
+## SEZIONE 1 — SINTESI DEL PROGETTO
 
-**Hai già un pubblico che ti segue?** {pubblico_esistente}
+**La tua competenza:** {expertise}
 
-{analisi_pubblico}
+**Il tuo cliente ideale:** {cliente_target}
+
+**Il risultato che prometti:** {risultato_promesso}
+
+{sintesi_progetto}
 
 ---
 
-## ESPERIENZA DI VENDITA
+## SEZIONE 2 — ANALISI DELLA COMPETENZA
 
-**Hai già venduto qualcosa online?** {esperienze_vendita}
+{analisi_competenza}
+
+---
+
+## SEZIONE 3 — ANALISI DEL TARGET
+
+**Cliente target dichiarato:** {cliente_target}
+
+{analisi_target}
+
+---
+
+## SEZIONE 4 — PRESENZA ONLINE
+
+**Situazione attuale:** {pubblico_esistente}
+
+{analisi_presenza}
+
+---
+
+## SEZIONE 5 — ESPERIENZA DI VENDITA
+
+**Esperienza dichiarata:** {esperienze_vendita}
 
 {analisi_vendita}
 
 ---
 
-## OSTACOLO PRINCIPALE
+## SEZIONE 6 — OSTACOLO PRINCIPALE
 
-**Cosa ti ha bloccato finora?** {ostacolo_principale}
+**Blocco identificato:** {ostacolo_principale}
 
 {analisi_ostacolo}
 
 ---
 
-## PERCHÉ PROPRIO ADESSO
+## SEZIONE 7 — OBIETTIVO E MOTIVAZIONE
 
-**Motivazione attuale**: {motivazione}
+**Motivazione dichiarata:** {motivazione}
 
 {analisi_motivazione}
 
 ---
 
-## DIAGNOSI STRATEGICA FINALE
+## SEZIONE 8 — DIAGNOSI STRATEGICA
 
-{diagnosi_finale}
+{diagnosi_strategica}
+
+---
+
+## VALUTAZIONE FINALE
+
+**Punteggio di fattibilità: {punteggio_fattibilita}/10**
+
+{spiegazione_punteggio}
+
+---
+
+## RACCOMANDAZIONE
+
+{raccomandazione_finale}
 
 ---
 
 ## PROSSIMI PASSI
 
-Se questa analisi ti è stata utile e vuoi approfondire, il passo successivo è una **call strategica** di 30 minuti dove:
+Il passo successivo è una **call strategica** con il team Evolution PRO.
 
-1. Discutiamo insieme i punti di questa analisi
-2. Rispondiamo alle tue domande
-3. Valutiamo se Evolution PRO è la soluzione giusta per te
+Durante la call:
+- Discuteremo insieme i punti di questa analisi
+- Risponderemo alle tue domande
+- Valuteremo se esistono le condizioni per una partnership
 
 Non c'è alcun obbligo. La call serve a capire se possiamo lavorare insieme.
 
 ---
 
-## CONTATTI
-
-**Email**: supporto@evolution-pro.it
-**Sito**: www.evolution-pro.it
-
-Grazie per la fiducia.
-
-Il team Evolution PRO
+**Evolution PRO**
+Email: supporto@evolution-pro.it
+Sito: www.evolution-pro.it
 """
+
+# System prompt per il consulente AI
+CONSULENTE_SYSTEM_PROMPT = """Sei un consulente strategico senior di Evolution PRO.
+
+Il tuo compito è analizzare le risposte del questionario di un professionista e generare una Analisi Strategica per valutare se la sua competenza può essere trasformata in una Accademia Digitale sostenibile.
+
+REGOLE FONDAMENTALI:
+- Scrivi in modo professionale ma semplice
+- NON scrivere testo promozionale
+- NON inventare informazioni
+- Usa SOLO i dati forniti dal questionario
+- Evita linguaggio tecnico inutile
+- L'analisi deve sembrare un documento strategico preparato da un consulente esperto
+- Lunghezza totale: tra 1200 e 1800 parole
+
+STILE:
+- Tono: professionale, diretto, onesto
+- Evita frasi generiche o luoghi comuni
+- Ogni analisi deve essere specifica per quel cliente
+- Non usare emoji
+- Non fare promesse esagerate"""
 
 @api_router.post("/admin/clienti-analisi/{user_id}/genera-analisi-ai")
 async def genera_analisi_ai(user_id: str):
     """
     Genera l'Analisi Strategica completa usando AI (Claude).
+    Struttura professionale con punteggio di fattibilità e raccomandazione finale.
     """
     from emergentintegrations.llm.chat import LlmChat, UserMessage
     
@@ -1750,17 +1802,13 @@ async def genera_analisi_ai(user_id: str):
     chat = LlmChat(
         api_key=llm_key,
         session_id=f"analisi_{user_id}_{datetime.now().timestamp()}",
-        system_message="""Sei un consulente strategico di Evolution PRO, un'azienda che aiuta professionisti a creare Accademie Digitali. 
-Il tuo compito è analizzare le risposte del questionario di un potenziale cliente e generare analisi personalizzate per ogni sezione.
-Rispondi sempre in italiano. Sii professionale ma anche empatico. Evita frasi generiche, personalizza ogni analisi basandoti sulle risposte specifiche.
-Non usare emoji. Mantieni un tono professionale e autorevole."""
+        system_message=CONSULENTE_SYSTEM_PROMPT
     ).with_model("anthropic", "claude-sonnet-4-5-20250929")
     
-    # Genera le sezioni personalizzate
-    prompt = f"""
-Analizza le seguenti risposte di un potenziale cliente Evolution PRO e genera le analisi per ogni sezione.
+    # Prompt dettagliato per la generazione
+    prompt = f"""Analizza le seguenti risposte del questionario e genera l'Analisi Strategica completa.
 
-DATI CLIENTE:
+DATI DEL PROFESSIONISTA:
 - Nome: {nome} {cognome}
 - Expertise: {expertise}
 - Cliente target: {cliente_target}
@@ -1768,21 +1816,64 @@ DATI CLIENTE:
 - Pubblico esistente: {pubblico_esistente}
 - Esperienze di vendita: {esperienze_vendita}
 - Ostacolo principale: {ostacolo_principale}
-- Motivazione: {motivazione}
+- Motivazione attuale: {motivazione}
 
-Per ogni sezione, scrivi un'analisi di 3-5 frasi. Sii specifico e personalizzato.
+GENERA LE SEGUENTI SEZIONI in formato JSON:
 
-Rispondi ESATTAMENTE in questo formato JSON:
+1. SINTESI DEL PROGETTO (3-4 frasi)
+Riassumi: la competenza del professionista, il tipo di clienti che aiuta, il problema che risolve.
+
+2. ANALISI DELLA COMPETENZA (4-5 frasi)
+Valuta: se la competenza è chiara, se è trasferibile in formato formativo, se ha potenziale educativo.
+
+3. ANALISI DEL TARGET (4-5 frasi)
+Valuta: chiarezza del target, specificità del problema, potenziale domanda di mercato.
+
+4. ANALISI PRESENZA ONLINE (3-4 frasi)
+Valuta: presenza social, community, database contatti. Se assente, spiega che non è un problema ma richiede strategia di acquisizione.
+
+5. ANALISI ESPERIENZA VENDITA (3-4 frasi)
+Valuta: se ha già venduto consulenze, percorsi, formazione. Questo indica validazione del mercato.
+
+6. ANALISI OSTACOLO (3-4 frasi)
+Analizza il blocco principale. Spiega perché è comune tra i professionisti che vogliono digitalizzare.
+
+7. ANALISI MOTIVAZIONE (3-4 frasi)
+Valuta: urgenza, desiderio di scalabilità, volontà di cambiare modello di lavoro.
+
+8. DIAGNOSI STRATEGICA (5-6 frasi)
+Valutazione finale del progetto. Indica uno di questi esiti:
+A) Progetto con buon potenziale per una Accademia Digitale
+B) Progetto interessante ma da chiarire nel posizionamento
+C) Progetto ancora acerbo
+Spiega sempre il motivo.
+
+9. PUNTEGGIO FATTIBILITÀ (numero da 1 a 10)
+Basato su: chiarezza competenza, definizione target, presenza mercato, esperienza vendita, motivazione.
+
+10. SPIEGAZIONE PUNTEGGIO (2-3 frasi)
+Spiega brevemente i fattori che hanno determinato il punteggio.
+
+11. RACCOMANDAZIONE FINALE (2-3 frasi)
+Una delle seguenti:
+- "Consigliato procedere con la partnership Evolution PRO"
+- "Consigliato un lavoro preliminare sul posizionamento prima della partnership"
+- "Necessario consolidare alcuni aspetti del progetto prima di procedere"
+
+Rispondi SOLO con un JSON valido in questo formato esatto:
 {{
-    "analisi_expertise": "Analisi dell'expertise del cliente...",
-    "analisi_cliente_target": "Analisi del cliente target...",
-    "analisi_pubblico": "Analisi della presenza online...",
-    "analisi_vendita": "Analisi dell'esperienza di vendita...",
-    "analisi_ostacolo": "Analisi dell'ostacolo principale...",
-    "analisi_motivazione": "Analisi della motivazione...",
-    "diagnosi_finale": "Diagnosi strategica finale di 4-6 frasi che riassume il potenziale del progetto e indica se è adatto per Evolution PRO..."
-}}
-"""
+    "sintesi_progetto": "...",
+    "analisi_competenza": "...",
+    "analisi_target": "...",
+    "analisi_presenza": "...",
+    "analisi_vendita": "...",
+    "analisi_ostacolo": "...",
+    "analisi_motivazione": "...",
+    "diagnosi_strategica": "...",
+    "punteggio_fattibilita": 7,
+    "spiegazione_punteggio": "...",
+    "raccomandazione_finale": "..."
+}}"""
     
     try:
         response = await chat.send_message(UserMessage(text=prompt))
