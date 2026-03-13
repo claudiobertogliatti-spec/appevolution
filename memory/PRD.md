@@ -111,7 +111,29 @@ Checklist finale prima del go-live:
 
 **Al clic su "Attiva Lancio":** `stato_progetto = OTTIMIZZAZIONE`
 
-### FASE 6: OTTIMIZZAZIONE ✅ NEW - Dicembre 2025
+**Route:** `/partner/lancio`
+
+#### CALENDARIO EDITORIALE 30 GIORNI ✅ NEW - Marzo 2026
+
+**Route:** `/partner/lancio/calendario`
+
+Sistema di generazione AI del piano contenuti per il lancio:
+
+**4 Settimane:**
+1. **Settimana 1 - Attenzione:** Storia personale, errore comune, contenuto educativo
+2. **Settimana 2 - Autorità:** Mini lezione, case study, dietro le quinte
+3. **Settimana 3 - Coinvolgimento:** FAQ, miti da sfatare, invito masterclass
+4. **Settimana 4 - Lancio:** Apertura iscrizioni, testimonianze, ultimo giorno
+
+**Per ogni giorno:**
+- Tipo contenuto
+- Idea contenuto
+- Formato (post/reel/story/live/carousel)
+- Obiettivo
+
+**Export:** PDF, CSV, Google Calendar (.ics)
+
+### FASE 6: OTTIMIZZAZIONE ✅
 
 Fase post-lancio che dura dal **mese 1 al mese 12**.
 Obiettivo: **trasformare i partner in casi studio**.
