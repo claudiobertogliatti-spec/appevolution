@@ -1,0 +1,85 @@
+{
+  "summary": "Tested Analisi Pronta flow for Evolution PRO OS. Backend APIs work correctly (4/6 tests passed). CRITICAL BUG: Login response missing cliente_analisi fields (user_type, pagamento_analisi, analisi_generata, questionario_compilato) - prevents frontend from showing correct dashboard state.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/api/auth/login",
+        "issue": "Login response missing cliente_analisi specific fields: user_type, pagamento_analisi, analisi_generata, questionario_compilato. UserResponse model in auth.py needs to be updated.",
+        "priority": "CRITICAL",
+        "file": "/app/backend/auth.py",
+        "lines": "51-59, 217-231"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Cliente Analisi Login",
+        "issue": "After login, cliente_analisi users are not routed to DashboardCliente because user_type is missing from login response",
+        "affected_selectors": ["[data-testid='analisi-pronta-title']", "[data-testid='prenota-call-btn']"]
+      }
+    ],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "✅ Backend: POST /api/admin/clienti-analisi/{id}/salva-analisi - Returns email_sent field in response",
+    "✅ Backend: POST /api/admin/clienti-analisi/send-reminders - Works correctly (returns message about RESEND_API_KEY not configured)",
+    "✅ Backend: GET /api/admin/clienti-analisi - Admin can view cliente with analisi_generata=true",
+    "✅ Backend: Stats include analisi_pronta count",
+    "✅ Frontend: DashboardCliente.jsx has correct 'Analisi pronta' state (STATO 3A) with title 'La tua Analisi Strategica è pronta'",
+    "✅ Frontend: DashboardCliente.jsx has 'Prenota la tua call strategica' button with data-testid='prenota-call-btn'",
+    "✅ Frontend: Button opens Calendly link (https://calendly.com/evolution-pro/call-strategica)"
+  ],
+  "failed_tests": [
+    "❌ Backend: Login response missing user_type field - cliente_analisi users can't be identified",
+    "❌ Backend: Login response missing pagamento_analisi, analisi_generata, questionario_compilato fields",
+    "❌ Frontend: Cannot test DashboardCliente 'Analisi pronta' state because login doesn't return required fields"
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_analisi_pronta_flow.py",
+    "/app/test_reports/pytest/pytest_analisi_pronta.xml"
+  ],
+  "action_items": [
+    "CRITICAL: Update UserResponse model in /app/backend/auth.py to include: user_type, pagamento_analisi, analisi_generata, questionario_compilato (all Optional)",
+    "CRITICAL: Update login method in AuthService to include these fields in the response for cliente_analisi users",
+    "Verify DashboardCliente shows correct state after login fix"
+  ],
+  "critical_code_review_comments": [
+    "auth.py UserResponse model (lines 51-59) missing cliente_analisi fields",
+    "auth.py login method (lines 217-231) doesn't include user_type, pagamento_analisi, analisi_generata, questionario_compilato in response",
+    "Email sending is MOCKED - RESEND_API_KEY is empty, emails won't be sent but logic is implemented"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_analisi_pronta_flow.py"
+  ],
+  "success_rate": {
+    "backend": "67% (4/6 tests passed)",
+    "frontend": "Cannot fully test - blocked by login response bug"
+  },
+  "test_credentials": {
+    "admin": "claudio.bertogliatti@gmail.com / Evoluzione74",
+    "test_cliente_with_analisi": "att2_1773352332@test.com / TestCliente123 (ID: 0aad124a-4fd2-4159-b75a-86b3481ddb5f)"
+  },
+  "seed_data_creation": "Used existing test cliente att2_1773352332@test.com with analisi_generata=true",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Login response bug blocks cliente dashboard testing. After fix, test: 1) Login as att2_1773352332@test.com, 2) Verify DashboardCliente shows 'La tua Analisi Strategica è pronta' title, 3) Verify 'Prenota la tua call strategica' button opens Calendly. The DashboardCliente.jsx component is correctly implemented - issue is in auth.py login response.",
+  "mocked_apis": {
+    "Resend Email API": "RESEND_API_KEY is empty - emails won't be sent but logic is implemented. salva-analisi returns email_sent=false"
+  },
+  "verified_features": {
+    "salva_analisi_email_sent_response": "WORKING - Returns email_sent field (false because RESEND_API_KEY empty)",
+    "send_reminders_endpoint": "WORKING - Returns message about RESEND_API_KEY not configured",
+    "dashboard_cliente_analisi_pronta_state": "CODE VERIFIED - Correctly shows 'La tua Analisi Strategica è pronta' when analisi_generata=true",
+    "prenota_call_button": "CODE VERIFIED - Button with data-testid='prenota-call-btn' opens Calendly link",
+    "dashboard_in_preparazione_state": "CODE VERIFIED - Shows 'Analisi in preparazione' when pagamento=true but analisi_generata=false"
+  },
+  "root_cause_analysis": {
+    "issue": "Cliente dashboard not showing 'Analisi pronta' state",
+    "root_cause": "Login endpoint (/api/auth/login) returns UserResponse model that doesn't include cliente_analisi specific fields (user_type, pagamento_analisi, analisi_generata, questionario_compilato)",
+    "affected_files": ["/app/backend/auth.py"],
+    "fix_required": "Add Optional fields to UserResponse model and include them in login method response"
+  }
+}
