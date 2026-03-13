@@ -1,22 +1,19 @@
 # Evolution PRO OS - Product Requirements Document
 
-## SISTEMA CONTATTO CLIENTE ✅ COMPLETATO
+## CONFIGURAZIONE EMAIL E CALENDARIO ✅
 
-### Quando analisi_generata = true
+### Email: Systeme.io
+Le notifiche email sono gestite tramite **Systeme.io** usando i tag:
+- `analisi_pronta` → Triggera email "La tua Analisi è pronta"
+- `reminder_analisi` → Triggera email reminder dopo 24h
 
-**Dashboard Cliente mostra:**
-- Badge: "Analisi completata"
-- Titolo: "La tua Analisi Strategica è pronta"
-- Testo: "Abbiamo completato lo studio del tuo progetto. Ora possiamo analizzarlo insieme durante la call strategica."
-- CTA prominente: "Prenota la tua call strategica" → Calendly
+**Configurazione Systeme.io:**
+- Creare automazione che invia email quando tag `analisi_pronta` viene aggiunto
+- Creare automazione per `reminder_analisi`
+- Template email con link: https://calendar.app.google/ip1MfDcfcrju1WFh6
 
-**Email automatica inviata (quando admin salva analisi):**
-- Oggetto: "La tua Analisi Strategica è pronta"
-- Corpo: Messaggio + CTA "Prenota il tuo orario qui"
-
-**Reminder 24h:**
-- Se call non prenotata dopo 24 ore → email reminder
-- Endpoint: `POST /api/admin/clienti-analisi/send-reminders`
+### Calendario: Google Calendar
+Link prenotazione call: `https://calendar.app.google/ip1MfDcfcrju1WFh6`
 
 ---
 
@@ -31,77 +28,67 @@
     ↓
 [Stripe Checkout]
     ↓
-/analisi-in-preparazione (Video + Mini Corso)
+/analisi-in-preparazione
     ↓
 [Admin genera analisi AI]
     ↓
-Dashboard: "La tua Analisi Strategica è pronta" ← NUOVO
+[Systeme.io: tag "analisi_pronta" → email automatica]
     ↓
-[Email automatica al cliente]
+Dashboard: "La tua Analisi Strategica è pronta"
     ↓
-Prenota call
+Prenota call (Google Calendar)
     ↓
-Call con Claudio (presentazione analisi)
+[24h senza prenotazione → Systeme.io: tag "reminder_analisi"]
     ↓
-Proposta partnership
+Call con Claudio
 ```
 
 ---
 
-## STATI DASHBOARD CLIENTE
-
-| Stato | Condizione | Cosa vede |
-|-------|------------|-----------|
-| 1 | questionario=false | "Benvenuto" + CTA Questionario |
-| 2 | questionario=true, pagamento=false | "Progetto ricevuto" + CTA Pagamento |
-| 3A | pagamento=true, analisi=false | "Analisi in preparazione" |
-| 3B | pagamento=true, analisi=true | **"Analisi pronta" + CTA Prenota Call** |
-
----
-
-## LOGIN UNIFICATO
-
-Il pulsante "Accedi" in homepage ora supporta:
-- Clienti → redirect a `/dashboard-cliente`
-- Partner/Admin → redirect a `/dashboard-partner`
-
----
-
-## API EMAIL
+## API ENDPOINTS
 
 | Endpoint | Descrizione |
 |----------|-------------|
-| `POST /admin/clienti-analisi/{id}/salva-analisi` | Salva + invia email automatica |
-| `POST /admin/clienti-analisi/send-reminders` | Invia reminder 24h |
-
-**Configurazione Resend:**
-- `RESEND_API_KEY` in .env
-- `SENDER_EMAIL` in .env (default: onboarding@resend.dev)
+| `POST /admin/clienti-analisi/{id}/salva-analisi` | Salva + aggiunge tag `analisi_pronta` in Systeme.io |
+| `POST /admin/clienti-analisi/send-reminders` | Aggiunge tag `reminder_analisi` a chi non ha prenotato |
 
 ---
 
-## CREDENZIALI TEST
+## SETUP RICHIESTO IN SYSTEME.IO
+
+1. **Automazione "Analisi Pronta":**
+   - Trigger: Tag `analisi_pronta` aggiunto
+   - Azione: Invia email
+   - Oggetto: "La tua Analisi Strategica è pronta"
+   - CTA: https://calendar.app.google/ip1MfDcfcrju1WFh6
+
+2. **Automazione "Reminder":**
+   - Trigger: Tag `reminder_analisi` aggiunto
+   - Azione: Invia email reminder
+   - Oggetto: "Reminder: La tua Analisi ti aspetta"
+
+---
+
+## CREDENZIALI
 
 | Tipo | Email | Password |
 |------|-------|----------|
 | Admin | claudio.bertogliatti@gmail.com | Evoluzione74 |
-| Cliente con analisi | att2_1773352332@test.com | TestCliente123 |
+| Cliente test | att2_1773352332@test.com | TestCliente123 |
 
 ---
 
 ## CHANGELOG
 
-### 13 Mar 2026 - Sistema Contatto Cliente
-- ✅ Dashboard cliente mostra "Analisi pronta" quando analisi_generata=true
-- ✅ CTA prominente "Prenota la tua call strategica"
-- ✅ Email automatica quando admin salva analisi (Resend)
-- ✅ Endpoint reminder 24h
-- ✅ Login unificato per clienti e partner
-- ✅ auth.py aggiornato per restituire campi cliente
+### 13 Mar 2026
+- ✅ Email tramite Systeme.io (tag `analisi_pronta`, `reminder_analisi`)
+- ✅ Calendario Google: https://calendar.app.google/ip1MfDcfcrju1WFh6
+- ✅ Rimosso Resend, integrato con Systeme.io esistente
 
 ---
 
 ## PROJECT HEALTH
 - **Backend:** ✅ Funzionante
 - **Frontend:** ✅ Funzionante  
-- **Email (Resend):** ⚠️ Logica implementata, chiave da configurare
+- **Systeme.io:** ✅ Integrato (API key configurata)
+- **Google Calendar:** ✅ Link configurato
