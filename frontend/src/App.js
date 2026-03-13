@@ -305,7 +305,7 @@ function AdminAgents({ agents }) {
   );
 }
 
-function AdminPartners({ partners, onSelect }) {
+function AdminPartners({ partners, onSelect, onViewAsPartner }) {
   // Helper per badge piano continuità
   const getPianoBadge = (p) => {
     const piano = p.piano_continuita?.piano_attivo;
@@ -329,13 +329,13 @@ function AdminPartners({ partners, onSelect }) {
 
   return (
     <div className="rounded-xl overflow-hidden" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
-      <div className="grid grid-cols-6 text-[10px] font-bold uppercase tracking-wider px-5 py-3" style={{ color: '#9CA3AF', borderBottom: '1px solid #ECEDEF' }}>
-        <span>Partner</span><span>Fase</span><span>Revenue</span><span>Piano</span><span>Contratto</span><span>Stato</span>
+      <div className="grid grid-cols-7 text-[10px] font-bold uppercase tracking-wider px-5 py-3" style={{ color: '#9CA3AF', borderBottom: '1px solid #ECEDEF' }}>
+        <span>Partner</span><span>Fase</span><span>Revenue</span><span>Piano</span><span>Contratto</span><span>Stato</span><span>Azioni</span>
       </div>
       <div className="divide-y" style={{ borderColor: '#ECEDEF' }}>
         {(partners||[]).map(p=>(
-          <div key={p.id} className="grid grid-cols-6 items-center px-5 py-3 cursor-pointer transition-colors hover:bg-[#FAFAF7]" onClick={()=>onSelect(p)}>
-            <div className="flex items-center gap-3">
+          <div key={p.id} className="grid grid-cols-7 items-center px-5 py-3 transition-colors hover:bg-[#FAFAF7]">
+            <div className="flex items-center gap-3 cursor-pointer" onClick={()=>onSelect(p)}>
               <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: '#F2C418', color: '#1E2128' }}>{p.name.split(" ").map(n=>n[0]).join("")}</div>
               <div><div className="text-sm font-bold" style={{ color: '#1E2128' }}>{p.name}</div><div className="text-xs" style={{ color: '#9CA3AF' }}>{p.niche}</div></div>
             </div>
@@ -344,6 +344,16 @@ function AdminPartners({ partners, onSelect }) {
             <div>{getPianoBadge(p)}</div>
             <div className="text-sm" style={{ color: '#9CA3AF' }}>{p.contract}</div>
             <div>{p.alert?<span className="text-xs font-bold text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3"/>Alert</span>:<span className="text-xs font-bold text-green-500 flex items-center gap-1"><Check className="w-3 h-3"/>OK</span>}</div>
+            <div>
+              <button
+                onClick={(e)=>{ e.stopPropagation(); onViewAsPartner && onViewAsPartner(p); }}
+                className="px-3 py-1.5 text-xs font-bold rounded-lg transition-all hover:bg-[#3B82F6] hover:text-white"
+                style={{ background: '#3B82F620', color: '#3B82F6' }}
+              >
+                <Eye className="w-3 h-3 inline mr-1" />
+                Visualizza
+              </button>
+            </div>
           </div>
         ))}
       </div>
