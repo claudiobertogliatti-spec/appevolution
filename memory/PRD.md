@@ -45,7 +45,7 @@ Prenota call (Google Calendar)
 
 ---
 
-## FLUSSO ATTIVAZIONE PARTNERSHIP ✅ NEW
+## FLUSSO ATTIVAZIONE PARTNERSHIP ✅
 
 Dopo la call strategica, se il cliente viene approvato, accede a `/attivazione-partnership`:
 
@@ -56,33 +56,76 @@ Dopo la call strategica, se il cliente viene approvato, accede a `/attivazione-p
 4. **Documenti Personali** - Upload carta d'identità + codice fiscale
 5. **Pagamento** - €2.790 una tantum via Stripe o Bonifico
 
-**Coordinate Bancarie (Bonifico):**
-- Banca: Revolut Bank UAB
-- IBAN: LT89 3250 0907 3099 5927
-- BIC/SWIFT: REVOLT21
-- Intestato a: Evolution PRO LLC
+---
 
-**PDF Contratto:** `/api/static/contratto-partnership-evolution-pro.pdf`
+## PERCORSO PARTNER (AI COURSE FACTORY) ✅ NEW - Dicembre 2025
+
+Il partner, dopo l'attivazione, segue un percorso guidato in 5 fasi:
+
+### FASE 1: POSIZIONAMENTO
+Wizard in 5 step per definire le fondamenta del progetto:
+1. Studente ideale
+2. Obiettivo dello studente
+3. Trasformazione (prima/dopo)
+4. Metodo/Framework
+5. Obiezioni principali
+
+**Al completamento:** AI genera automaticamente la struttura del videocorso (5 moduli x 3 lezioni)
+
+### FASE 2: MASTERCLASS
+Costruzione della masterclass gratuita:
+- **Fase Script:** 5 blocchi (Intro, Problema, Metodo, Caso Studio, Invito)
+- **Fase Registrazione:** Upload video masterclass (30-40 min)
+
+### FASE 3: VIDEOCORSO
+Upload delle lezioni del corso seguendo la struttura generata in Fase 1.
+Ogni lezione viene caricata e approvata dal team Evolution PRO.
+
+### FASE 4: FUNNEL (AI Course Factory)
+Generazione automatica del sistema di vendita:
+- Opt-in page
+- Pagina Masterclass
+- Sales page
+- Checkout
+- Sequenza email (6 email automatiche)
+
+**Al completamento:** Pubblicazione su Systeme.io via OpenClaw
+
+### FASE 5: LANCIO
+Checklist finale prima del go-live:
+- ✅ Masterclass registrata
+- ✅ Videocorso caricato
+- ✅ Funnel approvato
+- ✅ Email attive
+- 🚀 Attivazione Accademia Digitale
 
 ---
 
-## API ENDPOINTS
+## API ENDPOINTS - PARTNER JOURNEY ✅ NEW
 
 | Endpoint | Descrizione |
 |----------|-------------|
-| `POST /admin/clienti-analisi/{id}/salva-analisi` | Salva + aggiunge tag `analisi_pronta` in Systeme.io |
-| `POST /admin/clienti-analisi/send-reminders` | Aggiunge tag `reminder_analisi` a chi non ha prenotato |
-| `GET /api/partnership/get-analisi` | Recupera analisi per attivazione partnership |
-| `POST /api/partnership/update-step` | Aggiorna stato step (5 step possibili) |
-| `POST /api/partnership/upload-documento` | Upload contratto/documenti personali |
-| `POST /api/partnership/create-checkout-session` | Crea sessione Stripe €2.790 |
-| `POST /api/partnership/verify-payment` | Verifica pagamento Stripe |
-| `POST /api/partnership/convert-to-partner` | Converte cliente in partner |
-| `GET /api/partnership/status/{user_id}` | Stato attuale processo partnership |
+| `GET /api/partner-journey/progress/{partner_id}` | Stato complessivo percorso partner |
+| `GET /api/partner-journey/posizionamento/{partner_id}` | Dati posizionamento |
+| `POST /api/partner-journey/posizionamento/save-step` | Salva step wizard |
+| `POST /api/partner-journey/posizionamento/save-all` | Salva tutti i dati |
+| `POST /api/partner-journey/posizionamento/generate-structure` | Genera struttura corso (AI) |
+| `POST /api/partner-journey/posizionamento/approve-structure` | Approva struttura |
+| `GET /api/partner-journey/masterclass/{partner_id}` | Dati masterclass |
+| `POST /api/partner-journey/masterclass/save-blocks` | Salva blocchi script |
+| `POST /api/partner-journey/masterclass/generate-script` | Genera script (AI) |
+| `POST /api/partner-journey/masterclass/upload-video` | Upload video masterclass |
+| `GET /api/partner-journey/videocorso/{partner_id}` | Dati videocorso |
+| `POST /api/partner-journey/videocorso/upload-lesson` | Upload lezione |
+| `GET /api/partner-journey/funnel/{partner_id}` | Dati funnel |
+| `POST /api/partner-journey/funnel/generate` | Genera materiale marketing (AI) |
+| `POST /api/partner-journey/funnel/publish` | Pubblica su Systeme.io |
+| `GET /api/partner-journey/lancio/{partner_id}` | Stato lancio |
+| `POST /api/partner-journey/lancio/activate` | Attiva lancio |
 
 ---
 
-## SETUP RICHIESTO IN SYSTEME.IO
+## API ENDPOINTS - PARTNERSHIP ACTIVATION
 
 1. **Automazione "Analisi Pronta":**
    - Trigger: Tag `analisi_pronta` aggiunto
