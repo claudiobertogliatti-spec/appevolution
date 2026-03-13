@@ -79,7 +79,7 @@ async def update_partnership_step(request: UpdateStepRequest):
     """
     Aggiorna lo stato di uno step del processo di attivazione partnership.
     """
-    if not db:
+    if db is None:
         raise HTTPException(status_code=500, detail="Database non inizializzato")
     
     allowed_steps = [
@@ -117,7 +117,7 @@ async def upload_documento_partnership(
     Carica un documento per l'attivazione partnership.
     Tipi validi: contratto_firmato, carta_identita, codice_fiscale, distinta_bonifico
     """
-    if not db:
+    if db is None:
         raise HTTPException(status_code=500, detail="Database non inizializzato")
     
     allowed_types = ["contratto_firmato", "carta_identita", "codice_fiscale", "distinta_bonifico"]
@@ -207,7 +207,7 @@ async def create_partnership_checkout(request: CheckoutRequest):
     Crea una sessione di checkout Stripe per il pagamento della partnership (€2.790).
     Supporta pagamento singolo o 3 rate con Klarna.
     """
-    if not db:
+    if db is None:
         raise HTTPException(status_code=500, detail="Database non inizializzato")
     
     stripe_key = os.environ.get('STRIPE_API_KEY')
@@ -271,7 +271,7 @@ async def verify_partnership_payment(user_id: str = None, session_id: str = None
     """
     Verifica il pagamento della partnership e aggiorna lo stato.
     """
-    if not db:
+    if db is None:
         raise HTTPException(status_code=500, detail="Database non inizializzato")
     
     stripe_key = os.environ.get('STRIPE_API_KEY')
@@ -350,7 +350,7 @@ async def convert_to_partner(user_id: str = None):
     """
     Converte un cliente in partner dopo che tutti gli step sono completati.
     """
-    if not db:
+    if db is None:
         raise HTTPException(status_code=500, detail="Database non inizializzato")
     
     # Trova utente
@@ -437,7 +437,7 @@ async def get_partnership_status(user_id: str):
     """
     Ritorna lo stato corrente del processo di attivazione partnership.
     """
-    if not db:
+    if db is None:
         raise HTTPException(status_code=500, detail="Database non inizializzato")
     
     user = await db.users.find_one({"id": user_id}, {"_id": 0})
