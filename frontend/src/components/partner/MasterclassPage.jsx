@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { ArrowRight, ArrowLeft, Check, Sparkles, Upload, Clock, CheckCircle2, Play, RefreshCw, Edit3, FileText } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ArrowRight, ArrowLeft, Check, Sparkles, Upload, Clock, CheckCircle2, Play, RefreshCw, Edit3, FileText, Loader2 } from "lucide-react";
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURAZIONE BLOCCHI MASTERCLASS
