@@ -343,59 +343,182 @@ export function MasterclassPage({ partner, onNavigate, onComplete }) {
   const [scriptApproved, setScriptApproved] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('idle'); // idle, uploading, uploaded, approved
   const [isCompleted, setIsCompleted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const fileInputRef = useRef(null);
+  
+  const partnerId = partner?.id;
+  
+  // Carica dati esistenti all'avvio
+  useEffect(() => {
+    const loadMasterclass = async () => {
+      if (!partnerId) {
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        const res = await fetch(`${API}/api/partner-journey/masterclass/${partnerId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.masterclass) {
+            if (data.masterclass.script_blocks) {
+              setBlockContents(data.masterclass.script_blocks);
+            }
+            if (data.masterclass.generated_script) {
+              setGeneratedScript(data.masterclass.generated_script);
+            }
+            if (data.script_completed) {
+              setScriptApproved(true);
+              setCurrentPhase(2);
+            }
+            if (data.video_uploaded) {
+              setUploadStatus(data.video_approved ? 'approved' : 'uploaded');
+            }
+            if (data.video_approved) {
+              setIsCompleted(true);
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Error loading masterclass:", e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadMasterclass();
+  }, [partnerId]);
   
   // Check if all blocks are filled
-  const allBlocksFilled = SCRIPT_BLOCKS.every(block => 
-    blockContents[block.id] && blockContents[block.id].length >= 50
-  );
+  const allBlocksFilled = SCRIPT_BLOCKS.every(block => {
+    const content = blockContents[block.id];
+    return content && (typeof content === 'string' ? content.length >= 50 : content.content?.length >= 50);
+  });
   
   const handleBlockChange = (blockId, value) => {
     setBlockContents(prev => ({ ...prev, [blockId]: value }));
   };
   
   const handleGenerateScript = async () => {
+    if (!partnerId) return;
+    
     setIsGenerating(true);
+    setError(null);
     
-    // Simula chiamata API
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    // Genera script completo dai contenuti
-    const script = SCRIPT_BLOCKS.map(block => {
-      const content = blockContents[block.id] || '';
-      return `## ${block.title.toUpperCase()}\n\n${content}`;
-    }).join('\n\n---\n\n');
-    
-    setGeneratedScript(script);
-    setIsGenerating(false);
+    try {
+      // Prima salva i blocchi
+      const blocksToSave = SCRIPT_BLOCKS.map(block => ({
+        block_id: block.id,
+        title: block.title,
+        content: typeof blockContents[block.id] === 'string' 
+          ? blockContents[block.id] 
+          : blockContents[block.id]?.content || ''
+      }));
+      
+      await fetch(`${API}/api/partner-journey/masterclass/save-blocks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          partner_id: partnerId,
+          blocks: blocksToSave
+        })
+      });
+      
+      // Poi genera lo script
+      const res = await fetch(`${API}/api/partner-journey/masterclass/generate-script`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ partner_id: partnerId })
+      });
+      
+      if (!res.ok) {
+        throw new Error('Errore nella generazione');
+      }
+      
+      const data = await res.json();
+      setGeneratedScript(data.script);
+      
+    } catch (e) {
+      console.error("Error generating script:", e);
+      setError("Errore nella generazione. Riprova.");
+    } finally {
+      setIsGenerating(false);
+    }
   };
   
-  const handleApproveScript = () => {
-    setScriptApproved(true);
-    setCurrentPhase(2);
+  const handleApproveScript = async () => {
+    if (!partnerId) return;
+    
+    try {
+      await fetch(`${API}/api/partner-journey/masterclass/approve-script?partner_id=${partnerId}`, {
+        method: 'POST'
+      });
+      setScriptApproved(true);
+      setCurrentPhase(2);
+    } catch (e) {
+      console.error("Error approving script:", e);
+    }
   };
   
   const handleEditScript = () => {
     setGeneratedScript(null);
   };
   
-  const handleUpload = async () => {
+  const handleUpload = async (event) => {
+    if (!partnerId) return;
+    
+    const file = event?.target?.files?.[0];
+    if (!file) {
+      // Trigger file input if called without event
+      fileInputRef.current?.click();
+      return;
+    }
+    
     setUploadStatus('uploading');
     
-    // Simula upload
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setUploadStatus('uploaded');
-    
-    // Simula approvazione dopo 3 secondi (in produzione sarebbe manuale)
-    setTimeout(() => {
-      setUploadStatus('approved');
-      setIsCompleted(true);
-    }, 3000);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('partner_id', partnerId);
+      
+      const res = await fetch(`${API}/api/partner-journey/masterclass/upload-video`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!res.ok) {
+        throw new Error('Upload failed');
+      }
+      
+      setUploadStatus('uploaded');
+      
+      // In produzione l'approvazione sarebbe manuale
+      // Per demo, simuliamo approvazione dopo 3 secondi
+      setTimeout(() => {
+        setUploadStatus('approved');
+        setIsCompleted(true);
+      }, 3000);
+      
+    } catch (e) {
+      console.error("Error uploading:", e);
+      setUploadStatus('idle');
+      setError("Errore nel caricamento. Riprova.");
+    }
   };
   
   const handleContinue = () => {
     if (onComplete) onComplete();
     onNavigate('produzione');
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-full flex items-center justify-center" style={{ background: '#FAFAF7' }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#F2C418' }} />
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-full" style={{ background: '#FAFAF7' }}>
