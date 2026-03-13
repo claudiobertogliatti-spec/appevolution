@@ -1637,6 +1637,10 @@ export default function App() {
             {/* WEBINAR MENSILE */}
             {nav==="webinar"&&<WebinarPage partner={demoPartner} onNavigate={setNav}/>}
             
+            {/* GESTIONE LEAD */}
+            {nav==="lead"&&<LeadPage partner={demoPartner}/>}
+            {nav==="leads"&&<LeadPage partner={demoPartner}/>}
+            
             {/* PIANI CONTINUITÀ */}
             {nav==="continuita"&&<PianoContinuitaPage partner={demoPartner} onNavigate={setNav}/>}
             {nav==="piano-continuita"&&<PianoContinuitaPage partner={demoPartner} onNavigate={setNav}/>}
