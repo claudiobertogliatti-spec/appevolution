@@ -564,6 +564,37 @@ export function AdminClientiAnalisiPanel() {
                       </button>
                     </div>
                   </div>
+                  
+                  {/* Punteggio e Raccomandazione */}
+                  {punteggioFattibilita && (
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div className="p-4 rounded-xl" style={{ 
+                        background: punteggioFattibilita >= 7 ? '#F0FDF4' : punteggioFattibilita >= 5 ? '#FFF8DC' : '#FEE2E2',
+                        border: `1px solid ${punteggioFattibilita >= 7 ? '#22C55E40' : punteggioFattibilita >= 5 ? '#F5C51840' : '#EF444440'}`
+                      }}>
+                        <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#5F6572' }}>
+                          Punteggio Fattibilità
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-4xl font-black" style={{ 
+                            color: punteggioFattibilita >= 7 ? '#22C55E' : punteggioFattibilita >= 5 ? '#C4990A' : '#EF4444'
+                          }}>
+                            {punteggioFattibilita}
+                          </span>
+                          <span className="text-2xl font-medium" style={{ color: '#9CA3AF' }}>/10</span>
+                        </div>
+                      </div>
+                      <div className="p-4 rounded-xl" style={{ background: '#F5F3FF', border: '1px solid #DDD6FE' }}>
+                        <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#5F6572' }}>
+                          Raccomandazione
+                        </div>
+                        <div className="text-sm font-medium" style={{ color: '#5B21B6' }}>
+                          {raccomandazione}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
                   <textarea
                     value={editedAnalisi}
                     onChange={(e) => setEditedAnalisi(e.target.value)}
