@@ -244,7 +244,7 @@ function GenerateSection({ onGenerate, isGenerating, error }) {
   );
 }
 
-function CourseStructureOutput({ structure, onApprove, onRequestEdit }) {
+function CourseStructureOutput({ structure, onApprove, onRequestEdit, isSaving }) {
   return (
     <div className="bg-white rounded-2xl border border-[#ECEDEF] overflow-hidden">
       {/* Header */}
@@ -254,7 +254,7 @@ function CourseStructureOutput({ structure, onApprove, onRequestEdit }) {
           S
         </div>
         <div>
-          <div className="font-bold text-sm" style={{ color: '#1E2128' }}>Stefania</div>
+          <div className="font-bold text-sm" style={{ color: '#1E2128' }}>AI Course Builder</div>
           <div className="text-xs" style={{ color: '#9CA3AF' }}>Growth Planner</div>
         </div>
         <div className="ml-auto text-xs px-2 py-1 rounded-full" style={{ background: '#34C77B20', color: '#2D9F6F' }}>
@@ -265,12 +265,16 @@ function CourseStructureOutput({ structure, onApprove, onRequestEdit }) {
       {/* Content */}
       <div className="p-6">
         <h3 className="text-lg font-black mb-4" style={{ color: '#1E2128' }}>
-          Struttura del tuo videocorso
+          {structure.corso_titolo || 'Struttura del tuo videocorso'}
         </h3>
+        
+        {structure.corso_sottotitolo && (
+          <p className="text-sm mb-4" style={{ color: '#5F6572' }}>{structure.corso_sottotitolo}</p>
+        )}
         
         {/* Modules */}
         <div className="space-y-3 mb-6">
-          {structure.modules.map((module, idx) => (
+          {(structure.modules || []).map((module, idx) => (
             <div 
               key={idx}
               className="p-4 rounded-xl border"
@@ -279,7 +283,7 @@ function CourseStructureOutput({ structure, onApprove, onRequestEdit }) {
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0"
                      style={{ background: '#F2C418', color: '#1E2128' }}>
-                  {idx + 1}
+                  {module.id || idx + 1}
                 </div>
                 <div className="flex-1">
                   <div className="font-bold text-sm mb-1" style={{ color: '#1E2128' }}>
@@ -292,7 +296,8 @@ function CourseStructureOutput({ structure, onApprove, onRequestEdit }) {
                     <div className="mt-2 pl-4 border-l-2" style={{ borderColor: '#ECEDEF' }}>
                       {module.lessons.map((lesson, lIdx) => (
                         <div key={lIdx} className="text-xs py-1" style={{ color: '#9CA3AF' }}>
-                          {lIdx + 1}. {lesson}
+                          {lIdx + 1}. {typeof lesson === 'string' ? lesson : lesson.title}
+                          {lesson.duration && <span className="ml-2 opacity-60">({lesson.duration})</span>}
                         </div>
                       ))}
                     </div>
@@ -307,14 +312,21 @@ function CourseStructureOutput({ structure, onApprove, onRequestEdit }) {
         <div className="flex gap-3">
           <button
             onClick={onApprove}
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition-all hover:scale-105"
+            disabled={isSaving}
+            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition-all hover:scale-105 disabled:opacity-50"
             style={{ background: '#34C77B', color: 'white' }}
+            data-testid="approve-structure-btn"
           >
-            <ThumbsUp className="w-5 h-5" />
-            Approva struttura
+            {isSaving ? (
+              <RefreshCw className="w-5 h-5 animate-spin" />
+            ) : (
+              <ThumbsUp className="w-5 h-5" />
+            )}
+            {isSaving ? 'Salvataggio...' : 'Approva struttura'}
           </button>
           <button
             onClick={onRequestEdit}
+            disabled={isSaving}
             className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition-all hover:bg-[#FAFAF7]"
             style={{ background: 'white', border: '1px solid #ECEDEF', color: '#5F6572' }}
           >
