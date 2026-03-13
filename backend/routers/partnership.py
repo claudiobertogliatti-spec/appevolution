@@ -44,7 +44,7 @@ async def get_analisi_for_partnership(user_id: str):
     """
     Recupera l'analisi strategica per il cliente che sta attivando la partnership.
     """
-    if not db:
+    if db is None:
         raise HTTPException(status_code=500, detail="Database non inizializzato")
     
     # Cerca l'utente
