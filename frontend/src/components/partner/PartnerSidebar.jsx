@@ -108,7 +108,8 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
     const navMap = {
       'team': 'dashboard',
       'eventi': 'dashboard',
-      'supporto': 'supporto'
+      'supporto': 'supporto',
+      'piano-continuita': 'piano-continuita'
     };
     onNavigate(navMap[itemId] || 'dashboard');
   };
