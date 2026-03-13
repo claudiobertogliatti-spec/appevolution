@@ -561,6 +561,31 @@ export function OttimizzazionePage({ partner, onNavigate }) {
           onToggleAction={handleToggleAction}
         />
         
+        {/* Link Webinar Mensile */}
+        <div className="bg-white rounded-2xl border border-[#ECEDEF] p-6 mb-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center"
+                 style={{ background: '#8B5CF620', color: '#8B5CF6' }}>
+              <Video className="w-6 h-6" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold" style={{ color: '#1E2128' }}>Webinar Mensile Evolution</h3>
+              <p className="text-xs" style={{ color: '#5F6572' }}>
+                Organizza webinar live per vendere il tuo corso
+              </p>
+            </div>
+            <button
+              onClick={() => onNavigate('webinar')}
+              className="px-4 py-2 rounded-xl font-bold text-sm transition-all hover:scale-105 flex items-center gap-2"
+              style={{ background: '#8B5CF6', color: 'white' }}
+              data-testid="view-webinar-btn"
+            >
+              Gestisci
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+        
         {/* Sezione 4: Caso Studio */}
         <CasoStudioSection 
           casoStudioData={casoStudioData}
