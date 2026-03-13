@@ -82,17 +82,18 @@ export function Homepage() {
         throw new Error(data.detail || 'Credenziali non valide');
       }
 
-      // Check if partner
-      if (data.user?.user_type === 'cliente_analisi') {
-        throw new Error('Questo accesso è riservato ai partner. Se sei un cliente, registrati.');
-      }
-
       // Save token and user
       localStorage.setItem('access_token', data.access_token);
       localStorage.setItem('user', JSON.stringify(data.user));
 
-      // Redirect to partner dashboard
-      window.location.href = '/dashboard-partner';
+      // Redirect based on user type
+      if (data.user?.user_type === 'cliente_analisi') {
+        // Cliente - redirect alla dashboard cliente
+        window.location.href = '/dashboard-cliente';
+      } else {
+        // Partner/Admin - redirect alla dashboard partner
+        window.location.href = '/dashboard-partner';
+      }
 
     } catch (err) {
       setLoginError(err.message);
