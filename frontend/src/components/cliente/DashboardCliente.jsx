@@ -513,7 +513,7 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
               </p>
               <button
                 onClick={() => {
-                  window.open('https://calendly.com/evolution-pro/call-strategica', '_blank');
+                  window.open('https://calendar.app.google/ip1MfDcfcrju1WFh6', '_blank');
                 }}
                 className="inline-flex items-center gap-3 px-8 py-4 rounded-xl font-black text-lg transition-all hover:scale-105"
                 style={{ background: '#F5C518', color: '#1E2128' }}
@@ -720,7 +720,7 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
                 </p>
                 <button
                   onClick={() => {
-                    window.open('https://calendly.com/evolution-pro/call-strategica', '_blank');
+                    window.open('https://calendar.app.google/ip1MfDcfcrju1WFh6', '_blank');
                   }}
                   className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-lg transition-all hover:opacity-90 hover:scale-105"
                   style={{ background: '#F5C518', color: '#1E2128' }}
