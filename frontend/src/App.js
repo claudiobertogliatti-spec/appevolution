@@ -28,6 +28,7 @@ import { PartnerSidebarLight } from "./components/partner/PartnerSidebar";
 import { PosizionamentoPage } from "./components/partner/PosizionamentoPage";
 import { MasterclassPage } from "./components/partner/MasterclassPage";
 import { VideocorsoPage } from "./components/partner/VideocorsoPage";
+import { FunnelPage } from "./components/partner/FunnelPage";
 import { PartnerFilesPage } from "./components/partner/PartnerFilesPage";
 import { BonusStrategici } from "./components/partner/BonusStrategici";
 import { AdminSidebarLight } from "./components/admin/AdminSidebarLight";
