@@ -97,8 +97,10 @@ async def get_questionario(user_id: str):
             return questionario
         
         # Fallback 2: dati dal cliente stesso (se ha expertise = ha compilato)
-        logging.info(f"[ANALISI] Trying fallback to user data...")
+        logging.info(f"[ANALISI] Trying fallback to user data... DB name: {db.name}")
         cliente = await db.users.find_one({"id": user_id}, {"_id": 0})
+        if cliente:
+            logging.info(f"[ANALISI] Cliente keys: {list(cliente.keys())}")
         logging.info(f"[ANALISI] Cliente found: {cliente is not None}, has expertise: {cliente.get('expertise') is not None if cliente else 'N/A'}")
         if cliente and cliente.get("expertise"):
             logging.info(f"[ANALISI] Using client data as questionario fallback")
