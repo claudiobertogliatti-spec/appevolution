@@ -74,37 +74,38 @@ async def get_cliente_or_404(user_id: str):
 async def get_questionario(user_id: str):
     """Recupera il questionario compilato"""
     logging.info(f"[ANALISI] get_questionario called for user_id: {user_id}")
-    logging.info(f"[ANALISI] db is None: {db is None}")
     
     if db is None:
         logging.error("[ANALISI] Database not initialized!")
         return None
     
-    # Debug: show database name
-    logging.info(f"[ANALISI] Database name: {db.name}")
-    
-    # Prima cerca in questionari_analisi
-    questionario = await db.questionari_analisi.find_one(
-        {"user_id": user_id}, {"_id": 0}
-    )
-    logging.info(f"[ANALISI] questionari_analisi result: {questionario is not None}")
-    if questionario:
-        return questionario
-    
-    # Fallback: questionari_clienti
-    questionario = await db.questionari_clienti.find_one(
-        {"user_id": user_id}, {"_id": 0}
-    )
-    logging.info(f"[ANALISI] questionari_clienti result: {questionario is not None}")
-    
-    # Fallback 2: dati dal cliente stesso
-    if not questionario:
+    try:
+        # Prima cerca in questionari_analisi
+        questionario = await db.questionari_analisi.find_one(
+            {"user_id": user_id}, {"_id": 0}
+        )
+        logging.info(f"[ANALISI] questionari_analisi result: {questionario is not None}")
+        if questionario:
+            return questionario
+        
+        # Fallback: questionari_clienti
+        questionario = await db.questionari_clienti.find_one(
+            {"user_id": user_id}, {"_id": 0}
+        )
+        logging.info(f"[ANALISI] questionari_clienti result: {questionario is not None}")
+        if questionario:
+            return questionario
+        
+        # Fallback 2: dati dal cliente stesso (se ha expertise = ha compilato)
         cliente = await db.users.find_one({"id": user_id}, {"_id": 0})
         if cliente and cliente.get("expertise"):
-            logging.info(f"[ANALISI] Using client data as questionario")
+            logging.info(f"[ANALISI] Using client data as questionario fallback")
             return cliente
-    
-    return questionario
+        
+        return None
+    except Exception as e:
+        logging.error(f"[ANALISI] Error in get_questionario: {e}")
+        return None
 
 async def get_llm_chat():
     """Inizializza LLM con Emergent Key"""
