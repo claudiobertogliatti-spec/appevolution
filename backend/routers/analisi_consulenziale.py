@@ -73,10 +73,18 @@ async def get_cliente_or_404(user_id: str):
 
 async def get_questionario(user_id: str):
     """Recupera il questionario compilato"""
+    logging.info(f"[ANALISI] get_questionario called for user_id: {user_id}")
+    logging.info(f"[ANALISI] db is None: {db is None}")
+    
+    if db is None:
+        logging.error("[ANALISI] Database not initialized!")
+        return None
+    
     # Prima cerca in questionari_analisi
     questionario = await db.questionari_analisi.find_one(
         {"user_id": user_id}, {"_id": 0}
     )
+    logging.info(f"[ANALISI] questionari_analisi result: {questionario is not None}")
     if questionario:
         return questionario
     
@@ -84,6 +92,7 @@ async def get_questionario(user_id: str):
     questionario = await db.questionari_clienti.find_one(
         {"user_id": user_id}, {"_id": 0}
     )
+    logging.info(f"[ANALISI] questionari_clienti result: {questionario is not None}")
     return questionario
 
 async def get_llm_chat():
