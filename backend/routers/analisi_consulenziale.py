@@ -80,6 +80,9 @@ async def get_questionario(user_id: str):
         logging.error("[ANALISI] Database not initialized!")
         return None
     
+    # Debug: show database name
+    logging.info(f"[ANALISI] Database name: {db.name}")
+    
     # Prima cerca in questionari_analisi
     questionario = await db.questionari_analisi.find_one(
         {"user_id": user_id}, {"_id": 0}
@@ -93,6 +96,14 @@ async def get_questionario(user_id: str):
         {"user_id": user_id}, {"_id": 0}
     )
     logging.info(f"[ANALISI] questionari_clienti result: {questionario is not None}")
+    
+    # Fallback 2: dati dal cliente stesso
+    if not questionario:
+        cliente = await db.users.find_one({"id": user_id}, {"_id": 0})
+        if cliente and cliente.get("expertise"):
+            logging.info(f"[ANALISI] Using client data as questionario")
+            return cliente
+    
     return questionario
 
 async def get_llm_chat():
