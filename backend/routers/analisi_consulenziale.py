@@ -94,7 +94,13 @@ async def get_llm_chat():
     if not api_key:
         raise HTTPException(status_code=500, detail="LLM Key non configurata")
     
-    return LlmChat(api_key=api_key, model="claude-sonnet-4-20250514")
+    session_id = f"analisi_{datetime.now().timestamp()}"
+    
+    return LlmChat(
+        api_key=api_key, 
+        session_id=session_id,
+        system_message="Sei un consulente senior di Evolution PRO, esperto in digital business e creazione di accademie online."
+    ).with_model("anthropic", "claude-sonnet-4-20250514")
 
 async def aggiungi_tag_systeme(email: str, tag: str):
     """Aggiunge tag Systeme.io per email automatiche"""
