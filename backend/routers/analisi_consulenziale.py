@@ -98,11 +98,16 @@ async def get_questionario(user_id: str):
         
         # Fallback 2: dati dal cliente stesso (se ha expertise = ha compilato)
         logging.info(f"[ANALISI] Trying fallback to user data... DB name: {db.name}")
+        
+        # DEBUG: Count all users
+        total_users = await db.users.count_documents({})
+        logging.info(f"[ANALISI] Total users in db: {total_users}")
+        
         cliente = await db.users.find_one({"id": user_id})  # No projection
         if cliente:
             # Remove _id manually
             cliente_clean = {k: v for k, v in cliente.items() if k != "_id"}
-            logging.info(f"[ANALISI] Cliente keys: {list(cliente_clean.keys())}")
+            logging.info(f"[ANALISI] Cliente keys count: {len(cliente_clean)}, keys: {list(cliente_clean.keys())}")
             logging.info(f"[ANALISI] Cliente found: True, has expertise: {cliente_clean.get('expertise') is not None}")
             if cliente_clean.get("expertise"):
                 logging.info(f"[ANALISI] Using client data as questionario fallback")
