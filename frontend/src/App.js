@@ -1069,7 +1069,8 @@ export default function App() {
         window.location.pathname === "/sblocca-analisi" ||
         window.location.pathname === "/analisi-attivazione" ||
         window.location.pathname === "/analisi-in-preparazione" ||
-        window.location.pathname === "/attivazione-partnership") {
+        window.location.pathname === "/attivazione-partnership" ||
+        window.location.pathname === "/decisione-partnership") {
       // Utente cliente non loggato, redirect a registrazione
       window.location.href = "/analisi-strategica";
       return null;
