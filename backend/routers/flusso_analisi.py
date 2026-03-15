@@ -354,9 +354,35 @@ def genera_analisi_fallback(nome, cognome, expertise, cliente_target, risultato,
                 "contenuto": "Il modello prevede un videocorso venduto tramite funnel automatizzato. La fascia prezzo dipenderà dal valore percepito della trasformazione promessa e dal potere d'acquisto del target.",
                 "pricing_suggerito": "€497 - €997 (da definire in base al posizionamento)"
             },
+            "costo_modello_attuale": {
+                "titolo": "Il vero costo di rimanere nel modello attuale",
+                "contenuto": f"Molti professionisti nel tuo settore lavorano con un modello basato su consulenze individuali, sessioni 1:1, o servizi legati direttamente al proprio tempo. Questo modello funziona, ma ha un limite strutturale: ogni nuova entrata richiede nuovo tempo. Se il tuo lavoro si basa esclusivamente su sessioni, consulenze o lezioni, il tuo reddito resterà sempre legato al numero di ore disponibili nella settimana. Questo significa che anche aumentando la tariffa esiste comunque un tetto naturale di crescita. Il problema non è il fatturato di questo mese. Il problema è la traiettoria dei prossimi anni. Se il modello di lavoro non cambia, la crescita resterà sempre lineare e limitata.",
+                "modello_attuale": {
+                    "titolo": "Il modello attuale",
+                    "elementi": [
+                        "Consulenze individuali",
+                        "Ore di lavoro vendute direttamente",
+                        "Reddito legato alla presenza"
+                    ],
+                    "limite": "Ogni nuova entrata richiede nuovo tempo"
+                },
+                "limite_tempo": {
+                    "titolo": "Il limite del tempo",
+                    "contenuto": "Se il tuo lavoro si basa esclusivamente su sessioni, consulenze o lezioni, il tuo reddito resterà sempre legato al numero di ore disponibili nella settimana. Questo significa che anche aumentando la tariffa esiste comunque un tetto naturale di crescita."
+                },
+                "obiettivo_accademia": {
+                    "titolo": "L'obiettivo di una Accademia Digitale",
+                    "benefici": [
+                        "Aumentare l'impatto del proprio metodo",
+                        "Liberare tempo",
+                        "Stabilizzare il reddito nel tempo"
+                    ]
+                }
+            },
             "valutazione_fattibilita": {
-                "titolo": "Valutazione del progetto",
+                "titolo": "Esito del Check di Fattibilità",
                 "punteggio": 6,
+                "livello_potenziale": "Medio",
                 "esito": "Progetto promettente ma da definire meglio",
                 "motivazione": f"Il progetto presenta elementi interessanti ma richiede un approfondimento. L'ostacolo principale indicato ('{ostacolo}') è comune a molti professionisti e può essere superato con la giusta struttura. La motivazione ('{motivazione}') suggerisce una buona predisposizione. Tuttavia, alcuni elementi necessitano di maggiore definizione prima di procedere.",
                 "punti_forza": [
