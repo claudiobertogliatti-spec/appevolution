@@ -1215,6 +1215,7 @@ async def register_cliente_analisi(request: ClienteAnalisiRegisterRequest):
     
     return {
         "success": True,
+        "user_id": user_id,  # Aggiunto per facilitare il checkout
         "user": {
             "id": user_id,
             "nome": request.nome,
@@ -1226,6 +1227,8 @@ async def register_cliente_analisi(request: ClienteAnalisiRegisterRequest):
             "data_registrazione": new_user["data_registrazione"]
         },
         "token": access_token,
+        "password_auto_generated": password_auto_generated,
+        "temp_password": password_plain if password_auto_generated else None,  # Solo se auto-generata
         "message": "Account creato con successo! Ora completa il pagamento."
     }
 
