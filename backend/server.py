@@ -1146,6 +1146,7 @@ async def register_cliente_analisi(request: ClienteAnalisiRegisterRequest):
     Registra un nuovo cliente per l'Analisi Strategica.
     NON richiede pagamento - crea solo l'account.
     Dopo la registrazione, l'utente deve completare il pagamento separatamente.
+    Se la password non è fornita, viene auto-generata e inviata via email.
     """
     import bcrypt
     
@@ -1154,8 +1155,17 @@ async def register_cliente_analisi(request: ClienteAnalisiRegisterRequest):
     if existing:
         raise HTTPException(status_code=400, detail="Email già registrata. Effettua il login.")
     
+    # Auto-genera password se non fornita
+    if request.password:
+        password_plain = request.password
+        password_auto_generated = False
+    else:
+        # Genera password sicura: Evo + 6 caratteri random + !
+        password_plain = f"Evo{str(uuid.uuid4())[:6].upper()}!"
+        password_auto_generated = True
+    
     # Hash password
-    password_hash = bcrypt.hashpw(request.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    password_hash = bcrypt.hashpw(password_plain.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     
     # Crea utente
     user_id = str(uuid.uuid4())
