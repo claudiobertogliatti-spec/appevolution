@@ -1489,6 +1489,18 @@ async def save_questionario_cliente(request: QuestionarioRequest):
     except Exception as e:
         logging.warning(f"Telegram notification failed: {e}")
     
+    # AUTO-GENERA BOZZA ANALISI (NUOVO FLUSSO)
+    # La bozza viene generata automaticamente e resta nascosta al cliente
+    # fino a quando l'admin non attiva la fase decisione
+    try:
+        from routers.flusso_analisi import genera_analisi_auto
+        # Chiamata asincrona per generare l'analisi in background
+        import asyncio
+        asyncio.create_task(genera_analisi_auto(request.user_id))
+        logging.info(f"[FLUSSO] Triggered auto-generation of bozza analisi for user {request.user_id}")
+    except Exception as e:
+        logging.warning(f"[FLUSSO] Auto-generation trigger failed: {e}")
+    
     return {
         "success": True,
         "questionario_id": questionario_id,
