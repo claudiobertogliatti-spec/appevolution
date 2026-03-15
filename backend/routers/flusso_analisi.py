@@ -262,88 +262,107 @@ REGOLE CRITICHE:
 
 
 def genera_analisi_fallback(nome, cognome, expertise, cliente_target, risultato, pubblico, esperienze, ostacolo, motivazione):
-    """Genera analisi di fallback se l'AI fallisce"""
+    """Genera analisi di fallback se l'AI fallisce - Template 12 sezioni"""
+    data_oggi = datetime.now().strftime('%d/%m/%Y')
     return {
-        "titolo": f"Analisi Strategica - {nome} {cognome}",
-        "data_generazione": datetime.now().strftime('%d/%m/%Y'),
+        "titolo": "Analisi Strategica Personalizzata",
+        "sottotitolo": "Valutazione del Potenziale del tuo Progetto Digitale",
+        "data_generazione": data_oggi,
+        "cliente": f"{nome} {cognome}",
+        "professione": expertise,
         "sezioni": {
             "introduzione": {
-                "titolo": "Introduzione",
-                "contenuto": f"Caro {nome}, grazie per aver scelto Evolution PRO per accompagnarti nella creazione della tua Accademia Digitale. Questo documento rappresenta la mia analisi strategica del tuo progetto, basata sulle risposte che hai fornito nel questionario."
+                "titolo": "Perché hai ricevuto questa Analisi",
+                "contenuto": "Questa analisi strategica è stata realizzata per valutare il potenziale del tuo progetto e capire se esistono le condizioni per trasformarlo in una Accademia Digitale sostenibile nel tempo. Il nostro obiettivo non è vendere formazione, ma verificare se esiste una reale opportunità imprenditoriale. Negli ultimi anni sempre più professionisti stanno cercando di trasformare le proprie competenze in prodotti digitali. Tuttavia la maggior parte dei progetti fallisce non per mancanza di competenze, ma per mancanza di struttura. Per questo motivo prima di avviare qualsiasi collaborazione analizziamo con attenzione: la competenza del professionista, il problema che il mercato vuole risolvere, la chiarezza del posizionamento, la sostenibilità del modello di vendita."
+            },
+            "modello_evolution": {
+                "titolo": "Come funziona il sistema Evolution PRO",
+                "contenuto": "Il modello Evolution PRO è stato progettato per accompagnare professionisti e formatori nella creazione di una Accademia Digitale capace di generare vendite nel tempo.",
+                "fasi": [
+                    {"nome": "Posizionamento", "descrizione": "Definizione del problema, del target e della promessa del corso"},
+                    {"nome": "Struttura Accademia", "descrizione": "Progettazione del percorso formativo e dei contenuti"},
+                    {"nome": "Sistema di Vendita", "descrizione": "Costruzione del funnel e delle pagine di vendita"},
+                    {"nome": "Lancio", "descrizione": "Introduzione del corso sul mercato con strategia di comunicazione"},
+                    {"nome": "Ottimizzazione", "descrizione": "Monitoraggio delle vendite e miglioramento continuo del sistema"}
+                ]
+            },
+            "errori_comuni": {
+                "titolo": "Gli errori più comuni nella creazione di un videocorso",
+                "contenuto": "Molti professionisti pensano che basti registrare alcune lezioni per creare un corso online. In realtà il problema non è il contenuto, ma la struttura del progetto.",
+                "lista": [
+                    "Posizionamento poco chiaro",
+                    "Target troppo generico",
+                    "Contenuti non orientati alla trasformazione",
+                    "Assenza di un sistema di vendita",
+                    "Promozione improvvisata"
+                ]
             },
             "profilo_professionale": {
-                "titolo": "Il tuo Profilo Professionale",
-                "contenuto": f"Operi nel campo '{expertise}' con l'obiettivo di aiutare '{cliente_target}'. La tua esperienza e competenza rappresentano una base solida per costruire un'Accademia Digitale di successo."
+                "titolo": "Il tuo punto di partenza",
+                "contenuto": f"Operi nel campo '{expertise}' con l'obiettivo di aiutare '{cliente_target}'. La tua esperienza e competenza rappresentano una base su cui costruire un progetto digitale. In base alle informazioni fornite, hai indicato come esperienza di vendita: '{esperienze}'. Questo dato è importante per valutare la fattibilità commerciale del progetto. La competenza tecnica da sola non basta: serve anche la capacità di comunicarla e venderla."
             },
-            "analisi_mercato": {
-                "titolo": "Analisi del Mercato e del Target",
-                "contenuto": f"Il tuo cliente ideale è '{cliente_target}'. Questo segmento di mercato presenta opportunità interessanti per chi sa posizionarsi come esperto di riferimento."
+            "problema_mercato": {
+                "titolo": "Il problema che il tuo pubblico vuole risolvere",
+                "contenuto": f"Il risultato che prometti è: '{risultato}'. Questo è il cuore della tua proposta di valore. Un progetto digitale sostenibile deve risolvere un problema reale e urgente. La domanda chiave è: quanto è disposto a pagare il tuo target per ottenere questa trasformazione? Durante la call strategica approfondiremo questo aspetto."
             },
-            "punti_forza": {
-                "titolo": "I tuoi Punti di Forza",
-                "contenuto": "Dalle tue risposte emergono diversi punti di forza su cui costruire il tuo progetto.",
-                "lista": [
-                    "Competenza specifica nel tuo settore",
-                    f"Pubblico esistente: {pubblico}",
-                    f"Esperienza commerciale: {esperienze}"
-                ]
+            "target_posizionamento": {
+                "titolo": "Chi potrebbe comprare il tuo percorso",
+                "contenuto": f"Hai identificato come target: '{cliente_target}'. Hai indicato come pubblico esistente: '{pubblico}'. La chiarezza del target è fondamentale per il successo del progetto. Un target troppo generico rende impossibile creare una comunicazione efficace e un funnel di vendita performante."
             },
-            "aree_miglioramento": {
-                "titolo": "Aree di Miglioramento",
-                "contenuto": f"L'ostacolo principale che hai identificato ('{ostacolo}') è comune a molti professionisti e può essere superato con la giusta strategia.",
-                "lista": [
-                    "Strutturazione dell'offerta formativa",
-                    "Automazione dei processi di vendita"
-                ]
+            "potenziale_progetto": {
+                "titolo": "Potenziale di mercato",
+                "contenuto": f"Il mercato della formazione online nel settore '{expertise}' presenta opportunità per chi sa posizionarsi correttamente. La valutazione del potenziale dipende da: chiarezza del posizionamento, specificità del target, urgenza del problema risolto, e capacità di differenziarsi dalla concorrenza."
             },
-            "opportunita": {
-                "titolo": "Opportunità di Mercato",
-                "contenuto": f"Il mercato della formazione online nel tuo settore offre opportunità significative. Il risultato che prometti ('{risultato}') è concreto e misurabile, elemento fondamentale per differenziarti."
-            },
-            "proposta_accademia": {
-                "titolo": "Proposta: La tua Accademia Digitale",
-                "contenuto": f"Immagino un'Accademia strutturata che insegni a {cliente_target} come ottenere {risultato} attraverso il tuo metodo.",
+            "ipotesi_accademia": {
+                "titolo": "Come potrebbe essere strutturato il percorso",
+                "contenuto": f"Basandoci sui dati forniti, ipotizziamo un percorso formativo che guidi '{cliente_target}' verso il risultato: '{risultato}'.",
                 "moduli_suggeriti": [
-                    "Modulo 1: Fondamenti e mindset",
-                    "Modulo 2: Strategia e pianificazione",
-                    "Modulo 3: Implementazione pratica",
-                    "Modulo 4: Ottimizzazione e scaling"
+                    {"nome": "Modulo 1 - Fondamenti", "descrizione": "Basi teoriche e mindset necessario"},
+                    {"nome": "Modulo 2 - Metodo", "descrizione": "Il framework operativo passo-passo"},
+                    {"nome": "Modulo 3 - Applicazione", "descrizione": "Implementazione pratica con esercizi"},
+                    {"nome": "Modulo 4 - Trasformazione", "descrizione": "Consolidamento e risultati misurabili"}
                 ]
             },
-            "modello_business": {
-                "titolo": "Modello di Business Proposto",
-                "contenuto": "Il modello prevede un videocorso premium venduto tramite funnel automatizzato, con possibilità di upsell su consulenze personalizzate.",
-                "pricing_suggerito": "€497 - €1.997 per il corso principale"
+            "modello_monetizzazione": {
+                "titolo": "Come il progetto potrebbe generare entrate",
+                "contenuto": "Il modello prevede un videocorso venduto tramite funnel automatizzato. La fascia prezzo dipenderà dal valore percepito della trasformazione promessa e dal potere d'acquisto del target.",
+                "pricing_suggerito": "€497 - €997 (da definire in base al posizionamento)"
+            },
+            "valutazione_fattibilita": {
+                "titolo": "Valutazione del progetto",
+                "punteggio": 6,
+                "esito": "Progetto promettente ma da definire meglio",
+                "motivazione": f"Il progetto presenta elementi interessanti ma richiede un approfondimento. L'ostacolo principale indicato ('{ostacolo}') è comune a molti professionisti e può essere superato con la giusta struttura. La motivazione ('{motivazione}') suggerisce una buona predisposizione. Tuttavia, alcuni elementi necessitano di maggiore definizione prima di procedere.",
+                "punti_forza": [
+                    "Competenza specifica nel settore",
+                    "Target identificato",
+                    "Motivazione presente"
+                ],
+                "aree_miglioramento": [
+                    "Definizione più precisa del posizionamento",
+                    "Validazione commerciale del target",
+                    "Strutturazione dell'offerta"
+                ]
             },
             "roadmap": {
                 "titolo": "Roadmap del Progetto",
-                "contenuto": "Il percorso per lanciare la tua Accademia Digitale si articola in diverse fasi.",
+                "contenuto": "Se deciderai di procedere con Evolution PRO, questo sarà il percorso per creare la tua Accademia Digitale.",
                 "fasi": [
-                    {"fase": "Fase 1 - Posizionamento", "durata": "2-3 settimane", "descrizione": "Definizione del posizionamento unico e della promessa di valore"},
-                    {"fase": "Fase 2 - Creazione Masterclass", "durata": "2 settimane", "descrizione": "Creazione della Masterclass di vendita"},
-                    {"fase": "Fase 3 - Videocorso", "durata": "4-6 settimane", "descrizione": "Registrazione e produzione del videocorso"},
-                    {"fase": "Fase 4 - Funnel", "durata": "2 settimane", "descrizione": "Costruzione del funnel di vendita automatizzato"},
+                    {"fase": "Fase 1 - Posizionamento", "durata": "2-3 settimane", "descrizione": "Definizione del posizionamento unico, della promessa di valore e del naming del corso"},
+                    {"fase": "Fase 2 - Masterclass", "durata": "2 settimane", "descrizione": "Creazione della Masterclass gratuita che vende il corso"},
+                    {"fase": "Fase 3 - Videocorso", "durata": "4-6 settimane", "descrizione": "Registrazione e produzione del videocorso completo"},
+                    {"fase": "Fase 4 - Funnel", "durata": "2 settimane", "descrizione": "Costruzione del sistema di vendita automatizzato"},
                     {"fase": "Fase 5 - Lancio", "durata": "2 settimane", "descrizione": "Lancio ufficiale e prime vendite"}
                 ]
             },
-            "valutazione": {
-                "titolo": "Valutazione del Progetto",
-                "punteggio": 7,
-                "motivazione": "Il progetto presenta buone fondamenta con margini di miglioramento nel posizionamento. La tua motivazione e la tua esperienza sono asset importanti.",
-                "raccomandazione": "Progetto con buon potenziale, pronto per iniziare il percorso di partnership"
-            },
             "prossimi_passi": {
-                "titolo": "I Prossimi Passi",
-                "contenuto": "Ecco cosa succederà dopo questa analisi.",
+                "titolo": "Cosa succede ora",
+                "contenuto": "Durante la call strategica commenteremo insieme questa analisi e valuteremo se esistono le condizioni per avviare la partnership. Se il progetto risulterà adatto, potremo iniziare il percorso di creazione della tua Accademia Digitale. In caso contrario riceverai comunque indicazioni chiare su come migliorare il progetto prima di ripresentarlo.",
                 "azioni": [
-                    "Call strategica con Claudio per discutere l'analisi",
-                    "Decisione sulla partnership Evolution PRO",
-                    "Inizio del percorso di creazione dell'Accademia"
+                    "Call strategica per discutere l'analisi",
+                    "Valutazione congiunta della fattibilità",
+                    "Decisione sulla partnership Evolution PRO"
                 ]
-            },
-            "conclusione": {
-                "titolo": "Conclusione",
-                "contenuto": f"Caro {nome}, il tuo progetto ha le carte in regola per diventare un'Accademia Digitale di successo. La tua esperienza in '{expertise}' e la tua voglia di cambiare ({motivazione}) sono gli ingredienti giusti. Sono qui per accompagnarti in questo percorso."
             }
         }
     }
