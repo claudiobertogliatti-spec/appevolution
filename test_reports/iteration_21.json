@@ -1,0 +1,85 @@
+{
+  "summary": "Tested new Flusso Analisi feature for Evolution PRO. All 26 backend tests pass (100%). Admin panel GestioneFlussoAnalisi.jsx works correctly with client list, filters, timeline, and editable analysis sections. DecisionePartnershipPage requires cliente_analisi login which has a password field mismatch issue (password_hash vs hashed_password).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/auth/login",
+        "issue": "Password field mismatch for cliente_analisi users - auth service looks for 'hashed_password' but users have 'password_hash'",
+        "priority": "MEDIUM"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Cliente login for /decisione-partnership",
+        "issue": "Login fails with 'hash could not be identified' error due to password field mismatch in database",
+        "affected_selectors": ["login modal"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_flusso_analisi.py",
+    "/app/test_reports/pytest/pytest_flusso_analisi.xml"
+  ],
+  "action_items": [
+    "Fix password field mismatch: auth service should check both 'hashed_password' and 'password_hash' fields for cliente_analisi users"
+  ],
+  "critical_code_review_comments": [
+    "The auth.py authenticate_user function only checks 'hashed_password' field but cliente_analisi users have 'password_hash' field"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_flusso_analisi.py"
+  ],
+  "success_rate": {
+    "backend": "100% (26/26 tests passed)",
+    "frontend": "90% - Admin panel works, cliente login has password field issue"
+  },
+  "test_credentials": {
+    "admin_email": "claudio.bertogliatti@gmail.com",
+    "admin_password": "Evoluzione74",
+    "test_cliente_email": "demo.test.completo@example.com",
+    "test_cliente_id": "41318e74-a044-4c98-ad2c-a33bdfb089f8"
+  },
+  "seed_data_creation": "Test client 'Demo Utente Test' already exists with stato_cliente='decisione_partnership'",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Flusso Analisi backend APIs all working. Admin panel GestioneFlussoAnalisi.jsx displays correctly with timeline, filters, and editable sections. The /decisione-partnership page requires cliente_analisi login which fails due to password field mismatch. Fix needed in auth.py to check both 'hashed_password' and 'password_hash' fields.",
+  "features_tested": {
+    "backend_endpoints": {
+      "GET /api/flusso-analisi/analisi/{user_id}": "✅ Returns analysis data for client",
+      "POST /api/flusso-analisi/genera-analisi-auto/{user_id}": "✅ Generates draft analysis with AI",
+      "PUT /api/flusso-analisi/modifica-analisi": "✅ Admin can edit analysis sections",
+      "POST /api/flusso-analisi/conferma-analisi": "✅ Confirms analysis ready for call",
+      "POST /api/flusso-analisi/attiva-decisione": "✅ Activates decision phase",
+      "GET /api/flusso-analisi/decisione/{user_id}": "✅ Returns decision page data",
+      "POST /api/flusso-analisi/firma-contratto": "✅ Signs contract",
+      "POST /api/flusso-analisi/upload-documento/{user_id}": "✅ Uploads documents",
+      "POST /api/flusso-analisi/create-payment-session/{user_id}": "✅ Creates Stripe session",
+      "POST /api/flusso-analisi/conferma-bonifico/{user_id}": "✅ Confirms bank transfer",
+      "POST /api/flusso-analisi/attiva-partnership/{user_id}": "✅ Activates partnership",
+      "GET /api/flusso-analisi/analisi-pdf/{user_id}": "✅ Generates analysis PDF",
+      "GET /api/flusso-analisi/contratto-pdf/{user_id}": "✅ Generates contract PDF"
+    },
+    "frontend_admin_panel": {
+      "GestioneFlussoAnalisi.jsx": "✅ Displays client list with filters",
+      "filter_buttons": "✅ Tutti, Questionario Inviato, Bozza Analisi, Pronta per Call, Fase Decisione, Partner Attivo",
+      "search_input": "✅ Working",
+      "client_modal": "✅ Shows timeline, analysis sections with edit buttons",
+      "action_buttons": "✅ Conferma Analisi, Attiva Fase Decisione, Conferma Bonifico"
+    },
+    "frontend_cliente_page": {
+      "DecisionePartnershipPage.jsx": "⚠️ Cannot test - requires cliente login which fails"
+    }
+  },
+  "workflow_states_tested": {
+    "questionario_inviato": "✅ Initial state",
+    "bozza_analisi": "✅ After analysis generation",
+    "analisi_pronta_per_call": "✅ After admin confirms",
+    "decisione_partnership": "✅ After admin activates decision",
+    "partner_attivo": "✅ After payment and activation"
+  }
+}
