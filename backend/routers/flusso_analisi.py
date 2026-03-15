@@ -89,6 +89,7 @@ async def genera_analisi_automatica(user_id: str, questionario: dict):
     """
     Genera automaticamente l'analisi strategica dopo il questionario.
     Chiamata internamente quando il cliente invia il questionario.
+    NUOVO TEMPLATE: Documento consulenziale professionale in 12 sezioni.
     """
     logging.info(f"[FLUSSO] Generazione automatica analisi per {user_id}")
     
@@ -101,90 +102,137 @@ async def genera_analisi_automatica(user_id: str, questionario: dict):
     esperienze = questionario.get("esperienze_vendita", "Non specificato")
     ostacolo = questionario.get("ostacolo_principale", "Non specificato")
     motivazione = questionario.get("motivazione", "Non specificato")
+    data_oggi = datetime.now().strftime('%d/%m/%Y')
     
-    prompt = f"""Genera un'ANALISI STRATEGICA PROFESSIONALE per questo cliente Evolution PRO.
+    prompt = f"""Sei un consulente strategico senior di Evolution PRO. Devi generare una ANALISI STRATEGICA PERSONALIZZATA professionale.
+
+OBIETTIVO:
+Generare un documento consulenziale che valuta il potenziale del progetto del cliente.
+L'analisi NON deve essere promozionale. Deve essere una valutazione seria e professionale.
+Lunghezza minima: 1500 parole totali.
 
 DATI DEL CLIENTE:
 - Nome: {nome} {cognome}
-- Expertise: {expertise}
-- Target: {cliente_target}
-- Risultato promesso: {risultato}
+- Competenza/Expertise: {expertise}
+- Target cliente: {cliente_target}
+- Risultato che promette: {risultato}
 - Pubblico esistente: {pubblico}
-- Esperienze vendita: {esperienze}
+- Esperienze di vendita: {esperienze}
 - Ostacolo principale: {ostacolo}
 - Motivazione: {motivazione}
+- Data analisi: {data_oggi}
 
-Genera il documento in formato JSON con questa struttura:
+STILE DI SCRITTURA:
+- Scrivi come un consulente strategico, NON come un venditore
+- Evita frasi motivazionali e promesse di guadagno
+- Usa analisi, valutazioni e osservazioni strategiche
+- Il cliente deve percepire che il suo progetto è stato valutato con attenzione
+- Evita contenuti generici e vaghi
+
+Genera il documento in formato JSON con questa struttura ESATTA:
 
 {{
-    "titolo": "Analisi Strategica - {nome} {cognome}",
-    "data_generazione": "{datetime.now().strftime('%d/%m/%Y')}",
+    "titolo": "Analisi Strategica Personalizzata",
+    "sottotitolo": "Valutazione del Potenziale del tuo Progetto Digitale",
+    "data_generazione": "{data_oggi}",
+    "cliente": "{nome} {cognome}",
+    "professione": "{expertise}",
     "sezioni": {{
         "introduzione": {{
-            "titolo": "Introduzione",
-            "contenuto": "Paragrafo introduttivo personalizzato che saluta il cliente e introduce l'analisi..."
+            "titolo": "Perché hai ricevuto questa Analisi",
+            "contenuto": "Questa analisi strategica è stata realizzata per valutare il potenziale del tuo progetto e capire se esistono le condizioni per trasformarlo in una Accademia Digitale sostenibile nel tempo. Il nostro obiettivo non è vendere formazione, ma verificare se esiste una reale opportunità imprenditoriale. Negli ultimi anni sempre più professionisti stanno cercando di trasformare le proprie competenze in prodotti digitali. Tuttavia la maggior parte dei progetti fallisce non per mancanza di competenze, ma per mancanza di struttura. Per questo motivo prima di avviare qualsiasi collaborazione analizziamo con attenzione: la competenza del professionista, il problema che il mercato vuole risolvere, la chiarezza del posizionamento, la sostenibilità del modello di vendita. Solo dopo questa valutazione è possibile capire se il progetto può entrare nel sistema Evolution PRO."
+        }},
+        "modello_evolution": {{
+            "titolo": "Come funziona il sistema Evolution PRO",
+            "contenuto": "Il modello Evolution PRO è stato progettato per accompagnare professionisti e formatori nella creazione di una Accademia Digitale capace di generare vendite nel tempo. Il processo è strutturato in cinque fasi principali.",
+            "fasi": [
+                {{"nome": "Posizionamento", "descrizione": "Definizione del problema, del target e della promessa del corso"}},
+                {{"nome": "Struttura Accademia", "descrizione": "Progettazione del percorso formativo e dei contenuti"}},
+                {{"nome": "Sistema di Vendita", "descrizione": "Costruzione del funnel e delle pagine di vendita"}},
+                {{"nome": "Lancio", "descrizione": "Introduzione del corso sul mercato con strategia di comunicazione"}},
+                {{"nome": "Ottimizzazione", "descrizione": "Monitoraggio delle vendite e miglioramento continuo del sistema"}}
+            ]
+        }},
+        "errori_comuni": {{
+            "titolo": "Gli errori più comuni nella creazione di un videocorso",
+            "contenuto": "Molti professionisti pensano che basti registrare alcune lezioni per creare un corso online. In realtà il problema non è il contenuto, ma la struttura del progetto.",
+            "lista": [
+                "Posizionamento poco chiaro",
+                "Target troppo generico",
+                "Contenuti non orientati alla trasformazione",
+                "Assenza di un sistema di vendita",
+                "Promozione improvvisata"
+            ]
         }},
         "profilo_professionale": {{
-            "titolo": "Il tuo Profilo Professionale",
-            "contenuto": "Analisi del profilo del cliente basata sulle risposte..."
+            "titolo": "Il tuo punto di partenza",
+            "contenuto": "[GENERA 3-4 PARAGRAFI: Analizza chi è il professionista basandoti su expertise='{expertise}', cosa fa, quale competenza possiede, quale esperienza ha con clienti reali basandoti su esperienze='{esperienze}'. Valuta se la competenza è trasferibile in formato digitale. Tono analitico e professionale, NON promozionale.]"
         }},
-        "analisi_mercato": {{
-            "titolo": "Analisi del Mercato e del Target",
-            "contenuto": "Analisi del mercato di riferimento e del cliente ideale..."
+        "problema_mercato": {{
+            "titolo": "Il problema che il tuo pubblico vuole risolvere",
+            "contenuto": "[GENERA 2-3 PARAGRAFI: Analizza il problema principale che il cliente aiuta a risolvere basandoti su risultato='{risultato}'. Spiega perché questo problema è rilevante, quanto è urgente, e perché le persone potrebbero pagare per risolverlo. Valuta la trasformazione desiderata dal cliente finale.]"
         }},
-        "punti_forza": {{
-            "titolo": "I tuoi Punti di Forza",
-            "contenuto": "Lista dei punti di forza identificati...",
-            "lista": ["Punto 1", "Punto 2", "Punto 3"]
+        "target_posizionamento": {{
+            "titolo": "Chi potrebbe comprare il tuo percorso",
+            "contenuto": "[GENERA 2-3 PARAGRAFI: Analizza il target ideale basandoti su cliente_target='{cliente_target}' e pubblico='{pubblico}'. Valuta chiarezza, specificità, dimensione del pubblico. SE il target è troppo generico, SEGNALALO CHIARAMENTE come criticità da risolvere.]"
         }},
-        "aree_miglioramento": {{
-            "titolo": "Aree di Miglioramento",
-            "contenuto": "Aree su cui lavorare...",
-            "lista": ["Area 1", "Area 2"]
+        "potenziale_progetto": {{
+            "titolo": "Potenziale di mercato",
+            "contenuto": "[GENERA 2-3 PARAGRAFI: Valutazione qualitativa (NON inventare statistiche) di: esistenza di domanda nel settore, livello di competizione, possibilità di differenziazione. Usa una valutazione strategica basata sui dati forniti.]"
         }},
-        "opportunita": {{
-            "titolo": "Opportunità di Mercato",
-            "contenuto": "Opportunità identificate nel mercato del cliente..."
+        "ipotesi_accademia": {{
+            "titolo": "Come potrebbe essere strutturato il percorso",
+            "contenuto": "[GENERA 2 PARAGRAFI: Proponi una possibile struttura del percorso formativo con nome corso, logica del percorso, trasformazione promessa.]",
+            "moduli_suggeriti": [
+                {{"nome": "Modulo 1 - Fondamenti", "descrizione": "[Descrizione specifica basata sul progetto]"}},
+                {{"nome": "Modulo 2 - Metodo", "descrizione": "[Descrizione specifica]"}},
+                {{"nome": "Modulo 3 - Applicazione", "descrizione": "[Descrizione specifica]"}},
+                {{"nome": "Modulo 4 - Trasformazione", "descrizione": "[Descrizione specifica]"}}
+            ]
         }},
-        "proposta_accademia": {{
-            "titolo": "Proposta: La tua Accademia Digitale",
-            "contenuto": "Come potrebbe essere strutturata l'accademia...",
-            "moduli_suggeriti": ["Modulo 1", "Modulo 2", "Modulo 3"]
+        "modello_monetizzazione": {{
+            "titolo": "Come il progetto potrebbe generare entrate",
+            "contenuto": "[GENERA 2 PARAGRAFI: Ipotesi REALISTICA e PRUDENTE di fascia prezzo corso (es. €497-€1997), tipo di offerta principale, possibili sviluppi futuri. EVITA promesse economiche specifiche.]",
+            "pricing_suggerito": "[Range realistico es. €497 - €997]"
         }},
-        "modello_business": {{
-            "titolo": "Modello di Business Proposto",
-            "contenuto": "Descrizione del modello di business...",
-            "pricing_suggerito": "Range di prezzo suggerito per il corso"
+        "valutazione_fattibilita": {{
+            "titolo": "Valutazione del progetto",
+            "punteggio": [NUMERO DA 1 A 10 basato sulla qualità complessiva del progetto],
+            "esito": "[UNO DEI TRE: 'Progetto adatto alla partnership' / 'Progetto promettente ma da definire meglio' / 'Progetto non ancora pronto']",
+            "motivazione": "[GENERA 2-3 PARAGRAFI: Spiega CHIARAMENTE il motivo della valutazione. Se ci sono criticità (target generico, posizionamento debole, mancanza esperienza vendita), segnalale. Se il progetto è forte, spiega perché.]",
+            "punti_forza": ["[Lista 2-3 punti di forza specifici]"],
+            "aree_miglioramento": ["[Lista 2-3 aree da migliorare specifiche, se presenti]"]
         }},
         "roadmap": {{
             "titolo": "Roadmap del Progetto",
-            "contenuto": "Panoramica delle fasi del progetto...",
+            "contenuto": "Se deciderai di procedere con Evolution PRO, questo sarà il percorso per creare la tua Accademia Digitale.",
             "fasi": [
-                {{"fase": "Fase 1 - Posizionamento", "durata": "2-3 settimane", "descrizione": "..."}},
-                {{"fase": "Fase 2 - Creazione Contenuti", "durata": "4-6 settimane", "descrizione": "..."}},
-                {{"fase": "Fase 3 - Funnel e Lancio", "durata": "2-3 settimane", "descrizione": "..."}}
+                {{"fase": "Fase 1 - Posizionamento", "durata": "2-3 settimane", "descrizione": "Definizione del posizionamento unico, della promessa di valore e del naming del corso"}},
+                {{"fase": "Fase 2 - Masterclass", "durata": "2 settimane", "descrizione": "Creazione della Masterclass gratuita che vende il corso"}},
+                {{"fase": "Fase 3 - Videocorso", "durata": "4-6 settimane", "descrizione": "Registrazione e produzione del videocorso completo"}},
+                {{"fase": "Fase 4 - Funnel", "durata": "2 settimane", "descrizione": "Costruzione del sistema di vendita automatizzato"}},
+                {{"fase": "Fase 5 - Lancio", "durata": "2 settimane", "descrizione": "Lancio ufficiale e prime vendite"}}
             ]
         }},
-        "valutazione": {{
-            "titolo": "Valutazione del Progetto",
-            "punteggio": 8,
-            "motivazione": "Spiegazione del punteggio...",
-            "raccomandazione": "Progetto pronto per la partnership / Progetto con potenziale / Da sviluppare"
-        }},
         "prossimi_passi": {{
-            "titolo": "I Prossimi Passi",
-            "contenuto": "Cosa succede dopo questa analisi...",
-            "azioni": ["Azione 1", "Azione 2", "Azione 3"]
-        }},
-        "conclusione": {{
-            "titolo": "Conclusione",
-            "contenuto": "Paragrafo conclusivo motivazionale..."
+            "titolo": "Cosa succede ora",
+            "contenuto": "Durante la call strategica commenteremo insieme questa analisi e valuteremo se esistono le condizioni per avviare la partnership. Se il progetto risulterà adatto, potremo iniziare il percorso di creazione della tua Accademia Digitale. In caso contrario riceverai comunque indicazioni chiare su come migliorare il progetto prima di ripresentarlo.",
+            "azioni": [
+                "Call strategica per discutere l'analisi",
+                "Valutazione congiunta della fattibilità",
+                "Decisione sulla partnership Evolution PRO"
+            ]
         }}
     }}
 }}
 
-IMPORTANTE: Scrivi come un consulente umano esperto, NON come un'AI. Personalizza tutto in base ai dati del cliente.
-Rispondi SOLO con il JSON valido."""
+REGOLE CRITICHE:
+1. Sostituisci TUTTI i placeholder [GENERA...] con contenuto REALE e SPECIFICO basato sui dati del cliente
+2. NON usare frasi generiche tipo "il tuo progetto ha potenziale" - sii SPECIFICO
+3. Se i dati sono vaghi, segnalalo come criticità nella valutazione
+4. Il documento deve sembrare scritto da un consulente umano, NON da un'AI
+5. Minimo 1500 parole totali nel documento
+6. Rispondi SOLO con il JSON valido, senza testo aggiuntivo"""
 
     try:
         llm = await get_llm_chat()
