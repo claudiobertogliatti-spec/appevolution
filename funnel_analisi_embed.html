@@ -512,6 +512,11 @@ FLUSSO:
       }
 
       const userId = registerData.user_id;
+      
+      // Salva la password temporanea (opzionale - mostrarla all'utente dopo il pagamento)
+      if (registerData.password_auto_generated && registerData.temp_password) {
+        sessionStorage.setItem('evo_temp_pwd', registerData.temp_password);
+      }
 
       // STEP 2: Crea sessione di checkout Stripe
       const checkoutResponse = await fetch(`${CONFIG.API_URL}/api/cliente-analisi/checkout?user_id=${userId}`, {
