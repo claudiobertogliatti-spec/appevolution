@@ -1,0 +1,588 @@
+<!--
+═══════════════════════════════════════════════════════════════════════════════
+FUNNEL ACQUISTO ANALISI STRATEGICA - EVOLUTION PRO
+Prezzo: €67 una tantum
+═══════════════════════════════════════════════════════════════════════════════
+
+ISTRUZIONI:
+1. Copia questo codice nella tua landing page
+2. Sostituisci API_URL con l'URL del tuo backend
+3. Personalizza i colori e i testi secondo il tuo brand
+
+FLUSSO:
+1. Cliente compila il form
+2. Redirect a Stripe Checkout (€67)
+3. Dopo pagamento → Redirect a /questionario
+═══════════════════════════════════════════════════════════════════════════════
+-->
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- SEZIONE 1: CSS STILI -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<style>
+  :root {
+    --evolution-gold: #F5C518;
+    --evolution-dark: #1E2128;
+    --evolution-gray: #5F6572;
+    --evolution-light: #FAFAF7;
+    --evolution-border: #ECEDEF;
+  }
+
+  .evolution-funnel {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 40px 24px;
+  }
+
+  .evolution-funnel * {
+    box-sizing: border-box;
+  }
+
+  .evolution-card {
+    background: #FFFFFF;
+    border-radius: 24px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+
+  .evolution-header {
+    background: linear-gradient(135deg, var(--evolution-dark), #2D3139);
+    padding: 32px 24px;
+    text-align: center;
+  }
+
+  .evolution-badge {
+    display: inline-block;
+    background: var(--evolution-gold);
+    color: var(--evolution-dark);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 16px;
+    border-radius: 100px;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .evolution-title {
+    color: #FFFFFF;
+    font-size: 28px;
+    font-weight: 800;
+    margin: 0 0 8px 0;
+    line-height: 1.2;
+  }
+
+  .evolution-subtitle {
+    color: rgba(255,255,255,0.7);
+    font-size: 15px;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .evolution-price-box {
+    background: rgba(245,197,24,0.15);
+    border: 2px solid var(--evolution-gold);
+    border-radius: 16px;
+    padding: 20px;
+    margin: 24px 0 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .evolution-price {
+    font-size: 42px;
+    font-weight: 900;
+    color: var(--evolution-gold);
+  }
+
+  .evolution-price-info {
+    text-align: left;
+  }
+
+  .evolution-price-label {
+    color: rgba(255,255,255,0.6);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .evolution-price-note {
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .evolution-form {
+    padding: 32px 24px;
+  }
+
+  .evolution-form-group {
+    margin-bottom: 20px;
+  }
+
+  .evolution-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--evolution-dark);
+    margin-bottom: 8px;
+  }
+
+  .evolution-input {
+    width: 100%;
+    padding: 14px 16px;
+    font-size: 15px;
+    border: 2px solid var(--evolution-border);
+    border-radius: 12px;
+    background: var(--evolution-light);
+    color: var(--evolution-dark);
+    transition: all 0.2s ease;
+    outline: none;
+  }
+
+  .evolution-input:focus {
+    border-color: var(--evolution-gold);
+    background: #FFFFFF;
+    box-shadow: 0 0 0 4px rgba(245,197,24,0.15);
+  }
+
+  .evolution-input::placeholder {
+    color: #9CA3AF;
+  }
+
+  .evolution-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .evolution-button {
+    width: 100%;
+    padding: 18px 24px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--evolution-dark);
+    background: linear-gradient(135deg, var(--evolution-gold), #E0B115);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  .evolution-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(245,197,24,0.4);
+  }
+
+  .evolution-button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .evolution-button svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .evolution-spinner {
+    animation: evolution-spin 1s linear infinite;
+  }
+
+  @keyframes evolution-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .evolution-features {
+    padding: 0 24px 32px;
+  }
+
+  .evolution-features-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--evolution-gray);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+  }
+
+  .evolution-feature {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .evolution-feature-icon {
+    width: 20px;
+    height: 20px;
+    color: #22C55E;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .evolution-feature-text {
+    font-size: 14px;
+    color: var(--evolution-dark);
+    line-height: 1.5;
+  }
+
+  .evolution-guarantee {
+    background: var(--evolution-light);
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-top: 1px solid var(--evolution-border);
+  }
+
+  .evolution-guarantee-icon {
+    width: 40px;
+    height: 40px;
+    background: #DCFCE7;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .evolution-guarantee-icon svg {
+    width: 20px;
+    height: 20px;
+    color: #16A34A;
+  }
+
+  .evolution-guarantee-text {
+    font-size: 13px;
+    color: var(--evolution-gray);
+    line-height: 1.5;
+  }
+
+  .evolution-guarantee-text strong {
+    color: var(--evolution-dark);
+  }
+
+  .evolution-error {
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    color: #DC2626;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    margin-bottom: 20px;
+    display: none;
+  }
+
+  .evolution-error.show {
+    display: block;
+  }
+
+  .evolution-privacy {
+    text-align: center;
+    padding: 16px 24px;
+    font-size: 12px;
+    color: var(--evolution-gray);
+  }
+
+  .evolution-privacy a {
+    color: var(--evolution-dark);
+    text-decoration: underline;
+  }
+
+  @media (max-width: 480px) {
+    .evolution-funnel {
+      padding: 20px 16px;
+    }
+    
+    .evolution-row {
+      grid-template-columns: 1fr;
+    }
+    
+    .evolution-title {
+      font-size: 24px;
+    }
+    
+    .evolution-price {
+      font-size: 36px;
+    }
+  }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- SEZIONE 2: HTML STRUTTURA -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<div class="evolution-funnel" id="evolution-analisi-funnel">
+  <div class="evolution-card">
+    
+    <!-- Header -->
+    <div class="evolution-header">
+      <div class="evolution-badge">Analisi Strategica</div>
+      <h2 class="evolution-title">Scopri il Potenziale del tuo Progetto Digitale</h2>
+      <p class="evolution-subtitle">
+        Ricevi un'analisi professionale personalizzata per capire se il tuo progetto può diventare un'Accademia Digitale di successo.
+      </p>
+      
+      <div class="evolution-price-box">
+        <span class="evolution-price">€67</span>
+        <div class="evolution-price-info">
+          <div class="evolution-price-label">Una tantum</div>
+          <div class="evolution-price-note">Include call strategica</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Form -->
+    <form class="evolution-form" id="evolution-checkout-form">
+      <div class="evolution-error" id="evolution-error-message"></div>
+      
+      <div class="evolution-row">
+        <div class="evolution-form-group">
+          <label class="evolution-label" for="evo-nome">Nome *</label>
+          <input type="text" id="evo-nome" name="nome" class="evolution-input" placeholder="Il tuo nome" required>
+        </div>
+        <div class="evolution-form-group">
+          <label class="evolution-label" for="evo-cognome">Cognome *</label>
+          <input type="text" id="evo-cognome" name="cognome" class="evolution-input" placeholder="Il tuo cognome" required>
+        </div>
+      </div>
+      
+      <div class="evolution-form-group">
+        <label class="evolution-label" for="evo-email">Email *</label>
+        <input type="email" id="evo-email" name="email" class="evolution-input" placeholder="la-tua@email.com" required>
+      </div>
+      
+      <div class="evolution-form-group">
+        <label class="evolution-label" for="evo-telefono">Telefono *</label>
+        <input type="tel" id="evo-telefono" name="telefono" class="evolution-input" placeholder="+39 333 1234567" required>
+      </div>
+      
+      <button type="submit" class="evolution-button" id="evolution-submit-btn">
+        <span id="evolution-btn-text">Acquista Analisi Strategica</span>
+        <svg id="evolution-btn-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+        </svg>
+        <svg id="evolution-btn-spinner" class="evolution-spinner" style="display:none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" opacity="0.25"></circle>
+          <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      </button>
+    </form>
+    
+    <!-- Features -->
+    <div class="evolution-features">
+      <div class="evolution-features-title">Cosa include</div>
+      
+      <div class="evolution-feature">
+        <svg class="evolution-feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        <span class="evolution-feature-text"><strong>Analisi Strategica Personalizzata</strong> — Documento di 12+ pagine sul potenziale del tuo progetto</span>
+      </div>
+      
+      <div class="evolution-feature">
+        <svg class="evolution-feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        <span class="evolution-feature-text"><strong>Call Strategica con Claudio</strong> — 30 minuti per discutere la tua analisi e i prossimi passi</span>
+      </div>
+      
+      <div class="evolution-feature">
+        <svg class="evolution-feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        <span class="evolution-feature-text"><strong>Valutazione del Potenziale</strong> — Punteggio 1-10 con feedback dettagliato su punti di forza e aree di miglioramento</span>
+      </div>
+      
+      <div class="evolution-feature">
+        <svg class="evolution-feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        <span class="evolution-feature-text"><strong>Roadmap del Progetto</strong> — Piano d'azione per creare la tua Accademia Digitale</span>
+      </div>
+    </div>
+    
+    <!-- Guarantee -->
+    <div class="evolution-guarantee">
+      <div class="evolution-guarantee-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+      </div>
+      <div class="evolution-guarantee-text">
+        <strong>Pagamento sicuro con Stripe.</strong> Se l'analisi non rispetta le aspettative, ti rimborsiamo entro 7 giorni.
+      </div>
+    </div>
+    
+    <!-- Privacy -->
+    <div class="evolution-privacy">
+      Cliccando "Acquista" accetti i <a href="/termini" target="_blank">Termini di Servizio</a> e la <a href="/privacy" target="_blank">Privacy Policy</a>
+    </div>
+    
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- SEZIONE 3: JAVASCRIPT -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<script>
+(function() {
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CONFIGURAZIONE - MODIFICA QUESTI VALORI
+  // ═══════════════════════════════════════════════════════════════════════════
+  const CONFIG = {
+    // URL del tuo backend Evolution PRO
+    API_URL: 'https://app.evolution-pro.it',  // <-- MODIFICA CON IL TUO URL
+    
+    // URL di redirect dopo pagamento completato
+    SUCCESS_URL: '/questionario',
+    
+    // URL di redirect se il pagamento viene annullato
+    CANCEL_URL: '/analisi-strategica'
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LOGICA DEL FUNNEL - NON MODIFICARE
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  const form = document.getElementById('evolution-checkout-form');
+  const submitBtn = document.getElementById('evolution-submit-btn');
+  const btnText = document.getElementById('evolution-btn-text');
+  const btnIcon = document.getElementById('evolution-btn-icon');
+  const btnSpinner = document.getElementById('evolution-btn-spinner');
+  const errorDiv = document.getElementById('evolution-error-message');
+
+  function showError(message) {
+    errorDiv.textContent = message;
+    errorDiv.classList.add('show');
+    setTimeout(() => errorDiv.classList.remove('show'), 5000);
+  }
+
+  function setLoading(loading) {
+    submitBtn.disabled = loading;
+    btnText.textContent = loading ? 'Elaborazione...' : 'Acquista Analisi Strategica';
+    btnIcon.style.display = loading ? 'none' : 'block';
+    btnSpinner.style.display = loading ? 'block' : 'none';
+  }
+
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const nome = document.getElementById('evo-nome').value.trim();
+    const cognome = document.getElementById('evo-cognome').value.trim();
+    const email = document.getElementById('evo-email').value.trim();
+    const telefono = document.getElementById('evo-telefono').value.trim();
+
+    // Validazione base
+    if (!nome || !cognome || !email || !telefono) {
+      showError('Per favore compila tutti i campi.');
+      return;
+    }
+
+    if (!email.includes('@') || !email.includes('.')) {
+      showError('Inserisci un indirizzo email valido.');
+      return;
+    }
+
+    setLoading(true);
+    errorDiv.classList.remove('show');
+
+    try {
+      // STEP 1: Registrazione cliente
+      const registerResponse = await fetch(`${CONFIG.API_URL}/api/cliente-analisi/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome, cognome, email, telefono })
+      });
+
+      const registerData = await registerResponse.json();
+
+      if (!registerResponse.ok) {
+        throw new Error(registerData.detail || 'Errore nella registrazione');
+      }
+
+      const userId = registerData.user_id;
+
+      // STEP 2: Crea sessione di checkout Stripe
+      const checkoutResponse = await fetch(`${CONFIG.API_URL}/api/cliente-analisi/checkout?user_id=${userId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      const checkoutData = await checkoutResponse.json();
+
+      if (!checkoutResponse.ok) {
+        throw new Error(checkoutData.detail || 'Errore nella creazione del pagamento');
+      }
+
+      // STEP 3: Redirect a Stripe Checkout
+      if (checkoutData.checkout_url) {
+        window.location.href = checkoutData.checkout_url;
+      } else {
+        throw new Error('URL di checkout non ricevuto');
+      }
+
+    } catch (error) {
+      console.error('Evolution Funnel Error:', error);
+      
+      // Gestione errori specifici
+      if (error.message.includes('già registrata')) {
+        showError('Questa email è già registrata. Accedi al tuo account per continuare.');
+      } else if (error.message.includes('già pagato')) {
+        showError('Hai già acquistato l\'analisi. Accedi per compilare il questionario.');
+      } else {
+        showError(error.message || 'Si è verificato un errore. Riprova tra qualche istante.');
+      }
+      
+      setLoading(false);
+    }
+  });
+
+  // Check se l'utente torna da Stripe con successo
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('payment') === 'success') {
+    // Mostra messaggio di successo e redirect al questionario
+    alert('Pagamento completato con successo! Ora compilerai il questionario.');
+    window.location.href = CONFIG.SUCCESS_URL;
+  }
+
+})();
+</script>
+
+<!--
+═══════════════════════════════════════════════════════════════════════════════
+NOTE PER L'INTEGRAZIONE:
+
+1. STRIPE WEBHOOK
+   Configura il webhook Stripe per gestire i pagamenti completati:
+   URL: https://tuo-dominio.com/api/webhook/stripe
+   Eventi: checkout.session.completed
+
+2. URL DI REDIRECT STRIPE
+   Nel tuo backend, assicurati che le URL di success/cancel siano configurate:
+   - success_url: https://tuo-dominio.com/questionario?payment=success&session_id={CHECKOUT_SESSION_ID}
+   - cancel_url: https://tuo-dominio.com/analisi-strategica?payment=cancelled
+
+3. TRACKING (OPZIONALE)
+   Per tracciare le conversioni, aggiungi:
+   - Google Analytics: gtag('event', 'begin_checkout', {...})
+   - Facebook Pixel: fbq('track', 'InitiateCheckout')
+   - Dopo il pagamento: fbq('track', 'Purchase', {value: 67, currency: 'EUR'})
+
+4. PERSONALIZZAZIONE
+   - Modifica i colori in :root nel CSS
+   - Cambia i testi nel HTML
+   - Aggiungi/rimuovi features nella sezione "Cosa include"
+
+═══════════════════════════════════════════════════════════════════════════════
+-->
