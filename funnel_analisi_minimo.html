@@ -1,0 +1,164 @@
+<!--
+FUNNEL ANALISI STRATEGICA EVOLUTION PRO - VERSIONE MINIMA
+Copia questo codice nella tua landing page.
+Modifica solo API_URL nella sezione script.
+-->
+
+<style>
+.evo-funnel{font-family:Inter,-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:40px 24px}
+.evo-card{background:#fff;border-radius:24px;box-shadow:0 4px 24px rgba(0,0,0,.08);overflow:hidden}
+.evo-header{background:linear-gradient(135deg,#1E2128,#2D3139);padding:32px 24px;text-align:center}
+.evo-badge{display:inline-block;background:#F5C518;color:#1E2128;font-size:12px;font-weight:700;padding:6px 16px;border-radius:100px;margin-bottom:16px;text-transform:uppercase}
+.evo-title{color:#fff;font-size:28px;font-weight:800;margin:0 0 8px}
+.evo-subtitle{color:rgba(255,255,255,.7);font-size:15px;margin:0}
+.evo-price-box{background:rgba(245,197,24,.15);border:2px solid #F5C518;border-radius:16px;padding:20px;margin-top:24px;display:flex;align-items:center;justify-content:center;gap:12px}
+.evo-price{font-size:42px;font-weight:900;color:#F5C518}
+.evo-price-label{color:rgba(255,255,255,.6);font-size:12px;text-transform:uppercase}
+.evo-price-note{color:#fff;font-size:14px;font-weight:600}
+.evo-form{padding:32px 24px}
+.evo-form-group{margin-bottom:20px}
+.evo-label{display:block;font-size:13px;font-weight:600;color:#1E2128;margin-bottom:8px}
+.evo-input{width:100%;padding:14px 16px;font-size:15px;border:2px solid #ECEDEF;border-radius:12px;background:#FAFAF7;outline:none;transition:all .2s}
+.evo-input:focus{border-color:#F5C518;background:#fff;box-shadow:0 0 0 4px rgba(245,197,24,.15)}
+.evo-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.evo-btn{width:100%;padding:18px;font-size:16px;font-weight:700;color:#1E2128;background:linear-gradient(135deg,#F5C518,#E0B115);border:none;border-radius:12px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px}
+.evo-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(245,197,24,.4)}
+.evo-btn:disabled{opacity:.7;cursor:not-allowed;transform:none}
+.evo-features{padding:0 24px 32px}
+.evo-feature{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;font-size:14px;color:#1E2128}
+.evo-check{width:20px;height:20px;color:#22C55E;flex-shrink:0}
+.evo-guarantee{background:#FAFAF7;padding:20px 24px;display:flex;align-items:center;gap:16px;border-top:1px solid #ECEDEF;font-size:13px;color:#5F6572}
+.evo-error{background:#FEF2F2;border:1px solid #FECACA;color:#DC2626;padding:12px 16px;border-radius:12px;font-size:14px;margin-bottom:20px;display:none}
+.evo-error.show{display:block}
+.evo-spin{animation:evospin 1s linear infinite}
+@keyframes evospin{to{transform:rotate(360deg)}}
+@media(max-width:480px){.evo-row{grid-template-columns:1fr}.evo-title{font-size:24px}.evo-price{font-size:36px}}
+</style>
+
+<div class="evo-funnel">
+  <div class="evo-card">
+    <div class="evo-header">
+      <div class="evo-badge">Analisi Strategica</div>
+      <h2 class="evo-title">Scopri il Potenziale del tuo Progetto</h2>
+      <p class="evo-subtitle">Ricevi un'analisi professionale per capire se il tuo progetto può diventare un'Accademia Digitale.</p>
+      <div class="evo-price-box">
+        <span class="evo-price">€67</span>
+        <div>
+          <div class="evo-price-label">Una tantum</div>
+          <div class="evo-price-note">Include call strategica</div>
+        </div>
+      </div>
+    </div>
+    
+    <form class="evo-form" id="evo-form">
+      <div class="evo-error" id="evo-error"></div>
+      <div class="evo-row">
+        <div class="evo-form-group">
+          <label class="evo-label">Nome *</label>
+          <input type="text" id="evo-nome" class="evo-input" placeholder="Il tuo nome" required>
+        </div>
+        <div class="evo-form-group">
+          <label class="evo-label">Cognome *</label>
+          <input type="text" id="evo-cognome" class="evo-input" placeholder="Il tuo cognome" required>
+        </div>
+      </div>
+      <div class="evo-form-group">
+        <label class="evo-label">Email *</label>
+        <input type="email" id="evo-email" class="evo-input" placeholder="la-tua@email.com" required>
+      </div>
+      <div class="evo-form-group">
+        <label class="evo-label">Telefono *</label>
+        <input type="tel" id="evo-telefono" class="evo-input" placeholder="+39 333 1234567" required>
+      </div>
+      <button type="submit" class="evo-btn" id="evo-btn">
+        <span id="evo-btn-text">Acquista Analisi Strategica</span>
+        <svg id="evo-arrow" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+        <svg id="evo-loader" class="evo-spin" style="display:none" width="20" height="20" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" opacity=".25"/><path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+      </button>
+    </form>
+    
+    <div class="evo-features">
+      <div class="evo-feature"><svg class="evo-check" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span><strong>Analisi Strategica</strong> — Documento 12+ pagine personalizzato</span></div>
+      <div class="evo-feature"><svg class="evo-check" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span><strong>Call con Claudio</strong> — 30 minuti per discutere l'analisi</span></div>
+      <div class="evo-feature"><svg class="evo-check" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span><strong>Valutazione Potenziale</strong> — Punteggio 1-10 con feedback</span></div>
+      <div class="evo-feature"><svg class="evo-check" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span><strong>Roadmap Progetto</strong> — Piano d'azione concreto</span></div>
+    </div>
+    
+    <div class="evo-guarantee">
+      <svg width="40" height="40" fill="none" stroke="#16A34A" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+      <span><strong>Pagamento sicuro con Stripe.</strong> Rimborso garantito entro 7 giorni.</span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ⚠️ MODIFICA QUESTO URL CON IL TUO BACKEND
+  const API = 'https://app.evolution-pro.it';
+  
+  const form = document.getElementById('evo-form');
+  const btn = document.getElementById('evo-btn');
+  const btnText = document.getElementById('evo-btn-text');
+  const arrow = document.getElementById('evo-arrow');
+  const loader = document.getElementById('evo-loader');
+  const errorDiv = document.getElementById('evo-error');
+
+  function showError(msg) {
+    errorDiv.textContent = msg;
+    errorDiv.classList.add('show');
+    setTimeout(() => errorDiv.classList.remove('show'), 5000);
+  }
+
+  function setLoading(on) {
+    btn.disabled = on;
+    btnText.textContent = on ? 'Elaborazione...' : 'Acquista Analisi Strategica';
+    arrow.style.display = on ? 'none' : 'block';
+    loader.style.display = on ? 'block' : 'none';
+  }
+
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const nome = document.getElementById('evo-nome').value.trim();
+    const cognome = document.getElementById('evo-cognome').value.trim();
+    const email = document.getElementById('evo-email').value.trim();
+    const telefono = document.getElementById('evo-telefono').value.trim();
+
+    if (!nome || !cognome || !email || !telefono) {
+      showError('Compila tutti i campi.');
+      return;
+    }
+
+    setLoading(true);
+    errorDiv.classList.remove('show');
+
+    try {
+      // Registrazione
+      const r1 = await fetch(`${API}/api/cliente-analisi/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome, cognome, email, telefono })
+      });
+      const d1 = await r1.json();
+      if (!r1.ok) throw new Error(d1.detail || 'Errore registrazione');
+
+      // Checkout
+      const r2 = await fetch(`${API}/api/cliente-analisi/checkout?user_id=${d1.user_id}`, {
+        method: 'POST'
+      });
+      const d2 = await r2.json();
+      if (!r2.ok) throw new Error(d2.detail || 'Errore checkout');
+
+      // Redirect a Stripe
+      if (d2.checkout_url) {
+        window.location.href = d2.checkout_url;
+      } else {
+        throw new Error('URL checkout non ricevuto');
+      }
+    } catch (err) {
+      showError(err.message || 'Errore. Riprova.');
+      setLoading(false);
+    }
+  });
+})();
+</script>
