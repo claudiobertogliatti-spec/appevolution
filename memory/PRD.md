@@ -47,7 +47,7 @@ Partnership attiva → Redirect a /partner/dashboard
 4. `decisione_partnership` - Cliente può vedere e decidere
 5. `partner_attivo` - Partnership attivata
 
-### Template Analisi (12 Sezioni Professionali)
+### Template Analisi (13 Sezioni Professionali)
 1. **Copertina** - Titolo e dati cliente
 2. **Introduzione** - Perché hai ricevuto questa analisi
 3. **Modello Evolution PRO** - 5 fasi del sistema
@@ -58,9 +58,24 @@ Partnership attiva → Redirect a /partner/dashboard
 8. **Potenziale del Progetto** - Valutazione qualitativa
 9. **Ipotesi di Accademia** - Struttura moduli suggerita
 10. **Modello di Monetizzazione** - Pricing suggerito
-11. **Valutazione Fattibilità** - Punteggio 1-10 + esito
-12. **Roadmap** - 5 fasi con tempistiche
-13. **Prossimi Passi** - Azioni dopo la call
+11. **🆕 Costo del Modello Attuale** - Pagina persuasiva (shift psicologico da "spendo?" a "quanto mi costa restare fermo?")
+12. **Esito Fattibilità** - Punteggio 1-10 + **Livello Potenziale** (Basso/Medio/Alto/Molto Alto) + esito
+13. **Roadmap** - 5 fasi con tempistiche
+14. **Prossimi Passi** - Azioni dopo la call
+
+### Sezione "Costo del Modello Attuale" (Nuova)
+- Analizza il modello di lavoro attuale (consulenze 1:1, ore vendute, reddito legato al tempo)
+- Spiega il limite strutturale: ogni entrata richiede nuovo tempo
+- Sposta la domanda: da "spendo €2.790?" a "quanto mi costa restare fermo?"
+- Presenta l'Accademia Digitale come asset per liberare tempo e stabilizzare reddito
+
+### Livello Potenziale (Nuovo)
+| Punteggio | Livello |
+|-----------|---------|
+| 1-4 | Basso |
+| 5-6 | Medio |
+| 7-8 | Alto |
+| 9-10 | Molto Alto |
 
 ### Pagina /decisione-partnership
 - Analisi Strategica completa (download PDF)
