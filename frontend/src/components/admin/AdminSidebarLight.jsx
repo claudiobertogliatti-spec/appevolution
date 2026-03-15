@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { LayoutDashboard, Users, Film, FileText, BarChart3, MessageCircle, AlertTriangle, Settings, ChevronDown, ChevronRight, LogOut, Database, Edit3, Trophy, Zap, HelpCircle, Webhook, Bot, DollarSign, UsersRound, FileCheck, ClipboardCheck, UserPlus } from "lucide-react";
+import { LayoutDashboard, Users, Film, FileText, BarChart3, MessageCircle, AlertTriangle, Settings, ChevronDown, ChevronRight, LogOut, Database, Edit3, Trophy, Zap, HelpCircle, Webhook, Bot, DollarSign, UsersRound, FileCheck, ClipboardCheck, UserPlus, Unlock } from "lucide-react";
 
 const CLAUDIO_NAV = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "clienti-analisi", label: "Clienti Analisi", icon: UserPlus, dot: true },
+  { id: "flusso-analisi", label: "Flusso Analisi", icon: Unlock, dot: true },
   { id: "partner", label: "Partner", icon: Users },
   { id: "team", label: "Team Evolution", icon: UsersRound },
   { id: "agenti", label: "Agent Hub", icon: Bot },
@@ -20,6 +21,7 @@ const CLAUDIO_NAV = [
 const ANTONELLA_NAV = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "clienti-analisi", label: "Clienti Analisi", icon: UserPlus, dot: true },
+  { id: "flusso-analisi", label: "Flusso Analisi", icon: Unlock, dot: true },
   { id: "partner", label: "Partner", icon: Users },
   { id: "team", label: "Team Evolution", icon: UsersRound },
   { id: "agenti", label: "Agent Hub", icon: Bot },
