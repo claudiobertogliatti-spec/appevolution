@@ -191,7 +191,9 @@ class AuthService:
         if not user:
             return None
         
-        if not verify_password(password, user.get("hashed_password", "")):
+        # Check both hashed_password and password_hash fields (for cliente_analisi users)
+        stored_hash = user.get("hashed_password") or user.get("password_hash", "")
+        if not stored_hash or not verify_password(password, stored_hash):
             return None
         
         if not user.get("is_active", True):
