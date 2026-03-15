@@ -195,9 +195,35 @@ Genera il documento in formato JSON con questa struttura ESATTA:
             "contenuto": "[GENERA 2 PARAGRAFI: Ipotesi REALISTICA e PRUDENTE di fascia prezzo corso (es. €497-€1997), tipo di offerta principale, possibili sviluppi futuri. EVITA promesse economiche specifiche.]",
             "pricing_suggerito": "[Range realistico es. €497 - €997]"
         }},
+        "costo_modello_attuale": {{
+            "titolo": "Il vero costo di rimanere nel modello attuale",
+            "contenuto": "[GENERA 3-4 PARAGRAFI: Analizza il modello di lavoro attuale del professionista. Se lavora con consulenze individuali, sessioni 1:1, o servizi legati al tempo, spiega come questo crei un limite strutturale alla crescita. Il reddito è legato alle ore disponibili. Anche aumentando la tariffa, esiste un tetto naturale. Il problema non è il fatturato di oggi, ma la traiettoria dei prossimi anni. Una Accademia Digitale non sostituisce il lavoro principale, ma crea un asset che genera entrate indipendentemente dal tempo disponibile. Usa tono consulenziale, NON promozionale. L'obiettivo è far riflettere sul costo-opportunità di non cambiare.]",
+            "modello_attuale": {{
+                "titolo": "Il modello attuale",
+                "elementi": [
+                    "Consulenze individuali",
+                    "Ore di lavoro vendute direttamente",
+                    "Reddito legato alla presenza"
+                ],
+                "limite": "Ogni nuova entrata richiede nuovo tempo"
+            }},
+            "limite_tempo": {{
+                "titolo": "Il limite del tempo",
+                "contenuto": "Se il tuo lavoro si basa esclusivamente su sessioni, consulenze o lezioni, il tuo reddito resterà sempre legato al numero di ore disponibili nella settimana. Questo significa che anche aumentando la tariffa esiste comunque un tetto naturale di crescita."
+            }},
+            "obiettivo_accademia": {{
+                "titolo": "L'obiettivo di una Accademia Digitale",
+                "benefici": [
+                    "Aumentare l'impatto del proprio metodo",
+                    "Liberare tempo",
+                    "Stabilizzare il reddito nel tempo"
+                ]
+            }}
+        }},
         "valutazione_fattibilita": {{
-            "titolo": "Valutazione del progetto",
+            "titolo": "Esito del Check di Fattibilità",
             "punteggio": [NUMERO DA 1 A 10 basato sulla qualità complessiva del progetto],
+            "livello_potenziale": "[UNO DEI QUATTRO: 'Basso' / 'Medio' / 'Alto' / 'Molto Alto' - basato su punteggio: 1-4=Basso, 5-6=Medio, 7-8=Alto, 9-10=Molto Alto]",
             "esito": "[UNO DEI TRE: 'Progetto adatto alla partnership' / 'Progetto promettente ma da definire meglio' / 'Progetto non ancora pronto']",
             "motivazione": "[GENERA 2-3 PARAGRAFI: Spiega CHIARAMENTE il motivo della valutazione. Se ci sono criticità (target generico, posizionamento debole, mancanza esperienza vendita), segnalale. Se il progetto è forte, spiega perché.]",
             "punti_forza": ["[Lista 2-3 punti di forza specifici]"],
