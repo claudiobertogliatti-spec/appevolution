@@ -263,6 +263,22 @@ function AdminOverview({ stats, agents, partners, alerts, onNavigate }) {
         </div>
       </div>
       
+      {/* Card NUOVO Flusso Analisi */}
+      <div className="rounded-xl overflow-hidden cursor-pointer hover:shadow-lg transition-shadow" style={{ background: '#8B5CF615', border: '2px solid #8B5CF6' }} onClick={()=>onNavigate("flusso-analisi")}>
+        <div className="px-5 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#8B5CF6' }}>
+              <FileText className="w-5 h-5" style={{ color: '#FFFFFF' }} />
+            </div>
+            <div>
+              <div className="font-bold" style={{ color: '#1E2128' }}>Gestione Flusso Analisi</div>
+              <div className="text-xs" style={{ color: '#5F6572' }}>Nuovo flusso: Bozza → Conferma → Call → Decisione</div>
+            </div>
+          </div>
+          <ChevronRight className="w-5 h-5" style={{ color: '#8B5CF6' }} />
+        </div>
+      </div>
+      
       {alertPartners.length>0 && (
         <div className="rounded-xl p-4" style={{ background: '#FDECEF', border: '1px solid #EF467F30' }}>
           <div className="flex items-center gap-2 mb-3"><AlertCircle className="w-4 h-4 text-red-500"/><span className="font-bold text-sm text-red-500">{alertPartners.length} partner richiedono attenzione</span></div>
