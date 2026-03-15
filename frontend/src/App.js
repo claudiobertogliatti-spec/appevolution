@@ -1209,6 +1209,16 @@ export default function App() {
       );
     }
 
+    // Route: Decisione Partnership - NUOVO FLUSSO dopo attivazione admin
+    if (window.location.pathname === "/decisione-partnership") {
+      return (
+        <DecisionePartnershipPage 
+          user={currentUser}
+          onLogout={handleClienteLogout}
+        />
+      );
+    }
+
     // Route: Attivazione Partnership - per clienti approvati dopo la call strategica
     if (window.location.pathname === "/attivazione-partnership") {
       // Verifica payment success da Stripe Partnership
