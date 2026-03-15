@@ -1126,7 +1126,7 @@ class ClienteAnalisiRegisterRequest(BaseModel):
     cognome: str
     email: str
     telefono: str
-    password: str
+    password: Optional[str] = None  # Opzionale - auto-generata se non fornita
 
 class ClienteAnalisiResponse(BaseModel):
     """Response per cliente analisi"""
