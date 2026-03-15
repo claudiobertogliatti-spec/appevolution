@@ -12128,6 +12128,11 @@ from routers.analisi_consulenziale import router as analisi_consulenziale_router
 set_analisi_consulenziale_db(db)
 app.include_router(analisi_consulenziale_router)
 
+# Include flusso analisi router (Nuovo flusso: Questionario → Auto-genera → Admin modifica → Call → Decisione → Partnership)
+from routers.flusso_analisi import router as flusso_analisi_router, set_db as set_flusso_analisi_db
+set_flusso_analisi_db(db)
+app.include_router(flusso_analisi_router)
+
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler
 
