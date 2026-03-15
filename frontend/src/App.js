@@ -1558,6 +1558,7 @@ export default function App() {
               setNav("cliente-post");
             }}/>}
             {nav==="clienti-analisi"&&<AdminClientiAnalisiPanel/>}
+            {nav==="flusso-analisi"&&<GestioneFlussoAnalisi/>}
             {nav==="agenti"&&<AgentDashboard/>}
             {/* OrionLeadScoring rimosso - Lead gestiti esclusivamente in Systeme.io */}
             {nav==="approvals"&&<ApprovalDashboard/>}
