@@ -1,12 +1,96 @@
 # Evolution PRO OS - Product Requirements Document
 
-**Ultimo aggiornamento:** 13 Marzo 2026
+**Ultimo aggiornamento:** 15 Marzo 2026
 
 ## CICLO COMPLETO EVOLUTION PRO ✅
 
 ```
 Posizionamento → Masterclass → Videocorso → Funnel → Lancio → Ottimizzazione → Continuità
 ```
+
+---
+
+## 🆕 NUOVO FLUSSO ANALISI & ONBOARDING CLIENTE ✅ (15 Mar 2026)
+
+**Implementato e testato al 100% (26/26 test passati)**
+
+### Flusso Completo
+
+```
+Cliente compila questionario
+    ↓
+Sistema AUTO-GENERA "Bozza Analisi" (NASCOSTA al cliente)
+    ↓
+Admin: Visualizza, modifica, conferma analisi
+    ↓
+Admin: Fa call strategica con cliente
+    ↓
+Admin: Clicca "Attiva fase decisione cliente"
+    ↓
+Cliente accede a /decisione-partnership
+    ↓
+Cliente: Visualizza analisi, roadmap, proposta
+    ↓
+Cliente: Firma contratto digitalmente
+    ↓
+Cliente: Carica documenti (CI, CF, P.IVA)
+    ↓
+Cliente: Paga €2.790 (Stripe o Bonifico)
+    ↓
+Partnership attiva → Redirect a /partner/dashboard
+```
+
+### Stati del Flusso
+1. `questionario_inviato` - Cliente ha compilato il questionario
+2. `bozza_analisi` - Analisi auto-generata (nascosta al cliente)
+3. `analisi_pronta_per_call` - Admin ha confermato, pronto per call
+4. `decisione_partnership` - Cliente può vedere e decidere
+5. `partner_attivo` - Partnership attivata
+
+### Template Analisi (12 Sezioni Professionali)
+1. **Copertina** - Titolo e dati cliente
+2. **Introduzione** - Perché hai ricevuto questa analisi
+3. **Modello Evolution PRO** - 5 fasi del sistema
+4. **Errori Comuni** - Perché i corsi non vendono
+5. **Profilo Professionale** - Analisi del cliente
+6. **Problema del Mercato** - Validazione domanda
+7. **Target e Posizionamento** - Analisi del target
+8. **Potenziale del Progetto** - Valutazione qualitativa
+9. **Ipotesi di Accademia** - Struttura moduli suggerita
+10. **Modello di Monetizzazione** - Pricing suggerito
+11. **Valutazione Fattibilità** - Punteggio 1-10 + esito
+12. **Roadmap** - 5 fasi con tempistiche
+13. **Prossimi Passi** - Azioni dopo la call
+
+### Pagina /decisione-partnership
+- Analisi Strategica completa (download PDF)
+- Roadmap interattiva del progetto
+- Proposta Partnership (€2.790)
+- Contratto con firma digitale
+- Upload documenti (CI, CF, P.IVA)
+- Pagamento (Stripe + Bonifico)
+- CTA: "Attiva la Partnership Evolution PRO"
+
+### Endpoint API (flusso_analisi.py)
+- `GET /api/flusso-analisi/analisi/{user_id}` - Recupera analisi
+- `POST /api/flusso-analisi/genera-analisi-auto/{user_id}` - Genera bozza
+- `PUT /api/flusso-analisi/modifica-analisi` - Admin modifica sezione
+- `POST /api/flusso-analisi/conferma-analisi` - Conferma per call
+- `POST /api/flusso-analisi/attiva-decisione` - Sblocca /decisione-partnership
+- `GET /api/flusso-analisi/decisione/{user_id}` - Dati pagina cliente
+- `POST /api/flusso-analisi/firma-contratto` - Firma digitale
+- `POST /api/flusso-analisi/upload-documento/{user_id}` - Upload doc
+- `POST /api/flusso-analisi/create-payment-session/{user_id}` - Stripe
+- `POST /api/flusso-analisi/conferma-bonifico/{user_id}` - Conferma bonifico
+- `POST /api/flusso-analisi/attiva-partnership/{user_id}` - Attiva partner
+- `GET /api/flusso-analisi/analisi-pdf/{user_id}` - PDF analisi
+- `GET /api/flusso-analisi/contratto-pdf/{user_id}` - PDF contratto
+
+### Pannello Admin: Gestione Flusso Analisi
+- Lista clienti con filtri per stato
+- Timeline visiva del flusso
+- Modal gestione con editing sezioni
+- Bottoni: Conferma Analisi, Attiva Decisione, Conferma Bonifico
 
 ---
 
