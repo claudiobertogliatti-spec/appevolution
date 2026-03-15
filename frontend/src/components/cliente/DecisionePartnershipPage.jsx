@@ -334,6 +334,123 @@ export function DecisionePartnershipPage({ user, onLogout }) {
                 <div className="p-6 space-y-6">
                   {Object.entries(data.analisi.sezioni || {}).map(([key, sezione]) => {
                     if (!sezione || typeof sezione !== "object") return null;
+                    
+                    // Rendering speciale per "costo_modello_attuale"
+                    if (key === "costo_modello_attuale") {
+                      return (
+                        <div key={key} className="p-6 rounded-xl" style={{ background: "#FEF3C7", border: "2px solid #F59E0B" }}>
+                          <h4 className="font-bold text-lg mb-3" style={{ color: "#B45309" }}>
+                            {sezione.titolo || "Il vero costo di rimanere nel modello attuale"}
+                          </h4>
+                          <p className="text-sm leading-relaxed mb-4" style={{ color: "#92400E" }}>
+                            {sezione.contenuto}
+                          </p>
+                          
+                          {sezione.modello_attuale && (
+                            <div className="p-4 rounded-lg mb-4" style={{ background: "rgba(255,255,255,0.7)" }}>
+                              <h5 className="font-bold text-sm mb-2" style={{ color: "#B45309" }}>
+                                {sezione.modello_attuale.titolo}
+                              </h5>
+                              <ul className="space-y-1 mb-2">
+                                {sezione.modello_attuale.elementi?.map((el, i) => (
+                                  <li key={i} className="flex items-center gap-2 text-sm" style={{ color: "#92400E" }}>
+                                    <span>•</span> {el}
+                                  </li>
+                                ))}
+                              </ul>
+                              <p className="text-sm font-medium" style={{ color: "#B45309" }}>
+                                ⚠️ {sezione.modello_attuale.limite}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {sezione.obiettivo_accademia && (
+                            <div className="p-4 rounded-lg" style={{ background: "#D1FAE5" }}>
+                              <h5 className="font-bold text-sm mb-2" style={{ color: "#065F46" }}>
+                                {sezione.obiettivo_accademia.titolo}
+                              </h5>
+                              <ul className="space-y-1">
+                                {sezione.obiettivo_accademia.benefici?.map((ben, i) => (
+                                  <li key={i} className="flex items-center gap-2 text-sm" style={{ color: "#047857" }}>
+                                    <CheckCircle className="w-4 h-4 flex-shrink-0" /> {ben}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+                    
+                    // Rendering speciale per "valutazione_fattibilita"
+                    if (key === "valutazione_fattibilita") {
+                      const potenzialeColors = {
+                        "Basso": { bg: "#FEE2E2", color: "#DC2626", border: "#FECACA" },
+                        "Medio": { bg: "#FEF3C7", color: "#D97706", border: "#FDE68A" },
+                        "Alto": { bg: "#D1FAE5", color: "#059669", border: "#A7F3D0" },
+                        "Molto Alto": { bg: "#DCFCE7", color: "#16A34A", border: "#86EFAC" }
+                      };
+                      const potenziale = sezione.livello_potenziale || "Medio";
+                      const colors = potenzialeColors[potenziale] || potenzialeColors["Medio"];
+                      
+                      return (
+                        <div key={key} className="p-6 rounded-xl" style={{ background: colors.bg, border: `2px solid ${colors.border}` }}>
+                          <h4 className="font-bold text-lg mb-4" style={{ color: colors.color }}>
+                            {sezione.titolo || "Esito del Check di Fattibilità"}
+                          </h4>
+                          
+                          {/* Badge Livello Potenziale */}
+                          <div className="flex items-center gap-4 mb-4">
+                            <div className="text-center">
+                              <div className="text-4xl font-black" style={{ color: colors.color }}>
+                                {sezione.punteggio}/10
+                              </div>
+                              <div className="text-xs font-medium" style={{ color: colors.color }}>Punteggio</div>
+                            </div>
+                            <div className="px-6 py-3 rounded-xl text-center" style={{ background: colors.color }}>
+                              <div className="text-sm font-medium text-white/80">Potenziale Progetto</div>
+                              <div className="text-xl font-black text-white">{potenziale}</div>
+                            </div>
+                          </div>
+                          
+                          {/* Esito */}
+                          <div className="p-4 rounded-lg mb-4" style={{ background: "rgba(255,255,255,0.7)" }}>
+                            <div className="font-bold mb-2" style={{ color: "#1E2128" }}>{sezione.esito}</div>
+                            <p className="text-sm" style={{ color: "#5F6572" }}>{sezione.motivazione}</p>
+                          </div>
+                          
+                          {/* Punti forza e Aree miglioramento */}
+                          <div className="grid grid-cols-2 gap-4">
+                            {sezione.punti_forza && (
+                              <div className="p-3 rounded-lg" style={{ background: "#D1FAE5" }}>
+                                <h5 className="font-bold text-xs uppercase mb-2" style={{ color: "#065F46" }}>Punti di Forza</h5>
+                                <ul className="space-y-1">
+                                  {sezione.punti_forza.map((pf, i) => (
+                                    <li key={i} className="flex items-start gap-1 text-xs" style={{ color: "#047857" }}>
+                                      <CheckCircle className="w-3 h-3 mt-0.5 flex-shrink-0" /> {pf}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {sezione.aree_miglioramento && (
+                              <div className="p-3 rounded-lg" style={{ background: "#FEF3C7" }}>
+                                <h5 className="font-bold text-xs uppercase mb-2" style={{ color: "#B45309" }}>Aree di Miglioramento</h5>
+                                <ul className="space-y-1">
+                                  {sezione.aree_miglioramento.map((am, i) => (
+                                    <li key={i} className="flex items-start gap-1 text-xs" style={{ color: "#D97706" }}>
+                                      <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" /> {am}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    // Rendering standard per le altre sezioni
                     return (
                       <div key={key} className="p-4 rounded-xl" style={{ background: "#FAFAF7" }}>
                         <h4 className="font-bold mb-2" style={{ color: "#8B5CF6" }}>
@@ -352,7 +469,25 @@ export function DecisionePartnershipPage({ user, onLogout }) {
                             ))}
                           </ul>
                         )}
-                        {sezione.punteggio && (
+                        {sezione.fasi && (
+                          <ul className="mt-3 space-y-1">
+                            {sezione.fasi.map((fase, i) => (
+                              <li key={i} className="flex items-start gap-2 text-sm" style={{ color: "#5F6572" }}>
+                                <span className="font-bold">{fase.nome || fase.fase}:</span> {fase.descrizione}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {sezione.moduli_suggeriti && (
+                          <ul className="mt-3 space-y-1">
+                            {sezione.moduli_suggeriti.map((mod, i) => (
+                              <li key={i} className="flex items-start gap-2 text-sm" style={{ color: "#5F6572" }}>
+                                <span className="font-bold">{mod.nome}:</span> {mod.descrizione}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {sezione.punteggio && key !== "valutazione_fattibilita" && (
                           <div className="mt-3 flex items-center gap-2">
                             <span className="text-3xl font-black" style={{ color: "#8B5CF6" }}>{sezione.punteggio}</span>
                             <span className="text-lg" style={{ color: "#9CA3AF" }}>/10</span>
