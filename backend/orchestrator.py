@@ -499,10 +499,19 @@ Rispondi in JSON con le sezioni compilate:
 
 
 # ============================================================================
-# ISTANZA GLOBALE
+# ISTANZA GLOBALE (lazy)
 # ============================================================================
 
-orchestrator = MultiAgentOrchestrator()
+_orchestrator = None
+
+def get_orchestrator():
+    global _orchestrator
+    if _orchestrator is None:
+        _orchestrator = MultiAgentOrchestrator()
+    return _orchestrator
+
+# Alias per retrocompatibilità
+orchestrator = property(lambda self: get_orchestrator())
 
 
 # ============================================================================
