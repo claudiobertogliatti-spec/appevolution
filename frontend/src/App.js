@@ -934,6 +934,10 @@ export default function App() {
           if (userData.role === "admin") {
             setMode("admin");
             setAdminUser(userData.admin_type || "claudio");
+          } else if (userData.role === "operations" || userData.ruolo === "operations") {
+            // Antonella - dashboard operations
+            setMode("operations");
+            setNav("partner");
           } else {
             setMode("partner");
             setNav("home");
