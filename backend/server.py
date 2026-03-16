@@ -16,6 +16,9 @@ from emergentintegrations.llm.chat import LlmChat, UserMessage
 from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 import httpx
 
+# Carica .env con override=True per sovrascrivere le variabili di sistema
+load_dotenv(override=True)
+
 # Import custom modules
 from video_processor import video_processor, VideoProcessor
 from file_storage import file_storage, FileStorageManager
