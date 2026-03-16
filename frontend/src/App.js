@@ -75,6 +75,7 @@ import { AnalisiInPreparazione } from "./components/cliente/AnalisiInPreparazion
 import { AttivazioneAnalisi } from "./components/cliente/AttivazioneAnalisi";
 import { AttivazionePartnership } from "./components/cliente/AttivazionePartnership";
 import { DecisionePartnershipPage } from "./components/cliente/DecisionePartnershipPage";
+import { DashboardOperations } from "./components/operations/DashboardOperations";
 import { PartnerLogin } from "./components/partner/PartnerLogin";
 import { Homepage } from "./components/Homepage";
 import { MiaAccademiaPage, MieiStudentiPage, ImpegniSettimanaPage, ReportMensilePage, PianoContinuitaBanner } from "./components/partner/PostLancioPages";
