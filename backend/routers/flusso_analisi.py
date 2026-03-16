@@ -79,6 +79,31 @@ class FirmaContrattoRequest(BaseModel):
 class UploadRicevutaRequest(BaseModel):
     user_id: str
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ENDPOINT: Test configurazione Master Prompt e OpenClaw
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/config-status")
+async def get_config_status():
+    """
+    Verifica lo stato della configurazione del Master Prompt e OpenClaw.
+    Utile per debug e verifica deployment.
+    """
+    return {
+        "master_prompt_available": MASTER_PROMPT_AVAILABLE,
+        "openclaw_available": MASTER_PROMPT_AVAILABLE,
+        "versione_prompt": "2.0_21_sezioni" if MASTER_PROMPT_AVAILABLE else "1.0_legacy",
+        "sezioni_disponibili": 21 if MASTER_PROMPT_AVAILABLE else 12,
+        "features": {
+            "deep_research": MASTER_PROMPT_AVAILABLE,
+            "data_gap_protocol": MASTER_PROMPT_AVAILABLE,
+            "autocompletamento_investigativo": MASTER_PROMPT_AVAILABLE,
+            "tabelle_competitor": MASTER_PROMPT_AVAILABLE
+        }
+    }
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # HELPER - LLM
 # ═══════════════════════════════════════════════════════════════════════════════
