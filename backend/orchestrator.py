@@ -523,7 +523,7 @@ async def trigger_strategic_analysis(user_id: str, questionario: Dict) -> Dict:
     Funzione chiamata da Valentina quando riceve il comando "Analisi Strategica".
     Blocca l'interazione finché tutti gli agenti non hanno completato.
     """
-    return await orchestrator.start_analysis(user_id, questionario)
+    return await get_orchestrator().start_analysis(user_id, questionario)
 
 
 # ============================================================================
@@ -533,7 +533,7 @@ async def trigger_strategic_analysis(user_id: str, questionario: Dict) -> Dict:
 __all__ = [
     "MultiAgentOrchestrator",
     "SharedMemory",
-    "orchestrator",
+    "get_orchestrator",
     "trigger_strategic_analysis",
     "TEAM_AGENTS",
     "SECTION_AGENT_MAP"
