@@ -311,11 +311,18 @@ class ValentinaAI:
                 (r"sposta\w*\s+(?:il\s+|in\s+)?(?:contatto\s+)?(?:nella?\s+)?colonna", "move_contact_to_column", "A"),
                 (r"mett\w*\s+(?:in\s+)?pipeline", "move_contact_to_column", "A"),
                 (r"inseris\w*\s+(?:nella?\s+)?pipeline", "move_contact_to_column", "A"),
-                # Pulizia dati (Categoria A)
-                (r"pulir\w*|pulisci|cleanup|elimina\w*\s+(?:i\s+)?(?:dati|contatti|test)", "cleanup_data", "A"),
+                # Pulizia dati (Categoria A) - pattern più ampi
+                (r"pulir\w*|pulisci|cleanup", "cleanup_data", "A"),
+                (r"iniziamo\s+a\s+pulire", "cleanup_data", "A"),
+                (r"elimina\w*\s+(?:i\s+)?(?:dati|test|fittizi)", "cleanup_data", "A"),
                 (r"rimuov\w*\s+(?:i\s+)?(?:dati|contatti)\s+(?:di\s+)?test", "cleanup_data", "A"),
                 (r"cancella\w*\s+(?:tutti\s+)?(?:i\s+)?(?:contatti|lead)", "delete_contacts", "A"),
                 (r"elimina\w*\s+(?:tutti\s+)?(?:i\s+)?(?:contatti|lead)", "delete_contacts", "A"),
+                (r"reset\w*\s+(?:i\s+)?(?:dati|database|db)", "cleanup_data", "A"),
+                # Browser generico
+                (r"apri\s+(?:il\s+)?browser", "browser_generic_task", "A"),
+                (r"vai\s+su\s+systeme", "browser_generic_task", "A"),
+                (r"riprova\s+(?:a\s+)?(?:inviare\s+)?(?:il\s+)?task", "browser_generic_task", "A"),
                 # Categoria B - Richiede approvazione
                 (r"crea\w*\s+(?:un\s+)?funnel", "create_funnel", "B"),
                 (r"nuovo\s+funnel", "create_funnel", "B"),
