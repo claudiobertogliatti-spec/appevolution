@@ -981,6 +981,99 @@ async def modifica_analisi(request: ModificaAnalisiRequest):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# ENDPOINT: Valida analisi e invia Spoiler Strategico (Admin)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.post("/valida-analisi/{user_id}")
+async def valida_analisi(user_id: str, invia_spoiler: bool = True):
+    """
+    Admin valida l'analisi e opzionalmente invia lo Spoiler Strategico.
+    
+    Questo endpoint:
+    1. Cambia lo stato da 'bozza_analisi' a 'analisi_validata'
+    2. Invia lo Spoiler Strategico al cliente (se telegram_chat_id presente)
+    3. Sblocca il calendario per la prenotazione call
+    
+    Fa parte del PROTOCOLLO 2: CONVERSIONE di EPOS.
+    """
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database non inizializzato")
+    
+    # Recupera utente e analisi
+    user = await db.users.find_one({"id": user_id, "user_type": "cliente_analisi"}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Cliente non trovato")
+    
+    analisi = await db.analisi_strategiche.find_one({"user_id": user_id}, {"_id": 0})
+    if not analisi:
+        raise HTTPException(status_code=404, detail="Analisi non trovata")
+    
+    # Aggiorna stato
+    await db.analisi_strategiche.update_one(
+        {"user_id": user_id},
+        {"$set": {
+            "stato": "analisi_validata",
+            "validata_at": datetime.now(timezone.utc).isoformat(),
+            "validata_by": "admin"
+        }}
+    )
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "stato_cliente": "analisi_validata",
+            "calendario_sbloccato": True
+        }}
+    )
+    
+    result = {
+        "success": True,
+        "user_id": user_id,
+        "stato": "analisi_validata",
+        "spoiler_inviato": False,
+        "calendario_sbloccato": True
+    }
+    
+    # Invia Spoiler Strategico
+    if invia_spoiler:
+        telegram_chat_id = user.get("telegram_chat_id")
+        
+        if telegram_chat_id:
+            try:
+                from valentina_ai import telegram_notify
+                
+                spoiler_result = await telegram_notify(
+                    "spoiler_strategico",
+                    chat_id=telegram_chat_id,
+                    analisi=analisi
+                )
+                
+                result["spoiler_inviato"] = spoiler_result.get("ok", False)
+                if not spoiler_result.get("ok"):
+                    result["spoiler_error"] = spoiler_result.get("error")
+                    
+            except Exception as e:
+                logging.error(f"Errore invio spoiler: {e}")
+                result["spoiler_error"] = str(e)
+        else:
+            result["spoiler_note"] = "Telegram chat_id non disponibile per questo cliente"
+            
+            # Invia comunque notifica all'admin
+            try:
+                from valentina_ai import telegram_notify
+                nome = f"{user.get('nome', '')} {user.get('cognome', '')}"
+                await telegram_notify(
+                    "alert",
+                    alert_type="success",
+                    message=f"Analisi validata per {nome}. Spoiler non inviato (no Telegram chat_id)."
+                )
+            except:
+                pass
+    
+    return result
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # ENDPOINT: Conferma analisi (Admin) - pronta per call
 # ═══════════════════════════════════════════════════════════════════════════════
 
