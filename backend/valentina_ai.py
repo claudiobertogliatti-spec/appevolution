@@ -298,15 +298,83 @@ class ValentinaAI:
             # Create unique session key
             session_key = f"valentina_{user_id}"
             
+            msg_lower = message.lower()
+            
             # =====================================================
-            # STEP 0: Check for OPENCLAW operations FIRST (GUI automation)
+            # STEP 0A: Check for MULTI-AGENT ORCHESTRATION triggers
+            # Comando "Analisi Strategica" attiva orchestratore multi-agente
+            # =====================================================
+            import re
+            
+            orchestration_patterns = [
+                (r"analisi\s+strategica", "analisi_strategica"),
+                (r"avvia\s+(?:l[a']?\s+)?analisi", "analisi_strategica"),
+                (r"genera\s+(?:l[a']?\s+)?analisi\s+(?:per|di)", "analisi_strategica"),
+                (r"analizza\s+(?:il\s+)?(?:partner|cliente|progetto)", "analisi_strategica"),
+            ]
+            
+            orchestration_trigger = None
+            for pattern, trigger in orchestration_patterns:
+                if re.search(pattern, msg_lower):
+                    orchestration_trigger = trigger
+                    logger.info(f"[VALENTINA] Orchestration trigger detected: {trigger}")
+                    break
+            
+            if orchestration_trigger == "analisi_strategica" and is_founder:
+                try:
+                    from orchestrator import trigger_strategic_analysis
+                    
+                    # Recupera dati questionario dal database se disponibili
+                    questionario = context.get("questionario", {})
+                    if not questionario:
+                        # Prova a recuperare dal DB
+                        db = get_db()
+                        if db:
+                            q_data = await db.questionari_analisi.find_one(
+                                {"user_id": partner_id}, 
+                                {"_id": 0}
+                            )
+                            if q_data:
+                                questionario = q_data
+                    
+                    if not questionario or not questionario.get("expertise"):
+                        return """Boss, per avviare l'Analisi Strategica Multi-Agente ho bisogno di:
+
+1. ID del cliente/partner
+2. Dati del questionario compilato (expertise, target, risultato promesso)
+
+Dimmi chi vuoi analizzare e forniscimi i dati necessari."""
+                    
+                    result = await trigger_strategic_analysis(partner_id, questionario)
+                    
+                    if result.get("success"):
+                        return f"""Analisi Strategica Multi-Agente Avviata.
+
+Task ID: `{result.get('task_id')}`
+
+Agenti al lavoro:
+- OPENCLAW: Ricerca web e competitor
+- ORION: Analisi target e monetizzazione
+- STEFANIA: Proposta valore e differenziazione
+- ANDREA: Struttura corso e roadmap
+- GAIA: Investimenti e criticità
+- MARCO: Profilo e valutazione finale
+
+Riceverai notifica su Telegram quando l'analisi sarà completata.
+
+Per verificare lo stato: "stato analisi {result.get('task_id')}" """
+                    else:
+                        return f"Errore nell'avvio dell'analisi: {result.get('error', 'Errore sconosciuto')}"
+                        
+                except Exception as e:
+                    logger.error(f"[VALENTINA] Orchestration error: {e}")
+                    return f"Errore nell'orchestrazione: {str(e)}"
+            
+            # =====================================================
+            # STEP 0B: Check for OPENCLAW operations (GUI automation)
             # Se l'azione richiede browser control, invia a OpenClaw PRIMA di altre azioni
             # OpenClaw = braccio esecutivo, non agente AI
             # =====================================================
-            msg_lower = message.lower()
-            
-            # Keywords patterns che triggano OpenClaw (regex per flessibilità)
-            import re
             
             # Categoria A: Esecuzione diretta (no approvazione)
             # Categoria B: Richiede approvazione prima
