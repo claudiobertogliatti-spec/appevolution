@@ -981,6 +981,22 @@ async def telegram_notify(notification_type: str, **kwargs) -> dict:
             kwargs.get("message", ""),
             kwargs.get("partner_name")
         )
+    elif notification_type == "spoiler_strategico":
+        return await telegram_notifier.send_spoiler_strategico(
+            kwargs.get("chat_id"),
+            kwargs.get("analisi", {})
+        )
+    elif notification_type == "sollecito_questionario":
+        return await telegram_notifier.notify_sollecito_questionario(
+            kwargs.get("partner_name", "Partner"),
+            kwargs.get("partner_email", ""),
+            kwargs.get("chat_id")
+        )
+    elif notification_type == "analisi_pronta":
+        return await telegram_notifier.notify_analisi_pronta(
+            kwargs.get("partner_name", "Partner"),
+            kwargs.get("user_id", "")
+        )
     elif notification_type == "webhook_alert":
         # Direct message broadcast for webhook events
         return await telegram_notifier.broadcast_to_admins(kwargs.get("message", ""))
