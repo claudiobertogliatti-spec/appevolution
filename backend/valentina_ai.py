@@ -329,7 +329,7 @@ class ValentinaAI:
                 # Browser generico
                 (r"apri\s+(?:il\s+)?browser", "browser_generic_task", "A"),
                 (r"vai\s+su\s+systeme", "browser_generic_task", "A"),
-                (r"riprova\s+(?:a\s+)?(?:inviare\s+)?(?:il\s+)?task", "browser_generic_task", "A"),
+                (r"riprova\s+(?:a\s+)?(?:ad\s+)?(?:inviare\s+)?(?:il\s+)?task", "browser_generic_task", "A"),
                 # Categoria B - Richiede approvazione
                 (r"crea\w*\s+(?:un\s+)?funnel", "create_funnel", "B"),
                 (r"nuovo\s+funnel", "create_funnel", "B"),
