@@ -859,6 +859,69 @@ Il partner è avanzato alla fase successiva! 🚀"""
 📅 {datetime.now().strftime("%d/%m/%Y %H:%M")}"""
         return await self.broadcast_to_admins(text)
     
+    async def send_spoiler_strategico(self, chat_id: str, analisi: dict) -> dict:
+        """
+        Invia lo Spoiler Strategico al cliente dopo validazione Admin.
+        
+        Questo messaggio spinge il cliente a prenotare la Call Strategica
+        mostrando un'anteprima dei risultati dell'analisi.
+        """
+        try:
+            from epos_config import genera_spoiler
+            
+            spoiler_text = genera_spoiler(analisi)
+            
+            # Formatta per Telegram
+            formatted_text = f"""📊 <b>ANALISI STRATEGICA COMPLETATA</b>
+
+{spoiler_text}
+
+<i>— Valentina, Evolution PRO OS</i>"""
+            
+            return await self.send_message(chat_id, formatted_text, parse_mode="HTML")
+            
+        except Exception as e:
+            logger.error(f"Error sending spoiler: {e}")
+            return {"ok": False, "error": str(e)}
+    
+    async def notify_sollecito_questionario(self, partner_name: str, partner_email: str, chat_id: str = None) -> dict:
+        """
+        Invia sollecito per questionario non completato (dopo 24h).
+        Parte del protocollo ERROR_HANDLING di EPOS.
+        """
+        text = f"""⏰ <b>Promemoria Questionario</b>
+
+Ciao {partner_name}!
+
+Ho notato che il tuo questionario strategico non è ancora completo.
+
+Per generare la tua <b>Analisi Strategica Personalizzata</b> ho bisogno delle tue risposte complete.
+
+👉 <b>Completa il questionario ora</b> per ricevere la tua analisi entro 24 ore.
+
+Se hai domande, rispondi a questo messaggio!
+
+<i>— Valentina, Evolution PRO</i>"""
+        
+        if chat_id:
+            return await self.send_message(chat_id, text, parse_mode="HTML")
+        else:
+            return await self.broadcast_to_admins(f"⚠️ Sollecito inviato a {partner_name} ({partner_email}) per questionario incompleto")
+    
+    async def notify_analisi_pronta(self, partner_name: str, user_id: str) -> dict:
+        """Notifica all'admin che un'analisi è pronta per validazione"""
+        text = f"""📋 <b>ANALISI PRONTA PER VALIDAZIONE</b>
+
+👤 <b>Partner:</b> {partner_name}
+🆔 <b>ID:</b> {user_id}
+📅 <b>Data:</b> {datetime.now().strftime("%d/%m/%Y %H:%M")}
+
+L'analisi è in stato <b>BOZZA</b>.
+Valida l'analisi nell'area Admin per sbloccare lo Spoiler e il calendario.
+
+<code>/valida {user_id}</code>"""
+        return await self.broadcast_to_admins(text)
+    
     async def get_updates(self) -> dict:
         """Get recent updates (for admin chat ID discovery)"""
         if not self.token:
