@@ -1247,7 +1247,7 @@ async def create_analisi_checkout(user_id: str = None, email: str = None):
     """
     Crea una sessione di checkout Stripe per il pagamento dell'Analisi Strategica (€67).
     """
-    stripe_key = os.environ.get('STRIPE_API_KEY')
+    stripe_key = get_env_override('STRIPE_API_KEY')
     if not stripe_key:
         raise HTTPException(status_code=500, detail="Stripe non configurato")
     
@@ -1311,7 +1311,7 @@ async def verify_analisi_payment(user_id: str = None, session_id: str = None):
     Verifica il pagamento e aggiorna lo stato dell'utente.
     Chiamato dopo redirect da Stripe.
     """
-    stripe_key = os.environ.get('STRIPE_API_KEY')
+    stripe_key = get_env_override('STRIPE_API_KEY')
     if not stripe_key:
         raise HTTPException(status_code=500, detail="Stripe non configurato")
     
@@ -11819,7 +11819,7 @@ async def create_avatar_checkout(request: Request, data: AvatarPaymentRequest):
     package = AVATAR_SERVICE_PACKAGES[data.package_id]
     
     # Get Stripe API key
-    stripe_api_key = os.environ.get("STRIPE_API_KEY")
+    stripe_api_key = get_env_override("STRIPE_API_KEY")
     if not stripe_api_key:
         raise HTTPException(status_code=500, detail="Stripe non configurato")
     
@@ -11887,7 +11887,7 @@ async def create_avatar_checkout(request: Request, data: AvatarPaymentRequest):
 async def get_avatar_checkout_status(session_id: str):
     """Get payment status for avatar checkout"""
     
-    stripe_api_key = os.environ.get("STRIPE_API_KEY")
+    stripe_api_key = get_env_override("STRIPE_API_KEY")
     if not stripe_api_key:
         raise HTTPException(status_code=500, detail="Stripe non configurato")
     
@@ -11948,7 +11948,7 @@ async def get_avatar_checkout_status(session_id: str):
 async def stripe_webhook(request: Request):
     """Handle Stripe webhook events"""
     
-    stripe_api_key = os.environ.get("STRIPE_API_KEY")
+    stripe_api_key = get_env_override("STRIPE_API_KEY")
     if not stripe_api_key:
         raise HTTPException(status_code=500, detail="Stripe non configurato")
     
