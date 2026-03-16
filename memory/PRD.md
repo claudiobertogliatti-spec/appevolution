@@ -1,12 +1,65 @@
 # Evolution PRO OS - Product Requirements Document
 
-**Ultimo aggiornamento:** 15 Marzo 2026
+**Ultimo aggiornamento:** 16 Marzo 2026
 
 ## CICLO COMPLETO EVOLUTION PRO ✅
 
 ```
 Posizionamento → Masterclass → Videocorso → Funnel → Lancio → Ottimizzazione → Continuità
 ```
+
+---
+
+## 🆕 DASHBOARD OPERATIONS (Antonella) ✅ (16 Mar 2026)
+
+**Implementato e testato al 100% (16/16 test passati)**
+
+### Credenziali Antonella
+- **Email:** `antonella@evolution-pro.it`
+- **Password:** `OperationsAnto2024!`
+- **Ruolo:** `operations`
+
+### Sezioni Dashboard
+1. **Partner** - Lista card partner attivi (F1-F5) con alert ritardi
+2. **Contenuti** - 3 tab: Script & Copy, Social Calendar, Video & Materiali
+3. **Campagne ADV** - CRUD completo con metriche (impression, click, lead, CPL)
+
+### Endpoint API (`/api/operations/`)
+- `GET /stats` - Statistiche generali
+- `GET /partners` - Partner attivi con alert ritardi
+- `GET /partner/{id}` - Dettaglio partner
+- `PUT /partner/note` - Aggiorna note interne
+- `GET /contenuti/{partner_id}` - Documenti, calendar, video
+- `POST /contenuti/commento` - Aggiungi commento
+- `PUT /contenuti/calendar` - Aggiorna stato calendario
+- `GET /campagne` - Lista campagne ADV
+- `POST /campagne` - Crea campagna
+- `PUT /campagne/{id}` - Aggiorna campagna
+- `DELETE /campagne/{id}` - Elimina campagna
+
+### Collection MongoDB: `campagne_adv`
+```json
+{
+  "partner_id": "string",
+  "piattaforma": "Meta|Google|TikTok|LinkedIn|Altro",
+  "nome_campagna": "string",
+  "budget_giornaliero": 0,
+  "budget_totale": 0,
+  "data_inizio": "2026-03-16",
+  "data_fine": null,
+  "stato": "attiva|in_pausa|terminata",
+  "risultati": {
+    "impression": 0,
+    "click": 0,
+    "lead": 0,
+    "costo_per_lead": 0,
+    "conversioni": 0
+  }
+}
+```
+
+### Vista Antonella (Claudio)
+Claudio ha nel menu "👁 Vista Antonella" che apre `/dashboard/operations` in nuova tab.
 
 ---
 
