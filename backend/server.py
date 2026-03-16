@@ -12168,6 +12168,11 @@ from routers.flusso_analisi import router as flusso_analisi_router, set_db as se
 set_flusso_analisi_db(db)
 app.include_router(flusso_analisi_router)
 
+# Include operations router (Dashboard Antonella: Partner, Contenuti, Campagne ADV)
+from routers.operations import router as operations_router, set_operations_db
+set_operations_db(db)
+app.include_router(operations_router)
+
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler
 
