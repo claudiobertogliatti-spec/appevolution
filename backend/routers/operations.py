@@ -198,6 +198,9 @@ async def add_contenuto_commento(data: ContenutoCommentoAdd):
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.contenuti_commenti.insert_one(commento_doc)
+        # Remove MongoDB _id before returning
+        if "_id" in commento_doc:
+            del commento_doc["_id"]
         return {"success": True, "commento": commento_doc}
     except Exception as e:
         logging.error(f"Errore add_contenuto_commento: {e}")
