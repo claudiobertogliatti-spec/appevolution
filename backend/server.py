@@ -4075,6 +4075,61 @@ async def get_chat_history(session_id: str):
     ).sort("timestamp", 1).to_list(100)
     return messages
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ENDPOINT: Orchestrator Multi-Agente
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@api_router.get("/orchestrator/status/{task_id}")
+async def get_orchestrator_status(task_id: str):
+    """Verifica lo stato di un'analisi multi-agente in corso"""
+    try:
+        from orchestrator import orchestrator
+        return await orchestrator.get_analysis_status(task_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get("/orchestrator/report/{task_id}")
+async def get_orchestrator_report(task_id: str):
+    """Recupera il report finale dell'analisi multi-agente"""
+    try:
+        from orchestrator import orchestrator
+        report = await orchestrator.get_final_report(task_id)
+        if report:
+            return report
+        raise HTTPException(status_code=404, detail="Report non trovato o analisi non completata")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/orchestrator/start")
+async def start_orchestrator_analysis(user_id: str, questionario: dict = None):
+    """
+    Avvia manualmente un'analisi multi-agente.
+    Normalmente viene triggerato da Valentina con "Analisi Strategica".
+    """
+    try:
+        from orchestrator import trigger_strategic_analysis
+        
+        if not questionario:
+            # Recupera dal database
+            questionario = await db.questionari_analisi.find_one(
+                {"user_id": user_id},
+                {"_id": 0}
+            )
+        
+        if not questionario:
+            raise HTTPException(status_code=400, detail="Questionario non trovato")
+        
+        return await trigger_strategic_analysis(user_id, questionario)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.delete("/chat/{session_id}")
 async def clear_chat_history(session_id: str):
     await db.chat_messages.delete_many({"session_id": session_id})
