@@ -1057,6 +1057,23 @@ export default function App() {
     return null;
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ROUTE: Dashboard Operations (Antonella)
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (window.location.pathname === "/dashboard/operations") {
+    if (!isAuthenticated) {
+      // Redirect al login se non autenticato
+      return <Homepage />;
+    }
+    // Mostra dashboard operations
+    return (
+      <DashboardOperations 
+        user={currentUser}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
   if (window.location.pathname === "/" && !isAuthenticated) {
     return <Homepage />;
   }
