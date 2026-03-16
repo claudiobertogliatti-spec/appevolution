@@ -136,6 +136,31 @@ export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminU
           {navItems.map((item) => {
             const isActive = currentNav === item.id;
             
+            // Gestione speciale per "Vista Antonella" - apre in nuova tab
+            if (item.special && item.id === "vista-antonella") {
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => window.open("/dashboard/operations", "_blank")}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all mt-4 border-t pt-4"
+                  style={{ 
+                    background: '#F0ECFA',
+                    borderLeft: '3px solid #7B68AE',
+                    color: '#7B68AE',
+                    borderTopColor: '#ECEDEF'
+                  }}
+                >
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                       style={{ background: '#7B68AE', color: 'white' }}>
+                    <item.icon className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-sm flex-1 font-medium">
+                    👁 {item.label}
+                  </span>
+                </button>
+              );
+            }
+            
             return (
               <button
                 key={item.id}
