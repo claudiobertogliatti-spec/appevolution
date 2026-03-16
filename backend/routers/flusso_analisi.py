@@ -83,7 +83,7 @@ class UploadRicevutaRequest(BaseModel):
 # HELPER - LLM
 # ═══════════════════════════════════════════════════════════════════════════════
 
-async def get_llm_chat():
+async def get_llm_chat(system_message: str = None):
     """Inizializza LLM con Emergent Key"""
     from emergentintegrations.llm.chat import LlmChat
     
@@ -93,10 +93,20 @@ async def get_llm_chat():
     
     session_id = f"analisi_{datetime.now().timestamp()}"
     
+    default_system = """Sei il Senior Strategic Advisor di Evolution PRO. 
+Il tuo obiettivo è generare un'Analisi Strategica Partner di altissimo valore commerciale (prezzo: €67).
+
+REGOLE OPERATIVE:
+1. Integrità Strutturale: Segui rigorosamente la struttura delle sezioni. Non accorpare e non saltare nulla.
+2. Data-Gap Protocol: Se i dati sono insufficienti, inserisci: [ANALISI SOSPESA: DATI MANCANTI]
+3. Honesty Policy (No Flattery): Applica la "Verità Brutale". Se il modello di business è insostenibile, evidenzialo chiaramente.
+4. Tono: Professionale, distaccato ma autorevole, orientato ai dati e alla fattibilità economica.
+5. NON inventare dati o statistiche. Usa solo informazioni fornite o ricercate."""
+    
     return LlmChat(
         api_key=api_key, 
         session_id=session_id,
-        system_message="Sei un consulente senior di Evolution PRO, esperto in digital business e creazione di accademie online."
+        system_message=system_message or default_system
     ).with_model("anthropic", "claude-sonnet-4-20250514")
 
 # ═══════════════════════════════════════════════════════════════════════════════
