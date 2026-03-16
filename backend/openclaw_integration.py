@@ -50,6 +50,9 @@ CATEGORY_A_ACTIONS = {
     "upload_cloudinary": "Ricarica media su Cloudinary",
     "create_pipeline_column": "Crea colonna pipeline via browser",
     "move_contact_to_column": "Sposta contatto in pipeline via browser",
+    "browser_generic_task": "Task browser generico (navigazione, click, form)",
+    "delete_contacts": "Elimina contatti dal database",
+    "cleanup_data": "Pulizia dati di test",
 }
 
 # Categoria B: Esecuzione DOPO APPROVAZIONE
