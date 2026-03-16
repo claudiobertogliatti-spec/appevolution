@@ -1,7 +1,7 @@
 from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from dotenv import load_dotenv
+from dotenv import load_dotenv, dotenv_values
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
@@ -18,6 +18,13 @@ import httpx
 
 # Carica .env con override=True per sovrascrivere le variabili di sistema
 load_dotenv(override=True)
+
+# Leggi direttamente dal file .env per chiavi critiche (bypass variabili di sistema)
+_ENV_FILE_VALUES = dotenv_values("/app/backend/.env")
+
+def get_env_override(key: str, default: str = None) -> str:
+    """Legge prima dal file .env, poi dalle variabili d'ambiente"""
+    return _ENV_FILE_VALUES.get(key) or os.environ.get(key, default)
 
 # Import custom modules
 from video_processor import video_processor, VideoProcessor
