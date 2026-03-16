@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Users, Film, FileText, BarChart3, MessageCircle, AlertTriangle, Settings, ChevronDown, ChevronRight, LogOut, Database, Edit3, Trophy, Zap, HelpCircle, Webhook, Bot, DollarSign, UsersRound, FileCheck, ClipboardCheck, UserPlus, Unlock } from "lucide-react";
+import { LayoutDashboard, Users, Film, FileText, BarChart3, MessageCircle, AlertTriangle, Settings, ChevronDown, ChevronRight, LogOut, Database, Edit3, Trophy, Zap, HelpCircle, Webhook, Bot, DollarSign, UsersRound, FileCheck, ClipboardCheck, UserPlus, Unlock, Eye } from "lucide-react";
 
 const CLAUDIO_NAV = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -16,6 +16,7 @@ const CLAUDIO_NAV = [
   { id: "andrea", label: "Editing", icon: Film },
   { id: "metriche", label: "Post-Lancio", icon: BarChart3 },
   { id: "valentina", label: "VALENTINA", icon: MessageCircle, dot: true },
+  { id: "vista-antonella", label: "Vista Antonella", icon: Eye, special: true },
 ];
 
 const ANTONELLA_NAV = [
