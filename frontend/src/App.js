@@ -1605,6 +1605,14 @@ export default function App() {
             {nav==="alert"&&<AdminAlerts alerts={alerts} onDismiss={dismissAlert}/>}
           </>}
 
+          {/* DASHBOARD OPERATIONS (Antonella) */}
+          {mode==="operations"&&(
+            <DashboardOperations 
+              user={currentUser}
+              onLogout={handleLogout}
+            />
+          )}
+
           {mode==="partner"&&<>
             {/* DASHBOARD */}
             {nav==="dashboard"&&<PartnerDashboardSimplified partner={demoPartner} onNavigate={setNav} onOpenChat={()=>setNav("supporto")}/>}
