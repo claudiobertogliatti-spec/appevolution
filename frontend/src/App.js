@@ -956,6 +956,10 @@ export default function App() {
       setMode("admin");
       setAdminUser(user.admin_type || "claudio");
       setNav("overview");
+    } else if (user.role === "operations" || user.ruolo === "operations") {
+      // Antonella - redirect a dashboard operations
+      setMode("operations");
+      setNav("partner");
     } else {
       setMode("partner");
       setNav("home");
