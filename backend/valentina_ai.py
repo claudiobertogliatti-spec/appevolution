@@ -311,6 +311,11 @@ class ValentinaAI:
                 (r"sposta\w*\s+(?:il\s+|in\s+)?(?:contatto\s+)?(?:nella?\s+)?colonna", "move_contact_to_column", "A"),
                 (r"mett\w*\s+(?:in\s+)?pipeline", "move_contact_to_column", "A"),
                 (r"inseris\w*\s+(?:nella?\s+)?pipeline", "move_contact_to_column", "A"),
+                # Pulizia dati (Categoria A)
+                (r"pulir\w*|pulisci|cleanup|elimina\w*\s+(?:i\s+)?(?:dati|contatti|test)", "cleanup_data", "A"),
+                (r"rimuov\w*\s+(?:i\s+)?(?:dati|contatti)\s+(?:di\s+)?test", "cleanup_data", "A"),
+                (r"cancella\w*\s+(?:tutti\s+)?(?:i\s+)?(?:contatti|lead)", "delete_contacts", "A"),
+                (r"elimina\w*\s+(?:tutti\s+)?(?:i\s+)?(?:contatti|lead)", "delete_contacts", "A"),
                 # Categoria B - Richiede approvazione
                 (r"crea\w*\s+(?:un\s+)?funnel", "create_funnel", "B"),
                 (r"nuovo\s+funnel", "create_funnel", "B"),
