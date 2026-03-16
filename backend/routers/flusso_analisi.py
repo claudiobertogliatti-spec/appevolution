@@ -21,13 +21,31 @@ STATI:
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
 import os
 import json
 import logging
 import uuid
 import io
+import re
+
+# Import Master Prompt e OpenClaw Research
+try:
+    from master_prompt_analisi import (
+        MASTER_PROMPT_CONFIG,
+        SEZIONI_ANALISI,
+        genera_data_gap_alert,
+        verifica_completezza_questionario
+    )
+    from openclaw_research import (
+        run_strategic_research,
+        autocomplete_missing_data
+    )
+    MASTER_PROMPT_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"Master Prompt o OpenClaw non disponibili: {e}")
+    MASTER_PROMPT_AVAILABLE = False
 
 router = APIRouter(prefix="/api/flusso-analisi", tags=["flusso-analisi"])
 
