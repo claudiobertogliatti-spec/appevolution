@@ -4084,8 +4084,8 @@ async def get_chat_history(session_id: str):
 async def get_orchestrator_status(task_id: str):
     """Verifica lo stato di un'analisi multi-agente in corso"""
     try:
-        from orchestrator import orchestrator
-        return await orchestrator.get_analysis_status(task_id)
+        from orchestrator import get_orchestrator
+        return await get_orchestrator().get_analysis_status(task_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -4094,8 +4094,8 @@ async def get_orchestrator_status(task_id: str):
 async def get_orchestrator_report(task_id: str):
     """Recupera il report finale dell'analisi multi-agente"""
     try:
-        from orchestrator import orchestrator
-        report = await orchestrator.get_final_report(task_id)
+        from orchestrator import get_orchestrator
+        report = await get_orchestrator().get_final_report(task_id)
         if report:
             return report
         raise HTTPException(status_code=404, detail="Report non trovato o analisi non completata")
