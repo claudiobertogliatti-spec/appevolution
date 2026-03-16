@@ -806,10 +806,15 @@ Rispondi SOLO con il JSON valido, senza testo aggiuntivo prima o dopo."""
     return analisi
 
 @router.post("/genera-analisi-auto/{user_id}")
-async def genera_analisi_auto(user_id: str):
+async def genera_analisi_auto(user_id: str, use_21_sezioni: bool = True, use_openclaw: bool = True):
     """
     Genera automaticamente l'analisi dopo il questionario.
     Chiamato internamente dal sistema quando il cliente invia il questionario.
+    
+    Args:
+        user_id: ID del cliente
+        use_21_sezioni: Se True, usa il nuovo Master Prompt con 21 sezioni (default: True)
+        use_openclaw: Se True, attiva Deep Research con OpenClaw (default: True)
     """
     if db is None:
         raise HTTPException(status_code=500, detail="Database non inizializzato")
@@ -829,8 +834,13 @@ async def genera_analisi_auto(user_id: str):
     questionario["nome"] = user.get("nome", "")
     questionario["cognome"] = user.get("cognome", "")
     
-    # Genera analisi
-    analisi = await genera_analisi_automatica(user_id, questionario)
+    # Genera analisi (usa nuovo Master Prompt 21 sezioni se disponibile)
+    if use_21_sezioni and MASTER_PROMPT_AVAILABLE:
+        logging.info(f"[FLUSSO] Usando Master Prompt 21 sezioni per {user_id}")
+        analisi = await genera_analisi_21_sezioni(user_id, questionario, use_openclaw=use_openclaw)
+    else:
+        logging.info(f"[FLUSSO] Usando generazione legacy per {user_id}")
+        analisi = await genera_analisi_automatica(user_id, questionario)
     
     # Salva analisi nel database
     await db.analisi_strategiche.update_one(
@@ -845,7 +855,8 @@ async def genera_analisi_auto(user_id: str):
         {"$set": {
             "stato_cliente": "bozza_analisi",
             "analisi_generata": True,
-            "analisi_generata_at": datetime.now(timezone.utc).isoformat()
+            "analisi_generata_at": datetime.now(timezone.utc).isoformat(),
+            "analisi_versione": analisi.get("versione_prompt", "1.0")
         }}
     )
     
@@ -857,7 +868,9 @@ async def genera_analisi_auto(user_id: str):
         if telegram_token and admin_chat_id:
             nome = user.get("nome", "")
             cognome = user.get("cognome", "")
-            msg = f"📊 ANALISI AUTO-GENERATA\n\n👤 {nome} {cognome}\n📋 Bozza pronta per revisione\n\n⏳ In attesa di modifica admin"
+            versione = "21 sezioni" if analisi.get("versione_prompt") == "2.0_21_sezioni" else "standard"
+            openclaw_status = "✅" if analisi.get("openclaw_used") else "❌"
+            msg = f"📊 ANALISI AUTO-GENERATA\n\n👤 {nome} {cognome}\n📋 Versione: {versione}\n🦞 OpenClaw: {openclaw_status}\n\n⏳ In attesa di revisione admin"
             async with httpx.AsyncClient() as client_http:
                 await client_http.post(
                     f"https://api.telegram.org/bot{telegram_token}/sendMessage",
