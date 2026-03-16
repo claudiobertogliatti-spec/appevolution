@@ -283,7 +283,8 @@ async def create_campagna(data: CampagnaADVCreate):
         }
         
         await db.campagne_adv.insert_one(campagna)
-        del campagna["_id"] if "_id" in campagna else None
+        if "_id" in campagna:
+            del campagna["_id"]
         
         return {"success": True, "campagna": campagna}
     except Exception as e:
