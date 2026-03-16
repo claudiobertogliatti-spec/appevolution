@@ -449,8 +449,361 @@ def genera_analisi_fallback(nome, cognome, expertise, cliente_target, risultato,
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ENDPOINT: Trigger generazione analisi (chiamato dopo questionario)
+# NUOVA FUNZIONE: Genera Analisi 21 Sezioni con OpenClaw Research
 # ═══════════════════════════════════════════════════════════════════════════════
+
+async def genera_analisi_21_sezioni(user_id: str, questionario: dict, use_openclaw: bool = True):
+    """
+    Genera l'Analisi Strategica con il nuovo Master Prompt (21 sezioni).
+    
+    Implementa:
+    - Struttura 21 sezioni come da Master Prompt
+    - Data-Gap Protocol con alert espliciti
+    - Deep Research con OpenClaw (se abilitato)
+    - Autocompletamento investigativo per dati mancanti
+    - Output in formato Markdown avanzato
+    
+    Args:
+        user_id: ID del cliente
+        questionario: Dati del questionario compilato
+        use_openclaw: Se True, attiva ricerca web per dati mancanti
+    
+    Returns:
+        Dict con analisi completa in 21 sezioni
+    """
+    logging.info(f"[FLUSSO 21] Generazione analisi 21 sezioni per {user_id}")
+    
+    # Estrai dati base
+    nome = questionario.get("nome", "")
+    cognome = questionario.get("cognome", "")
+    expertise = questionario.get("expertise", "")
+    cliente_target = questionario.get("cliente_target", "")
+    risultato = questionario.get("risultato_promesso", "")
+    pubblico = questionario.get("pubblico_esistente", "")
+    esperienze = questionario.get("esperienze_vendita", "")
+    ostacolo = questionario.get("ostacolo_principale", "")
+    motivazione = questionario.get("motivazione", "")
+    competitor = questionario.get("competitor", "")
+    sito_web = questionario.get("sito_web", "")
+    social_links = questionario.get("social_links", [])
+    data_oggi = datetime.now().strftime('%d/%m/%Y')
+    
+    # ═══════════════════════════════════════════════════════════════
+    # STEP 1: Verifica completezza e Data-Gap Protocol
+    # ═══════════════════════════════════════════════════════════════
+    
+    completezza_report = None
+    enriched_data = questionario.copy()
+    research_data = None
+    data_gap_alerts = []
+    
+    if MASTER_PROMPT_AVAILABLE:
+        completezza_report = verifica_completezza_questionario(questionario)
+        logging.info(f"[FLUSSO 21] Completezza questionario: {completezza_report['completezza_percentuale']}%")
+        
+        # Se completezza < 70% e OpenClaw abilitato, avvia ricerca web
+        if completezza_report["richiede_ricerca_web"] and use_openclaw:
+            logging.info("[FLUSSO 21] Avvio autocompletamento investigativo OpenClaw...")
+            try:
+                autocomplete_result = await autocomplete_missing_data(questionario)
+                enriched_data = autocomplete_result.get("enriched_data", questionario)
+                data_gap_alerts.extend(autocomplete_result.get("missing_alerts", []))
+                
+                logging.info(f"[FLUSSO 21] Dati arricchiti: {len(autocomplete_result.get('enrichment_notes', []))} campi")
+            except Exception as e:
+                logging.error(f"[FLUSSO 21] Errore autocompletamento: {e}")
+        
+        # Aggiungi alert per campi ancora mancanti
+        for campo in completezza_report.get("campi_mancanti", []):
+            alert = genera_data_gap_alert(campo)
+            if alert not in [a.get("message", a) for a in data_gap_alerts]:
+                data_gap_alerts.append({"field": campo, "message": alert})
+    
+    # ═══════════════════════════════════════════════════════════════
+    # STEP 2: Deep Research con OpenClaw (se abilitato)
+    # ═══════════════════════════════════════════════════════════════
+    
+    if use_openclaw and MASTER_PROMPT_AVAILABLE and expertise:
+        logging.info("[FLUSSO 21] Avvio Deep Research OpenClaw...")
+        try:
+            # Prepara lista competitor se specificati
+            competitor_list = []
+            if competitor:
+                competitor_list = [c.strip() for c in competitor.split(",") if c.strip()]
+            
+            research_data = await run_strategic_research(
+                nome_partner=f"{nome} {cognome}",
+                expertise=expertise,
+                target=cliente_target or "professionisti",
+                competitor_names=competitor_list if competitor_list else None,
+                website_partner=sito_web if sito_web else None,
+                social_links=social_links if social_links else None
+            )
+            logging.info(f"[FLUSSO 21] Research completata. Qualità dati: {research_data.get('data_quality')}")
+        except Exception as e:
+            logging.error(f"[FLUSSO 21] Errore Deep Research: {e}")
+            research_data = {"error": str(e), "data_quality": "failed"}
+    
+    # ═══════════════════════════════════════════════════════════════
+    # STEP 3: Genera il prompt per Claude con 21 sezioni
+    # ═══════════════════════════════════════════════════════════════
+    
+    # Prepara dati ricerca per il prompt
+    research_summary = ""
+    competitor_table_data = ""
+    
+    if research_data and research_data.get("data_quality") != "failed":
+        synthesis = research_data.get("synthesis", {})
+        if synthesis and not synthesis.get("error"):
+            research_summary = f"""
+DATI RICERCA WEB (OpenClaw):
+- Posizionamento mercato: {synthesis.get('posizionamento_mercato', 'N/D')}
+- Visibilità digitale partner: {synthesis.get('visibilita_digitale_score', 'N/D')}/10
+- Competitor principali: {', '.join(synthesis.get('competitor_principali', [])[:3])}
+- Opportunità identificate: {', '.join(synthesis.get('opportunita', [])[:3])}
+- Minacce: {', '.join(synthesis.get('minacce', [])[:3])}
+- Raccomandazioni differenziazione: {synthesis.get('raccomandazioni_differenziazione', 'N/D')}
+- Note critiche: {synthesis.get('note_critiche', 'Nessuna')}
+"""
+        
+        # Prepara dati per tabella competitor
+        competitors = research_data.get("competitor_analysis", [])
+        if competitors:
+            for comp in competitors[:5]:
+                if isinstance(comp, dict):
+                    competitor_table_data += f"- {comp.get('name', comp.get('domain', 'N/D'))}: {comp.get('positioning', comp.get('snippet', ''))[:100]}\n"
+    
+    # Prepara alert data-gap per il prompt
+    data_gap_text = ""
+    if data_gap_alerts:
+        data_gap_text = "\n\nALERT DATI MANCANTI (inserisci questi alert nelle sezioni pertinenti):\n"
+        for alert in data_gap_alerts[:5]:
+            if isinstance(alert, dict):
+                data_gap_text += f"- {alert.get('field', 'campo')}: {alert.get('message', '')[:200]}\n"
+            else:
+                data_gap_text += f"- {str(alert)[:200]}\n"
+    
+    prompt_21_sezioni = f"""Genera un'ANALISI STRATEGICA COMPLETA in 21 SEZIONI per il partner.
+
+RUOLO: Sei il Senior Strategic Advisor di Evolution PRO. L'analisi vale €67.
+
+DATI DEL PARTNER:
+- Nome: {nome} {cognome}
+- Expertise: {expertise or '[DATO MANCANTE]'}
+- Target cliente: {cliente_target or '[DATO MANCANTE]'}
+- Risultato promesso: {risultato or '[DATO MANCANTE]'}
+- Pubblico esistente: {pubblico or '[DATO MANCANTE]'}
+- Esperienze vendita: {esperienze or '[DATO MANCANTE]'}
+- Ostacolo principale: {ostacolo or '[DATO MANCANTE]'}
+- Motivazione: {motivazione or '[DATO MANCANTE]'}
+- Competitor indicati: {competitor or '[NON SPECIFICATI]'}
+- Sito web: {sito_web or '[NON INDICATO]'}
+- Data analisi: {data_oggi}
+{research_summary}
+{data_gap_text}
+
+REGOLE CRITICHE:
+1. STRUTTURA: Genera ESATTAMENTE 21 sezioni nell'ordine specificato
+2. DATA-GAP: Se un dato è mancante, inserisci: "⚠️ [ANALISI SOSPESA: DATI MANCANTI] - [spiegazione perché il dato è fondamentale]"
+3. HONESTY POLICY: Applica la "Verità Brutale". Se il progetto è debole, dillo chiaramente
+4. NO FLATTERY: Zero adulazione. Solo analisi oggettiva
+5. LUNGHEZZA: Minimo 2500 parole totali
+6. OUTPUT: JSON valido con la struttura sotto
+
+STRUTTURA 21 SEZIONI (genera JSON):
+{{
+    "meta": {{
+        "titolo": "Analisi Strategica Personalizzata",
+        "cliente": "{nome} {cognome}",
+        "data": "{data_oggi}",
+        "versione": "2.0",
+        "completezza_dati": "{completezza_report['completezza_percentuale'] if completezza_report else 'N/D'}%"
+    }},
+    "sezioni": {{
+        "01_introduzione": {{
+            "titolo": "Introduzione all'Analisi",
+            "contenuto": "[Testo standard: spiega perché questa analisi esiste e cosa valuterà]"
+        }},
+        "02_chi_siamo": {{
+            "titolo": "Chi è Evolution PRO",
+            "contenuto": "[Testo standard: descrivi Evolution PRO e il modello in 5 fasi]"
+        }},
+        "03_come_funziona": {{
+            "titolo": "Come Funziona Questa Analisi",
+            "contenuto": "[Testo standard: spiega struttura 21 sezioni e come leggere gli indicatori ✅⚠️❌]"
+        }},
+        "04_glossario": {{
+            "titolo": "Glossario",
+            "contenuto": "[Testo standard: definizioni di Accademia Digitale, Funnel, Masterclass, CPL, LTV]"
+        }},
+        "05_disclaimer": {{
+            "titolo": "Disclaimer",
+            "contenuto": "[Testo standard: disclaimer sui risultati non garantiti]"
+        }},
+        "06_profilo_professionale": {{
+            "titolo": "Il Tuo Profilo Professionale",
+            "contenuto": "[GENERA: 3-4 paragrafi analizzando expertise e esperienze. Valuta trasferibilità in digitale]",
+            "indicatore": "[✅ se solido, ⚠️ se da approfondire, ❌ se critico]"
+        }},
+        "07_problema_risolto": {{
+            "titolo": "Il Problema che Risolvi",
+            "contenuto": "[GENERA: Analizza problema e urgenza. Valuta se il mercato pagherebbe]",
+            "indicatore": "[✅⚠️❌]"
+        }},
+        "08_target_ideale": {{
+            "titolo": "Il Tuo Target Ideale",
+            "contenuto": "[GENERA: Analizza target. Se troppo generico, SEGNALA CRITICITÀ]",
+            "indicatore": "[✅⚠️❌]"
+        }},
+        "09_proposta_valore": {{
+            "titolo": "La Tua Proposta di Valore",
+            "contenuto": "[GENERA: Definisci proposta di valore unica e differenziazione]",
+            "indicatore": "[✅⚠️❌]"
+        }},
+        "10_analisi_mercato": {{
+            "titolo": "Analisi del Mercato",
+            "contenuto": "[GENERA con dati ricerca: Valuta domanda, trend, dimensione mercato]",
+            "indicatore": "[✅⚠️❌]"
+        }},
+        "11_posizionamento_attuale": {{
+            "titolo": "Posizionamento Attuale",
+            "contenuto": "[GENERA con dati ricerca: Valuta presenza online, autorità percepita]",
+            "visibilita_score": "[1-10]",
+            "indicatore": "[✅⚠️❌]"
+        }},
+        "12_analisi_competitor": {{
+            "titolo": "Analisi dei Competitor",
+            "contenuto": "[GENERA con dati ricerca: Analisi dettagliata competitor]",
+            "tabella_competitor": [
+                {{"nome": "Competitor 1", "posizionamento": "", "prezzo_stimato": "", "punti_forza": "", "punti_debolezza": ""}},
+                {{"nome": "Competitor 2", "posizionamento": "", "prezzo_stimato": "", "punti_forza": "", "punti_debolezza": ""}},
+                {{"nome": "Competitor 3", "posizionamento": "", "prezzo_stimato": "", "punti_forza": "", "punti_debolezza": ""}}
+            ],
+            "indicatore": "[✅⚠️❌]"
+        }},
+        "13_differenziazione": {{
+            "titolo": "Strategia di Differenziazione",
+            "contenuto": "[GENERA: Proponi strategia concreta per differenziarsi]",
+            "indicatore": "[✅⚠️❌]"
+        }},
+        "14_criticita": {{
+            "titolo": "⚠️ Criticità e Aree di Rischio",
+            "contenuto": "[GENERA: VERITÀ BRUTALE. Elenca tutte le criticità senza sconti]",
+            "lista_criticita": ["[criticità 1]", "[criticità 2]", "[criticità 3]"],
+            "alert_box": "[Se modello insostenibile, inserisci box allerta rosso]",
+            "indicatore": "[✅⚠️❌]"
+        }},
+        "15_struttura_corso": {{
+            "titolo": "Ipotesi Struttura del Corso",
+            "contenuto": "[GENERA: Proponi struttura con nome corso e moduli]",
+            "nome_corso_proposto": "",
+            "moduli": [
+                {{"numero": 1, "nome": "", "descrizione": "", "durata_stimata": ""}},
+                {{"numero": 2, "nome": "", "descrizione": "", "durata_stimata": ""}},
+                {{"numero": 3, "nome": "", "descrizione": "", "durata_stimata": ""}},
+                {{"numero": 4, "nome": "", "descrizione": "", "durata_stimata": ""}}
+            ]
+        }},
+        "16_modello_monetizzazione": {{
+            "titolo": "Modello di Monetizzazione",
+            "contenuto": "[GENERA: Modello realistico e prudente]",
+            "prezzo_suggerito": "€[min] - €[max]",
+            "tipologia_offerta": "",
+            "possibili_upsell": []
+        }},
+        "17_costo_opportunita": {{
+            "titolo": "Il Costo di Non Agire",
+            "contenuto": "[GENERA: Analizza costo-opportunità del modello attuale]",
+            "limite_modello_attuale": ""
+        }},
+        "18_roadmap": {{
+            "titolo": "Roadmap Dettagliata",
+            "contenuto": "[GENERA: Timeline dettagliata]",
+            "timeline": [
+                {{"fase": "F1 - Posizionamento", "settimane": "2-3", "attivita": "", "deliverable": ""}},
+                {{"fase": "F2 - Masterclass", "settimane": "2", "attivita": "", "deliverable": ""}},
+                {{"fase": "F3 - Videocorso", "settimane": "4-6", "attivita": "", "deliverable": ""}},
+                {{"fase": "F4 - Funnel", "settimane": "2", "attivita": "", "deliverable": ""}},
+                {{"fase": "F5 - Lancio", "settimane": "2", "attivita": "", "deliverable": ""}}
+            ]
+        }},
+        "19_investimento": {{
+            "titolo": "Investimento Richiesto",
+            "contenuto": "[GENERA: Dettaglia investimenti necessari]",
+            "tempo_stimato": "",
+            "budget_marketing_minimo": "",
+            "strumenti_necessari": []
+        }},
+        "20_valutazione_finale": {{
+            "titolo": "Valutazione Finale di Fattibilità",
+            "punteggio": [1-10],
+            "livello": "[Basso/Medio/Alto/Molto Alto]",
+            "esito": "[Progetto adatto / Promettente ma da definire / Non ancora pronto]",
+            "motivazione": "[GENERA: 2-3 paragrafi con motivazione dettagliata]",
+            "punti_forza": ["", "", ""],
+            "aree_miglioramento": ["", "", ""]
+        }},
+        "21_prossimi_passi": {{
+            "titolo": "Prossimi Passi",
+            "contenuto": "[Testo standard: cosa succede dopo l'analisi, call strategica, decisione]"
+        }}
+    }},
+    "appendice": {{
+        "dati_ricerca_web": {{"fonte": "OpenClaw Research", "data_qualita": "{research_data.get('data_quality') if research_data else 'non_eseguita'}"}},
+        "note_autocompletamento": "[Se dati recuperati via web, segnalalo qui]"
+    }}
+}}
+
+Rispondi SOLO con il JSON valido, senza testo aggiuntivo prima o dopo."""
+
+    # ═══════════════════════════════════════════════════════════════
+    # STEP 4: Genera analisi con Claude
+    # ═══════════════════════════════════════════════════════════════
+    
+    try:
+        llm = await get_llm_chat()
+        from emergentintegrations.llm.chat import UserMessage
+        
+        response = await llm.chat([UserMessage(text=prompt_21_sezioni)])
+        response_text = response.text.strip()
+        
+        # Parse JSON
+        json_match = re.search(r'\{[\s\S]*\}', response_text)
+        if json_match:
+            analisi = json.loads(json_match.group())
+        else:
+            raise ValueError("JSON non trovato nella risposta")
+        
+        logging.info(f"[FLUSSO 21] Analisi 21 sezioni generata con successo")
+            
+    except Exception as e:
+        logging.error(f"[FLUSSO 21] Errore generazione AI: {e}")
+        # Fallback alla versione precedente
+        analisi = await genera_analisi_automatica(user_id, questionario)
+        analisi["fallback_used"] = True
+        analisi["fallback_reason"] = str(e)
+    
+    # ═══════════════════════════════════════════════════════════════
+    # STEP 5: Arricchisci con metadati
+    # ═══════════════════════════════════════════════════════════════
+    
+    analisi["generated_at"] = datetime.now(timezone.utc).isoformat()
+    analisi["user_id"] = user_id
+    analisi["stato"] = "bozza_analisi"
+    analisi["versione_prompt"] = "2.0_21_sezioni"
+    analisi["openclaw_used"] = use_openclaw and MASTER_PROMPT_AVAILABLE
+    
+    if research_data:
+        analisi["research_metadata"] = {
+            "data_quality": research_data.get("data_quality"),
+            "timestamp": research_data.get("timestamp"),
+            "errors": research_data.get("errors", [])
+        }
+    
+    if completezza_report:
+        analisi["completezza_questionario"] = completezza_report
+    
+    return analisi
 
 @router.post("/genera-analisi-auto/{user_id}")
 async def genera_analisi_auto(user_id: str):
