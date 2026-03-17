@@ -1,22 +1,48 @@
 import { useState } from "react";
-import { Sparkles, ShoppingBag, ArrowRight, Lock, Clock, Star, Zap } from "lucide-react";
+import { Sparkles, ShoppingBag, ArrowRight, Lock, Clock, Star, Zap, Video, Play, ChevronRight, Check } from "lucide-react";
+import { AvatarCheckout } from "./AvatarCheckout";
 
-// Placeholder services - to be defined by user
-const PLACEHOLDER_SERVICES = [
+// Active services
+const ACTIVE_SERVICES = [
+  {
+    id: "avatar_pro",
+    icon: "🎬",
+    title: "Avatar PRO — Servizio Delega",
+    description: "Il tuo clone digitale professionale che insegna per te. Video HD con la tua voce e il tuo stile.",
+    price: "da €120",
+    status: "active",
+    badge: "POPOLARE",
+    features: ["Qualità 1080p HD", "Espressioni naturali", "Script incluso", "Consegna 48-72h"]
+  }
+];
+
+// Coming soon services
+const COMING_SOON_SERVICES = [
   {
     id: "coming_soon_1",
-    icon: "🎬",
-    title: "In arrivo...",
-    description: "Nuovi servizi premium in preparazione",
-    price: null,
+    icon: "📈",
+    title: "Consulenza Marketing 1:1",
+    description: "Sessione strategica personalizzata con i nostri esperti",
+    status: "coming_soon"
+  },
+  {
+    id: "coming_soon_2",
+    icon: "🎨",
+    title: "Branding Premium Pack",
+    description: "Logo, colori e identità visiva professionale",
     status: "coming_soon"
   }
 ];
 
 export function ServiziExtra({ partner, onSelectService }) {
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedService, setSelectedService] = useState(null);
   
   const partnerName = partner?.name?.split(" ")[0] || "Partner";
+
+  // Se un servizio è selezionato, mostra la pagina dedicata
+  if (selectedService === "avatar_pro") {
+    return <AvatarCheckout partner={partner} onBack={() => setSelectedService(null)} />;
+  }
 
   return (
     <div className="min-h-full" style={{ background: '#FAFAF7' }}>
