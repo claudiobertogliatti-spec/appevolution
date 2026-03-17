@@ -149,7 +149,7 @@ export function PartnerPayments({ partner }) {
         <div className="mt-6 p-4 rounded-xl" style={{ background: "#FFF8DC", border: "1px solid #F2C41850" }}>
           <p className="text-sm" style={{ color: "#92700C" }}>
             💡 <strong>Nota:</strong> Per domande sui pagamenti o per richiedere una fattura, 
-            contatta il team Evolution PRO tramite la chat con Valentina.
+            contatta il team Evolution PRO tramite la chat con Stefania.
           </p>
         </div>
       </div>
