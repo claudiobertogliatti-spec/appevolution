@@ -67,33 +67,22 @@ class SocialCalendarUpdate(BaseModel):
 @router.get("/partners")
 async def get_partners_attivi():
     """
-    Lista partner attivi (fase >= F1) per dashboard Antonella.
+    Lista partner attivi per dashboard Antonella.
     
-    FIX: Usa la collection 'partners' (non 'users') che contiene i record aggiornati.
-    Filtra per phase != F0 (partner attivi in percorso).
+    Legge dalla collection 'partners' filtrando per:
+    - status = 'ACTIVE' (o 'active')
+    - OPPURE phase diversa da F0 (per retrocompatibilità)
     """
     try:
-        # Cerca nella collection PARTNERS (non users!)
-        # Filtra partner con phase attiva (diversa da F0 e non vuota)
+        # Query PRINCIPALE: cerca partner con status ACTIVE o phase attiva
         partners = await db.partners.find({
             "$or": [
-                {"phase": {"$exists": True, "$nin": ["F0", "", None]}},
-                {"fase": {"$exists": True, "$nin": ["F0", "", None]}}
+                {"status": {"$in": ["ACTIVE", "active"]}},
+                {"phase": {"$exists": True, "$nin": ["F0", "", None]}}
             ]
         }, {"_id": 0}).to_list(200)
         
-        # Se la collection partners è vuota, fallback su users
-        if not partners:
-            logging.warning("Collection 'partners' vuota, fallback su 'users'")
-            partners = await db.users.find({
-                "user_type": "partner",
-                "$or": [
-                    {"fase": {"$exists": True, "$nin": ["F0", "", None]}},
-                    {"phase": {"$exists": True, "$nin": ["F0", "", None]}}
-                ]
-            }, {"_id": 0, "password": 0, "hashed_password": 0, "password_hash": 0}).to_list(200)
-        
-        # Normalizza campi (alcuni record usano 'phase', altri 'fase')
+        # Normalizza campi per il frontend
         oggi = datetime.now(timezone.utc)
         for p in partners:
             # Normalizza phase/fase
@@ -104,7 +93,6 @@ async def get_partners_attivi():
             
             # Normalizza name/nome - IMPORTANTE: frontend usa "nome"
             if p.get("name") and not p.get("nome"):
-                # Splitta name in nome e cognome
                 name_parts = p.get("name", "").split(" ", 1)
                 p["nome"] = name_parts[0] if name_parts else ""
                 p["cognome"] = name_parts[1] if len(name_parts) > 1 else ""
@@ -126,7 +114,7 @@ async def get_partners_attivi():
                     if isinstance(ultimo_aggiornamento, str):
                         ultimo_aggiornamento = datetime.fromisoformat(ultimo_aggiornamento.replace("Z", "+00:00"))
                     
-                    # Gestisci datetime naive (aggiungi timezone)
+                    # Gestisci datetime naive
                     if ultimo_aggiornamento.tzinfo is None:
                         ultimo_aggiornamento = ultimo_aggiornamento.replace(tzinfo=timezone.utc)
                     
@@ -140,6 +128,12 @@ async def get_partners_attivi():
             else:
                 p["giorni_da_ultimo_update"] = None
                 p["in_ritardo"] = False
+        
+        logging.info(f"[Operations] Trovati {len(partners)} partner attivi")
+        return {"success": True, "partners": partners, "total": len(partners)}
+    except Exception as e:
+        logging.error(f"Errore get_partners_attivi: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
         
         logging.info(f"[Operations] Trovati {len(partners)} partner attivi")
         return {"success": True, "partners": partners, "total": len(partners)}
