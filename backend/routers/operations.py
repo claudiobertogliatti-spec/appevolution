@@ -149,14 +149,35 @@ async def get_partners_attivi():
 
 @router.get("/partner/{partner_id}")
 async def get_partner_dettaglio(partner_id: str):
-    """Dettaglio singolo partner"""
+    """Dettaglio singolo partner - legge dalla collection PARTNERS"""
     try:
-        partner = await db.users.find_one(
-            {"$or": [{"id": partner_id}, {"_id": ObjectId(partner_id) if len(partner_id) == 24 else None}], "user_type": "partner"},
-            {"_id": 0, "password": 0, "hashed_password": 0}
+        # PRIMA cerca nella collection PARTNERS (fonte primaria)
+        partner = await db.partners.find_one(
+            {"$or": [{"id": partner_id}, {"id": str(partner_id)}]},
+            {"_id": 0}
         )
+        
+        # Se non trovato, prova con la collection users come fallback
+        if not partner:
+            partner = await db.users.find_one(
+                {"$or": [{"id": partner_id}, {"user_type": "partner"}]},
+                {"_id": 0, "password": 0, "hashed_password": 0}
+            )
+        
         if not partner:
             raise HTTPException(status_code=404, detail="Partner non trovato")
+        
+        # Normalizza campi
+        if partner.get("name") and not partner.get("nome"):
+            name_parts = partner.get("name", "").split(" ", 1)
+            partner["nome"] = name_parts[0] if name_parts else ""
+            partner["cognome"] = name_parts[1] if len(name_parts) > 1 else ""
+        
+        if partner.get("niche") and not partner.get("nicchia"):
+            partner["nicchia"] = partner.get("niche")
+        
+        if partner.get("phase") and not partner.get("fase"):
+            partner["fase"] = partner.get("phase")
         
         # Carica note interne
         notes = await db.partner_notes.find_one({"partner_id": partner_id}, {"_id": 0})
