@@ -98,6 +98,60 @@ Ho preparato la tua Roadmap. Prenota la Call per vederla insieme.
 - `/app/frontend/src/components/partner/PartnerPayments.jsx` - NUOVO
 - `/app/frontend/src/components/partner/PartnerFiles.jsx` - NUOVO
 - `/app/frontend/src/components/partner/PartnerSidebar.jsx` - Aggiunta sezione "Il Mio Account"
+
+---
+
+## 🆕 EVOLUTION MASTERCLASS FACTORY ✅ (17 Mar 2026)
+
+**Sistema completo per la creazione di Masterclass VSL (Video Sales Letter)**
+
+### Protocollo Operativo
+
+**Fase 1: Estrazione Dati (7 Domande Strategiche)**
+| # | Domanda | Descrizione |
+|---|---------|-------------|
+| 1 | 🎯 Il Gancio | Risultato massimo in tempi brevi |
+| 2 | 💥 Il Problema | La bugia del settore da demolire |
+| 3 | 🔧 Il Metodo | 3 pilastri del sistema proprietario |
+| 4 | ✨ Magic Moment | Output pratico durante il video |
+| 5 | 🎁 Il Valore | Contenuto area riservata Systeme.io |
+| 6 | 💰 L'Offerta | Prezzo, ancoraggio e urgenza |
+| 7 | 🚀 La CTA | Azione immediata post-acquisto |
+
+**Fase 2: Gold Standard**
+- PDF scaricabile con esempio caso studio "Social Media Manager"
+- 10 lead in 30gg, Metodo C.A.T., Analisi Profilo AI, €497
+
+**Fase 3: Generazione Script con Claude Sonnet 4.5**
+- Vincoli: 1.000-1.400 parole, 7 blocchi, 7-10 minuti
+- Note di regia: [GUARDA IN CAMERA], [MOSTRA APP], [INDICARE TASTO]
+- Validazione AI con score 0-50
+
+**Fase 4: Modifica e Approvazione**
+- Preview script con word count e durata stimata
+- Editor inline per modifiche
+- Pulsante "Rigenera" se score < 40
+
+**Fase 5: Registrazione e Upload**
+- Download script approvato
+- Upload video masterclass
+- Approvazione admin → File salvato nei documenti partner
+
+### File Creati
+- `/app/frontend/src/components/partner/MasterclassPage.jsx` - REFACTORING COMPLETO
+- `/app/backend/routers/masterclass_factory.py` - NUOVO
+
+### Endpoint API
+| Endpoint | Metodo | Funzionalità |
+|----------|--------|--------------|
+| `/api/masterclass-factory/{partner_id}` | GET | Dati masterclass |
+| `/api/masterclass-factory/{partner_id}/answers` | POST | Salva risposte |
+| `/api/masterclass-factory/{partner_id}/generate-script` | POST | Genera script AI |
+| `/api/masterclass-factory/{partner_id}/approve-script` | POST | Approva script |
+| `/api/masterclass-factory/{partner_id}/upload-video` | POST | Upload video |
+| `/api/masterclass-factory/{partner_id}/approve-video` | POST | Approva video (admin) |
+
+
 - `/app/frontend/src/components/admin/PartnerDetailModal.jsx` - Refactoring completo
 
 **Backend:**
