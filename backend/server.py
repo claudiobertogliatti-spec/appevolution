@@ -12019,6 +12019,177 @@ async def get_avatar_checkout_status(session_id: str):
         logging.error(f"Error checking payment status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONSULENZA MARKETING 1:1 CHECKOUT - €147
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class ConsulenzaPaymentRequest(BaseModel):
+    service_type: str = "consulenza_marketing"
+    consultant_id: str
+    partner_id: str
+    partner_name: str
+    partner_email: str = ""
+    origin_url: str
+    preferred_date: str = ""
+    project_focus: str = ""
+    price: int = 147
+
+@api_router.post("/consulenza-checkout")
+async def create_consulenza_checkout(request: Request, data: ConsulenzaPaymentRequest):
+    """Create Stripe checkout session for marketing consultation"""
+    
+    consultant_names = {
+        "claudio": "Claudio Bertogliatti",
+        "antonella": "Antonella"
+    }
+    consultant_name = consultant_names.get(data.consultant_id, data.consultant_id)
+    
+    stripe_api_key = get_env_override("STRIPE_API_KEY")
+    if not stripe_api_key:
+        raise HTTPException(status_code=500, detail="Stripe non configurato")
+    
+    success_url = f"{data.origin_url}/consulenza-payment-success?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{data.origin_url}/consulenza-payment-cancel"
+    
+    host_url = str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
+    
+    checkout_request = CheckoutSessionRequest(
+        amount=data.price,
+        currency="eur",
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata={
+            "service_type": "consulenza_marketing",
+            "consultant_id": data.consultant_id,
+            "consultant_name": consultant_name,
+            "partner_id": data.partner_id,
+            "partner_name": data.partner_name,
+            "partner_email": data.partner_email or "",
+            "preferred_date": data.preferred_date or "",
+            "project_focus": data.project_focus or ""
+        }
+    )
+    
+    try:
+        session = await stripe_checkout.create_checkout_session(checkout_request)
+        
+        transaction = {
+            "id": str(uuid.uuid4()),
+            "session_id": session.session_id,
+            "service_type": "consulenza_marketing",
+            "partner_id": data.partner_id,
+            "partner_name": data.partner_name,
+            "partner_email": data.partner_email,
+            "consultant_id": data.consultant_id,
+            "consultant_name": consultant_name,
+            "amount": data.price,
+            "currency": "eur",
+            "status": "pending",
+            "payment_status": "initiated",
+            "preferred_date": data.preferred_date,
+            "project_focus": data.project_focus,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.payment_transactions.insert_one(transaction)
+        
+        return {
+            "success": True,
+            "checkout_url": session.url,
+            "session_id": session.session_id
+        }
+        
+    except Exception as e:
+        logging.error(f"Consulenza checkout error: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore creazione checkout: {str(e)}")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BRANDING PREMIUM PACK CHECKOUT - €297
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class BrandingPaymentRequest(BaseModel):
+    service_type: str = "branding_pack"
+    partner_id: str
+    partner_name: str
+    partner_email: str = ""
+    origin_url: str
+    brand_name: str
+    brand_description: str = ""
+    preferred_style: str = ""
+    color_preferences: str = ""
+    price: int = 297
+
+@api_router.post("/branding-checkout")
+async def create_branding_checkout(request: Request, data: BrandingPaymentRequest):
+    """Create Stripe checkout session for branding pack"""
+    
+    stripe_api_key = get_env_override("STRIPE_API_KEY")
+    if not stripe_api_key:
+        raise HTTPException(status_code=500, detail="Stripe non configurato")
+    
+    success_url = f"{data.origin_url}/branding-payment-success?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{data.origin_url}/branding-payment-cancel"
+    
+    host_url = str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
+    
+    checkout_request = CheckoutSessionRequest(
+        amount=data.price,
+        currency="eur",
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata={
+            "service_type": "branding_pack",
+            "partner_id": data.partner_id,
+            "partner_name": data.partner_name,
+            "partner_email": data.partner_email or "",
+            "brand_name": data.brand_name,
+            "brand_description": data.brand_description or "",
+            "preferred_style": data.preferred_style or "",
+            "color_preferences": data.color_preferences or ""
+        }
+    )
+    
+    try:
+        session = await stripe_checkout.create_checkout_session(checkout_request)
+        
+        transaction = {
+            "id": str(uuid.uuid4()),
+            "session_id": session.session_id,
+            "service_type": "branding_pack",
+            "partner_id": data.partner_id,
+            "partner_name": data.partner_name,
+            "partner_email": data.partner_email,
+            "brand_name": data.brand_name,
+            "brand_description": data.brand_description,
+            "preferred_style": data.preferred_style,
+            "color_preferences": data.color_preferences,
+            "amount": data.price,
+            "currency": "eur",
+            "status": "pending",
+            "payment_status": "initiated",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.payment_transactions.insert_one(transaction)
+        
+        return {
+            "success": True,
+            "checkout_url": session.url,
+            "session_id": session.session_id
+        }
+        
+    except Exception as e:
+        logging.error(f"Branding checkout error: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore creazione checkout: {str(e)}")
+
+
+
 @api_router.post("/webhook/stripe")
 async def stripe_webhook(request: Request):
     """Handle Stripe webhook events"""
