@@ -73,61 +73,140 @@ export function ServiziExtra({ partner, onSelectService }) {
           <div className="flex-1">
             <div className="font-bold text-sm mb-1" style={{ color: '#1E2128' }}>Andrea · Il tuo tutor AI</div>
             <div className="text-sm leading-relaxed" style={{ color: '#5F6572' }}>
-              Ciao <strong>{partnerName}</strong>! 👋 In questa sezione trovi tutti i <strong>servizi extra</strong> che posso offrirti per accelerare il tuo percorso. 
-              Dai un'occhiata e se hai domande, sono qui!
+              Ciao <strong>{partnerName}</strong>! 👋 In questa sezione trovi tutti i <strong>servizi extra</strong> per accelerare il tuo percorso. 
+              Il nostro servizio più richiesto? <strong>Avatar PRO</strong> — creiamo video professionali con il tuo clone digitale!
             </div>
           </div>
         </div>
 
-        {/* Coming Soon Banner */}
-        <div 
-          className="rounded-2xl p-8 text-center mb-8 relative overflow-hidden"
-          style={{ background: 'linear-gradient(135deg, #7B68AE 0%, #9B8BC4 100%)' }}
-        >
-          <div className="absolute top-0 right-0 w-64 h-64 rounded-full opacity-10" 
-               style={{ background: 'white', transform: 'translate(30%, -30%)' }} />
+        {/* ═══════════════════════════════════════════════════════════════════════
+            SERVIZI ATTIVI
+            ═══════════════════════════════════════════════════════════════════════ */}
+        <div className="mb-8">
+          <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
+            <Zap className="w-5 h-5" style={{ color: '#F2C418' }} />
+            Servizi Disponibili
+          </h2>
           
-          <div className="relative z-10">
-            <span className="text-6xl block mb-4">🚀</span>
-            <h2 className="text-2xl font-black text-white mb-2">Nuovi Servizi in Arrivo!</h2>
-            <p className="text-white/80 max-w-md mx-auto mb-6">
-              Stiamo preparando una selezione di servizi premium per aiutarti a scalare il tuo business ancora più velocemente.
-            </p>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold"
-                 style={{ background: 'rgba(255,255,255,0.2)', color: 'white' }}>
-              <Clock className="w-4 h-4" />
-              Prossimamente disponibili
-            </div>
-          </div>
-        </div>
-
-        {/* Empty State Grid */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          {[1, 2, 3].map(i => (
+          {ACTIVE_SERVICES.map(service => (
             <div 
-              key={i}
-              className="rounded-xl p-6 border-2 border-dashed flex flex-col items-center justify-center text-center"
-              style={{ background: 'white', borderColor: '#ECEDEF', minHeight: '200px' }}
+              key={service.id}
+              onClick={() => setSelectedService(service.id)}
+              className="bg-white rounded-2xl overflow-hidden cursor-pointer transition-all hover:shadow-lg hover:scale-[1.01]"
+              style={{ border: '2px solid #F2C418' }}
+              data-testid={`service-card-${service.id}`}
             >
-              <div className="w-12 h-12 rounded-full flex items-center justify-center mb-3"
-                   style={{ background: '#FAFAF7' }}>
-                <Lock className="w-5 h-5" style={{ color: '#ECEDEF' }} />
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-0">
+                {/* Video Preview */}
+                <div className="lg:col-span-2 relative bg-gradient-to-br from-[#1E2128] to-[#2D3038] p-4 flex items-center justify-center min-h-[200px]">
+                  {service.badge && (
+                    <div className="absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-bold bg-[#F2C418] text-[#1E2128]">
+                      {service.badge}
+                    </div>
+                  )}
+                  <div className="w-full max-w-xs">
+                    <div className="relative rounded-xl overflow-hidden shadow-xl" style={{ aspectRatio: '16/9' }}>
+                      <video 
+                        className="w-full h-full object-cover"
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                      >
+                        <source src="https://customer-assets.emergentagent.com/job_workflow-sync-6/artifacts/w619n7sa_base.mp4" type="video/mp4" />
+                      </video>
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/10 transition-all">
+                        <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                          <Play className="w-5 h-5 ml-0.5" style={{ color: '#1E2128' }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Content */}
+                <div className="lg:col-span-3 p-6 flex flex-col justify-center">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h3 className="text-xl font-black mb-1" style={{ color: '#1E2128' }}>
+                        {service.icon} {service.title}
+                      </h3>
+                      <p className="text-sm" style={{ color: '#5F6572' }}>
+                        {service.description}
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0 ml-4">
+                      <div className="text-2xl font-black" style={{ color: '#1E2128' }}>{service.price}</div>
+                      <div className="text-xs" style={{ color: '#9CA3AF' }}>per lezione</div>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    {service.features.map((feature, idx) => (
+                      <div key={idx} className="flex items-center gap-2 text-sm">
+                        <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#10B981' }} />
+                        <span style={{ color: '#5F6572' }}>{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <button 
+                    className="w-full lg:w-auto px-6 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90"
+                    style={{ background: '#F2C418', color: '#1E2128' }}
+                    data-testid="avatar-pro-cta"
+                  >
+                    Scopri Avatar PRO
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-              <div className="font-bold text-sm mb-1" style={{ color: '#ECEDEF' }}>Servizio {i}</div>
-              <div className="text-xs" style={{ color: '#ECEDEF' }}>In arrivo</div>
             </div>
           ))}
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════════════════
+            SERVIZI IN ARRIVO
+            ═══════════════════════════════════════════════════════════════════════ */}
+        <div className="mb-8">
+          <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
+            <Clock className="w-5 h-5" style={{ color: '#9CA3AF' }} />
+            Prossimamente
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {COMING_SOON_SERVICES.map(service => (
+              <div 
+                key={service.id}
+                className="bg-white rounded-xl p-5 opacity-60"
+                style={{ border: '1px solid #ECEDEF' }}
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
+                       style={{ background: '#FAFAF7' }}>
+                    {service.icon}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-bold" style={{ color: '#1E2128' }}>{service.title}</h3>
+                      <Lock className="w-3 h-3" style={{ color: '#9CA3AF' }} />
+                    </div>
+                    <p className="text-sm" style={{ color: '#9CA3AF' }}>{service.description}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* What to expect */}
         <div className="rounded-xl p-6" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
           <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
             <Star className="w-5 h-5" style={{ color: '#F2C418' }} />
-            Cosa aspettarti
+            Cosa aspettarti dai nostri servizi
           </h3>
           <div className="grid grid-cols-2 gap-4">
             {[
-              { icon: "🎬", text: "Servizi di produzione video avanzati" },
+              { icon: "🎬", text: "Produzione video professionale con AI" },
               { icon: "📈", text: "Consulenze marketing personalizzate" },
               { icon: "🎨", text: "Design e branding premium" },
               { icon: "🚀", text: "Acceleratori per il lancio" }
@@ -138,20 +217,6 @@ export function ServiziExtra({ partner, onSelectService }) {
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Notify Me */}
-        <div className="mt-8 text-center">
-          <p className="text-sm mb-4" style={{ color: '#9CA3AF' }}>
-            Vuoi essere avvisato quando i servizi saranno disponibili?
-          </p>
-          <button 
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all hover:scale-105"
-            style={{ background: '#F2C418', color: '#1E2128' }}
-          >
-            <Zap className="w-4 h-4" />
-            Sì, avvisami!
-          </button>
         </div>
 
       </div>
