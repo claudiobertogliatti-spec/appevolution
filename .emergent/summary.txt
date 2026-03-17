@@ -1,41 +1,30 @@
 <analysis>**original_problem_statement:**
-The user's initial request was to verify the implementation of the Antonella / Operations dashboard against a detailed prompt file. This evolved into a series of feature implementations and critical bug fixes.
-
-**PRODUCT REQUIREMENTS (New & Updated):**
-1.  **Strategic Analysis Refactor (E.P.O.S. v2):**
-    *   Implement a new Master Prompt for generating a 21-section Strategic Partner Analysis.
-    *   Create a web research module () using Playwright and Claude for data enrichment.
-    *   Refactor the analysis generation flow () to use the new logic.
-    *   Implement a multi-agent orchestration system () where Valentina coordinates other AI agents (Stefania, Marco, Andrea, Gaia) to generate the analysis.
-    *   Implement a Spoiler Strategico notification sent by Valentina after an admin validates an analysis, prompting the user to book a call.
-2.  **Telegram Integration Bug (Valentina):**
-    *   The user reported that the AI assistant Valentina was not sending tasks to the Telegram bot.
-    *   The agent needed to diagnose and fix the communication breakdown between the app and Telegram.
-3.  **Critical Partner Sync Bug:**
-    *   The user reported that both the Admin and Operations dashboards were showing 0 active partners, despite data existing in the database.
-    *   The agent needed to fix the backend queries to read from the correct data source ( collection) and ensure data was displayed correctly on the frontend.
-4.  **Admin Dashboard Partner Modal:**
-    *   Add a modal to the admin dashboard that opens when clicking a partner card.
-    *   The modal must have three tabs:
-        *   **Profilo:** Editable fields for Nicchia, YouTube Playlist ID, and Fase.
-        *   **Documenti:** List of partner documents and an embedded YouTube player.
-        *   **Pagamenti:** A table of payments with an inline form to add new payment records.
+The user's requests in this session were a rapid series of significant feature additions and refactoring:
+1.  **Restore Avatar PRO Page**: The user reported a previously existing Avatar PRO checkout page had disappeared and needed to be restored.
+2.  **Add More Servizi Extra**: After restoring the Avatar PRO page, the user requested to add two new services, Consulenza Marketing 1:1 and Branding Premium Pack, with their own checkout pages and pricing.
+3.  **Implement Enterprise Edition**: The user provided a large prompt to overhaul the application's permission system, including:
+    *   A revamped, more powerful Admin Modal for managing partners (editing profiles, managing payments, adding video notes, deleting partners).
+    *   A new Il Mio Account section for partners with pages for Profile, Payments, and File Management (including raw material uploads).
+4.  **Implement Evolution Masterclass Factory**: The user provided a detailed prompt to create a new AI-driven workflow for generating a 7-10 minute video masterclass script. This involved a 7-step questionnaire for the partner and using Claude Sonnet 4.5 for script generation.
+5.  **Replace Valentina with Stefania**: The user requested to replace the existing AI assistant Valentina with a new one, Stefania, across the entire application, providing a new system prompt and logic.
+6.  **Integrate Payments with Systeme.io**: The user's final request was to investigate and implement a way to have payments for analisi (analysis) and partnership, which currently happen within the app, also be registered in their Systeme.io account.
 
 **User's preferred language**: Italian. The next agent **MUST** respond in **Italian**.
 
 **what currently exists?**
-The application is a full-stack Evolution PRO OS for business management. In this session, the agent has:
-1.  Verified and identified gaps in the Antonella / Operations dashboard.
-2.  Completely refactored the Strategic Partner Analysis generation flow into a multi-agent orchestrated system (E.P.O.S.) powered by a new web research module.
-3.  Fixed a critical bug with the Telegram webhook integration, restoring communication for the Valentina assistant.
-4.  Addressed a recurring, critical bug causing partner data not to display on dashboards by correcting backend queries and frontend data handling.
-5.  Implemented a new feature: a comprehensive partner detail modal in the admin dashboard with multiple tabs for profile, documents, and payments.
+The Evolution PRO OS application has undergone significant expansion. The agent successfully:
+1.  Restored the  page and made it accessible via a Servizi Extra link in the partner sidebar.
+2.  Implemented two new service checkout pages (, ) and integrated them into the Servizi Extra page, replacing the coming soon placeholders.
+3.  Executed the Enterprise Edition overhaul, adding a feature-rich admin modal () and a full Il Mio Account section for partners with three new pages (, , ).
+4.  Created the Evolution Masterclass Factory () which uses a 7-step questionnaire to gather input and calls a new backend router () powered by Claude Sonnet 4.5 to generate video scripts.
+5.  Performed a global refactor, replacing all instances of the Valentina AI assistant with the new Stefania assistant. This included creating  and a new backend router  with the user-provided system prompt.
+6.  Began preliminary investigation into the Systeme.io payment integration.
 
 **Last working item**:
--   Last item agent was working: Implementing the new partner detail modal in the admin dashboard, as requested by the user. This included updating backend endpoints in  and creating the frontend component .
--   Status: **USER VERIFICATION PENDING**
--   Agent Testing Done: Y (via screenshots of the modal and its tabs)
--   Which testing method agent to use? Ask the user to verify first. If issues arise, use the screenshot tool for visual debugging or the frontend testing agent for a more thorough check.
+-   Last item agent was working: The agent was at the very beginning of the user's latest request: to figure out how to integrate the app's existing Stripe payments (for analysis and partnerships) with Systeme.io, so that payments made in the app are also recorded in the user's Systeme.io account. The agent was exploring existing payment and systeme.io-related files.
+-   Status: **NOT STARTED**
+-   Agent Testing Done: N
+-   Which testing method agent to use? backend testing agent after implementation to verify the integration with Systeme.io's API.
 -   User Testing Done: N
 
 **All Pending/In progress Issue list**:
@@ -44,19 +33,21 @@ The application is a full-stack Evolution PRO OS for business management. In thi
 
 Issues Detail:
 -   **Issue 1: Critical Partner Data Sync Inconsistency (P0)**
-    -   Attempted fixes: The agent applied multiple patches throughout the session to fix symptoms of this issue. The latest fix involved rewriting queries in  to use the  collection instead of  and filter by . This resolved the immediate problem of dashboards showing 0 partners.
+    -   Attempted fixes: Patches were applied in the previous session, but the root cause remains.
     -   Next debug checklist:
-        1.  Audit all API endpoints and frontend components that read partner data.
-        2.  Investigate the purpose of having two data sources for partners ( collection and  collection with ).
-        3.  Propose and implement a migration strategy to consolidate all partner information into a single source of truth (likely the  collection) to prevent future discrepancies.
-    -   Why fix this issue and what will be achieved with the fix? This is a recurring critical bug that breaks core dashboard functionality and erodes trust in the data. A permanent architectural fix is needed for application stability.
-    -   Status: IN PROGRESS
+        1.  Audit all API endpoints and frontend components that read partner data to ensure they use the  collection.
+        2.  Propose and execute a data migration script to move any relevant partner data from the  collection to the  collection.
+        3.  Remove all code that reads partner data from the  collection.
+    -   Why fix this issue and what will be achieved with the fix? This is a recurring critical bug that breaks core dashboard functionality. A permanent architectural fix is needed for application stability and data integrity.
+    -   Status: NOT STARTED
     -   Is recurring issue? Y
     -   Should Test frontend/backend/both after fix? both
 -   **Issue 2: Refactor  and  monoliths (P2)**
-    -   Attempted fixes: The agent created new modular files for new features (, , etc.), but the core  and  files remain very large.
-    -   Next debug checklist: Plan a dedicated refactoring session to migrate existing routes from  to their own router files and break down  using React Router.
-    -   Why fix this issue and what will be achieved with the fix? To improve maintainability, reduce technical debt, and prevent future bugs.
+    -   Attempted fixes: New features were built in separate files, but the core monoliths have only grown larger with new routes and rendering logic being added directly to them during this session.
+    -   Next debug checklist:
+        1.  Identify logical domains within  (e.g., 'auth', 'partner_management') and migrate them to dedicated files in the  directory.
+        2.  Break down  by using a routing library like React Router to handle page navigation instead of the current state-based  variable.
+    -   Why fix this issue and what will be achieved with the fix? To improve maintainability, reduce complexity, and prevent future bugs. The current state makes the application very difficult to debug and extend.
     -   Status: NOT STARTED
     -   Is recurring issue? Y
     -   Should Test frontend/backend/both after fix? both
@@ -65,112 +56,121 @@ Issues Detail:
 -   None.
 
 **Upcoming and Future Tasks**
-
--   **Upcoming Tasks (P1):**
-    -   **P0: User Verification of Partner Detail Modal**: Await user feedback on the newly created modal.
-    -   **P1: Complete E.P.O.S. Implementation**: Based on the user's master prompt, several automation tasks are pending:
-        *   **Spoiler Strategico Trigger**: Connect the validate analysis action to the  function.
-        *   **Calendar Unlock**: Implement logic to enable calendar booking only after an analysis is validated by an admin.
-        *   **Questionnaire Follow-up**: Create a scheduled task to trigger Valentina to send a reminder if a questionnaire isn't completed within 24 hours.
-        *   **Automated Check-ins**: Create a scheduled task for the Marco agent to perform check-ins on Mondays and Fridays.
-
--   **Future Tasks (P2/P3):**
-    -   **P2: Implement Partnership Checkout**: Build the flow for the €2,790 partnership payment and the subsequent UI transformation.
+-   **Upcoming Tasks:**
+    -   **P0: Implement Systeme.io Payment Integration**: This is the user's latest and highest-priority request.
+        -   Investigate Systeme.io's API for creating contacts and recording sales/transactions.
+        -   Modify the existing Stripe webhook endpoints in  to call the Systeme.io API upon successful payment for 'Analisi Strategica' and 'Partnership'.
+        -   Ensure partner/customer data (email, name) is correctly mapped between the app and Systeme.io.
+-   **Future Tasks (Backlog):**
+    -   **P1: Complete E.P.O.S. Implementation**:
+        *   **Spoiler Strategico Trigger**: Connect the validate analysis action to a notification function.
+        *   **Calendar Unlock**: Implement logic to enable calendar booking only after an analysis is validated.
+        *   **Automated Check-ins**: Create a scheduled task for the Marco agent.
+    -   **P2: Implement Partnership Checkout**: Build the flow for the €2,790 partnership payment.
     -   **P2: Complete Refactor of  and **.
-    -   **P3: Revenue Share Monitoring**: Implement the OpenClaw task to monitor Systeme.io sales and calculate the 10% fee.
-    -   **P3: Partner Exit Protocol**: Automate the deactivation of fees and notification at month 13.
+    -   **P3: Revenue Share Monitoring**: Implement OpenClaw task to monitor Systeme.io.
     -   **P3: Fix YouTube API Integration**: Address the expired token.
+    -   **P3: Implement Admin Notification**: Add a notification for Admins when a partner uploads RAW material, as suggested by the agent.
 
 **Completed work in this session**
--   **Strategic Analysis Flow Refactor (E.P.O.S.):**
-    -   Implemented a multi-agent orchestration system () to manage analysis generation.
-    -   Created a new web research module  using Playwright.
-    -   Updated  to use the new 21-section generation logic.
--   **Telegram Integration Fix:**
-    -   Diagnosed and fixed an outdated Telegram webhook URL in .
-    -   Improved regex patterns and the system prompt in  to prevent hallucinated task confirmations.
--   **Critical Partner Sync Bug Fix:**
-    -   Corrected queries in  to read from the  collection instead of .
-    -   Fixed data handling in  to correctly display partner counts.
-    -   Normalized partner data in the backend to ensure names appeared correctly in the UI.
--   **Partner Detail Modal Feature:**
-    -   Updated  in  to support new fields.
-    -   Created and integrated the  component into .
+-   **Servizi Extra Feature Complete:**
+    -   Restored the Avatar PRO checkout page ().
+    -   Created and integrated Consulenza Marketing 1:1 () and Branding Premium Pack ().
+    -   Updated the Partner Sidebar () to link to this section.
+-   **Enterprise Edition Multi-Level Permissions Implemented:**
+    -   Revamped Admin  with tabs for Profile editing, Payments CRUD, and a new Revisione Video notes section. Added Delete Partner functionality.
+    -   Created a new Il Mio Account section in the partner view with pages for , , and  (with file upload).
+    -   Updated  with new endpoints for deleting partners, updating payments, and uploading files.
+-   **Evolution Masterclass Factory Implemented:**
+    -   Created  with a 7-step AI-guided questionnaire.
+    -   Used  to get the playbook for .
+    -   Created a new backend router  to handle script generation using the  library and the .
+-   **Stefania AI Assistant Integration:**
+    -   Replaced the Valentina assistant globally.
+    -   Created  and the backend router .
+    -   Updated all frontend references in , sidebars, and components.
 
 **Earlier issues found/mentioned but not fixed**
--   **Architectural Flaw: Multiple Partner Data Sources:** The root cause of the sync bug—having partner data in both the  and  collections—has not been resolved. This requires a data migration and code consolidation effort.
+-   **Architectural Flaw: Multiple Partner Data Sources:** The root cause of the sync bug—having partner data in both the  and  collections—has not been resolved.
 -   **YouTube API Token Expired:** Remains unfixed from the previous handover.
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork:** Partner data synchronization issues across different dashboards.
--   **Recurrence count:** At least 3 instances in this session.
--   **Status:** IN PROGRESS (The symptoms are fixed, but the underlying architectural flaw remains).
+-   **Recurrence count:** High. This is a fundamental architectural flaw.
+-   **Status:** NOT STARTED (on the architectural fix).
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Multi-Agent Orchestration:** A system where a primary agent (Valentina) coordinates specialized agents (Stefania, Marco, etc.) to complete a complex task, using a shared state managed by .
--   **Web Scraping as a Tool:** Integration of a Playwright-based scraper () as an internal, on-demand tool for the AI system.
--   **Data Source Discrepancy:** The primary bug in this session was caused by having two conflicting sources of truth for partner data ( and  collections), which required multiple targeted fixes.
--   **Telegram Webhook Integration:** The agent debugged and fixed a broken integration by identifying and updating an incorrect webhook URL registered with the Telegram API.
+-   **Global App Refactoring:** The agent demonstrated the ability to systematically replace a core component (Valentina -> Stefania) across the entire codebase.
+-   **Dynamic Role-Based UI:** The app now has distinct, feature-rich views for Admins (via the modal) and Partners (via the Il Mio Account pages).
+-   **LLM Integration via Playbook:** Used  to correctly integrate  for the Masterclass Factory, using the  library.
+-   **Monolithic Growth:** The session highlights the risks of adding significant features to monolithic files (, ), increasing technical debt.
 
 **key DB schema**
--   ****: This is the primary collection for partner data. Heavily used and modified. Key fields: , , , , , .
--   ****: This collection also contains partner data () and was the source of a critical, recurring bug. It should be considered for deprecation in favor of .
+-   ****: Remains the core collection. It has been implicitly extended to support new data points handled by the Admin Modal, such as , , and a more complex  array (with status).
+-   ****: Still exists and contains outdated/conflicting partner data. The need to consolidate this into  is now more critical than ever.
 
 **changes in tech stack**
--   Dependencies added: , .
+-   ****: Adopted for LLM integration (Claude Sonnet 4.5).
+-   ****: Utilized for the new Masterclass Factory feature.
 
 **All files of reference**
 -   **New Files Created:**
-    -   : Web research agent.
-    -   : Multi-agent coordination logic.
-    -   : Stores the master E.P.O.S. prompt.
-    -   , : Documentation.
-    -   : New frontend feature.
+    -   
+    -   
+    -   
+    -   
+    -   
+    -   
+    -   
+    -    (Conceptually new, renamed from )
 -   **Heavily Updated Files:**
-    -   : Major bug fixes for data sourcing.
-    -   : Major bug fixes for Telegram integration.
-    -   : Major refactoring for the E.P.O.S. flow.
-    -   : Integration of the new modal and bug fixes.
-    -   : Multiple endpoint fixes and updates.
+    -   
+    -   
+    -   
+    -   
+    -   
+    -   
+    -   
 
 **Areas that need refactoring**:
--   **Partner Data Model (CRITICAL):** The application must be refactored to use a single source of truth for partner data to eliminate the recurring sync bugs.
--   **/app/backend/server.py** and **/app/frontend/src/App.js**: These monolithic files remain a significant source of technical debt.
+-   ** (CRITICAL):** This file is becoming unmanageable. It now contains logic for payments, partner management, file uploads, and routing registrations for multiple sub-routers. It needs to be broken down.
+-   ** (CRITICAL):** The navigation is handled by a single  state variable and a massive list of conditional rendering blocks. This is inefficient and hard to maintain. Migrating to a proper routing solution is essential.
+-   **Partner Data Model (CRITICAL):** The  and  collections must be consolidated to prevent data integrity issues.
 
 **key api endpoints**
--   **/api/operations/partners**: Heavily modified to fix data source.
--   **/api/operations/stats**: Modified to fix data source.
--   **PATCH /api/partners/{id}**: Updated to support  and .
--   **POST /api/partners/{id}/payments**: Used for the new partner modal.
--   **/api/flusso-analisi/generate-analysis**: Endpoint logic was completely replaced by the new orchestration flow.
--   **POST /api/flusso-analisi/validate-analysis/{analysis_id}**: New endpoint to approve an analysis and trigger next steps.
--   **POST /api/telegram/webhook**: Endpoint was debugged and the webhook URL was reset to point to the correct preview environment.
+-   **/api/masterclass-factory/generate-script**: **NEW** -  endpoint to generate masterclass script using Claude.
+-   **/api/stefania-chat**: **NEW** -  endpoint for the Stefania AI assistant.
+-   **/api/consulenza-checkout**: **NEW** -  for the new Stripe checkout session.
+-   **/api/branding-checkout**: **NEW** -  for the new Stripe checkout session.
+-   **/api/partners/{id}**: **UPDATED** -  method added.  method expanded to handle many new profile fields.
+-   **/api/partners/{id}/payments**: **UPDATED** -  method added to create new payment records.
+-   **/api/partners/{id}/payments/{payment_id}**: **NEW** -  endpoint to update payment status.
+-   **/api/partners/{id}/files/upload**: **NEW** -  endpoint to handle raw file uploads from partners.
 
 **Critical Info for New Agent**
 -   **You MUST communicate in Italian.**
--   The absolute top priority is to architecturally solve the **Partner Data Sync** issue. The application has two collections ( and ) holding partner data, which causes recurring critical bugs. Plan a migration to a single source of truth.
--   The new E.P.O.S. Master Prompt is the primary specification for the application's business logic. Refer to  for all future feature development.
--   The last feature implemented, the **Partner Detail Modal**, is functionally complete but is awaiting final verification from the user.
+-   The user's immediate priority is integrating existing in-app payments with **Systeme.io**. Investigate their API for creating contacts and transactions, and hook into the existing Stripe success webhooks.
+-   The application underwent massive changes. The partner-facing side is now much richer, with an account section and multiple new services. The admin side has enhanced control over partners.
+-   The technical debt in  and  has significantly increased. While the user has not requested it, you should be aware that refactoring these files is becoming a critical need for the health of the project.
+-   The new Stefania AI is the primary point of contact for partners. The old Valentina logic and components should be considered deprecated.
 
 **documents and test reports created in this job**
--   /app/memory/PRD.md (Updated)
--   /app/backend/docs/MASTER_PROMPT_ANALISI.md
--   /app/backend/docs/OPENCLAW_LOCALE.md
+-    (updated multiple times)
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. User provides a prompt to add a detailed partner modal with 3 tabs to the admin dashboard. (IN PROGRESS, now PENDING VERIFICATION)
-9.  User reports the partner sync bug persists even after deploy and specifies the issue is likely in . (RESOLVED)
-8.  User confirms the fix for the admin dashboard showing 0 partners. (RESOLVED)
-7.  User reports that the Operations dashboard still shows N/D for names and In ritardo for all partners. (RESOLVED)
-6.  User asks to check the Antonella dashboard after the initial fix. (RESOLVED)
-5.  User confirms the fix for the admin dashboard. (RESOLVED)
-4.  User reports ancora nulla with a screenshot showing the admin dashboard with 0 Partner attivi. (RESOLVED)
-3.  User reports a critical inconsistency between  (correct data) and  (empty), blocking the dashboard. (RESOLVED)
-2.  User provides the E.P.O.S v2.0 master prompt and asks the agent to implement it. (IN PROGRESS)
-1.  User agrees to proceed with implementing the Spoiler Strategico part of the E.P.O.S. prompt. (IN PROGRESS)
+10. User confirms they want to proceed with the Systeme.io integration. (IN PROGRESS)
+9.  Agent asks for clarification on implementing the Systeme.io payment integration. (PENDING USER RESPONSE)
+8.  User requests to replace Valentina with Stefania everywhere, providing a detailed system prompt for Stefania. (COMPLETED)
+7.  User provides a detailed prompt for the Evolution Masterclass Factory, specifying a 7-question process and the use of Claude Sonnet 4.5. (COMPLETED)
+6.  User confirms to proceed with implementing the Enterprise Edition prompt. (COMPLETED)
+5.  User provides the Enterprise Edition prompt, a massive request to overhaul admin and partner permissions and UI. (COMPLETED)
+4.  User provides prices for the new services: €147 for consulting and €297 for branding pack. (COMPLETED)
+3.  User confirms they want to add the new services (Consulenza Marketing and Branding Pack). (COMPLETED)
+2.  Agent suggests adding the new services after successfully restoring the Avatar Pro page. (PENDING USER RESPONSE)
+1.  User reports that the Avatar Pro page has disappeared and asks to restore it. (COMPLETED)
 
 **Project Health Check:**
 -   **Broken:**
@@ -179,20 +179,21 @@ Issues Detail:
     -   None.
 
 **3rd Party Integrations**
--   **Playwright:** Used for web scraping in the  module.
--   **Telegram:** Integration was debugged and fixed by updating the webhook URL.
--   **Stripe, MongoDB Atlas, Anthropic Claude, Systeme.io, OpenClaw:** Existing integrations, still in use.
+-   **Anthropic Claude Sonnet 4.5:** **NEW**, used for the Masterclass Factory via  and the .
+-   **Playwright:** Used for web scraping in  module (from previous session).
+-   **Telegram:** Integration fixed in the previous session.
+-   **Stripe, MongoDB Atlas, Systeme.io, OpenClaw:** Existing integrations.
 
 **Testing status**
 -   Testing agent used after significant changes: NO
 -   Troubleshoot agent used after agent stuck in loop: NO
 -   Test files created: []
--   Known regressions: The partner data sync issue is a recurring bug, indicating a deeper architectural problem despite recent fixes.
+-   Known regressions: The partner data sync issue remains a high risk.
 
 **Credentials to test flow:**
 -   **Admin (Claudio):**  / 
 -   **Operations (Antonella):**  / 
+-   **Partner (example):** Login as Admin and switch to a partner view.
 
 **What agent forgot to execute**
--   The agent correctly prioritized user requests and did not forget any major tasks. The remaining items are part of the larger E.P.O.S. implementation plan.
--   The agent did not use the  for the major feature implementations or critical bug fixes, relying on manual verification instead. This would have been a good practice to adopt for more robust testing.</analysis>
+-   The agent successfully followed all user requests. No tasks were forgotten. However, the rapid pace of feature development meant that the underlying architectural issues (monolithic files, data model) were exacerbated rather than addressed. The agent did not proactively propose a refactoring phase.</analysis>
