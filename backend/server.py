@@ -12814,6 +12814,76 @@ async def get_servizi_extra_payment_status(session_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# SYSTEME.IO PAYMENT SYNC MONITORING (Admin)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@api_router.get("/systeme/payment-syncs")
+async def get_systeme_payment_syncs(limit: int = 50, payment_type: Optional[str] = None):
+    """
+    Recupera lo storico delle sincronizzazioni pagamenti con Systeme.io.
+    Endpoint admin per monitorare le integrazioni.
+    """
+    query = {}
+    if payment_type:
+        query["payment_type"] = payment_type
+    
+    syncs = await db.systeme_payment_syncs.find(
+        query,
+        {"_id": 0}
+    ).sort("synced_at", -1).limit(limit).to_list(limit)
+    
+    # Stats
+    total_syncs = await db.systeme_payment_syncs.count_documents({})
+    successful_syncs = await db.systeme_payment_syncs.count_documents({"success": True})
+    
+    # Revenue by type
+    pipeline = [
+        {"$match": {"success": True}},
+        {"$group": {
+            "_id": "$payment_type",
+            "total_amount": {"$sum": "$amount"},
+            "count": {"$sum": 1}
+        }}
+    ]
+    revenue_by_type = await db.systeme_payment_syncs.aggregate(pipeline).to_list(100)
+    
+    return {
+        "syncs": syncs,
+        "stats": {
+            "total_syncs": total_syncs,
+            "successful_syncs": successful_syncs,
+            "success_rate": round(successful_syncs / total_syncs * 100, 1) if total_syncs > 0 else 0,
+            "revenue_by_type": {r["_id"]: {"amount": r["total_amount"], "count": r["count"]} for r in revenue_by_type}
+        }
+    }
+
+@api_router.post("/systeme/manual-sync")
+async def manual_systeme_payment_sync(
+    email: str,
+    nome: str,
+    cognome: str,
+    payment_type: str,
+    amount: float
+):
+    """
+    Sincronizzazione manuale di un pagamento con Systeme.io.
+    Utile per pagamenti manuali/bonifici o per recuperare sync fallite.
+    """
+    result = await sync_payment_to_systeme(
+        email=email,
+        nome=nome,
+        cognome=cognome,
+        payment_type=payment_type,
+        amount=amount,
+        metadata={"manual_sync": True, "synced_by": "admin"}
+    )
+    
+    return {
+        "success": result.get("success", False),
+        "result": result
+    }
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # CLIENTI ANALISI ENDPOINTS - /api/clienti-analisi
 # ═══════════════════════════════════════════════════════════════════════════════
 
