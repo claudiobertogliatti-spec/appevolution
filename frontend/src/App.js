@@ -16,7 +16,6 @@ import { PartnerProfileModal } from "./components/admin/PartnerProfileModal";
 import { CalendarioEditoriale } from "./components/partner/CalendarioEditoriale";
 import { WizardPosizionamento } from "./components/partner/WizardPosizionamento";
 import { MasterclassBuilder } from "./components/partner/MasterclassBuilder";
-import { StefaniaChat } from "./components/partner/StefaniaChat";
 import { BrandKitEditor } from "./components/partner/BrandKitEditor";
 import { ProduzioneVideo } from "./components/partner/ProduzioneVideo";
 import { AndreaChat } from "./components/partner/AndreaChat";
