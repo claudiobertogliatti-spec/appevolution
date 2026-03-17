@@ -115,17 +115,19 @@ async def get_partners_attivi():
             # Calcola ritardi
             ultimo_aggiornamento = p.get("ultimo_aggiornamento") or p.get("updated_at") or p.get("created_at")
             if ultimo_aggiornamento:
-                if isinstance(ultimo_aggiornamento, str):
-                    try:
+                try:
+                    if isinstance(ultimo_aggiornamento, str):
                         ultimo_aggiornamento = datetime.fromisoformat(ultimo_aggiornamento.replace("Z", "+00:00"))
-                    except:
-                        ultimo_aggiornamento = None
-                
-                if ultimo_aggiornamento:
+                    
+                    # Gestisci datetime naive (aggiungi timezone)
+                    if ultimo_aggiornamento.tzinfo is None:
+                        ultimo_aggiornamento = ultimo_aggiornamento.replace(tzinfo=timezone.utc)
+                    
                     giorni_da_ultimo = (oggi - ultimo_aggiornamento).days
                     p["giorni_da_ultimo_update"] = giorni_da_ultimo
                     p["in_ritardo"] = giorni_da_ultimo > 7
-                else:
+                except Exception as date_err:
+                    logging.debug(f"Errore parsing data: {date_err}")
                     p["giorni_da_ultimo_update"] = None
                     p["in_ritardo"] = False
             else:
