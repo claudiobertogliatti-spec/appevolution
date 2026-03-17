@@ -66,17 +66,53 @@ class SocialCalendarUpdate(BaseModel):
 
 @router.get("/partners")
 async def get_partners_attivi():
-    """Lista partner attivi (fase >= F1) per dashboard Antonella"""
+    """
+    Lista partner attivi (fase >= F1) per dashboard Antonella.
+    
+    FIX: Usa la collection 'partners' (non 'users') che contiene i record aggiornati.
+    Filtra per phase != F0 (partner attivi in percorso).
+    """
     try:
-        # Cerca partner con fase attiva
-        partners = await db.users.find({
-            "user_type": "partner",
-            "fase": {"$exists": True, "$ne": None, "$ne": "F0", "$ne": ""}
-        }, {"_id": 0, "password": 0, "hashed_password": 0}).to_list(100)
+        # Cerca nella collection PARTNERS (non users!)
+        # Filtra partner con phase attiva (diversa da F0 e non vuota)
+        partners = await db.partners.find({
+            "$or": [
+                {"phase": {"$exists": True, "$nin": ["F0", "", None]}},
+                {"fase": {"$exists": True, "$nin": ["F0", "", None]}}
+            ]
+        }, {"_id": 0}).to_list(200)
         
-        # Calcola ritardi
+        # Se la collection partners è vuota, fallback su users
+        if not partners:
+            logging.warning("Collection 'partners' vuota, fallback su 'users'")
+            partners = await db.users.find({
+                "user_type": "partner",
+                "$or": [
+                    {"fase": {"$exists": True, "$nin": ["F0", "", None]}},
+                    {"phase": {"$exists": True, "$nin": ["F0", "", None]}}
+                ]
+            }, {"_id": 0, "password": 0, "hashed_password": 0, "password_hash": 0}).to_list(200)
+        
+        # Normalizza campi (alcuni record usano 'phase', altri 'fase')
         oggi = datetime.now(timezone.utc)
         for p in partners:
+            # Normalizza phase/fase
+            if not p.get("phase") and p.get("fase"):
+                p["phase"] = p["fase"]
+            elif not p.get("fase") and p.get("phase"):
+                p["fase"] = p["phase"]
+            
+            # Normalizza name/nome
+            if not p.get("name"):
+                nome = p.get("nome", "")
+                cognome = p.get("cognome", "")
+                p["name"] = f"{nome} {cognome}".strip() or "Partner"
+            
+            # Normalizza niche/nicchia
+            if not p.get("niche"):
+                p["niche"] = p.get("nicchia", "—")
+            
+            # Calcola ritardi
             ultimo_aggiornamento = p.get("ultimo_aggiornamento") or p.get("updated_at") or p.get("created_at")
             if ultimo_aggiornamento:
                 if isinstance(ultimo_aggiornamento, str):
@@ -96,7 +132,8 @@ async def get_partners_attivi():
                 p["giorni_da_ultimo_update"] = None
                 p["in_ritardo"] = False
         
-        return {"success": True, "partners": partners}
+        logging.info(f"[Operations] Trovati {len(partners)} partner attivi")
+        return {"success": True, "partners": partners, "total": len(partners)}
     except Exception as e:
         logging.error(f"Errore get_partners_attivi: {e}")
         raise HTTPException(status_code=500, detail=str(e))
