@@ -1,42 +1,41 @@
 import { useState, useEffect, useRef } from "react";
 import { 
   Send, Phone, Video, MoreVertical, Smile, Paperclip,
-  Check, CheckCheck, ArrowLeft, Loader2, Zap
+  Check, CheckCheck, ArrowLeft, Loader2, Zap, AlertTriangle
 } from "lucide-react";
 import axios from "axios";
 import { API } from "../../utils/api-config";
 
-// Comandi che VALENTINA può eseguire
-const EXECUTABLE_COMMANDS = {
-  "sposta fase": { action: "move_phase", agent: "VALENTINA" },
-  "cambia fase": { action: "move_phase", agent: "VALENTINA" },
-  "vai a fase": { action: "move_phase", agent: "VALENTINA" },
-  "passa a fase": { action: "move_phase", agent: "VALENTINA" },
-  "notifica": { action: "send_notification", agent: "VALENTINA" },
-  "invia notifica": { action: "send_notification", agent: "VALENTINA" },
-  "crea contatto": { action: "create_contact", agent: "MARTA" },
-  "nuovo partner": { action: "create_contact", agent: "GAIA" },
-  "sincronizza": { action: "sync_systeme", agent: "MARTA" },
-};
+// ═══════════════════════════════════════════════════════════════════════════════
+// STEFANIA - Chat Coordinatrice AI Evolution PRO
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// Estrae fase dal messaggio (es: "F5", "fase 5", "F 5")
-function extractPhase(text) {
-  const match = text.match(/f\s*(\d+)/i);
-  if (match) return `F${match[1]}`;
-  return null;
+// Parole chiave per escalation a Claudio
+const ESCALATION_KEYWORDS = [
+  "rimborso", "restituire", "non funziona niente", "voglio uscire", 
+  "avvocato", "denuncia", "truffa", "fregatura", "soldi indietro",
+  "annullare", "cancellare abbonamento", "deluso", "incazzato"
+];
+
+// Controlla se il messaggio richiede escalation
+function needsEscalation(text) {
+  const lowerText = text.toLowerCase();
+  return ESCALATION_KEYWORDS.some(keyword => lowerText.includes(keyword));
 }
 
 // Componente singolo messaggio
 function Message({ msg, isLast }) {
   const isUser = msg.role === "user";
   const isAction = msg.type === "action";
+  const isEscalation = msg.type === "escalation";
   
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"} mb-3 animate-slide-in`}>
-      {/* Avatar per VALENTINA */}
+      {/* Avatar per STEFANIA */}
       {!isUser && (
-        <div className="w-8 h-8 rounded-full bg-[#F5C518] flex items-center justify-center text-sm font-bold text-black mr-2 flex-shrink-0">
-          V
+        <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mr-2 flex-shrink-0"
+             style={{ background: '#8B5CF6', color: 'white' }}>
+          S
         </div>
       )}
       
@@ -47,14 +46,22 @@ function Message({ msg, isLast }) {
             isUser 
               ? "bg-[#F5C518] text-black rounded-br-md" 
               : isAction
-                ? "bg-green-500/20 border border-green-500/30 text-green-400 rounded-bl-md"
-                : "bg-white text-[#1E2128] rounded-bl-md"
+                ? "bg-green-500/20 border border-green-500/30 text-green-700 rounded-bl-md"
+                : isEscalation
+                  ? "bg-orange-500/20 border border-orange-500/30 text-orange-700 rounded-bl-md"
+                  : "bg-white text-[#1E2128] rounded-bl-md border border-[#ECEDEF]"
           }`}
         >
           {isAction && (
-            <div className="flex items-center gap-2 text-xs font-bold mb-1 text-green-400">
+            <div className="flex items-center gap-2 text-xs font-bold mb-1 text-green-600">
               <Zap className="w-3 h-3" />
               AZIONE ESEGUITA
+            </div>
+          )}
+          {isEscalation && (
+            <div className="flex items-center gap-2 text-xs font-bold mb-1 text-orange-600">
+              <AlertTriangle className="w-3 h-3" />
+              ESCALATION A CLAUDIO
             </div>
           )}
           <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
@@ -64,7 +71,7 @@ function Message({ msg, isLast }) {
         <div className={`flex items-center gap-1 mt-1 ${isUser ? "justify-end" : ""}`}>
           <span className="text-[10px] text-[#9CA3AF]">{msg.time}</span>
           {isUser && (
-            <CheckCheck className={`w-3 h-3 ${msg.read ? "text-[#F5C518]" : "text-[#9CA3AF]"}`} />
+            <CheckCheck className={`w-3 h-3 ${msg.read ? "text-[#8B5CF6]" : "text-[#9CA3AF]"}`} />
           )}
         </div>
       </div>
@@ -72,18 +79,17 @@ function Message({ msg, isLast }) {
   );
 }
 
-// Componente principale Chat VALENTINA
-export function ValentinaChat({ partner, onBack, isAdmin = false }) {
-  // Chiave per sessionStorage basata sul partner/admin
-  const storageKey = `valentina_chat_${isAdmin ? 'admin' : partner?.id || 'default'}`;
+// ═══════════════════════════════════════════════════════════════════════════════
+// COMPONENTE PRINCIPALE - STEFANIA CHAT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export function StefaniaChat({ partner, onBack, isAdmin = false }) {
+  const storageKey = `stefania_chat_${isAdmin ? 'admin' : partner?.id || 'default'}`;
   
-  // Carica messaggi da sessionStorage se presenti
   const loadStoredMessages = () => {
     try {
       const stored = sessionStorage.getItem(storageKey);
-      if (stored) {
-        return JSON.parse(stored);
-      }
+      if (stored) return JSON.parse(stored);
     } catch (e) {
       console.error('Error loading stored messages:', e);
     }
@@ -99,7 +105,22 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
   
   const currentTime = () => new Date().toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
   
-  // Salva messaggi in sessionStorage quando cambiano
+  // Determina l'agente responsabile in base alla fase
+  const getResponsibleAgent = (phase) => {
+    const phaseAgents = {
+      'F0': 'GAIA',      // Onboarding iniziale
+      'F1': 'GAIA',      // Setup
+      'F2': 'ANDREA',    // Posizionamento
+      'F3': 'ANDREA',    // Masterclass
+      'F4': 'ANDREA',    // Videocorso
+      'F5': 'ANDREA',    // Funnel
+      'F9': 'MARCO',     // Lancio
+      'LIVE': 'MARCO'    // Ottimizzazione
+    };
+    return phaseAgents[phase] || 'GAIA';
+  };
+  
+  // Salva messaggi in sessionStorage
   useEffect(() => {
     if (messages.length > 0) {
       try {
@@ -110,14 +131,18 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
     }
   }, [messages, storageKey]);
   
-  // Messaggio iniziale (solo se non ci sono messaggi salvati)
+  // Messaggio iniziale
   useEffect(() => {
     if (messages.length === 0) {
+      const partnerName = partner?.name?.split(" ")[0] || "Partner";
+      const phase = partner?.phase || "F1";
+      const agent = getResponsibleAgent(phase);
+      
       const welcomeMsg = {
         role: "assistant",
         content: isAdmin 
-          ? `Ciao Claudio! 👋\n\nSono **VALENTINA**, il tuo braccio destro.\n\nPosso aiutarti con:\n• 📊 Status lead e ORION (13.000+ contatti)\n• 👔 Gestione partner e fasi\n• 💰 KPI vendite e Tripwire €7\n• ⚡ Coordinare gli agenti AI\n\nDimmi cosa ti serve, boss!`
-          : `Ciao ${partner?.name?.split(" ")[0] || "Partner"}! 👋\n\nSono **VALENTINA**, la tua orchestratrice personale.\n\nSei attualmente in **${partner?.phase || "F1"}**. Sono qui per rispondere alle tue domande e supportarti nel percorso.\n\nScrivimi pure!`,
+          ? `Ciao Claudio! 👋\n\nSono **STEFANIA**, la coordinatrice AI.\n\nPosso aiutarti con:\n• 📊 Monitoraggio partner e fasi\n• 👔 Coordinamento agenti (ANDREA, GAIA, MARCO)\n• ⚡ Escalation e priorità\n• 💬 Comunicazioni con i partner\n\nCosa ti serve?`
+          : `Ciao ${partnerName}!\n\nSono **STEFANIA**, la tua coordinatrice in Evolution PRO.\n\nSei in **fase ${phase}** — il tuo agente di riferimento è **${agent}**.\n\nSono qui per:\n• Rispondere alle tue domande sul percorso\n• Raccogliere aggiornamenti\n• Gestire eventuali blocchi\n\nScrivimi pure!`,
         time: currentTime(),
         read: true
       };
@@ -129,69 +154,6 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-  
-  // Verifica se il messaggio contiene un comando eseguibile (SOLO per admin)
-  const checkForCommand = (text) => {
-    if (!isAdmin) return null; // I partner non possono eseguire comandi
-    
-    const lowerText = text.toLowerCase();
-    
-    // Cerca comandi di spostamento fase
-    if (lowerText.includes("sposta") || lowerText.includes("cambia fase") || 
-        lowerText.includes("vai a fase") || lowerText.includes("passa a fase") ||
-        lowerText.includes("portami")) {
-      const phase = extractPhase(text);
-      if (phase) {
-        return { type: "move_phase", phase };
-      }
-    }
-    
-    // Cerca comandi di sync
-    if (lowerText.includes("sincronizza") || lowerText.includes("sync")) {
-      return { type: "sync_systeme" };
-    }
-    
-    return null;
-  };
-  
-  // Esegue azione su Systeme.io
-  const executeAction = async (command) => {
-    try {
-      if (command.type === "move_phase") {
-        const response = await axios.post(`${API}/systeme/valentina/move-phase`, {
-          contact_id: partner?.systeme_id || partner?.id || "1",
-          phase: command.phase
-        });
-        
-        if (response.data.success) {
-          return {
-            success: true,
-            message: `✅ Fatto! Ti ho spostato alla fase **${command.phase}** (${response.data.tag_added}).\n\nLa tua dashboard si aggiornerà automaticamente.`
-          };
-        } else {
-          return {
-            success: false,
-            message: `⚠️ Non sono riuscita a spostarti alla fase ${command.phase}. ${response.data.message || ""}`
-          };
-        }
-      }
-      
-      if (command.type === "sync_systeme") {
-        await axios.post(`${API}/systeme/sync`, { partner_id: "global" });
-        return {
-          success: true,
-          message: "✅ Sincronizzazione completata! I dati di Systeme.io sono aggiornati."
-        };
-      }
-      
-      return { success: false, message: "Comando non riconosciuto" };
-    } catch (error) {
-      return {
-        success: false,
-        message: `❌ Si è verificato un errore: ${error.response?.data?.detail || error.message}`
-      };
-    }
-  };
   
   // Invia messaggio
   const sendMessage = async () => {
@@ -210,54 +172,54 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
     setLoading(true);
     setTyping(true);
     
-    // Verifica se c'è un comando eseguibile
-    const command = checkForCommand(userInput);
-    
     try {
-      if (command) {
-        // Esegue l'azione
-        const result = await executeAction(command);
+      // Verifica escalation
+      const requiresEscalation = needsEscalation(userInput);
+      
+      if (requiresEscalation && !isAdmin) {
+        // Escalation a Claudio
+        await axios.post(`${API}/api/stefania/escalation`, {
+          partner_id: partner?.id,
+          partner_name: partner?.name,
+          partner_phase: partner?.phase,
+          message: userInput,
+          reason: "keyword_detected"
+        });
         
-        // Simula digitazione
         await new Promise(resolve => setTimeout(resolve, 1000));
         setTyping(false);
         
-        // Messaggio di risposta con azione
-        const actionMessage = {
+        const escalationMessage = {
           role: "assistant",
-          type: result.success ? "action" : "message",
-          content: result.message,
+          type: "escalation",
+          content: "Capito. Questa situazione richiede l'intervento diretto di Claudio.\n\nTi contatterà entro oggi.",
           time: currentTime(),
           read: true
         };
         
         setMessages(prev => {
           const updated = [...prev];
-          // Segna il messaggio utente come letto
-          if (updated.length > 0) {
-            updated[updated.length - 1].read = true;
-          }
-          return [...updated, actionMessage];
+          if (updated.length > 0) updated[updated.length - 1].read = true;
+          return [...updated, escalationMessage];
         });
+        
       } else {
-        // Chat normale con VALENTINA via API
-        const response = await axios.post(`${API}/chat`, {
-          agent: "VALENTINA",
+        // Chat normale con STEFANIA via API
+        const response = await axios.post(`${API}/api/stefania/chat`, {
           partner_id: partner?.id || "1",
           message: userInput,
-          user_role: isAdmin ? "admin" : (partner?.id ? "partner" : "cliente"),
+          user_role: isAdmin ? "admin" : "partner",
           user_name: partner?.name || "Utente",
-          partner_name: partner?.name,
           partner_phase: partner?.phase,
-          partner_niche: partner?.niche,
+          partner_niche: partner?.niche || partner?.nicchia,
           context: {
             phase: partner?.phase,
             name: partner?.name,
+            responsible_agent: getResponsibleAgent(partner?.phase),
             is_admin: isAdmin
           }
         });
         
-        // Simula digitazione
         await new Promise(resolve => setTimeout(resolve, 500));
         setTyping(false);
         
@@ -270,9 +232,7 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
         
         setMessages(prev => {
           const updated = [...prev];
-          if (updated.length > 0) {
-            updated[updated.length - 1].read = true;
-          }
+          if (updated.length > 0) updated[updated.length - 1].read = true;
           return [...updated, assistantMessage];
         });
       }
@@ -280,7 +240,7 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
       setTyping(false);
       const errorMessage = {
         role: "assistant",
-        content: "Mi dispiace, ho avuto un problema tecnico. Riprova tra poco! 🙏",
+        content: "Mi dispiace, ho avuto un problema tecnico. Riprova tra poco!",
         time: currentTime(),
         read: true
       };
@@ -291,8 +251,8 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
   };
   
   return (
-    <div className="flex flex-col h-full bg-[#FAFAF7]" data-testid="valentina-chat">
-      {/* Header WhatsApp style */}
+    <div className="flex flex-col h-full bg-[#FAFAF7]" data-testid="stefania-chat">
+      {/* Header */}
       <div className="bg-white px-4 py-3 flex items-center gap-3 border-b border-[#ECEDEF]">
         {onBack && (
           <button onClick={onBack} className="p-1 hover:bg-[#FAFAF7] rounded-lg transition-colors">
@@ -300,15 +260,16 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
           </button>
         )}
         
-        <div className="w-10 h-10 rounded-full bg-[#F5C518] flex items-center justify-center">
-          <span className="text-lg font-bold text-black">V</span>
+        <div className="w-10 h-10 rounded-full flex items-center justify-center"
+             style={{ background: '#8B5CF6' }}>
+          <span className="text-lg font-bold text-white">S</span>
         </div>
         
         <div className="flex-1">
-          <h2 className="font-bold text-[#1E2128]">VALENTINA</h2>
+          <h2 className="font-bold text-[#1E2128]">STEFANIA</h2>
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-xs text-[#9CA3AF]">Online • Onboarding & Consulenza AI</span>
+            <span className="text-xs text-[#9CA3AF]">Online • Coordinatrice AI Evolution PRO</span>
           </div>
         </div>
         
@@ -326,12 +287,7 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
       </div>
       
       {/* Area messaggi */}
-      <div 
-        className="flex-1 overflow-y-auto p-4"
-        style={{ 
-          background: '#FAFAF7'
-        }}
-      >
+      <div className="flex-1 overflow-y-auto p-4" style={{ background: '#FAFAF7' }}>
         {/* Data */}
         <div className="text-center mb-4">
           <span className="px-3 py-1 bg-white border border-[#ECEDEF] rounded-full text-[10px] text-[#9CA3AF] font-semibold">
@@ -347,14 +303,15 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
         {/* Typing indicator */}
         {typing && (
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-full bg-[#F5C518] flex items-center justify-center text-sm font-bold text-black">
-              V
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white"
+                 style={{ background: '#8B5CF6' }}>
+              S
             </div>
             <div className="bg-white border border-[#ECEDEF] px-4 py-3 rounded-2xl rounded-bl-md">
               <div className="flex gap-1">
-                <div className="w-2 h-2 bg-[#F2C418] rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                <div className="w-2 h-2 bg-[#F2C418] rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                <div className="w-2 h-2 bg-[#F2C418] rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                <div className="w-2 h-2 bg-[#8B5CF6] rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                <div className="w-2 h-2 bg-[#8B5CF6] rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                <div className="w-2 h-2 bg-[#8B5CF6] rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
               </div>
             </div>
           </div>
@@ -385,7 +342,7 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
             }}
             placeholder="Scrivi un messaggio..."
             rows={1}
-            className="w-full bg-white border border-[#ECEDEF] rounded-2xl px-4 py-2.5 text-sm text-[#1E2128] resize-none focus:border-[#F5C518] outline-none transition-colors max-h-32 placeholder:text-[#9CA3AF]"
+            className="w-full bg-white border border-[#ECEDEF] rounded-2xl px-4 py-2.5 text-sm text-[#1E2128] resize-none focus:border-[#8B5CF6] outline-none transition-colors max-h-32 placeholder:text-[#9CA3AF]"
             style={{ minHeight: "42px" }}
           />
         </div>
@@ -393,7 +350,8 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
         <button
           onClick={sendMessage}
           disabled={!input.trim() || loading}
-          className="w-11 h-11 rounded-full bg-[#F5C518] flex items-center justify-center text-black disabled:opacity-30 hover:bg-[#e0a800] transition-all hover:scale-105 active:scale-95"
+          className="w-11 h-11 rounded-full flex items-center justify-center text-white disabled:opacity-30 hover:opacity-90 transition-all hover:scale-105 active:scale-95"
+          style={{ background: '#8B5CF6' }}
         >
           {loading ? (
             <Loader2 className="w-5 h-5 animate-spin" />
@@ -406,4 +364,6 @@ export function ValentinaChat({ partner, onBack, isAdmin = false }) {
   );
 }
 
-export default ValentinaChat;
+// Export anche come ValentinaChat per retrocompatibilità durante la migrazione
+export const ValentinaChat = StefaniaChat;
+export default StefaniaChat;
