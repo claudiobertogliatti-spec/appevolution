@@ -420,27 +420,16 @@ async def delete_campagna(campagna_id: str):
 async def get_operations_stats():
     """
     Statistiche generali per la dashboard operations.
-    
-    FIX: Usa collection 'partners' invece di 'users' per conteggio accurato.
+    Usa collection 'partners' con filtro status ACTIVE o phase attiva.
     """
     try:
         # Conta partner attivi dalla collection PARTNERS
         partner_count = await db.partners.count_documents({
             "$or": [
-                {"phase": {"$exists": True, "$nin": ["F0", "", None]}},
-                {"fase": {"$exists": True, "$nin": ["F0", "", None]}}
+                {"status": {"$in": ["ACTIVE", "active"]}},
+                {"phase": {"$exists": True, "$nin": ["F0", "", None]}}
             ]
         })
-        
-        # Fallback su users se partners è vuota
-        if partner_count == 0:
-            partner_count = await db.users.count_documents({
-                "user_type": "partner",
-                "$or": [
-                    {"fase": {"$exists": True, "$nin": ["F0", "", None]}},
-                    {"phase": {"$exists": True, "$nin": ["F0", "", None]}}
-                ]
-            })
         
         # Conta campagne attive
         campagne_attive = await db.campagne_adv.count_documents({"stato": "attiva"})
@@ -449,8 +438,8 @@ async def get_operations_stats():
         oggi = datetime.now(timezone.utc)
         partners = await db.partners.find({
             "$or": [
-                {"phase": {"$exists": True, "$nin": ["F0", "", None]}},
-                {"fase": {"$exists": True, "$nin": ["F0", "", None]}}
+                {"status": {"$in": ["ACTIVE", "active"]}},
+                {"phase": {"$exists": True, "$nin": ["F0", "", None]}}
             ]
         }, {"ultimo_aggiornamento": 1, "updated_at": 1}).to_list(200)
         
@@ -461,6 +450,8 @@ async def get_operations_stats():
                 try:
                     if isinstance(ultimo, str):
                         ultimo = datetime.fromisoformat(ultimo.replace("Z", "+00:00"))
+                    if ultimo.tzinfo is None:
+                        ultimo = ultimo.replace(tzinfo=timezone.utc)
                     if (oggi - ultimo).days > 7:
                         in_ritardo += 1
                 except:
