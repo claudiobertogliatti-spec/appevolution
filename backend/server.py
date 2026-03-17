@@ -4017,6 +4017,72 @@ async def generate_positioning_canvas(partner_id: str, partner_name: str, partne
 # ROUTES - PARTNER DOCUMENTS (Admin View)
 # =============================================================================
 
+@api_router.get("/partners/{partner_id}/documents")
+async def get_partner_all_documents(partner_id: str):
+    """Get all documents and files for a partner"""
+    # Get uploaded files from partner_files collection
+    files = await db.partner_files.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    # Get onboarding documents
+    onboarding_docs = await db.partner_onboarding_docs.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).to_list(20)
+    
+    # Get course materials
+    course_docs = await db.partner_course_materials.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).to_list(50)
+    
+    # Combine all documents
+    all_documents = []
+    
+    # Add uploaded files
+    for f in files:
+        all_documents.append({
+            "id": f.get("id"),
+            "name": f.get("name") or f.get("filename"),
+            "filename": f.get("filename"),
+            "url": f.get("url"),
+            "type": f.get("type"),
+            "is_raw": f.get("is_raw", False),
+            "status": f.get("status"),
+            "created_at": f.get("created_at")
+        })
+    
+    # Add onboarding documents
+    for doc in onboarding_docs:
+        all_documents.append({
+            "id": doc.get("id"),
+            "name": doc.get("document_type", "Documento"),
+            "filename": doc.get("filename"),
+            "url": doc.get("file_url"),
+            "type": "pdf",
+            "is_raw": False,
+            "status": doc.get("status"),
+            "created_at": doc.get("uploaded_at")
+        })
+    
+    # Add course materials
+    for mat in course_docs:
+        all_documents.append({
+            "id": mat.get("id"),
+            "name": mat.get("name"),
+            "filename": mat.get("filename"),
+            "url": mat.get("url"),
+            "type": mat.get("type"),
+            "is_raw": False,
+            "status": "approved",
+            "created_at": mat.get("created_at")
+        })
+    
+    return {"documents": all_documents, "count": len(all_documents)}
+
+
 @api_router.get("/partner-documents/{partner_id}")
 async def get_partner_documents(partner_id: str):
     """Get all documents for a partner (positioning + scripts)"""
