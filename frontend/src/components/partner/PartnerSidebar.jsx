@@ -328,6 +328,39 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
           </nav>
         </div>
 
+        {/* ─────────────────────────────────────────────────────────────────────
+            IL MIO ACCOUNT
+            ───────────────────────────────────────────────────────────────────── */}
+        <div className="mb-4">
+          <div className="px-2 py-2">
+            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#9CA3AF' }}>
+              Il Mio Account
+            </span>
+          </div>
+          
+          <nav className="space-y-1">
+            {ACCOUNT_ITEMS.map(item => {
+              const isActive = currentNav === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => onNavigate(item.id)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all hover:bg-[#FAFAF7]"
+                  style={{ 
+                    background: isActive ? '#FFF3C4' : 'transparent',
+                    borderLeft: isActive ? '3px solid #F2C418' : '3px solid transparent',
+                    color: isActive ? '#1E2128' : '#5F6572'
+                  }}
+                  data-testid={`sidebar-${item.id}`}
+                >
+                  <item.icon className="w-4 h-4" style={{ color: isActive ? '#F2C418' : '#9CA3AF' }} />
+                  <span className={`text-sm ${isActive ? 'font-bold' : 'font-medium'}`}>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
