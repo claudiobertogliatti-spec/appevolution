@@ -1740,7 +1740,7 @@ export default function App() {
             {/* ALTRI */}
             {nav==="risorse"&&<PartnerResources/>}
             {nav==="renewal"&&<RenewalPlans partnerName={demoPartner?.name||"Partner"} currentRevenue={demoPartner?.revenue||0} onSelectPlan={(plan)=>console.log(plan)}/>}
-            {nav==="supporto"&&<ValentinaChat partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
+            {nav==="supporto"&&<StefaniaChat partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
             {nav==="profilo-hub"&&<PartnerProfileHub partner={demoPartner} onNavigate={setNav}/>}
             {nav==="email-automation"&&<EmailAutomation partner={demoPartner}/>}
             
