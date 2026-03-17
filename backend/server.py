@@ -12649,6 +12649,11 @@ from routers.masterclass_factory import router as masterclass_factory_router, se
 set_masterclass_factory_db(db)
 app.include_router(masterclass_factory_router)
 
+# Include Stefania Chat router (Coordinatrice AI)
+from routers.stefania_chat import router as stefania_router, set_db as set_stefania_db
+set_stefania_db(db)
+app.include_router(stefania_router)
+
 # Include analisi consulenziale router (Analisi Preliminare, Script Call, Analisi Finale)
 from routers.analisi_consulenziale import router as analisi_consulenziale_router, set_db as set_analisi_consulenziale_db
 set_analisi_consulenziale_db(db)
