@@ -564,6 +564,14 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
         )}
         
       </div>
+      
+      {/* Partner Detail Modal */}
+      <PartnerDetailModal
+        partner={selectedPartner}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onUpdate={handlePartnerUpdate}
+      />
     </div>
   );
 }
