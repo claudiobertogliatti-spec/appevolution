@@ -249,6 +249,25 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
   const [filterStatus, setFilterStatus] = useState("all");
   const [activeTab, setActiveTab] = useState("partners"); // partners | analisi
   
+  // Modal state
+  const [selectedPartner, setSelectedPartner] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  const handleOpenPartnerDetail = (partner) => {
+    setSelectedPartner(partner);
+    setIsModalOpen(true);
+  };
+  
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedPartner(null);
+  };
+  
+  const handlePartnerUpdate = () => {
+    // Refresh data after update
+    fetchData();
+  };
+  
   useEffect(() => {
     fetchData();
   }, []);
