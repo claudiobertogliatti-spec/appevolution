@@ -42,7 +42,7 @@ import { PartnerPayments } from "./components/partner/PartnerPayments";
 import { PartnerFiles } from "./components/partner/PartnerFiles";
 import { AdminSidebarLight } from "./components/admin/AdminSidebarLight";
 import { ScriptBuilder } from "./components/partner/ScriptBuilder";
-import { ValentinaChat } from "./components/chat/ValentinaChat";
+import { StefaniaChat } from "./components/chat/ValentinaChat";
 import { LoginPage } from "./components/auth/LoginPage";
 import { WebhookDashboard } from "./components/admin/WebhookDashboard";
 import { FunnelReviewBuilder } from "./components/partner/FunnelReviewBuilder";
