@@ -12716,6 +12716,103 @@ async def get_partner_avatar_payments(partner_id: str):
     
     return {"payments": payments, "total": len(payments)}
 
+@api_router.get("/servizi-extra/payment-status/{session_id}")
+async def get_servizi_extra_payment_status(session_id: str):
+    """
+    Verifica lo status di un pagamento per servizi extra (consulenza, branding)
+    e sincronizza con Systeme.io se pagato.
+    """
+    stripe_api_key = get_env_override("STRIPE_API_KEY")
+    if not stripe_api_key:
+        raise HTTPException(status_code=500, detail="Stripe non configurato")
+    
+    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url="")
+    
+    try:
+        status = await stripe_checkout.get_checkout_status(session_id)
+        
+        # Get transaction from database
+        transaction = await db.payment_transactions.find_one({"session_id": session_id})
+        
+        update_data = {
+            "status": status.status,
+            "payment_status": status.payment_status,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        systeme_synced = False
+        
+        # If paid and not yet synced
+        if status.payment_status == "paid" and transaction and not transaction.get("systeme_synced"):
+            update_data["paid_at"] = datetime.now(timezone.utc).isoformat()
+            
+            # 🔄 SYNC con Systeme.io
+            try:
+                service_type = transaction.get("service_type", "")
+                partner_email = transaction.get("partner_email", "")
+                partner_name = transaction.get("partner_name", "")
+                amount = float(transaction.get("amount", 0))
+                
+                # Try to get email from partners collection if not in transaction
+                if not partner_email and transaction.get("partner_id"):
+                    partner = await db.partners.find_one({"id": transaction.get("partner_id")}, {"_id": 0})
+                    if partner:
+                        partner_email = partner.get("email", "")
+                
+                if partner_email:
+                    # Split name into nome/cognome
+                    name_parts = partner_name.split(' ', 1)
+                    nome = name_parts[0] if name_parts else ''
+                    cognome = name_parts[1] if len(name_parts) > 1 else ''
+                    
+                    # Map service_type to payment_type
+                    payment_type_map = {
+                        "avatar_pro": "avatar",
+                        "consulenza_marketing": "consulenza",
+                        "branding_pack": "branding"
+                    }
+                    payment_type = payment_type_map.get(service_type, service_type)
+                    
+                    systeme_result = await sync_payment_to_systeme(
+                        email=partner_email,
+                        nome=nome,
+                        cognome=cognome,
+                        payment_type=payment_type,
+                        amount=amount,
+                        metadata={
+                            "partner_id": transaction.get("partner_id"),
+                            "service_type": service_type,
+                            "session_id": session_id
+                        }
+                    )
+                    logging.info(f"Systeme.io sync for {service_type}: {systeme_result}")
+                    
+                    update_data["systeme_synced"] = True
+                    update_data["systeme_sync_result"] = systeme_result
+                    systeme_synced = True
+            except Exception as sync_error:
+                logging.error(f"Systeme.io sync failed: {sync_error}")
+        
+        if transaction:
+            await db.payment_transactions.update_one(
+                {"session_id": session_id},
+                {"$set": update_data}
+            )
+        
+        return {
+            "session_id": session_id,
+            "status": status.status,
+            "payment_status": status.payment_status,
+            "amount_total": status.amount_total,
+            "currency": status.currency,
+            "service_type": transaction.get("service_type") if transaction else None,
+            "systeme_synced": systeme_synced or (transaction.get("systeme_synced") if transaction else False)
+        }
+        
+    except Exception as e:
+        logging.error(f"Error checking payment status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # CLIENTI ANALISI ENDPOINTS - /api/clienti-analisi
 # ═══════════════════════════════════════════════════════════════════════════════
