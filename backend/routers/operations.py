@@ -394,23 +394,41 @@ async def delete_campagna(campagna_id: str):
 
 @router.get("/stats")
 async def get_operations_stats():
-    """Statistiche generali per la dashboard operations"""
+    """
+    Statistiche generali per la dashboard operations.
+    
+    FIX: Usa collection 'partners' invece di 'users' per conteggio accurato.
+    """
     try:
-        # Conta partner attivi
-        partner_count = await db.users.count_documents({
-            "user_type": "partner",
-            "fase": {"$exists": True, "$ne": None, "$ne": "F0", "$ne": ""}
+        # Conta partner attivi dalla collection PARTNERS
+        partner_count = await db.partners.count_documents({
+            "$or": [
+                {"phase": {"$exists": True, "$nin": ["F0", "", None]}},
+                {"fase": {"$exists": True, "$nin": ["F0", "", None]}}
+            ]
         })
+        
+        # Fallback su users se partners è vuota
+        if partner_count == 0:
+            partner_count = await db.users.count_documents({
+                "user_type": "partner",
+                "$or": [
+                    {"fase": {"$exists": True, "$nin": ["F0", "", None]}},
+                    {"phase": {"$exists": True, "$nin": ["F0", "", None]}}
+                ]
+            })
         
         # Conta campagne attive
         campagne_attive = await db.campagne_adv.count_documents({"stato": "attiva"})
         
         # Partner in ritardo (>7 giorni senza update)
         oggi = datetime.now(timezone.utc)
-        partners = await db.users.find({
-            "user_type": "partner",
-            "fase": {"$exists": True, "$ne": None, "$ne": "F0"}
-        }, {"ultimo_aggiornamento": 1, "updated_at": 1}).to_list(100)
+        partners = await db.partners.find({
+            "$or": [
+                {"phase": {"$exists": True, "$nin": ["F0", "", None]}},
+                {"fase": {"$exists": True, "$nin": ["F0", "", None]}}
+            ]
+        }, {"ultimo_aggiornamento": 1, "updated_at": 1}).to_list(200)
         
         in_ritardo = 0
         for p in partners:
@@ -423,6 +441,8 @@ async def get_operations_stats():
                         in_ritardo += 1
                 except:
                     pass
+        
+        logging.info(f"[Operations Stats] Partner: {partner_count}, Campagne: {campagne_attive}, Ritardo: {in_ritardo}")
         
         return {
             "success": True,
