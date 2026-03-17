@@ -335,6 +335,21 @@ async def verify_partnership_payment(user_id: str = None, session_id: str = None
             except:
                 pass
             
+            # 🔄 SYNC con Systeme.io
+            if sync_payment_to_systeme_func:
+                try:
+                    systeme_result = await sync_payment_to_systeme_func(
+                        email=user.get("email"),
+                        nome=user.get("nome", ""),
+                        cognome=user.get("cognome", ""),
+                        payment_type="partnership",
+                        amount=2790.0,
+                        metadata={"user_id": user["id"]}
+                    )
+                    logging.info(f"Systeme.io sync result for partnership payment: {systeme_result}")
+                except Exception as sync_error:
+                    logging.error(f"Systeme.io sync failed (non-blocking): {sync_error}")
+            
             return {
                 "success": True,
                 "paid": True,
