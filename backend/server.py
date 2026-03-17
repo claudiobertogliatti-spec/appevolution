@@ -1381,6 +1381,20 @@ async def verify_analisi_payment(user_id: str = None, session_id: str = None):
             except:
                 pass
             
+            # 🔄 SYNC con Systeme.io
+            try:
+                systeme_result = await sync_payment_to_systeme(
+                    email=user.get("email"),
+                    nome=user.get("nome", ""),
+                    cognome=user.get("cognome", ""),
+                    payment_type="analisi",
+                    amount=67.0,
+                    metadata={"user_id": user["id"], "cliente_id": cliente_id}
+                )
+                logging.info(f"Systeme.io sync result for analisi payment: {systeme_result}")
+            except Exception as sync_error:
+                logging.error(f"Systeme.io sync failed (non-blocking): {sync_error}")
+            
             return {
                 "success": True,
                 "paid": True,
