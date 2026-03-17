@@ -12644,6 +12644,55 @@ async def stripe_webhook(request: Request):
             
             if webhook_response.payment_status == "paid":
                 update_data["paid_at"] = datetime.now(timezone.utc).isoformat()
+                
+                # 🔄 SYNC con Systeme.io per Servizi Extra
+                transaction = await db.payment_transactions.find_one({"session_id": webhook_response.session_id})
+                if transaction and not transaction.get("systeme_synced"):
+                    try:
+                        service_type = transaction.get("service_type", "")
+                        partner_email = transaction.get("partner_email", "")
+                        partner_name = transaction.get("partner_name", "")
+                        amount = float(transaction.get("amount", 0))
+                        
+                        # Try to get email from partners collection if not in transaction
+                        if not partner_email and transaction.get("partner_id"):
+                            partner = await db.partners.find_one({"id": transaction.get("partner_id")}, {"_id": 0})
+                            if partner:
+                                partner_email = partner.get("email", "")
+                        
+                        if partner_email:
+                            # Split name into nome/cognome
+                            name_parts = partner_name.split(' ', 1)
+                            nome = name_parts[0] if name_parts else ''
+                            cognome = name_parts[1] if len(name_parts) > 1 else ''
+                            
+                            # Map service_type to payment_type
+                            payment_type_map = {
+                                "avatar_pro": "avatar",
+                                "consulenza_marketing": "consulenza",
+                                "branding_pack": "branding"
+                            }
+                            payment_type = payment_type_map.get(service_type, service_type)
+                            
+                            systeme_result = await sync_payment_to_systeme(
+                                email=partner_email,
+                                nome=nome,
+                                cognome=cognome,
+                                payment_type=payment_type,
+                                amount=amount,
+                                metadata={
+                                    "partner_id": transaction.get("partner_id"),
+                                    "service_type": service_type,
+                                    "session_id": webhook_response.session_id
+                                }
+                            )
+                            logging.info(f"Systeme.io sync via webhook for {service_type}: {systeme_result}")
+                            
+                            # Mark as synced
+                            update_data["systeme_synced"] = True
+                            update_data["systeme_sync_result"] = systeme_result
+                    except Exception as sync_error:
+                        logging.error(f"Systeme.io sync via webhook failed (non-blocking): {sync_error}")
             
             await db.payment_transactions.update_one(
                 {"session_id": webhook_response.session_id},
