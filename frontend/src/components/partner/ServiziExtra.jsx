@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { Sparkles, ShoppingBag, ArrowRight, Lock, Clock, Star, Zap, Video, Play, ChevronRight, Check } from "lucide-react";
+import { Sparkles, ShoppingBag, ArrowRight, Lock, Clock, Star, Zap, Video, Play, ChevronRight, Check, Calendar, Palette, User } from "lucide-react";
 import { AvatarCheckout } from "./AvatarCheckout";
+import { ConsulenzaCheckout } from "./ConsulenzaCheckout";
+import { BrandingCheckout } from "./BrandingCheckout";
 
 // Active services
 const ACTIVE_SERVICES = [
@@ -10,29 +12,43 @@ const ACTIVE_SERVICES = [
     title: "Avatar PRO — Servizio Delega",
     description: "Il tuo clone digitale professionale che insegna per te. Video HD con la tua voce e il tuo stile.",
     price: "da €120",
+    priceLabel: "per lezione",
     status: "active",
     badge: "POPOLARE",
-    features: ["Qualità 1080p HD", "Espressioni naturali", "Script incluso", "Consegna 48-72h"]
+    color: "#F2C418",
+    features: ["Qualità 1080p HD", "Espressioni naturali", "Script incluso", "Consegna 48-72h"],
+    hasVideo: true
+  },
+  {
+    id: "consulenza_marketing",
+    icon: "📈",
+    title: "Consulenza Marketing 1:1",
+    description: "90 minuti di strategia personalizzata con Claudio o Antonella per accelerare i risultati.",
+    price: "€147",
+    priceLabel: "90 minuti",
+    status: "active",
+    badge: "NUOVO",
+    color: "#10B981",
+    features: ["Analisi strategica", "Piano d'azione", "Sessione registrata", "Con Claudio o Antonella"],
+    hasVideo: false
+  },
+  {
+    id: "branding_pack",
+    icon: "🎨",
+    title: "Branding Premium Pack",
+    description: "Logo, palette colori, brand guidelines e template social per la tua identità professionale.",
+    price: "€297",
+    priceLabel: "pacchetto completo",
+    status: "active",
+    badge: null,
+    color: "#7B68AE",
+    features: ["Logo professionale", "Palette colori", "Brand guidelines PDF", "Template social"],
+    hasVideo: false
   }
 ];
 
-// Coming soon services
-const COMING_SOON_SERVICES = [
-  {
-    id: "coming_soon_1",
-    icon: "📈",
-    title: "Consulenza Marketing 1:1",
-    description: "Sessione strategica personalizzata con i nostri esperti",
-    status: "coming_soon"
-  },
-  {
-    id: "coming_soon_2",
-    icon: "🎨",
-    title: "Branding Premium Pack",
-    description: "Logo, colori e identità visiva professionale",
-    status: "coming_soon"
-  }
-];
+// Coming soon services - empty for now since we activated them
+const COMING_SOON_SERVICES = [];
 
 export function ServiziExtra({ partner, onSelectService }) {
   const [selectedService, setSelectedService] = useState(null);
@@ -42,6 +58,12 @@ export function ServiziExtra({ partner, onSelectService }) {
   // Se un servizio è selezionato, mostra la pagina dedicata
   if (selectedService === "avatar_pro") {
     return <AvatarCheckout partner={partner} onBack={() => setSelectedService(null)} />;
+  }
+  if (selectedService === "consulenza_marketing") {
+    return <ConsulenzaCheckout partner={partner} onBack={() => setSelectedService(null)} />;
+  }
+  if (selectedService === "branding_pack") {
+    return <BrandingCheckout partner={partner} onBack={() => setSelectedService(null)} />;
   }
 
   return (
