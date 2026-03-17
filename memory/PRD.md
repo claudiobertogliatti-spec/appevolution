@@ -43,6 +43,73 @@ Ho preparato la tua Roadmap. Prenota la Call per vederla insieme.
 ```
 
 
+
+## 🆕 INTEGRAZIONE PAGAMENTI STRIPE ↔ SYSTEME.IO ✅ (17 Mar 2026)
+
+**Sincronizzazione automatica dei pagamenti completati con Systeme.io CRM**
+
+### Funzionalità Implementate:
+
+| Tipo Pagamento | Importo | Tag Systeme.io |
+|----------------|---------|----------------|
+| **Analisi Strategica** | €67 | `acquisto_analisi`, `cliente_analisi`, `pagamento_67` |
+| **Partnership** | €2.790 | `acquisto_partnership`, `partner_attivo`, `pagamento_2790`, `cliente_premium` |
+| **Avatar PRO** | variabile | `acquisto_avatar`, `servizio_extra`, `avatar_pro` |
+| **Consulenza 1:1** | €147 | `acquisto_consulenza`, `servizio_extra`, `pagamento_147` |
+| **Branding Pack** | €297 | `acquisto_branding`, `servizio_extra`, `pagamento_297` |
+
+### Flow di Sincronizzazione:
+```
+Pagamento Stripe completato
+    ↓
+Verifica status pagamento
+    ↓
+Trova/Crea contatto in Systeme.io
+    ↓
+Aggiungi tag specifici per tracciamento
+    ↓
+Logga in `systeme_payment_syncs` collection
+    ↓
+Notifica Telegram (opzionale)
+```
+
+### Nuovi Endpoint API:
+| Endpoint | Metodo | Funzionalità |
+|----------|--------|--------------|
+| `/api/systeme/payment-syncs` | GET | Lista sincronizzazioni con stats |
+| `/api/systeme/manual-sync` | POST | Sync manuale per bonifici/recuperi |
+| `/api/servizi-extra/payment-status/{session_id}` | GET | Verifica + sync servizi extra |
+
+### Integrazione nei Webhook:
+- **Stripe Webhook** (`/api/webhook/stripe`): Sync automatica su `payment_status == "paid"`
+- **Verifica Pagamento Analisi** (`/api/cliente-analisi/verify-payment`): Sync su conferma
+- **Verifica Pagamento Partnership** (`/api/partnership/verify-payment`): Sync su conferma
+- **Avatar Checkout Status** (`/api/avatar-checkout/status/{session_id}`): Sync su pagamento
+
+### Collection MongoDB:
+```json
+// systeme_payment_syncs
+{
+  "email": "partner@example.com",
+  "nome": "Mario",
+  "cognome": "Rossi",
+  "payment_type": "analisi",
+  "amount": 67.0,
+  "contact_id": "12345",
+  "contact_created": false,
+  "tags_added": ["acquisto_analisi", "cliente_analisi", "pagamento_67"],
+  "synced_at": "2026-03-17T15:30:00Z"
+}
+```
+
+### Note Implementazione:
+- L'API Systeme.io **non supporta** la creazione diretta di ordini/vendite
+- Utilizziamo i **tag** per tracciare gli acquisti e segmentare i contatti
+- I tag possono essere usati per **triggare automazioni email** in Systeme.io
+- La sincronizzazione è **non-bloccante**: errori non interrompono il flusso pagamento
+
+---
+
 ---
 
 
