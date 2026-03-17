@@ -2698,34 +2698,71 @@ async def create_partner(data: PartnerCreate):
 @api_router.patch("/partners/{partner_id}")
 async def update_partner(
     partner_id: str, 
-    phase: Optional[str] = None, 
-    alert: Optional[bool] = None, 
-    modules: Optional[List[int]] = None,
-    niche: Optional[str] = None,
-    youtube_playlist_id: Optional[str] = None,
-    yt_playlist: Optional[str] = None  # Alias per retrocompatibilità
+    request: Request
 ):
     """
     Aggiorna i dati di un partner.
-    Supporta: phase, alert, modules, niche, youtube_playlist_id
+    Supporta: phase, alert, modules, niche/nicchia, youtube_playlist_id, bio, social links, contract_end, revision_notes
     """
+    # Parse JSON body
+    try:
+        body = await request.json()
+    except:
+        body = {}
+    
     # Get current partner data for comparison
     current_partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
-    old_phase = current_partner.get("phase") if current_partner else None
+    if not current_partner:
+        raise HTTPException(status_code=404, detail="Partner non trovato")
+    
+    old_phase = current_partner.get("phase")
     
     update = {}
-    if phase:
-        update["phase"] = phase
-    if alert is not None:
-        update["alert"] = alert
-    if modules:
-        update["modules"] = modules
-    if niche is not None:
-        update["niche"] = niche
-    # Supporta entrambi i nomi per youtube playlist
-    playlist_id = youtube_playlist_id or yt_playlist
+    
+    # Phase
+    if body.get("phase"):
+        update["phase"] = body["phase"]
+        update["fase"] = body["phase"]  # Alias per compatibilità
+    
+    # Alert
+    if "alert" in body:
+        update["alert"] = body["alert"]
+    
+    # Modules
+    if body.get("modules"):
+        update["modules"] = body["modules"]
+    
+    # Nicchia (supporta entrambi i nomi)
+    nicchia = body.get("nicchia") or body.get("niche")
+    if nicchia is not None:
+        update["nicchia"] = nicchia
+        update["niche"] = nicchia  # Alias per compatibilità
+    
+    # YouTube Playlist
+    playlist_id = body.get("youtube_playlist_id") or body.get("yt_playlist_id")
     if playlist_id is not None:
         update["youtube_playlist_id"] = playlist_id
+        update["yt_playlist_id"] = playlist_id  # Alias
+    
+    # Bio
+    if body.get("bio") is not None:
+        update["bio"] = body["bio"]
+    
+    # Social Links
+    if body.get("social_instagram") is not None:
+        update["social_instagram"] = body["social_instagram"]
+    if body.get("social_linkedin") is not None:
+        update["social_linkedin"] = body["social_linkedin"]
+    if body.get("social_website") is not None:
+        update["social_website"] = body["social_website"]
+    
+    # Contract End
+    if body.get("contract_end") is not None:
+        update["contract_end"] = body["contract_end"]
+    
+    # Revision Notes (admin only)
+    if body.get("revision_notes") is not None:
+        update["revision_notes"] = body["revision_notes"]
     
     if update:
         update["updated_at"] = datetime.now(timezone.utc).isoformat()
@@ -2734,20 +2771,51 @@ async def update_partner(
     partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
     
     # Send Telegram notification if phase changed
-    if phase and old_phase and phase != old_phase and partner:
+    new_phase = body.get("phase")
+    if new_phase and old_phase and new_phase != old_phase and partner:
         try:
             from valentina_ai import telegram_notify
             await telegram_notify(
                 notification_type="phase_complete",
-                partner_name=partner.get("name", "Partner"),
+                partner_name=partner.get("name") or partner.get("nome", "Partner"),
                 old_phase=old_phase,
-                new_phase=phase
+                new_phase=new_phase
             )
-            logging.info(f"Telegram notification sent: {partner.get('name')} {old_phase} → {phase}")
+            logging.info(f"Telegram notification sent: {partner.get('name')} {old_phase} → {new_phase}")
         except Exception as e:
             logging.error(f"Failed to send Telegram notification: {e}")
     
     return partner
+
+
+@api_router.delete("/partners/{partner_id}")
+async def delete_partner(partner_id: str):
+    """
+    Elimina definitivamente un partner e tutti i suoi dati associati.
+    """
+    # Verifica che il partner esista
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner non trovato")
+    
+    partner_name = partner.get("name") or partner.get("nome", "Partner")
+    
+    # Elimina il partner
+    await db.partners.delete_one({"id": partner_id})
+    
+    # Elimina documenti associati
+    await db.partner_documents.delete_many({"partner_id": partner_id})
+    
+    # Elimina pagamenti associati
+    await db.partner_payments.delete_many({"partner_id": partner_id})
+    
+    # Elimina file associati
+    await db.partner_files.delete_many({"partner_id": partner_id})
+    
+    # Log
+    logging.info(f"Partner eliminato: {partner_name} (ID: {partner_id})")
+    
+    return {"success": True, "message": f"Partner {partner_name} eliminato con successo"}
 
 # =============================================================================
 # ROUTES - PARTNER PROFILE (Extended)
