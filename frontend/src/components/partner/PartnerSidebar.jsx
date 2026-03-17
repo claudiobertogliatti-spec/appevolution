@@ -118,6 +118,7 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
   
   const handleSupportClick = (itemId) => {
     const navMap = {
+      'servizi-extra': 'servizi-extra',
       'team': 'dashboard',
       'eventi': 'dashboard',
       'supporto': 'supporto',
