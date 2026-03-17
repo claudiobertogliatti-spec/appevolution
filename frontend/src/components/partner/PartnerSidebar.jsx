@@ -21,6 +21,7 @@ const PROJECT_PHASES = [
 ];
 
 const SUPPORT_ITEMS = [
+  { id: "servizi-extra", label: "Servizi Extra", icon: Sparkles, highlight: true },
   { id: "team", label: "Il tuo team Evolution PRO", icon: Users },
   { id: "eventi", label: "Eventi live", icon: PlayCircle },
   { id: "supporto", label: "Supporto tecnico", icon: HelpCircle },
