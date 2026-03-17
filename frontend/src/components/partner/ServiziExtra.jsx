@@ -173,51 +173,21 @@ export function ServiziExtra({ partner, onSelectService }) {
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════════════
-            SERVIZI IN ARRIVO
+            SERVIZI IN ARRIVO - Rimosso, tutti i servizi sono attivi
             ═══════════════════════════════════════════════════════════════════════ */}
-        <div className="mb-8">
-          <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
-            <Clock className="w-5 h-5" style={{ color: '#9CA3AF' }} />
-            Prossimamente
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {COMING_SOON_SERVICES.map(service => (
-              <div 
-                key={service.id}
-                className="bg-white rounded-xl p-5 opacity-60"
-                style={{ border: '1px solid #ECEDEF' }}
-              >
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
-                       style={{ background: '#FAFAF7' }}>
-                    {service.icon}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-bold" style={{ color: '#1E2128' }}>{service.title}</h3>
-                      <Lock className="w-3 h-3" style={{ color: '#9CA3AF' }} />
-                    </div>
-                    <p className="text-sm" style={{ color: '#9CA3AF' }}>{service.description}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
 
         {/* What to expect */}
         <div className="rounded-xl p-6" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
           <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
             <Star className="w-5 h-5" style={{ color: '#F2C418' }} />
-            Cosa aspettarti dai nostri servizi
+            Perché scegliere i nostri servizi
           </h3>
           <div className="grid grid-cols-2 gap-4">
             {[
               { icon: "🎬", text: "Produzione video professionale con AI" },
-              { icon: "📈", text: "Consulenze marketing personalizzate" },
-              { icon: "🎨", text: "Design e branding premium" },
-              { icon: "🚀", text: "Acceleratori per il lancio" }
+              { icon: "📈", text: "Consulenze con esperti del settore" },
+              { icon: "🎨", text: "Design e branding su misura" },
+              { icon: "🚀", text: "Accelera il tuo percorso" }
             ].map((item, i) => (
               <div key={i} className="flex items-center gap-3 p-3 rounded-lg" style={{ background: '#FAFAF7' }}>
                 <span className="text-xl">{item.icon}</span>
@@ -229,6 +199,58 @@ export function ServiziExtra({ partner, onSelectService }) {
 
       </div>
     </div>
+  );
+}
+
+// Componente per il contenuto del servizio
+function ServiceContent({ service }) {
+  const buttonLabels = {
+    avatar_pro: "Scopri Avatar PRO",
+    consulenza_marketing: "Prenota Consulenza",
+    branding_pack: "Ordina Branding Pack"
+  };
+  
+  return (
+    <>
+      <div className="flex items-start justify-between mb-3">
+        <div>
+          {service.badge && !service.hasVideo && (
+            <span className="inline-block px-2 py-0.5 rounded-full text-xs font-bold mb-2"
+                  style={{ background: service.color, color: 'white' }}>
+              {service.badge}
+            </span>
+          )}
+          <h3 className="text-lg font-black mb-1" style={{ color: '#1E2128' }}>
+            {!service.hasVideo && service.icon} {service.title}
+          </h3>
+          <p className="text-sm" style={{ color: '#5F6572' }}>
+            {service.description}
+          </p>
+        </div>
+        <div className="text-right flex-shrink-0 ml-4">
+          <div className="text-xl font-black" style={{ color: '#1E2128' }}>{service.price}</div>
+          <div className="text-xs" style={{ color: '#9CA3AF' }}>{service.priceLabel}</div>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        {service.features.map((feature, idx) => (
+          <div key={idx} className="flex items-center gap-2 text-sm">
+            <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#10B981' }} />
+            <span style={{ color: '#5F6572' }}>{feature}</span>
+          </div>
+        ))}
+      </div>
+      
+      <button 
+        className="w-full lg:w-auto px-5 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90"
+        style={{ background: service.color, color: service.id === 'avatar_pro' ? '#1E2128' : 'white' }}
+        data-testid={`${service.id}-cta`}
+      >
+        {buttonLabels[service.id] || "Scopri di più"}
+        <ChevronRight className="w-4 h-4" />
+      </button>
+    </>
   );
 }
 
