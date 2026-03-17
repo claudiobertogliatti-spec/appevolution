@@ -148,6 +148,54 @@ Ho preparato la tua Roadmap. Prenota la Call per vederla insieme.
 | `/api/masterclass-factory/{partner_id}/answers` | POST | Salva risposte |
 | `/api/masterclass-factory/{partner_id}/generate-script` | POST | Genera script AI |
 | `/api/masterclass-factory/{partner_id}/approve-script` | POST | Approva script |
+
+---
+
+## 🆕 STEFANIA — COORDINATRICE AI ✅ (17 Mar 2026)
+
+**Sostituisce VALENTINA come chat principale in tutta l'app**
+
+### Ruolo e Funzionalità
+- **Punto di contatto centrale** per ogni partner
+- **Personalizzazione completa**: conosce nome, fase, agente responsabile
+- **Gestione percorso**: risponde su fasi, agenti (GAIA, ANDREA, MARCO)
+- **Raccolta aggiornamenti**: blocchi operativi, problemi tecnici
+- **Escalation automatica**: parole chiave sensibili → Claudio (DB + Telegram)
+
+### Agenti di Fase
+| Fase | Agente | Responsabilità |
+|------|--------|----------------|
+| F0-F1 | GAIA | Onboarding, accoglienza, setup |
+| F2-F5 | ANDREA | Contenuti, masterclass, videocorso, funnel |
+| F9-LIVE | MARCO | Lancio, scaling, ottimizzazione |
+
+### Escalation Keywords
+`rimborso`, `restituire`, `non funziona niente`, `voglio uscire`, `avvocato`, `denuncia`, `truffa`, `fregatura`, `soldi indietro`, `annullare`, `cancellare abbonamento`
+
+### Risposta Escalation
+> "Capito. Questa situazione richiede l'intervento diretto di Claudio. Ti contatterà entro oggi."
+
+### File Creati/Modificati
+- `/app/frontend/src/components/chat/ValentinaChat.jsx` - Ora esporta `StefaniaChat`
+- `/app/backend/routers/stefania_chat.py` - NUOVO: Router con system prompt
+- `/app/frontend/src/components/partner/PartnerSidebar.jsx` - "Parla con Stefania"
+- `/app/frontend/src/App.js` - Import e titoli aggiornati
+
+### Endpoint API
+| Endpoint | Metodo | Funzionalità |
+|----------|--------|--------------|
+| `/api/stefania/chat` | POST | Chat con Claude Sonnet 4.5 |
+| `/api/stefania/escalation` | POST | Crea escalation + Telegram |
+| `/api/stefania/conversations/{partner_id}` | GET | Storico chat |
+| `/api/stefania/escalations` | GET | Lista escalation (admin) |
+| `/api/stefania/escalations/{id}` | PATCH | Aggiorna status |
+
+### Persistenza
+- Conversazioni salvate in `stefania_conversations` (MongoDB)
+- Escalation salvate in `stefania_escalations` (MongoDB)
+- Notifica Telegram automatica per escalation
+
+
 | `/api/masterclass-factory/{partner_id}/upload-video` | POST | Upload video |
 | `/api/masterclass-factory/{partner_id}/approve-video` | POST | Approva video (admin) |
 
