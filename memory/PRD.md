@@ -42,6 +42,49 @@ ma ho rilevato un rischio critico in [Criticità].
 Ho preparato la tua Roadmap. Prenota la Call per vederla insieme.
 ```
 
+
+---
+
+## 🆕 SERVIZI EXTRA & AVATAR PRO ✅ (17 Mar 2026)
+
+**Ripristinata e migliorata la sezione Servizi Extra nella dashboard Partner**
+
+### Accesso
+- **Sidebar Partner:** Nuova voce "Servizi Extra" con badge "NEW" nella sezione Supporto
+- **Navigazione:** `nav="servizi-extra"` → Mostra lista servizi
+
+### Pagina Servizi Extra
+1. **Header con Andrea** - Introduzione ai servizi premium
+2. **Avatar PRO (Attivo)** - Card con video promo, features e CTA
+3. **Servizi "Prossimamente"** - Consulenza Marketing 1:1, Branding Premium Pack
+4. **Sezione "Cosa aspettarti"** - Preview servizi futuri
+
+### Avatar PRO - Servizio Delega
+- **Video Demo:** Video professionale con badge "ESEMPIO AVATAR"
+- **Descrizione:** Clone digitale AI che insegna per il partner
+- **Features:**
+  - Qualità 1080p HD
+  - Espressioni naturali
+  - Script ottimizzato
+  - Consegna 48-72h
+- **Pacchetti Bundle:**
+  - €120 - Lezione Singola
+  - €300 - Bundle 3 Lezioni (17% sconto)
+  - €450 - Bundle 5 Lezioni (25% sconto) - "PIÙ POPOLARE"
+  - €900 - Bundle 10 Lezioni
+  - €1.200 - Bundle 15 Lezioni - "MIGLIOR VALORE"
+- **Checkout:** Integrazione Stripe per pagamento
+
+### File Modificati
+- `/app/frontend/src/components/partner/ServiziExtra.jsx` - Pagina principale aggiornata
+- `/app/frontend/src/components/partner/PartnerSidebar.jsx` - Aggiunta voce menu
+- `/app/frontend/src/components/partner/AvatarCheckout.jsx` - Checkout esistente (non modificato)
+
+### Endpoint API
+- `GET /api/avatar-packages` - Lista pacchetti disponibili
+- `POST /api/avatar-checkout` - Creazione sessione Stripe
+- `GET /api/avatar-checkout/status/{session_id}` - Verifica pagamento
+
 ---
 
 ## 🆕 DASHBOARD OPERATIONS (Antonella) ✅ (16 Mar 2026)
