@@ -2,7 +2,8 @@ import { useState } from "react";
 import { 
   Home, Target, Mic, Film, Rocket, Calendar,
   MessageCircle, LogOut, Check, Lock, Users, 
-  HelpCircle, PlayCircle, X, Shield, TrendingUp, UserCheck
+  HelpCircle, PlayCircle, X, Shield, TrendingUp, UserCheck,
+  Sparkles
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════════════
