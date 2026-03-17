@@ -367,14 +367,14 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
           BOTTOM ACTIONS
           ══════════════════════════════════════════════════════════════════════ */}
       <div className="p-3 border-t space-y-2" style={{ borderColor: '#F0EFEB' }}>
-        {/* Chat con Valentina */}
+        {/* Chat con Stefania */}
         <button 
           onClick={onOpenChat}
           className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-all hover:opacity-90"
           style={{ background: '#F2C418', color: '#1E2128' }}
         >
           <MessageCircle className="w-4 h-4" />
-          <span className="text-sm font-bold flex-1 text-left">Parla con Valentina</span>
+          <span className="text-sm font-bold flex-1 text-left">Parla con Stefania</span>
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
         </button>
         
