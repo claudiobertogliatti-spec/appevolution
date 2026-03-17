@@ -12,16 +12,24 @@ from bson import ObjectId
 import os
 import uuid
 import logging
+import httpx
 from pathlib import Path
 
 router = APIRouter(prefix="/api/partnership", tags=["partnership"])
 
 # Database reference (set from main server)
 db = None
+# Systeme.io sync function reference (set from main server)
+sync_payment_to_systeme_func = None
 
 def set_db(database):
     global db
     db = database
+
+def set_systeme_sync_func(func):
+    """Set the Systeme.io sync function from main server"""
+    global sync_payment_to_systeme_func
+    sync_payment_to_systeme_func = func
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MODELS
