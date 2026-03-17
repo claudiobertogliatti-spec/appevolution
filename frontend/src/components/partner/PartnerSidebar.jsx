@@ -3,7 +3,7 @@ import {
   Home, Target, Mic, Film, Rocket, Calendar,
   MessageCircle, LogOut, Check, Lock, Users, 
   HelpCircle, PlayCircle, X, Shield, TrendingUp, UserCheck,
-  Sparkles
+  Sparkles, User, CreditCard, FolderOpen
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -18,6 +18,13 @@ const PROJECT_PHASES = [
   { id: "lancio", label: "Lancio", icon: Rocket, unlockPhase: 8 },
   { id: "ottimizzazione", label: "Ottimizzazione", icon: TrendingUp, unlockPhase: 9 },
   { id: "lead", label: "I miei Lead", icon: UserCheck, unlockPhase: 9 },
+];
+
+// Nuova sezione "Il Mio Account"
+const ACCOUNT_ITEMS = [
+  { id: "profilo", label: "Profilo", icon: User },
+  { id: "pagamenti", label: "Pagamenti", icon: CreditCard },
+  { id: "i-miei-file", label: "I Miei File", icon: FolderOpen },
 ];
 
 const SUPPORT_ITEMS = [
