@@ -10358,6 +10358,150 @@ async def add_systeme_tag(api_key: str, email: str, tag_name: str):
         logging.error(f"Error adding tag in Systeme.io: {e}")
         raise
 
+
+async def sync_payment_to_systeme(
+    email: str,
+    nome: str,
+    cognome: str,
+    payment_type: str,  # "analisi" | "partnership" | "avatar" | "consulenza" | "branding"
+    amount: float,
+    metadata: dict = None
+) -> dict:
+    """
+    Sincronizza un pagamento completato con Systeme.io.
+    
+    Questa funzione:
+    1. Crea il contatto in Systeme.io se non esiste
+    2. Aggiunge tag specifici per tracciare il pagamento
+    3. Logga l'operazione per tracciabilità
+    
+    Tag aggiunti per tipo di pagamento:
+    - analisi: "acquisto_analisi", "cliente_analisi", "pagamento_67"
+    - partnership: "acquisto_partnership", "partner_attivo", "pagamento_2790"
+    - avatar: "acquisto_avatar", "servizio_extra"
+    - consulenza: "acquisto_consulenza", "servizio_extra", "pagamento_147"
+    - branding: "acquisto_branding", "servizio_extra", "pagamento_297"
+    """
+    systeme_api_key = os.environ.get('SYSTEME_API_KEY')
+    if not systeme_api_key:
+        logging.warning("[SYSTEME SYNC] API key non configurata - skip sincronizzazione")
+        return {"success": False, "reason": "api_key_missing"}
+    
+    result = {
+        "success": False,
+        "email": email,
+        "payment_type": payment_type,
+        "amount": amount,
+        "tags_added": [],
+        "contact_created": False
+    }
+    
+    try:
+        # Step 1: Trova o crea il contatto
+        contacts_response = await systeme_api_request(systeme_api_key, f"/contacts?email={email}")
+        contacts = contacts_response.get("items", [])
+        
+        contact_id = None
+        if contacts:
+            contact_id = contacts[0].get("id")
+            logging.info(f"[SYSTEME SYNC] Contatto trovato: {email} (ID: {contact_id})")
+        else:
+            # Crea nuovo contatto
+            create_response = await systeme_api_request(
+                systeme_api_key,
+                "/contacts",
+                method="POST",
+                data={
+                    "email": email,
+                    "firstName": nome,
+                    "lastName": cognome
+                }
+            )
+            contact_id = create_response.get("id")
+            result["contact_created"] = True
+            logging.info(f"[SYSTEME SYNC] Contatto creato: {email} (ID: {contact_id})")
+        
+        if not contact_id:
+            logging.error(f"[SYSTEME SYNC] Impossibile ottenere contact_id per {email}")
+            return result
+        
+        # Step 2: Definisci i tag in base al tipo di pagamento
+        tags_to_add = []
+        
+        if payment_type == "analisi":
+            tags_to_add = ["acquisto_analisi", "cliente_analisi", "pagamento_67", f"acquisto_{datetime.now().strftime('%Y_%m')}"]
+        elif payment_type == "partnership":
+            tags_to_add = ["acquisto_partnership", "partner_attivo", "pagamento_2790", "cliente_premium", f"partnership_{datetime.now().strftime('%Y_%m')}"]
+        elif payment_type == "avatar":
+            tags_to_add = ["acquisto_avatar", "servizio_extra", "avatar_pro"]
+        elif payment_type == "consulenza":
+            tags_to_add = ["acquisto_consulenza", "servizio_extra", "pagamento_147", "consulenza_1to1"]
+        elif payment_type == "branding":
+            tags_to_add = ["acquisto_branding", "servizio_extra", "pagamento_297", "branding_pack"]
+        else:
+            tags_to_add = [f"acquisto_{payment_type}", f"pagamento_{int(amount)}"]
+        
+        # Step 3: Aggiungi i tag
+        for tag_name in tags_to_add:
+            try:
+                await systeme_api_request(
+                    systeme_api_key,
+                    f"/contacts/{contact_id}/tags",
+                    method="POST",
+                    data={"name": tag_name}
+                )
+                result["tags_added"].append(tag_name)
+                logging.info(f"[SYSTEME SYNC] Tag '{tag_name}' aggiunto a {email}")
+            except Exception as tag_error:
+                logging.warning(f"[SYSTEME SYNC] Errore aggiunta tag '{tag_name}': {tag_error}")
+        
+        # Step 4: Logga la sincronizzazione nel database
+        await db.systeme_payment_syncs.insert_one({
+            "email": email,
+            "nome": nome,
+            "cognome": cognome,
+            "payment_type": payment_type,
+            "amount": amount,
+            "contact_id": contact_id,
+            "contact_created": result["contact_created"],
+            "tags_added": result["tags_added"],
+            "metadata": metadata or {},
+            "synced_at": datetime.now(timezone.utc).isoformat()
+        })
+        
+        result["success"] = True
+        result["contact_id"] = contact_id
+        
+        logging.info(f"[SYSTEME SYNC] Pagamento sincronizzato: {email} - {payment_type} - €{amount}")
+        
+        # Step 5: Notifica Telegram (opzionale, per monitoraggio)
+        try:
+            telegram_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+            admin_chat_id = os.environ.get('TELEGRAM_ADMIN_CHAT_ID')
+            if telegram_token and admin_chat_id:
+                message = (
+                    f"🔄 *Sync Systeme.io*\n\n"
+                    f"👤 {nome} {cognome}\n"
+                    f"📧 {email}\n"
+                    f"💰 €{amount} ({payment_type})\n"
+                    f"🏷️ Tags: {', '.join(result['tags_added'][:3])}"
+                )
+                async with httpx.AsyncClient() as client:
+                    await client.post(
+                        f"https://api.telegram.org/bot{telegram_token}/sendMessage",
+                        json={"chat_id": admin_chat_id, "text": message, "parse_mode": "Markdown"}
+                    )
+        except:
+            pass  # Non bloccare per errori Telegram
+        
+        return result
+        
+    except Exception as e:
+        logging.error(f"[SYSTEME SYNC] Errore sincronizzazione: {e}")
+        result["error"] = str(e)
+        return result
+
+
 async def handle_new_subscriber(data: dict) -> List[str]:
     """Handle new subscriber - Create lead for ORION"""
     actions = []
