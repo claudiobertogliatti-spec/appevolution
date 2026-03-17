@@ -187,7 +187,7 @@ async def create_checkout_session(data: CheckoutRequest, request: Request):
         raise HTTPException(status_code=500, detail="Stripe not configured")
     
     # Get the base URL for redirects
-    origin = request.headers.get("origin", "https://evolution-ops.preview.emergentagent.com")
+    origin = request.headers.get("origin", "https://partner-analytics-9.preview.emergentagent.com")
     
     try:
         checkout_session = stripe.checkout.Session.create(
