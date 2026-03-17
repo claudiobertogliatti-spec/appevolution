@@ -12793,8 +12793,9 @@ from routers.youtube_heygen import router as youtube_heygen_router
 app.include_router(youtube_heygen_router, prefix="/api", tags=["youtube-heygen"])
 
 # Include partnership activation router
-from routers.partnership import router as partnership_router, set_db as set_partnership_db
+from routers.partnership import router as partnership_router, set_db as set_partnership_db, set_systeme_sync_func
 set_partnership_db(db)
+set_systeme_sync_func(sync_payment_to_systeme)  # Pass the Systeme.io sync function
 app.include_router(partnership_router)
 
 # Include partner journey router (Posizionamento, Masterclass, Videocorso, Funnel, Lancio)
