@@ -513,7 +513,7 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
                         <PartnerRow 
                           key={partner.id} 
                           partner={partner}
-                          onOpenProject={onOpenPartnerProject}
+                          onOpenProject={handleOpenPartnerDetail}
                         />
                       ))
                     )}
