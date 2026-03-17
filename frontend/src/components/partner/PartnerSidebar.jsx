@@ -298,11 +298,24 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
               <button
                 key={item.id}
                 onClick={() => handleSupportClick(item.id)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all hover:bg-[#FAFAF7]"
-                style={{ color: '#5F6572' }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all ${
+                  item.highlight ? 'hover:bg-[#FFF3C4]' : 'hover:bg-[#FAFAF7]'
+                }`}
+                style={{ 
+                  color: item.highlight ? '#1E2128' : '#5F6572',
+                  background: item.highlight ? '#FFF8DC' : 'transparent',
+                  border: item.highlight ? '1px solid #F2C41850' : 'none'
+                }}
+                data-testid={`sidebar-${item.id}`}
               >
-                <item.icon className="w-4 h-4" style={{ color: '#9CA3AF' }} />
-                <span className="text-sm font-medium">{item.label}</span>
+                <item.icon className="w-4 h-4" style={{ color: item.highlight ? '#F2C418' : '#9CA3AF' }} />
+                <span className={`text-sm ${item.highlight ? 'font-bold' : 'font-medium'}`}>{item.label}</span>
+                {item.highlight && (
+                  <span className="ml-auto px-1.5 py-0.5 rounded text-[10px] font-bold" 
+                        style={{ background: '#F2C418', color: '#1E2128' }}>
+                    NEW
+                  </span>
+                )}
               </button>
             ))}
           </nav>
