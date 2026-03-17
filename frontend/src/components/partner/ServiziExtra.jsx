@@ -96,7 +96,7 @@ export function ServiziExtra({ partner, onSelectService }) {
             <div className="font-bold text-sm mb-1" style={{ color: '#1E2128' }}>Andrea · Il tuo tutor AI</div>
             <div className="text-sm leading-relaxed" style={{ color: '#5F6572' }}>
               Ciao <strong>{partnerName}</strong>! 👋 In questa sezione trovi tutti i <strong>servizi extra</strong> per accelerare il tuo percorso. 
-              Il nostro servizio più richiesto? <strong>Avatar PRO</strong> — creiamo video professionali con il tuo clone digitale!
+              Scegli tra <strong>Avatar PRO</strong>, <strong>consulenze 1:1</strong> o il <strong>Branding Pack</strong>!
             </div>
           </div>
         </div>
@@ -110,80 +110,66 @@ export function ServiziExtra({ partner, onSelectService }) {
             Servizi Disponibili
           </h2>
           
-          {ACTIVE_SERVICES.map(service => (
-            <div 
-              key={service.id}
-              onClick={() => setSelectedService(service.id)}
-              className="bg-white rounded-2xl overflow-hidden cursor-pointer transition-all hover:shadow-lg hover:scale-[1.01]"
-              style={{ border: '2px solid #F2C418' }}
-              data-testid={`service-card-${service.id}`}
-            >
-              <div className="grid grid-cols-1 lg:grid-cols-5 gap-0">
-                {/* Video Preview */}
-                <div className="lg:col-span-2 relative bg-gradient-to-br from-[#1E2128] to-[#2D3038] p-4 flex items-center justify-center min-h-[200px]">
-                  {service.badge && (
-                    <div className="absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-bold bg-[#F2C418] text-[#1E2128]">
-                      {service.badge}
-                    </div>
-                  )}
-                  <div className="w-full max-w-xs">
-                    <div className="relative rounded-xl overflow-hidden shadow-xl" style={{ aspectRatio: '16/9' }}>
-                      <video 
-                        className="w-full h-full object-cover"
-                        autoPlay
-                        loop
-                        muted
-                        playsInline
-                      >
-                        <source src="https://customer-assets.emergentagent.com/job_workflow-sync-6/artifacts/w619n7sa_base.mp4" type="video/mp4" />
-                      </video>
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/10 transition-all">
-                        <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
-                          <Play className="w-5 h-5 ml-0.5" style={{ color: '#1E2128' }} />
+          <div className="space-y-4">
+            {ACTIVE_SERVICES.map(service => (
+              <div 
+                key={service.id}
+                onClick={() => setSelectedService(service.id)}
+                className="bg-white rounded-2xl overflow-hidden cursor-pointer transition-all hover:shadow-lg hover:scale-[1.005]"
+                style={{ border: `2px solid ${service.color}` }}
+                data-testid={`service-card-${service.id}`}
+              >
+                {service.hasVideo ? (
+                  // Layout con video (Avatar PRO)
+                  <div className="grid grid-cols-1 lg:grid-cols-5 gap-0">
+                    <div className="lg:col-span-2 relative bg-gradient-to-br from-[#1E2128] to-[#2D3038] p-4 flex items-center justify-center min-h-[180px]">
+                      {service.badge && (
+                        <div className="absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-bold"
+                             style={{ background: service.color, color: '#1E2128' }}>
+                          {service.badge}
+                        </div>
+                      )}
+                      <div className="w-full max-w-xs">
+                        <div className="relative rounded-xl overflow-hidden shadow-xl" style={{ aspectRatio: '16/9' }}>
+                          <video 
+                            className="w-full h-full object-cover"
+                            autoPlay loop muted playsInline
+                          >
+                            <source src="https://customer-assets.emergentagent.com/job_workflow-sync-6/artifacts/w619n7sa_base.mp4" type="video/mp4" />
+                          </video>
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/10 transition-all">
+                            <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                              <Play className="w-4 h-4 ml-0.5" style={{ color: '#1E2128' }} />
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-                
-                {/* Content */}
-                <div className="lg:col-span-3 p-6 flex flex-col justify-center">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="text-xl font-black mb-1" style={{ color: '#1E2128' }}>
-                        {service.icon} {service.title}
-                      </h3>
-                      <p className="text-sm" style={{ color: '#5F6572' }}>
-                        {service.description}
-                      </p>
-                    </div>
-                    <div className="text-right flex-shrink-0 ml-4">
-                      <div className="text-2xl font-black" style={{ color: '#1E2128' }}>{service.price}</div>
-                      <div className="text-xs" style={{ color: '#9CA3AF' }}>per lezione</div>
+                    <div className="lg:col-span-3 p-5 flex flex-col justify-center">
+                      <ServiceContent service={service} />
                     </div>
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-2 mb-4">
-                    {service.features.map((feature, idx) => (
-                      <div key={idx} className="flex items-center gap-2 text-sm">
-                        <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#10B981' }} />
-                        <span style={{ color: '#5F6572' }}>{feature}</span>
-                      </div>
-                    ))}
+                ) : (
+                  // Layout senza video (Consulenza, Branding)
+                  <div className="flex">
+                    <div className="w-32 flex-shrink-0 flex items-center justify-center p-4"
+                         style={{ background: `${service.color}15` }}>
+                      {service.badge && (
+                        <div className="absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-bold"
+                             style={{ background: service.color, color: 'white' }}>
+                          {service.badge}
+                        </div>
+                      )}
+                      <span className="text-5xl">{service.icon}</span>
+                    </div>
+                    <div className="flex-1 p-5">
+                      <ServiceContent service={service} />
+                    </div>
                   </div>
-                  
-                  <button 
-                    className="w-full lg:w-auto px-6 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90"
-                    style={{ background: '#F2C418', color: '#1E2128' }}
-                    data-testid="avatar-pro-cta"
-                  >
-                    Scopri Avatar PRO
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
+                )}
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════════════
