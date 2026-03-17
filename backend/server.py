@@ -2696,7 +2696,19 @@ async def create_partner(data: PartnerCreate):
     return partner
 
 @api_router.patch("/partners/{partner_id}")
-async def update_partner(partner_id: str, phase: Optional[str] = None, alert: Optional[bool] = None, modules: Optional[List[int]] = None):
+async def update_partner(
+    partner_id: str, 
+    phase: Optional[str] = None, 
+    alert: Optional[bool] = None, 
+    modules: Optional[List[int]] = None,
+    niche: Optional[str] = None,
+    youtube_playlist_id: Optional[str] = None,
+    yt_playlist: Optional[str] = None  # Alias per retrocompatibilità
+):
+    """
+    Aggiorna i dati di un partner.
+    Supporta: phase, alert, modules, niche, youtube_playlist_id
+    """
     # Get current partner data for comparison
     current_partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
     old_phase = current_partner.get("phase") if current_partner else None
@@ -2708,7 +2720,15 @@ async def update_partner(partner_id: str, phase: Optional[str] = None, alert: Op
         update["alert"] = alert
     if modules:
         update["modules"] = modules
+    if niche is not None:
+        update["niche"] = niche
+    # Supporta entrambi i nomi per youtube playlist
+    playlist_id = youtube_playlist_id or yt_playlist
+    if playlist_id is not None:
+        update["youtube_playlist_id"] = playlist_id
+    
     if update:
+        update["updated_at"] = datetime.now(timezone.utc).isoformat()
         await db.partners.update_one({"id": partner_id}, {"$set": update})
     
     partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
