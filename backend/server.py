@@ -12644,6 +12644,11 @@ from routers.partner_journey import router as partner_journey_router, set_db as 
 set_partner_journey_db(db)
 app.include_router(partner_journey_router)
 
+# Include Masterclass Factory router (Evolution Masterclass Factory)
+from routers.masterclass_factory import router as masterclass_factory_router, set_db as set_masterclass_factory_db
+set_masterclass_factory_db(db)
+app.include_router(masterclass_factory_router)
+
 # Include analisi consulenziale router (Analisi Preliminare, Script Call, Analisi Finale)
 from routers.analisi_consulenziale import router as analisi_consulenziale_router, set_db as set_analisi_consulenziale_db
 set_analisi_consulenziale_db(db)
