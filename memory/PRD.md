@@ -55,35 +55,39 @@ Ho preparato la tua Roadmap. Prenota la Call per vederla insieme.
 
 ### Pagina Servizi Extra
 1. **Header con Andrea** - Introduzione ai servizi premium
-2. **Avatar PRO (Attivo)** - Card con video promo, features e CTA
-3. **Servizi "Prossimamente"** - Consulenza Marketing 1:1, Branding Premium Pack
-4. **Sezione "Cosa aspettarti"** - Preview servizi futuri
+2. **3 Servizi Attivi** - Card con descrizione, features e CTA
 
-### Avatar PRO - Servizio Delega
+### 1️⃣ Avatar PRO — Servizio Delega
+- **Prezzo:** da €120/lezione
+- **Badge:** POPOLARE
 - **Video Demo:** Video professionale con badge "ESEMPIO AVATAR"
-- **Descrizione:** Clone digitale AI che insegna per il partner
-- **Features:**
-  - Qualità 1080p HD
-  - Espressioni naturali
-  - Script ottimizzato
-  - Consegna 48-72h
-- **Pacchetti Bundle:**
-  - €120 - Lezione Singola
-  - €300 - Bundle 3 Lezioni (17% sconto)
-  - €450 - Bundle 5 Lezioni (25% sconto) - "PIÙ POPOLARE"
-  - €900 - Bundle 10 Lezioni
-  - €1.200 - Bundle 15 Lezioni - "MIGLIOR VALORE"
-- **Checkout:** Integrazione Stripe per pagamento
+- **Features:** Qualità 1080p HD, Espressioni naturali, Script ottimizzato, Consegna 48-72h
+- **Pacchetti Bundle:** €120 (1), €300 (3), €450 (5), €900 (10), €1.200 (15)
+- **Checkout:** Integrazione Stripe
 
-### File Modificati
-- `/app/frontend/src/components/partner/ServiziExtra.jsx` - Pagina principale aggiornata
-- `/app/frontend/src/components/partner/PartnerSidebar.jsx` - Aggiunta voce menu
-- `/app/frontend/src/components/partner/AvatarCheckout.jsx` - Checkout esistente (non modificato)
+### 2️⃣ Consulenza Marketing 1:1 ✅ NUOVO
+- **Prezzo:** €147
+- **Durata:** 90 minuti
+- **Consulenti:** Claudio Bertogliatti o Antonella
+- **Features:** Analisi strategica, Piano d'azione, Sessione registrata
+- **File:** `/app/frontend/src/components/partner/ConsulenzaCheckout.jsx`
+- **Endpoint:** `POST /api/consulenza-checkout`
 
-### Endpoint API
-- `GET /api/avatar-packages` - Lista pacchetti disponibili
-- `POST /api/avatar-checkout` - Creazione sessione Stripe
-- `GET /api/avatar-checkout/status/{session_id}` - Verifica pagamento
+### 3️⃣ Branding Premium Pack ✅ NUOVO
+- **Prezzo:** €297
+- **Deliverables:** Logo professionale, Palette colori (5), Brand Guidelines PDF, Template social (10), File sorgente
+- **Stili:** Minimal, Bold, Elegante, Creativo
+- **Consegna:** 5-7 giorni
+- **File:** `/app/frontend/src/components/partner/BrandingCheckout.jsx`
+- **Endpoint:** `POST /api/branding-checkout`
+
+### File Modificati/Creati
+- `/app/frontend/src/components/partner/ServiziExtra.jsx` - Pagina principale con 3 servizi
+- `/app/frontend/src/components/partner/PartnerSidebar.jsx` - Voce menu con badge NEW
+- `/app/frontend/src/components/partner/AvatarCheckout.jsx` - Checkout esistente
+- `/app/frontend/src/components/partner/ConsulenzaCheckout.jsx` - NUOVO
+- `/app/frontend/src/components/partner/BrandingCheckout.jsx` - NUOVO
+- `/app/backend/server.py` - Nuovi endpoint checkout
 
 ---
 
