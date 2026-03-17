@@ -3095,6 +3095,112 @@ async def add_partner_payment(partner_id: str, payment: PaymentRecord):
     
     return {"success": True, "payment_id": payment_data["id"]}
 
+
+@api_router.patch("/partners/{partner_id}/payments/{payment_id}")
+async def update_partner_payment(partner_id: str, payment_id: str, request: Request):
+    """Update a payment status"""
+    try:
+        body = await request.json()
+    except:
+        body = {}
+    
+    new_status = body.get("status")
+    if not new_status:
+        raise HTTPException(status_code=400, detail="Status richiesto")
+    
+    # Get current payment
+    payment = await db.partner_payments.find_one({"id": payment_id, "partner_id": partner_id}, {"_id": 0})
+    if not payment:
+        raise HTTPException(status_code=404, detail="Pagamento non trovato")
+    
+    old_status = payment.get("status")
+    amount = payment.get("amount", 0)
+    
+    # Update payment
+    await db.partner_payments.update_one(
+        {"id": payment_id},
+        {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    # Update partner revenue if status changed
+    if old_status != new_status:
+        if new_status == "paid" and old_status != "paid":
+            # Changed to paid: add revenue
+            await db.partners.update_one({"id": partner_id}, {"$inc": {"revenue": amount}})
+        elif old_status == "paid" and new_status != "paid":
+            # Changed from paid: subtract revenue
+            await db.partners.update_one({"id": partner_id}, {"$inc": {"revenue": -amount}})
+    
+    return {"success": True, "payment_id": payment_id, "new_status": new_status}
+
+
+@api_router.post("/partners/{partner_id}/files/upload")
+async def upload_partner_files(partner_id: str, files: List[UploadFile] = File(...), is_raw: str = Form("false")):
+    """Upload files for partner (can be marked as RAW for admin review)"""
+    from cloudinary_service import cloudinary_upload
+    
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner non trovato")
+    
+    uploaded_files = []
+    is_raw_bool = is_raw.lower() == "true"
+    
+    for file in files:
+        try:
+            # Read file content
+            content = await file.read()
+            
+            # Upload to Cloudinary
+            result = await cloudinary_upload(
+                file_content=content,
+                filename=file.filename,
+                folder=f"partner_files/{partner_id}",
+                resource_type="auto"
+            )
+            
+            # Save to database
+            file_doc = {
+                "id": str(uuid.uuid4()),
+                "partner_id": partner_id,
+                "name": file.filename,
+                "filename": file.filename,
+                "url": result.get("url"),
+                "public_id": result.get("public_id"),
+                "type": file.content_type,
+                "size": len(content),
+                "is_raw": is_raw_bool,
+                "status": "pending_review" if is_raw_bool else "approved",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            await db.partner_files.insert_one(file_doc)
+            uploaded_files.append({
+                "id": file_doc["id"],
+                "name": file.filename,
+                "url": result.get("url"),
+                "is_raw": is_raw_bool
+            })
+            
+        except Exception as e:
+            logging.error(f"Error uploading file {file.filename}: {e}")
+            continue
+    
+    # Notify admin if RAW files were uploaded
+    if is_raw_bool and uploaded_files:
+        try:
+            from valentina_ai import telegram_notify
+            partner_name = partner.get("name") or partner.get("nome", "Partner")
+            await telegram_notify(
+                notification_type="raw_upload",
+                partner_name=partner_name,
+                file_count=len(uploaded_files)
+            )
+        except Exception as e:
+            logging.error(f"Failed to send RAW upload notification: {e}")
+    
+    return {"success": True, "uploaded": uploaded_files, "count": len(uploaded_files)}
+
 # =============================================================================
 # PIANO CONTINUITÀ ENDPOINTS
 # =============================================================================
