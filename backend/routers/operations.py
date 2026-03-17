@@ -102,14 +102,21 @@ async def get_partners_attivi():
             elif not p.get("fase") and p.get("phase"):
                 p["fase"] = p["phase"]
             
-            # Normalizza name/nome
-            if not p.get("name"):
+            # Normalizza name/nome - IMPORTANTE: frontend usa "nome"
+            if p.get("name") and not p.get("nome"):
+                # Splitta name in nome e cognome
+                name_parts = p.get("name", "").split(" ", 1)
+                p["nome"] = name_parts[0] if name_parts else ""
+                p["cognome"] = name_parts[1] if len(name_parts) > 1 else ""
+            elif not p.get("name"):
                 nome = p.get("nome", "")
                 cognome = p.get("cognome", "")
                 p["name"] = f"{nome} {cognome}".strip() or "Partner"
             
-            # Normalizza niche/nicchia
-            if not p.get("niche"):
+            # Normalizza niche/nicchia - frontend usa "nicchia"
+            if p.get("niche") and not p.get("nicchia"):
+                p["nicchia"] = p.get("niche")
+            elif not p.get("niche"):
                 p["niche"] = p.get("nicchia", "—")
             
             # Calcola ritardi
