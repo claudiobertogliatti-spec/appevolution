@@ -1743,6 +1743,11 @@ export default function App() {
             {nav==="supporto"&&<ValentinaChat partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
             {nav==="profilo-hub"&&<PartnerProfileHub partner={demoPartner} onNavigate={setNav}/>}
             {nav==="email-automation"&&<EmailAutomation partner={demoPartner}/>}
+            
+            {/* IL MIO ACCOUNT */}
+            {nav==="profilo"&&<PartnerProfile partner={demoPartner} onUpdate={loadData}/>}
+            {nav==="pagamenti"&&<PartnerPayments partner={demoPartner}/>}
+            {nav==="i-miei-file"&&<PartnerFiles partner={demoPartner}/>}
           </>}
         </div>
       </div>
