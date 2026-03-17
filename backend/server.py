@@ -12398,6 +12398,35 @@ async def get_avatar_checkout_status(session_id: str):
                         )
                     except Exception as e:
                         logging.error(f"Failed to send payment notification: {e}")
+                    
+                    # 🔄 SYNC con Systeme.io
+                    try:
+                        # Try to get partner email from partners collection
+                        partner = await db.partners.find_one({"id": transaction.get('partner_id')}, {"_id": 0})
+                        partner_email = partner.get('email', '') if partner else transaction.get('partner_email', '')
+                        partner_name = transaction.get('partner_name', '')
+                        
+                        if partner_email:
+                            # Split name into nome/cognome
+                            name_parts = partner_name.split(' ', 1)
+                            nome = name_parts[0] if name_parts else ''
+                            cognome = name_parts[1] if len(name_parts) > 1 else ''
+                            
+                            systeme_result = await sync_payment_to_systeme(
+                                email=partner_email,
+                                nome=nome,
+                                cognome=cognome,
+                                payment_type="avatar",
+                                amount=float(transaction.get('amount', 0)),
+                                metadata={
+                                    "partner_id": transaction.get('partner_id'),
+                                    "package_name": transaction.get('package_name'),
+                                    "session_id": session_id
+                                }
+                            )
+                            logging.info(f"Systeme.io sync result for avatar payment: {systeme_result}")
+                    except Exception as sync_error:
+                        logging.error(f"Systeme.io sync failed (non-blocking): {sync_error}")
         
         await db.payment_transactions.update_one(
             {"session_id": session_id},
