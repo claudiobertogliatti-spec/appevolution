@@ -259,7 +259,12 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
       const partnersRes = await fetch(`${API}/api/partners`);
       if (partnersRes.ok) {
         const partnersData = await partnersRes.json();
-        setPartners(partnersData.partners || []);
+        // Supporta sia formato lista che { partners: [...] }
+        if (Array.isArray(partnersData)) {
+          setPartners(partnersData);
+        } else {
+          setPartners(partnersData.partners || []);
+        }
       }
       
       // Fetch clienti analisi
