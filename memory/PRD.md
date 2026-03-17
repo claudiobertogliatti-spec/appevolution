@@ -45,6 +45,65 @@ Ho preparato la tua Roadmap. Prenota la Call per vederla insieme.
 
 ---
 
+
+## 🆕 SISTEMA MULTI-LIVELLO PERMESSI & AREA ACCOUNT ✅ (17 Mar 2026)
+
+**Implementato sistema di permessi multi-ruolo con sezioni custom per Admin e Partner**
+
+### 1️⃣ Sidebar Partner - Nuova Sezione "Il Mio Account"
+| Voce | Funzionalità | Status |
+|------|--------------|--------|
+| **Profilo** | Bio, Nicchia, Social, Scadenza Contratto | ✅ |
+| **Pagamenti** | Storico pagamenti (sola lettura) | ✅ |
+| **I Miei File** | PDF, Videocorso YouTube, Upload RAW | ✅ |
+
+### 2️⃣ Modal Admin - "Centrale Operativa Partner"
+**Tab Profilo:**
+- Campi editabili: Nicchia, Fase F1-F9, YouTube Playlist ID, Bio, Social Links
+- Scadenza Contratto (date picker)
+- **Elimina Partner** con conferma sicurezza (scrivi "ELIMINA")
+- **Salva Modifiche** → PATCH /api/partners/{id}
+
+**Tab Documenti:**
+- Lista documenti partner
+- YouTube embed player (se yt_playlist_id presente)
+- **Note Revisione Video** (Solo Admin) con salvataggio
+
+**Tab Pagamenti:**
+- Tabella dinamica (Servizio, Data, Importo, Stato)
+- Dropdown inline per cambiare stato (Pagato/Da pagare)
+- Form inline per aggiungere nuovi pagamenti
+- Totali: Pagato vs Da Incassare
+
+### 3️⃣ Normalizzazione Database
+| Campo Legacy | Campo Normalizzato |
+|--------------|-------------------|
+| `name` | `nome` (+ alias per compatibilità) |
+| `niche` | `nicchia` (+ alias per compatibilità) |
+| - | `contract_end` (nuovo campo) |
+| - | `revision_notes` (nuovo campo) |
+
+### 4️⃣ Nuovi Endpoint Backend
+| Endpoint | Metodo | Funzionalità |
+|----------|--------|--------------|
+| `/api/partners/{id}` | DELETE | Elimina partner + dati associati |
+| `/api/partners/{id}` | PATCH | Aggiorna profilo completo (JSON body) |
+| `/api/partners/{id}/payments/{payment_id}` | PATCH | Aggiorna stato pagamento |
+| `/api/partners/{id}/files/upload` | POST | Upload file RAW |
+| `/api/partners/{id}/documents` | GET | Lista documenti completa |
+
+### 5️⃣ File Creati/Modificati
+**Frontend:**
+- `/app/frontend/src/components/partner/PartnerProfile.jsx` - NUOVO
+- `/app/frontend/src/components/partner/PartnerPayments.jsx` - NUOVO
+- `/app/frontend/src/components/partner/PartnerFiles.jsx` - NUOVO
+- `/app/frontend/src/components/partner/PartnerSidebar.jsx` - Aggiunta sezione "Il Mio Account"
+- `/app/frontend/src/components/admin/PartnerDetailModal.jsx` - Refactoring completo
+
+**Backend:**
+- `/app/backend/server.py` - Nuovi endpoint + PATCH aggiornato
+
+
 ## 🆕 SERVIZI EXTRA & AVATAR PRO ✅ (17 Mar 2026)
 
 **Ripristinata e migliorata la sezione Servizi Extra nella dashboard Partner**
