@@ -4,6 +4,7 @@ import {
   ChevronRight, Search, Filter, Eye, Phone, CheckCircle2,
   Calendar, FileText, ArrowUpRight, RefreshCw, BarChart3
 } from "lucide-react";
+import { PartnerDetailModal } from "./PartnerDetailModal";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
