@@ -553,6 +553,7 @@ async def generate_first_contact_v2(lead_id: str, request: Optional[GenerateOutr
             gift_type = GiftType.TACTICAL_SUGGESTION
     
     # Prepara contesto per Valentina
+    website_analysis = lead.get("website_analysis") or {}
     context = {
         "nome": lead.get("display_name"),
         "piattaforma": lead.get("source"),
@@ -560,10 +561,10 @@ async def generate_first_contact_v2(lead_id: str, request: Optional[GenerateOutr
         "bio": lead.get("bio", ""),
         "followers": lead.get("followers_count", 0),
         "website": lead.get("website_url", ""),
-        "niche": lead.get("niche_detected") or lead.get("website_analysis", {}).get("niche", ""),
-        "business_type": lead.get("website_analysis", {}).get("business_type", ""),
+        "niche": lead.get("niche_detected") or website_analysis.get("niche", ""),
+        "business_type": website_analysis.get("business_type", ""),
         "monetization": lead.get("monetization_signals", []),
-        "pain_points": lead.get("website_analysis", {}).get("pain_points", []),
+        "pain_points": website_analysis.get("pain_points", []),
         "score": lead.get("score_total", 0)
     }
     
