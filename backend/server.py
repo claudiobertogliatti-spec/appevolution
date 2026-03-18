@@ -2709,23 +2709,31 @@ async def pull_ollama_model(model: str = "llama3:8b"):
     return await ollama_service.pull_model(model)
 
 @api_router.post("/ollama/extract-lead-html")
-async def api_extract_lead_html(url: str, html: str):
+async def api_extract_lead_html(request: dict):
     """[GAIA] Estrai dati lead da HTML usando Llama 3 locale"""
+    url = request.get("url", "")
+    html = request.get("html", "")
     return await extract_lead_data_from_html(html, url)
 
 @api_router.post("/ollama/clean-leads")
-async def api_clean_leads(leads: list):
+async def api_clean_leads(request: dict):
     """[DISCOVERY] Pulisci e deduplica lead usando Llama 3 locale"""
+    leads = request.get("leads", [])
     return await clean_and_deduplicate_leads(leads)
 
 @api_router.post("/ollama/generate-micropost")
-async def api_generate_micropost(topic: str, platform: str = "linkedin", tone: str = "professionale"):
+async def api_generate_micropost(request: dict):
     """Genera micro-post usando Llama 3 locale"""
+    topic = request.get("topic", "")
+    platform = request.get("platform", "linkedin")
+    tone = request.get("tone", "professionale")
     return await generate_micro_post(topic, platform, tone)
 
 @api_router.post("/ollama/validate-data")
-async def api_validate_data(data: dict, schema_type: str = "lead"):
+async def api_validate_data(request: dict):
     """Valida e normalizza dati usando Llama 3 locale"""
+    data = request.get("data", {})
+    schema_type = request.get("schema_type", "lead")
     return await validate_and_normalize_data(data, schema_type)
 
 @api_router.post("/ollama/test")
