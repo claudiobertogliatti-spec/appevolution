@@ -900,14 +900,21 @@ export function AnalisiConsulenziale({ clienteId, onClose }) {
               {data.has_script_call ? (
                 <div>
                   {/* Header Script */}
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center justify-between mb-4">
                     <div>
                       <h3 className="font-bold text-lg" style={{ color: '#1E2128' }}>
                         {data.script_call?.titolo_script}
                       </h3>
-                      <p className="text-sm" style={{ color: '#9CA3AF' }}>
-                        Durata: {data.script_call?.durata_stimata}
-                      </p>
+                      <div className="flex items-center gap-4 mt-1">
+                        <p className="text-sm" style={{ color: '#9CA3AF' }}>
+                          ⏱ {data.script_call?.durata_stimata}
+                        </p>
+                        {data.script_call?.obiettivo_conversione && (
+                          <p className="text-sm font-bold" style={{ color: '#22C55E' }}>
+                            🎯 {data.script_call?.obiettivo_conversione}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <button
                       onClick={handleDownloadScriptPdf}
@@ -919,6 +926,36 @@ export function AnalisiConsulenziale({ clienteId, onClose }) {
                     </button>
                   </div>
                   
+                  {/* Probabilità chiusura */}
+                  {data.script_call?.probabilita_chiusura && (
+                    <div className="p-4 rounded-xl mb-4" style={{ 
+                      background: data.script_call?.probabilita_chiusura === 'alta' ? '#DCFCE7' : 
+                                 data.script_call?.probabilita_chiusura === 'media' ? '#FEF9E7' : '#FEE2E2'
+                    }}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-bold" style={{ 
+                            color: data.script_call?.probabilita_chiusura === 'alta' ? '#166534' : 
+                                   data.script_call?.probabilita_chiusura === 'media' ? '#92400E' : '#991B1B'
+                          }}>
+                            PROBABILITÀ CHIUSURA
+                          </p>
+                          <p className="text-lg font-black uppercase" style={{ 
+                            color: data.script_call?.probabilita_chiusura === 'alta' ? '#22C55E' : 
+                                   data.script_call?.probabilita_chiusura === 'media' ? '#F59E0B' : '#EF4444'
+                          }}>
+                            {data.script_call?.probabilita_chiusura === 'alta' ? '🔥 ALTA' : 
+                             data.script_call?.probabilita_chiusura === 'media' ? '⚡ MEDIA' : '❄️ BASSA'}
+                          </p>
+                        </div>
+                        <div className="text-4xl">
+                          {data.script_call?.probabilita_chiusura === 'alta' ? '🎯' : 
+                           data.script_call?.probabilita_chiusura === 'media' ? '💪' : '🤔'}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
                   {/* Blocchi */}
                   {data.script_call?.blocchi?.map((blocco, i) => (
                     <BloccoScriptCall
@@ -928,6 +965,20 @@ export function AnalisiConsulenziale({ clienteId, onClose }) {
                       onToggle={() => setExpandedBlocco(expandedBlocco === i ? null : i)}
                     />
                   ))}
+                  
+                  {/* Bonus Tips */}
+                  {data.script_call?.bonus_tips && data.script_call.bonus_tips.length > 0 && (
+                    <div className="mt-6 p-4 rounded-xl" style={{ background: '#F0FDF4', border: '2px dashed #22C55E' }}>
+                      <h4 className="font-bold text-sm mb-3 text-green-700">💎 BONUS TIPS PER QUESTA CALL</h4>
+                      <ul className="space-y-2">
+                        {data.script_call.bonus_tips.map((tip, i) => (
+                          <li key={i} className="text-sm text-green-800 flex items-start gap-2">
+                            <span className="text-green-500">✓</span> {tip}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-12">
