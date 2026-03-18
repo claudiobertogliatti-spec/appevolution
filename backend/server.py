@@ -13092,6 +13092,13 @@ from routers.discovery_engine import router as discovery_router, set_db as set_d
 set_discovery_db(db)
 app.include_router(discovery_router)
 
+# Include HeyGen Production router (Video Generation)
+from routers.heygen_production import router as heygen_prod_router, set_db as set_heygen_prod_db, set_heygen_service
+from heygen_service import heygen_service
+set_heygen_prod_db(db)
+set_heygen_service(heygen_service)
+app.include_router(heygen_prod_router)
+
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler
 
