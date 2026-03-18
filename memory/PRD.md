@@ -1,12 +1,28 @@
 # Evolution PRO OS - Product Requirements Document
 
-**Ultimo aggiornamento:** 17 Marzo 2026
+**Ultimo aggiornamento:** 18 Marzo 2026
 
 ## CICLO COMPLETO EVOLUTION PRO ✅
 
 ```
 Posizionamento → Masterclass → Videocorso → Funnel → Lancio → Ottimizzazione → Continuità
 ```
+
+---
+
+## 🆕 SESSIONE 18 MAR 2026 - Fix e Integrazioni Frontend
+
+### Fix Completati:
+1. **YouTube OAuth** ✅ - Corretto `client_secret.json` malformato → Token autorizzato fino al 18/03/2026
+2. **Frontend Produzione Video** ✅ - Nuova sezione "Produzione Video" nel YouTubeHeygenHub con:
+   - Status cards: HeyGen API, YouTube API, Statistiche Produzione
+   - Lista partner con avatar/social plan
+   - Panel gestione video per partner selezionato
+   - Generazione video con form completo
+   - Upload YouTube automatico
+
+### Endpoint Aggiunti:
+- `GET /api/partners/with-social` - Lista partner con avatar o social plan configurato
 
 ---
 
