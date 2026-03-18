@@ -73,14 +73,51 @@ function BloccoScriptCall({ blocco, isExpanded, onToggle }) {
       
       {isExpanded && (
         <div className="px-4 pb-4 space-y-3" style={{ background: '#FAFAF7' }}>
-          {blocco.contenuto && (
+          
+          {/* SCRIPT ESATTO - Priorità alta, evidenziato */}
+          {blocco.script_esatto && (
+            <div className="p-4 rounded-lg border-l-4" style={{ background: '#1E212810', borderColor: '#F2C418' }}>
+              <label className="text-xs font-bold flex items-center gap-2" style={{ color: '#F2C418' }}>
+                <MessageSquare className="w-4 h-4" />
+                SCRIPT ESATTO (leggi testualmente)
+              </label>
+              <p className="text-sm mt-2 italic" style={{ color: '#1E2128', lineHeight: '1.6' }}>
+                "{blocco.script_esatto}"
+              </p>
+            </div>
+          )}
+          
+          {/* Contenuto legacy */}
+          {blocco.contenuto && !blocco.script_esatto && (
             <div>
               <label className="text-xs font-bold" style={{ color: '#5F6572' }}>CONTENUTO</label>
               <p className="text-sm mt-1" style={{ color: '#1E2128' }}>{blocco.contenuto}</p>
             </div>
           )}
           
-          {blocco.domande && blocco.domande.length > 0 && (
+          {/* Tecnica usata */}
+          {blocco.tecnica_usata && (
+            <div className="inline-block px-3 py-1 rounded-full text-xs font-bold" style={{ background: '#8B5CF620', color: '#8B5CF6' }}>
+              🧠 {blocco.tecnica_usata}
+            </div>
+          )}
+          
+          {/* Domande SPIN */}
+          {blocco.domande_spin && blocco.domande_spin.length > 0 && (
+            <div>
+              <label className="text-xs font-bold" style={{ color: '#3B82F6' }}>🎯 DOMANDE SPIN</label>
+              <ul className="mt-1 space-y-1">
+                {blocco.domande_spin.map((d, i) => (
+                  <li key={i} className="text-sm flex items-start gap-2" style={{ color: '#1E2128' }}>
+                    <span style={{ color: '#3B82F6' }}>→</span> {d}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+          {/* Domande legacy */}
+          {blocco.domande && blocco.domande.length > 0 && !blocco.domande_spin && (
             <div>
               <label className="text-xs font-bold" style={{ color: '#5F6572' }}>DOMANDE DA FARE</label>
               <ul className="mt-1 space-y-1">
@@ -93,6 +130,116 @@ function BloccoScriptCall({ blocco, isExpanded, onToggle }) {
             </div>
           )}
           
+          {/* Cosa ascoltare */}
+          {blocco.cosa_ascoltare && (
+            <div className="p-3 rounded-lg" style={{ background: '#EDE9FE' }}>
+              <label className="text-xs font-bold" style={{ color: '#7C3AED' }}>👂 COSA ASCOLTARE</label>
+              <p className="text-sm mt-1" style={{ color: '#5B21B6' }}>{blocco.cosa_ascoltare}</p>
+            </div>
+          )}
+          
+          {/* Gancio emotivo */}
+          {blocco.gancio_emotivo && (
+            <div className="p-3 rounded-lg" style={{ background: '#FEF3C7' }}>
+              <label className="text-xs font-bold" style={{ color: '#92400E' }}>💡 GANCIO EMOTIVO</label>
+              <p className="text-sm mt-1 italic" style={{ color: '#78350F' }}>"{blocco.gancio_emotivo}"</p>
+            </div>
+          )}
+          
+          {/* Calcolo perdita */}
+          {blocco.calcolo_perdita && (
+            <div className="p-3 rounded-lg" style={{ background: '#FEE2E2' }}>
+              <label className="text-xs font-bold" style={{ color: '#DC2626' }}>💸 COSTO DEL NON AGIRE</label>
+              <p className="text-sm mt-1" style={{ color: '#991B1B' }}>{blocco.calcolo_perdita}</p>
+            </div>
+          )}
+          
+          {/* Domanda killer */}
+          {blocco.domanda_killer && (
+            <div className="p-3 rounded-lg border" style={{ background: '#1E212808', borderColor: '#1E2128' }}>
+              <label className="text-xs font-bold" style={{ color: '#1E2128' }}>⚡ DOMANDA KILLER</label>
+              <p className="text-sm mt-1 font-medium" style={{ color: '#1E2128' }}>"{blocco.domanda_killer}"</p>
+            </div>
+          )}
+          
+          {/* Punti forza da evidenziare */}
+          {blocco.punti_forza_da_evidenziare && blocco.punti_forza_da_evidenziare.length > 0 && (
+            <div>
+              <label className="text-xs font-bold text-green-600">✨ PUNTI FORZA DA EVIDENZIARE</label>
+              <ul className="mt-1">
+                {blocco.punti_forza_da_evidenziare.map((p, i) => (
+                  <li key={i} className="text-sm text-green-700">✓ {p}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+          {/* Elementi specifici / Caso studio */}
+          {blocco.elementi_specifici && (
+            <div>
+              <label className="text-xs font-bold" style={{ color: '#5F6572' }}>📋 ELEMENTI DA INCLUDERE</label>
+              <ul className="mt-1 space-y-1">
+                {blocco.elementi_specifici.map((e, i) => (
+                  <li key={i} className="text-sm" style={{ color: '#1E2128' }}>• {e}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+          {blocco.caso_studio_simile && (
+            <div className="p-3 rounded-lg" style={{ background: '#DBEAFE' }}>
+              <label className="text-xs font-bold" style={{ color: '#1E40AF' }}>📊 CASO STUDIO DA CITARE</label>
+              <p className="text-sm mt-1" style={{ color: '#1E3A8A' }}>{blocco.caso_studio_simile}</p>
+            </div>
+          )}
+          
+          {/* Stack valore */}
+          {blocco.stack_valore && blocco.stack_valore.length > 0 && (
+            <div className="p-3 rounded-lg" style={{ background: '#F0FDF4' }}>
+              <label className="text-xs font-bold text-green-700">💎 STACK DI VALORE</label>
+              <ul className="mt-2 grid grid-cols-2 gap-2">
+                {blocco.stack_valore.map((v, i) => (
+                  <li key={i} className="text-sm text-green-800 flex items-center gap-1">
+                    <span className="text-green-500">✓</span> {v}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+          {/* Obiezioni e risposte */}
+          {blocco.obiezioni_probabili && (
+            <div className="space-y-2">
+              <label className="text-xs font-bold" style={{ color: '#EF4444' }}>🛡️ OBIEZIONI PROBABILI</label>
+              {blocco.obiezioni_probabili.map((o, i) => (
+                <div key={i} className="p-2 rounded-lg text-sm" style={{ background: '#FEF2F2', color: '#991B1B' }}>
+                  ⚠️ {o}
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {blocco.risposte_pronte && typeof blocco.risposte_pronte === 'object' && (
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-green-600">✅ RISPOSTE PRONTE</label>
+              {Object.entries(blocco.risposte_pronte).map(([key, value], i) => (
+                <div key={i} className="p-2 rounded-lg" style={{ background: '#DCFCE7' }}>
+                  <span className="text-xs font-bold text-green-800 uppercase">{key}:</span>
+                  <p className="text-sm text-green-900 mt-1">{value}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Tecnica Feel Felt Found */}
+          {blocco.tecnica_feel_felt_found && (
+            <div className="p-3 rounded-lg" style={{ background: '#FEF9E7', border: '1px solid #FCD34D' }}>
+              <label className="text-xs font-bold" style={{ color: '#92400E' }}>🤝 FEEL-FELT-FOUND</label>
+              <p className="text-sm mt-1 italic" style={{ color: '#78350F' }}>"{blocco.tecnica_feel_felt_found}"</p>
+            </div>
+          )}
+          
+          {/* Punti chiave legacy */}
           {blocco.punti_chiave && (
             <div>
               <label className="text-xs font-bold" style={{ color: '#5F6572' }}>PUNTI CHIAVE</label>
@@ -104,6 +251,7 @@ function BloccoScriptCall({ blocco, isExpanded, onToggle }) {
             </div>
           )}
           
+          {/* Segnali positivi e red flags */}
           {blocco.segnali_positivi && (
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -127,15 +275,52 @@ function BloccoScriptCall({ blocco, isExpanded, onToggle }) {
             </div>
           )}
           
-          {blocco.note_claudio && (
-            <div className="p-3 rounded-lg" style={{ background: '#FEF9E7', border: '1px solid #FCD34D' }}>
-              <p className="text-xs" style={{ color: '#92400E' }}>
-                💡 <strong>Note per Claudio:</strong> {blocco.note_claudio}
+          {/* Script chiusura */}
+          {blocco.script_chiusura && (
+            <div className="p-4 rounded-lg border-l-4" style={{ background: '#22C55E10', borderColor: '#22C55E' }}>
+              <label className="text-xs font-bold" style={{ color: '#22C55E' }}>🎯 SCRIPT CHIUSURA</label>
+              <p className="text-sm mt-2 italic" style={{ color: '#166534', lineHeight: '1.6' }}>
+                "{blocco.script_chiusura}"
               </p>
             </div>
           )}
           
-          {blocco.scenario_positivo && (
+          {/* Domanda assunzionale */}
+          {blocco.domanda_assunzionale && (
+            <div className="p-3 rounded-lg" style={{ background: '#DBEAFE' }}>
+              <label className="text-xs font-bold" style={{ color: '#1E40AF' }}>💬 DOMANDA ASSUNZIONALE</label>
+              <p className="text-sm mt-1 font-medium" style={{ color: '#1E3A8A' }}>"{blocco.domanda_assunzionale}"</p>
+            </div>
+          )}
+          
+          {/* Urgenza genuina */}
+          {blocco.urgenza_genuina && (
+            <div className="p-3 rounded-lg" style={{ background: '#FEF3C7' }}>
+              <label className="text-xs font-bold" style={{ color: '#92400E' }}>⏰ URGENZA</label>
+              <p className="text-sm mt-1" style={{ color: '#78350F' }}>{blocco.urgenza_genuina}</p>
+            </div>
+          )}
+          
+          {/* Piano B e Follow up */}
+          {(blocco.piano_b || blocco.follow_up) && (
+            <div className="grid grid-cols-2 gap-3">
+              {blocco.piano_b && (
+                <div className="p-3 rounded-lg" style={{ background: '#FEE2E2' }}>
+                  <label className="text-xs font-bold text-red-700">📋 PIANO B</label>
+                  <p className="text-xs mt-1 text-red-800">{blocco.piano_b}</p>
+                </div>
+              )}
+              {blocco.follow_up && (
+                <div className="p-3 rounded-lg" style={{ background: '#E0E7FF' }}>
+                  <label className="text-xs font-bold text-indigo-700">📧 FOLLOW-UP</label>
+                  <p className="text-xs mt-1 text-indigo-800">{blocco.follow_up}</p>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Scenario positivo/negativo legacy */}
+          {blocco.scenario_positivo && !blocco.script_chiusura && (
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 rounded-lg" style={{ background: '#DCFCE7' }}>
                 <label className="text-xs font-bold text-green-700">SE PROGETTO ADATTO</label>
@@ -148,7 +333,17 @@ function BloccoScriptCall({ blocco, isExpanded, onToggle }) {
             </div>
           )}
           
-          {blocco.call_to_action && (
+          {/* Note per Claudio */}
+          {blocco.note_claudio && (
+            <div className="p-3 rounded-lg" style={{ background: '#FEF9E7', border: '1px solid #FCD34D' }}>
+              <p className="text-xs" style={{ color: '#92400E' }}>
+                💡 <strong>Note per Claudio:</strong> {blocco.note_claudio}
+              </p>
+            </div>
+          )}
+          
+          {/* CTA legacy */}
+          {blocco.call_to_action && !blocco.script_chiusura && (
             <div className="p-3 rounded-lg" style={{ background: '#DBEAFE' }}>
               <p className="text-sm font-bold" style={{ color: '#1E40AF' }}>
                 🎯 CTA: {blocco.call_to_action}
