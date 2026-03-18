@@ -637,7 +637,8 @@ Genera il messaggio:"""
         )
         
         response = await llm.send_message(UserMessage(text=prompt))
-        outreach_message = response.text.strip()
+        outreach_message = response if isinstance(response, str) else response.text
+        outreach_message = outreach_message.strip()
         
         # Rimuovi eventuali virgolette iniziali/finali
         outreach_message = outreach_message.strip('"\'')
