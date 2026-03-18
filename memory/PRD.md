@@ -44,6 +44,70 @@ Ho preparato la tua Roadmap. Prenota la Call per vederla insieme.
 
 
 
+## 🆕 AVATAR & SOCIAL PLAN MANAGEMENT ✅ (18 Mar 2026)
+
+**Gestione asset Avatar HeyGen e piani Social per i partner**
+
+### Nuovi Campi Partner:
+
+| Campo | Tipo | Descrizione |
+|-------|------|-------------|
+| `avatar_status` | Enum | `NOT_ACTIVE`, `AWAITING_CONSENT`, `VERIFIED`, `ACTIVE` |
+| `heygen_id` | String | ID univoco del Digital Twin su HeyGen |
+| `social_plan` | Object | Pacchetto (3/6/12 mesi), limiti mensili, date, prezzo |
+| `content_credits` | Object | Contatore video/minuti generati nel mese solare |
+| `social_module_active` | Boolean | Se il modulo Social è attivo |
+
+### Struttura `social_plan`:
+```json
+{
+  "plan_type": "6_months",
+  "monthly_video_limit": 15,
+  "monthly_minutes_limit": 45.0,
+  "start_date": "2026-03-18",
+  "end_date": "2026-09-14",
+  "price": 497.0,
+  "is_active": true
+}
+```
+
+### Struttura `content_credits`:
+```json
+{
+  "current_month": "2026-03",
+  "videos_generated": 2,
+  "minutes_used": 5.5,
+  "last_reset": "2026-03-18T10:01:11Z"
+}
+```
+
+### Nuove API:
+
+| Endpoint | Metodo | Funzionalità |
+|----------|--------|--------------|
+| `/api/partners/{id}/avatar` | GET | Stato avatar e HeyGen ID |
+| `/api/partners/{id}/avatar` | PATCH | Aggiorna status/heygen_id |
+| `/api/partners/{id}/social-plan` | GET | Dettagli piano Social |
+| `/api/partners/{id}/social-plan` | POST | Crea nuovo piano |
+| `/api/partners/{id}/social-plan` | PATCH | Modifica piano esistente |
+| `/api/partners/{id}/content-credits` | GET | Crediti rimanenti (auto-reset mensile) |
+| `/api/partners/{id}/content-credits/consume` | POST | Consuma crediti dopo generazione |
+| `/api/partners/{id}/content-credits/reset` | POST | Reset manuale (admin) |
+| `/api/partners/{id}/move-to-social` | POST | Attiva modulo Social |
+| `/api/partners/{id}/check-social-trigger` | POST | Check auto-trigger da F6 |
+| `/api/partners/{id}/content-generations` | GET | Storico generazioni video |
+
+### Trigger Automatico `move_to_social`:
+- Quando un partner passa alla fase **F6 (Ottimizzazione)** o successiva
+- Se ha un piano Social sottoscritto
+- Il modulo Social viene attivato automaticamente
+- Notifica Telegram inviata
+
+### File creato:
+- `/app/backend/routers/avatar_social.py`
+
+---
+
 ## 🆕 SCRIPT CALL AD ALTA CONVERSIONE ✅ (18 Mar 2026)
 
 **Script personalizzato per call di consegna analisi - ottimizzato per chiudere partnership €2.790**
