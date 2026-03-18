@@ -60,6 +60,18 @@ def trigger_stefania_daily():
         logger.error(f"[SCHEDULER] Errore trigger_stefania_daily: {e}")
 
 
+def trigger_discovery_cleanup():
+    """Ogni giorno alle 3:00 — pulizia duplicati Discovery Engine."""
+    try:
+        logger.info("[SCHEDULER] Discovery cleanup — avvio pulizia duplicati")
+        response = httpx.post("http://localhost:8001/api/discovery/worker/cleanup-duplicates", json={}, timeout=120)
+        result = response.json()
+        total_removed = result.get("total_removed", 0)
+        logger.info(f"[SCHEDULER] Discovery cleanup completato — {total_removed} duplicati rimossi")
+    except Exception as e:
+        logger.error(f"[SCHEDULER] Errore trigger_discovery_cleanup: {e}")
+
+
 def start_scheduler():
     """Avvia tutti i job schedulati."""
     
