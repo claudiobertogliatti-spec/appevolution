@@ -1187,8 +1187,355 @@ export function DashboardOperations({ user, onLogout }) {
           {activeSection === "partner" && <PartnerSection />}
           {activeSection === "contenuti" && <ContenutiSection />}
           {activeSection === "campagne" && <CampagneSection />}
+          {activeSection === "lead-discovery" && <LeadDiscoverySection />}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SEZIONE CASSA LEAD PROATTIVA (Discovery Engine)
+// ═══════════════════════════════════════════════════════════════
+function LeadDiscoverySection() {
+  const [stats, setStats] = useState(null);
+  const [leads, setLeads] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("all");
+  const [selectedLead, setSelectedLead] = useState(null);
+  const [actionLoading, setActionLoading] = useState(null);
+
+  useEffect(() => {
+    loadData();
+  }, [filter]);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      // Load stats
+      const statsRes = await fetch(`${API}/api/discovery/stats/today`);
+      const statsData = await statsRes.json();
+      setStats(statsData);
+
+      // Load leads based on filter
+      let url = `${API}/api/discovery/leads?limit=50`;
+      if (filter === "pending") url += "&status=message_ready";
+      if (filter === "approved") url += "&status=message_sent";
+      if (filter === "hot") url += "&min_score=70";
+      
+      const leadsRes = await fetch(url);
+      const leadsData = await leadsRes.json();
+      setLeads(leadsData.leads || []);
+    } catch (err) {
+      console.error("Error loading discovery data:", err);
+    }
+    setLoading(false);
+  };
+
+  const handleApprove = async (leadId) => {
+    setActionLoading(leadId);
+    try {
+      await fetch(`${API}/api/discovery/outreach/approve/${leadId}`, { method: "POST" });
+      loadData();
+    } catch (err) {
+      console.error("Error approving:", err);
+    }
+    setActionLoading(null);
+  };
+
+  const handleMarkSent = async (leadId) => {
+    setActionLoading(leadId);
+    try {
+      await fetch(`${API}/api/discovery/outreach/send/${leadId}`, { method: "POST" });
+      loadData();
+    } catch (err) {
+      console.error("Error marking sent:", err);
+    }
+    setActionLoading(null);
+  };
+
+  const handleMarkResponse = async (leadId, type) => {
+    setActionLoading(leadId);
+    try {
+      await fetch(`${API}/api/discovery/outreach/response/${leadId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lead_id: leadId, response_type: type })
+      });
+      loadData();
+    } catch (err) {
+      console.error("Error marking response:", err);
+    }
+    setActionLoading(null);
+  };
+
+  const getStatusBadge = (status) => {
+    const statusConfig = {
+      discovered: { bg: "#E5E7EB", color: "#374151", label: "Scoperto" },
+      analyzing: { bg: "#DBEAFE", color: "#1D4ED8", label: "Analisi..." },
+      scored: { bg: "#FEF3C7", color: "#92400E", label: "Valutato" },
+      message_ready: { bg: "#D1FAE5", color: "#065F46", label: "Msg Pronto" },
+      message_sent: { bg: "#DBEAFE", color: "#1E40AF", label: "Inviato" },
+      responded_positive: { bg: "#D1FAE5", color: "#047857", label: "✓ Positivo" },
+      responded_negative: { bg: "#FEE2E2", color: "#991B1B", label: "✗ Negativo" },
+      converted: { bg: "#22C55E", color: "#FFFFFF", label: "Convertito" }
+    };
+    const config = statusConfig[status] || { bg: "#E5E7EB", color: "#374151", label: status };
+    return (
+      <span className="px-2 py-1 rounded-full text-xs font-medium" style={{ background: config.bg, color: config.color }}>
+        {config.label}
+      </span>
+    );
+  };
+
+  const getScoreColor = (score) => {
+    if (score >= 70) return "#22C55E";
+    if (score >= 50) return "#F59E0B";
+    return "#9CA3AF";
+  };
+
+  return (
+    <div className="space-y-6" data-testid="lead-discovery-section">
+      {/* Header Stats */}
+      <div className="grid grid-cols-4 gap-4">
+        <div className="p-4 rounded-xl" style={{ background: "#FAFAF7", border: "1px solid #ECEDEF" }}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "#22C55E20" }}>
+              <Zap className="w-5 h-5" style={{ color: "#22C55E" }} />
+            </div>
+            <div>
+              <div className="text-2xl font-bold" style={{ color: "#1E2128" }}>{stats?.today?.discovered || 0}</div>
+              <div className="text-xs" style={{ color: "#9CA3AF" }}>Scoperti oggi</div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="p-4 rounded-xl" style={{ background: "#FAFAF7", border: "1px solid #ECEDEF" }}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "#3B82F620" }}>
+              <Inbox className="w-5 h-5" style={{ color: "#3B82F6" }} />
+            </div>
+            <div>
+              <div className="text-2xl font-bold" style={{ color: "#1E2128" }}>{stats?.pending_actions?.messages_to_review || 0}</div>
+              <div className="text-xs" style={{ color: "#9CA3AF" }}>Da approvare</div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="p-4 rounded-xl" style={{ background: "#FAFAF7", border: "1px solid #ECEDEF" }}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "#F5C51820" }}>
+              <Send className="w-5 h-5" style={{ color: "#F5C518" }} />
+            </div>
+            <div>
+              <div className="text-2xl font-bold" style={{ color: "#1E2128" }}>{stats?.today?.messages_sent || 0}</div>
+              <div className="text-xs" style={{ color: "#9CA3AF" }}>Inviati oggi</div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="p-4 rounded-xl" style={{ background: "#FAFAF7", border: "1px solid #ECEDEF" }}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "#10B98120" }}>
+              <ThumbsUp className="w-5 h-5" style={{ color: "#10B981" }} />
+            </div>
+            <div>
+              <div className="text-2xl font-bold" style={{ color: "#1E2128" }}>{stats?.today?.positive_responses || 0}</div>
+              <div className="text-xs" style={{ color: "#9CA3AF" }}>Risposte positive</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters & Actions */}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-2">
+          {[
+            { id: "all", label: "Tutti" },
+            { id: "pending", label: "Da Approvare" },
+            { id: "hot", label: "🔥 Hot (70+)" }
+          ].map(f => (
+            <button
+              key={f.id}
+              onClick={() => setFilter(f.id)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === f.id ? "bg-[#1E2128] text-white" : "bg-[#ECEDEF] text-[#5F6572] hover:bg-[#E5E7EB]"}`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <button onClick={loadData} className="p-2 rounded-lg hover:bg-[#ECEDEF]" disabled={loading}>
+          <RefreshCw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} style={{ color: "#5F6572" }} />
+        </button>
+      </div>
+
+      {/* Leads Table */}
+      <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #ECEDEF" }}>
+        <table className="w-full">
+          <thead>
+            <tr style={{ background: "#FAFAF7" }}>
+              <th className="text-left px-4 py-3 text-xs font-bold" style={{ color: "#5F6572" }}>LEAD</th>
+              <th className="text-left px-4 py-3 text-xs font-bold" style={{ color: "#5F6572" }}>SOURCE</th>
+              <th className="text-center px-4 py-3 text-xs font-bold" style={{ color: "#5F6572" }}>SCORE</th>
+              <th className="text-left px-4 py-3 text-xs font-bold" style={{ color: "#5F6572" }}>STATUS</th>
+              <th className="text-right px-4 py-3 text-xs font-bold" style={{ color: "#5F6572" }}>AZIONI</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={5} className="text-center py-12">
+                  <Loader2 className="w-8 h-8 mx-auto animate-spin" style={{ color: "#9CA3AF" }} />
+                </td>
+              </tr>
+            ) : leads.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="text-center py-12">
+                  <Inbox className="w-12 h-12 mx-auto mb-2" style={{ color: "#E5E7EB" }} />
+                  <p style={{ color: "#9CA3AF" }}>Nessun lead trovato</p>
+                </td>
+              </tr>
+            ) : leads.map(lead => (
+              <tr key={lead.id} className="border-t hover:bg-[#FAFAF7] cursor-pointer" style={{ borderColor: "#ECEDEF" }} onClick={() => setSelectedLead(lead)}>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style={{ background: "#1E2128" }}>
+                      {lead.display_name?.charAt(0) || "?"}
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm" style={{ color: "#1E2128" }}>{lead.display_name}</div>
+                      <div className="text-xs" style={{ color: "#9CA3AF" }}>@{lead.platform_username}</div>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-3">
+                  <span className="px-2 py-1 rounded text-xs font-medium capitalize" style={{ background: "#E5E7EB", color: "#374151" }}>
+                    {lead.source}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <span className="text-lg font-bold" style={{ color: getScoreColor(lead.score_total) }}>
+                    {lead.score_total || 0}
+                  </span>
+                </td>
+                <td className="px-4 py-3">{getStatusBadge(lead.status)}</td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center justify-end gap-2" onClick={e => e.stopPropagation()}>
+                    {lead.outreach_status === "pending" && (
+                      <button
+                        onClick={() => handleApprove(lead.id)}
+                        disabled={actionLoading === lead.id}
+                        className="px-3 py-1 rounded-lg text-xs font-medium text-white"
+                        style={{ background: "#22C55E" }}
+                      >
+                        {actionLoading === lead.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Approva"}
+                      </button>
+                    )}
+                    {lead.outreach_status === "approved" && (
+                      <button
+                        onClick={() => handleMarkSent(lead.id)}
+                        disabled={actionLoading === lead.id}
+                        className="px-3 py-1 rounded-lg text-xs font-medium text-white"
+                        style={{ background: "#3B82F6" }}
+                      >
+                        {actionLoading === lead.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Segna Inviato"}
+                      </button>
+                    )}
+                    {lead.status === "message_sent" && (
+                      <>
+                        <button onClick={() => handleMarkResponse(lead.id, "positive")} className="p-1 rounded hover:bg-green-100">
+                          <ThumbsUp className="w-4 h-4 text-green-600" />
+                        </button>
+                        <button onClick={() => handleMarkResponse(lead.id, "negative")} className="p-1 rounded hover:bg-red-100">
+                          <ThumbsDown className="w-4 h-4 text-red-600" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Lead Detail Modal */}
+      {selectedLead && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setSelectedLead(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b" style={{ borderColor: "#ECEDEF" }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold" style={{ background: "#1E2128" }}>
+                    {selectedLead.display_name?.charAt(0)}
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold" style={{ color: "#1E2128" }}>{selectedLead.display_name}</h2>
+                    <p className="text-sm" style={{ color: "#9CA3AF" }}>@{selectedLead.platform_username} · {selectedLead.source}</p>
+                  </div>
+                </div>
+                <button onClick={() => setSelectedLead(null)} className="p-2 rounded-lg hover:bg-[#ECEDEF]">
+                  <X className="w-5 h-5" style={{ color: "#5F6572" }} />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              {/* Score */}
+              <div className="flex items-center gap-4 p-4 rounded-xl" style={{ background: "#FAFAF7" }}>
+                <div className="text-4xl font-black" style={{ color: getScoreColor(selectedLead.score_total) }}>
+                  {selectedLead.score_total || 0}
+                </div>
+                <div>
+                  <div className="text-sm font-bold" style={{ color: "#1E2128" }}>Score Totale</div>
+                  <div className="text-xs" style={{ color: "#9CA3AF" }}>
+                    Audience: {selectedLead.score_breakdown?.audience_size || 0} | 
+                    Engagement: {selectedLead.score_breakdown?.engagement_rate || 0} |
+                    Niche: {selectedLead.score_breakdown?.niche_fit || 0}
+                  </div>
+                </div>
+              </div>
+
+              {/* Bio */}
+              {selectedLead.bio && (
+                <div>
+                  <label className="text-xs font-bold" style={{ color: "#5F6572" }}>BIO</label>
+                  <p className="text-sm mt-1" style={{ color: "#1E2128" }}>{selectedLead.bio}</p>
+                </div>
+              )}
+
+              {/* Outreach Message */}
+              {selectedLead.outreach_message && (
+                <div>
+                  <label className="text-xs font-bold" style={{ color: "#5F6572" }}>MESSAGGIO OUTREACH</label>
+                  <div className="mt-2 p-4 rounded-xl" style={{ background: "#F0FDF4", border: "1px solid #22C55E30" }}>
+                    <p className="text-sm whitespace-pre-wrap" style={{ color: "#1E2128" }}>{selectedLead.outreach_message}</p>
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="px-2 py-1 rounded text-xs" style={{ background: "#E5E7EB", color: "#374151" }}>
+                      {selectedLead.outreach_gift_type || "auto"}
+                    </span>
+                    {getStatusBadge(selectedLead.outreach_status)}
+                  </div>
+                </div>
+              )}
+
+              {/* Website Analysis */}
+              {selectedLead.website_analysis && !selectedLead.website_analysis.error && (
+                <div>
+                  <label className="text-xs font-bold" style={{ color: "#5F6572" }}>ANALISI SITO</label>
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                    <div><span style={{ color: "#9CA3AF" }}>Business:</span> {selectedLead.website_analysis.business_type}</div>
+                    <div><span style={{ color: "#9CA3AF" }}>Nicchia:</span> {selectedLead.website_analysis.niche}</div>
+                    <div><span style={{ color: "#9CA3AF" }}>Target:</span> {selectedLead.website_analysis.target_audience}</div>
+                    <div><span style={{ color: "#9CA3AF" }}>Opportunità:</span> {selectedLead.website_analysis.opportunity_score}/10</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
