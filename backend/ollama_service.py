@@ -47,9 +47,10 @@ class OllamaService:
         self.timeout = OLLAMA_TIMEOUT
         self._connected = None
         self._active_host = None
-        # Headers per ngrok (skip browser warning)
+        # Headers per tunnel (ngrok, localtunnel)
         self._headers = {
             "ngrok-skip-browser-warning": "true",
+            "bypass-tunnel-reminder": "true",
             "User-Agent": "EvolutionPRO-Ollama/1.0"
         }
     
