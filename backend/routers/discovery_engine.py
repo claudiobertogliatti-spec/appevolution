@@ -625,10 +625,18 @@ STRUTTURA CONSIGLIATA:
 Genera il messaggio:"""
 
     try:
-        llm = await get_llm_chat(f"valentina_outreach_{lead_id}")
-        from emergentintegrations.llm.chat import UserMessage
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
         
-        response = await llm.chat([UserMessage(text=prompt)])
+        if not EMERGENT_LLM_KEY:
+            raise HTTPException(status_code=500, detail="LLM Key non configurata")
+        
+        llm = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"valentina_outreach_{lead_id}",
+            system_message="Sei VALENTINA, esperta di vendita e copywriting per Evolution PRO."
+        )
+        
+        response = await llm.send_message(UserMessage(text=prompt))
         outreach_message = response.text.strip()
         
         # Rimuovi eventuali virgolette iniziali/finali
