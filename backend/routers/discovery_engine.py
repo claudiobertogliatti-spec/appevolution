@@ -524,7 +524,7 @@ async def score_lead(lead_id: str):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/generate-outreach/{lead_id}")
-async def generate_first_contact_v2(lead_id: str, request: GenerateOutreachRequest = None):
+async def generate_first_contact_v2(lead_id: str, request: Optional[GenerateOutreachRequest] = None):
     """
     Valentina genera un messaggio di primo contatto personalizzato
     con un "regalo strategico" basato sui dati reali del lead.
