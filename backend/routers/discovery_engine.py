@@ -165,12 +165,12 @@ class MarkResponseRequest(BaseModel):
 # HELPER FUNCTIONS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-async def get_llm_chat(session_id: str = "discovery"):
+async def get_llm_chat(session_id: str = "discovery", system_message: str = "Sei VALENTINA, assistente AI di Evolution PRO."):
     """Helper per ottenere istanza LLM"""
     from emergentintegrations.llm.chat import LlmChat
     if not EMERGENT_LLM_KEY:
         raise HTTPException(status_code=500, detail="LLM Key non configurata")
-    return LlmChat(api_key=EMERGENT_LLM_KEY, session_id=session_id)
+    return LlmChat(api_key=EMERGENT_LLM_KEY, session_id=session_id, system_message=system_message)
 
 
 def generate_lead_id(source: str, username: str) -> str:
