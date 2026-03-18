@@ -2690,6 +2690,36 @@ async def update_agent(agent_id: str, status: Optional[str] = None, budget: Opti
 # ROUTES - PARTNERS
 # =============================================================================
 
+@api_router.get("/partners/with-social")
+async def get_partners_with_social():
+    """Lista partner con avatar o social plan configurato per la dashboard produzione video"""
+    partners = await db.partners.find(
+        {
+            "$or": [
+                {"avatar_status": {"$in": ["AWAITING_CONSENT", "VERIFIED", "ACTIVE"]}},
+                {"social_plan.is_active": True},
+                {"heygen_id": {"$exists": True, "$ne": None}}
+            ]
+        },
+        {
+            "_id": 0, "id": 1, "name": 1, "nome": 1, "email": 1, "niche": 1,
+            "avatar_status": 1, "heygen_id": 1, "heygen_voice_id": 1,
+            "social_plan": 1, "content_credits": 1, "journey_phase": 1
+        }
+    ).sort("name", 1).to_list(100)
+    
+    if not partners:
+        partners = await db.partners.find(
+            {"status": {"$in": ["active", "onboarding", "development"]}},
+            {
+                "_id": 0, "id": 1, "name": 1, "nome": 1, "email": 1, "niche": 1,
+                "avatar_status": 1, "heygen_id": 1, "heygen_voice_id": 1,
+                "social_plan": 1, "content_credits": 1, "journey_phase": 1
+            }
+        ).sort("name", 1).to_list(50)
+    
+    return {"partners": partners, "count": len(partners)}
+
 @api_router.get("/partners", response_model=List[Partner])
 async def get_partners():
     partners = await db.partners.find({}, {"_id": 0}).to_list(100)

@@ -113,6 +113,70 @@ def calculate_end_date(start_date: str, plan_type: SocialPlanType) -> str:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# ENDPOINT 0: Lista Partner con Avatar/Social Plan (per Admin Dashboard)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/with-social")
+async def get_partners_with_social():
+    """
+    Lista tutti i partner che hanno avatar_status o social_plan configurato.
+    Usato dalla dashboard di produzione video.
+    """
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database non inizializzato")
+    
+    # Cerca partner con avatar_status diverso da NOT_ACTIVE o con social_plan attivo
+    partners = await db.partners.find(
+        {
+            "$or": [
+                {"avatar_status": {"$in": ["AWAITING_CONSENT", "VERIFIED", "ACTIVE"]}},
+                {"social_plan.is_active": True},
+                {"heygen_id": {"$exists": True, "$ne": None}}
+            ]
+        },
+        {
+            "_id": 0,
+            "id": 1,
+            "name": 1,
+            "nome": 1,
+            "email": 1,
+            "niche": 1,
+            "avatar_status": 1,
+            "heygen_id": 1,
+            "heygen_voice_id": 1,
+            "social_plan": 1,
+            "content_credits": 1,
+            "journey_phase": 1
+        }
+    ).sort("name", 1).to_list(100)
+    
+    # Se non ci sono partner con configurazione, restituisci tutti i partner attivi
+    if not partners:
+        partners = await db.partners.find(
+            {"status": {"$in": ["active", "onboarding", "development"]}},
+            {
+                "_id": 0,
+                "id": 1,
+                "name": 1,
+                "nome": 1,
+                "email": 1,
+                "niche": 1,
+                "avatar_status": 1,
+                "heygen_id": 1,
+                "heygen_voice_id": 1,
+                "social_plan": 1,
+                "content_credits": 1,
+                "journey_phase": 1
+            }
+        ).sort("name", 1).to_list(50)
+    
+    return {
+        "partners": partners,
+        "count": len(partners)
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # ENDPOINT 1: AVATAR STATUS & HEYGEN ID
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -671,3 +735,5 @@ async def get_content_generations(partner_id: str, limit: int = 50):
         "total_count": len(generations),
         "monthly_stats": monthly_stats
     }
+
+

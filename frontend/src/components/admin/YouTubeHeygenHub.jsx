@@ -247,11 +247,26 @@ function ScriptBlock({ scriptData, format }) {
 
 // ── MAIN APP ─────────────────────────────────────────────────
 export default function YouTubeHeygenHub() {
-  const [tab, setTab] = useState("generate");
+  const [tab, setTab] = useState("production");
   const [scripts, setScripts] = useState([]);
   const [linkedinCalendar, setLinkedinCalendar] = useState([]);
   const [ytCalendar, setYtCalendar] = useState(null);
   const [ready, setReady] = useState(false);
+
+  // Production state
+  const [heygenStatus, setHeygenStatus] = useState(null);
+  const [youtubeStatus, setYoutubeStatus] = useState(null);
+  const [productionStats, setProductionStats] = useState(null);
+  const [partners, setPartners] = useState([]);
+  const [selectedPartner, setSelectedPartner] = useState(null);
+  const [partnerVideos, setPartnerVideos] = useState([]);
+  const [loadingVideos, setLoadingVideos] = useState(false);
+  const [generatingVideo, setGeneratingVideo] = useState(false);
+  const [uploadingYouTube, setUploadingYouTube] = useState(false);
+  const [videoScript, setVideoScript] = useState("");
+  const [videoTitle, setVideoTitle] = useState("");
+  const [videoType, setVideoType] = useState("masterclass");
+  const [testMode, setTestMode] = useState(true);
 
   // Generate
   const [topic, setTopic] = useState("");
@@ -275,7 +290,93 @@ export default function YouTubeHeygenHub() {
       if (cal) setLinkedinCalendar(cal);
       setReady(true);
     });
+    // Load production data
+    loadProductionData();
   }, []);
+
+  const loadProductionData = async () => {
+    // Fetch with timeout helper
+    const fetchWithTimeout = async (url, timeout = 10000) => {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeout);
+      try {
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(id);
+        return response.ok ? await response.json() : null;
+      } catch {
+        clearTimeout(id);
+        return null;
+      }
+    };
+    
+    // Load data sequentially
+    const heygen = await fetchWithTimeout(`${API}/heygen/test-connection`, 15000);
+    if (heygen) setHeygenStatus(heygen);
+    
+    const yt = await fetchWithTimeout(`${API}/youtube-heygen/youtube/auth-status`);
+    if (yt) setYoutubeStatus(yt);
+    
+    const stats = await fetchWithTimeout(`${API}/heygen/stats`);
+    if (stats) setProductionStats(stats);
+    
+    const partners = await fetchWithTimeout(`${API}/partners/with-social`);
+    if (partners) setPartners(partners.partners || []);
+  };
+
+  const loadPartnerVideos = async (partnerId) => {
+    setLoadingVideos(true);
+    try {
+      const res = await axios.get(`${API}/heygen/videos/${partnerId}`);
+      setPartnerVideos(res.data.videos || []);
+    } catch (e) {
+      console.error("Error loading videos:", e);
+      setPartnerVideos([]);
+    }
+    setLoadingVideos(false);
+  };
+
+  const handleGenerateVideo = async () => {
+    if (!selectedPartner || !videoScript || !videoTitle) return;
+    setGeneratingVideo(true);
+    try {
+      const res = await axios.post(`${API}/heygen/generate-video`, {
+        partner_id: selectedPartner.id,
+        script: videoScript,
+        video_title: videoTitle,
+        video_type: videoType,
+        test_mode: testMode
+      });
+      alert(`Video in generazione! ID: ${res.data.video_id}\nTempo stimato: ${res.data.message}`);
+      loadPartnerVideos(selectedPartner.id);
+      setVideoScript("");
+      setVideoTitle("");
+    } catch (e) {
+      alert(`Errore: ${e.response?.data?.detail || e.message}`);
+    }
+    setGeneratingVideo(false);
+  };
+
+  const handleUploadToYouTube = async (videoId) => {
+    setUploadingYouTube(videoId);
+    try {
+      const res = await axios.post(`${API}/youtube-heygen/youtube/upload-from-heygen/${videoId}?privacy_status=unlisted`);
+      alert(`Video caricato su YouTube!\n${res.data.youtube_url}`);
+      loadPartnerVideos(selectedPartner.id);
+    } catch (e) {
+      alert(`Errore upload: ${e.response?.data?.detail || e.message}`);
+    }
+    setUploadingYouTube(null);
+  };
+
+  const checkVideoStatus = async (videoId) => {
+    try {
+      const res = await axios.get(`${API}/heygen/video-status/${videoId}`);
+      alert(`Status: ${res.data.status}\n${res.data.video_url ? `URL: ${res.data.video_url}` : ''}`);
+      if (selectedPartner) loadPartnerVideos(selectedPartner.id);
+    } catch (e) {
+      alert(`Errore: ${e.response?.data?.detail || e.message}`);
+    }
+  };
 
   const saveScript = async (s) => {
     const updated = [s, ...scripts.slice(0, 49)];
@@ -340,6 +441,7 @@ export default function YouTubeHeygenHub() {
   );
 
   const TABS = [
+    ["production", "🎥 Produzione Video"],
     ["generate", "🎬 Genera Script"],
     ["calendar", "📅 Piano Mensile"],
     ["library", `📚 Libreria (${scripts.length})`],
@@ -376,6 +478,373 @@ export default function YouTubeHeygenHub() {
       </div>
 
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "20px" }}>
+
+        {/* ══ PRODUCTION ══ */}
+        {tab === "production" && (
+          <div>
+            {/* Status Cards */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 20 }}>
+              {/* HeyGen Status */}
+              <div style={{ background: C.surface, border: `1px solid ${heygenStatus?.connected ? C.green + "44" : C.red + "44"}`, borderRadius: 12, padding: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: heygenStatus?.connected ? C.green : C.red }} />
+                  <span style={{ fontSize: 13, fontWeight: 700 }}>HeyGen API</span>
+                </div>
+                {heygenStatus ? (
+                  <div style={{ fontSize: 11, color: C.textMuted, fontFamily: "monospace", lineHeight: 1.8 }}>
+                    <div>Status: <span style={{ color: heygenStatus.connected ? C.green : C.red }}>{heygenStatus.connected ? "Connesso" : "Disconnesso"}</span></div>
+                    <div>Avatar: {heygenStatus.avatars_available || 0}</div>
+                    <div>Voci: {heygenStatus.voices_available || 0}</div>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 11, color: C.textMuted }}>Caricamento...</div>
+                )}
+              </div>
+
+              {/* YouTube Status */}
+              <div style={{ background: C.surface, border: `1px solid ${youtubeStatus?.status === "authorized" ? C.green + "44" : C.amber + "44"}`, borderRadius: 12, padding: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: youtubeStatus?.status === "authorized" ? C.green : C.amber }} />
+                  <span style={{ fontSize: 13, fontWeight: 700 }}>YouTube API</span>
+                </div>
+                {youtubeStatus ? (
+                  <div style={{ fontSize: 11, color: C.textMuted, fontFamily: "monospace", lineHeight: 1.8 }}>
+                    <div>Status: <span style={{ color: youtubeStatus.status === "authorized" ? C.green : C.amber }}>{youtubeStatus.status}</span></div>
+                    {youtubeStatus.expiry && <div>Scadenza: {new Date(youtubeStatus.expiry).toLocaleDateString("it")}</div>}
+                    <div>{youtubeStatus.message}</div>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 11, color: C.textMuted }}>Caricamento...</div>
+                )}
+              </div>
+
+              {/* Production Stats */}
+              <div style={{ background: C.surface, border: `1px solid ${C.purple}44`, borderRadius: 12, padding: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700 }}>📊 Statistiche Produzione</span>
+                </div>
+                {productionStats ? (
+                  <div style={{ fontSize: 11, color: C.textMuted, fontFamily: "monospace", lineHeight: 1.8 }}>
+                    <div>Video totali: <span style={{ color: C.purple }}>{productionStats.total_videos}</span></div>
+                    <div>Completati oggi: <span style={{ color: C.green }}>{productionStats.completed_today}</span></div>
+                    <div>In elaborazione: <span style={{ color: C.amber }}>{productionStats.currently_processing}</span></div>
+                    <div>Minuti generati: <span style={{ color: C.blue }}>{productionStats.total_minutes_generated}</span></div>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 11, color: C.textMuted }}>Caricamento...</div>
+                )}
+              </div>
+            </div>
+
+            {/* Partner Selection + Video Generation */}
+            <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 20 }}>
+              {/* Partner List */}
+              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Partner con Avatar</div>
+                <div style={{ maxHeight: 400, overflowY: "auto" }}>
+                  {partners.length === 0 ? (
+                    <div style={{ fontSize: 12, color: C.textMuted, textAlign: "center", padding: 20 }}>
+                      Nessun partner con social plan attivo
+                    </div>
+                  ) : partners.map(p => {
+                    const isSelected = selectedPartner?.id === p.id;
+                    const statusColors = {
+                      ACTIVE: C.green,
+                      VERIFIED: C.blue,
+                      AWAITING_CONSENT: C.amber,
+                      NOT_ACTIVE: C.textDim
+                    };
+                    return (
+                      <div 
+                        key={p.id}
+                        data-testid={`partner-item-${p.id}`}
+                        onClick={() => { setSelectedPartner(p); loadPartnerVideos(p.id); }}
+                        style={{ 
+                          background: isSelected ? C.surfaceUp : "transparent",
+                          border: `1px solid ${isSelected ? C.green : "transparent"}`,
+                          borderRadius: 8,
+                          padding: "10px 12px",
+                          marginBottom: 6,
+                          cursor: "pointer",
+                          transition: "all 0.15s"
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span style={{ fontSize: 13, fontWeight: 600 }}>{p.name || p.nome}</span>
+                          <span style={{ 
+                            fontSize: 9, 
+                            padding: "2px 6px", 
+                            borderRadius: 4,
+                            background: (statusColors[p.avatar_status] || C.textDim) + "22",
+                            color: statusColors[p.avatar_status] || C.textDim,
+                            fontFamily: "monospace"
+                          }}>
+                            {p.avatar_status || "N/A"}
+                          </span>
+                        </div>
+                        {p.social_plan?.is_active && (
+                          <div style={{ fontSize: 10, color: C.textMuted, marginTop: 4, fontFamily: "monospace" }}>
+                            Piano: {p.social_plan.plan_type} · {p.content_credits?.minutes_used || 0}/{p.social_plan.monthly_minutes_limit || 30} min
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <button 
+                  onClick={loadProductionData}
+                  style={{ 
+                    width: "100%", 
+                    marginTop: 12, 
+                    padding: "8px", 
+                    background: C.surfaceUp, 
+                    border: `1px solid ${C.border}`, 
+                    borderRadius: 6, 
+                    color: C.textMuted, 
+                    fontSize: 11, 
+                    cursor: "pointer",
+                    fontFamily: "monospace"
+                  }}
+                >
+                  🔄 Aggiorna lista
+                </button>
+              </div>
+
+              {/* Video Generation Panel */}
+              <div>
+                {selectedPartner ? (
+                  <div>
+                    {/* Partner Info */}
+                    <div style={{ background: C.surface, border: `1px solid ${C.green}44`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                        <div>
+                          <div style={{ fontSize: 16, fontWeight: 700 }}>{selectedPartner.name || selectedPartner.nome}</div>
+                          <div style={{ fontSize: 11, color: C.textMuted, fontFamily: "monospace" }}>
+                            {selectedPartner.niche || "Nessuna nicchia"} · {selectedPartner.email}
+                          </div>
+                        </div>
+                        {selectedPartner.heygen_id && (
+                          <div style={{ background: C.green + "22", color: C.green, padding: "4px 10px", borderRadius: 6, fontSize: 10, fontFamily: "monospace" }}>
+                            Avatar ID: {selectedPartner.heygen_id.slice(0, 12)}...
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Quick Stats */}
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+                        <div style={{ background: C.surfaceUp, borderRadius: 8, padding: 10, textAlign: "center" }}>
+                          <div style={{ fontSize: 18, fontWeight: 700, color: C.purple }}>{selectedPartner.content_credits?.videos_generated || 0}</div>
+                          <div style={{ fontSize: 10, color: C.textMuted }}>Video questo mese</div>
+                        </div>
+                        <div style={{ background: C.surfaceUp, borderRadius: 8, padding: 10, textAlign: "center" }}>
+                          <div style={{ fontSize: 18, fontWeight: 700, color: C.blue }}>{(selectedPartner.content_credits?.minutes_used || 0).toFixed(1)}</div>
+                          <div style={{ fontSize: 10, color: C.textMuted }}>Minuti usati</div>
+                        </div>
+                        <div style={{ background: C.surfaceUp, borderRadius: 8, padding: 10, textAlign: "center" }}>
+                          <div style={{ fontSize: 18, fontWeight: 700, color: C.green }}>{(selectedPartner.social_plan?.monthly_minutes_limit || 30) - (selectedPartner.content_credits?.minutes_used || 0)}</div>
+                          <div style={{ fontSize: 10, color: C.textMuted }}>Minuti disponibili</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Video Generation Form */}
+                    {(selectedPartner.avatar_status === "ACTIVE" || selectedPartner.avatar_status === "VERIFIED") && selectedPartner.heygen_id ? (
+                      <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14, color: C.orange }}>🎬 Genera Nuovo Video</div>
+                        
+                        <div style={{ marginBottom: 12 }}>
+                          <label style={{ fontSize: 11, color: C.textMuted, fontFamily: "monospace", display: "block", marginBottom: 5 }}>Titolo Video *</label>
+                          <input 
+                            value={videoTitle}
+                            onChange={e => setVideoTitle(e.target.value)}
+                            placeholder="Es: Masterclass - Come vendere consulenze online"
+                            style={{ width: "100%", background: C.surfaceUp, border: `1px solid ${C.border}`, color: C.text, borderRadius: 7, padding: "10px 12px", fontSize: 13, boxSizing: "border-box" }}
+                          />
+                        </div>
+
+                        <div style={{ marginBottom: 12 }}>
+                          <label style={{ fontSize: 11, color: C.textMuted, fontFamily: "monospace", display: "block", marginBottom: 5 }}>Script Video *</label>
+                          <textarea 
+                            value={videoScript}
+                            onChange={e => setVideoScript(e.target.value)}
+                            placeholder="Inserisci lo script che l'avatar leggerà..."
+                            style={{ width: "100%", background: C.surfaceUp, border: `1px solid ${C.border}`, color: C.text, borderRadius: 7, padding: "10px 12px", fontSize: 13, fontFamily: "Georgia, serif", lineHeight: 1.6, resize: "vertical", minHeight: 120, boxSizing: "border-box" }}
+                          />
+                          <div style={{ fontSize: 10, color: C.textMuted, marginTop: 4, fontFamily: "monospace" }}>
+                            {videoScript.split(" ").filter(w => w).length} parole · ~{Math.max(1, videoScript.split(" ").filter(w => w).length / 150).toFixed(1)} minuti stimati
+                          </div>
+                        </div>
+
+                        <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
+                          <div style={{ flex: 1 }}>
+                            <label style={{ fontSize: 11, color: C.textMuted, fontFamily: "monospace", display: "block", marginBottom: 5 }}>Tipo Video</label>
+                            <select 
+                              value={videoType}
+                              onChange={e => setVideoType(e.target.value)}
+                              style={{ width: "100%", background: C.surfaceUp, border: `1px solid ${C.border}`, color: C.text, borderRadius: 7, padding: "8px 12px", fontSize: 12 }}
+                            >
+                              <option value="masterclass">Masterclass</option>
+                              <option value="lesson">Lezione</option>
+                              <option value="social_content">Contenuto Social</option>
+                              <option value="promo">Video Promozionale</option>
+                            </select>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
+                            <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                              <input 
+                                type="checkbox" 
+                                checked={testMode}
+                                onChange={e => setTestMode(e.target.checked)}
+                              />
+                              <span style={{ fontSize: 11, color: C.amber, fontFamily: "monospace" }}>Test Mode (no crediti)</span>
+                            </label>
+                          </div>
+                        </div>
+
+                        <button 
+                          data-testid="generate-video-btn"
+                          onClick={handleGenerateVideo}
+                          disabled={generatingVideo || !videoScript || !videoTitle}
+                          style={{ 
+                            width: "100%",
+                            background: generatingVideo ? C.surfaceUp : `linear-gradient(135deg, ${C.green}, ${C.teal})`,
+                            border: "none",
+                            color: generatingVideo ? C.textMuted : "#fff",
+                            borderRadius: 8,
+                            padding: "12px 20px",
+                            fontSize: 13,
+                            fontWeight: 700,
+                            cursor: generatingVideo ? "wait" : "pointer",
+                            fontFamily: "monospace"
+                          }}
+                        >
+                          {generatingVideo ? "⏳ Generazione in corso..." : "▶ Genera Video con HeyGen"}
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ background: C.surface, border: `1px dashed ${C.amber}`, borderRadius: 12, padding: 20, textAlign: "center", marginBottom: 16 }}>
+                        <div style={{ fontSize: 14, color: C.amber, marginBottom: 8 }}>⚠️ Avatar non configurato</div>
+                        <div style={{ fontSize: 12, color: C.textMuted }}>
+                          Questo partner non ha un avatar HeyGen attivo.<br/>
+                          Stato attuale: <strong>{selectedPartner.avatar_status || "NOT_ACTIVE"}</strong>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Partner Videos List */}
+                    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>📹 Video Generati</div>
+                      {loadingVideos ? (
+                        <div style={{ textAlign: "center", padding: 20, color: C.textMuted }}>Caricamento...</div>
+                      ) : partnerVideos.length === 0 ? (
+                        <div style={{ textAlign: "center", padding: 20, color: C.textMuted, fontSize: 12 }}>
+                          Nessun video ancora generato per questo partner
+                        </div>
+                      ) : (
+                        <div style={{ maxHeight: 300, overflowY: "auto" }}>
+                          {partnerVideos.map(v => {
+                            const statusColors = {
+                              completed: C.green,
+                              processing: C.amber,
+                              failed: C.red,
+                              timeout: C.red
+                            };
+                            return (
+                              <div 
+                                key={v.video_id}
+                                style={{ 
+                                  background: C.surfaceUp, 
+                                  border: `1px solid ${C.border}`, 
+                                  borderRadius: 8, 
+                                  padding: 12, 
+                                  marginBottom: 8 
+                                }}
+                              >
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                                  <div>
+                                    <div style={{ fontSize: 13, fontWeight: 600 }}>{v.video_title}</div>
+                                    <div style={{ fontSize: 10, color: C.textMuted, fontFamily: "monospace", marginTop: 2 }}>
+                                      {v.video_type} · {v.estimated_minutes?.toFixed(1) || "?"} min · {new Date(v.created_at).toLocaleDateString("it")}
+                                    </div>
+                                  </div>
+                                  <span style={{ 
+                                    fontSize: 10, 
+                                    padding: "3px 8px", 
+                                    borderRadius: 4,
+                                    background: (statusColors[v.status] || C.textMuted) + "22",
+                                    color: statusColors[v.status] || C.textMuted,
+                                    fontFamily: "monospace"
+                                  }}>
+                                    {v.status}
+                                  </span>
+                                </div>
+                                <div style={{ display: "flex", gap: 8 }}>
+                                  {v.status === "processing" && (
+                                    <button 
+                                      onClick={() => checkVideoStatus(v.video_id)}
+                                      style={{ padding: "5px 10px", background: C.amber + "22", border: `1px solid ${C.amber}44`, borderRadius: 5, color: C.amber, fontSize: 10, cursor: "pointer", fontFamily: "monospace" }}
+                                    >
+                                      🔄 Controlla Status
+                                    </button>
+                                  )}
+                                  {v.status === "completed" && v.video_url && (
+                                    <>
+                                      <a 
+                                        href={v.video_url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        style={{ padding: "5px 10px", background: C.blue + "22", border: `1px solid ${C.blue}44`, borderRadius: 5, color: C.blue, fontSize: 10, textDecoration: "none", fontFamily: "monospace" }}
+                                      >
+                                        📥 Scarica
+                                      </a>
+                                      {!v.youtube_video_id && youtubeStatus?.status === "authorized" && (
+                                        <button 
+                                          onClick={() => handleUploadToYouTube(v.video_id)}
+                                          disabled={uploadingYouTube === v.video_id}
+                                          style={{ 
+                                            padding: "5px 10px", 
+                                            background: uploadingYouTube === v.video_id ? C.surfaceUp : C.red + "22", 
+                                            border: `1px solid ${C.red}44`, 
+                                            borderRadius: 5, 
+                                            color: C.red, 
+                                            fontSize: 10, 
+                                            cursor: uploadingYouTube === v.video_id ? "wait" : "pointer", 
+                                            fontFamily: "monospace" 
+                                          }}
+                                        >
+                                          {uploadingYouTube === v.video_id ? "⏳ Upload..." : "📤 Carica su YouTube"}
+                                        </button>
+                                      )}
+                                    </>
+                                  )}
+                                  {v.youtube_url && (
+                                    <a 
+                                      href={v.youtube_url} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      style={{ padding: "5px 10px", background: C.red + "22", border: `1px solid ${C.red}44`, borderRadius: 5, color: C.red, fontSize: 10, textDecoration: "none", fontFamily: "monospace" }}
+                                    >
+                                      ▶ YouTube
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ background: C.surface, border: `1px dashed ${C.border}`, borderRadius: 12, padding: 40, textAlign: "center" }}>
+                    <div style={{ fontSize: 40, marginBottom: 12 }}>👈</div>
+                    <div style={{ fontSize: 14, color: C.textMuted }}>Seleziona un partner dalla lista per gestire i suoi video</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ══ GENERATE ══ */}
         {tab === "generate" && (
