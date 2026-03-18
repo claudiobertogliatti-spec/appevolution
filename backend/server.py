@@ -13087,6 +13087,11 @@ from routers.avatar_social import router as avatar_social_router, set_db as set_
 set_avatar_social_db(db)
 app.include_router(avatar_social_router)
 
+# Include Discovery Engine AI router (Lead Discovery Proattivo)
+from routers.discovery_engine import router as discovery_router, set_db as set_discovery_db
+set_discovery_db(db)
+app.include_router(discovery_router)
+
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler
 
