@@ -44,6 +44,46 @@ Ho preparato la tua Roadmap. Prenota la Call per vederla insieme.
 
 
 
+## 🆕 SCRIPT CALL AD ALTA CONVERSIONE ✅ (18 Mar 2026)
+
+**Script personalizzato per call di consegna analisi - ottimizzato per chiudere partnership €2.790**
+
+### Caratteristiche dello Script:
+- **8 blocchi strutturati** con tecniche di persuasione avanzate
+- Generato con **Claude Sonnet 4.5** via emergentintegrations
+- Utilizza **dati del questionario + analisi generata** per personalizzazione completa
+
+### Struttura dei Blocchi:
+
+| # | Blocco | Obiettivo | Tecniche |
+|---|--------|-----------|----------|
+| 1 | **APERTURA - Pattern Interrupt** | Rompere ghiaccio, stabilire autorità | Pattern Interrupt, Social Proof |
+| 2 | **DISCOVERY - Scavare nel Problema** | Far emergere il VERO problema | SPIN Selling (Situation, Problem, Implication) |
+| 3 | **AMPLIFICAZIONE** | Evidenziare costo del non agire | Loss Aversion, calcolo perdita |
+| 4 | **VALIDAZIONE** | Boost autostima cliente | Ego boost strategico |
+| 5 | **VISIONE - Future Pacing** | Visualizzare successo futuro | Future Pacing, casi studio |
+| 6 | **PRESENTAZIONE** | Offerta irresistibile | Stack di valore, differenziazione |
+| 7 | **GESTIONE OBIEZIONI** | Neutralizzare obiezioni | Feel-Felt-Found, Preemptive Strike |
+| 8 | **CHIUSURA** | Ottenere il SÌ | Domanda assunzionale, urgenza genuina |
+
+### Nuovi Campi Visualizzati nel Frontend:
+- `script_esatto`: Testo verbatim da leggere
+- `domande_spin`: Domande SPIN specifiche
+- `gancio_emotivo`: Frase per connettersi al dolore
+- `calcolo_perdita`: Quanto sta perdendo il cliente
+- `domanda_killer`: Domanda che fa riflettere
+- `caso_studio_simile`: Esempio Evolution PRO da citare
+- `stack_valore`: Lista di cosa include l'offerta
+- `obiezioni_probabili` + `risposte_pronte`: Obiezioni pre-neutralizzate
+- `probabilita_chiusura`: Stima (alta/media/bassa)
+- `bonus_tips`: Consigli extra per la call
+
+### Dove si trova:
+- **Admin > Clienti Analisi > [Cliente con pagamento] > Pulsante "Consulenziale"**
+- Tab **"Script Call"** nella modal AnalisiConsulenziale
+
+---
+
 ## 🆕 INTEGRAZIONE PAGAMENTI STRIPE ↔ SYSTEME.IO ✅ (17 Mar 2026)
 
 **Sincronizzazione automatica dei pagamenti completati con Systeme.io CRM**
