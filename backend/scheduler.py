@@ -99,8 +99,16 @@ def start_scheduler():
         replace_existing=True
     )
 
+    # DISCOVERY CLEANUP — ogni giorno alle 3:00
+    scheduler.add_job(
+        trigger_discovery_cleanup,
+        CronTrigger(hour=3, minute=0),
+        id="discovery_cleanup",
+        replace_existing=True
+    )
+
     scheduler.start()
-    logger.info("[SCHEDULER] Avviato — MARCO lunedì ore 9, ANDREA giovedì ore 10, STEFANIA giornaliero ore 7")
+    logger.info("[SCHEDULER] Avviato — MARCO lunedì ore 9, ANDREA giovedì ore 10, STEFANIA giornaliero ore 7, DISCOVERY CLEANUP ore 3")
 
 
 def stop_scheduler():
