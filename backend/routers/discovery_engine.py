@@ -544,7 +544,7 @@ async def generate_first_contact_v2(lead_id: str, request: Optional[GenerateOutr
     
     # Se non specificato, Valentina sceglie
     if not gift_type:
-        website_analysis = lead.get("website_analysis", {})
+        website_analysis = lead.get("website_analysis") or {}
         if website_analysis.get("existing_courses"):
             gift_type = GiftType.FUNNEL_AUDIT
         elif lead.get("posts_count", 0) > 50:
