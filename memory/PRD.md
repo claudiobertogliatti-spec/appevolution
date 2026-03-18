@@ -44,6 +44,78 @@ Ho preparato la tua Roadmap. Prenota la Call per vederla insieme.
 
 
 
+## 🆕 DISCOVERY ENGINE AI ✅ (18 Mar 2026)
+
+**Modulo Lead Discovery Proattivo - Trova e contatta potenziali partner**
+
+### Componenti Implementati:
+
+| Task | Componente | Descrizione |
+|------|------------|-------------|
+| **Task 1** | Database `discovery_leads` | Collection con metadati social, scoring AI, status tracking |
+| **Task 1b** | Worker Cleanup | Job schedulato ogni notte (ore 3:00) per rimuovere duplicati |
+| **Task 2** | Gaia Browser Search | Analisi siti web lead, scraping HTML, passaggio a Valentina |
+| **Task 3** | Valentina `generate_first_contact_v2` | Messaggio personalizzato con "regalo strategico" |
+| **Task 4** | Cassa Lead Proattiva | Sezione in Dashboard Antonella (Operations) |
+| **Task 5** | Integrazione Systeme.io | Iniezione lead positivi con tag `PROACTIVE_DISCOVERY` |
+
+### Schema `discovery_leads`:
+```json
+{
+  "id": "hash_univoco",
+  "source": "instagram|linkedin|youtube|google",
+  "platform_username": "@username",
+  "display_name": "Nome Lead",
+  "bio": "...",
+  "followers_count": 25000,
+  "engagement_rate": 3.5,
+  "score_total": 68,
+  "score_breakdown": {
+    "audience_size": 20,
+    "engagement_rate": 15,
+    "content_frequency": 15,
+    "monetization_signals": 8,
+    "niche_fit": 10
+  },
+  "status": "discovered|scored|message_ready|message_sent|responded_positive",
+  "outreach_message": "Messaggio generato da Valentina",
+  "outreach_gift_type": "tactical_suggestion|content_analysis|funnel_audit",
+  "outreach_status": "pending|approved|sent"
+}
+```
+
+### Scoring AI (0-100 punti):
+- **audience_size** (0-25): Followers/iscritti
+- **engagement_rate** (0-20): Tasso di interazione
+- **content_frequency** (0-15): Frequenza pubblicazione
+- **monetization_signals** (0-20): Segnali di monetizzazione
+- **niche_fit** (0-20): Compatibilità con nicchie Evolution PRO
+
+### API Endpoints:
+| Endpoint | Metodo | Descrizione |
+|----------|--------|-------------|
+| `/api/discovery/leads` | POST | Crea nuovo lead |
+| `/api/discovery/leads` | GET | Lista lead con filtri |
+| `/api/discovery/score/{id}` | POST | Calcola score AI |
+| `/api/discovery/generate-outreach/{id}` | POST | Genera messaggio Valentina |
+| `/api/discovery/outreach/approve/{id}` | POST | Approva messaggio |
+| `/api/discovery/outreach/send/{id}` | POST | Segna come inviato |
+| `/api/discovery/outreach/response/{id}` | POST | Registra risposta (+Systeme.io) |
+| `/api/discovery/stats/today` | GET | Stats per Dashboard Antonella |
+| `/api/discovery/worker/cleanup-duplicates` | POST | Pulizia manuale duplicati |
+
+### Frontend - Cassa Lead Proattiva:
+- **Location**: Dashboard Operations > "Cassa Lead"
+- **Stats**: Lead scoperti oggi, da approvare, inviati, risposte positive
+- **Tabella**: Lista lead con score, status, azioni rapide
+- **Modal**: Dettaglio lead con messaggio outreach
+
+### Files:
+- `/app/backend/routers/discovery_engine.py`
+- `/app/frontend/src/components/operations/DashboardOperations.jsx` (sezione LeadDiscoverySection)
+
+---
+
 ## 🆕 AVATAR & SOCIAL PLAN MANAGEMENT ✅ (18 Mar 2026)
 
 **Gestione asset Avatar HeyGen e piani Social per i partner**
