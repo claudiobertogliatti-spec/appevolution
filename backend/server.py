@@ -2798,6 +2798,15 @@ async def update_partner(
             logging.info(f"Telegram notification sent: {partner.get('name')} {old_phase} → {new_phase}")
         except Exception as e:
             logging.error(f"Failed to send Telegram notification: {e}")
+        
+        # 🔄 AUTO-TRIGGER: Check if Social module should be activated (F6+)
+        try:
+            from routers.avatar_social import check_social_trigger
+            trigger_result = await check_social_trigger(partner_id, new_phase)
+            if trigger_result.get("triggered"):
+                logging.info(f"[AUTO-TRIGGER] Social module activated for {partner.get('name')}: {trigger_result.get('reason')}")
+        except Exception as e:
+            logging.error(f"Failed to check social trigger: {e}")
     
     return partner
 
