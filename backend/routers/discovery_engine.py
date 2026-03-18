@@ -319,7 +319,7 @@ async def search_leads(query: SearchQuery, background_tasks: BackgroundTasks):
 async def analyze_website(lead_id: str):
     """
     Gaia scarica e analizza il sito web del lead.
-    Passa l'HTML a Valentina per analisi approfondita.
+    USA OLLAMA (Llama 3 locale) per risparmiare token Claude.
     """
     lead = await db.discovery_leads.find_one({"id": lead_id})
     if not lead:
@@ -341,10 +341,28 @@ async def analyze_website(lead_id: str):
             response = await client.get(website_url, follow_redirects=True)
             html_content = response.text[:50000]  # Limita a 50KB
         
-        # Analisi con LLM (Valentina)
-        llm = await get_llm_chat(f"gaia_analyze_{lead_id}")
+        # ═══════════════════════════════════════════════════════════════════
+        # USO OLLAMA (Llama 3 locale) invece di Claude per scraping massivo
+        # ═══════════════════════════════════════════════════════════════════
+        from ollama_service import extract_lead_data_from_html, ollama_service
         
-        analysis_prompt = f"""Analizza questo sito web di un potenziale lead per Evolution PRO.
+        # Verifica disponibilità Ollama
+        ollama_available = await ollama_service.is_available()
+        
+        if ollama_available:
+            logger.info(f"[GAIA] Usando Ollama/Llama3 per analisi {lead_id}")
+            website_analysis = await extract_lead_data_from_html(html_content, website_url)
+            
+            # Aggiungi info extra per compatibilità con schema esistente
+            if not website_analysis.get("error"):
+                website_analysis["llm_used"] = "ollama:llama3:8b"
+                website_analysis["opportunity_score"] = int(website_analysis.get("confidence_score", 0.5) * 10)
+        else:
+            # Fallback a Claude se Ollama non disponibile
+            logger.warning(f"[GAIA] Ollama non disponibile, fallback a Claude per {lead_id}")
+            llm = await get_llm_chat(f"gaia_analyze_{lead_id}")
+            
+            analysis_prompt = f"""Analizza questo sito web di un potenziale lead per Evolution PRO.
 
 URL: {website_url}
 Nome: {lead.get('display_name')}
@@ -369,34 +387,36 @@ Fornisci un'analisi JSON con:
 
 Rispondi SOLO con il JSON."""
 
-        from emergentintegrations.llm.chat import UserMessage
-        response = await llm.chat([UserMessage(text=analysis_prompt)])
-        
-        # Parse JSON
-        analysis_text = response.text.strip()
-        json_match = re.search(r'\{[\s\S]*\}', analysis_text)
-        if json_match:
-            website_analysis = json.loads(json_match.group())
-        else:
-            website_analysis = {"raw_analysis": analysis_text, "parse_error": True}
+            from emergentintegrations.llm.chat import UserMessage
+            response = await llm.chat([UserMessage(text=analysis_prompt)])
+            
+            analysis_text = response.text.strip()
+            json_match = re.search(r'\{[\s\S]*\}', analysis_text)
+            if json_match:
+                website_analysis = json.loads(json_match.group())
+            else:
+                website_analysis = {"raw_analysis": analysis_text, "parse_error": True}
+            
+            website_analysis["llm_used"] = "claude:opus"
         
         # Salva risultati
         await db.discovery_leads.update_one(
             {"id": lead_id},
             {"$set": {
-                "website_html": html_content[:10000],  # Salva solo estratto
+                "website_html": html_content[:10000],
                 "website_analysis": website_analysis,
-                "status": LeadStatus.SCORED.value if not website_analysis.get("parse_error") else LeadStatus.DISCOVERED.value,
+                "status": LeadStatus.SCORED.value if not website_analysis.get("parse_error") and not website_analysis.get("error") else LeadStatus.DISCOVERED.value,
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }}
         )
         
-        logger.info(f"[GAIA] Analisi sito completata per lead {lead_id}")
+        logger.info(f"[GAIA] Analisi sito completata per lead {lead_id} (LLM: {website_analysis.get('llm_used', 'unknown')})")
         
         return {
             "success": True,
             "lead_id": lead_id,
-            "website_analysis": website_analysis
+            "website_analysis": website_analysis,
+            "llm_used": website_analysis.get("llm_used")
         }
         
     except Exception as e:
@@ -939,6 +959,67 @@ async def cleanup_duplicates():
     except Exception as e:
         logger.error(f"[CLEANUP] Errore pulizia duplicati: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/cleanup/ai-validation")
+async def ai_cleanup_validation():
+    """
+    [OLLAMA] Usa Llama 3 locale per validazione AI avanzata dei lead.
+    Identifica duplicati semantici, lead sospetti, e normalizza dati.
+    Zero costi, token infiniti.
+    """
+    from ollama_service import clean_and_deduplicate_leads, ollama_service
+    
+    # Verifica disponibilità Ollama
+    ollama_available = await ollama_service.is_available()
+    
+    if not ollama_available:
+        return {
+            "success": False,
+            "error": "Ollama non disponibile",
+            "fallback": "Usa /cleanup/duplicates per pulizia standard MongoDB"
+        }
+    
+    # Carica lead recenti per analisi
+    leads = await db.discovery_leads.find(
+        {"status": {"$ne": LeadStatus.REJECTED.value}},
+        {"_id": 0, "website_html": 0}
+    ).sort("discovered_at", -1).limit(50).to_list(50)
+    
+    if not leads:
+        return {"success": True, "message": "Nessun lead da analizzare"}
+    
+    logger.info(f"[CLEANUP AI] Analisi {len(leads)} lead con Ollama/Llama3")
+    
+    # Analisi con Ollama
+    analysis = await clean_and_deduplicate_leads(leads)
+    
+    if analysis.get("error"):
+        return {
+            "success": False,
+            "error": analysis["error"],
+            "raw": analysis.get("raw")
+        }
+    
+    stats = {
+        "leads_analyzed": len(leads),
+        "duplicates_found": analysis.get("duplicates_found", 0),
+        "invalid_found": analysis.get("invalid_found", 0),
+        "valid_count": analysis.get("valid_count", 0),
+        "llm_used": "ollama:llama3:8b",
+        "analysis_details": analysis.get("analysis"),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Salva log
+    await db.discovery_cleanup_logs.insert_one({**stats, "type": "ai_validation"})
+    
+    logger.info(f"[CLEANUP AI] Completato: {stats['duplicates_found']} duplicati, {stats['invalid_found']} invalidi")
+    
+    return {
+        "success": True,
+        **stats
+    }
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

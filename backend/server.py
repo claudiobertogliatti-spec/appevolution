@@ -2687,6 +2687,59 @@ async def update_agent(agent_id: str, status: Optional[str] = None, budget: Opti
     return agent
 
 # =============================================================================
+# ROUTES - OLLAMA (Local LLM)
+# =============================================================================
+
+from ollama_service import (
+    ollama_service, 
+    extract_lead_data_from_html,
+    clean_and_deduplicate_leads,
+    generate_micro_post,
+    validate_and_normalize_data
+)
+
+@api_router.get("/ollama/status")
+async def get_ollama_status():
+    """Verifica stato del servizio Ollama locale"""
+    return await ollama_service.get_status()
+
+@api_router.post("/ollama/pull-model")
+async def pull_ollama_model(model: str = "llama3:8b"):
+    """Scarica un modello su Ollama"""
+    return await ollama_service.pull_model(model)
+
+@api_router.post("/ollama/extract-lead-html")
+async def api_extract_lead_html(url: str, html: str):
+    """[GAIA] Estrai dati lead da HTML usando Llama 3 locale"""
+    return await extract_lead_data_from_html(html, url)
+
+@api_router.post("/ollama/clean-leads")
+async def api_clean_leads(leads: list):
+    """[DISCOVERY] Pulisci e deduplica lead usando Llama 3 locale"""
+    return await clean_and_deduplicate_leads(leads)
+
+@api_router.post("/ollama/generate-micropost")
+async def api_generate_micropost(topic: str, platform: str = "linkedin", tone: str = "professionale"):
+    """Genera micro-post usando Llama 3 locale"""
+    return await generate_micro_post(topic, platform, tone)
+
+@api_router.post("/ollama/validate-data")
+async def api_validate_data(data: dict, schema_type: str = "lead"):
+    """Valida e normalizza dati usando Llama 3 locale"""
+    return await validate_and_normalize_data(data, schema_type)
+
+@api_router.post("/ollama/test")
+async def test_ollama_generation(prompt: str):
+    """Test generazione con Ollama"""
+    result = await ollama_service.generate(prompt, temperature=0.3)
+    return {
+        "prompt": prompt,
+        "response": result,
+        "model": ollama_service.model,
+        "host": ollama_service._active_host
+    }
+
+# =============================================================================
 # ROUTES - PARTNERS
 # =============================================================================
 
