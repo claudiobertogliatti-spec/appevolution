@@ -170,7 +170,7 @@ async def get_llm_chat(session_id: str = "discovery"):
     from emergentintegrations.llm.chat import LlmChat
     if not EMERGENT_LLM_KEY:
         raise HTTPException(status_code=500, detail="LLM Key non configurata")
-    return LlmChat(api_key=EMERGENT_LLM_KEY, model="claude-sonnet-4-20250514", session_id=session_id)
+    return LlmChat(api_key=EMERGENT_LLM_KEY, session_id=session_id)
 
 
 def generate_lead_id(source: str, username: str) -> str:
