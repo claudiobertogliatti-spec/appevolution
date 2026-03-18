@@ -34,7 +34,8 @@ function OperationsSidebar({ activeSection, onNavigate }) {
   const menuItems = [
     { id: "partner", label: "Partner", icon: Users },
     { id: "contenuti", label: "Contenuti", icon: Palette },
-    { id: "campagne", label: "Campagne ADV", icon: BarChart3 }
+    { id: "campagne", label: "Campagne ADV", icon: BarChart3 },
+    { id: "lead-discovery", label: "Cassa Lead", icon: Zap }
   ];
 
   return (
