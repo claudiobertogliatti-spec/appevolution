@@ -44,6 +44,63 @@ Ho preparato la tua Roadmap. Prenota la Call per vederla insieme.
 
 
 
+## 🚀 FASE 1 ROADMAP "SBLOCCO CORE" ✅ (18 Mar 2026)
+
+### 1. HeyGen Live Integration ✅
+
+| Endpoint | Funzione |
+|----------|----------|
+| `GET /api/heygen/test-connection` | Verifica connessione API (1290 avatar, 2311 voci) |
+| `POST /api/heygen/setup-avatar` | Setup Digital Twin (foto + audio → avatar + voice) |
+| `POST /api/heygen/generate-video` | Genera video da script (con verifica crediti) |
+| `GET /api/heygen/video-status/{id}` | Status generazione |
+| `GET /api/heygen/videos/{partner_id}` | Lista video partner |
+| `POST /api/heygen/trigger-from-script` | Trigger da script approvato |
+
+**Flow completo:**
+```
+Script Approvato → Verifica Avatar → Verifica Crediti → HeyGen API → Polling → Video Pronto → Notifica Telegram
+```
+
+### 2. YouTube OAuth Management ✅
+
+| Endpoint | Funzione |
+|----------|----------|
+| `GET /api/youtube-heygen/youtube/auth-status` | Verifica stato token |
+| `GET /api/youtube-heygen/youtube/get-auth-url` | Genera URL autorizzazione |
+| `POST /api/youtube-heygen/youtube/complete-auth` | Completa OAuth con codice |
+| `POST /api/youtube-heygen/youtube/upload-from-heygen/{video_id}` | Upload automatico video |
+
+**Status attuale:** Token scaduto, richiede ri-autorizzazione manuale (1 volta).
+
+### 3. Automazione Fasi F1-F6 ✅
+
+**Task per fase:**
+```
+F0 (Pre-Onboarding): payment_completed, welcome_email_sent
+F1 (Attivazione): onboarding_call_scheduled/completed, systeme_account, area_riservata
+F2 (Posizionamento): questionnaire, analysis, positioning_call, approved
+F3 (Masterclass): questionnaire, script_generated/approved, video_produced
+F4 (Struttura): outline, modules, lessons, approved
+F5 (Produzione): avatar_setup, recorded, edited, uploaded
+F6 (Accademia): funnel, emails, payment, live
+```
+
+| Endpoint | Funzione |
+|----------|----------|
+| `POST /api/journey/complete-task` | Completa task (auto-advance se tutti completati) |
+| `POST /api/journey/advance-phase` | Avanza fase manualmente |
+| `GET /api/journey/status/{partner_id}` | Status completo journey |
+| `GET /api/journey/dashboard` | Overview tutte le fasi |
+| `POST /api/journey/check-stuck-partners` | Trova partner bloccati >7gg |
+
+### Files creati:
+- `/app/backend/routers/heygen_production.py`
+- `/app/backend/routers/journey_automation.py`
+- Aggiornato `/app/backend/routers/youtube_heygen.py`
+
+---
+
 ## 🆕 DISCOVERY ENGINE AI ✅ (18 Mar 2026)
 
 **Modulo Lead Discovery Proattivo - Trova e contatta potenziali partner**
