@@ -228,6 +228,27 @@ async def create_lead(lead: DiscoveryLead):
     return {"success": True, "lead_id": lead.id, "lead": doc}
 
 
+@router.get("/leads/hot")
+async def get_hot_leads(limit: int = 20, min_score: int = 50):
+    """
+    Ritorna i lead caldi ordinati per score.
+    Usato dalla tab Discovery Leads nell'Agent Hub.
+    """
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database non inizializzato")
+    
+    leads = await db.discovery_leads.find(
+        {"score_total": {"$gte": min_score}},
+        {"_id": 0, "website_html": 0}
+    ).sort("score_total", -1).limit(limit).to_list(limit)
+    
+    return {
+        "leads": leads,
+        "count": len(leads),
+        "min_score": min_score
+    }
+
+
 @router.get("/leads")
 async def get_leads(
     status: Optional[LeadStatus] = None,

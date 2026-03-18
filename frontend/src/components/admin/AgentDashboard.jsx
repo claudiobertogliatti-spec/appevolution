@@ -3,7 +3,7 @@ import {
   Bot, RefreshCw, TrendingUp, AlertTriangle, Zap, 
   Users, DollarSign, Target, Video, FileText, Shield,
   Trophy, MessageCircle, Loader2, ChevronRight, Activity,
-  CheckSquare, Headphones, LayoutGrid
+  CheckSquare, Headphones, LayoutGrid, Search, Globe, Star, Play
 } from "lucide-react";
 import { API_URL, API } from "../../utils/api-config";
 
@@ -36,10 +36,49 @@ export function AgentDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Discovery Leads state
+  const [discoveryLeads, setDiscoveryLeads] = useState([]);
+  const [loadingLeads, setLoadingLeads] = useState(false);
+  const [analyzingLead, setAnalyzingLead] = useState(null);
+  const [activeTab, setActiveTab] = useState("leads"); // "leads" or "agents"
 
   useEffect(() => {
     loadData();
+    loadDiscoveryLeads();
   }, []);
+
+  const loadDiscoveryLeads = async () => {
+    setLoadingLeads(true);
+    try {
+      const res = await fetch(`${API}/discovery/leads/hot?limit=20`);
+      if (res.ok) {
+        const data = await res.json();
+        setDiscoveryLeads(data.leads || []);
+      }
+    } catch (error) {
+      console.error('Error loading discovery leads:', error);
+    }
+    setLoadingLeads(false);
+  };
+
+  const handleAnalyzeLead = async (leadId) => {
+    setAnalyzingLead(leadId);
+    try {
+      const res = await fetch(`${API}/discovery/analyze-website/${leadId}`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        alert(`Analisi completata!\nLLM: ${data.llm_used || 'Claude'}\nScore: ${data.website_analysis?.opportunity_score || 'N/A'}`);
+        loadDiscoveryLeads(); // Refresh
+      } else {
+        const err = await res.json();
+        alert(`Errore: ${err.detail || 'Analisi fallita'}`);
+      }
+    } catch (error) {
+      alert(`Errore: ${error.message}`);
+    }
+    setAnalyzingLead(null);
+  };
 
   const loadData = async (refresh = false) => {
     if (refresh) setIsRefreshing(true);
@@ -98,7 +137,7 @@ export function AgentDashboard() {
         </div>
         
         <button
-          onClick={() => loadData(true)}
+          onClick={() => { loadData(true); loadDiscoveryLeads(); }}
           disabled={isRefreshing}
           className="px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all hover:opacity-90"
           style={{ background: '#F2C418', color: '#1E2128' }}
@@ -108,6 +147,202 @@ export function AgentDashboard() {
         </button>
       </div>
 
+      {/* Tabs */}
+      <div className="flex gap-2 border-b pb-2" style={{ borderColor: '#E5E7EB' }}>
+        <button
+          onClick={() => setActiveTab("leads")}
+          className={`px-5 py-2.5 rounded-t-xl font-bold text-sm transition-all flex items-center gap-2 ${
+            activeTab === "leads" 
+              ? "bg-white shadow-sm" 
+              : "hover:bg-gray-100"
+          }`}
+          style={{ 
+            color: activeTab === "leads" ? '#1E2128' : '#9CA3AF',
+            borderBottom: activeTab === "leads" ? '3px solid #F2C418' : 'none'
+          }}
+        >
+          <Search className="w-4 h-4" />
+          Discovery Leads ({discoveryLeads.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("agents")}
+          className={`px-5 py-2.5 rounded-t-xl font-bold text-sm transition-all flex items-center gap-2 ${
+            activeTab === "agents" 
+              ? "bg-white shadow-sm" 
+              : "hover:bg-gray-100"
+          }`}
+          style={{ 
+            color: activeTab === "agents" ? '#1E2128' : '#9CA3AF',
+            borderBottom: activeTab === "agents" ? '3px solid #F2C418' : 'none'
+          }}
+        >
+          <Bot className="w-4 h-4" />
+          Team Agenti ({agents.length})
+        </button>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* TAB: DISCOVERY LEADS */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {activeTab === "leads" && (
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="p-5 border-b" style={{ borderColor: '#E5E7EB' }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-bold text-lg flex items-center gap-2" style={{ color: '#1E2128' }}>
+                  <Target className="w-5 h-5 text-orange-500" />
+                  Discovery Leads - Manager Coach
+                </h2>
+                <p className="text-xs mt-1" style={{ color: '#9CA3AF' }}>
+                  Lead caldi scoperti da Gaia • Analizzati con Ollama/Llama 3.1
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs px-3 py-1.5 rounded-full font-bold" 
+                      style={{ background: '#EAFAF1', color: '#10B981' }}>
+                  {discoveryLeads.filter(l => l.score_total >= 70).length} Hot Leads
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {loadingLeads ? (
+            <div className="p-10 text-center">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3" style={{ color: '#F2C418' }} />
+              <p className="text-sm" style={{ color: '#9CA3AF' }}>Caricamento lead...</p>
+            </div>
+          ) : discoveryLeads.length === 0 ? (
+            <div className="p-10 text-center">
+              <Search className="w-12 h-12 mx-auto mb-3" style={{ color: '#E5E7EB' }} />
+              <p className="text-sm" style={{ color: '#9CA3AF' }}>Nessun lead nel Discovery Engine</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr style={{ background: '#FAFAF7' }}>
+                    <th className="text-left p-4 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>Nome</th>
+                    <th className="text-left p-4 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>Sito Web</th>
+                    <th className="text-left p-4 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>Source</th>
+                    <th className="text-center p-4 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>Relevance Score</th>
+                    <th className="text-center p-4 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>Azione</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {discoveryLeads.map((lead, idx) => {
+                    const scoreColor = lead.score_total >= 80 ? '#10B981' : lead.score_total >= 60 ? '#F59E0B' : '#9CA3AF';
+                    const isHot = lead.score_total >= 70;
+                    
+                    return (
+                      <tr key={lead.id} 
+                          className="border-t hover:bg-gray-50 transition-colors"
+                          style={{ borderColor: '#F3F4F6' }}
+                          data-testid={`discovery-lead-row-${lead.id}`}>
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            {isHot && <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />}
+                            <div>
+                              <div className="font-bold text-sm" style={{ color: '#1E2128' }}>
+                                {lead.display_name}
+                              </div>
+                              <div className="text-xs" style={{ color: '#9CA3AF' }}>
+                                {lead.niche_detected?.replace(/_/g, ' ') || lead.bio?.slice(0, 50) || 'N/A'}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          {lead.website_url ? (
+                            <a 
+                              href={lead.website_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-sm flex items-center gap-1.5 hover:underline"
+                              style={{ color: '#3B82F6' }}
+                            >
+                              <Globe className="w-3.5 h-3.5" />
+                              {lead.website_url.replace(/https?:\/\/(www\.)?/, '').slice(0, 30)}
+                            </a>
+                          ) : (
+                            <span className="text-xs" style={{ color: '#9CA3AF' }}>—</span>
+                          )}
+                        </td>
+                        <td className="p-4">
+                          <span className="text-xs px-2 py-1 rounded-full font-medium capitalize"
+                                style={{ 
+                                  background: lead.source === 'linkedin' ? '#E0F2FE' : 
+                                             lead.source === 'instagram' ? '#FCE7F3' : 
+                                             lead.source === 'youtube' ? '#FEE2E2' : '#F3F4F6',
+                                  color: lead.source === 'linkedin' ? '#0284C7' : 
+                                         lead.source === 'instagram' ? '#DB2777' : 
+                                         lead.source === 'youtube' ? '#DC2626' : '#6B7280'
+                                }}>
+                            {lead.source}
+                          </span>
+                        </td>
+                        <td className="p-4 text-center">
+                          <div className="inline-flex items-center gap-2">
+                            <div 
+                              className="w-16 h-2 rounded-full overflow-hidden"
+                              style={{ background: '#E5E7EB' }}
+                            >
+                              <div 
+                                className="h-full rounded-full transition-all"
+                                style={{ 
+                                  width: `${lead.score_total}%`, 
+                                  background: scoreColor 
+                                }}
+                              />
+                            </div>
+                            <span className="text-sm font-black" style={{ color: scoreColor }}>
+                              {lead.score_total}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-4 text-center">
+                          <button
+                            onClick={() => handleAnalyzeLead(lead.id)}
+                            disabled={analyzingLead === lead.id || lead.status === 'analyzed'}
+                            className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 mx-auto disabled:opacity-50"
+                            style={{ 
+                              background: lead.website_analysis && !lead.website_analysis.error ? '#EAFAF1' : '#F2C418',
+                              color: lead.website_analysis && !lead.website_analysis.error ? '#10B981' : '#1E2128'
+                            }}
+                            data-testid={`analyze-btn-${lead.id}`}
+                          >
+                            {analyzingLead === lead.id ? (
+                              <>
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                Analisi...
+                              </>
+                            ) : lead.website_analysis && !lead.website_analysis.error ? (
+                              <>
+                                <CheckSquare className="w-3 h-3" />
+                                Analizzato
+                              </>
+                            ) : (
+                              <>
+                                <Play className="w-3 h-3" />
+                                Avvia Analisi
+                              </>
+                            )}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* TAB: AGENTS (contenuto esistente) */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {activeTab === "agents" && (
+        <>
       {/* Business Health Summary - UPDATED: 3 cards instead of 5 */}
       {summary && (
         <div className="bg-white rounded-2xl p-6 shadow-sm">
@@ -257,6 +492,8 @@ export function AgentDashboard() {
           })}
         </div>
       </div>
+        </>
+      )}
 
       {/* Agent Detail Modal */}
       {selectedAgent && (
