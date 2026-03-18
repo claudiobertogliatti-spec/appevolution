@@ -465,77 +465,92 @@ Rispondi SOLO con il JSON valido."""
 
 
 def genera_script_fallback(nome, cognome, expertise, cliente_target):
-    """Genera uno script di fallback se l'AI fallisce"""
+    """Genera uno script di fallback ad alta conversione se l'AI fallisce"""
     return {
-        "titolo_script": f"Script Call Strategica - {nome} {cognome}",
+        "titolo_script": f"Script Call Alta Conversione - {nome} {cognome}",
         "durata_stimata": "45-60 minuti",
+        "obiettivo_conversione": "Partnership Evolution PRO €2.790",
+        "probabilita_chiusura": "media",
         "blocchi": [
             {
                 "numero": 1,
-                "titolo": "Apertura della Call",
-                "obiettivo": "Creare connessione e fiducia",
-                "contenuto": f"Ciao {nome}, grazie per essere qui. Sono Claudio di Evolution PRO. L'obiettivo di questa call è capire insieme se il tuo progetto può trasformarsi in un'Accademia Digitale di successo. Ti racconterò brevemente cosa facciamo e poi ti farò alcune domande per conoscerti meglio.",
-                "note_claudio": "Sorridi, crea un'atmosfera rilassata"
+                "titolo": "APERTURA - Pattern Interrupt",
+                "obiettivo": "Rompere il ghiaccio e stabilire autorità immediata",
+                "script_esatto": f"Ciao {nome}! Prima di tutto, complimenti per aver fatto questo passo. Sai, su 100 persone che dicono di voler creare un corso online, solo 3 arrivano fino a una call strategica. Tu sei una di quelle 3. Questo mi dice già molto su di te.",
+                "tecnica_usata": "Pattern Interrupt + Social Proof implicito",
+                "note_claudio": "Sorridi, mantieni contatto visivo, tono entusiasta ma non finto"
             },
             {
                 "numero": 2,
-                "titolo": "Comprendere il Cliente",
-                "obiettivo": "Approfondire situazione e obiettivi",
-                "domande": [
-                    f"Raccontami di più sulla tua esperienza in {expertise}",
-                    "Qual è la situazione attuale del tuo business?",
-                    "Cosa ti ha spinto a cercare Evolution PRO?"
+                "titolo": "DISCOVERY - Scavare nel Problema",
+                "obiettivo": "Far emergere il VERO problema (non quello dichiarato)",
+                "domande_spin": [
+                    f"Raccontami: come ti sei avvicinato/a a {expertise}? Qual è stata la scintilla?",
+                    f"Cosa ti blocca DAVVERO dal trasformare la tua competenza in un business scalabile?",
+                    "Se non cambi nulla nei prossimi 12 mesi, dove sarai?"
                 ],
-                "note_claudio": "Ascolta attentamente, prendi appunti"
+                "cosa_ascoltare": "Emozioni, frustrazione, desideri non detti",
+                "gancio_emotivo": "Capisco perfettamente quella sensazione di avere così tanto da offrire ma non sapere come monetizzarlo..."
             },
             {
                 "numero": 3,
-                "titolo": "Analisi del Problema",
-                "obiettivo": "Evidenziare il problema del mercato",
-                "contenuto": f"Dai tuoi dati vedo che il tuo target sono {cliente_target}. Quali sono le principali difficoltà che affrontano?",
-                "punti_chiave": ["Difficoltà del target", "Opportunità di mercato"]
+                "titolo": "AMPLIFICAZIONE - Il Costo del Non Agire",
+                "obiettivo": "Evidenziare quanto COSTA restare nella situazione attuale",
+                "script_esatto": f"Fammi capire una cosa, {nome}. Ogni mese che passa senza un sistema automatizzato, stai lasciando soldi sul tavolo. Se il tuo corso potesse generare anche solo 3 vendite al mese a €297... parliamo di quasi €900/mese, €10.000/anno. Quanto stai perdendo aspettando?",
+                "calcolo_perdita": "Calcolare insieme il costo opportunità",
+                "domanda_killer": "Quanto tempo hai già perso cercando di fare tutto da solo/a?"
             },
             {
                 "numero": 4,
-                "titolo": "Valutazione della Competenza",
-                "obiettivo": "Verificare esperienza e metodo",
-                "domande": [
-                    "Hai un metodo o framework specifico che usi?",
-                    "Quali risultati hai ottenuto con i tuoi clienti?",
-                    "Hai mai venduto consulenze o corsi online?"
-                ],
-                "segnali_positivi": ["Metodo chiaro", "Risultati documentati"],
-                "red_flags": ["Poca esperienza", "Target troppo generico"]
+                "titolo": "VALIDAZIONE - Conferma della Competenza",
+                "obiettivo": "Far sentire il cliente capace e pronto (boost autostima)",
+                "punti_forza_da_evidenziare": [f"Competenza chiara in {expertise}", "Target definito", "Motivazione presente"],
+                "script_esatto": f"Sai cosa vedo io guardando la tua analisi? Vedo qualcuno che ha già le competenze. Il problema non sei tu. Il problema è che nessuno ti ha mai mostrato il SISTEMA giusto.",
+                "tecnica_usata": "Ego boost + Esternalizzazione del problema"
             },
             {
                 "numero": 5,
-                "titolo": "Presentazione del Modello Accademia",
-                "obiettivo": "Spiegare il possibile modello",
-                "contenuto": f"Basandomi su quello che mi hai detto, potremmo creare un'Accademia Digitale che insegna a {cliente_target} come ottenere risultati usando il tuo metodo.",
-                "elementi_personalizzati": ["Videocorso strutturato", "Masterclass di vendita", "Community"]
+                "titolo": "VISIONE - Future Pacing",
+                "obiettivo": "Far VISUALIZZARE il successo con l'Accademia",
+                "script_esatto": f"Immagina tra 6 mesi: hai la tua Accademia online, un funnel che lavora per te 24/7, e ogni settimana ti arrivano notifiche di nuovi studenti che si iscrivono. {cliente_target} che finalmente possono accedere al tuo metodo. E tu? Tu sei libero/a di fare quello che ami, senza scambiare tempo per soldi.",
+                "elementi_specifici": ["Accademia strutturata", "Funnel automatico", "Freedom lifestyle"],
+                "caso_studio_simile": "Come Marco, coach come te, che ha generato €28.000 nei primi 60 giorni"
             },
             {
                 "numero": 6,
-                "titolo": "Verifica Fattibilità",
-                "obiettivo": "Valutare sostenibilità del progetto",
-                "criteri_valutazione": ["Chiarezza competenza", "Definizione target", "Esperienza vendita"],
-                "contenuto": "Valutiamo insieme se ci sono le condizioni per procedere."
+                "titolo": "PRESENTAZIONE - L'Offerta Irresistibile",
+                "obiettivo": "Presentare Evolution PRO come LA soluzione",
+                "script_esatto": "Ecco cosa facciamo in Evolution PRO: ti prendiamo per mano e costruiamo TUTTO insieme. Videocorso professionale, masterclass di vendita, funnel completo su Systeme.io, strategia di lancio. Non devi imparare nulla di tecnico. Tu porti la competenza, noi facciamo il resto.",
+                "stack_valore": ["Videocorso completo", "Masterclass gratuita", "Funnel automatizzato", "12 mesi supporto", "Community partner"],
+                "differenziazione": "Non vendiamo corsi su come creare corsi. Costruiamo la TUA accademia INSIEME a te."
             },
             {
                 "numero": 7,
-                "titolo": "Introduzione della Partnership",
-                "obiettivo": "Spiegare Evolution PRO",
-                "contenuto": "Evolution PRO è un programma che ti accompagna dalla creazione dei contenuti alla costruzione del funnel di vendita, con supporto strategico continuo.",
-                "punti_vendita": ["Creazione accademia completa", "Funnel automatizzato", "Supporto 12 mesi"]
+                "titolo": "GESTIONE OBIEZIONI - Preemptive Strike",
+                "obiettivo": "Neutralizzare obiezioni PRIMA che emergano",
+                "obiezioni_probabili": ["È troppo costoso", "Non ho tempo", "Non sono sicuro/a funzionerà"],
+                "risposte_pronte": {
+                    "costo": "€2.790 diviso 12 mesi sono €230/mese. Meno di quanto spendi in caffè e pranzi fuori. E questo è un INVESTIMENTO che si ripaga.",
+                    "tempo": "Ti serviranno circa 3-4 ore a settimana. Noi facciamo l'80% del lavoro tecnico.",
+                    "dubbi": "Ecco perché l'Analisi era così importante. Abbiamo già validato il tuo progetto. Il punteggio dice che hai tutte le carte in regola."
+                },
+                "tecnica_feel_felt_found": "Capisco come ti senti. Anche Marco si sentiva così. Poi ha scoperto che..."
             },
             {
                 "numero": 8,
-                "titolo": "Chiusura e Prossimi Passi",
-                "obiettivo": "Definire next steps",
-                "scenario_positivo": "Se il progetto è valido: invito a leggere l'analisi finale e procedere con l'attivazione partnership.",
-                "scenario_negativo": "Se servono miglioramenti: suggerisci cosa lavorare prima di ripresentarsi.",
-                "call_to_action": "Ti invio l'Analisi Strategica completa via email."
+                "titolo": "CHIUSURA - Call to Action Definitiva",
+                "obiettivo": "Ottenere il SÌ o un chiaro next step",
+                "script_chiusura": f"{nome}, abbiamo visto insieme che il tuo progetto ha potenziale. L'analisi lo conferma. La domanda non è SE puoi farlo, ma QUANDO vuoi iniziare. Preferisci partire questa settimana o la prossima?",
+                "domanda_assunzionale": "Iniziamo con il posizionamento o preferisci prima la struttura del corso?",
+                "urgenza_genuina": "Ho 2 slot disponibili questo mese. Dopo dovresti aspettare la prossima finestra.",
+                "piano_b": "Se hai bisogno di qualche giorno: Ti invio il contratto, lo leggi con calma, e ci risentiamo venerdì.",
+                "follow_up": "Se non chiude: email con recap + scadenza 48h per decisione"
             }
+        ],
+        "bonus_tips": [
+            "Parla meno del 40% del tempo - lascia parlare il cliente",
+            "Usa il suo nome almeno 5 volte durante la call",
+            "Se dice 'devo pensarci', chiedi 'A cosa specificamente?'"
         ]
     }
 
