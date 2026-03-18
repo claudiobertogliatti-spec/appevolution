@@ -3,7 +3,8 @@ import {
   Users, Palette, BarChart3, ChevronRight, Calendar, Video,
   FileText, Clock, AlertTriangle, Search, Plus, Edit3, Trash2,
   X, Loader2, CheckCircle, MessageSquare, ExternalLink, Save,
-  TrendingUp, DollarSign, Eye, MousePointer, Target
+  TrendingUp, DollarSign, Eye, MousePointer, Target, Zap, Send,
+  ThumbsUp, ThumbsDown, RefreshCw, Filter, Inbox
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
