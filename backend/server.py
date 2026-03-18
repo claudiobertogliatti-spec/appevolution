@@ -13099,6 +13099,11 @@ set_heygen_prod_db(db)
 set_heygen_service(heygen_service)
 app.include_router(heygen_prod_router)
 
+# Include Journey Automation router (F1-F6 Automation)
+from routers.journey_automation import router as journey_router, set_db as set_journey_db
+set_journey_db(db)
+app.include_router(journey_router)
+
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler
 
