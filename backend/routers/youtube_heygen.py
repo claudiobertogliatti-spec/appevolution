@@ -191,3 +191,305 @@ Includi tutti i 28 video totali."""
     except Exception as e:
         logger.error(f"Calendar generation error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# YOUTUBE OAUTH MANAGEMENT
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/youtube/auth-status")
+async def youtube_auth_status():
+    """Verifica stato autenticazione YouTube"""
+    import pickle
+    from pathlib import Path
+    
+    creds_path = Path("/app/storage/youtube_credentials.pickle")
+    client_path = Path("/app/storage/client_secret.json")
+    
+    if not client_path.exists():
+        return {
+            "status": "not_configured",
+            "message": "client_secret.json non trovato. Carica le credenziali OAuth da Google Cloud Console.",
+            "next_step": "upload_client_secret"
+        }
+    
+    if not creds_path.exists():
+        return {
+            "status": "not_authorized",
+            "message": "Token OAuth non presente. Richiedi autorizzazione.",
+            "next_step": "get_auth_url"
+        }
+    
+    try:
+        with open(creds_path, 'rb') as f:
+            creds = pickle.load(f)
+        
+        if creds.valid:
+            return {
+                "status": "authorized",
+                "valid": True,
+                "expiry": str(creds.expiry),
+                "message": "YouTube connesso e funzionante!"
+            }
+        elif creds.expired and creds.refresh_token:
+            # Prova a refreshare
+            from google.auth.transport.requests import Request
+            try:
+                creds.refresh(Request())
+                with open(creds_path, 'wb') as f:
+                    pickle.dump(creds, f)
+                return {
+                    "status": "authorized",
+                    "valid": True,
+                    "refreshed": True,
+                    "expiry": str(creds.expiry),
+                    "message": "Token refreshato con successo!"
+                }
+            except Exception as e:
+                return {
+                    "status": "expired",
+                    "valid": False,
+                    "message": f"Token scaduto e refresh fallito: {e}",
+                    "next_step": "get_auth_url"
+                }
+        else:
+            return {
+                "status": "expired",
+                "valid": False,
+                "message": "Token scaduto senza refresh token",
+                "next_step": "get_auth_url"
+            }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e),
+            "next_step": "get_auth_url"
+        }
+
+
+@router.get("/youtube/get-auth-url")
+async def get_youtube_auth_url():
+    """Genera URL per autorizzazione OAuth YouTube"""
+    import json
+    from pathlib import Path
+    from google_auth_oauthlib.flow import InstalledAppFlow
+    
+    client_path = Path("/app/storage/client_secret.json")
+    if not client_path.exists():
+        raise HTTPException(status_code=400, detail="client_secret.json non trovato")
+    
+    with open(client_path, 'r') as f:
+        client_config = json.load(f)
+    
+    SCOPES = [
+        'https://www.googleapis.com/auth/youtube.upload',
+        'https://www.googleapis.com/auth/youtube'
+    ]
+    
+    flow = InstalledAppFlow.from_client_config(
+        client_config,
+        SCOPES,
+        redirect_uri='urn:ietf:wg:oauth:2.0:oob'
+    )
+    
+    auth_url, _ = flow.authorization_url(
+        access_type='offline',
+        include_granted_scopes='true',
+        prompt='consent'
+    )
+    
+    return {
+        "auth_url": auth_url,
+        "instructions": [
+            "1. Apri il link auth_url nel browser",
+            "2. Accedi con l'account Google del canale YouTube",
+            "3. Autorizza l'applicazione",
+            "4. Copia il codice di autorizzazione",
+            "5. Invialo a POST /youtube/complete-auth"
+        ]
+    }
+
+
+class CompleteAuthRequest(BaseModel):
+    auth_code: str
+
+
+@router.post("/youtube/complete-auth")
+async def complete_youtube_auth(request: CompleteAuthRequest):
+    """Completa il flow OAuth con il codice di autorizzazione"""
+    import json
+    import pickle
+    from pathlib import Path
+    from google_auth_oauthlib.flow import InstalledAppFlow
+    
+    client_path = Path("/app/storage/client_secret.json")
+    creds_path = Path("/app/storage/youtube_credentials.pickle")
+    
+    if not client_path.exists():
+        raise HTTPException(status_code=400, detail="client_secret.json non trovato")
+    
+    with open(client_path, 'r') as f:
+        client_config = json.load(f)
+    
+    SCOPES = [
+        'https://www.googleapis.com/auth/youtube.upload',
+        'https://www.googleapis.com/auth/youtube'
+    ]
+    
+    try:
+        flow = InstalledAppFlow.from_client_config(
+            client_config,
+            SCOPES,
+            redirect_uri='urn:ietf:wg:oauth:2.0:oob'
+        )
+        
+        flow.fetch_token(code=request.auth_code)
+        creds = flow.credentials
+        
+        # Salva credenziali
+        with open(creds_path, 'wb') as f:
+            pickle.dump(creds, f)
+        
+        logger.info("YouTube OAuth completato con successo")
+        
+        return {
+            "success": True,
+            "message": "YouTube connesso con successo!",
+            "valid": creds.valid,
+            "expiry": str(creds.expiry)
+        }
+        
+    except Exception as e:
+        logger.error(f"YouTube OAuth error: {e}")
+        raise HTTPException(status_code=400, detail=f"Errore autorizzazione: {e}")
+
+
+@router.post("/youtube/upload-from-heygen/{video_id}")
+async def upload_heygen_video_to_youtube(video_id: str, privacy_status: str = "unlisted"):
+    """
+    Upload automatico di un video HeyGen completato su YouTube.
+    Chiamato automaticamente quando un video HeyGen è pronto.
+    """
+    import pickle
+    import httpx
+    from pathlib import Path
+    from datetime import datetime, timezone
+    
+    # Verifica auth
+    creds_path = Path("/app/storage/youtube_credentials.pickle")
+    if not creds_path.exists():
+        raise HTTPException(status_code=400, detail="YouTube non autorizzato")
+    
+    with open(creds_path, 'rb') as f:
+        creds = pickle.load(f)
+    
+    if not creds.valid:
+        if creds.expired and creds.refresh_token:
+            from google.auth.transport.requests import Request
+            try:
+                creds.refresh(Request())
+                with open(creds_path, 'wb') as f:
+                    pickle.dump(creds, f)
+            except:
+                raise HTTPException(status_code=401, detail="Token scaduto, riautorizza")
+        else:
+            raise HTTPException(status_code=401, detail="Token non valido")
+    
+    # Recupera info video da HeyGen job
+    from motor.motor_asyncio import AsyncIOMotorClient
+    mongo_url = os.environ.get('MONGO_URL')
+    client = AsyncIOMotorClient(mongo_url)
+    db = client[os.environ.get('DB_NAME', 'evolution_pro')]
+    
+    job = await db.heygen_jobs.find_one({"video_id": video_id})
+    if not job:
+        raise HTTPException(status_code=404, detail="Video non trovato")
+    
+    if job.get("status") != "completed":
+        raise HTTPException(status_code=400, detail=f"Video non completato: {job.get('status')}")
+    
+    video_url = job.get("video_url")
+    if not video_url:
+        raise HTTPException(status_code=400, detail="URL video non disponibile")
+    
+    # Scarica video
+    temp_path = f"/tmp/heygen_{video_id}.mp4"
+    async with httpx.AsyncClient(timeout=300) as http_client:
+        response = await http_client.get(video_url)
+        with open(temp_path, 'wb') as f:
+            f.write(response.content)
+    
+    # Recupera info partner
+    partner = await db.partners.find_one({"id": job.get("partner_id")})
+    partner_name = partner.get("name", "Partner") if partner else "Partner"
+    partner_niche = partner.get("niche", "Business") if partner else "Business"
+    
+    # Upload su YouTube
+    from googleapiclient.discovery import build
+    from googleapiclient.http import MediaFileUpload
+    
+    service = build('youtube', 'v3', credentials=creds)
+    
+    title = job.get("video_title", f"Video {video_id}")
+    description = f"""🎓 {title}
+
+Videocorso professionale di {partner_name}
+Prodotto da Evolution PRO
+
+📚 Scopri di più: https://evolution-pro.it
+
+#EvolutionPRO #Videocorso #Formazione
+"""
+    
+    body = {
+        'snippet': {
+            'title': title[:100],
+            'description': description,
+            'tags': ['Evolution PRO', 'Videocorso', partner_name, partner_niche],
+            'categoryId': '27'
+        },
+        'status': {
+            'privacyStatus': privacy_status,
+            'selfDeclaredMadeForKids': False
+        }
+    }
+    
+    media = MediaFileUpload(temp_path, mimetype='video/mp4', resumable=True)
+    
+    request = service.videos().insert(
+        part=','.join(body.keys()),
+        body=body,
+        media_body=media
+    )
+    
+    response = None
+    while response is None:
+        status, response = request.next_chunk()
+    
+    youtube_video_id = response.get('id')
+    youtube_url = f"https://youtu.be/{youtube_video_id}"
+    
+    # Aggiorna job
+    await db.heygen_jobs.update_one(
+        {"video_id": video_id},
+        {"$set": {
+            "youtube_video_id": youtube_video_id,
+            "youtube_url": youtube_url,
+            "youtube_uploaded_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Cleanup
+    import os as os_module
+    os_module.remove(temp_path)
+    client.close()
+    
+    logger.info(f"Video uploaded to YouTube: {youtube_url}")
+    
+    return {
+        "success": True,
+        "youtube_video_id": youtube_video_id,
+        "youtube_url": youtube_url,
+        "privacy_status": privacy_status
+    }
+
