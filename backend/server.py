@@ -13073,6 +13073,11 @@ from routers.operations import router as operations_router, set_operations_db
 set_operations_db(db)
 app.include_router(operations_router)
 
+# Include Avatar & Social Plan router (HeyGen Digital Twin, Social Content Plans)
+from routers.avatar_social import router as avatar_social_router, set_db as set_avatar_social_db
+set_avatar_social_db(db)
+app.include_router(avatar_social_router)
+
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler
 
