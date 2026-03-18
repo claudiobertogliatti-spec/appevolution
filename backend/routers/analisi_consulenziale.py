@@ -293,89 +293,136 @@ async def genera_script_call(request: GeneraScriptCallRequest):
     ostacolo = questionario.get("ostacolo_principale", "Non specificato")
     motivazione = questionario.get("motivazione", questionario.get("perche_adesso", "Non specificato"))
     
-    prompt = f"""Sei un esperto di vendita consulenziale per Evolution PRO. Genera uno SCRIPT CALL STRATEGICA personalizzato per questo cliente.
+    # Recupera anche l'analisi generata se esiste
+    analisi_generata = cliente.get("analisi", {})
+    punteggio = cliente.get("punteggio_fattibilita", "Non disponibile")
+    raccomandazione = cliente.get("raccomandazione", "Non disponibile")
+    
+    prompt = f"""Sei un MASTER COPYWRITER e SALES STRATEGIST specializzato in vendita consulenziale high-ticket.
+Genera uno SCRIPT CALL AD ALTA CONVERSIONE per chiudere una partnership da €2.790.
+
+══════════════════════════════════════════════════════════════════════════
+CONTESTO: Claudio (founder Evolution PRO) ha una call di consegna dell'Analisi Strategica.
+OBIETTIVO: Convertire il lead in partner pagante (€2.790) entro fine call.
+══════════════════════════════════════════════════════════════════════════
 
 DATI DEL CLIENTE:
 - Nome: {nome} {cognome}
-- Expertise: {expertise}
-- Target: {cliente_target}
-- Risultato promesso: {risultato}
+- Expertise/Competenza: {expertise}
+- Target Ideale: {cliente_target}
+- Risultato che promette: {risultato}
 - Pubblico esistente: {pubblico}
-- Esperienze vendita: {esperienze}
-- Ostacolo principale: {ostacolo}
-- Motivazione: {motivazione}
+- Esperienze vendita passate: {esperienze}
+- Ostacolo principale percepito: {ostacolo}
+- Motivazione/Perché adesso: {motivazione}
 
-ANALISI PRELIMINARE:
+ANALISI PRELIMINARE (insight interni):
 {json.dumps(analisi_preliminare, ensure_ascii=False, indent=2) if analisi_preliminare else "Non ancora generata"}
 
-Genera uno script di call in 8 BLOCCHI in formato JSON:
+ANALISI GENERATA PER IL CLIENTE:
+Punteggio Fattibilità: {punteggio}/10
+Raccomandazione: {raccomandazione}
+{json.dumps(analisi_generata, ensure_ascii=False, indent=2)[:2000] if analisi_generata else "Non ancora generata"}
+
+══════════════════════════════════════════════════════════════════════════
+TECNICHE DI PERSUASIONE DA UTILIZZARE:
+1. SPIN Selling: Situation, Problem, Implication, Need-payoff
+2. Future Pacing: Far visualizzare il successo futuro
+3. Loss Aversion: Costo di NON agire (quanto costa restare fermo?)
+4. Social Proof: Citare casi studio Evolution PRO
+5. Scarcity: Posti limitati, urgenza genuina
+6. Reciprocity: Hai già ricevuto l'analisi gratuita, valore consegnato
+══════════════════════════════════════════════════════════════════════════
+
+Genera uno script in 8 BLOCCHI in formato JSON:
 
 {{
-    "titolo_script": "Script Call Strategica - {nome} {cognome}",
+    "titolo_script": "Script Call Alta Conversione - {nome} {cognome}",
     "durata_stimata": "45-60 minuti",
+    "obiettivo_conversione": "Partnership Evolution PRO €2.790",
+    "probabilita_chiusura": "Stima basata sui dati (alta/media/bassa)",
     "blocchi": [
         {{
             "numero": 1,
-            "titolo": "Apertura della Call",
-            "obiettivo": "Creare connessione e fiducia",
-            "contenuto": "Testo dettagliato di cosa dire all'apertura...",
-            "note_claudio": "Suggerimenti specifici per Claudio"
+            "titolo": "APERTURA - Pattern Interrupt",
+            "obiettivo": "Rompere il ghiaccio e stabilire autorità immediata",
+            "script_esatto": "Testo ESATTO da dire parola per parola, personalizzato per {nome}...",
+            "tecnica_usata": "Tecnica psicologica usata",
+            "note_claudio": "Tono, postura, cosa osservare"
         }},
         {{
             "numero": 2,
-            "titolo": "Comprendere il Cliente",
-            "obiettivo": "Approfondire situazione e obiettivi",
-            "domande": ["Domanda 1 specifica", "Domanda 2 specifica", "Domanda 3 specifica"],
-            "note_claudio": "Cosa ascoltare nelle risposte"
+            "titolo": "DISCOVERY - Scavare nel Problema",
+            "obiettivo": "Far emergere il VERO problema (non quello dichiarato)",
+            "domande_spin": [
+                "Domanda SITUATION specifica",
+                "Domanda PROBLEM specifica",
+                "Domanda IMPLICATION specifica"
+            ],
+            "cosa_ascoltare": "Segnali verbali e non verbali da cogliere",
+            "gancio_emotivo": "Frase per connettersi al suo dolore"
         }},
         {{
             "numero": 3,
-            "titolo": "Analisi del Problema",
-            "obiettivo": "Evidenziare il problema del mercato del cliente",
-            "contenuto": "Come presentare il problema...",
-            "punti_chiave": ["Punto 1", "Punto 2"]
+            "titolo": "AMPLIFICAZIONE - Il Costo del Non Agire",
+            "obiettivo": "Evidenziare quanto COSTA restare nella situazione attuale",
+            "script_esatto": "Testo persuasivo sul costo di non agire...",
+            "calcolo_perdita": "Quanto sta perdendo ogni mese senza un'accademia?",
+            "domanda_killer": "Domanda che fa riflettere sul tempo perso"
         }},
         {{
             "numero": 4,
-            "titolo": "Valutazione della Competenza",
-            "obiettivo": "Verificare esperienza, metodo, risultati",
-            "domande": ["Domanda sulla competenza 1", "Domanda 2", "Domanda 3"],
-            "segnali_positivi": ["Cosa cercare di positivo"],
-            "red_flags": ["Cosa potrebbe essere un problema"]
+            "titolo": "VALIDAZIONE - Conferma della Competenza",
+            "obiettivo": "Far sentire il cliente capace e pronto (boost autostima)",
+            "punti_forza_da_evidenziare": ["Forza 1 specifica del cliente", "Forza 2"],
+            "script_esatto": "Come presentare i suoi punti di forza...",
+            "tecnica_usata": "Ego boost strategico"
         }},
         {{
             "numero": 5,
-            "titolo": "Presentazione del Modello Accademia",
-            "obiettivo": "Spiegare il possibile modello di accademia",
-            "contenuto": "Come presentare il modello specifico per questo cliente...",
-            "elementi_personalizzati": ["Elemento 1 per questo cliente", "Elemento 2"]
+            "titolo": "VISIONE - Future Pacing",
+            "obiettivo": "Far VISUALIZZARE il successo con l'Accademia",
+            "script_esatto": "Descrizione vivida del suo futuro con l'accademia...",
+            "elementi_specifici": ["Cosa venderà", "A chi", "Quanto potrà guadagnare"],
+            "caso_studio_simile": "Esempio Evolution PRO nella sua nicchia"
         }},
         {{
             "numero": 6,
-            "titolo": "Verifica Fattibilità",
-            "obiettivo": "Valutare se il progetto può diventare un'accademia sostenibile",
-            "criteri_valutazione": ["Criterio 1", "Criterio 2", "Criterio 3"],
-            "contenuto": "Come comunicare la valutazione..."
+            "titolo": "PRESENTAZIONE - L'Offerta Irresistibile",
+            "obiettivo": "Presentare Evolution PRO come LA soluzione",
+            "script_esatto": "Presentazione strutturata dell'offerta...",
+            "stack_valore": ["Cosa include", "Valore percepito", "Garanzie"],
+            "differenziazione": "Perché Evolution PRO e non altri"
         }},
         {{
             "numero": 7,
-            "titolo": "Introduzione della Partnership",
-            "obiettivo": "Spiegare il modello Evolution PRO",
-            "contenuto": "Come presentare la partnership...",
-            "punti_vendita": ["Creazione accademia", "Costruzione funnel", "Supporto strategico"]
+            "titolo": "GESTIONE OBIEZIONI - Preemptive Strike",
+            "obiettivo": "Neutralizzare obiezioni PRIMA che emergano",
+            "obiezioni_probabili": ["Obiezione 1 probabile per questo cliente", "Obiezione 2"],
+            "risposte_pronte": {{"obiezione": "risposta"}},
+            "tecnica_feel_felt_found": "Capisco come ti senti..."
         }},
         {{
             "numero": 8,
-            "titolo": "Chiusura e Prossimi Passi",
-            "obiettivo": "Definire i next steps",
-            "scenario_positivo": "Se il progetto è adatto: cosa dire e proporre",
-            "scenario_negativo": "Se il progetto non è pronto: come comunicarlo con rispetto",
-            "call_to_action": "Invito specifico all'azione"
+            "titolo": "CHIUSURA - Call to Action Definitiva",
+            "obiettivo": "Ottenere il SÌ o un chiaro next step",
+            "script_chiusura": "Testo esatto per chiudere...",
+            "domanda_assunzionale": "Domanda che assume già la vendita",
+            "urgenza_genuina": "Perché agire ORA",
+            "piano_b": "Se non chiude oggi: cosa proporre",
+            "follow_up": "Come gestire il post-call se non chiude"
         }}
-    ]
+    ],
+    "bonus_tips": ["Tip 1 per questa call specifica", "Tip 2", "Tip 3"]
 }}
 
-Lo script deve essere SPECIFICO per questo cliente, non generico. Personalizza ogni sezione basandoti sui dati del questionario.
+IMPORTANTE:
+- Lo script deve essere IPER-SPECIFICO per {nome}, non generico
+- Usa il SUO linguaggio basato sulle risposte del questionario
+- Includi numeri concreti dove possibile
+- Ogni blocco deve avere uno "script_esatto" con le parole precise da dire
+- Fai riferimento all'analisi che ha già ricevuto per creare reciprocità
+
 Rispondi SOLO con il JSON valido."""
 
     try:
