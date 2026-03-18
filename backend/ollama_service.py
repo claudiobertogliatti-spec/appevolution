@@ -47,6 +47,11 @@ class OllamaService:
         self.timeout = OLLAMA_TIMEOUT
         self._connected = None
         self._active_host = None
+        # Headers per ngrok (skip browser warning)
+        self._headers = {
+            "ngrok-skip-browser-warning": "true",
+            "User-Agent": "EvolutionPRO-Ollama/1.0"
+        }
     
     async def _find_active_host(self) -> Optional[str]:
         """Trova un host Ollama attivo tra i fallback"""
@@ -54,8 +59,8 @@ class OllamaService:
         
         for host in hosts_to_try:
             try:
-                async with httpx.AsyncClient(timeout=5.0) as client:
-                    response = await client.get(f"{host}/api/tags")
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    response = await client.get(f"{host}/api/tags", headers=self._headers)
                     if response.status_code == 200:
                         logger.info(f"[Ollama] Connesso a {host}")
                         self._active_host = host
@@ -90,7 +95,7 @@ class OllamaService:
         
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.get(f"{self._active_host}/api/tags")
+                response = await client.get(f"{self._active_host}/api/tags", headers=self._headers)
                 data = response.json()
                 models = [m.get("name") for m in data.get("models", [])]
                 
@@ -121,6 +126,7 @@ class OllamaService:
                 response = await client.post(
                     f"{self._active_host}/api/pull",
                     json={"name": model},
+                    headers=self._headers,
                     timeout=300.0
                 )
                 
@@ -178,7 +184,8 @@ class OllamaService:
             async with httpx.AsyncClient(timeout=float(self.timeout)) as client:
                 response = await client.post(
                     f"{self._active_host}/api/generate",
-                    json=payload
+                    json=payload,
+                    headers=self._headers
                 )
                 
                 if response.status_code == 200:
@@ -235,7 +242,8 @@ class OllamaService:
             async with httpx.AsyncClient(timeout=float(self.timeout)) as client:
                 response = await client.post(
                     f"{self._active_host}/api/chat",
-                    json=payload
+                    json=payload,
+                    headers=self._headers
                 )
                 
                 if response.status_code == 200:
