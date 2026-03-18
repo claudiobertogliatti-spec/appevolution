@@ -476,7 +476,7 @@ async def score_lead(lead_id: str):
     
     # 4. Monetization Signals (0-20)
     monetization = lead.get("monetization_signals", [])
-    website_analysis = lead.get("website_analysis", {})
+    website_analysis = lead.get("website_analysis") or {}
     
     mon_score = 0
     if monetization:
