@@ -400,6 +400,20 @@ export function Homepage() {
               <p className="text-center text-sm" style={{ color: '#9CA3AF' }}>
                 Tempo richiesto: circa 5 minuti
               </p>
+
+              {/* Switch to Login */}
+              <p className="text-xs text-center mt-4" style={{ color: '#9CA3AF' }}>
+                Hai già un account?{' '}
+                <button
+                  type="button"
+                  onClick={() => { setShowRegisterModal(false); setShowLoginModal(true); }}
+                  className="font-medium hover:underline"
+                  style={{ color: '#F5C518' }}
+                  data-testid="switch-to-login"
+                >
+                  Accedi
+                </button>
+              </p>
             </form>
           </div>
         </div>
@@ -514,7 +528,16 @@ export function Homepage() {
 
             {/* Help text */}
             <p className="text-xs text-center mt-6" style={{ color: '#9CA3AF' }}>
-              Non hai un account partner? Contatta il team Evolution PRO.
+              Non hai un account partner?{' '}
+              <button
+                type="button"
+                onClick={() => { setShowLoginModal(false); setShowRegisterModal(true); }}
+                className="font-medium hover:underline"
+                style={{ color: '#F5C518' }}
+                data-testid="switch-to-register"
+              >
+                Crea Account
+              </button>
             </p>
           </div>
         </div>
