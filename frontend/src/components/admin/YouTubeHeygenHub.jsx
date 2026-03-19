@@ -296,31 +296,40 @@ export default function YouTubeHeygenHub() {
 
   const loadProductionData = async () => {
     // Fetch with timeout helper
-    const fetchWithTimeout = async (url, timeout = 10000) => {
+    const fetchWithTimeout = async (url, timeout = 20000) => {
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), timeout);
       try {
         const response = await fetch(url, { signal: controller.signal });
         clearTimeout(id);
-        return response.ok ? await response.json() : null;
-      } catch {
+        if (!response.ok) {
+          console.warn(`[YouTubeHeygenHub] Fetch failed: ${url} - ${response.status}`);
+          return null;
+        }
+        return await response.json();
+      } catch (err) {
         clearTimeout(id);
+        console.warn(`[YouTubeHeygenHub] Fetch error: ${url}`, err?.message);
         return null;
       }
     };
     
-    // Load data sequentially
-    const heygen = await fetchWithTimeout(`${API}/heygen/test-connection`, 15000);
+    console.log("[YouTubeHeygenHub] Loading production data...");
+    
+    // Load data in parallel for faster loading
+    const [heygen, yt, stats, partnersData] = await Promise.all([
+      fetchWithTimeout(`${API}/heygen/test-connection`, 20000),
+      fetchWithTimeout(`${API}/youtube-heygen/youtube/auth-status`, 15000),
+      fetchWithTimeout(`${API}/heygen/stats`, 15000),
+      fetchWithTimeout(`${API}/partners/with-social`, 15000)
+    ]);
+    
     if (heygen) setHeygenStatus(heygen);
-    
-    const yt = await fetchWithTimeout(`${API}/youtube-heygen/youtube/auth-status`);
     if (yt) setYoutubeStatus(yt);
-    
-    const stats = await fetchWithTimeout(`${API}/heygen/stats`);
     if (stats) setProductionStats(stats);
+    if (partnersData) setPartners(partnersData.partners || []);
     
-    const partners = await fetchWithTimeout(`${API}/partners/with-social`);
-    if (partners) setPartners(partners.partners || []);
+    console.log("[YouTubeHeygenHub] Data loaded:", { heygen: !!heygen, yt: !!yt, stats: !!stats, partners: partnersData?.partners?.length || 0 });
   };
 
   const loadPartnerVideos = async (partnerId) => {
