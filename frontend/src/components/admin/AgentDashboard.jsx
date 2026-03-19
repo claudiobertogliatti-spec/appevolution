@@ -3,7 +3,8 @@ import {
   Bot, RefreshCw, TrendingUp, AlertTriangle, Zap, 
   Users, DollarSign, Target, Video, FileText, Shield,
   Trophy, MessageCircle, Loader2, ChevronRight, Activity,
-  CheckSquare, Headphones, LayoutGrid, Search, Globe, Star, Play
+  CheckSquare, Headphones, LayoutGrid, Search, Globe, Star, Play,
+  X, ExternalLink, Mail, Phone, Linkedin, Instagram, Youtube
 } from "lucide-react";
 import { API_URL, API } from "../../utils/api-config";
 
@@ -42,6 +43,7 @@ export function AgentDashboard() {
   const [loadingLeads, setLoadingLeads] = useState(false);
   const [analyzingLead, setAnalyzingLead] = useState(null);
   const [activeTab, setActiveTab] = useState("leads"); // "leads" or "agents"
+  const [selectedLead, setSelectedLead] = useState(null); // For modal
 
   useEffect(() => {
     loadData();
@@ -235,14 +237,18 @@ export function AgentDashboard() {
                     
                     return (
                       <tr key={lead.id} 
-                          className="border-t hover:bg-gray-50 transition-colors"
+                          className="border-t hover:bg-gray-50 transition-colors cursor-pointer"
                           style={{ borderColor: '#F3F4F6' }}
+                          onClick={() => setSelectedLead(lead)}
                           data-testid={`discovery-lead-row-${lead.id}`}>
                         <td className="p-4">
                           <div className="flex items-center gap-3">
                             {isHot && <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />}
                             <div>
-                              <div className="font-bold text-sm" style={{ color: '#1E2128' }}>
+                              <div 
+                                className="font-bold text-sm hover:underline"
+                                style={{ color: '#1E2128' }}
+                              >
                                 {lead.display_name}
                               </div>
                               <div className="text-xs" style={{ color: '#9CA3AF' }}>
@@ -251,7 +257,7 @@ export function AgentDashboard() {
                             </div>
                           </div>
                         </td>
-                        <td className="p-4">
+                        <td className="p-4" onClick={(e) => e.stopPropagation()}>
                           {lead.website_url ? (
                             <a 
                               href={lead.website_url} 
@@ -299,11 +305,11 @@ export function AgentDashboard() {
                             </span>
                           </div>
                         </td>
-                        <td className="p-4 text-center">
+                        <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
                           <button
-                            onClick={() => handleAnalyzeLead(lead.id)}
-                            disabled={analyzingLead === lead.id || lead.status === 'analyzed'}
-                            className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 mx-auto disabled:opacity-50"
+                            onClick={(e) => { e.stopPropagation(); handleAnalyzeLead(lead.id); }}
+                            disabled={analyzingLead === lead.id}
+                            className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 mx-auto disabled:opacity-50 disabled:cursor-wait"
                             style={{ 
                               background: lead.website_analysis && !lead.website_analysis.error ? '#EAFAF1' : '#F2C418',
                               color: lead.website_analysis && !lead.website_analysis.error ? '#10B981' : '#1E2128'
@@ -313,7 +319,7 @@ export function AgentDashboard() {
                             {analyzingLead === lead.id ? (
                               <>
                                 <Loader2 className="w-3 h-3 animate-spin" />
-                                Analisi...
+                                Analisi in corso...
                               </>
                             ) : lead.website_analysis && !lead.website_analysis.error ? (
                               <>
@@ -569,6 +575,229 @@ export function AgentDashboard() {
                   style={{ background: AGENT_CONFIG[selectedAgent.id]?.color || '#1E2128' }}
                 >
                   {selectedAgent.status === 'ACTIVE' ? '✓ Agente Attivo' : 'Attiva Agente'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* MODAL: LEAD DETAILS */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {selectedLead && (
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedLead(null)}
+        >
+          <div 
+            className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-6 border-b flex items-start justify-between" style={{ borderColor: '#E5E7EB' }}>
+              <div className="flex items-center gap-4">
+                <div 
+                  className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl"
+                  style={{ 
+                    background: selectedLead.score_total >= 70 ? '#FEF3C7' : '#F3F4F6'
+                  }}
+                >
+                  {selectedLead.score_total >= 70 ? '⭐' : '👤'}
+                </div>
+                <div>
+                  <h2 className="text-xl font-black" style={{ color: '#1E2128' }}>
+                    {selectedLead.display_name}
+                  </h2>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span 
+                      className="text-xs px-2 py-1 rounded-full font-medium capitalize"
+                      style={{ 
+                        background: selectedLead.source === 'linkedin' ? '#E0F2FE' : 
+                                   selectedLead.source === 'instagram' ? '#FCE7F3' : '#FEE2E2',
+                        color: selectedLead.source === 'linkedin' ? '#0284C7' : 
+                               selectedLead.source === 'instagram' ? '#DB2777' : '#DC2626'
+                      }}
+                    >
+                      {selectedLead.source}
+                    </span>
+                    <span 
+                      className="text-xs px-2 py-1 rounded-full font-bold"
+                      style={{ 
+                        background: selectedLead.score_total >= 70 ? '#EAFAF1' : '#FEF3C7',
+                        color: selectedLead.score_total >= 70 ? '#10B981' : '#F59E0B'
+                      }}
+                    >
+                      Score: {selectedLead.score_total}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedLead(null)}
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <X className="w-5 h-5" style={{ color: '#9CA3AF' }} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-6">
+              {/* Bio */}
+              <div>
+                <h3 className="text-xs font-bold uppercase mb-2" style={{ color: '#9CA3AF' }}>Bio</h3>
+                <p className="text-sm leading-relaxed" style={{ color: '#1E2128' }}>
+                  {selectedLead.bio || 'Nessuna bio disponibile'}
+                </p>
+              </div>
+
+              {/* Focus/Niche */}
+              <div>
+                <h3 className="text-xs font-bold uppercase mb-2" style={{ color: '#9CA3AF' }}>Focus / Nicchia</h3>
+                <span 
+                  className="inline-block px-3 py-1.5 rounded-lg text-sm font-medium"
+                  style={{ background: '#F3F4F6', color: '#1E2128' }}
+                >
+                  {selectedLead.niche_detected?.replace(/_/g, ' ') || 'Non rilevato'}
+                </span>
+              </div>
+
+              {/* Social Links */}
+              <div>
+                <h3 className="text-xs font-bold uppercase mb-3" style={{ color: '#9CA3AF' }}>Link Social</h3>
+                <div className="flex flex-wrap gap-2">
+                  {selectedLead.platform_url && (
+                    <a 
+                      href={selectedLead.platform_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:opacity-80 transition-opacity"
+                      style={{ 
+                        background: selectedLead.source === 'linkedin' ? '#E0F2FE' : 
+                                   selectedLead.source === 'instagram' ? '#FCE7F3' : '#FEE2E2',
+                        color: selectedLead.source === 'linkedin' ? '#0284C7' : 
+                               selectedLead.source === 'instagram' ? '#DB2777' : '#DC2626'
+                      }}
+                    >
+                      {selectedLead.source === 'linkedin' ? <Linkedin className="w-4 h-4" /> :
+                       selectedLead.source === 'instagram' ? <Instagram className="w-4 h-4" /> :
+                       <Youtube className="w-4 h-4" />}
+                      Profilo {selectedLead.source}
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                  {selectedLead.website_url && (
+                    <a 
+                      href={selectedLead.website_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:opacity-80 transition-opacity"
+                      style={{ background: '#F3F4F6', color: '#1E2128' }}
+                    >
+                      <Globe className="w-4 h-4" />
+                      Sito Web
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div>
+                <h3 className="text-xs font-bold uppercase mb-3" style={{ color: '#9CA3AF' }}>Statistiche</h3>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="p-3 rounded-xl text-center" style={{ background: '#FAFAF7' }}>
+                    <div className="text-lg font-black" style={{ color: '#1E2128' }}>
+                      {selectedLead.followers_count?.toLocaleString() || '—'}
+                    </div>
+                    <div className="text-xs" style={{ color: '#9CA3AF' }}>Followers</div>
+                  </div>
+                  <div className="p-3 rounded-xl text-center" style={{ background: '#FAFAF7' }}>
+                    <div className="text-lg font-black" style={{ color: '#1E2128' }}>
+                      {selectedLead.target_fit_level || '—'}
+                    </div>
+                    <div className="text-xs" style={{ color: '#9CA3AF' }}>Target Fit</div>
+                  </div>
+                  <div className="p-3 rounded-xl text-center" style={{ background: '#FAFAF7' }}>
+                    <div className="text-lg font-black" style={{ color: '#1E2128' }}>
+                      {selectedLead.status || '—'}
+                    </div>
+                    <div className="text-xs" style={{ color: '#9CA3AF' }}>Status</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Website Analysis (if available) */}
+              {selectedLead.website_analysis && !selectedLead.website_analysis.error && (
+                <div>
+                  <h3 className="text-xs font-bold uppercase mb-3" style={{ color: '#9CA3AF' }}>
+                    Analisi Sito (via {selectedLead.website_analysis.llm_used || 'AI'})
+                  </h3>
+                  <div className="p-4 rounded-xl" style={{ background: '#EAFAF1' }}>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      {selectedLead.website_analysis.titolo && (
+                        <div>
+                          <span className="font-bold">Titolo:</span> {selectedLead.website_analysis.titolo}
+                        </div>
+                      )}
+                      {selectedLead.website_analysis.settore && (
+                        <div>
+                          <span className="font-bold">Settore:</span> {selectedLead.website_analysis.settore}
+                        </div>
+                      )}
+                      {selectedLead.website_analysis.email && (
+                        <div>
+                          <span className="font-bold">Email:</span> {selectedLead.website_analysis.email}
+                        </div>
+                      )}
+                      {selectedLead.website_analysis.opportunity_score && (
+                        <div>
+                          <span className="font-bold">Opportunity:</span> {selectedLead.website_analysis.opportunity_score}/10
+                        </div>
+                      )}
+                    </div>
+                    {selectedLead.website_analysis.servizi && (
+                      <div className="mt-3">
+                        <span className="font-bold text-sm">Servizi:</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {selectedLead.website_analysis.servizi.map((s, i) => (
+                            <span key={i} className="text-xs px-2 py-1 rounded bg-white">
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-4 border-t" style={{ borderColor: '#E5E7EB' }}>
+                <button
+                  onClick={() => { handleAnalyzeLead(selectedLead.id); }}
+                  disabled={analyzingLead === selectedLead.id}
+                  className="flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                  style={{ background: '#F2C418', color: '#1E2128' }}
+                >
+                  {analyzingLead === selectedLead.id ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Analisi in corso...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-4 h-4" />
+                      {selectedLead.website_analysis ? 'Ri-Analizza Sito' : 'Avvia Analisi'}
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => setSelectedLead(null)}
+                  className="px-6 py-3 rounded-xl font-bold text-sm"
+                  style={{ background: '#F3F4F6', color: '#6B7280' }}
+                >
+                  Chiudi
                 </button>
               </div>
             </div>
