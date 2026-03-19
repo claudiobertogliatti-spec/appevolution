@@ -340,7 +340,7 @@ async def search_leads(query: SearchQuery, background_tasks: BackgroundTasks):
 async def analyze_website(lead_id: str):
     """
     Gaia scarica e analizza il sito web del lead.
-    USA OLLAMA (Llama 3 locale) per risparmiare token Claude.
+    Sistema ibrido: Ollama (se disponibile) + Fallback automatico a Claude.
     """
     lead = await db.discovery_leads.find_one({"id": lead_id})
     if not lead:
@@ -358,67 +358,20 @@ async def analyze_website(lead_id: str):
     
     try:
         # Scarica HTML della home page
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.get(website_url, follow_redirects=True)
-            html_content = response.text[:50000]  # Limita a 50KB
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+            response = await client.get(website_url)
+            html_content = response.text[:50000]
         
         # ═══════════════════════════════════════════════════════════════════
-        # USO OLLAMA (Llama 3 locale) invece di Claude per scraping massivo
+        # ANALISI CON FALLBACK AUTOMATICO (Ollama → Claude)
         # ═══════════════════════════════════════════════════════════════════
-        from ollama_service import extract_lead_data_from_html, ollama_service
+        from ollama_service import extract_lead_data_from_html
         
-        # Verifica disponibilità Ollama
-        ollama_available = await ollama_service.is_available()
+        website_analysis = await extract_lead_data_from_html(html_content, website_url)
         
-        if ollama_available:
-            logger.info(f"[GAIA] Usando Ollama/Llama3 per analisi {lead_id}")
-            website_analysis = await extract_lead_data_from_html(html_content, website_url)
-            
-            # Aggiungi info extra per compatibilità con schema esistente
-            if not website_analysis.get("error"):
-                website_analysis["llm_used"] = "ollama:llama3:8b"
-                website_analysis["opportunity_score"] = int(website_analysis.get("confidence_score", 0.5) * 10)
-        else:
-            # Fallback a Claude se Ollama non disponibile
-            logger.warning(f"[GAIA] Ollama non disponibile, fallback a Claude per {lead_id}")
-            llm = await get_llm_chat(f"gaia_analyze_{lead_id}")
-            
-            analysis_prompt = f"""Analizza questo sito web di un potenziale lead per Evolution PRO.
-
-URL: {website_url}
-Nome: {lead.get('display_name')}
-Bio Social: {lead.get('bio', 'N/A')}
-
-HTML (estratto):
-{html_content[:15000]}
-
-Fornisci un'analisi JSON con:
-{{
-    "business_type": "tipo di business (coach, consulente, formatore, ecc.)",
-    "niche": "nicchia specifica",
-    "target_audience": "pubblico target",
-    "monetization_methods": ["metodi di monetizzazione rilevati"],
-    "existing_courses": true/false,
-    "email_capture": true/false,
-    "social_proof": ["elementi di social proof trovati"],
-    "pain_points": ["problemi potenziali che Evolution PRO potrebbe risolvere"],
-    "opportunity_score": 1-10,
-    "notes": "note aggiuntive"
-}}
-
-Rispondi SOLO con il JSON."""
-
-            from emergentintegrations.llm.chat import UserMessage
-            response = await llm.chat([UserMessage(text=analysis_prompt)])
-            
-            analysis_text = response.text.strip()
-            json_match = re.search(r'\{[\s\S]*\}', analysis_text)
-            if json_match:
-                website_analysis = json.loads(json_match.group())
-            else:
-                website_analysis = {"raw_analysis": analysis_text, "parse_error": True}
-            
-            website_analysis["llm_used"] = "claude:opus"
+        # Determina successo
+        has_error = website_analysis.get("error") or website_analysis.get("parse_error")
+        new_status = LeadStatus.DISCOVERED.value if has_error else LeadStatus.SCORED.value
         
         # Salva risultati
         await db.discovery_leads.update_one(
@@ -426,19 +379,32 @@ Rispondi SOLO con il JSON."""
             {"$set": {
                 "website_html": html_content[:10000],
                 "website_analysis": website_analysis,
-                "status": LeadStatus.SCORED.value if not website_analysis.get("parse_error") and not website_analysis.get("error") else LeadStatus.DISCOVERED.value,
+                "status": new_status,
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }}
         )
         
-        logger.info(f"[GAIA] Analisi sito completata per lead {lead_id} (LLM: {website_analysis.get('llm_used', 'unknown')})")
+        llm_used = website_analysis.get("llm_used", "unknown")
+        logger.info(f"[GAIA] Analisi completata per {lead_id} (LLM: {llm_used})")
         
         return {
-            "success": True,
+            "success": not has_error,
             "lead_id": lead_id,
             "website_analysis": website_analysis,
-            "llm_used": website_analysis.get("llm_used")
+            "llm_used": llm_used
         }
+        
+    except httpx.RequestError as e:
+        logger.error(f"[GAIA] Errore download sito {lead_id}: {e}")
+        await db.discovery_leads.update_one(
+            {"id": lead_id},
+            {"$set": {
+                "status": LeadStatus.DISCOVERED.value,
+                "website_analysis": {"error": f"Impossibile raggiungere il sito: {str(e)}"},
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        raise HTTPException(status_code=502, detail=f"Sito non raggiungibile: {website_url}")
         
     except Exception as e:
         logger.error(f"[GAIA] Errore analisi sito {lead_id}: {e}")
@@ -450,7 +416,7 @@ Rispondi SOLO con il JSON."""
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }}
         )
-        raise HTTPException(status_code=500, detail=f"Errore analisi sito: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore analisi: {e}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

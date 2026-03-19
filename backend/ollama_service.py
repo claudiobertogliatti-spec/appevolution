@@ -261,70 +261,133 @@ class OllamaService:
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TASK-SPECIFIC FUNCTIONS (Gaia, Discovery, Micro-posts)
+# Con FALLBACK AUTOMATICO a Claude quando Ollama non è disponibile
 # ═══════════════════════════════════════════════════════════════════════════════
 
 async def extract_lead_data_from_html(html_content: str, source_url: str) -> Dict[str, Any]:
     """
     [GAIA] Estrae dati strutturati da HTML di un sito web.
-    Usato per analizzare siti di potenziali lead.
+    USA OLLAMA se disponibile, altrimenti FALLBACK AUTOMATICO a Claude.
     """
     ollama = OllamaService()
     
     # Tronca HTML se troppo lungo
-    max_html_length = 15000
+    max_html_length = 12000
     if len(html_content) > max_html_length:
         html_content = html_content[:max_html_length] + "\n... [TRONCATO]"
     
-    system_prompt = """Sei un estrattore di dati specializzato. Analizza l'HTML e estrai informazioni sul professionista/azienda.
-Rispondi SOLO con JSON valido, senza altro testo."""
+    # ═══════════════════════════════════════════════════════════════════
+    # PROVA PRIMA CON OLLAMA (gratis, locale)
+    # ═══════════════════════════════════════════════════════════════════
+    ollama_available = await ollama.is_available()
+    
+    if ollama_available:
+        logger.info(f"[GAIA] Usando Ollama per analisi: {source_url}")
+        
+        system_prompt = """Sei un estrattore di dati. Analizza l'HTML e estrai info sul professionista.
+Rispondi SOLO con JSON valido."""
 
-    prompt = f"""Analizza questo HTML ed estrai le seguenti informazioni sul professionista/azienda:
+        prompt = f"""Analizza questo HTML ed estrai informazioni:
 
 URL: {source_url}
 
 HTML:
-{html_content}
+{html_content[:8000]}
 
-Estrai e rispondi con questo JSON:
+Rispondi con JSON:
 {{
-    "nome": "Nome completo della persona o azienda",
-    "titolo": "Titolo professionale o tagline",
-    "email": "Email se presente, altrimenti null",
-    "telefono": "Telefono se presente, altrimenti null",
-    "settore": "Settore/nicchia di appartenenza",
-    "servizi": ["lista", "dei", "servizi", "offerti"],
-    "social_links": {{"linkedin": "url", "instagram": "url", "youtube": "url"}},
-    "punti_forza": ["elemento1", "elemento2"],
-    "target_audience": "A chi si rivolge",
-    "has_courses": true/false,
-    "has_newsletter": true/false,
+    "nome": "Nome della persona/azienda",
+    "titolo": "Titolo professionale",
+    "email": "email o null",
+    "settore": "Settore/nicchia",
+    "servizi": ["servizio1", "servizio2"],
     "confidence_score": 0.0-1.0
-}}
+}}"""
 
-Se un campo non è trovabile, usa null. Rispondi SOLO con il JSON."""
-
-    response = await ollama.generate(
-        prompt=prompt,
-        system=system_prompt,
-        temperature=0.1,
-        format="json"
-    )
+        response = await ollama.generate(
+            prompt=prompt,
+            system=system_prompt,
+            temperature=0.1,
+            max_tokens=1000
+        )
+        
+        if response:
+            try:
+                result = json.loads(response)
+                result["llm_used"] = f"ollama:{ollama.model}"
+                result["opportunity_score"] = int(result.get("confidence_score", 0.5) * 10)
+                return result
+            except json.JSONDecodeError:
+                import re
+                json_match = re.search(r'\{[\s\S]*\}', response)
+                if json_match:
+                    try:
+                        result = json.loads(json_match.group(0))
+                        result["llm_used"] = f"ollama:{ollama.model}"
+                        result["opportunity_score"] = int(result.get("confidence_score", 0.5) * 10)
+                        return result
+                    except json.JSONDecodeError:
+                        pass
+                logger.warning("[GAIA] Ollama risposta non valida, fallback a Claude")
     
-    if not response:
-        return {"error": "Ollama non disponibile", "raw": None}
+    # ═══════════════════════════════════════════════════════════════════
+    # FALLBACK A CLAUDE (sempre disponibile)
+    # ═══════════════════════════════════════════════════════════════════
+    logger.info(f"[GAIA] Usando Claude (fallback) per analisi: {source_url}")
     
     try:
-        return json.loads(response)
-    except json.JSONDecodeError:
-        # Prova a estrarre JSON dalla risposta
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        
+        # Crea istanza LLM 
+        EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+        if not EMERGENT_KEY:
+            return {"error": "EMERGENT_LLM_KEY non configurata", "llm_used": "none"}
+        
+        llm = LlmChat(
+            api_key=EMERGENT_KEY,
+            session_id="gaia_fallback",
+            system_message="Sei GAIA, un estrattore di dati di Evolution PRO. Rispondi sempre in JSON."
+        )
+        
+        claude_prompt = f"""Analizza questo sito web e estrai informazioni sul professionista/azienda.
+
+URL: {source_url}
+
+HTML (estratto):
+{html_content[:10000]}
+
+Rispondi con questo JSON esatto:
+{{
+    "nome": "Nome completo",
+    "titolo": "Titolo professionale o tagline",
+    "email": "email se trovata, altrimenti null",
+    "settore": "Settore/nicchia",
+    "servizi": ["lista", "servizi"],
+    "target_audience": "A chi si rivolge",
+    "has_courses": true/false,
+    "opportunity_score": 1-10,
+    "notes": "note utili"
+}}
+
+Rispondi SOLO con il JSON."""
+
+        response = await llm.send_message(UserMessage(text=claude_prompt))
+        # La risposta può essere stringa o oggetto con .text
+        analysis_text = response if isinstance(response, str) else response.text
+        analysis_text = analysis_text.strip()
+        
         import re
-        json_match = re.search(r'\{[\s\S]*\}', response)
+        json_match = re.search(r'\{[\s\S]*\}', analysis_text)
         if json_match:
-            try:
-                return json.loads(json_match.group(0))
-            except:
-                pass
-        return {"error": "JSON parsing failed", "raw": response}
+            result = json.loads(json_match.group())
+            result["llm_used"] = "claude:fallback"
+            return result
+        else:
+            return {"raw_analysis": analysis_text, "llm_used": "claude:fallback", "parse_error": True}
+            
+    except Exception as e:
+        logger.error(f"[GAIA] Anche Claude fallito: {e}")
+        return {"error": str(e), "llm_used": "none"}
 
 
 async def clean_and_deduplicate_leads(leads: List[Dict]) -> Dict[str, Any]:
@@ -339,13 +402,13 @@ async def clean_and_deduplicate_leads(leads: List[Dict]) -> Dict[str, Any]:
     
     # Prepara i lead per l'analisi
     leads_summary = json.dumps([{
-        "id": l.get("id", ""),
-        "name": l.get("display_name", l.get("nome", "")),
-        "email": l.get("email", ""),
-        "platform": l.get("source", ""),
-        "username": l.get("platform_username", ""),
-        "website": l.get("website_url", "")
-    } for l in leads[:50]], indent=2)  # Max 50 lead per batch
+        "id": lead.get("id", ""),
+        "name": lead.get("display_name", lead.get("nome", "")),
+        "email": lead.get("email", ""),
+        "platform": lead.get("source", ""),
+        "username": lead.get("platform_username", ""),
+        "website": lead.get("website_url", "")
+    } for lead in leads[:50]], indent=2)  # Max 50 lead per batch
     
     system_prompt = """Sei un analista dati specializzato in lead management. 
 Analizza i lead e identifica duplicati, anomalie e problemi.
