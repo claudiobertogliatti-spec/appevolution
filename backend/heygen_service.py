@@ -66,6 +66,69 @@ class HeyGenService:
             response.raise_for_status()
             return response.json()
     
+    async def create_digital_twin(
+        self,
+        training_video_url: str,
+        consent_video_url: str,
+        avatar_name: str = "Partner Digital Twin"
+    ) -> Dict[str, Any]:
+        """
+        Create a Digital Twin avatar from training video.
+        
+        Requirements:
+        - training_video_url: MP4, min 2 minutes, min 720p, person speaking clearly
+        - consent_video_url: MP4, person giving verbal consent for avatar creation
+        
+        Returns:
+        - avatar_id: ID of the created avatar (available after processing)
+        - job_id: ID to track creation status
+        """
+        logger.info(f"[HEYGEN] Creating Digital Twin: {avatar_name}")
+        
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            try:
+                response = await client.post(
+                    f"{HEYGEN_BASE_URL}/v1/avatars/digital_twin",
+                    headers=self.headers,
+                    json={
+                        "avatar_name": avatar_name,
+                        "training_footage_url": training_video_url,
+                        "video_consent_url": consent_video_url
+                    }
+                )
+                response.raise_for_status()
+                result = response.json()
+                logger.info(f"[HEYGEN] Digital Twin creation submitted: {result}")
+                return result
+            except httpx.HTTPStatusError as e:
+                logger.error(f"[HEYGEN] Digital Twin creation failed: {e.response.status_code} - {e.response.text}")
+                raise
+    
+    async def get_avatar_creation_status(self, job_id: str) -> Dict[str, Any]:
+        """
+        Check the status of avatar creation job
+        """
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(
+                f"{HEYGEN_BASE_URL}/v1/avatars/status/{job_id}",
+                headers=self.headers
+            )
+            response.raise_for_status()
+            return response.json()
+    
+    async def get_my_avatars(self) -> Dict[str, Any]:
+        """
+        Get list of user's created avatars (including Digital Twins)
+        """
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(
+                f"{HEYGEN_BASE_URL}/v2/avatars",
+                headers=self.headers,
+                params={"type": "custom"}  # Get only custom avatars
+            )
+            response.raise_for_status()
+            return response.json()
+    
     async def clone_voice(
         self,
         audio_url: str,
