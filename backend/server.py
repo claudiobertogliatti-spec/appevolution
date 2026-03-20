@@ -151,7 +151,7 @@ class ChatRequest(BaseModel):
     user_role: Optional[str] = None      # "admin" | "partner" | "cliente"
     user_name: Optional[str] = None      # nome dell'utente loggato
     partner_id: Optional[str] = None     # id del partner (se ruolo partner)
-    agent: Optional[str] = "VALENTINA"   # agente da usare: VALENTINA, MARCO, ANDREA, GAIA, STEFANIA, MAIN
+    agent: Optional[str] = "STEFANIA"   # agente da usare: STEFANIA, MARCO, ANDREA, GAIA, STEFANIA, MAIN
 
 class VideoJob(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -581,7 +581,7 @@ class StoredFile(BaseModel):
 # =============================================================================
 
 INITIAL_AGENTS = [
-    {"id": "VALENTINA", "role": "Onboarding & Consulenza Partner", "status": "ACTIVE", "budget": 28, "category": "Strategia"},
+    {"id": "STEFANIA", "role": "Onboarding & Consulenza Partner", "status": "ACTIVE", "budget": 28, "category": "Strategia"},
     {"id": "STEFANIA", "role": "Orchestrazione", "status": "ACTIVE", "budget": 12, "category": "Comunicazione"},
     {"id": "GAIA", "role": "Tech Support", "status": "ACTIVE", "budget": 8, "category": "Supporto"},
     {"id": "ANDREA", "role": "Video Production", "status": "ACTIVE", "budget": 15, "category": "Produzione"},
@@ -599,8 +599,8 @@ INITIAL_PARTNERS = [
 
 INITIAL_ALERTS = [
     {"id": "1", "agent": "GAIA", "type": "BUDGET", "msg": "Budget al 41% — monitorare consumo mensile", "time": "14 min fa", "partner": "Marco Ferretti"},
-    {"id": "2", "agent": "VALENTINA", "type": "BLOCCO", "msg": "Sara Lombardi non ha inviato ATTIVAZIONE OK", "time": "2h fa", "partner": "Sara Lombardi"},
-    {"id": "3", "agent": "VALENTINA", "type": "BLOCCO", "msg": "Antonio Bianchi — nessuna risposta da 48h", "time": "1g fa", "partner": "Antonio Bianchi"},
+    {"id": "2", "agent": "STEFANIA", "type": "BLOCCO", "msg": "Sara Lombardi non ha inviato ATTIVAZIONE OK", "time": "2h fa", "partner": "Sara Lombardi"},
+    {"id": "3", "agent": "STEFANIA", "type": "BLOCCO", "msg": "Antonio Bianchi — nessuna risposta da 48h", "time": "1g fa", "partner": "Antonio Bianchi"},
 ]
 
 MODULES_DATA = [
@@ -856,7 +856,7 @@ INITIAL_GAIA_TEMPLATES = [
 # Initial Notifications for demo
 INITIAL_NOTIFICATIONS = [
     {"id": "n1", "type": "modulo", "icon": "✅", "title": "Modulo Completato", "body": "Marco Ferretti ha completato M4 – Editing & Branding", "time": "12 min fa", "partner": "Marco Ferretti", "read": False, "action": "partner"},
-    {"id": "n2", "type": "escalation", "icon": "🚨", "title": "Escalation VALENTINA", "body": "Sara Lombardi non risponde da 72h – richiede intervento Antonella", "time": "2h fa", "partner": "Sara Lombardi", "read": False, "action": "alert"},
+    {"id": "n2", "type": "escalation", "icon": "🚨", "title": "Escalation STEFANIA", "body": "Sara Lombardi non risponde da 72h – richiede intervento Antonella", "time": "2h fa", "partner": "Sara Lombardi", "read": False, "action": "alert"},
     {"id": "n3", "type": "video", "icon": "🎬", "title": "Video Pronto", "body": "ANDREA ha completato editing M3L2 per Luca Marini", "time": "3h fa", "partner": "Luca Marini", "read": True, "action": "andrea"},
     {"id": "n4", "type": "file", "icon": "📁", "title": "Nuovo File Caricato", "body": "Antonio Bianchi ha caricato Scheda Posizionamento.pdf", "time": "5h fa", "partner": "Antonio Bianchi", "read": True, "action": "partner"},
 ]
@@ -878,9 +878,9 @@ async def seed_database():
     if delete_result.deleted_count > 0:
         logging.info(f"Rimossi {delete_result.deleted_count} agenti ibernati: {hibernated_agents}")
     
-    # FIX B: Correggi i ruoli di VALENTINA e STEFANIA
+    # FIX B: Correggi i ruoli di STEFANIA e STEFANIA
     await db.agents.update_one(
-        {"id": "VALENTINA"},
+        {"id": "STEFANIA"},
         {"$set": {
             "role": "Onboarding & Consulenza Partner",
             "category": "Partner Contact",
@@ -895,7 +895,7 @@ async def seed_database():
             "description": "Smista le richieste agli agenti specializzati"
         }}
     )
-    logging.info("Ruoli VALENTINA e STEFANIA corretti")
+    logging.info("Ruoli STEFANIA e STEFANIA corretti")
     
     # Assicurati che MAIN esista
     main_exists = await db.agents.find_one({"id": "MAIN"})
@@ -1068,7 +1068,7 @@ async def send_partner_welcome_email(email: str, name: str):
             
             <div style="background: #1E2128; color: white; padding: 20px; border-radius: 12px; margin: 20px 0;">
                 <h3 style="color: #F2C418; margin-top: 0;">👥 Il Tuo Team</h3>
-                <p style="margin-bottom: 0;">Hai a disposizione un team di <strong>8 agenti AI</strong> coordinati da <strong>Valentina</strong>. Per qualsiasi domanda, parla con lei direttamente dall'app!</p>
+                <p style="margin-bottom: 0;">Hai a disposizione un team di <strong>8 agenti AI</strong> coordinati da <strong>Stefania</strong>. Per qualsiasi domanda, parla con lei direttamente dall'app!</p>
             </div>
             
             <p style="color: #666; font-size: 14px;">
@@ -2879,7 +2879,7 @@ async def update_partner(
     new_phase = body.get("phase")
     if new_phase and old_phase and new_phase != old_phase and partner:
         try:
-            from valentina_ai import telegram_notify
+            from stefania_ai_onboarding import telegram_notify
             await telegram_notify(
                 notification_type="phase_complete",
                 partner_name=partner.get("name") or partner.get("nome", "Partner"),
@@ -3303,7 +3303,7 @@ async def upload_partner_files(partner_id: str, files: List[UploadFile] = File(.
     # Notify admin if RAW files were uploaded
     if is_raw_bool and uploaded_files:
         try:
-            from valentina_ai import telegram_notify
+            from stefania_ai_onboarding import telegram_notify
             partner_name = partner.get("name") or partner.get("nome", "Partner")
             await telegram_notify(
                 notification_type="raw_upload",
@@ -4265,12 +4265,12 @@ async def get_all_partner_documents_summary():
     return summaries
 
 # =============================================================================
-# ROUTES - CHAT (VALENTINA)
+# ROUTES - CHAT (STEFANIA)
 # =============================================================================
 
 def build_system_prompt(partner_name: str, partner_niche: str, partner_phase: str, modules_done: int):
     phase_label = PHASE_LABELS.get(partner_phase, partner_phase)
-    return f"""Sei VALENTINA, l'agente di Onboarding & Consulenza Partner di Evolution PRO LLC. Il tuo ruolo è guidare i nuovi Partner nel percorso di onboarding e fornire consulenza strategica durante tutto il programma. Non sei un chatbot generico: sei parte del team Evolution PRO.
+    return f"""Sei STEFANIA, l'agente di Onboarding & Consulenza Partner di Evolution PRO LLC. Il tuo ruolo è guidare i nuovi Partner nel percorso di onboarding e fornire consulenza strategica durante tutto il programma. Non sei un chatbot generico: sei parte del team Evolution PRO.
 
 CONTESTO PARTNER ATTUALE:
 - Nome: {partner_name}
@@ -4354,8 +4354,8 @@ async def chat_with_agent(request: ChatRequest):
         from agent_prompts import AGENT_SYSTEM_PROMPTS, get_agent_prompt
         from emergentintegrations.llm.chat import LlmChat, UserMessage
         
-        # Determina l'agente da usare (default: VALENTINA)
-        agent_id = (request.agent or "VALENTINA").upper()
+        # Determina l'agente da usare (default: STEFANIA)
+        agent_id = (request.agent or "STEFANIA").upper()
         
         # Verifica che l'agente esista
         if agent_id not in AGENT_SYSTEM_PROMPTS:
@@ -4370,11 +4370,11 @@ async def chat_with_agent(request: ChatRequest):
         # Inietta il contesto nel system prompt
         full_system_prompt = system_prompt + "\n\n" + context_block
         
-        # Per VALENTINA, usa il modulo dedicato che ha memoria, azioni, etc.
-        if agent_id == "VALENTINA":
-            from valentina_ai import valentina_ai
+        # Per STEFANIA, usa il modulo dedicato che ha memoria, azioni, etc.
+        if agent_id == "STEFANIA":
+            from stefania_ai import stefania_ai
             
-            # Build context dictionary per VALENTINA
+            # Build context dictionary per STEFANIA
             context = {
                 "name": request.partner_name or request.user_name,
                 "phase": request.partner_phase,
@@ -4384,7 +4384,7 @@ async def chat_with_agent(request: ChatRequest):
                 "context_block": context_block
             }
             
-            response = await valentina_ai.chat(
+            response = await stefania_ai.chat(
                 partner_id=request.session_id or request.partner_id or request.partner_name or "anonymous",
                 message=request.message,
                 context=context
@@ -4437,7 +4437,7 @@ async def chat_with_agent(request: ChatRequest):
         raise
     except Exception as e:
         logging.error(f"Chat error with agent {request.agent}: {e}")
-        agent_name = (request.agent or "VALENTINA").upper()
+        agent_name = (request.agent or "STEFANIA").upper()
         fallback = f"Ciao! Sono {agent_name}. Al momento ho qualche difficoltà tecnica. Riprova tra poco!"
         return {"response": fallback, "reply": fallback, "agent": agent_name, "error": str(e)}
 
@@ -4483,7 +4483,7 @@ async def get_orchestrator_report(task_id: str):
 async def start_orchestrator_analysis(user_id: str, questionario: dict = None):
     """
     Avvia manualmente un'analisi multi-agente.
-    Normalmente viene triggerato da Valentina con "Analisi Strategica".
+    Normalmente viene triggerato da Stefania con "Analisi Strategica".
     """
     try:
         from orchestrator import trigger_strategic_analysis
@@ -4507,41 +4507,41 @@ async def start_orchestrator_analysis(user_id: str, questionario: dict = None):
 @api_router.delete("/chat/{session_id}")
 async def clear_chat_history(session_id: str):
     await db.chat_messages.delete_many({"session_id": session_id})
-    # Also reset VALENTINA LLM session to clear conversation memory
-    from valentina_ai import valentina_reset_session
-    valentina_reset_session(session_id)
+    # Also reset STEFANIA LLM session to clear conversation memory
+    from stefania_ai_onboarding import stefania_reset_session
+    stefania_reset_session(session_id)
     return {"status": "cleared", "llm_session_reset": True}
 
 @api_router.post("/chat/reset/{session_id}")
-async def reset_valentina_session(session_id: str):
-    """Reset VALENTINA's conversation memory for a session"""
-    from valentina_ai import valentina_reset_session
-    reset = valentina_reset_session(session_id)
+async def reset_stefania_session(session_id: str):
+    """Reset STEFANIA's conversation memory for a session"""
+    from stefania_ai_onboarding import stefania_reset_session
+    reset = stefania_reset_session(session_id)
     if reset:
         return {"success": True, "message": f"Session {session_id} reset successfully"}
     return {"success": True, "message": f"No active session found for {session_id}"}
 
 @api_router.get("/chat/sessions/active")
-async def get_active_valentina_sessions():
-    """Get list of active VALENTINA sessions (admin only)"""
-    from valentina_ai import valentina_get_active_sessions
-    sessions = valentina_get_active_sessions()
+async def get_active_stefania_sessions():
+    """Get list of active STEFANIA sessions (admin only)"""
+    from stefania_ai_onboarding import stefania_get_active_sessions
+    sessions = stefania_get_active_sessions()
     return {"active_sessions": sessions, "count": len(sessions)}
 
 # =============================================================================
-# VALENTINA MEMORY SYSTEM API
+# STEFANIA MEMORY SYSTEM API
 # =============================================================================
 
-from valentina_memory import valentina_memory
+from stefania_memory import stefania_memory
 
-@api_router.post("/valentina/memory/knowledge")
-async def add_valentina_knowledge(
+@api_router.post("/stefania/memory/knowledge")
+async def add_stefania_knowledge(
     category: str,
     content: str,
     user_id: str = "claudio"
 ):
     """
-    Aggiungi una conoscenza alla memoria di VALENTINA.
+    Aggiungi una conoscenza alla memoria di STEFANIA.
     
     Categories: preference, rule, decision, fact, correction
     """
@@ -4549,7 +4549,7 @@ async def add_valentina_knowledge(
     if category not in valid_categories:
         raise HTTPException(status_code=400, detail=f"Categoria non valida. Usa: {valid_categories}")
     
-    await valentina_memory.add_knowledge(
+    await stefania_memory.add_knowledge(
         user_id=user_id,
         category=category,
         content=content,
@@ -4560,16 +4560,16 @@ async def add_valentina_knowledge(
         "success": True,
         "category": category,
         "content": content,
-        "message": f"Conoscenza aggiunta alla memoria di VALENTINA"
+        "message": f"Conoscenza aggiunta alla memoria di STEFANIA"
     }
 
-@api_router.get("/valentina/memory/knowledge")
-async def get_valentina_knowledge(
+@api_router.get("/stefania/memory/knowledge")
+async def get_stefania_knowledge(
     user_id: str = "claudio",
     category: str = None
 ):
-    """Recupera la knowledge base di VALENTINA"""
-    knowledge = await valentina_memory.get_knowledge(user_id, category)
+    """Recupera la knowledge base di STEFANIA"""
+    knowledge = await stefania_memory.get_knowledge(user_id, category)
     
     return {
         "user_id": user_id,
@@ -4584,16 +4584,16 @@ async def get_valentina_knowledge(
 class AgentTaskCreate(BaseModel):
     title: str
     description: str
-    agent: str  # VALENTINA, STEFANIA, ORION, GAIA, MARTA, ATLAS, LUCA, ANDREA
+    agent: str  # STEFANIA, STEFANIA, ORION, GAIA, MARTA, ATLAS, LUCA, ANDREA
     priority: str = "medium"  # low, medium, high, urgent
     partner_id: Optional[str] = None
     due_date: Optional[str] = None
-    created_by: str = "valentina"
+    created_by: str = "stefania"
 
 @api_router.post("/agent-tasks")
 async def create_agent_task(task: AgentTaskCreate):
     """Create a task assigned to an agent"""
-    valid_agents = ["VALENTINA", "STEFANIA", "GAIA", "ANDREA", "MARCO"]
+    valid_agents = ["STEFANIA", "STEFANIA", "GAIA", "ANDREA", "MARCO"]
     if task.agent.upper() not in valid_agents:
         raise HTTPException(status_code=400, detail=f"Agente non valido. Usa: {valid_agents}")
     
@@ -4646,7 +4646,7 @@ async def get_tasks_dashboard():
     
     # Get tasks by agent
     agents_stats = {}
-    for agent in ["VALENTINA", "STEFANIA", "ANDREA", "GAIA", "MARCO"]:
+    for agent in ["STEFANIA", "STEFANIA", "ANDREA", "GAIA", "MARCO"]:
         count = await db.agent_tasks.count_documents({"agent": agent})
         if count > 0:
             agents_stats[agent] = count
@@ -4774,7 +4774,7 @@ async def get_tasks_dashboard():
     
     # Count by agent
     agents_stats = {}
-    for agent in ["VALENTINA", "STEFANIA", "GAIA", "ANDREA", "MARCO"]:
+    for agent in ["STEFANIA", "STEFANIA", "GAIA", "ANDREA", "MARCO"]:
         count = await db.agent_tasks.count_documents({"agent": agent, "status": {"$in": ["pending", "in_progress"]}})
         if count > 0:
             agents_stats[agent] = count
@@ -5034,19 +5034,19 @@ async def api_get_job_status():
         "worker_running": job_executor.running
     }
 
-@api_router.post("/valentina/memory/feedback")
-async def add_valentina_feedback(
+@api_router.post("/stefania/memory/feedback")
+async def add_stefania_feedback(
     original_response: str,
     correction: str,
     feedback_type: str = "correction",
     user_id: str = "claudio"
 ):
     """
-    Invia feedback a VALENTINA per migliorare le risposte future.
+    Invia feedback a STEFANIA per migliorare le risposte future.
     
     feedback_type: correction, improvement, positive
     """
-    await valentina_memory.save_feedback(
+    await stefania_memory.save_feedback(
         user_id=user_id,
         original_response=original_response,
         correction=correction,
@@ -5056,20 +5056,20 @@ async def add_valentina_feedback(
     return {
         "success": True,
         "feedback_type": feedback_type,
-        "message": "Feedback salvato. VALENTINA imparerà da questo!"
+        "message": "Feedback salvato. STEFANIA imparerà da questo!"
     }
 
-@api_router.get("/valentina/memory/conversations")
-async def get_valentina_conversations(
+@api_router.get("/stefania/memory/conversations")
+async def get_stefania_conversations(
     user_id: str = "claudio",
     limit: int = 50,
     only_important: bool = False
 ):
-    """Recupera lo storico conversazioni di VALENTINA"""
+    """Recupera lo storico conversazioni di STEFANIA"""
     if only_important:
-        conversations = await valentina_memory.get_important_conversations(user_id, limit)
+        conversations = await stefania_memory.get_important_conversations(user_id, limit)
     else:
-        conversations = await valentina_memory.get_recent_conversations(user_id, limit)
+        conversations = await stefania_memory.get_recent_conversations(user_id, limit)
     
     return {
         "user_id": user_id,
@@ -5077,29 +5077,29 @@ async def get_valentina_conversations(
         "count": len(conversations)
     }
 
-@api_router.post("/valentina/memory/mark-important")
+@api_router.post("/stefania/memory/mark-important")
 async def mark_conversation_important(
     user_id: str = "claudio",
     content_snippet: str = ""
 ):
     """Marca un messaggio come importante per la memoria a lungo termine"""
-    await valentina_memory.mark_as_important(user_id, content_snippet)
+    await stefania_memory.mark_as_important(user_id, content_snippet)
     
     return {
         "success": True,
         "message": "Messaggio marcato come importante"
     }
 
-@api_router.get("/valentina/memory/stats")
-async def get_valentina_memory_stats(user_id: str = "claudio"):
-    """Statistiche sulla memoria di VALENTINA"""
-    await valentina_memory.connect()
+@api_router.get("/stefania/memory/stats")
+async def get_stefania_memory_stats(user_id: str = "claudio"):
+    """Statistiche sulla memoria di STEFANIA"""
+    await stefania_memory.connect()
     
-    total_conversations = await valentina_memory.db.valentina_conversations.count_documents({"user_id": user_id})
-    important_conversations = await valentina_memory.db.valentina_conversations.count_documents({"user_id": user_id, "is_important": True})
-    knowledge_count = await valentina_memory.db.valentina_knowledge.count_documents({"user_id": user_id, "active": True})
-    feedback_count = await valentina_memory.db.valentina_feedback.count_documents({"user_id": user_id})
-    corrections_count = await valentina_memory.db.valentina_feedback.count_documents({"user_id": user_id, "feedback_type": "correction"})
+    total_conversations = await stefania_memory.db.stefania_conversations.count_documents({"user_id": user_id})
+    important_conversations = await stefania_memory.db.stefania_conversations.count_documents({"user_id": user_id, "is_important": True})
+    knowledge_count = await stefania_memory.db.stefania_knowledge.count_documents({"user_id": user_id, "active": True})
+    feedback_count = await stefania_memory.db.stefania_feedback.count_documents({"user_id": user_id})
+    corrections_count = await stefania_memory.db.stefania_feedback.count_documents({"user_id": user_id, "feedback_type": "correction"})
     
     return {
         "user_id": user_id,
@@ -5110,7 +5110,7 @@ async def get_valentina_memory_stats(user_id: str = "claudio"):
             "total_feedback": feedback_count,
             "corrections_learned": corrections_count
         },
-        "message": f"VALENTINA ha {knowledge_count} conoscenze e ha imparato da {corrections_count} correzioni"
+        "message": f"STEFANIA ha {knowledge_count} conoscenze e ha imparato da {corrections_count} correzioni"
     }
 
 # =============================================================================
@@ -6741,7 +6741,7 @@ QUANDO SCALARE A CLAUDIO:
 NON FAI MAI:
 - Non approvi contenuti sotto standard per "non scoraggiare" il partner.
 - Non dai soluzioni alternative al metodo senza autorizzazione.
-- Non gestisci domande strategiche (nicchia, pricing, posizionamento) → rimanda a VALENTINA.
+- Non gestisci domande strategiche (nicchia, pricing, posizionamento) → rimanda a STEFANIA.
 - Non gestisci problemi tecnici della piattaforma → rimanda a GAIA.
 
 Rispondi in italiano, massimo 4-5 frasi per risposta."""
@@ -9198,23 +9198,23 @@ class EnrollStudentRequest(BaseModel):
     course_id: str
     contact_id: str
 
-# --- VALENTINA: Gestione fasi partner ---
+# --- STEFANIA: Gestione fasi partner ---
 
-@api_router.post("/systeme/valentina/move-phase")
-async def valentina_move_contact_phase(request: MoveToPhaseRequest):
-    """VALENTINA: Sposta un partner a una nuova fase"""
+@api_router.post("/systeme/stefania/move-phase")
+async def stefania_move_contact_phase(request: MoveToPhaseRequest):
+    """STEFANIA: Sposta un partner a una nuova fase"""
     client = get_systeme_client()
     return await client.move_contact_to_phase(request.contact_id, request.phase)
 
-@api_router.get("/systeme/valentina/contacts-by-phase/{phase}")
-async def valentina_get_contacts_by_phase(phase: str, limit: int = 100):
-    """VALENTINA: Recupera tutti i contatti in una fase specifica"""
+@api_router.get("/systeme/stefania/contacts-by-phase/{phase}")
+async def stefania_get_contacts_by_phase(phase: str, limit: int = 100):
+    """STEFANIA: Recupera tutti i contatti in una fase specifica"""
     client = get_systeme_client()
     return await client.get_contacts_by_phase(phase, limit)
 
-@api_router.post("/systeme/valentina/notify")
-async def valentina_send_notification(request: SendNotificationRequest):
-    """VALENTINA: Invia notifica email a un partner"""
+@api_router.post("/systeme/stefania/notify")
+async def stefania_send_notification(request: SendNotificationRequest):
+    """STEFANIA: Invia notifica email a un partner"""
     client = get_systeme_client()
     return await client.send_notification_email(request.contact_id, request.notification_type)
 
@@ -10149,7 +10149,7 @@ async def log_webhook(event_type: str, payload: dict, processed: bool, actions: 
 async def send_telegram_alert(message: str):
     """Send Telegram notification for webhook events"""
     try:
-        from valentina_ai import telegram_notify
+        from stefania_ai_onboarding import telegram_notify
         await telegram_notify(
             notification_type="webhook_alert",
             message=message
@@ -11139,7 +11139,7 @@ async def get_partner_students(partner_id: str):
 # TELEGRAM NOTIFICATIONS
 # =============================================================================
 
-from valentina_ai import telegram_notifier, telegram_notify
+from stefania_ai_onboarding import telegram_notifier, telegram_notify
 
 class TelegramAdminSetup(BaseModel):
     chat_id: str
@@ -11272,7 +11272,7 @@ async def openclaw_config():
 async def telegram_webhook(request: Request):
     """
     Webhook endpoint for receiving Telegram messages.
-    Processes incoming messages and responds via VALENTINA AI.
+    Processes incoming messages and responds via STEFANIA AI.
     """
     try:
         update = await request.json()
@@ -11297,7 +11297,7 @@ async def telegram_webhook(request: Request):
             if text == "/start":
                 welcome_msg = f"""👋 <b>Ciao {user_name}!</b>
 
-Sono <b>VALENTINA</b>, l'assistente AI di Evolution PRO.
+Sono <b>STEFANIA</b>, l'assistente AI di Evolution PRO.
 
 Sono qui per aiutarti nel tuo percorso. Puoi chiedermi:
 • Informazioni sul programma
@@ -11338,9 +11338,9 @@ Se sei un partner Evolution PRO, contatta il supporto per collegare il tuo accou
                 await telegram_notifier.send_message(chat_id, status_msg)
                 return {"ok": True}
         
-        # Regular message - respond via VALENTINA
+        # Regular message - respond via STEFANIA
         try:
-            from valentina_ai import valentina_ai
+            from stefania_ai import stefania_ai
             
             # Check if this is the founder/admin
             admin_chat_id = os.environ.get("TELEGRAM_ADMIN_CHAT_ID", "")
@@ -11405,8 +11405,8 @@ Se sei un partner Evolution PRO, contatta il supporto per collegare il tuo accou
                 })
                 return {"ok": True}
             
-            # For complex messages, use VALENTINA (may use Claude)
-            response = await valentina_ai.chat(partner_id, text, context)
+            # For complex messages, use STEFANIA (may use Claude)
+            response = await stefania_ai.chat(partner_id, text, context)
             
             # Send response
             await telegram_notifier.send_message(chat_id, response)
@@ -11431,7 +11431,7 @@ Se sei un partner Evolution PRO, contatta il supporto per collegare il tuo accou
             })
             
         except Exception as ai_error:
-            logging.error(f"VALENTINA AI error: {ai_error}")
+            logging.error(f"STEFANIA AI error: {ai_error}")
             # Fallback response
             fallback_msg = f"""Mi scuso {user_name}, ma sto avendo qualche difficoltà tecnica in questo momento. 🙏
 

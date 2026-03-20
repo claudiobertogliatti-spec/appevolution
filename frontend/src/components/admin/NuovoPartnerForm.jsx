@@ -29,7 +29,7 @@ Password: ${appPassword}
 Qui troverai:
 • Il videocorso operativo passo-passo
 • I template e le risorse
-• VALENTINA, la tua assistente AI 24/7
+• STEFANIA, la tua assistente AI 24/7
 • Il tuo calendario editoriale
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -45,7 +45,7 @@ Qui accederai ai moduli formativi del tuo corso.
 
 PRIMO STEP: Accedi all'app e completa il Modulo 0 – Introduzione.
 
-Se hai domande, scrivi a VALENTINA direttamente dall'app oppure rispondi a questa email.
+Se hai domande, scrivi a STEFANIA direttamente dall'app oppure rispondi a questa email.
 
 A presto!
 Claudio B.

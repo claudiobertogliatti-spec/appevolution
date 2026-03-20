@@ -135,7 +135,7 @@ const ApprovalDashboard = () => {
       case 'LUCA': return 'bg-blue-50 text-blue-600 border-blue-200';
       case 'MARCO': return 'bg-amber-50 text-amber-600 border-amber-200';
       case 'ANDREA': return 'bg-purple-50 text-purple-600 border-purple-200';
-      case 'VALENTINA': return 'bg-rose-50 text-rose-600 border-rose-200';
+      case 'STEFANIA': return 'bg-rose-50 text-rose-600 border-rose-200';
       default: return 'bg-gray-50 text-gray-600 border-gray-200';
     }
   };

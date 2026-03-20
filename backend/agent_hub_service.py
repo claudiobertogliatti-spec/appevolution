@@ -17,7 +17,7 @@ class AgentAnalyticsHub:
     
     # 6 Core Agents as per Evolution PRO OS architecture
     AGENTS = {
-        "VALENTINA": {
+        "STEFANIA": {
             "name": "Onboarding & Consulenza",
             "category": "Partner Contact",
             "emoji": "💬",
@@ -160,9 +160,9 @@ class AgentAnalyticsHub:
             reports = await self.db.stefania_reports.count_documents({})
             metrics["daily_reports"] = reports
             
-        elif agent_id == "VALENTINA":
+        elif agent_id == "STEFANIA":
             # Conversation metrics
-            conversations = await self.db.valentina_conversations.count_documents({})
+            conversations = await self.db.stefania_conversations.count_documents({})
             metrics["total_conversations"] = conversations
             
         return metrics
@@ -190,7 +190,7 @@ class AgentAnalyticsHub:
         main_metrics = await self._calculate_agent_metrics("MAIN")
         marco_metrics = await self._calculate_agent_metrics("MARCO")
         gaia_metrics = await self._calculate_agent_metrics("GAIA")
-        valentina_metrics = await self._calculate_agent_metrics("VALENTINA")
+        stefania_metrics = await self._calculate_agent_metrics("STEFANIA")
         
         # Get MRR from dashboard_stats (updated by OPENCLAW agent)
         dashboard_data = await self.db.dashboard_stats.find_one({"_id": "overview"})
@@ -199,7 +199,7 @@ class AgentAnalyticsHub:
         # Calculate health scores based on new agent structure
         accountability_health = "🟢" if marco_metrics.get("inactive_partners", 0) < 5 else "🟡" if marco_metrics.get("inactive_partners", 0) < 15 else "🔴"
         tech_health = "🟢" if gaia_metrics.get("funnel_health") == "OK" else "🟡"
-        engagement_health = "🟢" if valentina_metrics.get("total_conversations", 0) > 50 else "🟡" if valentina_metrics.get("total_conversations", 0) > 10 else "🔴"
+        engagement_health = "🟢" if stefania_metrics.get("total_conversations", 0) > 50 else "🟡" if stefania_metrics.get("total_conversations", 0) > 10 else "🔴"
         
         return {
             "summary": {

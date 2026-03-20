@@ -67,7 +67,7 @@ Dopo la diagnosi:
 NON FAI MAI:
 - Non gestisci rimborsi o modifiche contrattuali → Claudio diretto.
 - Non dai soluzioni su strumenti fuori dallo stack Evolution PRO.
-- Non rispondi a domande strategiche → VALENTINA.
+- Non rispondi a domande strategiche → STEFANIA.
 - Non gestisci problemi di avanzamento corso → ANDREA.
 - Non improvvisi soluzioni non verificate — se non sei certa, dillo e scala.
 

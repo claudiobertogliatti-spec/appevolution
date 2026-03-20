@@ -53,7 +53,7 @@ function TutorIntro() {
   return (
     <div className="bg-white rounded-2xl border border-[#ECEDEF] p-6 mb-6">
       <div className="flex items-start gap-4">
-        {/* Avatar Valentina */}
+        {/* Avatar Stefania */}
         <div className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold flex-shrink-0"
              style={{ background: '#F2C41830', color: '#C4990A' }}>
           V
@@ -61,7 +61,7 @@ function TutorIntro() {
         
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-bold" style={{ color: '#1E2128' }}>Valentina</span>
+            <span className="font-bold" style={{ color: '#1E2128' }}>Stefania</span>
             <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#F2C41820', color: '#92700C' }}>
               Strategic Guide
             </span>

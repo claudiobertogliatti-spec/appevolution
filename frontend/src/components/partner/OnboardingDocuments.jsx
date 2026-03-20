@@ -390,7 +390,7 @@ export function OnboardingDocuments({ partner, onComplete }) {
           </a>
           <span className="text-white/40">•</span>
           <span className="text-white/60">
-            oppure parla con VALENTINA dall'app
+            oppure parla con STEFANIA dall'app
           </span>
         </div>
       </div>

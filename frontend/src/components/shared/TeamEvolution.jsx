@@ -7,8 +7,8 @@ import {
 // Agent configuration with Evolution PRO colors - 6 Core Agents
 const AGENTS = [
   {
-    id: "valentina",
-    name: "Valentina",
+    id: "stefania",
+    name: "Stefania",
     role: "Onboarding & Consulenza",
     icon: Link2,
     color: "#EC4899",
@@ -298,7 +298,7 @@ export function TeamEvolution({ isAdmin = false }) {
           </div>
           <ArrowRight className="w-5 h-5" style={{ color: '#9CA3AF' }} />
           <div className="px-4 py-2 rounded-xl font-bold text-sm" style={{ background: '#E87CA020', color: '#E87CA0' }}>
-            ⚡ Valentina coordina
+            ⚡ Stefania coordina
           </div>
           <ArrowRight className="w-5 h-5" style={{ color: '#9CA3AF' }} />
           <div className="px-4 py-2 rounded-xl font-bold text-sm" style={{ background: '#1E212810', color: '#1E2128' }}>

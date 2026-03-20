@@ -73,7 +73,7 @@ export function LoginPage({ onLogin }) {
               </h1>
               
               <p className="text-lg text-[#5F6572] mb-8 leading-relaxed">
-                Un team di agenti AI (VALENTINA, ANDREA, MARCO, GAIA, STEFANIA) + Claudio e Antonella 
+                Un team di agenti AI (STEFANIA, ANDREA, MARCO, GAIA, STEFANIA) + Claudio e Antonella 
                 ti guidano dall'idea al tuo primo studente in 60 giorni.
               </p>
 
@@ -116,7 +116,7 @@ export function LoginPage({ onLogin }) {
                 { icon: FileText, title: "Dashboard Personalizzata", desc: "Gestisci tutto da un unico pannello", color: "#3B82F6" },
                 { icon: Target, title: "Percorso Guidato", desc: "Step-by-step verso il lancio", color: "#8B5CF6" },
                 { icon: Video, title: "Produzione Video", desc: "Assistenza professionale AI", color: "#EC4899" },
-                { icon: Sparkles, title: "AI Assistant", desc: "VALENTINA ti guida 24/7", color: "#F5C518" }
+                { icon: Sparkles, title: "AI Assistant", desc: "STEFANIA ti guida 24/7", color: "#F5C518" }
               ].map((item, i) => (
                 <div 
                   key={i} 

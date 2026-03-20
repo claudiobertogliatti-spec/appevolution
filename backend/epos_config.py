@@ -9,7 +9,7 @@ dal questionario alla partnership operativa a 12 mesi.
 Coordina:
 - NotebookLM (conoscenza)
 - OpenClaw (azione web)
-- Team AI (Valentina, Stefania, Andrea, Marco, Gaia, Antonella)
+- Team AI (Stefania, Stefania, Andrea, Marco, Gaia, Antonella)
 """
 
 import os
@@ -56,7 +56,7 @@ PROTOCOLLO_ANALISI = {
             "descrizione": "Coordina team per generazione report 21 sezioni",
             "assegnazioni": {
                 "STEFANIA": ["01_introduzione", "02_chi_siamo", "03_come_funziona", "04_glossario", "05_disclaimer", "21_prossimi_passi"],
-                "VALENTINA": ["07_problema_risolto", "08_target_ideale"],
+                "STEFANIA": ["07_problema_risolto", "08_target_ideale"],
                 "ANDREA": ["15_struttura_corso", "16_modello_monetizzazione"],
                 "MARCO": ["14_criticita", "18_roadmap", "06_profilo_professionale", "20_valutazione_finale"],
                 "GAIA": ["17_costo_opportunita", "19_investimento"],
@@ -111,7 +111,7 @@ FASI_PARTNERSHIP = [
         "numero": 1,
         "nome": "POSIZIONAMENTO",
         "codice": "F1",
-        "agente_principale": "VALENTINA",
+        "agente_principale": "STEFANIA",
         "descrizione": "Estrazione metodo E.V.O. - Definizione posizionamento unico",
         "durata_settimane": "2-3",
         "deliverable": ["Documento posizionamento", "USP definita", "Naming prodotto"]
@@ -201,7 +201,7 @@ ERROR_HANDLING = {
         "messaggio": "La ricerca web non ha prodotto risultati significativi. Questo indica una criticità primaria: invisibilità digitale del partner."
     },
     "questionario_incompleto": {
-        "azione": "sollecito_valentina",
+        "azione": "sollecito_stefania",
         "timeout_ore": 24,
         "canali": ["telegram", "email"],
         "messaggio": "Ciao! Ho notato che il tuo questionario non è ancora completo. Completa le ultime domande per ricevere la tua Analisi Strategica."

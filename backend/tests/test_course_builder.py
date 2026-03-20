@@ -126,7 +126,7 @@ class TestAgentsAPI:
         assert len(agents) == 9, f"Expected 9 agents, got {len(agents)}"
         
         # Verify all expected agents are present
-        expected_agents = ["MAIN", "VALENTINA", "ORION", "MARTA", "GAIA", "ANDREA", "STEFANIA", "LUCA", "ATLAS"]
+        expected_agents = ["MAIN", "STEFANIA", "ORION", "MARTA", "GAIA", "ANDREA", "STEFANIA", "LUCA", "ATLAS"]
         agent_ids = [a["id"] for a in agents]
         
         for expected in expected_agents:

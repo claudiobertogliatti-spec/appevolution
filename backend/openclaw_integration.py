@@ -11,7 +11,7 @@ esterne quando il worker di Emergent fallisce.
 Architettura:
 Claudio/Antonella (supervisione) 
     ↓
-Valentina (cervello - coordina)
+Stefania (cervello - coordina)
     ↓ task.status = "failed"?
 Telegram → OpenClaw (locale)
     ↓
@@ -319,7 +319,7 @@ async def send_openclaw_task(task: OpenClawTask, db=None) -> Dict:
 
 
 # ============================================================================
-# FUNZIONE FALLBACK: CHIAMATA DA VALENTINA QUANDO WORKER FALLISCE
+# FUNZIONE FALLBACK: CHIAMATA DA STEFANIA QUANDO WORKER FALLISCE
 # ============================================================================
 
 async def request_openclaw_fallback(
@@ -334,7 +334,7 @@ async def request_openclaw_fallback(
     """
     Richiede a OpenClaw di eseguire un task dopo che il worker ha fallito.
     
-    Questa funzione viene chiamata da Valentina quando:
+    Questa funzione viene chiamata da Stefania quando:
     1. Un task ha status "failed"
     2. L'errore è TECNICO (timeout, API error, rate limit)
     3. Il task è Categoria A, oppure Categoria B già approvato

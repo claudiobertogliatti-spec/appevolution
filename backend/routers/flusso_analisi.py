@@ -1040,7 +1040,7 @@ async def valida_analisi(user_id: str, invia_spoiler: bool = True):
         
         if telegram_chat_id:
             try:
-                from valentina_ai import telegram_notify
+                from stefania_ai_onboarding import telegram_notify
                 
                 spoiler_result = await telegram_notify(
                     "spoiler_strategico",
@@ -1060,7 +1060,7 @@ async def valida_analisi(user_id: str, invia_spoiler: bool = True):
             
             # Invia comunque notifica all'admin
             try:
-                from valentina_ai import telegram_notify
+                from stefania_ai_onboarding import telegram_notify
                 nome = f"{user.get('nome', '')} {user.get('cognome', '')}"
                 await telegram_notify(
                     "alert",

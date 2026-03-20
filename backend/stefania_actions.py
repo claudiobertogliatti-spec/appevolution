@@ -1,6 +1,6 @@
 """
-VALENTINA Action Dispatcher - Execute Real Tasks
-This module allows VALENTINA to execute actual actions via the Evolution PRO system
+STEFANIA Action Dispatcher - Execute Real Tasks
+This module allows STEFANIA to execute actual actions via the Evolution PRO system
 """
 
 import logging
@@ -32,7 +32,7 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[db_name]
 
 
-# Available actions that VALENTINA can execute
+# Available actions that STEFANIA can execute
 # scope: "internal" = solo admin/Claudio, "external" = partner, "both" = entrambi
 AVAILABLE_ACTIONS = {
     # =========================================================================
@@ -261,40 +261,40 @@ AVAILABLE_ACTIONS = {
     },
     
     # =========================================================================
-    # VALENTINA - Partner Management
+    # STEFANIA - Partner Management
     # =========================================================================
     "get_partner_status": {
-        "agent": "VALENTINA",
+        "agent": "STEFANIA",
         "scope": "internal",  # Admin vede status di tutti
         "description": "Stato dettagliato di un partner",
         "keywords": ["stato partner", "situazione partner", "come sta", "a che punto è"]
     },
     "list_blocked_partners": {
-        "agent": "VALENTINA",
+        "agent": "STEFANIA",
         "scope": "internal",  # Solo admin vede partner bloccati
         "description": "Partner bloccati che necessitano attenzione",
         "keywords": ["partner bloccati", "blocchi", "chi è fermo", "partner fermi"]
     },
     "get_my_status": {
-        "agent": "VALENTINA",
+        "agent": "STEFANIA",
         "scope": "external",
         "description": "Mostra stato attuale del partner e prossimi passi",
         "keywords": ["mio stato", "dove sono", "prossimo passo", "cosa devo fare"]
     },
     "get_phase_info": {
-        "agent": "VALENTINA",
+        "agent": "STEFANIA",
         "scope": "external",
         "description": "Spiega cosa fare nella fase attuale",
         "keywords": ["cosa fare", "questa fase", "obiettivo fase", "aiutami"]
     },
     "move_partner_phase": {
-        "agent": "VALENTINA",
+        "agent": "STEFANIA",
         "scope": "internal",  # Solo admin può spostare fasi
         "description": "Sposta un partner alla fase successiva",
         "keywords": ["sposta fase", "avanza fase", "promuovi partner", "passa a fase"]
     },
     "send_partner_reminder": {
-        "agent": "VALENTINA",
+        "agent": "STEFANIA",
         "description": "Invia reminder a un partner",
         "keywords": ["invia reminder", "sollecita", "ricorda a", "notifica partner"]
     },
@@ -335,9 +335,9 @@ AVAILABLE_ACTIONS = {
 }
 
 
-class ValentinaActionDispatcher:
+class StefaniaActionDispatcher:
     """
-    Dispatcher that allows VALENTINA to execute real actions
+    Dispatcher that allows STEFANIA to execute real actions
     """
     
     def __init__(self):
@@ -419,7 +419,7 @@ class ValentinaActionDispatcher:
             elif action_id == "get_partner_revenue":
                 return await self._get_partner_revenue(context)
             
-            # VALENTINA actions
+            # STEFANIA actions
             elif action_id == "list_blocked_partners":
                 return await self._list_blocked_partners()
             elif action_id == "get_partner_status":
@@ -583,7 +583,7 @@ class ValentinaActionDispatcher:
             },
             "priority": "high",
             "status": "pending",
-            "created_by": "valentina",
+            "created_by": "stefania",
             "created_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
@@ -916,7 +916,7 @@ class ValentinaActionDispatcher:
         if not blocked:
             return {
                 "success": True,
-                "agent": "VALENTINA",
+                "agent": "STEFANIA",
                 "data": {"partners": []},
                 "message": "✅ Nessun partner bloccato al momento! Tutti i partner stanno procedendo regolarmente."
             }
@@ -925,7 +925,7 @@ class ValentinaActionDispatcher:
         
         return {
             "success": True,
-            "agent": "VALENTINA",
+            "agent": "STEFANIA",
             "data": {"partners": blocked, "count": len(blocked)},
             "message": f"⚠️ **Partner che richiedono attenzione**\n\n{partner_list}\n\nVuoi che contatti qualcuno di loro?"
         }
@@ -949,7 +949,7 @@ class ValentinaActionDispatcher:
             
             return {
                 "success": True,
-                "agent": "VALENTINA",
+                "agent": "STEFANIA",
                 "data": {"total": total, "by_phase": by_phase},
                 "message": f"👥 **Stato Partner**\n\nTotale partner attivi: {total}\n\n**Per fase:**\n{phase_breakdown}"
             }
@@ -968,7 +968,7 @@ class ValentinaActionDispatcher:
         
         return {
             "success": True,
-            "agent": "VALENTINA",
+            "agent": "STEFANIA",
             "data": partner,
             "message": f"📋 **{partner['name']}**\n\n• Fase: {partner.get('phase', 'N/A')}\n• Nicchia: {partner.get('niche', 'N/A')}\n• Revenue: €{partner.get('revenue', 0):,}\n• Alert: {'⚠️ Sì' if partner.get('alert') else '✅ No'}"
         }
@@ -1023,11 +1023,11 @@ class ValentinaActionDispatcher:
         task_doc = {
             "id": str(uuid.uuid4()),
             "title": "Genera copy email",
-            "description": "Richiesta copy email da VALENTINA",
+            "description": "Richiesta copy email da STEFANIA",
             "agent": "STEFANIA",
             "priority": "medium",
             "status": "pending",
-            "created_by": "valentina",
+            "created_by": "stefania",
             "created_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
@@ -1118,11 +1118,11 @@ class ValentinaActionDispatcher:
         task_doc = {
             "id": str(uuid.uuid4()),
             "title": "Editing Video",
-            "description": "Richiesta editing video da VALENTINA",
+            "description": "Richiesta editing video da STEFANIA",
             "agent": "ANDREA",
             "priority": "medium",
             "status": "pending",
-            "created_by": "valentina",
+            "created_by": "stefania",
             "created_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
@@ -1199,7 +1199,7 @@ class ValentinaActionDispatcher:
             },
             "priority": "high",
             "status": "pending",
-            "created_by": "valentina",
+            "created_by": "stefania",
             "created_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
@@ -1239,7 +1239,7 @@ class ValentinaActionDispatcher:
             },
             "priority": "high",
             "status": "pending",
-            "created_by": "valentina",
+            "created_by": "stefania",
             "created_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
@@ -1362,7 +1362,7 @@ class ValentinaActionDispatcher:
         
         return {
             "success": True,
-            "agent": "VALENTINA",
+            "agent": "STEFANIA",
             "data": {"phase": partner_phase, "name": partner_name},
             "message": f"📊 **Il Tuo Stato Attuale, {partner_name}**\n\n🎯 **Fase:** {partner_phase} - {current_info['name']}\n\n✅ **Prossimo passo:**\n{current_info['next']}\n\nHai bisogno di aiuto con questo step? Chiedimi pure!"
         }
@@ -1391,7 +1391,7 @@ class ValentinaActionDispatcher:
                     "🎯 Definisci la tua nicchia specifica",
                     "💡 Chiarisci la tua proposta di valore unica"
                 ],
-                "agente": "Io (VALENTINA) ti guido in questo processo"
+                "agente": "Io (STEFANIA) ti guido in questo processo"
             },
             "F2": {
                 "title": "Posizionamento",
@@ -1489,14 +1489,14 @@ class ValentinaActionDispatcher:
             "title": "Fase non riconosciuta",
             "obiettivo": "Contatta il supporto",
             "tasks": ["Verifica la tua fase con il team"],
-            "agente": "VALENTINA"
+            "agente": "STEFANIA"
         })
         
         tasks_list = "\n".join(info["tasks"])
         
         return {
             "success": True,
-            "agent": "VALENTINA",
+            "agent": "STEFANIA",
             "message": f"📚 **{partner_phase} - {info['title']}**\n\n🎯 **Obiettivo:**\n{info['obiettivo']}\n\n📋 **Cosa fare:**\n{tasks_list}\n\n👤 **Chi ti aiuta:** {info['agente']}\n\nVuoi iniziare con il primo task?"
         }
     
@@ -1735,7 +1735,7 @@ class ValentinaActionDispatcher:
     
     async def log_action(self, action_id: str, result: Dict, user_id: str):
         """Log executed action for tracking"""
-        await db.valentina_actions.insert_one({
+        await db.stefania_actions.insert_one({
             "action_id": action_id,
             "user_id": user_id,
             "result": result,
@@ -1744,7 +1744,7 @@ class ValentinaActionDispatcher:
 
 
 # Singleton instance
-action_dispatcher = ValentinaActionDispatcher()
+action_dispatcher = StefaniaActionDispatcher()
 
 
 async def detect_and_execute_action(message: str, context: Dict = None, is_internal: bool = False) -> Optional[Dict]:

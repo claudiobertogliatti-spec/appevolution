@@ -364,6 +364,4 @@ export function StefaniaChat({ partner, onBack, isAdmin = false }) {
   );
 }
 
-// Export anche come ValentinaChat per retrocompatibilità durante la migrazione
-export const ValentinaChat = StefaniaChat;
 export default StefaniaChat;

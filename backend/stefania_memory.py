@@ -1,5 +1,5 @@
 # =============================================================================
-# VALENTINA MEMORY SYSTEM
+# STEFANIA MEMORY SYSTEM
 # Persistent Memory, Knowledge Base & Learning from Feedback
 # =============================================================================
 
@@ -25,9 +25,9 @@ else:
     MONGO_URL = _mongo_url
     DB_NAME = _db_name or "evolution_pro"
 
-class ValentinaMemory:
+class StefaniaMemory:
     """
-    Sistema di memoria persistente per VALENTINA.
+    Sistema di memoria persistente per STEFANIA.
     
     3 livelli di memoria:
     1. Conversational Memory - storico conversazioni
@@ -70,7 +70,7 @@ class ValentinaMemory:
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
         
-        await self.db.valentina_conversations.insert_one(message)
+        await self.db.stefania_conversations.insert_one(message)
         
         # Se è importante, salvalo anche nella knowledge base
         if is_important:
@@ -85,7 +85,7 @@ class ValentinaMemory:
         """Recupera le conversazioni recenti"""
         await self.connect()
         
-        messages = await self.db.valentina_conversations.find(
+        messages = await self.db.stefania_conversations.find(
             {"user_id": user_id},
             {"_id": 0}
         ).sort("timestamp", -1).limit(limit).to_list(limit)
@@ -96,7 +96,7 @@ class ValentinaMemory:
         """Recupera solo i messaggi importanti"""
         await self.connect()
         
-        messages = await self.db.valentina_conversations.find(
+        messages = await self.db.stefania_conversations.find(
             {"user_id": user_id, "is_important": True},
             {"_id": 0}
         ).sort("timestamp", -1).limit(limit).to_list(limit)
@@ -107,7 +107,7 @@ class ValentinaMemory:
         """Marca un messaggio come importante"""
         await self.connect()
         
-        await self.db.valentina_conversations.update_many(
+        await self.db.stefania_conversations.update_many(
             {"user_id": user_id, "content": {"$regex": content_snippet, "$options": "i"}},
             {"$set": {"is_important": True}}
         )
@@ -144,20 +144,20 @@ class ValentinaMemory:
         }
         
         # Evita duplicati
-        existing = await self.db.valentina_knowledge.find_one({
+        existing = await self.db.stefania_knowledge.find_one({
             "user_id": user_id,
             "category": category,
             "content": content
         })
         
         if existing:
-            await self.db.valentina_knowledge.update_one(
+            await self.db.stefania_knowledge.update_one(
                 {"_id": existing["_id"]},
                 {"$set": {"updated_at": datetime.now(timezone.utc).isoformat()},
                  "$inc": {"usage_count": 1}}
             )
         else:
-            await self.db.valentina_knowledge.insert_one(knowledge)
+            await self.db.stefania_knowledge.insert_one(knowledge)
     
     async def get_knowledge(self, user_id: str, category: str = None, 
                            limit: int = 50) -> List[Dict]:
@@ -168,7 +168,7 @@ class ValentinaMemory:
         if category:
             query["category"] = category
         
-        knowledge = await self.db.valentina_knowledge.find(
+        knowledge = await self.db.stefania_knowledge.find(
             query,
             {"_id": 0}
         ).sort("usage_count", -1).limit(limit).to_list(limit)
@@ -178,11 +178,11 @@ class ValentinaMemory:
     async def get_all_knowledge_for_prompt(self, user_id: str) -> str:
         """
         Genera una stringa con tutta la knowledge base per il prompt.
-        Formattata per essere inclusa nel system prompt di VALENTINA.
+        Formattata per essere inclusa nel system prompt di STEFANIA.
         """
         await self.connect()
         
-        knowledge = await self.db.valentina_knowledge.find(
+        knowledge = await self.db.stefania_knowledge.find(
             {"user_id": user_id, "active": True},
             {"_id": 0}
         ).sort("usage_count", -1).limit(30).to_list(30)
@@ -238,7 +238,7 @@ class ValentinaMemory:
         """Disattiva una conoscenza (non la elimina)"""
         await self.connect()
         
-        await self.db.valentina_knowledge.update_many(
+        await self.db.stefania_knowledge.update_many(
             {"user_id": user_id, "content": {"$regex": content_snippet, "$options": "i"}},
             {"$set": {"active": False}}
         )
@@ -268,7 +268,7 @@ class ValentinaMemory:
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         
-        await self.db.valentina_feedback.insert_one(feedback)
+        await self.db.stefania_feedback.insert_one(feedback)
         
         # Se è una correzione, aggiungila alla knowledge base
         if feedback_type == "correction":
@@ -283,7 +283,7 @@ class ValentinaMemory:
         """Recupera le correzioni recenti per evitare errori ripetuti"""
         await self.connect()
         
-        corrections = await self.db.valentina_feedback.find(
+        corrections = await self.db.stefania_feedback.find(
             {"user_id": user_id, "feedback_type": "correction"},
             {"_id": 0}
         ).sort("created_at", -1).limit(limit).to_list(limit)
@@ -294,7 +294,7 @@ class ValentinaMemory:
         """Recupera esempi positivi da replicare"""
         await self.connect()
         
-        examples = await self.db.valentina_feedback.find(
+        examples = await self.db.stefania_feedback.find(
             {"user_id": user_id, "feedback_type": "positive"},
             {"_id": 0}
         ).sort("created_at", -1).limit(limit).to_list(limit)
@@ -307,7 +307,7 @@ class ValentinaMemory:
     
     async def get_full_context_for_prompt(self, user_id: str) -> str:
         """
-        Genera il contesto completo per il prompt di VALENTINA.
+        Genera il contesto completo per il prompt di STEFANIA.
         Include: conversazioni recenti, knowledge base, correzioni.
         """
         await self.connect()
@@ -325,7 +325,7 @@ class ValentinaMemory:
         if important:
             parts.append("\n=== CONVERSAZIONI IMPORTANTI RECENTI ===")
             for msg in important[-3:]:  # Ultimi 3
-                role = "Claudio" if msg["role"] == "user" else "VALENTINA"
+                role = "Claudio" if msg["role"] == "user" else "STEFANIA"
                 parts.append(f"{role}: {msg['content'][:200]}...")
         
         # 3. Correzioni da evitare
@@ -371,4 +371,4 @@ class ValentinaMemory:
 
 
 # Singleton instance
-valentina_memory = ValentinaMemory()
+stefania_memory = StefaniaMemory()

@@ -74,7 +74,7 @@ class TestAgentsEndpoint:
         assert "MARCO" in agent_ids, f"MARCO not found in agents: {agent_ids}"
         
         # Verify all expected agents are present
-        expected_agents = ["STEFANIA", "VALENTINA", "MAIN", "GAIA", "ANDREA", "MARCO"]
+        expected_agents = ["STEFANIA", "STEFANIA", "MAIN", "GAIA", "ANDREA", "MARCO"]
         for expected in expected_agents:
             assert expected in agent_ids, f"{expected} not found in agents: {agent_ids}"
     
