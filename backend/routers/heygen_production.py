@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 import logging
 import os
 import asyncio
+import httpx
 
 router = APIRouter(prefix="/api/heygen", tags=["heygen-production"])
 
@@ -57,6 +58,19 @@ class AvatarSetupRequest(BaseModel):
 
 class VideoStatusRequest(BaseModel):
     video_id: str
+
+
+class DigitalTwinRequest(BaseModel):
+    """Request per creare un Digital Twin da video"""
+    partner_id: str
+    training_video_url: str  # URL del video di training (min 2 min, 720p+)
+    consent_video_url: str   # URL del video di consenso
+    
+
+class DigitalTwinStatusRequest(BaseModel):
+    """Request per controllare lo stato della creazione avatar"""
+    partner_id: str
+    job_id: str
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -281,6 +295,266 @@ async def setup_partner_avatar(request: AvatarSetupRequest):
             {"$set": {"avatar_status": "NOT_ACTIVE"}}
         )
         raise HTTPException(status_code=500, detail=f"Errore setup avatar: {e}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ENDPOINT 1B: CREA DIGITAL TWIN (Avatar Clone da Video)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.post("/create-digital-twin")
+async def create_digital_twin(request: DigitalTwinRequest, background_tasks: BackgroundTasks):
+    """
+    Crea un Digital Twin (clone avatar) dal video del partner.
+    
+    Requisiti video training:
+    - Durata: minimo 2 minuti
+    - Risoluzione: minimo 720p
+    - Contenuto: persona che parla chiaramente, buona illuminazione
+    
+    Requisiti video consenso:
+    - Il partner legge la dichiarazione di consenso HeyGen
+    - "I, [nome], consent to the creation of a digital avatar..."
+    
+    Flow:
+    1. Partner carica video training + consenso → vengono uploadati su storage
+    2. URLs passati a HeyGen API per creazione Digital Twin
+    3. HeyGen elabora (5-30 minuti) → avatar pronto
+    4. Partner status aggiornato a ACTIVE con heygen_id
+    """
+    if not heygen_service:
+        raise HTTPException(status_code=500, detail="HeyGen service non inizializzato")
+    
+    partner = await db.partners.find_one({"id": request.partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner non trovato")
+    
+    partner_name = partner.get("name") or partner.get("nome", "Partner")
+    
+    # Aggiorna status a "in creazione"
+    await db.partners.update_one(
+        {"id": request.partner_id},
+        {"$set": {
+            "avatar_status": "CREATING",
+            "avatar_creation_started": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    try:
+        # Chiama HeyGen API per creare Digital Twin
+        logger.info(f"[HEYGEN] Avvio creazione Digital Twin per {partner_name}")
+        
+        result = await heygen_service.create_digital_twin(
+            training_video_url=request.training_video_url,
+            consent_video_url=request.consent_video_url,
+            avatar_name=f"{partner_name} - Evolution PRO"
+        )
+        
+        # Estrai job_id dalla risposta
+        job_id = result.get("data", {}).get("job_id") or result.get("job_id")
+        
+        if not job_id:
+            logger.warning(f"[HEYGEN] Risposta senza job_id: {result}")
+            # Potrebbe essere un avatar già creato direttamente
+            avatar_id = result.get("data", {}).get("avatar_id") or result.get("avatar_id")
+            if avatar_id:
+                # Avatar già pronto
+                await db.partners.update_one(
+                    {"id": request.partner_id},
+                    {"$set": {
+                        "heygen_id": avatar_id,
+                        "avatar_status": "ACTIVE",
+                        "avatar_created_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                return {
+                    "success": True,
+                    "partner_id": request.partner_id,
+                    "avatar_id": avatar_id,
+                    "status": "completed",
+                    "message": "Digital Twin creato con successo!"
+                }
+        
+        # Salva job nella collection per tracking
+        await db.avatar_creation_jobs.insert_one({
+            "partner_id": request.partner_id,
+            "job_id": job_id,
+            "partner_name": partner_name,
+            "training_video_url": request.training_video_url,
+            "status": "processing",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        
+        # Aggiorna partner con job_id
+        await db.partners.update_one(
+            {"id": request.partner_id},
+            {"$set": {
+                "avatar_job_id": job_id,
+                "avatar_status": "PROCESSING"
+            }}
+        )
+        
+        # Avvia background task per polling status
+        background_tasks.add_task(
+            poll_avatar_creation_status,
+            request.partner_id,
+            job_id,
+            partner_name
+        )
+        
+        # Notifica Telegram
+        await send_telegram_notification(
+            f"🎭 *Creazione Digital Twin Avviata*\n\n"
+            f"👤 Partner: {partner_name}\n"
+            f"🆔 Job ID: `{job_id}`\n"
+            f"⏳ Elaborazione in corso (5-30 min)..."
+        )
+        
+        return {
+            "success": True,
+            "partner_id": request.partner_id,
+            "job_id": job_id,
+            "status": "processing",
+            "message": "Creazione Digital Twin avviata! Elaborazione in corso (5-30 minuti). Riceverai una notifica quando sarà pronto."
+        }
+        
+    except httpx.HTTPStatusError as e:
+        error_detail = f"HeyGen API error: {e.response.status_code}"
+        try:
+            error_body = e.response.json()
+            error_detail = error_body.get("message", error_detail)
+        except:
+            pass
+        
+        logger.error(f"[HEYGEN] Errore creazione Digital Twin: {error_detail}")
+        await db.partners.update_one(
+            {"id": request.partner_id},
+            {"$set": {"avatar_status": "CREATION_FAILED", "avatar_error": error_detail}}
+        )
+        raise HTTPException(status_code=500, detail=error_detail)
+        
+    except Exception as e:
+        logger.error(f"[HEYGEN] Errore creazione Digital Twin: {e}")
+        await db.partners.update_one(
+            {"id": request.partner_id},
+            {"$set": {"avatar_status": "CREATION_FAILED", "avatar_error": str(e)}}
+        )
+        raise HTTPException(status_code=500, detail=f"Errore creazione avatar: {e}")
+
+
+async def poll_avatar_creation_status(partner_id: str, job_id: str, partner_name: str, max_attempts: int = 60):
+    """
+    Background task per controllare lo stato della creazione avatar.
+    Polling ogni 30 secondi per max 30 minuti.
+    """
+    import asyncio
+    
+    for attempt in range(max_attempts):
+        await asyncio.sleep(30)  # Aspetta 30 secondi tra i check
+        
+        try:
+            status_result = await heygen_service.get_avatar_creation_status(job_id)
+            status = status_result.get("data", {}).get("status") or status_result.get("status")
+            
+            logger.info(f"[HEYGEN] Avatar creation status check #{attempt+1}: {status}")
+            
+            if status == "completed":
+                avatar_id = status_result.get("data", {}).get("avatar_id") or status_result.get("avatar_id")
+                
+                # Aggiorna partner
+                await db.partners.update_one(
+                    {"id": partner_id},
+                    {"$set": {
+                        "heygen_id": avatar_id,
+                        "avatar_status": "ACTIVE",
+                        "avatar_created_at": datetime.now(timezone.utc).isoformat(),
+                        "avatar_job_id": None  # Rimuovi job_id
+                    }}
+                )
+                
+                # Aggiorna job
+                await db.avatar_creation_jobs.update_one(
+                    {"job_id": job_id},
+                    {"$set": {"status": "completed", "avatar_id": avatar_id, "completed_at": datetime.now(timezone.utc).isoformat()}}
+                )
+                
+                # Notifica
+                await send_telegram_notification(
+                    f"✅ *Digital Twin Completato!*\n\n"
+                    f"👤 Partner: {partner_name}\n"
+                    f"🆔 Avatar ID: `{avatar_id}`\n"
+                    f"🎬 Pronto per generare video!"
+                )
+                
+                logger.info(f"[HEYGEN] Digital Twin creato con successo per {partner_name}: {avatar_id}")
+                return
+                
+            elif status in ["failed", "error"]:
+                error_msg = status_result.get("data", {}).get("error", "Creazione fallita")
+                
+                await db.partners.update_one(
+                    {"id": partner_id},
+                    {"$set": {"avatar_status": "CREATION_FAILED", "avatar_error": error_msg}}
+                )
+                
+                await db.avatar_creation_jobs.update_one(
+                    {"job_id": job_id},
+                    {"$set": {"status": "failed", "error": error_msg}}
+                )
+                
+                await send_telegram_notification(
+                    f"❌ *Creazione Digital Twin Fallita*\n\n"
+                    f"👤 Partner: {partner_name}\n"
+                    f"⚠️ Errore: {error_msg}"
+                )
+                
+                logger.error(f"[HEYGEN] Digital Twin creation failed for {partner_name}: {error_msg}")
+                return
+                
+        except Exception as e:
+            logger.warning(f"[HEYGEN] Error checking avatar status: {e}")
+            continue
+    
+    # Timeout - max attempts raggiunto
+    logger.warning(f"[HEYGEN] Avatar creation timeout for {partner_name}")
+    await db.partners.update_one(
+        {"id": partner_id},
+        {"$set": {"avatar_status": "CREATION_TIMEOUT"}}
+    )
+
+
+@router.get("/avatar-creation-status/{partner_id}")
+async def get_avatar_creation_status(partner_id: str):
+    """
+    Controlla lo stato della creazione avatar per un partner.
+    """
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner non trovato")
+    
+    job_id = partner.get("avatar_job_id")
+    
+    # Se c'è un job in corso, controlla lo stato
+    if job_id and heygen_service:
+        try:
+            status_result = await heygen_service.get_avatar_creation_status(job_id)
+            return {
+                "partner_id": partner_id,
+                "avatar_status": partner.get("avatar_status"),
+                "job_id": job_id,
+                "heygen_status": status_result.get("data", {}).get("status") or status_result.get("status"),
+                "heygen_id": partner.get("heygen_id")
+            }
+        except Exception as e:
+            logger.warning(f"[HEYGEN] Error checking status: {e}")
+    
+    return {
+        "partner_id": partner_id,
+        "avatar_status": partner.get("avatar_status"),
+        "heygen_id": partner.get("heygen_id"),
+        "avatar_created_at": partner.get("avatar_created_at"),
+        "avatar_error": partner.get("avatar_error")
+    }
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

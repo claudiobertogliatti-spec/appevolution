@@ -267,6 +267,12 @@ export default function YouTubeHeygenHub() {
   const [videoTitle, setVideoTitle] = useState("");
   const [videoType, setVideoType] = useState("masterclass");
   const [testMode, setTestMode] = useState(true);
+  
+  // Digital Twin creation state
+  const [creatingDigitalTwin, setCreatingDigitalTwin] = useState(false);
+  const [trainingVideoUrl, setTrainingVideoUrl] = useState("");
+  const [consentVideoUrl, setConsentVideoUrl] = useState("");
+  const [digitalTwinStatus, setDigitalTwinStatus] = useState(null);
 
   // Generate
   const [topic, setTopic] = useState("");
@@ -384,6 +390,63 @@ export default function YouTubeHeygenHub() {
       if (selectedPartner) loadPartnerVideos(selectedPartner.id);
     } catch (e) {
       alert(`Errore: ${e.response?.data?.detail || e.message}`);
+    }
+  };
+
+  // === DIGITAL TWIN CREATION ===
+  const handleCreateDigitalTwin = async () => {
+    if (!trainingVideoUrl || !consentVideoUrl) {
+      alert("Inserisci entrambi gli URL dei video (training + consenso)");
+      return;
+    }
+    
+    setCreatingDigitalTwin(true);
+    setDigitalTwinStatus("Avvio creazione Digital Twin...");
+    
+    try {
+      const res = await axios.post(`${API}/heygen/create-digital-twin`, {
+        partner_id: selectedPartner.id,
+        training_video_url: trainingVideoUrl,
+        consent_video_url: consentVideoUrl
+      });
+      
+      setDigitalTwinStatus(`✅ ${res.data.message}`);
+      
+      // Refresh partner data after a delay
+      setTimeout(() => {
+        loadProductionData();
+        setTrainingVideoUrl("");
+        setConsentVideoUrl("");
+      }, 3000);
+      
+    } catch (e) {
+      const errorMsg = e.response?.data?.detail || e.message;
+      setDigitalTwinStatus(`❌ Errore: ${errorMsg}`);
+    }
+    
+    setCreatingDigitalTwin(false);
+  };
+
+  const checkDigitalTwinStatus = async () => {
+    if (!selectedPartner) return;
+    
+    try {
+      const res = await axios.get(`${API}/heygen/avatar-creation-status/${selectedPartner.id}`);
+      const status = res.data.avatar_status;
+      const heygenId = res.data.heygen_id;
+      
+      if (status === "ACTIVE" && heygenId) {
+        setDigitalTwinStatus(`✅ Avatar pronto! ID: ${heygenId}`);
+        loadProductionData();
+      } else if (status === "PROCESSING") {
+        setDigitalTwinStatus(`⏳ Elaborazione in corso... (controlla tra qualche minuto)`);
+      } else if (status === "CREATION_FAILED") {
+        setDigitalTwinStatus(`❌ Creazione fallita: ${res.data.avatar_error || "Errore sconosciuto"}`);
+      } else {
+        setDigitalTwinStatus(`Status: ${status}`);
+      }
+    } catch (e) {
+      setDigitalTwinStatus(`Errore controllo status: ${e.message}`);
     }
   };
 
@@ -731,11 +794,144 @@ export default function YouTubeHeygenHub() {
                         </button>
                       </div>
                     ) : (
-                      <div style={{ background: C.surface, border: `1px dashed ${C.amber}`, borderRadius: 12, padding: 20, textAlign: "center", marginBottom: 16 }}>
-                        <div style={{ fontSize: 14, color: C.amber, marginBottom: 8 }}>⚠️ Avatar non configurato</div>
-                        <div style={{ fontSize: 12, color: C.textMuted }}>
-                          Questo partner non ha un avatar HeyGen attivo.<br/>
-                          Stato attuale: <strong>{selectedPartner.avatar_status || "NOT_ACTIVE"}</strong>
+                      /* === DIGITAL TWIN CREATION FORM === */
+                      <div style={{ background: C.surface, border: `1px solid ${C.purple}44`, borderRadius: 12, padding: 20, marginBottom: 16 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: C.purple, marginBottom: 12 }}>
+                          🎭 Crea Digital Twin (Clone Avatar)
+                        </div>
+                        
+                        <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 16, lineHeight: 1.6 }}>
+                          Per creare l'avatar personalizzato di <strong>{selectedPartner.name || selectedPartner.nome}</strong>, 
+                          sono necessari due video:
+                        </div>
+
+                        {/* Status attuale */}
+                        {selectedPartner.avatar_status && selectedPartner.avatar_status !== "NOT_ACTIVE" && (
+                          <div style={{ 
+                            background: selectedPartner.avatar_status === "PROCESSING" ? C.amber + "15" : C.red + "15",
+                            border: `1px solid ${selectedPartner.avatar_status === "PROCESSING" ? C.amber : C.red}44`,
+                            borderRadius: 8, 
+                            padding: 12, 
+                            marginBottom: 16,
+                            fontSize: 12
+                          }}>
+                            <strong>Status:</strong> {selectedPartner.avatar_status}
+                            {selectedPartner.avatar_error && <div style={{ color: C.red, marginTop: 4 }}>{selectedPartner.avatar_error}</div>}
+                            {selectedPartner.avatar_status === "PROCESSING" && (
+                              <button
+                                onClick={checkDigitalTwinStatus}
+                                style={{ marginTop: 8, padding: "6px 12px", background: C.amber + "22", border: `1px solid ${C.amber}`, borderRadius: 6, color: C.amber, fontSize: 11, cursor: "pointer" }}
+                              >
+                                🔄 Controlla Status
+                              </button>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Video Training */}
+                        <div style={{ marginBottom: 14 }}>
+                          <label style={{ fontSize: 11, color: C.textMuted, fontFamily: "monospace", display: "block", marginBottom: 5 }}>
+                            📹 Video Training (min 2 minuti, 720p+) *
+                          </label>
+                          <input 
+                            value={trainingVideoUrl}
+                            onChange={e => setTrainingVideoUrl(e.target.value)}
+                            placeholder="https://storage.example.com/partner-training.mp4"
+                            style={{ 
+                              width: "100%", 
+                              background: C.surfaceUp, 
+                              border: `1px solid ${C.border}`, 
+                              color: C.text, 
+                              borderRadius: 7, 
+                              padding: "10px 12px", 
+                              fontSize: 12, 
+                              boxSizing: "border-box",
+                              fontFamily: "monospace"
+                            }}
+                          />
+                          <div style={{ fontSize: 10, color: C.textMuted, marginTop: 4 }}>
+                            Il partner deve parlare chiaramente, con buona illuminazione e sfondo uniforme
+                          </div>
+                        </div>
+
+                        {/* Video Consenso */}
+                        <div style={{ marginBottom: 16 }}>
+                          <label style={{ fontSize: 11, color: C.textMuted, fontFamily: "monospace", display: "block", marginBottom: 5 }}>
+                            ✍️ Video Consenso *
+                          </label>
+                          <input 
+                            value={consentVideoUrl}
+                            onChange={e => setConsentVideoUrl(e.target.value)}
+                            placeholder="https://storage.example.com/partner-consent.mp4"
+                            style={{ 
+                              width: "100%", 
+                              background: C.surfaceUp, 
+                              border: `1px solid ${C.border}`, 
+                              color: C.text, 
+                              borderRadius: 7, 
+                              padding: "10px 12px", 
+                              fontSize: 12, 
+                              boxSizing: "border-box",
+                              fontFamily: "monospace"
+                            }}
+                          />
+                          <div style={{ fontSize: 10, color: C.textMuted, marginTop: 4 }}>
+                            Il partner deve leggere: "I, [nome], consent to the creation of a digital avatar using my likeness..."
+                          </div>
+                        </div>
+
+                        {/* Status Message */}
+                        {digitalTwinStatus && (
+                          <div style={{ 
+                            background: C.surfaceUp, 
+                            borderRadius: 8, 
+                            padding: 12, 
+                            marginBottom: 14,
+                            fontSize: 12,
+                            fontFamily: "monospace",
+                            color: digitalTwinStatus.includes("✅") ? C.green : digitalTwinStatus.includes("❌") ? C.red : C.amber
+                          }}>
+                            {digitalTwinStatus}
+                          </div>
+                        )}
+
+                        {/* Submit Button */}
+                        <button
+                          onClick={handleCreateDigitalTwin}
+                          disabled={creatingDigitalTwin || !trainingVideoUrl || !consentVideoUrl}
+                          style={{
+                            width: "100%",
+                            background: creatingDigitalTwin ? C.surfaceUp : `linear-gradient(135deg, ${C.purple}, ${C.pink})`,
+                            border: "none",
+                            color: creatingDigitalTwin ? C.textMuted : "#fff",
+                            borderRadius: 8,
+                            padding: "12px 20px",
+                            fontSize: 13,
+                            fontWeight: 700,
+                            cursor: creatingDigitalTwin ? "wait" : "pointer",
+                            fontFamily: "monospace",
+                            opacity: (!trainingVideoUrl || !consentVideoUrl) ? 0.5 : 1
+                          }}
+                        >
+                          {creatingDigitalTwin ? "⏳ Creazione in corso..." : "🎭 Crea Digital Twin"}
+                        </button>
+
+                        {/* Instructions */}
+                        <div style={{ 
+                          marginTop: 16, 
+                          padding: 12, 
+                          background: C.surfaceUp, 
+                          borderRadius: 8, 
+                          fontSize: 11, 
+                          color: C.textMuted,
+                          lineHeight: 1.6
+                        }}>
+                          <strong>📋 Istruzioni per il Partner:</strong><br/>
+                          1. Registra un video di 2+ minuti parlando naturalmente<br/>
+                          2. Registra un video leggendo la dichiarazione di consenso HeyGen<br/>
+                          3. Carica entrambi i video su un servizio di hosting (Google Drive, Dropbox, etc.)<br/>
+                          4. Condividi i link diretti qui sopra<br/>
+                          5. L'avatar sarà pronto in 5-30 minuti
                         </div>
                       </div>
                     )}
