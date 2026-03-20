@@ -37,7 +37,7 @@ Quando un partner scrive o una situazione richiede intervento:
 
 | Tipo di richiesta/situazione | → Agente |
 |------------------------------|----------|
-| Domanda strategica, dubbi sul metodo, onboarding | → VALENTINA |
+| Domanda strategica, dubbi sul metodo, onboarding | → STEFANIA |
 | Revisione contenuti, blocco produzione video | → ANDREA |
 | Inattività, impegni non rispettati, check-in | → MARCO |
 | Problema tecnico, errore piattaforma | → GAIA |
@@ -70,13 +70,13 @@ ROUTING_SYSTEM_PROMPT = """
 Sei STEFANIA, orchestratrice di Business Evolution PRO.
 Analizza il messaggio del partner e rispondi SOLO con un JSON nel formato:
 {
-  "agente_destinatario": "VALENTINA|ANDREA|MARCO|GAIA|CLAUDIO",
+  "agente_destinatario": "STEFANIA|ANDREA|MARCO|GAIA|CLAUDIO",
   "motivo": "motivo in una frase",
   "messaggio": "eventuale messaggio da mostrare al partner mentre viene smistato"
 }
 
 Regole di routing:
-- Domanda strategica, dubbi metodo, onboarding → VALENTINA
+- Domanda strategica, dubbi metodo, onboarding → STEFANIA
 - Revisione contenuti, produzione video, blocco corso → ANDREA
 - Inattività, impegni, check-in → MARCO
 - Problema tecnico, errore piattaforma, strumenti → GAIA
@@ -89,7 +89,7 @@ def route_message(messaggio: str, contesto: dict) -> dict:
     STEFANIA analizza il messaggio e restituisce agente destinatario + motivo.
     """
     if not EMERGENT_LLM_KEY:
-        return {"agente_destinatario": "VALENTINA", "motivo": "fallback - no API key", "messaggio": ""}
+        return {"agente_destinatario": "STEFANIA", "motivo": "fallback - no API key", "messaggio": ""}
     
     try:
         chat = LlmChat(
@@ -151,8 +151,8 @@ def _keyword_routing(messaggio: str) -> dict:
     if any(kw in messaggio_lower for kw in ["inattivo", "fermo", "impegno", "settimana", "check-in"]):
         return {"agente_destinatario": "MARCO", "motivo": "Accountability", "messaggio": "Ti metto in contatto con MARCO."}
     
-    # Default to VALENTINA
-    return {"agente_destinatario": "VALENTINA", "motivo": "Supporto generale", "messaggio": "Ti metto in contatto con VALENTINA."}
+    # Default to STEFANIA
+    return {"agente_destinatario": "STEFANIA", "motivo": "Supporto generale", "messaggio": "Ti metto in contatto con STEFANIA."}
 
 
 def run_daily_monitoring(partner_ids=None) -> dict:
@@ -260,11 +260,11 @@ def run_daily_monitoring(partner_ids=None) -> dict:
                     "motivo": f"Inattivo da {giorni_inattivo} giorni"
                 })
 
-            # Pre-lancio senza checklist → trigger VALENTINA
+            # Pre-lancio senza checklist → trigger STEFANIA
             if "F7" in str(fase) or "lancio" in str(fase).lower():
                 if not p.get("checklist_lancio_completa", False):
                     azioni.append({
-                        "trigger": "VALENTINA",
+                        "trigger": "STEFANIA",
                         "partner": nome,
                         "motivo": "In fase lancio senza checklist completa"
                     })

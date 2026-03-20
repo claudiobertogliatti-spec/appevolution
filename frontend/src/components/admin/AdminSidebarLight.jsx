@@ -15,7 +15,7 @@ const CLAUDIO_NAV = [
   { id: "youtube-heygen", label: "YouTube × HeyGen", icon: Film },
   { id: "andrea", label: "Editing", icon: Film },
   { id: "metriche", label: "Post-Lancio", icon: BarChart3 },
-  { id: "valentina", label: "VALENTINA", icon: MessageCircle, dot: true },
+  { id: "stefania", label: "STEFANIA", icon: MessageCircle, dot: true },
   { id: "vista-antonella", label: "Vista Antonella", icon: Eye, special: true },
 ];
 

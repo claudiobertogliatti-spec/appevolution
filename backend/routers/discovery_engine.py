@@ -5,7 +5,7 @@ Evolution PRO OS
 Componenti:
 1. Database: collection discovery_leads con scoring AI
 2. Gaia: browser_search per mappare siti web lead
-3. Valentina: generate_first_contact_v2 con regalo strategico
+3. Stefania: generate_first_contact_v2 con regalo strategico
 4. Worker: pulizia duplicati ogni 24h
 5. Integrazione Systeme.io per lead positivi
 """
@@ -147,7 +147,7 @@ class ScoreLeadRequest(BaseModel):
 
 class GenerateOutreachRequest(BaseModel):
     lead_id: str
-    gift_type: Optional[GiftType] = None  # None = Valentina sceglie
+    gift_type: Optional[GiftType] = None  # None = Stefania sceglie
 
 
 class ApproveOutreachRequest(BaseModel):
@@ -165,7 +165,7 @@ class MarkResponseRequest(BaseModel):
 # HELPER FUNCTIONS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-async def get_llm_chat(session_id: str = "discovery", system_message: str = "Sei VALENTINA, assistente AI di Evolution PRO."):
+async def get_llm_chat(session_id: str = "discovery", system_message: str = "Sei STEFANIA, assistente AI di Evolution PRO."):
     """Helper per ottenere istanza LLM"""
     from emergentintegrations.llm.chat import LlmChat
     if not EMERGENT_LLM_KEY:
@@ -494,7 +494,7 @@ async def score_lead(lead_id: str):
         mon_score += 4
     score_breakdown["monetization_signals"] = min(mon_score, 20)
     
-    # 5. Niche Fit (0-20) - basato su analisi Valentina
+    # 5. Niche Fit (0-20) - basato su analisi Stefania
     niche_fit = 10  # Default medio
     if website_analysis:
         opportunity = website_analysis.get("opportunity_score", 5)
@@ -527,20 +527,20 @@ async def score_lead(lead_id: str):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TASK 3: VALENTINA - GENERATE FIRST CONTACT V2
+# TASK 3: STEFANIA - GENERATE FIRST CONTACT V2
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/generate-outreach/{lead_id}")
 async def generate_first_contact_v2(lead_id: str, request: Optional[GenerateOutreachRequest] = None):
     """
-    Valentina genera un messaggio di primo contatto personalizzato
+    Stefania genera un messaggio di primo contatto personalizzato
     con un "regalo strategico" basato sui dati reali del lead.
     
     Tipi di regalo:
     - content_analysis: Analisi di un loro contenuto specifico
     - tactical_suggestion: Suggerimento tattico per la loro nicchia
     - funnel_audit: Mini-audit del loro funnel/bio
-    - mixed: Combinazione (Valentina sceglie il più appropriato)
+    - mixed: Combinazione (Stefania sceglie il più appropriato)
     """
     lead = await db.discovery_leads.find_one({"id": lead_id})
     if not lead:
@@ -549,7 +549,7 @@ async def generate_first_contact_v2(lead_id: str, request: Optional[GenerateOutr
     # Determina tipo di regalo
     gift_type = request.gift_type if request and request.gift_type else None
     
-    # Se non specificato, Valentina sceglie
+    # Se non specificato, Stefania sceglie
     if not gift_type:
         website_analysis = lead.get("website_analysis") or {}
         if website_analysis.get("existing_courses"):
@@ -559,7 +559,7 @@ async def generate_first_contact_v2(lead_id: str, request: Optional[GenerateOutr
         else:
             gift_type = GiftType.TACTICAL_SUGGESTION
     
-    # Prepara contesto per Valentina
+    # Prepara contesto per Stefania
     website_analysis = lead.get("website_analysis") or {}
     context = {
         "nome": lead.get("display_name"),
@@ -575,7 +575,7 @@ async def generate_first_contact_v2(lead_id: str, request: Optional[GenerateOutr
         "score": lead.get("score_total", 0)
     }
     
-    # Prompt per Valentina
+    # Prompt per Stefania
     gift_instructions = {
         GiftType.CONTENT_ANALYSIS: """
 TIPO REGALO: Analisi Contenuto
@@ -598,7 +598,7 @@ Scegli tu il regalo più appropriato basandoti sui dati. Combina elementi se uti
 """
     }
     
-    prompt = f"""Sei VALENTINA di Evolution PRO. Devi generare un messaggio di PRIMO CONTATTO per un potenziale lead.
+    prompt = f"""Sei STEFANIA di Evolution PRO. Devi generare un messaggio di PRIMO CONTATTO per un potenziale lead.
 
 DATI DEL LEAD:
 - Nome: {context['nome']}
@@ -639,8 +639,8 @@ Genera il messaggio:"""
         
         llm = LlmChat(
             api_key=EMERGENT_LLM_KEY,
-            session_id=f"valentina_outreach_{lead_id}",
-            system_message="Sei VALENTINA, esperta di vendita e copywriting per Evolution PRO."
+            session_id=f"stefania_outreach_{lead_id}",
+            system_message="Sei STEFANIA, esperta di vendita e copywriting per Evolution PRO."
         )
         
         response = await llm.send_message(UserMessage(text=prompt))
@@ -662,7 +662,7 @@ Genera il messaggio:"""
             }}
         )
         
-        logger.info(f"[VALENTINA] Messaggio outreach generato per lead {lead_id}")
+        logger.info(f"[STEFANIA] Messaggio outreach generato per lead {lead_id}")
         
         return {
             "success": True,
@@ -674,7 +674,7 @@ Genera il messaggio:"""
         }
         
     except Exception as e:
-        logger.error(f"[VALENTINA] Errore generazione outreach: {e}")
+        logger.error(f"[STEFANIA] Errore generazione outreach: {e}")
         raise HTTPException(status_code=500, detail=f"Errore generazione messaggio: {e}")
 
 

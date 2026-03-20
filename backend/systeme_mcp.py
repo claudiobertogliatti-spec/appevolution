@@ -1,6 +1,6 @@
 """
 Systeme.io MCP Integration Module
-Permette agli agenti AI (GAIA, STEFANIA, MARTA, VALENTINA) di operare su Systeme.io
+Permette agli agenti AI (GAIA, STEFANIA, MARTA, STEFANIA) di operare su Systeme.io
 """
 
 import os
@@ -389,7 +389,7 @@ def get_systeme_client() -> SystemeMCPClient:
 
 # Mapping agenti -> operazioni permesse (incluse azioni WRITE)
 AGENT_PERMISSIONS = {
-    "VALENTINA": [
+    "STEFANIA": [
         "get_contacts", "get_tags", "get_courses", "get_funnels",
         "move_contact_to_phase", "send_notification_email", "get_contacts_by_phase"
     ],
@@ -428,7 +428,7 @@ async def agent_systeme_action(agent_name: str, action: str, **kwargs) -> Dict:
     Esegue un'azione Systeme.io per conto di un agente
     
     Args:
-        agent_name: Nome dell'agente (VALENTINA, STEFANIA, ecc.)
+        agent_name: Nome dell'agente (STEFANIA, STEFANIA, ecc.)
         action: Nome dell'azione da eseguire
         **kwargs: Parametri per l'azione
     

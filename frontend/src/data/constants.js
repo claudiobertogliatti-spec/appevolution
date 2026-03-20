@@ -95,7 +95,7 @@ export const POST_LAUNCH_METRICS = {
 // Notifications mock data
 export const INITIAL_NOTIFICATIONS = [
   { id: 1, type: "modulo", icon: "✅", title: "Modulo Completato", body: "Marco Ferretti ha completato M4 – Editing & Branding", time: "12 min fa", partner: "Marco Ferretti", read: false, action: "partner" },
-  { id: 2, type: "escalation", icon: "🚨", title: "Escalation VALENTINA", body: "Sara Lombardi non risponde da 72h – richiede intervento Antonella", time: "2h fa", partner: "Sara Lombardi", read: false, action: "alert" },
+  { id: 2, type: "escalation", icon: "🚨", title: "Escalation STEFANIA", body: "Sara Lombardi non risponde da 72h – richiede intervento Antonella", time: "2h fa", partner: "Sara Lombardi", read: false, action: "alert" },
   { id: 3, type: "video", icon: "🎬", title: "Video Pronto", body: "ANDREA ha completato editing M3L2 per Luca Marini", time: "3h fa", partner: "Luca Marini", read: true, action: "andrea" },
   { id: 4, type: "file", icon: "📁", title: "Nuovo File Caricato", body: "Antonio Bianchi ha caricato Scheda Posizionamento.pdf", time: "5h fa", partner: "Antonio Bianchi", read: true, action: "partner" },
 ];

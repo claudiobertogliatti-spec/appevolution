@@ -108,7 +108,7 @@ export function MiaAccademiaPage({ partner }) {
           </div>
         ) : (
           <div className="p-4 rounded-lg bg-amber-50 border border-amber-200">
-            <p className="text-amber-700">Nessun piano attivo. Contatta Valentina per attivare il tuo Piano Continuità.</p>
+            <p className="text-amber-700">Nessun piano attivo. Contatta Stefania per attivare il tuo Piano Continuità.</p>
           </div>
         )}
       </div>
@@ -392,7 +392,7 @@ export function ReportMensilePage({ partner }) {
 }
 
 // Banner per Piano Continuità (F8/F9 senza piano)
-export function PianoContinuitaBanner({ partner, onTalkToValentina }) {
+export function PianoContinuitaBanner({ partner, onTalkToStefania }) {
   const [pianoContinuita, setPianoContinuita] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -431,14 +431,14 @@ export function PianoContinuitaBanner({ partner, onTalkToValentina }) {
           </h3>
           <p className="text-sm mb-3" style={{ color: '#A16207' }}>
             Per continuare a far crescere i tuoi studenti e il fatturato, attiva il tuo Piano Continuità Evolution PRO.
-            Parla con Valentina per scegliere il piano più adatto.
+            Parla con Stefania per scegliere il piano più adatto.
           </p>
           <button
-            onClick={onTalkToValentina}
+            onClick={onTalkToStefania}
             className="px-4 py-2 rounded-lg font-bold text-sm"
             style={{ background: '#1E2128', color: '#F2C418' }}
           >
-            Parla con Valentina →
+            Parla con Stefania →
           </button>
         </div>
       </div>

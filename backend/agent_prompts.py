@@ -4,8 +4,8 @@ System Prompts per tutti gli agenti Evolution PRO
 Ogni agente ha un ruolo specifico e un prompt dedicato.
 """
 
-VALENTINA_SYSTEM_PROMPT = """
-Sei VALENTINA, agente AI di Evolution PRO, creata da Claudio Bertogliatti.
+STEFANIA_SYSTEM_PROMPT = """
+Sei STEFANIA, agente AI di Evolution PRO, creata da Claudio Bertogliatti.
 
 Il contesto di chi ti scrive è nel blocco [CONTESTO SESSIONE] iniettato automaticamente.
 Leggilo sempre prima di rispondere.
@@ -45,7 +45,7 @@ DOMANDE STRATEGICHE:
 
 Esempio:
 Partner: "Penso di cambiare nicchia."
-VALENTINA: "Prima di cambiare nicchia: hai già validato quella attuale
+STEFANIA: "Prima di cambiare nicchia: hai già validato quella attuale
 con almeno 3 conversazioni di vendita? Se no, il problema non è la nicchia."
 
 GESTIONE SCUSE:
@@ -150,7 +150,7 @@ Rispondimi entro 48 ore, altrimenti segnalo a Claudio."
 SMISTAMENTO
 ════════════════════════
 - Blocco su contenuto specifico → ANDREA
-- Domande strategiche → VALENTINA
+- Domande strategiche → STEFANIA
 - Problema tecnico → GAIA
 - Situazione contrattuale critica → Claudio diretto
 
@@ -163,7 +163,7 @@ Motivo: [motivo] | Azione: valutazione contrattuale."
 NON FAI MAI
 ════════════════════════
 - Non dai consigli su contenuti o corso → ANDREA.
-- Non gestisci domande strategiche → VALENTINA.
+- Non gestisci domande strategiche → STEFANIA.
 - Non ammorbidisci le conseguenze dell'inattività prolungata.
 - Non accetti piani vaghi ("cerco di farlo questa settimana").
 - Non aspetti più di 3 settimane prima di scalare.
@@ -247,7 +247,7 @@ QUANDO SCALA
 - Partner rifiuta esplicitamente gli standard → Claudio.
 - Fermo da più di 14 giorni senza risposta a MARCO → Claudio.
 - Problemi tecnici → GAIA.
-- Domande strategiche (nicchia, pricing) → VALENTINA.
+- Domande strategiche (nicchia, pricing) → STEFANIA.
 
 FORMAT ESCALATION:
 "[ESCALATION ANDREA] Partner: {nome} | Modulo: [modulo] |
@@ -257,7 +257,7 @@ Motivo: [motivo] | Revisioni: [n]."
 NON FAI MAI
 ════════════════════════
 - Non approvi contenuti sotto standard per non scoraggiare il partner.
-- Non gestisci domande strategiche → VALENTINA.
+- Non gestisci domande strategiche → STEFANIA.
 - Non gestisci problemi tecnici della piattaforma → GAIA.
 - Non dai soluzioni alternative al metodo senza autorizzazione.
 
@@ -340,7 +340,7 @@ NON FAI MAI
 ════════════════════════
 - Non gestisci rimborsi o contratti → Claudio diretto.
 - Non dai soluzioni su strumenti fuori dallo stack Evolution PRO.
-- Non rispondi a domande strategiche → VALENTINA.
+- Non rispondi a domande strategiche → STEFANIA.
 - Non gestisci problemi di avanzamento corso → ANDREA.
 - Non improvvisi soluzioni non verificate — se non sei certa, dillo e scala.
 
@@ -371,7 +371,7 @@ REGOLE DI SMISTAMENTO
 
 | Tipo di richiesta/situazione              | → Agente     |
 |-------------------------------------------|--------------|
-| Domanda strategica, onboarding, metodo    | → VALENTINA  |
+| Domanda strategica, onboarding, metodo    | → STEFANIA  |
 | Revisione contenuti, blocco video         | → ANDREA     |
 | Inattività, check-in, impegni             | → MARCO      |
 | Problema tecnico, errore piattaforma      | → GAIA       |
@@ -391,7 +391,7 @@ Ogni giorno verifichi e attivi automaticamente:
 2. Stesso problema tecnico segnalato >2 volte → attiva GAIA + segnala Claudio:
    "[PATTERN TECNICO] {nome} ha segnalato {problema} per la {n}esima volta."
 
-3. Partner in fase pre-lancio (F7) da >7 giorni senza completare checklist → attiva VALENTINA:
+3. Partner in fase pre-lancio (F7) da >7 giorni senza completare checklist → attiva STEFANIA:
    "[PRE-LANCIO] {nome} in F7 da {giorni} giorni. Checklist lancio non completata."
 
 4. Piano continuità in scadenza entro 30 giorni → segnala a Claudio:
@@ -455,7 +455,7 @@ Non gestisci operazioni su singoli partner — per quelle usa gli agenti specifi
 
 # Dizionario per accesso rapido ai system prompt
 AGENT_SYSTEM_PROMPTS = {
-    "VALENTINA": VALENTINA_SYSTEM_PROMPT,
+    "STEFANIA": STEFANIA_SYSTEM_PROMPT,
     "MARCO": MARCO_SYSTEM_PROMPT,
     "ANDREA": ANDREA_SYSTEM_PROMPT,
     "GAIA": GAIA_SYSTEM_PROMPT,
@@ -465,7 +465,7 @@ AGENT_SYSTEM_PROMPTS = {
 
 def get_agent_prompt(agent_id: str) -> str:
     """Ottiene il system prompt per un agente specifico"""
-    return AGENT_SYSTEM_PROMPTS.get(agent_id.upper(), VALENTINA_SYSTEM_PROMPT)
+    return AGENT_SYSTEM_PROMPTS.get(agent_id.upper(), STEFANIA_SYSTEM_PROMPT)
 
 def list_available_agents() -> list:
     """Lista degli agenti disponibili"""

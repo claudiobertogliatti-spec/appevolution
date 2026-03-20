@@ -19,7 +19,7 @@ const PROJECT_STEPS = [
 // Team Evolution PRO
 const TEAM_MEMBERS = [
   { 
-    name: "Valentina", 
+    name: "Stefania", 
     role: "Strategic Guide",
     avatar: "V",
     color: "#F2C418",
@@ -45,7 +45,7 @@ const TEAM_MEMBERS = [
 const PHASE_INFO = {
   F0: { 
     name: "Onboarding", 
-    tutor: "Valentina", 
+    tutor: "Stefania", 
     tutorRole: "Strategic Guide",
     task: { 
       title: "Completa l'attivazione", 
@@ -58,7 +58,7 @@ const PHASE_INFO = {
   },
   F1: { 
     name: "Onboarding", 
-    tutor: "Valentina", 
+    tutor: "Stefania", 
     tutorRole: "Strategic Guide",
     task: { 
       title: "Completa l'attivazione", 
@@ -71,7 +71,7 @@ const PHASE_INFO = {
   },
   F2: { 
     name: "Posizionamento", 
-    tutor: "Valentina", 
+    tutor: "Stefania", 
     tutorRole: "Strategic Guide",
     task: { 
       title: "Definisci il tuo posizionamento", 
@@ -149,7 +149,7 @@ const PHASE_INFO = {
   },
   F8: { 
     name: "Lancio", 
-    tutor: "Valentina", 
+    tutor: "Stefania", 
     tutorRole: "Strategic Guide",
     task: { 
       title: "Lancia la tua Accademia!", 

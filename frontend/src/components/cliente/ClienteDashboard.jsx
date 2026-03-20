@@ -18,7 +18,7 @@ const PROGRESS_STEPS = [
 
 // Team members for info box (aggiunto Stefania)
 const TEAM_MEMBERS = [
-  { name: "VALENTINA", role: "strategia e onboarding", color: "#F5C518" },
+  { name: "STEFANIA", role: "strategia e onboarding", color: "#F5C518" },
   { name: "ANDREA", role: "produzione contenuti", color: "#F5C518" },
   { name: "MARCO", role: "accountability settimanale", color: "#F5C518" },
   { name: "GAIA", role: "supporto tecnico", color: "#F5C518" },
@@ -816,7 +816,7 @@ export function ClienteDashboard({ cliente, onLogout }) {
                       poster=""
                       data-testid="video-benvenuto"
                     >
-                      <source src="https://customer-assets.emergentagent.com/job_valentina-agent/artifacts/ij5wirqf_Quick_Avatar_Video.mp4" type="video/mp4" />
+                      <source src="https://customer-assets.emergentagent.com/job_stefania-agent/artifacts/ij5wirqf_Quick_Avatar_Video.mp4" type="video/mp4" />
                       Il tuo browser non supporta il tag video.
                     </video>
                   </div>

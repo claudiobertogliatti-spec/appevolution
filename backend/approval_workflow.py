@@ -115,7 +115,7 @@ def create_task_with_approval(
     agent: str,
     data: Dict,
     partner_id: Optional[str] = None,
-    created_by: str = "valentina"
+    created_by: str = "stefania"
 ) -> Dict:
     """
     Crea un task con i campi necessari per il workflow di approvazione.

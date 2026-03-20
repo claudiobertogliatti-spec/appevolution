@@ -3,11 +3,11 @@ orchestrator.py
 ===============
 Sistema di Orchestrazione Multi-Agente per Evolution PRO OS.
 
-Valentina funge da Orchestratore che coordina tutti gli agenti del team.
+Stefania funge da Orchestratore che coordina tutti gli agenti del team.
 Implementa un protocollo di comunicazione con memoria condivisa.
 
 Protocollo Team AI:
-- VALENTINA: Interfaccia Utente + Attivazione OpenClaw + Orchestrazione
+- STEFANIA: Interfaccia Utente + Attivazione OpenClaw + Orchestrazione
 - OPENCLAW: Ricerca dati web (via Telegram)
 - ORION: Lead Intelligence
 - STEFANIA: Copy & Marketing
@@ -56,7 +56,7 @@ def get_db():
 # ============================================================================
 
 TEAM_AGENTS = {
-    "VALENTINA": {
+    "STEFANIA": {
         "role": "Orchestratrice",
         "capabilities": ["interface", "routing", "openclaw_trigger", "coordination"],
         "report_sections": ["introduzione", "prossimi_passi"]
@@ -95,11 +95,11 @@ TEAM_AGENTS = {
 
 # Mapping sezioni report -> agente responsabile
 SECTION_AGENT_MAP = {
-    "01_introduzione": "VALENTINA",
-    "02_chi_siamo": "VALENTINA",
-    "03_come_funziona": "VALENTINA",
-    "04_glossario": "VALENTINA",
-    "05_disclaimer": "VALENTINA",
+    "01_introduzione": "STEFANIA",
+    "02_chi_siamo": "STEFANIA",
+    "03_come_funziona": "STEFANIA",
+    "04_glossario": "STEFANIA",
+    "05_disclaimer": "STEFANIA",
     "06_profilo_professionale": "MARCO",
     "07_problema_risolto": "ORION",
     "08_target_ideale": "ORION",
@@ -115,7 +115,7 @@ SECTION_AGENT_MAP = {
     "18_roadmap": "ANDREA",
     "19_investimento": "GAIA",
     "20_valutazione_finale": "MARCO",
-    "21_prossimi_passi": "VALENTINA"
+    "21_prossimi_passi": "STEFANIA"
 }
 
 
@@ -332,7 +332,7 @@ class MultiAgentOrchestrator:
             await asyncio.gather(*agent_tasks, return_exceptions=True)
             
             # ═══════════════════════════════════════════════════════════
-            # STEP 3: VALENTINA compila il report finale
+            # STEP 3: STEFANIA compila il report finale
             # ═══════════════════════════════════════════════════════════
             await memory.set_status("compiling_report")
             logger.info(f"[Orchestrator] Step 3: Compiling final report")
@@ -419,7 +419,7 @@ Rispondi in JSON con le sezioni compilate:
     
     async def _compile_final_report(self, task_id: str, questionario: Dict) -> Dict:
         """
-        VALENTINA compila il report finale combinando gli output di tutti gli agenti.
+        STEFANIA compila il report finale combinando gli output di tutti gli agenti.
         """
         memory = SharedMemory(task_id)
         memory_data = await memory.get()
@@ -460,7 +460,7 @@ Rispondi in JSON con le sezioni compilate:
     async def _notify_completion(self, task_id: str, user_id: str):
         """Notifica Telegram al completamento dell'analisi"""
         try:
-            from valentina_ai import telegram_notify
+            from stefania_ai import telegram_notify
             await telegram_notify(
                 "alert",
                 alert_type="analysis_complete",
@@ -515,12 +515,12 @@ orchestrator = property(lambda self: get_orchestrator())
 
 
 # ============================================================================
-# FUNZIONE: Trigger "Analisi Strategica" da Valentina
+# FUNZIONE: Trigger "Analisi Strategica" da Stefania
 # ============================================================================
 
 async def trigger_strategic_analysis(user_id: str, questionario: Dict) -> Dict:
     """
-    Funzione chiamata da Valentina quando riceve il comando "Analisi Strategica".
+    Funzione chiamata da Stefania quando riceve il comando "Analisi Strategica".
     Blocca l'interazione finché tutti gli agenti non hanno completato.
     """
     return await get_orchestrator().start_analysis(user_id, questionario)

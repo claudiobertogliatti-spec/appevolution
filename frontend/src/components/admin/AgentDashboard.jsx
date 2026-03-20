@@ -11,7 +11,7 @@ import { API_URL, API } from "../../utils/api-config";
 // Agent emoji and color mapping - UPDATED: 6 agents only
 const AGENT_CONFIG = {
   MAIN: { emoji: "🎛️", color: "#6B7280", bgColor: "#F3F4F6", tag: "Sistema", tagColor: "#6B7280", tagBg: "#F3F4F6" },
-  VALENTINA: { emoji: "💬", color: "#EC4899", bgColor: "#FCE7F3", tag: "Partner Contact", tagColor: "#EC4899", tagBg: "#FCE7F3" },
+  STEFANIA: { emoji: "💬", color: "#EC4899", bgColor: "#FCE7F3", tag: "Partner Contact", tagColor: "#EC4899", tagBg: "#FCE7F3" },
   ANDREA: { emoji: "🎬", color: "#8B5CF6", bgColor: "#EDE9FE", tag: "Produzione", tagColor: "#8B5CF6", tagBg: "#EDE9FE" },
   MARCO: { emoji: "📋", color: "#F59E0B", bgColor: "#FEF3C7", tag: "Accountability", tagColor: "#F59E0B", tagBg: "#FEF3C7" },
   GAIA: { emoji: "🔧", color: "#0EA5E9", bgColor: "#E0F2FE", tag: "Supporto Tech", tagColor: "#0EA5E9", tagBg: "#E0F2FE" },
@@ -21,7 +21,7 @@ const AGENT_CONFIG = {
 // Agent descriptions - UPDATED
 const AGENT_DESCRIPTIONS = {
   MAIN: "Sistema Centrale",
-  VALENTINA: "Onboarding & Consulenza",
+  STEFANIA: "Onboarding & Consulenza",
   ANDREA: "Avanzamento Corso & Video",
   MARCO: "Accountability Settimanale",
   GAIA: "Supporto Tecnico",
@@ -29,7 +29,7 @@ const AGENT_DESCRIPTIONS = {
 };
 
 // Agent order for display
-const AGENT_ORDER = ["VALENTINA", "ANDREA", "MARCO", "GAIA", "STEFANIA", "MAIN"];
+const AGENT_ORDER = ["STEFANIA", "ANDREA", "MARCO", "GAIA", "STEFANIA", "MAIN"];
 
 export function AgentDashboard() {
   const [agents, setAgents] = useState([]);

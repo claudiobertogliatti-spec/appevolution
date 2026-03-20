@@ -185,7 +185,7 @@ export function MetrichePostLancio({ partners = [] }) {
           ))}
         </div>
         <div className="mt-4 text-xs text-[#9CA3AF] font-semibold bg-[#FAFAF7] rounded-lg p-3">
-          💡 Il calo maggiore avviene tra M3 e M5 — punto di abbandono tipico nei corsi online. Considerare un checkpoint VALENTINA a M4.
+          💡 Il calo maggiore avviene tra M3 e M5 — punto di abbandono tipico nei corsi online. Considerare un checkpoint STEFANIA a M4.
         </div>
       </div>
     </div>

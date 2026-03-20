@@ -10,9 +10,9 @@ const RENEWAL_PLANS = [
     priceNote: "Il piano di partenza — zero rischi, massima continuità",
     color: "#7c3aed",
     icon: Shield,
-    desc: "Accesso continuativo all'App Evolution PRO, VALENTINA attiva per i tuoi studenti, manutenzione automazioni Systeme.io. Il tuo asset digitale rimane operativo senza pensieri.",
+    desc: "Accesso continuativo all'App Evolution PRO, STEFANIA attiva per i tuoi studenti, manutenzione automazioni Systeme.io. Il tuo asset digitale rimane operativo senza pensieri.",
     includes: [
-      "VALENTINA 24/7 per i tuoi studenti",
+      "STEFANIA 24/7 per i tuoi studenti",
       "App Evolution PRO attiva",
       "Manutenzione automazioni Systeme.io",
       "Aggiornamenti piattaforma",
@@ -199,7 +199,7 @@ export function RenewalPlans({ partnerName, currentRevenue, onSelectPlan }) {
             Telegram
           </a>{" "}
           o contatta{" "}
-          <span className="text-[#7c3aed] font-bold">VALENTINA</span> nella chat.
+          <span className="text-[#7c3aed] font-bold">STEFANIA</span> nella chat.
         </p>
       </div>
 

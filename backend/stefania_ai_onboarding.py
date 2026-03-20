@@ -1,5 +1,5 @@
 """
-VALENTINA AI Module - Orchestratrice Evolution PRO OS
+STEFANIA AI Module - Orchestratrice Evolution PRO OS
 Integrazione LLM + Telegram Notifications + Persistent Memory + Action Execution
 """
 
@@ -16,29 +16,29 @@ logger = logging.getLogger(__name__)
 # Configuration
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
-TELEGRAM_BOT_USERNAME = os.environ.get("TELEGRAM_BOT_USERNAME", "valentina_evo_bot")
+TELEGRAM_BOT_USERNAME = os.environ.get("TELEGRAM_BOT_USERNAME", "stefania_evo_bot")
 
 # Import Memory System
 try:
-    from valentina_memory import valentina_memory
+    from stefania_memory import stefania_memory
     MEMORY_ENABLED = True
-    logger.info("VALENTINA Memory System loaded successfully")
+    logger.info("STEFANIA Memory System loaded successfully")
 except ImportError as e:
     MEMORY_ENABLED = False
-    logger.warning(f"VALENTINA Memory System not available: {e}")
+    logger.warning(f"STEFANIA Memory System not available: {e}")
 
 # Import Action Dispatcher
 try:
-    from valentina_actions import action_dispatcher, detect_and_execute_action
+    from stefania_actions import action_dispatcher, detect_and_execute_action
     ACTIONS_ENABLED = True
-    logger.info("VALENTINA Action Dispatcher loaded successfully")
+    logger.info("STEFANIA Action Dispatcher loaded successfully")
 except ImportError as e:
     ACTIONS_ENABLED = False
-    logger.warning(f"VALENTINA Action Dispatcher not available: {e}")
+    logger.warning(f"STEFANIA Action Dispatcher not available: {e}")
 
-# VALENTINA System Prompt (NEW - Multi-Modal)
-VALENTINA_SYSTEM_PROMPT = """
-Sei VALENTINA, agente AI di Evolution PRO, creata da Claudio Bertogliatti.
+# STEFANIA System Prompt (NEW - Multi-Modal)
+STEFANIA_SYSTEM_PROMPT = """
+Sei STEFANIA, agente AI di Evolution PRO, creata da Claudio Bertogliatti.
 
 Il contesto di chi ti sta scrivendo viene iniettato automaticamente
 all'inizio di ogni conversazione nel blocco [CONTESTO SESSIONE].
@@ -68,12 +68,12 @@ COSA SAI FARE PER CLAUDIO:
 
 ESEMPIO risposta corretta a Claudio:
 Claudio: "Come ti comporti con un partner che non risponde da 48h?"
-VALENTINA: "Dopo 48h senza risposta mando: 'Ciao [nome], vedo che non hai ancora 
+STEFANIA: "Dopo 48h senza risposta mando: 'Ciao [nome], vedo che non hai ancora 
 completato [step]. Hai bisogno di supporto?' Se non risponde entro 72h totali, 
-escalation immediata a te con il formato [ESCALATION VALENTINA]."
+escalation immediata a te con il formato [ESCALATION STEFANIA]."
 
 ESEMPIO risposta sbagliata:
-"Ciao Claudio! Sono VALENTINA e mi occupo dell'onboarding... [tono da partner]"
+"Ciao Claudio! Sono STEFANIA e mi occupo dell'onboarding... [tono da partner]"
 
 ════════════════════════════════════════
 MODALITÀ 2 — ASSISTENZA PARTNER
@@ -104,7 +104,7 @@ DOMANDE STRATEGICHE (qualsiasi fase):
 
 Esempio:
 Partner: "Penso di cambiare nicchia."
-VALENTINA: "Prima di cambiare nicchia: hai già validato quella attuale 
+STEFANIA: "Prima di cambiare nicchia: hai già validato quella attuale 
 con almeno 3 conversazioni di vendita? Se no, il problema non è la nicchia."
 
 GESTIONE SCUSE:
@@ -123,7 +123,7 @@ SMISTAMENTO AD ALTRI AGENTI:
 - Rimborso, abbandono, questioni legali → Claudio diretto
 
 ESCALATION FORMAT:
-"[ESCALATION VALENTINA] Partner: {nome} | Fase: {fase} | 
+"[ESCALATION STEFANIA] Partner: {nome} | Fase: {fase} | 
 Motivo: [motivo] | Ultimo contatto: [data] | Azione richiesta: intervento Claudio."
 
 ════════════════════════════════════════
@@ -174,7 +174,7 @@ Rispondi sempre in italiano.
 """
 
 # SPECIAL PROMPT FOR CLAUDIO (FOUNDER)
-VALENTINA_FOUNDER_PROMPT = """Sei VALENTINA, il braccio destro AI di Claudio, fondatore di Evolution PRO OS.
+STEFANIA_FOUNDER_PROMPT = """Sei STEFANIA, il braccio destro AI di Claudio, fondatore di Evolution PRO OS.
 
 CHI È CLAUDIO
 Claudio è il fondatore e CEO di Evolution PRO. Tu sei la sua assistente personale e strategica. NON è un partner, è il TUO capo.
@@ -201,7 +201,7 @@ COSA POSSO FARE DIRETTAMENTE
 3. Migrare segmenti (es: "Migra lead da COLD a WARM")
 4. Generare copy (es: "Scrivi email per tripwire")
 
-COSA DELEGO A OPENCLAW (Telegram @valentina_evo_bot)
+COSA DELEGO A OPENCLAW (Telegram @stefania_evo_bot)
 Per operazioni su Systeme.io che richiedono browser, INVIO IL TASK A OPENCLAW:
 - Creare colonne/pipeline → Task inviato a OpenClaw
 - Spostare contatti in pipeline → Task inviato a OpenClaw
@@ -217,7 +217,7 @@ Invece, se non riesci a matchare un'azione specifica, chiedi all'utente di esser
 
 QUANDO TI CHIEDONO QUESTE COSE:
 Se vedi "Task inviato a OpenClaw" nel contesto, rispondi:
-"Boss, ho inviato il task a OpenClaw. Controlla Telegram (@valentina_evo_bot) per vedere quando sarà completato."
+"Boss, ho inviato il task a OpenClaw. Controlla Telegram (@stefania_evo_bot) per vedere quando sarà completato."
 
 NON menzionare MAI:
 - Problemi di browser
@@ -241,8 +241,8 @@ Rispondi sempre in italiano, in modo conciso e orientato all'azione."""
 chat_sessions: Dict[str, List[Dict]] = {}
 
 
-class ValentinaAI:
-    """VALENTINA AI Assistant with LLM integration"""
+class StefaniaAI:
+    """STEFANIA AI Assistant with LLM integration"""
     
     # Admin/Founder identifiers
     FOUNDER_IDENTIFIERS = ["claudio", "claudio@evolutionpro.it", "admin", "founder"]
@@ -280,7 +280,7 @@ class ValentinaAI:
         
     async def chat(self, partner_id: str, message: str, context: dict = None) -> str:
         """
-        Process a chat message and return VALENTINA's response
+        Process a chat message and return STEFANIA's response
         
         Args:
             partner_id: ID del partner
@@ -288,7 +288,7 @@ class ValentinaAI:
             context: Contesto aggiuntivo (fase, nome, storico)
         
         Returns:
-            Risposta di VALENTINA
+            Risposta di STEFANIA
         """
         try:
             # Determine if this is the founder
@@ -296,7 +296,7 @@ class ValentinaAI:
             user_id = "claudio" if is_founder else partner_id
             
             # Create unique session key
-            session_key = f"valentina_{user_id}"
+            session_key = f"stefania_{user_id}"
             
             msg_lower = message.lower()
             
@@ -317,7 +317,7 @@ class ValentinaAI:
             for pattern, trigger in orchestration_patterns:
                 if re.search(pattern, msg_lower):
                     orchestration_trigger = trigger
-                    logger.info(f"[VALENTINA] Orchestration trigger detected: {trigger}")
+                    logger.info(f"[STEFANIA] Orchestration trigger detected: {trigger}")
                     break
             
             if orchestration_trigger == "analisi_strategica" and is_founder:
@@ -367,7 +367,7 @@ Per verificare lo stato: "stato analisi {result.get('task_id')}" """
                         return f"Errore nell'avvio dell'analisi: {result.get('error', 'Errore sconosciuto')}"
                         
                 except Exception as e:
-                    logger.error(f"[VALENTINA] Orchestration error: {e}")
+                    logger.error(f"[STEFANIA] Orchestration error: {e}")
                     return f"Errore nell'orchestrazione: {str(e)}"
             
             # =====================================================
@@ -573,11 +573,11 @@ Verifica la configurazione di OpenClaw nel sistema."""
             memory_context = ""
             if MEMORY_ENABLED and is_founder:
                 try:
-                    memory_context = await valentina_memory.get_full_context_for_prompt(user_id)
+                    memory_context = await stefania_memory.get_full_context_for_prompt(user_id)
                     
                     # Auto-detect and save important content from user message
-                    if await valentina_memory.auto_detect_important_content(message):
-                        await valentina_memory.extract_and_save_knowledge(user_id, message)
+                    if await stefania_memory.auto_detect_important_content(message):
+                        await stefania_memory.extract_and_save_knowledge(user_id, message)
                 except Exception as e:
                     logger.error(f"Memory load error: {e}")
             
@@ -596,15 +596,15 @@ Verifica la configurazione di OpenClaw nel sistema."""
             context_block = context.get("context_block", "") if context else ""
             
             if is_founder:
-                # Per il fondatore, usa VALENTINA_FOUNDER_PROMPT (operativo avanzato)
+                # Per il fondatore, usa STEFANIA_FOUNDER_PROMPT (operativo avanzato)
                 # MA inietta sempre il context_block per mantenere la coerenza
-                system_prompt = VALENTINA_FOUNDER_PROMPT.format(context=context_str)
+                system_prompt = STEFANIA_FOUNDER_PROMPT.format(context=context_str)
                 if context_block:
                     system_prompt = system_prompt + "\n\n" + context_block
             else:
-                # Per partner e clienti, usa il nuovo VALENTINA_SYSTEM_PROMPT multi-modale
+                # Per partner e clienti, usa il nuovo STEFANIA_SYSTEM_PROMPT multi-modale
                 # Inietta il context_block all'inizio
-                system_prompt = VALENTINA_SYSTEM_PROMPT + "\n\n" + context_block + "\n\n" + context_str
+                system_prompt = STEFANIA_SYSTEM_PROMPT + "\n\n" + context_block + "\n\n" + context_str
             
             # Get or create LLM session - REFRESH if action result exists
             # We need to update the system prompt when we have action results
@@ -646,15 +646,15 @@ Verifica la configurazione di OpenClaw nel sistema."""
             # Save to persistent memory
             if MEMORY_ENABLED:
                 try:
-                    is_important = await valentina_memory.auto_detect_important_content(message)
-                    await valentina_memory.save_conversation(
+                    is_important = await stefania_memory.auto_detect_important_content(message)
+                    await stefania_memory.save_conversation(
                         user_id=user_id,
                         role="user",
                         content=message,
                         context=context,
                         is_important=is_important
                     )
-                    await valentina_memory.save_conversation(
+                    await stefania_memory.save_conversation(
                         user_id=user_id,
                         role="assistant",
                         content=response,
@@ -667,9 +667,9 @@ Verifica la configurazione di OpenClaw nel sistema."""
             return response
             
         except Exception as e:
-            logger.error(f"VALENTINA chat error: {e}")
+            logger.error(f"STEFANIA chat error: {e}")
             # Reset session on error to avoid stuck state
-            session_key = f"valentina_{partner_id}"
+            session_key = f"stefania_{partner_id}"
             if session_key in self._llm_sessions:
                 del self._llm_sessions[session_key]
             # Fallback response
@@ -770,7 +770,7 @@ Verifica la configurazione di OpenClaw nel sistema."""
         msg_lower = message.lower()
         
         if "ciao" in msg_lower or "buongiorno" in msg_lower or "salve" in msg_lower:
-            return f"Ciao {name}! 👋 Sono VALENTINA, come posso aiutarti oggi?"
+            return f"Ciao {name}! 👋 Sono STEFANIA, come posso aiutarti oggi?"
         
         if "fase" in msg_lower or "dove sono" in msg_lower:
             return f"Sei attualmente nella fase **{phase}**. Posso darti più dettagli su cosa fare in questa fase se vuoi!"
@@ -876,7 +876,7 @@ Il partner è avanzato alla fase successiva! 🚀"""
 
 {spoiler_text}
 
-<i>— Valentina, Evolution PRO OS</i>"""
+<i>— Stefania, Evolution PRO OS</i>"""
             
             return await self.send_message(chat_id, formatted_text, parse_mode="HTML")
             
@@ -901,7 +901,7 @@ Per generare la tua <b>Analisi Strategica Personalizzata</b> ho bisogno delle tu
 
 Se hai domande, rispondi a questo messaggio!
 
-<i>— Valentina, Evolution PRO</i>"""
+<i>— Stefania, Evolution PRO</i>"""
         
         if chat_id:
             return await self.send_message(chat_id, text, parse_mode="HTML")
@@ -937,29 +937,29 @@ Valida l'analisi nell'area Admin per sbloccare lo Spoiler e il calendario.
 
 
 # Singleton instances
-valentina_ai = ValentinaAI()
+stefania_ai = StefaniaAI()
 telegram_notifier = TelegramNotifier()
 
 
 # Helper functions
-async def valentina_chat(partner_id: str, message: str, context: dict = None) -> str:
-    """Quick access to VALENTINA chat"""
-    return await valentina_ai.chat(partner_id, message, context)
+async def stefania_chat(partner_id: str, message: str, context: dict = None) -> str:
+    """Quick access to STEFANIA chat"""
+    return await stefania_ai.chat(partner_id, message, context)
 
 
-def valentina_reset_session(partner_id: str) -> bool:
-    """Reset VALENTINA session for a partner (clears conversation memory)"""
-    session_key = f"valentina_{partner_id}"
-    if session_key in ValentinaAI._llm_sessions:
-        del ValentinaAI._llm_sessions[session_key]
+def stefania_reset_session(partner_id: str) -> bool:
+    """Reset STEFANIA session for a partner (clears conversation memory)"""
+    session_key = f"stefania_{partner_id}"
+    if session_key in StefaniaAI._llm_sessions:
+        del StefaniaAI._llm_sessions[session_key]
         logger.info(f"Session reset for {session_key}")
         return True
     return False
 
 
-def valentina_get_active_sessions() -> list:
-    """Get list of active VALENTINA sessions"""
-    return list(ValentinaAI._llm_sessions.keys())
+def stefania_get_active_sessions() -> list:
+    """Get list of active STEFANIA sessions"""
+    return list(StefaniaAI._llm_sessions.keys())
 
 
 async def telegram_notify(notification_type: str, **kwargs) -> dict:

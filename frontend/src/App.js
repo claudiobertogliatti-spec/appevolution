@@ -41,7 +41,7 @@ import { PartnerPayments } from "./components/partner/PartnerPayments";
 import { PartnerFiles } from "./components/partner/PartnerFiles";
 import { AdminSidebarLight } from "./components/admin/AdminSidebarLight";
 import { ScriptBuilder } from "./components/partner/ScriptBuilder";
-import { StefaniaChat } from "./components/chat/ValentinaChat";
+import StefaniaChat from "./components/chat/StefaniaChat";
 import { LoginPage } from "./components/auth/LoginPage";
 import { WebhookDashboard } from "./components/admin/WebhookDashboard";
 import { FunnelReviewBuilder } from "./components/partner/FunnelReviewBuilder";
@@ -104,37 +104,37 @@ const PHASE_LABELS = {
 const PHASES = ["F0","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","F13"];
 
 const PHASE_ACTIONS = {
-  F0:{title:"Firma il contratto",desc:"Il tuo percorso inizia qui. Firma il contratto e carica i documenti richiesti.",cta:"Carica Documenti",nav:"documenti",tutor:"VALENTINA",color:"#6b7280"},
-  F1:{title:"Completa il Posizionamento",desc:"Definisci chi sei, chi aiuti e cosa prometti. VALENTINA ti guida step-by-step.",cta:"Apri Wizard Posizionamento",nav:"documenti",tutor:"VALENTINA",color:"#7c3aed"},
+  F0:{title:"Firma il contratto",desc:"Il tuo percorso inizia qui. Firma il contratto e carica i documenti richiesti.",cta:"Carica Documenti",nav:"documenti",tutor:"STEFANIA",color:"#6b7280"},
+  F1:{title:"Completa il Posizionamento",desc:"Definisci chi sei, chi aiuti e cosa prometti. STEFANIA ti guida step-by-step.",cta:"Apri Wizard Posizionamento",nav:"documenti",tutor:"STEFANIA",color:"#7c3aed"},
   F2:{title:"Crea la struttura del corso",desc:"STEFANIA genera la struttura del tuo videocorso dal posizionamento.",cta:"Genera Struttura Corso",nav:"coursebuilder",tutor:"STEFANIA",color:"#db2777"},
   F3:{title:"Scrivi la tua Masterclass",desc:"6 blocchi strategici. STEFANIA ti aiuta con ogni paragrafo.",cta:"Apri Masterclass Builder",nav:"masterclass",tutor:"STEFANIA",color:"#db2777"},
   F4:{title:"Rivedi la struttura del corso",desc:"Controlla i moduli prima di iniziare a registrare.",cta:"Vedi Struttura Corso",nav:"corso",tutor:"STEFANIA",color:"#db2777"},
   F5:{title:"Registra i video del corso",desc:"ANDREA ti guida. Completa il pre-flight checklist e carica ogni clip.",cta:"Inizia Produzione Video",nav:"produzione",tutor:"ANDREA",color:"#0369a1"},
   F6:{title:"Configura la tua Academy",desc:"Carica i video, configura il Brand Kit e imposta Systeme.io.",cta:"Configura Academy",nav:"brandkit",tutor:"ANDREA",color:"#0369a1"},
   F7:{title:"Prepara il lancio",desc:"STEFANIA crea email, post social e calendario dei 30 giorni.",cta:"Apri Calendario Editoriale",nav:"calendario",tutor:"STEFANIA",color:"#db2777"},
-  F8:{title:"Lancio attivo 🚀",desc:"Stai lanciando! Monitora le conversioni e chiedi supporto a VALENTINA.",cta:"Supporto Live",nav:"supporto",tutor:"VALENTINA",color:"#16a34a"},
-  F9:{title:"Ottimizza le performance",desc:"Analizza i dati e ottimizza il funnel con STEFANIA.",cta:"Analizza Metriche",nav:"calendario",tutor:"VALENTINA",color:"#f59e0b"},
-  F10:{title:"La mia Accademia",desc:"Gestisci la tua accademia: studenti, metriche e contenuti.",cta:"Apri Accademia",nav:"accademia",tutor:"VALENTINA",color:"#F5C518"},
+  F8:{title:"Lancio attivo 🚀",desc:"Stai lanciando! Monitora le conversioni e chiedi supporto a STEFANIA.",cta:"Supporto Live",nav:"supporto",tutor:"STEFANIA",color:"#16a34a"},
+  F9:{title:"Ottimizza le performance",desc:"Analizza i dati e ottimizza il funnel con STEFANIA.",cta:"Analizza Metriche",nav:"calendario",tutor:"STEFANIA",color:"#f59e0b"},
+  F10:{title:"La mia Accademia",desc:"Gestisci la tua accademia: studenti, metriche e contenuti.",cta:"Apri Accademia",nav:"accademia",tutor:"STEFANIA",color:"#F5C518"},
   F11:{title:"I miei Studenti",desc:"Monitora i progressi dei tuoi studenti e le conversioni.",cta:"Vedi Studenti",nav:"studenti",tutor:"MARCO",color:"#10B981"},
   F12:{title:"Impegni Settimana",desc:"Pianifica le tue attività settimanali e mantieni il ritmo.",cta:"Vedi Impegni",nav:"impegni",tutor:"MARCO",color:"#3B82F6"},
-  F13:{title:"Report Mensile",desc:"Analizza le performance del mese e pianifica il prossimo.",cta:"Vedi Report",nav:"report",tutor:"VALENTINA",color:"#8B5CF6"},
+  F13:{title:"Report Mensile",desc:"Analizza le performance del mese e pianifica il prossimo.",cta:"Vedi Report",nav:"report",tutor:"STEFANIA",color:"#8B5CF6"},
 };
 
 const PHASE_TOOLS = {
-  F0:[{icon:"📋",label:"Documenti",nav:"documenti",desc:"Carica contratto"},{icon:"💬",label:"VALENTINA",nav:"supporto",desc:"Assistente 24/7"}],
-  F1:[{icon:"🎯",label:"Posizionamento",nav:"documenti",desc:"Wizard guidato"},{icon:"💬",label:"VALENTINA",nav:"supporto",desc:"Assistente 24/7"}],
+  F0:[{icon:"📋",label:"Documenti",nav:"documenti",desc:"Carica contratto"},{icon:"💬",label:"STEFANIA",nav:"supporto",desc:"Assistente 24/7"}],
+  F1:[{icon:"🎯",label:"Posizionamento",nav:"documenti",desc:"Wizard guidato"},{icon:"💬",label:"STEFANIA",nav:"supporto",desc:"Assistente 24/7"}],
   F2:[{icon:"✨",label:"Course Builder",nav:"coursebuilder",desc:"Genera struttura AI"},{icon:"🎨",label:"Brand Kit",nav:"brandkit",desc:"Logo e colori"}],
   F3:[{icon:"✍️",label:"Masterclass",nav:"masterclass",desc:"6 blocchi strategici"},{icon:"✨",label:"Course Builder",nav:"coursebuilder",desc:"Struttura corso"}],
   F4:[{icon:"▶",label:"Videocorso",nav:"corso",desc:"Studia i moduli"},{icon:"✍️",label:"Masterclass",nav:"masterclass",desc:"Rifinisci lo script"}],
   F5:[{icon:"🎬",label:"Produzione Video",nav:"produzione",desc:"Pre-flight + upload"},{icon:"📁",label:"I Miei File",nav:"files",desc:"Gestione materiali"}],
   F6:[{icon:"🎨",label:"Brand Kit",nav:"brandkit",desc:"Configura identità"},{icon:"📁",label:"I Miei File",nav:"files",desc:"Video e documenti"}],
   F7:[{icon:"📅",label:"Calendario",nav:"calendario",desc:"30 giorni editoriale"},{icon:"📋",label:"Template",nav:"risorse",desc:"Scarica risorse"}],
-  F8:[{icon:"📅",label:"Calendario",nav:"calendario",desc:"Post programmati"},{icon:"💬",label:"VALENTINA",nav:"supporto",desc:"Supporto live"}],
+  F8:[{icon:"📅",label:"Calendario",nav:"calendario",desc:"Post programmati"},{icon:"💬",label:"STEFANIA",nav:"supporto",desc:"Supporto live"}],
   F9:[{icon:"📅",label:"Calendario",nav:"calendario",desc:"Ottimizza contenuti"},{icon:"🎬",label:"Produzione",nav:"produzione",desc:"Nuovi video"}],
-  F10:[{icon:"🎓",label:"Accademia",nav:"accademia",desc:"Gestisci academy"},{icon:"💬",label:"VALENTINA",nav:"supporto",desc:"Strategia avanzata"}],
+  F10:[{icon:"🎓",label:"Accademia",nav:"accademia",desc:"Gestisci academy"},{icon:"💬",label:"STEFANIA",nav:"supporto",desc:"Strategia avanzata"}],
   F11:[{icon:"👥",label:"Studenti",nav:"studenti",desc:"Lista studenti"},{icon:"📊",label:"Metriche",nav:"accademia",desc:"Performance"}],
   F12:[{icon:"📋",label:"Impegni",nav:"impegni",desc:"Task settimana"},{icon:"💬",label:"MARCO",nav:"supporto",desc:"Accountability"}],
-  F13:[{icon:"📈",label:"Report",nav:"report",desc:"Analisi mensile"},{icon:"💬",label:"VALENTINA",nav:"supporto",desc:"Consulenza"}],
+  F13:[{icon:"📈",label:"Report",nav:"report",desc:"Analisi mensile"},{icon:"💬",label:"STEFANIA",nav:"supporto",desc:"Consulenza"}],
 };
 
 const RESOURCES = [
@@ -697,7 +697,7 @@ function PartnerCourse({ partner, modules }) {
   
   // Team Evolution Data - 6 Core Agents
   const TEAM_AGENTS = [
-    { id: "valentina", name: "Valentina", role: "Onboarding & Consulenza", emoji: "💬", color: "#EC4899", desc: "Onboarding, consulenza e coordinamento team" },
+    { id: "stefania", name: "Stefania", role: "Onboarding & Consulenza", emoji: "💬", color: "#EC4899", desc: "Onboarding, consulenza e coordinamento team" },
     { id: "andrea", name: "Andrea", role: "Avanzamento Corso & Video", emoji: "🎬", color: "#8B5CF6", desc: "Editing video, produzione e avatar AI" },
     { id: "marco", name: "Marco", role: "Accountability", emoji: "📋", color: "#F59E0B", desc: "Check-in settimanali e motivazione" },
     { id: "gaia", name: "Gaia", role: "Supporto Tecnico", emoji: "🔧", color: "#0EA5E9", desc: "Assistenza tecnica e funnel health" },
@@ -791,7 +791,7 @@ function PartnerCourse({ partner, modules }) {
           </div>
           <div className="mt-4 p-4 rounded-xl text-center" style={{ background: '#FFF8DC', border: '1px solid #F2C41830' }}>
             <div className="text-sm" style={{ color: '#92700C' }}>
-              💡 <strong>Valentina</strong> coordina tutto il team. Parla con lei per qualsiasi domanda!
+              💡 <strong>Stefania</strong> coordina tutto il team. Parla con lei per qualsiasi domanda!
             </div>
           </div>
         </div>
@@ -831,19 +831,19 @@ function PartnerCourse({ partner, modules }) {
 function PartnerChat({ partner }) {
   const [messages,setMessages]=useState([]);const [input,setInput]=useState("");const [loading,setLoading]=useState(false);const [sessionId]=useState(()=>`chat-${partner.id}-${Date.now()}`);const bottomRef=useRef(null);
   const qr=["Cosa devo fare adesso?","Come funziona il prossimo step?","Ho un problema tecnico","Quando lanceremo?"];
-  useEffect(()=>{setMessages([{role:"assistant",content:`Ciao ${partner.name.split(" ")[0]}! Sono VALENTINA. Sei in **${partner.phase} — ${PHASE_LABELS[partner.phase]}**. Come posso aiutarti?`,time:new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}]);},[partner]);
+  useEffect(()=>{setMessages([{role:"assistant",content:`Ciao ${partner.name.split(" ")[0]}! Sono STEFANIA. Sei in **${partner.phase} — ${PHASE_LABELS[partner.phase]}**. Come posso aiutarti?`,time:new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}]);},[partner]);
   useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:"smooth"});},[messages,loading]);
   const send=async(text)=>{const msg=text||input.trim();if(!msg||loading)return;setInput("");setMessages(p=>[...p,{role:"user",content:msg,time:new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}]);setLoading(true);try{const r=await axios.post(`${API}/chat`,{session_id:sessionId,message:msg,partner_name:partner.name,partner_niche:partner.niche,partner_phase:partner.phase,modules_done:(partner.modules||[]).filter(Boolean).length});setMessages(p=>[...p,{role:"assistant",content:r.data.response,time:new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}]);}catch(e){setMessages(p=>[...p,{role:"assistant",content:"⚠ Problema di connessione. Escalando ad Antonella.",time:new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}),error:true}]);}finally{setLoading(false);}};
   return (
     <div className="bg-white border border-[#ECEDEF] rounded-xl overflow-hidden flex flex-col" style={{height:"calc(100vh - 180px)",minHeight:500}}>
-      <div className="bg-[#FAFAF7] p-4 flex items-center gap-3 border-b border-[#ECEDEF]"><div className="w-9 h-9 rounded-full bg-[#F5C518] flex items-center justify-center text-sm font-bold text-black">V</div><div className="flex-1"><div className="text-sm font-bold">VALENTINA</div><div className="text-[10px] text-[#9CA3AF]">Onboarding & Consulenza · sempre disponibile</div></div><div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"/></div>
+      <div className="bg-[#FAFAF7] p-4 flex items-center gap-3 border-b border-[#ECEDEF]"><div className="w-9 h-9 rounded-full bg-[#F5C518] flex items-center justify-center text-sm font-bold text-black">V</div><div className="flex-1"><div className="text-sm font-bold">STEFANIA</div><div className="text-[10px] text-[#9CA3AF]">Onboarding & Consulenza · sempre disponibile</div></div><div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"/></div>
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.map((m,i)=><div key={i} className={`flex gap-2.5 ${m.role==="user"?"flex-row-reverse":""}`}><div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${m.role==="assistant"?"bg-[#F5C518] text-black":"bg-[#ECEDEF] text-white"}`}>{m.role==="assistant"?"V":partner.name.split(" ").map(n=>n[0]).join("")}</div><div className="max-w-[78%]"><div className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${m.role==="user"?"bg-[#F5C518] text-black rounded-tr-sm":"bg-[#FAFAF7] text-[#5F6572] rounded-tl-sm"} ${m.error?"!bg-red-500/10 !text-red-300":""}`}>{m.content.replace(/\*\*(.*?)\*\*/g,"$1")}</div><div className={`text-[10px] text-[#9CA3AF] mt-1 ${m.role==="user"?"text-right":""}`}>{m.time}</div></div></div>)}
         {loading&&<div className="flex gap-2.5"><div className="w-7 h-7 rounded-full bg-[#F5C518] flex items-center justify-center text-[10px] font-bold text-black">V</div><div className="bg-[#FAFAF7] rounded-2xl rounded-tl-sm px-4 py-3 flex gap-1">{[0,1,2].map(i=><span key={i} className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{animationDelay:`${i*0.15}s`}}/>)}</div></div>}
         <div ref={bottomRef}/>
       </div>
       {messages.length<=2&&<div className="px-4 py-2 border-t border-[#ECEDEF] flex gap-2 flex-wrap">{qr.map((q,i)=><button key={i} onClick={()=>send(q)} className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-full px-3 py-1.5 text-[11px] font-semibold hover:bg-[#F5C518] hover:text-black hover:border-[#F5C518] transition-all">{q}</button>)}</div>}
-      <div className="p-3 border-t border-[#F5C518]/25 flex gap-2"><textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}} placeholder="Scrivi a VALENTINA..." rows={1} className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-3 py-2.5 text-sm resize-none focus:border-[#F5C518] outline-none transition-colors"/><button onClick={()=>send()} disabled={!input.trim()||loading} className="w-11 h-11 rounded-full bg-[#F5C518] flex items-center justify-center text-black disabled:opacity-25 hover:bg-[#e0a800] transition-colors"><Send className="w-4 h-4"/></button></div>
+      <div className="p-3 border-t border-[#F5C518]/25 flex gap-2"><textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}} placeholder="Scrivi a STEFANIA..." rows={1} className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-3 py-2.5 text-sm resize-none focus:border-[#F5C518] outline-none transition-colors"/><button onClick={()=>send()} disabled={!input.trim()||loading} className="w-11 h-11 rounded-full bg-[#F5C518] flex items-center justify-center text-black disabled:opacity-25 hover:bg-[#e0a800] transition-colors"><Send className="w-4 h-4"/></button></div>
     </div>
   );
 }
@@ -858,7 +858,7 @@ function PartnerResources() {
 // ─── PARTNER HOME (cosa fare ora) ─────────────────────────────────────────────
 function PartnerCurrentPhase({ partner, onNavigate }) {
   const phase=partner.phase;const action=PHASE_ACTIONS[phase]||PHASE_ACTIONS["F1"];const tools=PHASE_TOOLS[phase]||PHASE_TOOLS["F1"];
-  const tc={VALENTINA:"#F5C518",STEFANIA:"#db2777",ANDREA:"#0ea5e9"};const tutorColor=tc[action.tutor]||"#F5C518";
+  const tc={STEFANIA:"#F5C518",STEFANIA:"#db2777",ANDREA:"#0ea5e9"};const tutorColor=tc[action.tutor]||"#F5C518";
   return (
     <div className="space-y-5">
       <PhaseProgressBar currentPhase={phase}/>
@@ -986,7 +986,7 @@ export default function App() {
   useEffect(()=>{if(isAuthenticated) loadData();},[isAuthenticated]);
   const loadData=async()=>{try{const[a,p,al,m,s]=await Promise.all([axios.get(`${API}/agents`),axios.get(`${API}/partners`),axios.get(`${API}/alerts`),axios.get(`${API}/modules`),axios.get(`${API}/stats`)]);setAgents(a.data);setPartners(p.data);setAlerts(al.data);setModules(m.data);setStats(s.data);}catch(e){console.error(e);}};
   const dismissAlert=async(id)=>{try{await axios.delete(`${API}/alerts/${id}`);setAlerts(p=>p.filter(a=>a.id!==id));}catch(e){}};
-  const getTutor=(phase)=>["F3","F4"].includes(phase)?"STEFANIA":phase==="F5"?"ANDREA":"VALENTINA";
+  const getTutor=(phase)=>["F3","F4"].includes(phase)?"STEFANIA":phase==="F5"?"ANDREA":"STEFANIA";
 
   const coreNav=[
     {id:"overview",label:"Overview",icon:LayoutDashboard},
@@ -996,7 +996,7 @@ export default function App() {
     {id:"andrea",label:"Editing",icon:Film},
     {id:"youtube-heygen",label:"YouTube × HeyGen",icon:Film},
     {id:"metriche",label:"Post-Lancio",icon:BarChart3},
-    {id:"valentina",label:"VALENTINA",icon:MessageCircle,dot:true},
+    {id:"stefania",label:"STEFANIA",icon:MessageCircle,dot:true},
   ];
   const toolsNav=[
     {id:"systeme",label:"SYSTEME.IO",icon:Database},
@@ -1013,12 +1013,12 @@ export default function App() {
     {id:"andrea",label:"ANDREA — Editing Feed",icon:Film},
     {id:"copyfactory",label:"STEFANIA — Copy Factory",icon:Edit3},
     {id:"compliance",label:"LUCA",icon:Shield},
-    {id:"valentina",label:"VALENTINA",icon:MessageCircle,dot:true},
+    {id:"stefania",label:"STEFANIA",icon:MessageCircle,dot:true},
   ];
   const partnerNav=[
     {id:"corso",label:"PARTI DA QUI",icon:PlayCircle,badge:"START"},
     {id:"home",label:"Cosa fare ora",icon:Rocket,badge:"NOW"},
-    {id:"supporto",label:"VALENTINA",icon:MessageCircle,dot:true},
+    {id:"supporto",label:"STEFANIA",icon:MessageCircle,dot:true},
     {id:"documenti",label:"Documenti",icon:FileText},
     {id:"files",label:"I Miei File",icon:FolderOpen},
     {id:"brandkit",label:"Brand Kit",icon:Palette},
@@ -1033,7 +1033,7 @@ export default function App() {
   const adminNav=adminUser==="antonella"?antonellaNav:coreNav;
   const isToolNav=toolsNav.some(t=>t.id===nav);
 
-  const titles={overview:"Overview",agenti:"Agenti AI",partner:"Pipeline Partner","documenti-partner":"Documenti Partner","onboarding-admin":"Documenti Onboarding","youtube-heygen":"YouTube × HeyGen Hub",andrea:adminUser==="antonella"?"ANDREA — Feed Video":"ANDREA — Surgical Cut",metriche:"Metriche Post-Lancio",systeme:"SYSTEME.IO — Live Data",gaia:"Template Funnel",compliance:"Documenti & Compliance",copyfactory:"STEFANIA — Copy Factory",warmode:"Campagne Ads Partner",alert:"Alert & Escalation",valentina:"STEFANIA — Chat",home:"Il tuo percorso","onboarding-docs":"Documenti Onboarding",corso:"PARTI DA QUI",bonus:"Bonus Strategici",masterclass:"STEFANIA — Masterclass Builder",coursebuilder:"STEFANIA — Course Builder AI",produzione:"ANDREA — Produzione Video",files:"I Miei File",brandkit:"Brand Kit",calendario:"Calendario Editoriale",documenti:"Documenti & Posizionamento",risorse:"Template & Risorse",renewal:"Piani Post-12 Mesi",supporto:"STEFANIA — Chat"};
+  const titles={overview:"Overview",agenti:"Agenti AI",partner:"Pipeline Partner","documenti-partner":"Documenti Partner","onboarding-admin":"Documenti Onboarding","youtube-heygen":"YouTube × HeyGen Hub",andrea:adminUser==="antonella"?"ANDREA — Feed Video":"ANDREA — Surgical Cut",metriche:"Metriche Post-Lancio",systeme:"SYSTEME.IO — Live Data",gaia:"Template Funnel",compliance:"Documenti & Compliance",copyfactory:"STEFANIA — Copy Factory",warmode:"Campagne Ads Partner",alert:"Alert & Escalation",stefania:"STEFANIA — Chat",home:"Il tuo percorso","onboarding-docs":"Documenti Onboarding",corso:"PARTI DA QUI",bonus:"Bonus Strategici",masterclass:"STEFANIA — Masterclass Builder",coursebuilder:"STEFANIA — Course Builder AI",produzione:"ANDREA — Produzione Video",files:"I Miei File",brandkit:"Brand Kit",calendario:"Calendario Editoriale",documenti:"Documenti & Posizionamento",risorse:"Template & Risorse",renewal:"Piani Post-12 Mesi",supporto:"STEFANIA — Chat"};
 
   // Loading state
   if (authLoading) {
@@ -1613,7 +1613,7 @@ export default function App() {
             {nav==="youtube-heygen"&&<YouTubeHeygenHub/>}
             {nav==="andrea"&&(adminUser==="antonella"?<FeedVideoNuovi onOpenPipeline={()=>{setAdminUser("claudio");setNav("andrea");}}/>:<AndreaPipeline partners={partners}/>)}
             {nav==="metriche"&&<MetrichePostLancio partners={partners}/>}
-            {nav==="valentina"&&<StefaniaChat partner={selectedPartner||partners[0]} onBack={()=>setNav("overview")} isAdmin={true}/>}
+            {nav==="stefania"&&<StefaniaChat partner={selectedPartner||partners[0]} onBack={()=>setNav("overview")} isAdmin={true}/>}
             {nav==="webhooks"&&<WebhookDashboard/>}
             {nav==="systeme"&&<SystemeIODashboard partnerId={selectedPartner?.id||partners[0]?.id||"1"} partnerName={selectedPartner?.name||partners[0]?.name}/>}
             {nav==="gaia"&&<GaiaFunnelDeployer partners={partners}/>}
