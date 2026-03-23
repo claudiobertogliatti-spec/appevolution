@@ -13517,6 +13517,26 @@ async def api_get_partners_ready_for_video():
     return {"partners": partners, "total": len(partners)}
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# CELERY STATUS ENDPOINT
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@api_router.get("/celery/status")
+async def api_get_celery_status():
+    """Get Celery worker status"""
+    try:
+        from celery_manager import get_celery_status
+        return get_celery_status()
+    except Exception as e:
+        return {
+            "enabled": False,
+            "redis_available": False,
+            "worker_running": False,
+            "beat_running": False,
+            "error": str(e)
+        }
+
+
 
 async def scarica_docx_analisi(cliente_id: str):
     """Download del file DOCX dell'analisi."""
@@ -13667,6 +13687,18 @@ async def start_background_services():
         logging.info("MongoDB aggregated views initialized")
     except Exception as e:
         logging.warning(f"Could not initialize MongoDB views: {e}")
+    
+    # Start Celery worker (if enabled and Redis available)
+    try:
+        from celery_manager import start_celery_worker, get_celery_status
+        started = start_celery_worker()
+        status = get_celery_status()
+        if started:
+            logging.info(f"Celery worker started: {status}")
+        else:
+            logging.info(f"Celery worker not started (using BackgroundTasks fallback): {status}")
+    except Exception as e:
+        logging.warning(f"Could not start Celery worker: {e}")
 
 
 @app.on_event("shutdown")
@@ -13677,4 +13709,12 @@ async def shutdown_db_client():
         job_executor.stop_worker()
     except:
         pass
+    
+    # Stop Celery worker
+    try:
+        from celery_manager import stop_celery_worker
+        stop_celery_worker()
+    except:
+        pass
+    
     client.close()
