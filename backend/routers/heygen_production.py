@@ -993,10 +993,13 @@ async def start_one_click_pipeline(request: OneClickPipelineRequest, background_
     """
     Pipeline one-click completa:
     1. Valida partner e avatar
-    2. Genera video con HeyGen
+    2. Genera video con HeyGen (via Celery se disponibile)
     3. Attende completamento
     4. Upload automatico su YouTube (se abilitato)
     5. Notifica via Telegram
+    
+    Uses Celery for reliable async processing when Redis is available.
+    Falls back to BackgroundTasks otherwise.
     """
     import uuid
     
@@ -1046,6 +1049,7 @@ async def start_one_click_pipeline(request: OneClickPipelineRequest, background_
         "created_at": now,
         "updated_at": now,
         "progress_pct": 0,
+        "execution_mode": "celery",  # or "background_tasks"
         "steps": {
             "video_generation": "pending",
             "video_polling": "pending",
@@ -1055,12 +1059,44 @@ async def start_one_click_pipeline(request: OneClickPipelineRequest, background_
     
     await db.pipeline_jobs.insert_one(pipeline_job)
     
-    # Avvia pipeline in background
-    background_tasks.add_task(
-        run_pipeline_job,
-        job_id=job_id,
-        request=request,
-        config=config
+    # Try to use Celery, fallback to BackgroundTasks
+    use_celery = False
+    try:
+        from celery_tasks import generate_heygen_video
+        # Test Redis connection
+        from celery_app import celery_app
+        celery_app.control.ping(timeout=1)
+        use_celery = True
+    except Exception as e:
+        logger.warning(f"[PIPELINE] Celery not available, using BackgroundTasks: {e}")
+    
+    if use_celery:
+        # Use Celery for reliable async processing
+        generate_heygen_video.delay(
+            job_id=job_id,
+            script=request.script,
+            avatar_id=config["heygen_id"],
+            voice_id=config["heygen_voice_id"],
+            title=request.video_title,
+            test_mode=request.test_mode
+        )
+        execution_mode = "celery"
+        logger.info(f"[PIPELINE] Job {job_id} submitted to Celery")
+    else:
+        # Fallback to BackgroundTasks
+        background_tasks.add_task(
+            run_pipeline_job,
+            job_id=job_id,
+            request=request,
+            config=config
+        )
+        execution_mode = "background_tasks"
+        logger.info(f"[PIPELINE] Job {job_id} running with BackgroundTasks")
+    
+    # Update execution mode in DB
+    await db.pipeline_jobs.update_one(
+        {"job_id": job_id},
+        {"$set": {"execution_mode": execution_mode}}
     )
     
     # Notifica inizio
@@ -1069,6 +1105,7 @@ async def start_one_click_pipeline(request: OneClickPipelineRequest, background_
         f"👤 {partner.get('name', 'Partner')}\n"
         f"📝 {request.video_title}\n"
         f"🎬 Upload YouTube: {'Sì' if request.auto_upload_youtube else 'No'}\n"
+        f"⚙️ Mode: {execution_mode}\n"
         f"🆔 `{job_id}`"
     )
     
@@ -1076,6 +1113,7 @@ async def start_one_click_pipeline(request: OneClickPipelineRequest, background_
         "success": True,
         "job_id": job_id,
         "status": "queued",
+        "execution_mode": execution_mode,
         "message": "Pipeline avviata. Monitora lo stato con GET /pipeline-status/{job_id}"
     }
 

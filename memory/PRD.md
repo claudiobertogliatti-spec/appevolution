@@ -96,6 +96,42 @@ Build a multi-faceted AI-powered application for "Evolution PRO" business includ
    - All notifications sent via Telegram
    - New endpoint: `POST /api/notify/telegram` for scheduler use
 
+#### Infrastruttura Critica (IMPLEMENTED)
+9. **Celery Queue for Video Pipeline** ✅
+   - Celery + Redis for persistent job queue
+   - Tasks: `generate_heygen_video`, `poll_heygen_video`, `upload_to_youtube`
+   - Auto-retry on failure (3 retries with 60s delay)
+   - 30-minute timeout per task
+   - Stuck job detection every 5 minutes
+   - Fallback to BackgroundTasks if Redis unavailable
+   - Files: `/app/backend/celery_app.py`, `/app/backend/celery_tasks.py`
+
+10. **Stefania Orchestration System** ✅
+    - Agent tasks collection: `db.agent_tasks`
+    - Task types: lead_blocked, partner_inactive, pipeline_failed, payment_issue, onboarding_stuck
+    - Priority levels: low, medium, high, critical
+    - Status flow: open → in_progress → waiting_human → resolved/escalated
+    - Auto-escalation if task open >48 hours
+    - Daily review by Stefania (7:00) with Telegram notification
+    - Endpoints:
+      - `POST /api/agent-tasks/create`
+      - `POST /api/agent-tasks/stefania-review`
+      - `GET /api/agent-tasks`
+      - `POST /api/agent-tasks/{task_id}/resolve`
+    - File: `/app/backend/agent_task_system.py`
+
+11. **MongoDB Aggregated View** ✅
+    - View: `partner_unified_view`
+    - Aggregates data from: partners, partner_posizionamento, partner_masterclass, partner_funnel, pipeline_jobs, heygen_jobs, partner_payments
+    - Computed fields: progress_pct, has_active_production, avatar_ready, completed_videos_count
+    - Endpoints:
+      - `GET /api/partners-unified`
+      - `GET /api/partners-unified/{partner_id}`
+      - `GET /api/partners-unified/filter/active-production`
+      - `GET /api/partners-unified/filter/needing-content`
+      - `GET /api/partners-unified/filter/ready-for-video`
+    - File: `/app/backend/mongodb_views.py`
+
 ### Previous Session: March 2026
 
 #### 1. Valentina → Stefania Renaming ✅

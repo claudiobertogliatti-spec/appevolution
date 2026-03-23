@@ -45,8 +45,9 @@ def trigger_andrea_run():
 
 
 def trigger_stefania_daily():
-    """Ogni giorno alle 7:00 — monitoraggio giornaliero STEFANIA."""
+    """Ogni giorno alle 7:00 — monitoraggio giornaliero STEFANIA + task review."""
     try:
+        # Original daily report
         response = httpx.get(f"{BASE_URL}/agents/stefania/daily-report", timeout=60)
         report = response.json()
 
@@ -58,6 +59,14 @@ def trigger_stefania_daily():
         # Log situazioni critiche per Claudio
         for c in critici:
             logger.warning(f"[STEFANIA CRITICO] {c}")
+        
+        # NEW: Task review orchestration
+        try:
+            task_response = httpx.post(f"{BASE_URL}/agent-tasks/stefania-review", timeout=60)
+            task_result = task_response.json()
+            logger.info(f"[SCHEDULER] STEFANIA task review — Reviewed: {task_result.get('reviewed', 0)} | Escalated: {task_result.get('escalated', 0)}")
+        except Exception as task_err:
+            logger.error(f"[SCHEDULER] STEFANIA task review failed: {task_err}")
 
     except Exception as e:
         logger.error(f"[SCHEDULER] Errore trigger_stefania_daily: {e}")
