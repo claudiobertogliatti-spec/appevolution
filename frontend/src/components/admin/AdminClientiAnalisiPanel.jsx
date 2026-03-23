@@ -4,7 +4,8 @@ import {
   FileText, CreditCard, Phone, Mail, Calendar,
   X, Loader2, RefreshCw, Sparkles, ChevronRight,
   Download, Save, RotateCcw, CalendarCheck, Filter,
-  AlertCircle, User, Target, MessageSquare, Briefcase
+  AlertCircle, User, Target, MessageSquare, Briefcase,
+  Trash2
 } from "lucide-react";
 import { AnalisiConsulenziale } from "./AnalisiConsulenziale";
 
@@ -64,6 +65,11 @@ export function AdminClientiAnalisiPanel() {
   
   // Stato per modifica manuale stati cliente
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  
+  // Stato per eliminazione cliente
+  const [deletingCliente, setDeletingCliente] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   useEffect(() => {
     loadClienti();
@@ -377,6 +383,42 @@ export function AdminClientiAnalisiPanel() {
     }
   };
 
+  // Elimina cliente
+  const handleDeleteCliente = async () => {
+    if (!selectedCliente) return;
+    
+    const expectedText = `ELIMINA ${selectedCliente.nome?.toUpperCase() || 'CLIENTE'}`;
+    if (deleteConfirmText !== expectedText) {
+      alert(`Per confermare, scrivi esattamente: ${expectedText}`);
+      return;
+    }
+    
+    setDeletingCliente(true);
+    
+    try {
+      const response = await fetch(`${API}/api/admin/clienti-analisi/${selectedCliente.id}`, {
+        method: 'DELETE'
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        alert("✅ Cliente eliminato con successo");
+        setShowDeleteModal(false);
+        setDeleteConfirmText("");
+        setSelectedCliente(null);
+        loadClienti();
+      } else {
+        alert("Errore: " + (data.detail || "Impossibile eliminare il cliente"));
+      }
+    } catch (e) {
+      console.error("Error:", e);
+      alert("Errore nella comunicazione con il server");
+    } finally {
+      setDeletingCliente(false);
+    }
+  };
+
   // Filtro clienti
   const filteredClienti = clienti.filter(c => {
     const matchSearch = searchQuery === "" || 
@@ -652,16 +694,28 @@ export function AdminClientiAnalisiPanel() {
                 </h2>
                 <p className="text-sm" style={{ color: '#9CA3AF' }}>{selectedCliente.email}</p>
               </div>
-              <button
-                onClick={() => {
-                  setSelectedCliente(null);
-                  setShowAnalisiEditor(false);
-                  setAnalisiGenerata(null);
-                }}
-                className="p-2 rounded-lg hover:bg-white/10 transition-colors"
-              >
-                <X className="w-5 h-5" style={{ color: '#FFFFFF' }} />
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Pulsante Elimina */}
+                <button
+                  onClick={() => setShowDeleteModal(true)}
+                  className="p-2 rounded-lg hover:bg-red-500/20 transition-colors"
+                  title="Elimina cliente"
+                  data-testid="btn-delete-cliente"
+                >
+                  <Trash2 className="w-5 h-5" style={{ color: '#EF4444' }} />
+                </button>
+                {/* Pulsante Chiudi */}
+                <button
+                  onClick={() => {
+                    setSelectedCliente(null);
+                    setShowAnalisiEditor(false);
+                    setAnalisiGenerata(null);
+                  }}
+                  className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                >
+                  <X className="w-5 h-5" style={{ color: '#FFFFFF' }} />
+                </button>
+              </div>
             </div>
 
             <div className="p-6">
@@ -1310,6 +1364,80 @@ export function AdminClientiAnalisiPanel() {
             loadClienti(); // Ricarica per aggiornare stati
           }}
         />
+      )}
+      
+      {/* Modal Conferma Eliminazione Cliente */}
+      {showDeleteModal && selectedCliente && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+            <div className="p-6 bg-red-50 border-b border-red-100">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-red-100 rounded-xl">
+                  <Trash2 className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-red-900">Elimina Cliente</h3>
+                  <p className="text-sm text-red-700">Questa azione è irreversibile</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              <p className="text-gray-700 mb-4">
+                Stai per eliminare il cliente <strong>{selectedCliente.nome} {selectedCliente.cognome}</strong> e tutti i suoi dati associati (questionario, analisi, script).
+              </p>
+              
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-amber-800">
+                  Per confermare, scrivi: <br/>
+                  <code className="font-mono bg-amber-100 px-2 py-1 rounded mt-1 inline-block">
+                    ELIMINA {selectedCliente.nome?.toUpperCase() || 'CLIENTE'}
+                  </code>
+                </p>
+              </div>
+              
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Scrivi per confermare..."
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none"
+              />
+            </div>
+            
+            <div className="p-4 bg-gray-50 flex gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteConfirmText("");
+                }}
+                className="flex-1 px-4 py-3 rounded-xl font-medium border border-gray-300 hover:bg-gray-100 transition-colors"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={handleDeleteCliente}
+                disabled={deletingCliente || deleteConfirmText !== `ELIMINA ${selectedCliente.nome?.toUpperCase() || 'CLIENTE'}`}
+                className="flex-1 px-4 py-3 rounded-xl font-bold text-white transition-colors flex items-center justify-center gap-2"
+                style={{ 
+                  backgroundColor: deleteConfirmText === `ELIMINA ${selectedCliente.nome?.toUpperCase() || 'CLIENTE'}` ? '#EF4444' : '#9CA3AF'
+                }}
+              >
+                {deletingCliente ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Eliminazione...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Elimina Definitivamente
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

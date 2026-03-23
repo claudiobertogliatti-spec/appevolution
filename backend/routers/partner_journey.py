@@ -83,15 +83,25 @@ async def get_partner_or_404(partner_id: str):
         raise HTTPException(status_code=404, detail="Partner non trovato")
     return partner
 
-async def get_llm_chat():
+async def get_llm_chat(session_id: str = None, system_message: str = None):
     """Helper per ottenere istanza LLM con Emergent Key"""
-    from emergentintegrations.llm.chat import LlmChat
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    import uuid
     
     api_key = os.environ.get('EMERGENT_LLM_KEY')
     if not api_key:
         raise HTTPException(status_code=500, detail="LLM Key non configurata")
     
-    return LlmChat(api_key=api_key, model="claude-sonnet-4-20250514")
+    if session_id is None:
+        session_id = str(uuid.uuid4())
+    
+    if system_message is None:
+        system_message = "Sei un assistente AI professionale per Evolution PRO. Rispondi in italiano."
+    
+    return LlmChat(api_key=api_key, session_id=session_id, system_message=system_message)
+
+# Import UserMessage for use in LLM calls
+from emergentintegrations.llm.chat import UserMessage
 
 async def notify_telegram(message: str):
     """Helper per notifiche Telegram admin"""
@@ -259,13 +269,13 @@ La struttura deve seguire una progressione logica che porta lo studente dal prob
 
     try:
         llm = await get_llm_chat()
-        from emergentintegrations.llm.chat import UserMessage
         
-        response = await llm.chat([UserMessage(text=prompt)])
+        
+        response = await llm.send_message(UserMessage(text=prompt))
         
         # Parse JSON dalla risposta
         import json
-        response_text = response.text.strip()
+        response_text = response.strip()
         
         # Trova il JSON nella risposta
         if "```json" in response_text:
@@ -444,11 +454,11 @@ Rispondi in formato JSON:
 
     try:
         llm = await get_llm_chat()
-        from emergentintegrations.llm.chat import UserMessage
+        
         import json
         
-        response = await llm.chat([UserMessage(text=prompt)])
-        response_text = response.text.strip()
+        response = await llm.send_message(UserMessage(text=prompt))
+        response_text = response.strip()
         
         # Parse JSON
         if "```json" in response_text:
@@ -795,11 +805,11 @@ Rendi il copy persuasivo, specifico per la nicchia, e focalizzato sulla trasform
 
     try:
         llm = await get_llm_chat()
-        from emergentintegrations.llm.chat import UserMessage
+        
         import json
         
-        response = await llm.chat([UserMessage(text=prompt)])
-        response_text = response.text.strip()
+        response = await llm.send_message(UserMessage(text=prompt))
+        response_text = response.strip()
         
         # Parse JSON
         if "```json" in response_text:
@@ -1300,10 +1310,10 @@ Rispondi SOLO con il JSON, senza altro testo."""
 
     try:
         llm = await get_llm_chat()
-        from emergentintegrations.llm.chat import UserMessage
         
-        response = await llm.chat([UserMessage(text=prompt)])
-        response_text = response.text.strip()
+        
+        response = await llm.send_message(UserMessage(text=prompt))
+        response_text = response.strip()
         
         # Parse JSON
         if "```json" in response_text:
@@ -1538,10 +1548,10 @@ Rispondi SOLO in formato JSON con questa struttura:
 
     try:
         llm = await get_llm_chat()
-        from emergentintegrations.llm.chat import UserMessage
         
-        response = await llm.chat([UserMessage(text=prompt)])
-        response_text = response.text.strip()
+        
+        response = await llm.send_message(UserMessage(text=prompt))
+        response_text = response.strip()
         
         # Parse JSON
         if "```json" in response_text:
@@ -1871,10 +1881,10 @@ Rispondi SOLO con il JSON."""
 
     try:
         llm = await get_llm_chat()
-        from emergentintegrations.llm.chat import UserMessage
         
-        response = await llm.chat([UserMessage(text=prompt)])
-        response_text = response.text.strip()
+        
+        response = await llm.send_message(UserMessage(text=prompt))
+        response_text = response.strip()
         
         # Parse JSON
         if "```json" in response_text:

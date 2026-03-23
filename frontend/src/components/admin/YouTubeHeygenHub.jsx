@@ -267,6 +267,8 @@ export default function YouTubeHeygenHub() {
   const [videoTitle, setVideoTitle] = useState("");
   const [videoType, setVideoType] = useState("masterclass");
   const [testMode, setTestMode] = useState(true);
+  const [loadingProduction, setLoadingProduction] = useState(true);
+  const [productionError, setProductionError] = useState(null);
   
   // Digital Twin creation state
   const [creatingDigitalTwin, setCreatingDigitalTwin] = useState(false);
@@ -301,6 +303,9 @@ export default function YouTubeHeygenHub() {
   }, []);
 
   const loadProductionData = async () => {
+    setLoadingProduction(true);
+    setProductionError(null);
+    
     // Fetch with timeout helper
     const fetchWithTimeout = async (url, timeout = 20000) => {
       const controller = new AbortController();
@@ -322,20 +327,28 @@ export default function YouTubeHeygenHub() {
     
     console.log("[YouTubeHeygenHub] Loading production data...");
     
-    // Load data in parallel for faster loading
-    const [heygen, yt, stats, partnersData] = await Promise.all([
-      fetchWithTimeout(`${API}/heygen/test-connection`, 20000),
-      fetchWithTimeout(`${API}/youtube-heygen/youtube/auth-status`, 15000),
-      fetchWithTimeout(`${API}/heygen/stats`, 15000),
-      fetchWithTimeout(`${API}/partners/with-social`, 15000)
-    ]);
-    
-    if (heygen) setHeygenStatus(heygen);
-    if (yt) setYoutubeStatus(yt);
-    if (stats) setProductionStats(stats);
-    if (partnersData) setPartners(partnersData.partners || []);
-    
-    console.log("[YouTubeHeygenHub] Data loaded:", { heygen: !!heygen, yt: !!yt, stats: !!stats, partners: partnersData?.partners?.length || 0 });
+    try {
+      // Load data in parallel for faster loading
+      const [heygen, yt, stats, partnersData] = await Promise.all([
+        fetchWithTimeout(`${API}/heygen/test-connection`, 20000),
+        fetchWithTimeout(`${API}/youtube-heygen/youtube/auth-status`, 15000),
+        fetchWithTimeout(`${API}/heygen/stats`, 15000),
+        fetchWithTimeout(`${API}/partners/with-social`, 15000)
+      ]);
+      
+      // Update state with results (even if some are null)
+      setHeygenStatus(heygen);
+      setYoutubeStatus(yt);
+      setProductionStats(stats);
+      setPartners(partnersData?.partners || []);
+      
+      console.log("[YouTubeHeygenHub] Data loaded:", { heygen: !!heygen, yt: !!yt, stats: !!stats, partners: partnersData?.partners?.length || 0 });
+    } catch (err) {
+      console.error("[YouTubeHeygenHub] Error loading production data:", err);
+      setProductionError("Errore nel caricamento dei dati. Clicca 'Aggiorna lista' per riprovare.");
+    } finally {
+      setLoadingProduction(false);
+    }
   };
 
   const loadPartnerVideos = async (partnerId) => {
@@ -554,6 +567,27 @@ export default function YouTubeHeygenHub() {
         {/* ══ PRODUCTION ══ */}
         {tab === "production" && (
           <div>
+            {/* Loading/Error State */}
+            {loadingProduction && (
+              <div style={{ textAlign: "center", padding: 40 }}>
+                <div style={{ fontSize: 14, color: C.textMuted, marginBottom: 12 }}>Caricamento dati in corso...</div>
+                <div style={{ width: 40, height: 40, border: `3px solid ${C.border}`, borderTopColor: C.green, borderRadius: "50%", margin: "0 auto", animation: "spin 1s linear infinite" }} />
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+              </div>
+            )}
+            {productionError && !loadingProduction && (
+              <div style={{ background: C.red + "15", border: `1px solid ${C.red}44`, borderRadius: 12, padding: 16, marginBottom: 20, textAlign: "center" }}>
+                <div style={{ fontSize: 13, color: C.red, marginBottom: 10 }}>{productionError}</div>
+                <button 
+                  onClick={loadProductionData}
+                  style={{ background: C.red, color: "#fff", border: "none", borderRadius: 6, padding: "8px 16px", fontSize: 12, cursor: "pointer" }}
+                >
+                  Riprova
+                </button>
+              </div>
+            )}
+            {!loadingProduction && (
+              <>
             {/* Status Cards */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 20 }}>
               {/* HeyGen Status */}
@@ -1048,6 +1082,8 @@ export default function YouTubeHeygenHub() {
                 )}
               </div>
             </div>
+              </>
+            )}
           </div>
         )}
 

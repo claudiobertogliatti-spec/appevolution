@@ -1265,7 +1265,7 @@ async def create_analisi_checkout(user_id: str = None, email: str = None):
         raise HTTPException(status_code=400, detail="Pagamento già effettuato")
     
     # URL di successo e cancellazione
-    frontend_url = os.environ.get('FRONTEND_URL', 'https://avatar-hub-8.preview.emergentagent.com')
+    frontend_url = os.environ.get('FRONTEND_URL', 'https://partner-journey-1.preview.emergentagent.com')
     
     try:
         checkout = StripeCheckout(api_key=stripe_key)
@@ -2268,6 +2268,49 @@ async def modifica_stato_cliente(user_id: str, body: dict = None):
     return {
         "success": True,
         "message": f"Stato '{field}' aggiornato a {value} per {cliente.get('nome', '')} {cliente.get('cognome', '')}"
+    }
+
+
+@api_router.delete("/admin/clienti-analisi/{user_id}")
+async def delete_cliente_analisi(user_id: str):
+    """
+    Elimina un cliente analisi e tutti i suoi dati associati.
+    Azione irreversibile - solo per admin.
+    """
+    # Verifica che il cliente esista
+    cliente = await db.users.find_one(
+        {"id": user_id, "user_type": "cliente_analisi"},
+        {"_id": 0, "nome": 1, "cognome": 1, "email": 1}
+    )
+    
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente non trovato")
+    
+    cliente_nome = f"{cliente.get('nome', '')} {cliente.get('cognome', '')}"
+    cliente_email = cliente.get("email")
+    
+    # Elimina il cliente
+    result = await db.users.delete_one({"id": user_id, "user_type": "cliente_analisi"})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=500, detail="Errore nell'eliminazione")
+    
+    # Elimina anche eventuali dati correlati
+    await db.clienti_analisi_risposte.delete_many({"user_id": user_id})
+    await db.clienti_analisi_scripts.delete_many({"user_id": user_id})
+    
+    # Log dell'operazione
+    await db.admin_logs.insert_one({
+        "type": "eliminazione_cliente",
+        "user_id": user_id,
+        "cliente_nome": cliente_nome,
+        "cliente_email": cliente_email,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "success": True,
+        "message": f"Cliente {cliente_nome} eliminato con successo"
     }
 
 
