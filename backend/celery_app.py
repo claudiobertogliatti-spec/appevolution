@@ -4,16 +4,46 @@ Handles async video production pipeline (HeyGen → YouTube)
 """
 
 import os
+from pathlib import Path
+
+# Load .env file explicitly (needed when running as subprocess)
+env_path = Path(__file__).parent / '.env'
+if env_path.exists():
+    with open(env_path) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                key, value = line.split('=', 1)
+                key = key.strip()
+                value = value.strip().strip('"').strip("'")
+                if key not in os.environ:  # Don't override existing env vars
+                    os.environ[key] = value
+
 from celery import Celery
 
 # Redis URL - use environment variable or default to localhost
 REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
 
+# Debug: print URL (masked)
+print(f"[CELERY] Using Redis: {REDIS_URL[:30]}...{REDIS_URL[-20:]}" if len(REDIS_URL) > 50 else f"[CELERY] Using Redis: {REDIS_URL}")
+
+# For Upstash (rediss://), we need to add SSL parameters
+broker_url = REDIS_URL
+backend_url = REDIS_URL
+
+if REDIS_URL.startswith('rediss://'):
+    # Add SSL cert requirement for Upstash
+    ssl_params = '?ssl_cert_reqs=CERT_NONE'
+    if '?' not in REDIS_URL:
+        broker_url = REDIS_URL + ssl_params
+        backend_url = REDIS_URL + ssl_params
+    print(f"[CELERY] SSL mode enabled for Upstash")
+
 # Create Celery app
 celery_app = Celery(
     'evolution_pro',
-    broker=REDIS_URL,
-    backend=REDIS_URL,
+    broker=broker_url,
+    backend=backend_url,
     include=['celery_tasks']
 )
 
