@@ -184,6 +184,62 @@ def validate_script(script: str, answers: Dict[str, str]) -> int:
 # ENDPOINTS
 # ═══════════════════════════════════════════════════════════════════════════════
 
+@router.get("/")
+async def list_masterclass_status():
+    """
+    Lista tutte le masterclass e il loro stato.
+    Usato per la dashboard admin.
+    """
+    if db is None:
+        return {"status": "error", "message": "Database non inizializzato", "masterclasses": []}
+    
+    try:
+        masterclasses = await db.masterclass_factory.find({}, {"_id": 0}).to_list(100)
+        
+        # Arricchisci con dati partner
+        for mc in masterclasses:
+            partner = await db.partners.find_one(
+                {"id": mc.get("partner_id")}, 
+                {"_id": 0, "name": 1, "nome": 1, "email": 1}
+            )
+            if partner:
+                mc["partner_name"] = partner.get("name") or partner.get("nome")
+                mc["partner_email"] = partner.get("email")
+        
+        return {
+            "status": "ok",
+            "total": len(masterclasses),
+            "masterclasses": masterclasses
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e), "masterclasses": []}
+
+
+@router.get("/stats")
+async def get_masterclass_stats():
+    """Statistiche aggregate delle masterclass"""
+    if db is None:
+        return {"status": "error", "message": "Database non inizializzato"}
+    
+    try:
+        total = await db.masterclass_factory.count_documents({})
+        with_script = await db.masterclass_factory.count_documents({"script": {"$ne": None}})
+        approved = await db.masterclass_factory.count_documents({"script_approved": True})
+        with_video = await db.masterclass_factory.count_documents({"video_url": {"$ne": None}})
+        
+        return {
+            "status": "ok",
+            "stats": {
+                "total": total,
+                "with_script": with_script,
+                "script_approved": approved,
+                "with_video": with_video
+            }
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
 @router.get("/{partner_id}")
 async def get_masterclass_data(partner_id: str):
     """Recupera i dati della masterclass esistente"""
