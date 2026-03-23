@@ -3483,10 +3483,29 @@ async def segna_pagamento_partnership(partner_id: str, request: Request):
         "created_at": datetime.now(timezone.utc).isoformat()
     })
     
+    # TRIGGER AUTOMATICO: Invia email di benvenuto partnership
+    try:
+        partner_email = partner.get("email")
+        if partner_email:
+            # Check if welcome email already sent
+            onboarding_status = partner.get("onboarding_status", {})
+            if not onboarding_status.get("welcome_email_sent"):
+                await send_partner_welcome_email(partner_email, partner_name)
+                await db.partners.update_one(
+                    {"id": partner_id},
+                    {"$set": {
+                        "onboarding_status.welcome_email_sent": True,
+                        "onboarding_status.welcome_email_date": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                logging.info(f"[PARTNERSHIP] Welcome email sent automatically to {partner_email}")
+    except Exception as e:
+        logging.error(f"[PARTNERSHIP] Failed to send auto welcome email: {e}")
+    
     return {
         "success": True, 
         "payment_id": payment_id,
-        "message": f"Pagamento Partnership di €{amount:,.2f} segnato per {partner_name}"
+        "message": f"Pagamento Partnership di €{amount:,.2f} segnato per {partner_name}. Email di benvenuto inviata."
     }
 
 
@@ -3556,6 +3575,150 @@ async def upload_partner_files(partner_id: str, files: List[UploadFile] = File(.
             logging.error(f"Failed to send RAW upload notification: {e}")
     
     return {"success": True, "uploaded": uploaded_files, "count": len(uploaded_files)}
+
+
+# =============================================================================
+# ADMIN: OVERRIDE DATI PARTNER PER FASE
+# =============================================================================
+
+class PartnerDataOverride(BaseModel):
+    """Model for admin partner data override"""
+    # Base info
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    niche: Optional[str] = None
+    website: Optional[str] = None
+    
+    # Phase and status
+    phase: Optional[str] = None
+    partnership_pagata: Optional[bool] = None
+    contratto_firmato: Optional[bool] = None
+    onboarding_completato: Optional[bool] = None
+    
+    # Posizionamento (F1-F2)
+    corso_titolo: Optional[str] = None
+    corso_descrizione: Optional[str] = None
+    avatar_caratteristiche: Optional[str] = None
+    target_audience: Optional[str] = None
+    unique_selling_point: Optional[str] = None
+    
+    # Masterclass (F3)
+    masterclass_titolo: Optional[str] = None
+    masterclass_script: Optional[str] = None
+    
+    # Funnel (F4-F6)
+    funnel_domain: Optional[str] = None
+    funnel_is_published: Optional[bool] = None
+    
+    # HeyGen/Avatar
+    heygen_avatar_id: Optional[str] = None
+    heygen_voice_id: Optional[str] = None
+    avatar_status: Optional[str] = None
+    
+    # Admin notes
+    admin_notes: Optional[str] = None
+
+
+@api_router.post("/admin/partners/{partner_id}/override-data")
+async def admin_override_partner_data(partner_id: str, data: PartnerDataOverride):
+    """
+    Admin endpoint to override/insert real partner data.
+    Allows setting any field without going through the full onboarding flow.
+    """
+    partner = await db.partners.find_one({"id": partner_id})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner non trovato")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    update_data = {"updated_at": now, "admin_override_at": now}
+    
+    # Build update from non-None fields
+    data_dict = data.dict(exclude_none=True)
+    
+    for key, value in data_dict.items():
+        if key in ["corso_titolo", "corso_descrizione", "avatar_caratteristiche", "target_audience", "unique_selling_point"]:
+            # Posizionamento fields go to partner_posizionamento collection
+            await db.partner_posizionamento.update_one(
+                {"partner_id": partner_id},
+                {"$set": {key: value, "updated_at": now}},
+                upsert=True
+            )
+        elif key in ["masterclass_titolo", "masterclass_script"]:
+            # Masterclass fields
+            await db.partner_masterclass.update_one(
+                {"partner_id": partner_id},
+                {"$set": {key.replace("masterclass_", ""): value, "updated_at": now}},
+                upsert=True
+            )
+        elif key in ["funnel_domain", "funnel_is_published"]:
+            # Funnel fields
+            field_name = "domain" if key == "funnel_domain" else "is_published"
+            await db.partner_funnel.update_one(
+                {"partner_id": partner_id},
+                {"$set": {field_name: value, "updated_at": now}},
+                upsert=True
+            )
+        elif key in ["heygen_avatar_id", "heygen_voice_id", "avatar_status"]:
+            # Avatar fields go to partners collection
+            if key == "heygen_avatar_id":
+                update_data["heygen_id"] = value
+            elif key == "heygen_voice_id":
+                update_data["heygen_voice_id"] = value
+            else:
+                update_data["avatar_status"] = value
+        else:
+            # Direct partner fields
+            update_data[key] = value
+    
+    # Update main partner record
+    await db.partners.update_one(
+        {"id": partner_id},
+        {"$set": update_data}
+    )
+    
+    # Log admin action
+    await db.admin_logs.insert_one({
+        "type": "partner_data_override",
+        "partner_id": partner_id,
+        "partner_name": partner.get("name"),
+        "fields_updated": list(data_dict.keys()),
+        "admin_notes": data.admin_notes,
+        "created_at": now
+    })
+    
+    return {
+        "success": True,
+        "partner_id": partner_id,
+        "fields_updated": list(data_dict.keys()),
+        "message": f"Dati aggiornati per {partner.get('name')}"
+    }
+
+
+@api_router.get("/admin/partners/{partner_id}/full-data")
+async def admin_get_partner_full_data(partner_id: str):
+    """
+    Get complete partner data from all collections for admin review.
+    """
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner non trovato")
+    
+    # Get data from all related collections
+    posizionamento = await db.partner_posizionamento.find_one({"partner_id": partner_id}, {"_id": 0})
+    masterclass = await db.partner_masterclass.find_one({"partner_id": partner_id}, {"_id": 0})
+    funnel = await db.partner_funnel.find_one({"partner_id": partner_id}, {"_id": 0})
+    pipeline_jobs = await db.pipeline_jobs.find({"partner_id": partner_id}, {"_id": 0, "script": 0}).sort("created_at", -1).limit(5).to_list(5)
+    
+    return {
+        "partner": partner,
+        "posizionamento": posizionamento,
+        "masterclass": masterclass,
+        "funnel": funnel,
+        "recent_pipeline_jobs": pipeline_jobs
+    }
+
+
 
 # =============================================================================
 # PIANO CONTINUITÀ ENDPOINTS
@@ -13640,6 +13803,11 @@ app.include_router(heygen_prod_router)
 from routers.journey_automation import router as journey_router, set_db as set_journey_db
 set_journey_db(db)
 app.include_router(journey_router)
+
+# Stripe Webhook Router
+from routers.stripe_webhook import router as stripe_webhook_router
+app.include_router(stripe_webhook_router, prefix="/api", tags=["webhooks"])
+
 
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler
