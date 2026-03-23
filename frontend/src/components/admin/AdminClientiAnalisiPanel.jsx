@@ -58,6 +58,12 @@ export function AdminClientiAnalisiPanel() {
   // Stato per nuovo flusso consulenziale
   const [showAnalisiConsulenziale, setShowAnalisiConsulenziale] = useState(false);
   const [clienteConsulenziale, setClienteConsulenziale] = useState(null);
+  
+  // Stato per pagamento manuale
+  const [markingPayment, setMarkingPayment] = useState(false);
+  
+  // Stato per modifica manuale stati cliente
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   useEffect(() => {
     loadClienti();
@@ -276,6 +282,99 @@ export function AdminClientiAnalisiPanel() {
     
     navigator.clipboard.writeText(scriptText);
     alert("Script copiato negli appunti!");
+  };
+
+  // Segna pagamento manuale (es. bonifico)
+  const handleSegnaPagamentoManuale = async () => {
+    if (!selectedCliente) return;
+    
+    const conferma = window.confirm(
+      `Confermi che ${selectedCliente.nome} ${selectedCliente.cognome} ha effettuato il pagamento dell'Analisi Strategica (€67) tramite bonifico o altro metodo?\n\nQuesta azione permetterà di generare l'analisi.`
+    );
+    
+    if (!conferma) return;
+    
+    setMarkingPayment(true);
+    
+    try {
+      const response = await fetch(`${API}/api/admin/clienti-analisi/${selectedCliente.id}/segna-pagamento-manuale`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          metodo_pagamento: 'bonifico',
+          note: 'Pagamento confermato manualmente da admin'
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        alert("✅ Pagamento segnato correttamente! Ora puoi generare l'analisi.");
+        setSelectedCliente(prev => ({
+          ...prev,
+          pagamento_analisi: true,
+          metodo_pagamento: 'bonifico'
+        }));
+        loadClienti();
+      } else {
+        alert("Errore: " + (data.detail || "Impossibile segnare il pagamento"));
+      }
+    } catch (e) {
+      console.error("Error:", e);
+      alert("Errore nella comunicazione con il server");
+    } finally {
+      setMarkingPayment(false);
+    }
+  };
+
+  // Modifica manuale stato cliente (admin override)
+  const handleToggleClienteStatus = async (field, currentValue) => {
+    if (!selectedCliente) return;
+    
+    const newValue = !currentValue;
+    const fieldLabels = {
+      questionario_compilato: "Questionario Compilato",
+      pagamento_analisi: "Pagamento Analisi",
+      analisi_generata: "Analisi Generata"
+    };
+    
+    const action = newValue ? "attivare" : "disattivare";
+    const conferma = window.confirm(
+      `⚠️ MODIFICA MANUALE ADMIN\n\nVuoi ${action} "${fieldLabels[field]}" per ${selectedCliente.nome} ${selectedCliente.cognome}?\n\nQuesta azione modifica manualmente lo stato del processo.`
+    );
+    
+    if (!conferma) return;
+    
+    setUpdatingStatus(true);
+    
+    try {
+      const response = await fetch(`${API}/api/admin/clienti-analisi/${selectedCliente.id}/modifica-stato`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          field: field,
+          value: newValue
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        alert(`✅ Stato "${fieldLabels[field]}" ${newValue ? 'attivato' : 'disattivato'} con successo!`);
+        setSelectedCliente(prev => ({
+          ...prev,
+          [field]: newValue
+        }));
+        loadClienti();
+      } else {
+        alert("Errore: " + (data.detail || "Impossibile modificare lo stato"));
+      }
+    } catch (e) {
+      console.error("Error:", e);
+      alert("Errore nella comunicazione con il server");
+    } finally {
+      setUpdatingStatus(false);
+    }
   };
 
   // Filtro clienti
@@ -595,32 +694,65 @@ export function AdminClientiAnalisiPanel() {
                 </div>
               </div>
 
-              {/* SEZIONE 3 — STATO ANALISI */}
+              {/* SEZIONE 3 — STATO ANALISI (Admin può modificare) */}
               <div className="mb-6">
-                <h3 className="text-sm font-bold uppercase tracking-wider mb-3" style={{ color: '#9CA3AF' }}>
-                  Stato Processo
-                </h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-bold uppercase tracking-wider" style={{ color: '#9CA3AF' }}>
+                    Stato Processo
+                  </h3>
+                  <span className="text-xs px-2 py-1 rounded-full" style={{ background: '#FEF3C7', color: '#92400E' }}>
+                    🔧 Clicca per modificare
+                  </span>
+                </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${selectedCliente.questionario_compilato ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                  {/* Questionario Compilato - Toggle */}
+                  <button
+                    onClick={() => handleToggleClienteStatus('questionario_compilato', selectedCliente.questionario_compilato)}
+                    disabled={updatingStatus}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium cursor-pointer transition-all hover:scale-105 hover:shadow-md ${selectedCliente.questionario_compilato ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+                    title="Clicca per attivare/disattivare"
+                  >
                     <CheckCircle className="w-4 h-4" />
                     questionario_compilato
-                  </div>
+                  </button>
                   <ChevronRight className="w-4 h-4 text-gray-400" />
-                  <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${selectedCliente.pagamento_analisi ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                  
+                  {/* Pagamento Analisi - Toggle */}
+                  <button
+                    onClick={() => handleToggleClienteStatus('pagamento_analisi', selectedCliente.pagamento_analisi)}
+                    disabled={updatingStatus}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium cursor-pointer transition-all hover:scale-105 hover:shadow-md ${selectedCliente.pagamento_analisi ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+                    title="Clicca per attivare/disattivare"
+                  >
                     <CreditCard className="w-4 h-4" />
                     pagamento_analisi
-                  </div>
+                  </button>
                   <ChevronRight className="w-4 h-4 text-gray-400" />
-                  <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${selectedCliente.analisi_generata ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                  
+                  {/* Analisi Generata - Toggle */}
+                  <button
+                    onClick={() => handleToggleClienteStatus('analisi_generata', selectedCliente.analisi_generata)}
+                    disabled={updatingStatus}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium cursor-pointer transition-all hover:scale-105 hover:shadow-md ${selectedCliente.analisi_generata ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+                    title="Clicca per attivare/disattivare"
+                  >
                     <Sparkles className="w-4 h-4" />
                     analisi_generata
-                  </div>
+                  </button>
                   <ChevronRight className="w-4 h-4 text-gray-400" />
+                  
+                  {/* Call Stato - Non toggle ma mostra */}
                   <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${selectedCliente.call_stato ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-400'}`}>
                     <CalendarCheck className="w-4 h-4" />
                     {selectedCliente.call_stato || 'call_prenotata'}
                   </div>
                 </div>
+                {updatingStatus && (
+                  <div className="mt-2 text-xs text-amber-600 flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Aggiornamento in corso...
+                  </div>
+                )}
               </div>
 
               {/* SEZIONE 2 — RISPOSTE QUESTIONARIO */}
@@ -820,14 +952,38 @@ export function AdminClientiAnalisiPanel() {
                     <p className="text-sm mb-4" style={{ color: '#B91C1C' }}>
                       Il cliente ha compilato il questionario ma non ha ancora pagato l'Analisi Strategica (€67).
                     </p>
-                    <button
-                      disabled
-                      className="inline-flex items-center gap-2 px-8 py-3 rounded-xl font-bold opacity-50 cursor-not-allowed"
-                      style={{ background: '#9CA3AF', color: '#FFFFFF' }}
-                    >
-                      <Sparkles className="w-5 h-5" />
-                      Genera Analisi Strategica
-                    </button>
+                    
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                      {/* Pulsante Genera Analisi (disabilitato) */}
+                      <button
+                        disabled
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold opacity-50 cursor-not-allowed"
+                        style={{ background: '#9CA3AF', color: '#FFFFFF' }}
+                      >
+                        <Sparkles className="w-5 h-5" />
+                        Genera Analisi
+                      </button>
+                      
+                      {/* Pulsante Segna Pagamento Manuale */}
+                      <button
+                        onClick={handleSegnaPagamentoManuale}
+                        disabled={markingPayment}
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all hover:scale-105"
+                        style={{ background: '#F59E0B', color: '#FFFFFF' }}
+                        data-testid="btn-segna-pagamento-cliente"
+                      >
+                        {markingPayment ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <CreditCard className="w-5 h-5" />
+                        )}
+                        {markingPayment ? "Elaborazione..." : "Segna Pagamento Manuale"}
+                      </button>
+                    </div>
+                    
+                    <p className="text-xs mt-3" style={{ color: '#B91C1C' }}>
+                      Usa "Segna Pagamento Manuale" se il cliente ha pagato tramite bonifico o altro metodo
+                    </p>
                   </div>
                 </div>
               )}

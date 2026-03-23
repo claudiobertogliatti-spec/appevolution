@@ -2147,6 +2147,130 @@ async def aggiorna_stato_call(user_id: str, stato: str = "da_fissare"):
     return {"success": True, "message": f"Stato call aggiornato a: {stato}"}
 
 
+@api_router.post("/admin/clienti-analisi/{user_id}/segna-pagamento-manuale")
+async def segna_pagamento_manuale_cliente(user_id: str, body: dict = None):
+    """
+    Segna manualmente che un cliente ha effettuato il pagamento dell'analisi (es. bonifico).
+    Questo permette di generare l'analisi anche senza passare da Stripe.
+    """
+    if body is None:
+        body = {}
+    
+    metodo_pagamento = body.get("metodo_pagamento", "bonifico")
+    note = body.get("note", "")
+    
+    # Verifica che il cliente esista
+    cliente = await db.users.find_one(
+        {"id": user_id, "user_type": "cliente_analisi"},
+        {"_id": 0, "nome": 1, "cognome": 1, "email": 1, "pagamento_analisi": 1}
+    )
+    
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente non trovato")
+    
+    if cliente.get("pagamento_analisi"):
+        return {"success": True, "message": "Pagamento già registrato in precedenza"}
+    
+    # Aggiorna lo stato del pagamento
+    result = await db.users.update_one(
+        {"id": user_id, "user_type": "cliente_analisi"},
+        {"$set": {
+            "pagamento_analisi": True,
+            "metodo_pagamento": metodo_pagamento,
+            "pagamento_note": note,
+            "pagamento_manuale": True,
+            "pagamento_data": datetime.now(timezone.utc).isoformat(),
+            "pagamento_segnato_da": "admin",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=500, detail="Errore nell'aggiornamento del pagamento")
+    
+    # Log dell'operazione
+    await db.admin_logs.insert_one({
+        "type": "pagamento_manuale_cliente",
+        "user_id": user_id,
+        "cliente_nome": f"{cliente.get('nome', '')} {cliente.get('cognome', '')}",
+        "cliente_email": cliente.get("email"),
+        "metodo_pagamento": metodo_pagamento,
+        "note": note,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "success": True, 
+        "message": f"Pagamento segnato per {cliente.get('nome', '')} {cliente.get('cognome', '')}. Ora puoi generare l'analisi."
+    }
+
+
+@api_router.post("/admin/clienti-analisi/{user_id}/modifica-stato")
+async def modifica_stato_cliente(user_id: str, body: dict = None):
+    """
+    Modifica manualmente lo stato di un cliente (admin override).
+    Permette di attivare/disattivare: questionario_compilato, pagamento_analisi, analisi_generata
+    """
+    if body is None:
+        body = {}
+    
+    field = body.get("field")
+    value = body.get("value")
+    
+    # Campi modificabili
+    allowed_fields = ["questionario_compilato", "pagamento_analisi", "analisi_generata"]
+    
+    if field not in allowed_fields:
+        raise HTTPException(status_code=400, detail=f"Campo non modificabile. Campi consentiti: {allowed_fields}")
+    
+    # Verifica che il cliente esista
+    cliente = await db.users.find_one(
+        {"id": user_id, "user_type": "cliente_analisi"},
+        {"_id": 0, "nome": 1, "cognome": 1, "email": 1}
+    )
+    
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente non trovato")
+    
+    # Aggiorna lo stato
+    update_data = {
+        field: value,
+        f"{field}_modified_by": "admin",
+        f"{field}_modified_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Se stiamo attivando il pagamento, aggiungi info extra
+    if field == "pagamento_analisi" and value:
+        update_data["metodo_pagamento"] = "admin_override"
+        update_data["pagamento_manuale"] = True
+        update_data["pagamento_data"] = datetime.now(timezone.utc).isoformat()
+    
+    result = await db.users.update_one(
+        {"id": user_id, "user_type": "cliente_analisi"},
+        {"$set": update_data}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=500, detail="Errore nell'aggiornamento")
+    
+    # Log dell'operazione
+    await db.admin_logs.insert_one({
+        "type": "modifica_stato_cliente",
+        "user_id": user_id,
+        "cliente_nome": f"{cliente.get('nome', '')} {cliente.get('cognome', '')}",
+        "field": field,
+        "old_value": not value,
+        "new_value": value,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "success": True,
+        "message": f"Stato '{field}' aggiornato a {value} per {cliente.get('nome', '')} {cliente.get('cognome', '')}"
+    }
+
+
 @api_router.post("/admin/clienti-analisi/{user_id}/genera-script-call")
 async def genera_script_call(user_id: str):
     """
@@ -3246,6 +3370,81 @@ async def update_partner_payment(partner_id: str, payment_id: str, request: Requ
             await db.partners.update_one({"id": partner_id}, {"$inc": {"revenue": -amount}})
     
     return {"success": True, "payment_id": payment_id, "new_status": new_status}
+
+
+@api_router.post("/partners/{partner_id}/segna-pagamento-partnership")
+async def segna_pagamento_partnership(partner_id: str, request: Request):
+    """
+    Segna manualmente che un partner ha effettuato il pagamento della partnership (es. bonifico).
+    Crea un record di pagamento e aggiorna il revenue del partner.
+    """
+    try:
+        body = await request.json()
+    except:
+        body = {}
+    
+    amount = body.get("amount", 2790)  # Default €2.790 partnership
+    metodo_pagamento = body.get("metodo_pagamento", "bonifico")
+    note = body.get("note", "")
+    
+    # Verifica che il partner esista
+    partner = await db.partners.find_one(
+        {"id": partner_id},
+        {"_id": 0, "name": 1, "nome": 1, "email": 1}
+    )
+    
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner non trovato")
+    
+    partner_name = partner.get("name") or partner.get("nome") or "Partner"
+    
+    # Crea il record di pagamento
+    payment_id = f"pay_{uuid.uuid4().hex[:8]}"
+    payment = {
+        "id": payment_id,
+        "partner_id": partner_id,
+        "description": f"Partnership Evolution PRO ({metodo_pagamento})",
+        "amount": float(amount),
+        "status": "paid",
+        "date": datetime.now(timezone.utc).isoformat(),
+        "metodo_pagamento": metodo_pagamento,
+        "pagamento_manuale": True,
+        "note": note,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.partner_payments.insert_one(payment)
+    
+    # Aggiorna il revenue del partner
+    await db.partners.update_one(
+        {"id": partner_id},
+        {
+            "$inc": {"revenue": float(amount)},
+            "$set": {
+                "partnership_pagata": True,
+                "partnership_data_pagamento": datetime.now(timezone.utc).isoformat(),
+                "partnership_metodo": metodo_pagamento,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+    
+    # Log dell'operazione
+    await db.admin_logs.insert_one({
+        "type": "pagamento_manuale_partnership",
+        "partner_id": partner_id,
+        "partner_name": partner_name,
+        "amount": float(amount),
+        "metodo_pagamento": metodo_pagamento,
+        "note": note,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "success": True, 
+        "payment_id": payment_id,
+        "message": f"Pagamento Partnership di €{amount:,.2f} segnato per {partner_name}"
+    }
 
 
 @api_router.post("/partners/{partner_id}/files/upload")

@@ -148,6 +148,9 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
   const [revisionNotes, setRevisionNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
   
+  // Partnership payment state
+  const [markingPartnership, setMarkingPartnership] = useState(false);
+  
   // Initialize form data when partner changes
   useEffect(() => {
     if (partner) {
@@ -159,7 +162,12 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
         social_instagram: partner.social_instagram || "",
         social_linkedin: partner.social_linkedin || "",
         social_website: partner.social_website || "",
-        contract_end: partner.contract_end || ""
+        contract_end: partner.contract_end || "",
+        // Admin control fields
+        partnership_pagata: partner.partnership_pagata || false,
+        contratto_firmato: partner.contratto_firmato || false,
+        onboarding_completato: partner.onboarding_completato || false,
+        masterclass_pronta: partner.masterclass_pronta || false
       });
       setRevisionNotes(partner.revision_notes || "");
       fetchPayments();
@@ -219,7 +227,12 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
           social_instagram: formData.social_instagram,
           social_linkedin: formData.social_linkedin,
           social_website: formData.social_website,
-          contract_end: formData.contract_end
+          contract_end: formData.contract_end,
+          // Admin control fields
+          partnership_pagata: formData.partnership_pagata,
+          contratto_firmato: formData.contratto_firmato,
+          onboarding_completato: formData.onboarding_completato,
+          masterclass_pronta: formData.masterclass_pronta
         })
       });
       
@@ -324,6 +337,51 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
       }
     } catch (e) {
       console.error("Error updating payment:", e);
+    }
+  };
+  
+  // Segna pagamento partnership manuale
+  const handleSegnaPagamentoPartnership = async () => {
+    const importo = window.prompt(
+      "Inserisci l'importo della partnership (es. 2790 per €2.790):",
+      "2790"
+    );
+    
+    if (!importo || isNaN(parseFloat(importo))) return;
+    
+    const conferma = window.confirm(
+      `Confermi che ${partnerName} ha effettuato il pagamento della Partnership di €${parseFloat(importo).toLocaleString('it-IT')} tramite bonifico?\n\nVerrà aggiunto ai pagamenti come "Pagato".`
+    );
+    
+    if (!conferma) return;
+    
+    setMarkingPartnership(true);
+    
+    try {
+      const res = await fetch(`${API}/api/partners/${partner.id}/segna-pagamento-partnership`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: parseFloat(importo),
+          metodo_pagamento: "bonifico",
+          note: "Pagamento confermato manualmente da admin"
+        })
+      });
+      
+      const data = await res.json();
+      
+      if (data.success) {
+        alert(`✅ Pagamento Partnership di €${parseFloat(importo).toLocaleString('it-IT')} segnato correttamente!`);
+        fetchPayments();
+        setSaveSuccess(true);
+      } else {
+        alert("Errore: " + (data.detail || "Impossibile segnare il pagamento"));
+      }
+    } catch (e) {
+      console.error("Error:", e);
+      alert("Errore nella comunicazione con il server");
+    } finally {
+      setMarkingPartnership(false);
     }
   };
   
@@ -561,6 +619,111 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                   />
                 </div>
                 
+                {/* PANNELLO CONTROLLO ADMIN */}
+                <div className="p-5 rounded-xl border-2 border-dashed" style={{ borderColor: "#F59E0B", background: "#FFFBEB" }}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-bold flex items-center gap-2" style={{ color: "#B45309" }}>
+                      🔧 Controllo Admin
+                    </h4>
+                    <span className="text-xs px-2 py-1 rounded-full" style={{ background: "#FEF3C7", color: "#92400E" }}>
+                      Modifica manuale stati
+                    </span>
+                  </div>
+                  
+                  {/* Modifica Fase */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium mb-2" style={{ color: "#92400E" }}>
+                      Fase Partnership
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {PHASES.map(phase => (
+                        <button
+                          key={phase}
+                          onClick={() => {
+                            if (window.confirm(`Vuoi cambiare la fase di ${partnerName} a ${phase} (${PHASE_LABELS[phase]})?`)) {
+                              setFormData({...formData, phase: phase});
+                            }
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                            formData.phase === phase 
+                              ? 'bg-amber-500 text-white shadow-md' 
+                              : 'bg-white border border-amber-300 text-amber-700 hover:bg-amber-100'
+                          }`}
+                          data-testid={`btn-phase-${phase}`}
+                        >
+                          {phase}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs mt-2" style={{ color: "#92400E" }}>
+                      Fase attuale: <strong>{formData.phase}</strong> - {PHASE_LABELS[formData.phase]}
+                    </p>
+                  </div>
+                  
+                  {/* Stati booleani */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="flex items-center gap-3 p-3 rounded-lg bg-white border cursor-pointer hover:bg-amber-50">
+                      <input
+                        type="checkbox"
+                        checked={formData.partnership_pagata || false}
+                        onChange={e => {
+                          if (window.confirm(`Vuoi ${e.target.checked ? 'segnare' : 'rimuovere'} il pagamento partnership per ${partnerName}?`)) {
+                            setFormData({...formData, partnership_pagata: e.target.checked});
+                          }
+                        }}
+                        className="w-4 h-4 text-amber-500 rounded"
+                      />
+                      <span className="text-sm font-medium text-gray-700">Partnership Pagata</span>
+                    </label>
+                    
+                    <label className="flex items-center gap-3 p-3 rounded-lg bg-white border cursor-pointer hover:bg-amber-50">
+                      <input
+                        type="checkbox"
+                        checked={formData.contratto_firmato || false}
+                        onChange={e => {
+                          if (window.confirm(`Vuoi ${e.target.checked ? 'segnare' : 'rimuovere'} il contratto firmato per ${partnerName}?`)) {
+                            setFormData({...formData, contratto_firmato: e.target.checked});
+                          }
+                        }}
+                        className="w-4 h-4 text-amber-500 rounded"
+                      />
+                      <span className="text-sm font-medium text-gray-700">Contratto Firmato</span>
+                    </label>
+                    
+                    <label className="flex items-center gap-3 p-3 rounded-lg bg-white border cursor-pointer hover:bg-amber-50">
+                      <input
+                        type="checkbox"
+                        checked={formData.onboarding_completato || false}
+                        onChange={e => {
+                          if (window.confirm(`Vuoi ${e.target.checked ? 'segnare' : 'rimuovere'} l'onboarding completato per ${partnerName}?`)) {
+                            setFormData({...formData, onboarding_completato: e.target.checked});
+                          }
+                        }}
+                        className="w-4 h-4 text-amber-500 rounded"
+                      />
+                      <span className="text-sm font-medium text-gray-700">Onboarding Completato</span>
+                    </label>
+                    
+                    <label className="flex items-center gap-3 p-3 rounded-lg bg-white border cursor-pointer hover:bg-amber-50">
+                      <input
+                        type="checkbox"
+                        checked={formData.masterclass_pronta || false}
+                        onChange={e => {
+                          if (window.confirm(`Vuoi ${e.target.checked ? 'segnare' : 'rimuovere'} la masterclass pronta per ${partnerName}?`)) {
+                            setFormData({...formData, masterclass_pronta: e.target.checked});
+                          }
+                        }}
+                        className="w-4 h-4 text-amber-500 rounded"
+                      />
+                      <span className="text-sm font-medium text-gray-700">Masterclass Pronta</span>
+                    </label>
+                  </div>
+                  
+                  <p className="text-xs mt-3" style={{ color: "#92400E" }}>
+                    ⚠️ Le modifiche verranno salvate cliccando "Salva Modifiche"
+                  </p>
+                </div>
+                
                 {/* Action Buttons */}
                 <div className="flex gap-4 pt-4 border-t">
                   <button
@@ -735,6 +898,35 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                       )}
                     </tbody>
                   </table>
+                </div>
+                
+                {/* Quick Partnership Payment Button */}
+                <div className="p-5 rounded-xl mb-4" style={{ background: "linear-gradient(135deg, #F59E0B15 0%, #F5931815 100%)", border: "1px solid #F59E0B44" }}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-bold flex items-center gap-2" style={{ color: "#B45309" }}>
+                        <CreditCard className="w-5 h-5" />
+                        Pagamento Partnership Manuale
+                      </h4>
+                      <p className="text-sm mt-1" style={{ color: "#92400E" }}>
+                        Usa questo pulsante se il partner ha pagato la partnership tramite bonifico
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleSegnaPagamentoPartnership}
+                      disabled={markingPartnership}
+                      className="px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition-all hover:scale-105"
+                      style={{ backgroundColor: "#F59E0B", color: "#FFFFFF" }}
+                      data-testid="btn-segna-pagamento-partnership"
+                    >
+                      {markingPartnership ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <CheckCircle className="w-4 h-4" />
+                      )}
+                      {markingPartnership ? "Elaborazione..." : "Segna Pagamento Partnership"}
+                    </button>
+                  </div>
                 </div>
                 
                 {/* Add Payment Form */}
