@@ -228,6 +228,214 @@ async def create_lead(lead: DiscoveryLead):
     return {"success": True, "lead_id": lead.id, "lead": doc}
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# IMPORT MASSIVO LEAD (per automazioni esterne)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class ImportLeadItem(BaseModel):
+    """Singolo lead da importare"""
+    source: LeadSource
+    platform_username: str
+    display_name: str
+    bio: Optional[str] = None
+    website_url: Optional[str] = None
+    platform_url: Optional[str] = None
+    email: Optional[str] = None
+    followers_count: Optional[int] = None
+    niche_detected: Optional[str] = None
+
+
+class ImportLeadsRequest(BaseModel):
+    """Request per importazione massiva"""
+    leads: List[ImportLeadItem]
+    auto_score: bool = False  # Se true, calcola automaticamente lo score
+
+
+@router.post("/import")
+async def import_leads(request: ImportLeadsRequest, background_tasks: BackgroundTasks):
+    """
+    Importa una lista di lead da fonti esterne.
+    
+    Endpoint usato dallo script automatico alle 7:00 per:
+    - Importare lead da ricerche automatiche
+    - Importare da CSV o altre fonti
+    - Sincronizzare lead da CRM esterni
+    
+    Returns:
+        - imported: numero di lead importati
+        - skipped: numero di lead saltati (duplicati)
+        - errors: eventuali errori
+    """
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database non inizializzato")
+    
+    results = {
+        "imported": 0,
+        "skipped": 0,
+        "errors": [],
+        "imported_ids": []
+    }
+    
+    for item in request.leads:
+        try:
+            # Check duplicato
+            is_duplicate = await check_duplicate(
+                item.source.value, 
+                item.platform_username,
+                item.email
+            )
+            
+            if is_duplicate:
+                results["skipped"] += 1
+                continue
+            
+            # Genera ID e prepara documento
+            lead_id = f"lead_{generate_lead_id(item.source.value, item.platform_username)}"
+            
+            # Genera email se non fornita
+            email = item.email
+            if not email:
+                username = re.sub(r'[^a-zA-Z0-9]', '', item.platform_username.lower())
+                email = f"{username}_{item.source.value}@discovery.evolutionpro.it"
+            
+            doc = {
+                "id": lead_id,
+                "source": item.source.value,
+                "platform_username": item.platform_username.lower(),
+                "platform_url": item.platform_url or f"https://{item.source.value}.com/{item.platform_username}",
+                "display_name": item.display_name,
+                "bio": item.bio,
+                "website_url": item.website_url,
+                "email": email,
+                "followers_count": item.followers_count,
+                "niche_detected": item.niche_detected,
+                "status": "discovered",
+                "score_total": 0,
+                "discovered_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            await db.discovery_leads.insert_one(doc)
+            results["imported"] += 1
+            results["imported_ids"].append(lead_id)
+            
+            logger.info(f"[DISCOVERY IMPORT] Lead importato: {item.display_name} ({item.source.value})")
+            
+        except Exception as e:
+            results["errors"].append({
+                "username": item.platform_username,
+                "error": str(e)
+            })
+            logger.error(f"[DISCOVERY IMPORT] Errore import {item.platform_username}: {e}")
+    
+    # Se auto_score è attivo, lancia scoring in background
+    if request.auto_score and results["imported_ids"]:
+        background_tasks.add_task(auto_score_imported_leads, results["imported_ids"])
+    
+    logger.info(f"[DISCOVERY IMPORT] Completato: {results['imported']} importati, {results['skipped']} saltati")
+    
+    return {
+        "success": True,
+        "imported": results["imported"],
+        "skipped": results["skipped"],
+        "errors": results["errors"],
+        "total_processed": len(request.leads)
+    }
+
+
+async def auto_score_imported_leads(lead_ids: List[str]):
+    """Background task per assegnare score ai lead importati"""
+    import asyncio
+    
+    for lead_id in lead_ids:
+        try:
+            lead = await db.discovery_leads.find_one({"id": lead_id})
+            if not lead:
+                continue
+            
+            # Calcola score base
+            score = 50  # Base score
+            
+            if lead.get("followers_count"):
+                fc = lead["followers_count"]
+                if fc >= 100000:
+                    score += 30
+                elif fc >= 50000:
+                    score += 25
+                elif fc >= 10000:
+                    score += 20
+                elif fc >= 5000:
+                    score += 15
+                elif fc >= 1000:
+                    score += 10
+            
+            if lead.get("website_url"):
+                score += 10
+            
+            if lead.get("bio") and len(lead["bio"]) > 50:
+                score += 5
+            
+            # Aggiorna score
+            await db.discovery_leads.update_one(
+                {"id": lead_id},
+                {"$set": {
+                    "score_total": min(score, 100),
+                    "score_calculated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            
+            await asyncio.sleep(0.1)  # Rate limiting
+            
+        except Exception as e:
+            logger.error(f"[DISCOVERY] Auto-score error for {lead_id}: {e}")
+
+
+class ImportCSVRequest(BaseModel):
+    """Request per import da CSV"""
+    csv_content: str
+    source: LeadSource = LeadSource.INSTAGRAM
+    auto_score: bool = True
+
+
+@router.post("/import/csv")
+async def import_leads_from_csv(request: ImportCSVRequest):
+    """
+    Importa lead da contenuto CSV.
+    
+    Formato CSV atteso:
+    username,display_name,bio,followers,website
+    
+    Esempio:
+    mario_rossi,Mario Rossi,Business Coach,25000,https://mariorossi.it
+    """
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database non inizializzato")
+    
+    import csv
+    from io import StringIO
+    
+    try:
+        reader = csv.DictReader(StringIO(request.csv_content))
+        leads = []
+        
+        for row in reader:
+            leads.append(ImportLeadItem(
+                source=request.source,
+                platform_username=row.get("username", ""),
+                display_name=row.get("display_name", row.get("name", "")),
+                bio=row.get("bio", ""),
+                followers_count=int(row.get("followers", 0)) if row.get("followers") else None,
+                website_url=row.get("website", None)
+            ))
+        
+        # Usa l'endpoint di import
+        import_request = ImportLeadsRequest(leads=leads, auto_score=request.auto_score)
+        return await import_leads(import_request, BackgroundTasks())
+        
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Errore parsing CSV: {e}")
+
+
 @router.get("/leads/hot")
 async def get_hot_leads(limit: int = 20, min_score: int = 50):
     """
