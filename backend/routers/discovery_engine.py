@@ -46,17 +46,21 @@ class LeadSource(str, Enum):
     LINKEDIN = "linkedin"
     YOUTUBE = "youtube"
     GOOGLE = "google"
+    FACEBOOK = "facebook"
     MANUAL = "manual"
 
 
 class LeadStatus(str, Enum):
+    PENDING = "pending"                  # In attesa di elaborazione
     DISCOVERED = "discovered"           # Appena scoperto
     ANALYZING = "analyzing"             # In analisi (scraping sito)
     SCORED = "scored"                   # Scoring completato
+    CONTACTED = "contacted"             # Contattato
     MESSAGE_READY = "message_ready"     # Messaggio pronto per invio
     MESSAGE_SENT = "message_sent"       # Messaggio inviato
     RESPONDED_POSITIVE = "responded_positive"  # Risposta positiva
     RESPONDED_NEGATIVE = "responded_negative"  # Risposta negativa/no interest
+    QUALIFIED = "qualified"             # Qualificato
     CONVERTED = "converted"             # Convertito in cliente
     REJECTED = "rejected"               # Scartato (duplicato, non in target)
 

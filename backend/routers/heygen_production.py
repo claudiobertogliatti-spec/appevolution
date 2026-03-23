@@ -958,3 +958,368 @@ async def test_heygen_connection():
             "connected": False,
             "error": str(e)
         }
+
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ONE-CLICK PIPELINE: Script → HeyGen → YouTube
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class OneClickPipelineRequest(BaseModel):
+    partner_id: str
+    script: str
+    video_title: str
+    video_type: str = "masterclass"
+    auto_upload_youtube: bool = True
+    youtube_privacy: str = "unlisted"  # private, unlisted, public
+    test_mode: bool = False
+
+
+class PipelineJob(BaseModel):
+    job_id: str
+    partner_id: str
+    video_title: str
+    status: str  # queued, generating_video, uploading_youtube, completed, failed
+    video_id: Optional[str] = None
+    video_url: Optional[str] = None
+    youtube_url: Optional[str] = None
+    error: Optional[str] = None
+    created_at: str
+    updated_at: str
+
+
+@router.post("/one-click-pipeline")
+async def start_one_click_pipeline(request: OneClickPipelineRequest, background_tasks: BackgroundTasks):
+    """
+    Pipeline one-click completa:
+    1. Valida partner e avatar
+    2. Genera video con HeyGen
+    3. Attende completamento
+    4. Upload automatico su YouTube (se abilitato)
+    5. Notifica via Telegram
+    """
+    import uuid
+    
+    if not heygen_service:
+        raise HTTPException(status_code=500, detail="HeyGen service non inizializzato")
+    
+    # Verifica partner
+    partner = await db.partners.find_one({"id": request.partner_id})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner non trovato")
+    
+    # Verifica avatar
+    config = await get_partner_avatar_config(request.partner_id)
+    if config["avatar_status"] not in ["VERIFIED", "ACTIVE"]:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Avatar non pronto. Status: {config['avatar_status']}"
+        )
+    
+    if not config["heygen_id"] or not config.get("heygen_voice_id"):
+        raise HTTPException(
+            status_code=400,
+            detail="Avatar o voce non configurati"
+        )
+    
+    # Crea job pipeline
+    job_id = f"pipeline_{uuid.uuid4().hex[:12]}"
+    now = datetime.now(timezone.utc).isoformat()
+    
+    pipeline_job = {
+        "job_id": job_id,
+        "partner_id": request.partner_id,
+        "partner_name": partner.get("name", "Partner"),
+        "video_title": request.video_title,
+        "video_type": request.video_type,
+        "script": request.script,
+        "script_preview": request.script[:300],
+        "auto_upload_youtube": request.auto_upload_youtube,
+        "youtube_privacy": request.youtube_privacy,
+        "test_mode": request.test_mode,
+        "status": "queued",
+        "video_id": None,
+        "video_url": None,
+        "youtube_url": None,
+        "youtube_video_id": None,
+        "error": None,
+        "created_at": now,
+        "updated_at": now,
+        "progress_pct": 0,
+        "steps": {
+            "video_generation": "pending",
+            "video_polling": "pending",
+            "youtube_upload": "pending" if request.auto_upload_youtube else "skipped"
+        }
+    }
+    
+    await db.pipeline_jobs.insert_one(pipeline_job)
+    
+    # Avvia pipeline in background
+    background_tasks.add_task(
+        run_pipeline_job,
+        job_id=job_id,
+        request=request,
+        config=config
+    )
+    
+    # Notifica inizio
+    await send_telegram_notification(
+        f"🚀 *Pipeline One-Click Avviata*\n\n"
+        f"👤 {partner.get('name', 'Partner')}\n"
+        f"📝 {request.video_title}\n"
+        f"🎬 Upload YouTube: {'Sì' if request.auto_upload_youtube else 'No'}\n"
+        f"🆔 `{job_id}`"
+    )
+    
+    return {
+        "success": True,
+        "job_id": job_id,
+        "status": "queued",
+        "message": "Pipeline avviata. Monitora lo stato con GET /pipeline-status/{job_id}"
+    }
+
+
+async def run_pipeline_job(job_id: str, request: OneClickPipelineRequest, config: dict):
+    """Esegue la pipeline in background"""
+    try:
+        # Step 1: Genera video
+        await update_pipeline_status(job_id, "generating_video", progress=10)
+        
+        video_result = await heygen_service.generate_video(
+            script=request.script,
+            avatar_id=config["heygen_id"],
+            voice_id=config["heygen_voice_id"],
+            title=request.video_title,
+            test=request.test_mode
+        )
+        
+        video_id = video_result.get("data", {}).get("video_id")
+        if not video_id:
+            raise Exception(f"Errore generazione: {video_result}")
+        
+        await db.pipeline_jobs.update_one(
+            {"job_id": job_id},
+            {"$set": {"video_id": video_id, "steps.video_generation": "completed"}}
+        )
+        
+        # Step 2: Poll per completamento (max 10 minuti)
+        await update_pipeline_status(job_id, "waiting_video", progress=30)
+        
+        video_url = None
+        for i in range(60):  # 60 tentativi x 10 sec = 10 min max
+            await asyncio.sleep(10)
+            
+            status = await heygen_service.get_video_status(video_id)
+            status_data = status.get("data", {})
+            current_status = status_data.get("status")
+            
+            if current_status == "completed":
+                video_url = status_data.get("video_url")
+                break
+            elif current_status == "failed":
+                raise Exception(f"HeyGen video failed: {status_data.get('error')}")
+            
+            # Update progress
+            progress = min(30 + (i * 1), 70)
+            await update_pipeline_status(job_id, "waiting_video", progress=progress)
+        
+        if not video_url:
+            raise Exception("Timeout: video non completato in 10 minuti")
+        
+        await db.pipeline_jobs.update_one(
+            {"job_id": job_id},
+            {"$set": {
+                "video_url": video_url,
+                "steps.video_polling": "completed"
+            }}
+        )
+        
+        # Step 3: Upload YouTube (se abilitato)
+        youtube_url = None
+        if request.auto_upload_youtube:
+            await update_pipeline_status(job_id, "uploading_youtube", progress=80)
+            
+            try:
+                youtube_result = await upload_video_to_youtube(
+                    video_url=video_url,
+                    title=request.video_title,
+                    partner_id=request.partner_id,
+                    privacy_status=request.youtube_privacy
+                )
+                youtube_url = youtube_result.get("youtube_url")
+                youtube_video_id = youtube_result.get("youtube_video_id")
+                
+                await db.pipeline_jobs.update_one(
+                    {"job_id": job_id},
+                    {"$set": {
+                        "youtube_url": youtube_url,
+                        "youtube_video_id": youtube_video_id,
+                        "steps.youtube_upload": "completed"
+                    }}
+                )
+            except Exception as yt_error:
+                logger.error(f"[PIPELINE] YouTube upload failed: {yt_error}")
+                await db.pipeline_jobs.update_one(
+                    {"job_id": job_id},
+                    {"$set": {"steps.youtube_upload": f"failed: {str(yt_error)}"}}
+                )
+        
+        # Completato!
+        await update_pipeline_status(job_id, "completed", progress=100)
+        
+        # Notifica completamento
+        partner = await db.partners.find_one({"id": request.partner_id})
+        await send_telegram_notification(
+            f"✅ *Pipeline Completata!*\n\n"
+            f"👤 {partner.get('name', 'Partner') if partner else 'Partner'}\n"
+            f"📝 {request.video_title}\n"
+            f"🎬 Video: {video_url[:50]}...\n"
+            f"{'📺 YouTube: ' + youtube_url if youtube_url else '⏭ YouTube: Skipped'}\n"
+            f"🆔 `{job_id}`"
+        )
+        
+    except Exception as e:
+        logger.error(f"[PIPELINE] Error: {e}")
+        await db.pipeline_jobs.update_one(
+            {"job_id": job_id},
+            {"$set": {
+                "status": "failed",
+                "error": str(e),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        await send_telegram_notification(
+            f"❌ *Pipeline Fallita*\n\n"
+            f"🆔 `{job_id}`\n"
+            f"❗ {str(e)[:200]}"
+        )
+
+
+async def update_pipeline_status(job_id: str, status: str, progress: int = 0):
+    """Aggiorna stato pipeline"""
+    await db.pipeline_jobs.update_one(
+        {"job_id": job_id},
+        {"$set": {
+            "status": status,
+            "progress_pct": progress,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+
+
+async def upload_video_to_youtube(video_url: str, title: str, partner_id: str, privacy_status: str = "unlisted"):
+    """Upload video su YouTube"""
+    import pickle
+    import httpx
+    from pathlib import Path
+    from googleapiclient.discovery import build
+    from googleapiclient.http import MediaFileUpload
+    
+    # Verifica auth
+    creds_path = Path("/app/storage/youtube_credentials.pickle")
+    if not creds_path.exists():
+        raise Exception("YouTube non autorizzato")
+    
+    with open(creds_path, 'rb') as f:
+        creds = pickle.load(f)
+    
+    if not creds.valid:
+        if creds.expired and creds.refresh_token:
+            from google.auth.transport.requests import Request
+            creds.refresh(Request())
+            with open(creds_path, 'wb') as f:
+                pickle.dump(creds, f)
+        else:
+            raise Exception("Token YouTube scaduto")
+    
+    # Recupera info partner
+    partner = await db.partners.find_one({"id": partner_id})
+    partner_name = partner.get("name", "Partner") if partner else "Partner"
+    partner_niche = partner.get("niche", "Business") if partner else "Business"
+    
+    # Scarica video
+    temp_path = f"/tmp/pipeline_{partner_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.mp4"
+    async with httpx.AsyncClient(timeout=300) as http_client:
+        response = await http_client.get(video_url)
+        with open(temp_path, 'wb') as f:
+            f.write(response.content)
+    
+    try:
+        # Upload
+        service = build('youtube', 'v3', credentials=creds)
+        
+        description = f"""🎓 {title}
+
+Videocorso professionale di {partner_name}
+Prodotto da Evolution PRO
+
+📚 Scopri di più: https://evolution-pro.it
+
+#EvolutionPRO #Videocorso #Formazione #{partner_niche.replace(' ', '')}
+"""
+        
+        body = {
+            'snippet': {
+                'title': title[:100],
+                'description': description,
+                'tags': ['Evolution PRO', 'Videocorso', partner_name, partner_niche],
+                'categoryId': '27'
+            },
+            'status': {
+                'privacyStatus': privacy_status,
+                'selfDeclaredMadeForKids': False
+            }
+        }
+        
+        media = MediaFileUpload(temp_path, mimetype='video/mp4', resumable=True)
+        
+        insert_request = service.videos().insert(
+            part=','.join(body.keys()),
+            body=body,
+            media_body=media
+        )
+        
+        response = insert_request.execute()
+        youtube_video_id = response.get('id')
+        youtube_url = f"https://youtube.com/watch?v={youtube_video_id}"
+        
+        logger.info(f"[PIPELINE] Video uploaded to YouTube: {youtube_url}")
+        
+        return {
+            "youtube_video_id": youtube_video_id,
+            "youtube_url": youtube_url
+        }
+        
+    finally:
+        # Pulisci file temp
+        import os
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
+
+@router.get("/pipeline-status/{job_id}")
+async def get_pipeline_status(job_id: str):
+    """Ottieni stato pipeline"""
+    job = await db.pipeline_jobs.find_one({"job_id": job_id}, {"_id": 0, "script": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Pipeline job non trovato")
+    return job
+
+
+@router.get("/pipeline-jobs")
+async def list_pipeline_jobs(partner_id: Optional[str] = None, status: Optional[str] = None, limit: int = 20):
+    """Lista pipeline jobs"""
+    query = {}
+    if partner_id:
+        query["partner_id"] = partner_id
+    if status:
+        query["status"] = status
+    
+    jobs = await db.pipeline_jobs.find(
+        query, 
+        {"_id": 0, "script": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    return {"jobs": jobs, "total": len(jobs)}

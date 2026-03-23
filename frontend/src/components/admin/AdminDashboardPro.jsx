@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { 
   Users, TrendingUp, Rocket, AlertTriangle, Clock, 
   ChevronRight, Search, Filter, Eye, Phone, CheckCircle2,
-  Calendar, FileText, ArrowUpRight, RefreshCw, BarChart3
+  Calendar, FileText, ArrowUpRight, RefreshCw, BarChart3, Timer, Download
 } from "lucide-react";
 import { PartnerDetailModal } from "./PartnerDetailModal";
 
@@ -53,6 +53,29 @@ const formatDate = (date) => {
   return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
 };
 
+// Calcola giorni rimanenti alla scadenza partnership (12 mesi dalla data pagamento)
+const getPartnershipExpiry = (partner) => {
+  const paymentDate = partner.data_pagamento_partnership || partner.conversion_date || partner.created_at;
+  if (!paymentDate) return null;
+  
+  const startDate = new Date(paymentDate);
+  const expiryDate = new Date(startDate);
+  expiryDate.setMonth(expiryDate.getMonth() + 12);
+  
+  const now = new Date();
+  const diffTime = expiryDate.getTime() - now.getTime();
+  const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  return {
+    daysRemaining,
+    expiryDate,
+    isExpired: daysRemaining < 0,
+    isUrgent: daysRemaining <= 7 && daysRemaining >= 0,
+    isWarning: daysRemaining <= 30 && daysRemaining > 7,
+    isSafe: daysRemaining > 30
+  };
+};
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // COMPONENTI
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -83,6 +106,7 @@ function StatCard({ icon: Icon, label, value, trend, color }) {
 function PartnerRow({ partner, onOpenProject }) {
   const status = getStatus(partner.lastActivity, partner.phase);
   const progress = getPhaseProgress(partner.phase);
+  const expiry = getPartnershipExpiry(partner);
   
   return (
     <tr className="border-b border-[#ECEDEF] hover:bg-[#FAFAF7] transition-all">
@@ -126,6 +150,34 @@ function PartnerRow({ partner, onOpenProject }) {
           </div>
           <span className="text-xs font-medium" style={{ color: '#5F6572' }}>{progress}%</span>
         </div>
+      </td>
+      
+      {/* Scadenza Partnership */}
+      <td className="py-3 px-4">
+        {expiry ? (
+          <div className="flex items-center gap-2">
+            <Timer className={`w-4 h-4 ${
+              expiry.isExpired ? 'text-gray-400' :
+              expiry.isUrgent ? 'text-red-500 animate-pulse' :
+              expiry.isWarning ? 'text-amber-500' : 'text-green-500'
+            }`} />
+            <span 
+              className={`text-xs font-bold px-2 py-1 rounded-full ${
+                expiry.isExpired ? 'bg-gray-100 text-gray-500' :
+                expiry.isUrgent ? 'bg-red-100 text-red-600' :
+                expiry.isWarning ? 'bg-amber-100 text-amber-600' : 'bg-green-100 text-green-600'
+              }`}
+              title={`Scade il ${expiry.expiryDate.toLocaleDateString('it-IT')}`}
+            >
+              {expiry.isExpired ? 'Scaduto' :
+               expiry.daysRemaining === 0 ? 'Oggi!' :
+               expiry.daysRemaining === 1 ? '1 giorno' :
+               `${expiry.daysRemaining} gg`}
+            </span>
+          </div>
+        ) : (
+          <span className="text-xs" style={{ color: '#9CA3AF' }}>—</span>
+        )}
       </td>
       
       {/* Ultima attività */}
@@ -256,6 +308,78 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
   const handleOpenPartnerDetail = (partner) => {
     setSelectedPartner(partner);
     setIsModalOpen(true);
+  };
+  
+  // Export CSV function
+  const exportPartnersCSV = () => {
+    if (partners.length === 0) {
+      alert("Nessun partner da esportare");
+      return;
+    }
+    
+    // CSV Headers
+    const headers = [
+      "Nome",
+      "Email",
+      "Telefono",
+      "Nicchia",
+      "Fase",
+      "Progresso %",
+      "Partnership Pagata",
+      "Data Pagamento",
+      "Giorni alla Scadenza",
+      "Data Scadenza",
+      "Ultima Attività",
+      "Giorni Inattività",
+      "Stato",
+      "Contratto Firmato",
+      "Onboarding Completato"
+    ];
+    
+    // CSV Rows
+    const rows = partners.map(p => {
+      const expiry = getPartnershipExpiry(p);
+      const progress = getPhaseProgress(p.phase);
+      const status = getStatus(p.lastActivity, p.phase);
+      const daysSinceActivity = p.lastActivity 
+        ? Math.floor((Date.now() - new Date(p.lastActivity).getTime()) / (1000 * 60 * 60 * 24))
+        : "N/A";
+      
+      return [
+        p.name || "",
+        p.email || "",
+        p.phone || "",
+        p.niche || "",
+        PHASE_LABELS[p.phase] || p.phase || "",
+        progress,
+        p.partnership_pagata ? "Sì" : "No",
+        p.data_pagamento_partnership ? new Date(p.data_pagamento_partnership).toLocaleDateString('it-IT') : "",
+        expiry ? expiry.daysRemaining : "N/A",
+        expiry ? expiry.expiryDate.toLocaleDateString('it-IT') : "",
+        p.lastActivity ? new Date(p.lastActivity).toLocaleDateString('it-IT') : "",
+        daysSinceActivity,
+        status.label,
+        p.contratto_firmato ? "Sì" : "No",
+        p.onboarding_completato ? "Sì" : "No"
+      ];
+    });
+    
+    // Build CSV content
+    const csvContent = [
+      headers.join(";"),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(";"))
+    ].join("\n");
+    
+    // Download
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `evolution_pro_partners_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
   
   const handleCloseModal = () => {
@@ -477,6 +601,17 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
                     </button>
                   ))}
                 </div>
+                {/* Export CSV Button */}
+                <button
+                  onClick={exportPartnersCSV}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all hover:scale-105"
+                  style={{ background: '#10B981', color: 'white' }}
+                  title="Esporta lista partner in CSV"
+                  data-testid="export-csv-btn"
+                >
+                  <Download className="w-4 h-4" />
+                  Export CSV
+                </button>
               </div>
               
               {/* Table */}
@@ -488,6 +623,12 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
                       <th className="text-left py-3 px-4 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>Email</th>
                       <th className="text-left py-3 px-4 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>Fase</th>
                       <th className="text-left py-3 px-4 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>Progresso</th>
+                      <th className="text-left py-3 px-4 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>
+                        <div className="flex items-center gap-1">
+                          <Timer className="w-3 h-3" />
+                          Scadenza
+                        </div>
+                      </th>
                       <th className="text-left py-3 px-4 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>Ultima attività</th>
                       <th className="text-left py-3 px-4 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>Stato</th>
                       <th className="text-left py-3 px-4 text-xs font-bold uppercase" style={{ color: '#9CA3AF' }}>Azione</th>
@@ -496,14 +637,14 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
                   <tbody>
                     {loading ? (
                       <tr>
-                        <td colSpan="7" className="py-12 text-center">
+                        <td colSpan="8" className="py-12 text-center">
                           <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" style={{ color: '#9CA3AF' }} />
                           <span className="text-sm" style={{ color: '#9CA3AF' }}>Caricamento...</span>
                         </td>
                       </tr>
                     ) : filteredPartners.length === 0 ? (
                       <tr>
-                        <td colSpan="7" className="py-12 text-center">
+                        <td colSpan="8" className="py-12 text-center">
                           <Users className="w-8 h-8 mx-auto mb-2" style={{ color: '#ECEDEF' }} />
                           <span className="text-sm" style={{ color: '#9CA3AF' }}>Nessun partner trovato</span>
                         </td>
