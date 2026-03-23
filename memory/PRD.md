@@ -49,6 +49,13 @@ Build a multi-faceted AI-powered application for "Evolution PRO" business includ
    - Shows error message with retry button if API calls fail
    - Improved error handling in `loadProductionData()` function
 
+#### New Features
+3. **Delete Button for Discovery Leads** ✅
+   - Added delete button (trash icon) in Discovery Leads table
+   - Added confirmation modal with lead details before deletion
+   - Uses existing `DELETE /api/discovery/leads/{lead_id}` endpoint
+   - Delete button also added in Lead Detail modal
+
 ### Previous Session: March 2026
 
 #### 1. Valentina → Stefania Renaming ✅
