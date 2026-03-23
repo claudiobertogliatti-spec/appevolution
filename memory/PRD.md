@@ -56,6 +56,46 @@ Build a multi-faceted AI-powered application for "Evolution PRO" business includ
    - Uses existing `DELETE /api/discovery/leads/{lead_id}` endpoint
    - Delete button also added in Lead Detail modal
 
+#### FASE 1 - Quick Wins (COMPLETED)
+4. **Filtri Avanzati Discovery Leads** ✅
+   - Filter by Status: pending, scored, discovered, contacted, qualified, rejected
+   - Filter by Platform: LinkedIn, Instagram, YouTube, Facebook, Google, Manual
+   - Filter by Minimum Score: 50, 60, 70 (Hot), 80 (Very Hot), 90 (Super Hot)
+   - Reset filters button
+   - Active filters badges display
+   - Total leads counter
+
+5. **Countdown Scadenza Partnership** ✅
+   - New "Scadenza" column in Partners table with Timer icon
+   - Color-coded badges: red (≤7 days), amber (≤30 days), green (>30 days)
+   - Calculates 12 months from payment date
+   - Shows "Scaduto" for expired partnerships
+
+6. **Export CSV Lista Partner** ✅
+   - Green "Export CSV" button in Partners table toolbar
+   - Exports: Nome, Email, Telefono, Nicchia, Fase, Progresso, Partnership Pagata, 
+     Data Pagamento, Giorni alla Scadenza, Data Scadenza, Ultima Attività, 
+     Giorni Inattività, Stato, Contratto Firmato, Onboarding Completato
+   - UTF-8 with BOM for Excel compatibility
+
+#### FASE 2 - Pipeline HeyGen→YouTube (IMPLEMENTED)
+7. **One-Click Pipeline** ✅
+   - New endpoint: `POST /api/heygen/one-click-pipeline`
+   - Workflow: Script → HeyGen Video Generation → Poll for completion → YouTube Upload
+   - Background task execution with progress tracking (0-100%)
+   - Pipeline status endpoint: `GET /api/heygen/pipeline-status/{job_id}`
+   - Pipeline jobs list: `GET /api/heygen/pipeline-jobs`
+   - Telegram notifications at start, completion, and failure
+   - Auto-upload to YouTube with configurable privacy (private/unlisted/public)
+
+#### FASE 3 - Scheduler Automatici (IMPLEMENTED)
+8. **New Scheduled Jobs** ✅
+   - **Systeme.io Sync** (every 6 hours): Syncs all contacts from Systeme.io
+   - **Partnership Expiry Reminder** (daily 8:00): Alerts for 30/15/7 days and expired
+   - **Weekly KPI Report** (Monday 8:30): Partners, Leads, Clients stats summary
+   - All notifications sent via Telegram
+   - New endpoint: `POST /api/notify/telegram` for scheduler use
+
 ### Previous Session: March 2026
 
 #### 1. Valentina → Stefania Renaming ✅

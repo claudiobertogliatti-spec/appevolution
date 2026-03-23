@@ -13334,6 +13334,25 @@ async def get_workflow_status_analisi(cliente_id: str):
     }
 
 @api_router.get("/clienti-analisi/{cliente_id}/scarica-docx")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TELEGRAM NOTIFY ENDPOINT (for scheduler)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TelegramNotifyRequest(BaseModel):
+    message: str
+
+@api_router.post("/notify/telegram")
+async def notify_telegram_endpoint(request: TelegramNotifyRequest):
+    """Send Telegram notification - used by scheduler jobs"""
+    try:
+        await send_telegram_alert(request.message)
+        return {"success": True, "message": "Notification sent"}
+    except Exception as e:
+        logger.error(f"Failed to send Telegram notification: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 async def scarica_docx_analisi(cliente_id: str):
     """Download del file DOCX dell'analisi."""
     try:

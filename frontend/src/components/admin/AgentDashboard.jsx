@@ -4,7 +4,7 @@ import {
   Users, DollarSign, Target, Video, FileText, Shield,
   Trophy, MessageCircle, Loader2, ChevronRight, Activity,
   CheckSquare, Headphones, LayoutGrid, Search, Globe, Star, Play,
-  X, ExternalLink, Mail, Phone, Linkedin, Instagram, Youtube, Trash2
+  X, ExternalLink, Mail, Phone, Linkedin, Instagram, Youtube, Trash2, Filter, SlidersHorizontal
 } from "lucide-react";
 import { API_URL, API } from "../../utils/api-config";
 
@@ -46,19 +46,38 @@ export function AgentDashboard() {
   const [selectedLead, setSelectedLead] = useState(null); // For modal
   const [deletingLead, setDeletingLead] = useState(null); // For delete loading state
   const [confirmDeleteLead, setConfirmDeleteLead] = useState(null); // For delete confirmation modal
+  
+  // Discovery Leads Filters
+  const [filterStatus, setFilterStatus] = useState("all"); // all, pending, scored, discovered, contacted
+  const [filterSource, setFilterSource] = useState("all"); // all, linkedin, instagram, youtube, facebook, google
+  const [filterMinScore, setFilterMinScore] = useState(0);
+  const [leadsTotal, setLeadsTotal] = useState(0);
 
   useEffect(() => {
     loadData();
     loadDiscoveryLeads();
   }, []);
 
+  // Reload leads when filters change
+  useEffect(() => {
+    loadDiscoveryLeads();
+  }, [filterStatus, filterSource, filterMinScore]);
+
   const loadDiscoveryLeads = async () => {
     setLoadingLeads(true);
     try {
-      const res = await fetch(`${API}/discovery/leads/hot?limit=20`);
+      // Build query params with filters
+      const params = new URLSearchParams();
+      params.append('limit', '50');
+      if (filterStatus !== 'all') params.append('status', filterStatus);
+      if (filterSource !== 'all') params.append('source', filterSource);
+      if (filterMinScore > 0) params.append('min_score', filterMinScore.toString());
+      
+      const res = await fetch(`${API}/discovery/leads?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setDiscoveryLeads(data.leads || []);
+        setLeadsTotal(data.total || 0);
       }
     } catch (error) {
       console.error('Error loading discovery leads:', error);
@@ -220,10 +239,116 @@ export function AgentDashboard() {
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-xs px-3 py-1.5 rounded-full font-bold" 
+                      style={{ background: '#F3F4F6', color: '#6B7280' }}>
+                  {leadsTotal} Totali
+                </span>
+                <span className="text-xs px-3 py-1.5 rounded-full font-bold" 
                       style={{ background: '#EAFAF1', color: '#10B981' }}>
                   {discoveryLeads.filter(l => l.score_total >= 70).length} Hot Leads
                 </span>
               </div>
+            </div>
+            
+            {/* ═══ FILTRI AVANZATI ═══ */}
+            <div className="mt-4 p-4 rounded-xl" style={{ background: '#F9FAFB', border: '1px solid #E5E7EB' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <SlidersHorizontal className="w-4 h-4" style={{ color: '#6B7280' }} />
+                <span className="text-xs font-bold uppercase" style={{ color: '#6B7280' }}>Filtri</span>
+              </div>
+              <div className="flex flex-wrap gap-4">
+                {/* Filtro Status */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium" style={{ color: '#9CA3AF' }}>Status</label>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="px-3 py-2 rounded-lg text-sm border focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                    style={{ borderColor: '#E5E7EB', minWidth: 140 }}
+                    data-testid="filter-status"
+                  >
+                    <option value="all">Tutti</option>
+                    <option value="pending">🔵 Pending</option>
+                    <option value="scored">⭐ Scored</option>
+                    <option value="discovered">🔍 Discovered</option>
+                    <option value="contacted">📧 Contacted</option>
+                    <option value="qualified">✅ Qualified</option>
+                    <option value="rejected">❌ Rejected</option>
+                  </select>
+                </div>
+                
+                {/* Filtro Piattaforma */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium" style={{ color: '#9CA3AF' }}>Piattaforma</label>
+                  <select
+                    value={filterSource}
+                    onChange={(e) => setFilterSource(e.target.value)}
+                    className="px-3 py-2 rounded-lg text-sm border focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                    style={{ borderColor: '#E5E7EB', minWidth: 140 }}
+                    data-testid="filter-source"
+                  >
+                    <option value="all">Tutte</option>
+                    <option value="linkedin">💼 LinkedIn</option>
+                    <option value="instagram">📸 Instagram</option>
+                    <option value="youtube">▶️ YouTube</option>
+                    <option value="facebook">📘 Facebook</option>
+                    <option value="google">🔍 Google</option>
+                    <option value="manual">✍️ Manuale</option>
+                  </select>
+                </div>
+                
+                {/* Filtro Score Minimo */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium" style={{ color: '#9CA3AF' }}>Score Minimo</label>
+                  <select
+                    value={filterMinScore}
+                    onChange={(e) => setFilterMinScore(parseInt(e.target.value))}
+                    className="px-3 py-2 rounded-lg text-sm border focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                    style={{ borderColor: '#E5E7EB', minWidth: 140 }}
+                    data-testid="filter-score"
+                  >
+                    <option value="0">Qualsiasi</option>
+                    <option value="50">≥ 50</option>
+                    <option value="60">≥ 60</option>
+                    <option value="70">≥ 70 (Hot)</option>
+                    <option value="80">≥ 80 (Very Hot)</option>
+                    <option value="90">≥ 90 (Super Hot)</option>
+                  </select>
+                </div>
+                
+                {/* Reset Filtri */}
+                <div className="flex items-end">
+                  <button
+                    onClick={() => { setFilterStatus('all'); setFilterSource('all'); setFilterMinScore(0); }}
+                    className="px-3 py-2 rounded-lg text-xs font-medium transition-all hover:bg-gray-200"
+                    style={{ background: '#E5E7EB', color: '#6B7280' }}
+                    data-testid="reset-filters"
+                  >
+                    Reset Filtri
+                  </button>
+                </div>
+              </div>
+              
+              {/* Filtri attivi badge */}
+              {(filterStatus !== 'all' || filterSource !== 'all' || filterMinScore > 0) && (
+                <div className="mt-3 flex items-center gap-2">
+                  <span className="text-xs" style={{ color: '#9CA3AF' }}>Filtri attivi:</span>
+                  {filterStatus !== 'all' && (
+                    <span className="text-xs px-2 py-1 rounded-full" style={{ background: '#E0F2FE', color: '#0284C7' }}>
+                      Status: {filterStatus}
+                    </span>
+                  )}
+                  {filterSource !== 'all' && (
+                    <span className="text-xs px-2 py-1 rounded-full" style={{ background: '#FCE7F3', color: '#DB2777' }}>
+                      {filterSource}
+                    </span>
+                  )}
+                  {filterMinScore > 0 && (
+                    <span className="text-xs px-2 py-1 rounded-full" style={{ background: '#EAFAF1', color: '#10B981' }}>
+                      Score ≥ {filterMinScore}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -235,7 +360,11 @@ export function AgentDashboard() {
           ) : discoveryLeads.length === 0 ? (
             <div className="p-10 text-center">
               <Search className="w-12 h-12 mx-auto mb-3" style={{ color: '#E5E7EB' }} />
-              <p className="text-sm" style={{ color: '#9CA3AF' }}>Nessun lead nel Discovery Engine</p>
+              <p className="text-sm" style={{ color: '#9CA3AF' }}>
+                {filterStatus !== 'all' || filterSource !== 'all' || filterMinScore > 0 
+                  ? 'Nessun lead corrisponde ai filtri selezionati' 
+                  : 'Nessun lead nel Discovery Engine'}
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
