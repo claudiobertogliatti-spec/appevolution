@@ -35,7 +35,52 @@ Build a multi-faceted AI-powered application for "Evolution PRO" business includ
 
 ## What's Been Implemented
 
-### Session: 23 March 2026
+### Session: 23 March 2026 (Continued)
+
+#### PRIORITÀ 1 - Blocchi Critici
+1. **Stripe Webhook** ✅
+   - Nuovo endpoint: `POST /api/webhooks/stripe`
+   - Gestisce: `payment_intent.succeeded`, `checkout.session.completed`
+   - Setta automaticamente `pagamento_analisi: true`
+   - Trigger automazione post-pagamento
+   - File: `/app/backend/routers/stripe_webhook.py`
+   - Richiede: `STRIPE_WEBHOOK_SECRET` in .env (da configurare su Stripe Dashboard)
+
+2. **Automazione Post-Pagamento €67** ✅
+   - Flow completo implementato:
+     1. Webhook conferma → `pagamento_analisi: true`
+     2. Auto-genera analisi AI (se questionario compilato)
+     3. Auto-genera call script (8 blocchi)
+     4. Schedule welcome email (link booking a T+48h)
+     5. Schedule reminder T+48h
+   - PDF analisi NON inviato al cliente
+
+3. **YouTube OAuth** ✅ (già funzionante)
+   - Status: `authorized`, `valid: true`
+   - Token refresh automatico funzionante
+
+4. **Masterclass 502** ✅
+   - L'endpoint corretto è `POST /api/partner-journey/masterclass/generate-script`
+   - Funziona con `partner_id: "1"` (Marco Ferretti)
+
+#### PRIORITÀ 2 - Operatività
+5. **Admin Override Dati Partner** ✅
+   - `POST /api/admin/partners/{id}/override-data`
+   - `GET /api/admin/partners/{id}/full-data`
+   - Permette inserire dati reali senza rifare onboarding
+
+6. **Partners Unified View** ✅ (già funzionante)
+   - Endpoint restituisce dati aggregati da 7 collezioni
+
+7. **Funnel Admin Unlock** ✅
+   - `POST /api/partner-journey/funnel/admin-unlock`
+   - Sostituisce dominio test con reale
+   - Approva tutti i documenti legali
+   - Marco Ferretti: dominio aggiornato a `marcoferretti.evolution-pro.it`
+
+8. **Email Benvenuto Partnership** ✅
+   - Trigger automatico aggiunto a `segna-pagamento-partnership`
+   - Invia email quando partnership viene attivata
 #### Bug Fixes
 1. **Masterclass Script Generation (P0)** ✅
    - Fixed `AttributeError: 'str' object has no attribute 'file_contents'`

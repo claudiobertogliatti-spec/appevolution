@@ -2374,6 +2374,118 @@ async def approve_funnel_legal(request: FunnelApproveLegalRequest):
     return {"success": True, "message": f"Pagina {request.legal_id} approvata"}
 
 
+class AdminFunnelUnlockRequest(BaseModel):
+    partner_id: str
+    new_domain: Optional[str] = None
+    approve_all_legal: bool = True
+    set_published: bool = False
+
+
+@router.post("/funnel/admin-unlock")
+async def admin_unlock_funnel(request: AdminFunnelUnlockRequest):
+    """
+    Admin endpoint to quickly unlock a funnel:
+    - Replace test domain with real domain
+    - Approve all legal documents
+    - Generate legal docs if missing
+    - Optionally set as published
+    """
+    partner = await get_partner_or_404(request.partner_id)
+    partner_name = partner.get("name", "Partner")
+    
+    funnel = await db.partner_funnel.find_one({"partner_id": request.partner_id})
+    
+    now = datetime.now(timezone.utc).isoformat()
+    updates = {"updated_at": now, "admin_unlocked_at": now}
+    
+    # 1. Update domain if provided
+    if request.new_domain:
+        updates["domain"] = {
+            "domain": request.new_domain,
+            "email": f"info@{request.new_domain}",
+            "status": "verified",
+            "inserted_at": now,
+            "admin_override": True
+        }
+    
+    # 2. Generate and approve legal docs if needed
+    if request.approve_all_legal:
+        domain = request.new_domain or (funnel.get("domain", {}).get("domain", "tuodominio.it") if funnel else "tuodominio.it")
+        email = f"info@{domain}"
+        
+        legal_docs = {
+            "privacy": {
+                "title": "Privacy Policy",
+                "generated": True,
+                "approved": True,
+                "approved_at": now,
+                "content": f"Privacy Policy per {partner_name} - {domain}"
+            },
+            "cookie": {
+                "title": "Cookie Policy",
+                "generated": True,
+                "approved": True,
+                "approved_at": now,
+                "content": f"Cookie Policy per {partner_name} - {domain}"
+            },
+            "terms": {
+                "title": "Termini e Condizioni",
+                "generated": True,
+                "approved": True,
+                "approved_at": now,
+                "content": f"Termini e Condizioni per {partner_name} - {domain}"
+            },
+            "disclaimer": {
+                "title": "Disclaimer",
+                "generated": True,
+                "approved": True,
+                "approved_at": now,
+                "content": f"Disclaimer per {partner_name} - {domain}"
+            }
+        }
+        updates["legal"] = legal_docs
+        updates["is_generated"] = True
+    
+    # 3. Set published if requested
+    if request.set_published:
+        updates["is_published"] = True
+        updates["published_at"] = now
+    
+    # Update or create funnel record
+    if funnel:
+        await db.partner_funnel.update_one(
+            {"partner_id": request.partner_id},
+            {"$set": updates}
+        )
+    else:
+        await db.partner_funnel.insert_one({
+            "partner_id": request.partner_id,
+            "created_at": now,
+            **updates
+        })
+    
+    # Log admin action
+    await db.admin_logs.insert_one({
+        "type": "funnel_admin_unlock",
+        "partner_id": request.partner_id,
+        "partner_name": partner_name,
+        "new_domain": request.new_domain,
+        "approved_legal": request.approve_all_legal,
+        "set_published": request.set_published,
+        "created_at": now
+    })
+    
+    return {
+        "success": True,
+        "partner_id": request.partner_id,
+        "partner_name": partner_name,
+        "new_domain": request.new_domain,
+        "legal_approved": request.approve_all_legal,
+        "is_published": request.set_published,
+        "message": f"Funnel sbloccato per {partner_name}"
+    }
+
+
 @router.get("/funnel/legal-pdf/{partner_id}/{page_id}")
 async def download_legal_pdf(partner_id: str, page_id: str):
     """Genera e scarica il PDF di una pagina legale"""
