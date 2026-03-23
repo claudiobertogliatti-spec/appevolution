@@ -4,7 +4,7 @@ import {
   Users, DollarSign, Target, Video, FileText, Shield,
   Trophy, MessageCircle, Loader2, ChevronRight, Activity,
   CheckSquare, Headphones, LayoutGrid, Search, Globe, Star, Play,
-  X, ExternalLink, Mail, Phone, Linkedin, Instagram, Youtube
+  X, ExternalLink, Mail, Phone, Linkedin, Instagram, Youtube, Trash2
 } from "lucide-react";
 import { API_URL, API } from "../../utils/api-config";
 
@@ -44,6 +44,8 @@ export function AgentDashboard() {
   const [analyzingLead, setAnalyzingLead] = useState(null);
   const [activeTab, setActiveTab] = useState("leads"); // "leads" or "agents"
   const [selectedLead, setSelectedLead] = useState(null); // For modal
+  const [deletingLead, setDeletingLead] = useState(null); // For delete loading state
+  const [confirmDeleteLead, setConfirmDeleteLead] = useState(null); // For delete confirmation modal
 
   useEffect(() => {
     loadData();
@@ -80,6 +82,23 @@ export function AgentDashboard() {
       alert(`Errore: ${error.message}`);
     }
     setAnalyzingLead(null);
+  };
+
+  const handleDeleteLead = async (leadId) => {
+    setDeletingLead(leadId);
+    try {
+      const res = await fetch(`${API}/discovery/leads/${leadId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setDiscoveryLeads(prev => prev.filter(l => l.id !== leadId));
+        setConfirmDeleteLead(null);
+      } else {
+        const err = await res.json();
+        alert(`Errore eliminazione: ${err.detail || 'Eliminazione fallita'}`);
+      }
+    } catch (error) {
+      alert(`Errore: ${error.message}`);
+    }
+    setDeletingLead(null);
   };
 
   const loadData = async (refresh = false) => {
@@ -306,33 +325,44 @@ export function AgentDashboard() {
                           </div>
                         </td>
                         <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleAnalyzeLead(lead.id); }}
-                            disabled={analyzingLead === lead.id}
-                            className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 mx-auto disabled:opacity-50 disabled:cursor-wait"
-                            style={{ 
-                              background: lead.website_analysis && !lead.website_analysis.error ? '#EAFAF1' : '#F2C418',
-                              color: lead.website_analysis && !lead.website_analysis.error ? '#10B981' : '#1E2128'
-                            }}
-                            data-testid={`analyze-btn-${lead.id}`}
-                          >
-                            {analyzingLead === lead.id ? (
-                              <>
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                                Analisi in corso...
-                              </>
-                            ) : lead.website_analysis && !lead.website_analysis.error ? (
-                              <>
-                                <CheckSquare className="w-3 h-3" />
-                                Analizzato
-                              </>
-                            ) : (
-                              <>
-                                <Play className="w-3 h-3" />
-                                Avvia Analisi
-                              </>
-                            )}
-                          </button>
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleAnalyzeLead(lead.id); }}
+                              disabled={analyzingLead === lead.id}
+                              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-wait"
+                              style={{ 
+                                background: lead.website_analysis && !lead.website_analysis.error ? '#EAFAF1' : '#F2C418',
+                                color: lead.website_analysis && !lead.website_analysis.error ? '#10B981' : '#1E2128'
+                              }}
+                              data-testid={`analyze-btn-${lead.id}`}
+                            >
+                              {analyzingLead === lead.id ? (
+                                <>
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                  Analisi...
+                                </>
+                              ) : lead.website_analysis && !lead.website_analysis.error ? (
+                                <>
+                                  <CheckSquare className="w-3 h-3" />
+                                  Analizzato
+                                </>
+                              ) : (
+                                <>
+                                  <Play className="w-3 h-3" />
+                                  Analizza
+                                </>
+                              )}
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setConfirmDeleteLead(lead); }}
+                              className="p-1.5 rounded-lg transition-all hover:bg-red-100"
+                              style={{ color: '#EF4444' }}
+                              title="Elimina lead"
+                              data-testid={`delete-btn-${lead.id}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -793,6 +823,15 @@ export function AgentDashboard() {
                   )}
                 </button>
                 <button
+                  onClick={() => { setConfirmDeleteLead(selectedLead); setSelectedLead(null); }}
+                  className="px-4 py-3 rounded-xl font-bold text-sm flex items-center gap-2"
+                  style={{ background: '#FEE2E2', color: '#DC2626' }}
+                  data-testid="delete-lead-from-modal"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Elimina
+                </button>
+                <button
                   onClick={() => setSelectedLead(null)}
                   className="px-6 py-3 rounded-xl font-bold text-sm"
                   style={{ background: '#F3F4F6', color: '#6B7280' }}
@@ -800,6 +839,83 @@ export function AgentDashboard() {
                   Chiudi
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* MODAL: CONFIRM DELETE LEAD */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {confirmDeleteLead && (
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setConfirmDeleteLead(null)}
+          data-testid="delete-lead-modal"
+        >
+          <div 
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div 
+                className="w-12 h-12 rounded-xl flex items-center justify-center"
+                style={{ background: '#FEE2E2' }}
+              >
+                <Trash2 className="w-6 h-6" style={{ color: '#DC2626' }} />
+              </div>
+              <div>
+                <h2 className="text-lg font-black" style={{ color: '#1E2128' }}>
+                  Conferma Eliminazione
+                </h2>
+                <p className="text-sm" style={{ color: '#6B7280' }}>
+                  Questa azione non può essere annullata
+                </p>
+              </div>
+            </div>
+            
+            <div 
+              className="p-4 rounded-xl mb-6"
+              style={{ background: '#F9FAFB', border: '1px solid #E5E7EB' }}
+            >
+              <p className="text-sm" style={{ color: '#1E2128' }}>
+                Stai per eliminare il lead:
+              </p>
+              <p className="font-bold text-base mt-1" style={{ color: '#1E2128' }}>
+                {confirmDeleteLead.display_name}
+              </p>
+              <p className="text-xs mt-1" style={{ color: '#9CA3AF' }}>
+                {confirmDeleteLead.email || confirmDeleteLead.website_url || 'Nessun contatto'}
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDeleteLead(null)}
+                className="flex-1 py-3 rounded-xl font-bold text-sm"
+                style={{ background: '#F3F4F6', color: '#6B7280' }}
+              >
+                Annulla
+              </button>
+              <button
+                onClick={() => handleDeleteLead(confirmDeleteLead.id)}
+                disabled={deletingLead === confirmDeleteLead.id}
+                className="flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                style={{ background: '#DC2626', color: 'white' }}
+                data-testid="confirm-delete-lead-btn"
+              >
+                {deletingLead === confirmDeleteLead.id ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Eliminazione...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Elimina Lead
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
