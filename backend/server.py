@@ -13353,6 +13353,171 @@ async def notify_telegram_endpoint(request: TelegramNotifyRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# AGENT TASK SYSTEM ENDPOINTS (Stefania Orchestration)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+from agent_task_system import (
+    create_agent_task, stefania_daily_task_review, resolve_task,
+    get_open_tasks_summary, TaskType, TaskPriority, TaskStatus,
+    gaia_report_lead_blocked, report_partner_inactive, report_pipeline_failed
+)
+
+class CreateTaskRequest(BaseModel):
+    task_type: str
+    title: str
+    description: str
+    created_by_agent: str = "system"
+    priority: str = "medium"
+    entity_type: Optional[str] = None
+    entity_id: Optional[str] = None
+    entity_name: Optional[str] = None
+    context: Optional[Dict[str, Any]] = None
+
+class ResolveTaskRequest(BaseModel):
+    resolution_notes: str
+    resolved_by: str = "claudio"
+
+@api_router.post("/agent-tasks/create")
+async def api_create_agent_task(request: CreateTaskRequest):
+    """Create a new agent task for Stefania to monitor"""
+    try:
+        task_type = TaskType(request.task_type)
+        priority = TaskPriority(request.priority)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid enum value: {e}")
+    
+    task_id = await create_agent_task(
+        db=db,
+        task_type=task_type,
+        title=request.title,
+        description=request.description,
+        created_by_agent=request.created_by_agent,
+        priority=priority,
+        entity_type=request.entity_type,
+        entity_id=request.entity_id,
+        entity_name=request.entity_name,
+        context=request.context
+    )
+    
+    return {"success": True, "task_id": task_id}
+
+@api_router.post("/agent-tasks/stefania-review")
+async def api_stefania_task_review():
+    """Stefania's daily task review - checks open tasks and escalates if needed"""
+    result = await stefania_daily_task_review(db)
+    return result
+
+@api_router.get("/agent-tasks")
+async def api_list_agent_tasks(
+    status: Optional[str] = None,
+    priority: Optional[str] = None,
+    created_by: Optional[str] = None,
+    limit: int = 50
+):
+    """List agent tasks with optional filters"""
+    query = {}
+    if status:
+        query["status"] = status
+    if priority:
+        query["priority"] = priority
+    if created_by:
+        query["created_by_agent"] = created_by
+    
+    tasks = await db.agent_tasks.find(
+        query, {"_id": 0}
+    ).sort([("priority", -1), ("created_at", -1)]).limit(limit).to_list(limit)
+    
+    return {"tasks": tasks, "total": len(tasks)}
+
+@api_router.get("/agent-tasks/orchestration/summary")
+async def api_agent_tasks_summary():
+    """Get summary of open tasks by priority (Stefania orchestration)"""
+    summary = await get_open_tasks_summary(db)
+    return summary
+
+@api_router.get("/agent-tasks/{task_id}")
+async def api_get_agent_task(task_id: str):
+    """Get a specific agent task"""
+    task = await db.agent_tasks.find_one({"task_id": task_id}, {"_id": 0})
+    if not task:
+        raise HTTPException(status_code=404, detail="Task non trovato")
+    return task
+
+@api_router.post("/agent-tasks/{task_id}/resolve")
+async def api_resolve_agent_task(task_id: str, request: ResolveTaskRequest):
+    """Resolve an agent task"""
+    success = await resolve_task(db, task_id, request.resolution_notes, request.resolved_by)
+    if not success:
+        raise HTTPException(status_code=404, detail="Task non trovato")
+    return {"success": True, "task_id": task_id}
+
+@api_router.post("/agent-tasks/{task_id}/update-status")
+async def api_update_task_status(task_id: str, new_status: str):
+    """Update task status"""
+    try:
+        status = TaskStatus(new_status)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid status: {new_status}")
+    
+    result = await db.agent_tasks.update_one(
+        {"task_id": task_id},
+        {"$set": {
+            "status": status.value,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Task non trovato")
+    
+    return {"success": True, "task_id": task_id, "new_status": status.value}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PARTNER UNIFIED VIEW ENDPOINTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+from mongodb_views import (
+    get_partner_unified, get_all_partners_unified,
+    get_partners_by_production_status, get_partners_needing_content,
+    get_partners_ready_for_video
+)
+
+@api_router.get("/partners-unified")
+async def api_get_all_partners_unified(limit: int = 100):
+    """Get all partners with unified data from multiple collections"""
+    partners = await get_all_partners_unified(db, limit=limit)
+    return {"partners": partners, "total": len(partners)}
+
+@api_router.get("/partners-unified/{partner_id}")
+async def api_get_partner_unified(partner_id: str):
+    """Get unified partner data from aggregated view"""
+    partner = await get_partner_unified(db, partner_id)
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner non trovato")
+    return partner
+
+@api_router.get("/partners-unified/filter/active-production")
+async def api_get_partners_active_production():
+    """Get partners with active video production"""
+    partners = await get_partners_by_production_status(db, has_active=True)
+    return {"partners": partners, "total": len(partners)}
+
+@api_router.get("/partners-unified/filter/needing-content")
+async def api_get_partners_needing_content():
+    """Get partners missing content (posizionamento, masterclass, or funnel)"""
+    partners = await get_partners_needing_content(db)
+    return {"partners": partners, "total": len(partners)}
+
+@api_router.get("/partners-unified/filter/ready-for-video")
+async def api_get_partners_ready_for_video():
+    """Get partners with avatar ready and masterclass but no active production"""
+    partners = await get_partners_ready_for_video(db)
+    return {"partners": partners, "total": len(partners)}
+
+
+
 async def scarica_docx_analisi(cliente_id: str):
     """Download del file DOCX dell'analisi."""
     try:
@@ -13494,6 +13659,15 @@ async def start_background_services():
         logging.info("Background job worker started")
     except Exception as e:
         logging.warning(f"Could not start background worker: {e}")
+
+    # Initialize MongoDB aggregated views
+    try:
+        from mongodb_views import initialize_views
+        await initialize_views(db)
+        logging.info("MongoDB aggregated views initialized")
+    except Exception as e:
+        logging.warning(f"Could not initialize MongoDB views: {e}")
+
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
