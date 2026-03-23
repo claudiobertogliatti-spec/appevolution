@@ -18,6 +18,7 @@ Build a multi-faceted AI-powered application for "Evolution PRO" business includ
 ├── backend/           # FastAPI backend
 │   ├── server.py      # Main API server (monolith)
 │   ├── routers/       # API routers
+│   │   └── partner_journey.py  # Partner journey with AI generation
 │   ├── heygen_service.py
 │   ├── ollama_service.py
 │   ├── stefania_ai.py # AI assistant (renamed from Valentina)
@@ -26,6 +27,7 @@ Build a multi-faceted AI-powered application for "Evolution PRO" business includ
     └── src/
         ├── components/
         │   ├── admin/  # Admin dashboard components
+        │   │   └── YouTubeHeygenHub.jsx  # Fixed race condition
         │   ├── partner/ # Partner views
         │   └── chat/   # Stefania chat
         └── App.js
@@ -33,7 +35,21 @@ Build a multi-faceted AI-powered application for "Evolution PRO" business includ
 
 ## What's Been Implemented
 
-### Session: March 2026
+### Session: 23 March 2026
+#### Bug Fixes
+1. **Masterclass Script Generation (P0)** ✅
+   - Fixed `AttributeError: 'str' object has no attribute 'file_contents'`
+   - Root cause: `llm.send_message()` requires `UserMessage(text=prompt)` not raw string
+   - Fixed all 6 occurrences in `/app/backend/routers/partner_journey.py`
+   - Tested: `POST /api/partner-journey/masterclass/generate-script` now working
+
+2. **YouTubeHeygenHub Race Condition (P2)** ✅
+   - Added `loadingProduction` and `productionError` states
+   - Shows loading spinner while fetching production data
+   - Shows error message with retry button if API calls fail
+   - Improved error handling in `loadProductionData()` function
+
+### Previous Session: March 2026
 
 #### 1. Valentina → Stefania Renaming ✅
 - Replaced all occurrences (323 total) of "Valentina" with "Stefania"
@@ -77,6 +93,13 @@ Build a multi-faceted AI-powered application for "Evolution PRO" business includ
 
 ## API Endpoints
 
+### Partner Journey (AI-powered)
+- `POST /api/partner-journey/masterclass/generate-script` - Generate masterclass script ✅ FIXED
+- `POST /api/partner-journey/posizionamento/generate-structure` - Generate course structure ✅ FIXED
+- `POST /api/partner-journey/funnel/generate` - Generate funnel content
+- `POST /api/partner-journey/lancio/genera-calendario` - Generate launch calendar
+- `POST /api/partner-journey/ottimizzazione/genera-report` - Generate optimization report
+
 ### Admin - Clienti Analisi
 - `GET /api/admin/clienti-analisi` - List all clients
 - `POST /api/admin/clienti-analisi/{id}/segna-pagamento-manuale` - Mark manual payment
@@ -108,6 +131,10 @@ Build a multi-faceted AI-powered application for "Evolution PRO" business includ
 - `avatar_creation_jobs` - HeyGen job tracking
 - `stefania_conversations` - Chat history
 - `stefania_knowledge` - AI knowledge base
+- `partner_posizionamento` - Partner positioning data
+- `partner_masterclass` - Masterclass scripts and videos
+- `partner_funnel` - Funnel content
+- `partner_lancio` - Launch calendar and status
 
 ## Credentials (Test)
 - **Admin:** claudio.bertogliatti@gmail.com / Evoluzione74
@@ -116,9 +143,10 @@ Build a multi-faceted AI-powered application for "Evolution PRO" business includ
 ## Pending/Future Tasks
 
 ### P1 - High Priority
-- [ ] Deploy to production
+- [ ] **Deploy to production** - Preview works, production needs deployment
 - [ ] Test Digital Twin creation with real videos
 - [ ] E.P.O.S. Automation (Spoiler Strategico, Calendar Unlock)
+- [ ] Clarify "Funnel partner 1: dominio test" requirement (waiting for user input)
 
 ### P2 - Medium Priority
 - [ ] Roadmap "Sblocco Core" Phase 2 (Funnel Deploy)
@@ -134,3 +162,7 @@ Build a multi-faceted AI-powered application for "Evolution PRO" business includ
 - `server.py` is a large monolith (13000+ lines)
 - `App.js` uses complex conditional rendering instead of router
 - Partner data split between `users` and `partners` collections
+
+## Important Notes
+- **LLM Integration**: Uses `emergentintegrations.llm.chat.LlmChat` with `UserMessage(text=...)` for all LLM calls
+- **Production vs Preview**: Changes on preview need to be deployed to production (app.evolution-pro.it)
