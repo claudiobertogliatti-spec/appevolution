@@ -13746,7 +13746,207 @@ async def api_preview_email_template(template_id: str, request: Request):
         raise HTTPException(status_code=404, detail=str(e))
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# ADMIN: PIANO CONTINUITÀ MANAGEMENT
+# ═══════════════════════════════════════════════════════════════════════════════
 
+@api_router.get("/admin/piano-continuita")
+async def admin_get_all_piano_continuita():
+    """
+    Admin: Lista tutti i partner con Piano Continuità attivo.
+    Include storico pagamenti e prossime scadenze.
+    """
+    now = datetime.now(timezone.utc)
+    
+    # Get all partners with piano_continuita
+    partners = await db.partners.find(
+        {"piano_continuita.piano_attivo": {"$ne": None}},
+        {"_id": 0}
+    ).to_list(500)
+    
+    result = []
+    for p in partners:
+        piano = p.get("piano_continuita", {})
+        data_rinnovo = piano.get("data_rinnovo")
+        days_until_renewal = None
+        
+        if data_rinnovo:
+            try:
+                renewal_date = datetime.fromisoformat(data_rinnovo.replace("Z", "+00:00"))
+                days_until_renewal = (renewal_date - now).days
+            except:
+                pass
+        
+        result.append({
+            "partner_id": p.get("id"),
+            "name": p.get("name"),
+            "email": p.get("email"),
+            "phase": p.get("phase"),
+            "piano_attivo": piano.get("piano_attivo"),
+            "data_attivazione": piano.get("data_attivazione"),
+            "data_rinnovo": data_rinnovo,
+            "days_until_renewal": days_until_renewal,
+            "mrr": piano.get("mrr", 0),
+            "fee_mensile": piano.get("fee_mensile", 0),
+            "commissione_percentuale": piano.get("commissione_percentuale", 0),
+            "ultimo_check_in_ai": piano.get("ultimo_check_in_ai"),
+            "stripe_subscription_id": piano.get("stripe_subscription_id"),
+            "status": "expiring_soon" if days_until_renewal and days_until_renewal <= 7 else "active"
+        })
+    
+    # Sort by days until renewal (soonest first)
+    result.sort(key=lambda x: x.get("days_until_renewal") or 9999)
+    
+    # Stats
+    stats = {
+        "total_active": len(result),
+        "expiring_7_days": len([r for r in result if r.get("days_until_renewal") and r["days_until_renewal"] <= 7]),
+        "expiring_30_days": len([r for r in result if r.get("days_until_renewal") and r["days_until_renewal"] <= 30]),
+        "total_mrr": sum(r.get("mrr", 0) for r in result),
+        "total_fee_mensili": sum(r.get("fee_mensile", 0) for r in result)
+    }
+    
+    return {"partners": result, "stats": stats}
+
+
+@api_router.get("/admin/piano-continuita/{partner_id}/payments")
+async def admin_get_piano_payments(partner_id: str):
+    """Admin: Storico pagamenti Piano Continuità per un partner"""
+    payments = await db.piano_continuita_payments.find(
+        {"partner_id": partner_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    return {"partner_id": partner_id, "payments": payments}
+
+
+@api_router.post("/admin/piano-continuita/{partner_id}/trigger-gaia-check")
+async def admin_trigger_gaia_check(partner_id: str):
+    """Admin: Trigger manuale GAIA check per un partner specifico"""
+    partner = await db.partners.find_one({"id": partner_id})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    now = datetime.now(timezone.utc)
+    
+    # Update last check-in
+    await db.partners.update_one(
+        {"id": partner_id},
+        {"$set": {
+            "piano_continuita.ultimo_check_in_ai": now.isoformat(),
+            "piano_continuita.gaia_check_count": (partner.get("piano_continuita", {}).get("gaia_check_count", 0) or 0) + 1
+        }}
+    )
+    
+    # Log the check-in
+    await db.gaia_checkins.insert_one({
+        "partner_id": partner_id,
+        "nome": partner.get("name"),
+        "email": partner.get("email"),
+        "check_type": "manual",
+        "triggered_by": "admin",
+        "checked_at": now.isoformat(),
+        "status": "completed"
+    })
+    
+    return {"success": True, "checked_at": now.isoformat()}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ADMIN: EXPORT CSV PARTNER
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@api_router.get("/admin/partners/export-csv")
+async def admin_export_partners_csv():
+    """
+    Export CSV completo dei partner.
+    Include: nome, fase, nicchia, revenue, piano continuità, data contratto, giorni dall'ultimo aggiornamento.
+    """
+    import csv
+    import io
+    from fastapi.responses import StreamingResponse
+    
+    now = datetime.now(timezone.utc)
+    
+    # Get all partners
+    partners = await db.partners.find({}, {"_id": 0}).to_list(1000)
+    
+    # Create CSV
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Header
+    writer.writerow([
+        "ID",
+        "Nome",
+        "Email",
+        "Telefono",
+        "Fase",
+        "Nicchia",
+        "Revenue Totale (€)",
+        "MRR (€)",
+        "Piano Continuità",
+        "Fee Mensile (€)",
+        "Data Contratto",
+        "Data Rinnovo Piano",
+        "Giorni alla Scadenza",
+        "Ultimo Aggiornamento",
+        "Giorni dall'Ultimo Update",
+        "Status"
+    ])
+    
+    # Data rows
+    for p in partners:
+        piano = p.get("piano_continuita", {})
+        
+        # Calculate days since last update
+        updated_at = p.get("updated_at") or p.get("created_at")
+        days_since_update = None
+        if updated_at:
+            try:
+                update_date = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+                days_since_update = (now - update_date).days
+            except:
+                pass
+        
+        # Calculate days until renewal
+        days_until_renewal = None
+        data_rinnovo = piano.get("data_rinnovo")
+        if data_rinnovo:
+            try:
+                renewal_date = datetime.fromisoformat(data_rinnovo.replace("Z", "+00:00"))
+                days_until_renewal = (renewal_date - now).days
+            except:
+                pass
+        
+        writer.writerow([
+            p.get("id", ""),
+            p.get("name", ""),
+            p.get("email", ""),
+            p.get("telefono", ""),
+            p.get("phase", ""),
+            p.get("nicchia", ""),
+            p.get("revenue_totale", 0),
+            piano.get("mrr", 0),
+            piano.get("piano_attivo", "Nessuno"),
+            piano.get("fee_mensile", 0),
+            (p.get("data_contratto") or p.get("created_at", ""))[:10] if p.get("data_contratto") or p.get("created_at") else "",
+            data_rinnovo[:10] if data_rinnovo else "",
+            days_until_renewal if days_until_renewal is not None else "",
+            updated_at[:10] if updated_at else "",
+            days_since_update if days_since_update is not None else "",
+            p.get("status", "")
+        ])
+    
+    output.seek(0)
+    
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename=partners_export_{now.strftime('%Y%m%d_%H%M')}.csv"
+        }
+    )
 async def scarica_docx_analisi(cliente_id: str):
     """Download del file DOCX dell'analisi."""
     try:

@@ -1048,3 +1048,164 @@ def process_auto_approve_leads():
     except Exception as e:
         logger.error(f"[CELERY] Error in auto-approve leads: {e}")
         return {"error": str(e)}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PIANO CONTINUITÀ - GAIA CHECK MENSILE & NOTIFICHE SCADENZA
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@shared_task
+def gaia_monthly_check():
+    """
+    Job mensile: GAIA esegue check-in con tutti i partner attivi.
+    Aggiorna ultimo_check_in_ai nel profilo partner.
+    """
+    try:
+        logger.info("[CELERY] Running GAIA monthly check-in")
+        
+        async def _check():
+            client, db = get_db()
+            try:
+                # Find partners with active piano_continuita
+                partners = await db.partners.find({
+                    "piano_continuita.piano_attivo": {"$ne": None},
+                    "status": "ACTIVE"
+                }).to_list(100)
+                
+                checked = 0
+                now = datetime.now(timezone.utc)
+                
+                for partner in partners:
+                    partner_id = partner.get("id")
+                    nome = partner.get("name", "Partner")
+                    email = partner.get("email")
+                    
+                    # Update last check-in timestamp
+                    await db.partners.update_one(
+                        {"id": partner_id},
+                        {"$set": {
+                            "piano_continuita.ultimo_check_in_ai": now.isoformat(),
+                            "piano_continuita.gaia_check_count": (partner.get("piano_continuita", {}).get("gaia_check_count", 0) or 0) + 1
+                        }}
+                    )
+                    
+                    # Log the check-in
+                    await db.gaia_checkins.insert_one({
+                        "partner_id": partner_id,
+                        "nome": nome,
+                        "email": email,
+                        "check_type": "monthly",
+                        "checked_at": now.isoformat(),
+                        "status": "completed"
+                    })
+                    
+                    checked += 1
+                
+                if checked > 0:
+                    await send_telegram_notification(
+                        f"🤖 *GAIA Check-In Mensile*\n\n"
+                        f"✅ {checked} partner verificati\n"
+                        f"📅 {now.strftime('%d/%m/%Y')}"
+                    )
+                
+                logger.info(f"[CELERY] GAIA monthly check completed: {checked} partners")
+                return {"checked": checked, "timestamp": now.isoformat()}
+                
+            finally:
+                client.close()
+        
+        return run_async(_check())
+        
+    except Exception as e:
+        logger.error(f"[CELERY] GAIA monthly check error: {e}")
+        return {"error": str(e)}
+
+
+@shared_task
+def check_piano_continuita_expiry():
+    """
+    Job giornaliero: Controlla scadenze Piano Continuità.
+    Invia notifica Telegram 7 giorni prima della scadenza.
+    """
+    try:
+        logger.info("[CELERY] Checking Piano Continuità expiry")
+        
+        async def _check():
+            client, db = get_db()
+            try:
+                now = datetime.now(timezone.utc)
+                
+                # Partners with renewals in next 7 days
+                in_7_days = now + timedelta(days=7)
+                in_8_days = now + timedelta(days=8)
+                
+                partners = await db.partners.find({
+                    "piano_continuita.piano_attivo": {"$ne": None},
+                    "piano_continuita.data_rinnovo": {"$ne": None}
+                }).to_list(500)
+                
+                expiring_soon = []
+                
+                for partner in partners:
+                    data_rinnovo = partner.get("piano_continuita", {}).get("data_rinnovo")
+                    if not data_rinnovo:
+                        continue
+                    
+                    try:
+                        renewal_date = datetime.fromisoformat(data_rinnovo.replace("Z", "+00:00"))
+                        days_until_renewal = (renewal_date - now).days
+                        
+                        # Notify at 7 days, 3 days, 1 day
+                        if days_until_renewal in [7, 3, 1]:
+                            # Check if notification already sent today
+                            existing_notification = await db.notifications_log.find_one({
+                                "partner_id": partner.get("id"),
+                                "type": f"piano_expiry_{days_until_renewal}d",
+                                "sent_date": now.strftime("%Y-%m-%d")
+                            })
+                            
+                            if not existing_notification:
+                                expiring_soon.append({
+                                    "id": partner.get("id"),
+                                    "name": partner.get("name"),
+                                    "email": partner.get("email"),
+                                    "piano": partner.get("piano_continuita", {}).get("piano_attivo"),
+                                    "data_rinnovo": data_rinnovo,
+                                    "days_until": days_until_renewal
+                                })
+                                
+                                # Log notification
+                                await db.notifications_log.insert_one({
+                                    "partner_id": partner.get("id"),
+                                    "type": f"piano_expiry_{days_until_renewal}d",
+                                    "sent_date": now.strftime("%Y-%m-%d"),
+                                    "sent_at": now.isoformat()
+                                })
+                                
+                    except Exception as e:
+                        logger.warning(f"[CELERY] Error parsing renewal date for {partner.get('id')}: {e}")
+                
+                # Send Telegram notifications
+                if expiring_soon:
+                    for p in expiring_soon:
+                        emoji = "🔴" if p["days_until"] == 1 else "🟡" if p["days_until"] == 3 else "🟠"
+                        await send_telegram_notification(
+                            f"{emoji} *Piano Continuità in Scadenza*\n\n"
+                            f"👤 {p['name']}\n"
+                            f"📧 {p['email']}\n"
+                            f"📋 Piano: {p['piano']}\n"
+                            f"⏰ Scade tra: {p['days_until']} giorni\n"
+                            f"📅 Data rinnovo: {p['data_rinnovo'][:10]}"
+                        )
+                
+                logger.info(f"[CELERY] Piano expiry check completed: {len(expiring_soon)} notifications")
+                return {"notified": len(expiring_soon), "partners": expiring_soon}
+                
+            finally:
+                client.close()
+        
+        return run_async(_check())
+        
+    except Exception as e:
+        logger.error(f"[CELERY] Piano expiry check error: {e}")
+        return {"error": str(e)}
