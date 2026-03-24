@@ -82,6 +82,10 @@ celery_app.conf.update(
             'task': 'celery_tasks.check_pending_analisi_reminders',
             'schedule': 3600.0,  # Every hour - check for 48h reminders
         },
+        'process-auto-approve-leads': {
+            'task': 'celery_tasks.process_auto_approve_leads',
+            'schedule': 3600.0,  # Every hour - auto-approve hot leads and start sequence
+        },
     },
 )
 

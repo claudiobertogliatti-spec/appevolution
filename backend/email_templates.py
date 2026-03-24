@@ -137,6 +137,227 @@ DEFAULT_TEMPLATES = {
         "description": "Reminder inviato 48h dopo l'analisi se non c'è stata prenotazione",
         "variables": ["nome", "booking_link"],
         "category": "analisi"
+    },
+    
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # SEQUENZA EMAIL VENDITA ANALISI €67 (per Lead Discovery)
+    # ═══════════════════════════════════════════════════════════════════════════════
+    
+    "lead_sequence_email_1": {
+        "subject": "{{nome}}, hai mai pensato a quanto vale davvero la tua expertise?",
+        "body_html": """
+<html>
+<body style="font-family: Arial, sans-serif; line-height: 1.8; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="padding: 30px; background: #fff;">
+        <p style="font-size: 16px;">Ciao {{nome}},</p>
+        
+        <p>Mi chiamo Claudio e sono il fondatore di <strong>Evolution PRO</strong>.</p>
+        
+        <p>Ti scrivo perché ho notato il tuo lavoro nel campo {{niche}} e credo che tu abbia un potenziale enorme... che probabilmente non stai ancora sfruttando al 100%.</p>
+        
+        <p>La verità? <strong>La maggior parte degli esperti come te guadagna una frazione di quello che potrebbe.</strong></p>
+        
+        <p>Non perché manchino le competenze, ma perché manca un <strong>sistema</strong> per trasformare quella expertise in un asset scalabile.</p>
+        
+        <div style="background: #F3F4F6; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #F2C418;">
+            <p style="margin: 0;"><strong>La domanda è:</strong> preferisci continuare a scambiare tempo per soldi... o vuoi costruire qualcosa che lavori anche quando tu non lavori?</p>
+        </div>
+        
+        <p>Nei prossimi giorni ti racconterò come aiutiamo esperti come te a costruire la loro <strong>Accademia Digitale</strong>.</p>
+        
+        <p>Ma prima, una domanda: <strong>qual è il tuo obiettivo principale per i prossimi 12 mesi?</strong></p>
+        
+        <p>Rispondimi - leggo personalmente ogni email.</p>
+        
+        <p style="margin-top: 30px;">
+            A presto,<br>
+            <strong>Claudio Bertogliatti</strong><br>
+            <span style="color: #666; font-size: 14px;">Founder, Evolution PRO</span>
+        </p>
+    </div>
+    
+    <div style="padding: 15px; text-align: center; color: #999; font-size: 11px; border-top: 1px solid #eee;">
+        <p style="margin: 0;">Evolution PRO - Trasforma la tua expertise in un business scalabile</p>
+        <p style="margin: 5px 0 0 0;"><a href="{{unsubscribe_link}}" style="color: #999;">Disiscriviti</a></p>
+    </div>
+</body>
+</html>
+""",
+        "description": "Email 1 della sequenza vendita - Presentazione e problema",
+        "variables": ["nome", "niche", "unsubscribe_link"],
+        "category": "lead_sequence"
+    },
+    
+    "lead_sequence_email_2": {
+        "subject": "Come Marco ha generato €47.000 in 90 giorni (partendo da zero online)",
+        "body_html": """
+<html>
+<body style="font-family: Arial, sans-serif; line-height: 1.8; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="padding: 30px; background: #fff;">
+        <p style="font-size: 16px;">Ciao {{nome}},</p>
+        
+        <p>Ieri ti ho parlato del potenziale inespresso della tua expertise.</p>
+        
+        <p>Oggi voglio raccontarti la storia di <strong>Marco</strong>, un business coach che 18 mesi fa era esattamente dove sei tu ora.</p>
+        
+        <div style="background: #FFF8E7; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #FF9800;">
+            <h3 style="color: #1E2128; margin-top: 0;">📊 I numeri di Marco (prima vs dopo)</h3>
+            <p><strong>PRIMA:</strong> Consulenze 1:1, €3.000-5.000/mese, nessuna prevedibilità</p>
+            <p><strong>DOPO 90 GIORNI:</strong> Videocorso + Funnel automatizzato, €47.000 dal lancio</p>
+            <p style="margin-bottom: 0;"><strong>OGGI:</strong> €15.000/mese ricorrenti con 3-4 ore di lavoro al giorno</p>
+        </div>
+        
+        <p>Cosa ha fatto di diverso?</p>
+        
+        <ol style="padding-left: 20px;">
+            <li><strong>Ha smesso di vendere tempo</strong> e ha iniziato a vendere trasformazione</li>
+            <li><strong>Ha creato un sistema</strong> che qualifica i clienti automaticamente</li>
+            <li><strong>Ha costruito un asset</strong> (il videocorso) che vende 24/7</li>
+        </ol>
+        
+        <p>La cosa interessante? Marco non è un genio del marketing. Non sapeva nulla di funnel o automazioni.</p>
+        
+        <p>Aveva solo una cosa: <strong>l'expertise giusta e qualcuno che lo guidasse passo dopo passo</strong>.</p>
+        
+        <div style="background: #E8F5E9; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #4CAF50;">
+            <p style="margin: 0;"><strong>La domanda:</strong> Se Marco ce l'ha fatta partendo da zero... cosa ti impedisce di fare lo stesso?</p>
+        </div>
+        
+        <p>Domani ti mostrerò esattamente come capire se questo percorso fa per te.</p>
+        
+        <p style="margin-top: 30px;">
+            Claudio<br>
+            <span style="color: #666; font-size: 14px;">Evolution PRO</span>
+        </p>
+    </div>
+    
+    <div style="padding: 15px; text-align: center; color: #999; font-size: 11px; border-top: 1px solid #eee;">
+        <p style="margin: 0;"><a href="{{unsubscribe_link}}" style="color: #999;">Disiscriviti</a></p>
+    </div>
+</body>
+</html>
+""",
+        "description": "Email 2 della sequenza vendita - Caso studio",
+        "variables": ["nome", "unsubscribe_link"],
+        "category": "lead_sequence"
+    },
+    
+    "lead_sequence_email_3": {
+        "subject": "{{nome}}, ecco come scoprire il tuo potenziale reale (€67)",
+        "body_html": """
+<html>
+<body style="font-family: Arial, sans-serif; line-height: 1.8; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="padding: 30px; background: #fff;">
+        <p style="font-size: 16px;">Ciao {{nome}},</p>
+        
+        <p>Nelle email precedenti ti ho parlato del potenziale della tua expertise e della storia di Marco.</p>
+        
+        <p>Oggi voglio farti una proposta concreta.</p>
+        
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 25px; border-radius: 12px; margin: 20px 0; color: white;">
+            <h2 style="margin-top: 0; color: white;">🎯 Analisi Strategica Personalizzata</h2>
+            <p>Un documento di 15+ pagine che analizza:</p>
+            <ul style="margin-bottom: 15px;">
+                <li>Il tuo posizionamento attuale nel mercato</li>
+                <li>I 3 asset nascosti che puoi monetizzare subito</li>
+                <li>La roadmap personalizzata per i prossimi 90 giorni</li>
+                <li>Il potenziale di fatturato realistico nel tuo settore</li>
+            </ul>
+            <p style="margin-bottom: 0;"><strong>Prezzo: €67</strong> (invece di €197)</p>
+        </div>
+        
+        <p><strong>Perché solo €67?</strong></p>
+        
+        <p>Perché so che una volta che vedrai il tuo potenziale nero su bianco, vorrai sapere come realizzarlo. E a quel punto potremo parlare di come posso aiutarti.</p>
+        
+        <p>È un investimento minimo per capire se e quanto puoi guadagnare dalla tua expertise.</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{{link_checkout}}" style="display: inline-block; background: #F2C418; color: #1E2128; padding: 16px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 18px;">
+                → Ottieni la tua Analisi Strategica
+            </a>
+        </div>
+        
+        <div style="background: #FFF3E0; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0; font-size: 14px;"><strong>⚡ Bonus incluso:</strong> Dopo l'analisi, potrai prenotare una videocall strategica con il nostro team per discutere i risultati.</p>
+        </div>
+        
+        <p>Se hai domande, rispondimi direttamente.</p>
+        
+        <p style="margin-top: 30px;">
+            Claudio<br>
+            <span style="color: #666; font-size: 14px;">Evolution PRO</span>
+        </p>
+    </div>
+    
+    <div style="padding: 15px; text-align: center; color: #999; font-size: 11px; border-top: 1px solid #eee;">
+        <p style="margin: 0;"><a href="{{unsubscribe_link}}" style="color: #999;">Disiscriviti</a></p>
+    </div>
+</body>
+</html>
+""",
+        "description": "Email 3 della sequenza vendita - Presentazione offerta €67 con CTA",
+        "variables": ["nome", "link_checkout", "unsubscribe_link"],
+        "category": "lead_sequence"
+    },
+    
+    "lead_sequence_email_4": {
+        "subject": "Ultima occasione: la tua Analisi Strategica ti aspetta",
+        "body_html": """
+<html>
+<body style="font-family: Arial, sans-serif; line-height: 1.8; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="padding: 30px; background: #fff;">
+        <p style="font-size: 16px;">Ciao {{nome}},</p>
+        
+        <p>Questa è l'ultima email che ti invio su questo argomento.</p>
+        
+        <p>Qualche giorno fa ti ho parlato dell'<strong>Analisi Strategica</strong> — il documento che ti mostra esattamente quanto vale la tua expertise e come monetizzarla.</p>
+        
+        <p>So che potresti avere dei dubbi. Forse pensi:</p>
+        
+        <ul style="color: #666;">
+            <li><em>"Non ho tempo adesso"</em></li>
+            <li><em>"Ci penserò più avanti"</em></li>
+            <li><em>"Non sono sicuro che faccia per me"</em></li>
+        </ul>
+        
+        <p>Ti capisco. Ma lasciami essere diretto:</p>
+        
+        <div style="background: #FFEBEE; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #F44336;">
+            <p style="margin: 0;"><strong>Ogni giorno che passa senza un piano chiaro è un giorno in cui la tua expertise perde valore.</strong></p>
+            <p style="margin: 10px 0 0 0;">I tuoi potenziali clienti stanno cercando soluzioni ORA. Se non le trovano da te, le troveranno altrove.</p>
+        </div>
+        
+        <p>L'Analisi Strategica costa <strong>€67</strong>. Meno di una cena fuori.</p>
+        
+        <p>Ma il valore che ricevi può cambiarti la prospettiva sul tuo business per sempre.</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{{link_checkout}}" style="display: inline-block; background: #F44336; color: white; padding: 16px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 18px;">
+                → Sì, voglio la mia Analisi
+            </a>
+        </div>
+        
+        <p>Se decidi di non procedere, va benissimo. Ti auguro il meglio per il tuo business.</p>
+        
+        <p>Ma se una parte di te sa che potresti fare di più... questa è la tua occasione per scoprire come.</p>
+        
+        <p style="margin-top: 30px;">
+            In bocca al lupo,<br>
+            <strong>Claudio</strong><br>
+            <span style="color: #666; font-size: 14px;">Evolution PRO</span>
+        </p>
+    </div>
+    
+    <div style="padding: 15px; text-align: center; color: #999; font-size: 11px; border-top: 1px solid #eee;">
+        <p style="margin: 0;"><a href="{{unsubscribe_link}}" style="color: #999;">Disiscriviti</a></p>
+    </div>
+</body>
+</html>
+""",
+        "description": "Email 4 della sequenza vendita - Reminder finale con urgenza",
+        "variables": ["nome", "link_checkout", "unsubscribe_link"],
+        "category": "lead_sequence"
     }
 }
 

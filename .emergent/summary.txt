@@ -1,188 +1,180 @@
 <analysis>**original_problem_statement:**
-The user's primary goal is to build and enhance Evolution PRO, a comprehensive AI-powered business management application. The latest set of requirements is detailed in the BRIEF TECNICO COMPLETO provided by the user, which outlines critical business-blocking issues and operational limitations.
+L'utente vuole costruire e migliorare Evolution PRO, un'applicazione di gestione aziendale basata su AI. L'ultimo brief tecnico delinea nuove priorità critiche focalizzate sull'automazione dell'acquisizione di lead e sulla creazione di una sequenza di email per vendere un'analisi strategica da €67.
 
-**PRODUCT REQUIREMENTS (from the latest user brief):**
+**PRODUCT REQUIREMENTS (dal brief tecnico più recente):**
 
-**🔴 PRIORITY 1 — Critical Business Blockers**
-1.  **Stripe Webhook:** Implement a  endpoint to handle  and  events, automating the confirmation of the €67 analysis payment.
-2.  **Full Post-Payment Automation (€67):** After payment confirmation, trigger a sequence of automated actions:
-    *   Generate the AI analysis. The user specified using a pure Claude implementation for now, with an abstraction layer () to allow for a future swap to NotebookLM.
-    *   Generate an 8-block call script.
-    *   Send a welcome email with a bonus and an invitation to book a call.
-    *   The booking link should only become active 48 hours after the analysis is created.
-    *   Schedule a Celery job to send a reminder email at T+48h if no call has been booked.
-3.  **YouTube OAuth:** Fix the broken YouTube authentication flow so that LIVE partners can publish videos.
-4.  **Masterclass 502 Error:** Fix the backend crash when calling the masterclass generation endpoint () due to a partner lookup failure.
-
-**🟡 PRIORITY 2 — Limited Operations**
-5.  **Admin Interface for Partner Data:** Create a UI for admins to insert or overwrite real data for partners at any stage (positioning, funnel domain, documents, etc.) without a full re-onboarding.
-6.  **Partners Unified View:** Fix the  endpoint, which returns empty data, by correcting the underlying MongoDB aggregation pipeline.
-7.  **Funnel Publication Block:** Create a flow to approve legal documents and set a real domain for partners to unblock funnel publication.
-8.  **Automatic Welcome Email:** Trigger the partnership welcome email automatically upon partnership activation ( event).
-
-**🔵 PRIORITY 3 — Scheduled Improvements**
-*   Implement advanced filters for Discovery Leads (status, platform, score).
-*   Add a partnership expiry countdown to the admin dashboard.
-*   Add a CSV export feature for the partner list.
-*   Implement a recurring Celery job for Systeme.io sync (every 6 hours).
-*   Implement Celery jobs for partnership expiry reminders via Telegram (30/15/7 days).
-*   Implement a weekly KPI report job.
+**🔴 PRIORITÀ 1 — Critici**
+1.  **Automazione Acquisizione Lead & Sequenza Email Vendita Analisi €67:**
+    *   Implementare l'approvazione automatica per i lead in outreach con uno score ≥ 80 (soglia configurabile dall'admin).
+    *   Attivare una sequenza email automatica (4 email su 7 giorni) quando un lead risponde o viene importato, con l'obiettivo di vendere l'analisi da €67 tramite un link di checkout Stripe diretto.
+    *   Rendere i template di questa sequenza email modificabili tramite l'editor WYSIWYG.
+2.  **Editor WYSIWYG per Template Email:**
+    *   Implementare un editor visuale nell'admin panel per modificare tutti i template email (sequenza di vendita, onboarding partnership, benvenuto analisi, reminder, ecc.).
+    *   L'editor deve avere una toolbar di base (grassetto, corsivo, link), un sistema per inserire variabili (es. ), e un'anteprima live.
+3.  **Attivazione Partnership (Systeme.io & Email Onboarding):**
+    *   Al trigger , creare un sub-account in Systeme.io e inviare un'email di onboarding (template modificabile) che spiega l'uso delle due piattaforme (Evolution PRO e Systeme.io).
+4.  **Verifica YouTube OAuth (Post-Deploy):**
+    *   Verificare su produzione che l'autenticazione YouTube funzioni. In caso contrario, implementare il flusso OAuth completo.
+5.  **Modulo Piano Continuità (Sviluppo Completo):**
+    *   Sviluppare l'interfaccia utente admin e la logica di backend per il servizio di abbonamento Piano Continuità.
+    *   Implementare il rinnovo automatico tramite subscription Stripe.
+    *   Configurare l'agente GAIA per un check mensile.
+    *   Aggiungere notifiche Telegram 7 giorni prima della scadenza.
 
 **User's preferred language**: Italian. The next agent **MUST** respond in **Italian**.
 
 **what currently exists?**
-The application is a full-stack React/FastAPI/MongoDB system. In this session, several major architectural and feature enhancements were implemented based on user feedback.
-
--   **Asynchronous Task Processing:** A robust asynchronous task queue has been implemented using **Celery** with an external **Upstash Redis** instance as the broker. A custom  was created to ensure the Celery worker and beat processes start automatically with the backend, even within the read-only Supervisor environment.
--   **Stripe Webhook:** The critical  endpoint has been created and configured with the user's secret. It is ready to receive payment events.
--   **Automation & Abstraction:** An  abstraction has been created () to handle AI analysis generation, defaulting to a pure Claude implementation. This provider is now integrated into the Stripe webhook flow, forming the first step of the post-payment automation.
--   **Orchestration Agent:** A Stefania Orchestrator system () was built to create, monitor, and escalate tasks between AI agents, with a daily review job added to the scheduler.
--   **Unified Data View:** A MongoDB aggregated view () was created to consolidate partner data from multiple collections, and an endpoint  was exposed to access it. This serves as a temporary fix for underlying data fragmentation.
--   **Admin Endpoints:** New backend endpoints have been created to support admin operations:  and .
--   **Bug Fixes & Features:** The Masterclass generation bug was fixed. A race condition in  was resolved. A delete button for Discovery Leads was added. Advanced filters, partner expiry countdowns, and CSV export features were implemented in the frontend.
+L'applicazione è un sistema full-stack React/FastAPI/MongoDB. Sono state implementate diverse funzionalità chiave:
+-   **Automazione Post-Pagamento €67:** Il flusso che si attiva dopo il pagamento dell'analisi da €67 è **completamente implementato e testato**. Utilizza Celery per schedulare l'invio dell'email di benvenuto e il reminder dopo 48 ore. La logica risiede in  e .
+-   **Admin UI:** Sono state create interfacce admin per sovrascrivere i dati dei partner e per sbloccare i funnel, come richiesto in brief precedenti.
+-   **Editor Template Email:** È stato implementato un sistema per gestire i template email da un file JSON () con API per la gestione (, ). È stata creata anche un'interfaccia utente () con un editor WYSIWYG di base per la modifica dei template.
+-   **Bug Fixes:**
+    *   Il bug del modulo **Masterclass** (endpoint  non trovato) è stato risolto creando un alias e correggendo un conflitto di routing in .
+    *   Il bug della **Partners Unified View** (che restituiva dati vuoti a causa di  non serializzabili) è stato corretto in  con una funzione helper per la conversione.
+-   **Automazione Acquisizione Lead (Iniziata):** È stata avviata l'implementazione del nuovo flusso di acquisizione lead. Il modello dati  in  è stato esteso per includere , ed è stata aggiunta la logica per calcolarlo durante lo scoring. È stata implementata la base per l'auto-approvazione.
 
 **Last working item**:
--   Last item agent was working: Finalizing the setup for the full post-payment automation flow. The agent implemented the  abstraction layer using Claude, as requested by the user, and integrated it into the new Stripe webhook. The agent also fixed the welcome email trigger by identifying the correct endpoint and parameters.
+-   Last item agent was working: Implementazione della nuova automazione per l'acquisizione di lead e la sequenza di email di vendita per l'analisi da €67, come da nuovo brief. L'agente ha esteso il modello dati dei lead, ha implementato la logica per il calcolo del , e ha creato la struttura per l'auto-approvazione e l'avvio della sequenza email in .
 -   Status: **IN PROGRESS**
 -   Agent Testing Done: N
--   Which testing method agent to use? backend testing agent. The agent should simulate a  event to the  endpoint and verify the entire chain of actions is triggered: the client's  status is updated, the 's  method is called, a call script is generated, an email is sent, and a Celery job for the 48-hour reminder is scheduled.
+-   Which testing method agent to use? backend testing agent. L'agente deve testare l'intero flusso:
+    1.  Creare un lead che soddisfi i criteri di auto-approvazione (score > 80, ).
+    2.  Verificare che lo stato del lead cambi automaticamente in .
+    3.  Verificare che venga schedulato il primo task Celery per la sequenza email.
+    4.  Simulare il passare dei giorni e verificare che i task successivi vengano schedulati e inviati correttamente.
 -   User Testing Done: N
 
 **All Pending/In progress Issue list**:
--   Issue 1: Complete the full post-payment automation (€67) (P1)
+-   Issue 1: Completare l'automazione dell'acquisizione lead e la sequenza email di vendita. (P1)
 
 Issues Detail:
--   **Issue 1: Complete the full post-payment automation (€67) (P1)**
-    -   Attempted fixes: The Stripe webhook is in place, and the  has been created and connected.
+-   **Issue 1: Completare l'automazione dell'acquisizione lead e la sequenza email di vendita. (P1)**
+    -   Attempted fixes: Le basi sono state gettate in  con l'aggiunta di , la logica di auto-approvazione e la struttura per avviare la sequenza.
     -   Next debug checklist:
-        1.  In , within the  function, continue the implementation after the  call.
-        2.  Implement the automatic generation of the 8-block call script.
-        3.  Implement the automatic sending of the welcome email (with bonus and booking link).
-        4.  Implement the logic to schedule a Celery task that will send a reminder email in 48 hours if the call has not been booked.
-    -   Why fix this issue and what will be achieved with the fix? This is a critical, revenue-generating business flow. Automating it will eliminate manual work and prevent customers from being lost after payment.
+        1.  In , creare i 4 task Celery distinti per ogni email della sequenza di vendita (Email 1 a Giorno 0, Email 2 a Giorno +2, ecc.).
+        2.  In , aggiungere i 4 nuovi template per la sequenza di vendita. Assicurarsi che possano usare la variabile .
+        3.  Nella funzione  in , implementare la logica per schedulare il primo task Celery () immediatamente.
+        4.  Ogni task Celery, dopo l'invio, deve schedulare il task successivo nella sequenza (es. Email 1 schedula Email 2 a T+2 giorni).
+        5.  Creare un job Celery periodico (es. ogni ora) che esegua la funzione di auto-approvazione sui lead idonei.
+    -   Why fix this issue and what will be achieved with the fix? È una funzionalità critica richiesta dall'utente per automatizzare il marketing e la vendita, aumentando le conversioni per l'analisi strategica.
     -   Status: IN PROGRESS
     -   Is recurring issue? N
     -   Should Test frontend/backend/both after fix? backend
 
 **In progress Task List**:
--   Task 1: Complete the full post-payment automation flow (P1)
+-   Task 1: Completare l'automazione dell'acquisizione lead e la sequenza email di vendita. (P1)
 
 Task Detail:
--   **Task 1: Complete the full post-payment automation flow (P1)**
-    -   Where to resume: In , continue building the automation steps inside the  function.
-    -   What will be achieved with this? A fully automated, reliable pipeline from customer payment to scheduled sales call, which is a core business requirement.
+-   **Task 1: Completare l'automazione dell'acquisizione lead e la sequenza email di vendita. (P1)**
+    -   Where to resume: In  e .
+    -   What will be achieved with this? Un flusso di marketing e vendita completamente automatizzato per i nuovi lead.
     -   Status: IN PROGRESS
     -   Should Test frontend/backend/both after fix? backend
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    *   **P1: UI for Admin Partner Data Override:** Build a frontend interface that uses the  endpoint, allowing admins to easily update partner data (Brief point 5).
-    *   **P1: UI for Admin Funnel Unlock:** Build a frontend interface that uses the  endpoint to approve legal documents and update domains (Brief point 7).
-    *   **P2: Test HeyGen -> YouTube Pipeline:** With YouTube OAuth and HeyGen confirmed to be working, perform an end-to-end test with a real partner (Marco Ferretti) to ensure the video production pipeline is fully operational.
+    *   **P1: Sviluppo Modulo Piano Continuità:** Implementare UI admin e logica backend per la gestione degli abbonamenti con Stripe, agente GAIA e notifiche.
+    *   **P1: Attivazione Partnership:** Completare la logica per la creazione del sub-account Systeme.io e l'invio dell'email di onboarding al trigger .
+    *   **P2: Filtri Avanzati Discovery Leads:** Implementare filtri per stato, piattaforma, score e .
+    *   **P2: Countdown Scadenza Partnership:** Aggiungere un indicatore visivo nella dashboard admin.
+    *   **P2: Export CSV Partner:** Implementare la funzionalità di export.
+    *   **P2: Scheduler Automatici:** Implementare i job Celery per sync Systeme.io, reminder scadenza e report KPI.
 -   **Future Tasks:**
-    *   Refactor the  monolith.
-    *   Migrate the database to unify the  and  collections (explicitly postponed by user).
-    *   Create OpenAPI documentation.
-    *   Create a centralized KPI dashboard.
-    *   Set up a dedicated VPS for the local Ollama instance.
+    *   Refactoring del monolite .
+    *   Unificazione delle collection MongoDB ( e ).
+    *   Creazione documentazione OpenAPI.
 
 **Completed work in this session**
--   **Celery & Redis Integration:** Implemented and configured a persistent asynchronous task queue using Celery and an external Upstash Redis instance. Created a self-managing  to ensure service uptime.
--   **Stripe Webhook & Automation Start:** Created and secured the  endpoint and began the full automation flow by integrating an abstract .
--   **Agent Orchestration System:** Implemented the Stefania Orchestrator to monitor and manage tasks between AI agents, with a daily scheduled check.
--   **Unified Partner Data View:** Created and exposed a MongoDB aggregated view () to provide a single source of truth for partner data.
--   **Admin Backend Endpoints:** Created endpoints for admin overrides () and funnel unlocking ().
--   **Bug Fixes:** Resolved issues with the Masterclass endpoint, the Partners Unified View returning empty data, and confirmed YouTube OAuth is functioning.
--   **Feature Implementation:** Added advanced filters for Discovery Leads, a partnership expiry countdown, and a CSV export feature for partners.
--   **Email Trigger:** Attached the partnership welcome email to the payment confirmation event.
+-   **Automazione Post-Pagamento €67 (COMPLETATA):** L'intero flusso, dalla ricezione del webhook Stripe all'invio dell'email di benvenuto e alla schedulazione del reminder Celery, è stato implementato, debuggato (risolvendo problemi di routing delle code Celery e di gestione dell'event loop di asyncio) e testato con successo (13/13 test superati).
+-   **UI Admin per Dati Partner (COMPLETATA):** Create interfacce React () per consentire agli admin di sovrascrivere i dati di posizionamento dei partner e di sbloccare i funnel, utilizzando gli endpoint backend precedentemente creati.
+-   **Editor WYSIWYG per Template Email (COMPLETATA):** Implementato un sistema per la gestione dei template email () e un'interfaccia admin con un editor visuale per la modifica di oggetto e corpo delle email.
+-   **Fix Bug Masterclass (COMPLETATO):** Risolto il problema dell'endpoint  che restituiva Partner non trovato a causa di un conflitto di rotta con  in FastAPI, riordinando gli endpoint nel router .
+-   **Fix Partners Unified View (COMPLETATO):** Risolto l'errore  che causava la restituzione di una risposta vuota, aggiungendo una funzione helper in  per convertire correttamente gli  prima della serializzazione JSON.
+-   **Inizio Automazione Acquisizione Lead (IN CORSO):** Iniziata l'implementazione del nuovo flusso, estendendo il modello dati in .
 
 **Earlier issues found/mentioned but not fixed**
--   **Architectural Flaw**: Partner data remains split across multiple collections (, , , etc.). The  is a workaround, not a structural fix. The user has postponed a full migration.
--   **Technical Debt**: The main  file is a large monolith that needs refactoring.
+-   **Architectural Flaw**: La frammentazione dei dati dei partner tra più collection (, , etc.) persiste. La  è un palliativo, non una soluzione definitiva. La migrazione è stata posticipata dall'utente.
+-   **Technical Debt**: Il file  rimane un monolite che necessita di refactoring.
 
 **Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork**: Partner data synchronization issues.
--   **Recurrence count**: High
--   **Status**: MITIGATED (not resolved). The  helps with read consistency, but the underlying write complexity remains.
+-   **Issue recurrence in previous fork**: Problemi di sincronizzazione dei dati dei partner.
+-   **Recurrence count**: Alto
+-   **Status**: MITIGATED. La  risolve la consistenza in lettura, ma la complessità in scrittura rimane un punto debole dell'architettura.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Asynchronous Task Queues (Celery & Redis):** Using a distributed task queue to handle long-running, unreliable processes (like video generation) without blocking the main application.
--   **Self-Managed Services:** A creative solution () to run and monitor background services (Celery worker and beat) as Python subprocesses, bypassing the limitations of a read-only  file in the managed environment.
--   **Architectural Abstraction (Provider Pattern):** The  interface decouples the core business logic of analysis generation from the specific AI implementation (Claude), allowing for future flexibility (e.g., swapping in NotebookLM).
--   **Event-Driven Architecture (Webhooks):** Shifting from a fragile polling mechanism to a robust, event-driven model for payment verification using Stripe webhooks.
--   **Database Views (MongoDB Aggregation):** A pragmatic approach to address architectural debt by creating a unified, read-only view () of fragmented data without performing a risky data migration.
+-   **Celery Task Routing & Queues:** Utilizzo di code dedicate () per isolare i task e risolvere conflitti  causati da worker obsoleti in ascolto sulla stessa coda.
+-   **Asyncio Event Loop in Celery:** Risolto un  nei task Celery che interagiscono con MongoDB (Motor) creando una nuova connessione al DB per ogni esecuzione di task invece di fare affidamento su un client globale.
+-   **FastAPI Route Ordering:** Risolto un conflitto di routing in cui un endpoint con un path parameter (es. ) catturava una richiesta destinata a un endpoint specifico (es. ). La soluzione è stata riordinare gli endpoint, posizionando quelli specifici *prima* di quelli generici.
+-   **WYSIWYG Editor in React:** Implementato un editor visuale per HTML, inizialmente con  e poi sostituito con un componente custom più semplice per evitare problemi di compatibilità con React 18 ().
 
 **key DB schema**
--   **agent_tasks** (new collection): 
--   **partner_unified_view** (new view): Aggregates data from , , , , , etc.
+-   **email_templates** (nuova collection gestita via ): 
+-   **discovery_leads** (schema modificato): Aggiunto il campo  (es. 'basso', 'medio', 'alto', 'altissimo').
 
 **changes in tech stack**
--   **Celery**: Added for asynchronous task processing.
--   **Redis**: Added as the message broker for Celery, using the Upstash cloud service.
+-   **react-quill**: Aggiunto e poi rimosso a causa di problemi di incompatibilità con React 18.
 
 **All files of reference**
--   **/app/backend/routers/stripe_webhook.py**: Core of the new payment automation.
--   **/app/backend/analysis_provider.py**: Abstraction for interchangeable AI analysis generation.
--   **/app/backend/celery_manager.py**: Key file for ensuring Celery runs correctly in the environment.
--   **/app/backend/celery_app.py**: Defines the Celery application and its configuration.
--   **/app/backend/celery_tasks.py**: Contains the logic for all background jobs.
--   **/app/backend/agent_task_system.py**: Logic for the AI agent task monitoring system.
--   **/app/backend/mongodb_views.py**: The aggregation pipeline for the unified partner view.
--   **/app/backend/docs/CELERY_SETUP.md**: Instructions for production setup.
+-   **/app/backend/routers/discovery_engine.py**: File centrale per la nuova automazione di acquisizione lead.
+-   **/app/backend/email_templates.py**: Nuovo file per la gestione centralizzata dei template email.
+-   **/app/frontend/src/components/admin/EmailTemplatesManager.jsx**: Nuovo componente React con l'editor WYSIWYG.
+-   **/app/backend/routers/stripe_webhook.py**: Contiene la logica di automazione post-pagamento ora completa.
+-   **/app/backend/celery_tasks.py**: Contiene i task Celery, modificati per gestire correttamente le connessioni al DB.
+-   **/app/backend/server.py**: Modificato per il fix della Unified View e per aggiungere le API dei template email.
+-   **/app/backend/routers/partner_journey.py**: Modificato per risolvere il bug di Masterclass.
+-   **/app/frontend/src/components/admin/AdminDashboardPro.jsx**: Modificato per integrare le nuove azioni admin.
 
 **key api endpoints**
--   : Receives events from Stripe to trigger payment automation.
--   : Checks the operational status of the Celery worker and beat.
--   : Returns aggregated data for all partners from the new view.
--   : Allows an admin to overwrite core partner data.
--   : Allows an admin to approve legal docs and update a funnel's domain.
+-   : Lista tutti i template email disponibili.
+-   : Recupera un singolo template.
+-   : Aggiorna un template email.
+-   : (Da creare) Endpoint per avviare la sequenza email per un lead.
+-   : Alias funzionante per generare lo script della masterclass.
 
 **Critical Info for New Agent**
--   **Celery is LIVE:** The application now relies on Celery for all long-running background tasks. The  handles its lifecycle automatically. The system is configured to use an external Upstash Redis instance via the  in .
--   **Use the :** For any feature that needs to read comprehensive partner data, query the  endpoint or the  directly in the database to avoid data consistency issues.
--   **Automation Flow:** The immediate priority is to complete the post-€67-payment automation flow in .
--   **Admin Features Need UI:** Several powerful admin backend endpoints have been created (, ). They are currently unusable without a corresponding frontend interface, which is a high-priority upcoming task.
+-   **Focus su Acquisizione Lead:** La priorità assoluta è completare l'automazione dell'acquisizione lead e la sequenza di email di vendita, come descritto nella sezione Last working item.
+-   **Editor WYSIWYG Funzionante:** L'editor per i template email è pronto. La prossima implementazione (sequenza di vendita) dovrà creare i relativi template e renderli disponibili nell'editor.
+-   **Celery è Stabile:** I problemi con Celery (routing delle code e gestione dell'event loop) sono stati risolti. Il sistema è ora robusto e può essere esteso con nuovi task.
+-   **Sviluppo Modulo Piano Continuità:** Questo è un nuovo modulo richiesto dall'utente, da sviluppare da zero. Richiede integrazione con Stripe Subscriptions.
 
 **documents and test reports created in this job**
 -   
+-   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Provided Stripe Webhook Secret.
-2.  **Agent:** Confirmed secret is set and backend restarted. Ready for deploy.
-3.  **User:** Asked to confirm status on several previously requested features (YouTube, Masterclass, Unified View, etc.) and if the €67 automation is complete.
-4.  **Agent:** Ran tests confirming most features work, identified ambiguity around NotebookLM.
-5.  **User:** Clarified they don't have NotebookLM Enterprise and it must be integrated via a local MCP server.
-6.  **Agent:** Asked the user to choose between attempting the complex MCP integration or using a pure Claude implementation as a reliable fallback.
-7.  **User:** **Confirmed to proceed with pure Claude.** Crucially, requested the implementation use a provider pattern () so it can be swapped out for a future NotebookLM API.
-8.  **Agent:** Agreed and began implementing the provider pattern.
-9.  **User:**  (Stripe webhook secret)
-10. **Agent:** Updated the  file with the secret and confirmed the backend is ready.
+1.  **User (Brief):** Fornisce un nuovo brief tecnico completo con nuove priorità, tra cui l'automazione dell'acquisizione lead, un editor WYSIWYG e lo sviluppo del Piano Continuità.
+2.  **Agent:** Propone un piano basato sul nuovo brief e chiede conferma.
+3.  **User:** Conferma il piano ().
+4.  **Agent:** Inizia l'implementazione dell'automazione dei lead.
+5.  ... (L'agente lavora sull'implementazione, estendendo i modelli e creando la logica di base)
+(Non ci sono altri messaggi utente recenti, l'agente stava procedendo con l'implementazione approvata).
 
 **Project Health Check:**
--   **Broken:** None.
--   **Mocked:** The  is not mocked, but it's an abstraction designed for future extension, currently using a real Claude implementation.
+-   **Broken:** None
+-   **Mocked:** Nessuno
 
 **3rd Party Integrations**
--   Stripe (Payments) — requires User API Key & Webhook Secret.
--   Systeme.io (CRM) — requires User API Key.
--   HeyGen (Video Generation) — requires User API Key.
--   YouTube (Video Hosting) — uses User OAuth Credentials.
--   Anthropic Claude (LLM) — uses Emergent LLM Key.
+-   Stripe (Payments) — richiede User API Key & Webhook Secret.
+-   Systeme.io (CRM) — richiede User API Key.
+-   HeyGen (Video Generation) — richiede User API Key.
+-   YouTube (Video Hosting) — usa User OAuth Credentials.
+-   Anthropic Claude (LLM) — usa Emergent LLM Key.
 -   Ollama (Local LLM) — self-hosted.
--   **Celery** (Task Queue) — new integration.
--   **Redis (via Upstash)** (Broker) — new integration, requires User URL.
+-   Celery (Task Queue) — integrazione stabile.
+-   Redis (via Upstash) (Broker) — integrazione stabile.
 
 **Testing status**
--   Testing agent used after significant changes: NO
+-   Testing agent used after significant changes: YES
 -   Troubleshoot agent used after agent stuck in loop: NO
 -   Test files created: []
--   Known regressions: None identified.
+-   Known regressions: None.
 
 **Credentials to test flow:**
 N/A
 
 **What agent forgot to execute**
-The agent correctly implemented the backend endpoints for admin features requested by the user (Brief points 5 and 7). However, the agent did not create the corresponding frontend UI for these features, rendering them inaccessible to the admin user. This should be a high-priority Upcoming Task.</analysis>
+L'agente ha seguito le istruzioni dell'utente e ha iniziato a lavorare sulla nuova priorità principale. Non sembra aver dimenticato nulla dalle richieste attive.</analysis>
