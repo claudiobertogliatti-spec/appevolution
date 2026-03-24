@@ -319,6 +319,11 @@ Build a multi-faceted AI-powered application for "Evolution PRO" business includ
 - [ ] E.P.O.S. Automation (Spoiler Strategico, Calendar Unlock)
 - [ ] Clarify "Funnel partner 1: dominio test" requirement (waiting for user input)
 
+### Completed This Session (24 March 2026)
+- [x] **UI Admin Override Dati Partner** - Modal completo con sezioni collassabili
+- [x] **UI Admin Sblocco Funnel** - Modal per sblocco rapido con approvazione legali
+- [x] **Automazione Post-Pagamento €67** - Celery tasks per email + reminder 48h
+
 ### P2 - Medium Priority
 - [ ] Roadmap "Sblocco Core" Phase 2 (Funnel Deploy)
 - [ ] Partner data sync (users vs partners collections)
