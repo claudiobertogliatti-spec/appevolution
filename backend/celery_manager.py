@@ -74,7 +74,7 @@ def start_celery_worker():
             '--loglevel=info',
             '--concurrency=2',
             '--pool=prefork',
-            '-Q', 'celery,video_pipeline'
+            '-Q', 'celery,video_pipeline,analisi_automation'
         ]
         
         logger.info(f"[CELERY_MANAGER] Starting worker: {' '.join(worker_cmd)}")

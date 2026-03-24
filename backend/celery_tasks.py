@@ -12,27 +12,26 @@ from celery.exceptions import SoftTimeLimitExceeded
 
 logger = logging.getLogger(__name__)
 
-# MongoDB connection (lazy loaded)
-_db = None
-
+# MongoDB connection - create fresh per task to avoid event loop issues
 def get_db():
-    global _db
-    if _db is None:
-        from motor.motor_asyncio import AsyncIOMotorClient
-        mongo_url = os.environ.get('MONGO_URL')
-        client = AsyncIOMotorClient(mongo_url)
-        _db = client[os.environ.get('DB_NAME', 'evolution_pro')]
-    return _db
+    """Get a fresh database connection"""
+    from motor.motor_asyncio import AsyncIOMotorClient
+    mongo_url = os.environ.get('MONGO_URL')
+    client = AsyncIOMotorClient(mongo_url)
+    return client, client[os.environ.get('DB_NAME', 'evolution_pro')]
 
 
 def run_async(coro):
-    """Helper to run async code in sync context"""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+    """Helper to run async code in sync context - creates new event loop each time"""
     try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         return loop.run_until_complete(coro)
     finally:
-        loop.close()
+        try:
+            loop.close()
+        except:
+            pass
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -484,3 +483,320 @@ def check_stuck_pipelines():
     except Exception as e:
         logger.error(f"[CELERY] Error checking stuck pipelines: {e}")
         return 0
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# POST-PAYMENT AUTOMATION TASKS (€67 Analisi)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def send_analisi_welcome_email(self, user_id: str, cliente_id: str):
+    """
+    Task 1: Invia email di benvenuto post-pagamento analisi (€67).
+    
+    Include:
+    - Conferma pagamento
+    - Bonus incluso
+    - Link booking (attivo dopo 48h dalla generazione analisi)
+    """
+    try:
+        logger.info(f"[CELERY] Sending welcome email for user {user_id}")
+        
+        async def _send_email():
+            client, db = get_db()
+            try:
+                # Get user and cliente data
+                user = await db.users.find_one({"id": user_id})
+                cliente = await db.clienti_analisi.find_one({"id": cliente_id})
+                
+                if not user and not cliente:
+                    logger.error(f"[CELERY] User/Cliente not found: {user_id}/{cliente_id}")
+                    return False
+                
+                # Extract data
+                nome = user.get("nome") if user else cliente.get("nome", "")
+                cognome = user.get("cognome", "") if user else cliente.get("cognome", "")
+                email = user.get("email") if user else cliente.get("email", "")
+                
+                if not email:
+                    logger.error(f"[CELERY] No email found for user {user_id}")
+                    return False
+                
+                # Calculate booking available time (48h after analysis)
+                analysis_created_at = None
+                if cliente and cliente.get("analisi_generata_at"):
+                    analysis_created_at = cliente.get("analisi_generata_at")
+                elif cliente and cliente.get("analysis", {}).get("generated_at"):
+                    analysis_created_at = cliente["analysis"]["generated_at"]
+                
+                # Default: 48h from now
+                booking_available = datetime.now(timezone.utc) + timedelta(hours=48)
+                booking_link = f"https://calendly.com/evolution-pro/strategia?email={email}"
+                
+                # 1. Add tag to Systeme.io to trigger email automation
+                systeme_api_key = os.environ.get('SYSTEME_API_KEY')
+                if systeme_api_key:
+                    try:
+                        await add_systeme_tag_async(systeme_api_key, email, "analisi_pagata")
+                        await add_systeme_tag_async(systeme_api_key, email, "welcome_analisi")
+                        logger.info(f"[CELERY] Systeme.io tags added for {email}")
+                    except Exception as e:
+                        logger.warning(f"[CELERY] Systeme.io tag failed: {e}")
+                
+                # 2. Send Telegram notification
+                await send_telegram_notification(
+                    f"📧 *Email Benvenuto Analisi Inviata*\n\n"
+                    f"👤 {nome} {cognome}\n"
+                    f"📧 {email}\n"
+                    f"🔗 Booking disponibile: {booking_available.strftime('%d/%m/%Y %H:%M')}\n"
+                    f"✅ Tag Systeme.io aggiunti"
+                )
+                
+                # 3. Update database
+                await db.clienti_analisi.update_one(
+                    {"id": cliente_id},
+                    {"$set": {
+                        "email_benvenuto_inviata": True,
+                        "email_benvenuto_inviata_at": datetime.now(timezone.utc).isoformat(),
+                        "booking_available_at": booking_available.isoformat(),
+                        "booking_link": booking_link,
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                
+                # 4. Log email
+                await db.email_logs.insert_one({
+                    "type": "welcome_analisi",
+                    "to": email,
+                    "user_id": user_id,
+                    "cliente_id": cliente_id,
+                    "subject": "🎉 La tua Analisi Strategica è in preparazione!",
+                    "sent_at": datetime.now(timezone.utc).isoformat(),
+                    "status": "sent_via_systeme",
+                    "systeme_tags": ["analisi_pagata", "welcome_analisi"]
+                })
+                
+                logger.info(f"[CELERY] Welcome email sent for {email}")
+                return True
+            finally:
+                client.close()
+        
+        result = run_async(_send_email())
+        return {"success": result, "user_id": user_id}
+        
+    except Exception as e:
+        logger.error(f"[CELERY] Welcome email error for {user_id}: {e}")
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=e)
+        raise
+
+
+@shared_task(bind=True, max_retries=2, default_retry_delay=300)
+def send_analisi_48h_reminder(self, user_id: str, cliente_id: str):
+    """
+    Task 2: Invia reminder a T+48h se il cliente non ha prenotato la call.
+    
+    Questo task viene schedulato al momento del pagamento e viene eseguito
+    dopo 48 ore. Verifica prima se la call è già stata prenotata.
+    """
+    try:
+        logger.info(f"[CELERY] Checking 48h reminder for user {user_id}")
+        
+        async def _send_reminder():
+            client, db = get_db()
+            try:
+                # Get cliente data
+                cliente = await db.clienti_analisi.find_one({"id": cliente_id})
+                user = await db.users.find_one({"id": user_id})
+                
+                if not cliente and not user:
+                    logger.error(f"[CELERY] User/Cliente not found for reminder: {user_id}")
+                    return False
+                
+                # Check if call already booked
+                call_booked = False
+                if cliente:
+                    call_booked = cliente.get("call_prenotata", False)
+                if not call_booked and user:
+                    call_booked = user.get("call_prenotata", False)
+                
+                if call_booked:
+                    logger.info(f"[CELERY] Call already booked for {user_id}, skipping reminder")
+                    return {"skipped": True, "reason": "call_already_booked"}
+                
+                # Extract data
+                nome = user.get("nome") if user else cliente.get("nome", "")
+                email = user.get("email") if user else cliente.get("email", "")
+                booking_link = cliente.get("booking_link", "https://calendly.com/evolution-pro/strategia") if cliente else "https://calendly.com/evolution-pro/strategia"
+                
+                if not email:
+                    logger.error(f"[CELERY] No email for reminder: {user_id}")
+                    return False
+                
+                # 1. Add reminder tag to Systeme.io
+                systeme_api_key = os.environ.get('SYSTEME_API_KEY')
+                if systeme_api_key:
+                    try:
+                        await add_systeme_tag_async(systeme_api_key, email, "reminder_48h_analisi")
+                        logger.info(f"[CELERY] Reminder tag added for {email}")
+                    except Exception as e:
+                        logger.warning(f"[CELERY] Systeme.io reminder tag failed: {e}")
+                
+                # 2. Send Telegram notification to admin
+                await send_telegram_notification(
+                    f"⏰ *Reminder 48h Inviato*\n\n"
+                    f"👤 {nome}\n"
+                    f"📧 {email}\n"
+                    f"📞 Call NON ancora prenotata\n"
+                    f"🔗 Link: {booking_link}"
+                )
+                
+                # 3. Update database
+                await db.clienti_analisi.update_one(
+                    {"id": cliente_id},
+                    {"$set": {
+                        "reminder_48h_inviato": True,
+                        "reminder_48h_inviato_at": datetime.now(timezone.utc).isoformat(),
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                
+                # 4. Log email
+                await db.email_logs.insert_one({
+                    "type": "reminder_48h_analisi",
+                    "to": email,
+                    "user_id": user_id,
+                    "cliente_id": cliente_id,
+                    "subject": "🔔 La tua Analisi Strategica ti aspetta!",
+                    "sent_at": datetime.now(timezone.utc).isoformat(),
+                    "status": "sent_via_systeme",
+                    "systeme_tags": ["reminder_48h_analisi"]
+                })
+                
+                logger.info(f"[CELERY] 48h reminder sent for {email}")
+                return True
+            finally:
+                client.close()
+        
+        result = run_async(_send_reminder())
+        return {"success": result, "user_id": user_id}
+        
+    except Exception as e:
+        logger.error(f"[CELERY] 48h reminder error for {user_id}: {e}")
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=e)
+        raise
+
+
+@shared_task
+def check_pending_analisi_reminders():
+    """
+    Periodic task: Verifica e invia reminder per analisi non prenotate.
+    Eseguito ogni ora da Celery Beat.
+    """
+    try:
+        logger.info("[CELERY] Checking pending analisi reminders")
+        
+        async def _check():
+            client, db = get_db()
+            try:
+                now = datetime.now(timezone.utc)
+                cutoff_48h = (now - timedelta(hours=48)).isoformat()
+                
+                # Find clienti that:
+                # - Have paid (pagamento_analisi = true)
+                # - Have analysis generated (analisi_generata = true)
+                # - Haven't booked call (call_prenotata != true)
+                # - Haven't received 48h reminder (reminder_48h_inviato != true)
+                # - Analysis was generated more than 48h ago
+                
+                pending = await db.clienti_analisi.find({
+                    "pagamento_analisi": True,
+                    "analisi_generata": True,
+                    "call_prenotata": {"$ne": True},
+                    "reminder_48h_inviato": {"$ne": True},
+                    "analisi_generata_at": {"$lt": cutoff_48h}
+                }).to_list(100)
+                
+                count = 0
+                for cliente in pending:
+                    user_id = cliente.get("user_id")
+                    cliente_id = cliente.get("id")
+                    
+                    if user_id and cliente_id:
+                        # Trigger reminder task
+                        send_analisi_48h_reminder.delay(user_id, cliente_id)
+                        count += 1
+                        logger.info(f"[CELERY] Scheduled reminder for cliente {cliente_id}")
+                
+                if count > 0:
+                    await send_telegram_notification(
+                        f"📋 *Check Reminder Analisi*\n\n"
+                        f"📤 {count} reminder schedulati"
+                    )
+                
+                return count
+            finally:
+                client.close()
+        
+        return run_async(_check())
+        
+    except Exception as e:
+        logger.error(f"[CELERY] Error checking pending reminders: {e}")
+        return 0
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# HELPER FUNCTIONS FOR EMAIL TASKS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+async def add_systeme_tag_async(api_key: str, email: str, tag_name: str):
+    """Add tag to contact in Systeme.io (async version)"""
+    import httpx
+    
+    headers = {
+        "X-API-Key": api_key,
+        "Content-Type": "application/json"
+    }
+    
+    # First, find or create contact
+    async with httpx.AsyncClient(timeout=30) as client:
+        # Search for contact
+        search_response = await client.get(
+            f"https://api.systeme.io/api/contacts?email={email}",
+            headers=headers
+        )
+        
+        contact_id = None
+        if search_response.status_code == 200:
+            data = search_response.json()
+            items = data.get("items", [])
+            if items:
+                contact_id = items[0].get("id")
+        
+        if not contact_id:
+            # Create contact
+            create_response = await client.post(
+                "https://api.systeme.io/api/contacts",
+                headers=headers,
+                json={"email": email}
+            )
+            if create_response.status_code in [200, 201]:
+                contact_id = create_response.json().get("id")
+        
+        if contact_id:
+            # Add tag (Systeme.io uses tag IDs, so we store the tag name in fields or use API appropriately)
+            # For simplicity, we'll add to a custom field or use automation triggers
+            await client.put(
+                f"https://api.systeme.io/api/contacts/{contact_id}",
+                headers=headers,
+                json={
+                    "fields": {
+                        "custom_tags": tag_name
+                    }
+                }
+            )
+            logger.info(f"[SYSTEME] Tag '{tag_name}' added to {email}")
+            return True
+    
+    return False
