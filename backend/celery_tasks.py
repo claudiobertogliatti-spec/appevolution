@@ -1209,3 +1209,150 @@ def check_piano_continuita_expiry():
     except Exception as e:
         logger.error(f"[CELERY] Piano expiry check error: {e}")
         return {"error": str(e)}
+
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STEFANIA TASKS - Lista Fredda Automazione
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@shared_task(bind=True, max_retries=2)
+def stefania_check_email4_noclick(self, email: str, nome: str, phone: str):
+    """
+    STEFANIA Task: Check 48h dopo apertura email 4.
+    Se ultimo_click è ancora null → crea task WhatsApp + notifica Telegram.
+    """
+    try:
+        logger.info(f"[STEFANIA] Checking email 4 no-click for {email}")
+        
+        async def _check():
+            client, db = get_db()
+            try:
+                contact = await db.lista_fredda.find_one({"email": email})
+                if not contact:
+                    return {"skipped": True, "reason": "contact_not_found"}
+                
+                # Skip if already clicked or converted
+                if contact.get("ultimo_click") or contact.get("stato") in ["in_funnel", "convertito"]:
+                    return {"skipped": True, "reason": "already_clicked_or_converted"}
+                
+                # Skip if unsubscribed
+                if contact.get("stato") == "disiscritto":
+                    return {"skipped": True, "reason": "unsubscribed"}
+                
+                nome_display = nome or contact.get("first_name") or email
+                phone_display = phone or contact.get("phone") or "N/A"
+                
+                # Create STEFANIA task
+                now = datetime.now(timezone.utc)
+                await db.stefania_tasks.insert_one({
+                    "type": "whatsapp_followup",
+                    "email": email,
+                    "nome": nome_display,
+                    "phone": phone_display,
+                    "reason": "Ha aperto l'email dell'analisi ma non ha acquistato",
+                    "action": "Contattare su WhatsApp",
+                    "priority": "alta",
+                    "status": "pending",
+                    "created_at": now.isoformat()
+                })
+                
+                # Update contact status
+                await db.lista_fredda.update_one(
+                    {"email": email},
+                    {"$set": {"stato": "caldo", "updated_at": now.isoformat()}}
+                )
+                
+                # Send Telegram notification
+                await send_telegram_notification(
+                    f"📱 *STEFANIA - Azione Richiesta*\n\n"
+                    f"👤 {nome_display}\n"
+                    f"📧 {email}\n"
+                    f"📱 {phone_display}\n\n"
+                    f"📝 Ha aperto l'email dell'analisi ma non ha acquistato\n"
+                    f"⚡ *Contattare su WhatsApp*"
+                )
+                
+                return {"success": True, "email": email, "task_created": True}
+                
+            finally:
+                client.close()
+        
+        return run_async(_check())
+        
+    except Exception as e:
+        logger.error(f"[STEFANIA] Email 4 check error: {e}")
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=e)
+        return {"error": str(e)}
+
+
+@shared_task(bind=True, max_retries=2)
+def stefania_check_funnel_nopayment(self, email: str, nome: str, phone: str):
+    """
+    STEFANIA Task: Check 24h dopo ingresso funnel.
+    Se non ha pagato → reminder automatico.
+    """
+    try:
+        logger.info(f"[STEFANIA] Checking funnel no-payment for {email}")
+        
+        async def _check():
+            client, db = get_db()
+            try:
+                contact = await db.lista_fredda.find_one({"email": email})
+                if not contact:
+                    return {"skipped": True, "reason": "contact_not_found"}
+                
+                # Skip if already converted
+                if contact.get("stato") == "convertito":
+                    return {"skipped": True, "reason": "already_converted"}
+                
+                # Check if user paid (look in users collection)
+                user = await db.users.find_one({"email": email, "pagamento_analisi": True})
+                if user:
+                    # Mark as converted
+                    await db.lista_fredda.update_one(
+                        {"email": email},
+                        {"$set": {"stato": "convertito", "updated_at": datetime.now(timezone.utc).isoformat()}}
+                    )
+                    return {"skipped": True, "reason": "already_paid"}
+                
+                nome_display = nome or contact.get("first_name") or email
+                phone_display = phone or contact.get("phone") or "N/A"
+                
+                # Create STEFANIA reminder task
+                now = datetime.now(timezone.utc)
+                await db.stefania_tasks.insert_one({
+                    "type": "funnel_reminder",
+                    "email": email,
+                    "nome": nome_display,
+                    "phone": phone_display,
+                    "reason": "Entrato nel funnel ma non ha completato l'acquisto",
+                    "action": "Inviare reminder o contattare",
+                    "priority": "alta",
+                    "status": "pending",
+                    "created_at": now.isoformat()
+                })
+                
+                # Send Telegram notification
+                await send_telegram_notification(
+                    f"⏰ *STEFANIA - Reminder Funnel*\n\n"
+                    f"👤 {nome_display}\n"
+                    f"📧 {email}\n"
+                    f"📱 {phone_display}\n\n"
+                    f"📝 Entrato nel funnel 24h fa ma non ha acquistato\n"
+                    f"⚡ *Inviare reminder o contattare*"
+                )
+                
+                return {"success": True, "email": email, "reminder_sent": True}
+                
+            finally:
+                client.close()
+        
+        return run_async(_check())
+        
+    except Exception as e:
+        logger.error(f"[STEFANIA] Funnel check error: {e}")
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=e)
+        return {"error": str(e)}

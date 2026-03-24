@@ -56,6 +56,100 @@ def set_db(database):
     global db
     db = database
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ENDPOINTS MANCANTI: /pending, /stats, /list
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/pending")
+async def get_pending_analisi():
+    """Lista analisi in attesa di generazione o revisione"""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database non inizializzato")
+    
+    # Analisi richieste ma non ancora generate
+    pending = await db.users.find(
+        {
+            "pagamento_analisi": True,
+            "$or": [
+                {"analisi_generata": {"$ne": True}},
+                {"analisi_confermata": {"$ne": True}}
+            ]
+        },
+        {"_id": 0, "id": 1, "nome": 1, "cognome": 1, "email": 1, "analisi_generata": 1, "analisi_confermata": 1, "created_at": 1}
+    ).sort("created_at", -1).to_list(100)
+    
+    return {
+        "pending": pending,
+        "count": len(pending)
+    }
+
+
+@router.get("/stats")
+async def get_flusso_analisi_stats():
+    """Statistiche flusso analisi €67"""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database non inizializzato")
+    
+    total_pagamenti = await db.users.count_documents({"pagamento_analisi": True})
+    analisi_generate = await db.users.count_documents({"analisi_generata": True})
+    analisi_confermate = await db.users.count_documents({"analisi_confermata": True})
+    videocall_prenotate = await db.users.count_documents({"videocall_prenotata": True})
+    
+    # Revenue
+    revenue = total_pagamenti * 67
+    
+    return {
+        "totale_pagamenti": total_pagamenti,
+        "analisi_generate": analisi_generate,
+        "analisi_confermate": analisi_confermate,
+        "videocall_prenotate": videocall_prenotate,
+        "revenue_totale": revenue,
+        "tasso_generazione": round(analisi_generate / total_pagamenti * 100, 2) if total_pagamenti > 0 else 0,
+        "tasso_conferma": round(analisi_confermate / analisi_generate * 100, 2) if analisi_generate > 0 else 0,
+        "tasso_videocall": round(videocall_prenotate / analisi_confermate * 100, 2) if analisi_confermate > 0 else 0
+    }
+
+
+@router.get("/list")
+async def get_analisi_list(
+    limit: int = 50,
+    skip: int = 0,
+    status: Optional[str] = None
+):
+    """Lista tutte le analisi con filtri"""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database non inizializzato")
+    
+    query = {"pagamento_analisi": True}
+    
+    if status == "pending":
+        query["analisi_generata"] = {"$ne": True}
+    elif status == "generated":
+        query["analisi_generata"] = True
+        query["analisi_confermata"] = {"$ne": True}
+    elif status == "confirmed":
+        query["analisi_confermata"] = True
+    
+    analisi = await db.users.find(
+        query,
+        {
+            "_id": 0, "id": 1, "nome": 1, "cognome": 1, "email": 1,
+            "analisi_generata": 1, "analisi_confermata": 1, "videocall_prenotata": 1,
+            "pagamento_analisi_at": 1, "created_at": 1
+        }
+    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    total = await db.users.count_documents(query)
+    
+    return {
+        "analisi": analisi,
+        "total": total,
+        "limit": limit,
+        "skip": skip
+    }
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # MODELS
 # ═══════════════════════════════════════════════════════════════════════════════

@@ -14054,6 +14054,10 @@ app.include_router(journey_router)
 from routers.stripe_webhook import router as stripe_webhook_router
 app.include_router(stripe_webhook_router, prefix="/api", tags=["webhooks"])
 
+# Lista Fredda Router (Cold Outreach + Systeme.io Tracking)
+from routers.lista_fredda import router as lista_fredda_router
+app.include_router(lista_fredda_router)
+
 
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler

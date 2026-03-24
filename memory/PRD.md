@@ -44,7 +44,32 @@ Build a multi-faceted AI-powered application for "Evolution PRO" business includ
 
 ## What's Been Implemented
 
-### Session: 24 March 2026 - BRIEF TECNICO IMPLEMENTATION
+### Session: 24 March 2026 - Lista Fredda + STEFANIA Integration
+
+#### ✅ PARTE 1 - Import Lista Fredda CSV
+- `POST /api/lista-fredda/import` - Upload CSV con deduplicazione su email
+- `GET /api/lista-fredda/stats` - Statistiche (totale, per stato, aperture, click)
+- `GET /api/lista-fredda/leads` - Lista con filtri (stato, tag, has_phone)
+- `GET /api/lista-fredda/leads/caldi` - Solo lead caldi
+- `GET /api/lista-fredda/export` - Export CSV filtrato
+
+#### ✅ PARTE 2 - Webhook Tracking Systeme.io
+- `POST /api/lista-fredda/webhook/systeme-tracking` - Eventi: email_opened, link_clicked, unsubscribed, reply_received
+- Auto-update stato: in_sequenza → caldo → in_funnel → convertito
+- Alert Telegram per risposte e lead caldi
+
+#### ✅ PARTE 3 - Trigger STEFANIA (Celery Tasks)
+- `stefania_check_email4_noclick` - 48h dopo apertura email 4, se non clicca → task WhatsApp
+- `stefania_check_funnel_nopayment` - 24h dopo ingresso funnel, se non paga → reminder
+
+#### ✅ PARTE 5 - Fix Endpoints Mancanti
+- `GET /api/flusso-analisi/pending` - Analisi in attesa
+- `GET /api/flusso-analisi/stats` - Statistiche flusso €67
+- `GET /api/flusso-analisi/list` - Lista analisi con filtri
+- `GET /api/partners-unified` - Unified view funzionante con nomi
+
+#### ✅ Discovery CSV Import
+- `POST /api/discovery/import-csv` - Import lead da CSV nella discovery
 
 #### ✅ PRIORITÀ ASSOLUTA (a) - Trigger Automatico Post-Pagamento €67 - COMPLETE
 Il flusso era già implementato e funzionante:

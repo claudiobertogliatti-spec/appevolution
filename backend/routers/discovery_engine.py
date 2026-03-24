@@ -10,7 +10,7 @@ Componenti:
 5. Integrazione Systeme.io per lead positivi
 """
 
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File, Query
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any, Literal
 from datetime import datetime, timezone, timedelta
@@ -210,6 +210,147 @@ async def check_duplicate(source: str, username: str, email: Optional[str] = Non
 # ═══════════════════════════════════════════════════════════════════════════════
 # TASK 1: DATABASE & CRUD
 # ═══════════════════════════════════════════════════════════════════════════════
+
+@router.post("/import-csv")
+async def import_discovery_leads_csv(file: UploadFile = File(...)):
+    """
+    Importa lead da file CSV nella collection discovery_leads.
+    Deduplicazione automatica su email/platform_username.
+    
+    Formato CSV atteso:
+    email,nome,piattaforma,username,followers,nicchia,bio
+    mario@rossi.it,Mario Rossi,youtube,mariorossi_yt,5000,coaching,Coach professionista
+    """
+    import csv
+    import io
+    
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="Il file deve essere un CSV")
+    
+    content = await file.read()
+    
+    # Try different encodings
+    for encoding in ['utf-8', 'latin-1', 'cp1252']:
+        try:
+            text_content = content.decode(encoding)
+            break
+        except UnicodeDecodeError:
+            continue
+    else:
+        raise HTTPException(status_code=400, detail="Impossibile decodificare il file CSV")
+    
+    # Parse CSV
+    reader = csv.DictReader(io.StringIO(text_content))
+    
+    now = datetime.now(timezone.utc).isoformat()
+    imported = 0
+    duplicates = 0
+    errors = 0
+    error_details = []
+    
+    for row_num, row in enumerate(reader, start=2):
+        try:
+            email = (row.get('email', '') or '').strip().lower()
+            nome = (row.get('nome', '') or row.get('name', '') or row.get('display_name', '') or '').strip()
+            piattaforma = (row.get('piattaforma', '') or row.get('source', '') or row.get('platform', '') or 'manual').strip().lower()
+            username = (row.get('username', '') or row.get('platform_username', '') or '').strip()
+            followers = int(row.get('followers', 0) or row.get('followers_count', 0) or 0)
+            nicchia = (row.get('nicchia', '') or row.get('niche', '') or row.get('niche_detected', '') or '').strip()
+            bio = (row.get('bio', '') or row.get('descrizione', '') or '').strip()
+            
+            if not email and not username:
+                errors += 1
+                error_details.append(f"Row {row_num}: Missing email and username")
+                continue
+            
+            # Generate unique identifier
+            identifier = username or email.split('@')[0]
+            
+            # Check duplicate
+            is_duplicate = await check_duplicate(piattaforma, identifier, email if email else None)
+            if is_duplicate:
+                duplicates += 1
+                continue
+            
+            # Calculate score
+            score = 30  # Base score
+            if 1000 <= followers < 10000:
+                score += 25
+            elif 10000 <= followers < 50000:
+                score += 20
+            elif followers >= 50000:
+                score += 10
+            if nicchia:
+                score += 15
+            if email:
+                score += 10
+            
+            score = min(score, 100)
+            target_fit = calculate_target_fit(score)
+            status = "hot" if score >= 80 else "nuovo"
+            
+            # Create lead document
+            lead_id = generate_lead_id(piattaforma, identifier)
+            lead_doc = {
+                "id": lead_id,
+                "source": piattaforma,
+                "platform_username": identifier,
+                "display_name": nome or identifier,
+                "email": email if email else None,
+                "followers_count": followers,
+                "bio": bio[:500] if bio else None,
+                "niche_detected": nicchia or "altro",
+                "score_total": score,
+                "target_fit_level": target_fit,
+                "status": status,
+                "outreach_status": "pending",
+                "fonte_query": "import_csv",
+                "discovered_at": now,
+                "created_at": now,
+                "updated_at": now
+            }
+            
+            await db.discovery_leads.insert_one(lead_doc)
+            imported += 1
+            
+            # Create alert for hot leads
+            if score >= 80:
+                await db.system_alerts.insert_one({
+                    "type": "hot_lead_discovered",
+                    "lead_id": lead_id,
+                    "lead_name": nome or identifier,
+                    "score": score,
+                    "source": "csv_import",
+                    "message": f"🔥 Lead HOT importato: {nome or identifier} (Score: {score})",
+                    "created_at": now,
+                    "read": False
+                })
+            
+        except Exception as e:
+            errors += 1
+            error_details.append(f"Row {row_num}: {str(e)}")
+    
+    # Log import
+    await db.import_logs.insert_one({
+        "type": "discovery_leads",
+        "filename": file.filename,
+        "imported": imported,
+        "duplicates": duplicates,
+        "errors": errors,
+        "timestamp": now
+    })
+    
+    logger.info(f"[DISCOVERY] CSV import: {imported} imported, {duplicates} duplicates, {errors} errors")
+    
+    return {
+        "success": True,
+        "imported": imported,
+        "duplicates": duplicates,
+        "errors": errors,
+        "hot_leads": len([1 for _ in range(imported) if _ >= 80]),  # Approximate
+        "error_details": error_details[:10] if errors > 0 else []
+    }
+
 
 @router.post("/leads")
 async def create_lead(lead: DiscoveryLead):
