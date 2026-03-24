@@ -1,0 +1,97 @@
+{
+  "summary": "Backend testing for Evolution PRO iteration 26 - Post-Payment Automation & Partnership Activation. All 20 tests passed (100%). Tested Stripe webhook, payment simulation, automation status, partnership activation, discovery auto-approve, email sequence, and email templates.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_post_payment_automation_v2.py",
+    "/app/test_reports/pytest/pytest_iteration_26.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Stripe webhook endpoint exists and handles invalid payloads correctly (returns 400/422)",
+    "Test payment simulation endpoint (/api/webhooks/test-analisi-payment/{user_id}) works correctly for triggering post-payment automation",
+    "Automation status endpoint (/api/webhooks/test-automation-status/{user_id}) returns comprehensive status including payment_confirmed, webhook_processed, analysis_generated, etc.",
+    "Partnership activation (/api/flusso-analisi/attiva-partnership/{user_id}) correctly validates contract and payment before activation",
+    "Systeme.io integration has graceful degradation - if SYSTEME_API_KEY not configured, flow continues with fallback",
+    "Email templates API returns 7 templates including partnership_welcome and lead_sequence_email_1-4",
+    "Celery tasks for email automation are properly defined: send_analisi_welcome_email, send_analisi_48h_reminder, send_lead_sequence_email, process_auto_approve_leads"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_post_payment_automation_v2.py"
+  ],
+  "success_rate": {
+    "backend": "100% (20/20 tests passed)",
+    "frontend": "N/A - Backend only testing (UI verified loading correctly)"
+  },
+  "test_credentials": {},
+  "seed_data_creation": "Test users created during testing with pattern test_*@example.com - cleaned up after tests",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Post-payment automation fully functional. Stripe webhook handles payment_intent.succeeded and checkout.session.completed events. Partnership activation creates Systeme.io sub-account and sends partnership_welcome email. Email templates editable via /api/admin/email-templates. Celery worker running on 'analisi_automation' queue.",
+  "features_tested": {
+    "stripe_webhook": {
+      "POST /api/webhooks/stripe": "✅ Endpoint exists, handles invalid payloads correctly",
+      "signature_verification": "✅ Verifies Stripe signature when STRIPE_WEBHOOK_SECRET configured"
+    },
+    "payment_simulation": {
+      "POST /api/webhooks/test-analisi-payment/{user_id}": "✅ Simulates €67 payment, triggers automation",
+      "GET /api/webhooks/test-automation-status/{user_id}": "✅ Returns comprehensive automation status",
+      "user_not_found_handling": "✅ Returns 404 for nonexistent user"
+    },
+    "partnership_activation": {
+      "POST /api/flusso-analisi/attiva-partnership/{user_id}": "✅ Validates contract and payment",
+      "systeme_io_integration": "✅ Creates sub-account via create_partner_subaccount_async",
+      "email_sending": "✅ Sends partnership_welcome email via background task",
+      "telegram_notification": "✅ Notifies admin on partnership activation"
+    },
+    "discovery_auto_approve": {
+      "POST /api/discovery/trigger-auto-approve": "✅ Triggers Celery task, returns task_id"
+    },
+    "email_sequence": {
+      "POST /api/discovery/lead/{lead_id}/start-email-sequence": "✅ Schedules 4 emails (D+0, D+2, D+4, D+7)",
+      "duplicate_prevention": "✅ Returns success=false if sequence already started",
+      "lead_not_found": "✅ Returns 404 for nonexistent lead"
+    },
+    "email_templates": {
+      "GET /api/admin/email-templates": "✅ Returns 7 templates with partnership_welcome",
+      "GET /api/admin/email-templates/{template_id}": "✅ Returns specific template with subject, body_html, variables",
+      "POST /api/admin/email-templates/{template_id}/preview": "✅ Renders template with variable substitution"
+    },
+    "celery_integration": {
+      "GET /api/celery/status": "✅ Returns worker and beat status",
+      "tasks_defined": "✅ send_analisi_welcome_email, send_analisi_48h_reminder, send_lead_sequence_email, process_auto_approve_leads"
+    }
+  },
+  "automation_flow_summary": {
+    "post_payment_67_euro": [
+      "1. Stripe webhook receives payment_intent.succeeded",
+      "2. User marked with pagamento_analisi=true, webhook_processed=true",
+      "3. clienti_analisi record created/updated",
+      "4. Telegram notification sent to admin",
+      "5. Background task runs post-payment automation",
+      "6. If questionario completed: AI analysis generated, call script generated",
+      "7. Welcome email scheduled via Celery (immediate)",
+      "8. 48h reminder scheduled via Celery (countdown=172800s)"
+    ],
+    "partnership_activation": [
+      "1. Verify contract signed (contratti_partnership.firmato=true)",
+      "2. Verify payment completed (pagamenti_partnership.completato=true)",
+      "3. Create Systeme.io sub-account via create_partner_subaccount_async",
+      "4. Update user: stato_cliente='partner_attivo', user_type='partner'",
+      "5. Create/update partners record",
+      "6. Send partnership_welcome email via background task",
+      "7. Send Telegram notification to admin"
+    ]
+  },
+  "mocked_apis": {
+    "systeme_io": "Real integration called. If SYSTEME_API_KEY not configured, operations skipped but flow continues with fallback.",
+    "note": "This is graceful degradation, NOT a mock."
+  }
+}
