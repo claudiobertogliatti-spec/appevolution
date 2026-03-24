@@ -1,186 +1,188 @@
 <analysis>**original_problem_statement:**
-The user's initial goal was to build a multi-faceted AI-powered application for their business, Evolution PRO. The core requirements included:
-1.  **Systeme.io Payment Integration**: Sync Stripe payments with Systeme.io for contact and tag management.
-2.  **High-Conversion Sales Script**: Generate persuasive sales scripts using an LLM based on client data.
-3.  **Avatar & Social Plan Management**: Create a backend to manage a partner's digital avatar (HeyGen) and social media content plan.
-4.  **Discovery Engine AI**: Implement a proactive lead generation module using a browser agent (Gaia) and an LLM writer (Valentina) to find and engage potential clients.
-5.  **Sblocco Core Roadmap**: Automate the core business flow: generate AI avatar videos with HeyGen, upload them to YouTube, and automatically track partner progress.
-6.  **Ollama Integration**: Use a local Ollama/Llama 3 instance for high-volume, low-cost tasks like web scraping and data cleanup, with a robust fallback to a cloud model (Claude) for stability.
-7.  **UI/UX Fixes & Enhancements**:
-    *   Fix a broken YouTube authorization flow.
-    *   Implement a UI in the Agent Hub to display and manage leads from the Discovery Engine.
-    *   Fix the Crea Account button and ensure it correctly funnels new clients into a questionnaire and a €67 payment flow.
-    *   Resolve bugs in the new Discovery Leads UI, including making lead rows clickable to view details and fixing a non-functional Avvia Analisi button.
+The user's primary goal is to build and enhance Evolution PRO, a comprehensive AI-powered business management application. The latest set of requirements is detailed in the BRIEF TECNICO COMPLETO provided by the user, which outlines critical business-blocking issues and operational limitations.
+
+**PRODUCT REQUIREMENTS (from the latest user brief):**
+
+**🔴 PRIORITY 1 — Critical Business Blockers**
+1.  **Stripe Webhook:** Implement a  endpoint to handle  and  events, automating the confirmation of the €67 analysis payment.
+2.  **Full Post-Payment Automation (€67):** After payment confirmation, trigger a sequence of automated actions:
+    *   Generate the AI analysis. The user specified using a pure Claude implementation for now, with an abstraction layer () to allow for a future swap to NotebookLM.
+    *   Generate an 8-block call script.
+    *   Send a welcome email with a bonus and an invitation to book a call.
+    *   The booking link should only become active 48 hours after the analysis is created.
+    *   Schedule a Celery job to send a reminder email at T+48h if no call has been booked.
+3.  **YouTube OAuth:** Fix the broken YouTube authentication flow so that LIVE partners can publish videos.
+4.  **Masterclass 502 Error:** Fix the backend crash when calling the masterclass generation endpoint () due to a partner lookup failure.
+
+**🟡 PRIORITY 2 — Limited Operations**
+5.  **Admin Interface for Partner Data:** Create a UI for admins to insert or overwrite real data for partners at any stage (positioning, funnel domain, documents, etc.) without a full re-onboarding.
+6.  **Partners Unified View:** Fix the  endpoint, which returns empty data, by correcting the underlying MongoDB aggregation pipeline.
+7.  **Funnel Publication Block:** Create a flow to approve legal documents and set a real domain for partners to unblock funnel publication.
+8.  **Automatic Welcome Email:** Trigger the partnership welcome email automatically upon partnership activation ( event).
+
+**🔵 PRIORITY 3 — Scheduled Improvements**
+*   Implement advanced filters for Discovery Leads (status, platform, score).
+*   Add a partnership expiry countdown to the admin dashboard.
+*   Add a CSV export feature for the partner list.
+*   Implement a recurring Celery job for Systeme.io sync (every 6 hours).
+*   Implement Celery jobs for partnership expiry reminders via Telegram (30/15/7 days).
+*   Implement a weekly KPI report job.
 
 **User's preferred language**: Italian. The next agent **MUST** respond in **Italian**.
 
 **what currently exists?**
-The application is a sophisticated full-stack system with multiple interconnected features. Key components include:
-- **Backend Services**: FastAPI backend with integrations for Stripe, Systeme.io, HeyGen, a fixed YouTube Data API connection, and a new  for local LLM processing.
-- **LLM Hierarchy**: A dual-LLM strategy is now implemented. The system attempts to use a local Ollama instance (via a Cloudflare Tunnel) for tasks like website analysis. If the local model is unavailable or fails, it automatically and silently falls back to using Claude.
-- **Database**: MongoDB stores data for partners, users, discovery leads, and various logs. The database was recently cleaned of test data and seeded with 10 real-world leads (Manager Coach).
-- **Frontend UI**:
-    - **Agent Hub**: The  component has been significantly updated. It now defaults to a Discovery Leads tab, showing a table of hot leads. These leads can be analyzed via the Avvia Analisi button (which now shows a loading spinner). The table rows are clickable, opening a modal with detailed lead information, including the results of the AI analysis.
-    - **Onboarding Flow**: The  component has been fixed. The login and registration modals are now interconnected. The new client registration flow correctly funnels users to a dedicated client dashboard to fill out a questionnaire before being prompted for a €67 payment.
-    - **Video Production Hub**: The  component has a Produzione Video section that displays connection statuses for YouTube/HeyGen and lists partners eligible for video generation.
+The application is a full-stack React/FastAPI/MongoDB system. In this session, several major architectural and feature enhancements were implemented based on user feedback.
+
+-   **Asynchronous Task Processing:** A robust asynchronous task queue has been implemented using **Celery** with an external **Upstash Redis** instance as the broker. A custom  was created to ensure the Celery worker and beat processes start automatically with the backend, even within the read-only Supervisor environment.
+-   **Stripe Webhook:** The critical  endpoint has been created and configured with the user's secret. It is ready to receive payment events.
+-   **Automation & Abstraction:** An  abstraction has been created () to handle AI analysis generation, defaulting to a pure Claude implementation. This provider is now integrated into the Stripe webhook flow, forming the first step of the post-payment automation.
+-   **Orchestration Agent:** A Stefania Orchestrator system () was built to create, monitor, and escalate tasks between AI agents, with a daily review job added to the scheduler.
+-   **Unified Data View:** A MongoDB aggregated view () was created to consolidate partner data from multiple collections, and an endpoint  was exposed to access it. This serves as a temporary fix for underlying data fragmentation.
+-   **Admin Endpoints:** New backend endpoints have been created to support admin operations:  and .
+-   **Bug Fixes & Features:** The Masterclass generation bug was fixed. A race condition in  was resolved. A delete button for Discovery Leads was added. Advanced filters, partner expiry countdowns, and CSV export features were implemented in the frontend.
 
 **Last working item**:
--   Last item agent was working: The user provided a new Cloudflare Tunnel URL () for their local Ollama instance. The agent successfully updated the  variable in the  file. The immediate next step is to test if this new tunnel resolves the connection issues and allows the Avvia Analisi feature to work using the local Ollama model instead of the Claude fallback.
+-   Last item agent was working: Finalizing the setup for the full post-payment automation flow. The agent implemented the  abstraction layer using Claude, as requested by the user, and integrated it into the new Stripe webhook. The agent also fixed the welcome email trigger by identifying the correct endpoint and parameters.
 -   Status: **IN PROGRESS**
 -   Agent Testing Done: N
--   Which testing method agent to use? First, use a backend test () on the  endpoint to confirm the new tunnel is working. Then, trigger the  endpoint for a test lead (e.g., Roberto Carlino) to confirm the full analysis flow with Ollama works. Finally, use the  to perform a full E2E test from the Agent Hub UI.
+-   Which testing method agent to use? backend testing agent. The agent should simulate a  event to the  endpoint and verify the entire chain of actions is triggered: the client's  status is updated, the 's  method is called, a call script is generated, an email is sent, and a Celery job for the 48-hour reminder is scheduled.
 -   User Testing Done: N
 
 **All Pending/In progress Issue list**:
--   Issue 1: Test and Finalize Ollama Integration with New Tunnel (P0)
--   Issue 2: Critical Partner Data Sync Inconsistency (P1)
--   Issue 3: Refactor  and  monoliths (P2)
+-   Issue 1: Complete the full post-payment automation (€67) (P1)
 
 Issues Detail:
--   **Issue 1: Test and Finalize Ollama Integration with New Tunnel (P0)**
-    -   Attempted fixes: The agent has updated the  file with the latest URL provided by the user. The backend services (, ) have been made robust with fallback logic.
+-   **Issue 1: Complete the full post-payment automation (€67) (P1)**
+    -   Attempted fixes: The Stripe webhook is in place, and the  has been created and connected.
     -   Next debug checklist:
-        1.  Restart the backend service to ensure it loads the new  variable.
-        2.  Run  against  to verify the connection.
-        3.  Run  against  for a lead like Roberto Carlino. Check the response to see if  is .
-        4.  If the backend tests pass, use the  to test the Avvia Analisi button in the frontend's Agent Hub and verify the modal displays the new analysis.
-    -   Why fix this issue and what will be achieved with the fix? This will complete the user's request for a cost-effective, local-first LLM processing pipeline and confirm the system's stability.
+        1.  In , within the  function, continue the implementation after the  call.
+        2.  Implement the automatic generation of the 8-block call script.
+        3.  Implement the automatic sending of the welcome email (with bonus and booking link).
+        4.  Implement the logic to schedule a Celery task that will send a reminder email in 48 hours if the call has not been booked.
+    -   Why fix this issue and what will be achieved with the fix? This is a critical, revenue-generating business flow. Automating it will eliminate manual work and prevent customers from being lost after payment.
     -   Status: IN PROGRESS
-    -   Is recurring issue? Y (due to the volatile nature of tunneling to a local PC).
-    -   Should Test frontend/backend/both after fix? both
--   **Issue 2: Critical Partner Data Sync Inconsistency (P1)**
-    -   Attempted fixes: None. This is a known architectural issue where partner data is split between  and  collections.
-    -   Next debug checklist: Audit all data-reading endpoints. Plan and execute a data migration script to consolidate all partner information into the  collection.
-    -   Why fix this issue and what will be achieved with the fix? This will resolve a source of data integrity bugs and improve overall application stability.
-    -   Status: NOT STARTED
-    -   Is recurring issue? Y
-    -   Should Test frontend/backend/both after fix? both
--   **Issue 3: Refactor  and  monoliths (P2)**
-    -   Attempted fixes: None. These files have continued to grow, increasing technical debt.
-    -   Next debug checklist: Plan a phased migration of routes from  to dedicated router files. Plan a migration of UI logic from  into a more component-based structure, potentially using a routing library.
-    -   Why fix this issue and what will be achieved with the fix? Improves maintainability, scalability, and developer velocity.
-    -   Status: NOT STARTED
-    -   Is recurring issue? Y
-    -   Should Test frontend/backend/both after fix? both
+    -   Is recurring issue? N
+    -   Should Test frontend/backend/both after fix? backend
 
 **In progress Task List**:
--   **Task 1: Esecuzione Roadmap Sblocco Core - Priorità Fase 1 (P1)**
-    -   Where to resume: The YouTube integration blocker is fixed. The HeyGen connection is verified. The next step is to fully connect the frontend Produzione Video hub to the backend APIs to allow an admin to trigger video generation and upload.
-    -   What will be achieved with this? This will activate one of the core automated features of the application.
+-   Task 1: Complete the full post-payment automation flow (P1)
+
+Task Detail:
+-   **Task 1: Complete the full post-payment automation flow (P1)**
+    -   Where to resume: In , continue building the automation steps inside the  function.
+    -   What will be achieved with this? A fully automated, reliable pipeline from customer payment to scheduled sales call, which is a core business requirement.
     -   Status: IN PROGRESS
-    -   Should Test frontend/backend/both after fix? both
-    -   Blocked on something: No longer blocked.
+    -   Should Test frontend/backend/both after fix? backend
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **P1: Deploy to Production**: The user has asked to see the changes on their production URL. This will require a deployment step.
-    -   **P1: E.P.O.S. Automation**: Connect backend triggers for Spoiler Strategico and Calendar Unlock to the frontend.
+    *   **P1: UI for Admin Partner Data Override:** Build a frontend interface that uses the  endpoint, allowing admins to easily update partner data (Brief point 5).
+    *   **P1: UI for Admin Funnel Unlock:** Build a frontend interface that uses the  endpoint to approve legal documents and update domains (Brief point 7).
+    *   **P2: Test HeyGen -> YouTube Pipeline:** With YouTube OAuth and HeyGen confirmed to be working, perform an end-to-end test with a real partner (Marco Ferretti) to ensure the video production pipeline is fully operational.
 -   **Future Tasks:**
-    -   **P2: Roadmap Sblocco Core - Phase 2 (Scala Operations)**: Implement Systeme.io Funnel Deploy API and Revenue Tracking.
-    -   **P2: Refactor  and **.
-    -   **P3: Roadmap Sblocco Core - Phase 3 (Marketing Automatico)**: Implement a Caso Studio Generator for partner success stories.
-    -   **P3: Set up a permanent, stable server for Ollama (VPS)** to eliminate the need for temporary tunnels.
+    *   Refactor the  monolith.
+    *   Migrate the database to unify the  and  collections (explicitly postponed by user).
+    *   Create OpenAPI documentation.
+    *   Create a centralized KPI dashboard.
+    *   Set up a dedicated VPS for the local Ollama instance.
 
 **Completed work in this session**
--   **YouTube OAuth Integration (FIXED)**: Resolved the 500 error by correcting the  file and successfully completing the OAuth2 flow.
--   **Ollama Integration & Fallback (DONE)**: Implemented a full pipeline to use a local Ollama instance via a Cloudflare Tunnel for web analysis, with a robust, automatic fallback to Claude if the local connection fails.
--   **Database Cleanup and Seeding (DONE)**: Cleared all test data from  and  collections and imported 10 real-world leads.
--   **Agent Hub UI for Discovery Leads (DONE)**: Created a new Discovery Leads tab in the Agent Hub, which is now the default view. The UI includes a table of hot leads, a clickable row that opens a detailed modal, and a functional Avvia Analisi button with a loading spinner.
--   **Client Onboarding Flow (FIXED)**: Corrected the registration process by adding interconnected links between the login and registration modals, ensuring new users are correctly funneled into the questionnaire and payment flow.
+-   **Celery & Redis Integration:** Implemented and configured a persistent asynchronous task queue using Celery and an external Upstash Redis instance. Created a self-managing  to ensure service uptime.
+-   **Stripe Webhook & Automation Start:** Created and secured the  endpoint and began the full automation flow by integrating an abstract .
+-   **Agent Orchestration System:** Implemented the Stefania Orchestrator to monitor and manage tasks between AI agents, with a daily scheduled check.
+-   **Unified Partner Data View:** Created and exposed a MongoDB aggregated view () to provide a single source of truth for partner data.
+-   **Admin Backend Endpoints:** Created endpoints for admin overrides () and funnel unlocking ().
+-   **Bug Fixes:** Resolved issues with the Masterclass endpoint, the Partners Unified View returning empty data, and confirmed YouTube OAuth is functioning.
+-   **Feature Implementation:** Added advanced filters for Discovery Leads, a partnership expiry countdown, and a CSV export feature for partners.
+-   **Email Trigger:** Attached the partnership welcome email to the payment confirmation event.
 
 **Earlier issues found/mentioned but not fixed**
--   **Architectural Flaw: Multiple Partner Data Sources:** The core issue of having partner data in both  and  collections remains unresolved.
--   **Technical Debt:** The monolithic  and  files continue to grow.
+-   **Architectural Flaw**: Partner data remains split across multiple collections (, , , etc.). The  is a workaround, not a structural fix. The user has postponed a full migration.
+-   **Technical Debt**: The main  file is a large monolith that needs refactoring.
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork**: Partner data synchronization issues.
--   **Recurrence count**: High.
--   **Status**: NOT STARTED
+-   **Recurrence count**: High
+-   **Status**: MITIGATED (not resolved). The  helps with read consistency, but the underlying write complexity remains.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Resilient Service Integration**: The Ollama/Claude fallback system is a key architectural pattern that provides stability and cost-effectiveness. The system prioritizes the free local service but degrades gracefully to the paid cloud service without user intervention.
--   **Network Tunneling Debugging**: The agent systematically worked through issues with , , and  to establish a connection to the user's local machine from the cloud environment.
--   **Full-Stack Debugging**: Traced and fixed multiple bugs that spanned from frontend React components, through API layers, to backend Python services and external integrations.
--   **Asynchronous UI Development**: Implemented complex UI state management in React, including loading spinners, error alerts, and conditional rendering based on the status of multiple concurrent API calls.
+-   **Asynchronous Task Queues (Celery & Redis):** Using a distributed task queue to handle long-running, unreliable processes (like video generation) without blocking the main application.
+-   **Self-Managed Services:** A creative solution () to run and monitor background services (Celery worker and beat) as Python subprocesses, bypassing the limitations of a read-only  file in the managed environment.
+-   **Architectural Abstraction (Provider Pattern):** The  interface decouples the core business logic of analysis generation from the specific AI implementation (Claude), allowing for future flexibility (e.g., swapping in NotebookLM).
+-   **Event-Driven Architecture (Webhooks):** Shifting from a fragile polling mechanism to a robust, event-driven model for payment verification using Stripe webhooks.
+-   **Database Views (MongoDB Aggregation):** A pragmatic approach to address architectural debt by creating a unified, read-only view () of fragmented data without performing a risky data migration.
 
 **key DB schema**
-- No new collections were added, but the  collection was populated with real data and is now actively used by the  component.
+-   **agent_tasks** (new collection): 
+-   **partner_unified_view** (new view): Aggregates data from , , , , , etc.
 
 **changes in tech stack**
--   **Ollama**: A local LLM is now a core part of the processing pipeline, used for scraping and analysis.
--   **Cloudflare Tunnel ()**: Selected as the preferred method for tunneling to the user's local machine.
+-   **Celery**: Added for asynchronous task processing.
+-   **Redis**: Added as the message broker for Celery, using the Upstash cloud service.
 
 **All files of reference**
--   **New/Critical Files:**
-    -   : Contains the core logic for the new LLM hierarchy (Ollama + Claude fallback).
-    -   : The main hub for the new Discovery Leads feature.
-    -   : The router that orchestrates lead analysis using the new service.
--   **Updated Files:**
-    -   : Updated with the  URL.
-    -   : Modified to add new endpoints and fix routing conflicts.
-    -   : Fixed the user onboarding flow.
-    -   : Contains valid, sensitive Google OAuth credentials.
-
-**Areas that need refactoring**:
--   ** (CRITICAL)**: This file is a major bottleneck and source of bugs due to its size and complexity. Routing conflicts have already occurred and will happen again.
--   ** (CRITICAL)**: Needs to be refactored to use a standard routing library instead of complex conditional rendering.
--   ** & **: The  helper function for Claude was moved into  but is still defined elsewhere. This should be consolidated into a single, reusable utility to avoid future import errors.
+-   **/app/backend/routers/stripe_webhook.py**: Core of the new payment automation.
+-   **/app/backend/analysis_provider.py**: Abstraction for interchangeable AI analysis generation.
+-   **/app/backend/celery_manager.py**: Key file for ensuring Celery runs correctly in the environment.
+-   **/app/backend/celery_app.py**: Defines the Celery application and its configuration.
+-   **/app/backend/celery_tasks.py**: Contains the logic for all background jobs.
+-   **/app/backend/agent_task_system.py**: Logic for the AI agent task monitoring system.
+-   **/app/backend/mongodb_views.py**: The aggregation pipeline for the unified partner view.
+-   **/app/backend/docs/CELERY_SETUP.md**: Instructions for production setup.
 
 **key api endpoints**
--   : **NEW** - Checks connection status to the user's local Ollama instance.
--   : **UPDATED** - Now uses the Ollama service with Claude fallback to analyze a lead's website.
--   : **NEW** - Returns a list of leads with a relevance score >= 70.
--   : **NEW** - Retrieves partners with an active social plan for the video production dashboard.
--   : **VERIFIED** - The endpoint that handles new client registrations for the €67 analysis product.
+-   : Receives events from Stripe to trigger payment automation.
+-   : Checks the operational status of the Celery worker and beat.
+-   : Returns aggregated data for all partners from the new view.
+-   : Allows an admin to overwrite core partner data.
+-   : Allows an admin to approve legal docs and update a funnel's domain.
 
 **Critical Info for New Agent**
--   **You MUST communicate in Italian.**
--   **The immediate priority is to test the new Cloudflare Tunnel URL.** The user wants to use their local Ollama instance. You must verify if the latest URL they provided works for the Avvia Analisi feature.
--   **The system is resilient.** If the Ollama test fails, remind the user that the system will automatically use Claude. The user has explicitly approved this hybrid approach for stability.
--   **The user is concerned about stability.** The long-term solution for the Ollama integration is a dedicated cloud server (VPS), which has been proposed. For now, the focus is on making the tunnel-based approach as smooth as possible.
--   After resolving the Ollama task, the next priority is to continue with Phase 1 of the **Sblocco Core** roadmap: connecting the frontend UI to the HeyGen/YouTube backend APIs to enable video generation.
+-   **Celery is LIVE:** The application now relies on Celery for all long-running background tasks. The  handles its lifecycle automatically. The system is configured to use an external Upstash Redis instance via the  in .
+-   **Use the :** For any feature that needs to read comprehensive partner data, query the  endpoint or the  directly in the database to avoid data consistency issues.
+-   **Automation Flow:** The immediate priority is to complete the post-€67-payment automation flow in .
+-   **Admin Features Need UI:** Several powerful admin backend endpoints have been created (, ). They are currently unusable without a corresponding frontend interface, which is a high-priority upcoming task.
 
 **documents and test reports created in this job**
 -   
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. User provides a new screenshot with a Cloudflare Tunnel URL. (IN PROGRESS)
-9.  User asks if there are alternatives for a more stable system. (RESOLVED, user chose hybrid approach)
-8.  User confirms the hybrid approach: Ollama first, with an automatic fallback to Claude. (RESOLVED)
-7.  User reports bugs in the 'Discovery Leads' table and requests fixes. (RESOLVED)
-6.  User confirms the fixed Crea Account flow is correct for new clients. (COMPLETED)
-5.  User clarifies that the Crea Account button should be for the new client €67 flow. (COMPLETED)
-4.  User reports the Crea Account button is not working. (RESOLVED)
-3.  User asks for the Agent Hub to be modified to show Discovery Engine leads. (RESOLVED)
-2.  User provides a new ngrok URL after the previous one went offline. (DEPRECATED, moved to Cloudflare)
-1.  User provides an ngrok URL to their local Ollama instance. (DEPRECATED)
+1.  **User:** Provided Stripe Webhook Secret.
+2.  **Agent:** Confirmed secret is set and backend restarted. Ready for deploy.
+3.  **User:** Asked to confirm status on several previously requested features (YouTube, Masterclass, Unified View, etc.) and if the €67 automation is complete.
+4.  **Agent:** Ran tests confirming most features work, identified ambiguity around NotebookLM.
+5.  **User:** Clarified they don't have NotebookLM Enterprise and it must be integrated via a local MCP server.
+6.  **Agent:** Asked the user to choose between attempting the complex MCP integration or using a pure Claude implementation as a reliable fallback.
+7.  **User:** **Confirmed to proceed with pure Claude.** Crucially, requested the implementation use a provider pattern () so it can be swapped out for a future NotebookLM API.
+8.  **Agent:** Agreed and began implementing the provider pattern.
+9.  **User:**  (Stripe webhook secret)
+10. **Agent:** Updated the  file with the secret and confirmed the backend is ready.
 
 **Project Health Check:**
--   **Broken:** None. The application is functional, with the fallback system ensuring core features work even if the user's local Ollama instance is offline.
--   **Mocked:** None.
+-   **Broken:** None.
+-   **Mocked:** The  is not mocked, but it's an abstraction designed for future extension, currently using a real Claude implementation.
 
 **3rd Party Integrations**
--   **Anthropic Claude Sonnet 4.5**: Used for strategic tasks and as a **fallback** for the Discovery Engine analysis.
--   **Ollama (Llama 3.1 & 3.2)**: Now the **primary** LLM for web scraping and data cleaning tasks, accessed via a Cloudflare Tunnel to the user's local machine.
--   **Stripe**: Payment processing for the €67 analysis and other products.
--   **Systeme.io**: CRM for contact management.
--   **HeyGen**: API connected for AI avatar video generation.
--   **YouTube**: API integration is **FIXED** and ready for use.
--   **Cloudflare Tunnel ()**: The current method for connecting the cloud environment to the user's local Ollama service.
+-   Stripe (Payments) — requires User API Key & Webhook Secret.
+-   Systeme.io (CRM) — requires User API Key.
+-   HeyGen (Video Generation) — requires User API Key.
+-   YouTube (Video Hosting) — uses User OAuth Credentials.
+-   Anthropic Claude (LLM) — uses Emergent LLM Key.
+-   Ollama (Local LLM) — self-hosted.
+-   **Celery** (Task Queue) — new integration.
+-   **Redis (via Upstash)** (Broker) — new integration, requires User URL.
 
 **Testing status**
 -   Testing agent used after significant changes: NO
 -   Troubleshoot agent used after agent stuck in loop: NO
 -   Test files created: []
--   Known regressions: None. The YouTube integration was a regression that has since been fixed.
+-   Known regressions: None identified.
 
 **Credentials to test flow:**
--   **Admin (Claudio):**  / 
--   **Operations (Antonella):**  / 
--   **New Client (for testing registration):** Use a new, unique email address.
+N/A
 
 **What agent forgot to execute**
--   The agent correctly identified and fixed a large number of bugs and implemented several user requests. No major tasks were forgotten. The long-term architectural tasks (refactoring monoliths, fixing data sync) have been consistently and correctly de-prioritized in favor of immediate user-facing features and bug fixes.</analysis>
+The agent correctly implemented the backend endpoints for admin features requested by the user (Brief points 5 and 7). However, the agent did not create the corresponding frontend UI for these features, rendering them inaccessible to the admin user. This should be a high-priority Upcoming Task.</analysis>

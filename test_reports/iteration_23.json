@@ -1,0 +1,97 @@
+{
+  "summary": "Tested Post-Payment Automation for €67 Analisi Strategica. All 13 backend tests pass (100%). Celery worker and beat are running correctly. The automation flow works: user registration → payment simulation → Celery tasks execution → database updates → email logs creation.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/webhooks/test-analisi-payment/{user_id}",
+        "issue": "Was returning 500 instead of 404 for non-existent users - FIXED",
+        "priority": "LOW"
+      },
+      {
+        "endpoint": "/api/webhooks/test-automation-status/{user_id}",
+        "issue": "Was returning 500 instead of 404 for non-existent users - FIXED",
+        "priority": "LOW"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_post_payment_automation.py",
+    "/app/test_reports/pytest/pytest_post_payment_automation.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Systeme.io API integration is called but may fail without valid API key - system continues anyway (graceful degradation)",
+    "Telegram notifications are configured and working"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_post_payment_automation.py",
+    "/app/backend/routers/stripe_webhook.py"
+  ],
+  "success_rate": {
+    "backend": "100% (13/13 tests passed)",
+    "frontend": "N/A - Backend only testing"
+  },
+  "test_credentials": {},
+  "seed_data_creation": "Multiple test users created during testing with pattern test.*.@example.com",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Post-payment automation fully functional. Celery worker and beat running on 'analisi_automation' queue. Test endpoints available: POST /api/webhooks/test-analisi-payment/{user_id} and GET /api/webhooks/test-automation-status/{user_id}. Systeme.io integration is called but may fail silently without valid API key.",
+  "features_tested": {
+    "celery_status": {
+      "GET /api/celery/status": "✅ Returns enabled=true, redis_available=true, worker_running=true, beat_running=true"
+    },
+    "cliente_registration": {
+      "POST /api/cliente-analisi/register": "✅ Creates user with pagamento_analisi=false",
+      "duplicate_email_handling": "✅ Returns 400 for duplicate emails"
+    },
+    "payment_simulation": {
+      "POST /api/webhooks/test-analisi-payment/{user_id}": "✅ Triggers full automation flow",
+      "idempotency": "✅ Second call returns 'Payment already processed'"
+    },
+    "automation_status": {
+      "GET /api/webhooks/test-automation-status/{user_id}": "✅ Returns user, cliente_analisi, scheduled_emails, email_logs, automation_status"
+    },
+    "database_updates": {
+      "users.pagamento_analisi": "✅ Set to true after payment",
+      "users.webhook_processed": "✅ Set to true after payment",
+      "clienti_analisi.email_benvenuto_inviata": "✅ Set to true after Celery task",
+      "clienti_analisi.booking_link": "✅ Set after Celery task",
+      "clienti_analisi.booking_available_at": "✅ Set to 48h after payment"
+    },
+    "celery_tasks": {
+      "send_analisi_welcome_email": "✅ Executes and creates email_logs entry",
+      "send_analisi_48h_reminder": "✅ Scheduled for T+48h (172800 seconds)"
+    },
+    "email_logs": {
+      "type": "welcome_analisi",
+      "status": "sent_via_systeme",
+      "systeme_tags": ["analisi_pagata", "welcome_analisi"]
+    },
+    "error_handling": {
+      "non_existent_user_payment": "✅ Returns 404",
+      "non_existent_user_status": "✅ Returns 404"
+    }
+  },
+  "fix_applied": {
+    "file": "/app/backend/routers/stripe_webhook.py",
+    "description": "Added HTTPException re-raise before generic Exception catch to properly return 404 status codes for non-existent users"
+  },
+  "celery_configuration": {
+    "queue": "analisi_automation",
+    "worker_concurrency": 2,
+    "beat_schedule": {
+      "check-stuck-pipelines": "Every 5 minutes",
+      "check-pending-analisi-reminders": "Every hour"
+    }
+  },
+  "mocked_apis": {
+    "systeme_io": "Called but may fail without valid API key - system continues gracefully",
+    "telegram": "Working - notifications sent to admin"
+  }
+}

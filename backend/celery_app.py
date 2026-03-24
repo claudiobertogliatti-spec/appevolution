@@ -78,6 +78,10 @@ celery_app.conf.update(
             'task': 'celery_tasks.check_stuck_pipelines',
             'schedule': 300.0,  # Every 5 minutes
         },
+        'check-pending-analisi-reminders': {
+            'task': 'celery_tasks.check_pending_analisi_reminders',
+            'schedule': 3600.0,  # Every hour - check for 48h reminders
+        },
     },
 )
 

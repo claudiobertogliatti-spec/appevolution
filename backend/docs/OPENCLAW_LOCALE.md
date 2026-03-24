@@ -199,7 +199,7 @@ python openclaw_listener.py
 
 1. **Webhook vs Polling**: Quando OpenClaw locale è attivo, deve **rimuovere il webhook** per ricevere i messaggi via polling. Quando spegni OpenClaw locale, riattiva il webhook con:
    ```
-   curl "https://api.telegram.org/bot{TOKEN}/setWebhook?url=https://partner-journey-1.preview.emergentagent.com/api/telegram/webhook"
+   curl "https://api.telegram.org/bot{TOKEN}/setWebhook?url=https://evolution-pro-pay.preview.emergentagent.com/api/telegram/webhook"
    ```
 
 2. **Sicurezza**: Lo script verifica che i messaggi arrivino solo dall'admin (TELEGRAM_ADMIN_CHAT_ID).

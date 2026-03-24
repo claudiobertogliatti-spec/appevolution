@@ -300,124 +300,132 @@ async def run_post_payment_automation(user_id: str, cliente_id: str):
 
 
 async def trigger_auto_analysis(db, user_id: str, cliente_id: str) -> bool:
-    """Trigger automatic AI analysis generation"""
+    """Trigger automatic AI analysis generation using the analysis provider"""
     try:
-        import httpx
+        from analysis_provider import generate_client_analysis, ClientData
         
-        # Call internal API to generate analysis
-        async with httpx.AsyncClient(timeout=120) as client:
-            response = await client.post(
-                "http://localhost:8001/api/clienti-analisi/genera-analisi-auto",
-                json={"cliente_id": cliente_id}
+        # Get user and cliente data
+        user = await db.users.find_one({"id": user_id})
+        cliente = await db.clienti_analisi.find_one({"id": cliente_id})
+        
+        if not user and not cliente:
+            logger.error(f"[POST_PAYMENT] No user or cliente found for analysis")
+            return False
+        
+        # Merge data
+        nome = user.get("nome", "") if user else cliente.get("nome", "")
+        cognome = user.get("cognome", "") if user else cliente.get("cognome", "")
+        email = user.get("email", "") if user else cliente.get("email", "")
+        telefono = user.get("telefono", "") if user else cliente.get("telefono", "")
+        questionario = user.get("questionario_responses", {}) if user else cliente.get("questionario_responses", {})
+        
+        # Generate analysis using provider
+        result = await generate_client_analysis(
+            cliente_id=cliente_id,
+            nome=nome,
+            cognome=cognome,
+            email=email,
+            telefono=telefono,
+            user_id=user_id,
+            questionario_responses=questionario
+        )
+        
+        if result.success:
+            # Save analysis to database
+            await db.clienti_analisi.update_one(
+                {"id": cliente_id},
+                {"$set": {
+                    "analysis": {
+                        "analysis_id": result.analysis_id,
+                        "provider": result.provider,
+                        "executive_summary": result.executive_summary,
+                        "current_situation": result.current_situation,
+                        "diagnosis": result.diagnosis,
+                        "opportunities": result.opportunities,
+                        "recommended_strategy": result.recommended_strategy,
+                        "action_plan": result.action_plan,
+                        "generated_at": result.generated_at,
+                        "generation_time_seconds": result.generation_time_seconds
+                    },
+                    "analisi_generata": True,
+                    "analisi_generata_at": datetime.now(timezone.utc).isoformat()
+                }}
             )
+            logger.info(f"[POST_PAYMENT] Analysis saved for cliente {cliente_id}")
+            return True
+        else:
+            logger.error(f"[POST_PAYMENT] Analysis generation failed: {result.error}")
+            return False
             
-            if response.status_code == 200:
-                return True
-            else:
-                logger.error(f"[POST_PAYMENT] Analysis API returned {response.status_code}")
-                return False
-                
     except Exception as e:
         logger.error(f"[POST_PAYMENT] Analysis trigger error: {e}")
         return False
 
 
 async def trigger_call_script_generation(db, user_id: str, cliente_id: str) -> bool:
-    """Generate call script (8 blocks) for the analysis delivery call"""
+    """Generate call script (8 blocks) using the analysis provider"""
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from analysis_provider import generate_client_call_script, AnalysisResult
         
         # Get cliente data
         cliente = await db.clienti_analisi.find_one({"id": cliente_id})
         user = await db.users.find_one({"id": user_id})
         
-        if not cliente or not user:
+        if not cliente and not user:
             return False
         
-        # Build context from questionario
-        questionario = user.get("questionario_responses", {}) or cliente.get("questionario_responses", {})
-        nome = user.get("nome", "") or cliente.get("nome", "")
+        nome = user.get("nome", "") if user else cliente.get("nome", "")
+        email = user.get("email", "") if user else cliente.get("email", "")
+        questionario = user.get("questionario_responses", {}) if user else cliente.get("questionario_responses", {})
         
-        prompt = f"""Genera uno script per la videocall di consegna analisi strategica per il cliente {nome}.
-
-Dati dal questionario:
-{json.dumps(questionario, indent=2, ensure_ascii=False) if questionario else "Non disponibili"}
-
-Lo script deve avere esattamente 8 blocchi:
-
-1. APERTURA (2 min) - Saluto, ringraziamento per la fiducia, agenda della call
-2. SITUAZIONE ATTUALE (3 min) - Riepilogo della situazione emersa dal questionario
-3. DIAGNOSI (5 min) - I 3 principali blocchi/problemi identificati
-4. OPPORTUNITÀ (3 min) - Le 3 opportunità di crescita più immediate
-5. STRATEGIA (5 min) - Il percorso consigliato (high level)
-6. CASI STUDIO (3 min) - 1-2 esempi di risultati simili ottenuti
-7. PROPOSTA (5 min) - Presentazione della partnership Evolution PRO
-8. PROSSIMI PASSI (2 min) - Call to action, scadenza offerta, Q&A
-
-Per ogni blocco fornisci:
-- Titolo
-- Durata suggerita
-- Script parlato (in prima persona, tono professionale ma caldo)
-- Note per il coach
-
-Rispondi in JSON con questo formato:
-{{
-  "script_blocks": [
-    {{
-      "numero": 1,
-      "titolo": "APERTURA",
-      "durata_minuti": 2,
-      "script": "Testo dello script...",
-      "note_coach": "Note per il coach..."
-    }},
-    ...
-  ],
-  "durata_totale_minuti": 28,
-  "personalizzazione": "Note sulla personalizzazione per questo cliente"
-}}
-"""
+        # Check if analysis exists
+        existing_analysis = cliente.get("analysis") if cliente else None
+        analysis_result = None
+        if existing_analysis:
+            analysis_result = AnalysisResult(
+                success=True,
+                provider=existing_analysis.get("provider", "claude"),
+                analysis_id=existing_analysis.get("analysis_id", ""),
+                executive_summary=existing_analysis.get("executive_summary", ""),
+                current_situation=existing_analysis.get("current_situation", {}),
+                diagnosis=existing_analysis.get("diagnosis", []),
+                opportunities=existing_analysis.get("opportunities", []),
+                recommended_strategy=existing_analysis.get("recommended_strategy", {}),
+                action_plan=existing_analysis.get("action_plan", []),
+                generated_at=existing_analysis.get("generated_at", ""),
+                generation_time_seconds=0
+            )
         
-        api_key = os.environ.get('EMERGENT_LLM_KEY')
-        if not api_key:
-            logger.error("[POST_PAYMENT] EMERGENT_LLM_KEY not configured")
-            return False
+        # Generate call script
+        result = await generate_client_call_script(
+            cliente_id=cliente_id,
+            nome=nome,
+            email=email,
+            questionario_responses=questionario,
+            analysis=analysis_result
+        )
         
-        llm = LlmChat(api_key=api_key, model="claude-sonnet-4-20250514")
-        response = await llm.send_message(UserMessage(text=prompt))
-        
-        # Parse response
-        try:
-            # Extract JSON from response
-            response_text = response
-            if "```json" in response_text:
-                response_text = response_text.split("```json")[1].split("```")[0]
-            elif "```" in response_text:
-                response_text = response_text.split("```")[1].split("```")[0]
-            
-            script_data = json.loads(response_text.strip())
-            
-            # Save to cliente
+        if result.success:
+            # Save to database
             await db.clienti_analisi.update_one(
                 {"id": cliente_id},
                 {"$set": {
-                    "call_script": script_data,
+                    "call_script": {
+                        "script_id": result.script_id,
+                        "provider": result.provider,
+                        "script_blocks": result.script_blocks,
+                        "total_duration_minutes": result.total_duration_minutes,
+                        "personalization_notes": result.personalization_notes,
+                        "generated_at": result.generated_at
+                    },
                     "call_script_generato": True,
                     "call_script_generato_at": datetime.now(timezone.utc).isoformat()
                 }}
             )
-            
+            logger.info(f"[POST_PAYMENT] Call script saved for cliente {cliente_id}")
             return True
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"[POST_PAYMENT] Failed to parse call script JSON: {e}")
-            # Save raw response anyway
-            await db.clienti_analisi.update_one(
-                {"id": cliente_id},
-                {"$set": {
-                    "call_script_raw": response,
-                    "call_script_error": str(e)
-                }}
-            )
+        else:
+            logger.error(f"[POST_PAYMENT] Call script generation failed: {result.error}")
             return False
             
     except Exception as e:
@@ -426,12 +434,12 @@ Rispondi in JSON con questo formato:
 
 
 async def schedule_post_payment_emails(db, user_id: str, cliente_id: str):
-    """Schedule welcome email and T+48h reminder"""
+    """Schedule welcome email and T+48h reminder using Celery"""
     now = datetime.now(timezone.utc)
     
     # Calculate times
     # Booking link available 48h after analysis creation
-    # Welcome email: sent immediately but link works after 48h
+    # Welcome email: sent immediately
     # Reminder: sent at T+48h if no booking
     
     booking_available_at = now + timedelta(hours=48)
@@ -449,6 +457,73 @@ async def schedule_post_payment_emails(db, user_id: str, cliente_id: str):
         "reminder_scheduled_at": reminder_send_at.isoformat(),
         "created_at": now.isoformat()
     })
+    
+    # Schedule Celery tasks
+    celery_enabled = os.environ.get('CELERY_ENABLED', 'true').lower() == 'true'
+    
+    if celery_enabled:
+        try:
+            # Use send_task with explicit broker connection
+            import redis
+            from celery import Celery
+            
+            redis_url = os.environ.get('REDIS_URL')
+            if not redis_url:
+                raise ValueError("REDIS_URL not configured")
+            
+            # Add SSL params for Upstash
+            broker_url = redis_url
+            if redis_url.startswith('rediss://') and '?' not in redis_url:
+                broker_url = redis_url + '?ssl_cert_reqs=CERT_NONE'
+            
+            # Create temporary Celery app for sending tasks
+            temp_celery = Celery(
+                'evolution_pro',
+                broker=broker_url,
+                backend=broker_url
+            )
+            
+            # Task 1: Send welcome email immediately
+            # Route to analisi_automation queue to ensure only our updated worker processes it
+            temp_celery.send_task(
+                'celery_tasks.send_analisi_welcome_email',
+                args=[user_id, cliente_id],
+                queue='analisi_automation'
+            )
+            logger.info(f"[POST_PAYMENT] Welcome email task scheduled for {user_id}")
+            
+            # Task 2: Schedule 48h reminder (countdown in seconds = 48 * 60 * 60)
+            countdown_48h = 48 * 60 * 60  # 172800 seconds
+            temp_celery.send_task(
+                'celery_tasks.send_analisi_48h_reminder',
+                args=[user_id, cliente_id],
+                countdown=countdown_48h,
+                queue='analisi_automation'
+            )
+            logger.info(f"[POST_PAYMENT] 48h reminder task scheduled for {user_id} (in {countdown_48h}s)")
+            
+            # Update scheduled_emails record
+            await db.scheduled_emails.update_one(
+                {"user_id": user_id, "type": "welcome_analisi"},
+                {"$set": {
+                    "status": "celery_scheduled",
+                    "celery_welcome_task_scheduled": True,
+                    "celery_reminder_task_scheduled": True,
+                    "celery_scheduled_at": now.isoformat()
+                }}
+            )
+            
+        except Exception as e:
+            logger.error(f"[POST_PAYMENT] Failed to schedule Celery tasks: {e}")
+            # Fallback: mark for manual processing
+            await db.scheduled_emails.update_one(
+                {"user_id": user_id, "type": "welcome_analisi"},
+                {"$set": {
+                    "status": "celery_failed",
+                    "celery_error": str(e),
+                    "needs_manual_processing": True
+                }}
+            )
     
     logger.info(f"[POST_PAYMENT] Emails scheduled for {user_id}: booking available at {booking_available_at}")
 
@@ -532,11 +607,125 @@ async def send_partnership_welcome_email(partner_id: str):
     try:
         import httpx
         
-        # Call internal API to send welcome email
+        # Call internal API to send welcome email (correct endpoint)
         async with httpx.AsyncClient(timeout=30) as client:
             await client.post(
-                "http://localhost:8001/api/partners/send-welcome-email",
-                json={"partner_id": partner_id}
+                f"http://localhost:8001/api/onboarding/send-welcome-email/{partner_id}"
             )
+            logger.info(f"[STRIPE_WEBHOOK] Welcome email triggered for partner {partner_id}")
     except Exception as e:
         logger.error(f"[STRIPE_WEBHOOK] Welcome email trigger failed: {e}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TEST ENDPOINT - SIMULATE PAYMENT (DEV ONLY)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.post("/test-analisi-payment/{user_id}")
+async def test_analisi_payment(user_id: str, background_tasks: BackgroundTasks):
+    """
+    DEV ONLY: Simulates a €67 analisi payment completion.
+    Triggers the full post-payment automation flow.
+    """
+    from motor.motor_asyncio import AsyncIOMotorClient
+    
+    mongo_url = os.environ.get('MONGO_URL')
+    db_name = os.environ.get('DB_NAME', 'evolution_pro')
+    client = AsyncIOMotorClient(mongo_url)
+    db = client[db_name]
+    
+    try:
+        # Find user
+        user = await db.users.find_one({"id": user_id})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Check if already processed
+        if user.get("pagamento_analisi") and user.get("webhook_processed"):
+            return {"success": True, "message": "Payment already processed", "user_id": user_id}
+        
+        # Process payment (same as webhook handler)
+        await process_analisi_payment(db, user_id, f"test_session_{user_id}", background_tasks)
+        
+        return {
+            "success": True,
+            "message": "Test payment processed successfully",
+            "user_id": user_id,
+            "automation_triggered": True,
+            "tasks_scheduled": [
+                "generate_analysis (if questionario completed)",
+                "generate_call_script",
+                "send_welcome_email (Celery task)",
+                "schedule_48h_reminder (Celery task)"
+            ]
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[TEST_PAYMENT] Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        client.close()
+
+
+@router.get("/test-automation-status/{user_id}")
+async def test_automation_status(user_id: str):
+    """
+    DEV ONLY: Check the status of post-payment automation for a user.
+    """
+    from motor.motor_asyncio import AsyncIOMotorClient
+    
+    mongo_url = os.environ.get('MONGO_URL')
+    db_name = os.environ.get('DB_NAME', 'evolution_pro')
+    client = AsyncIOMotorClient(mongo_url)
+    db = client[db_name]
+    
+    try:
+        # Get user
+        user = await db.users.find_one({"id": user_id}, {"_id": 0, "password_hash": 0})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get cliente_analisi record
+        cliente_id = user.get("cliente_id")
+        cliente = None
+        if cliente_id:
+            cliente = await db.clienti_analisi.find_one({"id": cliente_id}, {"_id": 0})
+        
+        # Get scheduled emails
+        scheduled_emails = await db.scheduled_emails.find(
+            {"user_id": user_id},
+            {"_id": 0}
+        ).to_list(10)
+        
+        # Get email logs
+        email_logs = await db.email_logs.find(
+            {"user_id": user_id},
+            {"_id": 0}
+        ).to_list(10)
+        
+        return {
+            "user": user,
+            "cliente_analisi": cliente,
+            "scheduled_emails": scheduled_emails,
+            "email_logs": email_logs,
+            "automation_status": {
+                "payment_confirmed": user.get("pagamento_analisi", False),
+                "webhook_processed": user.get("webhook_processed", False),
+                "questionario_completed": user.get("questionario_compilato", False),
+                "analysis_generated": cliente.get("analisi_generata", False) if cliente else False,
+                "call_script_generated": cliente.get("call_script_generato", False) if cliente else False,
+                "welcome_email_sent": cliente.get("email_benvenuto_inviata", False) if cliente else False,
+                "reminder_48h_sent": cliente.get("reminder_48h_inviato", False) if cliente else False,
+                "call_booked": cliente.get("call_prenotata", False) if cliente else False
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[TEST_STATUS] Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        client.close()
