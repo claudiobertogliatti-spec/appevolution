@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import { 
   Users, TrendingUp, Rocket, AlertTriangle, Clock, 
   ChevronRight, Search, Filter, Eye, Phone, CheckCircle2,
-  Calendar, FileText, ArrowUpRight, RefreshCw, BarChart3, Timer, Download
+  Calendar, FileText, ArrowUpRight, RefreshCw, BarChart3, Timer, Download,
+  Database, Globe, MoreVertical, Settings, Edit3
 } from "lucide-react";
 import { PartnerDetailModal } from "./PartnerDetailModal";
+import { PartnerDataOverrideModal, FunnelUnlockModal } from "./AdminPartnerTools";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -103,10 +105,11 @@ function StatCard({ icon: Icon, label, value, trend, color }) {
   );
 }
 
-function PartnerRow({ partner, onOpenProject }) {
+function PartnerRow({ partner, onOpenProject, onOverrideData, onUnlockFunnel }) {
   const status = getStatus(partner.lastActivity, partner.phase);
   const progress = getPhaseProgress(partner.phase);
   const expiry = getPartnershipExpiry(partner);
+  const [showMenu, setShowMenu] = useState(false);
   
   return (
     <tr className="border-b border-[#ECEDEF] hover:bg-[#FAFAF7] transition-all">
@@ -197,16 +200,73 @@ function PartnerRow({ partner, onOpenProject }) {
         </span>
       </td>
       
-      {/* Azione */}
+      {/* Azione - Menu Dropdown */}
       <td className="py-3 px-4">
-        <button
-          onClick={() => onOpenProject(partner)}
-          className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg transition-all hover:scale-105"
-          style={{ background: '#F2C418', color: '#1E2128' }}
-        >
-          <Eye className="w-3.5 h-3.5" />
-          Apri
-        </button>
+        <div className="relative">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onOpenProject(partner)}
+              className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg transition-all hover:scale-105"
+              style={{ background: '#F2C418', color: '#1E2128' }}
+              data-testid={`btn-open-partner-${partner.id}`}
+            >
+              <Eye className="w-3.5 h-3.5" />
+              Apri
+            </button>
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              className="p-1.5 rounded-lg hover:bg-gray-100 transition-all"
+              data-testid={`btn-partner-menu-${partner.id}`}
+            >
+              <MoreVertical className="w-4 h-4 text-gray-500" />
+            </button>
+          </div>
+          
+          {/* Dropdown Menu */}
+          {showMenu && (
+            <>
+              <div 
+                className="fixed inset-0 z-10"
+                onClick={() => setShowMenu(false)}
+              />
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-20">
+                <button
+                  onClick={() => {
+                    setShowMenu(false);
+                    onOverrideData(partner);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 transition-all"
+                  data-testid={`btn-override-data-${partner.id}`}
+                >
+                  <Database className="w-4 h-4 text-indigo-600" />
+                  <span className="text-sm text-gray-700">Override Dati</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowMenu(false);
+                    onUnlockFunnel(partner);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 transition-all"
+                  data-testid={`btn-unlock-funnel-${partner.id}`}
+                >
+                  <Globe className="w-4 h-4 text-green-600" />
+                  <span className="text-sm text-gray-700">Sblocca Funnel</span>
+                </button>
+                <div className="border-t border-gray-100 my-1"></div>
+                <button
+                  onClick={() => {
+                    setShowMenu(false);
+                    onOpenProject(partner);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 transition-all"
+                >
+                  <Settings className="w-4 h-4 text-gray-600" />
+                  <span className="text-sm text-gray-700">Dettagli Completi</span>
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </td>
     </tr>
   );
@@ -301,13 +361,31 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
   const [filterStatus, setFilterStatus] = useState("all");
   const [activeTab, setActiveTab] = useState("partners"); // partners | analisi
   
-  // Modal state
+  // Modal state - Partner Detail
   const [selectedPartner, setSelectedPartner] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // Modal state - Override Data
+  const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
+  const [overridePartner, setOverridePartner] = useState(null);
+  
+  // Modal state - Funnel Unlock
+  const [isFunnelModalOpen, setIsFunnelModalOpen] = useState(false);
+  const [funnelPartner, setFunnelPartner] = useState(null);
   
   const handleOpenPartnerDetail = (partner) => {
     setSelectedPartner(partner);
     setIsModalOpen(true);
+  };
+  
+  const handleOpenOverrideData = (partner) => {
+    setOverridePartner(partner);
+    setIsOverrideModalOpen(true);
+  };
+  
+  const handleOpenFunnelUnlock = (partner) => {
+    setFunnelPartner(partner);
+    setIsFunnelModalOpen(true);
   };
   
   // Export CSV function
@@ -655,6 +733,8 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
                           key={partner.id} 
                           partner={partner}
                           onOpenProject={handleOpenPartnerDetail}
+                          onOverrideData={handleOpenOverrideData}
+                          onUnlockFunnel={handleOpenFunnelUnlock}
                         />
                       ))
                     )}
@@ -712,6 +792,32 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         onUpdate={handlePartnerUpdate}
+      />
+      
+      {/* Partner Data Override Modal */}
+      <PartnerDataOverrideModal
+        isOpen={isOverrideModalOpen}
+        onClose={() => {
+          setIsOverrideModalOpen(false);
+          setOverridePartner(null);
+        }}
+        partner={overridePartner}
+        onSuccess={() => {
+          fetchData();
+        }}
+      />
+      
+      {/* Funnel Unlock Modal */}
+      <FunnelUnlockModal
+        isOpen={isFunnelModalOpen}
+        onClose={() => {
+          setIsFunnelModalOpen(false);
+          setFunnelPartner(null);
+        }}
+        partner={funnelPartner}
+        onSuccess={() => {
+          fetchData();
+        }}
       />
     </div>
   );
