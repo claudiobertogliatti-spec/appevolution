@@ -1440,7 +1440,7 @@ async def create_payment_session(user_id: str):
     if not stripe.api_key:
         raise HTTPException(status_code=500, detail="Stripe non configurato")
     
-    frontend_url = os.environ.get("FRONTEND_URL", "https://conversion-workflow.preview.emergentagent.com")
+    frontend_url = os.environ.get("FRONTEND_URL", "https://evolution-pro-lead.preview.emergentagent.com")
     
     try:
         session = stripe.checkout.Session.create(

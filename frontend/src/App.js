@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import "@/App.css";
 import axios from "axios";
-import { LayoutDashboard, Users, Film, AlertTriangle, PlayCircle, FolderOpen, FileText, MessageCircle, Send, Download, Check, Clock, AlertCircle, TrendingUp, DollarSign, Upload, Trash2, FileVideo, FileCheck, Loader2, CheckCircle, XCircle, Youtube, Shield, Eye, RefreshCw, Zap, Link, Palette, Plus, BarChart3, Calendar, UserPlus, Sparkles, Video, Target, Edit3, Trophy, Database, ChevronDown, ChevronRight, Activity, Mic, Copy, Star, Rocket, Settings, HardDrive, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, Film, AlertTriangle, PlayCircle, FolderOpen, FileText, MessageCircle, Send, Download, Check, Clock, AlertCircle, TrendingUp, DollarSign, Upload, Trash2, FileVideo, FileCheck, Loader2, CheckCircle, XCircle, Youtube, Shield, Eye, RefreshCw, Zap, Link, Palette, Plus, BarChart3, Calendar, UserPlus, Sparkles, Video, Target, Edit3, Trophy, Database, ChevronDown, ChevronRight, Activity, Mic, Copy, Star, Rocket, Settings, HardDrive, LogOut, Bot, ClipboardCheck } from "lucide-react";
 
 import { NotificationBell } from "./components/common/NotificationBell";
 import { AdminSwitcher } from "./components/common/AdminSwitcher";
@@ -61,7 +61,6 @@ import { AgentDashboard } from "./components/admin/AgentDashboard";
 import { SalesKPIDashboard } from "./components/admin/SalesKPIDashboard";
 import { OnboardingDocumentsAdmin } from "./components/admin/OnboardingDocumentsAdmin";
 import ApprovalDashboard from "./components/admin/ApprovalDashboard";
-import { TeamEvolution } from "./components/shared/TeamEvolution";
 import { OnboardingDocuments } from "./components/partner/OnboardingDocuments";
 import { AnalisiStrategicaApp } from "./components/cliente/AnalisiStrategicaApp";
 import { AdminClientiPanel } from "./components/admin/AdminClientiPanel";
@@ -330,7 +329,9 @@ function AdminAgents({ agents }) {
   );
 }
 
-function AdminPartners({ partners, onSelect, onViewAsPartner }) {
+function AdminPartners({ partners, onSelect, onViewAsPartner, onDeletePartner }) {
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  
   // Helper per badge piano continuità
   const getPianoBadge = (p) => {
     const piano = p.piano_continuita?.piano_attivo;
@@ -353,36 +354,84 @@ function AdminPartners({ partners, onSelect, onViewAsPartner }) {
   };
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
-      <div className="grid grid-cols-7 text-[10px] font-bold uppercase tracking-wider px-5 py-3" style={{ color: '#9CA3AF', borderBottom: '1px solid #ECEDEF' }}>
-        <span>Partner</span><span>Fase</span><span>Revenue</span><span>Piano</span><span>Contratto</span><span>Stato</span><span>Azioni</span>
-      </div>
-      <div className="divide-y" style={{ borderColor: '#ECEDEF' }}>
-        {(partners||[]).map(p=>(
-          <div key={p.id} className="grid grid-cols-7 items-center px-5 py-3 transition-colors hover:bg-[#FAFAF7]">
-            <div className="flex items-center gap-3 cursor-pointer" onClick={()=>onSelect(p)}>
-              <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: '#F2C418', color: '#1E2128' }}>{p.name.split(" ").map(n=>n[0]).join("")}</div>
-              <div><div className="text-sm font-bold" style={{ color: '#1E2128' }}>{p.name}</div><div className="text-xs" style={{ color: '#9CA3AF' }}>{p.niche}</div></div>
+    <>
+      <div className="rounded-xl overflow-hidden" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
+        <div className="grid grid-cols-7 text-[10px] font-bold uppercase tracking-wider px-5 py-3" style={{ color: '#9CA3AF', borderBottom: '1px solid #ECEDEF' }}>
+          <span>Partner</span><span>Fase</span><span>Revenue</span><span>Piano</span><span>Contratto</span><span>Stato</span><span>Azioni</span>
+        </div>
+        <div className="divide-y" style={{ borderColor: '#ECEDEF' }}>
+          {(partners||[]).map(p=>(
+            <div key={p.id} className="grid grid-cols-7 items-center px-5 py-3 transition-colors hover:bg-[#FAFAF7]">
+              <div className="flex items-center gap-3 cursor-pointer" onClick={()=>onSelect(p)}>
+                <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: '#F2C418', color: '#1E2128' }}>{p.name.split(" ").map(n=>n[0]).join("")}</div>
+                <div><div className="text-sm font-bold" style={{ color: '#1E2128' }}>{p.name}</div><div className="text-xs" style={{ color: '#9CA3AF' }}>{p.niche}</div></div>
+              </div>
+              <div><span className="font-mono text-xs font-bold px-2 py-1 rounded" style={{ background: '#FFF3C4', color: '#C4990A' }}>{p.phase}</span></div>
+              <div className="font-mono text-sm" style={{ color: '#5F6572' }}>{p.revenue>0?`€${p.revenue.toLocaleString()}`:"—"}</div>
+              <div>{getPianoBadge(p)}</div>
+              <div className="text-sm" style={{ color: '#9CA3AF' }}>{p.contract}</div>
+              <div>{p.alert?<span className="text-xs font-bold text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3"/>Alert</span>:<span className="text-xs font-bold text-green-500 flex items-center gap-1"><Check className="w-3 h-3"/>OK</span>}</div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={(e)=>{ e.stopPropagation(); onViewAsPartner && onViewAsPartner(p); }}
+                  className="px-3 py-1.5 text-xs font-bold rounded-lg transition-all hover:bg-[#3B82F6] hover:text-white"
+                  style={{ background: '#3B82F620', color: '#3B82F6' }}
+                >
+                  <Eye className="w-3 h-3 inline mr-1" />
+                  Visualizza
+                </button>
+                <button
+                  onClick={(e)=>{ e.stopPropagation(); setDeleteConfirm(p); }}
+                  className="p-1.5 rounded-lg transition-all hover:bg-red-100"
+                  title="Elimina partner"
+                >
+                  <Trash2 className="w-4 h-4 text-red-500" />
+                </button>
+              </div>
             </div>
-            <div><span className="font-mono text-xs font-bold px-2 py-1 rounded" style={{ background: '#FFF3C4', color: '#C4990A' }}>{p.phase}</span></div>
-            <div className="font-mono text-sm" style={{ color: '#5F6572' }}>{p.revenue>0?`€${p.revenue.toLocaleString()}`:"—"}</div>
-            <div>{getPianoBadge(p)}</div>
-            <div className="text-sm" style={{ color: '#9CA3AF' }}>{p.contract}</div>
-            <div>{p.alert?<span className="text-xs font-bold text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3"/>Alert</span>:<span className="text-xs font-bold text-green-500 flex items-center gap-1"><Check className="w-3 h-3"/>OK</span>}</div>
-            <div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setDeleteConfirm(null)} />
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl p-6 z-50 w-96">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900">Elimina Partner</h3>
+                <p className="text-sm text-gray-500">Questa azione è irreversibile</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 mb-6">
+              Sei sicuro di voler eliminare <strong>{deleteConfirm.name}</strong>? 
+              Verranno eliminati anche tutti i documenti e i pagamenti associati.
+            </p>
+            <div className="flex justify-end gap-3">
               <button
-                onClick={(e)=>{ e.stopPropagation(); onViewAsPartner && onViewAsPartner(p); }}
-                className="px-3 py-1.5 text-xs font-bold rounded-lg transition-all hover:bg-[#3B82F6] hover:text-white"
-                style={{ background: '#3B82F620', color: '#3B82F6' }}
+                onClick={() => setDeleteConfirm(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all"
               >
-                <Eye className="w-3 h-3 inline mr-1" />
-                Visualizza
+                Annulla
+              </button>
+              <button
+                onClick={() => {
+                  onDeletePartner && onDeletePartner(deleteConfirm);
+                  setDeleteConfirm(null);
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-all"
+              >
+                Elimina
               </button>
             </div>
           </div>
-        ))}
-      </div>
-    </div>
+        </>
+      )}
+    </>
   );
 }
 
@@ -987,13 +1036,31 @@ export default function App() {
   useEffect(()=>{if(isAuthenticated) loadData();},[isAuthenticated]);
   const loadData=async()=>{try{const[a,p,al,m,s]=await Promise.all([axios.get(`${API}/agents`),axios.get(`${API}/partners`),axios.get(`${API}/alerts`),axios.get(`${API}/modules`),axios.get(`${API}/stats`)]);setAgents(a.data);setPartners(p.data);setAlerts(al.data);setModules(m.data);setStats(s.data);}catch(e){console.error(e);}};
   const dismissAlert=async(id)=>{try{await axios.delete(`${API}/alerts/${id}`);setAlerts(p=>p.filter(a=>a.id!==id));}catch(e){}};
+  
+  // Handle delete partner
+  const handleDeletePartner = async (partner) => {
+    try {
+      const response = await axios.delete(`${API}/partners/${partner.id}`);
+      if (response.status === 200) {
+        // Remove partner from state
+        setPartners(prev => prev.filter(p => p.id !== partner.id));
+        console.log(`Partner ${partner.name} eliminato con successo`);
+      }
+    } catch (error) {
+      console.error('Errore eliminazione partner:', error);
+      alert(`Errore: ${error.response?.data?.detail || 'Impossibile eliminare il partner'}`);
+    }
+  };
+  
   const getTutor=(phase)=>["F3","F4"].includes(phase)?"STEFANIA":phase==="F5"?"ANDREA":"STEFANIA";
 
   const coreNav=[
     {id:"overview",label:"Overview",icon:LayoutDashboard},
+    {id:"agenti",label:"Agent Hub",icon:Bot},
+    {id:"clienti-analisi",label:"Clienti Analisi",icon:UserPlus},
+    {id:"flusso-analisi",label:"Flusso Analisi",icon:FileText},
     {id:"partner",label:"Partner",icon:Users},
-    {id:"documenti-partner",label:"Documenti Partner",icon:FileText},
-    {id:"onboarding-admin",label:"Onboarding Docs",icon:FileCheck},
+    {id:"approvals",label:"Approvazioni",icon:ClipboardCheck},
     {id:"andrea",label:"Editing",icon:Film},
     {id:"youtube-heygen",label:"YouTube × HeyGen",icon:Film},
     {id:"metriche",label:"Post-Lancio",icon:BarChart3},
@@ -1008,9 +1075,11 @@ export default function App() {
   ];
   const antonellaNav=[
     {id:"overview",label:"Overview",icon:LayoutDashboard},
+    {id:"agenti",label:"Agent Hub",icon:Bot},
+    {id:"clienti-analisi",label:"Clienti Analisi",icon:UserPlus},
+    {id:"flusso-analisi",label:"Flusso Analisi",icon:FileText},
     {id:"partner",label:"Partner",icon:Users},
-    {id:"documenti-partner",label:"Documenti Partner",icon:FileText},
-    {id:"onboarding-admin",label:"Onboarding Docs",icon:FileCheck},
+    {id:"approvals",label:"Approvazioni",icon:ClipboardCheck},
     {id:"andrea",label:"ANDREA — Editing Feed",icon:Film},
     {id:"copyfactory",label:"STEFANIA — Copy Factory",icon:Edit3},
     {id:"compliance",label:"LUCA",icon:Shield},
@@ -1608,7 +1677,7 @@ export default function App() {
             {/* OrionLeadScoring rimosso - Lead gestiti esclusivamente in Systeme.io */}
             {nav==="approvals"&&<ApprovalDashboard/>}
             {nav==="sales-kpi"&&<SalesKPIDashboard/>}
-            {nav==="partner"&&<AdminPartners partners={partners} onSelect={(p)=>{setSelectedPartner(p);setShowPartnerProfile(true);}} onViewAsPartner={(p)=>{setSelectedPartner(p);setMode("partner");setNav("dashboard");}}/>}
+            {nav==="partner"&&<AdminPartners partners={partners} onSelect={(p)=>{setSelectedPartner(p);setShowPartnerProfile(true);}} onViewAsPartner={(p)=>{setSelectedPartner(p);setMode("partner");setNav("dashboard");}} onDeletePartner={handleDeletePartner}/>}
             {nav==="documenti-partner"&&<PartnerDocumentsView partners={partners}/>}
             {nav==="onboarding-admin"&&<OnboardingDocumentsAdmin/>}
             {nav==="youtube-heygen"&&<YouTubeHeygenHub/>}
@@ -1622,7 +1691,6 @@ export default function App() {
             {nav==="warmode"&&<StefaniaWarMode partners={partners}/>}
             {nav==="compliance"&&<ComplianceDashboard/>}
             {nav==="email-templates"&&<EmailTemplatesManager/>}
-            {nav==="team"&&<TeamEvolution isAdmin={true}/>}
             {nav==="alert"&&<AdminAlerts alerts={alerts} onDismiss={dismissAlert}/>}
           </>}
 

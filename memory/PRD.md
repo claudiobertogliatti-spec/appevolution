@@ -187,6 +187,38 @@ beat_schedule = {
 - [ ] Unificazione collection `users` e `partners`
 - [ ] Documentazione OpenAPI
 
+## Recent Updates
+
+### Session: 24 March 2026 - Sidebar Reorganization + Delete Partner
+
+#### ✅ Riorganizzazione Sidebar Admin
+Riorganizzata la sidebar laterale con il nuovo ordine richiesto:
+1. **Overview** (con sub-menu Sales KPI)
+2. **Agent Hub**
+3. **Clienti Analisi**
+4. **Flusso Analisi**
+5. **Partner** (con sub-menu Documenti Partner + Onboarding Docs)
+6. **Approvazioni**
+7. **Editing**
+8. **YouTube × HeyGen**
+9. **Post-Lancio**
+10. **STEFANIA**
+
+**Rimosso**: Team Evolution (come richiesto)
+
+**File modificati**:
+- `/app/frontend/src/components/admin/AdminSidebarLight.jsx`
+- `/app/frontend/src/App.js`
+
+#### ✅ Eliminazione Partner nella seconda vista Pipeline
+Aggiunta la funzionalità di eliminazione partner nella vista `AdminPartners` (componente in App.js):
+- Pulsante cestino visibile per ogni partner
+- Modale di conferma eliminazione
+- Collegamento all'endpoint `DELETE /api/partners/{partner_id}`
+
+**File modificati**:
+- `/app/frontend/src/App.js` - Aggiunta funzione `handleDeletePartner` e passaggio prop a `AdminPartners`
+
 ## Important Notes
 - **YouTube Data API v3**: Quota 10.000 unità/giorno. Una ricerca costa ~100 unità.
 - **YouTube OAuth**: Credenziali in `/app/storage/youtube_credentials.pickle`

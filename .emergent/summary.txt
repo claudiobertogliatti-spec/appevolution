@@ -1,180 +1,172 @@
 <analysis>**original_problem_statement:**
-L'utente vuole costruire e migliorare Evolution PRO, un'applicazione di gestione aziendale basata su AI. L'ultimo brief tecnico delinea nuove priorità critiche focalizzate sull'automazione dell'acquisizione di lead e sulla creazione di una sequenza di email per vendere un'analisi strategica da €67.
-
-**PRODUCT REQUIREMENTS (dal brief tecnico più recente):**
-
-**🔴 PRIORITÀ 1 — Critici**
-1.  **Automazione Acquisizione Lead & Sequenza Email Vendita Analisi €67:**
-    *   Implementare l'approvazione automatica per i lead in outreach con uno score ≥ 80 (soglia configurabile dall'admin).
-    *   Attivare una sequenza email automatica (4 email su 7 giorni) quando un lead risponde o viene importato, con l'obiettivo di vendere l'analisi da €67 tramite un link di checkout Stripe diretto.
-    *   Rendere i template di questa sequenza email modificabili tramite l'editor WYSIWYG.
-2.  **Editor WYSIWYG per Template Email:**
-    *   Implementare un editor visuale nell'admin panel per modificare tutti i template email (sequenza di vendita, onboarding partnership, benvenuto analisi, reminder, ecc.).
-    *   L'editor deve avere una toolbar di base (grassetto, corsivo, link), un sistema per inserire variabili (es. ), e un'anteprima live.
-3.  **Attivazione Partnership (Systeme.io & Email Onboarding):**
-    *   Al trigger , creare un sub-account in Systeme.io e inviare un'email di onboarding (template modificabile) che spiega l'uso delle due piattaforme (Evolution PRO e Systeme.io).
-4.  **Verifica YouTube OAuth (Post-Deploy):**
-    *   Verificare su produzione che l'autenticazione YouTube funzioni. In caso contrario, implementare il flusso OAuth completo.
-5.  **Modulo Piano Continuità (Sviluppo Completo):**
-    *   Sviluppare l'interfaccia utente admin e la logica di backend per il servizio di abbonamento Piano Continuità.
-    *   Implementare il rinnovo automatico tramite subscription Stripe.
-    *   Configurare l'agente GAIA per un check mensile.
-    *   Aggiungere notifiche Telegram 7 giorni prima della scadenza.
+L'utente vuole costruire e migliorare Evolution PRO, un'applicazione di gestione aziendale basata su AI. Le richieste recenti si sono concentrate su:
+1.  **Automazione Acquisizione Lead**: Completare l'automazione dei lead con una sequenza di email di vendita, integrandola con la ricerca reale di canali tramite la YouTube Data API v3. Inizialmente implementato con OAuth, è stato corretto per utilizzare una API Key dedicata.
+2.  **Import CSV**: Aggiungere la possibilità di importare contatti sia nella sezione Discovery Lead che in una nuova sezione Lista Fredda.
+3.  **Flusso Lista Fredda**: Implementare un nuovo flusso completo per la gestione di una lista di contatti freddi, che include importazione, webhook per il tracciamento di aperture/click da Systeme.io e l'attivazione di task automatici per l'agente AI STEFANIA tramite Celery.
+4.  **Fix e Deployment**: Risolvere vari bug e problemi che impedivano il deployment, come la configurazione di CORS e , e fixare endpoint  non funzionanti.
+5.  **Attivazione Partnership**: Automatizzare la creazione di un sub-account in Systeme.io quando una partnership viene attivata.
+6.  **Sviluppo Piano Continuità**: Aggiungere le fondamenta backend (task Celery per check e notifiche, endpoint admin) per la gestione del piano di abbonamento.
+7.  **Funzionalità UI**: Aggiungere la possibilità di eliminare un partner da tutte le viste della pipeline.
 
 **User's preferred language**: Italian. The next agent **MUST** respond in **Italian**.
 
 **what currently exists?**
-L'applicazione è un sistema full-stack React/FastAPI/MongoDB. Sono state implementate diverse funzionalità chiave:
--   **Automazione Post-Pagamento €67:** Il flusso che si attiva dopo il pagamento dell'analisi da €67 è **completamente implementato e testato**. Utilizza Celery per schedulare l'invio dell'email di benvenuto e il reminder dopo 48 ore. La logica risiede in  e .
--   **Admin UI:** Sono state create interfacce admin per sovrascrivere i dati dei partner e per sbloccare i funnel, come richiesto in brief precedenti.
--   **Editor Template Email:** È stato implementato un sistema per gestire i template email da un file JSON () con API per la gestione (, ). È stata creata anche un'interfaccia utente () con un editor WYSIWYG di base per la modifica dei template.
--   **Bug Fixes:**
-    *   Il bug del modulo **Masterclass** (endpoint  non trovato) è stato risolto creando un alias e correggendo un conflitto di routing in .
-    *   Il bug della **Partners Unified View** (che restituiva dati vuoti a causa di  non serializzabili) è stato corretto in  con una funzione helper per la conversione.
--   **Automazione Acquisizione Lead (Iniziata):** È stata avviata l'implementazione del nuovo flusso di acquisizione lead. Il modello dati  in  è stato esteso per includere , ed è stata aggiunta la logica per calcolarlo durante lo scoring. È stata implementata la base per l'auto-approvazione.
+L'applicazione è un sistema full-stack React/FastAPI/MongoDB. Sono state implementate e corrette diverse funzionalità:
+-   **YouTube Discovery Engine**: L'endpoint  ora utilizza la YouTube Data API v3 con una **API Key** per cercare canali reali, calcolare uno score, salvare i lead nel database con deduplicazione su  e marcare automaticamente i lead hot (score ≥ 80).
+-   **Import CSV**: Sono stati creati endpoint per l'importazione di contatti tramite file CSV sia per il Discovery Engine () che per la nuova sezione Lista Fredda ().
+-   **Flusso Lista Fredda (Backend)**: È stato creato un nuovo router  che gestisce l'importazione, le statistiche () e un webhook () per tracciare aperture e click da Systeme.io, aggiornando lo stato dei contatti (es. ). Sono stati aggiunti anche i task Celery per i trigger di STEFANIA.
+-   **Fix Pre-Deployment**: Sono stati risolti i blocker critici in  (CORS e ) che impedivano il deploy. L'applicazione è ora considerata pronta per il deploy.
+-   **Fix Endpoint**: Gli endpoint , , e  che restituivano 404 sono stati registrati e ora funzionano.
+-   **Delete Partner (UI)**: È stata aggiunta la funzionalità di eliminazione di un partner, con modale di conferma, nella tabella della pipeline principale presente in .
 
 **Last working item**:
--   Last item agent was working: Implementazione della nuova automazione per l'acquisizione di lead e la sequenza di email di vendita per l'analisi da €67, come da nuovo brief. L'agente ha esteso il modello dati dei lead, ha implementato la logica per il calcolo del , e ha creato la struttura per l'auto-approvazione e l'avvio della sequenza email in .
+-   Last item agent was working: L'agente stava aggiungendo la funzionalità di eliminazione dei partner anche nella seconda vista della Pipeline Partner, come richiesto dall'utente tramite uno screenshot. Questa vista sembra essere un componente diverso da . L'agente stava cercando di identificare il file e il componente corretti per implementare la modifica.
 -   Status: **IN PROGRESS**
 -   Agent Testing Done: N
--   Which testing method agent to use? backend testing agent. L'agente deve testare l'intero flusso:
-    1.  Creare un lead che soddisfi i criteri di auto-approvazione (score > 80, ).
-    2.  Verificare che lo stato del lead cambi automaticamente in .
-    3.  Verificare che venga schedulato il primo task Celery per la sequenza email.
-    4.  Simulare il passare dei giorni e verificare che i task successivi vengano schedulati e inviati correttamente.
+-   Which testing method agent to use? screenshot tool. L'agente deve aggiungere il pulsante, la modale di conferma e la logica di eliminazione, per poi verificare visivamente che l'interfaccia sia corretta e che il partner venga rimosso dalla lista.
 -   User Testing Done: N
 
 **All Pending/In progress Issue list**:
--   Issue 1: Completare l'automazione dell'acquisizione lead e la sequenza email di vendita. (P1)
+-   Issue 1: Aggiungere la funzionalità di eliminazione del partner alla seconda vista Pipeline Partner. (P0)
 
 Issues Detail:
--   **Issue 1: Completare l'automazione dell'acquisizione lead e la sequenza email di vendita. (P1)**
-    -   Attempted fixes: Le basi sono state gettate in  con l'aggiunta di , la logica di auto-approvazione e la struttura per avviare la sequenza.
+-   **Issue 1: Aggiungere la funzionalità di eliminazione del partner alla seconda vista Pipeline Partner. (P0)**
+    -   Attempted fixes: L'agente ha cercato in  (dove ha già implementato la funzione) e poi ha iniziato a ispezionare  sospettando che la tabella fosse renderizzata lì. L'indagine si è interrotta mentre cercava di localizzare il componente esatto.
     -   Next debug checklist:
-        1.  In , creare i 4 task Celery distinti per ogni email della sequenza di vendita (Email 1 a Giorno 0, Email 2 a Giorno +2, ecc.).
-        2.  In , aggiungere i 4 nuovi template per la sequenza di vendita. Assicurarsi che possano usare la variabile .
-        3.  Nella funzione  in , implementare la logica per schedulare il primo task Celery () immediatamente.
-        4.  Ogni task Celery, dopo l'invio, deve schedulare il task successivo nella sequenza (es. Email 1 schedula Email 2 a T+2 giorni).
-        5.  Creare un job Celery periodico (es. ogni ora) che esegua la funzione di auto-approvazione sui lead idonei.
-    -   Why fix this issue and what will be achieved with the fix? È una funzionalità critica richiesta dall'utente per automatizzare il marketing e la vendita, aumentando le conversioni per l'analisi strategica.
+        1.  Analizzare il file . È probabile che la logica per la vista partner sia contenuta lì, forse in un componente  renderizzato condizionalmente (linee 333-387 sono state identificate come un punto di interesse).
+        2.  Replicare la logica di eliminazione già implementata in : aggiungere l'opzione Elimina al menu dropdown, la modale di conferma e la funzione  che chiama l'endpoint backend .
+        3.  Passare la funzione di callback per l'eliminazione come prop al componente che renderizza la riga del partner.
+    -   Why fix this issue and what will be achieved with the fix? Per fornire una user experience consistente, permettendo all'admin di eliminare i partner da tutte le viste in cui sono elencati.
     -   Status: IN PROGRESS
     -   Is recurring issue? N
-    -   Should Test frontend/backend/both after fix? backend
+    -   Should Test frontend/backend/both after fix? frontend
 
 **In progress Task List**:
--   Task 1: Completare l'automazione dell'acquisizione lead e la sequenza email di vendita. (P1)
+-   Task 1: Aggiungere la funzionalità di eliminazione del partner alla seconda vista Pipeline Partner. (P0)
 
 Task Detail:
--   **Task 1: Completare l'automazione dell'acquisizione lead e la sequenza email di vendita. (P1)**
-    -   Where to resume: In  e .
-    -   What will be achieved with this? Un flusso di marketing e vendita completamente automatizzato per i nuovi lead.
+-   **Task 1: Aggiungere la funzionalità di eliminazione del partner alla seconda vista Pipeline Partner. (P0)**
+    -   Where to resume: Nel file , identificando il componente che renderizza la tabella dei partner e aggiungendo la funzionalità di eliminazione.
+    -   What will be achieved with this? Coerenza funzionale tra le diverse sezioni dell'interfaccia admin.
     -   Status: IN PROGRESS
-    -   Should Test frontend/backend/both after fix? backend
+    -   Should Test frontend/backend/both after fix? frontend
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    *   **P1: Sviluppo Modulo Piano Continuità:** Implementare UI admin e logica backend per la gestione degli abbonamenti con Stripe, agente GAIA e notifiche.
-    *   **P1: Attivazione Partnership:** Completare la logica per la creazione del sub-account Systeme.io e l'invio dell'email di onboarding al trigger .
-    *   **P2: Filtri Avanzati Discovery Leads:** Implementare filtri per stato, piattaforma, score e .
-    *   **P2: Countdown Scadenza Partnership:** Aggiungere un indicatore visivo nella dashboard admin.
-    *   **P2: Export CSV Partner:** Implementare la funzionalità di export.
-    *   **P2: Scheduler Automatici:** Implementare i job Celery per sync Systeme.io, reminder scadenza e report KPI.
+    *   **P1: UI per Lista Fredda**: Sviluppare la sezione UI nella dashboard admin per visualizzare le statistiche della Lista Fredda e la tabella dei contatti caldi ( del brief).
+    *   **P1: UI per Piano Continuità**: Sviluppare l'interfaccia admin per visualizzare e gestire i piani di continuità dei partner.
+    *   **P2: Stripe Subscription per Piano Continuità**: Implementare la logica per il rinnovo automatico degli abbonamenti tramite Stripe.
+    *   **P2: Filtri Avanzati Discovery Leads**: Implementare i filtri UI per la lista dei lead scoperti.
+    *   **P2: Countdown Scadenza Partnership**: Aggiungere un indicatore visivo di scadenza nella dashboard admin.
 -   **Future Tasks:**
     *   Refactoring del monolite .
     *   Unificazione delle collection MongoDB ( e ).
     *   Creazione documentazione OpenAPI.
+    *   Integrazione API di Instagram/LinkedIn.
 
 **Completed work in this session**
--   **Automazione Post-Pagamento €67 (COMPLETATA):** L'intero flusso, dalla ricezione del webhook Stripe all'invio dell'email di benvenuto e alla schedulazione del reminder Celery, è stato implementato, debuggato (risolvendo problemi di routing delle code Celery e di gestione dell'event loop di asyncio) e testato con successo (13/13 test superati).
--   **UI Admin per Dati Partner (COMPLETATA):** Create interfacce React () per consentire agli admin di sovrascrivere i dati di posizionamento dei partner e di sbloccare i funnel, utilizzando gli endpoint backend precedentemente creati.
--   **Editor WYSIWYG per Template Email (COMPLETATA):** Implementato un sistema per la gestione dei template email () e un'interfaccia admin con un editor visuale per la modifica di oggetto e corpo delle email.
--   **Fix Bug Masterclass (COMPLETATO):** Risolto il problema dell'endpoint  che restituiva Partner non trovato a causa di un conflitto di rotta con  in FastAPI, riordinando gli endpoint nel router .
--   **Fix Partners Unified View (COMPLETATO):** Risolto l'errore  che causava la restituzione di una risposta vuota, aggiungendo una funzione helper in  per convertire correttamente gli  prima della serializzazione JSON.
--   **Inizio Automazione Acquisizione Lead (IN CORSO):** Iniziata l'implementazione del nuovo flusso, estendendo il modello dati in .
+-   **YouTube Discovery Integration (con API Key)**: Aggiornato  per utilizzare  per le ricerche, con fallback a OAuth.
+-   **Flusso Lista Fredda (Backend)**: Creato  per gestire import CSV, statistiche e webhook da Systeme.io. Aggiunti task Celery correlati in .
+-   **Import CSV per Discovery**: Aggiunto l'endpoint  in .
+-   **Fix Endpoint **: Risolto errore 404 per , ,  in .
+-   **Attivazione Partnership (Systeme.io)**: Completata la logica per creare sub-account e inviare email di benvenuto in  e .
+-   **Backend per Piano Continuità e Export CSV**: Aggiunti task Celery e endpoint admin in  e .
+-   **Fix Deployment Blockers**: Risolti problemi con  e CORS in .
+-   **Funzionalità Elimina Partner (Dashboard)**: Aggiunta l'opzione di eliminazione nella pipeline partner principale in .
+-   **Verifica **: Confermato che l'endpoint  funziona e restituisce i dati correttamente.
 
 **Earlier issues found/mentioned but not fixed**
--   **Architectural Flaw**: La frammentazione dei dati dei partner tra più collection (, , etc.) persiste. La  è un palliativo, non una soluzione definitiva. La migrazione è stata posticipata dall'utente.
--   **Technical Debt**: Il file  rimane un monolite che necessita di refactoring.
+-   **Architectural Flaw**: La frammentazione dei dati dei partner tra più collection (, , etc.) persiste. La  è un palliativo.
+-   **Technical Debt**: Il file  è un monolite che necessita di refactoring.
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork**: Problemi di sincronizzazione dei dati dei partner.
 -   **Recurrence count**: Alto
--   **Status**: MITIGATED. La  risolve la consistenza in lettura, ma la complessità in scrittura rimane un punto debole dell'architettura.
+-   **Status**: MITIGATED. La  risolve la consistenza in lettura, ma non il problema di fondo.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Celery Task Routing & Queues:** Utilizzo di code dedicate () per isolare i task e risolvere conflitti  causati da worker obsoleti in ascolto sulla stessa coda.
--   **Asyncio Event Loop in Celery:** Risolto un  nei task Celery che interagiscono con MongoDB (Motor) creando una nuova connessione al DB per ogni esecuzione di task invece di fare affidamento su un client globale.
--   **FastAPI Route Ordering:** Risolto un conflitto di routing in cui un endpoint con un path parameter (es. ) catturava una richiesta destinata a un endpoint specifico (es. ). La soluzione è stata riordinare gli endpoint, posizionando quelli specifici *prima* di quelli generici.
--   **WYSIWYG Editor in React:** Implementato un editor visuale per HTML, inizialmente con  e poi sostituito con un componente custom più semplice per evitare problemi di compatibilità con React 18 ().
+-   External API Integration (YouTube Data API v3, Systeme.io)
+-   FastAPI Routers and Background Tasks
+-   Celery for scheduled and background jobs
+-   React State Management (useState, useEffect) and event handling
+-   File Uploads in FastAPI (CSV)
+-   MongoDB data modeling and async queries with 
+-   Authentication (API Key vs OAuth)
 
 **key DB schema**
--   **email_templates** (nuova collection gestita via ): 
--   **discovery_leads** (schema modificato): Aggiunto il campo  (es. 'basso', 'medio', 'alto', 'altissimo').
+-   **lista_fredda** (new collection): 
+-   **discovery_leads** (schema modified): Aggiunti campi specifici di YouTube come , , .
 
 **changes in tech stack**
--   **react-quill**: Aggiunto e poi rimosso a causa di problemi di incompatibilità con React 18.
+-   Nessuna modifica allo stack tecnologico principale.
 
 **All files of reference**
--   **/app/backend/routers/discovery_engine.py**: File centrale per la nuova automazione di acquisizione lead.
--   **/app/backend/email_templates.py**: Nuovo file per la gestione centralizzata dei template email.
--   **/app/frontend/src/components/admin/EmailTemplatesManager.jsx**: Nuovo componente React con l'editor WYSIWYG.
--   **/app/backend/routers/stripe_webhook.py**: Contiene la logica di automazione post-pagamento ora completa.
--   **/app/backend/celery_tasks.py**: Contiene i task Celery, modificati per gestire correttamente le connessioni al DB.
--   **/app/backend/server.py**: Modificato per il fix della Unified View e per aggiungere le API dei template email.
--   **/app/backend/routers/partner_journey.py**: Modificato per risolvere il bug di Masterclass.
--   **/app/frontend/src/components/admin/AdminDashboardPro.jsx**: Modificato per integrare le nuove azioni admin.
+-   **/app/frontend/src/App.js**: File da modificare per la prossima attività.
+-   **/app/frontend/src/components/admin/AdminDashboardPro.jsx**: Contiene l'implementazione di riferimento per la funzionalità di eliminazione.
+-   **/app/backend/routers/lista_fredda.py**: Nuovo modulo principale per la gestione della lista fredda.
+-   **/app/backend/routers/discovery_engine.py**: Contiene la logica per la ricerca YouTube e l'import CSV.
+-   **/app/backend/server.py**: File monolitico che contiene molti endpoint e la logica di registrazione dei router.
+-   **/app/backend/celery_tasks.py**: Contiene tutti i task asincroni.
 
 **key api endpoints**
--   : Lista tutti i template email disponibili.
--   : Recupera un singolo template.
--   : Aggiorna un template email.
--   : (Da creare) Endpoint per avviare la sequenza email per un lead.
--   : Alias funzionante per generare lo script della masterclass.
+-   : Esegue la ricerca di lead (ora supporta ).
+-   : Importa lead da un file CSV.
+-   : Importa contatti per la lista fredda da un file CSV.
+-   : Restituisce le statistiche sulla lista fredda.
+-   : Webhook per ricevere eventi da Systeme.io.
+-   : Endpoint per eliminare un partner.
+-   : Attiva una partnership, creando un sub-account Systeme.io.
+-   : Esporta la lista dei partner in formato CSV.
 
 **Critical Info for New Agent**
--   **Focus su Acquisizione Lead:** La priorità assoluta è completare l'automazione dell'acquisizione lead e la sequenza di email di vendita, come descritto nella sezione Last working item.
--   **Editor WYSIWYG Funzionante:** L'editor per i template email è pronto. La prossima implementazione (sequenza di vendita) dovrà creare i relativi template e renderli disponibili nell'editor.
--   **Celery è Stabile:** I problemi con Celery (routing delle code e gestione dell'event loop) sono stati risolti. Il sistema è ora robusto e può essere esteso con nuovi task.
--   **Sviluppo Modulo Piano Continuità:** Questo è un nuovo modulo richiesto dall'utente, da sviluppare da zero. Richiede integrazione con Stripe Subscriptions.
+-   La priorità assoluta è completare l'attività in corso: aggiungere il pulsante Elimina alla seconda vista della pipeline dei partner, che si trova probabilmente nel file .
+-   Il  è stato aggiunto al file  e viene utilizzato per la ricerca Discovery.
+-   L'applicazione è considerata pronta per il deploy in produzione, avendo risolto i blocker critici.
+-   L'utente ha fornito brief tecnici dettagliati. Fai sempre riferimento all'ultimo messaggio dell'utente per le priorità correnti.
 
 **documents and test reports created in this job**
 -   
 -   
+-    (aggiornato più volte)
 -   
+-   File CSV di test in  (temporanei)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User (Brief):** Fornisce un nuovo brief tecnico completo con nuove priorità, tra cui l'automazione dell'acquisizione lead, un editor WYSIWYG e lo sviluppo del Piano Continuità.
-2.  **Agent:** Propone un piano basato sul nuovo brief e chiede conferma.
-3.  **User:** Conferma il piano ().
-4.  **Agent:** Inizia l'implementazione dell'automazione dei lead.
-5.  ... (L'agente lavora sull'implementazione, estendendo i modelli e creando la logica di base)
-(Non ci sono altri messaggi utente recenti, l'agente stava procedendo con l'implementazione approvata).
+1.  **User**: Chiede di aggiungere la possibilità di eliminare un contatto dalla pagina pipeline partner (la seconda vista), fornendo uno screenshot. **(IN PROGRESS)**
+2.  **User**: Chiede di aggiungere la possibilità di eliminare un contatto dalla sezione pipeline partner. **(COMPLETED)**
+3.  **User**: Fornisce un brief per l'implementazione del flusso Lista Fredda e altri fix, chiedendo di aggiungere anche la possibilità di caricare file CSV nella sezione discovery. **(COMPLETED)**
+4.  **User**: Chiede se è necessario fare il deploy. **(ANSWERED)**
+5.  **User**: Fornisce la . **(COMPLETED)**
+6.  **User**: Fornisce un , ma l'agente chiarisce che serve una API Key.
+7.  **User**: Chiede di correggere l'implementazione della ricerca YouTube per usare una API Key invece di OAuth. **(COMPLETED)**
+8.  **User**: Fornisce un brief per integrare la YouTube Data API v3 nella Discovery. **(COMPLETED)**
+9.  **User**: Fornisce il file  per YouTube. **(COMPLETED)**
+10. **User**: Chiede di aggiungere il  all'endpoint di upload. **(COMPLETED)**
 
 **Project Health Check:**
--   **Broken:** None
--   **Mocked:** Nessuno
+-   **Broken:** Nessuno.
+-   **Mocked:** Nessuno. L'integrazione con Systeme.io ha un fallback che salta le chiamate API se la chiave non è configurata, ma non è un mock.
 
 **3rd Party Integrations**
--   Stripe (Payments) — richiede User API Key & Webhook Secret.
--   Systeme.io (CRM) — richiede User API Key.
--   HeyGen (Video Generation) — richiede User API Key.
--   YouTube (Video Hosting) — usa User OAuth Credentials.
--   Anthropic Claude (LLM) — usa Emergent LLM Key.
--   Ollama (Local LLM) — self-hosted.
--   Celery (Task Queue) — integrazione stabile.
--   Redis (via Upstash) (Broker) — integrazione stabile.
+-   **Stripe**: Per pagamenti. Richiede API Key.
+-   **Systeme.io**: Per CRM, sub-account e tracking email. Richiede API Key.
+-   **YouTube Data API v3**: Per ricerca canali (usa API Key) e upload video (usa OAuth).
+-   **Anthropic Claude / Ollama**: Per funzionalità AI. Usano Emergent LLM Key o sono self-hosted.
+-   **Celery/Redis (Upstash)**: Per la gestione di code e task asincroni.
 
 **Testing status**
--   Testing agent used after significant changes: YES
--   Troubleshoot agent used after agent stuck in loop: NO
--   Test files created: []
+-   Testing agent used after significant changes: YES (usato per testare il backend di YouTube Discovery, partnership, etc.).
+-   Troubleshoot agent used after agent stuck in loop: NO.
+-   Test files created: Script di test  e file CSV temporanei.
 -   Known regressions: None.
 
 **Credentials to test flow:**
-N/A
+Le credenziali per l'admin sono nel file .
+-   **Admin**: claudio.bertogliatti@gmail.com / Evoluzione74
+-   **Operations**: antonella@evolution-pro.it / OperationsAnto2024!
 
 **What agent forgot to execute**
-L'agente ha seguito le istruzioni dell'utente e ha iniziato a lavorare sulla nuova priorità principale. Non sembra aver dimenticato nulla dalle richieste attive.</analysis>
+L'agente non ha dimenticato nulla, ma si è interrotto durante la ricerca del file corretto per implementare la richiesta dell'utente di aggiungere un secondo pulsante di eliminazione. L'indagine deve riprendere da lì.</analysis>
