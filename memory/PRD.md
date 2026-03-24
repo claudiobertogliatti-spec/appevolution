@@ -8,6 +8,7 @@ Build a multi-faceted AI-powered application for "Evolution PRO" business includ
 - Discovery Engine AI for lead generation
 - "Sblocco Core" Roadmap automation
 - Ollama Integration for local LLM processing
+- **Lead Acquisition Automation with Email Sequence for €67 Analysis Sale**
 
 ## User's Preferred Language
 **Italian** - All UI and communications should be in Italian.
@@ -18,338 +19,143 @@ Build a multi-faceted AI-powered application for "Evolution PRO" business includ
 ├── backend/           # FastAPI backend
 │   ├── server.py      # Main API server (monolith)
 │   ├── routers/       # API routers
-│   │   └── partner_journey.py  # Partner journey with AI generation
+│   │   ├── discovery_engine.py  # Lead discovery + auto-approve + email sequence
+│   │   └── partner_journey.py   # Partner journey with AI generation
+│   ├── celery_app.py   # Celery configuration
+│   ├── celery_tasks.py # Celery tasks (video, email, auto-approve)
+│   ├── email_templates.py # Email template management (WYSIWYG ready)
 │   ├── heygen_service.py
 │   ├── ollama_service.py
-│   ├── stefania_ai.py # AI assistant (renamed from Valentina)
-│   └── stefania_memory.py
+│   └── stefania_ai.py
 └── frontend/
     └── src/
         ├── components/
-        │   ├── admin/  # Admin dashboard components
-        │   │   └── YouTubeHeygenHub.jsx  # Fixed race condition
-        │   ├── partner/ # Partner views
-        │   └── chat/   # Stefania chat
+        │   ├── admin/
+        │   │   ├── AdminDashboardPro.jsx
+        │   │   ├── AdminPartnerTools.jsx
+        │   │   └── EmailTemplatesManager.jsx  # WYSIWYG editor
+        │   ├── partner/
+        │   └── chat/
         └── App.js
 ```
 
 ## What's Been Implemented
 
-### Session: 23 March 2026 (Continued)
+### Session: 24 March 2026 - Lead Auto-Approve & Email Sequence COMPLETED ✅
 
-#### PRIORITÀ 1 - Blocchi Critici
-1. **Stripe Webhook** ✅
-   - Nuovo endpoint: `POST /api/webhooks/stripe`
-   - Gestisce: `payment_intent.succeeded`, `checkout.session.completed`
-   - Setta automaticamente `pagamento_analisi: true`
-   - Trigger automazione post-pagamento
-   - File: `/app/backend/routers/stripe_webhook.py`
-   - Richiede: `STRIPE_WEBHOOK_SECRET` in .env (da configurare su Stripe Dashboard)
+#### PRIORITÀ 1 COMPLETATA: Automazione Acquisizione Lead & Sequenza Email Vendita €67
 
-2. **Automazione Post-Pagamento €67** ✅
-   - Flow completo implementato:
-     1. Webhook conferma → `pagamento_analisi: true`
-     2. Auto-genera analisi AI (se questionario compilato)
-     3. Auto-genera call script (8 blocchi)
-     4. Schedule welcome email (link booking a T+48h)
-     5. Schedule reminder T+48h
-   - PDF analisi NON inviato al cliente
+1. **Auto-Approvazione Lead** ✅
+   - Endpoint: `GET/PUT /api/discovery/settings/auto-approve`
+   - Criteri configurabili: `min_score` (default: 80), `required_fit_level` (default: "altissimo")
+   - Job Celery periodico: `process_auto_approve_leads` (ogni ora)
+   - Trigger manuale: `POST /api/discovery/trigger-auto-approve`
+   - File: `/app/backend/celery_tasks.py`
 
-3. **YouTube OAuth** ✅ (già funzionante)
-   - Status: `authorized`, `valid: true`
-   - Token refresh automatico funzionante
+2. **Sequenza Email di Vendita (4 Email su 7 Giorni)** ✅
+   - Endpoint avvio: `POST /api/discovery/lead/{lead_id}/start-email-sequence`
+   - Endpoint stop: `POST /api/discovery/lead/{lead_id}/stop-email-sequence`
+   - Scheduling: Email 1 (D+0), Email 2 (D+2), Email 3 (D+4), Email 4 (D+7)
+   - Task Celery: `send_lead_sequence_email`
+   - Integrazione Systeme.io via tag
 
-4. **Masterclass 502** ✅
-   - L'endpoint corretto è `POST /api/partner-journey/masterclass/generate-script`
-   - Funziona con `partner_id: "1"` (Marco Ferretti)
+3. **4 Template Email per Sequenza di Vendita** ✅
+   - `lead_sequence_email_1`: Presentazione + problema (variabili: nome, niche)
+   - `lead_sequence_email_2`: Caso studio "Marco" (conversione €47k in 90 giorni)
+   - `lead_sequence_email_3`: Offerta €67 con CTA checkout Stripe
+   - `lead_sequence_email_4`: Reminder finale con urgenza
+   - File: `/app/backend/email_templates.py`
+   - Tutti i template sono modificabili via editor WYSIWYG
 
-#### PRIORITÀ 2 - Operatività
-5. **Admin Override Dati Partner** ✅
-   - `POST /api/admin/partners/{id}/override-data`
-   - `GET /api/admin/partners/{id}/full-data`
-   - Permette inserire dati reali senza rifare onboarding
+4. **Bug Fix: ObjectId in create_lead response** ✅
+   - Aggiunto `doc.pop("_id", None)` prima di restituire il documento
 
-6. **Partners Unified View** ✅ (già funzionante)
-   - Endpoint restituisce dati aggregati da 7 collezioni
+#### Test Results
+- **Iteration 25**: 19/19 tests passed (100%)
+- Auto-approve settings CRUD ✅
+- Email sequence start/stop ✅
+- 4 lead sequence email templates ✅
+- Celery task integration ✅
 
-7. **Funnel Admin Unlock** ✅
-   - `POST /api/partner-journey/funnel/admin-unlock`
-   - Sostituisce dominio test con reale
-   - Approva tutti i documenti legali
-   - Marco Ferretti: dominio aggiornato a `marcoferretti.evolution-pro.it`
+### Previous Sessions
 
-8. **Email Benvenuto Partnership** ✅
-   - Trigger automatico aggiunto a `segna-pagamento-partnership`
-   - Invia email quando partnership viene attivata
-#### Bug Fixes
-1. **Masterclass Script Generation (P0)** ✅
-   - Fixed `AttributeError: 'str' object has no attribute 'file_contents'`
-   - Root cause: `llm.send_message()` requires `UserMessage(text=prompt)` not raw string
-   - Fixed all 6 occurrences in `/app/backend/routers/partner_journey.py`
-   - Tested: `POST /api/partner-journey/masterclass/generate-script` now working
+#### Session: 24 March 2026 - Post-Payment Automation
+- **Automazione Post-Pagamento €67** ✅: Email benvenuto + Reminder 48h via Celery
+- **Editor WYSIWYG Template Email** ✅: `/app/frontend/src/components/admin/EmailTemplatesManager.jsx`
+- **Fix Bug Masterclass** ✅: Risolto conflitto di rotta in `partner_journey.py`
+- **Fix Partners Unified View** ✅: Aggiunto helper per serializzazione ObjectId
 
-2. **YouTubeHeygenHub Race Condition (P2)** ✅
-   - Added `loadingProduction` and `productionError` states
-   - Shows loading spinner while fetching production data
-   - Shows error message with retry button if API calls fail
-   - Improved error handling in `loadProductionData()` function
-
-#### New Features
-3. **Delete Button for Discovery Leads** ✅
-   - Added delete button (trash icon) in Discovery Leads table
-   - Added confirmation modal with lead details before deletion
-   - Uses existing `DELETE /api/discovery/leads/{lead_id}` endpoint
-   - Delete button also added in Lead Detail modal
-
-#### FASE 1 - Quick Wins (COMPLETED)
-4. **Filtri Avanzati Discovery Leads** ✅
-   - Filter by Status: pending, scored, discovered, contacted, qualified, rejected
-   - Filter by Platform: LinkedIn, Instagram, YouTube, Facebook, Google, Manual
-   - Filter by Minimum Score: 50, 60, 70 (Hot), 80 (Very Hot), 90 (Super Hot)
-   - Reset filters button
-   - Active filters badges display
-   - Total leads counter
-
-5. **Countdown Scadenza Partnership** ✅
-   - New "Scadenza" column in Partners table with Timer icon
-   - Color-coded badges: red (≤7 days), amber (≤30 days), green (>30 days)
-   - Calculates 12 months from payment date
-   - Shows "Scaduto" for expired partnerships
-
-6. **Export CSV Lista Partner** ✅
-   - Green "Export CSV" button in Partners table toolbar
-   - Exports: Nome, Email, Telefono, Nicchia, Fase, Progresso, Partnership Pagata, 
-     Data Pagamento, Giorni alla Scadenza, Data Scadenza, Ultima Attività, 
-     Giorni Inattività, Stato, Contratto Firmato, Onboarding Completato
-   - UTF-8 with BOM for Excel compatibility
-
-#### FASE 2 - Pipeline HeyGen→YouTube (IMPLEMENTED)
-7. **One-Click Pipeline** ✅
-   - New endpoint: `POST /api/heygen/one-click-pipeline`
-   - Workflow: Script → HeyGen Video Generation → Poll for completion → YouTube Upload
-   - Background task execution with progress tracking (0-100%)
-   - Pipeline status endpoint: `GET /api/heygen/pipeline-status/{job_id}`
-   - Pipeline jobs list: `GET /api/heygen/pipeline-jobs`
-   - Telegram notifications at start, completion, and failure
-   - Auto-upload to YouTube with configurable privacy (private/unlisted/public)
-
-#### FASE 3 - Scheduler Automatici (IMPLEMENTED)
-8. **New Scheduled Jobs** ✅
-   - **Systeme.io Sync** (every 6 hours): Syncs all contacts from Systeme.io
-   - **Partnership Expiry Reminder** (daily 8:00): Alerts for 30/15/7 days and expired
-   - **Weekly KPI Report** (Monday 8:30): Partners, Leads, Clients stats summary
-   - All notifications sent via Telegram
-   - New endpoint: `POST /api/notify/telegram` for scheduler use
-
-#### Infrastruttura Critica (IMPLEMENTED)
-9. **Celery Queue for Video Pipeline** ✅
-   - Celery + Redis for persistent job queue
-   - Tasks: `generate_heygen_video`, `poll_heygen_video`, `upload_to_youtube`
-   - Auto-retry on failure (3 retries with 60s delay)
-   - 30-minute timeout per task
-   - Stuck job detection every 5 minutes
-   - Fallback to BackgroundTasks if Redis unavailable
-   - Files: `/app/backend/celery_app.py`, `/app/backend/celery_tasks.py`
-
-10. **Stefania Orchestration System** ✅
-    - Agent tasks collection: `db.agent_tasks`
-    - Task types: lead_blocked, partner_inactive, pipeline_failed, payment_issue, onboarding_stuck
-    - Priority levels: low, medium, high, critical
-    - Status flow: open → in_progress → waiting_human → resolved/escalated
-    - Auto-escalation if task open >48 hours
-    - Daily review by Stefania (7:00) with Telegram notification
-    - Endpoints:
-      - `POST /api/agent-tasks/create`
-      - `POST /api/agent-tasks/stefania-review`
-      - `GET /api/agent-tasks`
-      - `POST /api/agent-tasks/{task_id}/resolve`
-    - File: `/app/backend/agent_task_system.py`
-
-11. **MongoDB Aggregated View** ✅
-    - View: `partner_unified_view`
-    - Aggregates data from: partners, partner_posizionamento, partner_masterclass, partner_funnel, pipeline_jobs, heygen_jobs, partner_payments
-    - Computed fields: progress_pct, has_active_production, avatar_ready, completed_videos_count
-    - Endpoints:
-      - `GET /api/partners-unified`
-      - `GET /api/partners-unified/{partner_id}`
-      - `GET /api/partners-unified/filter/active-production`
-      - `GET /api/partners-unified/filter/needing-content`
-      - `GET /api/partners-unified/filter/ready-for-video`
-    - File: `/app/backend/mongodb_views.py`
-
-### Previous Session: March 2026
-
-#### 1. Valentina → Stefania Renaming ✅
-- Replaced all occurrences (323 total) of "Valentina" with "Stefania"
-- Renamed files: ValentinaChat.jsx → StefaniaChat.jsx, etc.
-- Updated imports and exports
-
-#### 2. Ollama Integration ✅
-- Cloudflare Tunnel connection to local Ollama instance
-- Fallback to Claude when Ollama unavailable
-- Model: llama3.2:3b (primary), Claude (fallback)
-
-#### 3. HeyGen Digital Twin Creation ✅
-- API endpoint: `POST /api/heygen/create-digital-twin`
-- Upload training video + consent video
-- Background polling for creation status
-- Frontend form in YouTube × HeyGen Hub
-
-#### 4. Admin Manual Control Panel ✅
-**For Clients (Clienti Analisi):**
-- Clickable status badges to toggle: `questionario_compilato`, `pagamento_analisi`, `analisi_generata`
-- "Segna Pagamento Manuale" button for bonifico payments
-- API: `POST /api/admin/clienti-analisi/{id}/modifica-stato`
-
-**For Partners:**
-- "Controllo Admin" panel in Profile tab
-- Phase selector: F1, F2, F3, F4, F5, F6, F7, F8, F9, LIVE
-- Checkboxes: Partnership Pagata, Contratto Firmato, Onboarding Completato, Masterclass Pronta
-- "Segna Pagamento Partnership" button in Payments tab
-- API: `POST /api/partners/{id}/segna-pagamento-partnership`
-
-#### 5. YouTube × HeyGen Hub ✅
-- HeyGen API connection status
-- YouTube OAuth working
-- Partner list with avatar status
-- Video generation form
-
-#### 6. Discovery Engine / Agent Hub ✅
-- Discovery Leads tab with hot leads table
-- Lead detail modal with analysis results
-- "Avvia Analisi" button with Ollama/Claude fallback
+#### Session: 23 March 2026
+- Stripe Webhook ✅
+- Admin Override Dati Partner ✅
+- Partners Unified View ✅
+- Funnel Admin Unlock ✅
+- HeyGen Pipeline ✅
+- Celery Queue Setup ✅
+- Discovery Engine Filters ✅
+- Partnership Countdown ✅
+- Export CSV Partner ✅
 
 ## API Endpoints
 
-### Partner Journey (AI-powered)
-- `POST /api/partner-journey/masterclass/generate-script` - Generate masterclass script ✅ FIXED
-- `POST /api/partner-journey/posizionamento/generate-structure` - Generate course structure ✅ FIXED
-- `POST /api/partner-journey/funnel/generate` - Generate funnel content
-- `POST /api/partner-journey/lancio/genera-calendario` - Generate launch calendar
-- `POST /api/partner-journey/ottimizzazione/genera-report` - Generate optimization report
+### Discovery Engine - Lead Management
+- `GET /api/discovery/leads` - Lista lead con filtri
+- `GET /api/discovery/leads/hot` - Lead caldi (score >= 50)
+- `POST /api/discovery/leads` - Crea nuovo lead
+- `GET /api/discovery/leads/{lead_id}` - Dettaglio lead
+- `DELETE /api/discovery/leads/{lead_id}` - Elimina lead
+- `POST /api/discovery/score/{lead_id}` - Calcola score AI
 
-### Admin - Clienti Analisi
-- `GET /api/admin/clienti-analisi` - List all clients
-- `POST /api/admin/clienti-analisi/{id}/segna-pagamento-manuale` - Mark manual payment
-- `POST /api/admin/clienti-analisi/{id}/modifica-stato` - Toggle client status
+### Discovery Engine - Auto-Approve & Email Sequence
+- `GET /api/discovery/settings/auto-approve` - Recupera impostazioni
+- `PUT /api/discovery/settings/auto-approve` - Aggiorna impostazioni
+- `POST /api/discovery/trigger-auto-approve` - Trigger manuale
+- `POST /api/discovery/lead/{lead_id}/start-email-sequence` - Avvia sequenza
+- `POST /api/discovery/lead/{lead_id}/stop-email-sequence` - Stop sequenza
 
-### Admin - Partners
-- `GET /api/partners/with-social` - Partners with social plan
-- `PATCH /api/partners/{id}` - Update partner (includes admin fields)
-- `POST /api/partners/{id}/segna-pagamento-partnership` - Mark partnership payment
+### Email Templates (Admin)
+- `GET /api/admin/email-templates` - Lista tutti i template
+- `GET /api/admin/email-templates/{template_id}` - Singolo template
+- `PUT /api/admin/email-templates/{template_id}` - Aggiorna template
 
-### HeyGen
-- `GET /api/heygen/test-connection` - Test HeyGen API
-- `POST /api/heygen/create-digital-twin` - Create avatar from video
-- `GET /api/heygen/avatar-creation-status/{partner_id}` - Check creation status
+### Celery Configuration
+```python
+beat_schedule = {
+    'check-stuck-pipelines': 300s (5 min),
+    'check-pending-analisi-reminders': 3600s (1 hour),
+    'process-auto-approve-leads': 3600s (1 hour)  # NEW
+}
+```
 
-### Ollama
-- `GET /api/ollama/status` - Check Ollama connection
-
-### Discovery Engine
-- `GET /api/discovery/leads/hot` - Get hot leads
-- `POST /api/discovery/analyze-website/{lead_id}` - Analyze lead website
-
-## Database Collections (MongoDB Atlas)
-- `users` - Clients and users
-- `partners` - Partner data
-- `partner_payments` - Payment records
-- `discovery_leads` - Lead data
-- `admin_logs` - Admin action logs
-- `avatar_creation_jobs` - HeyGen job tracking
-- `stefania_conversations` - Chat history
-- `stefania_knowledge` - AI knowledge base
-- `partner_posizionamento` - Partner positioning data
-- `partner_masterclass` - Masterclass scripts and videos
-- `partner_funnel` - Funnel content
-- `partner_lancio` - Launch calendar and status
-
-## Credentials (Test)
-- **Admin:** claudio.bertogliatti@gmail.com / Evoluzione74
-- **Operations:** antonella@evolution-pro.it / OperationsAnto2024!
-
-## Session: 24 March 2026 - Automazione Post-Pagamento COMPLETATA
-
-### Implementazione Celery per Automazione €67
-
-1. **Nuovi Task Celery** (`/app/backend/celery_tasks.py`):
-   - `send_analisi_welcome_email(user_id, cliente_id)`: Invia email benvenuto via tag Systeme.io
-   - `send_analisi_48h_reminder(user_id, cliente_id)`: Reminder automatico se call non prenotata
-   - `check_pending_analisi_reminders()`: Job periodico ogni ora per trovare clienti da ricordare
-
-2. **Coda Dedicata**: `analisi_automation`
-   - Evita conflitti con altri worker Redis che condividono lo stesso broker Upstash
-   - Worker configurato in `/app/backend/celery_manager.py`
-
-3. **Endpoint di Test** (`/app/backend/routers/stripe_webhook.py`):
-   - `POST /api/webhooks/test-analisi-payment/{user_id}`: Simula pagamento completo
-   - `GET /api/webhooks/test-automation-status/{user_id}`: Verifica stato automazione
-
-4. **Flusso Automazione**:
-   ```
-   Pagamento Stripe → Webhook → Update DB → Schedule Celery Tasks
-   
-   Task 1 (immediato): send_analisi_welcome_email
-     - Aggiunge tag Systeme.io: "analisi_pagata", "welcome_analisi"
-     - Invia notifica Telegram admin
-     - Aggiorna: email_benvenuto_inviata=true, booking_link, booking_available_at
-     - Crea record in email_logs
-   
-   Task 2 (T+48h): send_analisi_48h_reminder
-     - Verifica se call già prenotata
-     - Se NO: aggiunge tag "reminder_48h_analisi"
-     - Invia notifica Telegram admin
-     - Aggiorna: reminder_48h_inviato=true
-   ```
-
-5. **Fix Tecnico Critico**: Event Loop Closure
-   - Problema: Motor (MongoDB async) richiedeva event loop persistente
-   - Soluzione: `get_db()` ora restituisce `(client, db)` e i task chiudono il client nel finally
-
-### Test Report
-- **Iteration 23**: 13/13 tests passed (Post-payment automation)
-- **Iteration 24**: 14/14 tests passed (Masterclass, Email templates, Unified view)
-
-### Additional Fixes (24 March 2026)
-1. **Masterclass /genera endpoint** - Fixed FastAPI route conflict by moving before `/{partner_id}`
-2. **Partners Unified View** - Added `serialize_doc()` in mongodb_views.py to remove ObjectId
-3. **Email Templates System** - Created `/app/backend/email_templates.py` with:
-   - `EmailTemplateManager` class with caching (5 min TTL)
-   - Default templates: `partnership_welcome`, `analisi_welcome`, `analisi_reminder_48h`
-   - CRUD endpoints: `/api/admin/email-templates/*`
-4. **YouTube OAuth** - Verified working (youtube_authenticated=true)
-5. **Admin UI Components**:
-   - `/app/frontend/src/components/admin/AdminPartnerTools.jsx` - Override data + Funnel unlock modals
-   - `/app/frontend/src/components/admin/EmailTemplatesManager.jsx` - Template editor UI
+## Database Collections
+- `discovery_leads` - Lead data with email_sequence_* fields
+- `admin_settings` - Auto-approve settings (type: "auto_approve_outreach")
+- `email_templates` - Custom email templates
+- `email_logs` - Email sending logs
 
 ## Pending/Future Tasks
 
 ### P1 - High Priority
-- [ ] **Deploy to production** - Preview works, production needs deployment
-- [ ] Test Digital Twin creation with real videos
-- [ ] E.P.O.S. Automation (Spoiler Strategico, Calendar Unlock)
-- [ ] Clarify "Funnel partner 1: dominio test" requirement (waiting for user input)
-
-### Completed This Session (24 March 2026)
-- [x] **UI Admin Override Dati Partner** - Modal completo con sezioni collassabili
-- [x] **UI Admin Sblocco Funnel** - Modal per sblocco rapido con approvazione legali
-- [x] **Automazione Post-Pagamento €67** - Celery tasks per email + reminder 48h
+- [ ] **Sviluppo Modulo Piano Continuità**: UI admin + Stripe Subscriptions + agente GAIA + notifiche
+- [ ] **Attivazione Partnership**: Sub-account Systeme.io + email onboarding
+- [ ] **Verifica YouTube OAuth**: Test su produzione
 
 ### P2 - Medium Priority
-- [ ] Roadmap "Sblocco Core" Phase 2 (Funnel Deploy)
-- [ ] Partner data sync (users vs partners collections)
-- [ ] Refactor server.py monolith
+- [ ] Filtri Avanzati Discovery Leads (per target_fit_level)
+- [ ] Countdown Scadenza Partnership
+- [ ] Export CSV Partner
 
-### P3 - Low Priority
-- [ ] Dedicated VPS for Ollama (permanent solution)
-- [ ] Roadmap Phase 3 (Marketing Automatico)
-- [ ] Refactor App.js
-
-## Technical Debt
-- `server.py` is a large monolith (13000+ lines)
-- `App.js` uses complex conditional rendering instead of router
-- Partner data split between `users` and `partners` collections
+### P3 - Technical Debt
+- [ ] Refactoring `server.py` monolith
+- [ ] Unificazione collection `users` e `partners`
+- [ ] Documentazione OpenAPI
 
 ## Important Notes
-- **LLM Integration**: Uses `emergentintegrations.llm.chat.LlmChat` with `UserMessage(text=...)` for all LLM calls
-- **Production vs Preview**: Changes on preview need to be deployed to production (app.evolution-pro.it)
+- **Celery Queue**: Usa coda `analisi_automation` per task email e auto-approve
+- **Systeme.io Integration**: Email inviate via tag su Systeme.io, non direttamente
+- **STRIPE_CHECKOUT_URL_ANALISI**: Variabile env per link checkout €67
+- **LLM Integration**: Usa `emergentintegrations.llm.chat.LlmChat` con `UserMessage(text=...)`
+
+## Credentials (Test)
+- **Admin:** claudio.bertogliatti@gmail.com / Evoluzione74
+- **Operations:** antonella@evolution-pro.it / OperationsAnto2024!
