@@ -68,6 +68,7 @@ import { AdminClientiPanel } from "./components/admin/AdminClientiPanel";
 import { AdminClientiAnalisiPanel } from "./components/admin/AdminClientiAnalisiPanel";
 import { GestioneFlussoAnalisi } from "./components/admin/GestioneFlussoAnalisi";
 import { AdminDashboardPro } from "./components/admin/AdminDashboardPro";
+import { EmailTemplatesManager } from "./components/admin/EmailTemplatesManager";
 import { ClienteDashboard } from "./components/cliente/ClienteDashboard";
 import { DashboardPagamento } from "./components/cliente/DashboardPagamento";
 import { DashboardCliente } from "./components/cliente/DashboardCliente";
@@ -1620,6 +1621,7 @@ export default function App() {
             {nav==="copyfactory"&&<CopyFactoryAdmin currentAdmin={adminUser==="antonella"?"Antonella":"Claudio"}/>}
             {nav==="warmode"&&<StefaniaWarMode partners={partners}/>}
             {nav==="compliance"&&<ComplianceDashboard/>}
+            {nav==="email-templates"&&<EmailTemplatesManager/>}
             {nav==="team"&&<TeamEvolution isAdmin={true}/>}
             {nav==="alert"&&<AdminAlerts alerts={alerts} onDismiss={dismissAlert}/>}
           </>}
