@@ -1028,67 +1028,35 @@ async def register(request: RegisterRequest):
         raise HTTPException(status_code=400, detail=str(e))
 
 async def send_partner_welcome_email(email: str, name: str):
-    """Send welcome email to new partner with app instructions
+    """Send welcome email to new partner using editable template
     
     This function:
-    1. Logs the email content to database
+    1. Renders the email from template (editable by admin)
     2. Adds 'welcome_partner' tag to Systeme.io to trigger automation
-    3. Sends notification via Telegram
+    3. Logs the email to database
+    4. Sends notification via Telegram
     """
-    subject = "🎉 Benvenuto in Evolution PRO - Le tue credenziali"
+    from email_templates import get_email_template_manager
     
-    html_content = f"""
-    <html>
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
-        <div style="background: linear-gradient(135deg, #F2C418 0%, #FADA5E 100%); padding: 30px; text-align: center;">
-            <h1 style="color: #1E2128; margin: 0;">Benvenuto in Evolution PRO!</h1>
-        </div>
-        
-        <div style="padding: 30px; background: #fff;">
-            <p>Ciao <strong>{name}</strong>! 👋</p>
-            
-            <p>Il tuo account Evolution PRO è stato creato con successo. Ecco come iniziare:</p>
-            
-            <div style="background: #FAFAF7; padding: 20px; border-radius: 12px; margin: 20px 0;">
-                <h3 style="color: #1E2128; margin-top: 0;">📱 Accedi all'App</h3>
-                <p><strong>URL:</strong> <a href="https://app.evolution-pro.it" style="color: #F2C418;">https://app.evolution-pro.it</a></p>
-                <p><strong>Email:</strong> {email}</p>
-                <p><strong>Password:</strong> quella che hai scelto durante la registrazione</p>
-            </div>
-            
-            <div style="background: #FFF8DC; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #F2C418;">
-                <h3 style="color: #1E2128; margin-top: 0;">🚀 Primi Passi</h3>
-                <ol style="margin: 0; padding-left: 20px;">
-                    <li>Accedi all'app con le tue credenziali</li>
-                    <li>Guarda il <strong>Video di Benvenuto</strong> nella sezione "Parti da Qui"</li>
-                    <li>Compila il tuo <strong>Profilo Hub</strong></li>
-                    <li>Inizia il percorso di <strong>Posizionamento</strong></li>
-                </ol>
-            </div>
-            
-            <div style="background: #1E2128; color: white; padding: 20px; border-radius: 12px; margin: 20px 0;">
-                <h3 style="color: #F2C418; margin-top: 0;">👥 Il Tuo Team</h3>
-                <p style="margin-bottom: 0;">Hai a disposizione un team di <strong>8 agenti AI</strong> coordinati da <strong>Stefania</strong>. Per qualsiasi domanda, parla con lei direttamente dall'app!</p>
-            </div>
-            
-            <p style="color: #666; font-size: 14px;">
-                <strong>Nota:</strong> A breve riceverai una seconda email con le istruzioni per accedere alla piattaforma Systeme.io dove pubblicherai il tuo corso.
-            </p>
-        </div>
-        
-        <div style="background: #FAFAF7; padding: 20px; text-align: center; color: #666; font-size: 12px;">
-            <p>© 2026 Evolution PRO - Tutti i diritti riservati</p>
-            <p>Claudio Bertogliatti & Team</p>
-        </div>
-    </body>
-    </html>
-    """
+    # Get template manager and render email
+    manager = get_email_template_manager(db)
+    
+    try:
+        subject, html_content = await manager.render_template(
+            "partnership_welcome",
+            {"nome": name, "email": email}
+        )
+    except Exception as e:
+        logging.error(f"Template render error: {e}")
+        # Fallback to simple email
+        subject = "Benvenuto in Evolution PRO — ecco come funziona il tuo spazio di lavoro"
+        html_content = f"<p>Ciao {name}, benvenuto in Evolution PRO! Accedi con: {email}</p>"
     
     logging.info(f"Welcome email prepared for {email}")
     
     # Store email in database for tracking
     await db.email_logs.insert_one({
-        "type": "welcome",
+        "type": "partnership_welcome",
         "to": email,
         "name": name,
         "subject": subject,
@@ -1102,11 +1070,12 @@ async def send_partner_welcome_email(email: str, name: str):
     if systeme_api_key:
         try:
             await add_systeme_tag(systeme_api_key, email, "welcome_partner")
+            await add_systeme_tag(systeme_api_key, email, "partnership_attiva")
             await db.email_logs.update_one(
-                {"to": email, "type": "welcome"},
+                {"to": email, "type": "partnership_welcome"},
                 {"$set": {"systeme_tag_added": True, "status": "sent_via_systeme"}}
             )
-            logging.info(f"Welcome tag added to {email} in Systeme.io")
+            logging.info(f"Welcome + partnership tags added to {email} in Systeme.io")
         except Exception as e:
             logging.warning(f"Could not add Systeme.io tag for {email}: {e}")
     
@@ -1115,7 +1084,7 @@ async def send_partner_welcome_email(email: str, name: str):
         telegram_token = os.environ.get('TELEGRAM_BOT_TOKEN')
         admin_chat_id = os.environ.get('TELEGRAM_ADMIN_CHAT_ID')
         if telegram_token and admin_chat_id:
-            message = f"🎉 *Nuovo Partner Registrato!*\n\n👤 *Nome:* {name}\n📧 *Email:* {email}\n\n✅ Email di benvenuto inviata"
+            message = f"🎉 *Nuova Partnership Attivata!*\n\n👤 *Nome:* {name}\n📧 *Email:* {email}\n\n✅ Email di onboarding inviata\n📋 Tag Systeme.io aggiunti"
             async with httpx.AsyncClient() as client:
                 await client.post(
                     f"https://api.telegram.org/bot{telegram_token}/sendMessage",
@@ -13698,6 +13667,88 @@ async def api_get_celery_status():
             "beat_running": False,
             "error": str(e)
         }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# EMAIL TEMPLATES MANAGEMENT (Admin)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@api_router.get("/admin/email-templates")
+async def api_list_email_templates():
+    """List all email templates (default + custom)"""
+    from email_templates import get_email_template_manager
+    manager = get_email_template_manager(db)
+    templates = await manager.list_templates()
+    return {"templates": templates, "total": len(templates)}
+
+
+@api_router.get("/admin/email-templates/{template_id}")
+async def api_get_email_template(template_id: str):
+    """Get a specific email template"""
+    from email_templates import get_email_template_manager
+    manager = get_email_template_manager(db)
+    template = await manager.get_template(template_id)
+    if not template:
+        raise HTTPException(status_code=404, detail="Template non trovato")
+    return template
+
+
+@api_router.put("/admin/email-templates/{template_id}")
+async def api_update_email_template(template_id: str, request: Request):
+    """Update an email template"""
+    from email_templates import get_email_template_manager
+    body = await request.json()
+    
+    manager = get_email_template_manager(db)
+    result = await manager.save_template(
+        template_id=template_id,
+        subject=body.get("subject", ""),
+        body_html=body.get("body_html", ""),
+        description=body.get("description"),
+        variables=body.get("variables")
+    )
+    
+    return {"success": True, "template": result}
+
+
+@api_router.post("/admin/email-templates/{template_id}/reset")
+async def api_reset_email_template(template_id: str):
+    """Reset a template to its default version"""
+    from email_templates import get_email_template_manager
+    manager = get_email_template_manager(db)
+    success = await manager.reset_to_default(template_id)
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Template default non trovato")
+    
+    return {"success": True, "message": f"Template {template_id} ripristinato al default"}
+
+
+@api_router.post("/admin/email-templates/{template_id}/preview")
+async def api_preview_email_template(template_id: str, request: Request):
+    """Preview a template with sample variables"""
+    from email_templates import get_email_template_manager
+    body = await request.json()
+    variables = body.get("variables", {})
+    
+    # Add sample values for missing variables
+    sample_values = {
+        "nome": "Mario Rossi",
+        "email": "mario.rossi@example.com",
+        "bonus_link": "https://app.evolution-pro.it/bonus",
+        "booking_link": "https://calendly.com/evolution-pro/strategia",
+        "booking_available_date": "26 marzo 2026"
+    }
+    for k, v in sample_values.items():
+        if k not in variables:
+            variables[k] = v
+    
+    manager = get_email_template_manager(db)
+    try:
+        subject, html_body = await manager.render_template(template_id, variables)
+        return {"subject": subject, "html_body": html_body, "variables_used": variables}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 

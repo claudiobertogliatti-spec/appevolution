@@ -76,11 +76,25 @@ class LancioActivateRequest(BaseModel):
 async def get_partner_or_404(partner_id: str):
     """Helper per recuperare un partner o lanciare 404"""
     if db is None:
+        logging.error(f"[PARTNER_JOURNEY] Database non inizializzato per partner_id={partner_id}")
         raise HTTPException(status_code=500, detail="Database non inizializzato")
     
+    logging.info(f"[PARTNER_JOURNEY] Cercando partner con id={partner_id}")
     partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    
     if not partner:
+        # Try numeric ID conversion
+        logging.warning(f"[PARTNER_JOURNEY] Partner non trovato con id={partner_id}, provo conversione")
+        try:
+            partner = await db.partners.find_one({"id": int(partner_id)}, {"_id": 0})
+        except ValueError:
+            pass
+    
+    if not partner:
+        logging.error(f"[PARTNER_JOURNEY] Partner non trovato: {partner_id}")
         raise HTTPException(status_code=404, detail="Partner non trovato")
+    
+    logging.info(f"[PARTNER_JOURNEY] Partner trovato: {partner.get('name')}")
     return partner
 
 async def get_llm_chat(session_id: str = None, system_message: str = None):
@@ -355,6 +369,16 @@ async def approve_course_structure(partner_id: str):
 # MASTERCLASS ENDPOINTS
 # ═══════════════════════════════════════════════════════════════════════════════
 
+# IMPORTANTE: Endpoint GET specifici DEVONO essere definiti PRIMA di /{partner_id}
+# altrimenti FastAPI matcha tutto come partner_id
+
+@router.get("/masterclass/genera")
+async def generate_masterclass_script_get(partner_id: str):
+    """Alias GET per generare script masterclass (retrocompatibilità con il brief)"""
+    request = MasterclassGenerateRequest(partner_id=partner_id)
+    return await generate_masterclass_script(request)
+
+
 @router.get("/masterclass/{partner_id}")
 async def get_masterclass(partner_id: str):
     """Recupera i dati della masterclass del partner"""
@@ -398,6 +422,7 @@ async def save_masterclass_blocks(request: MasterclassSaveRequest):
     )
     
     return {"success": True, "message": "Script salvato"}
+
 
 @router.post("/masterclass/generate-script")
 async def generate_masterclass_script(request: MasterclassGenerateRequest):
