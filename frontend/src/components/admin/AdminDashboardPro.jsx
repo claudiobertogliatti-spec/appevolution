@@ -3,7 +3,7 @@ import {
   Users, TrendingUp, Rocket, AlertTriangle, Clock, 
   ChevronRight, Search, Filter, Eye, Phone, CheckCircle2,
   Calendar, FileText, ArrowUpRight, RefreshCw, BarChart3, Timer, Download,
-  Database, Globe, MoreVertical, Settings, Edit3
+  Database, Globe, MoreVertical, Settings, Edit3, Trash2
 } from "lucide-react";
 import { PartnerDetailModal } from "./PartnerDetailModal";
 import { PartnerDataOverrideModal, FunnelUnlockModal } from "./AdminPartnerTools";
@@ -105,11 +105,12 @@ function StatCard({ icon: Icon, label, value, trend, color }) {
   );
 }
 
-function PartnerRow({ partner, onOpenProject, onOverrideData, onUnlockFunnel }) {
+function PartnerRow({ partner, onOpenProject, onOverrideData, onUnlockFunnel, onDelete }) {
   const status = getStatus(partner.lastActivity, partner.phase);
   const progress = getPhaseProgress(partner.phase);
   const expiry = getPartnershipExpiry(partner);
   const [showMenu, setShowMenu] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
   return (
     <tr className="border-b border-[#ECEDEF] hover:bg-[#FAFAF7] transition-all">
@@ -263,6 +264,61 @@ function PartnerRow({ partner, onOpenProject, onOverrideData, onUnlockFunnel }) 
                   <Settings className="w-4 h-4 text-gray-600" />
                   <span className="text-sm text-gray-700">Dettagli Completi</span>
                 </button>
+                <div className="border-t border-gray-100 my-1"></div>
+                <button
+                  onClick={() => {
+                    setShowMenu(false);
+                    setShowDeleteConfirm(true);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-red-50 transition-all"
+                  data-testid={`btn-delete-partner-${partner.id}`}
+                >
+                  <Trash2 className="w-4 h-4 text-red-600" />
+                  <span className="text-sm text-red-600">Elimina Partner</span>
+                </button>
+              </div>
+            </>
+          )}
+          
+          {/* Delete Confirmation Modal */}
+          {showDeleteConfirm && (
+            <>
+              <div 
+                className="fixed inset-0 bg-black/50 z-40"
+                onClick={() => setShowDeleteConfirm(false)}
+              />
+              <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl p-6 z-50 w-96">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900">Elimina Partner</h3>
+                    <p className="text-sm text-gray-500">Questa azione è irreversibile</p>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 mb-6">
+                  Sei sicuro di voler eliminare <strong>{partner.name}</strong>? 
+                  Verranno eliminati anche tutti i documenti e i pagamenti associati.
+                </p>
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all"
+                  >
+                    Annulla
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowDeleteConfirm(false);
+                      onDelete(partner);
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-all"
+                    data-testid={`btn-confirm-delete-${partner.id}`}
+                  >
+                    Elimina
+                  </button>
+                </div>
               </div>
             </>
           )}
@@ -468,6 +524,28 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
   const handlePartnerUpdate = () => {
     // Refresh data after update
     fetchData();
+  };
+  
+  const handleDeletePartner = async (partner) => {
+    try {
+      const response = await fetch(`${API}/api/partners/${partner.id}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        // Refresh data after delete
+        fetchData();
+        // Show success message (optional: use toast)
+        console.log(`Partner ${partner.name} eliminato con successo`);
+      } else {
+        const error = await response.json();
+        console.error('Errore eliminazione:', error);
+        alert(`Errore: ${error.detail || 'Impossibile eliminare il partner'}`);
+      }
+    } catch (error) {
+      console.error('Errore eliminazione partner:', error);
+      alert('Errore di connessione durante l\'eliminazione');
+    }
   };
   
   useEffect(() => {
@@ -735,6 +813,7 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
                           onOpenProject={handleOpenPartnerDetail}
                           onOverrideData={handleOpenOverrideData}
                           onUnlockFunnel={handleOpenFunnelUnlock}
+                          onDelete={handleDeletePartner}
                         />
                       ))
                     )}
