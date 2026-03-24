@@ -5,7 +5,7 @@ Build a multi-faceted AI-powered application for "Evolution PRO" business includ
 - Systeme.io Payment Integration with Stripe
 - High-Conversion Sales Script generation using LLM
 - Avatar & Social Plan Management (HeyGen)
-- Discovery Engine AI for lead generation
+- **Discovery Engine AI with YouTube Data API v3 Integration**
 - "Sblocco Core" Roadmap automation
 - Ollama Integration for local LLM processing
 - **Lead Acquisition Automation with Email Sequence for €67 Analysis Sale**
@@ -21,7 +21,7 @@ Build a multi-faceted AI-powered application for "Evolution PRO" business includ
 ├── backend/           # FastAPI backend
 │   ├── server.py      # Main API server (monolith)
 │   ├── routers/       # API routers
-│   │   ├── discovery_engine.py  # Lead discovery + auto-approve + email sequence
+│   │   ├── discovery_engine.py  # Lead discovery + YouTube API + auto-approve + email sequence
 │   │   ├── stripe_webhook.py    # Stripe webhook + post-payment automation
 │   │   ├── flusso_analisi.py    # Attiva-partnership + Systeme.io integration
 │   │   └── partner_journey.py   # Partner journey with AI generation
@@ -92,8 +92,15 @@ Il flusso era già implementato e funzionante:
 ### Test Results
 - **Iteration 25**: 19/19 tests passed (100%) - Lead auto-approve & email sequence
 - **Iteration 26**: 20/20 tests passed (100%) - Post-payment automation & partnership activation
+- **Iteration 27**: 20/20 tests passed (100%) - YouTube Data API v3 Discovery Integration
 
 ## API Endpoints
+
+### YouTube Discovery (NEW)
+- `POST /api/discovery/search` - Ricerca canali YouTube reali (source: "youtube")
+- `POST /api/youtube-heygen/youtube/upload-client-secret` - Upload credenziali OAuth
+- `GET /api/youtube-heygen/youtube/get-auth-url` - Genera URL autorizzazione OAuth
+- `GET /api/youtube-heygen/youtube/auth-status` - Verifica stato autenticazione
 
 ### Stripe Webhook & Post-Payment
 - `POST /api/webhooks/stripe` - Webhook Stripe (payment_intent.succeeded, checkout.session.completed)
@@ -112,6 +119,10 @@ Il flusso era già implementato e funzionante:
 - `GET /api/admin/partners/export-csv` - Export CSV completo partner
 
 ### Discovery Engine
+- `POST /api/discovery/search` - Ricerca lead (YouTube API v3 integrata)
+- `GET /api/discovery/leads` - Lista lead con filtri (source, status, min_score)
+- `GET /api/discovery/leads/hot` - Lead con score alto
+- `GET /api/discovery/leads/{lead_id}` - Dettaglio singolo lead
 - `GET /api/discovery/settings/auto-approve` - Recupera impostazioni auto-approve
 - `PUT /api/discovery/settings/auto-approve` - Aggiorna impostazioni
 - `POST /api/discovery/trigger-auto-approve` - Trigger manuale
@@ -138,12 +149,13 @@ beat_schedule = {
 ## Pending/Future Tasks
 
 ### P1 - High Priority
-- [ ] **Verifica YouTube OAuth su produzione**: Testare `/api/youtube/auth-url` su dominio reale
 - [ ] **Stripe Subscription per Piano Continuità**: Implementare rinnovo automatico via Stripe subscriptions
+- [ ] **Google Custom Search API**: Integrare per source="google" nella Discovery
 
 ### P2 - Medium Priority
 - [ ] Filtri avanzati Discovery Leads per `target_fit_level`
 - [ ] Countdown scadenza partnership (UI)
+- [ ] Instagram/LinkedIn API integration per Discovery
 
 ### P3 - Technical Debt
 - [ ] Refactoring `server.py` monolith
@@ -151,10 +163,13 @@ beat_schedule = {
 - [ ] Documentazione OpenAPI
 
 ## Important Notes
+- **YouTube Data API v3**: Quota 10.000 unità/giorno. Una ricerca costa ~100 unità.
+- **YouTube OAuth**: Credenziali in `/app/storage/youtube_credentials.pickle`
 - **Celery Queue**: Usa coda `analisi_automation` per task email e auto-approve
 - **Systeme.io Integration**: Email inviate via tag su Systeme.io
 - **GAIA**: Agente AI per check-in mensili sui partner
 - **Fallback Pattern**: Se integrazioni esterne falliscono, il flusso continua con logging
+- **Lead Scoring YouTube**: subscriber_count (1k-10k = +30pt), video frequency (+20pt), keywords (+20pt), email/website (+15pt), IT content (+15pt)
 
 ## Credentials (Test)
 - **Admin:** claudio.bertogliatti@gmail.com / Evoluzione74
