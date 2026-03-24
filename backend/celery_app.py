@@ -86,6 +86,14 @@ celery_app.conf.update(
             'task': 'celery_tasks.process_auto_approve_leads',
             'schedule': 3600.0,  # Every hour - auto-approve hot leads and start sequence
         },
+        'gaia-monthly-check': {
+            'task': 'celery_tasks.gaia_monthly_check',
+            'schedule': 2592000.0,  # Every 30 days (monthly)
+        },
+        'check-piano-continuita-expiry': {
+            'task': 'celery_tasks.check_piano_continuita_expiry',
+            'schedule': 86400.0,  # Every 24 hours (daily)
+        },
     },
 )
 
