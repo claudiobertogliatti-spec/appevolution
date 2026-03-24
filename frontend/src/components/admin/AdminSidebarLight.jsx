@@ -2,34 +2,44 @@ import { useState } from "react";
 import { LayoutDashboard, Users, Film, FileText, BarChart3, MessageCircle, AlertTriangle, Settings, ChevronDown, ChevronRight, LogOut, Database, Edit3, Trophy, Zap, HelpCircle, Webhook, Bot, DollarSign, UsersRound, FileCheck, ClipboardCheck, UserPlus, Unlock, Eye, Mail } from "lucide-react";
 
 const CLAUDIO_NAV = [
-  { id: "overview", label: "Overview", icon: LayoutDashboard },
+  { id: "overview", label: "Overview", icon: LayoutDashboard, 
+    subItems: [
+      { id: "sales-kpi", label: "Sales KPI", icon: DollarSign }
+    ]
+  },
+  { id: "agenti", label: "Agent Hub", icon: Bot },
   { id: "clienti-analisi", label: "Clienti Analisi", icon: UserPlus, dot: true },
   { id: "flusso-analisi", label: "Flusso Analisi", icon: Unlock, dot: true },
-  { id: "partner", label: "Partner", icon: Users },
-  { id: "team", label: "Team Evolution", icon: UsersRound },
-  { id: "agenti", label: "Agent Hub", icon: Bot },
+  { id: "partner", label: "Partner", icon: Users,
+    subItems: [
+      { id: "documenti-partner", label: "Documenti Partner", icon: FileText },
+      { id: "onboarding-admin", label: "Onboarding Docs", icon: FileCheck }
+    ]
+  },
   { id: "approvals", label: "Approvazioni", icon: ClipboardCheck, dot: true },
-  { id: "sales-kpi", label: "Sales KPI", icon: DollarSign, badge: "€7" },
-  { id: "documenti-partner", label: "Documenti Partner", icon: FileText },
-  { id: "onboarding-admin", label: "Onboarding Docs", icon: FileCheck },
-  { id: "youtube-heygen", label: "YouTube × HeyGen", icon: Film },
   { id: "andrea", label: "Editing", icon: Film },
+  { id: "youtube-heygen", label: "YouTube × HeyGen", icon: Film },
   { id: "metriche", label: "Post-Lancio", icon: BarChart3 },
   { id: "stefania", label: "STEFANIA", icon: MessageCircle, dot: true },
   { id: "vista-antonella", label: "Vista Antonella", icon: Eye, special: true },
 ];
 
 const ANTONELLA_NAV = [
-  { id: "overview", label: "Overview", icon: LayoutDashboard },
+  { id: "overview", label: "Overview", icon: LayoutDashboard,
+    subItems: [
+      { id: "sales-kpi", label: "Sales KPI", icon: DollarSign }
+    ]
+  },
+  { id: "agenti", label: "Agent Hub", icon: Bot },
   { id: "clienti-analisi", label: "Clienti Analisi", icon: UserPlus, dot: true },
   { id: "flusso-analisi", label: "Flusso Analisi", icon: Unlock, dot: true },
-  { id: "partner", label: "Partner", icon: Users },
-  { id: "team", label: "Team Evolution", icon: UsersRound },
-  { id: "agenti", label: "Agent Hub", icon: Bot },
+  { id: "partner", label: "Partner", icon: Users,
+    subItems: [
+      { id: "documenti-partner", label: "Documenti Partner", icon: FileText },
+      { id: "onboarding-admin", label: "Onboarding Docs", icon: FileCheck }
+    ]
+  },
   { id: "approvals", label: "Approvazioni", icon: ClipboardCheck, dot: true },
-  { id: "sales-kpi", label: "Sales KPI", icon: DollarSign, badge: "€7" },
-  { id: "documenti-partner", label: "Documenti Partner", icon: FileText },
-  { id: "onboarding-admin", label: "Onboarding Docs", icon: FileCheck },
   { id: "andrea", label: "ANDREA — Editing Feed", icon: Film },
   { id: "copyfactory", label: "STEFANIA — Copy Factory", icon: Edit3 },
 ];
@@ -45,8 +55,27 @@ const TOOLS_NAV = [
 
 export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminUser, alerts, onLogout, onSwitchToPartner, onSwitchToCliente, currentUser }) {
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState(["overview", "partner"]); // Menu espansi di default
   const navItems = adminUser === "antonella" ? ANTONELLA_NAV : CLAUDIO_NAV;
   const isToolNav = TOOLS_NAV.some(t => t.id === currentNav);
+
+  // Funzione per espandere/collassare menu con sub-items
+  const toggleMenu = (menuId) => {
+    setExpandedMenus(prev => 
+      prev.includes(menuId) 
+        ? prev.filter(id => id !== menuId)
+        : [...prev, menuId]
+    );
+  };
+
+  // Verifica se un menu o uno dei suoi sub-items è attivo
+  const isMenuActive = (item) => {
+    if (currentNav === item.id) return true;
+    if (item.subItems) {
+      return item.subItems.some(sub => sub.id === currentNav);
+    }
+    return false;
+  };
 
   return (
     <div className="w-64 min-w-64 flex flex-col h-full border-r overflow-hidden" 
@@ -135,7 +164,9 @@ export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminU
         
         <nav className="space-y-0.5">
           {navItems.map((item) => {
-            const isActive = currentNav === item.id;
+            const isActive = isMenuActive(item);
+            const hasSubItems = item.subItems && item.subItems.length > 0;
+            const isExpanded = expandedMenus.includes(item.id);
             
             // Gestione speciale per "Vista Antonella" - apre in nuova tab
             if (item.special && item.id === "vista-antonella") {
@@ -163,30 +194,64 @@ export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminU
             }
             
             return (
-              <button
-                key={item.id}
-                onClick={() => onNavigate(item.id)}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all"
-                style={{ 
-                  background: isActive ? '#FFF3C4' : 'transparent',
-                  borderLeft: isActive ? '3px solid #F2C418' : '3px solid transparent',
-                  color: isActive ? '#1E2128' : '#3B4049'
-                }}
-              >
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                     style={{ 
-                       background: isActive ? '#F2C418' : '#FFF8DC',
-                       color: isActive ? '#1E2128' : '#C4990A'
-                     }}>
-                  <item.icon className="w-3.5 h-3.5" />
-                </div>
-                <span className={`text-sm flex-1 ${isActive ? 'font-bold' : 'font-medium'}`}>
-                  {item.label}
-                </span>
-                {item.dot && (
-                  <span className="w-2 h-2 rounded-full" style={{ background: '#34C77B' }} />
+              <div key={item.id}>
+                <button
+                  onClick={() => {
+                    if (hasSubItems) {
+                      toggleMenu(item.id);
+                    }
+                    onNavigate(item.id);
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all"
+                  style={{ 
+                    background: isActive ? '#FFF3C4' : 'transparent',
+                    borderLeft: isActive ? '3px solid #F2C418' : '3px solid transparent',
+                    color: isActive ? '#1E2128' : '#3B4049'
+                  }}
+                >
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                       style={{ 
+                         background: isActive ? '#F2C418' : '#FFF8DC',
+                         color: isActive ? '#1E2128' : '#C4990A'
+                       }}>
+                    <item.icon className="w-3.5 h-3.5" />
+                  </div>
+                  <span className={`text-sm flex-1 ${isActive ? 'font-bold' : 'font-medium'}`}>
+                    {item.label}
+                  </span>
+                  {item.dot && (
+                    <span className="w-2 h-2 rounded-full" style={{ background: '#34C77B' }} />
+                  )}
+                  {hasSubItems && (
+                    isExpanded ? <ChevronDown className="w-4 h-4" style={{ color: '#9CA3AF' }} /> : <ChevronRight className="w-4 h-4" style={{ color: '#9CA3AF' }} />
+                  )}
+                </button>
+                
+                {/* Sub-items */}
+                {hasSubItems && isExpanded && (
+                  <div className="ml-5 mt-1 space-y-0.5 border-l pl-3" style={{ borderColor: '#F2C41850' }}>
+                    {item.subItems.map(subItem => {
+                      const isSubActive = currentNav === subItem.id;
+                      return (
+                        <button
+                          key={subItem.id}
+                          onClick={() => onNavigate(subItem.id)}
+                          className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-left transition-all"
+                          style={{ 
+                            background: isSubActive ? '#FFF8DC' : 'transparent',
+                            color: isSubActive ? '#1E2128' : '#5F6572'
+                          }}
+                        >
+                          <subItem.icon className="w-3.5 h-3.5" style={{ color: isSubActive ? '#C4990A' : '#9CA3AF' }} />
+                          <span className={`text-xs ${isSubActive ? 'font-bold' : 'font-medium'}`}>
+                            {subItem.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 )}
-              </button>
+              </div>
             );
           })}
         </nav>
