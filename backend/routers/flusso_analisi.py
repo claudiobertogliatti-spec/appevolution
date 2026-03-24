@@ -18,7 +18,7 @@ STATI:
 - partner_attivo
 """
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
@@ -1438,8 +1438,17 @@ async def conferma_bonifico(user_id: str):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/attiva-partnership/{user_id}")
-async def attiva_partnership(user_id: str):
-    """Attiva la partnership dopo pagamento completato"""
+async def attiva_partnership(user_id: str, background_tasks: BackgroundTasks):
+    """
+    Attiva la partnership dopo pagamento completato.
+    
+    Flow:
+    1. Verifica contratto firmato e pagamento completato
+    2. Crea sub-account Systeme.io (password gestita da Systeme)
+    3. Aggiorna profilo partner con systeme_account_id
+    4. Invia email partnership_welcome
+    5. Notifica Telegram
+    """
     if db is None:
         raise HTTPException(status_code=500, detail="Database non inizializzato")
     
@@ -1457,14 +1466,35 @@ async def attiva_partnership(user_id: str):
     if not pagamento:
         raise HTTPException(status_code=400, detail="Pagamento non completato")
     
-    # Attiva partnership
+    nome = user.get("nome", "")
+    cognome = user.get("cognome", "")
+    email = user.get("email", "")
+    
+    # ═══════════════════════════════════════════════════════════════════
+    # STEP 1: Crea sub-account Systeme.io
+    # ═══════════════════════════════════════════════════════════════════
+    systeme_result = {"success": False, "systeme_contact_id": None, "message": "Non configurato"}
+    try:
+        from systeme_mcp_client import create_partner_subaccount_async
+        systeme_result = await create_partner_subaccount_async(email, nome, cognome)
+        logging.info(f"[ATTIVA_PARTNERSHIP] Systeme.io result: {systeme_result}")
+    except Exception as e:
+        logging.error(f"[ATTIVA_PARTNERSHIP] Systeme.io error: {e}")
+        systeme_result = {"success": False, "systeme_contact_id": None, "message": str(e)}
+    
+    # ═══════════════════════════════════════════════════════════════════
+    # STEP 2: Attiva partnership nel database
+    # ═══════════════════════════════════════════════════════════════════
+    now = datetime.now(timezone.utc)
+    
     await db.users.update_one(
         {"id": user_id},
         {"$set": {
             "stato_cliente": "partner_attivo",
             "user_type": "partner",
             "partnership_attiva": True,
-            "partnership_attivata_at": datetime.now(timezone.utc).isoformat()
+            "partnership_attivata_at": now.isoformat(),
+            "systeme_account_id": systeme_result.get("systeme_contact_id")
         }}
     )
     
@@ -1472,14 +1502,16 @@ async def attiva_partnership(user_id: str):
     partner_data = {
         "id": user_id,
         "user_id": user_id,
-        "name": f"{user.get('nome', '')} {user.get('cognome', '')}",
-        "email": user.get("email"),
+        "name": f"{nome} {cognome}",
+        "email": email,
         "telefono": user.get("telefono"),
         "status": "ACTIVE",
         "phase": "F1",
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": now.isoformat(),
         "contratto_id": contratto.get("id"),
-        "pagamento_id": pagamento.get("id")
+        "pagamento_id": pagamento.get("id"),
+        "systeme_account_id": systeme_result.get("systeme_contact_id"),
+        "systeme_setup_status": "completed" if systeme_result.get("success") else "manual_required"
     }
     
     await db.partners.update_one(
@@ -1488,19 +1520,37 @@ async def attiva_partnership(user_id: str):
         upsert=True
     )
     
-    # Notifica
+    # ═══════════════════════════════════════════════════════════════════
+    # STEP 3: Invia email partnership_welcome
+    # ═══════════════════════════════════════════════════════════════════
+    background_tasks.add_task(
+        send_partnership_welcome_email_task,
+        user_id, email, nome, systeme_result
+    )
+    
+    # ═══════════════════════════════════════════════════════════════════
+    # STEP 4: Notifica Telegram
+    # ═══════════════════════════════════════════════════════════════════
     try:
         import httpx
         telegram_token = os.environ.get('TELEGRAM_BOT_TOKEN')
         admin_chat_id = os.environ.get('TELEGRAM_ADMIN_CHAT_ID')
         if telegram_token and admin_chat_id:
-            nome = user.get("nome", "")
-            cognome = user.get("cognome", "")
-            msg = f"🎉 NUOVO PARTNER ATTIVATO!\n\n👤 {nome} {cognome}\n📧 {user.get('email')}\n💰 €2.790 Partnership\n\n✅ Pronto per onboarding"
+            systeme_status = "✅ Sub-account creato" if systeme_result.get("success") else f"⚠️ Manuale richiesto: {systeme_result.get('message', 'errore')}"
+            msg = f"""🎉 *NUOVO PARTNER ATTIVATO!*
+
+👤 {nome} {cognome}
+📧 {email}
+💰 €2.790 Partnership
+
+*Systeme.io:* {systeme_status}
+
+✅ Email onboarding inviata
+🚀 Pronto per fase F1"""
             async with httpx.AsyncClient() as client_http:
                 await client_http.post(
                     f"https://api.telegram.org/bot{telegram_token}/sendMessage",
-                    json={"chat_id": admin_chat_id, "text": msg}
+                    json={"chat_id": admin_chat_id, "text": msg, "parse_mode": "Markdown"}
                 )
     except Exception as e:
         logging.warning(f"Telegram notification failed: {e}")
@@ -1508,8 +1558,63 @@ async def attiva_partnership(user_id: str):
     return {
         "success": True,
         "stato": "partner_attivo",
+        "systeme_setup": systeme_result,
         "message": "Partnership attivata con successo! Benvenuto in Evolution PRO."
     }
+
+
+async def send_partnership_welcome_email_task(user_id: str, email: str, nome: str, systeme_result: dict):
+    """Background task: Invia email partnership_welcome"""
+    try:
+        from email_templates import get_email_template_manager
+        from motor.motor_asyncio import AsyncIOMotorClient
+        
+        mongo_url = os.environ.get('MONGO_URL')
+        db_name = os.environ.get('DB_NAME', 'evolution_pro')
+        client = AsyncIOMotorClient(mongo_url)
+        db_local = client[db_name]
+        
+        try:
+            template_manager = get_email_template_manager(db_local)
+            
+            # Prepara variabili
+            template_vars = {
+                "nome": nome,
+                "email": email
+            }
+            
+            # Se Systeme.io ha fallito, aggiungi nota manuale
+            if not systeme_result.get("success"):
+                template_vars["nota_manuale"] = f"⚠️ Nota: la creazione automatica del sub-account Systeme.io ha avuto un problema ({systeme_result.get('message')}). Il team ti contatterà per completare la configurazione manualmente."
+            
+            # Render template
+            subject, body_html = await template_manager.render_template("partnership_welcome", template_vars)
+            
+            # Invia tramite Systeme.io tag (attiva automazione email)
+            systeme_api_key = os.environ.get('SYSTEME_API_KEY')
+            if systeme_api_key:
+                from systeme_mcp_client import add_tag_to_contact
+                add_tag_to_contact(email, "partnership_welcome")
+                add_tag_to_contact(email, "partner_attivo")
+            
+            # Log email
+            await db_local.email_logs.insert_one({
+                "type": "partnership_welcome",
+                "to": email,
+                "user_id": user_id,
+                "subject": subject,
+                "sent_at": datetime.now(timezone.utc).isoformat(),
+                "status": "sent_via_systeme",
+                "systeme_result": systeme_result
+            })
+            
+            logging.info(f"[ATTIVA_PARTNERSHIP] Email welcome inviata a {email}")
+            
+        finally:
+            client.close()
+            
+    except Exception as e:
+        logging.error(f"[ATTIVA_PARTNERSHIP] Email welcome error: {e}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

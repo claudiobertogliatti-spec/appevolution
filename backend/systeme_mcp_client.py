@@ -383,3 +383,95 @@ def get_partner_mrr(email: str) -> dict:
         "subscriptions": len(monthly_orders),
         "one_time_purchases": len(one_time)
     }
+
+
+# ─── CREAZIONE SUB-ACCOUNT PARTNER ───────────────────────────────
+
+async def create_partner_subaccount_async(email: str, nome: str, cognome: str = "") -> dict:
+    """
+    Crea un sub-account Systeme.io per un nuovo partner.
+    
+    Systeme.io gestisce la password nativamente - il partner riceverà
+    un'email di attivazione direttamente da Systeme.
+    
+    Returns:
+        dict con success, systeme_contact_id, message
+    """
+    if not is_configured():
+        logger.warning("[SYSTEME] Chiavi non configurate - impossibile creare sub-account")
+        return {
+            "success": False,
+            "systeme_contact_id": None,
+            "message": "Systeme.io API non configurata"
+        }
+    
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            # 1. Verifica se il contatto esiste già
+            search_response = await client.get(
+                f"{SYSTEME_BASE_URL}/contacts?email={email}",
+                headers=_headers()
+            )
+            
+            contact_id = None
+            
+            if search_response.status_code == 200:
+                data = search_response.json()
+                items = data.get("items", [])
+                if items:
+                    contact_id = items[0].get("id")
+                    logger.info(f"[SYSTEME] Contatto esistente trovato: {contact_id}")
+            
+            # 2. Se non esiste, crea il contatto
+            if not contact_id:
+                create_payload = {
+                    "email": email,
+                    "fields": [
+                        {"slug": "first_name", "value": nome},
+                        {"slug": "surname", "value": cognome}
+                    ]
+                }
+                
+                create_response = await client.post(
+                    f"{SYSTEME_BASE_URL}/contacts",
+                    headers=_headers(write=True),
+                    json=create_payload
+                )
+                
+                if create_response.status_code in [200, 201]:
+                    contact_data = create_response.json()
+                    contact_id = contact_data.get("id")
+                    logger.info(f"[SYSTEME] Nuovo contatto creato: {contact_id}")
+                else:
+                    logger.error(f"[SYSTEME] Errore creazione contatto: {create_response.status_code} - {create_response.text}")
+                    return {
+                        "success": False,
+                        "systeme_contact_id": None,
+                        "message": f"Errore creazione contatto: {create_response.text}"
+                    }
+            
+            # 3. Aggiungi tag "partner_evolution"
+            if contact_id:
+                tag_response = await client.post(
+                    f"{SYSTEME_BASE_URL}/contacts/{contact_id}/tags",
+                    headers=_headers(write=True),
+                    json={"tagId": 0}  # Systeme usa tagId numerico, 0 = creerà il tag
+                )
+                
+                # Aggiungi tag tramite nome (metodo alternativo)
+                add_tag_to_contact(email, "partner_evolution")
+                add_tag_to_contact(email, "onboarding_partner")
+            
+            return {
+                "success": True,
+                "systeme_contact_id": str(contact_id) if contact_id else None,
+                "message": "Sub-account creato con successo. Systeme.io invierà l'email di attivazione."
+            }
+            
+    except Exception as e:
+        logger.error(f"[SYSTEME] Errore creazione sub-account: {e}")
+        return {
+            "success": False,
+            "systeme_contact_id": None,
+            "message": f"Errore: {str(e)}"
+        }
