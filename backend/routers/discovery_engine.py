@@ -553,51 +553,64 @@ async def search_leads(query: SearchQuery, background_tasks: BackgroundTasks):
 async def search_youtube_channels(query: SearchQuery) -> dict:
     """
     Ricerca canali YouTube usando YouTube Data API v3.
-    Usa le credenziali OAuth già configurate.
+    
+    Usa API Key se disponibile, altrimenti OAuth credentials.
     """
+    import httpx
     import pickle
     from pathlib import Path
-    from google.oauth2.credentials import Credentials
-    from google.auth.transport.requests import Request
-    from googleapiclient.discovery import build
     
     STORAGE_PATH = Path("/app/storage")
     CREDENTIALS_PATH = STORAGE_PATH / "youtube_credentials.pickle"
-    CLIENT_SECRET_PATH = STORAGE_PATH / "client_secret.json"
     
-    # Load credentials
-    credentials = None
+    # Try API Key first (preferred for public searches)
+    api_key = os.environ.get('YOUTUBE_API_KEY')
+    
+    if api_key:
+        # Use API Key (simpler, no OAuth needed)
+        return await search_youtube_with_api_key(query, api_key)
+    
+    # Fallback to OAuth credentials
     if CREDENTIALS_PATH.exists():
-        with open(CREDENTIALS_PATH, 'rb') as f:
-            credentials = pickle.load(f)
+        return await search_youtube_with_oauth(query, CREDENTIALS_PATH)
     
-    if not credentials or not credentials.valid:
-        if credentials and credentials.expired and credentials.refresh_token:
-            try:
-                credentials.refresh(Request())
-                with open(CREDENTIALS_PATH, 'wb') as f:
-                    pickle.dump(credentials, f)
-            except Exception as e:
-                logger.error(f"[YOUTUBE_SEARCH] Failed to refresh credentials: {e}")
-                raise HTTPException(status_code=401, detail="YouTube OAuth expired. Re-authenticate.")
-        else:
-            raise HTTPException(status_code=401, detail="YouTube OAuth not configured. Use /api/youtube-heygen/youtube/get-auth-url")
+    raise HTTPException(
+        status_code=401, 
+        detail="YouTube API non configurata. Aggiungi YOUTUBE_API_KEY in .env oppure configura OAuth."
+    )
+
+
+async def search_youtube_with_api_key(query: SearchQuery, api_key: str) -> dict:
+    """Ricerca YouTube usando API Key (metodo preferito)"""
+    import httpx
     
-    # Build YouTube service
-    youtube = build('youtube', 'v3', credentials=credentials)
+    logger.info(f"[YOUTUBE_SEARCH] Using API Key for query: {query.query}")
     
-    try:
+    async with httpx.AsyncClient(timeout=30) as client:
         # Step 1: Search for channels
-        search_response = youtube.search().list(
-            part='snippet',
-            q=query.query,
-            type='channel',
-            regionCode='IT',
-            relevanceLanguage='it',
-            maxResults=min(query.max_results, 50)
-        ).execute()
+        search_params = {
+            "part": "snippet",
+            "q": query.query,
+            "type": "channel",
+            "regionCode": "IT",
+            "relevanceLanguage": "it",
+            "maxResults": min(query.max_results, 50),
+            "key": api_key
+        }
         
-        channels_found = search_response.get('items', [])
+        search_response = await client.get(
+            "https://www.googleapis.com/youtube/v3/search",
+            params=search_params
+        )
+        
+        if search_response.status_code != 200:
+            error_detail = search_response.json().get("error", {}).get("message", search_response.text)
+            logger.error(f"[YOUTUBE_SEARCH] API error: {error_detail}")
+            raise HTTPException(status_code=search_response.status_code, detail=f"YouTube API error: {error_detail}")
+        
+        search_data = search_response.json()
+        channels_found = search_data.get('items', [])
+        
         logger.info(f"[YOUTUBE_SEARCH] Found {len(channels_found)} channels for '{query.query}'")
         
         if not channels_found:
@@ -612,147 +625,223 @@ async def search_youtube_channels(query: SearchQuery) -> dict:
         # Step 2: Get detailed info for each channel
         channel_ids = [item['snippet']['channelId'] for item in channels_found]
         
-        channels_response = youtube.channels().list(
-            part='snippet,statistics,brandingSettings',
-            id=','.join(channel_ids)
-        ).execute()
-        
-        channels_details = {ch['id']: ch for ch in channels_response.get('items', [])}
-        
-        # Step 3: Process and save leads
-        new_leads = 0
-        duplicates_skipped = 0
-        hot_leads = 0
-        now = datetime.now(timezone.utc)
-        
-        for item in channels_found:
-            channel_id = item['snippet']['channelId']
-            channel_title = item['snippet']['title']
-            channel_description = item['snippet'].get('description', '')
-            
-            # Get detailed stats
-            details = channels_details.get(channel_id, {})
-            stats = details.get('statistics', {})
-            branding = details.get('brandingSettings', {}).get('channel', {})
-            
-            subscriber_count = int(stats.get('subscriberCount', 0))
-            video_count = int(stats.get('videoCount', 0))
-            view_count = int(stats.get('viewCount', 0))
-            
-            # Skip if outside follower range
-            if subscriber_count < query.min_followers or subscriber_count > query.max_followers:
-                continue
-            
-            # Check for duplicate
-            existing = await db.discovery_leads.find_one({"channel_id": channel_id})
-            if existing:
-                # Update score only
-                new_score = calculate_youtube_lead_score(
-                    subscriber_count, video_count, channel_description, branding
-                )
-                await db.discovery_leads.update_one(
-                    {"channel_id": channel_id},
-                    {"$set": {
-                        "score_total": new_score,
-                        "subscriber_count": subscriber_count,
-                        "video_count": video_count,
-                        "updated_at": now.isoformat()
-                    }}
-                )
-                duplicates_skipped += 1
-                continue
-            
-            # Calculate score
-            score = calculate_youtube_lead_score(
-                subscriber_count, video_count, channel_description, branding
-            )
-            
-            # Extract email and website from description/branding
-            email = extract_email_from_text(channel_description) or extract_email_from_text(branding.get('description', ''))
-            website = branding.get('unsubscribedTrailer', '') or extract_url_from_text(channel_description)
-            
-            # Detect niche
-            niche = detect_niche_from_text(channel_description + ' ' + channel_title)
-            
-            # Determine status
-            status = "hot" if score >= 80 else "nuovo"
-            target_fit = calculate_target_fit(score)
-            
-            # Create lead
-            lead_id = generate_lead_id("youtube", channel_id)
-            lead_doc = {
-                "id": lead_id,
-                "source": "youtube",
-                "platform_username": channel_title,
-                "display_name": channel_title,
-                "canale_url": f"https://youtube.com/channel/{channel_id}",
-                "platform_url": f"https://youtube.com/channel/{channel_id}",
-                "channel_id": channel_id,
-                "subscriber_count": subscriber_count,
-                "followers_count": subscriber_count,  # Alias for compatibility
-                "video_count": video_count,
-                "view_count": view_count,
-                "bio": channel_description[:500],
-                "descrizione": channel_description,
-                "email": email,
-                "website_url": website,
-                "sito_web": website,
-                "niche_detected": niche,
-                "nicchia_rilevata": niche,
-                "score_total": score,
-                "target_fit_level": target_fit,
-                "status": status,
-                "stato": status,
-                "fonte_query": query.query,
-                "outreach_status": "pending",
-                "discovered_at": now.isoformat(),
-                "created_at": now.isoformat(),
-                "updated_at": now.isoformat()
-            }
-            
-            await db.discovery_leads.insert_one(lead_doc)
-            new_leads += 1
-            
-            if score >= 80:
-                hot_leads += 1
-                # Create system alert for hot lead
-                await db.system_alerts.insert_one({
-                    "type": "hot_lead_discovered",
-                    "lead_id": lead_id,
-                    "lead_name": channel_title,
-                    "score": score,
-                    "source": "youtube",
-                    "message": f"🔥 Lead HOT: {channel_title} (Score: {score}) - {subscriber_count:,} iscritti",
-                    "created_at": now.isoformat(),
-                    "read": False
-                })
-        
-        # Update search log
-        await db.discovery_search_logs.update_one(
-            {"query.query": query.query, "query.source": query.source.value},
-            {"$set": {
-                "status": "completed",
-                "completed_at": now.isoformat(),
-                "results": {
-                    "channels_found": len(channels_found),
-                    "new_leads": new_leads,
-                    "duplicates_skipped": duplicates_skipped,
-                    "hot_leads": hot_leads
-                }
-            }}
-        )
-        
-        return {
-            "success": True,
-            "message": f"Trovati {len(channels_found)} canali per '{query.query}'",
-            "new_leads": new_leads,
-            "duplicates_skipped": duplicates_skipped,
-            "hot_leads": hot_leads
+        channels_params = {
+            "part": "snippet,statistics,brandingSettings",
+            "id": ",".join(channel_ids),
+            "key": api_key
         }
         
-    except Exception as e:
-        logger.error(f"[YOUTUBE_SEARCH] Error: {e}")
-        raise HTTPException(status_code=500, detail=f"Errore ricerca YouTube: {str(e)}")
+        channels_response = await client.get(
+            "https://www.googleapis.com/youtube/v3/channels",
+            params=channels_params
+        )
+        
+        if channels_response.status_code != 200:
+            logger.error(f"[YOUTUBE_SEARCH] Channels API error: {channels_response.text}")
+            raise HTTPException(status_code=channels_response.status_code, detail="YouTube channels API error")
+        
+        channels_details = {ch['id']: ch for ch in channels_response.json().get('items', [])}
+        
+        # Step 3: Process and save leads
+        return await process_youtube_channels(query, channels_found, channels_details)
+
+
+async def search_youtube_with_oauth(query: SearchQuery, credentials_path) -> dict:
+    """Ricerca YouTube usando OAuth credentials (fallback)"""
+    import pickle
+    from google.oauth2.credentials import Credentials
+    from google.auth.transport.requests import Request
+    from googleapiclient.discovery import build
+    
+    logger.info(f"[YOUTUBE_SEARCH] Using OAuth for query: {query.query}")
+    
+    # Load credentials
+    with open(credentials_path, 'rb') as f:
+        credentials = pickle.load(f)
+    
+    if not credentials or not credentials.valid:
+        if credentials and credentials.expired and credentials.refresh_token:
+            try:
+                credentials.refresh(Request())
+                with open(credentials_path, 'wb') as f:
+                    pickle.dump(credentials, f)
+            except Exception as e:
+                logger.error(f"[YOUTUBE_SEARCH] Failed to refresh credentials: {e}")
+                raise HTTPException(status_code=401, detail="YouTube OAuth expired. Re-authenticate or add YOUTUBE_API_KEY.")
+        else:
+            raise HTTPException(status_code=401, detail="YouTube OAuth not configured. Add YOUTUBE_API_KEY in .env")
+    
+    # Build YouTube service
+    youtube = build('youtube', 'v3', credentials=credentials)
+    
+    # Step 1: Search for channels
+    search_response = youtube.search().list(
+        part='snippet',
+        q=query.query,
+        type='channel',
+        regionCode='IT',
+        relevanceLanguage='it',
+        maxResults=min(query.max_results, 50)
+    ).execute()
+    
+    channels_found = search_response.get('items', [])
+    logger.info(f"[YOUTUBE_SEARCH] Found {len(channels_found)} channels for '{query.query}'")
+    
+    if not channels_found:
+        return {
+            "success": True,
+            "message": f"Nessun canale trovato per '{query.query}'",
+            "new_leads": 0,
+            "duplicates_skipped": 0,
+            "hot_leads": 0
+        }
+    
+    # Step 2: Get detailed info for each channel
+    channel_ids = [item['snippet']['channelId'] for item in channels_found]
+    
+    channels_response = youtube.channels().list(
+        part='snippet,statistics,brandingSettings',
+        id=','.join(channel_ids)
+    ).execute()
+    
+    channels_details = {ch['id']: ch for ch in channels_response.get('items', [])}
+    
+    # Step 3: Process and save leads
+    return await process_youtube_channels(query, channels_found, channels_details)
+
+
+async def process_youtube_channels(query: SearchQuery, channels_found: list, channels_details: dict) -> dict:
+    """Processa i canali trovati e salva i lead"""
+    
+    new_leads = 0
+    duplicates_skipped = 0
+    hot_leads = 0
+    now = datetime.now(timezone.utc)
+    
+    for item in channels_found:
+        channel_id = item['snippet']['channelId']
+        channel_title = item['snippet']['title']
+        channel_description = item['snippet'].get('description', '')
+        
+        # Get detailed stats
+        details = channels_details.get(channel_id, {})
+        stats = details.get('statistics', {})
+        branding = details.get('brandingSettings', {}).get('channel', {})
+        
+        subscriber_count = int(stats.get('subscriberCount', 0))
+        video_count = int(stats.get('videoCount', 0))
+        view_count = int(stats.get('viewCount', 0))
+        
+        # Skip if outside follower range
+        if subscriber_count < query.min_followers or subscriber_count > query.max_followers:
+            continue
+        
+        # Check for duplicate
+        existing = await db.discovery_leads.find_one({"channel_id": channel_id})
+        if existing:
+            # Update score only
+            new_score = calculate_youtube_lead_score(
+                subscriber_count, video_count, channel_description, branding
+            )
+            await db.discovery_leads.update_one(
+                {"channel_id": channel_id},
+                {"$set": {
+                    "score_total": new_score,
+                    "subscriber_count": subscriber_count,
+                    "video_count": video_count,
+                    "updated_at": now.isoformat()
+                }}
+            )
+            duplicates_skipped += 1
+            continue
+        
+        # Calculate score
+        score = calculate_youtube_lead_score(
+            subscriber_count, video_count, channel_description, branding
+        )
+        
+        # Extract email and website from description/branding
+        email = extract_email_from_text(channel_description) or extract_email_from_text(branding.get('description', ''))
+        website = branding.get('unsubscribedTrailer', '') or extract_url_from_text(channel_description)
+        
+        # Detect niche
+        niche = detect_niche_from_text(channel_description + ' ' + channel_title)
+        
+        # Determine status
+        status = "hot" if score >= 80 else "nuovo"
+        target_fit = calculate_target_fit(score)
+        
+        # Create lead
+        lead_id = generate_lead_id("youtube", channel_id)
+        lead_doc = {
+            "id": lead_id,
+            "source": "youtube",
+            "platform_username": channel_title,
+            "display_name": channel_title,
+            "canale_url": f"https://youtube.com/channel/{channel_id}",
+            "platform_url": f"https://youtube.com/channel/{channel_id}",
+            "channel_id": channel_id,
+            "subscriber_count": subscriber_count,
+            "followers_count": subscriber_count,  # Alias for compatibility
+            "video_count": video_count,
+            "view_count": view_count,
+            "bio": channel_description[:500],
+            "descrizione": channel_description,
+            "email": email,
+            "website_url": website,
+            "sito_web": website,
+            "niche_detected": niche,
+            "nicchia_rilevata": niche,
+            "score_total": score,
+            "target_fit_level": target_fit,
+            "status": status,
+            "stato": status,
+            "fonte_query": query.query,
+            "outreach_status": "pending",
+            "discovered_at": now.isoformat(),
+            "created_at": now.isoformat(),
+            "updated_at": now.isoformat()
+        }
+        
+        await db.discovery_leads.insert_one(lead_doc)
+        new_leads += 1
+        
+        if score >= 80:
+            hot_leads += 1
+            # Create system alert for hot lead
+            await db.system_alerts.insert_one({
+                "type": "hot_lead_discovered",
+                "lead_id": lead_id,
+                "lead_name": channel_title,
+                "score": score,
+                "source": "youtube",
+                "message": f"🔥 Lead HOT: {channel_title} (Score: {score}) - {subscriber_count:,} iscritti",
+                "created_at": now.isoformat(),
+                "read": False
+            })
+    
+    # Update search log
+    await db.discovery_search_logs.update_one(
+        {"query.query": query.query, "query.source": query.source.value},
+        {"$set": {
+            "status": "completed",
+            "completed_at": now.isoformat(),
+            "results": {
+                "channels_found": len(channels_found),
+                "new_leads": new_leads,
+                "duplicates_skipped": duplicates_skipped,
+                "hot_leads": hot_leads
+            }
+        }}
+    )
+    
+    return {
+        "success": True,
+        "message": f"Trovati {len(channels_found)} canali per '{query.query}'",
+        "new_leads": new_leads,
+        "duplicates_skipped": duplicates_skipped,
+        "hot_leads": hot_leads
+    }
 
 
 def calculate_youtube_lead_score(subscriber_count: int, video_count: int, description: str, branding: dict) -> int:
