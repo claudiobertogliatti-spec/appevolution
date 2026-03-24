@@ -268,6 +268,49 @@ Build a multi-faceted AI-powered application for "Evolution PRO" business includ
 - **Admin:** claudio.bertogliatti@gmail.com / Evoluzione74
 - **Operations:** antonella@evolution-pro.it / OperationsAnto2024!
 
+## Session: 24 March 2026 - Automazione Post-Pagamento COMPLETATA
+
+### Implementazione Celery per Automazione €67
+
+1. **Nuovi Task Celery** (`/app/backend/celery_tasks.py`):
+   - `send_analisi_welcome_email(user_id, cliente_id)`: Invia email benvenuto via tag Systeme.io
+   - `send_analisi_48h_reminder(user_id, cliente_id)`: Reminder automatico se call non prenotata
+   - `check_pending_analisi_reminders()`: Job periodico ogni ora per trovare clienti da ricordare
+
+2. **Coda Dedicata**: `analisi_automation`
+   - Evita conflitti con altri worker Redis che condividono lo stesso broker Upstash
+   - Worker configurato in `/app/backend/celery_manager.py`
+
+3. **Endpoint di Test** (`/app/backend/routers/stripe_webhook.py`):
+   - `POST /api/webhooks/test-analisi-payment/{user_id}`: Simula pagamento completo
+   - `GET /api/webhooks/test-automation-status/{user_id}`: Verifica stato automazione
+
+4. **Flusso Automazione**:
+   ```
+   Pagamento Stripe → Webhook → Update DB → Schedule Celery Tasks
+   
+   Task 1 (immediato): send_analisi_welcome_email
+     - Aggiunge tag Systeme.io: "analisi_pagata", "welcome_analisi"
+     - Invia notifica Telegram admin
+     - Aggiorna: email_benvenuto_inviata=true, booking_link, booking_available_at
+     - Crea record in email_logs
+   
+   Task 2 (T+48h): send_analisi_48h_reminder
+     - Verifica se call già prenotata
+     - Se NO: aggiunge tag "reminder_48h_analisi"
+     - Invia notifica Telegram admin
+     - Aggiorna: reminder_48h_inviato=true
+   ```
+
+5. **Fix Tecnico Critico**: Event Loop Closure
+   - Problema: Motor (MongoDB async) richiedeva event loop persistente
+   - Soluzione: `get_db()` ora restituisce `(client, db)` e i task chiudono il client nel finally
+
+### Test Report
+- **Backend Tests**: 13/13 passati (100%)
+- **File Test**: `/app/backend/tests/test_post_payment_automation.py`
+- **Report**: `/app/test_reports/iteration_23.json`
+
 ## Pending/Future Tasks
 
 ### P1 - High Priority
