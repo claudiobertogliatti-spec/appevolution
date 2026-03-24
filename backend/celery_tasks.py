@@ -800,3 +800,251 @@ async def add_systeme_tag_async(api_key: str, email: str, tag_name: str):
             return True
     
     return False
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# LEAD DISCOVERY - EMAIL SEQUENCE FOR €67 ANALYSIS SALE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=120)
+def send_lead_sequence_email(self, lead_id: str, step: int, email: str, nome: str, checkout_url: str):
+    """
+    Invia una email della sequenza di vendita analisi €67 per un lead.
+    
+    Sequenza:
+    - Step 1 (D+0): Presentazione + problema
+    - Step 2 (D+2): Caso studio
+    - Step 3 (D+4): Offerta €67 con CTA
+    - Step 4 (D+7): Reminder finale
+    """
+    try:
+        logger.info(f"[CELERY] Sending lead sequence email {step} to {email} for lead {lead_id}")
+        
+        async def _send_email():
+            client, db = get_db()
+            try:
+                # Check if lead exists and sequence not stopped
+                lead = await db.discovery_leads.find_one({"id": lead_id})
+                if not lead:
+                    logger.warning(f"[CELERY] Lead {lead_id} not found, skipping email")
+                    return {"skipped": True, "reason": "lead_not_found"}
+                
+                if lead.get("email_sequence_stopped"):
+                    logger.info(f"[CELERY] Sequence stopped for lead {lead_id}, skipping email {step}")
+                    return {"skipped": True, "reason": "sequence_stopped"}
+                
+                if lead.get("converted_to_cliente"):
+                    logger.info(f"[CELERY] Lead {lead_id} already converted, skipping email")
+                    return {"skipped": True, "reason": "already_converted"}
+                
+                # Get niche for personalization
+                niche = lead.get("niche_detected") or "business"
+                
+                # Prepare template variables
+                unsubscribe_link = f"https://app.evolution-pro.it/unsubscribe?lead={lead_id}"
+                
+                template_vars = {
+                    "nome": nome,
+                    "niche": niche,
+                    "link_checkout": checkout_url,
+                    "unsubscribe_link": unsubscribe_link
+                }
+                
+                # Get the right template
+                template_id = f"lead_sequence_email_{step}"
+                
+                # Import template manager
+                from email_templates import get_email_template_manager
+                template_manager = get_email_template_manager(db)
+                
+                try:
+                    subject, body_html = await template_manager.render_template(template_id, template_vars)
+                except ValueError as e:
+                    logger.error(f"[CELERY] Template {template_id} not found: {e}")
+                    return {"error": f"Template not found: {template_id}"}
+                
+                # 1. Add tag to Systeme.io
+                systeme_api_key = os.environ.get('SYSTEME_API_KEY')
+                if systeme_api_key:
+                    try:
+                        tag_name = f"lead_sequence_step_{step}"
+                        await add_systeme_tag_async(systeme_api_key, email, tag_name)
+                        logger.info(f"[CELERY] Systeme.io tag '{tag_name}' added for {email}")
+                    except Exception as e:
+                        logger.warning(f"[CELERY] Systeme.io tag failed: {e}")
+                
+                # 2. Update lead record
+                await db.discovery_leads.update_one(
+                    {"id": lead_id},
+                    {"$set": {
+                        f"email_sequence_step_{step}_sent": True,
+                        f"email_sequence_step_{step}_sent_at": datetime.now(timezone.utc).isoformat(),
+                        "email_sequence_step": step,
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                
+                # 3. Log email
+                await db.email_logs.insert_one({
+                    "type": f"lead_sequence_email_{step}",
+                    "to": email,
+                    "lead_id": lead_id,
+                    "subject": subject,
+                    "sent_at": datetime.now(timezone.utc).isoformat(),
+                    "status": "sent_via_systeme",
+                    "template_id": template_id
+                })
+                
+                # 4. Notify admin (only for first and last email)
+                if step == 1 or step == 4:
+                    await send_telegram_notification(
+                        f"📧 *Email Sequenza Lead Step {step}*\n\n"
+                        f"👤 {nome}\n"
+                        f"📧 {email}\n"
+                        f"🎯 Lead ID: `{lead_id}`\n"
+                        f"📝 Step: {step}/4"
+                    )
+                
+                logger.info(f"[CELERY] Lead sequence email {step} sent to {email}")
+                return {"success": True, "step": step, "email": email}
+                
+            finally:
+                client.close()
+        
+        result = run_async(_send_email())
+        return result
+        
+    except Exception as e:
+        logger.error(f"[CELERY] Lead sequence email error for {lead_id} step {step}: {e}")
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=e)
+        raise
+
+
+@shared_task
+def process_auto_approve_leads():
+    """
+    Job periodico: Verifica lead idonei per auto-approvazione e avvia sequenza email.
+    Eseguito ogni ora da Celery Beat.
+    
+    Criteri auto-approvazione:
+    - Score >= threshold configurato (default 80)
+    - target_fit_level == required level (default "altissimo")
+    - Ha email valida
+    - Non ancora in sequenza
+    - Outreach già approvato o in stato pending
+    """
+    try:
+        logger.info("[CELERY] Running auto-approve leads check")
+        
+        async def _process():
+            client, db = get_db()
+            try:
+                # Get settings
+                settings = await db.admin_settings.find_one({"type": "auto_approve_outreach"})
+                if not settings or not settings.get("enabled", True):
+                    logger.info("[CELERY] Auto-approve is disabled")
+                    return {"processed": 0, "reason": "disabled"}
+                
+                min_score = settings.get("min_score", 80)
+                required_fit = settings.get("required_fit_level", "altissimo")
+                
+                logger.info(f"[CELERY] Auto-approve criteria: score >= {min_score}, fit = '{required_fit}'")
+                
+                # Find eligible leads
+                eligible_leads = await db.discovery_leads.find({
+                    "score_total": {"$gte": min_score},
+                    "target_fit_level": required_fit,
+                    "email": {"$ne": None, "$exists": True},
+                    "email_sequence_started": {"$ne": True},
+                    "status": {"$nin": ["rejected", "converted"]}
+                }).to_list(50)
+                
+                logger.info(f"[CELERY] Found {len(eligible_leads)} eligible leads for auto-approve")
+                
+                processed = 0
+                
+                for lead in eligible_leads:
+                    lead_id = lead.get("id")
+                    email = lead.get("email")
+                    nome = lead.get("display_name", "").split()[0] if lead.get("display_name") else "Ciao"
+                    
+                    if not email or not lead_id:
+                        continue
+                    
+                    # Skip placeholder/discovery emails
+                    if "@discovery.evolutionpro.it" in email:
+                        continue
+                    
+                    logger.info(f"[CELERY] Auto-approving lead {lead_id} for email sequence")
+                    
+                    # Update lead status
+                    await db.discovery_leads.update_one(
+                        {"id": lead_id},
+                        {"$set": {
+                            "outreach_status": "approved",
+                            "auto_approved": True,
+                            "auto_approved_at": datetime.now(timezone.utc).isoformat(),
+                            "email_sequence_started": True,
+                            "email_sequence_started_at": datetime.now(timezone.utc).isoformat(),
+                            "email_sequence_step": 1,
+                            "updated_at": datetime.now(timezone.utc).isoformat()
+                        }}
+                    )
+                    
+                    # Get checkout URL
+                    checkout_url = os.environ.get('STRIPE_CHECKOUT_URL_ANALISI', 'https://buy.stripe.com/test_xxx')
+                    
+                    # Schedule email sequence
+                    from celery_app import celery_app
+                    
+                    # Email 1 - Immediate
+                    celery_app.send_task(
+                        'celery_tasks.send_lead_sequence_email',
+                        args=[lead_id, 1, email, nome, checkout_url],
+                        queue='analisi_automation'
+                    )
+                    
+                    # Email 2 - Day +2
+                    celery_app.send_task(
+                        'celery_tasks.send_lead_sequence_email',
+                        args=[lead_id, 2, email, nome, checkout_url],
+                        countdown=172800,  # 2 days
+                        queue='analisi_automation'
+                    )
+                    
+                    # Email 3 - Day +4
+                    celery_app.send_task(
+                        'celery_tasks.send_lead_sequence_email',
+                        args=[lead_id, 3, email, nome, checkout_url],
+                        countdown=345600,  # 4 days
+                        queue='analisi_automation'
+                    )
+                    
+                    # Email 4 - Day +7
+                    celery_app.send_task(
+                        'celery_tasks.send_lead_sequence_email',
+                        args=[lead_id, 4, email, nome, checkout_url],
+                        countdown=604800,  # 7 days
+                        queue='analisi_automation'
+                    )
+                    
+                    processed += 1
+                
+                if processed > 0:
+                    await send_telegram_notification(
+                        f"🤖 *Auto-Approve Leads*\n\n"
+                        f"✅ {processed} lead auto-approvati\n"
+                        f"📧 Sequenze email avviate"
+                    )
+                
+                return {"processed": processed, "min_score": min_score, "required_fit": required_fit}
+                
+            finally:
+                client.close()
+        
+        return run_async(_process())
+        
+    except Exception as e:
+        logger.error(f"[CELERY] Error in auto-approve leads: {e}")
+        return {"error": str(e)}

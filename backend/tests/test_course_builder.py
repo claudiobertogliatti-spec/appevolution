@@ -8,7 +8,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://evolution-pro-pay.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://conversion-workflow.preview.emergentagent.com')
 
 class TestCourseBuilderAPI:
     """Tests for STEFANIA Course Builder API endpoints

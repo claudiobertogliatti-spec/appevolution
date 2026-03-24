@@ -1234,7 +1234,7 @@ async def create_analisi_checkout(user_id: str = None, email: str = None):
         raise HTTPException(status_code=400, detail="Pagamento già effettuato")
     
     # URL di successo e cancellazione
-    frontend_url = os.environ.get('FRONTEND_URL', 'https://evolution-pro-pay.preview.emergentagent.com')
+    frontend_url = os.environ.get('FRONTEND_URL', 'https://conversion-workflow.preview.emergentagent.com')
     
     try:
         checkout = StripeCheckout(api_key=stripe_key)
