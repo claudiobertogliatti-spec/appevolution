@@ -193,17 +193,28 @@ async def create_partner_unified_view(db):
         return False
 
 
+def serialize_doc(doc):
+    """Serialize MongoDB document removing ObjectId"""
+    if doc is None:
+        return None
+    if isinstance(doc, dict):
+        return {k: serialize_doc(v) for k, v in doc.items() if k != '_id'}
+    if isinstance(doc, list):
+        return [serialize_doc(item) for item in doc]
+    return doc
+
+
 async def get_partner_unified(db, partner_id: str):
     """Get unified partner data from the view"""
     partner = await db.partner_unified_view.find_one({"id": partner_id})
-    return partner
+    return serialize_doc(partner)
 
 
 async def get_all_partners_unified(db, filters: dict = None, limit: int = 100):
     """Get all partners from the unified view with optional filters"""
     query = filters or {}
     partners = await db.partner_unified_view.find(query).limit(limit).to_list(limit)
-    return partners
+    return [serialize_doc(p) for p in partners]
 
 
 async def get_partners_by_production_status(db, has_active: bool = True):
