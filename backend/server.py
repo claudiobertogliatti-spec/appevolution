@@ -74,9 +74,12 @@ react_backend_url = os.environ.get('REACT_APP_BACKEND_URL', '')
 if react_backend_url and react_backend_url not in ALLOWED_ORIGINS:
     ALLOWED_ORIGINS.append(react_backend_url)
 
+# If CORS_ORIGINS is '*', allow all origins
+final_cors_origins = ['*'] if cors_env == '*' else ALLOWED_ORIGINS
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=final_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
