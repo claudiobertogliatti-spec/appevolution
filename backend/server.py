@@ -1,7 +1,7 @@
 from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from dotenv import load_dotenv, dotenv_values
+from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
@@ -16,15 +16,8 @@ from emergentintegrations.llm.chat import LlmChat, UserMessage
 from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 import httpx
 
-# Carica .env con override=True per sovrascrivere le variabili di sistema
-load_dotenv(override=True)
-
-# Leggi direttamente dal file .env per chiavi critiche (bypass variabili di sistema)
-_ENV_FILE_VALUES = dotenv_values("/app/backend/.env")
-
-def get_env_override(key: str, default: str = None) -> str:
-    """Legge prima dal file .env, poi dalle variabili d'ambiente"""
-    return _ENV_FILE_VALUES.get(key) or os.environ.get(key, default)
+# Carica .env senza override per non sovrascrivere le variabili Kubernetes in produzione
+load_dotenv(override=False)
 
 # Import custom modules
 from video_processor import video_processor, VideoProcessor
@@ -38,7 +31,6 @@ from agent_hub_service import AgentAnalyticsHub, init_agent_hub
 from analisi_workflow import esegui_workflow_analisi
 
 ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
 
 # MongoDB connection - Read from environment variables
 mongo_url = os.environ.get('MONGO_URL', '')
@@ -1216,7 +1208,7 @@ async def create_analisi_checkout(user_id: str = None, email: str = None):
     """
     Crea una sessione di checkout Stripe per il pagamento dell'Analisi Strategica (€67).
     """
-    stripe_key = get_env_override('STRIPE_API_KEY')
+    stripe_key = os.environ.get('STRIPE_API_KEY')
     if not stripe_key:
         raise HTTPException(status_code=500, detail="Stripe non configurato")
     
@@ -1280,7 +1272,7 @@ async def verify_analisi_payment(user_id: str = None, session_id: str = None):
     Verifica il pagamento e aggiorna lo stato dell'utente.
     Chiamato dopo redirect da Stripe.
     """
-    stripe_key = get_env_override('STRIPE_API_KEY')
+    stripe_key = os.environ.get('STRIPE_API_KEY')
     if not stripe_key:
         raise HTTPException(status_code=500, detail="Stripe non configurato")
     
@@ -12766,7 +12758,7 @@ async def create_avatar_checkout(request: Request, data: AvatarPaymentRequest):
     package = AVATAR_SERVICE_PACKAGES[data.package_id]
     
     # Get Stripe API key
-    stripe_api_key = get_env_override("STRIPE_API_KEY")
+    stripe_api_key = os.environ.get("STRIPE_API_KEY")
     if not stripe_api_key:
         raise HTTPException(status_code=500, detail="Stripe non configurato")
     
@@ -12834,7 +12826,7 @@ async def create_avatar_checkout(request: Request, data: AvatarPaymentRequest):
 async def get_avatar_checkout_status(session_id: str):
     """Get payment status for avatar checkout"""
     
-    stripe_api_key = get_env_override("STRIPE_API_KEY")
+    stripe_api_key = os.environ.get("STRIPE_API_KEY")
     if not stripe_api_key:
         raise HTTPException(status_code=500, detail="Stripe non configurato")
     
@@ -12945,7 +12937,7 @@ async def create_consulenza_checkout(request: Request, data: ConsulenzaPaymentRe
     }
     consultant_name = consultant_names.get(data.consultant_id, data.consultant_id)
     
-    stripe_api_key = get_env_override("STRIPE_API_KEY")
+    stripe_api_key = os.environ.get("STRIPE_API_KEY")
     if not stripe_api_key:
         raise HTTPException(status_code=500, detail="Stripe non configurato")
     
@@ -13027,7 +13019,7 @@ class BrandingPaymentRequest(BaseModel):
 async def create_branding_checkout(request: Request, data: BrandingPaymentRequest):
     """Create Stripe checkout session for branding pack"""
     
-    stripe_api_key = get_env_override("STRIPE_API_KEY")
+    stripe_api_key = os.environ.get("STRIPE_API_KEY")
     if not stripe_api_key:
         raise HTTPException(status_code=500, detail="Stripe non configurato")
     
@@ -13095,7 +13087,7 @@ async def create_branding_checkout(request: Request, data: BrandingPaymentReques
 async def stripe_webhook(request: Request):
     """Handle Stripe webhook events"""
     
-    stripe_api_key = get_env_override("STRIPE_API_KEY")
+    stripe_api_key = os.environ.get("STRIPE_API_KEY")
     if not stripe_api_key:
         raise HTTPException(status_code=500, detail="Stripe non configurato")
     
@@ -13196,7 +13188,7 @@ async def get_servizi_extra_payment_status(session_id: str):
     Verifica lo status di un pagamento per servizi extra (consulenza, branding)
     e sincronizza con Systeme.io se pagato.
     """
-    stripe_api_key = get_env_override("STRIPE_API_KEY")
+    stripe_api_key = os.environ.get("STRIPE_API_KEY")
     if not stripe_api_key:
         raise HTTPException(status_code=500, detail="Stripe non configurato")
     
