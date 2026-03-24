@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Users, Film, FileText, BarChart3, MessageCircle, AlertTriangle, Settings, ChevronDown, ChevronRight, LogOut, Database, Edit3, Trophy, Zap, HelpCircle, Webhook, Bot, DollarSign, UsersRound, FileCheck, ClipboardCheck, UserPlus, Unlock, Eye } from "lucide-react";
+import { LayoutDashboard, Users, Film, FileText, BarChart3, MessageCircle, AlertTriangle, Settings, ChevronDown, ChevronRight, LogOut, Database, Edit3, Trophy, Zap, HelpCircle, Webhook, Bot, DollarSign, UsersRound, FileCheck, ClipboardCheck, UserPlus, Unlock, Eye, Mail } from "lucide-react";
 
 const CLAUDIO_NAV = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -37,6 +37,7 @@ const ANTONELLA_NAV = [
 const TOOLS_NAV = [
   { id: "webhooks", label: "Webhooks", icon: Webhook },
   { id: "systeme", label: "Systeme.io", icon: Database },
+  { id: "email-templates", label: "Template Email", icon: Mail },
   { id: "gaia", label: "Template Funnel", icon: Zap },
   { id: "warmode", label: "Campagne Ads", icon: AlertTriangle },
   { id: "compliance", label: "Documenti & Compliance", icon: FileText },

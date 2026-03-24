@@ -1,10 +1,137 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { 
   Mail, Save, Loader2, CheckCircle, AlertCircle, Eye, RefreshCw,
-  ChevronDown, ChevronUp, Code, FileText, X, Edit3
+  Code, FileText, X, Edit3, Variable, Bold, Italic, Link2, Type
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
+
+// Available variables for templates
+const TEMPLATE_VARIABLES = [
+  { key: "nome", label: "Nome", example: "Mario" },
+  { key: "cognome", label: "Cognome", example: "Rossi" },
+  { key: "email", label: "Email", example: "mario@example.com" },
+  { key: "link_prenotazione", label: "Link Prenotazione", example: "https://calendly.com/..." },
+  { key: "booking_link", label: "Booking Link", example: "https://calendly.com/..." },
+  { key: "booking_available_date", label: "Data Disponibilità", example: "26 marzo 2026" },
+  { key: "bonus_link", label: "Link Bonus", example: "https://app.evolution-pro.it/bonus" }
+];
+
+// Simple Rich Text Editor component
+function SimpleRichEditor({ value, onChange, placeholder }) {
+  const textareaRef = useRef(null);
+  const [selection, setSelection] = useState({ start: 0, end: 0 });
+  
+  const updateSelection = () => {
+    if (textareaRef.current) {
+      setSelection({
+        start: textareaRef.current.selectionStart,
+        end: textareaRef.current.selectionEnd
+      });
+    }
+  };
+  
+  const wrapSelection = (before, after) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = value.substring(start, end);
+    
+    const newText = value.substring(0, start) + before + selectedText + after + value.substring(end);
+    onChange(newText);
+    
+    // Reset cursor position after the wrapped text
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + before.length, end + before.length);
+    }, 0);
+  };
+  
+  const insertAtCursor = (text) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const newText = value.substring(0, start) + text + value.substring(start);
+    onChange(newText);
+    
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + text.length, start + text.length);
+    }, 0);
+  };
+  
+  const insertLink = () => {
+    const url = prompt("Inserisci URL:", "https://");
+    if (url) {
+      const textarea = textareaRef.current;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selectedText = value.substring(start, end) || "Link";
+      
+      const linkHtml = `<a href="${url}" style="color: #F2C418; font-weight: bold;">${selectedText}</a>`;
+      const newText = value.substring(0, start) + linkHtml + value.substring(end);
+      onChange(newText);
+    }
+  };
+  
+  return (
+    <div className="border border-gray-300 rounded-lg overflow-hidden">
+      {/* Toolbar */}
+      <div className="flex items-center gap-1 p-2 bg-gray-50 border-b border-gray-200">
+        <button
+          type="button"
+          onClick={() => wrapSelection('<strong>', '</strong>')}
+          className="p-2 hover:bg-gray-200 rounded transition-all"
+          title="Grassetto"
+        >
+          <Bold className="w-4 h-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => wrapSelection('<em>', '</em>')}
+          className="p-2 hover:bg-gray-200 rounded transition-all"
+          title="Corsivo"
+        >
+          <Italic className="w-4 h-4" />
+        </button>
+        <button
+          type="button"
+          onClick={insertLink}
+          className="p-2 hover:bg-gray-200 rounded transition-all"
+          title="Inserisci Link"
+        >
+          <Link2 className="w-4 h-4" />
+        </button>
+        <div className="w-px h-6 bg-gray-300 mx-1"></div>
+        <button
+          type="button"
+          onClick={() => wrapSelection('<h2 style="color: #1E2128; margin: 0;">', '</h2>')}
+          className="p-2 hover:bg-gray-200 rounded transition-all"
+          title="Titolo"
+        >
+          <Type className="w-4 h-4" />
+        </button>
+      </div>
+      
+      {/* Textarea */}
+      <textarea
+        ref={textareaRef}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onSelect={updateSelection}
+        onClick={updateSelection}
+        onKeyUp={updateSelection}
+        rows={18}
+        className="w-full px-4 py-3 font-mono text-sm resize-none focus:outline-none"
+        placeholder={placeholder}
+        style={{ minHeight: "400px" }}
+      />
+    </div>
+  );
+}
 
 export function EmailTemplatesManager() {
   const [templates, setTemplates] = useState([]);
@@ -112,13 +239,16 @@ export function EmailTemplatesManager() {
   };
   
   const handlePreview = async () => {
-    if (!selectedTemplate) return;
-    
     try {
+      const variables = {};
+      TEMPLATE_VARIABLES.forEach(v => {
+        variables[v.key] = v.example;
+      });
+      
       const response = await fetch(`${API}/api/admin/email-templates/${selectedTemplate.template_id}/preview`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ variables: {} })
+        body: JSON.stringify({ variables })
       });
       
       const data = await response.json();
@@ -129,11 +259,23 @@ export function EmailTemplatesManager() {
     }
   };
   
+  const insertVariable = (varKey) => {
+    setEditBody(prev => prev + `{{${varKey}}}`);
+  };
+  
   const getCategoryColor = (category) => {
     switch (category) {
       case "partnership": return "bg-indigo-100 text-indigo-700";
       case "analisi": return "bg-purple-100 text-purple-700";
       default: return "bg-gray-100 text-gray-700";
+    }
+  };
+  
+  const getCategoryLabel = (category) => {
+    switch (category) {
+      case "partnership": return "Partnership";
+      case "analisi": return "Analisi €67";
+      default: return "Altro";
     }
   };
   
@@ -156,7 +298,7 @@ export function EmailTemplatesManager() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Template Email</h1>
-              <p className="text-gray-500 text-sm">Modifica i template senza bisogno di deploy</p>
+              <p className="text-gray-500 text-sm">Editor visuale - modifica senza deploy</p>
             </div>
           </div>
           <button
@@ -197,22 +339,22 @@ export function EmailTemplatesManager() {
                   key={template.template_id}
                   onClick={() => handleSelectTemplate(template.template_id)}
                   className={`w-full p-4 text-left hover:bg-gray-50 transition-all ${
-                    selectedTemplate?.template_id === template.template_id ? 'bg-indigo-50' : ''
+                    selectedTemplate?.template_id === template.template_id ? 'bg-indigo-50 border-l-4 border-indigo-500' : ''
                   }`}
                   data-testid={`template-item-${template.template_id}`}
                 >
                   <div className="flex items-start justify-between">
-                    <div>
-                      <div className="font-medium text-gray-900 text-sm">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-gray-900 text-sm truncate">
                         {template.template_id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                       </div>
                       <div className="text-xs text-gray-500 mt-1 line-clamp-2">
                         {template.description || template.subject}
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${getCategoryColor(template.category)}`}>
-                        {template.category || "altro"}
+                    <div className="flex flex-col items-end gap-1 ml-2">
+                      <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${getCategoryColor(template.category)}`}>
+                        {getCategoryLabel(template.category)}
                       </span>
                       {template.is_default && (
                         <span className="text-xs text-gray-400">default</span>
@@ -229,14 +371,14 @@ export function EmailTemplatesManager() {
             {selectedTemplate ? (
               <>
                 {/* Editor Header */}
-                <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+                <div className="p-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
                   <div>
                     <h2 className="font-semibold text-gray-800">
                       {selectedTemplate.template_id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                     </h2>
                     <p className="text-sm text-gray-500">{selectedTemplate.description}</p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     {!selectedTemplate.is_default && (
                       <button
                         onClick={handleReset}
@@ -276,13 +418,25 @@ export function EmailTemplatesManager() {
                   </div>
                 </div>
                 
-                {/* Variables Info */}
-                {selectedTemplate.variables?.length > 0 && (
-                  <div className="px-4 py-2 bg-blue-50 border-b border-blue-100">
-                    <span className="text-xs text-blue-700 font-medium">Variabili disponibili: </span>
-                    <span className="text-xs text-blue-600">
-                      {selectedTemplate.variables.map(v => `{{${v}}}`).join(", ")}
-                    </span>
+                {/* Variables Quick Insert */}
+                {editMode && (
+                  <div className="px-4 py-3 bg-blue-50 border-b border-blue-100">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs text-blue-700 font-medium flex items-center gap-1">
+                        <Variable className="w-3.5 h-3.5" />
+                        Inserisci variabile:
+                      </span>
+                      {TEMPLATE_VARIABLES.map(v => (
+                        <button
+                          key={v.key}
+                          onClick={() => insertVariable(v.key)}
+                          className="text-xs px-2 py-1 bg-white text-blue-600 rounded border border-blue-200 hover:bg-blue-100 transition-all"
+                          title={`Esempio: ${v.example}`}
+                        >
+                          {`{{${v.key}}}`}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
                 
@@ -290,13 +444,14 @@ export function EmailTemplatesManager() {
                 <div className="p-4 space-y-4">
                   {/* Subject */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Oggetto</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Oggetto Email</label>
                     {editMode ? (
                       <input
                         type="text"
                         value={editSubject}
                         onChange={e => setEditSubject(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        placeholder="Oggetto dell'email..."
                         data-testid="input-template-subject"
                       />
                     ) : (
@@ -306,29 +461,44 @@ export function EmailTemplatesManager() {
                     )}
                   </div>
                   
-                  {/* Body */}
+                  {/* Body Editor */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Corpo Email (HTML)
                     </label>
+                    
                     {editMode ? (
-                      <textarea
+                      <SimpleRichEditor
                         value={editBody}
-                        onChange={e => setEditBody(e.target.value)}
-                        rows={20}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-indigo-500"
-                        data-testid="input-template-body"
+                        onChange={setEditBody}
+                        placeholder="Scrivi il contenuto dell'email..."
                       />
                     ) : (
-                      <div className="px-3 py-2 bg-gray-50 rounded-lg overflow-x-auto max-h-96">
-                        <pre className="text-xs text-gray-600 whitespace-pre-wrap">
-                          {selectedTemplate.body_html?.substring(0, 2000)}
-                          {selectedTemplate.body_html?.length > 2000 && "..."}
-                        </pre>
+                      <div className="px-3 py-2 bg-gray-50 rounded-lg overflow-auto max-h-96 border border-gray-200">
+                        <div 
+                          className="prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ __html: selectedTemplate.body_html }}
+                        />
                       </div>
                     )}
                   </div>
                 </div>
+                
+                {/* Live Preview when editing */}
+                {editMode && (
+                  <div className="p-4 border-t border-gray-100 bg-gray-50">
+                    <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                      <Eye className="w-4 h-4" />
+                      Anteprima Live
+                    </h3>
+                    <div className="bg-white border border-gray-200 rounded-lg p-4 max-h-64 overflow-auto">
+                      <div 
+                        className="prose prose-sm max-w-none"
+                        dangerouslySetInnerHTML={{ __html: editBody }}
+                      />
+                    </div>
+                  </div>
+                )}
                 
                 {/* Preview Modal */}
                 {previewMode && (
@@ -341,9 +511,12 @@ export function EmailTemplatesManager() {
                       className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden"
                       onClick={e => e.stopPropagation()}
                     >
-                      <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-                        <h3 className="font-semibold text-gray-800">Anteprima Email</h3>
-                        <button onClick={() => setPreviewMode(false)}>
+                      <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+                        <div>
+                          <h3 className="font-semibold text-gray-800">Anteprima Email</h3>
+                          <p className="text-xs text-gray-500">Con variabili di esempio compilate</p>
+                        </div>
+                        <button onClick={() => setPreviewMode(false)} className="p-2 hover:bg-gray-200 rounded-lg">
                           <X className="w-5 h-5 text-gray-500" />
                         </button>
                       </div>
