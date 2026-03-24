@@ -267,6 +267,64 @@ async def youtube_auth_status():
         }
 
 
+from fastapi import UploadFile, File
+
+@router.post("/youtube/upload-client-secret")
+async def upload_youtube_client_secret(file: UploadFile = File(...)):
+    """
+    Carica il file client_secret.json per l'autenticazione OAuth YouTube.
+    
+    Ottieni il file da Google Cloud Console:
+    1. Vai su console.cloud.google.com
+    2. APIs & Services → Credentials
+    3. Create Credentials → OAuth 2.0 Client ID
+    4. Application type: Desktop app
+    5. Download JSON
+    """
+    import json
+    from pathlib import Path
+    
+    # Validate file
+    if not file.filename.endswith('.json'):
+        raise HTTPException(status_code=400, detail="Il file deve essere un JSON")
+    
+    # Read and validate content
+    content = await file.read()
+    try:
+        client_config = json.loads(content)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="JSON non valido")
+    
+    # Validate structure
+    if 'installed' not in client_config and 'web' not in client_config:
+        raise HTTPException(
+            status_code=400, 
+            detail="Struttura client_secret non valida. Deve contenere 'installed' o 'web'."
+        )
+    
+    # Get client info
+    config_type = 'installed' if 'installed' in client_config else 'web'
+    client_id = client_config[config_type].get('client_id', 'N/A')
+    
+    # Save to storage
+    storage_path = Path("/app/storage")
+    storage_path.mkdir(parents=True, exist_ok=True)
+    
+    client_path = storage_path / "client_secret.json"
+    with open(client_path, 'w') as f:
+        json.dump(client_config, f, indent=2)
+    
+    logger.info(f"[YOUTUBE] Client secret uploaded: {client_id[:30]}...")
+    
+    return {
+        "success": True,
+        "message": "client_secret.json caricato con successo",
+        "client_id": client_id[:40] + "...",
+        "config_type": config_type,
+        "next_step": "Vai a GET /api/youtube-heygen/youtube/get-auth-url per generare l'URL di autorizzazione"
+    }
+
+
 @router.get("/youtube/get-auth-url")
 async def get_youtube_auth_url():
     """Genera URL per autorizzazione OAuth YouTube"""
@@ -276,7 +334,7 @@ async def get_youtube_auth_url():
     
     client_path = Path("/app/storage/client_secret.json")
     if not client_path.exists():
-        raise HTTPException(status_code=400, detail="client_secret.json non trovato")
+        raise HTTPException(status_code=400, detail="client_secret.json non trovato. Usa POST /youtube/upload-client-secret per caricarlo.")
     
     with open(client_path, 'r') as f:
         client_config = json.load(f)
