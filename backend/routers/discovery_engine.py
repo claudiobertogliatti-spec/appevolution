@@ -1610,16 +1610,14 @@ async def avvia_outreach(lead_id: str, background_tasks: BackgroundTasks):
         {"$set": update_data}
     )
     
-    # Crea alert per il team
+    # Crea alert per il team (usando il formato corretto del modello Alert)
     await db.alerts.insert_one({
         "id": f"alert_outreach_{lead_id}",
-        "type": "outreach_started",
-        "title": f"Outreach avviato per {lead.get('name', 'Lead')}",
-        "message": f"VALENTINA sta gestendo l'outreach per il lead (score: {lead.get('score_total', 0)})",
-        "lead_id": lead_id,
         "agent": "VALENTINA",
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "read": False
+        "type": "OUTREACH",
+        "msg": f"🎯 Outreach avviato per {lead.get('name', 'Lead')} (score: {lead.get('score_total', 0)})",
+        "partner": lead.get('name', 'Lead'),
+        "time": "adesso"
     })
     
     logger.info(f"[OUTREACH] Avviato outreach per lead {lead_id} - Task VALENTINA creato")

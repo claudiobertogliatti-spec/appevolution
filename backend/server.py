@@ -4428,9 +4428,28 @@ async def get_pending_onboarding_documents():
 # ROUTES - ALERTS
 # =============================================================================
 
-@api_router.get("/alerts", response_model=List[Alert])
+@api_router.get("/alerts")
 async def get_alerts():
+    """Get all alerts - returns list of alert objects"""
     alerts = await db.alerts.find({}, {"_id": 0}).to_list(100)
+    
+    # Filtra alert che hanno i campi richiesti
+    valid_alerts = []
+    for a in alerts:
+        if all(k in a for k in ['id', 'agent', 'type', 'msg', 'partner', 'time']):
+            valid_alerts.append(a)
+        else:
+            # Converti alert con formato vecchio
+            valid_alerts.append({
+                "id": a.get("id", str(uuid.uuid4())),
+                "agent": a.get("agent", "SISTEMA"),
+                "type": a.get("type", "INFO"),
+                "msg": a.get("msg") or a.get("message") or a.get("title", "Alert"),
+                "partner": a.get("partner") or a.get("lead_name", "N/A"),
+                "time": a.get("time") or a.get("created_at", "adesso")
+            })
+    
+    alerts = valid_alerts
     
     # Add automatic alerts for clients who haven't completed questionnaire after 24h
     try:
