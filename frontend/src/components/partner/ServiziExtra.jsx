@@ -1,11 +1,57 @@
-import { useState } from "react";
-import { Sparkles, ShoppingBag, ArrowRight, Lock, Clock, Star, Zap, Video, Play, ChevronRight, Check, Calendar, Palette, User } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Sparkles, ShoppingBag, ArrowRight, Lock, Clock, Star, Zap, Video, Play, ChevronRight, Check, Calendar, Palette, User, CreditCard, Loader2, RefreshCw, Download } from "lucide-react";
 import { AvatarCheckout } from "./AvatarCheckout";
 import { ConsulenzaCheckout } from "./ConsulenzaCheckout";
 import { BrandingCheckout } from "./BrandingCheckout";
+import axios from "axios";
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 // Active services
 const ACTIVE_SERVICES = [
+  {
+    id: "calendario-pro",
+    icon: "📅",
+    title: "Calendario Editoriale PRO",
+    description: "20 contenuti/mese pronti da pubblicare: post, caroselli, reel con AI avatar e video cinematografici.",
+    price: "€297",
+    priceLabel: "/mese",
+    status: "active",
+    badge: "BESTSELLER",
+    color: "#F2C418",
+    features: [
+      "8 post grafici (Canva)",
+      "4 caroselli (Canva)",
+      "4 reel con avatar AI (HeyGen)",
+      "2 reel cinematografici (Kling AI)",
+      "2 reel animati",
+      "Copy e hashtag inclusi",
+      "Consegna entro 48h"
+    ],
+    hasVideo: false,
+    isStripe: true,
+    stripeServiceId: "calendario-pro"
+  },
+  {
+    id: "calendario-starter",
+    icon: "🚀",
+    title: "Pacchetto Starter",
+    description: "Primo mese di prova — 10 contenuti per testare il servizio senza abbonamento.",
+    price: "€97",
+    priceLabel: "una tantum",
+    status: "active",
+    badge: "PROVA",
+    color: "#10B981",
+    features: [
+      "8 post grafici",
+      "2 caroselli",
+      "Copy incluso",
+      "Nessun rinnovo automatico"
+    ],
+    hasVideo: false,
+    isStripe: true,
+    stripeServiceId: "calendario-starter"
+  },
   {
     id: "avatar_pro",
     icon: "🎬",
@@ -15,7 +61,7 @@ const ACTIVE_SERVICES = [
     priceLabel: "per lezione",
     status: "active",
     badge: "POPOLARE",
-    color: "#F2C418",
+    color: "#7B68AE",
     features: ["Qualità 1080p HD", "Espressioni naturali", "Script incluso", "Consegna 48-72h"],
     hasVideo: true
   },
@@ -27,8 +73,8 @@ const ACTIVE_SERVICES = [
     price: "€147",
     priceLabel: "90 minuti",
     status: "active",
-    badge: "NUOVO",
-    color: "#10B981",
+    badge: null,
+    color: "#3B82F6",
     features: ["Analisi strategica", "Piano d'azione", "Sessione registrata", "Con Claudio o Antonella"],
     hasVideo: false
   },
@@ -41,7 +87,7 @@ const ACTIVE_SERVICES = [
     priceLabel: "pacchetto completo",
     status: "active",
     badge: null,
-    color: "#7B68AE",
+    color: "#EC4899",
     features: ["Logo professionale", "Palette colori", "Brand guidelines PDF", "Template social"],
     hasVideo: false
   }
@@ -52,8 +98,56 @@ const COMING_SOON_SERVICES = [];
 
 export function ServiziExtra({ partner, onSelectService }) {
   const [selectedService, setSelectedService] = useState(null);
+  const [purchasing, setPurchasing] = useState(null);
+  const [mieiServizi, setMieiServizi] = useState([]);
+  const [calendari, setCalendari] = useState([]);
   
   const partnerName = partner?.name?.split(" ")[0] || "Partner";
+  const partnerId = partner?.id;
+
+  // Carica servizi attivi e calendari
+  useEffect(() => {
+    if (partnerId) {
+      loadMieiServizi();
+    }
+  }, [partnerId]);
+
+  const loadMieiServizi = async () => {
+    try {
+      const [serviziRes, calendariRes] = await Promise.all([
+        axios.get(`${API}/api/servizi-extra/miei?partner_id=${partnerId}`).catch(() => ({ data: { servizi_attivi: [] } })),
+        axios.get(`${API}/api/servizi-extra/calendario/${partnerId}`).catch(() => ({ data: { calendari: [] } }))
+      ]);
+      setMieiServizi(serviziRes.data.servizi_attivi || []);
+      setCalendari(calendariRes.data.calendari || []);
+    } catch (err) {
+      console.log("Errore caricamento servizi:", err);
+    }
+  };
+
+  const hasServizio = (servizioId) => {
+    return mieiServizi.some(s => s.servizio_id === servizioId && s.stato === "attivo");
+  };
+
+  const handleStripeAcquisto = async (service) => {
+    if (!service.isStripe || !service.stripeServiceId) return;
+    
+    try {
+      setPurchasing(service.id);
+      const res = await axios.post(`${API}/api/servizi-extra/${service.stripeServiceId}/acquista`, {
+        partner_id: partnerId
+      });
+      
+      if (res.data.checkout_url) {
+        window.location.href = res.data.checkout_url;
+      }
+    } catch (err) {
+      console.error("Errore acquisto:", err);
+      alert(err.response?.data?.detail || "Errore durante l'acquisto");
+    } finally {
+      setPurchasing(null);
+    }
+  };
 
   // Se un servizio è selezionato, mostra la pagina dedicata
   if (selectedService === "avatar_pro") {
@@ -111,66 +205,124 @@ export function ServiziExtra({ partner, onSelectService }) {
           </h2>
           
           <div className="space-y-4">
-            {ACTIVE_SERVICES.map(service => (
-              <div 
-                key={service.id}
-                onClick={() => setSelectedService(service.id)}
-                className="bg-white rounded-2xl overflow-hidden cursor-pointer transition-all hover:shadow-lg hover:scale-[1.005]"
-                style={{ border: `2px solid ${service.color}` }}
-                data-testid={`service-card-${service.id}`}
-              >
-                {service.hasVideo ? (
-                  // Layout con video (Avatar PRO)
-                  <div className="grid grid-cols-1 lg:grid-cols-5 gap-0">
-                    <div className="lg:col-span-2 relative bg-gradient-to-br from-[#1E2128] to-[#2D3038] p-4 flex items-center justify-center min-h-[180px]">
-                      {service.badge && (
-                        <div className="absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-bold"
-                             style={{ background: service.color, color: '#1E2128' }}>
-                          {service.badge}
-                        </div>
-                      )}
-                      <div className="w-full max-w-xs">
-                        <div className="relative rounded-xl overflow-hidden shadow-xl" style={{ aspectRatio: '16/9' }}>
-                          <video 
-                            className="w-full h-full object-cover"
-                            autoPlay loop muted playsInline
-                          >
-                            <source src="https://customer-assets.emergentagent.com/job_workflow-sync-6/artifacts/w619n7sa_base.mp4" type="video/mp4" />
-                          </video>
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/10 transition-all">
-                            <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
-                              <Play className="w-4 h-4 ml-0.5" style={{ color: '#1E2128' }} />
+            {ACTIVE_SERVICES.map(service => {
+              const isActive = hasServizio(service.stripeServiceId);
+              const isPurchasing = purchasing === service.id;
+              
+              return (
+                <div 
+                  key={service.id}
+                  onClick={() => {
+                    if (service.isStripe && !isActive) {
+                      handleStripeAcquisto(service);
+                    } else if (!service.isStripe) {
+                      setSelectedService(service.id);
+                    }
+                  }}
+                  className={`bg-white rounded-2xl overflow-hidden transition-all hover:shadow-lg hover:scale-[1.005] ${
+                    isActive ? 'ring-2 ring-green-500' : 'cursor-pointer'
+                  }`}
+                  style={{ border: `2px solid ${service.color}` }}
+                  data-testid={`service-card-${service.id}`}
+                >
+                  {/* Badge Attivo */}
+                  {isActive && (
+                    <div className="absolute top-3 right-3 z-10 px-3 py-1 bg-green-500 text-white rounded-full text-xs font-bold flex items-center gap-1">
+                      <Check className="w-3 h-3" /> Attivo
+                    </div>
+                  )}
+                  
+                  {service.hasVideo ? (
+                    // Layout con video (Avatar PRO)
+                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-0">
+                      <div className="lg:col-span-2 relative bg-gradient-to-br from-[#1E2128] to-[#2D3038] p-4 flex items-center justify-center min-h-[180px]">
+                        {service.badge && (
+                          <div className="absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-bold"
+                               style={{ background: service.color, color: '#1E2128' }}>
+                            {service.badge}
+                          </div>
+                        )}
+                        <div className="w-full max-w-xs">
+                          <div className="relative rounded-xl overflow-hidden shadow-xl" style={{ aspectRatio: '16/9' }}>
+                            <video 
+                              className="w-full h-full object-cover"
+                              autoPlay loop muted playsInline
+                            >
+                              <source src="https://customer-assets.emergentagent.com/job_workflow-sync-6/artifacts/w619n7sa_base.mp4" type="video/mp4" />
+                            </video>
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/10 transition-all">
+                              <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                                <Play className="w-4 h-4 ml-0.5" style={{ color: '#1E2128' }} />
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
+                      <div className="lg:col-span-3 p-5 flex flex-col justify-center">
+                        <ServiceContent service={service} isActive={isActive} isPurchasing={isPurchasing} onBuy={() => service.isStripe && handleStripeAcquisto(service)} />
+                      </div>
                     </div>
-                    <div className="lg:col-span-3 p-5 flex flex-col justify-center">
-                      <ServiceContent service={service} />
+                  ) : (
+                    // Layout senza video
+                    <div className="flex relative">
+                      <div className="w-32 flex-shrink-0 flex items-center justify-center p-4 relative"
+                           style={{ background: `${service.color}15` }}>
+                        {service.badge && (
+                          <div className="absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-bold"
+                               style={{ background: service.color, color: 'white' }}>
+                            {service.badge}
+                          </div>
+                        )}
+                        <span className="text-5xl">{service.icon}</span>
+                      </div>
+                      <div className="flex-1 p-5">
+                        <ServiceContent service={service} isActive={isActive} isPurchasing={isPurchasing} onBuy={() => service.isStripe && handleStripeAcquisto(service)} />
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  // Layout senza video (Consulenza, Branding)
-                  <div className="flex">
-                    <div className="w-32 flex-shrink-0 flex items-center justify-center p-4"
-                         style={{ background: `${service.color}15` }}>
-                      {service.badge && (
-                        <div className="absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-bold"
-                             style={{ background: service.color, color: 'white' }}>
-                          {service.badge}
-                        </div>
-                      )}
-                      <span className="text-5xl">{service.icon}</span>
-                    </div>
-                    <div className="flex-1 p-5">
-                      <ServiceContent service={service} />
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
+
+        {/* I Tuoi Calendari - Solo se hai servizi attivi */}
+        {calendari.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
+              <Calendar className="w-5 h-5" style={{ color: '#F2C418' }} />
+              I Tuoi Calendari
+              <button onClick={loadMieiServizi} className="ml-auto text-sm text-gray-400 hover:text-gray-600">
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            </h2>
+            
+            <div className="space-y-3">
+              {calendari.map(cal => (
+                <div key={cal.id} className="bg-white rounded-xl p-4 border border-gray-200 flex items-center justify-between">
+                  <div>
+                    <div className="font-medium capitalize">📅 {cal.mese?.replace('_', ' ')}</div>
+                    <div className="text-sm text-gray-500">{cal.completati}/{cal.totale} contenuti</div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {cal.stato === "pronto" ? (
+                      <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Pronto</span>
+                    ) : cal.stato === "in_generazione" ? (
+                      <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium flex items-center gap-1">
+                        <Loader2 className="w-3 h-3 animate-spin" /> Generazione...
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">Errore</span>
+                    )}
+                    <button className="p-2 hover:bg-gray-100 rounded-lg">
+                      <Download className="w-4 h-4 text-gray-500" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ═══════════════════════════════════════════════════════════════════════
             SERVIZI IN ARRIVO - Rimosso, tutti i servizi sono attivi
@@ -203,8 +355,10 @@ export function ServiziExtra({ partner, onSelectService }) {
 }
 
 // Componente per il contenuto del servizio
-function ServiceContent({ service }) {
+function ServiceContent({ service, isActive, isPurchasing, onBuy }) {
   const buttonLabels = {
+    "calendario-pro": "Acquista Calendario PRO",
+    "calendario-starter": "Prova Pacchetto Starter",
     avatar_pro: "Scopri Avatar PRO",
     consulenza_marketing: "Prenota Consulenza",
     branding_pack: "Ordina Branding Pack"
@@ -242,14 +396,45 @@ function ServiceContent({ service }) {
         ))}
       </div>
       
-      <button 
-        className="w-full lg:w-auto px-5 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90"
-        style={{ background: service.color, color: service.id === 'avatar_pro' ? '#1E2128' : 'white' }}
-        data-testid={`${service.id}-cta`}
-      >
-        {buttonLabels[service.id] || "Scopri di più"}
-        <ChevronRight className="w-4 h-4" />
-      </button>
+      {isActive ? (
+        <button 
+          className="w-full lg:w-auto px-5 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 bg-green-100 text-green-700 cursor-default"
+          disabled
+        >
+          <Check className="w-4 h-4" />
+          Servizio Attivo
+        </button>
+      ) : (
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            if (service.isStripe && onBuy) {
+              onBuy();
+            }
+          }}
+          disabled={isPurchasing}
+          className="w-full lg:w-auto px-5 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-50"
+          style={{ background: service.color, color: service.id === 'calendario-pro' ? '#1E2128' : 'white' }}
+          data-testid={`${service.id}-cta`}
+        >
+          {isPurchasing ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Attendere...
+            </>
+          ) : service.isStripe ? (
+            <>
+              <CreditCard className="w-4 h-4" />
+              {buttonLabels[service.id] || "Acquista"}
+            </>
+          ) : (
+            <>
+              {buttonLabels[service.id] || "Scopri di più"}
+              <ChevronRight className="w-4 h-4" />
+            </>
+          )}
+        </button>
+      )}
     </>
   );
 }

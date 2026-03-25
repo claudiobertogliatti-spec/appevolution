@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Users, Film, FileText, BarChart3, MessageCircle, AlertTriangle, Settings, ChevronDown, ChevronRight, LogOut, Database, Edit3, Trophy, Zap, HelpCircle, Webhook, Bot, DollarSign, UsersRound, FileCheck, ClipboardCheck, UserPlus, Unlock, Eye, Mail } from "lucide-react";
+import { LayoutDashboard, Users, Film, FileText, BarChart3, MessageCircle, AlertTriangle, Settings, ChevronDown, ChevronRight, LogOut, Database, Edit3, Trophy, Zap, HelpCircle, Webhook, Bot, DollarSign, UsersRound, FileCheck, ClipboardCheck, UserPlus, Unlock, Eye, Mail, Snowflake, ShoppingBag } from "lucide-react";
 
 const CLAUDIO_NAV = [
   { id: "overview", label: "Overview", icon: LayoutDashboard, 
@@ -17,6 +17,8 @@ const CLAUDIO_NAV = [
     ]
   },
   { id: "approvals", label: "Approvazioni", icon: ClipboardCheck, dot: true },
+  { id: "lista-fredda", label: "Lista Fredda", icon: Snowflake, dot: true },
+  { id: "servizi-admin", label: "Servizi Extra", icon: ShoppingBag },
   { id: "andrea", label: "Editing", icon: Film },
   { id: "youtube-heygen", label: "YouTube × HeyGen", icon: Film },
   { id: "metriche", label: "Post-Lancio", icon: BarChart3 },
@@ -40,6 +42,8 @@ const ANTONELLA_NAV = [
     ]
   },
   { id: "approvals", label: "Approvazioni", icon: ClipboardCheck, dot: true },
+  { id: "lista-fredda", label: "Lista Fredda", icon: Snowflake, dot: true },
+  { id: "servizi-admin", label: "Servizi Extra", icon: ShoppingBag },
   { id: "andrea", label: "ANDREA — Editing Feed", icon: Film },
   { id: "copyfactory", label: "STEFANIA — Copy Factory", icon: Edit3 },
 ];

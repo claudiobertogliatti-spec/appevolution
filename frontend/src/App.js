@@ -82,6 +82,8 @@ import { PartnerLogin } from "./components/partner/PartnerLogin";
 import { Homepage } from "./components/Homepage";
 import { MiaAccademiaPage, MieiStudentiPage, ImpegniSettimanaPage, ReportMensilePage, PianoContinuitaBanner } from "./components/partner/PostLancioPages";
 import YouTubeHeygenHub from "./components/admin/YouTubeHeygenHub";
+import ListaFreddaAdmin from "./components/admin/ListaFreddaAdmin";
+import ServiziExtraAdmin from "./components/admin/ServiziExtraAdmin";
 import "./styles/design-system.css";
 
 // Use relative URL in production (same domain), absolute URL in development
@@ -1677,6 +1679,8 @@ export default function App() {
             {/* OrionLeadScoring rimosso - Lead gestiti esclusivamente in Systeme.io */}
             {nav==="approvals"&&<ApprovalDashboard/>}
             {nav==="sales-kpi"&&<SalesKPIDashboard/>}
+            {nav==="lista-fredda"&&<ListaFreddaAdmin/>}
+            {nav==="servizi-admin"&&<ServiziExtraAdmin/>}
             {nav==="partner"&&<AdminPartners partners={partners} onSelect={(p)=>{setSelectedPartner(p);setShowPartnerProfile(true);}} onViewAsPartner={(p)=>{setSelectedPartner(p);setMode("partner");setNav("dashboard");}} onDeletePartner={handleDeletePartner}/>}
             {nav==="documenti-partner"&&<PartnerDocumentsView partners={partners}/>}
             {nav==="onboarding-admin"&&<OnboardingDocumentsAdmin/>}

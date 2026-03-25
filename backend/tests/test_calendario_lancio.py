@@ -6,7 +6,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://evolution-pro-lead.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://partner-dashboard-38.preview.emergentagent.com')
 
 class TestCalendarioLancioEndpoints:
     """Tests for /api/partner-journey/lancio/calendario endpoints"""

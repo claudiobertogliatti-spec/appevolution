@@ -363,12 +363,12 @@ Genera uno script in 8 BLOCCHI in formato JSON:
             "titolo": "DISCOVERY - Scavare nel Problema",
             "obiettivo": "Far emergere il VERO problema (non quello dichiarato)",
             "domande_spin": [
-                "Domanda SITUATION specifica",
-                "Domanda PROBLEM specifica",
-                "Domanda IMPLICATION specifica"
+                "Domanda SITUATION: basata sulla nicchia '{cliente_target}' - chiedi della sua situazione attuale nel business",
+                "Domanda PROBLEM: fai emergere i problemi reali che sta affrontando nel raggiungere '{risultato}'",
+                "Domanda IMPLICATION: amplifica le conseguenze di questi problemi se non risolti"
             ],
             "cosa_ascoltare": "Segnali verbali e non verbali da cogliere",
-            "gancio_emotivo": "Frase per connettersi al suo dolore"
+            "gancio_emotivo": "Frase per connettersi al suo dolore specifico legato a {expertise}"
         }},
         {{
             "numero": 3,
