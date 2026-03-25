@@ -189,6 +189,40 @@ beat_schedule = {
 
 ## Recent Updates
 
+### Session: 24 March 2026 - Discovery Outreach Automatico Lead Hot
+
+#### ✅ Implementato sistema di outreach automatico per lead hot
+
+**1. Endpoint `POST /api/discovery/leads/{id}/avvia-outreach`**
+- Cambia `outreach_status` da `pending` a `contacted`
+- Logga data primo contatto (`first_contact_at`)
+- Crea task per VALENTINA (agente outreach)
+- Genera messaggio in background se non presente
+
+**2. Job Celery giornaliero `daily_hot_leads_outreach`**
+- Esegue ogni mattina alle 9:00
+- Processa max 5 lead hot/giorno (per non bruciare la pipeline)
+- Crea task VALENTINA automaticamente
+- Invia notifica Telegram con risultati
+
+**3. Endpoint `GET /api/discovery/leads/hot` migliorato**
+- Filtro per lead con email disponibile (`only_with_email=true`)
+- Filtro per `outreach_status`
+- Statistiche: total_hot, pending_outreach, contacted
+- Min score default: 80
+
+**4. Stub per integrazioni social (future - Apify)**
+- `GET /api/discovery/integrations/status` - stato integrazioni
+- `POST /api/discovery/integrations/linkedin/search` - stub
+- `POST /api/discovery/integrations/instagram/search` - stub
+- `POST /api/discovery/integrations/facebook/search` - stub
+- `POST /api/discovery/integrations/google/search` - stub
+
+**File modificati**:
+- `/app/backend/routers/discovery_engine.py`
+- `/app/backend/celery_tasks.py`
+- `/app/backend/celery_app.py`
+
 ### Session: 24 March 2026 - Fix Critici Pre-Lancio
 
 #### ✅ Fix 1: Flusso Cliente €67 (PRIORITÀ ASSOLUTA)
