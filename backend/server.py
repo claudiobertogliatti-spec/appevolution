@@ -50,8 +50,8 @@ agent_hub = init_agent_hub(db)
 # Emergent LLM Key
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
 
-# Create the main app
-app = FastAPI(title="Evolution PRO OS", version="3.0")
+# Create the main app - disable redirect_slashes to prevent 307 redirects losing auth headers
+app = FastAPI(title="Evolution PRO OS", version="3.0", redirect_slashes=False)
 
 # CORS Configuration - MUST be before routers
 # Allow specific origins for production + wildcard for development
