@@ -1,172 +1,173 @@
 <analysis>**original_problem_statement:**
-L'utente vuole costruire e migliorare Evolution PRO, un'applicazione di gestione aziendale basata su AI. Le richieste recenti si sono concentrate su:
-1.  **Automazione Acquisizione Lead**: Completare l'automazione dei lead con una sequenza di email di vendita, integrandola con la ricerca reale di canali tramite la YouTube Data API v3. Inizialmente implementato con OAuth, è stato corretto per utilizzare una API Key dedicata.
-2.  **Import CSV**: Aggiungere la possibilità di importare contatti sia nella sezione Discovery Lead che in una nuova sezione Lista Fredda.
-3.  **Flusso Lista Fredda**: Implementare un nuovo flusso completo per la gestione di una lista di contatti freddi, che include importazione, webhook per il tracciamento di aperture/click da Systeme.io e l'attivazione di task automatici per l'agente AI STEFANIA tramite Celery.
-4.  **Fix e Deployment**: Risolvere vari bug e problemi che impedivano il deployment, come la configurazione di CORS e , e fixare endpoint  non funzionanti.
-5.  **Attivazione Partnership**: Automatizzare la creazione di un sub-account in Systeme.io quando una partnership viene attivata.
-6.  **Sviluppo Piano Continuità**: Aggiungere le fondamenta backend (task Celery per check e notifiche, endpoint admin) per la gestione del piano di abbonamento.
-7.  **Funzionalità UI**: Aggiungere la possibilità di eliminare un partner da tutte le viste della pipeline.
+L'utente vuole continuare a costruire Evolution PRO, un'applicazione di gestione aziendale basata su AI. Le richieste sono state consolidate in un brief completo che delinea diversi deploy:
+
+1.  **Deploy 1 - Fix Critici (PARTE A)**: Risolvere tutti gli endpoint che restituiscono 404 o 405, correggere le query delle statistiche che restituiscono zero e sistemare la formattazione di un prompt per Claude.
+2.  **Deploy 2 - Analisi PDF e Lista Fredda (PARTI B & E)**:
+    *   **Canva PDF**: Integrare Canva per generare un PDF visivo dell'analisi consulenziale, caricarlo su Cloudinary e salvare l'URL.
+    *   **Lista Fredda**: Implementare un flusso completo per la gestione di una lista di contatti freddi, inclusa importazione CSV, webhook di tracking da Systeme.io, trigger automatici per l'agente AI STEFANIA e una UI admin per la gestione.
+3.  **Deploy 3 - Calendario Editoriale e Brand Kit (PARTI C & D)**:
+    *   **Calendario Editoriale**: Creare un endpoint che genera un piano di contenuti mensile utilizzando Claude, per poi produrre gli asset visivi (immagini, caroselli, video) tramite Canva, HeyGen e la nuova integrazione **Kling AI**.
+    *   **Brand Kit**: Automatizzare la creazione di design template su Canva per ogni nuovo partner.
+4.  **Servizi Extra (PARTE F)**: Aggiungere una sezione nella dashboard partner per acquistare servizi aggiuntivi (come il Calendario Editoriale PRO) tramite Stripe, con un flusso di acquisto completo e gestione dei rinnovi.
+
+L'utente ha anche segnalato un bug critico in produzione dove la dashboard non caricava più i partner e il form di creazione non funzionava.
 
 **User's preferred language**: Italian. The next agent **MUST** respond in **Italian**.
 
 **what currently exists?**
-L'applicazione è un sistema full-stack React/FastAPI/MongoDB. Sono state implementate e corrette diverse funzionalità:
--   **YouTube Discovery Engine**: L'endpoint  ora utilizza la YouTube Data API v3 con una **API Key** per cercare canali reali, calcolare uno score, salvare i lead nel database con deduplicazione su  e marcare automaticamente i lead hot (score ≥ 80).
--   **Import CSV**: Sono stati creati endpoint per l'importazione di contatti tramite file CSV sia per il Discovery Engine () che per la nuova sezione Lista Fredda ().
--   **Flusso Lista Fredda (Backend)**: È stato creato un nuovo router  che gestisce l'importazione, le statistiche () e un webhook () per tracciare aperture e click da Systeme.io, aggiornando lo stato dei contatti (es. ). Sono stati aggiunti anche i task Celery per i trigger di STEFANIA.
--   **Fix Pre-Deployment**: Sono stati risolti i blocker critici in  (CORS e ) che impedivano il deploy. L'applicazione è ora considerata pronta per il deploy.
--   **Fix Endpoint**: Gli endpoint , , e  che restituivano 404 sono stati registrati e ora funzionano.
--   **Delete Partner (UI)**: È stata aggiunta la funzionalità di eliminazione di un partner, con modale di conferma, nella tabella della pipeline principale presente in .
+L'applicazione è un sistema full-stack React/FastAPI/MongoDB.
+
+*   **Fix Critici (Produzione)**: È stato risolto un bug che impediva il caricamento della dashboard in produzione. La causa era un Pydantic  sull'endpoint , causato da un alert con formato non valido. Il fix ha rimosso la validazione stretta del modello di risposta e ha aggiunto la logica di conversione per gli alert con formato vecchio.
+*   **Form Nuovo Partner**: Il form in  è stato corretto. Ora esegue correttamente le chiamate API per creare il partner () e il relativo account utente (), mostrando anche lo stato di caricamento.
+*   **Fix Prompt SPIN (A6)**: Il prompt per Claude che genera le domande SPIN in  è stato corretto per utilizzare il contesto della nicchia del cliente.
+*   **Integrazione Stripe (Parte F)**: Sono stati creati i prodotti e i prezzi su Stripe per i servizi Calendario Editoriale PRO (€297/mese) e Pacchetto Starter (€97 una tantum). I relativi  sono stati salvati nel file .
+*   **Backend Servizi Extra e Media Stubs (Parti B, C, D, F)**:
+    *   È stato creato e registrato il router  per gestire l'acquisto e la visualizzazione dei servizi extra.
+    *   È stato creato e registrato il router  che contiene gli endpoint **stub** (pronti per l'implementazione) per le integrazioni con Canva e Kling.
+*   **Frontend Lista Fredda e Servizi Extra (Parti E4, F)**:
+    *   È stato creato il componente , che mostra statistiche e la lista dei contatti.
+    *   È stato creato il componente  per la gestione dei servizi dal lato admin.
+    *   Il componente  è stato aggiornato per mostrare i nuovi servizi e gestire il checkout con Stripe.
+*   **Sidebar Admin**: La sidebar è stata aggiornata per includere le nuove sezioni Lista Fredda e Servizi Extra.
 
 **Last working item**:
--   Last item agent was working: L'agente stava aggiungendo la funzionalità di eliminazione dei partner anche nella seconda vista della Pipeline Partner, come richiesto dall'utente tramite uno screenshot. Questa vista sembra essere un componente diverso da . L'agente stava cercando di identificare il file e il componente corretti per implementare la modifica.
--   Status: **IN PROGRESS**
--   Agent Testing Done: N
--   Which testing method agent to use? screenshot tool. L'agente deve aggiungere il pulsante, la modale di conferma e la logica di eliminazione, per poi verificare visivamente che l'interfaccia sia corretta e che il partner venga rimosso dalla lista.
+-   Last item agent was working: L'agente ha completato l'implementazione della **Parte F (Servizi Extra)** e della **Parte E4 (UI Lista Fredda)**, inclusi i backend di base, la creazione dei prodotti su Stripe e lo sviluppo delle interfacce frontend. Ha anche implementato gli **stub** per le future integrazioni media (Parti B, C, D) e ha corretto il **prompt SPIN (Fix A6)**.
+-   Status: **USER VERIFICATION PENDING**
+-   Agent Testing Done: Y
+-   Which testing method agent to use? manual testing by curl. The agent has already verified the new UI components with screenshots. The next step is to test the backend logic, especially the Stripe checkout flow which is now implemented.
 -   User Testing Done: N
 
 **All Pending/In progress Issue list**:
--   Issue 1: Aggiungere la funzionalità di eliminazione del partner alla seconda vista Pipeline Partner. (P0)
-
-Issues Detail:
--   **Issue 1: Aggiungere la funzionalità di eliminazione del partner alla seconda vista Pipeline Partner. (P0)**
-    -   Attempted fixes: L'agente ha cercato in  (dove ha già implementato la funzione) e poi ha iniziato a ispezionare  sospettando che la tabella fosse renderizzata lì. L'indagine si è interrotta mentre cercava di localizzare il componente esatto.
-    -   Next debug checklist:
-        1.  Analizzare il file . È probabile che la logica per la vista partner sia contenuta lì, forse in un componente  renderizzato condizionalmente (linee 333-387 sono state identificate come un punto di interesse).
-        2.  Replicare la logica di eliminazione già implementata in : aggiungere l'opzione Elimina al menu dropdown, la modale di conferma e la funzione  che chiama l'endpoint backend .
-        3.  Passare la funzione di callback per l'eliminazione come prop al componente che renderizza la riga del partner.
-    -   Why fix this issue and what will be achieved with the fix? Per fornire una user experience consistente, permettendo all'admin di eliminare i partner da tutte le viste in cui sono elencati.
-    -   Status: IN PROGRESS
-    -   Is recurring issue? N
-    -   Should Test frontend/backend/both after fix? frontend
+Nessun problema o bug è attualmente in corso. Tutti i problemi segnalati sono stati risolti.
 
 **In progress Task List**:
--   Task 1: Aggiungere la funzionalità di eliminazione del partner alla seconda vista Pipeline Partner. (P0)
-
-Task Detail:
--   **Task 1: Aggiungere la funzionalità di eliminazione del partner alla seconda vista Pipeline Partner. (P0)**
-    -   Where to resume: Nel file , identificando il componente che renderizza la tabella dei partner e aggiungendo la funzionalità di eliminazione.
-    -   What will be achieved with this? Coerenza funzionale tra le diverse sezioni dell'interfaccia admin.
-    -   Status: IN PROGRESS
-    -   Should Test frontend/backend/both after fix? frontend
+Nessun task è attualmente in corso.
 
 **Upcoming and Future Tasks**
--   **Upcoming Tasks:**
-    *   **P1: UI per Lista Fredda**: Sviluppare la sezione UI nella dashboard admin per visualizzare le statistiche della Lista Fredda e la tabella dei contatti caldi ( del brief).
-    *   **P1: UI per Piano Continuità**: Sviluppare l'interfaccia admin per visualizzare e gestire i piani di continuità dei partner.
-    *   **P2: Stripe Subscription per Piano Continuità**: Implementare la logica per il rinnovo automatico degli abbonamenti tramite Stripe.
-    *   **P2: Filtri Avanzati Discovery Leads**: Implementare i filtri UI per la lista dei lead scoperti.
-    *   **P2: Countdown Scadenza Partnership**: Aggiungere un indicatore visivo di scadenza nella dashboard admin.
--   **Future Tasks:**
+*   **Upcoming Tasks:**
+    *   **P0: Completare Backend Lista Fredda (Parte E)**: Implementare la logica mancante nel router  e in .
+        *   **E2**: Webhook  per gestire  e  da Systeme.io e aggiornare lo stato del contatto.
+        *   **E3**: Trigger Celery che, dopo 48h da un'apertura senza click, crea un task per STEFANIA.
+    *   **P1: Implementare Logica Stub (Parti B, C, D)**: Popolare gli endpoint stub nel router  con logica di business e risposte mockate, in attesa delle API key.
+        *   **Parte B**: Logica per la generazione del PDF con Canva (mock).
+        *   **Parte C**: Logica per la generazione del calendario editoriale (mock per Canva e Kling).
+        *   **Parte D**: Logica per la creazione del Brand Kit (mock).
+    *   **P2: Testare Flusso Acquisto Servizi Extra (Parte F)**: Verificare end-to-end il flusso di acquisto tramite Stripe, il webhook e l'attivazione del servizio nella collection .
+
+*   **Future Tasks:**
+    *   Ottenere le API key per Canva e Kling dall'utente e implementare le integrazioni reali.
     *   Refactoring del monolite .
-    *   Unificazione delle collection MongoDB ( e ).
+    *   Unificazione delle collection MongoDB.
     *   Creazione documentazione OpenAPI.
-    *   Integrazione API di Instagram/LinkedIn.
 
 **Completed work in this session**
--   **YouTube Discovery Integration (con API Key)**: Aggiornato  per utilizzare  per le ricerche, con fallback a OAuth.
--   **Flusso Lista Fredda (Backend)**: Creato  per gestire import CSV, statistiche e webhook da Systeme.io. Aggiunti task Celery correlati in .
--   **Import CSV per Discovery**: Aggiunto l'endpoint  in .
--   **Fix Endpoint **: Risolto errore 404 per , ,  in .
--   **Attivazione Partnership (Systeme.io)**: Completata la logica per creare sub-account e inviare email di benvenuto in  e .
--   **Backend per Piano Continuità e Export CSV**: Aggiunti task Celery e endpoint admin in  e .
--   **Fix Deployment Blockers**: Risolti problemi con  e CORS in .
--   **Funzionalità Elimina Partner (Dashboard)**: Aggiunta l'opzione di eliminazione nella pipeline partner principale in .
--   **Verifica **: Confermato che l'endpoint  funziona e restituisce i dati correttamente.
+-   **Fix Bug Produzione**: Risolto il crash della dashboard in produzione causato da un errore di validazione sull'endpoint .
+-   **Fix Form Nuovo Partner**: Corretto il form di creazione partner che non salvava i dati nel database.
+-   **Fix Prompt SPIN**: Migliorato il prompt per la generazione delle domande di vendita.
+-   **Sidebar Reorganization**: La sidebar admin è stata riorganizzata con un nuovo ordine e sottomenù.
+-   **Delete Partner Feature**: Aggiunta la funzionalità di eliminazione partner in tutte le viste della pipeline.
+-   **Critical Pre-launch Fixes**: Risolti tutti i fix critici della Parte A del brief (endpoint 404, stats a zero, metodo HTTP 405).
+-   **Discovery Outreach Automation**: Implementato il sistema di outreach automatico per i lead hot tramite un nuovo endpoint e un job Celery.
+-   **Stripe Product Creation**: Creati i prodotti e i prezzi per i servizi extra su Stripe.
+-   **Implementazione Servizi Extra (Parte F)**: Creato il backend e il frontend per la vendita di servizi aggiuntivi.
+-   **Implementazione UI Lista Fredda (Parte E4)**: Creata la UI admin per la gestione della lista fredda.
+-   **Creazione Stub per Integrazioni Media**: Predisposto il backend con router ed endpoint stub per Canva e Kling.
 
 **Earlier issues found/mentioned but not fixed**
--   **Architectural Flaw**: La frammentazione dei dati dei partner tra più collection (, , etc.) persiste. La  è un palliativo.
--   **Technical Debt**: Il file  è un monolite che necessita di refactoring.
+-   **Technical Debt**: Il file  rimane un monolite che necessita di un refactoring significativo. La logica di business è sparsa e andrebbe modularizzata meglio.
+-   **Architectural Flaw**: La duplicazione dei dati dei partner tra le collection  e  persiste e dovrebbe essere risolta con una migrazione a un modello dati unificato.
 
 **Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork**: Problemi di sincronizzazione dei dati dei partner.
--   **Recurrence count**: Alto
--   **Status**: MITIGATED. La  risolve la consistenza in lettura, ma non il problema di fondo.
+-   Nessuna ricorrenza nota dall'ultimo fork.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   External API Integration (YouTube Data API v3, Systeme.io)
--   FastAPI Routers and Background Tasks
--   Celery for scheduled and background jobs
--   React State Management (useState, useEffect) and event handling
--   File Uploads in FastAPI (CSV)
--   MongoDB data modeling and async queries with 
--   Authentication (API Key vs OAuth)
+-   FastAPI Routers
+-   Pydantic data validation and error handling
+-   React State Management (useState, useEffect)
+-   Stripe API (Products, Prices, Checkout)
+-   Celery & Celery Beat for background/scheduled jobs
+-   Stubbing/Mocking external APIs for development
 
 **key DB schema**
--   **lista_fredda** (new collection): 
--   **discovery_leads** (schema modified): Aggiunti campi specifici di YouTube come , , .
+-   **servizi_extra** (stub): 
+-   **partner_servizi** (stub): 
+-   **calendari_editoriali** (stub): 
+-   **lista_fredda** (schema definito): 
 
 **changes in tech stack**
--   Nessuna modifica allo stack tecnologico principale.
+-   Nessuna modifica allo stack, ma utilizzo più approfondito dell'API di Stripe.
 
 **All files of reference**
--   **/app/frontend/src/App.js**: File da modificare per la prossima attività.
--   **/app/frontend/src/components/admin/AdminDashboardPro.jsx**: Contiene l'implementazione di riferimento per la funzionalità di eliminazione.
--   **/app/backend/routers/lista_fredda.py**: Nuovo modulo principale per la gestione della lista fredda.
--   **/app/backend/routers/discovery_engine.py**: Contiene la logica per la ricerca YouTube e l'import CSV.
--   **/app/backend/server.py**: File monolitico che contiene molti endpoint e la logica di registrazione dei router.
--   **/app/backend/celery_tasks.py**: Contiene tutti i task asincroni.
+-   : Nuovo router da completare.
+-   : Nuovo router con stub da completare.
+-   : Da completare con webhook e logica trigger.
+-   : Da completare con il task per STEFANIA.
+-   : Componente UI per la lista fredda.
+-   : Componente UI per l'acquisto di servizi.
+-   : Contiene il fix per il form di creazione partner.
+-   : Contiene il fix per l'endpoint .
 
 **key api endpoints**
--   : Esegue la ricerca di lead (ora supporta ).
--   : Importa lead da un file CSV.
--   : Importa contatti per la lista fredda da un file CSV.
--   : Restituisce le statistiche sulla lista fredda.
--   : Webhook per ricevere eventi da Systeme.io.
--   : Endpoint per eliminare un partner.
--   : Attiva una partnership, creando un sub-account Systeme.io.
--   : Esporta la lista dei partner in formato CSV.
+*   : Crea un nuovo partner.
+*   : Crea l'account utente per un partner esistente.
+*   : Avvia l'outreach per un lead.
+*   : Lista i servizi disponibili per l'acquisto.
+*   : Avvia il checkout Stripe.
+*   : Restituisce le statistiche della lista fredda.
+*   (Nuovi endpoint stub) , , etc.
 
 **Critical Info for New Agent**
--   La priorità assoluta è completare l'attività in corso: aggiungere il pulsante Elimina alla seconda vista della pipeline dei partner, che si trova probabilmente nel file .
--   Il  è stato aggiunto al file  e viene utilizzato per la ricerca Discovery.
--   L'applicazione è considerata pronta per il deploy in produzione, avendo risolto i blocker critici.
--   L'utente ha fornito brief tecnici dettagliati. Fai sempre riferimento all'ultimo messaggio dell'utente per le priorità correnti.
+*   La priorità assoluta è seguire il piano definito dall'utente nel messaggio 376: completare tutto ciò che è possibile senza le API key esterne (Canva, Kling), strutturando il resto come stub pronti per l'attivazione.
+*   I prodotti Stripe sono già creati e i loro ID sono nel file . Il flusso di acquisto backend/frontend è parzialmente implementato ma va testato e completato (es. webhook).
+*   Il grosso del lavoro ora è sul backend: implementare la logica per la lista fredda (webhook/Celery) e popolare gli stub per le integrazioni media con una logica di business mockata.
 
 **documents and test reports created in this job**
--   
--   
 -    (aggiornato più volte)
 -   
--   File CSV di test in  (temporanei)
+-   
+-   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Chiede di aggiungere la possibilità di eliminare un contatto dalla pagina pipeline partner (la seconda vista), fornendo uno screenshot. **(IN PROGRESS)**
-2.  **User**: Chiede di aggiungere la possibilità di eliminare un contatto dalla sezione pipeline partner. **(COMPLETED)**
-3.  **User**: Fornisce un brief per l'implementazione del flusso Lista Fredda e altri fix, chiedendo di aggiungere anche la possibilità di caricare file CSV nella sezione discovery. **(COMPLETED)**
-4.  **User**: Chiede se è necessario fare il deploy. **(ANSWERED)**
-5.  **User**: Fornisce la . **(COMPLETED)**
-6.  **User**: Fornisce un , ma l'agente chiarisce che serve una API Key.
-7.  **User**: Chiede di correggere l'implementazione della ricerca YouTube per usare una API Key invece di OAuth. **(COMPLETED)**
-8.  **User**: Fornisce un brief per integrare la YouTube Data API v3 nella Discovery. **(COMPLETED)**
-9.  **User**: Fornisce il file  per YouTube. **(COMPLETED)**
-10. **User**: Chiede di aggiungere il  all'endpoint di upload. **(COMPLETED)**
+1.  **User**: Fornisce risposte e priorità per il brief: procedere con stub per Canva/Kling e implementare tutto il resto (Fix A6, Lista Fredda UI, Parte F completa), creare i prodotti su Stripe. **(IN PROGRESS/COMPLETED)**
+2.  **Assistant**: Chiede chiarimenti sul brief completo per definire le priorità. **(ANSWERED)**
+3.  **User**: Invia un brief completo per le prossime fasi di sviluppo (Parti A-F). **(PENDING IMPLEMENTATION)**
+4.  **Assistant**: . Risolve il problema del form Nuovo Partner.
+5.  **User**: Segnala che dopo un aggiornamento non visualizza più i partner e non riesce a inserirne di nuovi. **(RESOLVED)**
+6.  **Assistant**: . Risolve un problema di 502 Bad Gateway e conferma che il backend è operativo.
+7.  **User**: Segnala 502 Bad Gateway su tutto il backend dopo un deploy. Chiede di riavviare. **(RESOLVED)**
+8.  **Assistant**: . Completa l'implementazione dell'outreach automatico per i lead.
+9.  **User**: Chiede di implementare l'outreach automatico per i lead hot della sezione Discovery. **(COMPLETED)**
+10. **Assistant**: . Completa i fix critici pre-lancio richiesti.
 
 **Project Health Check:**
--   **Broken:** Nessuno.
--   **Mocked:** Nessuno. L'integrazione con Systeme.io ha un fallback che salta le chiamate API se la chiave non è configurata, ma non è un mock.
+-   **Broken:** Nessuno. Il 502 è stato risolto.
+-   **Mocked:** Le integrazioni con **Canva** e **Kling AI** sono attualmente stubbed nel router .
 
 **3rd Party Integrations**
--   **Stripe**: Per pagamenti. Richiede API Key.
--   **Systeme.io**: Per CRM, sub-account e tracking email. Richiede API Key.
--   **YouTube Data API v3**: Per ricerca canali (usa API Key) e upload video (usa OAuth).
--   **Anthropic Claude / Ollama**: Per funzionalità AI. Usano Emergent LLM Key o sono self-hosted.
--   **Celery/Redis (Upstash)**: Per la gestione di code e task asincroni.
+*   **Stripe**: Integrato per la creazione di prodotti/prezzi e per il checkout (in fase di completamento). Richiede API Key (già presente).
+*   **Systeme.io**: Per CRM e tracking email. Richiede API Key.
+*   **YouTube Data API v3**: Per ricerca canali. Richiede API Key.
+*   **Anthropic Claude / Ollama**: Per funzionalità AI.
+*   **Celery/Redis (Upstash)**: Per task asincroni.
+*   **Canva API**: Da integrare. Richiederà User API Key (attualmente stub).
+*   **Kling AI**: Da integrare. Richiederà User API Key (attualmente stub).
+*   **HeyGen**: Già integrato per la generazione di avatar video.
 
 **Testing status**
--   Testing agent used after significant changes: YES (usato per testare il backend di YouTube Discovery, partnership, etc.).
--   Troubleshoot agent used after agent stuck in loop: NO.
--   Test files created: Script di test  e file CSV temporanei.
--   Known regressions: None.
+-   Testing agent used after significant changes: NO
+-   Troubleshoot agent used after agent stuck in loop: NO
+-   Test files created: Nessuno.
+-   Known regressions: Un alert malformato causava il crash della dashboard, ma è stato risolto.
 
 **Credentials to test flow:**
-Le credenziali per l'admin sono nel file .
+Le credenziali sono nel file .
 -   **Admin**: claudio.bertogliatti@gmail.com / Evoluzione74
--   **Operations**: antonella@evolution-pro.it / OperationsAnto2024!
 
 **What agent forgot to execute**
-L'agente non ha dimenticato nulla, ma si è interrotto durante la ricerca del file corretto per implementare la richiesta dell'utente di aggiungere un secondo pulsante di eliminazione. L'indagine deve riprendere da lì.</analysis>
+L'agente ha seguito le priorità dell'utente. Non ha dimenticato nulla, ma ha lasciato da implementare la logica backend per le parti che richiedevano un'ulteriore specifica o che erano state de-prioritizzate, come:
+-   La logica completa del webhook e dei trigger Celery per la **Lista Fredda (Parte E2, E3)**.
+-   L'implementazione completa (anche se mockata) degli endpoint stub per **Canva e Kling (Parti B, C, D)**.</analysis>

@@ -11,6 +11,8 @@ Build a multi-faceted AI-powered application for "Evolution PRO" business includ
 - **Lead Acquisition Automation with Email Sequence for €67 Analysis Sale**
 - **Post-Payment Automation with AI Analysis & Email Workflows**
 - **Piano Continuità Management with Stripe Subscriptions**
+- **Import Lista Fredda su Systeme.io via API**
+- **Calendario Editoriale con AI (Claude) + Asset Generation (Canva, Kling, HeyGen)**
 
 ## User's Preferred Language
 **Italian** - All UI and communications should be in Italian.
@@ -24,9 +26,13 @@ Build a multi-faceted AI-powered application for "Evolution PRO" business includ
 │   │   ├── discovery_engine.py  # Lead discovery + YouTube API + auto-approve + email sequence
 │   │   ├── stripe_webhook.py    # Stripe webhook + post-payment automation
 │   │   ├── flusso_analisi.py    # Attiva-partnership + Systeme.io integration
-│   │   └── partner_journey.py   # Partner journey with AI generation
+│   │   ├── partner_journey.py   # Partner journey with AI generation
+│   │   ├── lista_fredda.py      # Lista fredda management + webhook tracking
+│   │   ├── systeme_contacts.py  # NEW: Import contatti su Systeme.io via API
+│   │   ├── media_integrations.py # Canva, Kling, HeyGen stub + Calendario Editoriale
+│   │   └── servizi_extra.py     # Servizi a pagamento con Stripe
 │   ├── celery_app.py   # Celery configuration with beat schedule
-│   ├── celery_tasks.py # Celery tasks (video, email, auto-approve, GAIA, expiry)
+│   ├── celery_tasks.py # Celery tasks (video, email, auto-approve, GAIA, expiry, systeme import)
 │   ├── systeme_mcp_client.py # Systeme.io API client
 │   ├── email_templates.py # Email template management (WYSIWYG ready)
 │   └── ...
@@ -36,6 +42,8 @@ Build a multi-faceted AI-powered application for "Evolution PRO" business includ
         │   ├── admin/
         │   │   ├── AdminDashboardPro.jsx
         │   │   ├── AdminPartnerTools.jsx
+        │   │   ├── ListaFreddaAdmin.jsx  # UI gestione lista fredda
+        │   │   ├── ServiziExtraAdmin.jsx # UI gestione servizi
         │   │   └── EmailTemplatesManager.jsx  # WYSIWYG editor
         │   ├── partner/
         │   └── chat/
@@ -43,6 +51,60 @@ Build a multi-faceted AI-powered application for "Evolution PRO" business includ
 ```
 
 ## What's Been Implemented
+
+### Session: 25 March 2026 - Import Systeme.io + Calendario Editoriale
+
+#### ✅ FIX URGENTE - Import Lista Fredda su Systeme.io via API
+Implementato router `/app/backend/routers/systeme_contacts.py`:
+
+- **`POST /api/systeme/contacts/import`** - Import array di contatti su Systeme.io con tag automatico
+  - Crea contatti se non esistono via API nativa Systeme.io
+  - Assegna automaticamente tag Lista_Fredda (id: 1934404)
+  - Rispetta rate limit API (5 req/sec)
+  
+- **`POST /api/systeme/contacts/tag`** - Assegna tag a singolo contatto già presente
+  - Cerca contatto per email
+  - Assegna tag specificato
+  
+- **`POST /api/systeme/contacts/import-bulk`** - Import massivo da MongoDB lista_fredda
+  - Legge dalla collection `lista_fredda`
+  - Processa in batch da 50 contatti (configurabile)
+  - Esegue in background per non bloccare
+  - Notifica Telegram al completamento
+  
+- **`GET /api/systeme/contacts/import-bulk/status/{job_id}`** - Stato job di import
+- **`GET /api/systeme/contacts/import-bulk/jobs`** - Lista job di import
+
+#### ✅ Task Celery `import_lista_fredda_systeme`
+- Aggiunto in `/app/backend/celery_tasks.py`
+- Può essere schedulato via Celery Beat o triggerato manualmente
+- Processa tutti i contatti della lista fredda verso Systeme.io
+
+#### ✅ PARTE C - Calendario Editoriale Completo
+Implementato in `/app/backend/routers/media_integrations.py`:
+
+- **`POST /api/media/calendario/genera`** - Genera calendario editoriale mensile
+  - Input: partner_id, mese, anno, nicchia, target, tono, num_post
+  - Genera piano contenuti con Claude AI (temi, copy, hashtag, CTA)
+  - Fallback a contenuti mock se Claude non disponibile
+  - Ogni contenuto ha: giorno, tipo (POST/CAROSELLO/REEL/VIDEO_AVATAR), titolo, copy, hashtags, prompt_visivo
+  
+- **`GET /api/media/calendario/{id}/status`** - Verifica stato generazione
+- **`GET /api/media/calendario/partner/{partner_id}`** - Lista calendari di un partner
+- **`POST /api/media/calendario/{id}/genera-assets`** - Genera asset visivi per ogni contenuto
+  - POST → Canva (stub)
+  - CAROSELLO → Canva (stub)
+  - REEL → Kling AI (stub)
+  - VIDEO_AVATAR → HeyGen (stub, ma API già configurata)
+
+#### ✅ PARTE B & D - Stub Canva/Kling già presenti
+Gli endpoint esistenti ora restituiscono risposte mock complete:
+- `POST /api/media/analisi-pdf/genera` - PDF analisi (Canva stub)
+- `POST /api/media/canva/post` - Post grafico
+- `POST /api/media/canva/carosello` - Carosello
+- `POST /api/media/kling/reel` - Reel cinematografico
+- `GET /api/media/brand-kit/{partner_id}` - Brand kit partner
+- `POST /api/media/brand-kit/{partner_id}/genera` - Genera brand kit
 
 ### Session: 24 March 2026 - Lista Fredda + STEFANIA Integration
 
@@ -62,239 +124,65 @@ Build a multi-faceted AI-powered application for "Evolution PRO" business includ
 - `stefania_check_email4_noclick` - 48h dopo apertura email 4, se non clicca → task WhatsApp
 - `stefania_check_funnel_nopayment` - 24h dopo ingresso funnel, se non paga → reminder
 
-#### ✅ PARTE 5 - Fix Endpoints Mancanti
-- `GET /api/flusso-analisi/pending` - Analisi in attesa
-- `GET /api/flusso-analisi/stats` - Statistiche flusso €67
-- `GET /api/flusso-analisi/list` - Lista analisi con filtri
-- `GET /api/partners-unified` - Unified view funzionante con nomi
+## API Endpoints - Nuovo
 
-#### ✅ Discovery CSV Import
-- `POST /api/discovery/import-csv` - Import lead da CSV nella discovery
+### Systeme.io Contacts
+- `POST /api/systeme/contacts/import` - Import array contatti
+- `POST /api/systeme/contacts/tag` - Tag singolo contatto
+- `POST /api/systeme/contacts/import-bulk` - Import massivo da MongoDB
+- `GET /api/systeme/contacts/import-bulk/status/{job_id}` - Stato job
+- `GET /api/systeme/contacts/import-bulk/jobs` - Lista job
 
-#### ✅ PRIORITÀ ASSOLUTA (a) - Trigger Automatico Post-Pagamento €67 - COMPLETE
-Il flusso era già implementato e funzionante:
-1. Stripe webhook riceve `payment_intent.succeeded` → `/api/webhooks/stripe`
-2. `pagamento_analisi: true` sul cliente
-3. Genera analisi Claude se questionario completato
-4. Genera call script (8 blocchi)
-5. Invia email `analisi_welcome` via Celery (immediata)
-6. Schedula reminder `analisi_reminder_48h` via Celery (T+48h)
-7. Notifica Telegram admin
-
-**File chiave**: `/app/backend/routers/stripe_webhook.py`
-
-#### ✅ PRIORITÀ ASSOLUTA (b) - Sub-account Systeme.io Partnership - COMPLETE
-1. **Endpoint**: `POST /api/flusso-analisi/attiva-partnership/{user_id}`
-2. **Verifica**: Contratto firmato + pagamento completato
-3. **Crea sub-account Systeme.io** via `create_partner_subaccount_async()`
-4. **Salva `systeme_account_id`** nel profilo partner
-5. **Invia email `partnership_welcome`** con variabili {{nome}}, {{email}}
-6. **Fallback**: Se Systeme.io fallisce, logga errore e invia email con nota manuale
-7. **Notifica Telegram admin**
-
-**File chiave**: `/app/backend/routers/flusso_analisi.py`, `/app/backend/systeme_mcp_client.py`
-
-#### ✅ PRIORITÀ 2 (d) - Piano Continuità - COMPLETE
-1. **Admin endpoint lista piani**: `GET /api/admin/piano-continuita`
-   - Lista tutti i partner con piano attivo
-   - Stats: total_active, expiring_7_days, expiring_30_days, total_mrr
-2. **Storico pagamenti**: `GET /api/admin/piano-continuita/{partner_id}/payments`
-3. **GAIA check mensile**: Task Celery `gaia_monthly_check` (ogni 30 giorni)
-4. **Notifica scadenza 7 giorni**: Task Celery `check_piano_continuita_expiry` (giornaliero)
-5. **Trigger manuale GAIA**: `POST /api/admin/piano-continuita/{partner_id}/trigger-gaia-check`
-
-**File chiave**: `/app/backend/celery_tasks.py`, `/app/backend/celery_app.py`
-
-#### ✅ PRIORITÀ 3 (c) - Export CSV Partner - COMPLETE
-**Endpoint**: `GET /api/admin/partners/export-csv`
-**Colonne**: ID, Nome, Email, Telefono, Fase, Nicchia, Revenue Totale, MRR, Piano Continuità, Fee Mensile, Data Contratto, Data Rinnovo Piano, Giorni alla Scadenza, Ultimo Aggiornamento, Giorni dall'Ultimo Update, Status
-
-#### ✅ Automazione Acquisizione Lead - COMPLETE (from previous session)
-- Auto-approve leads con score ≥ 80 e `target_fit_level: altissimo`
-- Sequenza 4 email (D+0, D+2, D+4, D+7) per vendita analisi €67
-- Template modificabili via WYSIWYG
-
-### Test Results
-- **Iteration 25**: 19/19 tests passed (100%) - Lead auto-approve & email sequence
-- **Iteration 26**: 20/20 tests passed (100%) - Post-payment automation & partnership activation
-- **Iteration 27**: 20/20 tests passed (100%) - YouTube Data API v3 Discovery Integration
-
-## API Endpoints
-
-### YouTube Discovery (NEW)
-- `POST /api/discovery/search` - Ricerca canali YouTube reali (source: "youtube")
-- `POST /api/youtube-heygen/youtube/upload-client-secret` - Upload credenziali OAuth
-- `GET /api/youtube-heygen/youtube/get-auth-url` - Genera URL autorizzazione OAuth
-- `GET /api/youtube-heygen/youtube/auth-status` - Verifica stato autenticazione
-
-### Stripe Webhook & Post-Payment
-- `POST /api/webhooks/stripe` - Webhook Stripe (payment_intent.succeeded, checkout.session.completed)
-- `POST /api/webhooks/test-analisi-payment/{user_id}` - Test: simula pagamento €67
-- `GET /api/webhooks/test-automation-status/{user_id}` - Test: verifica stato automazione
-
-### Partnership Activation
-- `POST /api/flusso-analisi/attiva-partnership/{user_id}` - Attiva partnership con Systeme.io
-
-### Admin Piano Continuità
-- `GET /api/admin/piano-continuita` - Lista piani attivi con stats
-- `GET /api/admin/piano-continuita/{partner_id}/payments` - Storico pagamenti
-- `POST /api/admin/piano-continuita/{partner_id}/trigger-gaia-check` - Trigger GAIA
-
-### Admin Export
-- `GET /api/admin/partners/export-csv` - Export CSV completo partner
-
-### Discovery Engine
-- `POST /api/discovery/search` - Ricerca lead (YouTube API v3 integrata)
-- `GET /api/discovery/leads` - Lista lead con filtri (source, status, min_score)
-- `GET /api/discovery/leads/hot` - Lead con score alto
-- `GET /api/discovery/leads/{lead_id}` - Dettaglio singolo lead
-- `GET /api/discovery/settings/auto-approve` - Recupera impostazioni auto-approve
-- `PUT /api/discovery/settings/auto-approve` - Aggiorna impostazioni
-- `POST /api/discovery/trigger-auto-approve` - Trigger manuale
-- `POST /api/discovery/lead/{lead_id}/start-email-sequence` - Avvia sequenza
-- `POST /api/discovery/lead/{lead_id}/stop-email-sequence` - Stop sequenza
-
-### Celery Beat Schedule
-```python
-beat_schedule = {
-    'check-stuck-pipelines': 300s (5 min),
-    'check-pending-analisi-reminders': 3600s (1 hour),
-    'process-auto-approve-leads': 3600s (1 hour),
-    'gaia-monthly-check': 2592000s (30 days),
-    'check-piano-continuita-expiry': 86400s (24 hours)
-}
-```
-
-## Deployment Status
-**Ready for production deployment** to `app.evolution-pro.it`
-- ✅ `load_dotenv(override=False)` - Fixed
-- ✅ Removed `get_env_override` - Uses `os.environ.get` only
-- ✅ CORS respects `CORS_ORIGINS='*'`
+### Media & Calendario Editoriale
+- `GET /api/media/status` - Stato integrazioni (Canva, Kling, HeyGen, Cloudinary)
+- `POST /api/media/calendario/genera` - Genera calendario mensile
+- `GET /api/media/calendario/{id}/status` - Stato calendario
+- `GET /api/media/calendario/partner/{partner_id}` - Lista calendari partner
+- `POST /api/media/calendario/{id}/genera-assets` - Genera asset visivi
 
 ## Pending/Future Tasks
 
-### P1 - High Priority
-- [ ] **Stripe Subscription per Piano Continuità**: Implementare rinnovo automatico via Stripe subscriptions
-- [ ] **Google Custom Search API**: Integrare per source="google" nella Discovery
+### P0 - Completati in questa sessione ✅
+- [x] Import Lista Fredda su Systeme.io via API
+- [x] Endpoint POST /api/systeme/contacts/import
+- [x] Endpoint POST /api/systeme/contacts/tag
+- [x] Job Celery import_lista_fredda_systeme
+- [x] Calendario Editoriale con Claude AI
 
-### P2 - Medium Priority
-- [ ] Filtri avanzati Discovery Leads per `target_fit_level`
-- [ ] Countdown scadenza partnership (UI)
-- [ ] Instagram/LinkedIn API integration per Discovery
+### P1 - Alta Priorità
+- [ ] **Test Flusso Acquisto Servizi Extra (Parte F)**: Verificare end-to-end checkout Stripe → webhook → attivazione
+- [ ] **Integrazioni Reali**: Ottenere API key per Canva e Kling dall'utente
+
+### P2 - Media Priorità
+- [ ] UI Frontend per Calendario Editoriale
+- [ ] Preview asset generati prima di pubblicazione
+- [ ] Scheduling automatico post social
 
 ### P3 - Technical Debt
 - [ ] Refactoring `server.py` monolith
 - [ ] Unificazione collection `users` e `partners`
 - [ ] Documentazione OpenAPI
 
-## Recent Updates
+## 3rd Party Integrations Status
 
-### Session: 24 March 2026 - Discovery Outreach Automatico Lead Hot
-
-#### ✅ Implementato sistema di outreach automatico per lead hot
-
-**1. Endpoint `POST /api/discovery/leads/{id}/avvia-outreach`**
-- Cambia `outreach_status` da `pending` a `contacted`
-- Logga data primo contatto (`first_contact_at`)
-- Crea task per VALENTINA (agente outreach)
-- Genera messaggio in background se non presente
-
-**2. Job Celery giornaliero `daily_hot_leads_outreach`**
-- Esegue ogni mattina alle 9:00
-- Processa max 5 lead hot/giorno (per non bruciare la pipeline)
-- Crea task VALENTINA automaticamente
-- Invia notifica Telegram con risultati
-
-**3. Endpoint `GET /api/discovery/leads/hot` migliorato**
-- Filtro per lead con email disponibile (`only_with_email=true`)
-- Filtro per `outreach_status`
-- Statistiche: total_hot, pending_outreach, contacted
-- Min score default: 80
-
-**4. Stub per integrazioni social (future - Apify)**
-- `GET /api/discovery/integrations/status` - stato integrazioni
-- `POST /api/discovery/integrations/linkedin/search` - stub
-- `POST /api/discovery/integrations/instagram/search` - stub
-- `POST /api/discovery/integrations/facebook/search` - stub
-- `POST /api/discovery/integrations/google/search` - stub
-
-**File modificati**:
-- `/app/backend/routers/discovery_engine.py`
-- `/app/backend/celery_tasks.py`
-- `/app/backend/celery_app.py`
-
-### Session: 24 March 2026 - Fix Critici Pre-Lancio
-
-#### ✅ Fix 1: Flusso Cliente €67 (PRIORITÀ ASSOLUTA)
-Aggiunti gli endpoint mancanti nel router `flusso_analisi.py`:
-- `POST /api/flusso-analisi/registra` - Registrazione nuovo cliente
-- `POST /api/flusso-analisi/questionario` - Salvataggio risposte questionario
-- `GET /api/flusso-analisi/status/{user_id}` - Stato del cliente nel flusso
-- `POST /api/analisi-consulenziale/genera` - Alias per genera-preliminare
-
-#### ✅ Fix 2: Stats Partners
-L'endpoint `GET /api/stats` funziona correttamente e restituisce:
-- 22 partners totali
-- €2790 revenue totale
-
-#### ✅ Fix 3: Masterclass genera → 405
-Aggiunto supporto POST per `/api/partner-journey/masterclass/genera`:
-- Prima era solo GET, ora supporta entrambi i metodi
-
-#### ✅ Fix 4: Partner Journey lancio
-L'endpoint `GET /api/partner-journey/lancio/{partner_id}` funziona correttamente.
-Era già registrato nel router.
-
-#### ✅ Fix 5: STEFANIA endpoints
-Aggiunti i due endpoint mancanti in `server.py`:
-- `GET /api/stefania/status` - Stato operativo di STEFANIA
-- `GET /api/stefania/check` - Health check
-
-**File modificati**:
-- `/app/backend/routers/flusso_analisi.py` - Aggiunti endpoint registra, questionario, status
-- `/app/backend/routers/partner_journey.py` - Aggiunto POST masterclass/genera
-- `/app/backend/routers/analisi_consulenziale.py` - Aggiunto alias /genera
-- `/app/backend/server.py` - Aggiunti endpoint stefania/status e stefania/check
-
-### Session: 24 March 2026 - Sidebar Reorganization + Delete Partner
-
-#### ✅ Riorganizzazione Sidebar Admin
-Riorganizzata la sidebar laterale con il nuovo ordine richiesto:
-1. **Overview** (con sub-menu Sales KPI)
-2. **Agent Hub**
-3. **Clienti Analisi**
-4. **Flusso Analisi**
-5. **Partner** (con sub-menu Documenti Partner + Onboarding Docs)
-6. **Approvazioni**
-7. **Editing**
-8. **YouTube × HeyGen**
-9. **Post-Lancio**
-10. **STEFANIA**
-
-**Rimosso**: Team Evolution (come richiesto)
-
-**File modificati**:
-- `/app/frontend/src/components/admin/AdminSidebarLight.jsx`
-- `/app/frontend/src/App.js`
-
-#### ✅ Eliminazione Partner nella seconda vista Pipeline
-Aggiunta la funzionalità di eliminazione partner nella vista `AdminPartners` (componente in App.js):
-- Pulsante cestino visibile per ogni partner
-- Modale di conferma eliminazione
-- Collegamento all'endpoint `DELETE /api/partners/{partner_id}`
-
-**File modificati**:
-- `/app/frontend/src/App.js` - Aggiunta funzione `handleDeletePartner` e passaggio prop a `AdminPartners`
-
-## Important Notes
-- **YouTube Data API v3**: Quota 10.000 unità/giorno. Una ricerca costa ~100 unità.
-- **YouTube OAuth**: Credenziali in `/app/storage/youtube_credentials.pickle`
-- **Celery Queue**: Usa coda `analisi_automation` per task email e auto-approve
-- **Systeme.io Integration**: Email inviate via tag su Systeme.io
-- **GAIA**: Agente AI per check-in mensili sui partner
-- **Fallback Pattern**: Se integrazioni esterne falliscono, il flusso continua con logging
-- **Lead Scoring YouTube**: subscriber_count (1k-10k = +30pt), video frequency (+20pt), keywords (+20pt), email/website (+15pt), IT content (+15pt)
+| Servizio | Status | Note |
+|----------|--------|------|
+| Stripe | ✅ Configurato | Checkout + Webhook |
+| Systeme.io | ✅ Configurato | API Key funzionante |
+| Telegram | ✅ Configurato | Notifiche admin |
+| Claude AI | ✅ Configurato | Via Emergent LLM Key |
+| HeyGen | ✅ Configurato | Avatar video |
+| Cloudinary | ✅ Configurato | File storage |
+| Canva | ⚠️ STUB | Richiede API Token |
+| Kling AI | ⚠️ STUB | Richiede API Key |
+| YouTube | ✅ Configurato | OAuth per upload |
 
 ## Credentials (Test)
 - **Admin:** claudio.bertogliatti@gmail.com / Evoluzione74
 - **Operations:** antonella@evolution-pro.it / OperationsAnto2024!
+
+## Important Notes
+- **Systeme.io Tag ID Lista Fredda**: 1934404
+- **Rate Limit Systeme.io**: Max 5 richieste/secondo
+- **Canva/Kling**: Funzionano in modalità STUB fino a configurazione API key
+- **Calendario Editoriale**: Genera contenuti mock se Claude non risponde in tempo

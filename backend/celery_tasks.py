@@ -1555,3 +1555,169 @@ def trigger_single_lead_outreach(self, lead_id: str):
         logger.error(f"[DISCOVERY] Single outreach error: {e}")
         return {"error": str(e)}
 
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# LISTA FREDDA - IMPORT BULK SU SYSTEME.IO
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@shared_task(bind=True, max_retries=2, default_retry_delay=300)
+def import_lista_fredda_systeme(self, tag_id: int = 1934404, batch_size: int = 50):
+    """
+    Job Celery per import bulk della lista fredda su Systeme.io.
+    
+    - Legge i contatti dalla collection MongoDB `lista_fredda`
+    - Li importa in batch su Systeme.io (rispettando rate limit)
+    - Assegna il tag Lista_Fredda (id: 1934404) a ogni contatto
+    
+    Può essere schedulato via Celery Beat o triggerato manualmente.
+    """
+    try:
+        logger.info(f"[CELERY] Starting import_lista_fredda_systeme (tag: {tag_id}, batch: {batch_size})")
+        
+        async def _import():
+            import httpx
+            import asyncio
+            
+            client, db = get_db()
+            
+            SYSTEME_API_KEY = os.environ.get('SYSTEME_API_KEY', '')
+            SYSTEME_BASE_URL = "https://api.systeme.io/api"
+            
+            if not SYSTEME_API_KEY:
+                logger.error("[CELERY] SYSTEME_API_KEY non configurata")
+                return {"error": "SYSTEME_API_KEY non configurata"}
+            
+            headers = {
+                "X-API-Key": SYSTEME_API_KEY,
+                "Content-Type": "application/json"
+            }
+            
+            try:
+                # Conta contatti
+                total = await db.lista_fredda.count_documents({})
+                if total == 0:
+                    return {"success": True, "message": "Nessun contatto", "processed": 0}
+                
+                # Recupera tutti i contatti
+                contacts = await db.lista_fredda.find(
+                    {},
+                    {"_id": 0, "email": 1, "first_name": 1, "last_name": 1, "phone": 1}
+                ).to_list(length=50000)
+                
+                progress = {
+                    "total": len(contacts),
+                    "processed": 0,
+                    "created": 0,
+                    "existing": 0,
+                    "tagged": 0,
+                    "errors": 0
+                }
+                
+                async with httpx.AsyncClient(timeout=30) as http_client:
+                    for i, contact in enumerate(contacts):
+                        try:
+                            email = contact.get("email", "").strip().lower()
+                            if not email or "@" not in email:
+                                progress["errors"] += 1
+                                continue
+                            
+                            # Rate limit: pausa ogni 5 richieste
+                            if i > 0 and i % 5 == 0:
+                                await asyncio.sleep(1)
+                            
+                            # 1. Cerca contatto esistente
+                            search_resp = await http_client.get(
+                                f"{SYSTEME_BASE_URL}/contacts",
+                                params={"email": email},
+                                headers=headers
+                            )
+                            
+                            contact_id = None
+                            
+                            if search_resp.status_code == 200:
+                                items = search_resp.json().get("items", [])
+                                for item in items:
+                                    if item.get("email", "").lower() == email:
+                                        contact_id = item.get("id")
+                                        progress["existing"] += 1
+                                        break
+                            
+                            # 2. Crea se non esiste
+                            if not contact_id:
+                                create_payload = {
+                                    "email": email,
+                                    "fields": []
+                                }
+                                if contact.get("first_name"):
+                                    create_payload["fields"].append({"slug": "first_name", "value": contact["first_name"]})
+                                if contact.get("last_name"):
+                                    create_payload["fields"].append({"slug": "surname", "value": contact["last_name"]})
+                                if contact.get("phone"):
+                                    create_payload["fields"].append({"slug": "phone_number", "value": contact["phone"]})
+                                
+                                create_resp = await http_client.post(
+                                    f"{SYSTEME_BASE_URL}/contacts",
+                                    headers=headers,
+                                    json=create_payload
+                                )
+                                
+                                if create_resp.status_code in [200, 201]:
+                                    contact_id = create_resp.json().get("id")
+                                    progress["created"] += 1
+                            
+                            # 3. Assegna tag
+                            if contact_id:
+                                tag_resp = await http_client.post(
+                                    f"{SYSTEME_BASE_URL}/contacts/{contact_id}/tags",
+                                    headers=headers,
+                                    json={"tagId": tag_id}
+                                )
+                                
+                                if tag_resp.status_code in [200, 201, 204, 422]:
+                                    progress["tagged"] += 1
+                            else:
+                                progress["errors"] += 1
+                            
+                            progress["processed"] += 1
+                            
+                            # Log ogni 100 contatti
+                            if progress["processed"] % 100 == 0:
+                                logger.info(f"[CELERY] Import progress: {progress['processed']}/{progress['total']}")
+                                
+                        except Exception as e:
+                            progress["errors"] += 1
+                            logger.warning(f"[CELERY] Errore contatto {contact.get('email')}: {e}")
+                            continue
+                
+                # Log risultato finale
+                await db.celery_job_logs.insert_one({
+                    "job": "import_lista_fredda_systeme",
+                    "tag_id": tag_id,
+                    "result": progress,
+                    "executed_at": datetime.now(timezone.utc).isoformat()
+                })
+                
+                # Notifica Telegram
+                await send_telegram_notification(
+                    f"✅ *Import Lista Fredda → Systeme.io*\n\n"
+                    f"📊 Totale: {progress['total']}\n"
+                    f"➕ Creati: {progress['created']}\n"
+                    f"🔄 Esistenti: {progress['existing']}\n"
+                    f"🏷️ Taggati: {progress['tagged']}\n"
+                    f"❌ Errori: {progress['errors']}"
+                )
+                
+                logger.info(f"[CELERY] Import completato: {progress}")
+                return {"success": True, "progress": progress}
+                
+            finally:
+                client.close()
+        
+        return run_async(_import())
+        
+    except Exception as e:
+        logger.error(f"[CELERY] Import lista fredda error: {e}")
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=e)
+        return {"error": str(e)}

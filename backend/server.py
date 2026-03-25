@@ -1296,7 +1296,7 @@ async def create_analisi_checkout(user_id: str = None, email: str = None):
         raise HTTPException(status_code=400, detail="Pagamento già effettuato")
     
     # URL di successo e cancellazione
-    frontend_url = os.environ.get('FRONTEND_URL', 'https://evolution-pro-lead.preview.emergentagent.com')
+    frontend_url = os.environ.get('FRONTEND_URL', 'https://partner-dashboard-38.preview.emergentagent.com')
     
     try:
         checkout = StripeCheckout(api_key=stripe_key)
@@ -14200,6 +14200,20 @@ app.include_router(stripe_webhook_router, prefix="/api", tags=["webhooks"])
 # Lista Fredda Router (Cold Outreach + Systeme.io Tracking)
 from routers.lista_fredda import router as lista_fredda_router
 app.include_router(lista_fredda_router)
+
+# Servizi Extra Router (Parte F - Calendario Editoriale con Stripe)
+from routers.servizi_extra import router as servizi_extra_router, set_db as set_servizi_extra_db
+set_servizi_extra_db(db)
+app.include_router(servizi_extra_router)
+
+# Media Integrations Router (Parte B, C, D - Canva, Kling, HeyGen)
+from routers.media_integrations import router as media_router, set_db as set_media_db
+set_media_db(db)
+app.include_router(media_router)
+
+# Systeme.io Contacts Router (Import Lista Fredda)
+from routers.systeme_contacts import router as systeme_contacts_router
+app.include_router(systeme_contacts_router)
 
 
 # Start scheduler for automated jobs
