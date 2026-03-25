@@ -28,7 +28,7 @@ export function BrandKitEditor({ partner, onSave }) {
     if (!partner?.id) return;
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/brandkit/${partner.id}`);
+      const res = await axios.get(`${API}/api/brandkit/${partner.id}`);
       setBrandKit(prev => ({ ...prev, ...res.data }));
     } catch (e) {
       console.error("Error loading brand kit:", e);
@@ -41,7 +41,7 @@ export function BrandKitEditor({ partner, onSave }) {
     if (!partner?.id) return;
     setSaving(true);
     try {
-      await axios.post(`${API}/brandkit/${partner.id}`, brandKit);
+      await axios.post(`${API}/api/brandkit/${partner.id}`, brandKit);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
       if (onSave) onSave(brandKit);

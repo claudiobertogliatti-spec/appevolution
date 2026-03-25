@@ -115,7 +115,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
   const loadProfile = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API}/partner-hub/${partnerId}`);
+      const response = await fetch(`${API}/api/partner-hub/${partnerId}`);
       if (response.ok) {
         const data = await response.json();
         setProfileData(prev => ({
@@ -139,7 +139,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
   const saveEdit = async (field) => {
     setIsSaving(true);
     try {
-      const response = await fetch(`${API}/partner-hub/${partnerId}/field?field=${field}&value=${encodeURIComponent(editValue)}`, {
+      const response = await fetch(`${API}/api/partner-hub/${partnerId}/field?field=${field}&value=${encodeURIComponent(editValue)}`, {
         method: 'PATCH'
       });
       if (response.ok) {

@@ -48,7 +48,7 @@ export function DatiPersonali({ partner, onBack }) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await axios.put(`${API}/partners/${partner?.id}/profile`, formData);
+      await axios.put(`${API}/api/partners/${partner?.id}/profile`, formData);
       setSaved(true);
       setEditMode(false);
       setTimeout(() => setSaved(false), 3000);

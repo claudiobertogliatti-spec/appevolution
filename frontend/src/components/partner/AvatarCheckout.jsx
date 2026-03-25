@@ -37,7 +37,7 @@ export function AvatarCheckout({ partner, onBack }) {
   const loadPackages = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API}/avatar-packages`);
+      const response = await fetch(`${API}/api/avatar-packages`);
       if (response.ok) {
         const data = await response.json();
         setPackages(data.packages || {});
@@ -62,7 +62,7 @@ export function AvatarCheckout({ partner, onBack }) {
     }
     
     try {
-      const response = await fetch(`${API}/avatar-checkout/status/${sessionId}`);
+      const response = await fetch(`${API}/api/avatar-checkout/status/${sessionId}`);
       if (!response.ok) throw new Error('Errore verifica pagamento');
       
       const data = await response.json();
@@ -106,7 +106,7 @@ export function AvatarCheckout({ partner, onBack }) {
     setError(null);
     
     try {
-      const response = await fetch(`${API}/avatar-checkout`, {
+      const response = await fetch(`${API}/api/avatar-checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

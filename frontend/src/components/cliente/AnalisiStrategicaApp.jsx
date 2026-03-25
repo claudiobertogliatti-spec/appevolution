@@ -61,7 +61,7 @@ export function AnalisiStrategicaApp() {
 
   const verifyPayment = async (sessionId) => {
     try {
-      const res = await axios.post(`${API}/clienti/verify-payment`, { session_id: sessionId });
+      const res = await axios.post(`${API}/api/clienti/verify-payment`, { session_id: sessionId });
       if (res.data.success) {
         const updated = { ...user, has_paid: true, status: "pending" };
         setUser(updated);
@@ -94,7 +94,7 @@ export function AnalisiStrategicaApp() {
     setError("");
     try {
       // Step 1: Register
-      const regRes = await axios.post(`${API}/clienti/register`, formData);
+      const regRes = await axios.post(`${API}/api/clienti/register`, formData);
       if (regRes.data.success) {
         const clienteId = regRes.data.cliente_id;
         const userData = { id: clienteId, ...formData, has_paid: false, status: "registered" };
@@ -102,7 +102,7 @@ export function AnalisiStrategicaApp() {
         
         // Step 2: Create Stripe checkout and redirect immediately
         try {
-          const checkoutRes = await axios.post(`${API}/clienti/create-checkout-session`, {
+          const checkoutRes = await axios.post(`${API}/api/clienti/create-checkout-session`, {
             cliente_id: clienteId,
             email: formData.email,
             nome: formData.nome,
@@ -146,7 +146,7 @@ export function AnalisiStrategicaApp() {
 
     setLoading(true);
     try {
-      const res = await axios.post(`${API}/clienti/login`, { email: formData.email, password: formData.password });
+      const res = await axios.post(`${API}/api/clienti/login`, { email: formData.email, password: formData.password });
       if (res.data.success) {
         setUser(res.data.cliente);
         setIsLoggedIn(true);
@@ -181,7 +181,7 @@ export function AnalisiStrategicaApp() {
 
     setSavingAnswers(true);
     try {
-      await axios.post(`${API}/clienti/${user.id}/questionnaire`, { answers });
+      await axios.post(`${API}/api/clienti/${user.id}/questionnaire`, { answers });
       const updated = { ...user, questionnaire: answers };
       setUser(updated);
       localStorage.setItem("cliente_session", JSON.stringify(updated));
@@ -347,7 +347,7 @@ export function AnalisiStrategicaApp() {
             onClick={async () => {
               setLoading(true);
               try {
-                const res = await axios.post(`${API}/clienti/create-checkout-session`, {
+                const res = await axios.post(`${API}/api/clienti/create-checkout-session`, {
                   cliente_id: user.id,
                   email: user.email,
                   nome: user.nome,

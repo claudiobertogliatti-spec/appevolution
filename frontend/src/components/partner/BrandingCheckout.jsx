@@ -48,7 +48,7 @@ export function BrandingCheckout({ partner, onBack }) {
     setError(null);
     
     try {
-      const response = await fetch(`${API}/branding-checkout`, {
+      const response = await fetch(`${API}/api/branding-checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

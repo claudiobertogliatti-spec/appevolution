@@ -46,7 +46,7 @@ export function CourseBuilderWizard({ partnerId, positioningData, onComplete }) 
     setGenerating(true);
     
     try {
-      const response = await axios.post(`${API}/stefania/course-builder/generate`, {
+      const response = await axios.post(`${API}/api/stefania/course-builder/generate`, {
         partner_id: partnerId,
         positioning_data: positioningData,
         preferences: prefs
@@ -139,7 +139,7 @@ export function CourseBuilderWizard({ partnerId, positioningData, onComplete }) 
     setChatLoading(true);
     
     try {
-      const response = await axios.post(`${API}/stefania/course-builder/chat`, {
+      const response = await axios.post(`${API}/api/stefania/course-builder/chat`, {
         message: userMsg,
         outline: outline,
         selected_module: selectedModule,
@@ -173,7 +173,7 @@ export function CourseBuilderWizard({ partnerId, positioningData, onComplete }) 
   // Save final structure
   const handleSave = async () => {
     try {
-      await axios.post(`${API}/stefania/course-builder/save`, {
+      await axios.post(`${API}/api/stefania/course-builder/save`, {
         partner_id: partnerId,
         outline: outline
       });

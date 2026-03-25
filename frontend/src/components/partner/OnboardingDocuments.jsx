@@ -216,7 +216,7 @@ export function OnboardingDocuments({ partner, onComplete }) {
     
     try {
       setLoading(true);
-      const response = await axios.get(`${API}/partners/${partner.id}/onboarding-documents`);
+      const response = await axios.get(`${API}/api/partners/${partner.id}/onboarding-documents`);
       
       if (response.data.success) {
         // Convert array to object keyed by document type
@@ -247,7 +247,7 @@ export function OnboardingDocuments({ partner, onComplete }) {
       formData.append("document_type", docType);
       
       const response = await axios.post(
-        `${API}/partners/${partner.id}/onboarding-documents/upload`,
+        `${API}/api/partners/${partner.id}/onboarding-documents/upload`,
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" }
@@ -277,7 +277,7 @@ export function OnboardingDocuments({ partner, onComplete }) {
     if (!partner?.id) return;
     
     try {
-      await axios.delete(`${API}/partners/${partner.id}/onboarding-documents/${docType}`);
+      await axios.delete(`${API}/api/partners/${partner.id}/onboarding-documents/${docType}`);
       setDocuments(prev => {
         const updated = { ...prev };
         delete updated[docType];

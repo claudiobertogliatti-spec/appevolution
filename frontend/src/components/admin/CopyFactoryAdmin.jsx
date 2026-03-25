@@ -47,9 +47,9 @@ export function CopyFactoryAdmin({ currentAdmin }) {
     setLoading(true);
     try {
       const [scriptsRes, rulesRes, casesRes] = await Promise.all([
-        axios.get(`${API}/stefania/admin-review/pending`),
-        axios.get(`${API}/stefania/golden-rules`),
-        axios.get(`${API}/stefania/success-cases`)
+        axios.get(`${API}/api/stefania/admin-review/pending`),
+        axios.get(`${API}/api/stefania/golden-rules`),
+        axios.get(`${API}/api/stefania/success-cases`)
       ]);
       setPendingScripts(scriptsRes.data);
       setGoldenRules(rulesRes.data.rules || []);
@@ -75,7 +75,7 @@ export function CopyFactoryAdmin({ currentAdmin }) {
     if (!selectedScript) return;
     setSaving(true);
     try {
-      await axios.post(`${API}/masterclass/script/${selectedScript.partner_id}/admin-edit`, {
+      await axios.post(`${API}/api/masterclass/script/${selectedScript.partner_id}/admin-edit`, {
         blocks: editedBlocks,
         admin_user: currentAdmin || "Claudio",
         admin_notes: adminNotes

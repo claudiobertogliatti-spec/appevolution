@@ -141,10 +141,10 @@ export function PartnerProfileModal({ partner, onClose, onUpdate }) {
     setLoading(true);
     try {
       const [profileRes, docsRes, paymentsRes, pianoRes] = await Promise.all([
-        axios.get(`${API}/partners/${partner.id}/profile`),
-        axios.get(`${API}/partner-documents/${partner.id}`),
-        axios.get(`${API}/partners/${partner.id}/payments`),
-        axios.get(`${API}/partners/${partner.id}/piano-continuita`).catch(() => ({ data: null }))
+        axios.get(`${API}/api/partners/${partner.id}/profile`),
+        axios.get(`${API}/api/partner-documents/${partner.id}`),
+        axios.get(`${API}/api/partners/${partner.id}/payments`),
+        axios.get(`${API}/api/partners/${partner.id}/piano-continuita`).catch(() => ({ data: null }))
       ]);
       setProfileData(profileRes.data);
       setDocuments(docsRes.data);
@@ -188,7 +188,7 @@ export function PartnerProfileModal({ partner, onClose, onUpdate }) {
 
   const handleSave = async () => {
     try {
-      await axios.patch(`${API}/partners/${partner.id}/profile`, editData);
+      await axios.patch(`${API}/api/partners/${partner.id}/profile`, editData);
       setProfileData(editData);
       setEditing(false);
       onUpdate && onUpdate();
@@ -200,7 +200,7 @@ export function PartnerProfileModal({ partner, onClose, onUpdate }) {
   const handleExportPDF = async () => {
     setExporting(true);
     try {
-      const response = await axios.get(`${API}/partners/${partner.id}/export-pdf`, {
+      const response = await axios.get(`${API}/api/partners/${partner.id}/export-pdf`, {
         responseType: 'blob'
       });
       
@@ -273,7 +273,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
   const handleSendEmail = async () => {
     setSending(true);
     try {
-      await axios.post(`${API}/partners/${partner.id}/send-documents`, {
+      await axios.post(`${API}/api/partners/${partner.id}/send-documents`, {
         email: profileData?.email || partner.email
       });
       alert("Documenti inviati con successo!");
@@ -756,7 +756,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                       <button
                         onClick={async () => {
                           try {
-                            await axios.put(`${API}/partners/${partner.id}/piano-continuita`, pianoData);
+                            await axios.put(`${API}/api/partners/${partner.id}/piano-continuita`, pianoData);
                             await loadPartnerData();
                             setEditingPiano(false);
                             onUpdate && onUpdate();

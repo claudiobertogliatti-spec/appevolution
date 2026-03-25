@@ -53,7 +53,7 @@ export function ConsulenzaCheckout({ partner, onBack }) {
     setError(null);
     
     try {
-      const response = await fetch(`${API}/consulenza-checkout`, {
+      const response = await fetch(`${API}/api/consulenza-checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

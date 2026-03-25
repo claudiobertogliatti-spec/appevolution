@@ -84,8 +84,8 @@ export function StefaniaWarMode({ partners }) {
     setLoading(true);
     try {
       const [dashRes, alertsRes] = await Promise.all([
-        axios.get(`${API}/stefania/war-mode/dashboard`),
-        axios.get(`${API}/stefania/war-mode/alerts`)
+        axios.get(`${API}/api/stefania/war-mode/dashboard`),
+        axios.get(`${API}/api/stefania/war-mode/alerts`)
       ]);
       setDashboard(dashRes.data);
       setAlerts(alertsRes.data);
@@ -99,7 +99,7 @@ export function StefaniaWarMode({ partners }) {
   const loadPartnerMultiChannel = async () => {
     if (!selectedPartner) return;
     try {
-      const res = await axios.get(`${API}/stefania/war-mode/multi-channel/${selectedPartner.id}`);
+      const res = await axios.get(`${API}/api/stefania/war-mode/multi-channel/${selectedPartner.id}`);
       if (res.data.meta?.hook_gallery) {
         setHookGallery(res.data.meta.hook_gallery);
       }
@@ -115,7 +115,7 @@ export function StefaniaWarMode({ partners }) {
     if (!selectedPartner) return;
     setGeneratingHooks(true);
     try {
-      const res = await axios.post(`${API}/stefania/war-mode/hook-gallery`, {
+      const res = await axios.post(`${API}/api/stefania/war-mode/hook-gallery`, {
         partner_id: selectedPartner.id,
         partner_name: selectedPartner.name,
         partner_niche: selectedPartner.niche
@@ -133,7 +133,7 @@ export function StefaniaWarMode({ partners }) {
     if (!selectedPartner) return;
     setGeneratingLinkedin(true);
     try {
-      const res = await axios.post(`${API}/stefania/war-mode/linkedin-content`, {
+      const res = await axios.post(`${API}/api/stefania/war-mode/linkedin-content`, {
         partner_id: selectedPartner.id,
         partner_name: selectedPartner.name,
         partner_niche: selectedPartner.niche,
@@ -155,7 +155,7 @@ export function StefaniaWarMode({ partners }) {
     if (!selectedPartner) return;
     setAnalyzing(true);
     try {
-      const res = await axios.post(`${API}/stefania/war-mode/cross-platform-analysis?partner_id=${selectedPartner.id}`);
+      const res = await axios.post(`${API}/api/stefania/war-mode/cross-platform-analysis?partner_id=${selectedPartner.id}`);
       setCrossAnalysis(res.data);
       loadData(); // Refresh alerts
     } catch (e) {
@@ -168,7 +168,7 @@ export function StefaniaWarMode({ partners }) {
   const generateUtmLink = async (platform) => {
     if (!selectedPartner || !destinationUrl || !campaignName) return;
     try {
-      const res = await axios.post(`${API}/stefania/war-mode/generate-utm`, {
+      const res = await axios.post(`${API}/api/stefania/war-mode/generate-utm`, {
         partner_id: selectedPartner.id,
         partner_name: selectedPartner.name,
         destination_url: destinationUrl,
@@ -188,7 +188,7 @@ export function StefaniaWarMode({ partners }) {
     if (!campaign) return;
     
     try {
-      await axios.post(`${API}/stefania/war-mode/campaigns/${campaign.id}/update-metrics`, null, {
+      await axios.post(`${API}/api/stefania/war-mode/campaigns/${campaign.id}/update-metrics`, null, {
         params: {
           spend: metricsForm.spend,
           leads: metricsForm.leads,
@@ -197,7 +197,7 @@ export function StefaniaWarMode({ partners }) {
         }
       });
       // Update LTV separately
-      await axios.post(`${API}/stefania/war-mode/campaigns/${campaign.id}/update-ltv`, null, {
+      await axios.post(`${API}/api/stefania/war-mode/campaigns/${campaign.id}/update-ltv`, null, {
         params: {
           ltv_avg: metricsForm.ltv_avg,
           qualified_leads: metricsForm.qualified_leads
@@ -212,7 +212,7 @@ export function StefaniaWarMode({ partners }) {
 
   const resolveAlert = async (alertId) => {
     try {
-      await axios.post(`${API}/stefania/war-mode/alerts/${alertId}/resolve`);
+      await axios.post(`${API}/api/stefania/war-mode/alerts/${alertId}/resolve`);
       loadData();
     } catch (e) {
       console.error("Error resolving alert:", e);
@@ -944,7 +944,7 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
     if (!selectedPartner) return;
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/stefania/api/credentials/${selectedPartner.id}`);
+      const res = await axios.get(`${API}/api/stefania/api/credentials/${selectedPartner.id}`);
       setCredStatus(res.data);
     } catch (e) {
       console.error("Error loading cred status:", e);
@@ -964,7 +964,7 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
       if (linkedinToken) formData.append("linkedin_access_token", linkedinToken);
       if (linkedinAccountUrn) formData.append("linkedin_ad_account_urn", linkedinAccountUrn);
       
-      await axios.post(`${API}/stefania/api/store-credentials`, formData);
+      await axios.post(`${API}/api/stefania/api/store-credentials`, formData);
       alert("Credenziali salvate!");
       loadCredStatus();
     } catch (e) {
@@ -980,7 +980,7 @@ function APIConfigurationTab({ selectedPartner, onRefresh }) {
     setSyncing(true);
     setSyncResult(null);
     try {
-      const res = await axios.post(`${API}/stefania/api/sync-metrics/${selectedPartner.id}`, null, {
+      const res = await axios.post(`${API}/api/stefania/api/sync-metrics/${selectedPartner.id}`, null, {
         params: {
           cpl_threshold_meta: cplThresholdMeta,
           cpl_threshold_linkedin: cplThresholdLinkedin
@@ -1239,8 +1239,8 @@ function ROITab({ selectedPartner }) {
     setLoading(true);
     try {
       const [roiRes, salesRes] = await Promise.all([
-        axios.get(`${API}/stefania/api/roi/${selectedPartner.id}`, { params: { days } }),
-        axios.get(`${API}/stefania/api/crm/sales/${selectedPartner.id}`, { params: { days } })
+        axios.get(`${API}/api/stefania/api/roi/${selectedPartner.id}`, { params: { days } }),
+        axios.get(`${API}/api/stefania/api/crm/sales/${selectedPartner.id}`, { params: { days } })
       ]);
       setRoiData(roiRes.data);
       setSalesData(salesRes.data);
@@ -1261,7 +1261,7 @@ function ROITab({ selectedPartner }) {
       formData.append("utm_source", saleSource);
       if (saleCampaign) formData.append("utm_campaign", saleCampaign);
       
-      await axios.post(`${API}/stefania/api/crm/sale`, formData);
+      await axios.post(`${API}/api/stefania/api/crm/sale`, formData);
       alert("Vendita registrata!");
       setSaleAmount("");
       setSaleCampaign("");

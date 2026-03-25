@@ -20,8 +20,8 @@ export function SalesKPIDashboard() {
     setIsRefreshing(true);
     try {
       const [kpiRes, salesRes] = await Promise.all([
-        fetch(`${API}/sales/kpi`),
-        fetch(`${API}/sales/recent?limit=10`)
+        fetch(`${API}/api/sales/kpi`),
+        fetch(`${API}/api/sales/recent?limit=10`)
       ]);
       
       if (kpiRes.ok) {

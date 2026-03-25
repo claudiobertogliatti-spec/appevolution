@@ -102,8 +102,8 @@ export function WebhookDashboard() {
     setLoading(true);
     try {
       const [logsRes, statsRes] = await Promise.all([
-        axios.get(`${API}/webhooks/logs?limit=50`),
-        axios.get(`${API}/webhooks/stats`)
+        axios.get(`${API}/api/webhooks/logs?limit=50`),
+        axios.get(`${API}/api/webhooks/stats`)
       ]);
       
       setLogs(logsRes.data.logs || []);

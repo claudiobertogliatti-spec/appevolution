@@ -474,7 +474,7 @@ export function FunnelReviewBuilder({ partner, onBack }) {
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      const response = await fetch(`${API}/funnel/export`, {
+      const response = await fetch(`${API}/api/funnel/export`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -606,7 +606,7 @@ export function FunnelReviewBuilder({ partner, onBack }) {
             
             <div className="flex gap-3">
               <a 
-                href={`${API}/funnel/export/preview/${exportResult.filename}`}
+                href={`${API}/api/funnel/export/preview/${exportResult.filename}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-sm transition-all hover:scale-105"
@@ -615,7 +615,7 @@ export function FunnelReviewBuilder({ partner, onBack }) {
                 <ExternalLink className="w-4 h-4" /> Anteprima
               </a>
               <a 
-                href={`${API}/funnel/export/download/${exportResult.filename}`}
+                href={`${API}/api/funnel/export/download/${exportResult.filename}`}
                 download
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-sm transition-all hover:scale-105"
                 style={{ background: '#F2C418', color: '#1E2128' }}

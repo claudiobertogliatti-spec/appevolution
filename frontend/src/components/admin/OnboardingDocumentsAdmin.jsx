@@ -179,18 +179,18 @@ export function OnboardingDocumentsAdmin() {
     setLoading(true);
     try {
       // Get pending documents
-      const pendingRes = await axios.get(`${API}/admin/onboarding-documents/pending`);
+      const pendingRes = await axios.get(`${API}/api/admin/onboarding-documents/pending`);
       const pendingDocs = pendingRes.data.documents || [];
       
       // Get all partners to fetch their documents
-      const partnersRes = await axios.get(`${API}/partners`);
+      const partnersRes = await axios.get(`${API}/api/partners`);
       const partners = partnersRes.data || [];
       
       // Fetch documents for each partner
       const allDocs = [];
       for (const partner of partners.slice(0, 50)) { // Limit to 50 partners
         try {
-          const docsRes = await axios.get(`${API}/partners/${partner.id}/onboarding-documents`);
+          const docsRes = await axios.get(`${API}/api/partners/${partner.id}/onboarding-documents`);
           const docs = docsRes.data.documents || [];
           docs.forEach(d => {
             allDocs.push({
@@ -222,7 +222,7 @@ export function OnboardingDocumentsAdmin() {
   const handleVerify = async (partnerId, docType) => {
     setProcessing(`${partnerId}-${docType}`);
     try {
-      await axios.post(`${API}/partners/${partnerId}/onboarding-documents/${docType}/verify`);
+      await axios.post(`${API}/api/partners/${partnerId}/onboarding-documents/${docType}/verify`);
       await loadDocuments();
     } catch (error) {
       console.error('Error verifying document:', error);
@@ -234,7 +234,7 @@ export function OnboardingDocumentsAdmin() {
   const handleReject = async (partnerId, docType, reason) => {
     setProcessing(`${partnerId}-${docType}`);
     try {
-      await axios.post(`${API}/partners/${partnerId}/onboarding-documents/${docType}/reject?reason=${encodeURIComponent(reason)}`);
+      await axios.post(`${API}/api/partners/${partnerId}/onboarding-documents/${docType}/reject?reason=${encodeURIComponent(reason)}`);
       await loadDocuments();
     } catch (error) {
       console.error('Error rejecting document:', error);
