@@ -1,6 +1,9 @@
 import { useState } from "react";
-import { User, Mail, Briefcase, DollarSign, Lock, FileText, Check, Copy, ArrowLeft, ArrowRight, Send } from "lucide-react";
+import { User, Mail, Briefcase, DollarSign, Lock, FileText, Check, Copy, ArrowLeft, ArrowRight, Send, Loader2 } from "lucide-react";
 import { S, NICCHIE_DISPONIBILI } from "../../data/constants";
+import axios from "axios";
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 // Utility functions
 function generatePassword() {
@@ -66,6 +69,8 @@ export function NuovoPartnerForm({ onClose, onComplete }) {
   });
   const [errors, setErrors] = useState({});
   const [generatedData, setGeneratedData] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
   function validateForm() {
     const errs = {};
@@ -90,11 +95,63 @@ export function NuovoPartnerForm({ onClose, onComplete }) {
     setStep("preview");
   }
 
-  function handleCreate() {
-    setTimeout(() => {
+  async function handleCreate() {
+    setIsSubmitting(true);
+    setSubmitError(null);
+    
+    try {
+      // 1. Crea il partner nel database
+      const partnerData = {
+        name: formData.name,
+        email: formData.email,
+        niche: formData.niche,
+        phase: "F1",
+        revenue: parseInt(formData.investment) || 0,
+        contract: new Date().toISOString().split('T')[0],
+      };
+      
+      const partnerResponse = await axios.post(`${API}/api/partners`, partnerData);
+      const newPartner = partnerResponse.data;
+      
+      // 2. Crea l'utente con credenziali di accesso
+      const userData = {
+        name: formData.name,
+        email: formData.email,
+        password: generatedData.appPassword,
+        role: "partner",
+        partner_id: newPartner.id,
+        phase: "F1",
+        nicchia: formData.niche,
+      };
+      
+      try {
+        await axios.post(`${API}/api/users/create-partner-account`, userData);
+      } catch (userErr) {
+        // Se l'utente esiste già, prosegui comunque
+        console.log("User creation:", userErr.response?.data?.detail || userErr.message);
+      }
+      
+      // 3. Invia email di benvenuto se richiesto
+      if (formData.sendEmail) {
+        try {
+          await axios.post(`${API}/api/onboarding/send-welcome-email/${newPartner.id}`, {
+            app_password: generatedData.appPassword,
+            systeme_password: formData.systemePassword
+          });
+        } catch (emailErr) {
+          console.log("Email send error:", emailErr.response?.data?.detail || emailErr.message);
+        }
+      }
+      
       setStep("success");
-      if (onComplete) onComplete({ ...formData, ...generatedData });
-    }, 800);
+      if (onComplete) onComplete({ ...formData, ...generatedData, partnerId: newPartner.id });
+      
+    } catch (err) {
+      console.error("Create partner error:", err);
+      setSubmitError(err.response?.data?.detail || "Errore durante la creazione del partner");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   function copyToClipboard() {
@@ -196,11 +253,26 @@ Primo step: Modulo 0 nell'app`;
             </button>
             <button
               onClick={handleCreate}
-              className="flex-1 flex items-center justify-center gap-2 bg-[#F5C518] text-black rounded-xl px-4 py-3 text-sm font-extrabold hover:bg-[#e0a800] transition-colors"
+              disabled={isSubmitting}
+              className="flex-1 flex items-center justify-center gap-2 bg-[#F5C518] text-black rounded-xl px-4 py-3 text-sm font-extrabold hover:bg-[#e0a800] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Check className="w-4 h-4" /> Conferma e Crea Partner
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Creazione in corso...
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4" /> Conferma e Crea Partner
+                </>
+              )}
             </button>
           </div>
+          
+          {submitError && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              {submitError}
+            </div>
+          )}
         </div>
       </div>
     );

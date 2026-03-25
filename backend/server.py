@@ -1022,6 +1022,73 @@ async def register(request: RegisterRequest):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
+class CreatePartnerAccountRequest(BaseModel):
+    name: str
+    email: str
+    password: str
+    partner_id: str
+    phase: str = "F1"
+    nicchia: str = ""
+
+
+@api_router.post("/users/create-partner-account")
+async def create_partner_account(request: CreatePartnerAccountRequest):
+    """
+    Crea un account utente per un partner esistente.
+    Usato dal form NuovoPartnerForm quando il partner è già stato creato.
+    """
+    import bcrypt
+    
+    # Verifica che il partner esista
+    partner = await db.partners.find_one({"id": request.partner_id})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner non trovato")
+    
+    # Verifica che l'email non sia già registrata
+    existing_user = await db.users.find_one({"email": request.email.lower()})
+    if existing_user:
+        # Se l'utente esiste, aggiorna il partner_id se necessario
+        if not existing_user.get("partner_id"):
+            await db.users.update_one(
+                {"email": request.email.lower()},
+                {"$set": {"partner_id": request.partner_id}}
+            )
+        return {"success": True, "message": "Utente già esistente, collegato al partner"}
+    
+    # Hash password
+    password_hash = bcrypt.hashpw(request.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    
+    # Crea l'utente
+    user_id = str(uuid.uuid4())
+    new_user = {
+        "id": user_id,
+        "name": request.name,
+        "email": request.email.lower(),
+        "password_hash": password_hash,
+        "role": "partner",
+        "partner_id": request.partner_id,
+        "phase": request.phase,
+        "nicchia": request.nicchia,
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.users.insert_one(new_user)
+    
+    # Aggiorna il partner con l'email
+    await db.partners.update_one(
+        {"id": request.partner_id},
+        {"$set": {"email": request.email.lower(), "user_id": user_id}}
+    )
+    
+    return {
+        "success": True,
+        "user_id": user_id,
+        "message": "Account partner creato con successo"
+    }
+
+
 async def send_partner_welcome_email(email: str, name: str):
     """Send welcome email to new partner using editable template
     
