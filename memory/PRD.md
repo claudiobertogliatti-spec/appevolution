@@ -52,7 +52,18 @@ Build a multi-faceted AI-powered application for "Evolution PRO" business includ
 
 ## What's Been Implemented
 
-### Session: 25 March 2026 - Import Systeme.io + Calendario Editoriale
+### Session: 25 March 2026 - BUG FIX CRITICO + Import Systeme.io + Calendario Editoriale
+
+#### ✅ BUG FIX CRITICO - Partner non visibili in Dashboard
+**Problema**: I partner reali (22) non venivano mostrati nella dashboard Overview e nella Pipeline Partner. Erano visibili solo i 5 partner seed.
+
+**Causa**: Le chiamate API in `/app/frontend/src/App.js` mancavano del prefisso `/api/`:
+- `${API}/partners` invece di `${API}/api/partners`
+- `${API}/alerts` invece di `${API}/api/alerts`
+- `${API}/agents` invece di `${API}/api/agents`
+- E molti altri endpoint (compliance, gaia, videos, files, chat)
+
+**Fix**: Corretti tutti gli endpoint in App.js aggiungendo il prefisso `/api/`.
 
 #### ✅ FIX URGENTE - Import Lista Fredda su Systeme.io via API
 Implementato router `/app/backend/routers/systeme_contacts.py`:

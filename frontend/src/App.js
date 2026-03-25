@@ -467,9 +467,9 @@ function ComplianceDashboard() {
   
   useEffect(()=>{(async()=>{try{
     const[d,s,p]=await Promise.all([
-      axios.get(`${API}/compliance/pending`),
-      axios.get(`${API}/compliance/stats`),
-      axios.get(`${API}/partners`)
+      axios.get(`${API}/api/compliance/pending`),
+      axios.get(`${API}/api/compliance/stats`),
+      axios.get(`${API}/api/partners`)
     ]);
     setDocs(d.data.documents||[]);
     setStats(s.data);
@@ -487,10 +487,10 @@ function ComplianceDashboard() {
       fd.append("category","compliance");
       fd.append("tipo_documento",newDoc.tipo);
       fd.append("note",newDoc.note);
-      await axios.post(`${API}/files/upload`,fd);
+      await axios.post(`${API}/api/files/upload`,fd);
       setShowAddDoc(false);
       setNewDoc({partner_id:"",tipo:"contratto_standard",note:""});
-      const r=await axios.get(`${API}/compliance/pending`);
+      const r=await axios.get(`${API}/api/compliance/pending`);
       setDocs(r.data.documents||[]);
     }catch(e){}finally{setUploading(false);}
   };
@@ -563,9 +563,9 @@ function ComplianceDashboard() {
             <div className="text-xs text-[#9CA3AF]">{doc.partner_id} · {doc.size_readable} · {TIPI_DOCUMENTO.find(t=>t.id===doc.tipo_documento)?.label||"Standard"}</div>
           </div>
           <div className="flex gap-2">
-            <button onClick={()=>window.open(`${API}/${doc.internal_url}`,"_blank")} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FAFAF7] border border-[#ECEDEF] flex items-center gap-1"><Eye className="w-3 h-3"/>Anteprima</button>
-            <button onClick={async()=>{await axios.post(`${API}/files/documents/${doc.filename}/verify`);const r=await axios.get(`${API}/compliance/pending`);setDocs(r.data.documents||[]);}} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-green-500/20 text-green-400 flex items-center gap-1"><Check className="w-3 h-3"/>Verifica</button>
-            <button onClick={async()=>{await axios.delete(`${API}/files/documents/${doc.filename}/reject`);const r=await axios.get(`${API}/compliance/pending`);setDocs(r.data.documents||[]);}} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 flex items-center gap-1"><XCircle className="w-3 h-3"/>Rifiuta</button>
+            <button onClick={()=>window.open(`${API}/api/${doc.internal_url}`,"_blank")} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FAFAF7] border border-[#ECEDEF] flex items-center gap-1"><Eye className="w-3 h-3"/>Anteprima</button>
+            <button onClick={async()=>{await axios.post(`${API}/api/files/documents/${doc.filename}/verify`);const r=await axios.get(`${API}/api/compliance/pending`);setDocs(r.data.documents||[]);}} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-green-500/20 text-green-400 flex items-center gap-1"><Check className="w-3 h-3"/>Verifica</button>
+            <button onClick={async()=>{await axios.delete(`${API}/api/files/documents/${doc.filename}/reject`);const r=await axios.get(`${API}/api/compliance/pending`);setDocs(r.data.documents||[]);}} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 flex items-center gap-1"><XCircle className="w-3 h-3"/>Rifiuta</button>
           </div>
         </div>
       ))}
@@ -576,8 +576,8 @@ function ComplianceDashboard() {
 // ─── GAIA ──────────────────────────────────────────────────────────────────────
 function GaiaFunnelDeployer({ partners }) {
   const [templates,setTemplates]=useState([]);const [categories,setCategories]=useState([]);const [activeCategory,setActiveCategory]=useState("all");const [showAdd,setShowAdd]=useState(false);const [nt,setNt]=useState({name:"",category:"lead_gen",share_link:"",description:""});
-  useEffect(()=>{(async()=>{try{const[t,c]=await Promise.all([axios.get(`${API}/gaia/templates`),axios.get(`${API}/gaia/templates/categories`)]);setTemplates(t.data);setCategories(c.data.categories);}catch(e){}})();},[]);
-  const handleAdd=async()=>{if(!nt.name||!nt.share_link)return;const fd=new FormData();Object.entries(nt).forEach(([k,v])=>fd.append(k,v));await axios.post(`${API}/gaia/templates`,fd);setShowAdd(false);setNt({name:"",category:"lead_gen",share_link:"",description:""});const r=await axios.get(`${API}/gaia/templates`);setTemplates(r.data);};
+  useEffect(()=>{(async()=>{try{const[t,c]=await Promise.all([axios.get(`${API}/api/gaia/templates`),axios.get(`${API}/api/gaia/templates/categories`)]);setTemplates(t.data);setCategories(c.data.categories);}catch(e){}})();},[]);
+  const handleAdd=async()=>{if(!nt.name||!nt.share_link)return;const fd=new FormData();Object.entries(nt).forEach(([k,v])=>fd.append(k,v));await axios.post(`${API}/api/gaia/templates`,fd);setShowAdd(false);setNt({name:"",category:"lead_gen",share_link:"",description:""});const r=await axios.get(`${API}/api/gaia/templates`);setTemplates(r.data);};
   const filtered=activeCategory==="all"?templates:templates.filter(t=>t.category===activeCategory);
   return (
     <div className="space-y-5">
@@ -598,8 +598,8 @@ function GaiaFunnelDeployer({ partners }) {
 function AndreaPipeline({ partners }) {
   const [jobs,setJobs]=useState([]);const [sel,setSel]=useState(null);const [uploading,setUploading]=useState(false);const [processing,setProcessing]=useState(false);const ref=useRef(null);
   useEffect(()=>{loadJobs();const iv=setInterval(loadJobs,5000);return()=>clearInterval(iv);},[]);
-  const loadJobs=async()=>{try{const r=await axios.get(`${API}/videos/jobs`);setJobs(r.data);}catch(e){}};
-  const handleUpload=async(e)=>{const file=e.target.files[0];if(!file||!sel)return;setUploading(true);try{const fd=new FormData();fd.append("file",file);fd.append("partner_id",sel.id);fd.append("category","video");const u=await axios.post(`${API}/files/upload`,fd);if(u.data.success){setProcessing(true);await axios.post(`${API}/videos/process`,{partner_id:sel.id,partner_name:sel.name,input_file:u.data.stored_name,auto_trim:true,remove_fillers:true,apply_speed:true,normalize:true,add_branding:true});loadJobs();}}catch(e){}finally{setUploading(false);setProcessing(false);}};
+  const loadJobs=async()=>{try{const r=await axios.get(`${API}/api/videos/jobs`);setJobs(r.data);}catch(e){}};
+  const handleUpload=async(e)=>{const file=e.target.files[0];if(!file||!sel)return;setUploading(true);try{const fd=new FormData();fd.append("file",file);fd.append("partner_id",sel.id);fd.append("category","video");const u=await axios.post(`${API}/api/files/upload`,fd);if(u.data.success){setProcessing(true);await axios.post(`${API}/api/videos/process`,{partner_id:sel.id,partner_name:sel.name,input_file:u.data.stored_name,auto_trim:true,remove_fillers:true,apply_speed:true,normalize:true,add_branding:true});loadJobs();}}catch(e){}finally{setUploading(false);setProcessing(false);}};
   const sc={queued:"text-[#9CA3AF]",processing:"text-blue-400",completed:"text-yellow-400",approved:"text-green-400",failed:"text-red-400"};
   return (
     <div className="space-y-5">
@@ -615,9 +615,9 @@ function AndreaPipeline({ partners }) {
             <div className="w-12 h-12 rounded-lg bg-[#FAFAF7] flex items-center justify-center flex-shrink-0">{job.status==="processing"?<Loader2 className="w-5 h-5 text-[#F5C518] animate-spin"/>:job.status==="approved"?<CheckCircle className="w-5 h-5 text-green-400"/>:job.status==="failed"?<XCircle className="w-5 h-5 text-red-400"/>:<Film className="w-5 h-5 text-[#9CA3AF]"/>}</div>
             <div className="flex-1 min-w-0"><div className="flex items-center gap-2 mb-1"><span className="font-bold text-sm">{job.partner_name}</span><span className={`text-[10px] font-bold ${sc[job.status]}`}>{job.status?.toUpperCase()}</span></div><div className="text-xs text-[#9CA3AF] truncate">{job.input_file}</div>{job.processing_result?.time_saved&&<span className="text-green-400 text-xs font-bold">-{Math.round(job.processing_result.time_saved)}s risparmiati</span>}</div>
             <div className="flex gap-2 flex-shrink-0">
-              {job.status==="completed"&&<><button onClick={()=>window.open(`${API}/files/videos/processed/${job.output_file}`,"_blank")} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FAFAF7] border border-[#ECEDEF] flex items-center gap-1"><Eye className="w-3 h-3"/>Preview</button><button onClick={async()=>{await axios.post(`${API}/videos/jobs/${job.id}/approve`);loadJobs();}} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#F5C518] text-black flex items-center gap-1"><Check className="w-3 h-3"/>Approva</button></>}
-              {job.status==="approved"&&<button onClick={()=>{const t=prompt("Titolo YouTube:");if(t)axios.post(`${API}/youtube/upload/${job.id}`,{job_id:job.id,title:t,privacy_status:"unlisted"}).then(()=>{alert("Upload avviato!");loadJobs();});}} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 flex items-center gap-1"><Youtube className="w-3 h-3"/>YouTube</button>}
-              <button onClick={async()=>{await axios.delete(`${API}/videos/jobs/${job.id}`);loadJobs();}} className="text-[#9CA3AF] hover:text-red-400 p-1.5 transition-colors"><Trash2 className="w-4 h-4"/></button>
+              {job.status==="completed"&&<><button onClick={()=>window.open(`${API}/api/files/videos/processed/${job.output_file}`,"_blank")} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FAFAF7] border border-[#ECEDEF] flex items-center gap-1"><Eye className="w-3 h-3"/>Preview</button><button onClick={async()=>{await axios.post(`${API}/api/videos/jobs/${job.id}/approve`);loadJobs();}} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#F5C518] text-black flex items-center gap-1"><Check className="w-3 h-3"/>Approva</button></>}
+              {job.status==="approved"&&<button onClick={()=>{const t=prompt("Titolo YouTube:");if(t)axios.post(`${API}/api/youtube/upload/${job.id}`,{job_id:job.id,title:t,privacy_status:"unlisted"}).then(()=>{alert("Upload avviato!");loadJobs();});}} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 flex items-center gap-1"><Youtube className="w-3 h-3"/>YouTube</button>}
+              <button onClick={async()=>{await axios.delete(`${API}/api/videos/jobs/${job.id}`);loadJobs();}} className="text-[#9CA3AF] hover:text-red-400 p-1.5 transition-colors"><Trash2 className="w-4 h-4"/></button>
             </div>
           </div>
         </div>
@@ -635,7 +635,7 @@ function PartnerFileManager({ partner }) {
   useEffect(()=>{
     (async()=>{
       try{
-        const r=await axios.get(`${API}/files/partner/${partner.id}`);
+        const r=await axios.get(`${API}/api/files/partner/${partner.id}`);
         if(r.data.files) {
           setFiles(r.data.files);
           setTotalFiles(r.data.total || 0);
@@ -653,8 +653,8 @@ function PartnerFileManager({ partner }) {
       fd.append("file",file);
       fd.append("partner_id",partner.id);
       fd.append("category",cat);
-      await axios.post(`${API}/files/upload`,fd);
-      const r=await axios.get(`${API}/files/partner/${partner.id}`);
+      await axios.post(`${API}/api/files/upload`,fd);
+      const r=await axios.get(`${API}/api/files/partner/${partner.id}`);
       if(r.data.files) {
         setFiles(r.data.files);
         setTotalFiles(r.data.total || 0);
@@ -885,7 +885,7 @@ function PartnerChat({ partner }) {
   const qr=["Cosa devo fare adesso?","Come funziona il prossimo step?","Ho un problema tecnico","Quando lanceremo?"];
   useEffect(()=>{setMessages([{role:"assistant",content:`Ciao ${partner.name.split(" ")[0]}! Sono STEFANIA. Sei in **${partner.phase} — ${PHASE_LABELS[partner.phase]}**. Come posso aiutarti?`,time:new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}]);},[partner]);
   useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:"smooth"});},[messages,loading]);
-  const send=async(text)=>{const msg=text||input.trim();if(!msg||loading)return;setInput("");setMessages(p=>[...p,{role:"user",content:msg,time:new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}]);setLoading(true);try{const r=await axios.post(`${API}/chat`,{session_id:sessionId,message:msg,partner_name:partner.name,partner_niche:partner.niche,partner_phase:partner.phase,modules_done:(partner.modules||[]).filter(Boolean).length});setMessages(p=>[...p,{role:"assistant",content:r.data.response,time:new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}]);}catch(e){setMessages(p=>[...p,{role:"assistant",content:"⚠ Problema di connessione. Escalando ad Antonella.",time:new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}),error:true}]);}finally{setLoading(false);}};
+  const send=async(text)=>{const msg=text||input.trim();if(!msg||loading)return;setInput("");setMessages(p=>[...p,{role:"user",content:msg,time:new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}]);setLoading(true);try{const r=await axios.post(`${API}/api/chat`,{session_id:sessionId,message:msg,partner_name:partner.name,partner_niche:partner.niche,partner_phase:partner.phase,modules_done:(partner.modules||[]).filter(Boolean).length});setMessages(p=>[...p,{role:"assistant",content:r.data.response,time:new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}]);}catch(e){setMessages(p=>[...p,{role:"assistant",content:"⚠ Problema di connessione. Escalando ad Antonella.",time:new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}),error:true}]);}finally{setLoading(false);}};
   return (
     <div className="bg-white border border-[#ECEDEF] rounded-xl overflow-hidden flex flex-col" style={{height:"calc(100vh - 180px)",minHeight:500}}>
       <div className="bg-[#FAFAF7] p-4 flex items-center gap-3 border-b border-[#ECEDEF]"><div className="w-9 h-9 rounded-full bg-[#F5C518] flex items-center justify-center text-sm font-bold text-black">V</div><div className="flex-1"><div className="text-sm font-bold">STEFANIA</div><div className="text-[10px] text-[#9CA3AF]">Onboarding & Consulenza · sempre disponibile</div></div><div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"/></div>
@@ -1036,13 +1036,13 @@ export default function App() {
   };
 
   useEffect(()=>{if(isAuthenticated) loadData();},[isAuthenticated]);
-  const loadData=async()=>{try{const[a,p,al,m,s]=await Promise.all([axios.get(`${API}/agents`),axios.get(`${API}/partners`),axios.get(`${API}/alerts`),axios.get(`${API}/modules`),axios.get(`${API}/stats`)]);setAgents(a.data);setPartners(p.data);setAlerts(al.data);setModules(m.data);setStats(s.data);}catch(e){console.error(e);}};
-  const dismissAlert=async(id)=>{try{await axios.delete(`${API}/alerts/${id}`);setAlerts(p=>p.filter(a=>a.id!==id));}catch(e){}};
+  const loadData=async()=>{try{const[a,p,al,m,s]=await Promise.all([axios.get(`${API}/api/agents`),axios.get(`${API}/api/partners`),axios.get(`${API}/api/alerts`),axios.get(`${API}/api/modules`),axios.get(`${API}/api/stats`)]);setAgents(a.data);setPartners(p.data);setAlerts(al.data);setModules(m.data);setStats(s.data);}catch(e){console.error(e);}};
+  const dismissAlert=async(id)=>{try{await axios.delete(`${API}/api/alerts/${id}`);setAlerts(p=>p.filter(a=>a.id!==id));}catch(e){}};
   
   // Handle delete partner
   const handleDeletePartner = async (partner) => {
     try {
-      const response = await axios.delete(`${API}/partners/${partner.id}`);
+      const response = await axios.delete(`${API}/api/partners/${partner.id}`);
       if (response.status === 200) {
         // Remove partner from state
         setPartners(prev => prev.filter(p => p.id !== partner.id));
