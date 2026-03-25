@@ -20,6 +20,7 @@ if env_path.exists():
                     os.environ[key] = value
 
 from celery import Celery
+from celery.schedules import crontab
 
 # Redis URL - use environment variable or default to localhost
 REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
@@ -93,6 +94,11 @@ celery_app.conf.update(
         'check-piano-continuita-expiry': {
             'task': 'celery_tasks.check_piano_continuita_expiry',
             'schedule': 86400.0,  # Every 24 hours (daily)
+        },
+        'daily-hot-leads-outreach': {
+            'task': 'celery_tasks.daily_hot_leads_outreach',
+            'schedule': crontab(hour=9, minute=0),  # Every day at 9:00 AM
+            'kwargs': {'max_leads': 5},  # Max 5 leads/day
         },
     },
 )

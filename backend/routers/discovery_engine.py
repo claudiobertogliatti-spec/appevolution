@@ -586,23 +586,57 @@ async def import_leads_from_csv(request: ImportCSVRequest):
 
 
 @router.get("/leads/hot")
-async def get_hot_leads(limit: int = 20, min_score: int = 50):
+async def get_hot_leads(
+    limit: int = 20, 
+    min_score: int = 80,
+    only_with_email: bool = True,
+    outreach_status: Optional[str] = None
+):
     """
-    Ritorna i lead caldi ordinati per score.
-    Usato dalla tab Discovery Leads nell'Agent Hub.
+    Ritorna i lead HOT (score >= 80) ordinati per score.
+    Filtro opzionale per solo lead con email disponibile.
     """
     if db is None:
         raise HTTPException(status_code=500, detail="Database non inizializzato")
     
+    query = {"score_total": {"$gte": min_score}}
+    
+    # Filtra solo lead con email
+    if only_with_email:
+        query["$or"] = [
+            {"email": {"$exists": True, "$nin": [None, ""]}},
+            {"contact_email": {"$exists": True, "$nin": [None, ""]}}
+        ]
+    
+    # Filtra per outreach_status
+    if outreach_status:
+        query["outreach_status"] = outreach_status
+    
     leads = await db.discovery_leads.find(
-        {"score_total": {"$gte": min_score}},
+        query,
         {"_id": 0, "website_html": 0}
     ).sort("score_total", -1).limit(limit).to_list(limit)
+    
+    # Statistiche
+    total_hot = await db.discovery_leads.count_documents({"score_total": {"$gte": 80}})
+    pending_outreach = await db.discovery_leads.count_documents({
+        "score_total": {"$gte": 80},
+        "outreach_status": "pending"
+    })
+    contacted = await db.discovery_leads.count_documents({
+        "score_total": {"$gte": 80},
+        "outreach_status": {"$in": ["contacted", "sent"]}
+    })
     
     return {
         "leads": leads,
         "count": len(leads),
-        "min_score": min_score
+        "min_score": min_score,
+        "stats": {
+            "total_hot": total_hot,
+            "pending_outreach": pending_outreach,
+            "contacted": contacted
+        }
     }
 
 
@@ -1507,6 +1541,290 @@ async def mark_outreach_sent(lead_id: str):
     )
     
     return {"success": True, "lead_id": lead_id, "status": "sent"}
+
+
+@router.post("/leads/{lead_id}/avvia-outreach")
+async def avvia_outreach(lead_id: str, background_tasks: BackgroundTasks):
+    """
+    Avvia l'outreach per un lead specifico:
+    1. Cambia stato a 'contacted'
+    2. Logga data primo contatto
+    3. Crea task per VALENTINA (agente outreach)
+    4. Se non ha già un messaggio, lo genera automaticamente
+    """
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database non inizializzato")
+    
+    lead = await db.discovery_leads.find_one({"id": lead_id})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead non trovato")
+    
+    # Verifica che il lead abbia un'email
+    email = lead.get("email") or lead.get("contact_email")
+    if not email:
+        raise HTTPException(
+            status_code=400, 
+            detail="Lead senza email. Outreach non possibile."
+        )
+    
+    # Prepara i dati del task VALENTINA
+    task_data = {
+        "id": f"valentina_outreach_{lead_id}_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+        "type": "outreach_lead",
+        "agent": "VALENTINA",
+        "lead_id": lead_id,
+        "lead_name": lead.get("name") or lead.get("channel_name") or "Lead",
+        "lead_email": email,
+        "lead_source": lead.get("source", "unknown"),
+        "lead_score": lead.get("score_total", 0),
+        "status": "pending",
+        "priority": "high" if lead.get("score_total", 0) >= 90 else "medium",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "due_date": (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat(),
+        "notes": f"Outreach automatico per lead hot (score: {lead.get('score_total', 0)})"
+    }
+    
+    # Inserisci task per VALENTINA
+    await db.agent_tasks.insert_one(task_data)
+    
+    # Aggiorna stato lead
+    update_data = {
+        "outreach_status": "contacted",
+        "status": LeadStatus.CONTACTED.value,
+        "first_contact_at": datetime.now(timezone.utc).isoformat(),
+        "valentina_task_id": task_data["id"],
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Se non ha ancora un messaggio outreach, generalo in background
+    if not lead.get("outreach_message"):
+        update_data["outreach_generation_pending"] = True
+        background_tasks.add_task(
+            generate_outreach_message_background,
+            lead_id,
+            GiftType.MIXED
+        )
+    
+    await db.discovery_leads.update_one(
+        {"id": lead_id},
+        {"$set": update_data}
+    )
+    
+    # Crea alert per il team
+    await db.alerts.insert_one({
+        "id": f"alert_outreach_{lead_id}",
+        "type": "outreach_started",
+        "title": f"Outreach avviato per {lead.get('name', 'Lead')}",
+        "message": f"VALENTINA sta gestendo l'outreach per il lead (score: {lead.get('score_total', 0)})",
+        "lead_id": lead_id,
+        "agent": "VALENTINA",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "read": False
+    })
+    
+    logger.info(f"[OUTREACH] Avviato outreach per lead {lead_id} - Task VALENTINA creato")
+    
+    return {
+        "success": True,
+        "lead_id": lead_id,
+        "status": "contacted",
+        "first_contact_at": update_data["first_contact_at"],
+        "valentina_task_id": task_data["id"],
+        "message_generation": "pending" if not lead.get("outreach_message") else "ready",
+        "next_steps": [
+            "VALENTINA prenderà in carico il lead",
+            "Verrà generato/inviato il messaggio di primo contatto",
+            "Monitorare la risposta del lead"
+        ]
+    }
+
+
+async def generate_outreach_message_background(lead_id: str, gift_type: GiftType):
+    """Task background per generare il messaggio outreach"""
+    try:
+        lead = await db.discovery_leads.find_one({"id": lead_id})
+        if not lead:
+            return
+        
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        
+        if not EMERGENT_LLM_KEY:
+            logger.error(f"[OUTREACH BG] LLM Key non configurata")
+            return
+        
+        # Prepara il prompt
+        name = lead.get("name") or lead.get("channel_name") or "il professionista"
+        niche = lead.get("niche") or lead.get("expertise_keywords", [])
+        if isinstance(niche, list):
+            niche = ", ".join(niche[:3]) if niche else "il suo settore"
+        
+        prompt = f"""Genera un messaggio di primo contatto per:
+- Nome: {name}
+- Nicchia: {niche}
+- Source: {lead.get('source', 'unknown')}
+- Score: {lead.get('score_total', 0)}
+
+Il messaggio deve essere breve (max 100 parole), personalizzato, con un valore immediato.
+Non menzionare Evolution PRO. Chiudi con una domanda aperta."""
+        
+        llm = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"valentina_outreach_{lead_id}",
+            system_message="Sei VALENTINA, esperta di outreach e relationship building per Evolution PRO."
+        )
+        
+        response = await llm.send_message(UserMessage(text=prompt))
+        outreach_message = response if isinstance(response, str) else response.text
+        outreach_message = outreach_message.strip().strip('"\'')
+        
+        await db.discovery_leads.update_one(
+            {"id": lead_id},
+            {"$set": {
+                "outreach_message": outreach_message,
+                "outreach_gift_type": gift_type.value,
+                "outreach_generation_pending": False,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        logger.info(f"[OUTREACH BG] Messaggio generato per lead {lead_id}")
+        
+    except Exception as e:
+        logger.error(f"[OUTREACH BG] Errore: {e}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STUB PER INTEGRAZIONI SOCIAL (Future - Apify)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/integrations/status")
+async def get_integrations_status():
+    """
+    Stato delle integrazioni per discovery su vari canali.
+    STUB: Le integrazioni LinkedIn/Instagram/Facebook/Google verranno 
+    implementate con Apify in un secondo momento.
+    """
+    return {
+        "integrations": {
+            "youtube": {
+                "status": "active",
+                "method": "YouTube Data API v3",
+                "quota_daily": 10000,
+                "features": ["channel_search", "video_analysis", "subscriber_count"]
+            },
+            "linkedin": {
+                "status": "stub",
+                "method": "Apify (planned)",
+                "note": "Integrazione prevista - scraping profili professionisti",
+                "features_planned": ["profile_search", "company_search", "connection_degree"]
+            },
+            "instagram": {
+                "status": "stub", 
+                "method": "Apify (planned)",
+                "note": "Integrazione prevista - discovery creator/coach",
+                "features_planned": ["hashtag_search", "follower_analysis", "engagement_rate"]
+            },
+            "facebook": {
+                "status": "stub",
+                "method": "Apify (planned)",
+                "note": "Integrazione prevista - gruppi e pagine business",
+                "features_planned": ["group_search", "page_analysis", "post_engagement"]
+            },
+            "google": {
+                "status": "stub",
+                "method": "Custom scraper (planned)",
+                "note": "Integrazione prevista - ricerca siti web professionisti",
+                "features_planned": ["site_search", "contact_extraction", "tech_stack_analysis"]
+            }
+        },
+        "next_implementation": "LinkedIn via Apify",
+        "estimated_timeline": "Q2 2026"
+    }
+
+
+@router.post("/integrations/linkedin/search")
+async def linkedin_search_stub(query: str = "", limit: int = 10):
+    """
+    STUB: Ricerca lead su LinkedIn.
+    TODO: Implementare con Apify LinkedIn Scraper.
+    """
+    return {
+        "status": "stub",
+        "message": "Integrazione LinkedIn non ancora implementata",
+        "query": query,
+        "limit": limit,
+        "todo": [
+            "1. Configurare Apify account",
+            "2. Implementare LinkedIn Profile Scraper",
+            "3. Mappare dati a schema DiscoveryLead",
+            "4. Aggiungere scoring specifico LinkedIn"
+        ],
+        "leads": []
+    }
+
+
+@router.post("/integrations/instagram/search")
+async def instagram_search_stub(hashtags: List[str] = [], limit: int = 10):
+    """
+    STUB: Ricerca lead su Instagram.
+    TODO: Implementare con Apify Instagram Scraper.
+    """
+    return {
+        "status": "stub",
+        "message": "Integrazione Instagram non ancora implementata",
+        "hashtags": hashtags,
+        "limit": limit,
+        "todo": [
+            "1. Configurare Apify Instagram Scraper",
+            "2. Ricerca per hashtag (#businesscoach, #formatore, etc.)",
+            "3. Filtrare per engagement rate",
+            "4. Estrarre email da bio"
+        ],
+        "leads": []
+    }
+
+
+@router.post("/integrations/facebook/search")
+async def facebook_search_stub(groups: List[str] = [], limit: int = 10):
+    """
+    STUB: Ricerca lead su Facebook Groups.
+    TODO: Implementare con Apify Facebook Scraper.
+    """
+    return {
+        "status": "stub",
+        "message": "Integrazione Facebook non ancora implementata",
+        "groups": groups,
+        "limit": limit,
+        "todo": [
+            "1. Configurare Apify Facebook Scraper",
+            "2. Identificare gruppi target",
+            "3. Estrarre membri attivi",
+            "4. Scoring basato su attività"
+        ],
+        "leads": []
+    }
+
+
+@router.post("/integrations/google/search")
+async def google_search_stub(keywords: str = "", location: str = "Italia", limit: int = 10):
+    """
+    STUB: Ricerca siti web professionisti via Google.
+    TODO: Implementare custom scraper o Apify.
+    """
+    return {
+        "status": "stub",
+        "message": "Integrazione Google Search non ancora implementata",
+        "keywords": keywords,
+        "location": location,
+        "limit": limit,
+        "todo": [
+            "1. Implementare SerpAPI o Apify Google Search",
+            "2. Parsing risultati per siti professionisti",
+            "3. Estrazione contatti da siti",
+            "4. Analisi tech stack e qualità sito"
+        ],
+        "leads": []
+    }
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

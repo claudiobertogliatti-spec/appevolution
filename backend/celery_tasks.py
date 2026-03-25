@@ -1356,3 +1356,202 @@ def stefania_check_funnel_nopayment(self, email: str, nome: str, phone: str):
         if self.request.retries < self.max_retries:
             raise self.retry(exc=e)
         return {"error": str(e)}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DISCOVERY ENGINE - OUTREACH AUTOMATICO LEAD HOT
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@shared_task(bind=True, max_retries=2, default_retry_delay=300)
+def daily_hot_leads_outreach(self, max_leads: int = 5):
+    """
+    Job giornaliero: prende i lead HOT (score >= 80) con outreach_status: pending
+    e li manda in outreach automatico (max 5/giorno per non bruciare la pipeline).
+    
+    Eseguito ogni mattina alle 9:00 tramite Celery Beat.
+    """
+    try:
+        logger.info(f"[DISCOVERY] Starting daily hot leads outreach (max: {max_leads})")
+        
+        async def _process_hot_leads():
+            client, db = get_db()
+            
+            try:
+                # Trova lead HOT con outreach pending e con email
+                hot_leads = await db.discovery_leads.find({
+                    "score_total": {"$gte": 80},
+                    "outreach_status": "pending",
+                    "$or": [
+                        {"email": {"$exists": True, "$nin": [None, ""]}},
+                        {"contact_email": {"$exists": True, "$nin": [None, ""]}}
+                    ]
+                }).sort("score_total", -1).limit(max_leads).to_list(max_leads)
+                
+                if not hot_leads:
+                    logger.info("[DISCOVERY] Nessun lead hot pending per outreach")
+                    return {
+                        "success": True,
+                        "processed": 0,
+                        "message": "Nessun lead hot in attesa di outreach"
+                    }
+                
+                processed = []
+                failed = []
+                
+                for lead in hot_leads:
+                    lead_id = lead.get("id")
+                    lead_name = lead.get("name") or lead.get("channel_name") or "Lead"
+                    email = lead.get("email") or lead.get("contact_email")
+                    
+                    try:
+                        # Crea task per VALENTINA
+                        task_id = f"valentina_auto_{lead_id}_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+                        
+                        task_data = {
+                            "id": task_id,
+                            "type": "auto_outreach_lead",
+                            "agent": "VALENTINA",
+                            "lead_id": lead_id,
+                            "lead_name": lead_name,
+                            "lead_email": email,
+                            "lead_source": lead.get("source", "unknown"),
+                            "lead_score": lead.get("score_total", 0),
+                            "status": "pending",
+                            "priority": "high",
+                            "auto_triggered": True,
+                            "created_at": datetime.now(timezone.utc).isoformat(),
+                            "due_date": (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat(),
+                            "notes": f"Outreach automatico giornaliero - Lead hot score {lead.get('score_total', 0)}"
+                        }
+                        
+                        await db.agent_tasks.insert_one(task_data)
+                        
+                        # Aggiorna stato lead
+                        await db.discovery_leads.update_one(
+                            {"id": lead_id},
+                            {"$set": {
+                                "outreach_status": "contacted",
+                                "status": "contacted",
+                                "first_contact_at": datetime.now(timezone.utc).isoformat(),
+                                "valentina_task_id": task_id,
+                                "auto_outreach": True,
+                                "updated_at": datetime.now(timezone.utc).isoformat()
+                            }}
+                        )
+                        
+                        processed.append({
+                            "lead_id": lead_id,
+                            "name": lead_name,
+                            "score": lead.get("score_total", 0),
+                            "task_id": task_id
+                        })
+                        
+                        logger.info(f"[DISCOVERY] Auto-outreach avviato per {lead_name} (score: {lead.get('score_total', 0)})")
+                        
+                    except Exception as e:
+                        logger.error(f"[DISCOVERY] Errore outreach lead {lead_id}: {e}")
+                        failed.append({"lead_id": lead_id, "error": str(e)})
+                
+                # Log risultato
+                result = {
+                    "success": True,
+                    "processed": len(processed),
+                    "failed": len(failed),
+                    "leads_processed": processed,
+                    "leads_failed": failed,
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                }
+                
+                # Salva log dell'esecuzione
+                await db.celery_job_logs.insert_one({
+                    "job": "daily_hot_leads_outreach",
+                    "result": result,
+                    "executed_at": datetime.now(timezone.utc).isoformat()
+                })
+                
+                # Notifica Telegram se ci sono lead processati
+                if processed:
+                    await send_telegram_notification(
+                        f"🔥 *Discovery - Outreach Automatico*\n\n"
+                        f"📊 Lead processati: {len(processed)}\n"
+                        f"❌ Falliti: {len(failed)}\n\n"
+                        f"*Lead contattati oggi:*\n" +
+                        "\n".join([f"• {p['name']} (score: {p['score']})" for p in processed[:5]])
+                    )
+                
+                return result
+                
+            finally:
+                client.close()
+        
+        return run_async(_process_hot_leads())
+        
+    except Exception as e:
+        logger.error(f"[DISCOVERY] Daily outreach error: {e}")
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=e)
+        return {"error": str(e)}
+
+
+@shared_task(bind=True)
+def trigger_single_lead_outreach(self, lead_id: str):
+    """
+    Trigger outreach per un singolo lead.
+    Chiamato quando un nuovo lead hot viene scoperto o manualmente.
+    """
+    try:
+        logger.info(f"[DISCOVERY] Triggering outreach for lead {lead_id}")
+        
+        async def _trigger():
+            client, db = get_db()
+            
+            try:
+                lead = await db.discovery_leads.find_one({"id": lead_id})
+                if not lead:
+                    return {"error": "Lead non trovato", "lead_id": lead_id}
+                
+                email = lead.get("email") or lead.get("contact_email")
+                if not email:
+                    return {"error": "Lead senza email", "lead_id": lead_id}
+                
+                # Crea task VALENTINA
+                task_id = f"valentina_single_{lead_id}_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+                
+                await db.agent_tasks.insert_one({
+                    "id": task_id,
+                    "type": "outreach_lead",
+                    "agent": "VALENTINA",
+                    "lead_id": lead_id,
+                    "lead_name": lead.get("name") or lead.get("channel_name") or "Lead",
+                    "lead_email": email,
+                    "lead_score": lead.get("score_total", 0),
+                    "status": "pending",
+                    "priority": "high",
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                })
+                
+                await db.discovery_leads.update_one(
+                    {"id": lead_id},
+                    {"$set": {
+                        "outreach_status": "contacted",
+                        "first_contact_at": datetime.now(timezone.utc).isoformat(),
+                        "valentina_task_id": task_id,
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                
+                return {
+                    "success": True,
+                    "lead_id": lead_id,
+                    "task_id": task_id
+                }
+                
+            finally:
+                client.close()
+        
+        return run_async(_trigger())
+        
+    except Exception as e:
+        logger.error(f"[DISCOVERY] Single outreach error: {e}")
+        return {"error": str(e)}
+
