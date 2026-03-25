@@ -20,7 +20,7 @@ const PartnerOnboarding = ({ partnerId, partnerNome, onComplete }) => {
   // Carica stato onboarding
   const loadOnboarding = useCallback(async () => {
     try {
-      const res = await axios.get(`${API}/partner/${partnerId}/onboarding`);
+      const res = await axios.get(`${API}/api/partner/${partnerId}/onboarding`);
       setOnboarding(res.data);
       setStepCorrente(res.data.step_corrente || 1);
     } catch (err) {
@@ -166,7 +166,7 @@ const Step1Profilo = ({ partnerId, onComplete }) => {
     setError(null);
     
     try {
-      await axios.post(`${API}/partner/${partnerId}/profilo`, formData);
+      await axios.post(`${API}/api/partner/${partnerId}/profilo`, formData);
       onComplete();
     } catch (err) {
       setError(err.response?.data?.detail || "Errore durante il salvataggio");
@@ -242,7 +242,7 @@ const Step2Contratto = ({ partnerId, onboarding, onComplete }) => {
   const [error, setError] = useState(null);
 
   const handleDownload = () => {
-    window.open(`${API}/partner/${partnerId}/scarica-contratto`, "_blank");
+    window.open(`${API}/api/partner/${partnerId}/scarica-contratto`, "_blank");
   };
 
   const handleUpload = async (e) => {
@@ -256,7 +256,7 @@ const Step2Contratto = ({ partnerId, onboarding, onComplete }) => {
     formData.append("file", file);
 
     try {
-      await axios.post(`${API}/partner/${partnerId}/upload-contratto`, formData, {
+      await axios.post(`${API}/api/partner/${partnerId}/upload-contratto`, formData, {
         headers: { "Content-Type": "multipart/form-data" }
       });
       setUploaded(true);
@@ -367,7 +367,7 @@ const Step3Pagamento = ({ partnerId, onboarding, onComplete }) => {
   const handleConferma = async () => {
     setLoading(true);
     try {
-      await axios.post(`${API}/partner/${partnerId}/conferma-pagamento`, { metodo: tab });
+      await axios.post(`${API}/api/partner/${partnerId}/conferma-pagamento`, { metodo: tab });
       onComplete();
     } catch (err) {
       console.error(err);
@@ -473,7 +473,7 @@ const Step4Documenti = ({ partnerId, onComplete }) => {
     formData.append("codice_fiscale", files.codice_fiscale);
 
     try {
-      await axios.post(`${API}/partner/${partnerId}/upload-documenti`, formData, {
+      await axios.post(`${API}/api/partner/${partnerId}/upload-documenti`, formData, {
         headers: { "Content-Type": "multipart/form-data" }
       });
       onComplete();
@@ -554,7 +554,7 @@ const Step5Distinta = ({ partnerId, onboarding, onComplete }) => {
     formData.append("file", file);
 
     try {
-      await axios.post(`${API}/partner/${partnerId}/upload-distinta`, formData, {
+      await axios.post(`${API}/api/partner/${partnerId}/upload-distinta`, formData, {
         headers: { "Content-Type": "multipart/form-data" }
       });
       setUploaded(true);

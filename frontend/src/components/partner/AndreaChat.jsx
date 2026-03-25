@@ -35,7 +35,7 @@ export function AndreaChat({ partner, currentBlock, recordingStatus }) {
     setLoading(true);
 
     try {
-      const res = await axios.post(`${API}/andrea/chat`, {
+      const res = await axios.post(`${API}/api/andrea/chat`, {
         session_id: sessionId,
         message: input,
         partner_id: partner?.id,

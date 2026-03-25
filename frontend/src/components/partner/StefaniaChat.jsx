@@ -35,7 +35,7 @@ export function StefaniaChat({ partner, currentBlock, scriptContext, onScriptUpd
     setLoading(true);
 
     try {
-      const res = await axios.post(`${API}/stefania/chat`, {
+      const res = await axios.post(`${API}/api/stefania/chat`, {
         session_id: sessionId,
         message: input,
         partner_id: partner?.id,

@@ -25,9 +25,9 @@ const ApprovalDashboard = () => {
   const fetchData = useCallback(async () => {
     try {
       const [tasksRes, statsRes, analisiRes] = await Promise.all([
-        fetch(`${API}/agent-tasks/approvals`),
-        fetch(`${API}/agent-tasks/approval-stats`),
-        fetch(`${API}/clienti/admin/analisi-da-revisionare`)
+        fetch(`${API}/api/agent-tasks/approvals`),
+        fetch(`${API}/api/agent-tasks/approval-stats`),
+        fetch(`${API}/api/clienti/admin/analisi-da-revisionare`)
       ]);
       
       const tasksData = await tasksRes.json();
@@ -54,7 +54,7 @@ const ApprovalDashboard = () => {
   const handleApprove = async (taskId) => {
     setActionLoading(true);
     try {
-      const response = await fetch(`${API}/agent-tasks/${taskId}/approve`, {
+      const response = await fetch(`${API}/api/agent-tasks/${taskId}/approve`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reviewer: reviewerName })
@@ -79,7 +79,7 @@ const ApprovalDashboard = () => {
     
     setActionLoading(true);
     try {
-      const response = await fetch(`${API}/agent-tasks/${taskId}/reject`, {
+      const response = await fetch(`${API}/api/agent-tasks/${taskId}/reject`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reviewer: reviewerName, feedback: feedback.trim() })
@@ -100,7 +100,7 @@ const ApprovalDashboard = () => {
   const handleApprovaAnalisi = async (clienteId) => {
     setActionLoading(true);
     try {
-      const response = await fetch(`${API}/clienti/admin/${clienteId}/approva-analisi`, {
+      const response = await fetch(`${API}/api/clienti/admin/${clienteId}/approva-analisi`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -116,7 +116,7 @@ const ApprovalDashboard = () => {
   };
 
   const downloadDocx = (clienteId) => {
-    window.open(`${API}/clienti/${clienteId}/scarica-docx`, '_blank');
+    window.open(`${API}/api/clienti/${clienteId}/scarica-docx`, '_blank');
   };
 
   const getAgentIcon = (agent) => {

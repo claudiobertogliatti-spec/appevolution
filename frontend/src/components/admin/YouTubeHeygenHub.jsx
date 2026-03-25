@@ -82,7 +82,7 @@ async function saveLocal(key, val) {
 // ── API CALLS (via backend) ──────────────────────────────────
 async function generateTripleScript(topic, sourcePost = null) {
   try {
-    const res = await axios.post(`${API}/youtube-heygen/generate-scripts`, {
+    const res = await axios.post(`${API}/api/youtube-heygen/generate-scripts`, {
       topic,
       source_post: sourcePost
     });
@@ -95,7 +95,7 @@ async function generateTripleScript(topic, sourcePost = null) {
 
 async function generateMonthlyYTCalendar(month, linkedinPosts = []) {
   try {
-    const res = await axios.post(`${API}/youtube-heygen/generate-calendar`, {
+    const res = await axios.post(`${API}/api/youtube-heygen/generate-calendar`, {
       month,
       linkedin_posts: linkedinPosts
     });
@@ -330,10 +330,10 @@ export default function YouTubeHeygenHub() {
     try {
       // Load data in parallel for faster loading
       const [heygen, yt, stats, partnersData] = await Promise.all([
-        fetchWithTimeout(`${API}/heygen/test-connection`, 20000),
-        fetchWithTimeout(`${API}/youtube-heygen/youtube/auth-status`, 15000),
-        fetchWithTimeout(`${API}/heygen/stats`, 15000),
-        fetchWithTimeout(`${API}/partners/with-social`, 15000)
+        fetchWithTimeout(`${API}/api/heygen/test-connection`, 20000),
+        fetchWithTimeout(`${API}/api/youtube-heygen/youtube/auth-status`, 15000),
+        fetchWithTimeout(`${API}/api/heygen/stats`, 15000),
+        fetchWithTimeout(`${API}/api/partners/with-social`, 15000)
       ]);
       
       // Update state with results (even if some are null)
@@ -354,7 +354,7 @@ export default function YouTubeHeygenHub() {
   const loadPartnerVideos = async (partnerId) => {
     setLoadingVideos(true);
     try {
-      const res = await axios.get(`${API}/heygen/videos/${partnerId}`);
+      const res = await axios.get(`${API}/api/heygen/videos/${partnerId}`);
       setPartnerVideos(res.data.videos || []);
     } catch (e) {
       console.error("Error loading videos:", e);
@@ -367,7 +367,7 @@ export default function YouTubeHeygenHub() {
     if (!selectedPartner || !videoScript || !videoTitle) return;
     setGeneratingVideo(true);
     try {
-      const res = await axios.post(`${API}/heygen/generate-video`, {
+      const res = await axios.post(`${API}/api/heygen/generate-video`, {
         partner_id: selectedPartner.id,
         script: videoScript,
         video_title: videoTitle,
@@ -387,7 +387,7 @@ export default function YouTubeHeygenHub() {
   const handleUploadToYouTube = async (videoId) => {
     setUploadingYouTube(videoId);
     try {
-      const res = await axios.post(`${API}/youtube-heygen/youtube/upload-from-heygen/${videoId}?privacy_status=unlisted`);
+      const res = await axios.post(`${API}/api/youtube-heygen/youtube/upload-from-heygen/${videoId}?privacy_status=unlisted`);
       alert(`Video caricato su YouTube!\n${res.data.youtube_url}`);
       loadPartnerVideos(selectedPartner.id);
     } catch (e) {
@@ -398,7 +398,7 @@ export default function YouTubeHeygenHub() {
 
   const checkVideoStatus = async (videoId) => {
     try {
-      const res = await axios.get(`${API}/heygen/video-status/${videoId}`);
+      const res = await axios.get(`${API}/api/heygen/video-status/${videoId}`);
       alert(`Status: ${res.data.status}\n${res.data.video_url ? `URL: ${res.data.video_url}` : ''}`);
       if (selectedPartner) loadPartnerVideos(selectedPartner.id);
     } catch (e) {
@@ -417,7 +417,7 @@ export default function YouTubeHeygenHub() {
     setDigitalTwinStatus("Avvio creazione Digital Twin...");
     
     try {
-      const res = await axios.post(`${API}/heygen/create-digital-twin`, {
+      const res = await axios.post(`${API}/api/heygen/create-digital-twin`, {
         partner_id: selectedPartner.id,
         training_video_url: trainingVideoUrl,
         consent_video_url: consentVideoUrl
@@ -444,7 +444,7 @@ export default function YouTubeHeygenHub() {
     if (!selectedPartner) return;
     
     try {
-      const res = await axios.get(`${API}/heygen/avatar-creation-status/${selectedPartner.id}`);
+      const res = await axios.get(`${API}/api/heygen/avatar-creation-status/${selectedPartner.id}`);
       const status = res.data.avatar_status;
       const heygenId = res.data.heygen_id;
       

@@ -46,8 +46,8 @@ export function ProduzioneVideo({ partner }) {
     setLoading(true);
     try {
       const [preflightRes, blocksRes] = await Promise.all([
-        axios.get(`${API}/andrea/preflight/${partner.id}`),
-        axios.get(`${API}/andrea/blocks/${partner.id}`)
+        axios.get(`${API}/api/andrea/preflight/${partner.id}`),
+        axios.get(`${API}/api/andrea/blocks/${partner.id}`)
       ]);
       setChecklist(preflightRes.data.checklist || {});
       setTestVideoApproved(preflightRes.data.test_video_approved || false);
@@ -68,7 +68,7 @@ export function ProduzioneVideo({ partner }) {
     const newChecklist = { ...checklist, [itemId]: !checklist[itemId] };
     setChecklist(newChecklist);
     try {
-      await axios.post(`${API}/andrea/preflight/${partner.id}`, newChecklist);
+      await axios.post(`${API}/api/andrea/preflight/${partner.id}`, newChecklist);
     } catch (e) {
       console.error("Error saving checklist:", e);
     }
@@ -83,7 +83,7 @@ export function ProduzioneVideo({ partner }) {
     
     try {
       await axios.post(
-        `${API}/andrea/blocks/${partner.id}/${blockId}/upload`,
+        `${API}/api/andrea/blocks/${partner.id}/${blockId}/upload`,
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
@@ -97,7 +97,7 @@ export function ProduzioneVideo({ partner }) {
 
   const handleApprove = async (blockId) => {
     try {
-      await axios.post(`${API}/andrea/blocks/${partner.id}/${blockId}/approve`);
+      await axios.post(`${API}/api/andrea/blocks/${partner.id}/${blockId}/approve`);
       await loadData();
     } catch (e) {
       console.error("Error approving:", e);
@@ -303,7 +303,7 @@ export function ProduzioneVideo({ partner }) {
               <div className="p-4 border-t border-[#ECEDEF] bg-gradient-to-r from-green-500/10 to-transparent">
                 <button
                   onClick={async () => {
-                    await axios.post(`${API}/andrea/assembly/${partner.id}`, {
+                    await axios.post(`${API}/api/andrea/assembly/${partner.id}`, {
                       partner_id: partner.id,
                       include_intro: true,
                       include_outro: true

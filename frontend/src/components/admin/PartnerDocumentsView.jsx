@@ -260,7 +260,7 @@ export function PartnerDocumentsView({ partners }) {
 
   const loadSummaries = async () => {
     try {
-      const res = await axios.get(`${API}/partner-documents/all/summary`);
+      const res = await axios.get(`${API}/api/partner-documents/all/summary`);
       setSummaries(res.data);
     } catch (e) {
       console.error("Failed to load summaries:", e);
@@ -271,7 +271,7 @@ export function PartnerDocumentsView({ partners }) {
 
   const openPartnerDocs = async (partner) => {
     try {
-      const res = await axios.get(`${API}/partner-documents/${partner.partner_id}`);
+      const res = await axios.get(`${API}/api/partner-documents/${partner.partner_id}`);
       setDocuments(res.data);
       setSelectedPartner(partner);
     } catch (e) {

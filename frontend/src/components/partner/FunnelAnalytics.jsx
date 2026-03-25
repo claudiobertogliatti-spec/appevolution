@@ -24,7 +24,7 @@ export function FunnelAnalytics({ partner }) {
     else setIsLoading(true);
     
     try {
-      const response = await fetch(`${API}/systeme/stats/${partnerId}${refresh ? '?refresh=true' : ''}`);
+      const response = await fetch(`${API}/api/systeme/stats/${partnerId}${refresh ? '?refresh=true' : ''}`);
       if (response.ok) {
         const data = await response.json();
         setStats(data);

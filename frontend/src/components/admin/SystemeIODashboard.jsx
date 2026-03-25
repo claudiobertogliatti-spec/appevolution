@@ -184,7 +184,7 @@ function ConnectionSetup({ partnerId, onConnect, onClose }) {
     setError(null);
     
     try {
-      await axios.post(`${API}/systeme/credentials`, {
+      await axios.post(`${API}/api/systeme/credentials`, {
         partner_id: partnerId,
         api_key: apiKey.trim()
       });
@@ -262,7 +262,7 @@ export function SystemeIODashboard({ partnerId, partnerName }) {
   const loadDashboard = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API}/systeme/dashboard/${partnerId}`);
+      const res = await axios.get(`${API}/api/systeme/dashboard/${partnerId}`);
       setDashboardData(res.data);
       setError(null);
     } catch (e) {
@@ -279,7 +279,7 @@ export function SystemeIODashboard({ partnerId, partnerName }) {
   const handleSync = async () => {
     try {
       setSyncing(true);
-      await axios.post(`${API}/systeme/sync`, { partner_id: partnerId });
+      await axios.post(`${API}/api/systeme/sync`, { partner_id: partnerId });
       await loadDashboard();
     } catch (e) {
       setError(e.response?.data?.detail || "Errore sincronizzazione");

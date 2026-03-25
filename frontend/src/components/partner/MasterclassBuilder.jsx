@@ -109,7 +109,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
     if (!partner?.id) return;
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/masterclass/script/${partner.id}`);
+      const res = await axios.get(`${API}/api/masterclass/script/${partner.id}`);
       if (res.data.blocks) {
         setScript(res.data.blocks);
       }
@@ -126,7 +126,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
 
   const loadGoldenRules = async () => {
     try {
-      const res = await axios.get(`${API}/stefania/golden-rules`);
+      const res = await axios.get(`${API}/api/stefania/golden-rules`);
       setGoldenRules(res.data.rules || []);
     } catch (e) {
       console.error("Error loading golden rules:", e);
@@ -137,7 +137,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
     if (!partner?.id) return;
     setSaving(true);
     try {
-      await axios.post(`${API}/masterclass/script/${partner.id}`, { blocks: script });
+      await axios.post(`${API}/api/masterclass/script/${partner.id}`, { blocks: script });
     } catch (e) {
       console.error("Error saving script:", e);
     } finally {
@@ -150,9 +150,9 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
     setSubmitting(true);
     try {
       // Save first
-      await axios.post(`${API}/masterclass/script/${partner.id}`, { blocks: script });
+      await axios.post(`${API}/api/masterclass/script/${partner.id}`, { blocks: script });
       // Then submit for STEFANIA review
-      const res = await axios.post(`${API}/masterclass/script/${partner.id}/submit`);
+      const res = await axios.post(`${API}/api/masterclass/script/${partner.id}/submit`);
       setStatus(res.data.status);
       setFeedback(res.data.feedback);
     } catch (e) {
@@ -166,8 +166,8 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
     if (!partner?.id) return;
     setSubmitting(true);
     try {
-      await axios.post(`${API}/masterclass/script/${partner.id}`, { blocks: script });
-      const res = await axios.post(`${API}/masterclass/script/${partner.id}/send-to-admin`);
+      await axios.post(`${API}/api/masterclass/script/${partner.id}`, { blocks: script });
+      const res = await axios.post(`${API}/api/masterclass/script/${partner.id}/send-to-admin`);
       setStatus(res.data.status);
       alert("Script inviato a Claudio/Antonella per editing finale!");
     } catch (e) {
@@ -181,7 +181,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
     if (!partner?.id) return;
     setGeneratingDraft(true);
     try {
-      const res = await axios.post(`${API}/stefania/generate-draft`, {
+      const res = await axios.post(`${API}/api/stefania/generate-draft`, {
         partner_id: partner.id,
         partner_name: partner.name,
         partner_niche: partner.niche
@@ -203,7 +203,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
     if (!partner?.id) return;
     setApproving(true);
     try {
-      const res = await axios.post(`${API}/masterclass/script/${partner.id}/partner-approve`, null, {
+      const res = await axios.post(`${API}/api/masterclass/script/${partner.id}/partner-approve`, null, {
         params: { approved, feedback: partnerFeedback }
       });
       setStatus(res.data.status);

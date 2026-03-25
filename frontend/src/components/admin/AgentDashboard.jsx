@@ -73,7 +73,7 @@ export function AgentDashboard() {
       if (filterSource !== 'all') params.append('source', filterSource);
       if (filterMinScore > 0) params.append('min_score', filterMinScore.toString());
       
-      const res = await fetch(`${API}/discovery/leads?${params.toString()}`);
+      const res = await fetch(`${API}/api/discovery/leads?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setDiscoveryLeads(data.leads || []);
@@ -88,7 +88,7 @@ export function AgentDashboard() {
   const handleAnalyzeLead = async (leadId) => {
     setAnalyzingLead(leadId);
     try {
-      const res = await fetch(`${API}/discovery/analyze-website/${leadId}`, { method: 'POST' });
+      const res = await fetch(`${API}/api/discovery/analyze-website/${leadId}`, { method: 'POST' });
       if (res.ok) {
         const data = await res.json();
         alert(`Analisi completata!\nLLM: ${data.llm_used || 'Claude'}\nScore: ${data.website_analysis?.opportunity_score || 'N/A'}`);
@@ -106,7 +106,7 @@ export function AgentDashboard() {
   const handleDeleteLead = async (leadId) => {
     setDeletingLead(leadId);
     try {
-      const res = await fetch(`${API}/discovery/leads/${leadId}`, { method: 'DELETE' });
+      const res = await fetch(`${API}/api/discovery/leads/${leadId}`, { method: 'DELETE' });
       if (res.ok) {
         setDiscoveryLeads(prev => prev.filter(l => l.id !== leadId));
         setConfirmDeleteLead(null);
@@ -126,8 +126,8 @@ export function AgentDashboard() {
     
     try {
       const [agentsRes, summaryRes] = await Promise.all([
-        fetch(`${API}/agent-hub/status`),
-        fetch(`${API}/agent-hub/summary`)
+        fetch(`${API}/api/agent-hub/status`),
+        fetch(`${API}/api/agent-hub/summary`)
       ]);
       
       if (agentsRes.ok) {
@@ -724,7 +724,7 @@ export function AgentDashboard() {
                 <button
                   onClick={() => {
                     // Activate agent
-                    fetch(`${API}/agent-hub/activate/${selectedAgent.id}`, { method: 'POST' })
+                    fetch(`${API}/api/agent-hub/activate/${selectedAgent.id}`, { method: 'POST' })
                       .then(() => {
                         loadData(true);
                         setSelectedAgent(null);

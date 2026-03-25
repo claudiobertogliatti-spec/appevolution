@@ -95,7 +95,7 @@ export function PartnerFilesPage({ partner }) {
   const loadFiles = async () => {
     if (!partner?.id) return;
     try {
-      const r = await axios.get(`${API}/files/partner/${partner.id}`);
+      const r = await axios.get(`${API}/api/files/partner/${partner.id}`);
       if (r.data.files) {
         setFiles(r.data.files);
       }
@@ -114,7 +114,7 @@ export function PartnerFilesPage({ partner }) {
       fd.append("file", file);
       fd.append("partner_id", partner.id);
       fd.append("category", category);
-      await axios.post(`${API}/files/upload`, fd);
+      await axios.post(`${API}/api/files/upload`, fd);
       await loadFiles();
     } catch (e) {
       console.error('Upload error:', e);

@@ -32,7 +32,7 @@ export function AnalisiRegistrazione({ onComplete, onBack }) {
 
     setLoading(true);
     try {
-      const res = await axios.post(`${API}/clienti/register`, {
+      const res = await axios.post(`${API}/api/clienti/register`, {
         nome: formData.nome, cognome: formData.cognome, email: formData.email,
         telefono: formData.telefono, password: formData.password
       });

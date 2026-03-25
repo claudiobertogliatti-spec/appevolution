@@ -79,7 +79,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
   const loadClienti = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/clienti/admin/list`);
+      const res = await axios.get(`${API}/api/clienti/admin/list`);
       setClienti(res.data || []);
     } catch (e) {
       console.error("Error loading clienti:", e);
@@ -90,7 +90,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
 
   const loadStats = async () => {
     try {
-      const res = await axios.get(`${API}/clienti/stats`);
+      const res = await axios.get(`${API}/api/clienti/stats`);
       setStats(res.data);
     } catch (e) {
       console.error("Error loading stats:", e);
@@ -100,7 +100,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
   const updateStatus = async (clienteId, newStatus, notes = null) => {
     setUpdating(true);
     try {
-      await axios.put(`${API}/clienti/admin/${clienteId}/status`, {
+      await axios.put(`${API}/api/clienti/admin/${clienteId}/status`, {
         status: newStatus,
         notes: notes
       });
@@ -121,7 +121,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
     setGeneratingAnalysis(true);
     setAnalysis(null);
     try {
-      const res = await axios.post(`${API}/clienti/admin/${clienteId}/generate-analysis`);
+      const res = await axios.post(`${API}/api/clienti/admin/${clienteId}/generate-analysis`);
       if (res.data.success) {
         setAnalysis(res.data.analysis);
         setShowAnalysis(true);
@@ -137,7 +137,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
   // Load existing analysis
   const loadAnalysis = async (clienteId) => {
     try {
-      const res = await axios.get(`${API}/clienti/admin/${clienteId}/analysis`);
+      const res = await axios.get(`${API}/api/clienti/admin/${clienteId}/analysis`);
       if (res.data.success) {
         setAnalysis(res.data.analysis);
         setShowAnalysis(true);
@@ -169,7 +169,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
     if (!selectedCliente) return;
     try {
       const response = await axios.get(
-        `${API}/clienti/admin/${selectedCliente.id}/analysis/pdf`,
+        `${API}/api/clienti/admin/${selectedCliente.id}/analysis/pdf`,
         { responseType: 'blob' }
       );
       const blob = new Blob([response.data], { type: 'application/pdf' });
@@ -190,7 +190,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
   // Download DOCX from workflow
   const downloadDOCX = async (clienteId) => {
     try {
-      window.open(`${API}/clienti/${clienteId}/scarica-docx`, '_blank');
+      window.open(`${API}/api/clienti/${clienteId}/scarica-docx`, '_blank');
     } catch (e) {
       console.error("Error downloading DOCX:", e);
       alert("Errore nel download del DOCX");
@@ -200,7 +200,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
   // Avvia workflow analisi
   const avviaAnalisi = async (clienteId) => {
     try {
-      await axios.post(`${API}/clienti/${clienteId}/avvia-analisi`);
+      await axios.post(`${API}/api/clienti/${clienteId}/avvia-analisi`);
       alert("Workflow analisi avviato! Il documento sarà pronto in circa 30 secondi.");
       // Reload after a delay to check status
       setTimeout(() => loadClienti(), 5000);
@@ -215,7 +215,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
     if (!selectedCliente || !dataCall) return;
     setUpdating(true);
     try {
-      await axios.post(`${API}/clienti/${selectedCliente.id}/fissa-call`, {
+      await axios.post(`${API}/api/clienti/${selectedCliente.id}/fissa-call`, {
         data_call: dataCall,
         note: notesClaudio
       });
@@ -236,7 +236,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
     if (!selectedCliente) return;
     setUpdating(true);
     try {
-      await axios.post(`${API}/clienti/${selectedCliente.id}/note-claudio`, {
+      await axios.post(`${API}/api/clienti/${selectedCliente.id}/note-claudio`, {
         note: notesClaudio
       });
       alert("Note salvate!");
@@ -252,7 +252,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
     if (!confirm("Sei sicuro di voler convertire questo cliente in Partner F1?")) return;
     setUpdating(true);
     try {
-      const res = await axios.post(`${API}/clienti/${clienteId}/converti-partner`);
+      const res = await axios.post(`${API}/api/clienti/${clienteId}/converti-partner`);
       alert(res.data.message);
       await loadClienti();
       await loadStats();
@@ -270,7 +270,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
     if (!confirm("Sei sicuro di voler segnare questo cliente come non adatto?")) return;
     setUpdating(true);
     try {
-      await axios.post(`${API}/clienti/${clienteId}/segna-non-adatto`);
+      await axios.post(`${API}/api/clienti/${clienteId}/segna-non-adatto`);
       await loadClienti();
       await loadStats();
     } catch (e) {

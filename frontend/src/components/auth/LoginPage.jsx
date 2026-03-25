@@ -17,7 +17,7 @@ export function LoginPage({ onLogin }) {
     setError(null);
 
     try {
-      const response = await axios.post(`${API}/auth/login`, { email, password });
+      const response = await axios.post(`${API}/api/auth/login`, { email, password });
       const { access_token, user } = response.data;
       localStorage.setItem("access_token", access_token);
       localStorage.setItem("user", JSON.stringify(user));

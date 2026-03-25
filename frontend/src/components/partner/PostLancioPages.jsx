@@ -19,7 +19,7 @@ export function MiaAccademiaPage({ partner }) {
 
   const loadData = async () => {
     try {
-      const res = await axios.get(`${API}/partners/${partner?.id}/piano-continuita`);
+      const res = await axios.get(`${API}/api/partners/${partner?.id}/piano-continuita`);
       setPianoContinuita(res.data);
     } catch (e) {
       console.error(e);
@@ -130,7 +130,7 @@ export function MieiStudentiPage({ partner }) {
   const loadStudents = async () => {
     try {
       // TODO: Implement actual students endpoint
-      // const res = await axios.get(`${API}/partners/${partner?.id}/students`);
+      // const res = await axios.get(`${API}/api/partners/${partner?.id}/students`);
       // setStudents(res.data);
       setStudents([]); // Placeholder
     } catch (e) {
@@ -230,7 +230,7 @@ export function ImpegniSettimanaPage({ partner }) {
   const loadImpegni = async () => {
     try {
       // TODO: Implement actual impegni endpoint (from MARCO agent)
-      // const res = await axios.get(`${API}/partners/${partner?.id}/impegni-settimanali`);
+      // const res = await axios.get(`${API}/api/partners/${partner?.id}/impegni-settimanali`);
       // setImpegni(res.data);
       
       // Placeholder data
@@ -336,7 +336,7 @@ export function ReportMensilePage({ partner }) {
   const loadReport = async () => {
     try {
       // TODO: Implement actual report endpoint
-      // const res = await axios.get(`${API}/partners/${partner?.id}/report-mensile`);
+      // const res = await axios.get(`${API}/api/partners/${partner?.id}/report-mensile`);
       // setReport(res.data);
       setReport(null); // Placeholder
     } catch (e) {
@@ -402,7 +402,7 @@ export function PianoContinuitaBanner({ partner, onTalkToStefania }) {
 
   const loadPiano = async () => {
     try {
-      const res = await axios.get(`${API}/partners/${partner?.id}/piano-continuita`);
+      const res = await axios.get(`${API}/api/partners/${partner?.id}/piano-continuita`);
       setPianoContinuita(res.data);
     } catch (e) {
       console.error(e);

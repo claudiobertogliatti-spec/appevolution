@@ -113,7 +113,7 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName, partnerI
       formData.append('folder', 'partner-photos');
       formData.append('resource_type', 'image');
       
-      const response = await fetch(`${API}/cloudinary/upload`, {
+      const response = await fetch(`${API}/api/cloudinary/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -144,7 +144,7 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName, partnerI
       formData.append('folder', 'partner-audio');
       formData.append('resource_type', 'video'); // Cloudinary treats audio as video
       
-      const response = await fetch(`${API}/cloudinary/upload`, {
+      const response = await fetch(`${API}/api/cloudinary/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -255,7 +255,7 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName, partnerI
     }, 1000);
     
     try {
-      const response = await fetch(`${API}/heygen/sample/generate`, {
+      const response = await fetch(`${API}/api/heygen/sample/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

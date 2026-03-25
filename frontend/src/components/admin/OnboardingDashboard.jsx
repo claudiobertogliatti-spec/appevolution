@@ -21,7 +21,7 @@ export function OnboardingDashboard() {
   const loadOnboardingStatus = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API}/onboarding/status`);
+      const response = await fetch(`${API}/api/onboarding/status`);
       const data = await response.json();
       setPartners(data.partners || []);
     } catch (error) {
@@ -33,7 +33,7 @@ export function OnboardingDashboard() {
 
   const markSystemeCreated = async (partnerId) => {
     try {
-      await fetch(`${API}/onboarding/systeme-account/${partnerId}?systeme_email=${encodeURIComponent(systemeEmail)}`, {
+      await fetch(`${API}/api/onboarding/systeme-account/${partnerId}?systeme_email=${encodeURIComponent(systemeEmail)}`, {
         method: "PATCH"
       });
       setShowSystemeModal(null);
@@ -51,7 +51,7 @@ export function OnboardingDashboard() {
       if (systemeEmail) params.append("systeme_email", systemeEmail);
       if (systemePassword) params.append("systeme_password", systemePassword);
       
-      await fetch(`${API}/onboarding/send-systeme-email/${partnerId}?${params.toString()}`, {
+      await fetch(`${API}/api/onboarding/send-systeme-email/${partnerId}?${params.toString()}`, {
         method: "POST"
       });
       setShowSystemeModal(null);

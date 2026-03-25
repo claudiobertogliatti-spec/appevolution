@@ -33,7 +33,7 @@ export function WizardPosizionamento({ partner, onComplete, onBack }) {
     setGenerating(true);
     try {
       // Call API to generate positioning canvas
-      const res = await axios.post(`${API}/positioning/generate`, {
+      const res = await axios.post(`${API}/api/positioning/generate`, {
         partner_id: partner?.id,
         partner_name: partner?.name,
         partner_niche: partner?.niche,
@@ -148,7 +148,7 @@ ${answers.bonus || "Non definito"}
               onClick={async () => {
                 // Save positioning data to database
                 try {
-                  await axios.post(`${API}/positioning/save`, {
+                  await axios.post(`${API}/api/positioning/save`, {
                     partner_id: partner?.id,
                     partner_name: partner?.name,
                     answers: answers,

@@ -46,11 +46,11 @@ export function AtlasModule({ partner, isAdmin = false }) {
     setLoading(true);
     try {
       const [ltvRes, studentsRes, bonusesRes, feedbackRes, anglesRes] = await Promise.all([
-        axios.get(`${API}/atlas/ltv-dashboard/${partner.id}`),
-        axios.get(`${API}/atlas/students/${partner.id}`),
-        axios.get(`${API}/atlas/bonuses/${partner.id}`),
-        axios.get(`${API}/atlas/feedback/${partner.id}`),
-        axios.get(`${API}/atlas/copy-angles/${partner.id}`)
+        axios.get(`${API}/api/atlas/ltv-dashboard/${partner.id}`),
+        axios.get(`${API}/api/atlas/students/${partner.id}`),
+        axios.get(`${API}/api/atlas/bonuses/${partner.id}`),
+        axios.get(`${API}/api/atlas/feedback/${partner.id}`),
+        axios.get(`${API}/api/atlas/copy-angles/${partner.id}`)
       ]);
       setLtvData(ltvRes.data);
       setStudents(studentsRes.data.students || []);
@@ -68,7 +68,7 @@ export function AtlasModule({ partner, isAdmin = false }) {
     if (!partner?.id) return;
     setAnalyzing(true);
     try {
-      const res = await axios.post(`${API}/atlas/feedback/analyze/${partner.id}`);
+      const res = await axios.post(`${API}/api/atlas/feedback/analyze/${partner.id}`);
       alert(`Analisi completata! ${res.data.angles_extracted} nuovi angoli estratti.`);
       loadData();
     } catch (e) {

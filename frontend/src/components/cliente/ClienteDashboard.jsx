@@ -333,11 +333,11 @@ export function ClienteDashboard({ cliente, onLogout }) {
     
     try {
       // 1. Salva le risposte del questionario
-      await axios.post(`${API}/clienti/${cliente.id}/questionario`, risposte);
+      await axios.post(`${API}/api/clienti/${cliente.id}/questionario`, risposte);
       
       // 2. Avvia automaticamente il workflow di generazione analisi
       try {
-        await axios.post(`${API}/clienti/${cliente.id}/avvia-analisi`);
+        await axios.post(`${API}/api/clienti/${cliente.id}/avvia-analisi`);
         console.log("Workflow analisi avviato in background");
       } catch (workflowErr) {
         console.warn("Errore avvio workflow (non bloccante):", workflowErr);
