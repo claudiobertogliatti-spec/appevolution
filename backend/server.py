@@ -5699,6 +5699,63 @@ async def get_golden_rules():
         "principles": COPY_CORE_PRINCIPLES
     }
 
+
+@api_router.get("/stefania/status")
+async def get_stefania_status():
+    """
+    Stato operativo di STEFANIA.
+    Verifica che tutti i servizi siano attivi.
+    """
+    try:
+        # Check LLM connectivity
+        api_key = os.environ.get('EMERGENT_LLM_KEY')
+        llm_status = "active" if api_key else "missing_key"
+        
+        # Check memory DB
+        memory_status = "active"
+        try:
+            await stefania_memory.connect()
+            await stefania_memory.db.stefania_knowledge.count_documents({})
+        except Exception:
+            memory_status = "error"
+        
+        # Count active sessions from DB
+        active_sessions = 0
+        try:
+            active_sessions = await db.stefania_sessions.count_documents({"status": "active"})
+        except Exception:
+            pass
+        
+        return {
+            "status": "operational" if llm_status == "active" and memory_status == "active" else "degraded",
+            "components": {
+                "llm": llm_status,
+                "memory": memory_status,
+                "active_sessions": active_sessions
+            },
+            "message": "STEFANIA è operativa" if llm_status == "active" else "STEFANIA in modalità limitata"
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+
+@api_router.get("/stefania/check")
+async def check_stefania():
+    """
+    Health check per STEFANIA.
+    Endpoint leggero per verifiche di sistema.
+    """
+    return {
+        "ok": True,
+        "service": "STEFANIA",
+        "version": "2.0",
+        "capabilities": ["chat", "copy_review", "script_generation", "golden_rules"]
+    }
+
+
 @api_router.post("/stefania/generate-draft")
 async def generate_script_draft(request: DraftGenerationRequest):
     """STEFANIA Drafting Engine - Generate a complete script draft based on Golden Rules"""

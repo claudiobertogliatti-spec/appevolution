@@ -189,6 +189,39 @@ beat_schedule = {
 
 ## Recent Updates
 
+### Session: 24 March 2026 - Fix Critici Pre-Lancio
+
+#### ✅ Fix 1: Flusso Cliente €67 (PRIORITÀ ASSOLUTA)
+Aggiunti gli endpoint mancanti nel router `flusso_analisi.py`:
+- `POST /api/flusso-analisi/registra` - Registrazione nuovo cliente
+- `POST /api/flusso-analisi/questionario` - Salvataggio risposte questionario
+- `GET /api/flusso-analisi/status/{user_id}` - Stato del cliente nel flusso
+- `POST /api/analisi-consulenziale/genera` - Alias per genera-preliminare
+
+#### ✅ Fix 2: Stats Partners
+L'endpoint `GET /api/stats` funziona correttamente e restituisce:
+- 22 partners totali
+- €2790 revenue totale
+
+#### ✅ Fix 3: Masterclass genera → 405
+Aggiunto supporto POST per `/api/partner-journey/masterclass/genera`:
+- Prima era solo GET, ora supporta entrambi i metodi
+
+#### ✅ Fix 4: Partner Journey lancio
+L'endpoint `GET /api/partner-journey/lancio/{partner_id}` funziona correttamente.
+Era già registrato nel router.
+
+#### ✅ Fix 5: STEFANIA endpoints
+Aggiunti i due endpoint mancanti in `server.py`:
+- `GET /api/stefania/status` - Stato operativo di STEFANIA
+- `GET /api/stefania/check` - Health check
+
+**File modificati**:
+- `/app/backend/routers/flusso_analisi.py` - Aggiunti endpoint registra, questionario, status
+- `/app/backend/routers/partner_journey.py` - Aggiunto POST masterclass/genera
+- `/app/backend/routers/analisi_consulenziale.py` - Aggiunto alias /genera
+- `/app/backend/server.py` - Aggiunti endpoint stefania/status e stefania/check
+
 ### Session: 24 March 2026 - Sidebar Reorganization + Delete Partner
 
 #### ✅ Riorganizzazione Sidebar Admin

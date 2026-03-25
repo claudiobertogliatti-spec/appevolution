@@ -199,6 +199,140 @@ async def get_config_status():
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# ENDPOINTS FLUSSO €67 - Registrazione e Questionario
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class RegistraClienteRequest(BaseModel):
+    nome: str
+    cognome: str
+    email: str
+    telefono: Optional[str] = None
+    password: Optional[str] = None
+
+class QuestionarioRequest(BaseModel):
+    user_id: str
+    risposte: Dict[str, Any]
+
+class GeneraAnalisiRequest(BaseModel):
+    user_id: str
+
+
+@router.post("/registra")
+async def registra_cliente(request: RegistraClienteRequest):
+    """
+    Registra un nuovo cliente per l'Analisi Strategica €67.
+    Alias per retrocompatibilità con /api/cliente-analisi/register.
+    """
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database non inizializzato")
+    
+    import bcrypt
+    
+    # Verifica se email già esiste
+    existing = await db.users.find_one({"email": request.email.lower()})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email già registrata. Effettua il login.")
+    
+    # Auto-genera password se non fornita
+    if request.password:
+        password_plain = request.password
+    else:
+        password_plain = f"Evo{str(uuid.uuid4())[:6].upper()}!"
+    
+    # Hash password
+    password_hash = bcrypt.hashpw(password_plain.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    
+    # Crea utente
+    user_id = str(uuid.uuid4())
+    new_user = {
+        "id": user_id,
+        "nome": request.nome,
+        "cognome": request.cognome,
+        "name": f"{request.nome} {request.cognome}",
+        "email": request.email.lower(),
+        "telefono": request.telefono,
+        "password_hash": password_hash,
+        "user_type": "cliente_analisi",
+        "role": "cliente",
+        "pagamento_analisi": False,
+        "stato_flusso": "registrato",
+        "data_registrazione": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.users.insert_one(new_user)
+    
+    return {
+        "success": True,
+        "user_id": user_id,
+        "message": "Registrazione completata. Procedi al pagamento.",
+        "next_step": "pagamento"
+    }
+
+
+@router.post("/questionario")
+async def salva_questionario(request: QuestionarioRequest):
+    """
+    Salva le risposte del questionario per un cliente.
+    Dopo il questionario, l'analisi può essere generata.
+    """
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database non inizializzato")
+    
+    # Verifica utente
+    user = await db.users.find_one({"id": request.user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+    
+    # Salva questionario
+    await db.users.update_one(
+        {"id": request.user_id},
+        {
+            "$set": {
+                "questionario": request.risposte,
+                "questionario_completato": True,
+                "stato_flusso": "questionario_completato",
+                "data_questionario": datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+    
+    return {
+        "success": True,
+        "message": "Questionario salvato",
+        "next_step": "genera_analisi" if user.get("pagamento_analisi") else "pagamento"
+    }
+
+
+@router.get("/status/{user_id}")
+async def get_cliente_status(user_id: str):
+    """
+    Stato del cliente nel flusso €67.
+    Alias per /api/cliente-analisi/status/{user_id}.
+    """
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database non inizializzato")
+    
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "password_hash": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+    
+    return {
+        "user_id": user_id,
+        "nome": user.get("nome"),
+        "cognome": user.get("cognome"),
+        "email": user.get("email"),
+        "stato_flusso": user.get("stato_flusso", "registrato"),
+        "pagamento_analisi": user.get("pagamento_analisi", False),
+        "questionario_completato": user.get("questionario_completato", False),
+        "analisi_generata": user.get("analisi_generata", False),
+        "analisi_confermata": user.get("analisi_confermata", False),
+        "call_fissata": user.get("call_fissata", False),
+        "partnership_attiva": user.get("partnership_attiva", False)
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # HELPER - LLM
 # ═══════════════════════════════════════════════════════════════════════════════
 

@@ -162,6 +162,14 @@ async def aggiungi_tag_systeme(email: str, tag: str):
 # ENDPOINT 1: GENERA ANALISI PRELIMINARE (INTERNA)
 # ═══════════════════════════════════════════════════════════════════════════════
 
+@router.post("/genera")
+async def genera_analisi_alias(request: GeneraPreliminareRequest):
+    """
+    Alias per retrocompatibilità - chiama genera-preliminare.
+    """
+    return await genera_analisi_preliminare(request)
+
+
 @router.post("/genera-preliminare")
 async def genera_analisi_preliminare(request: GeneraPreliminareRequest):
     """

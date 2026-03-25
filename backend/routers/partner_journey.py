@@ -379,6 +379,12 @@ async def generate_masterclass_script_get(partner_id: str):
     return await generate_masterclass_script(request)
 
 
+@router.post("/masterclass/genera")
+async def generate_masterclass_script_post(request: MasterclassGenerateRequest):
+    """POST per generare script masterclass"""
+    return await generate_masterclass_script(request)
+
+
 @router.get("/masterclass/{partner_id}")
 async def get_masterclass(partner_id: str):
     """Recupera i dati della masterclass del partner"""
