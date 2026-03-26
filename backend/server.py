@@ -14215,6 +14215,10 @@ app.include_router(media_router)
 from routers.systeme_contacts import router as systeme_contacts_router
 app.include_router(systeme_contacts_router)
 
+# Contract Signing Router
+from routers.contract import router as contract_router
+app.include_router(contract_router)
+
 
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler

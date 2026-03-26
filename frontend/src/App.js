@@ -48,6 +48,7 @@ import { FunnelReviewBuilder } from "./components/partner/FunnelReviewBuilder";
 import { FunnelAnalytics } from "./components/partner/FunnelAnalytics";
 import { AvatarCheckout } from "./components/partner/AvatarCheckout";
 import { MasterclassVideocorso } from "./components/partner/MasterclassVideocorso";
+import ContractSigning from "./components/ContractSigning";
 import { ServiziExtra } from "./components/partner/ServiziExtra";
 import { VideoEditorAndrea } from "./components/partner/VideoEditorAndrea";
 import { LegalPagesGenerator } from "./components/partner/LegalPagesGenerator";
@@ -1707,6 +1708,9 @@ export default function App() {
           )}
 
           {mode==="partner"&&<>
+            {/* CONTRACT SIGNING */}
+            {nav==="contract"&&<ContractSigning partner={demoPartner} onContractSigned={(data) => { setNav("dashboard"); }} />}
+            
             {/* DASHBOARD */}
             {nav==="dashboard"&&<PartnerDashboardSimplified partner={demoPartner} onNavigate={setNav} onOpenChat={()=>setNav("supporto")}/>}
             {nav==="home"&&<PartnerDashboardSimplified partner={demoPartner} onNavigate={setNav} onOpenChat={()=>setNav("supporto")}/>}
