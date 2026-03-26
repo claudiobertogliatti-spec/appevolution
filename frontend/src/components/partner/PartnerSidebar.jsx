@@ -3,7 +3,7 @@ import {
   Home, Target, Mic, Film, Rocket, Calendar,
   MessageCircle, LogOut, Check, Lock, Users, 
   HelpCircle, PlayCircle, X, Shield, TrendingUp, UserCheck,
-  Sparkles, User, CreditCard, FolderOpen
+  Sparkles, User, CreditCard, FolderOpen, FileSignature, AlertTriangle
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -210,7 +210,7 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
         {/* HOME */}
         <button
           onClick={() => onNavigate('dashboard')}
-          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all mb-4"
+          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all mb-2"
           style={{ 
             background: currentNav === 'dashboard' ? '#FFF3C4' : 'transparent',
             borderLeft: currentNav === 'dashboard' ? '3px solid #F2C418' : '3px solid transparent',
@@ -228,6 +228,31 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
             HOME
           </span>
         </button>
+
+        {/* FIRMA CONTRATTO - Solo se non firmato */}
+        {!partner?.contract?.signed_at && (
+          <button
+            onClick={() => onNavigate('contract')}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all mb-4 animate-pulse"
+            style={{ 
+              background: '#FEF3C7',
+              borderLeft: '3px solid #F59E0B',
+              color: '#92400E'
+            }}
+          >
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+                 style={{ background: '#F59E0B', color: '#FFFFFF' }}>
+              <FileSignature className="w-4 h-4" />
+            </div>
+            <span className="text-sm flex-1 font-bold">
+              Firma il contratto
+            </span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                  style={{ background: '#F59E0B', color: '#FFFFFF' }}>
+              DA FIRMARE
+            </span>
+          </button>
+        )}
 
         {/* ─────────────────────────────────────────────────────────────────────
             IL TUO PROGETTO

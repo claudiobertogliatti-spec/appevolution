@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FileText, Check, Pen, AlertTriangle, ArrowRight, Loader2 } from 'lucide-react';
 import axios from 'axios';
+import { toast } from 'sonner';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -633,6 +634,10 @@ export default function ContractSigning({ partner, onContractSigned }) {
       });
       
       if (response.data.success) {
+        toast.success('Contratto firmato con successo!', {
+          description: 'Benvenuto nella partnership Evolution PRO',
+          duration: 5000
+        });
         onContractSigned && onContractSigned(response.data);
       } else {
         setError(response.data.message || 'Errore durante la firma');

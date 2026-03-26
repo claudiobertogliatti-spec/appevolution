@@ -49,6 +49,7 @@ import { FunnelAnalytics } from "./components/partner/FunnelAnalytics";
 import { AvatarCheckout } from "./components/partner/AvatarCheckout";
 import { MasterclassVideocorso } from "./components/partner/MasterclassVideocorso";
 import ContractSigning from "./components/ContractSigning";
+import { Toaster } from "sonner";
 import { ServiziExtra } from "./components/partner/ServiziExtra";
 import { VideoEditorAndrea } from "./components/partner/VideoEditorAndrea";
 import { LegalPagesGenerator } from "./components/partner/LegalPagesGenerator";
@@ -995,7 +996,12 @@ export default function App() {
             setNav("partner");
           } else {
             setMode("partner");
-            setNav("home");
+            // Controlla se il contratto è firmato
+            if (!userData.contract?.signed_at) {
+              setNav("contract"); // Redirect obbligatorio alla firma
+            } else {
+              setNav("home");
+            }
           }
         } catch (e) {
           localStorage.removeItem("access_token");
@@ -1021,7 +1027,12 @@ export default function App() {
       setNav("partner");
     } else {
       setMode("partner");
-      setNav("home");
+      // Controlla se il contratto è firmato
+      if (!user.contract?.signed_at) {
+        setNav("contract"); // Redirect obbligatorio alla firma
+      } else {
+        setNav("home");
+      }
     }
     loadData();
   };
@@ -1708,12 +1719,26 @@ export default function App() {
           )}
 
           {mode==="partner"&&<>
-            {/* CONTRACT SIGNING */}
-            {nav==="contract"&&<ContractSigning partner={demoPartner} onContractSigned={(data) => { setNav("dashboard"); }} />}
-            
-            {/* DASHBOARD */}
-            {nav==="dashboard"&&<PartnerDashboardSimplified partner={demoPartner} onNavigate={setNav} onOpenChat={()=>setNav("supporto")}/>}
-            {nav==="home"&&<PartnerDashboardSimplified partner={demoPartner} onNavigate={setNav} onOpenChat={()=>setNav("supporto")}/>}
+            {/* BLOCCO OBBLIGATORIO - Se contratto non firmato, mostra solo ContractSigning */}
+            {!demoPartner?.contract?.signed_at ? (
+              <ContractSigning 
+                partner={demoPartner} 
+                onContractSigned={(data) => { 
+                  // Aggiorna il partner con i dati del contratto
+                  if (demoPartner) {
+                    demoPartner.contract = { signed_at: data.signed_at };
+                  }
+                  setNav("dashboard"); 
+                }} 
+              />
+            ) : (
+              <>
+                {/* CONTRACT SIGNING - Accessibile anche dopo la firma per revisione */}
+                {nav==="contract"&&<ContractSigning partner={demoPartner} onContractSigned={(data) => { setNav("dashboard"); }} />}
+                
+                {/* DASHBOARD */}
+                {nav==="dashboard"&&<PartnerDashboardSimplified partner={demoPartner} onNavigate={setNav} onOpenChat={()=>setNav("supporto")}/>}
+                {nav==="home"&&<PartnerDashboardSimplified partner={demoPartner} onNavigate={setNav} onOpenChat={()=>setNav("supporto")}/>}
             
             {/* FASE 0 - Onboarding (ex "Parti da Qui") */}
             {nav==="fase0-onboarding"&&<PartnerCourse partner={demoPartner} modules={modules}/>}
@@ -1825,9 +1850,12 @@ export default function App() {
             {nav==="profilo"&&<PartnerProfile partner={demoPartner} onUpdate={loadData}/>}
             {nav==="pagamenti"&&<PartnerPayments partner={demoPartner}/>}
             {nav==="i-miei-file"&&<PartnerFiles partner={demoPartner}/>}
+              </>
+            )}
           </>}
         </div>
       </div>
+      <Toaster position="top-right" richColors />
     </div>
   );
 }
