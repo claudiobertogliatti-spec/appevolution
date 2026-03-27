@@ -1,3 +1,13 @@
+# === BCRYPT/PASSLIB COMPATIBILITY PATCH ===
+# bcrypt 4.1.x removed __about__ attribute that passlib relies on
+# This patch ensures compatibility even if bcrypt gets updated
+import bcrypt
+if not hasattr(bcrypt, '__about__'):
+    import types
+    bcrypt.__about__ = types.ModuleType('__about__')
+    bcrypt.__about__.__version__ = bcrypt.__version__
+# === END PATCH ===
+
 from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
