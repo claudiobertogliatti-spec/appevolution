@@ -14,7 +14,7 @@ export function AdminSwitcher({ adminUser, setAdminUser, setNav }) {
         <span className="w-7 h-7 rounded-full bg-white text-[#F5C518] flex items-center justify-center text-[10px] font-bold flex-shrink-0">
           CB
         </span>
-        <span className="text-left">Claudio Bertogliatti</span>
+        <span className="text-left">Claudio Bertogliatti (CEO)</span>
       </button>
       <button
         onClick={() => { setAdminUser("antonella"); setNav("overview"); }}
@@ -27,7 +27,7 @@ export function AdminSwitcher({ adminUser, setAdminUser, setNav }) {
         <span className="w-7 h-7 rounded-full bg-purple-600 text-[#1E2128] flex items-center justify-center text-[10px] font-bold flex-shrink-0">
           AR
         </span>
-        <span className="text-left">Antonella Rossi</span>
+        <span className="text-left">Antonella Rossi (Social & Comunicazione)</span>
       </button>
     </div>
   );

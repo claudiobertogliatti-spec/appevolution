@@ -21,15 +21,16 @@ const AGENT_CONFIG = {
 // Agent descriptions - UPDATED
 const AGENT_DESCRIPTIONS = {
   MAIN: "Sistema Centrale",
-  STEFANIA: "Onboarding & Consulenza",
-  ANDREA: "Avanzamento Corso & Video",
+  STEFANIA: "Coordinatrice",
+  VALENTINA: "Strategia e Onboarding",
+  ANDREA: "Produzione Contenuti",
   MARCO: "Accountability Settimanale",
   GAIA: "Supporto Tecnico",
-  STEFANIA: "Orchestrazione"
+  OPENCLAW: "Strategia e Onboarding"
 };
 
 // Agent order for display
-const AGENT_ORDER = ["STEFANIA", "ANDREA", "MARCO", "GAIA", "STEFANIA", "MAIN"];
+const AGENT_ORDER = ["STEFANIA", "VALENTINA", "ANDREA", "MARCO", "GAIA", "MAIN"];
 
 export function AgentDashboard() {
   const [agents, setAgents] = useState([]);

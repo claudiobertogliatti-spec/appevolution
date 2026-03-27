@@ -18,34 +18,34 @@ class AgentAnalyticsHub:
     # 6 Core Agents as per Evolution PRO OS architecture
     AGENTS = {
         "STEFANIA": {
-            "name": "Onboarding & Consulenza",
-            "category": "Partner Contact",
+            "name": "Coordinatrice",
+            "category": "Coordinamento",
             "emoji": "💬",
             "metrics": ["conversations", "response_time", "satisfaction"]
         },
+        "VALENTINA": {
+            "name": "Strategia e Onboarding",
+            "category": "Strategia",
+            "emoji": "🎯",
+            "metrics": ["routes_today", "escalations", "daily_reports"]
+        },
         "ANDREA": {
-            "name": "Avanzamento Corso & Video",
+            "name": "Produzione Contenuti",
             "category": "Produzione",
             "emoji": "🎬",
             "metrics": ["videos_produced", "avg_delivery_time", "quality_score"]
         },
         "MARCO": {
-            "name": "Accountability",
-            "category": "Accountability Settimanale",
+            "name": "Accountability Settimanale",
+            "category": "Coaching",
             "emoji": "📋",
             "metrics": ["checkins_sent", "response_rate", "inactive_partners"]
         },
         "GAIA": {
             "name": "Supporto Tecnico",
-            "category": "Supporto Tech",
+            "category": "Supporto",
             "emoji": "🔧",
             "metrics": ["tickets_resolved", "avg_resolution_time", "funnel_health"]
-        },
-        "STEFANIA": {
-            "name": "Orchestrazione",
-            "category": "Coordinamento",
-            "emoji": "🎯",
-            "metrics": ["routes_today", "escalations", "daily_reports"]
         },
         "MAIN": {
             "name": "Sistema Centrale",

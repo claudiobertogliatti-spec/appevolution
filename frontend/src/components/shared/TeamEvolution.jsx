@@ -9,26 +9,41 @@ const AGENTS = [
   {
     id: "stefania",
     name: "Stefania",
-    role: "Onboarding & Consulenza",
+    role: "Coordinatrice",
     icon: Link2,
     color: "#EC4899",
     emoji: "💬",
-    desc: "Gestisce il flusso di lavoro tra partner e agenti, onboarding e consulenza strategica.",
+    desc: "Coordinatrice del team. Smista le richieste e mantiene il flusso di lavoro tra partner e agenti.",
     tasks: [
       "Coordinamento task tra agenti",
+      "Smistamento richieste partner",
+      "Interfaccia diretta con il partner",
+      "Report giornalieri a Claudio"
+    ]
+  },
+  {
+    id: "valentina",
+    name: "Valentina",
+    role: "Strategia e Onboarding",
+    icon: Handshake,
+    color: "#10B981",
+    emoji: "🎯",
+    desc: "Gestisce la strategia dei partner, l'onboarding e il monitoraggio dati e traffico.",
+    tasks: [
       "Onboarding nuovi partner",
       "Consulenza strategica",
-      "Interfaccia diretta con il partner"
+      "Monitoraggio dati e traffico",
+      "Alert e insight azionabili"
     ]
   },
   {
     id: "andrea",
     name: "Andrea",
-    role: "Avanzamento Corso & Video",
+    role: "Produzione Contenuti",
     icon: Video,
     color: "#8B5CF6",
     emoji: "🎬",
-    desc: "Gestisce tutta la produzione video: editing masterclass, videocorso, sottotitoli, avatar AI.",
+    desc: "Gestisce tutta la produzione contenuti: editing masterclass, videocorso, sottotitoli, avatar AI.",
     tasks: [
       "Editing video con tagli e transizioni",
       "Sottotitoli automatici",
@@ -39,7 +54,7 @@ const AGENTS = [
   {
     id: "marco",
     name: "Marco",
-    role: "Accountability",
+    role: "Accountability Settimanale",
     icon: Target,
     color: "#F59E0B",
     emoji: "📋",
@@ -64,21 +79,6 @@ const AGENTS = [
       "Guida step-by-step alle soluzioni",
       "Monitoraggio funnel health",
       "Escalation per problemi critici"
-    ]
-  },
-  {
-    id: "stefania",
-    name: "Stefania",
-    role: "Orchestrazione",
-    icon: PenTool,
-    color: "#10B981",
-    emoji: "🎯",
-    desc: "Sistema nervoso centrale. Smista i messaggi all'agente giusto e monitora il sistema.",
-    tasks: [
-      "Routing intelligente dei messaggi",
-      "Monitoraggio giornaliero partner",
-      "Identificazione situazioni critiche",
-      "Report giornalieri a Claudio"
     ]
   },
   {
@@ -190,7 +190,7 @@ export function TeamEvolution({ isAdmin = false }) {
             </div>
             <div>
               <h3 className="text-xl font-bold text-white">Main</h3>
-              <div className="text-sm" style={{ color: '#9CA3AF' }}>Orchestrazione Centrale</div>
+              <div className="text-sm" style={{ color: '#9CA3AF' }}>Coordinamento Centrale</div>
             </div>
           </div>
           
