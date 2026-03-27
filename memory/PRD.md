@@ -176,7 +176,11 @@ Gli endpoint esistenti ora restituiscono risposte mock complete:
   - Frontend Admin: Sezione "Documenti Onboarding" nella scheda partner (tab Documenti) con bottoni Verifica/Rifiuta + modale nota rifiuto
   - Sidebar: Badge "DA CARICARE" / "IN VERIFICA" per partner con docs incompleti
   - Navigation: Post-firma → redirect a `/dashboard/documents`
-  - Testing: 100% backend (14/14) + 100% frontend
+- [x] **Aggiornamento System Prompt ANDREA e MARCO** — 27 Mar 2026
+  - ANDREA: Framework CMO (posizionamento, marketing immersivo, fan-centricity, metriche, creatività) + Framework Copywriting (regola dell'uno, PAS/AIDA, 4U headlines, tono umano, AEO, output standard)
+  - MARCO: Framework CMO (posizionamento partner, legge del sacrificio, metriche commerciali, urgenza, LTV) + Framework Sales (NEPQ/SPIN, linea retta, Sandler, Challenger, referral, gestione obiezioni)
+  - Integrati in `agent_prompts.py` (usato dal chat generico) e `server.py` (usato da endpoint specifici ANDREA)
+  - Testing: entrambi gli agenti rispondono correttamente con i nuovi framework
 
 ### P0 - Prossimi
 - [ ] **Configurare Tag Systeme.io** — Creare tag nella dashboard Systeme.io e inserire ID nel .env:
