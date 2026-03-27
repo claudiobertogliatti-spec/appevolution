@@ -1,0 +1,73 @@
+{
+  "summary": "Partner Documents Upload Feature Testing Complete - All backend tests passed (14/14), Frontend UI verified working. Partners can upload 6 document types (4 required + 2 optional), admin can verify/reject documents in PartnerDetailModal Documenti tab.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Admin Dashboard",
+        "issues": ["Console hydration warnings about <span> inside <tbody>/<select>/<option> - cosmetic issue, does not affect functionality"]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_partner_documents_upload.py",
+    "/app/test_reports/pytest/pytest_partner_documents.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "GET /api/partner/documents/status returns all 6 document types with correct required/optional flags",
+    "POST /api/partner/documents/upload/{doc_type} correctly uploads files to Cloudinary with validation",
+    "DELETE /api/partner/documents/{doc_type} correctly resets non-verified documents to pending",
+    "DELETE correctly blocks deletion of verified documents (returns 400)",
+    "GET /api/admin/partners/{id}/documents returns documents with config for admin view",
+    "PATCH /api/admin/partners/{id}/documents/{doc_type}/verify correctly verifies uploaded documents",
+    "PATCH /api/admin/partners/{id}/documents/{doc_type}/reject correctly rejects with note",
+    "Admin PartnerDetailModal Documenti tab shows Documenti Onboarding section with status badge",
+    "Verify/Reject buttons appear only for 'uploaded' status documents",
+    "Reject modal opens with note input and confirm button",
+    "Rejected documents show rejection note in red text"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_partner_documents_upload.py"
+  ],
+  "success_rate": {
+    "backend": "100% (14/14 tests passed)",
+    "frontend": "100% - All UI elements verified working"
+  },
+  "test_credentials": {
+    "admin": "claudio.bertogliatti@gmail.com / Evoluzione74"
+  },
+  "seed_data_creation": "Partner 23 (Daniele Andolfi) used for testing - documents uploaded/verified/rejected during tests",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Partner documents upload feature fully functional. Document types: identity_front, identity_back, codice_fiscale (required), piva, logo (optional), distinta (required). Admin can verify/reject in PartnerDetailModal > Documenti tab. Cloudinary integration working for file uploads.",
+  "features_tested": {
+    "backend_endpoints": {
+      "GET /api/partner/documents/status": "PASSED - Returns 6 doc types with statuses and progress",
+      "POST /api/partner/documents/upload/{doc_type}": "PASSED - Uploads to Cloudinary, validates format/size",
+      "DELETE /api/partner/documents/{doc_type}": "PASSED - Resets non-verified docs, blocks verified",
+      "POST /api/partner/documents/submit-review": "PASSED - Validates required docs before submission",
+      "GET /api/admin/partners/{id}/documents": "PASSED - Returns docs with config for admin",
+      "PATCH /api/admin/partners/{id}/documents/{doc_type}/verify": "PASSED - Verifies uploaded docs",
+      "PATCH /api/admin/partners/{id}/documents/{doc_type}/reject": "PASSED - Rejects with note"
+    },
+    "frontend_ui": {
+      "admin_dashboard_partner_modal": "PASSED - Opens with Profilo/Documenti/Pagamenti tabs",
+      "documenti_tab_onboarding_section": "PASSED - Shows 'Documenti Onboarding' with status badge",
+      "document_cards": "PASSED - Shows 6 document types with correct statuses",
+      "verify_button": "PASSED - Appears for 'uploaded' docs, verifies on click",
+      "reject_button": "PASSED - Opens modal with note input",
+      "reject_modal": "PASSED - Shows document name, note input, confirm button",
+      "rejection_display": "PASSED - Shows rejection note in red on document card"
+    }
+  },
+  "test_data_used": {
+    "partner_23_daniele_andolfi": "Used for all document upload/verify/reject tests",
+    "documents_tested": ["identity_front (verified)", "identity_back (verified)", "codice_fiscale (verified)", "distinta (rejected)"]
+  }
+}

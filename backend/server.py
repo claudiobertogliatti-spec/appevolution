@@ -14230,6 +14230,10 @@ from routers.contract import router as contract_router, admin_router as contract
 app.include_router(contract_router)
 app.include_router(contract_admin_router)
 
+from routers.partner_documents import router as partner_docs_router, admin_router as partner_docs_admin_router
+app.include_router(partner_docs_router)
+app.include_router(partner_docs_admin_router)
+
 
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler

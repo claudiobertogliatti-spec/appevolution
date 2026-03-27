@@ -3,8 +3,9 @@ import {
   X, User, FileText, CreditCard, Save, Plus, 
   Youtube, Mail, Tag, Loader2, CheckCircle, AlertCircle,
   Trash2, ExternalLink, Edit3, Upload, Film, MessageSquare,
-  Calendar, AlertTriangle
+  Calendar, AlertTriangle, Eye, Shield, Image, XCircle
 } from "lucide-react";
+import axios from "axios";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -143,10 +144,15 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
     date: new Date().toISOString().split("T")[0]
   });
   
-  // Documents state
+  // Documents state (onboarding verification)
   const [documents, setDocuments] = useState([]);
+  const [onboardingDocs, setOnboardingDocs] = useState(null);
+  const [onboardingDocsLoading, setOnboardingDocsLoading] = useState(false);
   const [revisionNotes, setRevisionNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
+  const [rejectModal, setRejectModal] = useState(null); // { docType, label }
+  const [rejectNote, setRejectNote] = useState("");
+  const [verifyingDoc, setVerifyingDoc] = useState(null);
   
   // Partnership payment state
   const [markingPartnership, setMarkingPartnership] = useState(false);
@@ -207,6 +213,51 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
     } catch (e) {
       console.error("Error fetching documents:", e);
       setDocuments([]);
+    }
+    // Also fetch onboarding docs
+    fetchOnboardingDocs();
+  };
+  
+  const fetchOnboardingDocs = async () => {
+    if (!partner?.id) return;
+    setOnboardingDocsLoading(true);
+    try {
+      const res = await axios.get(`${API}/api/admin/partners/${partner.id}/documents`);
+      setOnboardingDocs(res.data);
+    } catch (e) {
+      console.error("Error fetching onboarding docs:", e);
+    } finally {
+      setOnboardingDocsLoading(false);
+    }
+  };
+  
+  const handleVerifyDoc = async (docType) => {
+    setVerifyingDoc(docType);
+    try {
+      await axios.patch(`${API}/api/admin/partners/${partner.id}/documents/${docType}/verify`);
+      fetchOnboardingDocs();
+    } catch (e) {
+      console.error("Error verifying:", e);
+    } finally {
+      setVerifyingDoc(null);
+    }
+  };
+  
+  const handleRejectDoc = async () => {
+    if (!rejectModal) return;
+    setVerifyingDoc(rejectModal.docType);
+    try {
+      await axios.patch(
+        `${API}/api/admin/partners/${partner.id}/documents/${rejectModal.docType}/reject`,
+        { note: rejectNote }
+      );
+      setRejectModal(null);
+      setRejectNote("");
+      fetchOnboardingDocs();
+    } catch (e) {
+      console.error("Error rejecting:", e);
+    } finally {
+      setVerifyingDoc(null);
     }
   };
   
@@ -752,7 +803,127 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
             {/* TAB DOCUMENTI */}
             {activeTab === "documenti" && (
               <div className="space-y-6" data-testid="tab-content-documenti">
-                {/* YouTube Player */}
+                {/* Onboarding Documents Verification */}
+                <div>
+                  <h3 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: "#1E2128" }}>
+                    <Shield className="w-5 h-5 text-amber-600" />
+                    Documenti Onboarding
+                    {onboardingDocs?.documents_status && (
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ml-2 ${
+                        onboardingDocs.documents_status === "verified" ? "bg-emerald-100 text-emerald-700" :
+                        onboardingDocs.documents_status === "under_review" ? "bg-amber-100 text-amber-700" :
+                        onboardingDocs.documents_status === "rejected" ? "bg-red-100 text-red-700" :
+                        "bg-gray-100 text-gray-500"
+                      }`} data-testid="onboarding-status-badge">
+                        {onboardingDocs.documents_status === "verified" ? "Verificati" :
+                         onboardingDocs.documents_status === "under_review" ? "In attesa" :
+                         onboardingDocs.documents_status === "rejected" ? "Rifiutati" : "Incompleti"}
+                      </span>
+                    )}
+                  </h3>
+                  
+                  {onboardingDocsLoading ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                    </div>
+                  ) : onboardingDocs ? (
+                    <div className="space-y-3">
+                      {Object.entries(onboardingDocs.config || {}).map(([docType, cfg]) => {
+                        const doc = (onboardingDocs.documents || {})[docType] || {};
+                        const status = doc.status || "pending";
+                        const hasFile = status === "uploaded" || status === "verified" || status === "rejected";
+                        
+                        return (
+                          <div key={docType}
+                               className={`rounded-xl border p-4 transition-all ${
+                                 status === "verified" ? "border-emerald-200 bg-emerald-50/30" :
+                                 status === "rejected" ? "border-red-200 bg-red-50/20" :
+                                 status === "uploaded" ? "border-amber-200 bg-amber-50/20" :
+                                 "border-gray-100"
+                               }`}
+                               data-testid={`admin-doc-${docType}`}>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                                  status === "verified" ? "bg-emerald-100 text-emerald-600" :
+                                  status === "rejected" ? "bg-red-100 text-red-500" :
+                                  hasFile ? "bg-amber-100 text-amber-600" :
+                                  "bg-gray-100 text-gray-400"
+                                }`}>
+                                  {status === "verified" ? <CheckCircle className="w-4 h-4" /> :
+                                   status === "rejected" ? <XCircle className="w-4 h-4" /> :
+                                   <FileText className="w-4 h-4" />}
+                                </div>
+                                <div>
+                                  <div className="text-sm font-semibold text-[#1E2128]">
+                                    {cfg.label}
+                                    {cfg.required && <span className="text-[10px] text-red-500 ml-1">*</span>}
+                                  </div>
+                                  {hasFile && (
+                                    <div className="text-xs text-gray-400">
+                                      {doc.original_name || "Documento"} {doc.size_readable ? `• ${doc.size_readable}` : ""}
+                                      {doc.uploaded_at && ` • ${new Date(doc.uploaded_at).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}`}
+                                    </div>
+                                  )}
+                                  {status === "rejected" && doc.note && (
+                                    <p className="text-xs text-red-500 mt-0.5">Rifiutato: {doc.note}</p>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                {/* View button */}
+                                {hasFile && doc.url && !doc.url.startsWith("/tmp") && (
+                                  <a href={doc.url} target="_blank" rel="noopener noreferrer"
+                                     className="inline-flex items-center gap-1 px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                                     data-testid={`admin-view-${docType}`}>
+                                    <Eye className="w-3.5 h-3.5" /> Visualizza
+                                  </a>
+                                )}
+                                {/* Verify button */}
+                                {status === "uploaded" && (
+                                  <button
+                                    onClick={() => handleVerifyDoc(docType)}
+                                    disabled={verifyingDoc === docType}
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                                    data-testid={`admin-verify-${docType}`}
+                                  >
+                                    {verifyingDoc === docType ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                                    Verifica
+                                  </button>
+                                )}
+                                {/* Reject button */}
+                                {status === "uploaded" && (
+                                  <button
+                                    onClick={() => { setRejectModal({ docType, label: cfg.label }); setRejectNote(""); }}
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
+                                    data-testid={`admin-reject-${docType}`}
+                                  >
+                                    <XCircle className="w-3.5 h-3.5" /> Rifiuta
+                                  </button>
+                                )}
+                                {/* Status for non-uploaded */}
+                                {!hasFile && status !== "not_required" && (
+                                  <span className="text-xs text-gray-400">Non caricato</span>
+                                )}
+                                {status === "not_required" && (
+                                  <span className="text-xs text-gray-300">Opzionale</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 bg-gray-50 rounded-xl">
+                      <FileText className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                      <p className="text-sm text-gray-400">Nessun documento di onboarding</p>
+                    </div>
+                  )}
+                </div>
+                
+                {/* YouTube Player (existing) */}
                 {formData.youtube_playlist_id && (
                   <div className="mb-6">
                     <h3 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: "#1E2128" }}>
@@ -774,53 +945,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                   </div>
                 )}
                 
-                {/* Documents List */}
-                <div>
-                  <h3 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: "#1E2128" }}>
-                    <FileText className="w-5 h-5" />
-                    Documenti Partner
-                  </h3>
-                  {documents.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {documents.map((doc, idx) => (
-                        <div 
-                          key={idx}
-                          className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                              <FileText className="w-5 h-5 text-blue-600" />
-                            </div>
-                            <div>
-                              <p className="font-medium text-sm">{doc.name || doc.filename || `Documento ${idx + 1}`}</p>
-                              <p className="text-xs text-gray-500">
-                                {doc.type || "Documento"} 
-                                {doc.is_raw && <span className="ml-2 px-1.5 py-0.5 bg-orange-100 text-orange-600 rounded text-[10px] font-bold">RAW</span>}
-                              </p>
-                            </div>
-                          </div>
-                          {doc.url && (
-                            <a 
-                              href={doc.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                            >
-                              Apri
-                            </a>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 bg-gray-50 rounded-xl">
-                      <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                      <p className="text-gray-500">Nessun documento caricato</p>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Revision Notes Section */}
+                {/* Revision Notes Section (existing) */}
                 <div className="mt-6 p-4 rounded-xl" style={{ background: "#FFF8DC", border: "1px solid #F2C41850" }}>
                   <h4 className="font-bold mb-3 flex items-center gap-2" style={{ color: "#1E2128" }}>
                     <MessageSquare className="w-5 h-5" style={{ color: "#C4990A" }} />
@@ -1018,6 +1143,39 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
         partnerName={partnerName}
         isDeleting={isDeleting}
       />
+      
+      {/* Reject Document Modal */}
+      {rejectModal && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-[60]" onClick={() => setRejectModal(null)} />
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl z-[60] w-[420px] p-6" data-testid="reject-doc-modal">
+            <h3 className="text-base font-bold text-gray-900 mb-1">Rifiuta documento</h3>
+            <p className="text-sm text-gray-500 mb-4">{rejectModal.label}</p>
+            <textarea
+              value={rejectNote}
+              onChange={e => setRejectNote(e.target.value)}
+              placeholder="Motivo del rifiuto (visibile al partner)..."
+              rows={3}
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-300 resize-none"
+              data-testid="reject-note-input"
+            />
+            <div className="flex justify-end gap-3 mt-4">
+              <button onClick={() => setRejectModal(null)} className="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">
+                Annulla
+              </button>
+              <button
+                onClick={handleRejectDoc}
+                disabled={!rejectNote.trim() || verifyingDoc}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50"
+                data-testid="btn-confirm-reject"
+              >
+                {verifyingDoc ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                Rifiuta
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 };

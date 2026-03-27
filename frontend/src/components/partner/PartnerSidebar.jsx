@@ -3,7 +3,7 @@ import {
   Home, Target, Mic, Film, Rocket, Calendar,
   MessageCircle, LogOut, Check, Lock, Users, 
   HelpCircle, PlayCircle, X, Shield, TrendingUp, UserCheck,
-  Sparkles, User, CreditCard, FolderOpen, FileSignature, AlertTriangle
+  Sparkles, User, CreditCard, FolderOpen, FileSignature, AlertTriangle, Upload
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -250,6 +250,32 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold"
                   style={{ background: '#F59E0B', color: '#FFFFFF' }}>
               DA FIRMARE
+            </span>
+          </button>
+        )}
+
+        {/* DOCUMENTI ONBOARDING - Mostra se contratto firmato e docs non verified */}
+        {partner?.contract?.signed_at && partner?.documents_status !== "verified" && (
+          <button
+            onClick={() => onNavigate('onboarding-docs')}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all mb-4"
+            style={{ 
+              background: currentNav === 'onboarding-docs' ? '#FFF3C4' : '#FEF3C7',
+              borderLeft: currentNav === 'onboarding-docs' ? '3px solid #F2C418' : '3px solid #F59E0B',
+              color: '#92400E'
+            }}
+            data-testid="sidebar-onboarding-docs"
+          >
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+                 style={{ background: '#F2C418', color: '#1E2128' }}>
+              <Upload className="w-4 h-4" />
+            </div>
+            <span className="text-sm flex-1 font-bold">
+              Documenti
+            </span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                  style={{ background: '#F59E0B', color: '#FFFFFF' }}>
+              {partner?.documents_status === "under_review" ? "IN VERIFICA" : "DA CARICARE"}
             </span>
           </button>
         )}
