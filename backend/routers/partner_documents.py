@@ -227,6 +227,13 @@ async def submit_for_review(partner_id: str = Form(...)):
 
     logger.info(f"[DOCUMENTS] Partner {partner_id} submitted documents for review")
 
+    # Systeme.io notification
+    try:
+        from services.systeme_notifications import notify_documents_submitted
+        await notify_documents_submitted(partner_id)
+    except Exception as e:
+        logger.warning(f"[DOCUMENTS] Systeme.io notification failed: {e}")
+
     return {"success": True, "documents_status": "under_review"}
 
 
@@ -330,6 +337,12 @@ async def admin_verify_document(partner_id: str, doc_type: str):
             {"$set": {"documents_status": "verified", "documents_verified_at": now}}
         )
         logger.info(f"[DOCUMENTS] All documents verified for partner {partner_id}")
+        # Systeme.io notification - all docs verified
+        try:
+            from services.systeme_notifications import notify_documents_verified
+            await notify_documents_verified(partner_id)
+        except Exception as e:
+            logger.warning(f"[DOCUMENTS] Systeme.io notification failed: {e}")
 
     logger.info(f"[DOCUMENTS] Admin verified {doc_type} for partner {partner_id}")
 
@@ -363,6 +376,14 @@ async def admin_reject_document(partner_id: str, doc_type: str, body: RejectBody
     )
 
     logger.info(f"[DOCUMENTS] Admin rejected {doc_type} for partner {partner_id}: {body.note}")
+
+    # Systeme.io notification - doc rejected
+    try:
+        from services.systeme_notifications import notify_document_rejected
+        doc_label = DOCUMENT_TYPES.get(doc_type, {}).get("label", doc_type)
+        await notify_document_rejected(partner_id, doc_type, doc_label, body.note)
+    except Exception as e:
+        logger.warning(f"[DOCUMENTS] Systeme.io notification failed: {e}")
 
     return {
         "success": True,
