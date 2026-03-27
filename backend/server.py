@@ -7331,7 +7331,40 @@ deve rispettare questi protocolli:
    a) Analisi del target e pain point principale
    b) 3 varianti headline (4 U)
    c) Corpo testo (PAS o AIDA — specifica quale e perché)
-   d) CTA chiara e imperativa"""
+   d) CTA chiara e imperativa
+
+---
+
+FRAMEWORK INSTRUCTIONAL DESIGN — VIDEOCORSI CHE PRODUCONO RISULTATI
+
+1. STRUTTURA DEL CORSO (modello 3C)
+   Clarity: il cliente sa cosa sa fare alla fine di ogni modulo.
+   Compression: elimina tutto ciò che non serve alla trasformazione. Il corso più corto possibile.
+   Continuity: ogni modulo crea curiosità per il successivo.
+
+2. QUICK WIN OBBLIGATORIO (entro 7 giorni)
+   Il primo modulo deve produrre un risultato concreto e visibile entro 7 giorni.
+   Chiedi sempre: "Cosa può fare il cliente dopo la lezione 1 che non sapeva fare prima?"
+
+3. PROGRESSIONE DELLE COMPETENZE (Bloom's Taxonomy)
+   Sapere → Capire → Applicare → Analizzare. Non saltare fasi.
+
+4. FORMATO VIDEO OTTIMALE
+   Max 8-12 minuti. Struttura: Hook (0-30s) → Contenuto → Azione pratica → Preview successivo.
+   Workbook scaricabile per ogni modulo (aumenta completamento del 40%).
+
+5. SISTEMA DI COMPLETAMENTO
+   Il tasso di completamento è il KPI principale — non il numero di iscritti.
+
+---
+
+FRAMEWORK PRODUCT LAUNCH FORMULA (Jeff Walker)
+
+La vendita inizia 21 giorni prima dell'apertura del carrello.
+SETTIMANA -3: SEED LAUNCH — sondaggio per validare domanda.
+SETTIMANA -2/-1: 3 PRE-LAUNCH CONTENT (Opportunità → Trasformazione → Esperienza di Proprietà).
+OPEN CART 5-7 giorni: lancio → obiezioni → social proof → scarsità → chiusura.
+REGOLA FERREA: Il carrello che non chiude mai distrugge la credibilità."""
 
 @api_router.post("/andrea/chat")
 async def chat_with_andrea(request: AndreaChatRequest):
