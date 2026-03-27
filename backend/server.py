@@ -586,11 +586,11 @@ class StoredFile(BaseModel):
 # =============================================================================
 
 INITIAL_AGENTS = [
-    {"id": "STEFANIA", "role": "Onboarding & Consulenza Partner", "status": "ACTIVE", "budget": 28, "category": "Strategia"},
-    {"id": "STEFANIA", "role": "Orchestrazione", "status": "ACTIVE", "budget": 12, "category": "Comunicazione"},
-    {"id": "GAIA", "role": "Tech Support", "status": "ACTIVE", "budget": 8, "category": "Supporto"},
-    {"id": "ANDREA", "role": "Video Production", "status": "ACTIVE", "budget": 15, "category": "Produzione"},
-    {"id": "MARCO", "role": "Accountability", "status": "ACTIVE", "budget": 6, "category": "Coaching"},
+    {"id": "STEFANIA", "role": "Coordinatrice", "status": "ACTIVE", "budget": 28, "category": "Coordinamento"},
+    {"id": "VALENTINA", "role": "Strategia e Onboarding", "status": "ACTIVE", "budget": 12, "category": "Strategia"},
+    {"id": "GAIA", "role": "Supporto Tecnico", "status": "ACTIVE", "budget": 8, "category": "Supporto"},
+    {"id": "ANDREA", "role": "Produzione Contenuti", "status": "ACTIVE", "budget": 15, "category": "Produzione"},
+    {"id": "MARCO", "role": "Accountability Settimanale", "status": "ACTIVE", "budget": 6, "category": "Coaching"},
     {"id": "OPENCLAW", "role": "Data Intelligence & Notifiche", "status": "ACTIVE", "budget": 0, "category": "Sistema"},
 ]
 
@@ -861,7 +861,7 @@ INITIAL_GAIA_TEMPLATES = [
 # Initial Notifications for demo
 INITIAL_NOTIFICATIONS = [
     {"id": "n1", "type": "modulo", "icon": "✅", "title": "Modulo Completato", "body": "Marco Ferretti ha completato M4 – Editing & Branding", "time": "12 min fa", "partner": "Marco Ferretti", "read": False, "action": "partner"},
-    {"id": "n2", "type": "escalation", "icon": "🚨", "title": "Escalation STEFANIA", "body": "Sara Lombardi non risponde da 72h – richiede intervento Antonella", "time": "2h fa", "partner": "Sara Lombardi", "read": False, "action": "alert"},
+    {"id": "n2", "type": "escalation", "icon": "🚨", "title": "Escalation STEFANIA", "body": "Sara Lombardi non risponde da 72h – richiede intervento Antonella (Supervisione Social)", "time": "2h fa", "partner": "Sara Lombardi", "read": False, "action": "alert"},
     {"id": "n3", "type": "video", "icon": "🎬", "title": "Video Pronto", "body": "ANDREA ha completato editing M3L2 per Luca Marini", "time": "3h fa", "partner": "Luca Marini", "read": True, "action": "andrea"},
     {"id": "n4", "type": "file", "icon": "📁", "title": "Nuovo File Caricato", "body": "Antonio Bianchi ha caricato Scheda Posizionamento.pdf", "time": "5h fa", "partner": "Antonio Bianchi", "read": True, "action": "partner"},
 ]
@@ -883,24 +883,53 @@ async def seed_database():
     if delete_result.deleted_count > 0:
         logging.info(f"Rimossi {delete_result.deleted_count} agenti ibernati: {hibernated_agents}")
     
-    # FIX B: Correggi i ruoli di STEFANIA e STEFANIA
+    # FIX B: Aggiorna i ruoli degli agenti all'organigramma corrente
     await db.agents.update_one(
         {"id": "STEFANIA"},
         {"$set": {
-            "role": "Onboarding & Consulenza Partner",
-            "category": "Partner Contact",
-            "description": "Supporta i partner dall'onboarding fino al post-lancio"
-        }}
-    )
-    await db.agents.update_one(
-        {"id": "STEFANIA"},
-        {"$set": {
-            "role": "Orchestrazione",
+            "role": "Coordinatrice",
             "category": "Coordinamento",
-            "description": "Smista le richieste agli agenti specializzati"
+            "description": "Coordina il team e le attività, smista le richieste agli agenti specializzati"
         }}
     )
-    logging.info("Ruoli STEFANIA e STEFANIA corretti")
+    # Rimuovi eventuali duplicati STEFANIA
+    stefania_count = await db.agents.count_documents({"id": "STEFANIA"})
+    if stefania_count > 1:
+        await db.agents.delete_many({"id": "STEFANIA"})
+        await db.agents.insert_one({
+            "id": "STEFANIA", "role": "Coordinatrice", "status": "ACTIVE",
+            "budget": 28, "category": "Coordinamento",
+            "description": "Coordina il team e le attività, smista le richieste agli agenti specializzati"
+        })
+    # Aggiorna OPENCLAW con il ruolo di VALENTINA
+    await db.agents.update_one(
+        {"id": "OPENCLAW"},
+        {"$set": {
+            "role": "Strategia e Onboarding",
+            "category": "Strategia",
+            "display_name": "VALENTINA",
+            "description": "Strategia dei partner, onboarding e data intelligence"
+        }}
+    )
+    # Assicurati che VALENTINA esista come agente
+    valentina_exists = await db.agents.find_one({"id": "VALENTINA"})
+    if not valentina_exists:
+        await db.agents.insert_one({
+            "id": "VALENTINA", "role": "Strategia e Onboarding", "status": "ACTIVE",
+            "budget": 12, "category": "Strategia",
+            "description": "Strategia dei partner, onboarding e data intelligence"
+        })
+    else:
+        await db.agents.update_one(
+            {"id": "VALENTINA"},
+            {"$set": {"role": "Strategia e Onboarding", "category": "Strategia",
+                      "description": "Strategia dei partner, onboarding e data intelligence"}}
+        )
+    # Aggiorna ANDREA, MARCO, GAIA
+    await db.agents.update_one({"id": "ANDREA"}, {"$set": {"role": "Produzione Contenuti", "category": "Produzione"}})
+    await db.agents.update_one({"id": "MARCO"}, {"$set": {"role": "Accountability Settimanale", "category": "Coaching"}})
+    await db.agents.update_one({"id": "GAIA"}, {"$set": {"role": "Supporto Tecnico", "category": "Supporto"}})
+    logging.info("Ruoli agenti aggiornati all'organigramma corrente")
     
     # Assicurati che MAIN esista
     main_exists = await db.agents.find_one({"id": "MAIN"})
@@ -4735,7 +4764,7 @@ async def get_all_partner_documents_summary():
 
 def build_system_prompt(partner_name: str, partner_niche: str, partner_phase: str, modules_done: int):
     phase_label = PHASE_LABELS.get(partner_phase, partner_phase)
-    return f"""Sei STEFANIA, l'agente di Onboarding & Consulenza Partner di Evolution PRO LLC. Il tuo ruolo è guidare i nuovi Partner nel percorso di onboarding e fornire consulenza strategica durante tutto il programma. Non sei un chatbot generico: sei parte del team Evolution PRO.
+    return f"""Sei STEFANIA, Coordinatrice del Team di Evolution PRO LLC. Il tuo ruolo è coordinare il team, supportare i partner nel percorso e smistare le richieste agli agenti specializzati. Non sei un chatbot generico: sei parte del team Evolution PRO.
 
 CONTESTO PARTNER ATTUALE:
 - Nome: {partner_name}
@@ -5049,7 +5078,7 @@ async def get_stefania_knowledge(
 class AgentTaskCreate(BaseModel):
     title: str
     description: str
-    agent: str  # STEFANIA, STEFANIA, ORION, GAIA, MARTA, ATLAS, LUCA, ANDREA
+    agent: str  # STEFANIA, VALENTINA, GAIA, ANDREA, MARCO
     priority: str = "medium"  # low, medium, high, urgent
     partner_id: Optional[str] = None
     due_date: Optional[str] = None
@@ -5058,7 +5087,7 @@ class AgentTaskCreate(BaseModel):
 @api_router.post("/agent-tasks")
 async def create_agent_task(task: AgentTaskCreate):
     """Create a task assigned to an agent"""
-    valid_agents = ["STEFANIA", "STEFANIA", "GAIA", "ANDREA", "MARCO"]
+    valid_agents = ["STEFANIA", "VALENTINA", "GAIA", "ANDREA", "MARCO"]
     if task.agent.upper() not in valid_agents:
         raise HTTPException(status_code=400, detail=f"Agente non valido. Usa: {valid_agents}")
     
@@ -5111,7 +5140,7 @@ async def get_tasks_dashboard():
     
     # Get tasks by agent
     agents_stats = {}
-    for agent in ["STEFANIA", "STEFANIA", "ANDREA", "GAIA", "MARCO"]:
+    for agent in ["STEFANIA", "VALENTINA", "ANDREA", "GAIA", "MARCO"]:
         count = await db.agent_tasks.count_documents({"agent": agent})
         if count > 0:
             agents_stats[agent] = count
@@ -5239,7 +5268,7 @@ async def get_tasks_dashboard():
     
     # Count by agent
     agents_stats = {}
-    for agent in ["STEFANIA", "STEFANIA", "GAIA", "ANDREA", "MARCO"]:
+    for agent in ["STEFANIA", "VALENTINA", "GAIA", "ANDREA", "MARCO"]:
         count = await db.agent_tasks.count_documents({"agent": agent, "status": {"$in": ["pending", "in_progress"]}})
         if count > 0:
             agents_stats[agent] = count
@@ -5606,6 +5635,7 @@ def build_stefania_system_prompt(partner_name: str, partner_niche: str, current_
     
     return f"""Sei STEFANIA, tutor specializzata in copywriting persuasivo e marketing per videocorsi.
 Il tuo ruolo è guidare i partner di Evolution PRO nella creazione della loro Masterclass TRASFORMATIVA.
+Nota: Il tuo ruolo nel team è Coordinatrice, ma in questa modalità operi come tutor di copywriting.
 
 PARTNER ATTUALE:
 - Nome: {partner_name}

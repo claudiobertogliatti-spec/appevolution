@@ -23,7 +23,7 @@ const CLAUDIO_NAV = [
   { id: "youtube-heygen", label: "YouTube × HeyGen", icon: Film },
   { id: "metriche", label: "Post-Lancio", icon: BarChart3 },
   { id: "stefania", label: "STEFANIA", icon: MessageCircle, dot: true },
-  { id: "vista-antonella", label: "Vista Antonella", icon: Eye, special: true },
+  { id: "vista-antonella", label: "Antonella (Social & Comunicazione)", icon: Eye, special: true },
 ];
 
 const ANTONELLA_NAV = [
@@ -45,7 +45,7 @@ const ANTONELLA_NAV = [
   { id: "lista-fredda", label: "Lista Fredda", icon: Snowflake, dot: true },
   { id: "servizi-admin", label: "Servizi Extra", icon: ShoppingBag },
   { id: "andrea", label: "ANDREA — Editing Feed", icon: Film },
-  { id: "copyfactory", label: "STEFANIA — Copy Factory", icon: Edit3 },
+  { id: "copyfactory", label: "Copy Factory", icon: Edit3 },
 ];
 
 const TOOLS_NAV = [

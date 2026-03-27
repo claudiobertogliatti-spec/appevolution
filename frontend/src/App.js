@@ -751,11 +751,11 @@ function PartnerCourse({ partner, modules }) {
   
   // Team Evolution Data - 6 Core Agents
   const TEAM_AGENTS = [
-    { id: "stefania", name: "Stefania", role: "Onboarding & Consulenza", emoji: "💬", color: "#EC4899", desc: "Onboarding, consulenza e coordinamento team" },
-    { id: "andrea", name: "Andrea", role: "Avanzamento Corso & Video", emoji: "🎬", color: "#8B5CF6", desc: "Editing video, produzione e avatar AI" },
-    { id: "marco", name: "Marco", role: "Accountability", emoji: "📋", color: "#F59E0B", desc: "Check-in settimanali e motivazione" },
-    { id: "gaia", name: "Gaia", role: "Supporto Tecnico", emoji: "🔧", color: "#0EA5E9", desc: "Assistenza tecnica e funnel health" },
-    { id: "stefania", name: "Stefania", role: "Orchestrazione", emoji: "🎯", color: "#10B981", desc: "Routing messaggi e monitoraggio giornaliero" },
+    { id: "stefania", name: "Stefania", role: "Coordinatrice", emoji: "💬", color: "#EC4899", desc: "Coordinamento team e smistamento richieste" },
+    { id: "valentina", name: "Valentina", role: "Strategia e Onboarding", emoji: "🎯", color: "#10B981", desc: "Strategia partner e percorso di onboarding" },
+    { id: "andrea", name: "Andrea", role: "Produzione Contenuti", emoji: "🎬", color: "#8B5CF6", desc: "Editing video, produzione e contenuti del corso" },
+    { id: "marco", name: "Marco", role: "Accountability Settimanale", emoji: "📋", color: "#F59E0B", desc: "Check-in settimanali e monitoraggio obiettivi" },
+    { id: "gaia", name: "Gaia", role: "Supporto Tecnico", emoji: "🔧", color: "#0EA5E9", desc: "Assistenza tecnica e configurazione strumenti" },
     { id: "main", name: "Main", role: "Sistema Centrale", emoji: "🎛️", color: "#6B7280", desc: "Coordinamento generale del sistema" },
   ];
 
@@ -819,7 +819,7 @@ function PartnerCourse({ partner, modules }) {
             </div>
             <div>
               <h2 className="text-lg font-bold" style={{ color: '#1E2128' }}>Il Tuo Team Evolution</h2>
-              <p className="text-xs" style={{ color: '#9CA3AF' }}>6 agenti AI + supervisione umana di Claudio e Antonella</p>
+              <p className="text-xs" style={{ color: '#9CA3AF' }}>5 agenti AI + supervisione di Claudio (CEO) e Antonella (Social & Comunicazione)</p>
             </div>
           </div>
         </div>
@@ -885,15 +885,15 @@ function PartnerCourse({ partner, modules }) {
 function PartnerChat({ partner }) {
   const [messages,setMessages]=useState([]);const [input,setInput]=useState("");const [loading,setLoading]=useState(false);const [sessionId]=useState(()=>`chat-${partner.id}-${Date.now()}`);const bottomRef=useRef(null);
   const qr=["Cosa devo fare adesso?","Come funziona il prossimo step?","Ho un problema tecnico","Quando lanceremo?"];
-  useEffect(()=>{setMessages([{role:"assistant",content:`Ciao ${partner.name.split(" ")[0]}! Sono STEFANIA. Sei in **${partner.phase} — ${PHASE_LABELS[partner.phase]}**. Come posso aiutarti?`,time:new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}]);},[partner]);
+  useEffect(()=>{setMessages([{role:"assistant",content:`Ciao ${partner.name.split(" ")[0]}! Sono STEFANIA, la Coordinatrice del team. Sei in **${partner.phase} — ${PHASE_LABELS[partner.phase]}**. Come posso aiutarti?`,time:new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}]);},[partner]);
   useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:"smooth"});},[messages,loading]);
   const send=async(text)=>{const msg=text||input.trim();if(!msg||loading)return;setInput("");setMessages(p=>[...p,{role:"user",content:msg,time:new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}]);setLoading(true);try{const r=await axios.post(`${API}/api/chat`,{session_id:sessionId,message:msg,partner_name:partner.name,partner_niche:partner.niche,partner_phase:partner.phase,modules_done:(partner.modules||[]).filter(Boolean).length});setMessages(p=>[...p,{role:"assistant",content:r.data.response,time:new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}]);}catch(e){setMessages(p=>[...p,{role:"assistant",content:"⚠ Problema di connessione. Escalando ad Antonella.",time:new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}),error:true}]);}finally{setLoading(false);}};
   return (
     <div className="bg-white border border-[#ECEDEF] rounded-xl overflow-hidden flex flex-col" style={{height:"calc(100vh - 180px)",minHeight:500}}>
-      <div className="bg-[#FAFAF7] p-4 flex items-center gap-3 border-b border-[#ECEDEF]"><div className="w-9 h-9 rounded-full bg-[#F5C518] flex items-center justify-center text-sm font-bold text-black">V</div><div className="flex-1"><div className="text-sm font-bold">STEFANIA</div><div className="text-[10px] text-[#9CA3AF]">Onboarding & Consulenza · sempre disponibile</div></div><div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"/></div>
+      <div className="bg-[#FAFAF7] p-4 flex items-center gap-3 border-b border-[#ECEDEF]"><div className="w-9 h-9 rounded-full bg-[#F5C518] flex items-center justify-center text-sm font-bold text-black">S</div><div className="flex-1"><div className="text-sm font-bold">STEFANIA</div><div className="text-[10px] text-[#9CA3AF]">Coordinatrice · sempre disponibile</div></div><div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"/></div>
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.map((m,i)=><div key={i} className={`flex gap-2.5 ${m.role==="user"?"flex-row-reverse":""}`}><div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${m.role==="assistant"?"bg-[#F5C518] text-black":"bg-[#ECEDEF] text-white"}`}>{m.role==="assistant"?"V":partner.name.split(" ").map(n=>n[0]).join("")}</div><div className="max-w-[78%]"><div className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${m.role==="user"?"bg-[#F5C518] text-black rounded-tr-sm":"bg-[#FAFAF7] text-[#5F6572] rounded-tl-sm"} ${m.error?"!bg-red-500/10 !text-red-300":""}`}>{m.content.replace(/\*\*(.*?)\*\*/g,"$1")}</div><div className={`text-[10px] text-[#9CA3AF] mt-1 ${m.role==="user"?"text-right":""}`}>{m.time}</div></div></div>)}
-        {loading&&<div className="flex gap-2.5"><div className="w-7 h-7 rounded-full bg-[#F5C518] flex items-center justify-center text-[10px] font-bold text-black">V</div><div className="bg-[#FAFAF7] rounded-2xl rounded-tl-sm px-4 py-3 flex gap-1">{[0,1,2].map(i=><span key={i} className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{animationDelay:`${i*0.15}s`}}/>)}</div></div>}
+        {messages.map((m,i)=><div key={i} className={`flex gap-2.5 ${m.role==="user"?"flex-row-reverse":""}`}><div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${m.role==="assistant"?"bg-[#F5C518] text-black":"bg-[#ECEDEF] text-white"}`}>{m.role==="assistant"?"S":partner.name.split(" ").map(n=>n[0]).join("")}</div><div className="max-w-[78%]"><div className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${m.role==="user"?"bg-[#F5C518] text-black rounded-tr-sm":"bg-[#FAFAF7] text-[#5F6572] rounded-tl-sm"} ${m.error?"!bg-red-500/10 !text-red-300":""}`}>{m.content.replace(/\*\*(.*?)\*\*/g,"$1")}</div><div className={`text-[10px] text-[#9CA3AF] mt-1 ${m.role==="user"?"text-right":""}`}>{m.time}</div></div></div>)}
+        {loading&&<div className="flex gap-2.5"><div className="w-7 h-7 rounded-full bg-[#F5C518] flex items-center justify-center text-[10px] font-bold text-black">S</div><div className="bg-[#FAFAF7] rounded-2xl rounded-tl-sm px-4 py-3 flex gap-1">{[0,1,2].map(i=><span key={i} className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{animationDelay:`${i*0.15}s`}}/>)}</div></div>}
         <div ref={bottomRef}/>
       </div>
       {messages.length<=2&&<div className="px-4 py-2 border-t border-[#ECEDEF] flex gap-2 flex-wrap">{qr.map((q,i)=><button key={i} onClick={()=>send(q)} className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-full px-3 py-1.5 text-[11px] font-semibold hover:bg-[#F5C518] hover:text-black hover:border-[#F5C518] transition-all">{q}</button>)}</div>}
@@ -1083,8 +1083,8 @@ export default function App() {
   const toolsNav=[
     {id:"systeme",label:"SYSTEME.IO",icon:Database},
     {id:"gaia",label:"GAIA",icon:Zap},
-    {id:"copyfactory",label:"STEFANIA — Copy Factory",icon:Edit3},
-    {id:"warmode",label:"STEFANIA — War Mode",icon:Target},
+    {id:"copyfactory",label:"Copy Factory",icon:Edit3},
+    {id:"warmode",label:"Campagne Ads",icon:Target},
     {id:"compliance",label:"LUCA",icon:Shield},
   ];
   const antonellaNav=[
@@ -1095,7 +1095,7 @@ export default function App() {
     {id:"partner",label:"Partner",icon:Users},
     {id:"approvals",label:"Approvazioni",icon:ClipboardCheck},
     {id:"andrea",label:"ANDREA — Editing Feed",icon:Film},
-    {id:"copyfactory",label:"STEFANIA — Copy Factory",icon:Edit3},
+    {id:"copyfactory",label:"Copy Factory",icon:Edit3},
     {id:"compliance",label:"LUCA",icon:Shield},
     {id:"stefania",label:"STEFANIA",icon:MessageCircle,dot:true},
   ];
@@ -1117,7 +1117,7 @@ export default function App() {
   const adminNav=adminUser==="antonella"?antonellaNav:coreNav;
   const isToolNav=toolsNav.some(t=>t.id===nav);
 
-  const titles={overview:"Overview",agenti:"Agenti AI",partner:"Pipeline Partner","documenti-partner":"Documenti Partner","onboarding-admin":"Documenti Onboarding","youtube-heygen":"YouTube × HeyGen Hub",andrea:adminUser==="antonella"?"ANDREA — Feed Video":"ANDREA — Surgical Cut",metriche:"Metriche Post-Lancio",systeme:"SYSTEME.IO — Live Data",gaia:"Template Funnel",compliance:"Documenti & Compliance",copyfactory:"STEFANIA — Copy Factory",warmode:"Campagne Ads Partner",alert:"Alert & Escalation",stefania:"STEFANIA — Chat",home:"Il tuo percorso","onboarding-docs":"Documenti Onboarding",corso:"PARTI DA QUI",bonus:"Bonus Strategici",masterclass:"STEFANIA — Masterclass Builder",coursebuilder:"STEFANIA — Course Builder AI",produzione:"ANDREA — Produzione Video",files:"I Miei File",brandkit:"Brand Kit",calendario:"Calendario Editoriale",documenti:"Documenti & Posizionamento",risorse:"Template & Risorse",renewal:"Piani Post-12 Mesi",supporto:"STEFANIA — Chat"};
+  const titles={overview:"Overview",agenti:"Agenti AI",partner:"Pipeline Partner","documenti-partner":"Documenti Partner","onboarding-admin":"Documenti Onboarding","youtube-heygen":"YouTube × HeyGen Hub",andrea:adminUser==="antonella"?"ANDREA — Feed Video":"ANDREA — Surgical Cut",metriche:"Metriche Post-Lancio",systeme:"SYSTEME.IO — Live Data",gaia:"Template Funnel",compliance:"Documenti & Compliance",copyfactory:"Copy Factory",warmode:"Campagne Ads Partner",alert:"Alert & Escalation",stefania:"STEFANIA — Chat",home:"Il tuo percorso","onboarding-docs":"Documenti Onboarding",corso:"PARTI DA QUI",bonus:"Bonus Strategici",masterclass:"Masterclass Builder",coursebuilder:"Course Builder AI",produzione:"ANDREA — Produzione Video",files:"I Miei File",brandkit:"Brand Kit",calendario:"Calendario Editoriale",documenti:"Documenti & Posizionamento",risorse:"Template & Risorse",renewal:"Piani Post-12 Mesi",supporto:"STEFANIA — Chat"};
 
   // Loading state
   if (authLoading) {
