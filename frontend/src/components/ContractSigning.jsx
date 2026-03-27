@@ -578,6 +578,10 @@ export default function ContractSigning({ partner, onContractSigned }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
+  // Dynamic contract text
+  const [dynamicContractText, setDynamicContractText] = useState(null);
+  const [contractLoading, setContractLoading] = useState(true);
+  
   // Chat state
   const [messages, setMessages] = useState([
     {
@@ -596,6 +600,29 @@ export default function ContractSigning({ partner, onContractSigned }) {
   const canvasRef = useRef(null);
   const ctxRef = useRef(null);
   const chatEndRef = useRef(null);
+  
+  // Load personalized contract text
+  useEffect(() => {
+    const loadContractText = async () => {
+      if (!partner?.id) {
+        setContractLoading(false);
+        return;
+      }
+      try {
+        const res = await axios.get(`${API}/api/contract/text/${partner.id}`);
+        if (res.data?.contract_text) {
+          setDynamicContractText(res.data.contract_text);
+        }
+      } catch (err) {
+        console.warn('Fallback to default contract text');
+      } finally {
+        setContractLoading(false);
+      }
+    };
+    loadContractText();
+  }, [partner?.id]);
+  
+  const activeContractText = dynamicContractText || CONTRACT_TEXT;
 
   // Initialize canvas
   useEffect(() => {
@@ -834,7 +861,12 @@ export default function ContractSigning({ partner, onContractSigned }) {
                     onScroll={handleScroll}
                     className="px-6 py-5 font-['Georgia',serif] h-[calc(100vh-380px)] md:h-[calc(100vh-320px)] overflow-y-auto scroll-smooth"
                   >
-                    {renderContract(CONTRACT_TEXT)}
+                    {contractLoading ? (
+                      <div className="flex items-center justify-center py-20">
+                        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                        <span className="ml-2 text-sm text-gray-400">Caricamento contratto...</span>
+                      </div>
+                    ) : renderContract(activeContractText)}
                   </div>
 
                   {/* Scroll indicator */}
