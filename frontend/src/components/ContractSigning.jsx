@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FileText, Check, Pen, AlertTriangle, ArrowRight, Loader2 } from 'lucide-react';
+import { FileText, Check, Pen, AlertTriangle, ArrowRight, Loader2, Send, MessageCircle, ChevronDown } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 
@@ -464,7 +464,7 @@ Il Partner dichiara di aver letto attentamente e compreso integralmente tutte le
 - la scelta del foro competente
 Il Partner dichiara di disporre del tempo, delle risorse organizzative e delle competenze digitali minime necessarie per partecipare attivamente al Programma Operativo. Eventuali difficoltà personali, organizzative o professionali del Partner non costituiranno di per sé motivo automatico di sospensione, proroga o revisione economica, salvo diverso accordo scritto tra le Parti o quanto previsto dalla legge.
 
-CLAUSOLE VESSATORIE - APPROVAZIONE SPECIFICA (artt. 1341 e 1342 c.c.)
+ARTICOLO 16 - CLAUSOLE VESSATORIE - APPROVAZIONE SPECIFICA (artt. 1341 e 1342 c.c.)
 
 Ai sensi e per gli effetti degli articoli 1341 e 1342 del Codice Civile, il Partner dichiara di aver letto attentamente e di approvare specificamente le seguenti clausole:
 - art. 1.4 esclusiva
@@ -477,7 +477,7 @@ Ai sensi e per gli effetti degli articoli 1341 e 1342 del Codice Civile, il Part
 - art. 12 tutela brand e penale
 - art. 14.3 foro esclusivo
 
-ARTICOLO 16 – ACCETTAZIONE CONSAPEVOLE DEL MODELLO
+ARTICOLO 17 – ACCETTAZIONE CONSAPEVOLE DEL MODELLO
 
 Il Partner dichiara di aver compreso e accettato che:
 - la Partnership ha natura di collaborazione strategica e operativa e non costituisce prestazione di risultato
@@ -485,7 +485,7 @@ Il Partner dichiara di aver compreso e accettato che:
 - il corrispettivo iniziale remunera l'accesso al sistema, al know-how e alle attività operative, indipendentemente dai risultati economici
 - eventuali contestazioni relative a performance, vendite o risultati non costituiscono inadempimento contrattuale`;
 
-// Clausole vessatorie da approvare specificamente
+// Clausole vessatorie
 const CLAUSOLE_VESSATORIE = [
   { id: 'art_1_4', label: 'Art. 1.4 - Esclusiva' },
   { id: 'art_2_6', label: 'Art. 2.6 - Recesso Evolution PRO' },
@@ -498,42 +498,69 @@ const CLAUSOLE_VESSATORIE = [
   { id: 'art_14_3', label: 'Art. 14.3 - Foro esclusivo' },
 ];
 
-function renderContractText(text) {
+// Quick suggestion chips for chatbot
+const QUICK_SUGGESTIONS = [
+  "Cosa significa l'esclusiva?",
+  "Posso recedere?",
+  "Come funziona il rimborso?",
+  "Cosa sono le clausole vessatorie?"
+];
+
+function renderContract(text) {
   return text.split('\n').map((line, i) => {
     line = line.trim();
-    if (!line) return <div key={i} className="mb-3" />;
+    if (!line) return <div key={i} className="h-3" />;
 
-    // Titoli articoli
-    if (line.startsWith('ARTICOLO')) return (
-      <h2 key={i} className="text-base font-bold text-[#1a1a2e] mt-8 mb-3 pt-4 border-t border-gray-100 tracking-wide uppercase">
-        {line}
-      </h2>
-    );
+    // ARTICOLO X - TITOLO
+    if (line.startsWith('ARTICOLO')) {
+      const articleNum = line.match(/\d+/)?.[0];
+      const title = line.replace(/ARTICOLO \d+ - /, '').replace(/ARTICOLO \d+ – /, '');
+      return (
+        <div key={i} data-article={articleNum} className="mt-8 mb-4 first:mt-0">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#1a1a2e] text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+              {articleNum}
+            </div>
+            <h2 className="text-sm font-bold text-[#1a1a2e] uppercase tracking-wide">
+              {title}
+            </h2>
+          </div>
+          <div className="h-px bg-gray-100 mt-3" />
+        </div>
+      );
+    }
 
-    // Clausole vessatorie title
-    if (line.startsWith('CLAUSOLE VESSATORIE')) return (
-      <h2 key={i} className="text-base font-bold text-amber-700 mt-8 mb-3 pt-4 border-t border-amber-200 tracking-wide uppercase">
-        {line}
-      </h2>
-    );
+    // X.X Sotto-articolo  
+    if (/^\d+\.\d+/.test(line)) {
+      return (
+        <h3 key={i} className="text-sm font-semibold text-gray-800 mt-5 mb-2">
+          {line}
+        </h3>
+      );
+    }
 
-    // Sotto-articoli (1.1, 2.3, ecc.)
-    if (/^\d+\.\d+/.test(line)) return (
-      <h3 key={i} className="text-sm font-semibold text-gray-800 mt-5 mb-2">
-        {line}
-      </h3>
-    );
+    // Bullet point
+    if (line.startsWith('-')) {
+      return (
+        <div key={i} className="flex gap-2 mb-1.5 ml-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-[#1a1a2e] mt-2 flex-shrink-0" />
+          <p className="text-sm text-gray-600 leading-relaxed">{line.slice(1).trim()}</p>
+        </div>
+      );
+    }
 
-    // Bullet points
-    if (line.startsWith('-')) return (
-      <li key={i} className="text-sm text-gray-700 ml-6 mb-1 leading-relaxed list-disc">
-        {line.slice(1).trim()}
-      </li>
-    );
+    // TRA / E
+    if (line === 'TRA' || line === 'E' || line === 'e') {
+      return (
+        <p key={i} className="text-xs font-bold text-gray-400 uppercase tracking-widest my-3">
+          {line}
+        </p>
+      );
+    }
 
     // Testo normale
     return (
-      <p key={i} className="text-sm text-gray-700 mb-3 leading-[1.75]">
+      <p key={i} className="text-sm text-gray-600 leading-[1.8] mb-3">
         {line}
       </p>
     );
@@ -541,18 +568,34 @@ function renderContractText(text) {
 }
 
 export default function ContractSigning({ partner, onContractSigned }) {
-  const [step, setStep] = useState(1); // 1 = Leggi, 2 = Firma
+  const [step, setStep] = useState(1);
   const [scrollPct, setScrollPct] = useState(0);
   const [hasReadContract, setHasReadContract] = useState(false);
+  const [currentArticle, setCurrentArticle] = useState(1);
   const [clausoleApproved, setClausoleApproved] = useState({});
   const [isDrawing, setIsDrawing] = useState(false);
   const [signatureData, setSignatureData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
+  // Chat state
+  const [messages, setMessages] = useState([
+    {
+      role: 'assistant',
+      content: 'Ciao! Sono qui per aiutarti a capire il contratto. Chiedimi il significato di qualsiasi articolo o clausola.'
+    }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(true);
+  
+  // Mobile tab
+  const [mobileTab, setMobileTab] = useState('contract');
+  
   const contractRef = useRef(null);
   const canvasRef = useRef(null);
   const ctxRef = useRef(null);
+  const chatEndRef = useRef(null);
 
   // Initialize canvas
   useEffect(() => {
@@ -569,15 +612,37 @@ export default function ContractSigning({ partner, onContractSigned }) {
     }
   }, [step]);
 
-  // Handle scroll tracking
+  // Scroll to chat bottom
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // IntersectionObserver for article tracking
+  useEffect(() => {
+    if (!contractRef.current) return;
+    
+    const observer = new IntersectionObserver(
+      entries => {
+        entries.forEach(e => {
+          if (e.isIntersecting && e.target.dataset.article) {
+            setCurrentArticle(parseInt(e.target.dataset.article));
+          }
+        });
+      },
+      { threshold: 0.4, root: contractRef.current }
+    );
+    
+    contractRef.current.querySelectorAll('[data-article]').forEach(el => observer.observe(el));
+    
+    return () => observer.disconnect();
+  }, [step]);
+
+  // Handle scroll
   const handleScroll = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
     const pct = (scrollTop / (scrollHeight - clientHeight)) * 100;
     setScrollPct(Math.min(100, Math.max(0, pct)));
-    
-    if (pct >= 95) {
-      setHasReadContract(true);
-    }
+    if (pct >= 95) setHasReadContract(true);
   };
 
   // Drawing functions
@@ -616,18 +681,46 @@ export default function ContractSigning({ partner, onContractSigned }) {
     }
   };
 
+  // Chat functions
+  const sendMessage = async (text) => {
+    const msg = text || chatInput.trim();
+    if (!msg || chatLoading) return;
+    
+    setChatInput('');
+    setShowSuggestions(false);
+    setMessages(prev => [...prev, { role: 'user', content: msg }]);
+    setChatLoading(true);
+    
+    try {
+      const response = await axios.post(`${API}/api/contract/chat`, {
+        partner_id: partner?.id || 'unknown',
+        message: msg,
+        conversation_history: messages.slice(-8),
+        current_article: currentArticle
+      });
+      
+      setMessages(prev => [...prev, { role: 'assistant', content: response.data.reply }]);
+    } catch (err) {
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: 'Mi dispiace, si è verificato un errore. Riprova tra poco.'
+      }]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
   const allClausoleApproved = CLAUSOLE_VESSATORIE.every(c => clausoleApproved[c.id]);
   const canSign = hasReadContract && allClausoleApproved && signatureData;
 
   const handleSign = async () => {
     if (!canSign) return;
-    
     setLoading(true);
     setError(null);
     
     try {
       const response = await axios.post(`${API}/api/contract/sign`, {
-        partner_id: partner.id,
+        partner_id: partner?.id,
         signature_base64: signatureData,
         clausole_vessatorie_approved: true,
         contract_version: '1.0'
@@ -650,121 +743,245 @@ export default function ContractSigning({ partner, onContractSigned }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm mb-4">
-            <FileText className="w-5 h-5 text-emerald-600" />
-            <span className="font-medium text-gray-700">Contratto di Partnership</span>
-          </div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-            Firma digitale del contratto
-          </h1>
-          <p className="text-gray-600">
-            {partner?.name}, leggi attentamente il contratto e apponi la tua firma
-          </p>
-        </div>
-
-        {/* Step Indicator */}
-        <div className="flex items-center justify-center gap-4 mb-8">
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${
-            step === 1 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
-          }`}>
-            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
-              step === 1 ? 'bg-emerald-600 text-white' : hasReadContract ? 'bg-emerald-600 text-white' : 'bg-gray-300 text-gray-600'
-            }`}>
-              {hasReadContract ? <Check className="w-4 h-4" /> : '1'}
-            </div>
-            <span className="font-medium">Leggi</span>
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100 mb-3">
+            <FileText className="w-4 h-4 text-emerald-600" />
+            <span className="font-medium text-gray-700 text-sm">Contratto di Partnership</span>
           </div>
           
-          <ArrowRight className="w-5 h-5 text-gray-400" />
-          
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${
-            step === 2 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
-          }`}>
-            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
-              step === 2 ? 'bg-emerald-600 text-white' : 'bg-gray-300 text-gray-600'
+          {/* Step indicator */}
+          <div className="flex items-center justify-center gap-3">
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm ${
+              step === 1 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
             }`}>
-              {signatureData ? <Check className="w-4 h-4" /> : '2'}
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
+                step === 1 ? 'bg-emerald-600 text-white' : hasReadContract ? 'bg-emerald-600 text-white' : 'bg-gray-300'
+              }`}>
+                {hasReadContract && step !== 1 ? <Check className="w-3 h-3" /> : '1'}
+              </div>
+              <span className="font-medium">Leggi</span>
             </div>
-            <span className="font-medium">Firma</span>
+            <ArrowRight className="w-4 h-4 text-gray-400" />
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm ${
+              step === 2 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
+            }`}>
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
+                step === 2 ? 'bg-emerald-600 text-white' : 'bg-gray-300'
+              }`}>
+                2
+              </div>
+              <span className="font-medium">Firma</span>
+            </div>
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          {step === 1 ? (
-            <>
-              {/* Contract Text */}
-              <div 
-                ref={contractRef}
-                onScroll={handleScroll}
-                className="h-80 md:h-[500px] overflow-y-auto px-6 md:px-8 py-6 bg-white font-['Georgia',serif]"
+        {step === 1 ? (
+          <>
+            {/* Mobile tabs */}
+            <div className="md:hidden flex gap-2 mb-4">
+              <button
+                onClick={() => setMobileTab('contract')}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all ${
+                  mobileTab === 'contract' 
+                    ? 'bg-[#1a1a2e] text-white' 
+                    : 'bg-white text-gray-600 border border-gray-200'
+                }`}
               >
-                {renderContractText(CONTRACT_TEXT)}
-              </div>
-              
-              {/* Progress Bar */}
-              <div className="px-6 py-3 bg-gray-50 border-t">
-                <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-                  <span>Avanzamento lettura</span>
-                  <span className="font-medium">{Math.round(scrollPct)}% letto</span>
-                </div>
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <FileText className="w-4 h-4" />
+                Contratto
+              </button>
+              <button
+                onClick={() => setMobileTab('chat')}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all ${
+                  mobileTab === 'chat' 
+                    ? 'bg-violet-600 text-white' 
+                    : 'bg-white text-gray-600 border border-gray-200'
+                }`}
+              >
+                <MessageCircle className="w-4 h-4" />
+                Supporto
+              </button>
+            </div>
+
+            {/* Two column layout */}
+            <div className="flex gap-6">
+              {/* Contract Column - 65% */}
+              <div className={`${mobileTab === 'contract' ? 'block' : 'hidden'} md:block md:w-[65%]`}>
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                  {/* Contract Header */}
+                  <div className="bg-gradient-to-r from-[#1a1a2e] to-[#2d2d4e] px-6 py-4 text-white">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <h2 className="font-semibold text-base">Contratto di Collaborazione in Partnership</h2>
+                        <p className="text-xs opacity-70">Evolution PRO LLC — Versione 1.0</p>
+                      </div>
+                      <span className="text-xs opacity-60">Articolo {currentArticle} / 17</span>
+                    </div>
+                    <div className="h-1 bg-white/20 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-white/80 transition-all duration-300"
+                        style={{ width: `${scrollPct}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Contract Body */}
                   <div 
-                    className="h-full bg-emerald-500 transition-all duration-300"
-                    style={{ width: `${scrollPct}%` }}
-                  />
+                    ref={contractRef}
+                    onScroll={handleScroll}
+                    className="px-6 py-5 font-['Georgia',serif] h-[calc(100vh-380px)] md:h-[calc(100vh-320px)] overflow-y-auto scroll-smooth"
+                  >
+                    {renderContract(CONTRACT_TEXT)}
+                  </div>
+
+                  {/* Scroll indicator */}
+                  {!hasReadContract ? (
+                    <div className="bg-amber-50 border-t border-amber-100 px-4 py-2 flex items-center justify-between">
+                      <span className="text-amber-700 text-xs">Scorri fino in fondo per abilitare la firma</span>
+                      <ChevronDown className="w-4 h-4 text-amber-600 animate-bounce" />
+                    </div>
+                  ) : (
+                    <div className="bg-emerald-50 border-t border-emerald-100 px-4 py-2 flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-600" />
+                      <span className="text-emerald-700 text-xs">Contratto letto — puoi procedere alla firma</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Next Button */}
-              <div className="p-6 border-t">
-                <button
-                  onClick={() => setStep(2)}
-                  disabled={!hasReadContract}
-                  className={`w-full py-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2 ${
-                    hasReadContract
-                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg hover:shadow-xl'
-                      : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                  }`}
-                >
-                  {hasReadContract ? (
-                    <>
-                      Procedi alla firma
-                      <ArrowRight className="w-5 h-5" />
-                    </>
-                  ) : (
-                    <>
-                      Scorri per leggere il contratto
-                    </>
+              {/* Chat Column - 35% */}
+              <div className={`${mobileTab === 'chat' ? 'block' : 'hidden'} md:block md:w-[35%]`}>
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[calc(100vh-380px)] md:h-[calc(100vh-320px)]">
+                  {/* Chat Header */}
+                  <div className="bg-gradient-to-r from-violet-600 to-violet-700 px-4 py-3 rounded-t-2xl text-white flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <MessageCircle className="w-4 h-4" />
+                      <div>
+                        <h3 className="font-semibold text-sm">Supporto contratto</h3>
+                        <p className="text-xs opacity-75">Fai domande sugli articoli</p>
+                      </div>
+                    </div>
+                    <span className="bg-white/20 text-white text-xs px-2 py-1 rounded-full">
+                      Art. {currentArticle}
+                    </span>
+                  </div>
+
+                  {/* Messages */}
+                  <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-gray-50/50">
+                    {messages.map((msg, i) => (
+                      <div key={i} className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : ''}`}>
+                        {msg.role === 'assistant' && (
+                          <div className="w-7 h-7 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
+                            <span className="text-violet-600 text-xs font-bold">EP</span>
+                          </div>
+                        )}
+                        <div className={`max-w-[85%] px-3 py-2 text-xs leading-relaxed ${
+                          msg.role === 'user'
+                            ? 'bg-violet-600 text-white rounded-2xl rounded-tr-sm'
+                            : 'bg-white rounded-2xl rounded-tl-sm shadow-sm border border-gray-100 text-gray-700'
+                        }`}>
+                          {msg.content}
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {chatLoading && (
+                      <div className="flex gap-2">
+                        <div className="w-7 h-7 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
+                          <span className="text-violet-600 text-xs font-bold">EP</span>
+                        </div>
+                        <div className="flex gap-1 px-3 py-2 bg-white rounded-2xl w-fit shadow-sm">
+                          <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay:'0ms'}} />
+                          <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay:'150ms'}} />
+                          <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay:'300ms'}} />
+                        </div>
+                      </div>
+                    )}
+                    <div ref={chatEndRef} />
+                  </div>
+
+                  {/* Quick suggestions */}
+                  {showSuggestions && (
+                    <div className="flex flex-wrap gap-2 px-4 pb-3">
+                      {QUICK_SUGGESTIONS.map((s, i) => (
+                        <button
+                          key={i}
+                          onClick={() => sendMessage(s)}
+                          className="bg-violet-50 border border-violet-100 text-violet-700 text-xs rounded-full px-3 py-1.5 hover:bg-violet-100 transition-colors"
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
                   )}
-                </button>
+
+                  {/* Input */}
+                  <div className="border-t border-gray-100 p-3 flex gap-2 items-end">
+                    <textarea
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), sendMessage())}
+                      placeholder="Chiedi informazioni sul contratto..."
+                      rows={1}
+                      className="flex-1 resize-none rounded-xl border border-gray-200 px-3 py-2 text-xs text-gray-700 focus:outline-none focus:border-violet-300"
+                    />
+                    <button
+                      onClick={() => sendMessage()}
+                      disabled={!chatInput.trim() || chatLoading}
+                      className="w-8 h-8 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:opacity-40 flex items-center justify-center flex-shrink-0 transition-colors"
+                    >
+                      <Send className="w-4 h-4 text-white" />
+                    </button>
+                  </div>
+                </div>
               </div>
-            </>
-          ) : (
-            <>
-              {/* Clausole Vessatorie */}
-              <div className="p-6 bg-amber-50 border-b border-amber-200">
+            </div>
+
+            {/* Next button */}
+            <div className="mt-6">
+              <button
+                onClick={() => setStep(2)}
+                disabled={!hasReadContract}
+                className={`w-full py-4 rounded-xl font-bold text-base transition-all flex items-center justify-center gap-2 ${
+                  hasReadContract
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg'
+                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                {hasReadContract ? (
+                  <>Procedi alla firma <ArrowRight className="w-5 h-5" /></>
+                ) : (
+                  'Scorri per leggere il contratto'
+                )}
+              </button>
+            </div>
+          </>
+        ) : (
+          /* Step 2: Firma */
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              {/* Clausole vessatorie */}
+              <div className="p-6 bg-amber-50 border-b border-amber-100">
                 <div className="flex items-start gap-3 mb-4">
-                  <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <h3 className="font-bold text-amber-800 mb-1">
+                    <h3 className="font-bold text-amber-800 text-sm mb-1">
                       Approvazione specifica clausole vessatorie
                     </h3>
-                    <p className="text-sm text-amber-700">
-                      Ai sensi degli artt. 1341 e 1342 c.c., approva specificamente le seguenti clausole:
+                    <p className="text-xs text-amber-700">
+                      Ai sensi degli artt. 1341 e 1342 c.c., approva specificamente:
                     </p>
                   </div>
                 </div>
                 
-                <div className="space-y-2 ml-9">
+                <div className="space-y-1.5 ml-8">
                   {CLAUSOLE_VESSATORIE.map((clausola) => (
                     <label 
                       key={clausola.id}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-amber-100 transition-colors cursor-pointer"
+                      className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-amber-100/50 transition-colors cursor-pointer"
                     >
                       <input
                         type="checkbox"
@@ -773,30 +990,27 @@ export default function ContractSigning({ partner, onContractSigned }) {
                           ...prev,
                           [clausola.id]: e.target.checked
                         }))}
-                        className="w-5 h-5 rounded border-amber-400 text-amber-600 focus:ring-amber-500"
+                        className="w-4 h-4 rounded border-amber-400 text-amber-600 focus:ring-amber-500"
                       />
-                      <span className="text-sm text-amber-800">{clausola.label}</span>
+                      <span className="text-xs text-amber-800">{clausola.label}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
-              {/* Signature Canvas */}
+              {/* Firma */}
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <Pen className="w-5 h-5 text-gray-600" />
-                    <span className="font-medium text-gray-700">La tua firma</span>
+                    <Pen className="w-4 h-4 text-gray-600" />
+                    <span className="font-medium text-gray-700 text-sm">La tua firma</span>
                   </div>
-                  <button
-                    onClick={clearSignature}
-                    className="text-sm text-gray-500 hover:text-gray-700 underline"
-                  >
-                    Cancella e rifirma
+                  <button onClick={clearSignature} className="text-xs text-gray-500 hover:text-gray-700 underline">
+                    Cancella
                   </button>
                 </div>
                 
-                <div className="border-2 border-dashed border-gray-300 rounded-xl overflow-hidden bg-gray-50">
+                <div className="border-2 border-dashed border-gray-200 rounded-xl overflow-hidden bg-gray-50">
                   <canvas
                     ref={canvasRef}
                     onMouseDown={startDrawing}
@@ -806,63 +1020,55 @@ export default function ContractSigning({ partner, onContractSigned }) {
                     onTouchStart={startDrawing}
                     onTouchMove={draw}
                     onTouchEnd={stopDrawing}
-                    className="w-full h-40 cursor-crosshair touch-none"
+                    className="w-full h-32 cursor-crosshair touch-none"
                     style={{ touchAction: 'none' }}
                   />
                 </div>
-                <p className="text-sm text-gray-500 mt-2 text-center">
+                <p className="text-xs text-gray-500 mt-2 text-center">
                   Disegna la tua firma con il mouse o il dito
                 </p>
               </div>
 
-              {/* Error Message */}
               {error && (
                 <div className="px-6 pb-4">
-                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs">
                     {error}
                   </div>
                 </div>
               )}
 
-              {/* Sign Button */}
+              {/* Actions */}
               <div className="p-6 border-t space-y-3">
                 <button
                   onClick={handleSign}
                   disabled={!canSign || loading}
-                  className={`w-full py-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2 ${
+                  className={`w-full py-4 rounded-xl font-bold text-base transition-all flex items-center justify-center gap-2 ${
                     canSign && !loading
-                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg hover:shadow-xl'
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg'
                       : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                   }`}
                 >
                   {loading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Firma in corso...
-                    </>
+                    <><Loader2 className="w-5 h-5 animate-spin" /> Firma in corso...</>
                   ) : (
-                    <>
-                      <Check className="w-5 h-5" />
-                      Firma e attiva la partnership
-                    </>
+                    <><Check className="w-5 h-5" /> Firma e attiva la partnership</>
                   )}
                 </button>
                 
                 <button
                   onClick={() => setStep(1)}
-                  className="w-full py-3 text-gray-600 hover:text-gray-800 font-medium transition-colors"
+                  className="w-full py-3 text-gray-600 hover:text-gray-800 font-medium text-sm transition-colors"
                 >
                   Torna al contratto
                 </button>
               </div>
-            </>
-          )}
-        </div>
+            </div>
 
-        {/* Footer Info */}
-        <p className="text-center text-sm text-gray-500 mt-6">
-          La firma digitale ha pieno valore legale ai sensi del Regolamento eIDAS
-        </p>
+            <p className="text-center text-xs text-gray-500 mt-4">
+              La firma digitale ha pieno valore legale ai sensi del Regolamento eIDAS
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
