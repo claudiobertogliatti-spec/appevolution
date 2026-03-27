@@ -179,11 +179,11 @@ Gli endpoint esistenti ora restituiscono risposte mock complete:
   - Testing: 100% backend (14/14) + 100% frontend
 
 ### P0 - Prossimi
-- [ ] **Generazione PDF contratto firmato** con ReportLab + upload Cloudinary (testo dinamico personalizzato)
-- [ ] **Configurazione SMTP** per invio email conferma con PDF allegato post-firma
+- [ ] **Configurare Tag Systeme.io** — Creare tag nella dashboard Systeme.io e inserire ID nel .env:
+  - `SYSTEME_TAG_DOC_RIFIUTATO`, `SYSTEME_TAG_DOCS_IN_VERIFICA`, `SYSTEME_TAG_DOCS_VERIFICATI`, `SYSTEME_TAG_CONTRATTO_FIRMATO`
+  - Creare automazioni email collegate a ciascun tag
 
 ### P1 - Alta Priorità
-- [ ] **Fix Alert fantasma "Test AlertQuestionario"** nella dashboard admin
 - [ ] **Test Flusso Acquisto Servizi Extra (Parte F)**: Verificare end-to-end checkout Stripe → webhook → attivazione
 - [ ] **Integrazioni Reali**: Ottenere API key per Canva e Kling dall'utente
 
