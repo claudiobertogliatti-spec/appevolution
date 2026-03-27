@@ -168,6 +168,15 @@ Gli endpoint esistenti ora restituiscono risposte mock complete:
   - Frontend Partner: ContractSigning carica testo dinamico dal backend
   - Parametri: corrispettivo, corrispettivo_testo, royalty_perc, durata_mesi, num_rate, note_admin
   - Testing: 100% backend (11/11 tests) + 100% frontend UI
+- [x] **Upload Documenti Onboarding Partner** — 27 Mar 2026
+  - Backend: `POST /api/partner/documents/upload/{doc_type}` con Cloudinary
+  - Backend: `GET /api/partner/documents/status`, `POST submit-review`
+  - Backend: `PATCH verify/reject` per admin con nota rifiuto
+  - Frontend Partner: Pagina upload con 6 card documento, drag&drop, progress bar, bottone "Invia per verifica"
+  - Frontend Admin: Sezione "Documenti Onboarding" nella scheda partner (tab Documenti) con bottoni Verifica/Rifiuta + modale nota rifiuto
+  - Sidebar: Badge "DA CARICARE" / "IN VERIFICA" per partner con docs incompleti
+  - Navigation: Post-firma → redirect a `/dashboard/documents`
+  - Testing: 100% backend (14/14) + 100% frontend
 
 ### P0 - Prossimi
 - [ ] **Generazione PDF contratto firmato** con ReportLab + upload Cloudinary (testo dinamico personalizzato)
