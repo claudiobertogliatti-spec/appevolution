@@ -752,6 +752,13 @@ async def sign_contract(request: ContractSignRequest, req: Request):
         
         logger.info(f"[CONTRACT] Contratto firmato da {partner.get('name', '')} ({request.partner_id})")
         
+        # Systeme.io notification
+        try:
+            from services.systeme_notifications import notify_contract_signed
+            await notify_contract_signed(request.partner_id)
+        except Exception as e:
+            logger.warning(f"[CONTRACT] Systeme.io notification failed: {e}")
+        
         return {
             "success": True,
             "message": "Contratto firmato con successo",
