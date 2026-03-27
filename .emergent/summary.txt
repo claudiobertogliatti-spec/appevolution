@@ -1,173 +1,134 @@
-<analysis>**original_problem_statement:**
-L'utente vuole continuare a costruire Evolution PRO, un'applicazione di gestione aziendale basata su AI. Le richieste sono state consolidate in un brief completo che delinea diversi deploy:
+<analysis>**original_problem_statement**: 
+L'utente sta sviluppando Evolution PRO, un'applicazione di gestione aziendale basata su AI. In questa sessione, le richieste si sono concentrate su: fix urgenti per l'importazione di contatti su Systeme.io, risoluzione di bug critici nel frontend (chiamate API mancanti del prefisso  e gestione dei trailing slash), e la creazione di un modulo completo per la **Firma del Contratto di Partnership**. Quest'ultimo include un redesign a due colonne con un chatbot AI (Claude) per il supporto legale e, da ultimo, la personalizzazione dei parametri contrattuali lato Admin.
 
-1.  **Deploy 1 - Fix Critici (PARTE A)**: Risolvere tutti gli endpoint che restituiscono 404 o 405, correggere le query delle statistiche che restituiscono zero e sistemare la formattazione di un prompt per Claude.
-2.  **Deploy 2 - Analisi PDF e Lista Fredda (PARTI B & E)**:
-    *   **Canva PDF**: Integrare Canva per generare un PDF visivo dell'analisi consulenziale, caricarlo su Cloudinary e salvare l'URL.
-    *   **Lista Fredda**: Implementare un flusso completo per la gestione di una lista di contatti freddi, inclusa importazione CSV, webhook di tracking da Systeme.io, trigger automatici per l'agente AI STEFANIA e una UI admin per la gestione.
-3.  **Deploy 3 - Calendario Editoriale e Brand Kit (PARTI C & D)**:
-    *   **Calendario Editoriale**: Creare un endpoint che genera un piano di contenuti mensile utilizzando Claude, per poi produrre gli asset visivi (immagini, caroselli, video) tramite Canva, HeyGen e la nuova integrazione **Kling AI**.
-    *   **Brand Kit**: Automatizzare la creazione di design template su Canva per ogni nuovo partner.
-4.  **Servizi Extra (PARTE F)**: Aggiungere una sezione nella dashboard partner per acquistare servizi aggiuntivi (come il Calendario Editoriale PRO) tramite Stripe, con un flusso di acquisto completo e gestione dei rinnovi.
+**User's preferred language**: Italian. INSTRUCT NEXT AGENT: You MUST respond in Italian only.
 
-L'utente ha anche segnalato un bug critico in produzione dove la dashboard non caricava più i partner e il form di creazione non funzionava.
+**what currently exists?** 
+Un'applicazione full-stack (React/FastAPI/MongoDB) stabile. Sono stati completati i fix per Systeme.io (import bulk e tag), i router media mockati (Canva/Kling) e i fix globali di routing frontend/backend. Il modulo di firma contratto è attivo: forza il redirect dei partner non firmati alla pagina , mostra un'interfaccia a due colonne (testo renderizzato in HTML e chatbot di supporto AI), e salva la firma.
 
-**User's preferred language**: Italian. The next agent **MUST** respond in **Italian**.
+**Last working item**: 
+- **Last item agent was working**: Personalizzazione del contratto per i partner (Admin side). L'agente aveva appena iniziato a visionare  per implementare gli endpoint (), l'aggiornamento del template  con variabili dinamiche (corrispettivo, royalty, durata, ecc.) e la relativa UI Admin (Modale Personalizza contratto).
+- **Status**: IN PROGRESS
+- **Agent Testing Done**: N
+- **Which testing method agent to use?**: backend testing agent per gli endpoint , manual testing by curl, e screenshot tool per verificare il nuovo Modale Admin e la corretta renderizzazione dinamica del testo nel frontend.
+- **User Testing Done**: N
 
-**what currently exists?**
-L'applicazione è un sistema full-stack React/FastAPI/MongoDB.
-
-*   **Fix Critici (Produzione)**: È stato risolto un bug che impediva il caricamento della dashboard in produzione. La causa era un Pydantic  sull'endpoint , causato da un alert con formato non valido. Il fix ha rimosso la validazione stretta del modello di risposta e ha aggiunto la logica di conversione per gli alert con formato vecchio.
-*   **Form Nuovo Partner**: Il form in  è stato corretto. Ora esegue correttamente le chiamate API per creare il partner () e il relativo account utente (), mostrando anche lo stato di caricamento.
-*   **Fix Prompt SPIN (A6)**: Il prompt per Claude che genera le domande SPIN in  è stato corretto per utilizzare il contesto della nicchia del cliente.
-*   **Integrazione Stripe (Parte F)**: Sono stati creati i prodotti e i prezzi su Stripe per i servizi Calendario Editoriale PRO (€297/mese) e Pacchetto Starter (€97 una tantum). I relativi  sono stati salvati nel file .
-*   **Backend Servizi Extra e Media Stubs (Parti B, C, D, F)**:
-    *   È stato creato e registrato il router  per gestire l'acquisto e la visualizzazione dei servizi extra.
-    *   È stato creato e registrato il router  che contiene gli endpoint **stub** (pronti per l'implementazione) per le integrazioni con Canva e Kling.
-*   **Frontend Lista Fredda e Servizi Extra (Parti E4, F)**:
-    *   È stato creato il componente , che mostra statistiche e la lista dei contatti.
-    *   È stato creato il componente  per la gestione dei servizi dal lato admin.
-    *   Il componente  è stato aggiornato per mostrare i nuovi servizi e gestire il checkout con Stripe.
-*   **Sidebar Admin**: La sidebar è stata aggiornata per includere le nuove sezioni Lista Fredda e Servizi Extra.
-
-**Last working item**:
--   Last item agent was working: L'agente ha completato l'implementazione della **Parte F (Servizi Extra)** e della **Parte E4 (UI Lista Fredda)**, inclusi i backend di base, la creazione dei prodotti su Stripe e lo sviluppo delle interfacce frontend. Ha anche implementato gli **stub** per le future integrazioni media (Parti B, C, D) e ha corretto il **prompt SPIN (Fix A6)**.
--   Status: **USER VERIFICATION PENDING**
--   Agent Testing Done: Y
--   Which testing method agent to use? manual testing by curl. The agent has already verified the new UI components with screenshots. The next step is to test the backend logic, especially the Stripe checkout flow which is now implemented.
--   User Testing Done: N
-
-**All Pending/In progress Issue list**:
-Nessun problema o bug è attualmente in corso. Tutti i problemi segnalati sono stati risolti.
+**All Pending/In progress Issue list**: 
+Issue 1: Alert fantasma Test AlertQuestionario (P1)
+- Attempted fixes: L'agente ha eliminato i client/utenti di test dal database MongoDB, ma l'alert persiste in memoria o viene ricreato. C'è stato un  nei log backend durante la lettura di un file (forse uno stato salvato localmente o cache).
+- Next debug checklist: Controllare dove vengono letti/salvati file JSON in  o in moduli correlati agli alert (es. cache su disco, Redis o log corrotti).
+- Why fix this issue and what will be achieved with the fix?: Rimuovere sporcizia visiva dalla dashboard admin prima del lancio in produzione.
+- Status: IN PROGRESS
+- Is recurring issue? Y
+- Should Test frontend/backend/both after fix?: backend (log check) + frontend (screenshot dashboard)
 
 **In progress Task List**:
-Nessun task è attualmente in corso.
+Task 1: Personalizzazione parametri contratto (Admin)
+- Where to resume:  (aggiungere endpoint  e funzione ), poi passare al frontend per creare il Modale in UI Admin e aggiornare  per leggere i dati dinamici.
+- What will be achieved with this?: L'admin (Claudio) potrà definire corrispettivo, durata, rate e royalty specifici per ogni partner prima della firma.
+- Status: IN PROGRESS
+- Should Test frontend/backend/both after fix?: both
+- Blocked on something: Nessun blocco.
 
-**Upcoming and Future Tasks**
-*   **Upcoming Tasks:**
-    *   **P0: Completare Backend Lista Fredda (Parte E)**: Implementare la logica mancante nel router  e in .
-        *   **E2**: Webhook  per gestire  e  da Systeme.io e aggiornare lo stato del contatto.
-        *   **E3**: Trigger Celery che, dopo 48h da un'apertura senza click, crea un task per STEFANIA.
-    *   **P1: Implementare Logica Stub (Parti B, C, D)**: Popolare gli endpoint stub nel router  con logica di business e risposte mockate, in attesa delle API key.
-        *   **Parte B**: Logica per la generazione del PDF con Canva (mock).
-        *   **Parte C**: Logica per la generazione del calendario editoriale (mock per Canva e Kling).
-        *   **Parte D**: Logica per la creazione del Brand Kit (mock).
-    *   **P2: Testare Flusso Acquisto Servizi Extra (Parte F)**: Verificare end-to-end il flusso di acquisto tramite Stripe, il webhook e l'attivazione del servizio nella collection .
+**Upcoming and Future Tasks**:
+Upcoming Tasks:
+- P0: Generazione PDF del contratto firmato con ReportLab (v1.0-custom se modificato) e salvataggio/invio.
+- P1: Configurazione SMTP (tramite variabili d'ambiente , ) per l'invio dell'email di conferma con il contratto PDF allegato dopo la firma.
+Future Tasks:
+- P2: Implementazione reale delle API key per Canva e Kling AI (attualmente stubbed).
 
-*   **Future Tasks:**
-    *   Ottenere le API key per Canva e Kling dall'utente e implementare le integrazioni reali.
-    *   Refactoring del monolite .
-    *   Unificazione delle collection MongoDB.
-    *   Creazione documentazione OpenAPI.
+**Completed work in this session**:
+- Fix urgenti Systeme.io: , ,  (DONE)
+- Fix critico Frontend API: Aggiunto prefisso  a 78 file React (DONE)
+- Fix critico Backend: Impostato  in FastAPI per evitare perdita header Authorization (DONE)
+- Fix compatibilità pacchetti: Fissato  e aggiunto monkey patch per passlib in  (DONE)
+- Modulo Firma Contratto: UI base, redirect obbligatorio al login, sidebar badge (DONE)
+- Redesign Contratto: UI a due colonne, parsing HTML dinamico articoli, Chatbot Claude integrato in  (DONE)
 
-**Completed work in this session**
--   **Fix Bug Produzione**: Risolto il crash della dashboard in produzione causato da un errore di validazione sull'endpoint .
--   **Fix Form Nuovo Partner**: Corretto il form di creazione partner che non salvava i dati nel database.
--   **Fix Prompt SPIN**: Migliorato il prompt per la generazione delle domande di vendita.
--   **Sidebar Reorganization**: La sidebar admin è stata riorganizzata con un nuovo ordine e sottomenù.
--   **Delete Partner Feature**: Aggiunta la funzionalità di eliminazione partner in tutte le viste della pipeline.
--   **Critical Pre-launch Fixes**: Risolti tutti i fix critici della Parte A del brief (endpoint 404, stats a zero, metodo HTTP 405).
--   **Discovery Outreach Automation**: Implementato il sistema di outreach automatico per i lead hot tramite un nuovo endpoint e un job Celery.
--   **Stripe Product Creation**: Creati i prodotti e i prezzi per i servizi extra su Stripe.
--   **Implementazione Servizi Extra (Parte F)**: Creato il backend e il frontend per la vendita di servizi aggiuntivi.
--   **Implementazione UI Lista Fredda (Parte E4)**: Creata la UI admin per la gestione della lista fredda.
--   **Creazione Stub per Integrazioni Media**: Predisposto il backend con router ed endpoint stub per Canva e Kling.
+**Earlier issues found/mentioned but not fixed**:
+Issue 1: JSONDecodeError backend crash log
+- Debug checklist: Controllare i file caricati o letti via  all'avvio dell'applicazione. Un file locale è probabilmente vuoto o corrotto.
+- Why to solve this issue and what will be achieved with this?: Previene crash parziali al riavvio del supervisor.
+- Should Test frontend/backend/both after fix: backend
+- Is recurring issue? Y (Visto più volte nei log del backend in questa sessione).
 
-**Earlier issues found/mentioned but not fixed**
--   **Technical Debt**: Il file  rimane un monolite che necessita di un refactoring significativo. La logica di business è sparsa e andrebbe modularizzata meglio.
--   **Architectural Flaw**: La duplicazione dei dati dei partner tra le collection  e  persiste e dovrebbe essere risolta con una migrazione a un modello dati unificato.
+**Known issue recurrence from previous fork**:
+- Issue recurrence in previous fork: Chiamate API dal frontend senza prefisso  e chiamate con trailing slash ().
+- Recurrence count: Elevato (78 file modificati).
+- Status: RESOLVED
+Note: Attenzione a non introdurre nuove route frontend senza il prefisso API corretto.
 
-**Known issue recurrence from previous fork**
--   Nessuna ricorrenza nota dall'ultimo fork.
-
-**Code Architecture**
+**Code Architecture**:
 
 
-**Key Technical Concepts**
--   FastAPI Routers
--   Pydantic data validation and error handling
--   React State Management (useState, useEffect)
--   Stripe API (Products, Prices, Checkout)
--   Celery & Celery Beat for background/scheduled jobs
--   Stubbing/Mocking external APIs for development
+**Key Technical Concepts**:
+- Frontend: React, Tailwind CSS, shadcn/ui.
+- Backend: FastAPI, Pydantic, Anthropic SDK per chatbot.
+- Background: Celery per task asincroni.
+- Gestione PDF:  (aggiunto ai requirements in questa sessione).
 
-**key DB schema**
--   **servizi_extra** (stub): 
--   **partner_servizi** (stub): 
--   **calendari_editoriali** (stub): 
--   **lista_fredda** (schema definito): 
+**key DB schema**:
+- : Aggiunti campi per la firma.
+  - 
+  - *(Da implementare)*: 
 
-**changes in tech stack**
--   Nessuna modifica allo stack, ma utilizzo più approfondito dell'API di Stripe.
+**changes in tech stack**:
+- Downgrade di  alla versione  per incompatibilità nota con .
+- Aggiunto  in .
 
-**All files of reference**
--   : Nuovo router da completare.
--   : Nuovo router con stub da completare.
--   : Da completare con webhook e logica trigger.
--   : Da completare con il task per STEFANIA.
--   : Componente UI per la lista fredda.
--   : Componente UI per l'acquisto di servizi.
--   : Contiene il fix per il form di creazione partner.
--   : Contiene il fix per l'endpoint .
+**All files of reference**:
+- : Contiene logica Chatbot e riceverà la logica di personalizzazione admin.
+- : Componente UI principale del contratto (renderizzazione dinamica testo e chat).
+- : Gestione app principale.
+- : Aggiornato.
+- : Aggiornato con lo stato di avanzamento.
 
-**key api endpoints**
-*   : Crea un nuovo partner.
-*   : Crea l'account utente per un partner esistente.
-*   : Avvia l'outreach per un lead.
-*   : Lista i servizi disponibili per l'acquisto.
-*   : Avvia il checkout Stripe.
-*   : Restituisce le statistiche della lista fredda.
-*   (Nuovi endpoint stub) , , etc.
+**Areas that need refactoring**:
+-  rimane un monolite (Technical debt noto dall'handoff precedente).
 
-**Critical Info for New Agent**
-*   La priorità assoluta è seguire il piano definito dall'utente nel messaggio 376: completare tutto ciò che è possibile senza le API key esterne (Canva, Kling), strutturando il resto come stub pronti per l'attivazione.
-*   I prodotti Stripe sono già creati e i loro ID sono nel file . Il flusso di acquisto backend/frontend è parzialmente implementato ma va testato e completato (es. webhook).
-*   Il grosso del lavoro ora è sul backend: implementare la logica per la lista fredda (webhook/Celery) e popolare gli stub per le integrazioni media con una logica di business mockata.
+**key api endpoints**:
+- : Chatbot AI per supporto contratto.
+- : Verifica stato firma.
+- *(Da creare)* .
 
-**documents and test reports created in this job**
--    (aggiornato più volte)
--   
--   
--   
--   
+**Critical Info for New Agent**:
+- L'utente ha segnalato che in produzione il database MongoDB puntato è errato e il bundle React non si sta aggiornando. Questi sono problemi di infrastruttura (Emergent platform) gestiti tramite il . Il codice è corretto nel container in preview. Lavora fiducioso sulla preview.
+- Rispondi all'utente in **Italiano**.
+- Il testo del contratto è hardcoded nel backend () e nel frontend (). Attualmente l'utente ha richiesto la parametrizzazione di questo testo per la dashboard Admin (vedi task in progress).
 
-**Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Fornisce risposte e priorità per il brief: procedere con stub per Canva/Kling e implementare tutto il resto (Fix A6, Lista Fredda UI, Parte F completa), creare i prodotti su Stripe. **(IN PROGRESS/COMPLETED)**
-2.  **Assistant**: Chiede chiarimenti sul brief completo per definire le priorità. **(ANSWERED)**
-3.  **User**: Invia un brief completo per le prossime fasi di sviluppo (Parti A-F). **(PENDING IMPLEMENTATION)**
-4.  **Assistant**: . Risolve il problema del form Nuovo Partner.
-5.  **User**: Segnala che dopo un aggiornamento non visualizza più i partner e non riesce a inserirne di nuovi. **(RESOLVED)**
-6.  **Assistant**: . Risolve un problema di 502 Bad Gateway e conferma che il backend è operativo.
-7.  **User**: Segnala 502 Bad Gateway su tutto il backend dopo un deploy. Chiede di riavviare. **(RESOLVED)**
-8.  **Assistant**: . Completa l'implementazione dell'outreach automatico per i lead.
-9.  **User**: Chiede di implementare l'outreach automatico per i lead hot della sezione Discovery. **(COMPLETED)**
-10. **Assistant**: . Completa i fix critici pre-lancio richiesti.
+**documents and test reports created in this job**:
+-  (aggiornato)
 
-**Project Health Check:**
--   **Broken:** Nessuno. Il 502 è stato risolto.
--   **Mocked:** Le integrazioni con **Canva** e **Kling AI** sono attualmente stubbed nel router .
+**Last 10 User Messages and any pending HUMAN messages**:
+1. (User) Fornisce il brief completo per la Personalizzazione contratto per partner tramite dashboard Admin, inclusi database schema ed endpoint. (PENDING)
+2. (Assistant) Chiude il task del redesign Contratto confermando il successo e inizia a prepararsi per il prossimo.
+3. (User) Fornisce il brief per il Redesign Pagina Contratto + Chatbot. (COMPLETED)
+4. (User) Segnala che il DB in produzione è errato (ambiente preview vs prod). Chiede di inviare ticket a Emergent. (HANDLED VIA SUPPORT AGENT)
+5. (User) Chiede dove trovare le API da dare a Claude per un check (Swagger/Redoc). (ANSWERED)
+6. (User) Fornisce una soluzione definitiva per l'errore /. (COMPLETED)
+7. (User) Richiede di mostrare l'obbligo di firma: blocco al login, blocco onboarding e badge in sidebar. (COMPLETED)
+8. (User) Chiede dove è stato inserito il modulo della firma nel frontend. (ANSWERED)
+9. (User) Invia il file Word  con il testo legale del contratto. (COMPLETED)
+10. (User) Fornisce il brief completo per il Modulo Firma Contratto Partnership. (COMPLETED)
 
-**3rd Party Integrations**
-*   **Stripe**: Integrato per la creazione di prodotti/prezzi e per il checkout (in fase di completamento). Richiede API Key (già presente).
-*   **Systeme.io**: Per CRM e tracking email. Richiede API Key.
-*   **YouTube Data API v3**: Per ricerca canali. Richiede API Key.
-*   **Anthropic Claude / Ollama**: Per funzionalità AI.
-*   **Celery/Redis (Upstash)**: Per task asincroni.
-*   **Canva API**: Da integrare. Richiederà User API Key (attualmente stub).
-*   **Kling AI**: Da integrare. Richiederà User API Key (attualmente stub).
-*   **HeyGen**: Già integrato per la generazione di avatar video.
+**Project Health Check**:
+- Broken: JsonDecodeError su un probabile file locale per i log degli alert nel backend (non crasha l'app intera, ma impedisce l'eliminazione dell'alert fantasma).
+- Mocked: Integrazioni media (Canva, Kling).
 
-**Testing status**
--   Testing agent used after significant changes: NO
--   Troubleshoot agent used after agent stuck in loop: NO
--   Test files created: Nessuno.
--   Known regressions: Un alert malformato causava il crash della dashboard, ma è stato risolto.
+**3rd Party Integrations**:
+- Anthropic Claude () — uses Emergent LLM Key (Usato nel ).
+- Systeme.io — requires User API Key.
+- Stripe — requires User API Key (Test key already present).
+
+**Testing status**:
+- Testing agent used after significant changes: NO
+- Troubleshoot agent used after agent stuck in loop: NO
+- Test files created: None
+- Known regressions: Phantom alerts persists.
 
 **Credentials to test flow:**
-Le credenziali sono nel file .
--   **Admin**: claudio.bertogliatti@gmail.com / Evoluzione74
+(Da PRD.md precedente) Admin: claudio.bertogliatti@gmail.com / Evoluzione74
 
-**What agent forgot to execute**
-L'agente ha seguito le priorità dell'utente. Non ha dimenticato nulla, ma ha lasciato da implementare la logica backend per le parti che richiedevano un'ulteriore specifica o che erano state de-prioritizzate, come:
--   La logica completa del webhook e dei trigger Celery per la **Lista Fredda (Parte E2, E3)**.
--   L'implementazione completa (anche se mockata) degli endpoint stub per **Canva e Kling (Parti B, C, D)**.</analysis>
+**What agent forgot to execute**:
+- Generazione effettiva del PDF post-firma tramite  (richiesto nel brief originale della firma, ma tralasciato nell'iterazione di redesign UI).
+- Inserimento configurazione SMTP e invio email post-firma (richiesto nel brief originale, posticipato).</analysis>
