@@ -181,6 +181,11 @@ Gli endpoint esistenti ora restituiscono risposte mock complete:
   - MARCO: Framework CMO (posizionamento partner, legge del sacrificio, metriche commerciali, urgenza, LTV) + Framework Sales (NEPQ/SPIN, linea retta, Sandler, Challenger, referral, gestione obiezioni)
   - Integrati in `agent_prompts.py` (usato dal chat generico) e `server.py` (usato da endpoint specifici ANDREA)
   - Testing: entrambi gli agenti rispondono correttamente con i nuovi framework
+- [x] **GAP Framework ANDREA + MARCO + OPENCLAW** — 27 Mar 2026
+  - ANDREA: + Instructional Design (modello 3C, quick win, Bloom's Taxonomy, formato video) + Product Launch Formula (seed launch, PLC, open cart, regola ferrea)
+  - MARCO: + PLF (condiviso) + Mindset & Performance (diagnosi blocco, 5 Second Rule, growth mindset, gestione rifiuto, esposizione progressiva) + Customer Success & Upsell (onboarding 30-60-90, trigger upsell, referral strutturato, churn prevention, social proof)
+  - OPENCLAW: Nuovo prompt con Traffic & Content Flywheel (content flywheel, YouTube SEO, Meta Ads, metriche CPL/LTV/CAC)
+  - Tutti i framework integrati in `agent_prompts.py` e `server.py`
 
 ### P0 - Prossimi
 - [ ] **Configurare Tag Systeme.io** — Creare tag nella dashboard Systeme.io e inserire ID nel .env:
