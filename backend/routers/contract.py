@@ -5,7 +5,7 @@ Gestione firma digitale contratto di partnership
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List, Dict
 from datetime import datetime, timezone
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
@@ -28,6 +28,73 @@ SMTP_HOST = os.environ.get('SMTP_HOST', 'smtp.gmail.com')
 SMTP_PORT = int(os.environ.get('SMTP_PORT', 587))
 SMTP_USER = os.environ.get('SMTP_USER', '')
 SMTP_PASS = os.environ.get('SMTP_PASS', '')
+
+
+class ContractChatRequest(BaseModel):
+    partner_id: str
+    message: str
+    conversation_history: List[Dict[str, str]] = []
+    current_article: Optional[int] = None
+
+
+@router.post("/chat")
+async def contract_chat(body: ContractChatRequest):
+    """
+    Chatbot di supporto per spiegare il contratto.
+    Usa Claude Haiku per risposte veloci e concise.
+    """
+    try:
+        EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
+        
+        if not EMERGENT_LLM_KEY:
+            return {"reply": "Mi dispiace, il servizio di supporto non è al momento disponibile. Per domande sul contratto, scrivi a assistenza@evolution-pro.it"}
+        
+        system_prompt = f"""Sei l'assistente di supporto contrattuale di Evolution PRO.
+Aiuti i partner a CAPIRE il contratto in modo chiaro e rassicurante.
+
+REGOLE:
+- Rispondi SOLO a domande riguardanti il contratto allegato
+- Italiano semplice, niente gergo legale
+- Tono professionale e rassicurante — il contratto è standard
+- Max 120 parole per risposta
+- Se chiedono altro: "Sono qui solo per il contratto. Per altre domande: assistenza@evolution-pro.it"
+- NON dare consulenza legale vincolante
+{f"- L'utente sta leggendo l'Articolo {body.current_article} — contestualizza lì se pertinente" if body.current_article else ""}
+
+CONTRATTO:
+{CONTRACT_TEXT[:15000]}"""  # Limit to avoid token overflow
+
+        from emergentintegrations.llm.chat import LlmChat, UserMessage, AssistantMessage, SystemMessage
+        
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            model="claude-haiku-4-5-20251001"
+        )
+        
+        # Build messages
+        messages = [SystemMessage(text=system_prompt)]
+        
+        # Add conversation history (last 8 messages)
+        for msg in body.conversation_history[-8:]:
+            if msg.get("role") == "user":
+                messages.append(UserMessage(text=msg.get("content", "")))
+            elif msg.get("role") == "assistant":
+                messages.append(AssistantMessage(text=msg.get("content", "")))
+        
+        # Add current message
+        messages.append(UserMessage(text=body.message))
+        
+        response = await chat.send_async(
+            messages=messages,
+            max_tokens=250,
+            temperature=0.7
+        )
+        
+        return {"reply": response}
+        
+    except Exception as e:
+        logger.error(f"[CONTRACT CHAT] Error: {e}")
+        return {"reply": "Mi dispiace, si è verificato un errore. Riprova tra poco o scrivi a assistenza@evolution-pro.it"}
 
 
 class ContractSignRequest(BaseModel):
