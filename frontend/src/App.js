@@ -1728,7 +1728,7 @@ export default function App() {
                   if (demoPartner) {
                     demoPartner.contract = { signed_at: data.signed_at };
                   }
-                  setNav("dashboard"); 
+                  setNav("onboarding-docs"); 
                 }} 
               />
             ) : (
