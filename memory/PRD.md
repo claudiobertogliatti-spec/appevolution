@@ -153,14 +153,28 @@ Gli endpoint esistenti ora restituiscono risposte mock complete:
 
 ## Pending/Future Tasks
 
-### P0 - Completati in questa sessione ✅
+### P0 - Completati ✅
 - [x] Import Lista Fredda su Systeme.io via API
 - [x] Endpoint POST /api/systeme/contacts/import
 - [x] Endpoint POST /api/systeme/contacts/tag
 - [x] Job Celery import_lista_fredda_systeme
 - [x] Calendario Editoriale con Claude AI
+- [x] Modulo Firma Contratto Partnership (UI + backend)
+- [x] Redesign Contratto a 2 colonne + Chatbot Claude
+- [x] **Personalizzazione Parametri Contratto (Admin)** — 27 Mar 2026
+  - Backend: `GET/PATCH /api/admin/partners/{partner_id}/contract-params`
+  - Backend: `GET /api/contract/text/{partner_id}` con rendering dinamico
+  - Frontend Admin: Modale "Personalizza Contratto" nel menu partner
+  - Frontend Partner: ContractSigning carica testo dinamico dal backend
+  - Parametri: corrispettivo, corrispettivo_testo, royalty_perc, durata_mesi, num_rate, note_admin
+  - Testing: 100% backend (11/11 tests) + 100% frontend UI
+
+### P0 - Prossimi
+- [ ] **Generazione PDF contratto firmato** con ReportLab + upload Cloudinary (testo dinamico personalizzato)
+- [ ] **Configurazione SMTP** per invio email conferma con PDF allegato post-firma
 
 ### P1 - Alta Priorità
+- [ ] **Fix Alert fantasma "Test AlertQuestionario"** nella dashboard admin
 - [ ] **Test Flusso Acquisto Servizi Extra (Parte F)**: Verificare end-to-end checkout Stripe → webhook → attivazione
 - [ ] **Integrazioni Reali**: Ottenere API key per Canva e Kling dall'utente
 
