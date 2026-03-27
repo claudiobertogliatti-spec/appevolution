@@ -717,10 +717,256 @@ export function FunnelUnlockModal({ isOpen, onClose, partner, onSuccess }) {
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// CONTRACT PARAMS MODAL
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export function ContractParamsModal({ isOpen, onClose, partner, onSuccess }) {
+  const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState(null);
+  const [isSigned, setIsSigned] = useState(false);
+  
+  const [formData, setFormData] = useState({
+    corrispettivo: 2790,
+    corrispettivo_testo: "duemilasettecentonovanta/00",
+    royalty_perc: 10,
+    durata_mesi: 12,
+    num_rate: 3,
+    note_admin: ""
+  });
+  
+  useEffect(() => {
+    if (isOpen && partner?.id) {
+      loadParams();
+    }
+    return () => {
+      setSuccess(false);
+      setError(null);
+    };
+  }, [isOpen, partner?.id]);
+  
+  const loadParams = async () => {
+    setLoadingData(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API}/api/admin/partners/${partner.id}/contract-params`);
+      if (!res.ok) throw new Error("Errore caricamento parametri");
+      const data = await res.json();
+      setIsSigned(data.contract_signed);
+      setFormData({
+        corrispettivo: data.params.corrispettivo ?? 2790,
+        corrispettivo_testo: data.params.corrispettivo_testo ?? "duemilasettecentonovanta/00",
+        royalty_perc: data.params.royalty_perc ?? 10,
+        durata_mesi: data.params.durata_mesi ?? 12,
+        num_rate: data.params.num_rate ?? 3,
+        note_admin: data.params.note_admin ?? ""
+      });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoadingData(false);
+    }
+  };
+  
+  const handleSave = async () => {
+    setLoading(true);
+    setError(null);
+    setSuccess(false);
+    try {
+      const res = await fetch(`${API}/api/admin/partners/${partner.id}/contract-params`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData)
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || "Errore salvataggio");
+      }
+      setSuccess(true);
+      onSuccess?.();
+      setTimeout(() => onClose(), 1200);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/60 z-50" onClick={onClose} />
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl z-50 w-[520px] max-h-[90vh] overflow-hidden" data-testid="contract-params-modal">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#FEF3C7' }}>
+              <FileText className="w-5 h-5" style={{ color: '#F59E0B' }} />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-gray-900">Personalizza Contratto</h2>
+              <p className="text-xs text-gray-500">{partner?.name || ""}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-all" data-testid="close-contract-params">
+            <X className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+        
+        {/* Body */}
+        <div className="px-6 py-5 overflow-y-auto max-h-[calc(90vh-140px)]">
+          {loadingData ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+            </div>
+          ) : (
+            <>
+              {isSigned && (
+                <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg mb-5">
+                  <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                  <p className="text-xs text-amber-700">Contratto già firmato. I parametri non sono modificabili.</p>
+                </div>
+              )}
+              
+              <div className="space-y-4">
+                {/* Corrispettivo */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">Corrispettivo (€)</label>
+                  <input
+                    type="number"
+                    value={formData.corrispettivo}
+                    onChange={e => setFormData(p => ({ ...p, corrispettivo: parseFloat(e.target.value) || 0 }))}
+                    disabled={isSigned}
+                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-300 focus:border-amber-400 transition-all disabled:bg-gray-50 disabled:text-gray-400"
+                    data-testid="input-corrispettivo"
+                  />
+                </div>
+                
+                {/* Corrispettivo testo */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">Corrispettivo in lettere</label>
+                  <input
+                    type="text"
+                    value={formData.corrispettivo_testo}
+                    onChange={e => setFormData(p => ({ ...p, corrispettivo_testo: e.target.value }))}
+                    disabled={isSigned}
+                    placeholder="es. duemilasettecentonovanta/00"
+                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-300 focus:border-amber-400 transition-all disabled:bg-gray-50 disabled:text-gray-400"
+                    data-testid="input-corrispettivo-testo"
+                  />
+                </div>
+                
+                {/* Row: Royalty + Durata */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">Royalty (%)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={formData.royalty_perc}
+                      onChange={e => setFormData(p => ({ ...p, royalty_perc: parseFloat(e.target.value) || 0 }))}
+                      disabled={isSigned}
+                      className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-300 focus:border-amber-400 transition-all disabled:bg-gray-50 disabled:text-gray-400"
+                      data-testid="input-royalty"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">Durata (mesi)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={formData.durata_mesi}
+                      onChange={e => setFormData(p => ({ ...p, durata_mesi: parseInt(e.target.value) || 12 }))}
+                      disabled={isSigned}
+                      className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-300 focus:border-amber-400 transition-all disabled:bg-gray-50 disabled:text-gray-400"
+                      data-testid="input-durata"
+                    />
+                  </div>
+                </div>
+                
+                {/* Num rate */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">Numero massimo rate</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={12}
+                    value={formData.num_rate}
+                    onChange={e => setFormData(p => ({ ...p, num_rate: parseInt(e.target.value) || 3 }))}
+                    disabled={isSigned}
+                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-300 focus:border-amber-400 transition-all disabled:bg-gray-50 disabled:text-gray-400"
+                    data-testid="input-num-rate"
+                  />
+                </div>
+                
+                {/* Note admin */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">Note interne (opzionale)</label>
+                  <textarea
+                    value={formData.note_admin}
+                    onChange={e => setFormData(p => ({ ...p, note_admin: e.target.value }))}
+                    disabled={isSigned}
+                    rows={2}
+                    placeholder="Note visibili solo all'admin..."
+                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-300 focus:border-amber-400 transition-all disabled:bg-gray-50 disabled:text-gray-400 resize-none"
+                    data-testid="input-note-admin"
+                  />
+                </div>
+              </div>
+              
+              {/* Feedback */}
+              {error && (
+                <div className="flex items-center gap-2 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <AlertCircle className="w-4 h-4 text-red-500" />
+                  <span className="text-xs text-red-700">{error}</span>
+                </div>
+              )}
+              {success && (
+                <div className="flex items-center gap-2 mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <span className="text-xs text-green-700">Parametri salvati con successo</span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+        
+        {/* Footer */}
+        {!loadingData && !isSigned && (
+          <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all"
+            >
+              Annulla
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={loading}
+              className="flex items-center gap-2 px-5 py-2 text-sm font-bold rounded-lg transition-all hover:scale-105 disabled:opacity-50"
+              style={{ background: '#F2C418', color: '#1E2128' }}
+              data-testid="btn-save-contract-params"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              Salva Parametri
+            </button>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // EXPORT DEFAULT
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default {
   PartnerDataOverrideModal,
-  FunnelUnlockModal
+  FunnelUnlockModal,
+  ContractParamsModal
 };

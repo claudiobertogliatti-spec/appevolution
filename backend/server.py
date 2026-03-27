@@ -14226,8 +14226,9 @@ from routers.systeme_contacts import router as systeme_contacts_router
 app.include_router(systeme_contacts_router)
 
 # Contract Signing Router
-from routers.contract import router as contract_router
+from routers.contract import router as contract_router, admin_router as contract_admin_router
 app.include_router(contract_router)
+app.include_router(contract_admin_router)
 
 
 # Start scheduler for automated jobs

@@ -1,0 +1,58 @@
+{
+  "summary": "Contract Params Feature Testing Complete - All backend tests passed (11/11), Frontend UI verified working. Admin can customize contract parameters (corrispettivo, royalty %, durata mesi, rate) per partner via Admin Dashboard modal. Contract text dynamically renders with custom values.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_contract_params.py",
+    "/app/test_reports/pytest/pytest_contract_params.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "GET /api/admin/partners/{partner_id}/contract-params correctly returns default params for partners without customization",
+    "PATCH /api/admin/partners/{partner_id}/contract-params correctly updates and persists contract params",
+    "PATCH endpoint correctly rejects updates when contract is already signed (returns 400)",
+    "GET /api/contract/text/{partner_id} correctly renders contract text with custom values after PATCH",
+    "ContractParamsModal in AdminPartnerTools.jsx correctly loads and displays params",
+    "Modal shows warning and disables fields when contract is already signed",
+    "Three-dot menu in PartnerRow correctly shows 'Personalizza Contratto' option"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_contract_params.py"
+  ],
+  "success_rate": {
+    "backend": "100% (11/11 tests passed)",
+    "frontend": "100% - All UI elements verified working"
+  },
+  "test_credentials": {
+    "admin": "claudio.bertogliatti@gmail.com / Evoluzione74"
+  },
+  "seed_data_creation": "Partner 23 (Daniele Andolfi) used for testing - params restored to defaults after tests",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Contract params feature fully functional. Admin can customize corrispettivo, royalty_perc, durata_mesi, num_rate per partner. Contract text endpoint dynamically renders values. Modal correctly shows warning when contract is signed.",
+  "features_tested": {
+    "backend_endpoints": {
+      "GET /api/admin/partners/{partner_id}/contract-params": "✅ Returns params with contract_signed status",
+      "PATCH /api/admin/partners/{partner_id}/contract-params": "✅ Updates params, rejects if signed",
+      "GET /api/contract/text/{partner_id}": "✅ Returns rendered contract text with custom values"
+    },
+    "frontend_ui": {
+      "admin_dashboard_partner_table": "✅ Shows partner list with menu buttons",
+      "three_dot_menu": "✅ Shows 'Personalizza Contratto' option",
+      "contract_params_modal": "✅ Opens with correct default values",
+      "modal_form_fields": "✅ All fields present: corrispettivo, corrispettivo_testo, royalty_perc, durata_mesi, num_rate, note_admin",
+      "signed_contract_warning": "✅ Modal shows warning and disables fields when contract is signed"
+    }
+  },
+  "test_data_used": {
+    "partner_23_daniele_andolfi": "Not signed - used for update tests",
+    "partner_2_arianna_aceto": "Used to verify signed contract restriction"
+  }
+}

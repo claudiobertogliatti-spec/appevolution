@@ -6,7 +6,7 @@ import {
   Database, Globe, MoreVertical, Settings, Edit3, Trash2
 } from "lucide-react";
 import { PartnerDetailModal } from "./PartnerDetailModal";
-import { PartnerDataOverrideModal, FunnelUnlockModal } from "./AdminPartnerTools";
+import { PartnerDataOverrideModal, FunnelUnlockModal, ContractParamsModal } from "./AdminPartnerTools";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -105,7 +105,7 @@ function StatCard({ icon: Icon, label, value, trend, color }) {
   );
 }
 
-function PartnerRow({ partner, onOpenProject, onOverrideData, onUnlockFunnel, onDelete }) {
+function PartnerRow({ partner, onOpenProject, onOverrideData, onUnlockFunnel, onContractParams, onDelete }) {
   const status = getStatus(partner.lastActivity, partner.phase);
   const progress = getPhaseProgress(partner.phase);
   const expiry = getPartnershipExpiry(partner);
@@ -252,6 +252,17 @@ function PartnerRow({ partner, onOpenProject, onOverrideData, onUnlockFunnel, on
                 >
                   <Globe className="w-4 h-4 text-green-600" />
                   <span className="text-sm text-gray-700">Sblocca Funnel</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowMenu(false);
+                    onContractParams(partner);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 transition-all"
+                  data-testid={`btn-contract-params-${partner.id}`}
+                >
+                  <FileText className="w-4 h-4 text-amber-600" />
+                  <span className="text-sm text-gray-700">Personalizza Contratto</span>
                 </button>
                 <div className="border-t border-gray-100 my-1"></div>
                 <button
@@ -429,6 +440,10 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
   const [isFunnelModalOpen, setIsFunnelModalOpen] = useState(false);
   const [funnelPartner, setFunnelPartner] = useState(null);
   
+  // Modal state - Contract Params
+  const [isContractParamsOpen, setIsContractParamsOpen] = useState(false);
+  const [contractParamsPartner, setContractParamsPartner] = useState(null);
+  
   const handleOpenPartnerDetail = (partner) => {
     setSelectedPartner(partner);
     setIsModalOpen(true);
@@ -442,6 +457,11 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
   const handleOpenFunnelUnlock = (partner) => {
     setFunnelPartner(partner);
     setIsFunnelModalOpen(true);
+  };
+  
+  const handleOpenContractParams = (partner) => {
+    setContractParamsPartner(partner);
+    setIsContractParamsOpen(true);
   };
   
   // Export CSV function
@@ -813,6 +833,7 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
                           onOpenProject={handleOpenPartnerDetail}
                           onOverrideData={handleOpenOverrideData}
                           onUnlockFunnel={handleOpenFunnelUnlock}
+                          onContractParams={handleOpenContractParams}
                           onDelete={handleDeletePartner}
                         />
                       ))
@@ -894,6 +915,19 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
           setFunnelPartner(null);
         }}
         partner={funnelPartner}
+        onSuccess={() => {
+          fetchData();
+        }}
+      />
+      
+      {/* Contract Params Modal */}
+      <ContractParamsModal
+        isOpen={isContractParamsOpen}
+        onClose={() => {
+          setIsContractParamsOpen(false);
+          setContractParamsPartner(null);
+        }}
+        partner={contractParamsPartner}
         onSuccess={() => {
           fetchData();
         }}
