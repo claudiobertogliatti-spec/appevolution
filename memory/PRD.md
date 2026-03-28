@@ -59,8 +59,13 @@ Applicazione di gestione aziendale basata su AI per Evolution PRO LLC. Gestisce 
 - [ ] Configurare Tag Systeme.io (creare tag e inserire ID nel .env)
 
 ## P1 - Alta Priorità
-- [ ] Generazione PDF contratto firmato (ReportLab)
-- [ ] Configurazione SMTP per email conferma + PDF
+- [x] Generazione PDF contratto firmato (ReportLab + Cloudinary) — 28 Mar 2026
+- [x] Configurazione SMTP per email conferma + PDF allegato — 28 Mar 2026
+  - SMTP: smtp.register.it:587 (info@evolution-pro.it)
+  - PDF upload su Cloudinary, download + allegato nell'email
+  - CC automatico all'admin (claudio.bertogliatti@gmail.com)
+  - Endpoint test: POST /api/admin/partners/test-smtp
+  - NOTA: Porta 587 bloccata in preview Emergent, funziona in produzione
 - [ ] Test E2E flusso Servizi Extra (Stripe)
 
 ## P2 - Media Priorità
