@@ -40,6 +40,10 @@ Applicazione di gestione aziendale basata su AI per Evolution PRO LLC. Gestisce 
   - `getApiUrl()` in App.js restituiva `/api` come base + `/api/partners` = `/api/api/partners`
   - Corretto: ora restituisce URL base senza `/api` suffisso
   - Fix applicato con `Promise.allSettled` per resilienza
+- [x] **Disabilitazione seed produzione** — 28 Mar 2026
+  - Seed `INITIAL_PARTNERS` (5 finti) e `INITIAL_ALERTS` (3 fantasma) protetti da `SEED_ENABLED` env var (default: `false`)
+  - Seed agents, modules, templates, notifications, success_cases mantenuti attivi
+  - 22 partner reali preservati in produzione
 
 ## P0 - Prossimi
 - [ ] Configurare Tag Systeme.io (creare tag e inserire ID nel .env)
