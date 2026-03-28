@@ -12166,6 +12166,36 @@ async def health_check():
     """Health check endpoint for deployment - must respond quickly"""
     return {"status": "healthy", "service": "evolution-pro-os"}
 
+@api_router.get("/debug/db-check")
+async def debug_db_check():
+    """Diagnostic endpoint — mostra a quale DB è connesso il backend"""
+    import hashlib
+    mongo_raw = os.environ.get('MONGO_URL', '')
+    url_hash = hashlib.sha256(mongo_raw.encode()).hexdigest()[:12]
+    # Estrai host dal URL (senza credenziali)
+    host_part = ""
+    if "@" in mongo_raw:
+        host_part = mongo_raw.split("@")[1].split("/")[0]
+    db_path = ""
+    if "@" in mongo_raw and "/" in mongo_raw.split("@")[1]:
+        path_part = mongo_raw.split("@")[1].split("/", 1)[1].split("?")[0]
+        db_path = path_part if path_part else "(nessun db nel path)"
+    partners_count = await db.partners.count_documents({})
+    agents_count = await db.agents.count_documents({})
+    users_count = await db.users.count_documents({})
+    collections = await db.list_collection_names()
+    return {
+        "db_name_env": os.environ.get('DB_NAME', '(non impostato)'),
+        "db_name_attivo": db.name,
+        "db_nel_url": db_path,
+        "mongo_host": host_part,
+        "url_hash": url_hash,
+        "collections_count": len(collections),
+        "partners": partners_count,
+        "agents": agents_count,
+        "users": users_count
+    }
+
 @api_router.get("/")
 async def root():
     return {"message": "Evolution PRO OS API v3.0", "status": "online"}
