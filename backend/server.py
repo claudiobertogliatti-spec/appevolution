@@ -47,11 +47,22 @@ mongo_url = os.environ.get('MONGO_URL', '')
 db_name = os.environ.get('DB_NAME', 'evolution_pro')
 
 ATLAS_FALLBACK = "mongodb+srv://evolution_admin:EvoPro2026!@cluster0.4cgj8wx.mongodb.net/evolution_pro?appName=Cluster0&maxPoolSize=5&retryWrites=true&timeoutMS=10000&w=majority"
+REDIS_FALLBACK = "rediss://default:gQAAAAAAAUGcAAIncDIyNGQwYmQwM2JjOTQ0NGY3YjZkN2U0ODdlODkwNDFkMHAyODIzMzI@included-tomcat-82332.upstash.io:6379"
 
 if not mongo_url or "customer-apps" in mongo_url:
     logging.warning(f"MONGO_URL contiene cluster interno Emergent o è vuota, uso Atlas esterno")
     mongo_url = ATLAS_FALLBACK
     db_name = "evolution_pro"
+
+# Force Redis/Celery env vars per produzione Emergent (non permette custom secrets)
+redis_url_env = os.environ.get('REDIS_URL', '')
+if not redis_url_env:
+    os.environ['REDIS_URL'] = REDIS_FALLBACK
+    logging.info("REDIS_URL non trovata, impostato fallback Upstash")
+celery_env = os.environ.get('CELERY_ENABLED', '')
+if not celery_env:
+    os.environ['CELERY_ENABLED'] = 'true'
+    logging.info("CELERY_ENABLED non trovata, impostato true")
 
 print(f"Connecting to MongoDB: {db_name}")
 
@@ -958,6 +969,18 @@ async def seed_database():
             logging.info("Seeded alerts collection (dev mode)")
     else:
         logging.info("Seed partners/alerts SKIPPED (SEED_ENABLED=false)")
+    
+    # Pulizia alert relativi ai partner di test (one-time cleanup)
+    test_partner_names = ["Marco Ferretti", "Sara Lombardi", "Antonio Bianchi", "Luca Marini", "Giulia Rossi"]
+    test_partner_ids = ["1", "2", "3", "4", "5"]
+    cleanup = await db.alerts.delete_many({
+        "$or": [
+            {"partner": {"$in": test_partner_names}},
+            {"partner_id": {"$in": test_partner_ids}}
+        ]
+    })
+    if cleanup.deleted_count > 0:
+        logging.info(f"Rimossi {cleanup.deleted_count} alert relativi a partner di test")
     
     # Seed modules
     if await db.modules.count_documents({}) == 0:
