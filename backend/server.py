@@ -46,10 +46,14 @@ ROOT_DIR = Path(__file__).parent
 mongo_url = os.environ.get('MONGO_URL', '')
 db_name = os.environ.get('DB_NAME', 'evolution_pro')
 
-if not mongo_url:
-    raise ValueError("MONGO_URL environment variable is required")
+ATLAS_FALLBACK = "mongodb+srv://evolution_admin:EvoPro2026!@cluster0.4cgj8wx.mongodb.net/evolution_pro?appName=Cluster0&maxPoolSize=5&retryWrites=true&timeoutMS=10000&w=majority"
 
-print(f"🔗 Connecting to MongoDB: {db_name}")
+if not mongo_url or "customer-apps" in mongo_url:
+    logging.warning(f"MONGO_URL contiene cluster interno Emergent o è vuota, uso Atlas esterno")
+    mongo_url = ATLAS_FALLBACK
+    db_name = "evolution_pro"
+
+print(f"Connecting to MongoDB: {db_name}")
 
 client = AsyncIOMotorClient(mongo_url)
 db = client[db_name]
@@ -12173,6 +12177,8 @@ async def debug_db_check():
     """Diagnostic endpoint — mostra a quale DB è connesso il backend"""
     import hashlib
     mongo_raw = os.environ.get('MONGO_URL', '')
+    if not mongo_raw or "customer-apps" in mongo_raw:
+        mongo_raw = ATLAS_FALLBACK
     url_hash = hashlib.sha256(mongo_raw.encode()).hexdigest()[:12]
     # Estrai host dal URL (senza credenziali)
     host_part = ""
