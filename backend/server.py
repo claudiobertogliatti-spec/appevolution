@@ -14392,6 +14392,12 @@ from routers.partner_documents import router as partner_docs_router, admin_route
 app.include_router(partner_docs_router)
 app.include_router(partner_docs_admin_router)
 
+# Funnel Builder Router (Landing Page + Documenti Legali)
+from routers.funnel_builder import router as funnel_builder_router, set_db as set_funnel_builder_db
+set_funnel_builder_db(db)
+app.include_router(funnel_builder_router)
+
+
 
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler
