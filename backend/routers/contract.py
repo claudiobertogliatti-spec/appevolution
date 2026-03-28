@@ -17,17 +17,22 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/contract", tags=["contract"])
 
-# MongoDB connection
+# MongoDB connection - usa lo stesso fallback di server.py
 mongo_url = os.environ.get('MONGO_URL', '')
 db_name = os.environ.get('DB_NAME', 'evolution_pro')
+ATLAS_FALLBACK = "mongodb+srv://evolution_admin:EvoPro2026!@cluster0.4cgj8wx.mongodb.net/evolution_pro?appName=Cluster0&maxPoolSize=5&retryWrites=true&timeoutMS=10000&w=majority"
+if not mongo_url or "customer-apps" in mongo_url:
+    mongo_url = ATLAS_FALLBACK
+    db_name = "evolution_pro"
 client = AsyncIOMotorClient(mongo_url)
 db = client[db_name]
 
 # SMTP Configuration
-SMTP_HOST = os.environ.get('SMTP_HOST', 'smtp.gmail.com')
+SMTP_HOST = os.environ.get('SMTP_HOST', 'smtp.register.it')
 SMTP_PORT = int(os.environ.get('SMTP_PORT', 587))
-SMTP_USER = os.environ.get('SMTP_USER', '')
-SMTP_PASS = os.environ.get('SMTP_PASS', '')
+SMTP_USER = os.environ.get('SMTP_USER', 'info@evolution-pro.it')
+SMTP_PASS = os.environ.get('SMTP_PASSWORD', '')
+SMTP_FROM = os.environ.get('SMTP_FROM', 'Evolution PRO <info@evolution-pro.it>')
 
 
 class ContractChatRequest(BaseModel):
@@ -693,11 +698,12 @@ async def sign_contract(request: ContractSignRequest, req: Request):
             raise HTTPException(status_code=404, detail="Partner non trovato")
         
         # Verifica se già firmato
-        if partner.get("contract", {}).get("signed_at"):
+        contract_field = partner.get("contract", {})
+        if isinstance(contract_field, dict) and contract_field.get("signed_at"):
             return {
                 "success": True,
                 "message": "Contratto già firmato",
-                "signed_at": partner["contract"]["signed_at"]
+                "signed_at": contract_field["signed_at"]
             }
         
         # Estrai informazioni client
@@ -889,6 +895,33 @@ async def update_contract_params(partner_id: str, body: ContractParamsUpdate):
     }
 
 
+@admin_router.post("/test-smtp")
+async def test_smtp_connection():
+    """Test SMTP connection and send a test email to admin."""
+    try:
+        import smtplib
+        admin_email = "claudio.bertogliatti@gmail.com"
+        
+        if not SMTP_PASS:
+            return {"success": False, "error": "SMTP_PASSWORD non configurata"}
+        
+        from email.mime.text import MIMEText
+        msg = MIMEText("Test SMTP da Evolution PRO - la connessione email funziona correttamente.", 'plain', 'utf-8')
+        msg['From'] = SMTP_FROM
+        msg['To'] = admin_email
+        msg['Subject'] = "Test SMTP - Evolution PRO"
+        
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASS)
+            server.send_message(msg)
+        
+        return {"success": True, "message": f"Email di test inviata a {admin_email}", "smtp_host": SMTP_HOST}
+    except Exception as e:
+        logger.error(f"[SMTP TEST] Errore: {e}")
+        return {"success": False, "error": str(e)}
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # HELPER FUNCTIONS
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1059,10 +1092,11 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
 
 async def send_contract_email(partner: dict, pdf_url: Optional[str] = None):
     """
-    Invia email di conferma firma contratto al partner.
+    Invia email di conferma firma contratto al partner + CC admin.
+    Scarica il PDF da Cloudinary (o locale) e lo allega.
     """
-    if not SMTP_USER or not SMTP_PASS:
-        logger.warning("SMTP non configurato, skip invio email")
+    if not SMTP_PASS:
+        logger.warning("SMTP_PASSWORD non configurata, skip invio email")
         return
     
     try:
@@ -1073,20 +1107,27 @@ async def send_contract_email(partner: dict, pdf_url: Optional[str] = None):
         
         partner_email = partner.get('email')
         partner_name = partner.get('name', 'Partner')
+        admin_email = "claudio.bertogliatti@gmail.com"
         
         if not partner_email:
             logger.warning("Email partner non disponibile")
             return
         
         msg = MIMEMultipart()
-        msg['From'] = SMTP_USER
+        msg['From'] = SMTP_FROM
         msg['To'] = partner_email
+        msg['Cc'] = admin_email
         msg['Subject'] = f"Contratto Partnership firmato - Evolution PRO"
         
         html_body = f"""
         <html>
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
             <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h1 style="color: #D4A017; margin: 0;">Evolution PRO</h1>
+                    <p style="color: #666; margin: 5px 0 0;">Partnership Program</p>
+                </div>
+                
                 <h2 style="color: #10B981;">Contratto firmato con successo!</h2>
                 
                 <p>Ciao <strong>{partner_name}</strong>,</p>
@@ -1104,13 +1145,19 @@ async def send_contract_email(partner: dict, pdf_url: Optional[str] = None):
                     </ol>
                 </div>
                 
-                {"<p>In allegato trovi copia del contratto firmato.</p>" if pdf_url else ""}
+                {"<p><strong>In allegato trovi copia del contratto firmato in PDF.</strong></p>" if pdf_url else ""}
                 
                 <p>Per qualsiasi domanda, contattaci a <a href='mailto:assistenza@evolution-pro.it'>assistenza@evolution-pro.it</a></p>
                 
                 <p style="margin-top: 30px;">
                     A presto,<br>
                     <strong>Il Team Evolution PRO</strong>
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 30px 0;">
+                <p style="font-size: 12px; color: #999;">
+                    Evolution PRO LLC — 8 The Green, Ste A, Dover, DE 19901, USA<br>
+                    assistenza@evolution-pro.it
                 </p>
             </div>
         </body>
@@ -1119,25 +1166,39 @@ async def send_contract_email(partner: dict, pdf_url: Optional[str] = None):
         
         msg.attach(MIMEText(html_body, 'html'))
         
-        # Allega PDF se disponibile
-        if pdf_url and pdf_url.startswith('/tmp/'):
+        # Allega PDF — scarica da Cloudinary o leggi da locale
+        if pdf_url:
             try:
-                with open(pdf_url, 'rb') as f:
-                    pdf_attachment = MIMEApplication(f.read(), _subtype='pdf')
-                    pdf_attachment.add_header('Content-Disposition', 'attachment', 
-                                            filename=f'Contratto_Partnership_{partner_name}.pdf')
+                pdf_bytes = None
+                if pdf_url.startswith('http'):
+                    import httpx
+                    async with httpx.AsyncClient(timeout=15) as http_client:
+                        resp = await http_client.get(pdf_url)
+                        if resp.status_code == 200:
+                            pdf_bytes = resp.content
+                elif pdf_url.startswith('/tmp/'):
+                    with open(pdf_url, 'rb') as f:
+                        pdf_bytes = f.read()
+                
+                if pdf_bytes:
+                    pdf_attachment = MIMEApplication(pdf_bytes, _subtype='pdf')
+                    safe_name = partner_name.replace(' ', '_')
+                    pdf_attachment.add_header('Content-Disposition', 'attachment',
+                                            filename=f'Contratto_Partnership_{safe_name}.pdf')
                     msg.attach(pdf_attachment)
+                    logger.info(f"[CONTRACT] PDF allegato ({len(pdf_bytes)} bytes)")
             except Exception as e:
                 logger.warning(f"Impossibile allegare PDF: {e}")
         
-        # Invia email
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        # Invia email (sincrono, ma veloce)
+        recipients = [partner_email, admin_email]
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
             server.starttls()
             server.login(SMTP_USER, SMTP_PASS)
-            server.send_message(msg)
+            server.send_message(msg, to_addrs=recipients)
         
-        logger.info(f"[CONTRACT] Email inviata a {partner_email}")
+        logger.info(f"[CONTRACT] Email contratto inviata a {partner_email} (CC: {admin_email})")
         
     except Exception as e:
-        logger.error(f"Errore invio email: {e}")
+        logger.error(f"Errore invio email contratto: {e}")
         raise
