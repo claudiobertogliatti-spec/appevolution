@@ -1,0 +1,93 @@
+{
+  "summary": "Iteration 30 - Funnel Builder Module (Fase 4) Testing Complete. All backend tests passed (16/16). Frontend UI verified working. Features tested: Landing Page Builder with 11 sections, Documenti Legali generator (3 HTML documents), partner prefill from MongoDB, /api/api/ double prefix bug fix verified.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Admin Dashboard",
+        "issues": ["Console hydration warnings about <span> inside <tbody> - cosmetic issue, does not affect functionality"]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_funnel_builder.py",
+    "/app/test_reports/pytest/pytest_funnel_builder.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "GET /api/partner-journey/funnel/{partner_id}/landing-page returns prefill data (PARTNER_NOME, PARTNER_NICCHIA) from partner profile",
+    "POST /api/partner-journey/funnel/{partner_id}/landing-page with genera_html:true generates complete HTML landing page",
+    "POST /api/partner-journey/funnel/{partner_id}/landing-page with genera_html:false saves draft without HTML generation",
+    "GET /api/partner-journey/funnel/{partner_id}/documenti-legali returns prefill data from partner profile",
+    "POST /api/partner-journey/funnel/{partner_id}/documenti-legali with genera:true generates 3 HTML documents (Cookie Policy, Privacy Policy, Condizioni di Vendita)",
+    "Frontend FunnelBuilder component correctly filters partners to show only F4+ (9 partners visible)",
+    "Landing Page tab shows 11 collapsible sections with progress bar and checklist",
+    "Documenti Legali tab shows 10 legal form fields with generate button",
+    "/api/api/ double prefix bug is FIXED - all API calls now use correct /api/ prefix",
+    "Router registered correctly at line 14396-14398 in server.py"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_funnel_builder.py"
+  ],
+  "success_rate": {
+    "backend": "100% (16/16 tests passed)",
+    "frontend": "100% - All UI elements verified working"
+  },
+  "test_credentials": {
+    "admin": "claudio.bertogliatti@gmail.com / Evoluzione74"
+  },
+  "seed_data_creation": "Partner 2 (Arianna Aceto, F9) used for testing - landing page and documenti legali generated during tests",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Funnel Builder module fully functional. Partners in F4+ can access Landing Page Builder (11 sections) and Documenti Legali generator (3 HTML documents). Data is persisted to MongoDB under partner.landing_page and partner.documenti_legali. The /api/api/ double prefix bug was fixed in App.js getApiUrl() function.",
+  "features_tested": {
+    "landing_page_builder": {
+      "GET_prefill": "PASSED - Returns PARTNER_NOME, PARTNER_NICCHIA from partner profile",
+      "POST_save_draft": "PASSED - Saves data without generating HTML, stato='bozza'",
+      "POST_generate_html": "PASSED - Generates complete HTML landing page, stato='pronta'",
+      "POST_mark_published": "PASSED - Updates stato to 'pubblicata'",
+      "persistence": "PASSED - Data persisted to MongoDB and retrieved correctly"
+    },
+    "documenti_legali": {
+      "GET_prefill": "PASSED - Returns titolare_nome, email_legale from partner profile",
+      "POST_save_without_generation": "PASSED - Saves data without generating HTML",
+      "POST_generate_documents": "PASSED - Generates 3 HTML documents (Cookie Policy, Privacy Policy, Condizioni di Vendita)",
+      "persistence": "PASSED - Documents persisted to MongoDB and retrieved correctly"
+    },
+    "frontend_ui": {
+      "funnel_builder_navigation": "PASSED - Accessible via Strumenti > Funnel Builder",
+      "partner_selector": "PASSED - Shows 9 F4+ partners with search functionality",
+      "landing_page_tab": "PASSED - Shows 11 collapsible sections with progress bar (7/74 campi)",
+      "documenti_legali_tab": "PASSED - Shows 10 legal form fields with generate button",
+      "action_buttons": "PASSED - Save Draft, Generate, Preview, Copy HTML, Mark Published buttons present",
+      "generated_documents_display": "PASSED - Shows 3 document cards with Anteprima and Copia HTML buttons"
+    },
+    "api_prefix_fix": {
+      "GET /api/partners": "PASSED - Returns 200 (not 404 from /api/api/partners)",
+      "GET /api/agents": "PASSED - Returns 200",
+      "GET /api/alerts": "PASSED - Returns 200",
+      "GET /api/stats": "PASSED - Returns 200",
+      "GET /api/modules": "PASSED - Returns 200"
+    }
+  },
+  "f4_plus_partners_verified": [
+    "Arianna Aceto (F9)",
+    "Valter Romani (F5)",
+    "Simone Riccò (F9)",
+    "Daphne Oliveti (F4)",
+    "Cosimo Filieri (F4)",
+    "Mariantonietta Tornello (F9)",
+    "Sarah Arensi (F9)",
+    "Alice Conventi (F4)",
+    "Michele Baggio (F5)"
+  ],
+  "mocked_apis": {
+    "canva_api": "MOCKED - Canva API token not configured",
+    "kling_ai": "MOCKED - Kling AI API key not configured"
+  }
+}

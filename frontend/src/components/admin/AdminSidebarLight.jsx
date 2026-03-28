@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Users, Film, FileText, BarChart3, MessageCircle, AlertTriangle, Settings, ChevronDown, ChevronRight, LogOut, Database, Edit3, Trophy, Zap, HelpCircle, Webhook, Bot, DollarSign, UsersRound, FileCheck, ClipboardCheck, UserPlus, Unlock, Eye, Mail, Snowflake, ShoppingBag } from "lucide-react";
+import { LayoutDashboard, Users, Film, FileText, BarChart3, MessageCircle, AlertTriangle, Settings, ChevronDown, ChevronRight, LogOut, Database, Edit3, Trophy, Zap, HelpCircle, Webhook, Bot, DollarSign, UsersRound, FileCheck, ClipboardCheck, UserPlus, Unlock, Eye, Mail, Snowflake, ShoppingBag, Globe } from "lucide-react";
 
 const CLAUDIO_NAV = [
   { id: "overview", label: "Overview", icon: LayoutDashboard, 
@@ -53,6 +53,7 @@ const TOOLS_NAV = [
   { id: "systeme", label: "Systeme.io", icon: Database },
   { id: "email-templates", label: "Template Email", icon: Mail },
   { id: "gaia", label: "Template Funnel", icon: Zap },
+  { id: "funnelbuilder", label: "Funnel Builder", icon: Globe },
   { id: "warmode", label: "Campagne Ads", icon: AlertTriangle },
   { id: "compliance", label: "Documenti & Compliance", icon: FileText },
 ];
@@ -82,7 +83,7 @@ export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminU
   };
 
   return (
-    <div className="w-64 min-w-64 flex flex-col h-full border-r overflow-hidden" 
+    <div className="w-64 min-w-64 flex flex-col h-full border-r overflow-y-auto" 
          style={{ background: '#FFFFFF', borderColor: '#F0EFEB' }}>
       
       {/* Logo */}

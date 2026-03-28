@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import "@/App.css";
 import axios from "axios";
-import { LayoutDashboard, Users, Film, AlertTriangle, PlayCircle, FolderOpen, FileText, MessageCircle, Send, Download, Check, Clock, AlertCircle, TrendingUp, DollarSign, Upload, Trash2, FileVideo, FileCheck, Loader2, CheckCircle, XCircle, Youtube, Shield, Eye, RefreshCw, Zap, Link, Palette, Plus, BarChart3, Calendar, UserPlus, Sparkles, Video, Target, Edit3, Trophy, Database, ChevronDown, ChevronRight, Activity, Mic, Copy, Star, Rocket, Settings, HardDrive, LogOut, Bot, ClipboardCheck } from "lucide-react";
+import { LayoutDashboard, Users, Film, AlertTriangle, PlayCircle, FolderOpen, FileText, MessageCircle, Send, Download, Check, Clock, AlertCircle, TrendingUp, DollarSign, Upload, Trash2, FileVideo, FileCheck, Loader2, CheckCircle, XCircle, Youtube, Shield, Eye, RefreshCw, Zap, Link, Palette, Plus, BarChart3, Calendar, UserPlus, Sparkles, Video, Target, Edit3, Trophy, Database, ChevronDown, ChevronRight, Activity, Mic, Copy, Star, Rocket, Settings, HardDrive, LogOut, Bot, ClipboardCheck, Globe } from "lucide-react";
 
 import { NotificationBell } from "./components/common/NotificationBell";
 import { AdminSwitcher } from "./components/common/AdminSwitcher";
@@ -86,17 +86,16 @@ import { MiaAccademiaPage, MieiStudentiPage, ImpegniSettimanaPage, ReportMensile
 import YouTubeHeygenHub from "./components/admin/YouTubeHeygenHub";
 import ListaFreddaAdmin from "./components/admin/ListaFreddaAdmin";
 import ServiziExtraAdmin from "./components/admin/ServiziExtraAdmin";
+import FunnelBuilder from "./components/admin/FunnelBuilder";
 import "./styles/design-system.css";
 
 // Use relative URL in production (same domain), absolute URL in development
 const getApiUrl = () => {
   const backendUrl = process.env.REACT_APP_BACKEND_URL;
-  // If we're on a production domain (evolution-pro.it), use relative /api
   if (typeof window !== 'undefined' && window.location.hostname.includes('evolution-pro.it')) {
-    return '/api';
+    return '';
   }
-  // Otherwise use the configured backend URL
-  return backendUrl ? `${backendUrl}/api` : '/api';
+  return backendUrl || '';
 };
 const API = getApiUrl();
 
@@ -1048,7 +1047,24 @@ export default function App() {
   };
 
   useEffect(()=>{if(isAuthenticated) loadData();},[isAuthenticated]);
-  const loadData=async()=>{try{const[a,p,al,m,s]=await Promise.all([axios.get(`${API}/api/agents`),axios.get(`${API}/api/partners`),axios.get(`${API}/api/alerts`),axios.get(`${API}/api/modules`),axios.get(`${API}/api/stats`)]);setAgents(a.data);setPartners(p.data);setAlerts(al.data);setModules(m.data);setStats(s.data);}catch(e){console.error(e);}};
+  const loadData=async()=>{
+    try{
+      const results = await Promise.allSettled([
+        axios.get(`${API}/api/agents`),
+        axios.get(`${API}/api/partners`),
+        axios.get(`${API}/api/alerts`),
+        axios.get(`${API}/api/modules`),
+        axios.get(`${API}/api/stats`)
+      ]);
+      if(results[0].status==="fulfilled") setAgents(results[0].value.data);
+      if(results[1].status==="fulfilled") setPartners(results[1].value.data);
+      if(results[2].status==="fulfilled") setAlerts(results[2].value.data);
+      if(results[3].status==="fulfilled") setModules(results[3].value.data);
+      if(results[4].status==="fulfilled") setStats(results[4].value.data);
+      const failed = results.filter(r=>r.status==="rejected");
+      if(failed.length) console.warn("[loadData] Some APIs failed:",failed.map(f=>f.reason?.config?.url||f.reason?.message));
+    }catch(e){console.error("[loadData] critical error:",e);}
+  };
   const dismissAlert=async(id)=>{try{await axios.delete(`${API}/api/alerts/${id}`);setAlerts(p=>p.filter(a=>a.id!==id));}catch(e){}};
   
   // Handle delete partner
@@ -1085,6 +1101,7 @@ export default function App() {
     {id:"gaia",label:"GAIA",icon:Zap},
     {id:"copyfactory",label:"Copy Factory",icon:Edit3},
     {id:"warmode",label:"Campagne Ads",icon:Target},
+    {id:"funnelbuilder",label:"Funnel Builder",icon:Globe},
     {id:"compliance",label:"LUCA",icon:Shield},
   ];
   const antonellaNav=[
@@ -1117,7 +1134,7 @@ export default function App() {
   const adminNav=adminUser==="antonella"?antonellaNav:coreNav;
   const isToolNav=toolsNav.some(t=>t.id===nav);
 
-  const titles={overview:"Overview",agenti:"Agenti AI",partner:"Pipeline Partner","documenti-partner":"Documenti Partner","onboarding-admin":"Documenti Onboarding","youtube-heygen":"YouTube × HeyGen Hub",andrea:adminUser==="antonella"?"ANDREA — Feed Video":"ANDREA — Surgical Cut",metriche:"Metriche Post-Lancio",systeme:"SYSTEME.IO — Live Data",gaia:"Template Funnel",compliance:"Documenti & Compliance",copyfactory:"Copy Factory",warmode:"Campagne Ads Partner",alert:"Alert & Escalation",stefania:"STEFANIA — Chat",home:"Il tuo percorso","onboarding-docs":"Documenti Onboarding",corso:"PARTI DA QUI",bonus:"Bonus Strategici",masterclass:"Masterclass Builder",coursebuilder:"Course Builder AI",produzione:"ANDREA — Produzione Video",files:"I Miei File",brandkit:"Brand Kit",calendario:"Calendario Editoriale",documenti:"Documenti & Posizionamento",risorse:"Template & Risorse",renewal:"Piani Post-12 Mesi",supporto:"STEFANIA — Chat"};
+  const titles={overview:"Overview",agenti:"Agenti AI",partner:"Pipeline Partner","documenti-partner":"Documenti Partner","onboarding-admin":"Documenti Onboarding","youtube-heygen":"YouTube × HeyGen Hub",andrea:adminUser==="antonella"?"ANDREA — Feed Video":"ANDREA — Surgical Cut",metriche:"Metriche Post-Lancio",systeme:"SYSTEME.IO — Live Data",gaia:"Template Funnel",compliance:"Documenti & Compliance",copyfactory:"Copy Factory",warmode:"Campagne Ads Partner",funnelbuilder:"Funnel Builder — Fase 4",alert:"Alert & Escalation",stefania:"STEFANIA — Chat",home:"Il tuo percorso","onboarding-docs":"Documenti Onboarding",corso:"PARTI DA QUI",bonus:"Bonus Strategici",masterclass:"Masterclass Builder",coursebuilder:"Course Builder AI",produzione:"ANDREA — Produzione Video",files:"I Miei File",brandkit:"Brand Kit",calendario:"Calendario Editoriale",documenti:"Documenti & Posizionamento",risorse:"Template & Risorse",renewal:"Piani Post-12 Mesi",supporto:"STEFANIA — Chat"};
 
   // Loading state
   if (authLoading) {
@@ -1705,6 +1722,7 @@ export default function App() {
             {nav==="gaia"&&<GaiaFunnelDeployer partners={partners}/>}
             {nav==="copyfactory"&&<CopyFactoryAdmin currentAdmin={adminUser==="antonella"?"Antonella":"Claudio"}/>}
             {nav==="warmode"&&<StefaniaWarMode partners={partners}/>}
+            {nav==="funnelbuilder"&&<FunnelBuilder partners={partners}/>}
             {nav==="compliance"&&<ComplianceDashboard/>}
             {nav==="email-templates"&&<EmailTemplatesManager/>}
             {nav==="alert"&&<AdminAlerts alerts={alerts} onDismiss={dismissAlert}/>}
