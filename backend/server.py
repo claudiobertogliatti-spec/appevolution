@@ -943,15 +943,17 @@ async def seed_database():
         })
         logging.info("Agente MAIN creato")
     
-    # Seed partners
-    if await db.partners.count_documents({}) == 0:
-        await db.partners.insert_many(INITIAL_PARTNERS)
-        logging.info("Seeded partners collection")
-    
-    # Seed alerts
-    if await db.alerts.count_documents({}) == 0:
-        await db.alerts.insert_many(INITIAL_ALERTS)
-        logging.info("Seeded alerts collection")
+    # Seed partners & alerts — DISABILITATO in produzione (SEED_ENABLED=false)
+    seed_enabled = os.environ.get("SEED_ENABLED", "false").lower() == "true"
+    if seed_enabled:
+        if await db.partners.count_documents({}) == 0:
+            await db.partners.insert_many(INITIAL_PARTNERS)
+            logging.info("Seeded partners collection (dev mode)")
+        if await db.alerts.count_documents({}) == 0:
+            await db.alerts.insert_many(INITIAL_ALERTS)
+            logging.info("Seeded alerts collection (dev mode)")
+    else:
+        logging.info("Seed partners/alerts SKIPPED (SEED_ENABLED=false)")
     
     # Seed modules
     if await db.modules.count_documents({}) == 0:
