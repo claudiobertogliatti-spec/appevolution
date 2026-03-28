@@ -44,6 +44,9 @@ Applicazione di gestione aziendale basata su AI per Evolution PRO LLC. Gestisce 
   - Seed `INITIAL_PARTNERS` (5 finti) e `INITIAL_ALERTS` (3 fantasma) protetti da `SEED_ENABLED` env var (default: `false`)
   - Seed agents, modules, templates, notifications, success_cases mantenuti attivi
   - 22 partner reali preservati in produzione
+- [x] **Fallback MONGO_URL Atlas** — 28 Mar 2026
+  - Se `MONGO_URL` contiene `customer-apps` (cluster interno Emergent), il backend usa automaticamente Atlas esterno
+  - Garantisce connessione al DB corretto (`evolution_pro` su `cluster0.4cgj8wx.mongodb.net`) anche dopo deploy
 
 ## P0 - Prossimi
 - [ ] Configurare Tag Systeme.io (creare tag e inserire ID nel .env)
