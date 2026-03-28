@@ -47,6 +47,13 @@ Applicazione di gestione aziendale basata su AI per Evolution PRO LLC. Gestisce 
 - [x] **Fallback MONGO_URL Atlas** — 28 Mar 2026
   - Se `MONGO_URL` contiene `customer-apps` (cluster interno Emergent), il backend usa automaticamente Atlas esterno
   - Garantisce connessione al DB corretto (`evolution_pro` su `cluster0.4cgj8wx.mongodb.net`) anche dopo deploy
+- [x] **Fallback REDIS_URL + CELERY_ENABLED** — 28 Mar 2026
+  - Se mancanti in produzione, vengono forzati i valori Upstash hardcoded
+  - Worker e beat Celery si avviano correttamente allo startup
+  - NOTA: Upstash ha raggiunto il limite di 500k richieste, serve upgrade piano o reset mensile
+- [x] **Pulizia alert partner di test** — 28 Mar 2026
+  - Eliminati 3 alert fantasma (Marco Ferretti, Sara Lombardi, Antonio Bianchi) da MongoDB
+  - Pulizia automatica allo startup per prevenire ritorni
 
 ## P0 - Prossimi
 - [ ] Configurare Tag Systeme.io (creare tag e inserire ID nel .env)
