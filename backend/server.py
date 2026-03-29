@@ -14441,6 +14441,11 @@ from routers.funnel_builder import router as funnel_builder_router, set_db as se
 set_funnel_builder_db(db)
 app.include_router(funnel_builder_router)
 
+# Proposta Router (Pagina pubblica proposta + firma + pagamento)
+from routers.proposta import router as proposta_router, set_db as set_proposta_db
+set_proposta_db(db)
+app.include_router(proposta_router)
+
 
 
 # Start scheduler for automated jobs

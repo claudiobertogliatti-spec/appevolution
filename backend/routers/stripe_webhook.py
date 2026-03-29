@@ -110,7 +110,18 @@ async def handle_checkout_completed(db, session, background_tasks: BackgroundTas
     if tipo == 'analisi_strategica':
         await process_analisi_payment(db, user_id, session_id, background_tasks)
     elif tipo == 'partnership':
-        await process_partnership_payment(db, user_id, session_id, background_tasks)
+        # Check if this is a proposta-based payment (has token in metadata)
+        token = metadata.get('token')
+        if token:
+            try:
+                from routers.proposta import gestisci_pagamento_partnership
+                await gestisci_pagamento_partnership(session_id, metadata)
+            except Exception as e:
+                logger.error(f"[STRIPE_WEBHOOK] Proposta partnership handler error: {e}")
+        # Also run the standard partnership flow
+        partner_id = metadata.get('partner_id') or user_id
+        if partner_id:
+            await process_partnership_payment(db, partner_id, session_id, background_tasks)
     else:
         logger.warning(f"[STRIPE_WEBHOOK] Unknown payment type: {tipo}")
 

@@ -1,0 +1,85 @@
+{
+  "summary": "Iteration 31 - Proposta (Proposal) Module Testing Complete. All backend tests passed (13/13). Frontend UI verified working. Features tested: P1 (PDF contract generation + SMTP email post-signing) and P4 (Public proposal page /proposta/{token} with 15 sections).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_proposta.py",
+    "/app/test_reports/pytest/pytest_proposta.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "GET /api/proposta/{token} returns proposal data with all required fields (prospect_nome, stato, analisi_posizionamento, analisi_punti_forza, scadenza)",
+    "GET /api/proposta/invalid-token correctly returns 404",
+    "POST /api/proposta/genera/{partner_id} creates proposal with token and saves to MongoDB (or returns existing)",
+    "POST /api/proposta/{token}/accetta updates stato to 'accettata'",
+    "POST /api/proposta/{token}/scelta-bonifico returns correct IBAN (LT94 3250 0974 4929 5781), beneficiario, banca, causale",
+    "POST /api/proposta/{token}/firma-contratto saves contract signature and attempts PDF generation (SMTP blocked in K8s preview)",
+    "GET /api/proposta/admin/lista returns list of all proposals with count",
+    "GET /api/contract/text/{partner_id} returns HTML contract text with personalized params",
+    "Frontend /proposta/{token} page loads correctly with all 15 sections",
+    "Progress bar shows 5 steps: Proposta, Contratto, Pagamento, Documenti, Completato",
+    "Hero section displays personalized greeting with prospect name",
+    "Analisi section shows positioning analysis and strengths",
+    "7 phases timeline displays correctly",
+    "Team section shows 6 team members (VALENTINA, ANDREA, MARCO, GAIA, STEFANIA, CLAUDIO)",
+    "Testimonials section displays 3 testimonials",
+    "Investment box shows €2790,00 with IVA inclusa",
+    "Payment section shows both Stripe and Bonifico options",
+    "Bonifico details display correct IBAN, beneficiario, banca, causale",
+    "Error page shows 'Link non valido' for invalid tokens with contact email"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_proposta.py"
+  ],
+  "success_rate": {
+    "backend": "100% (13/13 tests passed)",
+    "frontend": "100% - All UI elements verified working"
+  },
+  "test_credentials": {
+    "admin": "claudio.bertogliatti@gmail.com / Evoluzione74",
+    "test_token": "T3xb20kGBXEgcGZO",
+    "partner_id": "23 (Daniele Andolfi)"
+  },
+  "seed_data_creation": "Used existing proposal token T3xb20kGBXEgcGZO for partner 23 (Daniele Andolfi)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Proposta module fully functional. Public proposal page at /proposta/{token} works without authentication. Contract signing saves signature and attempts PDF generation (SMTP blocked in K8s preview env). Payment options (Stripe/Bonifico) display correctly. Error handling for invalid/expired tokens works.",
+  "features_tested": {
+    "backend_endpoints": {
+      "GET /api/proposta/{token}": "PASSED - Returns proposal data with all fields",
+      "GET /api/proposta/invalid-token": "PASSED - Returns 404",
+      "POST /api/proposta/genera/{partner_id}": "PASSED - Creates/returns proposal",
+      "POST /api/proposta/{token}/accetta": "PASSED - Updates stato to accettata",
+      "POST /api/proposta/{token}/scelta-bonifico": "PASSED - Returns IBAN LT94 3250 0974 4929 5781",
+      "POST /api/proposta/{token}/firma-contratto": "PASSED - Saves signature",
+      "GET /api/proposta/admin/lista": "PASSED - Returns proposals list",
+      "GET /api/contract/text/{partner_id}": "PASSED - Returns HTML contract text"
+    },
+    "frontend_sections": {
+      "progress_bar": "PASSED - 5 steps displayed",
+      "hero_section": "PASSED - Personalized title",
+      "analisi_section": "PASSED - Shows positioning analysis",
+      "pas_section": "PASSED - Problem statement",
+      "steps_section": "PASSED - 3 steps (Firma, Pagamento, Accesso)",
+      "timeline_section": "PASSED - 7 phases",
+      "team_section": "PASSED - 6 team members",
+      "testimonials_section": "PASSED - 3 testimonials",
+      "investment_box": "PASSED - €2790,00 displayed",
+      "contract_section": "PASSED - Shows signed status",
+      "payment_section": "PASSED - Stripe and Bonifico buttons",
+      "bonifico_details": "PASSED - IBAN, beneficiario, banca, causale",
+      "error_page": "PASSED - Shows 'Link non valido' for invalid tokens"
+    }
+  },
+  "mocked_apis": {
+    "smtp_email": "MOCKED - SMTP port 587 blocked in K8s preview environment",
+    "stripe_checkout": "REAL - Creates sessions but won't complete payment in test"
+  }
+}
