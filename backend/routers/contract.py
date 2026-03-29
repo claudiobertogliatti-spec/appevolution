@@ -936,9 +936,8 @@ async def _get_partner_params(partner_id: str) -> dict:
 
 async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[str]:
     """
-    Genera PDF del contratto firmato usando ReportLab.
+    Genera PDF del contratto firmato con layout professionale.
     Carica su Cloudinary e ritorna l'URL.
-    Usa testo personalizzato se il partner ha parametri custom.
     """
     try:
         params = await _get_partner_params(partner.get("id", ""))
@@ -946,90 +945,99 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
         from reportlab.lib.pagesizes import A4
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib.units import cm
-        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as RLImage
-        from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER
+        from reportlab.lib import colors
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as RLImage, Table, TableStyle, HRFlowable
+        from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER, TA_LEFT
         
         buffer = BytesIO()
-        doc = SimpleDocTemplate(
-            buffer,
-            pagesize=A4,
-            rightMargin=2*cm,
-            leftMargin=2*cm,
-            topMargin=2*cm,
-            bottomMargin=2*cm
-        )
+        doc = SimpleDocTemplate(buffer, pagesize=A4,
+            rightMargin=2.5*cm, leftMargin=2.5*cm, topMargin=2.5*cm, bottomMargin=2.5*cm)
         
         styles = getSampleStyleSheet()
-        styles.add(ParagraphStyle(
-            name='ContractTitle',
-            parent=styles['Heading1'],
-            fontSize=14,
-            alignment=TA_CENTER,
-            spaceAfter=20
-        ))
-        styles.add(ParagraphStyle(
-            name='ContractBody',
-            parent=styles['Normal'],
-            fontSize=10,
-            alignment=TA_JUSTIFY,
-            spaceAfter=8,
-            leading=14
-        ))
-        styles.add(ParagraphStyle(
-            name='ArticleTitle',
-            parent=styles['Heading2'],
-            fontSize=11,
-            spaceBefore=15,
-            spaceAfter=8
-        ))
+        style_titolo = ParagraphStyle('Titolo', parent=styles['Heading1'],
+            fontSize=16, spaceAfter=6, spaceBefore=0,
+            textColor=colors.HexColor('#1a1a2e'), alignment=TA_CENTER)
+        style_sottotitolo = ParagraphStyle('Sottotitolo', parent=styles['Normal'],
+            fontSize=10, spaceAfter=20, alignment=TA_CENTER,
+            textColor=colors.HexColor('#666666'))
+        style_articolo = ParagraphStyle('Articolo', parent=styles['Heading2'],
+            fontSize=11, spaceBefore=14, spaceAfter=4,
+            textColor=colors.HexColor('#1a1a2e'))
+        style_testo = ParagraphStyle('Testo', parent=styles['Normal'],
+            fontSize=9.5, spaceAfter=6, leading=14, alignment=TA_JUSTIFY)
+        style_footer = ParagraphStyle('Footer', parent=styles['Normal'],
+            fontSize=8, textColor=colors.HexColor('#999999'), alignment=TA_CENTER)
         
         story = []
         
-        # Titolo
-        story.append(Paragraph(
-            "CONTRATTO DI COLLABORAZIONE IN PARTNERSHIP",
-            styles['ContractTitle']
-        ))
-        story.append(Spacer(1, 20))
+        # INTESTAZIONE
+        story.append(Paragraph("EVOLUTION PRO", style_titolo))
+        story.append(Paragraph("Contratto di Partnership", style_sottotitolo))
+        story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#1a1a2e')))
+        story.append(Spacer(1, 0.4*cm))
         
-        # Info Partner
-        story.append(Paragraph(
-            f"<b>Partner:</b> {partner.get('name', 'N/A')}",
-            styles['ContractBody']
-        ))
-        story.append(Paragraph(
-            f"<b>Email:</b> {partner.get('email', 'N/A')}",
-            styles['ContractBody']
-        ))
-        story.append(Paragraph(
-            f"<b>Data firma:</b> {contract_data.get('signed_at', 'N/A')}",
-            styles['ContractBody']
-        ))
-        story.append(Paragraph(
-            f"<b>Versione contratto:</b> {contract_data.get('version', '1.0')}",
-            styles['ContractBody']
-        ))
-        story.append(Spacer(1, 20))
+        # TABELLA DATI CONTRATTO
+        signed_at = contract_data.get('signed_at', '')
+        try:
+            data_firma_fmt = datetime.fromisoformat(signed_at).strftime('%d/%m/%Y alle %H:%M')
+        except:
+            data_firma_fmt = signed_at
         
-        # Testo contratto (semplificato per il PDF)
+        info_data = [
+            ['Versione contratto:', contract_data.get('version', 'v1.0')],
+            ['Data firma:', data_firma_fmt],
+            ['Partner:', partner.get('name', 'N/A')],
+            ['Email:', partner.get('email', 'N/A')],
+            ['IP Address:', contract_data.get('ip_address', 'N/D')],
+        ]
+        t = Table(info_data, colWidths=[4*cm, 12*cm])
+        t.setStyle(TableStyle([
+            ('FONTSIZE', (0,0), (-1,-1), 9),
+            ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
+            ('TEXTCOLOR', (0,0), (0,-1), colors.HexColor('#1a1a2e')),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+            ('TOPPADDING', (0,0), (-1,-1), 4),
+        ]))
+        story.append(t)
+        story.append(Spacer(1, 0.6*cm))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#dddddd')))
+        story.append(Spacer(1, 0.4*cm))
+        
+        # TESTO CONTRATTO
         for line in rendered_text.split('\n'):
             line = line.strip()
             if not line:
                 continue
             if line.startswith('ARTICOLO'):
-                story.append(Paragraph(line, styles['ArticleTitle']))
+                story.append(Paragraph(line, style_articolo))
             else:
-                # Escape caratteri speciali per ReportLab
                 line = line.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-                story.append(Paragraph(line, styles['ContractBody']))
+                story.append(Paragraph(line, style_testo))
         
-        story.append(Spacer(1, 30))
+        # SEZIONE FIRMA
+        story.append(Spacer(1, 0.6*cm))
+        story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#1a1a2e')))
+        story.append(Spacer(1, 0.4*cm))
+        story.append(Paragraph("FIRMA DIGITALE", style_articolo))
         
-        # Firma (immagine base64)
-        story.append(Paragraph("<b>Firma del Partner:</b>", styles['ContractBody']))
-        story.append(Spacer(1, 10))
+        firma_info = [
+            ["Firmato da:", partner.get('name', 'N/A')],
+            ["Data e ora firma:", signed_at],
+            ["Indirizzo IP:", contract_data.get('ip_address', 'N/D')],
+            ["Metodo:", "Firma digitale tramite piattaforma Evolution PRO"],
+        ]
+        t_firma = Table(firma_info, colWidths=[4*cm, 12*cm])
+        t_firma.setStyle(TableStyle([
+            ('FONTSIZE', (0,0), (-1,-1), 9),
+            ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
+            ('TEXTCOLOR', (0,0), (0,-1), colors.HexColor('#1a1a2e')),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+            ('TOPPADDING', (0,0), (-1,-1), 4),
+        ]))
+        story.append(t_firma)
+        story.append(Spacer(1, 0.3*cm))
         
-        # Decodifica firma e aggiungi al PDF
+        # Immagine firma
         try:
             sig_data = contract_data.get('signature_base64', '')
             if sig_data.startswith('data:image'):
@@ -1040,43 +1048,33 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
             story.append(sig_img)
         except Exception as e:
             logger.warning(f"Impossibile aggiungere firma al PDF: {e}")
-            story.append(Paragraph("[Firma digitale applicata]", styles['ContractBody']))
+            story.append(Paragraph("[Firma digitale applicata]", style_testo))
         
-        story.append(Spacer(1, 20))
+        # FOOTER
+        story.append(Spacer(1, 0.4*cm))
         story.append(Paragraph(
-            f"IP: {contract_data.get('ip_address', 'N/A')}",
-            styles['ContractBody']
-        ))
+            "Documento generato automaticamente dalla piattaforma Evolution PRO. "
+            "La firma digitale apposta ha valore legale ai sensi del D.Lgs. 82/2005 (CAD).",
+            style_footer))
         
-        # Build PDF
         doc.build(story)
-        
-        # Upload to Cloudinary
         pdf_bytes = buffer.getvalue()
         
+        # Upload to Cloudinary
         try:
             import cloudinary
             import cloudinary.uploader
-            
             cloudinary.config(
                 cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
                 api_key=os.environ.get('CLOUDINARY_API_KEY'),
-                api_secret=os.environ.get('CLOUDINARY_API_SECRET')
-            )
-            
-            result = cloudinary.uploader.upload(
-                pdf_bytes,
-                resource_type="raw",
+                api_secret=os.environ.get('CLOUDINARY_API_SECRET'))
+            result = cloudinary.uploader.upload(pdf_bytes, resource_type="raw",
                 folder="contracts",
                 public_id=f"contract_{partner.get('id')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-                format="pdf"
-            )
-            
+                format="pdf")
             return result.get('secure_url')
-            
         except Exception as e:
             logger.warning(f"Cloudinary upload failed: {e}")
-            # Salva localmente come fallback
             local_path = f"/tmp/contract_{partner.get('id')}.pdf"
             with open(local_path, 'wb') as f:
                 f.write(pdf_bytes)
@@ -1090,115 +1088,117 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
         return None
 
 
+async def _smtp_send_async(msg):
+    """Invia email SMTP in modo non-bloccante via executor."""
+    import asyncio
+    import smtplib
+    loop = asyncio.get_event_loop()
+    def _send():
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASS)
+            server.send_message(msg)
+    await loop.run_in_executor(None, _send)
+
+
 async def send_contract_email(partner: dict, pdf_url: Optional[str] = None):
     """
-    Invia email di conferma firma contratto al partner + CC admin.
-    Scarica il PDF da Cloudinary (o locale) e lo allega.
+    Invia email di conferma firma contratto al partner.
+    Invia notifica separata all'admin con PDF allegato.
+    Non-bloccante grazie a run_in_executor.
     """
     if not SMTP_PASS:
         logger.warning("SMTP_PASSWORD non configurata, skip invio email")
         return
     
+    partner_email = partner.get('email')
+    partner_name = partner.get('name', 'Partner')
+    admin_email = "claudio.bertogliatti@gmail.com"
+    
+    if not partner_email:
+        logger.warning("Email partner non disponibile")
+        return
+    
+    # Scarica PDF per allegare a entrambe le email
+    pdf_bytes = None
+    if pdf_url:
+        try:
+            if pdf_url.startswith('http'):
+                import httpx
+                async with httpx.AsyncClient(timeout=15) as http_client:
+                    resp = await http_client.get(pdf_url)
+                    if resp.status_code == 200:
+                        pdf_bytes = resp.content
+            elif pdf_url.startswith('/tmp/'):
+                with open(pdf_url, 'rb') as f:
+                    pdf_bytes = f.read()
+        except Exception as e:
+            logger.warning(f"Impossibile scaricare PDF: {e}")
+    
+    def _build_attachment(pdf_data, filename):
+        from email.mime.application import MIMEApplication
+        att = MIMEApplication(pdf_data, _subtype='pdf')
+        att.add_header('Content-Disposition', 'attachment', filename=filename)
+        return att
+    
+    # --- EMAIL 1: Partner ---
     try:
-        import smtplib
         from email.mime.multipart import MIMEMultipart
         from email.mime.text import MIMEText
-        from email.mime.application import MIMEApplication
         
-        partner_email = partner.get('email')
-        partner_name = partner.get('name', 'Partner')
-        admin_email = "claudio.bertogliatti@gmail.com"
+        first_name = partner_name.split()[0] if partner_name else "Partner"
         
-        if not partner_email:
-            logger.warning("Email partner non disponibile")
-            return
+        msg_partner = MIMEMultipart()
+        msg_partner['From'] = SMTP_FROM
+        msg_partner['To'] = partner_email
+        msg_partner['Subject'] = "Il tuo contratto Evolution PRO - copia firmata"
         
-        msg = MIMEMultipart()
-        msg['From'] = SMTP_FROM
-        msg['To'] = partner_email
-        msg['Cc'] = admin_email
-        msg['Subject'] = f"Contratto Partnership firmato - Evolution PRO"
+        body_partner = f"""Ciao {first_name},
+
+in allegato trovi la copia del contratto Evolution PRO firmato.
+
+Conserva questo documento: e' la tua prova di adesione al programma.
+
+Se hai domande, rispondi direttamente a questa email.
+
+A presto,
+Claudio
+Evolution PRO"""
         
-        html_body = f"""
-        <html>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                <div style="text-align: center; margin-bottom: 30px;">
-                    <h1 style="color: #D4A017; margin: 0;">Evolution PRO</h1>
-                    <p style="color: #666; margin: 5px 0 0;">Partnership Program</p>
-                </div>
-                
-                <h2 style="color: #10B981;">Contratto firmato con successo!</h2>
-                
-                <p>Ciao <strong>{partner_name}</strong>,</p>
-                
-                <p>Grazie per aver firmato il Contratto di Collaborazione in Partnership con Evolution PRO.</p>
-                
-                <p>La tua firma digitale è stata registrata con successo. Da questo momento inizia ufficialmente la nostra collaborazione!</p>
-                
-                <div style="background: #F3F4F6; padding: 20px; border-radius: 10px; margin: 20px 0;">
-                    <h3 style="margin-top: 0; color: #1F2937;">Prossimi passi:</h3>
-                    <ol style="margin: 0; padding-left: 20px;">
-                        <li>Accedi alla tua dashboard partner</li>
-                        <li>Completa il questionario di posizionamento</li>
-                        <li>Preparati per la sessione di onboarding</li>
-                    </ol>
-                </div>
-                
-                {"<p><strong>In allegato trovi copia del contratto firmato in PDF.</strong></p>" if pdf_url else ""}
-                
-                <p>Per qualsiasi domanda, contattaci a <a href='mailto:assistenza@evolution-pro.it'>assistenza@evolution-pro.it</a></p>
-                
-                <p style="margin-top: 30px;">
-                    A presto,<br>
-                    <strong>Il Team Evolution PRO</strong>
-                </p>
-                
-                <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 30px 0;">
-                <p style="font-size: 12px; color: #999;">
-                    Evolution PRO LLC — 8 The Green, Ste A, Dover, DE 19901, USA<br>
-                    assistenza@evolution-pro.it
-                </p>
-            </div>
-        </body>
-        </html>
-        """
+        msg_partner.attach(MIMEText(body_partner, 'plain', 'utf-8'))
+        if pdf_bytes:
+            msg_partner.attach(_build_attachment(pdf_bytes,
+                f"contratto_evolution_pro_{partner_name.replace(' ', '_')}.pdf"))
         
-        msg.attach(MIMEText(html_body, 'html'))
-        
-        # Allega PDF — scarica da Cloudinary o leggi da locale
-        if pdf_url:
-            try:
-                pdf_bytes = None
-                if pdf_url.startswith('http'):
-                    import httpx
-                    async with httpx.AsyncClient(timeout=15) as http_client:
-                        resp = await http_client.get(pdf_url)
-                        if resp.status_code == 200:
-                            pdf_bytes = resp.content
-                elif pdf_url.startswith('/tmp/'):
-                    with open(pdf_url, 'rb') as f:
-                        pdf_bytes = f.read()
-                
-                if pdf_bytes:
-                    pdf_attachment = MIMEApplication(pdf_bytes, _subtype='pdf')
-                    safe_name = partner_name.replace(' ', '_')
-                    pdf_attachment.add_header('Content-Disposition', 'attachment',
-                                            filename=f'Contratto_Partnership_{safe_name}.pdf')
-                    msg.attach(pdf_attachment)
-                    logger.info(f"[CONTRACT] PDF allegato ({len(pdf_bytes)} bytes)")
-            except Exception as e:
-                logger.warning(f"Impossibile allegare PDF: {e}")
-        
-        # Invia email (sincrono, ma veloce)
-        recipients = [partner_email, admin_email]
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASS)
-            server.send_message(msg, to_addrs=recipients)
-        
-        logger.info(f"[CONTRACT] Email contratto inviata a {partner_email} (CC: {admin_email})")
-        
+        await _smtp_send_async(msg_partner)
+        logger.info(f"[CONTRACT] Email contratto inviata a {partner_email}")
     except Exception as e:
-        logger.error(f"Errore invio email contratto: {e}")
-        raise
+        logger.error(f"Errore invio email partner: {e}")
+    
+    # --- EMAIL 2: Admin (Claudio) ---
+    try:
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        
+        msg_admin = MIMEMultipart()
+        msg_admin['From'] = SMTP_FROM
+        msg_admin['To'] = admin_email
+        msg_admin['Subject'] = f"Contratto firmato - {partner_name}"
+        
+        body_admin = f"""Nuovo contratto firmato.
+
+Partner: {partner_name}
+Email: {partner_email}
+Data firma: {datetime.now(timezone.utc).strftime('%d/%m/%Y %H:%M')}
+
+Il PDF e' in allegato."""
+        
+        msg_admin.attach(MIMEText(body_admin, 'plain', 'utf-8'))
+        if pdf_bytes:
+            msg_admin.attach(_build_attachment(pdf_bytes,
+                f"contratto_{partner_name.replace(' ', '_')}.pdf"))
+        
+        await _smtp_send_async(msg_admin)
+        logger.info(f"[CONTRACT] Notifica admin inviata a {admin_email}")
+    except Exception as e:
+        logger.error(f"Errore invio notifica admin: {e}")

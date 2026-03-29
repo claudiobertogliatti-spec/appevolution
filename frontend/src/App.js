@@ -87,6 +87,7 @@ import YouTubeHeygenHub from "./components/admin/YouTubeHeygenHub";
 import ListaFreddaAdmin from "./components/admin/ListaFreddaAdmin";
 import ServiziExtraAdmin from "./components/admin/ServiziExtraAdmin";
 import FunnelBuilder from "./components/admin/FunnelBuilder";
+import PropostaPage from "./components/PropostaPage";
 import "./styles/design-system.css";
 
 // Use relative URL in production (same domain), absolute URL in development
@@ -1158,6 +1159,21 @@ export default function App() {
   if (window.location.pathname === "/analisi-strategica") {
     window.location.href = "/";
     return null;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ROUTE: Pagina Proposta Pubblica (token-based, no auth)
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (window.location.pathname.startsWith("/proposta/")) {
+    const propostaToken = window.location.pathname.split("/proposta/")[1]?.split("?")[0];
+    if (propostaToken) {
+      return (
+        <>
+          <Toaster position="top-center" richColors />
+          <PropostaPage token={propostaToken} />
+        </>
+      );
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
