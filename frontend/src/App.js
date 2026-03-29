@@ -1565,8 +1565,8 @@ export default function App() {
                     }`}
                     style={{ border: '1px solid #ECEDEF' }}
                   >
-                    📝 Pre-Questionario
-                    <div className="text-[10px] font-normal opacity-70">Ha pagato, deve compilare</div>
+                    Analisi Pagata
+                    <div className="text-[10px] font-normal opacity-70">Ha pagato, deve compilare questionario</div>
                   </button>
                   <button
                     onClick={() => setNav("cliente-post")}
@@ -1577,8 +1577,8 @@ export default function App() {
                     }`}
                     style={{ border: '1px solid #ECEDEF' }}
                   >
-                    ✅ Post-Questionario
-                    <div className="text-[10px] font-normal opacity-70">Ha compilato, attende call</div>
+                    Questionario Completato
+                    <div className="text-[10px] font-normal opacity-70">Ha compilato, attende call con Claudio</div>
                   </button>
                 </div>
               </div>

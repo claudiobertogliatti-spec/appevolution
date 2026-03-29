@@ -4,21 +4,21 @@ import axios from "axios";
 
 // ── TOKENS ───────────────────────────────────────────────────
 const C = {
-  bg: "#07090F",
-  surface: "#0D1117",
-  surfaceUp: "#161B22",
-  surfaceHigh: "#1C2128",
-  border: "#21262D",
-  green: "#3FB950", greenDim: "#238636",
-  amber: "#D29922",
-  blue: "#58A6FF", blueDim: "#1F4A8A",
-  purple: "#BC8CFF", purpleDim: "#6E40C9",
-  red: "#F85149",
-  orange: "#FF7B54",
-  teal: "#39D9C5",
-  text: "#E6EDF3",
-  textMuted: "#7D8590",
-  textDim: "#3D444D",
+  bg: "#FAFAF7",
+  surface: "#FFFFFF",
+  surfaceUp: "#FFFFFF",
+  surfaceHigh: "#F5F4F1",
+  border: "#ECEDEF",
+  green: "#2D9F6F", greenDim: "#EAFAF1",
+  amber: "#F2994A",
+  blue: "#3B82F6", blueDim: "#EFF6FF",
+  purple: "#7B68AE", purpleDim: "#F0ECFA",
+  red: "#EF476F",
+  orange: "#E8652B",
+  teal: "#2D9F6F",
+  text: "#1E2128",
+  textMuted: "#5F6572",
+  textDim: "#9CA3AF",
 };
 
 const VIDEO_FORMATS = [
