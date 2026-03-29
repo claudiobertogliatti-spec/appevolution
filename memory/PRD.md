@@ -58,15 +58,24 @@ Applicazione di gestione aziendale basata su AI per Evolution PRO LLC. Gestisce 
 ## P0 - Prossimi
 - [ ] Configurare Tag Systeme.io (creare tag e inserire ID nel .env)
 
-## P1 - Alta Priorità
+## P1 - Alta Priorita
 - [x] Generazione PDF contratto firmato (ReportLab + Cloudinary) — 28 Mar 2026
 - [x] Configurazione SMTP per email conferma + PDF allegato — 28 Mar 2026
   - SMTP: smtp.register.it:587 (info@evolution-pro.it)
-  - PDF upload su Cloudinary, download + allegato nell'email
-  - CC automatico all'admin (claudio.bertogliatti@gmail.com)
   - Endpoint test: POST /api/admin/partners/test-smtp
   - NOTA: Porta 587 bloccata in preview Emergent, funziona in produzione
+- [x] **Upgrade PDF/Email** — 29 Mar 2026
+  - PDF layout professionale (tabella, HR, footer legale)
+  - SMTP non-bloccante via run_in_executor
+  - Email separate: partner + admin
 - [ ] Test E2E flusso Servizi Extra (Stripe)
+
+## P4 - Pagina Proposta Pubblica (COMPLETATA 29 Mar 2026)
+- [x] Backend router /api/proposta/ (genera, get, accetta, firma, pagamento-stripe, scelta-bonifico, upload-distinta, upload-documenti, conferma-bonifico, admin/lista)
+- [x] Frontend PropostaPage.jsx (15 sezioni, progress bar, contratto inline, pagamento Stripe/Bonifico IBAN Revolut, upload documenti, conferma)
+- [x] Webhook Stripe integrato per partnership via token
+- [x] Notifiche Telegram + tag Systeme.io
+- [x] Test: 13/13 backend + UI 100% (iteration_31)
 
 ## P2 - Media Priorità
 - [ ] UI Frontend Calendario Editoriale
