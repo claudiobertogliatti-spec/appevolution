@@ -1704,6 +1704,78 @@ async def get_clienti_analisi_admin():
         logging.error(f"Error loading clienti analisi: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.get("/admin/approvazioni/count")
+async def get_approvazioni_count():
+    """
+    Conta gli elementi che richiedono approvazione admin:
+    - analisi generate ma non ancora inviate al cliente
+    - bonifici caricati in attesa di conferma
+    """
+    try:
+        analisi_da_approvare = await db.users.count_documents({
+            "user_type": "cliente_analisi",
+            "analisi_generata": True,
+            "email_analisi_inviata": {"$ne": True}
+        })
+        bonifici_in_attesa = await db.proposte.count_documents({
+            "distinta_bonifico_url": {"$exists": True, "$ne": None},
+            "pagamento_completato": {"$ne": True}
+        })
+        total = analisi_da_approvare + bonifici_in_attesa
+        return {
+            "total": total,
+            "analisi_da_approvare": analisi_da_approvare,
+            "bonifici_in_attesa": bonifici_in_attesa
+        }
+    except Exception as e:
+        logging.error(f"Error counting approvazioni: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/admin/stats")
+async def get_admin_stats():
+    """
+    Statistiche generali admin dashboard.
+    """
+    try:
+        partners = await db.partners.find({}, {"_id": 0, "phase": 1, "fase": 1, "revenue": 1}).to_list(500)
+        alerts = await db.alerts.find({}, {"_id": 0}).to_list(100)
+
+        valid_phases = ["F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","F13"]
+        total_partners = len(partners)
+        active_partners = sum(
+            1 for p in partners
+            if p.get("phase") in valid_phases or (p.get("fase") and p.get("fase") != "F0")
+        )
+        total_revenue = sum(p.get("revenue", 0) for p in partners)
+        alerts_count = len(alerts)
+
+        phase_dist = {}
+        for p in partners:
+            phase = p.get("phase", p.get("fase", "F0"))
+            phase_dist[phase] = phase_dist.get(phase, 0) + 1
+
+        analisi_da_approvare = await db.users.count_documents({
+            "user_type": "cliente_analisi",
+            "analisi_generata": True,
+            "email_analisi_inviata": {"$ne": True}
+        })
+        bonifici_in_attesa = await db.proposte.count_documents({
+            "distinta_bonifico_url": {"$exists": True, "$ne": None},
+            "pagamento_completato": {"$ne": True}
+        })
+
+        return {
+            "total_partners": total_partners,
+            "active_partners": active_partners,
+            "total_revenue": total_revenue,
+            "alerts_count": alerts_count,
+            "phase_distribution": phase_dist,
+            "approvazioni_pending": analisi_da_approvare + bonifici_in_attesa
+        }
+    except Exception as e:
+        logging.error(f"Error loading admin stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.get("/admin/clienti-analisi/{user_id}")
 async def get_cliente_analisi_detail(user_id: str):
     """
