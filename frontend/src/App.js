@@ -964,6 +964,7 @@ export default function App() {
   const [alerts,setAlerts]=useState([]);
   const [modules,setModules]=useState([]);
   const [stats,setStats]=useState({});
+  const [approvazioniCount,setApprovazioniCount]=useState(0);
   const [selectedPartner,setSelectedPartner]=useState(null);
   const [viewingCliente,setViewingCliente]=useState(null); // Cliente da visualizzare in modalità cliente
 
@@ -1055,13 +1056,15 @@ export default function App() {
         axios.get(`${API}/api/partners`),
         axios.get(`${API}/api/alerts`),
         axios.get(`${API}/api/modules`),
-        axios.get(`${API}/api/stats`)
+        axios.get(`${API}/api/stats`),
+        axios.get(`${API}/api/admin/approvazioni/count`)
       ]);
       if(results[0].status==="fulfilled") setAgents(results[0].value.data);
       if(results[1].status==="fulfilled") setPartners(results[1].value.data);
       if(results[2].status==="fulfilled") setAlerts(results[2].value.data);
       if(results[3].status==="fulfilled") setModules(results[3].value.data);
       if(results[4].status==="fulfilled") setStats(results[4].value.data);
+      if(results[5].status==="fulfilled") setApprovazioniCount(results[5].value.data.total||0);
       const failed = results.filter(r=>r.status==="rejected");
       if(failed.length) console.warn("[loadData] Some APIs failed:",failed.map(f=>f.reason?.config?.url||f.reason?.message));
     }catch(e){console.error("[loadData] critical error:",e);}
@@ -1607,12 +1610,13 @@ export default function App() {
           isAdmin={currentUser?.role === "admin"}
         />
       ) : (
-        <AdminSidebarLight 
+        <AdminSidebarLight
           currentNav={nav}
           onNavigate={setNav}
           adminUser={adminUser}
           setAdminUser={setAdminUser}
           alerts={alerts}
+          approvazioniCount={approvazioniCount}
           onLogout={handleLogout}
           onSwitchToPartner={() => { setMode("partner"); setNav("home"); }}
           onSwitchToCliente={() => { setMode("cliente"); }}
@@ -1730,6 +1734,7 @@ export default function App() {
             {nav==="documenti-partner"&&<PartnerDocumentsView partners={partners}/>}
             {nav==="onboarding-admin"&&<OnboardingDocumentsAdmin/>}
             {nav==="youtube-heygen"&&<YouTubeHeygenHub/>}
+            {nav==="calendario-admin"&&<CalendarioEditoriale partner={selectedPartner||partners[0]}/>}
             {nav==="andrea"&&(adminUser==="antonella"?<FeedVideoNuovi onOpenPipeline={()=>{setAdminUser("claudio");setNav("andrea");}}/>:<AndreaPipeline partners={partners}/>)}
             {nav==="metriche"&&<MetrichePostLancio partners={partners}/>}
             {nav==="stefania"&&<StefaniaChat partner={selectedPartner||partners[0]} onBack={()=>setNav("overview")} isAdmin={true}/>}
