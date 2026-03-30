@@ -68,6 +68,7 @@ import { AnalisiStrategicaApp } from "./components/cliente/AnalisiStrategicaApp"
 import { AdminClientiPanel } from "./components/admin/AdminClientiPanel";
 import { AdminClientiAnalisiPanel } from "./components/admin/AdminClientiAnalisiPanel";
 import { GestioneFlussoAnalisi } from "./components/admin/GestioneFlussoAnalisi";
+import { ProspectPipeline } from "./components/admin/ProspectPipeline";
 import { AdminDashboardPro } from "./components/admin/AdminDashboardPro";
 import { EmailTemplatesManager } from "./components/admin/EmailTemplatesManager";
 import { ClienteDashboard } from "./components/cliente/ClienteDashboard";
@@ -1722,7 +1723,7 @@ export default function App() {
               setMode("cliente");
               setNav("cliente-post");
             }}/>}
-            {nav==="clienti-analisi"&&<AdminClientiAnalisiPanel/>}
+            {nav==="clienti-analisi"&&<ProspectPipeline onOpenCliente={(c)=>{setViewingCliente(c);setMode("cliente");}}/>}
             {nav==="flusso-analisi"&&<GestioneFlussoAnalisi/>}
             {nav==="agenti"&&<AgentDashboard/>}
             {/* OrionLeadScoring rimosso - Lead gestiti esclusivamente in Systeme.io */}

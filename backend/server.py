@@ -1776,6 +1776,68 @@ async def get_admin_stats():
         logging.error(f"Error loading admin stats: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.get("/admin/prospect-pipeline")
+async def get_prospect_pipeline():
+    """
+    Tabella unificata flusso clienti con join su proposte.
+    Restituisce tutti i clienti_analisi con tutti gli step del funnel.
+    """
+    try:
+        clienti = await db.users.find(
+            {"user_type": "cliente_analisi"},
+            {"_id": 0, "password": 0}
+        ).sort("data_registrazione", -1).to_list(1000)
+
+        # Fetch tutte le proposte in blocco
+        proposte_list = await db.proposte.find({}, {"_id": 0}).to_list(2000)
+        proposte_map = {p["partner_id"]: p for p in proposte_list}
+
+        result = []
+        for c in clienti:
+            uid = c.get("id")
+            proposta = proposte_map.get(uid, {})
+            result.append({
+                "id": uid,
+                "nome": c.get("nome", ""),
+                "cognome": c.get("cognome", ""),
+                "email": c.get("email", ""),
+                "telefono": c.get("telefono", ""),
+                "data_registrazione": c.get("data_registrazione"),
+                # Step 1
+                "step_registrazione": True,
+                # Step 2
+                "step_questionario": bool(c.get("questionario_compilato")),
+                # Step 3
+                "step_pagamento_67": bool(c.get("pagamento_analisi")),
+                # Step 4
+                "step_analisi_generata": bool(c.get("analisi_generata")),
+                "step_analisi_approvata": bool(c.get("email_analisi_inviata")),
+                # Step 5
+                "call_stato": c.get("call_stato", "da_fissare"),
+                "step_call_completata": c.get("call_stato") == "completata",
+                # Step 6 - Proposta
+                "step_proposta_inviata": bool(proposta.get("token")),
+                "proposta_token": proposta.get("token"),
+                "proposta_url": f"/proposta/{proposta.get('token')}" if proposta.get("token") else None,
+                "proposta_vista": bool(proposta.get("visto_at")),
+                # Step 7
+                "step_contratto_firmato": bool(proposta.get("contratto_firmato_at")),
+                "contratto_firmato_at": proposta.get("contratto_firmato_at"),
+                # Step 8
+                "step_pagamento_2790": bool(proposta.get("pagamento_completato")),
+                "pagamento_metodo": proposta.get("pagamento_metodo"),
+                "distinta_bonifico_url": proposta.get("distinta_bonifico_url"),
+                # Step 9
+                "step_documenti": bool(proposta.get("documenti_identita_url")),
+                "documenti_identita_url": proposta.get("documenti_identita_url", []),
+            })
+
+        return {"success": True, "clienti": result, "totale": len(result)}
+    except Exception as e:
+        logging.error(f"Error loading prospect pipeline: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @api_router.get("/admin/clienti-analisi/{user_id}")
 async def get_cliente_analisi_detail(user_id: str):
     """
