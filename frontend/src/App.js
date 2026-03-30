@@ -1593,8 +1593,32 @@ export default function App() {
                     }`}
                     style={{ border: '1px solid #ECEDEF' }}
                   >
-                    Proposta + Contratto + €2.790
-                    <div className="text-[10px] font-normal opacity-70">Post-call: firma contratto e pagamento</div>
+                    Proposta + Analisi + Roadmap
+                    <div className="text-[10px] font-normal opacity-70">Sales letter, analisi e proposta economica</div>
+                  </button>
+                  <button
+                    onClick={() => setNav("cliente-contratto")}
+                    className={`w-full px-3 py-2 rounded-lg text-xs font-bold text-left transition-all ${
+                      nav === "cliente-contratto"
+                        ? 'bg-[#22C55E] text-white'
+                        : 'bg-white text-[#5F6572] hover:bg-[#F0FDF4]'
+                    }`}
+                    style={{ border: '1px solid #ECEDEF' }}
+                  >
+                    Contratto Partnership
+                    <div className="text-[10px] font-normal opacity-70">Lettura contratto completo + chat supporto</div>
+                  </button>
+                  <button
+                    onClick={() => setNav("cliente-firma")}
+                    className={`w-full px-3 py-2 rounded-lg text-xs font-bold text-left transition-all ${
+                      nav === "cliente-firma"
+                        ? 'bg-[#10B981] text-white'
+                        : 'bg-white text-[#5F6572] hover:bg-[#ECFDF5]'
+                    }`}
+                    style={{ border: '1px solid #ECEDEF' }}
+                  >
+                    Clausole & Firma
+                    <div className="text-[10px] font-normal opacity-70">Approvazione clausole + firma a video</div>
                   </button>
                 </div>
               </div>
@@ -1681,7 +1705,27 @@ export default function App() {
           
           {showPartnerProfile&&selectedPartner&&<PartnerProfileModal partner={selectedPartner} onClose={()=>{setShowPartnerProfile(false);}} onUpdate={loadData}/>}
 
-          {/* VISTA CLIENTE — Proposta + Contratto + €2.790 */}
+          {/* VISTA CLIENTE — Contratto Partnership (step 1: lettura + chat) */}
+          {mode==="cliente"&&nav==="cliente-contratto"&&(
+            <ContractSigning
+              key="cliente-contratto"
+              partner={viewingCliente ? { id: viewingCliente.id, name: `${viewingCliente.nome} ${viewingCliente.cognome}` } : { id: "demo", name: "Cliente Demo" }}
+              initialStep={1}
+              onContractSigned={() => { setNav("cliente-firma"); }}
+            />
+          )}
+
+          {/* VISTA CLIENTE — Clausole & Firma (step 2) */}
+          {mode==="cliente"&&nav==="cliente-firma"&&(
+            <ContractSigning
+              key="cliente-firma"
+              partner={viewingCliente ? { id: viewingCliente.id, name: `${viewingCliente.nome} ${viewingCliente.cognome}` } : { id: "demo", name: "Cliente Demo" }}
+              initialStep={2}
+              onContractSigned={() => { setNav("cliente-decisione"); }}
+            />
+          )}
+
+          {/* VISTA CLIENTE — Proposta + Analisi + Roadmap */}
           {mode==="cliente"&&nav==="cliente-decisione"&&(
             <DecisionePartnershipPage
               user={viewingCliente ? { id: viewingCliente.id, nome: viewingCliente.nome, cognome: viewingCliente.cognome } : { id: "demo", nome: "Cliente", cognome: "Demo" }}
@@ -1739,7 +1783,7 @@ export default function App() {
           )}
 
           {/* VISTA CLIENTE (demo per admin) */}
-          {mode==="cliente"&&nav!=="cliente-decisione"&&(
+          {mode==="cliente"&&nav!=="cliente-decisione"&&nav!=="cliente-contratto"&&nav!=="cliente-firma"&&(
             <ClienteDashboard
               cliente={viewingCliente ? {
                 id: viewingCliente.id,
