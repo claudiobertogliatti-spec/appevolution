@@ -19,7 +19,7 @@ import logging
 import json
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 import uuid
 from datetime import datetime, timezone, timedelta
 from emergentintegrations.llm.chat import LlmChat, UserMessage
@@ -145,7 +145,7 @@ class Partner(BaseModel):
     niche: str = ""
     phase: str = "F1"
     revenue: int = 0
-    contract: str = ""
+    contract: Union[str, dict] = ""
     alert: bool = False
     modules: List[int] = Field(default_factory=lambda: [0]*10)
 
@@ -153,7 +153,7 @@ class PartnerCreate(BaseModel):
     name: str
     niche: str = ""
     phase: str = "F1"
-    contract: str = ""
+    contract: Union[str, dict] = ""
 
 class Alert(BaseModel):
     model_config = ConfigDict(extra="ignore")
