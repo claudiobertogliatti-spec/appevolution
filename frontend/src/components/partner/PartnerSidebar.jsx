@@ -160,21 +160,52 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
           ADMIN/PARTNER TOGGLE (solo per admin)
           ══════════════════════════════════════════════════════════════════════ */}
       {isAdmin && (
-        <div className="px-4 py-3">
+        <div className="px-4 py-3 space-y-2">
           <div className="flex rounded-lg p-1" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
-            <button 
+            <button
               onClick={onSwitchToAdmin}
               className="flex-1 py-1.5 text-xs font-bold rounded-md transition-all"
               style={{ color: '#9CA3AF' }}
             >
               Admin
             </button>
-            <button 
+            <button
               className="flex-1 py-1.5 text-xs font-bold rounded-md transition-all"
               style={{ background: '#F2C418', color: '#1E2128', boxShadow: '0 4px 20px rgba(242,196,24,0.25)' }}
             >
               Partner
             </button>
+          </div>
+
+          {/* Demo Contratto — solo quando contratto non firmato */}
+          <div className="p-3 rounded-xl" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
+            <div className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: '#9CA3AF' }}>DEMO CONTRATTO</div>
+            <div className="space-y-1.5">
+              <button
+                onClick={() => onNavigate && onNavigate('partner-contratto')}
+                className="w-full px-3 py-2 rounded-lg text-xs font-bold text-left transition-all"
+                style={{
+                  background: currentNav !== 'partner-firma' ? '#10B981' : '#FAFAF7',
+                  color: currentNav !== 'partner-firma' ? 'white' : '#5F6572',
+                  border: '1px solid #ECEDEF'
+                }}
+              >
+                Lettura Contratto
+                <div className="text-[10px] font-normal opacity-70">Contratto + chat supporto</div>
+              </button>
+              <button
+                onClick={() => onNavigate && onNavigate('partner-firma')}
+                className="w-full px-3 py-2 rounded-lg text-xs font-bold text-left transition-all"
+                style={{
+                  background: currentNav === 'partner-firma' ? '#8B5CF6' : '#FAFAF7',
+                  color: currentNav === 'partner-firma' ? 'white' : '#5F6572',
+                  border: '1px solid #ECEDEF'
+                }}
+              >
+                Clausole & Firma
+                <div className="text-[10px] font-normal opacity-70">Approvazione clausole + firma a video</div>
+              </button>
+            </div>
           </div>
         </div>
       )}

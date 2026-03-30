@@ -567,8 +567,8 @@ function renderContract(text) {
   });
 }
 
-export default function ContractSigning({ partner, onContractSigned }) {
-  const [step, setStep] = useState(1);
+export default function ContractSigning({ partner, onContractSigned, initialStep }) {
+  const [step, setStep] = useState(initialStep || 1);
   const [scrollPct, setScrollPct] = useState(0);
   const [hasReadContract, setHasReadContract] = useState(false);
   const [currentArticle, setCurrentArticle] = useState(1);

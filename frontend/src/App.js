@@ -1830,15 +1830,16 @@ export default function App() {
           {mode==="partner"&&<>
             {/* BLOCCO OBBLIGATORIO - Se contratto non firmato, mostra solo ContractSigning */}
             {!demoPartner?.contract?.signed_at ? (
-              <ContractSigning 
-                partner={demoPartner} 
-                onContractSigned={(data) => { 
-                  // Aggiorna il partner con i dati del contratto
+              <ContractSigning
+                key={nav === "partner-firma" ? "firma" : "contratto"}
+                partner={demoPartner}
+                initialStep={nav === "partner-firma" ? 2 : 1}
+                onContractSigned={(data) => {
                   if (demoPartner) {
                     demoPartner.contract = { signed_at: data.signed_at };
                   }
-                  setNav("onboarding-docs"); 
-                }} 
+                  setNav("onboarding-docs");
+                }}
               />
             ) : (
               <>
