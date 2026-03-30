@@ -1575,14 +1575,26 @@ export default function App() {
                   <button
                     onClick={() => setNav("cliente-post")}
                     className={`w-full px-3 py-2 rounded-lg text-xs font-bold text-left transition-all ${
-                      nav === "cliente-post" 
-                        ? 'bg-[#10B981] text-white' 
+                      nav === "cliente-post"
+                        ? 'bg-[#10B981] text-white'
                         : 'bg-white text-[#5F6572] hover:bg-[#D1FAE5]'
                     }`}
                     style={{ border: '1px solid #ECEDEF' }}
                   >
                     Questionario Completato
                     <div className="text-[10px] font-normal opacity-70">Ha compilato, attende call con Claudio</div>
+                  </button>
+                  <button
+                    onClick={() => setNav("cliente-decisione")}
+                    className={`w-full px-3 py-2 rounded-lg text-xs font-bold text-left transition-all ${
+                      nav === "cliente-decisione"
+                        ? 'bg-[#8B5CF6] text-white'
+                        : 'bg-white text-[#5F6572] hover:bg-[#EDE9FE]'
+                    }`}
+                    style={{ border: '1px solid #ECEDEF' }}
+                  >
+                    Proposta + Contratto + €2.790
+                    <div className="text-[10px] font-normal opacity-70">Post-call: firma contratto e pagamento</div>
                   </button>
                 </div>
               </div>
@@ -1669,9 +1681,66 @@ export default function App() {
           
           {showPartnerProfile&&selectedPartner&&<PartnerProfileModal partner={selectedPartner} onClose={()=>{setShowPartnerProfile(false);}} onUpdate={loadData}/>}
 
+          {/* VISTA CLIENTE — Proposta + Contratto + €2.790 */}
+          {mode==="cliente"&&nav==="cliente-decisione"&&(
+            <DecisionePartnershipPage
+              user={viewingCliente ? { id: viewingCliente.id, nome: viewingCliente.nome, cognome: viewingCliente.cognome } : { id: "demo", nome: "Cliente", cognome: "Demo" }}
+              onLogout={() => { setMode("admin"); setNav("overview"); setViewingCliente(null); }}
+              demoData={viewingCliente ? undefined : {
+                cliente: { nome: "Marco", cognome: "Verdi", email: "marco.verdi@example.com" },
+                contratto_firmato: false,
+                pagamento_completato: false,
+                documenti: [],
+                can_activate: false,
+                contratto: null,
+                analisi: {
+                  titolo: "Analisi Strategica — Accademia Digitale per Coach di Business",
+                  sezioni: {
+                    profilo_analizzato: {
+                      titolo: "Profilo Analizzato",
+                      contenuto: "Marco è un coach di business con 8 anni di esperienza che lavora principalmente con imprenditori digitali. Ha costruito una solida reputazione nel settore ma opera ancora prevalentemente con un modello di consulenze 1:1 che limita la sua scalabilità."
+                    },
+                    costo_modello_attuale: {
+                      titolo: "Il vero costo di rimanere nel modello attuale",
+                      contenuto: "Ogni ora che dedichi alle consulenze 1:1 è un'ora che non scala. Con il tuo attuale modello, il tuo fatturato è direttamente proporzionale alle ore lavorate — e le ore sono finite.",
+                      modello_attuale: {
+                        titolo: "Il tuo modello attuale",
+                        elementi: ["Consulenze 1:1 a €200/h", "Max 6 clienti attivi simultaneamente", "Nessuna fonte di reddito passivo", "Dipendenza totale dal tuo tempo"],
+                        limite: "Raggiunto il cap massimo a ~€60.000/anno senza possibilità di crescita"
+                      },
+                      obiettivo_accademia: {
+                        titolo: "Con la tua Accademia Digitale",
+                        benefici: ["Videocorso venduto 24/7 anche mentre dormi", "Masterclass di lancio che porta clienti in automatico", "Funnel automatizzato: da lead a vendita senza intervento manuale", "Potenziale di €80.000–€150.000/anno con lo stesso impegno"]
+                      }
+                    },
+                    valutazione_fattibilita: {
+                      titolo: "Esito del Check di Fattibilità",
+                      punteggio: 8.5,
+                      livello_potenziale: "Alto",
+                      esito: "Progetto altamente fattibile con forte potenziale di crescita",
+                      motivazione: "Marco dispone di un pubblico esistente, expertise consolidata e una chiara proposta di valore. La trasformazione in accademia digitale è naturale e strategicamente solida.",
+                      punti_forza: ["Newsletter attiva con 1.200 iscritti", "LinkedIn 3.500 follower", "8 anni di expertise documentata", "Chiaro target cliente ideale"],
+                      aree_miglioramento: ["Contenuti da strutturare in moduli", "Funnel di vendita da costruire", "Automazioni email da implementare"]
+                    },
+                    roadmap: {
+                      titolo: "Roadmap del Progetto",
+                      fasi: [
+                        { fase: "Fase 1 — Posizionamento e Brand", durata: "Settimane 1-2", descrizione: "Definizione del posizionamento unico, brand identity e messaggi chiave per differenziarti nel mercato dei coach." },
+                        { fase: "Fase 2 — Masterclass di Vendita", durata: "Settimane 3-5", descrizione: "Creazione della Masterclass gratuita che converte: struttura, script, slide e sistema di registrazione." },
+                        { fase: "Fase 3 — Videocorso Flagship", durata: "Settimane 6-10", descrizione: "Sviluppo completo del videocorso: struttura moduli, produzione contenuti, revisione e pubblicazione." },
+                        { fase: "Fase 4 — Funnel e Automazioni", durata: "Settimane 11-14", descrizione: "Costruzione del funnel automatizzato, sequenza email di vendita e sistema di pagamento integrato." },
+                        { fase: "Fase 5 — Lancio e Ottimizzazione", durata: "Settimane 15-18", descrizione: "Lancio ufficiale con campagna ads, analisi metriche e ottimizzazione continua per massimizzare le vendite." }
+                      ]
+                    }
+                  }
+                }
+              }}
+            />
+          )}
+
           {/* VISTA CLIENTE (demo per admin) */}
-          {mode==="cliente"&&(
-            <ClienteDashboard 
+          {mode==="cliente"&&nav!=="cliente-decisione"&&(
+            <ClienteDashboard
               cliente={viewingCliente ? {
                 id: viewingCliente.id,
                 nome: viewingCliente.nome || "Cliente",

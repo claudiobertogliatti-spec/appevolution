@@ -27,12 +27,12 @@ const IBAN_INFO = {
   causale: "Partnership Evolution PRO - [NOME COGNOME]"
 };
 
-export function DecisionePartnershipPage({ user, onLogout }) {
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState(null);
+export function DecisionePartnershipPage({ user, onLogout, demoData }) {
+  const [loading, setLoading] = useState(!demoData);
+  const [data, setData] = useState(demoData || null);
   const [error, setError] = useState(null);
   const [activeSection, setActiveSection] = useState("analisi");
-  
+
   // Stati per azioni
   const [signingContract, setSigningContract] = useState(false);
   const [contractAccepted, setContractAccepted] = useState(false);
@@ -43,6 +43,7 @@ export function DecisionePartnershipPage({ user, onLogout }) {
   const [activatingPartnership, setActivatingPartnership] = useState(false);
 
   useEffect(() => {
+    if (demoData) return;
     if (user?.id) {
       loadDecisioneData();
     }
