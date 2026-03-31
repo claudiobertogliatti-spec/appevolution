@@ -998,12 +998,7 @@ export default function App() {
             setNav("partner");
           } else {
             setMode("partner");
-            // Controlla se il contratto è firmato
-            if (!userData.contract?.signed_at) {
-              setNav("contract"); // Redirect obbligatorio alla firma
-            } else {
-              setNav("home");
-            }
+            setNav("home");
           }
         } catch (e) {
           localStorage.removeItem("access_token");
@@ -1029,12 +1024,7 @@ export default function App() {
       setNav("partner");
     } else {
       setMode("partner");
-      // Controlla se il contratto è firmato
-      if (!user.contract?.signed_at) {
-        setNav("contract"); // Redirect obbligatorio alla firma
-      } else {
-        setNav("home");
-      }
+      setNav("home");
     }
     loadData();
   };
@@ -1863,9 +1853,6 @@ export default function App() {
               />
             ) : (
               <>
-                {/* CONTRACT SIGNING - Accessibile anche dopo la firma per revisione */}
-                {nav==="contract"&&<ContractSigning partner={demoPartner} onContractSigned={(data) => { setNav("dashboard"); }} />}
-                
                 {/* DASHBOARD */}
                 {nav==="dashboard"&&<PartnerDashboardSimplified partner={demoPartner} onNavigate={setNav} onOpenChat={()=>setNav("supporto")}/>}
                 {nav==="home"&&<PartnerDashboardSimplified partner={demoPartner} onNavigate={setNav} onOpenChat={()=>setNav("supporto")}/>}

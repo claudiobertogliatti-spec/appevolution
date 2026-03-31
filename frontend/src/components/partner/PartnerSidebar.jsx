@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   Home, Check, Lock, MessageCircle, LogOut,
-  FileSignature, Upload, X, User, FolderOpen,
+  Upload, X, User, FolderOpen,
   Shield, TrendingUp, Users, Target, Video,
   ShoppingBag, Rocket, Star, Mic, Film,
   Bot, Calendar, Zap, Package
@@ -291,23 +291,6 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
             <span className="text-sm font-bold" style={{ color: '#1E2128' }}>Home</span>
           </button>
         </div>
-
-        {/* ALERT: contratto */}
-        {!partner?.contract?.signed_at && (
-          <button
-            onClick={() => onNavigate('contract')}
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all mb-1 animate-pulse"
-            style={{ background: '#FEF3C7', borderLeft: '3px solid #F59E0B' }}
-          >
-            <FileSignature className="w-4 h-4 flex-shrink-0" style={{ color: '#F59E0B' }} />
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-bold leading-tight" style={{ color: '#92400E' }}>Firma il contratto</div>
-              <div className="text-[10px]" style={{ color: '#B45309' }}>Necessario per iniziare</div>
-            </div>
-            <span className="text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0"
-                  style={{ background: '#F59E0B', color: '#FFF' }}>!</span>
-          </button>
-        )}
 
         {/* ALERT: documenti */}
         {partner?.contract?.signed_at && partner?.documents_status !== "verified" && (
