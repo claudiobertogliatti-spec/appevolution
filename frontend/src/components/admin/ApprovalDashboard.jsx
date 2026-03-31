@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { API } from '../../utils/api-config';
-import { 
-  Clock, CheckCircle, XCircle, AlertTriangle, 
+import {
+  Clock, CheckCircle, XCircle, AlertTriangle,
   Eye, RefreshCw, User, FileText, Mail, MessageSquare,
-  ChevronDown, ChevronUp, Download, Sparkles, ExternalLink
+  ChevronDown, ChevronUp, Download, Sparkles, ExternalLink,
+  UserCheck, FileCheck, Banknote, Loader2
 } from 'lucide-react';
 
 const ApprovalDashboard = () => {
   const [tasks, setTasks] = useState([]);
   const [analisiDaRevisionare, setAnalisiDaRevisionare] = useState([]);
+  const [bonificiInAttesa, setBonificiInAttesa] = useState([]);
   const [stats, setStats] = useState({
     pending: 0,
     approved_today: 0,
@@ -21,22 +23,26 @@ const ApprovalDashboard = () => {
   const [reviewerName, setReviewerName] = useState('Antonella');
   const [actionLoading, setActionLoading] = useState(false);
   const [expandedTask, setExpandedTask] = useState(null);
+  const [approvandoBonifico, setApprovandoBonifico] = useState(null);
 
   const fetchData = useCallback(async () => {
     try {
-      const [tasksRes, statsRes, analisiRes] = await Promise.all([
+      const [tasksRes, statsRes, analisiRes, bonificiRes] = await Promise.all([
         fetch(`${API}/api/agent-tasks/approvals`),
         fetch(`${API}/api/agent-tasks/approval-stats`),
-        fetch(`${API}/api/clienti/admin/analisi-da-revisionare`)
+        fetch(`${API}/api/clienti/admin/analisi-da-revisionare`),
+        fetch(`${API}/api/proposta/admin/bonifici-in-attesa`)
       ]);
-      
+
       const tasksData = await tasksRes.json();
       const statsData = await statsRes.json();
       const analisiData = await analisiRes.json();
-      
+      const bonificiData = await bonificiRes.json().catch(() => ({ items: [] }));
+
       setTasks(tasksData.tasks || []);
       setStats(statsData);
       setAnalisiDaRevisionare(analisiData || []);
+      setBonificiInAttesa(bonificiData.items || []);
     } catch (error) {
       console.error('Error fetching approval data:', error);
     } finally {
@@ -94,6 +100,23 @@ const ApprovalDashboard = () => {
       console.error('Error rejecting task:', error);
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleApprovaBonifico = async (token, nome) => {
+    if (!window.confirm(`Confermare il bonifico di ${nome} e attivarlo come partner?`)) return;
+    setApprovandoBonifico(token);
+    try {
+      const res = await fetch(`${API}/api/proposta/${token}/conferma-bonifico`, { method: 'POST' });
+      if (res.ok) {
+        await fetchData();
+      } else {
+        alert('Errore nella conferma bonifico');
+      }
+    } catch (e) {
+      alert('Errore di connessione');
+    } finally {
+      setApprovandoBonifico(null);
     }
   };
 
@@ -178,6 +201,71 @@ const ApprovalDashboard = () => {
           Aggiorna
         </button>
       </div>
+
+      {/* ═══ NUOVI PARTNER — Bonifici in attesa ═══ */}
+      {bonificiInAttesa.length > 0 && (
+        <div className="rounded-2xl overflow-hidden" style={{ border: '2px solid #F59E0B' }}>
+          <div className="px-5 py-3 flex items-center gap-3"
+               style={{ background: 'linear-gradient(135deg, #FEF3C7, #FFF8DC)' }}>
+            <Banknote className="w-5 h-5" style={{ color: '#D97706' }} />
+            <div className="flex-1">
+              <span className="font-black text-sm" style={{ color: '#92400E' }}>
+                Nuovi Partner — Bonifici in attesa di conferma
+              </span>
+              <span className="ml-2 text-xs px-2 py-0.5 rounded-full font-bold"
+                    style={{ background: '#F59E0B', color: '#FFF' }}>
+                {bonificiInAttesa.length}
+              </span>
+            </div>
+          </div>
+          <div className="divide-y" style={{ background: '#FFFBEB', borderColor: '#FDE68A' }}>
+            {bonificiInAttesa.map((b) => (
+              <div key={b.token} className="px-5 py-4 flex items-center gap-4">
+                {/* Avatar */}
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+                     style={{ background: '#FDE68A', color: '#92400E' }}>
+                  {(b.prospect_nome || '?')[0].toUpperCase()}
+                </div>
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-sm" style={{ color: '#1E2128' }}>
+                    {b.prospect_nome || 'Nome non disponibile'}
+                  </div>
+                  <div className="text-xs" style={{ color: '#6B7280' }}>{b.prospect_email}</div>
+                  {b.distinta_caricata_at && (
+                    <div className="text-xs mt-0.5" style={{ color: '#9CA3AF' }}>
+                      Distinta caricata: {new Date(b.distinta_caricata_at).toLocaleString('it-IT')}
+                    </div>
+                  )}
+                </div>
+                {/* Azioni */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {b.distinta_bonifico_url && (
+                    <a href={b.distinta_bonifico_url} target="_blank" rel="noopener noreferrer"
+                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-90"
+                       style={{ background: '#E0F2FE', color: '#0369A1', border: '1px solid #BAE6FD' }}>
+                      <Eye className="w-3.5 h-3.5" />
+                      Vedi distinta
+                    </a>
+                  )}
+                  <button
+                    onClick={() => handleApprovaBonifico(b.token, b.prospect_nome)}
+                    disabled={approvandoBonifico === b.token}
+                    className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all hover:opacity-90"
+                    style={{ background: '#10B981', color: '#FFF' }}
+                  >
+                    {approvandoBonifico === b.token
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : <UserCheck className="w-3.5 h-3.5" />
+                    }
+                    {approvandoBonifico === b.token ? 'Attivazione...' : 'Approva e Attiva'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

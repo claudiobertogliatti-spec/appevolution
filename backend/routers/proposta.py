@@ -384,7 +384,20 @@ async def upload_documenti(token: str, files: List[UploadFile] = File(...)):
 
 
 # ─────────────────────────────────────────────────
-# ADMIN: Conferma bonifico
+# ADMIN: Lista bonifici in attesa di conferma
+# ─────────────────────────────────────────────────
+@router.get("/admin/bonifici-in-attesa")
+async def bonifici_in_attesa():
+    """Lista proposte con distinta bonifico caricata ma pagamento non ancora confermato."""
+    items = await db.proposte.find({
+        "distinta_bonifico_url": {"$exists": True, "$ne": None},
+        "pagamento_completato": {"$ne": True}
+    }, {"_id": 0}).sort("distinta_caricata_at", -1).to_list(100)
+    return {"items": items, "count": len(items)}
+
+
+# ─────────────────────────────────────────────────
+# ADMIN: Conferma bonifico → attiva partner
 # ─────────────────────────────────────────────────
 @router.post("/{token}/conferma-bonifico")
 async def conferma_bonifico(token: str):
@@ -400,17 +413,39 @@ async def conferma_bonifico(token: str):
     }})
 
     partner_id = proposta.get("partner_id")
+    prospect_email = proposta.get("prospect_email", "")
+    prospect_nome = proposta.get("prospect_nome", "")
+
     if partner_id:
-        for coll in ["partners", "users"]:
-            await db[coll].update_one({"id": partner_id}, {"$set": {
+        # Cambia ruolo a "partner" e avvia onboarding
+        await db.users.update_one({"id": partner_id}, {"$set": {
+            "role": "partner",
+            "stato_funnel": "pagamento_completato",
+            "pagamento_partnership_at": now
+        }})
+        await db.partners.update_one(
+            {"id": partner_id},
+            {"$set": {
                 "stato_funnel": "pagamento_completato",
-                "pagamento_partnership_at": now
-            }})
+                "pagamento_partnership_at": now,
+                "phase": "F1",
+                "documents_status": "pending",
+                "partnership_pagata": True,
+                "partnership_data_pagamento": now,
+                "partnership_metodo": "bonifico"
+            }},
+            upsert=True
+        )
 
-    await _add_systeme_tag(proposta.get("prospect_email", ""), "contratto_firmato")
-    await _notify_telegram(f"Bonifico verificato per {proposta.get('prospect_nome', '')} — onboarding avviato")
+    await _add_systeme_tag(prospect_email, "contratto_firmato")
+    await _add_systeme_tag(prospect_email, "onboarding_avviato")
+    await _notify_telegram(
+        f"✅ Bonifico confermato — {prospect_nome} è ora PARTNER\n"
+        f"📧 {prospect_email}\n"
+        f"🚀 Onboarding avviato"
+    )
 
-    return {"success": True}
+    return {"success": True, "partner_id": partner_id}
 
 
 # ─────────────────────────────────────────────────
@@ -441,15 +476,33 @@ async def gestisci_pagamento_partnership(session_id: str, metadata: dict):
 
     partner_id = metadata.get("partner_id")
     if partner_id:
-        for coll in ["partners", "users"]:
-            await db[coll].update_one({"id": partner_id}, {"$set": {
+        await db.users.update_one({"id": partner_id}, {"$set": {
+            "role": "partner",
+            "stato_funnel": "pagamento_completato",
+            "pagamento_partnership_at": now
+        }})
+        await db.partners.update_one(
+            {"id": partner_id},
+            {"$set": {
                 "stato_funnel": "pagamento_completato",
-                "pagamento_partnership_at": now
-            }})
+                "pagamento_partnership_at": now,
+                "phase": "F1",
+                "documents_status": "pending",
+                "partnership_pagata": True,
+                "partnership_data_pagamento": now,
+                "partnership_metodo": "stripe"
+            }},
+            upsert=True
+        )
 
-    await _add_systeme_tag(metadata.get("prospect_email", ""), "contratto_firmato")
+    email = metadata.get("prospect_email", "")
     nome = metadata.get("prospect_nome", "")
-    await _notify_telegram(f"Pagamento partnership completato da {nome}")
+    await _add_systeme_tag(email, "contratto_firmato")
+    await _add_systeme_tag(email, "onboarding_avviato")
+    await _notify_telegram(
+        f"✅ Pagamento Stripe partnership — {nome} è ora PARTNER\n"
+        f"📧 {email}\n🚀 Onboarding avviato"
+    )
 
     logger.info(f"[PROPOSTA] Pagamento partnership completato — token={token}, partner={partner_id}")
 
