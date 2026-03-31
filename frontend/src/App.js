@@ -1596,30 +1596,6 @@ export default function App() {
                     Proposta + Analisi + Roadmap
                     <div className="text-[10px] font-normal opacity-70">Sales letter, analisi e proposta economica</div>
                   </button>
-                  <button
-                    onClick={() => setNav("cliente-contratto")}
-                    className={`w-full px-3 py-2 rounded-lg text-xs font-bold text-left transition-all ${
-                      nav === "cliente-contratto"
-                        ? 'bg-[#22C55E] text-white'
-                        : 'bg-white text-[#5F6572] hover:bg-[#F0FDF4]'
-                    }`}
-                    style={{ border: '1px solid #ECEDEF' }}
-                  >
-                    Contratto Partnership
-                    <div className="text-[10px] font-normal opacity-70">Lettura contratto completo + chat supporto</div>
-                  </button>
-                  <button
-                    onClick={() => setNav("cliente-firma")}
-                    className={`w-full px-3 py-2 rounded-lg text-xs font-bold text-left transition-all ${
-                      nav === "cliente-firma"
-                        ? 'bg-[#10B981] text-white'
-                        : 'bg-white text-[#5F6572] hover:bg-[#ECFDF5]'
-                    }`}
-                    style={{ border: '1px solid #ECEDEF' }}
-                  >
-                    Clausole & Firma
-                    <div className="text-[10px] font-normal opacity-70">Approvazione clausole + firma a video</div>
-                  </button>
                 </div>
               </div>
             )}
