@@ -42,6 +42,21 @@ class ContractChatRequest(BaseModel):
     current_article: Optional[int] = None
 
 
+class PartnerPersonalData(BaseModel):
+    nome: str = ""
+    cognome: str = ""
+    nome_azienda: str = ""
+    codice_fiscale: str = ""
+    partita_iva: str = ""
+    indirizzo: str = ""
+    citta: str = ""
+    cap: str = ""
+    provincia: str = ""
+    email: str = ""
+    pec: str = ""
+    iban: str = ""
+
+
 class ContractParamsUpdate(BaseModel):
     corrispettivo: Optional[float] = None
     corrispettivo_testo: Optional[str] = None
@@ -117,7 +132,57 @@ def render_contract_text(params: dict) -> str:
         "massimo 3 (tre) rate",
         f"massimo {num_rate} ({rate_parola}) rate"
     )
+    # Personalizzazione con dati del partner
+    pd = params.get("personal_data", {})
+    if pd.get("nome") and pd.get("cognome"):
+        nome_completo = f"{pd['nome']} {pd['cognome']}"
+        indirizzo_completo = f"{pd.get('indirizzo', '')}, {pd.get('cap', '')} {pd.get('citta', '')} ({pd.get('provincia', '')})".strip(", ")
+        riga_partner = f"{nome_completo}"
+        if pd.get("nome_azienda"):
+            riga_partner += f", titolare di {pd['nome_azienda']}"
+        if pd.get("codice_fiscale"):
+            riga_partner += f", C.F. {pd['codice_fiscale']}"
+        if pd.get("partita_iva"):
+            riga_partner += f", P.IVA {pd['partita_iva']}"
+        if indirizzo_completo.strip(", "):
+            riga_partner += f", con sede/residenza in {indirizzo_completo}"
+        if pd.get("pec"):
+            riga_partner += f", PEC: {pd['pec']}"
+        elif pd.get("email"):
+            riga_partner += f", email: {pd['email']}"
+        if pd.get("iban"):
+            riga_partner += f", IBAN: {pd['iban']}"
+        text = text.replace(
+            "Il Partner sottoscrittore del presente contratto digitale.",
+            f"{riga_partner}, di seguito \"Partner\"."
+        )
     return text
+
+
+@router.get("/partner-data/{partner_id}")
+async def get_partner_data(partner_id: str):
+    """Recupera i dati personali salvati del partner per il contratto."""
+    record = await db.contract_partner_data.find_one({"partner_id": partner_id})
+    if not record:
+        return {"data": {}}
+    record.pop("_id", None)
+    record.pop("partner_id", None)
+    record.pop("saved_at", None)
+    return {"data": record}
+
+
+@router.post("/partner-data/{partner_id}")
+async def save_partner_data(partner_id: str, body: PartnerPersonalData):
+    """Salva i dati personali del partner per personalizzare il contratto."""
+    data = body.model_dump()
+    data["partner_id"] = partner_id
+    data["saved_at"] = datetime.now(timezone.utc).isoformat()
+    await db.contract_partner_data.update_one(
+        {"partner_id": partner_id},
+        {"$set": data},
+        upsert=True
+    )
+    return {"success": True}
 
 
 @router.post("/chat")
@@ -931,6 +996,10 @@ async def _get_partner_params(partner_id: str) -> dict:
     params = DEFAULT_CONTRACT_PARAMS.copy()
     if partner and partner.get("contract_params"):
         params.update({k: v for k, v in partner["contract_params"].items() if v is not None and k != "updated_at"})
+    # Include dati personali del partner per personalizzare il contratto
+    personal = await db.contract_partner_data.find_one({"partner_id": partner_id}, {"_id": 0, "partner_id": 0, "saved_at": 0})
+    if personal:
+        params["personal_data"] = personal
     return params
 
 async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[str]:

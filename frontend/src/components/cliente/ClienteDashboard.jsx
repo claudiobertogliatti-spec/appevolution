@@ -820,31 +820,6 @@ export function ClienteDashboard({ cliente, onLogout }) {
                   </div>
                 </div>
 
-                {/* ═══════════════════════════════════════════════════════════════════════
-                    VIDEO DI BENVENUTO
-                    ═══════════════════════════════════════════════════════════════════════ */}
-                <div className="rounded-2xl overflow-hidden" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-                  <div className="p-6 pb-4">
-                    <h3 className="text-lg font-bold text-[#1E2128] mb-2 flex items-center gap-2">
-                      🎥 Messaggio di benvenuto
-                    </h3>
-                    <p className="text-sm text-[#5F6572]">
-                      Prima della call puoi guardare questo breve video di Claudio.
-                    </p>
-                    <p className="text-sm text-[#9CA3AF] mt-1">Durata: circa 3 minuti.</p>
-                  </div>
-                  <div className="mx-6 mb-6 rounded-xl overflow-hidden">
-                    <video 
-                      controls 
-                      className="w-full rounded-xl"
-                      poster=""
-                      data-testid="video-benvenuto"
-                    >
-                      <source src="https://customer-assets.emergentagent.com/job_stefania-agent/artifacts/ij5wirqf_Quick_Avatar_Video.mp4" type="video/mp4" />
-                      Il tuo browser non supporta il tag video.
-                    </video>
-                  </div>
-                </div>
 
                 {/* ═══════════════════════════════════════════════════════════════════════
                     MINI CORSO GRATUITO - 7 MODULI
