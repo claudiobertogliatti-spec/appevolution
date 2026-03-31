@@ -22,11 +22,11 @@ const SEZIONI = [
 
 // IBAN per bonifico
 const IBAN_INFO = {
-  intestatario: "Evolution PRO di Claudio Bertogliatti",
-  iban: "IT60J3608105138261222222222",
+  intestatario: "Evolution PRO LLC - Claudio Bertogliatti",
+  iban: "LT94 3250 0974 4929 5781",
   bic: "REVOLT21",
-  banca: "Revolut",
-  causale: "Partnership Evolution PRO - [NOME COGNOME]"
+  banca: "Revolut Bank UAB",
+  causale: "Partnership Evolution PRO - [Nome e Cognome]"
 };
 
 export function DecisionePartnershipPage({ user, onLogout, demoData }) {
@@ -807,6 +807,10 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                                 {copiedIban ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-gray-400" />}
                               </button>
                             </div>
+                          </div>
+                          <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: "#FFFFFF" }}>
+                            <span className="text-sm" style={{ color: "#5F6572" }}>Banca:</span>
+                            <span className="text-sm font-medium" style={{ color: "#1E2128" }}>{IBAN_INFO.banca}</span>
                           </div>
                           <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: "#FFFFFF" }}>
                             <span className="text-sm" style={{ color: "#5F6572" }}>BIC/SWIFT:</span>

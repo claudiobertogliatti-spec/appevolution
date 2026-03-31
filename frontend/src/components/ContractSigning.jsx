@@ -599,6 +599,7 @@ export default function ContractSigning({ partner, onContractSigned, initialStep
   // Dynamic contract text
   const [dynamicContractText, setDynamicContractText] = useState(null);
   const [contractLoading, setContractLoading] = useState(true);
+  const [customPdfUrl, setCustomPdfUrl] = useState(null);
   
   // Chat state
   const [messages, setMessages] = useState([
@@ -633,6 +634,9 @@ export default function ContractSigning({ partner, onContractSigned, initialStep
         ]);
         if (textRes.status === 'fulfilled' && textRes.value.data?.contract_text) {
           setDynamicContractText(textRes.value.data.contract_text);
+        }
+        if (textRes.status === 'fulfilled' && textRes.value.data?.custom_pdf_url) {
+          setCustomPdfUrl(textRes.value.data.custom_pdf_url);
         }
         if (dataRes.status === 'fulfilled' && dataRes.value.data?.data) {
           setPartnerData(prev => ({ ...prev, ...dataRes.value.data.data }));
@@ -1004,23 +1008,38 @@ export default function ContractSigning({ partner, onContractSigned, initialStep
                   </div>
 
                   {/* Contract Body */}
-                  <div 
-                    ref={contractRef}
-                    onScroll={handleScroll}
-                    className="px-6 py-5 font-['Georgia',serif] h-[calc(100vh-380px)] md:h-[calc(100vh-320px)] overflow-y-auto scroll-smooth"
-                  >
-                    {contractLoading ? (
-                      <div className="flex items-center justify-center py-20">
-                        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                        <span className="ml-2 text-sm text-gray-400">Caricamento contratto...</span>
-                      </div>
-                    ) : renderContract(activeContractText)}
-                  </div>
+                  {customPdfUrl ? (
+                    <div className="h-[calc(100vh-380px)] md:h-[calc(100vh-320px)] flex flex-col">
+                      <iframe
+                        src={customPdfUrl}
+                        title="Contratto Partnership"
+                        className="flex-1 w-full"
+                        style={{ border: 'none' }}
+                        onLoad={() => {
+                          // Permetti di procedere dopo 10 secondi di visualizzazione PDF
+                          setTimeout(() => setHasReadContract(true), 10000);
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      ref={contractRef}
+                      onScroll={handleScroll}
+                      className="px-6 py-5 font-['Georgia',serif] h-[calc(100vh-380px)] md:h-[calc(100vh-320px)] overflow-y-auto scroll-smooth"
+                    >
+                      {contractLoading ? (
+                        <div className="flex items-center justify-center py-20">
+                          <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                          <span className="ml-2 text-sm text-gray-400">Caricamento contratto...</span>
+                        </div>
+                      ) : renderContract(activeContractText)}
+                    </div>
+                  )}
 
-                  {/* Scroll indicator */}
+                  {/* Scroll/read indicator */}
                   {!hasReadContract ? (
                     <div className="bg-amber-50 border-t border-amber-100 px-4 py-2 flex items-center justify-between">
-                      <span className="text-amber-700 text-xs">Scorri fino in fondo per abilitare la firma</span>
+                      <span className="text-amber-700 text-xs">{customPdfUrl ? "Leggi il contratto per abilitare la firma" : "Scorri fino in fondo per abilitare la firma"}</span>
                       <ChevronDown className="w-4 h-4 text-amber-600 animate-bounce" />
                     </div>
                   ) : (

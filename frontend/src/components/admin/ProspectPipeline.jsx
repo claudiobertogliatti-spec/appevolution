@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Search, RefreshCw, CheckCircle, Clock, Lock,
   ChevronRight, ExternalLink, AlertCircle, Loader2,
   FileText, CreditCard, Sparkles, Phone, Send,
-  PenTool, DollarSign, Upload, User
+  PenTool, DollarSign, Upload, User, FilePlus, Trash2, X, Eye
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -78,11 +78,183 @@ function CallBadge({ stato }) {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Modale Contratto Custom
+// ─────────────────────────────────────────────────────────────────────────────
+function ContrattoCustomModal({ cliente, onClose }) {
+  const [status, setStatus] = useState(null); // { custom_pdf_url, filename, uploaded_at }
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState(null);
+  const fileRef = useRef(null);
+
+  useEffect(() => {
+    loadStatus();
+  }, []);
+
+  const loadStatus = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/api/contract/custom-pdf/${cliente.id}`);
+      const data = await res.json();
+      setStatus(data);
+    } catch (e) {
+      setError("Errore caricamento stato");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpload = async (file) => {
+    if (!file) return;
+    if (!file.name.endsWith('.pdf')) { setError("Carica un file PDF"); return; }
+    setUploading(true);
+    setError(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch(`${API}/api/contract/custom-pdf/${cliente.id}`, {
+        method: "POST",
+        body: form
+      });
+      const data = await res.json();
+      if (data.success) {
+        await loadStatus();
+      } else {
+        setError(data.detail || "Errore upload");
+      }
+    } catch (e) {
+      setError("Errore upload: " + e.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm("Rimuovere il contratto custom? Il prospect tornerà al contratto standard generato.")) return;
+    setDeleting(true);
+    try {
+      await fetch(`${API}/api/contract/custom-pdf/${cliente.id}`, { method: "DELETE" });
+      await loadStatus();
+    } catch (e) {
+      setError("Errore eliminazione");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ background: "linear-gradient(135deg,#1a1a2e,#2d2d44)", borderRadius: "16px 16px 0 0" }}>
+          <div>
+            <h3 className="font-bold text-white text-base">Contratto Custom</h3>
+            <p className="text-white/60 text-xs">{cliente.nome} {cliente.cognome}</p>
+          </div>
+          <button onClick={onClose} className="text-white/60 hover:text-white transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-5">
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+            </div>
+          ) : status?.custom_pdf_url ? (
+            <>
+              {/* PDF presente */}
+              <div className="rounded-xl p-4 space-y-3" style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-emerald-600" />
+                  <span className="font-semibold text-emerald-700 text-sm">Contratto custom attivo</span>
+                </div>
+                <p className="text-xs text-emerald-600">File: <strong>{status.filename}</strong></p>
+                {status.uploaded_at && (
+                  <p className="text-xs text-emerald-500">Caricato: {new Date(status.uploaded_at).toLocaleString('it-IT')}</p>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <a
+                  href={status.custom_pdf_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all hover:opacity-90"
+                  style={{ background: "#1a1a2e", color: "#fff" }}
+                >
+                  <Eye className="w-4 h-4" />
+                  Visualizza PDF
+                </a>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:opacity-90"
+                  style={{ background: "#FEF2F2", color: "#DC2626", border: "1px solid #FECACA" }}
+                >
+                  {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  Rimuovi
+                </button>
+              </div>
+
+              {/* Sostituisci */}
+              <div>
+                <p className="text-xs text-gray-500 mb-2">Sostituisci con nuovo file:</p>
+                <input ref={fileRef} type="file" accept=".pdf" className="hidden"
+                  onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0])} />
+                <button onClick={() => fileRef.current?.click()} disabled={uploading}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all"
+                  style={{ background: "#F5F4F1", color: "#5F6572", border: "1px dashed #D1D5DB" }}>
+                  {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                  {uploading ? "Caricamento..." : "Carica nuovo PDF"}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Nessun PDF custom */}
+              <div className="rounded-xl p-4 text-center space-y-2" style={{ background: "#FAFAF7", border: "1px solid #ECEDEF" }}>
+                <FilePlus className="w-8 h-8 mx-auto text-gray-400" />
+                <p className="text-sm font-medium text-gray-600">Nessun contratto custom</p>
+                <p className="text-xs text-gray-400">Il prospect vedrà il contratto standard generato automaticamente.</p>
+              </div>
+
+              <div>
+                <p className="text-xs text-gray-500 mb-2">Carica un PDF per sostituire il contratto standard (sconti, condizioni speciali, ecc.):</p>
+                <input ref={fileRef} type="file" accept=".pdf" className="hidden"
+                  onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0])} />
+                <button onClick={() => fileRef.current?.click()} disabled={uploading}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
+                  style={{ background: "linear-gradient(135deg,#1a1a2e,#2d2d44)", color: "#fff" }}>
+                  {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                  {uploading ? "Caricamento in corso..." : "Carica Contratto Custom (PDF)"}
+                </button>
+              </div>
+            </>
+          )}
+
+          {error && (
+            <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+          )}
+
+          <p className="text-[11px] text-gray-400 text-center">
+            Il PDF sostituisce il contratto generato. Le clausole e la firma rimangono invariate.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 export function ProspectPipeline({ onOpenCliente }) {
   const [clienti, setClienti] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("tutti");
+  const [contrattoModal, setContrattoModal] = useState(null); // cliente selezionato per modale
 
   useEffect(() => { loadData(); }, []);
 
@@ -289,14 +461,23 @@ export function ProspectPipeline({ onOpenCliente }) {
                     {c.step_pagamento_67 && <CallBadge stato={c.call_stato} />}
                   </td>
 
-                  {/* Azione apri */}
+                  {/* Azione apri + contratto custom */}
                   <td className="px-3 py-3 text-center">
-                    <button
-                      onClick={e => { e.stopPropagation(); onOpenCliente && onOpenCliente(c); }}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center mx-auto transition-all hover:bg-[#FFF3C4]"
-                      style={{ color: "#C4990A" }}>
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1 justify-center">
+                      <button
+                        onClick={e => { e.stopPropagation(); setContrattoModal(c); }}
+                        title="Gestisci contratto custom"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:bg-[#EEF2FF]"
+                        style={{ color: "#6366F1" }}>
+                        <FilePlus className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={e => { e.stopPropagation(); onOpenCliente && onOpenCliente(c); }}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:bg-[#FFF3C4]"
+                        style={{ color: "#C4990A" }}>
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -319,7 +500,19 @@ export function ProspectPipeline({ onOpenCliente }) {
           <Lock className="w-3.5 h-3.5" style={{ color: "#D1D5DB" }} />
           <span>Bloccato (step precedente mancante)</span>
         </div>
+        <div className="flex items-center gap-1">
+          <FilePlus className="w-3.5 h-3.5" style={{ color: "#6366F1" }} />
+          <span>Carica contratto custom (PDF)</span>
+        </div>
       </div>
+
+      {/* Modale contratto custom */}
+      {contrattoModal && (
+        <ContrattoCustomModal
+          cliente={contrattoModal}
+          onClose={() => setContrattoModal(null)}
+        />
+      )}
     </div>
   );
 }

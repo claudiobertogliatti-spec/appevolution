@@ -870,17 +870,120 @@ async def get_contract_status(partner_id: str):
 async def get_contract_text(partner_id: str):
     """
     Restituisce il testo del contratto con parametri personalizzati per il partner.
-    Usato dal frontend ContractSigning per mostrare il testo dinamico.
+    Se esiste un PDF custom caricato dall'admin, restituisce anche custom_pdf_url.
     """
     partner = await db.partners.find_one({"id": partner_id}, {"_id": 0, "contract_params": 1})
     params = DEFAULT_CONTRACT_PARAMS.copy()
     if partner and partner.get("contract_params"):
         params.update({k: v for k, v in partner["contract_params"].items() if v is not None})
-    
+
+    # Controlla se esiste un PDF custom per questo partner
+    custom = await db.contract_custom_pdf.find_one({"partner_id": partner_id}, {"_id": 0})
+    custom_pdf_url = custom.get("pdf_url") if custom else None
+
     return {
         "contract_text": render_contract_text(params),
-        "params": params
+        "params": params,
+        "custom_pdf_url": custom_pdf_url
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CUSTOM PDF ENDPOINTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/custom-pdf/{partner_id}")
+async def get_custom_pdf(partner_id: str):
+    """Recupera URL PDF custom caricato dall'admin per questo partner."""
+    record = await db.contract_custom_pdf.find_one({"partner_id": partner_id}, {"_id": 0})
+    if not record:
+        return {"custom_pdf_url": None, "filename": None, "uploaded_at": None}
+    return {
+        "custom_pdf_url": record.get("pdf_url"),
+        "filename": record.get("filename"),
+        "uploaded_at": record.get("uploaded_at")
+    }
+
+
+@router.post("/custom-pdf/{partner_id}")
+async def upload_custom_pdf(partner_id: str, request: Request):
+    """
+    Carica un PDF custom per questo partner (sostituisce contratto generato).
+    Multipart: campo 'file' (PDF).
+    """
+    try:
+        import cloudinary
+        import cloudinary.uploader
+        cloudinary.config(
+            cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
+            api_key=os.environ.get('CLOUDINARY_API_KEY', ''),
+            api_secret=os.environ.get('CLOUDINARY_API_SECRET', '')
+        )
+
+        form = await request.form()
+        file = form.get("file")
+        if not file:
+            raise HTTPException(status_code=400, detail="Campo 'file' mancante")
+
+        content = await file.read()
+        filename = getattr(file, "filename", f"contratto_{partner_id}.pdf")
+
+        result = cloudinary.uploader.upload(
+            content,
+            resource_type="raw",
+            public_id=f"contract_custom_{partner_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+            folder="evolution_pro/contracts_custom",
+            overwrite=True,
+            use_filename=False
+        )
+
+        pdf_url = result.get("secure_url")
+
+        await db.contract_custom_pdf.update_one(
+            {"partner_id": partner_id},
+            {"$set": {
+                "partner_id": partner_id,
+                "pdf_url": pdf_url,
+                "filename": filename,
+                "uploaded_at": datetime.now(timezone.utc).isoformat(),
+                "cloudinary_public_id": result.get("public_id")
+            }},
+            upsert=True
+        )
+
+        return {"success": True, "custom_pdf_url": pdf_url, "filename": filename}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Errore upload PDF custom: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore upload: {str(e)}")
+
+
+@router.delete("/custom-pdf/{partner_id}")
+async def delete_custom_pdf(partner_id: str):
+    """Rimuove il PDF custom — il partner tornerà al contratto generato standard."""
+    record = await db.contract_custom_pdf.find_one({"partner_id": partner_id})
+    if not record:
+        return {"success": True, "message": "Nessun PDF custom trovato"}
+
+    # Rimuovi da Cloudinary se possibile
+    try:
+        import cloudinary
+        import cloudinary.uploader
+        cloudinary.config(
+            cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
+            api_key=os.environ.get('CLOUDINARY_API_KEY', ''),
+            api_secret=os.environ.get('CLOUDINARY_API_SECRET', '')
+        )
+        public_id = record.get("cloudinary_public_id")
+        if public_id:
+            cloudinary.uploader.destroy(public_id, resource_type="raw")
+    except Exception as e:
+        logger.warning(f"Cloudinary delete warning: {e}")
+
+    await db.contract_custom_pdf.delete_one({"partner_id": partner_id})
+    return {"success": True}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
