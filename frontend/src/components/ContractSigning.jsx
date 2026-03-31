@@ -567,7 +567,7 @@ function renderContract(text) {
   });
 }
 
-export default function ContractSigning({ partner, onContractSigned, initialStep }) {
+export default function ContractSigning({ partner, onContractSigned, initialStep, embedded }) {
   const [step, setStep] = useState(initialStep || 1);
   const [scrollPct, setScrollPct] = useState(0);
   const [hasReadContract, setHasReadContract] = useState(false);
@@ -770,8 +770,8 @@ export default function ContractSigning({ partner, onContractSigned, initialStep
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className={embedded ? "" : "min-h-screen bg-gray-50 p-4 md:p-6"}>
+      <div className={embedded ? "" : "max-w-7xl mx-auto"}>
         {/* Header */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100 mb-3">
