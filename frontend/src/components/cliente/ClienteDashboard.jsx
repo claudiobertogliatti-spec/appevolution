@@ -718,6 +718,30 @@ export function ClienteDashboard({ cliente, onLogout }) {
                 </div>
 
                 {/* ═══════════════════════════════════════════════════════════════════════
+                    VIDEO MESSAGGIO CLAUDIO (post-questionario)
+                    ═══════════════════════════════════════════════════════════════════════ */}
+                <div className="rounded-2xl overflow-hidden" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+                  <div className="p-4 border-b" style={{ borderColor: '#F0EFEB' }}>
+                    <h3 className="font-bold text-[#1E2128] flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: '#F2C418' }}>
+                        <Play className="w-3.5 h-3.5 text-[#1E2128]" />
+                      </span>
+                      Un messaggio di Claudio per te
+                    </h3>
+                  </div>
+                  <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                    <iframe
+                      src="https://app.heygen.com/embeds/442d3522ccc74ec2abb4d0a7845ae62a-7ad1fe2d703f45b2b15dcbf3c3eb3db7"
+                      title="Messaggio di Claudio"
+                      allow="autoplay; fullscreen"
+                      allowFullScreen
+                      className="absolute inset-0 w-full h-full"
+                      style={{ border: 'none' }}
+                    />
+                  </div>
+                </div>
+
+                {/* ═══════════════════════════════════════════════════════════════════════
                     COSA SUCCEDE ADESSO - 3 STEP
                     ═══════════════════════════════════════════════════════════════════════ */}
                 <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
