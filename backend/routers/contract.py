@@ -127,54 +127,53 @@ async def contract_chat(body: ContractChatRequest):
     Usa Claude Haiku per risposte veloci e concise.
     """
     try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+
         EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
-        
+
         if not EMERGENT_LLM_KEY:
-            return {"reply": "Mi dispiace, il servizio di supporto non è al momento disponibile. Per domande sul contratto, scrivi a assistenza@evolution-pro.it"}
-        
-        system_prompt = f"""Sei l'assistente di supporto contrattuale di Evolution PRO.
-Aiuti i partner a CAPIRE il contratto in modo chiaro e rassicurante.
+            return {"reply": "Il servizio di supporto non è al momento disponibile. Per domande sul contratto scrivi a assistenza@evolution-pro.it"}
 
-REGOLE:
-- Rispondi SOLO a domande riguardanti il contratto allegato
-- Italiano semplice, niente gergo legale
-- Tono professionale e rassicurante — il contratto è standard
-- Max 120 parole per risposta
-- Se chiedono altro: "Sono qui solo per il contratto. Per altre domande: assistenza@evolution-pro.it"
-- NON dare consulenza legale vincolante
-{f"- L'utente sta leggendo l'Articolo {body.current_article} — contestualizza lì se pertinente" if body.current_article else ""}
+        contract_text = render_contract_text(await _get_partner_params(body.partner_id))
 
-CONTRATTO:
-{render_contract_text(await _get_partner_params(body.partner_id))[:15000]}"""  # Limit to avoid token overflow
+        system_prompt = f"""Sei l'assistente di supporto contrattuale di Evolution PRO. Il tuo unico scopo è aiutare chi sta leggendo il contratto a capirne i termini in modo semplice e chiaro.
 
-        from emergentintegrations.llm.chat import LlmChat, UserMessage, AssistantMessage, SystemMessage
-        
-        chat = LlmChat(
+ISTRUZIONI:
+- Rispondi SOLO a domande sul contratto. Per qualsiasi altro argomento dì: "Sono qui solo per il contratto. Per altre domande: assistenza@evolution-pro.it"
+- Usa un italiano semplice e diretto — niente gergo legale
+- Spiega i concetti come se parlassi con una persona che non ha mai letto un contratto
+- Sii rassicurante: il contratto è standard e tutela entrambe le parti
+- Massimo 120 parole per risposta
+- Se una clausola sembra complessa, spiegala con un esempio pratico concreto
+- NON fornire consulenza legale vincolante — sei un assistente informativo
+{f"- L'utente sta leggendo l'Articolo {body.current_article}: contestualizza la risposta su quell'articolo se pertinente" if body.current_article else ""}
+
+TESTO COMPLETO DEL CONTRATTO:
+{contract_text[:12000]}"""
+
+        # Session ID unico per partner (mantiene contesto conversazione)
+        session_id = f"contract_chat_{body.partner_id}"
+
+        # Costruisce il messaggio con la storia recente nel testo
+        # (LlmChat gestisce la sessione internamente via session_id)
+        full_message = body.message
+        if body.conversation_history:
+            history_text = "\n".join([
+                f"{'Utente' if m['role'] == 'user' else 'Assistente'}: {m['content']}"
+                for m in body.conversation_history[-6:]
+            ])
+            full_message = f"[Contesto conversazione precedente]\n{history_text}\n\n[Nuova domanda]\n{body.message}"
+
+        llm = LlmChat(
             api_key=EMERGENT_LLM_KEY,
-            model="claude-haiku-4-5-20251001"
-        )
-        
-        # Build messages
-        messages = [SystemMessage(text=system_prompt)]
-        
-        # Add conversation history (last 8 messages)
-        for msg in body.conversation_history[-8:]:
-            if msg.get("role") == "user":
-                messages.append(UserMessage(text=msg.get("content", "")))
-            elif msg.get("role") == "assistant":
-                messages.append(AssistantMessage(text=msg.get("content", "")))
-        
-        # Add current message
-        messages.append(UserMessage(text=body.message))
-        
-        response = await chat.send_async(
-            messages=messages,
-            max_tokens=250,
-            temperature=0.7
-        )
-        
+            session_id=session_id,
+            system_message=system_prompt
+        ).with_model("anthropic", "claude-haiku-4-5-20251001")
+
+        response = await llm.send_message(UserMessage(text=full_message))
+
         return {"reply": response}
-        
+
     except Exception as e:
         logger.error(f"[CONTRACT CHAT] Error: {e}")
         return {"reply": "Mi dispiace, si è verificato un errore. Riprova tra poco o scrivi a assistenza@evolution-pro.it"}
