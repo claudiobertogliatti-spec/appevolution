@@ -1965,9 +1965,13 @@ export default function App() {
             {nav==="profilo-brandkit"&&<BrandKitEditor partner={demoPartner}/>}
             {nav==="brandkit"&&<BrandKitEditor partner={demoPartner}/>}
             
-            {/* SERVIZI EXTRA */}
+            {/* SERVIZI EXTRA / VAI OLTRE */}
             {nav==="avatar-checkout"&&<AvatarCheckout partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
             {nav==="servizi-extra"&&<ServiziExtra partner={demoPartner}/>}
+            {nav==="avatar-pro"&&<AvatarCheckout partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
+            {nav==="calendario-pro"&&<ServiziExtra partner={demoPartner} defaultService="calendario_pro"/>}
+            {nav==="consulenza-claudio"&&<ServiziExtra partner={demoPartner} defaultService="consulenza_claudio"/>}
+            {nav==="consulenza-antonella"&&<ServiziExtra partner={demoPartner} defaultService="consulenza_antonella"/>}
             
             {/* ALTRI */}
             {nav==="risorse"&&<PartnerResources/>}

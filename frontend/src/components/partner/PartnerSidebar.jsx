@@ -1,90 +1,187 @@
 import { useState } from "react";
-import { 
-  Home, Target, Mic, Film, Rocket, Calendar,
-  MessageCircle, LogOut, Check, Lock, Users, 
-  HelpCircle, PlayCircle, X, Shield, TrendingUp, UserCheck,
-  Sparkles, User, CreditCard, FolderOpen, FileSignature, AlertTriangle, Upload
+import {
+  Home, Check, Lock, MessageCircle, LogOut,
+  FileSignature, Upload, X, User, FolderOpen,
+  Shield, TrendingUp, Users, Target, Video,
+  ShoppingBag, Rocket, Star, Mic, Film,
+  Bot, Calendar, Zap, Package
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CONFIGURAZIONE - 6 FASI DEL PROGETTO
+// SEZIONE 1 — CREA IL TUO CORSO
+// Nomi Evolution PRO ufficiali + sottotitolo in italiano semplice
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const PROJECT_PHASES = [
-  { id: "posizionamento", label: "Posizionamento", icon: Target, unlockPhase: 1 },
-  { id: "masterclass", label: "Masterclass", icon: Mic, unlockPhase: 3 },
-  { id: "videocorso", label: "Videocorso", icon: Film, unlockPhase: 5 },
-  { id: "funnel", label: "Funnel", icon: Calendar, unlockPhase: 7 },
-  { id: "lancio", label: "Lancio", icon: Rocket, unlockPhase: 8 },
-  { id: "ottimizzazione", label: "Ottimizzazione", icon: TrendingUp, unlockPhase: 9 },
-  { id: "lead", label: "I miei Lead", icon: UserCheck, unlockPhase: 9 },
+const CREATION_STEPS = [
+  {
+    id: "posizionamento",
+    label: "POSIZIONAMENTO",
+    sublabel: "Chi sei e cosa insegni",
+    icon: Target,
+    unlockStep: 0
+  },
+  {
+    id: "masterclass",
+    label: "MASTERCLASS",
+    sublabel: "La tua lezione gratuita",
+    icon: Mic,
+    unlockStep: 1
+  },
+  {
+    id: "videocorso",
+    label: "VIDEOCORSO",
+    sublabel: "Il tuo corso online",
+    icon: Film,
+    unlockStep: 2
+  },
+  {
+    id: "funnel",
+    label: "FUNNEL",
+    sublabel: "La tua pagina di vendita",
+    icon: ShoppingBag,
+    unlockStep: 3
+  },
+  {
+    id: "lancio",
+    label: "LANCIO",
+    sublabel: "Attiva e vai online",
+    icon: Rocket,
+    unlockStep: 4
+  },
 ];
 
-// Nuova sezione "Il Mio Account"
-const ACCOUNT_ITEMS = [
-  { id: "profilo", label: "Profilo", icon: User },
-  { id: "pagamenti", label: "Pagamenti", icon: CreditCard },
-  { id: "i-miei-file", label: "I Miei File", icon: FolderOpen },
+// ═══════════════════════════════════════════════════════════════════════════════
+// SEZIONE 2 — LE MIE VENDITE (sblocca dopo lancio)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const SALES_ITEMS = [
+  {
+    id: "ottimizzazione",
+    label: "I miei risultati",
+    sublabel: "Vendite, studenti, guadagni",
+    icon: TrendingUp,
+    unlockStep: 5
+  },
+  {
+    id: "lead",
+    label: "I miei studenti",
+    sublabel: "Chi ha acquistato il corso",
+    icon: Users,
+    unlockStep: 5
+  },
+  {
+    id: "pagamenti",
+    label: "I miei guadagni",
+    sublabel: "Storico pagamenti e royalties",
+    icon: Star,
+    unlockStep: 5
+  },
 ];
 
-const SUPPORT_ITEMS = [
-  { id: "servizi-extra", label: "Servizi Extra", icon: Sparkles, highlight: true },
-  { id: "team", label: "Il tuo team Evolution PRO", icon: Users },
-  { id: "eventi", label: "Eventi live", icon: PlayCircle },
-  { id: "supporto", label: "Supporto tecnico", icon: HelpCircle },
-  { id: "piano-continuita", label: "Piano Continuità", icon: Shield },
+// ═══════════════════════════════════════════════════════════════════════════════
+// SEZIONE 3 — VAI OLTRE (sempre visibile — pagine di vendita)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const VAI_OLTRE_ITEMS = [
+  {
+    id: "continuita",
+    label: "Piano Continuità",
+    sublabel: "Continua a crescere dopo il corso",
+    icon: Shield,
+    badge: "ABBONAMENTO",
+    badgeColor: "#8B5CF6"
+  },
+  {
+    id: "calendario-pro",
+    label: "Calendario Editoriale PRO",
+    sublabel: "Contenuti social ogni giorno",
+    icon: Calendar,
+    badge: "€297/mese",
+    badgeColor: "#10B981"
+  },
+  {
+    id: "avatar-pro",
+    label: "Avatar PRO",
+    sublabel: "Il tuo clone AI per i video",
+    icon: Bot,
+    badge: "NUOVO",
+    badgeColor: "#3B82F6"
+  },
+  {
+    id: "consulenza-claudio",
+    label: "Sessione con Claudio",
+    sublabel: "Strategia, crescita e decisioni chiave",
+    icon: Zap,
+    badge: "1:1",
+    badgeColor: "#F2C418"
+  },
+  {
+    id: "consulenza-antonella",
+    label: "Sessione con Antonella",
+    sublabel: "Contenuti, social e calendario",
+    icon: Package,
+    badge: "1:1",
+    badgeColor: "#F97316"
+  },
 ];
 
-// Mapping fase partner → step corrente nel percorso
-const getProjectStep = (partnerPhase) => {
-  // Se LIVE o OTTIMIZZAZIONE, sblocca tutte le fasi (incluso Lead)
+// ═══════════════════════════════════════════════════════════════════════════════
+// SEZIONE 4 — IL MIO SPAZIO
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const SPACE_ITEMS = [
+  { id: "profilo",      label: "Il mio profilo",   icon: User },
+  { id: "i-miei-file", label: "I miei file",        icon: FolderOpen },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAPPING fase partner → step sbloccato
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const getUnlockedStep = (partnerPhase) => {
+  if (!partnerPhase) return 0;
   if (partnerPhase === 'LIVE' || partnerPhase === 'OTTIMIZZAZIONE') return 6;
-  
-  const phaseNum = parseInt(partnerPhase?.replace('F', '') || '1');
-  if (phaseNum <= 2) return 0;  // Posizionamento
-  if (phaseNum <= 4) return 1;  // Masterclass
-  if (phaseNum <= 6) return 2;  // Videocorso
-  if (phaseNum <= 7) return 3;  // Funnel
-  if (phaseNum <= 8) return 4;  // Lancio
-  return 6;                      // Ottimizzazione + Lead
+  const n = parseInt(partnerPhase.replace('F', '') || '1');
+  if (n <= 2) return 0;  // Posizionamento
+  if (n <= 4) return 1;  // Masterclass
+  if (n <= 5) return 2;  // Videocorso
+  if (n <= 6) return 3;  // Funnel
+  if (n <= 7) return 4;  // Lancio
+  if (n >= 8) return 5;  // Vendite sbloccate
+  return 0;
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MODAL BLOCCO
+// MODAL FASE BLOCCATA
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function LockedModal({ isOpen, onClose, itemLabel }) {
   if (!isOpen) return null;
-  
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-      <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl">
-        {/* Header */}
-        <div className="p-4 flex items-center justify-between" style={{ background: '#FAFAF7', borderBottom: '1px solid #ECEDEF' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+         style={{ background: 'rgba(0,0,0,0.7)' }}>
+      <div className="bg-white rounded-2xl max-w-sm w-full overflow-hidden shadow-2xl">
+        <div className="p-4 flex items-center justify-between"
+             style={{ background: '#FAFAF7', borderBottom: '1px solid #ECEDEF' }}>
           <div className="flex items-center gap-2">
             <Lock className="w-5 h-5" style={{ color: '#F59E0B' }} />
-            <span className="font-bold" style={{ color: '#1E2128' }}>Fase non ancora disponibile</span>
+            <span className="font-bold" style={{ color: '#1E2128' }}>Non ancora disponibile</span>
           </div>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-white transition-all">
             <X className="w-5 h-5" style={{ color: '#9CA3AF' }} />
           </button>
         </div>
-        
-        {/* Content */}
         <div className="p-6">
-          <h2 className="text-xl font-black mb-2" style={{ color: '#1E2128' }}>
-            {itemLabel}
-          </h2>
+          <h2 className="text-lg font-black mb-2" style={{ color: '#1E2128' }}>{itemLabel}</h2>
           <p className="text-sm mb-6" style={{ color: '#5F6572' }}>
-            Questa fase si sbloccherà automaticamente quando avrai completato i passaggi precedenti del tuo progetto.
+            Questa sezione si apre automaticamente quando completi i passaggi precedenti. Segui l'ordine e ci arrivi!
           </p>
-          
-          <button 
+          <button
             onClick={onClose}
             className="w-full py-3 rounded-xl font-bold transition-all hover:opacity-90"
             style={{ background: '#F2C418', color: '#1E2128' }}
           >
-            Ho capito
+            Ok, ho capito
           </button>
         </div>
       </div>
@@ -98,49 +195,31 @@ function LockedModal({ isOpen, onClose, itemLabel }) {
 
 export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout, onOpenChat, onSwitchToAdmin, isAdmin }) {
   const [lockedModal, setLockedModal] = useState({ isOpen: false, itemLabel: '' });
-  
+
   const partnerPhase = partner?.phase || 'F1';
-  // Allow admins to access Ottimizzazione if partner is LIVE or OTTIMIZZAZIONE
-  const partnerStep = getProjectStep(partnerPhase);
-  const currentStep = isAdmin ? Math.max(4, partnerStep) : partnerStep;
-  
-  const handlePhaseClick = (phase, index) => {
-    const isUnlocked = index <= currentStep;
-    if (isUnlocked) {
-      // Mappa fase → navigazione interna
-      const navMap = {
-        'posizionamento': 'posizionamento',
-        'masterclass': 'masterclass',
-        'videocorso': 'videocorso',
-        'funnel': 'funnel',
-        'lancio': 'lancio',
-        'ottimizzazione': 'ottimizzazione',
-        'lead': 'lead'
-      };
-      onNavigate(navMap[phase.id] || 'dashboard');
+  const unlockedStep = isAdmin ? Math.max(5, getUnlockedStep(partnerPhase)) : getUnlockedStep(partnerPhase);
+
+  const handleStepClick = (step) => {
+    if (step.unlockStep <= unlockedStep) {
+      onNavigate(step.id);
     } else {
-      setLockedModal({ isOpen: true, itemLabel: phase.label });
+      setLockedModal({ isOpen: true, itemLabel: step.label });
     }
   };
-  
-  const handleSupportClick = (itemId) => {
-    const navMap = {
-      'servizi-extra': 'servizi-extra',
-      'team': 'dashboard',
-      'eventi': 'dashboard',
-      'supporto': 'supporto',
-      'piano-continuita': 'piano-continuita'
-    };
-    onNavigate(navMap[itemId] || 'dashboard');
-  };
+
+  const sectionLabel = (text) => (
+    <div className="px-2 pt-4 pb-1">
+      <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: '#9CA3AF' }}>
+        {text}
+      </span>
+    </div>
+  );
 
   return (
-    <div className="w-64 min-w-64 flex flex-col h-full border-r overflow-hidden" 
+    <div className="w-64 min-w-64 flex flex-col h-full border-r overflow-hidden"
          style={{ background: '#FFFFFF', borderColor: '#F0EFEB' }}>
-      
-      {/* ══════════════════════════════════════════════════════════════════════
-          LOGO
-          ══════════════════════════════════════════════════════════════════════ */}
+
+      {/* ── LOGO ── */}
       <div className="p-5 border-b" style={{ borderColor: '#F0EFEB' }}>
         <div className="flex items-center gap-2.5">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
@@ -151,16 +230,14 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
             <div className="font-black text-base" style={{ color: '#2D3239' }}>
               Evolution<span style={{ color: '#F2C418' }}>Pro</span>
             </div>
-            <div className="text-[10px] font-medium" style={{ color: '#9CA3AF' }}>Area Partner</div>
+            <div className="text-[10px] font-medium" style={{ color: '#9CA3AF' }}>La tua area personale</div>
           </div>
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════════════════════════════
-          ADMIN/PARTNER TOGGLE (solo per admin)
-          ══════════════════════════════════════════════════════════════════════ */}
+      {/* ── TOGGLE ADMIN ── */}
       {isAdmin && (
-        <div className="px-4 py-3 space-y-2">
+        <div className="px-4 py-3 border-b" style={{ borderColor: '#F0EFEB' }}>
           <div className="flex rounded-lg p-1" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
             <button
               onClick={onSwitchToAdmin}
@@ -171,308 +248,266 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
             </button>
             <button
               className="flex-1 py-1.5 text-xs font-bold rounded-md transition-all"
-              style={{ background: '#F2C418', color: '#1E2128', boxShadow: '0 4px 20px rgba(242,196,24,0.25)' }}
+              style={{ background: '#F2C418', color: '#1E2128' }}
             >
               Partner
             </button>
           </div>
-
-          {/* Demo Contratto — solo quando contratto non firmato */}
-          <div className="p-3 rounded-xl" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
-            <div className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: '#9CA3AF' }}>DEMO CONTRATTO</div>
-            <div className="space-y-1.5">
-              <button
-                onClick={() => onNavigate && onNavigate('partner-contratto')}
-                className="w-full px-3 py-2 rounded-lg text-xs font-bold text-left transition-all"
-                style={{
-                  background: currentNav !== 'partner-firma' ? '#10B981' : '#FAFAF7',
-                  color: currentNav !== 'partner-firma' ? 'white' : '#5F6572',
-                  border: '1px solid #ECEDEF'
-                }}
-              >
-                Lettura Contratto
-                <div className="text-[10px] font-normal opacity-70">Contratto + chat supporto</div>
-              </button>
-              <button
-                onClick={() => onNavigate && onNavigate('partner-firma')}
-                className="w-full px-3 py-2 rounded-lg text-xs font-bold text-left transition-all"
-                style={{
-                  background: currentNav === 'partner-firma' ? '#8B5CF6' : '#FAFAF7',
-                  color: currentNav === 'partner-firma' ? 'white' : '#5F6572',
-                  border: '1px solid #ECEDEF'
-                }}
-              >
-                Clausole & Firma
-                <div className="text-[10px] font-normal opacity-70">Approvazione clausole + firma a video</div>
-              </button>
-            </div>
-          </div>
         </div>
       )}
 
-      {/* ══════════════════════════════════════════════════════════════════════
-          USER CARD
-          ══════════════════════════════════════════════════════════════════════ */}
-      <div className="px-4 py-3">
+      {/* ── USER CARD ── */}
+      <div className="px-4 py-3 border-b" style={{ borderColor: '#F0EFEB' }}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
+          <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
                style={{ background: '#F2C418', color: '#1E2128' }}>
-            {partner?.name?.split(" ").map(n => n[0]).join("") || "P"}
+            {partner?.name?.split(" ").map(n => n[0]).join("").slice(0, 2) || "P"}
           </div>
           <div className="flex-1 min-w-0">
             <div className="font-bold text-sm truncate" style={{ color: '#1E2128' }}>
               {partner?.name || "Partner"}
             </div>
-            <div className="text-xs" style={{ color: '#9CA3AF' }}>
-              {partner?.niche || "Coach"}
+            <div className="text-xs truncate" style={{ color: '#9CA3AF' }}>
+              {partner?.niche || "Professionista"}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Divider */}
-      <div className="mx-4 my-1" style={{ height: 1, background: '#F5F4F1' }} />
-
-      {/* ══════════════════════════════════════════════════════════════════════
-          MAIN NAVIGATION
-          ══════════════════════════════════════════════════════════════════════ */}
-      <div className="flex-1 overflow-y-auto px-3 py-2">
+      {/* ── NAVIGAZIONE ── */}
+      <div className="flex-1 overflow-y-auto px-3 pb-3">
 
         {/* HOME */}
-        <button
-          onClick={() => onNavigate('dashboard')}
-          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all mb-2"
-          style={{ 
-            background: currentNav === 'dashboard' ? '#FFF3C4' : 'transparent',
-            borderLeft: currentNav === 'dashboard' ? '3px solid #F2C418' : '3px solid transparent',
-            color: currentNav === 'dashboard' ? '#1E2128' : '#3B4049'
-          }}
-        >
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center"
-               style={{ 
-                 background: currentNav === 'dashboard' ? '#F2C418' : '#FFF8DC',
-                 color: currentNav === 'dashboard' ? '#1E2128' : '#C4990A'
-               }}>
-            <Home className="w-4 h-4" />
-          </div>
-          <span className={`text-sm flex-1 ${currentNav === 'dashboard' ? 'font-bold' : 'font-medium'}`}>
-            HOME
-          </span>
-        </button>
+        <div className="pt-3 pb-1">
+          <button
+            onClick={() => onNavigate('dashboard')}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all hover:bg-[#FAFAF7]"
+            style={{
+              background: (currentNav === 'dashboard' || currentNav === 'home') ? '#FFF3C4' : 'transparent',
+              borderLeft: (currentNav === 'dashboard' || currentNav === 'home') ? '3px solid #F2C418' : '3px solid transparent',
+            }}
+          >
+            <Home className="w-4 h-4" style={{ color: (currentNav === 'dashboard' || currentNav === 'home') ? '#F2C418' : '#9CA3AF' }} />
+            <span className="text-sm font-bold" style={{ color: '#1E2128' }}>Home</span>
+          </button>
+        </div>
 
-        {/* FIRMA CONTRATTO - Solo se non firmato */}
+        {/* ALERT: contratto */}
         {!partner?.contract?.signed_at && (
           <button
             onClick={() => onNavigate('contract')}
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all mb-4 animate-pulse"
-            style={{ 
-              background: '#FEF3C7',
-              borderLeft: '3px solid #F59E0B',
-              color: '#92400E'
-            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all mb-1 animate-pulse"
+            style={{ background: '#FEF3C7', borderLeft: '3px solid #F59E0B' }}
           >
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center"
-                 style={{ background: '#F59E0B', color: '#FFFFFF' }}>
-              <FileSignature className="w-4 h-4" />
+            <FileSignature className="w-4 h-4 flex-shrink-0" style={{ color: '#F59E0B' }} />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-bold leading-tight" style={{ color: '#92400E' }}>Firma il contratto</div>
+              <div className="text-[10px]" style={{ color: '#B45309' }}>Necessario per iniziare</div>
             </div>
-            <span className="text-sm flex-1 font-bold">
-              Firma il contratto
-            </span>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold"
-                  style={{ background: '#F59E0B', color: '#FFFFFF' }}>
-              DA FIRMARE
-            </span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0"
+                  style={{ background: '#F59E0B', color: '#FFF' }}>!</span>
           </button>
         )}
 
-        {/* DOCUMENTI ONBOARDING - Mostra se contratto firmato e docs non verified */}
+        {/* ALERT: documenti */}
         {partner?.contract?.signed_at && partner?.documents_status !== "verified" && (
           <button
             onClick={() => onNavigate('onboarding-docs')}
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all mb-4"
-            style={{ 
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all mb-1"
+            style={{
               background: currentNav === 'onboarding-docs' ? '#FFF3C4' : '#FEF3C7',
-              borderLeft: currentNav === 'onboarding-docs' ? '3px solid #F2C418' : '3px solid #F59E0B',
-              color: '#92400E'
+              borderLeft: '3px solid #F59E0B'
             }}
-            data-testid="sidebar-onboarding-docs"
           >
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center"
-                 style={{ background: '#F2C418', color: '#1E2128' }}>
-              <Upload className="w-4 h-4" />
+            <Upload className="w-4 h-4 flex-shrink-0" style={{ color: '#F59E0B' }} />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-bold leading-tight" style={{ color: '#92400E' }}>Carica i tuoi documenti</div>
+              <div className="text-[10px]" style={{ color: '#B45309' }}>
+                {partner?.documents_status === "under_review" ? "In verifica dal team" : "Documento d'identità e P.IVA"}
+              </div>
             </div>
-            <span className="text-sm flex-1 font-bold">
-              Documenti
-            </span>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold"
-                  style={{ background: '#F59E0B', color: '#FFFFFF' }}>
-              {partner?.documents_status === "under_review" ? "IN VERIFICA" : "DA CARICARE"}
+            <span className="text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0"
+                  style={{ background: '#F59E0B', color: '#FFF' }}>
+              {partner?.documents_status === "under_review" ? "⏳" : "!"}
             </span>
           </button>
         )}
 
-        {/* ─────────────────────────────────────────────────────────────────────
-            IL TUO PROGETTO
-            ───────────────────────────────────────────────────────────────────── */}
-        <div className="mb-4">
-          <div className="px-2 py-2">
-            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#9CA3AF' }}>
-              Il tuo progetto
-            </span>
-          </div>
-          
-          <nav className="space-y-1">
-            {PROJECT_PHASES.map((phase, index) => {
-              const isCompleted = index < currentStep;
-              const isCurrent = index === currentStep;
-              const isLocked = index > currentStep;
-              
-              return (
-                <button
-                  key={phase.id}
-                  onClick={() => handlePhaseClick(phase, index)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all ${
-                    isLocked ? 'opacity-50' : ''
-                  }`}
-                  style={{ 
-                    background: isCurrent ? '#FFF3C4' : 'transparent',
-                    borderLeft: isCurrent ? '3px solid #F2C418' : '3px solid transparent'
+        {/* ─── CREA IL TUO CORSO ─── */}
+        {sectionLabel("Crea il tuo corso")}
+        <nav className="space-y-0.5">
+          {CREATION_STEPS.map((step, index) => {
+            const isCompleted = index < unlockedStep;
+            const isCurrent = index === unlockedStep;
+            const isLocked = index > unlockedStep;
+            const isActive = currentNav === step.id;
+            const Icon = step.icon;
+            return (
+              <button
+                key={step.id}
+                onClick={() => handleStepClick(step)}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all ${isLocked ? 'opacity-40' : 'hover:bg-[#FAFAF7]'}`}
+                style={{
+                  background: isActive ? '#FFF3C4' : 'transparent',
+                  borderLeft: isActive ? '3px solid #F2C418' : '3px solid transparent',
+                }}
+              >
+                <span
+                  className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+                  style={{
+                    background: isCompleted ? '#34C77B' : (isActive || isCurrent) ? '#F2C418' : '#ECEDEF',
+                    color: isCompleted ? 'white' : (isActive || isCurrent) ? '#1E2128' : '#9CA3AF'
                   }}
                 >
-                  {/* Stato: ✓ completata, → corrente, 🔒 bloccata */}
-                  <span 
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                    style={{ 
-                      background: isCompleted ? '#34C77B' : isCurrent ? '#F2C418' : '#ECEDEF',
-                      color: isCompleted ? 'white' : isCurrent ? '#1E2128' : '#9CA3AF'
-                    }}
-                  >
-                    {isCompleted ? (
-                      <Check className="w-3.5 h-3.5" />
-                    ) : isLocked ? (
-                      <Lock className="w-3 h-3" />
-                    ) : (
-                      <span className="text-xs">→</span>
-                    )}
-                  </span>
-                  
-                  {/* Label */}
-                  <span 
-                    className="text-sm flex-1"
-                    style={{ 
-                      color: isCompleted ? '#2D9F6F' : isCurrent ? '#1E2128' : '#9CA3AF',
-                      fontWeight: isCurrent ? 600 : 400
-                    }}
-                  >
-                    {phase.label}
-                  </span>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
+                  {isCompleted ? <Check className="w-3 h-3" /> : isLocked ? <Lock className="w-2.5 h-2.5" /> : (index + 1)}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-bold leading-tight"
+                       style={{ color: isCompleted ? '#2D9F6F' : (isActive || isCurrent) ? '#1E2128' : '#9CA3AF' }}>
+                    {step.label}
+                  </div>
+                  <div className="text-[10px] leading-tight"
+                       style={{ color: isCompleted ? '#6EE7B7' : (isActive || isCurrent) ? '#5F6572' : '#C4C9D4' }}>
+                    {step.sublabel}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </nav>
 
-        {/* ─────────────────────────────────────────────────────────────────────
-            SUPPORTO
-            ───────────────────────────────────────────────────────────────────── */}
-        <div className="mb-4">
-          <div className="px-2 py-2">
-            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#9CA3AF' }}>
-              Supporto
+        {/* ─── LE MIE VENDITE ─── */}
+        <div className="flex items-center gap-2 px-2 pt-4 pb-1">
+          <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: '#9CA3AF' }}>
+            Le mie vendite
+          </span>
+          {unlockedStep < 5 && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold"
+                  style={{ background: '#F0EFEB', color: '#9CA3AF' }}>
+              dopo il lancio
             </span>
-          </div>
-          
-          <nav className="space-y-1">
-            {SUPPORT_ITEMS.map(item => (
+          )}
+        </div>
+        <nav className="space-y-0.5">
+          {SALES_ITEMS.map((item) => {
+            const isLocked = unlockedStep < item.unlockStep;
+            const isActive = currentNav === item.id;
+            const Icon = item.icon;
+            return (
               <button
                 key={item.id}
-                onClick={() => handleSupportClick(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all ${
-                  item.highlight ? 'hover:bg-[#FFF3C4]' : 'hover:bg-[#FAFAF7]'
-                }`}
-                style={{ 
-                  color: item.highlight ? '#1E2128' : '#5F6572',
-                  background: item.highlight ? '#FFF8DC' : 'transparent',
-                  border: item.highlight ? '1px solid #F2C41850' : 'none'
+                onClick={() => isLocked ? setLockedModal({ isOpen: true, itemLabel: item.label }) : onNavigate(item.id)}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all ${isLocked ? 'opacity-40' : 'hover:bg-[#FAFAF7]'}`}
+                style={{
+                  background: isActive ? '#FFF3C4' : 'transparent',
+                  borderLeft: isActive ? '3px solid #F2C418' : '3px solid transparent',
                 }}
-                data-testid={`sidebar-${item.id}`}
               >
-                <item.icon className="w-4 h-4" style={{ color: item.highlight ? '#F2C418' : '#9CA3AF' }} />
-                <span className={`text-sm ${item.highlight ? 'font-bold' : 'font-medium'}`}>{item.label}</span>
-                {item.highlight && (
-                  <span className="ml-auto px-1.5 py-0.5 rounded text-[10px] font-bold" 
-                        style={{ background: '#F2C418', color: '#1E2128' }}>
-                    NEW
+                <Icon className="w-4 h-4 flex-shrink-0"
+                      style={{ color: isActive ? '#F2C418' : isLocked ? '#D1D5DB' : '#9CA3AF' }} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-bold leading-tight"
+                       style={{ color: isActive ? '#1E2128' : isLocked ? '#9CA3AF' : '#5F6572' }}>
+                    {item.label}
+                  </div>
+                  <div className="text-[10px] leading-tight" style={{ color: '#C4C9D4' }}>{item.sublabel}</div>
+                </div>
+                {isLocked && <Lock className="w-3 h-3 flex-shrink-0" style={{ color: '#D1D5DB' }} />}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* ─── VAI OLTRE ─── */}
+        {sectionLabel("Vai oltre")}
+        <nav className="space-y-0.5">
+          {VAI_OLTRE_ITEMS.map((item) => {
+            const isActive = currentNav === item.id;
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                onClick={() => onNavigate(item.id)}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all hover:bg-[#FAFAF7]"
+                style={{
+                  background: isActive ? '#FFF3C4' : 'transparent',
+                  borderLeft: isActive ? '3px solid #F2C418' : '3px solid transparent',
+                }}
+              >
+                <Icon className="w-4 h-4 flex-shrink-0"
+                      style={{ color: isActive ? '#F2C418' : '#9CA3AF' }} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-bold leading-tight"
+                       style={{ color: isActive ? '#1E2128' : '#5F6572' }}>
+                    {item.label}
+                  </div>
+                  <div className="text-[10px] leading-tight" style={{ color: '#C4C9D4' }}>{item.sublabel}</div>
+                </div>
+                {item.badge && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0"
+                        style={{ background: item.badgeColor + '20', color: item.badgeColor }}>
+                    {item.badge}
                   </span>
                 )}
               </button>
-            ))}
-          </nav>
-        </div>
+            );
+          })}
+        </nav>
 
-        {/* ─────────────────────────────────────────────────────────────────────
-            IL MIO ACCOUNT
-            ───────────────────────────────────────────────────────────────────── */}
-        <div className="mb-4">
-          <div className="px-2 py-2">
-            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#9CA3AF' }}>
-              Il Mio Account
-            </span>
-          </div>
-          
-          <nav className="space-y-1">
-            {ACCOUNT_ITEMS.map(item => {
-              const isActive = currentNav === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => onNavigate(item.id)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all hover:bg-[#FAFAF7]"
-                  style={{ 
-                    background: isActive ? '#FFF3C4' : 'transparent',
-                    borderLeft: isActive ? '3px solid #F2C418' : '3px solid transparent',
-                    color: isActive ? '#1E2128' : '#5F6572'
-                  }}
-                  data-testid={`sidebar-${item.id}`}
-                >
-                  <item.icon className="w-4 h-4" style={{ color: isActive ? '#F2C418' : '#9CA3AF' }} />
-                  <span className={`text-sm ${isActive ? 'font-bold' : 'font-medium'}`}>{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
+        {/* ─── IL MIO SPAZIO ─── */}
+        {sectionLabel("Il mio spazio")}
+        <nav className="space-y-0.5">
+          {SPACE_ITEMS.map((item) => {
+            const isActive = currentNav === item.id;
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                onClick={() => onNavigate(item.id)}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all hover:bg-[#FAFAF7]"
+                style={{
+                  background: isActive ? '#FFF3C4' : 'transparent',
+                  borderLeft: isActive ? '3px solid #F2C418' : '3px solid transparent',
+                }}
+              >
+                <Icon className="w-4 h-4 flex-shrink-0"
+                      style={{ color: isActive ? '#F2C418' : '#9CA3AF' }} />
+                <span className="text-xs font-medium"
+                      style={{ color: isActive ? '#1E2128' : '#5F6572', fontWeight: isActive ? 600 : 400 }}>
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
 
       </div>
 
-      {/* ══════════════════════════════════════════════════════════════════════
-          BOTTOM ACTIONS
-          ══════════════════════════════════════════════════════════════════════ */}
+      {/* ── BOTTOM — Stefania + Logout ── */}
       <div className="p-3 border-t space-y-2" style={{ borderColor: '#F0EFEB' }}>
-        {/* Chat con Stefania */}
-        <button 
+        <button
           onClick={onOpenChat}
-          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-all hover:opacity-90"
+          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all hover:opacity-90"
           style={{ background: '#F2C418', color: '#1E2128' }}
         >
-          <MessageCircle className="w-4 h-4" />
-          <span className="text-sm font-bold flex-1 text-left">Parla con Stefania</span>
-          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+          <MessageCircle className="w-4 h-4 flex-shrink-0" />
+          <div className="flex-1 text-left">
+            <div className="text-xs font-black leading-tight">Hai bisogno di aiuto?</div>
+            <div className="text-[10px] opacity-70">Parla con Stefania</div>
+          </div>
+          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0" />
         </button>
-        
-        {/* Logout */}
-        <button 
+        <button
           onClick={onLogout}
           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all hover:bg-[#FAFAF7]"
           style={{ color: '#9CA3AF' }}
         >
           <LogOut className="w-4 h-4" />
-          <span className="text-sm font-medium">Esci</span>
+          <span className="text-xs font-medium">Esci</span>
         </button>
       </div>
-      
-      {/* Modal Blocco */}
-      <LockedModal 
+
+      <LockedModal
         isOpen={lockedModal.isOpen}
         onClose={() => setLockedModal({ isOpen: false, itemLabel: '' })}
         itemLabel={lockedModal.itemLabel}
