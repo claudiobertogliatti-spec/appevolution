@@ -946,8 +946,8 @@ export default function ContractSigning({ partner, onContractSigned, initialStep
                 <button
                   onClick={handleSavePartnerData}
                   disabled={savingData}
-                  className="w-full py-4 rounded-xl font-bold text-base transition-all hover:scale-[1.01] disabled:opacity-60"
-                  style={{ background: 'linear-gradient(135deg, #1a1a2e, #2d2d44)', color: '#fff' }}
+                  className="w-full py-4 rounded-xl font-bold text-base transition-all hover:bg-[#D0D0D0] hover:scale-[1.01] disabled:opacity-60"
+                  style={{ background: '#E8E8E8', color: '#111111', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
                 >
                   {savingData ? 'Salvataggio...' : 'Salva e prosegui con il contratto →'}
                 </button>
@@ -1146,9 +1146,10 @@ export default function ContractSigning({ partner, onContractSigned, initialStep
                 disabled={!hasReadContract}
                 className={`w-full py-4 rounded-xl font-bold text-base transition-all flex items-center justify-center gap-2 ${
                   hasReadContract
-                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg'
+                    ? 'hover:bg-[#D0D0D0]'
                     : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                 }`}
+                style={hasReadContract ? { background: '#E8E8E8', color: '#111111', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' } : {}}
               >
                 {hasReadContract ? (
                   <>Procedi alla firma <ArrowRight className="w-5 h-5" /></>
@@ -1243,9 +1244,10 @@ export default function ContractSigning({ partner, onContractSigned, initialStep
                   disabled={!canSign || loading}
                   className={`w-full py-4 rounded-xl font-bold text-base transition-all flex items-center justify-center gap-2 ${
                     canSign && !loading
-                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg'
+                      ? 'hover:bg-[#D0D0D0]'
                       : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                   }`}
+                  style={canSign && !loading ? { background: '#E8E8E8', color: '#111111', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' } : {}}
                 >
                   {loading ? (
                     <><Loader2 className="w-5 h-5 animate-spin" /> Firma in corso...</>

@@ -307,7 +307,7 @@ function NextAction({ task, onAction }) {
         <button 
           onClick={onAction}
           className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold hover:scale-105 transition-all"
-          style={{ background: '#1E2128', color: '#F2C418', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}
+          style={{ background: '#E8E8E8', color: '#111111', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
         >
           {task.cta}
           <ArrowRight className="w-5 h-5" />

@@ -580,8 +580,8 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                   
                   <button
                     onClick={() => setActiveSection("contratto")}
-                    className="w-full py-4 rounded-xl font-bold text-lg transition-all hover:scale-[1.02]"
-                    style={{ background: "linear-gradient(135deg, #F5C518, #C4990A)", color: "#1E2128" }}
+                    className="w-full py-4 rounded-xl font-bold text-lg transition-all hover:bg-[#D0D0D0] hover:scale-[1.02]"
+                    style={{ background: "#E8E8E8", color: "#111111", boxShadow: "0 2px 8px rgba(0,0,0,0.10)" }}
                     data-testid="btn-procedi-contratto"
                   >
                     Procedi con il Contratto <ArrowRight className="inline w-5 h-5 ml-2" />
@@ -707,8 +707,8 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                   {data?.documenti?.length >= 2 && (
                     <button
                       onClick={() => setActiveSection("pagamento")}
-                      className="w-full py-4 rounded-xl font-bold text-lg transition-all hover:scale-[1.02]"
-                      style={{ background: "#F97316", color: "#FFFFFF" }}
+                      className="w-full py-4 rounded-xl font-bold text-lg transition-all hover:bg-[#D0D0D0] hover:scale-[1.02]"
+                      style={{ background: "#E8E8E8", color: "#111111", boxShadow: "0 2px 8px rgba(0,0,0,0.10)" }}
                     >
                       Continua con il Pagamento <ArrowRight className="inline w-5 h-5 ml-2" />
                     </button>
@@ -738,8 +738,8 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                         <button
                           onClick={handleAttivaPartnership}
                           disabled={activatingPartnership}
-                          className="px-8 py-4 rounded-xl font-bold text-lg transition-all hover:scale-[1.02] disabled:opacity-50"
-                          style={{ background: "linear-gradient(135deg, #F5C518, #C4990A)", color: "#1E2128" }}
+                          className="px-8 py-4 rounded-xl font-bold text-lg transition-all hover:bg-[#D0D0D0] hover:scale-[1.02] disabled:opacity-50"
+                          style={{ background: "#E8E8E8", color: "#111111", boxShadow: "0 2px 8px rgba(0,0,0,0.10)" }}
                           data-testid="btn-attiva-partnership"
                         >
                           {activatingPartnership ? (
@@ -764,8 +764,8 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                         <button
                           onClick={handlePagamentoStripe}
                           disabled={creatingPayment || !data?.contratto_firmato}
-                          className="w-full py-4 rounded-xl font-bold text-lg transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
-                          style={{ background: "#3B82F6", color: "#FFFFFF" }}
+                          className="w-full py-4 rounded-xl font-bold text-lg transition-all hover:bg-[#D0D0D0] hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{ background: "#E8E8E8", color: "#111111", boxShadow: "0 2px 8px rgba(0,0,0,0.10)" }}
                           data-testid="btn-paga-stripe"
                         >
                           {creatingPayment ? (
@@ -897,8 +897,8 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                 </p>
                 <button
                   onClick={() => setActiveSection("pagamento")}
-                  className="w-full py-3 rounded-xl font-bold transition-all hover:scale-[1.02]"
-                  style={{ background: "#F5C518", color: "#1E2128" }}
+                  className="w-full py-3 rounded-xl font-bold transition-all hover:bg-[#D0D0D0] hover:scale-[1.02]"
+                  style={{ background: "#E8E8E8", color: "#111111", boxShadow: "0 2px 8px rgba(0,0,0,0.10)" }}
                 >
                   Vai al Pagamento
                 </button>

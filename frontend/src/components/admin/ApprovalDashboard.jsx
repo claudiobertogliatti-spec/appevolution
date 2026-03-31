@@ -195,7 +195,7 @@ const ApprovalDashboard = () => {
         <button 
           onClick={fetchData}
           className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all hover:opacity-90"
-          style={{ background: '#F2C418', color: '#1E2128' }}
+          style={{ background: '#E8E8E8', color: '#111111', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
         >
           <RefreshCw className="w-4 h-4" />
           Aggiorna
@@ -252,7 +252,7 @@ const ApprovalDashboard = () => {
                     onClick={() => handleApprovaBonifico(b.token, b.prospect_nome)}
                     disabled={approvandoBonifico === b.token}
                     className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all hover:opacity-90"
-                    style={{ background: '#10B981', color: '#FFF' }}
+                    style={{ background: '#E8E8E8', color: '#111111', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
                   >
                     {approvandoBonifico === b.token
                       ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -369,7 +369,7 @@ const ApprovalDashboard = () => {
                       onClick={() => handleApprovaAnalisi(cliente.id)}
                       disabled={actionLoading}
                       className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold transition-all hover:opacity-90"
-                      style={{ background: '#10B981', color: 'white' }}
+                      style={{ background: '#E8E8E8', color: '#111111', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
                     >
                       <CheckCircle className="w-4 h-4" />
                       Approva
@@ -521,7 +521,7 @@ const ApprovalDashboard = () => {
                       onClick={() => handleApprove(task.id)}
                       disabled={actionLoading}
                       className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
-                      style={{ background: '#D1FAE5', color: '#059669', border: '1px solid #A7F3D0' }}
+                      style={{ background: '#E8E8E8', color: '#111111', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
                     >
                       <CheckCircle className="w-4 h-4" />
                       Approva

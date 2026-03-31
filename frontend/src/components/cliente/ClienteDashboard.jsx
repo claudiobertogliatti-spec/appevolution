@@ -489,8 +489,8 @@ export function ClienteDashboard({ cliente, onLogout }) {
 
                 <button
                   onClick={() => setShowQuestionario(true)}
-                  className="w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all hover:opacity-90"
-                  style={{ background: '#F5C518', color: '#1E2128' }}
+                  className="w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all hover:bg-[#D0D0D0]"
+                  style={{ background: '#E8E8E8', color: '#111111', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
                   data-testid="inizia-questionario-btn"
                 >
                   INIZIA IL QUESTIONARIO
@@ -645,8 +645,8 @@ export function ClienteDashboard({ cliente, onLogout }) {
                   <button
                     onClick={handleSubmit}
                     disabled={!isFormValid || loading}
-                    className="w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
-                    style={{ background: '#F5C518', color: '#1E2128' }}
+                    className="w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#D0D0D0]"
+                    style={{ background: '#E8E8E8', color: '#111111', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
                     data-testid="submit-questionario"
                   >
                     {loading ? (
