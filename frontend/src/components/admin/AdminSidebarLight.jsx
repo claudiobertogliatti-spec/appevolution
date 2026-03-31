@@ -1,57 +1,76 @@
 import { useState } from "react";
-import { LayoutDashboard, Users, Film, FileText, BarChart3, AlertTriangle, Settings, ChevronDown, ChevronRight, LogOut, Database, Trophy, Zap, HelpCircle, Webhook, Bot, DollarSign, FileCheck, ClipboardCheck, Mail, Snowflake, ShoppingBag, Globe, Bell, Target, Calendar, Layers, Search } from "lucide-react";
+import {
+  LayoutDashboard, Users, Film, FileText, AlertTriangle,
+  Settings, ChevronDown, ChevronRight, LogOut, Database,
+  Bot, Mail, Webhook, Globe, Bell, Target, Calendar,
+  Layers, Search, ShoppingBag, ClipboardCheck, Snowflake
+} from "lucide-react";
 
-// SIDEBAR CLAUDIO — sezioni definitive
+// ═══════════════════════════════════════════════════════════════════════════════
+// NAVIGAZIONE — Claudio
+// ═══════════════════════════════════════════════════════════════════════════════
+
 const CLAUDIO_NAV = [
   { section: "CLIENTE" },
-  { id: "approvals",       label: "Approvazioni",          icon: Bell,       badge: true },
-  { id: "clienti-analisi", label: "Prospect & Pipeline",   icon: Target },
-  { id: "flusso-analisi",  label: "Analisi",                icon: Search },
-  { id: "lista-fredda",    label: "Lista Fredda",           icon: Snowflake },
+  { id: "approvals",         label: "Approvazioni",         sublabel: "Analisi, bonifici, documenti", icon: Bell,     badge: true },
+  { id: "clienti-analisi",   label: "Prospect & Pipeline",  sublabel: "Tutti i lead nel funnel",      icon: Target },
+  { id: "flusso-analisi",    label: "Analisi Strategiche",  sublabel: "Genera e approva le analisi",  icon: Search },
+  { id: "lista-fredda",      label: "Lista Fredda",         sublabel: "Contatti da lavorare",          icon: Snowflake },
 
   { section: "PARTNER" },
-  { id: "partner",         label: "Partner",                icon: Users },
-  { id: "metriche",        label: "Fasi & Percorso",        icon: Layers },
-  { id: "documenti-partner", label: "Documenti",            icon: FileText },
-  { id: "servizi-admin",   label: "Servizi Extra",          icon: ShoppingBag },
+  { id: "partner",           label: "I Partner",            sublabel: "Lista e gestione partner",     icon: Users },
+  { id: "metriche",          label: "Fasi & Percorso",      sublabel: "Stato avanzamento fasi",        icon: Layers },
+  { id: "documenti-partner", label: "Documenti",            sublabel: "Onboarding e compliance",      icon: FileText },
+  { id: "servizi-admin",     label: "Servizi Extra",        sublabel: "Abbonamenti e acquisti",       icon: ShoppingBag },
 
   { section: "MARKETING" },
-  { id: "warmode",         label: "Campagne Ads",           icon: AlertTriangle },
-  { id: "youtube-heygen",  label: "YouTube × HeyGen",       icon: Film },
-  { id: "calendario-admin",label: "Calendario Editoriale",  icon: Calendar },
+  { id: "warmode",           label: "Campagne Ads",         sublabel: "Meta, Google, strategie",      icon: AlertTriangle },
+  { id: "youtube-heygen",    label: "YouTube × HeyGen",     sublabel: "Video AI e pubblicazione",     icon: Film },
+  { id: "calendario-admin",  label: "Calendario Editoriale",sublabel: "Contenuti pianificati",        icon: Calendar },
 
   { section: "TEAM" },
-  { id: "agenti",          label: "Agent Hub",              icon: Bot },
+  { id: "agenti",            label: "Agent Hub",            sublabel: "Tutti gli agenti AI",          icon: Bot },
 ];
 
 const CLAUDIO_CONFIG_NAV = [
-  { id: "email-templates", label: "Template Email",         icon: Mail },
-  { id: "systeme",         label: "Systeme.io",             icon: Database },
-  { id: "funnelbuilder",   label: "Funnel Builder",         icon: Globe },
-  { id: "compliance",      label: "Documenti & Compliance", icon: FileText },
-  { id: "webhooks",        label: "Webhooks",               icon: Webhook },
+  { id: "email-templates",   label: "Template Email",        icon: Mail },
+  { id: "systeme",           label: "Systeme.io",            icon: Database },
+  { id: "funnelbuilder",     label: "Funnel Builder",        icon: Globe },
+  { id: "compliance",        label: "Documenti & Compliance",icon: FileText },
+  { id: "webhooks",          label: "Webhooks",              icon: Webhook },
 ];
 
-// SIDEBAR ANTONELLA — sezioni definitive
+// ═══════════════════════════════════════════════════════════════════════════════
+// NAVIGAZIONE — Antonella
+// ═══════════════════════════════════════════════════════════════════════════════
+
 const ANTONELLA_NAV = [
   { section: "OGGI" },
-  { id: "overview",        label: "Overview",               icon: LayoutDashboard },
-  { id: "alert",           label: "Alert",                  icon: AlertTriangle },
+  { id: "overview",          label: "Overview",             sublabel: "Situazione generale",          icon: LayoutDashboard },
+  { id: "alert",             label: "Alert",                sublabel: "Azioni urgenti",               icon: AlertTriangle },
 
   { section: "PARTNER & CONTENUTI" },
-  { id: "partner",         label: "Partner",                icon: Users },
-  { id: "calendario-admin",label: "Calendario Editoriale",  icon: Calendar },
-  { id: "approvals",       label: "Approvazioni Contenuti", icon: ClipboardCheck },
+  { id: "partner",           label: "I Partner",            sublabel: "Lista e gestione partner",     icon: Users },
+  { id: "calendario-admin",  label: "Calendario Editoriale",sublabel: "Contenuti pianificati",        icon: Calendar },
+  { id: "approvals",         label: "Approvazioni",         sublabel: "Contenuti da revisionare",     icon: ClipboardCheck, badge: true },
 
   { section: "MARKETING" },
-  { id: "warmode",         label: "Campagne Ads",           icon: AlertTriangle },
-  { id: "youtube-heygen",  label: "YouTube × HeyGen",       icon: Film },
+  { id: "warmode",           label: "Campagne Ads",         sublabel: "Meta, Google, strategie",      icon: AlertTriangle },
+  { id: "youtube-heygen",    label: "YouTube × HeyGen",     sublabel: "Video AI e pubblicazione",     icon: Film },
 
   { section: "TEAM" },
-  { id: "agenti",          label: "Agent Hub",              icon: Bot },
+  { id: "agenti",            label: "Agent Hub",            sublabel: "Tutti gli agenti AI",          icon: Bot },
 ];
 
-export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminUser, alerts, approvazioniCount, onLogout, onSwitchToPartner, onSwitchToCliente, currentUser }) {
+// ═══════════════════════════════════════════════════════════════════════════════
+// SIDEBAR COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export function AdminSidebarLight({
+  currentNav, onNavigate, adminUser, setAdminUser,
+  alerts, approvazioniCount, onLogout,
+  onSwitchToPartner, onSwitchToCliente, currentUser
+}) {
   const [configOpen, setConfigOpen] = useState(false);
   const navItems = adminUser === "antonella" ? ANTONELLA_NAV : CLAUDIO_NAV;
   const isConfigNav = CLAUDIO_CONFIG_NAV.some(t => t.id === currentNav);
@@ -62,8 +81,8 @@ export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminU
     if (item.section) {
       return (
         <div key={`section-${item.section}`}
-             className="text-[10px] font-bold uppercase tracking-wider px-2 pt-4 pb-1"
-             style={{ color: '#9CA3AF' }}>
+             className="text-[11px] font-black uppercase tracking-widest px-3 pt-5 pb-2"
+             style={{ color: '#C4C9D4' }}>
           {item.section}
         </div>
       );
@@ -71,31 +90,52 @@ export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminU
 
     const active = isActive(item.id);
     const badgeCount = item.badge ? (approvazioniCount || 0) : 0;
+    const Icon = item.icon;
 
     return (
       <button
         key={item.id}
         onClick={() => onNavigate(item.id)}
-        className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all"
+        className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all"
         style={{
-          background: active ? '#FFF3C4' : 'transparent',
-          borderLeft: active ? '3px solid #F2C418' : '3px solid transparent',
-          color: active ? '#1E2128' : '#3B4049'
+          background: active ? '#F2C418' : 'transparent',
+          color: active ? '#1E2128' : '#3B4049',
+          marginBottom: 2
         }}
       >
-        <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-             style={{
-               background: active ? '#F2C418' : '#FFF8DC',
-               color: active ? '#1E2128' : '#C4990A'
-             }}>
-          <item.icon className="w-3.5 h-3.5" />
+        {/* Icona grande */}
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+          style={{
+            background: active ? 'rgba(0,0,0,0.12)' : '#F5F4F1',
+            color: active ? '#1E2128' : '#8D929C'
+          }}
+        >
+          <Icon className="w-5 h-5" />
         </div>
-        <span className={`text-sm flex-1 ${active ? 'font-bold' : 'font-medium'}`}>
-          {item.label}
-        </span>
+
+        {/* Testo con sublabel */}
+        <div className="flex-1 min-w-0">
+          <div className={`text-sm leading-tight ${active ? 'font-black' : 'font-bold'}`}>
+            {item.label}
+          </div>
+          {item.sublabel && (
+            <div className="text-[11px] leading-tight mt-0.5"
+                 style={{ color: active ? 'rgba(30,33,40,0.65)' : '#9CA3AF' }}>
+              {item.sublabel}
+            </div>
+          )}
+        </div>
+
+        {/* Badge */}
         {item.badge && badgeCount > 0 && (
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                style={{ background: '#EF476F', color: 'white' }}>
+          <span className="text-[11px] font-black px-2 py-1 rounded-full flex-shrink-0"
+                style={{
+                  background: active ? '#1E2128' : '#EF476F',
+                  color: 'white',
+                  minWidth: 24,
+                  textAlign: 'center'
+                }}>
             {badgeCount}
           </span>
         )}
@@ -104,55 +144,57 @@ export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminU
   };
 
   return (
-    <div className="w-64 min-w-64 flex flex-col h-full border-r overflow-y-auto"
-         style={{ background: '#FFFFFF', borderColor: '#F0EFEB' }}>
+    <div className="flex flex-col h-full border-r overflow-y-auto"
+         style={{ width: 288, minWidth: 288, background: '#FFFFFF', borderColor: '#ECEDEF' }}>
 
-      {/* Logo */}
-      <div className="p-5 border-b" style={{ borderColor: '#F0EFEB' }}>
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
+      {/* ── LOGO ── */}
+      <div className="px-5 py-4 border-b" style={{ borderColor: '#F0EFEB' }}>
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-sm flex-shrink-0"
                style={{ background: '#F2C418' }}>
-            <span className="text-lg font-black text-[#1E2128]">E</span>
+            <span className="text-xl font-black text-[#1E2128]">E</span>
           </div>
           <div>
-            <div className="font-black text-base" style={{ color: '#2D3239' }}>
+            <div className="font-black text-lg leading-tight" style={{ color: '#1E2128' }}>
               Evolution<span style={{ color: '#F2C418' }}>Pro</span>
             </div>
-            <div className="text-[10px] font-medium" style={{ color: '#9CA3AF' }}>OS Platform</div>
+            <div className="text-xs font-medium" style={{ color: '#9CA3AF' }}>OS Platform</div>
           </div>
         </div>
       </div>
 
-      {/* Mode Selector */}
-      <div className="px-4 py-3 space-y-2">
-        <button
-          className="w-full py-2.5 text-sm font-bold rounded-xl transition-all"
-          style={{ background: '#F2C418', color: '#1E2128', boxShadow: '0 4px 20px rgba(242,196,24,0.25)' }}
-        >
-          Admin
-        </button>
+      {/* ── SWITCHER MODALITÀ ── */}
+      <div className="px-4 py-4 border-b space-y-3" style={{ borderColor: '#F0EFEB' }}>
 
-        <div className="flex gap-2">
+        {/* Admin attivo */}
+        <div className="px-3 py-2 rounded-xl text-center font-black text-sm"
+             style={{ background: '#1E2128', color: '#F2C418' }}>
+          ● Admin
+        </div>
+
+        {/* Vista Cliente / Partner */}
+        <div className="grid grid-cols-2 gap-2">
           <button
             onClick={onSwitchToCliente}
-            className="flex-1 py-2 text-xs font-bold rounded-lg transition-all hover:bg-[#FAFAF7]"
-            style={{ background: '#FAFAF7', color: '#5F6572', border: '1px solid #ECEDEF' }}
+            className="py-2.5 rounded-xl text-xs font-bold transition-all hover:opacity-90 text-center"
+            style={{ background: '#EEF2FF', color: '#4F46E5', border: '1px solid #C7D2FE' }}
           >
-            Cliente
+            👤 Vista Cliente
           </button>
           <button
             onClick={onSwitchToPartner}
-            className="flex-1 py-2 text-xs font-bold rounded-lg transition-all hover:bg-[#FAFAF7]"
-            style={{ background: '#FAFAF7', color: '#5F6572', border: '1px solid #ECEDEF' }}
+            className="py-2.5 rounded-xl text-xs font-bold transition-all hover:opacity-90 text-center"
+            style={{ background: '#F0FDF4', color: '#16A34A', border: '1px solid #BBF7D0' }}
           >
-            Partner
+            🤝 Vista Partner
           </button>
         </div>
 
-        <div className="flex gap-2">
+        {/* Profilo admin */}
+        <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => { setAdminUser("claudio"); onNavigate("overview"); }}
-            className="flex-1 py-2 text-xs font-bold rounded-lg transition-all"
+            className="py-2.5 rounded-xl text-xs font-bold transition-all text-center"
             style={{
               background: adminUser === "claudio" ? '#1E2128' : '#FAFAF7',
               color: adminUser === "claudio" ? '#F2C418' : '#9CA3AF',
@@ -163,7 +205,7 @@ export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminU
           </button>
           <button
             onClick={() => { setAdminUser("antonella"); onNavigate("overview"); }}
-            className="flex-1 py-2 text-xs font-bold rounded-lg transition-all"
+            className="py-2.5 rounded-xl text-xs font-bold transition-all text-center"
             style={{
               background: adminUser === "antonella" ? '#7B68AE' : '#FAFAF7',
               color: adminUser === "antonella" ? 'white' : '#9CA3AF',
@@ -175,27 +217,28 @@ export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminU
         </div>
       </div>
 
-      <div className="mx-4 my-1" style={{ height: 1, background: '#F5F4F1' }} />
-
-      {/* Main Navigation */}
-      <div className="flex-1 overflow-y-auto px-3 py-1">
-        <nav className="space-y-0.5">
-          {navItems.map((item, i) => renderNavItem(item))}
+      {/* ── NAVIGAZIONE PRINCIPALE ── */}
+      <div className="flex-1 overflow-y-auto px-3 py-2">
+        <nav>
+          {navItems.map((item) => renderNavItem(item))}
         </nav>
 
         {/* CONFIGURAZIONE — solo Claudio */}
         {adminUser === "claudio" && (
-          <div className="mt-2">
+          <div className="mt-3 pt-3 border-t" style={{ borderColor: '#F0EFEB' }}>
             <button
               onClick={() => setConfigOpen(!configOpen)}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all"
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all"
               style={{
                 background: isConfigNav ? '#FFF8DC' : 'transparent',
                 color: isConfigNav ? '#1E2128' : '#8D929C'
               }}
             >
-              <Settings className="w-4 h-4" />
-              <span className="text-[10px] font-bold uppercase tracking-wider flex-1">Configurazione</span>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                   style={{ background: isConfigNav ? '#F2C418' : '#F5F4F1', color: isConfigNav ? '#1E2128' : '#8D929C' }}>
+                <Settings className="w-5 h-5" />
+              </div>
+              <span className="text-sm font-bold flex-1">Configurazione</span>
               {configOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
             </button>
 
@@ -207,14 +250,14 @@ export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminU
                     <button
                       key={item.id}
                       onClick={() => onNavigate(item.id)}
-                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-all"
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all"
                       style={{
                         background: active ? '#FFF8DC' : 'transparent',
-                        color: active ? '#1E2128' : '#8D929C'
+                        color: active ? '#1E2128' : '#6B7280'
                       }}
                     >
-                      <item.icon className="w-3.5 h-3.5" />
-                      <span className="text-xs font-medium">{item.label}</span>
+                      <item.icon className="w-4 h-4 flex-shrink-0" />
+                      <span className="text-sm font-medium">{item.label}</span>
                     </button>
                   );
                 })}
@@ -223,22 +266,28 @@ export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminU
           </div>
         )}
 
-        {/* Alert — solo Claudio (Antonella lo ha in nav) */}
+        {/* Alert — solo Claudio */}
         {adminUser === "claudio" && (
-          <div className="mt-3 pt-3 border-t" style={{ borderColor: '#F5F4F1' }}>
+          <div className="mt-2 pt-2 border-t" style={{ borderColor: '#F0EFEB' }}>
             <button
               onClick={() => onNavigate("alert")}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all"
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all"
               style={{
-                background: currentNav === "alert" ? '#FDECEF' : alerts?.length > 0 ? '#FFFDF5' : 'transparent',
+                background: currentNav === "alert" ? '#FEF2F2' : alerts?.length > 0 ? '#FFFDF5' : 'transparent',
                 color: alerts?.length > 0 ? '#EF476F' : '#8D929C'
               }}
             >
-              <AlertTriangle className="w-4 h-4" />
-              <span className="text-xs font-bold flex-1">Alert</span>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                   style={{ background: alerts?.length > 0 ? '#FEE2E2' : '#F5F4F1', color: alerts?.length > 0 ? '#EF4444' : '#8D929C' }}>
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <div className="text-sm font-bold">Alert</div>
+                <div className="text-[11px]" style={{ color: '#9CA3AF' }}>Situazioni urgenti</div>
+              </div>
               {alerts?.length > 0 && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                      style={{ background: '#EF476F', color: 'white' }}>
+                <span className="text-[11px] font-black px-2 py-1 rounded-full"
+                      style={{ background: '#EF476F', color: 'white', minWidth: 24, textAlign: 'center' }}>
                   {alerts.length}
                 </span>
               )}
@@ -247,43 +296,33 @@ export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminU
         )}
       </div>
 
-      {/* User Footer */}
-      <div className="p-3 border-t" style={{ borderColor: '#F5F4F1' }}>
-        <div className="flex items-center gap-2.5 mb-3">
-          <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold"
+      {/* ── FOOTER UTENTE ── */}
+      <div className="p-4 border-t" style={{ borderColor: '#F0EFEB' }}>
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
                style={{
                  background: adminUser === "antonella" ? '#7B68AE' : '#F2C418',
                  color: adminUser === "antonella" ? 'white' : '#1E2128'
                }}>
-            {currentUser?.name?.split(" ").map(n => n[0]).join("") || "CB"}
+            {currentUser?.name?.split(" ").map(n => n[0]).join("") || (adminUser === "antonella" ? "AR" : "CB")}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-bold truncate" style={{ color: '#1E2128' }}>
+            <div className="text-sm font-bold truncate" style={{ color: '#1E2128' }}>
               {currentUser?.name || (adminUser === "antonella" ? "Antonella Rossi" : "Claudio Bertogliatti")}
             </div>
-            <div className="text-[10px]" style={{ color: '#9CA3AF' }}>
-              Admin · {adminUser === "antonella" ? "Operations" : "Fondatore"}
+            <div className="text-xs" style={{ color: '#9CA3AF' }}>
+              {adminUser === "antonella" ? "Operations Manager" : "Fondatore & CEO"}
             </div>
           </div>
         </div>
-
-        <div className="flex gap-2">
-          <button
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg transition-all hover:bg-[#FFF8DC]"
-            style={{ color: '#8D929C' }}
-          >
-            <HelpCircle className="w-4 h-4" />
-            <span className="text-xs font-semibold">Aiuto</span>
-          </button>
-          <button
-            onClick={onLogout}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg transition-all hover:bg-red-50 hover:text-red-500"
-            style={{ color: '#8D929C' }}
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="text-xs font-semibold">Esci</span>
-          </button>
-        </div>
+        <button
+          onClick={onLogout}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all hover:bg-red-50"
+          style={{ color: '#9CA3AF', border: '1px solid #F0EFEB' }}
+        >
+          <LogOut className="w-4 h-4" />
+          <span className="text-sm font-semibold">Esci</span>
+        </button>
       </div>
     </div>
   );
