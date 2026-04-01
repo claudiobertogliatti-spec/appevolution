@@ -968,6 +968,8 @@ export default function App() {
   const [approvazioniCount,setApprovazioniCount]=useState(0);
   const [selectedPartner,setSelectedPartner]=useState(null);
   const [viewingCliente,setViewingCliente]=useState(null); // Cliente da visualizzare in modalità cliente
+  const [partnerDashNav,setPartnerDashNav]=useState('dashboard'); // Nav state per dashboard partner
+  const [partnerShowChat,setPartnerShowChat]=useState(false); // Toggle chat Stefania partner
 
   // Get the partner data for the logged-in user (if they are a partner)
   // Falls back to demo partner for admin testing
@@ -1475,45 +1477,76 @@ export default function App() {
   if (window.location.pathname === "/dashboard-partner") {
     // Se l'utente è un partner (non admin), forza la modalità partner
     if (currentUser?.role === "partner" || currentUser?.user_type === "partner") {
-      // Mostra la dashboard partner dedicata direttamente
-      return (
-        <div className="min-h-screen" style={{ background: '#FAFAF7' }}>
-          {/* Header Partner */}
-          <header className="border-b" style={{ background: '#FFFFFF', borderColor: '#ECEDEF' }}>
-            <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
-                  <span className="text-lg font-black" style={{ color: '#1E2128' }}>E</span>
-                </div>
-                <div>
-                  <span className="font-black text-lg" style={{ color: '#1E2128' }}>
-                    EVOLUTION <span style={{ color: '#F5C518' }}>PRO</span>
-                  </span>
-                  <div className="text-xs" style={{ color: '#9CA3AF' }}>Partner Dashboard</div>
-                </div>
-              </div>
-              <button 
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-gray-100"
-                style={{ color: '#5F6572' }}
-              >
-                <LogOut className="w-4 h-4" />
-                Esci
-              </button>
+      const currentPartner = demoPartner;
+
+      const renderPartnerSection = () => {
+        const p = currentPartner;
+        const nav = partnerDashNav;
+        if (nav === 'posizionamento') return <PosizionamentoPage partner={p} onNavigate={setPartnerDashNav} />;
+        if (nav === 'masterclass') return <MasterclassPage partner={p} onNavigate={setPartnerDashNav} />;
+        if (nav === 'videocorso') return <VideocorsoPage partner={p} onNavigate={setPartnerDashNav} />;
+        if (nav === 'funnel') return <FunnelPage partner={p} onNavigate={setPartnerDashNav} />;
+        if (nav === 'lancio') return <LancioPage partner={p} onNavigate={setPartnerDashNav} />;
+        if (nav === 'ottimizzazione') return <OttimizzazionePage partner={p} onNavigate={setPartnerDashNav} />;
+        if (nav === 'lead') return <LeadPage partner={p} onNavigate={setPartnerDashNav} />;
+        if (nav === 'pagamenti') return <PartnerPayments partner={p} />;
+        if (nav === 'continuita') return <PianoContinuitaPage partner={p} onNavigate={setPartnerDashNav} />;
+        if (nav === 'calendario-pro') return <CalendarioEditoriale partner={p} />;
+        if (nav === 'avatar-pro') return <AvatarCheckout partner={p} />;
+        if (nav === 'consulenza-claudio' || nav === 'consulenza-antonella') return (
+          <div className="max-w-2xl mx-auto p-8 text-center">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: '#FFF3C4' }}>
+              <span className="text-2xl">📅</span>
             </div>
-          </header>
-          
-          {/* Partner Dashboard Content */}
-          <PartnerDashboardSimplified 
-            partner={demoPartner} 
-            onNavigate={(dest) => {
-              // Gestisci la navigazione - per ora resta sulla dashboard
-              console.log("Navigate to:", dest);
-            }} 
-            onOpenChat={() => {
-              console.log("Open chat");
-            }}
+            <h2 className="text-xl font-black mb-2" style={{ color: '#1E2128' }}>
+              {nav === 'consulenza-claudio' ? 'Sessione con Claudio' : 'Sessione con Antonella'}
+            </h2>
+            <p className="text-sm mb-6" style={{ color: '#5F6572' }}>
+              Parla con Stefania per prenotare la tua sessione 1:1.
+            </p>
+            <button onClick={() => setPartnerShowChat(true)} className="px-6 py-3 rounded-xl font-bold text-sm" style={{ background: '#E8E8E8', color: '#111111', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}>
+              Parla con Stefania
+            </button>
+          </div>
+        );
+        if (nav === 'profilo') return <PartnerProfileHub partner={p} onNavigate={setPartnerDashNav} />;
+        if (nav === 'i-miei-file') return <PartnerFilesPage partner={p} />;
+        if (nav === 'onboarding-docs') return <OnboardingDocuments partner={p} />;
+        // Default: home dashboard
+        return <PartnerDashboardSimplified partner={p} onNavigate={setPartnerDashNav} />;
+      };
+
+      return (
+        <div className="flex h-screen overflow-hidden" style={{ background: '#FAFAF7', color: '#1E2128' }}>
+          <Toaster position="top-center" richColors />
+
+          {/* Sidebar */}
+          <PartnerSidebarLight
+            currentNav={partnerDashNav}
+            onNavigate={setPartnerDashNav}
+            partner={currentPartner}
+            onLogout={handleLogout}
+            onOpenChat={() => setPartnerShowChat(true)}
+            onSwitchToAdmin={() => { setMode("admin"); setNav("overview"); window.location.href = "/"; }}
+            isAdmin={false}
           />
+
+          {/* Main content */}
+          <div className="flex-1 overflow-y-auto">
+            {renderPartnerSection()}
+          </div>
+
+          {/* Stefania Chat overlay */}
+          {partnerShowChat && (
+            <div className="fixed inset-0 z-50 flex items-end justify-end p-6 pointer-events-none">
+              <div className="w-96 pointer-events-auto shadow-2xl rounded-2xl overflow-hidden" style={{ height: '75vh' }}>
+                <StefaniaChat
+                  partner={currentPartner}
+                  onBack={() => setPartnerShowChat(false)}
+                />
+              </div>
+            </div>
+          )}
         </div>
       );
     }

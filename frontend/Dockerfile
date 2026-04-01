@@ -3,7 +3,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --legacy-peer-deps
 COPY . .
-ARG CACHEBUST=1775039264
+ARG CACHEBUST=1775200000
 RUN npm run build
 
 FROM nginx:alpine
