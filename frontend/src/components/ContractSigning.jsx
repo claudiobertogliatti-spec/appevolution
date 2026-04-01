@@ -567,8 +567,8 @@ function renderContract(text) {
   });
 }
 
-export default function ContractSigning({ partner, onContractSigned }) {
-  const [step, setStep] = useState(1);
+export default function ContractSigning({ partner, onContractSigned, initialStep, embedded }) {
+  const [step, setStep] = useState(initialStep !== undefined ? initialStep : 0);
   const [scrollPct, setScrollPct] = useState(0);
   const [hasReadContract, setHasReadContract] = useState(false);
   const [currentArticle, setCurrentArticle] = useState(1);
@@ -577,10 +577,29 @@ export default function ContractSigning({ partner, onContractSigned }) {
   const [signatureData, setSignatureData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Step 0 — dati personali
+  const [partnerData, setPartnerData] = useState({
+    nome: partner?.nome || '',
+    cognome: partner?.cognome || '',
+    nome_azienda: '',
+    codice_fiscale: '',
+    partita_iva: '',
+    indirizzo: '',
+    citta: '',
+    cap: '',
+    provincia: '',
+    email: partner?.email || '',
+    pec: '',
+    iban: '',
+  });
+  const [savingData, setSavingData] = useState(false);
+  const [dataError, setDataError] = useState(null);
   
   // Dynamic contract text
   const [dynamicContractText, setDynamicContractText] = useState(null);
   const [contractLoading, setContractLoading] = useState(true);
+  const [customPdfUrl, setCustomPdfUrl] = useState(null);
   
   // Chat state
   const [messages, setMessages] = useState([
@@ -601,7 +620,7 @@ export default function ContractSigning({ partner, onContractSigned }) {
   const ctxRef = useRef(null);
   const chatEndRef = useRef(null);
   
-  // Load personalized contract text
+  // Load personalized contract text + existing partner data
   useEffect(() => {
     const loadContractText = async () => {
       if (!partner?.id) {
@@ -609,9 +628,18 @@ export default function ContractSigning({ partner, onContractSigned }) {
         return;
       }
       try {
-        const res = await axios.get(`${API}/api/contract/text/${partner.id}`);
-        if (res.data?.contract_text) {
-          setDynamicContractText(res.data.contract_text);
+        const [textRes, dataRes] = await Promise.allSettled([
+          axios.get(`${API}/api/contract/text/${partner.id}`),
+          axios.get(`${API}/api/contract/partner-data/${partner.id}`)
+        ]);
+        if (textRes.status === 'fulfilled' && textRes.value.data?.contract_text) {
+          setDynamicContractText(textRes.value.data.contract_text);
+        }
+        if (textRes.status === 'fulfilled' && textRes.value.data?.custom_pdf_url) {
+          setCustomPdfUrl(textRes.value.data.custom_pdf_url);
+        }
+        if (dataRes.status === 'fulfilled' && dataRes.value.data?.data) {
+          setPartnerData(prev => ({ ...prev, ...dataRes.value.data.data }));
         }
       } catch (err) {
         console.warn('Fallback to default contract text');
@@ -621,6 +649,30 @@ export default function ContractSigning({ partner, onContractSigned }) {
     };
     loadContractText();
   }, [partner?.id]);
+
+  const handleSavePartnerData = async () => {
+    const required = ['nome', 'cognome', 'codice_fiscale', 'partita_iva', 'indirizzo', 'citta', 'cap', 'email', 'iban'];
+    const missing = required.filter(k => !partnerData[k]?.trim());
+    if (missing.length > 0) {
+      setDataError('Compila tutti i campi obbligatori prima di procedere.');
+      return;
+    }
+    setSavingData(true);
+    setDataError(null);
+    try {
+      await axios.post(`${API}/api/contract/partner-data/${partner?.id || 'demo'}`, partnerData);
+      // Ricarica il testo del contratto personalizzato
+      if (partner?.id && partner.id !== 'demo') {
+        const res = await axios.get(`${API}/api/contract/text/${partner.id}`);
+        if (res.data?.contract_text) setDynamicContractText(res.data.contract_text);
+      }
+      setStep(1);
+    } catch (err) {
+      setDataError('Errore nel salvataggio dei dati. Riprova.');
+    } finally {
+      setSavingData(false);
+    }
+  };
   
   const activeContractText = dynamicContractText || CONTRACT_TEXT;
 
@@ -770,8 +822,8 @@ export default function ContractSigning({ partner, onContractSigned }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className={embedded ? "" : "min-h-screen bg-gray-50 p-4 md:p-6"}>
+      <div className={embedded ? "" : "max-w-7xl mx-auto"}>
         {/* Header */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100 mb-3">
@@ -779,31 +831,131 @@ export default function ContractSigning({ partner, onContractSigned }) {
             <span className="font-medium text-gray-700 text-sm">Contratto di Partnership</span>
           </div>
           
-          {/* Step indicator */}
+          {/* Step indicator — 3 step */}
           <div className="flex items-center justify-center gap-3">
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm ${
-              step === 1 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
-            }`}>
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
-                step === 1 ? 'bg-emerald-600 text-white' : hasReadContract ? 'bg-emerald-600 text-white' : 'bg-gray-300'
-              }`}>
-                {hasReadContract && step !== 1 ? <Check className="w-3 h-3" /> : '1'}
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm ${step === 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${step === 0 ? 'bg-emerald-600 text-white' : step > 0 ? 'bg-emerald-600 text-white' : 'bg-gray-300'}`}>
+                {step > 0 ? <Check className="w-3 h-3" /> : '1'}
+              </div>
+              <span className="font-medium">I tuoi dati</span>
+            </div>
+            <ArrowRight className="w-4 h-4 text-gray-400" />
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm ${step === 1 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${step === 1 ? 'bg-emerald-600 text-white' : hasReadContract && step > 1 ? 'bg-emerald-600 text-white' : 'bg-gray-300'}`}>
+                {hasReadContract && step > 1 ? <Check className="w-3 h-3" /> : '2'}
               </div>
               <span className="font-medium">Leggi</span>
             </div>
             <ArrowRight className="w-4 h-4 text-gray-400" />
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm ${
-              step === 2 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
-            }`}>
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
-                step === 2 ? 'bg-emerald-600 text-white' : 'bg-gray-300'
-              }`}>
-                2
-              </div>
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm ${step === 2 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${step === 2 ? 'bg-emerald-600 text-white' : 'bg-gray-300'}`}>3</div>
               <span className="font-medium">Firma</span>
             </div>
           </div>
         </div>
+
+        {/* ── STEP 0: DATI PERSONALI ── */}
+        {step === 0 && (
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-6 border-b border-gray-100" style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%)' }}>
+                <h2 className="text-xl font-bold text-white mb-1">I tuoi dati per il contratto</h2>
+                <p className="text-sm text-white/60">Questi dati verranno inseriti nel contratto e hanno valore legale</p>
+              </div>
+              <div className="p-6 space-y-4">
+                {/* Nome + Cognome */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-600 mb-1">Nome <span className="text-red-500">*</span></label>
+                    <input type="text" value={partnerData.nome} onChange={e => setPartnerData(p => ({...p, nome: e.target.value}))}
+                      className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400" placeholder="Mario" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-600 mb-1">Cognome <span className="text-red-500">*</span></label>
+                    <input type="text" value={partnerData.cognome} onChange={e => setPartnerData(p => ({...p, cognome: e.target.value}))}
+                      className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400" placeholder="Rossi" />
+                  </div>
+                </div>
+                {/* Nome Azienda */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 mb-1">Nome Azienda / Ditta Individuale <span className="text-red-500">*</span></label>
+                  <input type="text" value={partnerData.nome_azienda} onChange={e => setPartnerData(p => ({...p, nome_azienda: e.target.value}))}
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400" placeholder="Mario Rossi Coaching" />
+                </div>
+                {/* CF + P.IVA */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-600 mb-1">Codice Fiscale <span className="text-red-500">*</span></label>
+                    <input type="text" value={partnerData.codice_fiscale} onChange={e => setPartnerData(p => ({...p, codice_fiscale: e.target.value.toUpperCase()}))}
+                      className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400 font-mono" placeholder="RSSMRA80A01H501U" maxLength={16} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-600 mb-1">Partita IVA <span className="text-red-500">*</span></label>
+                    <input type="text" value={partnerData.partita_iva} onChange={e => setPartnerData(p => ({...p, partita_iva: e.target.value}))}
+                      className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400 font-mono" placeholder="IT12345678901" maxLength={13} />
+                  </div>
+                </div>
+                {/* Indirizzo */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 mb-1">Indirizzo (via/piazza + numero civico) <span className="text-red-500">*</span></label>
+                  <input type="text" value={partnerData.indirizzo} onChange={e => setPartnerData(p => ({...p, indirizzo: e.target.value}))}
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400" placeholder="Via Roma 1" />
+                </div>
+                <div className="grid grid-cols-5 gap-3">
+                  <div className="col-span-2">
+                    <label className="block text-xs font-bold text-gray-600 mb-1">Città <span className="text-red-500">*</span></label>
+                    <input type="text" value={partnerData.citta} onChange={e => setPartnerData(p => ({...p, citta: e.target.value}))}
+                      className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400" placeholder="Milano" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-600 mb-1">CAP <span className="text-red-500">*</span></label>
+                    <input type="text" value={partnerData.cap} onChange={e => setPartnerData(p => ({...p, cap: e.target.value}))}
+                      className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400" placeholder="20121" maxLength={5} />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-xs font-bold text-gray-600 mb-1">Provincia</label>
+                    <input type="text" value={partnerData.provincia} onChange={e => setPartnerData(p => ({...p, provincia: e.target.value.toUpperCase()}))}
+                      className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400" placeholder="MI" maxLength={2} />
+                  </div>
+                </div>
+                {/* Email + PEC */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-600 mb-1">Email <span className="text-red-500">*</span></label>
+                    <input type="email" value={partnerData.email} onChange={e => setPartnerData(p => ({...p, email: e.target.value}))}
+                      className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400" placeholder="mario@rossi.it" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-600 mb-1">PEC <span className="text-gray-400 font-normal">(facoltativa)</span></label>
+                    <input type="email" value={partnerData.pec} onChange={e => setPartnerData(p => ({...p, pec: e.target.value}))}
+                      className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400" placeholder="mario@pec.it" />
+                  </div>
+                </div>
+                {/* IBAN */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 mb-1">IBAN (per pagamento royalties) <span className="text-red-500">*</span></label>
+                  <input type="text" value={partnerData.iban} onChange={e => setPartnerData(p => ({...p, iban: e.target.value.toUpperCase().replace(/\s/g, '')}))}
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400 font-mono" placeholder="IT60X0542811101000000123456" />
+                  <p className="text-xs text-gray-400 mt-1">Conto su cui Evolution PRO accrediterà la tua quota sulle vendite</p>
+                </div>
+
+                {dataError && (
+                  <div className="p-3 rounded-xl text-sm text-red-700 bg-red-50 border border-red-200">{dataError}</div>
+                )}
+
+                <button
+                  onClick={handleSavePartnerData}
+                  disabled={savingData}
+                  className="w-full py-4 rounded-xl font-bold text-base transition-all hover:bg-[#D0D0D0] hover:scale-[1.01] disabled:opacity-60"
+                  style={{ background: '#E8E8E8', color: '#111111', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
+                >
+                  {savingData ? 'Salvataggio...' : 'Salva e prosegui con il contratto →'}
+                </button>
+                <p className="text-xs text-center text-gray-400">I tuoi dati sono protetti e usati esclusivamente per la redazione del contratto</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {step === 1 ? (
           <>
@@ -856,23 +1008,38 @@ export default function ContractSigning({ partner, onContractSigned }) {
                   </div>
 
                   {/* Contract Body */}
-                  <div 
-                    ref={contractRef}
-                    onScroll={handleScroll}
-                    className="px-6 py-5 font-['Georgia',serif] h-[calc(100vh-380px)] md:h-[calc(100vh-320px)] overflow-y-auto scroll-smooth"
-                  >
-                    {contractLoading ? (
-                      <div className="flex items-center justify-center py-20">
-                        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                        <span className="ml-2 text-sm text-gray-400">Caricamento contratto...</span>
-                      </div>
-                    ) : renderContract(activeContractText)}
-                  </div>
+                  {customPdfUrl ? (
+                    <div className="h-[calc(100vh-380px)] md:h-[calc(100vh-320px)] flex flex-col">
+                      <iframe
+                        src={customPdfUrl}
+                        title="Contratto Partnership"
+                        className="flex-1 w-full"
+                        style={{ border: 'none' }}
+                        onLoad={() => {
+                          // Permetti di procedere dopo 10 secondi di visualizzazione PDF
+                          setTimeout(() => setHasReadContract(true), 10000);
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      ref={contractRef}
+                      onScroll={handleScroll}
+                      className="px-6 py-5 font-['Georgia',serif] h-[calc(100vh-380px)] md:h-[calc(100vh-320px)] overflow-y-auto scroll-smooth"
+                    >
+                      {contractLoading ? (
+                        <div className="flex items-center justify-center py-20">
+                          <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                          <span className="ml-2 text-sm text-gray-400">Caricamento contratto...</span>
+                        </div>
+                      ) : renderContract(activeContractText)}
+                    </div>
+                  )}
 
-                  {/* Scroll indicator */}
+                  {/* Scroll/read indicator */}
                   {!hasReadContract ? (
                     <div className="bg-amber-50 border-t border-amber-100 px-4 py-2 flex items-center justify-between">
-                      <span className="text-amber-700 text-xs">Scorri fino in fondo per abilitare la firma</span>
+                      <span className="text-amber-700 text-xs">{customPdfUrl ? "Leggi il contratto per abilitare la firma" : "Scorri fino in fondo per abilitare la firma"}</span>
                       <ChevronDown className="w-4 h-4 text-amber-600 animate-bounce" />
                     </div>
                   ) : (
@@ -979,9 +1146,10 @@ export default function ContractSigning({ partner, onContractSigned }) {
                 disabled={!hasReadContract}
                 className={`w-full py-4 rounded-xl font-bold text-base transition-all flex items-center justify-center gap-2 ${
                   hasReadContract
-                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg'
+                    ? 'hover:bg-[#D0D0D0]'
                     : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                 }`}
+                style={hasReadContract ? { background: '#E8E8E8', color: '#111111', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' } : {}}
               >
                 {hasReadContract ? (
                   <>Procedi alla firma <ArrowRight className="w-5 h-5" /></>
@@ -1076,9 +1244,10 @@ export default function ContractSigning({ partner, onContractSigned }) {
                   disabled={!canSign || loading}
                   className={`w-full py-4 rounded-xl font-bold text-base transition-all flex items-center justify-center gap-2 ${
                     canSign && !loading
-                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg'
+                      ? 'hover:bg-[#D0D0D0]'
                       : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                   }`}
+                  style={canSign && !loading ? { background: '#E8E8E8', color: '#111111', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' } : {}}
                 >
                   {loading ? (
                     <><Loader2 className="w-5 h-5 animate-spin" /> Firma in corso...</>

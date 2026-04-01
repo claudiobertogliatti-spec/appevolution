@@ -42,6 +42,21 @@ class ContractChatRequest(BaseModel):
     current_article: Optional[int] = None
 
 
+class PartnerPersonalData(BaseModel):
+    nome: str = ""
+    cognome: str = ""
+    nome_azienda: str = ""
+    codice_fiscale: str = ""
+    partita_iva: str = ""
+    indirizzo: str = ""
+    citta: str = ""
+    cap: str = ""
+    provincia: str = ""
+    email: str = ""
+    pec: str = ""
+    iban: str = ""
+
+
 class ContractParamsUpdate(BaseModel):
     corrispettivo: Optional[float] = None
     corrispettivo_testo: Optional[str] = None
@@ -117,7 +132,57 @@ def render_contract_text(params: dict) -> str:
         "massimo 3 (tre) rate",
         f"massimo {num_rate} ({rate_parola}) rate"
     )
+    # Personalizzazione con dati del partner
+    pd = params.get("personal_data", {})
+    if pd.get("nome") and pd.get("cognome"):
+        nome_completo = f"{pd['nome']} {pd['cognome']}"
+        indirizzo_completo = f"{pd.get('indirizzo', '')}, {pd.get('cap', '')} {pd.get('citta', '')} ({pd.get('provincia', '')})".strip(", ")
+        riga_partner = f"{nome_completo}"
+        if pd.get("nome_azienda"):
+            riga_partner += f", titolare di {pd['nome_azienda']}"
+        if pd.get("codice_fiscale"):
+            riga_partner += f", C.F. {pd['codice_fiscale']}"
+        if pd.get("partita_iva"):
+            riga_partner += f", P.IVA {pd['partita_iva']}"
+        if indirizzo_completo.strip(", "):
+            riga_partner += f", con sede/residenza in {indirizzo_completo}"
+        if pd.get("pec"):
+            riga_partner += f", PEC: {pd['pec']}"
+        elif pd.get("email"):
+            riga_partner += f", email: {pd['email']}"
+        if pd.get("iban"):
+            riga_partner += f", IBAN: {pd['iban']}"
+        text = text.replace(
+            "Il Partner sottoscrittore del presente contratto digitale.",
+            f"{riga_partner}, di seguito \"Partner\"."
+        )
     return text
+
+
+@router.get("/partner-data/{partner_id}")
+async def get_partner_data(partner_id: str):
+    """Recupera i dati personali salvati del partner per il contratto."""
+    record = await db.contract_partner_data.find_one({"partner_id": partner_id})
+    if not record:
+        return {"data": {}}
+    record.pop("_id", None)
+    record.pop("partner_id", None)
+    record.pop("saved_at", None)
+    return {"data": record}
+
+
+@router.post("/partner-data/{partner_id}")
+async def save_partner_data(partner_id: str, body: PartnerPersonalData):
+    """Salva i dati personali del partner per personalizzare il contratto."""
+    data = body.model_dump()
+    data["partner_id"] = partner_id
+    data["saved_at"] = datetime.now(timezone.utc).isoformat()
+    await db.contract_partner_data.update_one(
+        {"partner_id": partner_id},
+        {"$set": data},
+        upsert=True
+    )
+    return {"success": True}
 
 
 @router.post("/chat")
@@ -127,54 +192,53 @@ async def contract_chat(body: ContractChatRequest):
     Usa Claude Haiku per risposte veloci e concise.
     """
     try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+
         EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
-        
+
         if not EMERGENT_LLM_KEY:
-            return {"reply": "Mi dispiace, il servizio di supporto non è al momento disponibile. Per domande sul contratto, scrivi a assistenza@evolution-pro.it"}
-        
-        system_prompt = f"""Sei l'assistente di supporto contrattuale di Evolution PRO.
-Aiuti i partner a CAPIRE il contratto in modo chiaro e rassicurante.
+            return {"reply": "Il servizio di supporto non è al momento disponibile. Per domande sul contratto scrivi a assistenza@evolution-pro.it"}
 
-REGOLE:
-- Rispondi SOLO a domande riguardanti il contratto allegato
-- Italiano semplice, niente gergo legale
-- Tono professionale e rassicurante — il contratto è standard
-- Max 120 parole per risposta
-- Se chiedono altro: "Sono qui solo per il contratto. Per altre domande: assistenza@evolution-pro.it"
-- NON dare consulenza legale vincolante
-{f"- L'utente sta leggendo l'Articolo {body.current_article} — contestualizza lì se pertinente" if body.current_article else ""}
+        contract_text = render_contract_text(await _get_partner_params(body.partner_id))
 
-CONTRATTO:
-{render_contract_text(await _get_partner_params(body.partner_id))[:15000]}"""  # Limit to avoid token overflow
+        system_prompt = f"""Sei l'assistente di supporto contrattuale di Evolution PRO. Il tuo unico scopo è aiutare chi sta leggendo il contratto a capirne i termini in modo semplice e chiaro.
 
-        from emergentintegrations.llm.chat import LlmChat, UserMessage, AssistantMessage, SystemMessage
-        
-        chat = LlmChat(
+ISTRUZIONI:
+- Rispondi SOLO a domande sul contratto. Per qualsiasi altro argomento dì: "Sono qui solo per il contratto. Per altre domande: assistenza@evolution-pro.it"
+- Usa un italiano semplice e diretto — niente gergo legale
+- Spiega i concetti come se parlassi con una persona che non ha mai letto un contratto
+- Sii rassicurante: il contratto è standard e tutela entrambe le parti
+- Massimo 120 parole per risposta
+- Se una clausola sembra complessa, spiegala con un esempio pratico concreto
+- NON fornire consulenza legale vincolante — sei un assistente informativo
+{f"- L'utente sta leggendo l'Articolo {body.current_article}: contestualizza la risposta su quell'articolo se pertinente" if body.current_article else ""}
+
+TESTO COMPLETO DEL CONTRATTO:
+{contract_text[:12000]}"""
+
+        # Session ID unico per partner (mantiene contesto conversazione)
+        session_id = f"contract_chat_{body.partner_id}"
+
+        # Costruisce il messaggio con la storia recente nel testo
+        # (LlmChat gestisce la sessione internamente via session_id)
+        full_message = body.message
+        if body.conversation_history:
+            history_text = "\n".join([
+                f"{'Utente' if m['role'] == 'user' else 'Assistente'}: {m['content']}"
+                for m in body.conversation_history[-6:]
+            ])
+            full_message = f"[Contesto conversazione precedente]\n{history_text}\n\n[Nuova domanda]\n{body.message}"
+
+        llm = LlmChat(
             api_key=EMERGENT_LLM_KEY,
-            model="claude-haiku-4-5-20251001"
-        )
-        
-        # Build messages
-        messages = [SystemMessage(text=system_prompt)]
-        
-        # Add conversation history (last 8 messages)
-        for msg in body.conversation_history[-8:]:
-            if msg.get("role") == "user":
-                messages.append(UserMessage(text=msg.get("content", "")))
-            elif msg.get("role") == "assistant":
-                messages.append(AssistantMessage(text=msg.get("content", "")))
-        
-        # Add current message
-        messages.append(UserMessage(text=body.message))
-        
-        response = await chat.send_async(
-            messages=messages,
-            max_tokens=250,
-            temperature=0.7
-        )
-        
+            session_id=session_id,
+            system_message=system_prompt
+        ).with_model("anthropic", "claude-haiku-4-5-20251001")
+
+        response = await llm.send_message(UserMessage(text=full_message))
+
         return {"reply": response}
-        
+
     except Exception as e:
         logger.error(f"[CONTRACT CHAT] Error: {e}")
         return {"reply": "Mi dispiace, si è verificato un errore. Riprova tra poco o scrivi a assistenza@evolution-pro.it"}
@@ -806,17 +870,120 @@ async def get_contract_status(partner_id: str):
 async def get_contract_text(partner_id: str):
     """
     Restituisce il testo del contratto con parametri personalizzati per il partner.
-    Usato dal frontend ContractSigning per mostrare il testo dinamico.
+    Se esiste un PDF custom caricato dall'admin, restituisce anche custom_pdf_url.
     """
     partner = await db.partners.find_one({"id": partner_id}, {"_id": 0, "contract_params": 1})
     params = DEFAULT_CONTRACT_PARAMS.copy()
     if partner and partner.get("contract_params"):
         params.update({k: v for k, v in partner["contract_params"].items() if v is not None})
-    
+
+    # Controlla se esiste un PDF custom per questo partner
+    custom = await db.contract_custom_pdf.find_one({"partner_id": partner_id}, {"_id": 0})
+    custom_pdf_url = custom.get("pdf_url") if custom else None
+
     return {
         "contract_text": render_contract_text(params),
-        "params": params
+        "params": params,
+        "custom_pdf_url": custom_pdf_url
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CUSTOM PDF ENDPOINTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/custom-pdf/{partner_id}")
+async def get_custom_pdf(partner_id: str):
+    """Recupera URL PDF custom caricato dall'admin per questo partner."""
+    record = await db.contract_custom_pdf.find_one({"partner_id": partner_id}, {"_id": 0})
+    if not record:
+        return {"custom_pdf_url": None, "filename": None, "uploaded_at": None}
+    return {
+        "custom_pdf_url": record.get("pdf_url"),
+        "filename": record.get("filename"),
+        "uploaded_at": record.get("uploaded_at")
+    }
+
+
+@router.post("/custom-pdf/{partner_id}")
+async def upload_custom_pdf(partner_id: str, request: Request):
+    """
+    Carica un PDF custom per questo partner (sostituisce contratto generato).
+    Multipart: campo 'file' (PDF).
+    """
+    try:
+        import cloudinary
+        import cloudinary.uploader
+        cloudinary.config(
+            cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
+            api_key=os.environ.get('CLOUDINARY_API_KEY', ''),
+            api_secret=os.environ.get('CLOUDINARY_API_SECRET', '')
+        )
+
+        form = await request.form()
+        file = form.get("file")
+        if not file:
+            raise HTTPException(status_code=400, detail="Campo 'file' mancante")
+
+        content = await file.read()
+        filename = getattr(file, "filename", f"contratto_{partner_id}.pdf")
+
+        result = cloudinary.uploader.upload(
+            content,
+            resource_type="raw",
+            public_id=f"contract_custom_{partner_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+            folder="evolution_pro/contracts_custom",
+            overwrite=True,
+            use_filename=False
+        )
+
+        pdf_url = result.get("secure_url")
+
+        await db.contract_custom_pdf.update_one(
+            {"partner_id": partner_id},
+            {"$set": {
+                "partner_id": partner_id,
+                "pdf_url": pdf_url,
+                "filename": filename,
+                "uploaded_at": datetime.now(timezone.utc).isoformat(),
+                "cloudinary_public_id": result.get("public_id")
+            }},
+            upsert=True
+        )
+
+        return {"success": True, "custom_pdf_url": pdf_url, "filename": filename}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Errore upload PDF custom: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore upload: {str(e)}")
+
+
+@router.delete("/custom-pdf/{partner_id}")
+async def delete_custom_pdf(partner_id: str):
+    """Rimuove il PDF custom — il partner tornerà al contratto generato standard."""
+    record = await db.contract_custom_pdf.find_one({"partner_id": partner_id})
+    if not record:
+        return {"success": True, "message": "Nessun PDF custom trovato"}
+
+    # Rimuovi da Cloudinary se possibile
+    try:
+        import cloudinary
+        import cloudinary.uploader
+        cloudinary.config(
+            cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
+            api_key=os.environ.get('CLOUDINARY_API_KEY', ''),
+            api_secret=os.environ.get('CLOUDINARY_API_SECRET', '')
+        )
+        public_id = record.get("cloudinary_public_id")
+        if public_id:
+            cloudinary.uploader.destroy(public_id, resource_type="raw")
+    except Exception as e:
+        logger.warning(f"Cloudinary delete warning: {e}")
+
+    await db.contract_custom_pdf.delete_one({"partner_id": partner_id})
+    return {"success": True}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -932,6 +1099,10 @@ async def _get_partner_params(partner_id: str) -> dict:
     params = DEFAULT_CONTRACT_PARAMS.copy()
     if partner and partner.get("contract_params"):
         params.update({k: v for k, v in partner["contract_params"].items() if v is not None and k != "updated_at"})
+    # Include dati personali del partner per personalizzare il contratto
+    personal = await db.contract_partner_data.find_one({"partner_id": partner_id}, {"_id": 0, "partner_id": 0, "saved_at": 0})
+    if personal:
+        params["personal_data"] = personal
     return params
 
 async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[str]:

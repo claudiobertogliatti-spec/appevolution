@@ -39,7 +39,7 @@ import { BonusStrategici } from "./components/partner/BonusStrategici";
 import { PartnerProfile } from "./components/partner/PartnerProfile";
 import { PartnerPayments } from "./components/partner/PartnerPayments";
 import { PartnerFiles } from "./components/partner/PartnerFiles";
-import { AdminSidebarLight } from "./components/admin/AdminSidebarLight";
+import { AdminSidebarLight, ViewSwitcher } from "./components/admin/AdminSidebarLight";
 import { ScriptBuilder } from "./components/partner/ScriptBuilder";
 import StefaniaChat from "./components/chat/StefaniaChat";
 import { LoginPage } from "./components/auth/LoginPage";
@@ -68,12 +68,14 @@ import { AnalisiStrategicaApp } from "./components/cliente/AnalisiStrategicaApp"
 import { AdminClientiPanel } from "./components/admin/AdminClientiPanel";
 import { AdminClientiAnalisiPanel } from "./components/admin/AdminClientiAnalisiPanel";
 import { GestioneFlussoAnalisi } from "./components/admin/GestioneFlussoAnalisi";
+import { ProspectPipeline } from "./components/admin/ProspectPipeline";
 import { AdminDashboardPro } from "./components/admin/AdminDashboardPro";
 import { EmailTemplatesManager } from "./components/admin/EmailTemplatesManager";
 import { ClienteDashboard } from "./components/cliente/ClienteDashboard";
 import { DashboardPagamento } from "./components/cliente/DashboardPagamento";
 import { DashboardCliente } from "./components/cliente/DashboardCliente";
 import { QuestionarioCliente } from "./components/cliente/QuestionarioCliente";
+import { IntroQuestionario } from "./components/cliente/IntroQuestionario";
 import { SbloccaAnalisi } from "./components/cliente/SbloccaAnalisi";
 import { AnalisiInPreparazione } from "./components/cliente/AnalisiInPreparazione";
 import { AttivazioneAnalisi } from "./components/cliente/AttivazioneAnalisi";
@@ -964,8 +966,11 @@ export default function App() {
   const [alerts,setAlerts]=useState([]);
   const [modules,setModules]=useState([]);
   const [stats,setStats]=useState({});
+  const [approvazioniCount,setApprovazioniCount]=useState(0);
   const [selectedPartner,setSelectedPartner]=useState(null);
   const [viewingCliente,setViewingCliente]=useState(null); // Cliente da visualizzare in modalità cliente
+  const [partnerDashNav,setPartnerDashNav]=useState('dashboard'); // Nav state per dashboard partner
+  const [partnerShowChat,setPartnerShowChat]=useState(false); // Toggle chat Stefania partner
 
   // Get the partner data for the logged-in user (if they are a partner)
   // Falls back to demo partner for admin testing
@@ -995,12 +1000,9 @@ export default function App() {
             setMode("operations");
             setNav("partner");
           } else {
-            setMode("partner");
-            // Controlla se il contratto è firmato
-            if (!userData.contract?.signed_at) {
-              setNav("contract"); // Redirect obbligatorio alla firma
-            } else {
-              setNav("home");
+            // Partner reale — redirect a /dashboard-partner
+            if (window.location.pathname !== "/dashboard-partner") {
+              window.location.href = "/dashboard-partner";
             }
           }
         } catch (e) {
@@ -1026,13 +1028,8 @@ export default function App() {
       setMode("operations");
       setNav("partner");
     } else {
-      setMode("partner");
-      // Controlla se il contratto è firmato
-      if (!user.contract?.signed_at) {
-        setNav("contract"); // Redirect obbligatorio alla firma
-      } else {
-        setNav("home");
-      }
+      // Partner reale — redirect a /dashboard-partner
+      window.location.href = "/dashboard-partner";
     }
     loadData();
   };
@@ -1045,6 +1042,9 @@ export default function App() {
     setCurrentUser(null);
     setMode("admin");
     setNav("overview");
+    if (window.location.pathname === "/dashboard-partner") {
+      window.location.href = "/";
+    }
   };
 
   useEffect(()=>{if(isAuthenticated) loadData();},[isAuthenticated]);
@@ -1055,13 +1055,15 @@ export default function App() {
         axios.get(`${API}/api/partners`),
         axios.get(`${API}/api/alerts`),
         axios.get(`${API}/api/modules`),
-        axios.get(`${API}/api/stats`)
+        axios.get(`${API}/api/stats`),
+        axios.get(`${API}/api/admin/approvazioni/count`)
       ]);
       if(results[0].status==="fulfilled") setAgents(results[0].value.data);
       if(results[1].status==="fulfilled") setPartners(results[1].value.data);
       if(results[2].status==="fulfilled") setAlerts(results[2].value.data);
       if(results[3].status==="fulfilled") setModules(results[3].value.data);
       if(results[4].status==="fulfilled") setStats(results[4].value.data);
+      if(results[5].status==="fulfilled") setApprovazioniCount(results[5].value.data.total||0);
       const failed = results.filter(r=>r.status==="rejected");
       if(failed.length) console.warn("[loadData] Some APIs failed:",failed.map(f=>f.reason?.config?.url||f.reason?.message));
     }catch(e){console.error("[loadData] critical error:",e);}
@@ -1288,6 +1290,19 @@ export default function App() {
       );
     }
 
+    // Route: Intro pre-questionario
+    if (window.location.pathname === "/intro-questionario") {
+      if (currentUser.questionario_compilato) {
+        window.location.href = "/analisi-attivazione";
+        return null;
+      }
+      return (
+        <IntroQuestionario
+          onStart={() => { window.location.href = "/questionario"; }}
+        />
+      );
+    }
+
     // Route: Questionario
     if (window.location.pathname === "/questionario") {
       if (currentUser.questionario_compilato) {
@@ -1373,8 +1388,32 @@ export default function App() {
 
     // Route: Decisione Partnership - NUOVO FLUSSO dopo attivazione admin
     if (window.location.pathname === "/decisione-partnership") {
+      // Verifica pagamento Stripe al ritorno
+      if (urlParams.get('payment') === 'success') {
+        const verifyDecisionePayment = async () => {
+          try {
+            await fetch(`${API}/api/flusso-analisi/verify-payment-partnership/${currentUser.id}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            });
+          } catch(e) { console.error(e); }
+          window.location.href = '/decisione-partnership';
+        };
+        verifyDecisionePayment();
+        return (
+          <div className="min-h-screen flex items-center justify-center" style={{ background: '#FAFAF7' }}>
+            <div className="text-center">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 animate-pulse"
+                   style={{ background: '#E8E8E8' }}>
+                <span className="text-2xl font-black" style={{ color: '#111111' }}>E</span>
+              </div>
+              <div className="text-sm" style={{ color: '#9CA3AF' }}>Verifica pagamento in corso...</div>
+            </div>
+          </div>
+        );
+      }
       return (
-        <DecisionePartnershipPage 
+        <DecisionePartnershipPage
           user={currentUser}
           onLogout={handleClienteLogout}
         />
@@ -1457,45 +1496,76 @@ export default function App() {
   if (window.location.pathname === "/dashboard-partner") {
     // Se l'utente è un partner (non admin), forza la modalità partner
     if (currentUser?.role === "partner" || currentUser?.user_type === "partner") {
-      // Mostra la dashboard partner dedicata direttamente
-      return (
-        <div className="min-h-screen" style={{ background: '#FAFAF7' }}>
-          {/* Header Partner */}
-          <header className="border-b" style={{ background: '#FFFFFF', borderColor: '#ECEDEF' }}>
-            <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
-                  <span className="text-lg font-black" style={{ color: '#1E2128' }}>E</span>
-                </div>
-                <div>
-                  <span className="font-black text-lg" style={{ color: '#1E2128' }}>
-                    EVOLUTION <span style={{ color: '#F5C518' }}>PRO</span>
-                  </span>
-                  <div className="text-xs" style={{ color: '#9CA3AF' }}>Partner Dashboard</div>
-                </div>
-              </div>
-              <button 
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-gray-100"
-                style={{ color: '#5F6572' }}
-              >
-                <LogOut className="w-4 h-4" />
-                Esci
-              </button>
+      const currentPartner = demoPartner;
+
+      const renderPartnerSection = () => {
+        const p = currentPartner;
+        const nav = partnerDashNav;
+        if (nav === 'posizionamento') return <PosizionamentoPage partner={p} onNavigate={setPartnerDashNav} />;
+        if (nav === 'masterclass') return <MasterclassPage partner={p} onNavigate={setPartnerDashNav} />;
+        if (nav === 'videocorso') return <VideocorsoPage partner={p} onNavigate={setPartnerDashNav} />;
+        if (nav === 'funnel') return <FunnelPage partner={p} onNavigate={setPartnerDashNav} />;
+        if (nav === 'lancio') return <LancioPage partner={p} onNavigate={setPartnerDashNav} />;
+        if (nav === 'ottimizzazione') return <OttimizzazionePage partner={p} onNavigate={setPartnerDashNav} />;
+        if (nav === 'lead') return <LeadPage partner={p} onNavigate={setPartnerDashNav} />;
+        if (nav === 'pagamenti') return <PartnerPayments partner={p} />;
+        if (nav === 'continuita') return <PianoContinuitaPage partner={p} onNavigate={setPartnerDashNav} />;
+        if (nav === 'calendario-pro') return <CalendarioEditoriale partner={p} />;
+        if (nav === 'avatar-pro') return <AvatarCheckout partner={p} />;
+        if (nav === 'consulenza-claudio' || nav === 'consulenza-antonella') return (
+          <div className="max-w-2xl mx-auto p-8 text-center">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: '#FFF3C4' }}>
+              <span className="text-2xl">📅</span>
             </div>
-          </header>
-          
-          {/* Partner Dashboard Content */}
-          <PartnerDashboardSimplified 
-            partner={demoPartner} 
-            onNavigate={(dest) => {
-              // Gestisci la navigazione - per ora resta sulla dashboard
-              console.log("Navigate to:", dest);
-            }} 
-            onOpenChat={() => {
-              console.log("Open chat");
-            }}
+            <h2 className="text-xl font-black mb-2" style={{ color: '#1E2128' }}>
+              {nav === 'consulenza-claudio' ? 'Sessione con Claudio' : 'Sessione con Antonella'}
+            </h2>
+            <p className="text-sm mb-6" style={{ color: '#5F6572' }}>
+              Parla con Stefania per prenotare la tua sessione 1:1.
+            </p>
+            <button onClick={() => setPartnerShowChat(true)} className="px-6 py-3 rounded-xl font-bold text-sm" style={{ background: '#E8E8E8', color: '#111111', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}>
+              Parla con Stefania
+            </button>
+          </div>
+        );
+        if (nav === 'profilo') return <PartnerProfileHub partner={p} onNavigate={setPartnerDashNav} />;
+        if (nav === 'i-miei-file') return <PartnerFilesPage partner={p} />;
+        if (nav === 'onboarding-docs') return <OnboardingDocuments partner={p} />;
+        // Default: home dashboard
+        return <PartnerDashboardSimplified partner={p} onNavigate={setPartnerDashNav} />;
+      };
+
+      return (
+        <div className="flex h-screen overflow-hidden" style={{ background: '#FAFAF7', color: '#1E2128' }}>
+          <Toaster position="top-center" richColors />
+
+          {/* Sidebar */}
+          <PartnerSidebarLight
+            currentNav={partnerDashNav}
+            onNavigate={setPartnerDashNav}
+            partner={currentPartner}
+            onLogout={handleLogout}
+            onOpenChat={() => setPartnerShowChat(true)}
+            onSwitchToAdmin={() => { setMode("admin"); setNav("overview"); window.location.href = "/"; }}
+            isAdmin={false}
           />
+
+          {/* Main content */}
+          <div className="flex-1 overflow-y-auto">
+            {renderPartnerSection()}
+          </div>
+
+          {/* Stefania Chat overlay */}
+          {partnerShowChat && (
+            <div className="fixed inset-0 z-50 flex items-end justify-end p-6 pointer-events-none">
+              <div className="w-96 pointer-events-auto shadow-2xl rounded-2xl overflow-hidden" style={{ height: '75vh' }}>
+                <StefaniaChat
+                  partner={currentPartner}
+                  onBack={() => setPartnerShowChat(false)}
+                />
+              </div>
+            </div>
+          )}
         </div>
       );
     }
@@ -1503,7 +1573,16 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: '#FAFAF7', color: '#1E2128' }}>
+    <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#FAFAF7', color: '#1E2128' }}>
+      {mode === "admin" && (
+        <ViewSwitcher
+          currentView={adminUser === "antonella" ? "antonella" : "admin"}
+          onChangeView={(v) => { setAdminUser(v === "antonella" ? "antonella" : "claudio"); setNav("overview"); }}
+          onSwitchToCliente={() => setMode("cliente")}
+          onSwitchToPartner={() => { setMode("partner"); setNav("home"); }}
+        />
+      )}
+      <div className="flex flex-1 overflow-hidden min-h-0">
 
       {/* SIDEBAR - Light Theme for both modes */}
       {mode === "cliente" ? (
@@ -1571,14 +1650,26 @@ export default function App() {
                   <button
                     onClick={() => setNav("cliente-post")}
                     className={`w-full px-3 py-2 rounded-lg text-xs font-bold text-left transition-all ${
-                      nav === "cliente-post" 
-                        ? 'bg-[#10B981] text-white' 
+                      nav === "cliente-post"
+                        ? 'bg-[#10B981] text-white'
                         : 'bg-white text-[#5F6572] hover:bg-[#D1FAE5]'
                     }`}
                     style={{ border: '1px solid #ECEDEF' }}
                   >
                     Questionario Completato
                     <div className="text-[10px] font-normal opacity-70">Ha compilato, attende call con Claudio</div>
+                  </button>
+                  <button
+                    onClick={() => setNav("cliente-decisione")}
+                    className={`w-full px-3 py-2 rounded-lg text-xs font-bold text-left transition-all ${
+                      nav === "cliente-decisione"
+                        ? 'bg-[#8B5CF6] text-white'
+                        : 'bg-white text-[#5F6572] hover:bg-[#EDE9FE]'
+                    }`}
+                    style={{ border: '1px solid #ECEDEF' }}
+                  >
+                    Proposta + Analisi + Roadmap
+                    <div className="text-[10px] font-normal opacity-70">Sales letter, analisi e proposta economica</div>
                   </button>
                 </div>
               </div>
@@ -1607,15 +1698,13 @@ export default function App() {
           isAdmin={currentUser?.role === "admin"}
         />
       ) : (
-        <AdminSidebarLight 
+        <AdminSidebarLight
           currentNav={nav}
           onNavigate={setNav}
-          adminUser={adminUser}
-          setAdminUser={setAdminUser}
+          currentView={adminUser === "antonella" ? "antonella" : "admin"}
           alerts={alerts}
+          approvazioniCount={approvazioniCount}
           onLogout={handleLogout}
-          onSwitchToPartner={() => { setMode("partner"); setNav("home"); }}
-          onSwitchToCliente={() => { setMode("cliente"); }}
           currentUser={currentUser}
         />
       )}
@@ -1664,9 +1753,86 @@ export default function App() {
           
           {showPartnerProfile&&selectedPartner&&<PartnerProfileModal partner={selectedPartner} onClose={()=>{setShowPartnerProfile(false);}} onUpdate={loadData}/>}
 
+          {/* VISTA CLIENTE — Contratto Partnership (step 1: lettura + chat) */}
+          {mode==="cliente"&&nav==="cliente-contratto"&&(
+            <ContractSigning
+              key="cliente-contratto"
+              partner={viewingCliente ? { id: viewingCliente.id, name: `${viewingCliente.nome} ${viewingCliente.cognome}` } : { id: "demo", name: "Cliente Demo" }}
+              initialStep={1}
+              onContractSigned={() => { setNav("cliente-firma"); }}
+            />
+          )}
+
+          {/* VISTA CLIENTE — Clausole & Firma (step 2) */}
+          {mode==="cliente"&&nav==="cliente-firma"&&(
+            <ContractSigning
+              key="cliente-firma"
+              partner={viewingCliente ? { id: viewingCliente.id, name: `${viewingCliente.nome} ${viewingCliente.cognome}` } : { id: "demo", name: "Cliente Demo" }}
+              initialStep={2}
+              onContractSigned={() => { setNav("cliente-decisione"); }}
+            />
+          )}
+
+          {/* VISTA CLIENTE — Proposta + Analisi + Roadmap */}
+          {mode==="cliente"&&nav==="cliente-decisione"&&(
+            <DecisionePartnershipPage
+              user={viewingCliente ? { id: viewingCliente.id, nome: viewingCliente.nome, cognome: viewingCliente.cognome } : { id: "demo", nome: "Cliente", cognome: "Demo" }}
+              onLogout={() => { setMode("admin"); setNav("overview"); setViewingCliente(null); }}
+              demoData={viewingCliente ? undefined : {
+                cliente: { nome: "Marco", cognome: "Verdi", email: "marco.verdi@example.com" },
+                contratto_firmato: false,
+                pagamento_completato: false,
+                documenti: [],
+                can_activate: false,
+                contratto: null,
+                analisi: {
+                  titolo: "Analisi Strategica — Accademia Digitale per Coach di Business",
+                  sezioni: {
+                    profilo_analizzato: {
+                      titolo: "Profilo Analizzato",
+                      contenuto: "Marco è un coach di business con 8 anni di esperienza che lavora principalmente con imprenditori digitali. Ha costruito una solida reputazione nel settore ma opera ancora prevalentemente con un modello di consulenze 1:1 che limita la sua scalabilità."
+                    },
+                    costo_modello_attuale: {
+                      titolo: "Il vero costo di rimanere nel modello attuale",
+                      contenuto: "Ogni ora che dedichi alle consulenze 1:1 è un'ora che non scala. Con il tuo attuale modello, il tuo fatturato è direttamente proporzionale alle ore lavorate — e le ore sono finite.",
+                      modello_attuale: {
+                        titolo: "Il tuo modello attuale",
+                        elementi: ["Consulenze 1:1 a €200/h", "Max 6 clienti attivi simultaneamente", "Nessuna fonte di reddito passivo", "Dipendenza totale dal tuo tempo"],
+                        limite: "Raggiunto il cap massimo a ~€60.000/anno senza possibilità di crescita"
+                      },
+                      obiettivo_accademia: {
+                        titolo: "Con la tua Accademia Digitale",
+                        benefici: ["Videocorso venduto 24/7 anche mentre dormi", "Masterclass di lancio che porta clienti in automatico", "Funnel automatizzato: da lead a vendita senza intervento manuale", "Potenziale di €80.000–€150.000/anno con lo stesso impegno"]
+                      }
+                    },
+                    valutazione_fattibilita: {
+                      titolo: "Esito del Check di Fattibilità",
+                      punteggio: 8.5,
+                      livello_potenziale: "Alto",
+                      esito: "Progetto altamente fattibile con forte potenziale di crescita",
+                      motivazione: "Marco dispone di un pubblico esistente, expertise consolidata e una chiara proposta di valore. La trasformazione in accademia digitale è naturale e strategicamente solida.",
+                      punti_forza: ["Newsletter attiva con 1.200 iscritti", "LinkedIn 3.500 follower", "8 anni di expertise documentata", "Chiaro target cliente ideale"],
+                      aree_miglioramento: ["Contenuti da strutturare in moduli", "Funnel di vendita da costruire", "Automazioni email da implementare"]
+                    },
+                    roadmap: {
+                      titolo: "Roadmap del Progetto",
+                      fasi: [
+                        { fase: "Fase 1 — Posizionamento e Brand", durata: "Settimane 1-2", descrizione: "Definizione del posizionamento unico, brand identity e messaggi chiave per differenziarti nel mercato dei coach." },
+                        { fase: "Fase 2 — Masterclass di Vendita", durata: "Settimane 3-5", descrizione: "Creazione della Masterclass gratuita che converte: struttura, script, slide e sistema di registrazione." },
+                        { fase: "Fase 3 — Videocorso Flagship", durata: "Settimane 6-10", descrizione: "Sviluppo completo del videocorso: struttura moduli, produzione contenuti, revisione e pubblicazione." },
+                        { fase: "Fase 4 — Funnel e Automazioni", durata: "Settimane 11-14", descrizione: "Costruzione del funnel automatizzato, sequenza email di vendita e sistema di pagamento integrato." },
+                        { fase: "Fase 5 — Lancio e Ottimizzazione", durata: "Settimane 15-18", descrizione: "Lancio ufficiale con campagna ads, analisi metriche e ottimizzazione continua per massimizzare le vendite." }
+                      ]
+                    }
+                  }
+                }
+              }}
+            />
+          )}
+
           {/* VISTA CLIENTE (demo per admin) */}
-          {mode==="cliente"&&(
-            <ClienteDashboard 
+          {mode==="cliente"&&nav!=="cliente-decisione"&&nav!=="cliente-contratto"&&nav!=="cliente-firma"&&(
+            <ClienteDashboard
               cliente={viewingCliente ? {
                 id: viewingCliente.id,
                 nome: viewingCliente.nome || "Cliente",
@@ -1718,7 +1884,7 @@ export default function App() {
               setMode("cliente");
               setNav("cliente-post");
             }}/>}
-            {nav==="clienti-analisi"&&<AdminClientiAnalisiPanel/>}
+            {nav==="clienti-analisi"&&<ProspectPipeline onOpenCliente={(c)=>{setViewingCliente(c);setMode("cliente");}}/>}
             {nav==="flusso-analisi"&&<GestioneFlussoAnalisi/>}
             {nav==="agenti"&&<AgentDashboard/>}
             {/* OrionLeadScoring rimosso - Lead gestiti esclusivamente in Systeme.io */}
@@ -1730,6 +1896,7 @@ export default function App() {
             {nav==="documenti-partner"&&<PartnerDocumentsView partners={partners}/>}
             {nav==="onboarding-admin"&&<OnboardingDocumentsAdmin/>}
             {nav==="youtube-heygen"&&<YouTubeHeygenHub/>}
+            {nav==="calendario-admin"&&<CalendarioEditoriale partner={selectedPartner||partners[0]}/>}
             {nav==="andrea"&&(adminUser==="antonella"?<FeedVideoNuovi onOpenPipeline={()=>{setAdminUser("claudio");setNav("andrea");}}/>:<AndreaPipeline partners={partners}/>)}
             {nav==="metriche"&&<MetrichePostLancio partners={partners}/>}
             {nav==="stefania"&&<StefaniaChat partner={selectedPartner||partners[0]} onBack={()=>setNav("overview")} isAdmin={true}/>}
@@ -1755,21 +1922,19 @@ export default function App() {
           {mode==="partner"&&<>
             {/* BLOCCO OBBLIGATORIO - Se contratto non firmato, mostra solo ContractSigning */}
             {!demoPartner?.contract?.signed_at ? (
-              <ContractSigning 
-                partner={demoPartner} 
-                onContractSigned={(data) => { 
-                  // Aggiorna il partner con i dati del contratto
+              <ContractSigning
+                key={nav === "partner-firma" ? "firma" : "contratto"}
+                partner={demoPartner}
+                initialStep={nav === "partner-firma" ? 2 : 1}
+                onContractSigned={(data) => {
                   if (demoPartner) {
                     demoPartner.contract = { signed_at: data.signed_at };
                   }
-                  setNav("onboarding-docs"); 
-                }} 
+                  setNav("onboarding-docs");
+                }}
               />
             ) : (
               <>
-                {/* CONTRACT SIGNING - Accessibile anche dopo la firma per revisione */}
-                {nav==="contract"&&<ContractSigning partner={demoPartner} onContractSigned={(data) => { setNav("dashboard"); }} />}
-                
                 {/* DASHBOARD */}
                 {nav==="dashboard"&&<PartnerDashboardSimplified partner={demoPartner} onNavigate={setNav} onOpenChat={()=>setNav("supporto")}/>}
                 {nav==="home"&&<PartnerDashboardSimplified partner={demoPartner} onNavigate={setNav} onOpenChat={()=>setNav("supporto")}/>}
@@ -1869,9 +2034,13 @@ export default function App() {
             {nav==="profilo-brandkit"&&<BrandKitEditor partner={demoPartner}/>}
             {nav==="brandkit"&&<BrandKitEditor partner={demoPartner}/>}
             
-            {/* SERVIZI EXTRA */}
+            {/* SERVIZI EXTRA / VAI OLTRE */}
             {nav==="avatar-checkout"&&<AvatarCheckout partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
             {nav==="servizi-extra"&&<ServiziExtra partner={demoPartner}/>}
+            {nav==="avatar-pro"&&<AvatarCheckout partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
+            {nav==="calendario-pro"&&<ServiziExtra partner={demoPartner} defaultService="calendario_pro"/>}
+            {nav==="consulenza-claudio"&&<ServiziExtra partner={demoPartner} defaultService="consulenza_claudio"/>}
+            {nav==="consulenza-antonella"&&<ServiziExtra partner={demoPartner} defaultService="consulenza_antonella"/>}
             
             {/* ALTRI */}
             {nav==="risorse"&&<PartnerResources/>}
@@ -1888,6 +2057,7 @@ export default function App() {
             )}
           </>}
         </div>
+      </div>
       </div>
       <Toaster position="top-right" richColors />
     </div>

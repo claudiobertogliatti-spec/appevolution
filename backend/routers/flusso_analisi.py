@@ -1563,67 +1563,100 @@ async def create_payment_session(user_id: str):
     """Crea sessione Stripe per pagamento partnership €2.790"""
     if db is None:
         raise HTTPException(status_code=500, detail="Database non inizializzato")
-    
+
     user = await db.users.find_one({"id": user_id}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=404, detail="Cliente non trovato")
-    
-    import stripe
-    stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
-    
-    if not stripe.api_key:
+
+    stripe_key = os.environ.get("STRIPE_API_KEY")
+    if not stripe_key:
         raise HTTPException(status_code=500, detail="Stripe non configurato")
-    
-    frontend_url = os.environ.get("FRONTEND_URL", "https://evoluzione-pro.preview.emergentagent.com")
-    
+
+    frontend_url = os.environ.get("FRONTEND_URL", "https://app.evolution-pro.it")
+
     try:
-        session = stripe.checkout.Session.create(
-            payment_method_types=["card"],
-            line_items=[{
-                "price_data": {
-                    "currency": "eur",
-                    "product_data": {
-                        "name": "Partnership Evolution PRO",
-                        "description": "Programma completo per la creazione della tua Accademia Digitale"
-                    },
-                    "unit_amount": 279000  # €2.790 in centesimi
-                },
-                "quantity": 1
-            }],
-            mode="payment",
-            success_url=f"{frontend_url}/partnership-success?session_id={{CHECKOUT_SESSION_ID}}&user_id={user_id}",
-            cancel_url=f"{frontend_url}/decisione-partnership?cancelled=true",
-            customer_email=user.get("email"),
+        from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
+        checkout = StripeCheckout(api_key=stripe_key)
+        session_request = CheckoutSessionRequest(
+            amount=2790.00,
+            currency="eur",
+            success_url=f"{frontend_url}/decisione-partnership?payment=success",
+            cancel_url=f"{frontend_url}/decisione-partnership?payment=cancelled",
             metadata={
                 "user_id": user_id,
-                "tipo": "partnership_evolution_pro"
+                "tipo": "partnership",
+                "importo": "2790",
+                "email": user.get("email", "")
             }
         )
-        
+        session = await checkout.create_checkout_session(session_request)
+
         # Salva riferimento sessione
         await db.pagamenti_partnership.update_one(
             {"user_id": user_id},
             {"$set": {
                 "user_id": user_id,
-                "stripe_session_id": session.id,
+                "stripe_session_id": session.session_id,
                 "importo": 2790,
                 "valuta": "EUR",
                 "metodo": "stripe",
-                "stato": "pending",
+                "completato": False,
                 "created_at": datetime.now(timezone.utc).isoformat()
             }},
             upsert=True
         )
-        
+
         return {
             "success": True,
             "checkout_url": session.url,
-            "session_id": session.id
+            "session_id": session.session_id
         }
-        
+
     except Exception as e:
         logging.error(f"Stripe session creation failed: {e}")
         raise HTTPException(status_code=500, detail=f"Errore creazione pagamento: {str(e)}")
+
+
+@router.post("/verify-payment-partnership/{user_id}")
+async def verify_payment_partnership(user_id: str):
+    """Verifica il pagamento Stripe per la partnership dopo il ritorno da Stripe"""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database non inizializzato")
+
+    pagamento = await db.pagamenti_partnership.find_one({"user_id": user_id}, {"_id": 0})
+    if not pagamento:
+        raise HTTPException(status_code=404, detail="Sessione pagamento non trovata")
+
+    if pagamento.get("completato"):
+        return {"success": True, "paid": True}
+
+    session_id = pagamento.get("stripe_session_id")
+    if not session_id:
+        raise HTTPException(status_code=400, detail="Session ID non trovato")
+
+    stripe_key = os.environ.get("STRIPE_API_KEY")
+    if not stripe_key:
+        raise HTTPException(status_code=500, detail="Stripe non configurato")
+
+    try:
+        from emergentintegrations.payments.stripe.checkout import StripeCheckout
+        checkout = StripeCheckout(api_key=stripe_key)
+        status = await checkout.get_checkout_status(session_id)
+
+        if status.payment_status == "paid":
+            await db.pagamenti_partnership.update_one(
+                {"user_id": user_id},
+                {"$set": {
+                    "completato": True,
+                    "pagato_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            return {"success": True, "paid": True}
+
+        return {"success": True, "paid": False}
+    except Exception as e:
+        logging.error(f"Payment verification failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore verifica pagamento: {str(e)}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
