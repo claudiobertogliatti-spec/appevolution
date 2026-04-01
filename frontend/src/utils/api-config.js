@@ -1,29 +1,29 @@
 /**
  * API Configuration Utility
  * Handles dynamic API URL resolution for production vs development environments
+ * 
+ * IMPORTANT: API returns the base URL WITHOUT /api suffix.
+ * All components must include /api/ in their endpoint paths.
+ * Example: `${API}/api/auth/login`
  */
 
 // Production domains that should use relative URLs
 const PRODUCTION_DOMAINS = ['evolution-pro.it', 'app.evolution-pro.it'];
 
 /**
- * Get the base API URL
- * - In production (evolution-pro.it domain): uses relative /api
- * - In development: uses REACT_APP_BACKEND_URL environment variable
+ * Get the base API URL (WITHOUT /api suffix)
+ * - In production (evolution-pro.it domain): returns empty string (relative)
+ * - In development/preview: returns REACT_APP_BACKEND_URL
  */
 export const getApiUrl = () => {
-  // Check if we're in a browser environment
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
-    // If we're on a production domain, use relative /api
     if (PRODUCTION_DOMAINS.some(domain => hostname.includes(domain))) {
-      return '/api';
+      return '';
     }
   }
-  
-  // Use the configured backend URL for development/preview
   const backendUrl = process.env.REACT_APP_BACKEND_URL;
-  return backendUrl ? `${backendUrl}/api` : '/api';
+  return backendUrl || '';
 };
 
 /**
