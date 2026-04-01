@@ -999,8 +999,10 @@ export default function App() {
             setMode("operations");
             setNav("partner");
           } else {
-            setMode("partner");
-            setNav("home");
+            // Partner reale — redirect a /dashboard-partner
+            if (window.location.pathname !== "/dashboard-partner") {
+              window.location.href = "/dashboard-partner";
+            }
           }
         } catch (e) {
           localStorage.removeItem("access_token");
@@ -1025,8 +1027,8 @@ export default function App() {
       setMode("operations");
       setNav("partner");
     } else {
-      setMode("partner");
-      setNav("home");
+      // Partner reale — redirect a /dashboard-partner
+      window.location.href = "/dashboard-partner";
     }
     loadData();
   };
@@ -1039,6 +1041,9 @@ export default function App() {
     setCurrentUser(null);
     setMode("admin");
     setNav("overview");
+    if (window.location.pathname === "/dashboard-partner") {
+      window.location.href = "/";
+    }
   };
 
   useEffect(()=>{if(isAuthenticated) loadData();},[isAuthenticated]);
