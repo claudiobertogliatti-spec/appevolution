@@ -69,6 +69,9 @@ import { AdminClientiPanel } from "./components/admin/AdminClientiPanel";
 import { AdminClientiAnalisiPanel } from "./components/admin/AdminClientiAnalisiPanel";
 import { GestioneFlussoAnalisi } from "./components/admin/GestioneFlussoAnalisi";
 import { ProspectPipeline } from "./components/admin/ProspectPipeline";
+import { OggiDashboard } from "./components/admin/OggiDashboard";
+import { PrioritaPipeline } from "./components/admin/PrioritaPipeline";
+import { PartnerBloccati } from "./components/admin/PartnerBloccati";
 import { AdminDashboardPro } from "./components/admin/AdminDashboardPro";
 import { EmailTemplatesManager } from "./components/admin/EmailTemplatesManager";
 import { ClienteDashboard } from "./components/cliente/ClienteDashboard";
@@ -1137,7 +1140,7 @@ export default function App() {
   const adminNav=adminUser==="antonella"?antonellaNav:coreNav;
   const isToolNav=toolsNav.some(t=>t.id===nav);
 
-  const titles={overview:"Overview",agenti:"Agenti AI",partner:"Pipeline Partner","documenti-partner":"Documenti Partner","onboarding-admin":"Documenti Onboarding","youtube-heygen":"YouTube × HeyGen Hub",andrea:adminUser==="antonella"?"ANDREA — Feed Video":"ANDREA — Surgical Cut",metriche:"Metriche Post-Lancio",systeme:"SYSTEME.IO — Live Data",gaia:"Template Funnel",compliance:"Documenti & Compliance",copyfactory:"Copy Factory",warmode:"Campagne Ads Partner",funnelbuilder:"Funnel Builder — Fase 4",alert:"Alert & Escalation",stefania:"STEFANIA — Chat",home:"Il tuo percorso","onboarding-docs":"Documenti Onboarding",corso:"PARTI DA QUI",bonus:"Bonus Strategici",masterclass:"Masterclass Builder",coursebuilder:"Course Builder AI",produzione:"ANDREA — Produzione Video",files:"I Miei File",brandkit:"Brand Kit",calendario:"Calendario Editoriale",documenti:"Documenti & Posizionamento",risorse:"Template & Risorse",renewal:"Piani Post-12 Mesi",supporto:"STEFANIA — Chat"};
+  const titles={overview:"Overview",oggi:"Oggi",oggi:"Oggi","pipeline-prioritaria":"Priorità Pipeline","partner-bloccati":"Partner Bloccati","guided-system":"Guided System",agenti:"Agent Hub",partner:"Partner Attivi","ex-partner":"Ex Partner","documenti-partner":"Documenti Partner","onboarding-admin":"Documenti Onboarding","youtube-heygen":"Video AI","servizi-admin":"Servizi Extra","calendario-admin":"Calendario Editoriale",andrea:adminUser==="antonella"?"ANDREA — Feed Video":"ANDREA — Surgical Cut",metriche:"Percorsi e Fasi",systeme:"SYSTEME.IO — Live Data",gaia:"Template Funnel",compliance:"Documenti & Compliance",copyfactory:"Copy Factory",warmode:"Campagne Ads",funnelbuilder:"Funnel Builder — Fase 4",alert:"Alert & Escalation",configurazione:"Configurazione",stefania:"STEFANIA — Chat",home:"Il tuo percorso","onboarding-docs":"Documenti Onboarding",corso:"PARTI DA QUI",bonus:"Bonus Strategici",masterclass:"Masterclass Builder",coursebuilder:"Course Builder AI",produzione:"ANDREA — Produzione Video",files:"I Miei File",brandkit:"Brand Kit",calendario:"Calendario Editoriale",documenti:"Documenti & Posizionamento",risorse:"Template & Risorse",renewal:"Piani Post-12 Mesi",supporto:"STEFANIA — Chat","clienti-analisi":"Pipeline","flusso-analisi":"Analisi Strategiche","lista-fredda":"Lead da Riattivare",approvals:"Approvazioni Cliente"};
 
   // Loading state
   if (authLoading) {
@@ -1878,6 +1881,9 @@ export default function App() {
 
           {mode==="admin"&&<>
             {nav==="overview"&&<AdminDashboardPro onOpenPartnerProject={(p)=>{setSelectedPartner(p);setMode("partner");setNav("dashboard");}}/>}
+            {nav==="oggi"&&<OggiDashboard onNavigate={setNav}/>}
+            {nav==="pipeline-prioritaria"&&<PrioritaPipeline onNavigate={setNav} onViewPartner={(p)=>{setSelectedPartner(p);setMode("partner");setNav("dashboard");}}/>}
+            {nav==="partner-bloccati"&&<PartnerBloccati onNavigate={setNav} onViewPartner={(p)=>{setSelectedPartner(p);setMode("partner");setNav("dashboard");}}/>}
             {nav==="overview-old"&&<AdminOverview stats={stats} agents={agents} partners={partners} alerts={alerts} onNavigate={setNav}/>}
             {nav==="clienti"&&<AdminClientiPanel onViewAsCliente={(cliente) => {
               setViewingCliente(cliente);
@@ -1908,6 +1914,39 @@ export default function App() {
             {nav==="funnelbuilder"&&<FunnelBuilder partners={partners}/>}
             {nav==="compliance"&&<ComplianceDashboard/>}
             {nav==="email-templates"&&<EmailTemplatesManager/>}
+            {nav==="configurazione"&&<div className="space-y-4">
+              <h2 className="text-lg font-bold" style={{color:'#1E2128'}}>Configurazione</h2>
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  {id:"email-templates",label:"Email Templates",desc:"Gestisci i template email",icon:"📧"},
+                  {id:"systeme",label:"Systeme.io",desc:"Dashboard CRM",icon:"📊"},
+                  {id:"funnelbuilder",label:"Funnel Builder",desc:"Costruisci landing e funnel",icon:"🌐"},
+                  {id:"webhooks",label:"Webhook",desc:"Gestione webhook",icon:"🔗"},
+                ].map(c=>(
+                  <button key={c.id} onClick={()=>setNav(c.id)} className="rounded-xl p-5 text-left hover:shadow-md" style={{background:'white',border:'1px solid #ECEDEF',transition:'all 0.15s ease'}}>
+                    <div className="text-2xl mb-2">{c.icon}</div>
+                    <div className="font-bold text-sm" style={{color:'#1E2128'}}>{c.label}</div>
+                    <div className="text-xs mt-0.5" style={{color:'#9CA3AF'}}>{c.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>}
+            {nav==="ex-partner"&&<div className="space-y-4">
+              <h2 className="text-lg font-bold" style={{color:'#1E2128'}}>Ex Partner</h2>
+              <div className="rounded-xl p-12 text-center" style={{background:'white',border:'1px solid #ECEDEF'}}>
+                <Users className="w-10 h-10 mx-auto mb-3" style={{color:'#9CA3AF'}}/>
+                <div className="font-bold" style={{color:'#1E2128'}}>Nessun ex partner</div>
+                <p className="text-sm mt-1" style={{color:'#9CA3AF'}}>Quando un partner termina il percorso, apparirà qui</p>
+              </div>
+            </div>}
+            {nav==="guided-system"&&<div className="space-y-4">
+              <h2 className="text-lg font-bold" style={{color:'#1E2128'}}>Guided System</h2>
+              <p className="text-sm" style={{color:'#9CA3AF'}}>Percorsi guidati per i partner — Stefania Engine</p>
+              <div className="rounded-xl p-6" style={{background:'#FEF9E7',border:'1px solid #F2C41830'}}>
+                <div className="font-bold text-sm mb-2" style={{color:'#C4990A'}}>Sistema Attivo</div>
+                <p className="text-sm" style={{color:'#5F6572'}}>Il Guided System valuta automaticamente lo stato dei partner e li guida attraverso le fasi del percorso Evolution PRO.</p>
+              </div>
+            </div>}
             {nav==="alert"&&<AdminAlerts alerts={alerts} onDismiss={dismissAlert}/>}
           </>}
 

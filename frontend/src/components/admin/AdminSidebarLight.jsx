@@ -3,44 +3,55 @@ import {
   Users, Film, FileText, AlertTriangle,
   Settings, LogOut, Bot, Bell, Target, Calendar,
   Layers, Search, ShoppingBag, Snowflake, BarChart2,
-  Navigation, UserX
+  Navigation, UserX, Flame, CalendarDays, AlertOctagon
 } from "lucide-react";
 
-// ── Nav config — single structure, all views ──────────────────────────────────
+// ── Nav config — cockpit operativo ────────────────────────────────────────────
 
 const NAV_ITEMS = [
-  { section: "COMMERCIALE" },
-  { id: "clienti-analisi",   label: "Pipeline",              sublabel: "Lead nel funnel",              icon: Target },
-  { id: "flusso-analisi",    label: "Analisi Strategiche",   sublabel: "Genera e approva",             icon: Search },
-  { id: "approvals",         label: "Approvazioni Cliente",  sublabel: "Analisi, bonifici, documenti", icon: Bell,    badge: "approvals" },
-  { id: "lista-fredda",      label: "Lead da Riattivare",    sublabel: "Contatti da lavorare",         icon: Snowflake },
+  { section: "OPERATIVO", accent: true },
+  { id: "oggi",                label: "Oggi",                sublabel: "Il tuo focus giornaliero",     icon: CalendarDays },
+  { id: "pipeline-prioritaria",label: "Priorità Pipeline",   sublabel: "Azioni urgenti",               icon: Flame },
+  { id: "partner-bloccati",    label: "Partner Bloccati",    sublabel: "Chi è fermo e perché",         icon: AlertOctagon },
+  { id: "guided-system",       label: "Guided System",       sublabel: "Percorsi partner guidati",     icon: Navigation },
+
+  { section: "ACQUISIZIONE" },
+  { id: "clienti-analisi",     label: "Pipeline",            sublabel: "Lead nel funnel",              icon: Target },
+  { id: "flusso-analisi",      label: "Analisi Strategiche", sublabel: "Genera e approva",             icon: Search },
+  { id: "approvals",           label: "Approvazioni Cliente",sublabel: "Analisi, bonifici, documenti", icon: Bell,    badge: "approvals" },
+  { id: "lista-fredda",        label: "Lead da Riattivare",  sublabel: "Contatti da lavorare",         icon: Snowflake },
 
   { section: "PARTNER" },
-  { id: "partner",           label: "Partner Attivi",        sublabel: "Lista e gestione",             icon: Users },
-  { id: "metriche",          label: "Percorsi e Fasi",       sublabel: "Stato avanzamento",            icon: Layers },
-  { id: "ex-partner",        label: "Ex Partner",            sublabel: "Storico partnership",          icon: UserX },
-  { id: "documenti-partner", label: "Documenti",             sublabel: "Onboarding e compliance",      icon: FileText },
-  { id: "servizi-admin",     label: "Servizi Extra",         sublabel: "Abbonamenti e acquisti",       icon: ShoppingBag },
+  { id: "partner",             label: "Partner Attivi",      sublabel: "Lista e gestione",             icon: Users },
+  { id: "metriche",            label: "Percorsi e Fasi",     sublabel: "Stato avanzamento",            icon: Layers },
+  { id: "ex-partner",          label: "Ex Partner",          sublabel: "Storico partnership",          icon: UserX },
+  { id: "servizi-admin",       label: "Servizi Extra",       sublabel: "Abbonamenti e acquisti",       icon: ShoppingBag },
+  { id: "documenti-partner",   label: "Documenti",           sublabel: "Onboarding e compliance",      icon: FileText },
 
   { section: "MARKETING" },
-  { id: "warmode",           label: "Campagne Ads",          sublabel: "Meta, Google, strategie",      icon: BarChart2 },
-  { id: "calendario-admin",  label: "Calendario Editoriale", sublabel: "Contenuti pianificati",        icon: Calendar },
-  { id: "youtube-heygen",    label: "Video AI",              sublabel: "Video AI e pubblicazione",     icon: Film },
+  { id: "warmode",             label: "Campagne Ads",        sublabel: "Meta, Google, strategie",      icon: BarChart2 },
+  { id: "calendario-admin",    label: "Calendario Editoriale",sublabel: "Contenuti pianificati",       icon: Calendar },
+  { id: "youtube-heygen",      label: "Video AI",            sublabel: "Video AI e pubblicazione",     icon: Film },
 
-  { section: "CONTROLLO" },
-  { id: "agenti",            label: "Agent Hub",             sublabel: "Tutti gli agenti AI",          icon: Bot },
-  { id: "guided-system",     label: "Guided System",         sublabel: "Percorsi partner guidati",     icon: Navigation },
-  { id: "alert",             label: "Alert",                 sublabel: "Situazioni urgenti",           icon: AlertTriangle, badge: "alerts" },
-  { id: "configurazione",    label: "Configurazione",        sublabel: "Email, Systeme, Funnel",       icon: Settings },
+  { section: "SISTEMA" },
+  { id: "agenti",              label: "Agent Hub",           sublabel: "Tutti gli agenti AI",          icon: Bot },
+  { id: "alert",               label: "Alert",              sublabel: "Situazioni urgenti",           icon: AlertTriangle, badge: "alerts" },
+  { id: "configurazione",      label: "Configurazione",     sublabel: "Email, Systeme, Funnel",       icon: Settings },
 ];
 
-// Items relevant to Antonella — others are dimmed when currentView === "antonella"
+// Items visible to Antonella — others are HIDDEN (not dimmed)
 const ANTONELLA_ITEMS = new Set([
   "partner", "metriche", "calendario-admin",
   "approvals", "warmode", "youtube-heygen", "agenti",
+  "oggi", "pipeline-prioritaria", "partner-bloccati",
 ]);
 
-// ── ViewSwitcher — top bar, rendered from App.js outside the sidebar ──────────
+// Sections visible to Antonella
+const ANTONELLA_SECTIONS = new Set([
+  "OPERATIVO", "ACQUISIZIONE", "PARTNER", "MARKETING",
+]);
+
+// ── ViewSwitcher — top bar, light theme ───────────────────────────────────────
 
 export function ViewSwitcher({ currentView, onChangeView, onSwitchToCliente, onSwitchToPartner }) {
   const VIEWS = [
@@ -57,19 +68,24 @@ export function ViewSwitcher({ currentView, onChangeView, onSwitchToCliente, onS
   };
 
   return (
-    <div className="flex items-center gap-1 px-5 flex-shrink-0"
-         style={{ height: 40, background: '#0A0F1A', borderBottom: '1px solid #1E293B' }}>
-      <span className="text-[11px] font-bold mr-3" style={{ color: '#334155' }}>Vista:</span>
+    <div
+      data-testid="view-switcher"
+      className="flex items-center gap-1 px-5 flex-shrink-0"
+      style={{ height: 40, background: "#FFFFFF", borderBottom: "1px solid #ECEDEF" }}
+    >
+      <span className="text-[11px] font-bold mr-3" style={{ color: "#9CA3AF" }}>Vista:</span>
       {VIEWS.map(v => {
         const active = currentView === v.id;
         return (
           <button
             key={v.id}
+            data-testid={`view-switch-${v.id}`}
             onClick={() => handleClick(v.id)}
-            className="px-3 py-1 rounded-md text-[11px] font-bold transition-all"
+            className="px-3 py-1 rounded-md text-[11px] font-bold"
             style={{
-              background: active ? '#FDD32A' : 'transparent',
-              color: active ? '#0A0F1A' : '#475569',
+              background: active ? "#F2C418" : "transparent",
+              color: active ? "#1E2128" : "#6B7280",
+              transition: "all 0.15s ease",
             }}
           >
             {v.label}
@@ -80,7 +96,7 @@ export function ViewSwitcher({ currentView, onChangeView, onSwitchToCliente, onS
   );
 }
 
-// ── Sidebar component ─────────────────────────────────────────────────────────
+// ── Sidebar component — light theme, wider, cockpit ───────────────────────────
 
 export function AdminSidebarLight({
   currentNav,
@@ -92,29 +108,41 @@ export function AdminSidebarLight({
   currentUser,
 }) {
   const [hoveredId, setHoveredId] = useState(null);
+  const isAntonella = currentView === "antonella";
 
   const isActive = (id) => currentNav === id;
 
-  const getOpacity = (itemId) => {
-    if (currentView !== "antonella") return 1;
-    return ANTONELLA_ITEMS.has(itemId) ? 1 : 0.28;
+  // Filter items for Antonella: hide irrelevant items completely
+  const getVisibleItems = () => {
+    if (!isAntonella) return NAV_ITEMS;
+    return NAV_ITEMS.filter(item => {
+      if (item.section) return ANTONELLA_SECTIONS.has(item.section);
+      return ANTONELLA_ITEMS.has(item.id);
+    });
   };
+
+  const visibleItems = getVisibleItems();
 
   const renderItem = (item) => {
     // Section header
     if (item.section) {
+      const isOperativo = item.accent;
       return (
         <div
           key={`s-${item.section}`}
           style={{
-            padding: "20px 16px 6px",
-            fontSize: 10,
-            fontWeight: 800,
-            letterSpacing: "0.09em",
+            padding: "20px 14px 8px",
+            fontSize: 11,
+            fontWeight: 900,
+            letterSpacing: "0.08em",
             textTransform: "uppercase",
-            color: "#334155",
+            color: isOperativo ? "#D97706" : "#9CA3AF",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
           }}
         >
+          {isOperativo && <Flame style={{ width: 13, height: 13, color: "#D97706" }} />}
           {item.section}
         </div>
       );
@@ -122,7 +150,6 @@ export function AdminSidebarLight({
 
     const active  = isActive(item.id);
     const hovered = hoveredId === item.id;
-    const opacity = getOpacity(item.id);
     const Icon    = item.icon;
 
     let badgeVal = 0;
@@ -132,27 +159,27 @@ export function AdminSidebarLight({
     return (
       <button
         key={item.id}
+        data-testid={`nav-${item.id}`}
         onClick={() => onNavigate(item.id)}
         onMouseEnter={() => setHoveredId(item.id)}
         onMouseLeave={() => setHoveredId(null)}
-        className="w-full flex items-center gap-3 px-3 rounded-xl text-left transition-all"
+        className="w-full flex items-center gap-3 px-3 rounded-xl text-left"
         style={{
-          height: 46,
+          height: 48,
           marginBottom: 2,
-          opacity,
-          background: active ? "#243041" : hovered ? "#1E293B" : "transparent",
-          border: `1px solid ${active ? "#3B475A" : hovered ? "#334155" : "transparent"}`,
-          boxShadow: active ? "inset 3px 0 0 #FDD32A" : "none",
+          background: active ? "#FEF9E7" : hovered ? "#F5F5F4" : "transparent",
+          border: `1px solid ${active ? "#F2C41840" : "transparent"}`,
+          boxShadow: active ? "inset 3px 0 0 #F2C418" : "none",
           transform: hovered && !active ? "translateY(-1px)" : "translateY(0)",
-          color: active ? "#FDD32A" : hovered ? "#F1F5F9" : "#94A3B8",
+          transition: "all 0.15s ease",
         }}
       >
         <Icon
           style={{
-            width: 17,
-            height: 17,
+            width: 18,
+            height: 18,
             flexShrink: 0,
-            color: active || hovered ? "#FDD32A" : "#CBD5E1",
+            color: active ? "#C4990A" : hovered ? "#F2C418" : "#9CA3AF",
             transition: "color 0.15s ease",
           }}
         />
@@ -160,7 +187,12 @@ export function AdminSidebarLight({
         <div className="flex-1 min-w-0">
           <div
             className="leading-tight truncate"
-            style={{ fontSize: 13, fontWeight: active ? 700 : 500 }}
+            style={{
+              fontSize: 13,
+              fontWeight: active ? 700 : 500,
+              color: active ? "#1E2128" : hovered ? "#374151" : "#4B5563",
+              transition: "color 0.15s ease",
+            }}
           >
             {item.label}
           </div>
@@ -170,7 +202,7 @@ export function AdminSidebarLight({
               style={{
                 fontSize: 11,
                 marginTop: 1,
-                color: active ? "rgba(253,211,42,0.5)" : "#3D4A5C",
+                color: active ? "#C4990A" : "#9CA3AF",
               }}
             >
               {item.sublabel}
@@ -184,8 +216,8 @@ export function AdminSidebarLight({
             style={{
               padding: "2px 7px",
               minWidth: 22,
-              background: item.badge === "alerts" ? "#EF476F" : "#FDD32A",
-              color: item.badge === "alerts" ? "white" : "#0A0F1A",
+              background: item.badge === "alerts" ? "#EF476F" : "#F2C418",
+              color: item.badge === "alerts" ? "white" : "#1E2128",
             }}
           >
             {badgeVal}
@@ -195,46 +227,46 @@ export function AdminSidebarLight({
     );
   };
 
-  const isAntonella  = currentView === "antonella";
   const displayName  = isAntonella ? "Antonella Rossi"   : (currentUser?.name || "Claudio Bertogliatti");
   const displayRole  = isAntonella ? "Operations Manager" : "Fondatore & CEO";
-  const avatarBg     = isAntonella ? "#7B68AE" : "#FDD32A";
-  const avatarColor  = isAntonella ? "white"   : "#0A0F1A";
+  const avatarBg     = isAntonella ? "#7B68AE" : "#F2C418";
+  const avatarColor  = isAntonella ? "white"   : "#1E2128";
   const avatarText   = isAntonella
     ? "AR"
     : (currentUser?.name?.split(" ").map((n) => n[0]).join("") || "CB");
 
   return (
     <div
+      data-testid="admin-sidebar"
       className="flex flex-col h-full"
-      style={{ width: 256, minWidth: 256, background: "#0A0F1A", borderRight: "1px solid #1E293B" }}
+      style={{ width: 280, minWidth: 280, background: "#FFFFFF", borderRight: "1px solid #ECEDEF" }}
     >
       {/* Logo */}
       <div
         className="flex items-center gap-3 px-5 flex-shrink-0"
-        style={{ height: 56, borderBottom: "1px solid #1E293B" }}
+        style={{ height: 56, borderBottom: "1px solid #ECEDEF" }}
       >
         <div
           className="flex items-center justify-center flex-shrink-0 rounded-lg"
-          style={{ width: 32, height: 32, background: "#FDD32A" }}
+          style={{ width: 34, height: 34, background: "#F2C418" }}
         >
-          <span style={{ fontSize: 15, fontWeight: 900, color: "#0A0F1A" }}>E</span>
+          <span style={{ fontSize: 16, fontWeight: 900, color: "#1E2128" }}>E</span>
         </div>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 900, color: "#F1F5F9", lineHeight: 1.2 }}>
-            Evolution<span style={{ color: "#FDD32A" }}>Pro</span>
+          <div style={{ fontSize: 15, fontWeight: 900, color: "#1E2128", lineHeight: 1.2 }}>
+            Evolution<span style={{ color: "#C4990A" }}>Pro</span>
           </div>
-          <div style={{ fontSize: 10, color: "#334155" }}>OS Platform</div>
+          <div style={{ fontSize: 10, color: "#9CA3AF", fontWeight: 600 }}>OS Platform</div>
         </div>
       </div>
 
       {/* Nav */}
       <div className="flex-1 overflow-y-auto px-2 py-1">
-        <nav>{NAV_ITEMS.map((item) => renderItem(item))}</nav>
+        <nav>{visibleItems.map((item) => renderItem(item))}</nav>
       </div>
 
       {/* Footer */}
-      <div className="flex-shrink-0 p-4" style={{ borderTop: "1px solid #1E293B" }}>
+      <div className="flex-shrink-0 p-4" style={{ borderTop: "1px solid #ECEDEF" }}>
         <div className="flex items-center gap-3 mb-3">
           <div
             className="flex items-center justify-center rounded-full flex-shrink-0 text-sm font-bold"
@@ -243,26 +275,36 @@ export function AdminSidebarLight({
             {avatarText}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="font-bold truncate" style={{ fontSize: 13, color: "#F1F5F9" }}>
+            <div className="font-bold truncate" style={{ fontSize: 13, color: "#1E2128" }}>
               {displayName}
             </div>
-            <div className="truncate" style={{ fontSize: 11, color: "#475569" }}>
+            <div className="truncate" style={{ fontSize: 11, color: "#9CA3AF" }}>
               {displayRole}
             </div>
           </div>
         </div>
         <button
+          data-testid="logout-btn"
           onClick={onLogout}
-          className="w-full flex items-center justify-center gap-2 rounded-lg transition-all"
+          className="w-full flex items-center justify-center gap-2 rounded-lg"
           style={{
             height: 36,
-            border: "1px solid #1E293B",
-            color: "#475569",
+            border: "1px solid #ECEDEF",
+            color: "#9CA3AF",
             fontSize: 13,
             fontWeight: 600,
+            transition: "all 0.15s ease",
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(239,68,68,0.08)")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(239,68,68,0.06)";
+            e.currentTarget.style.color = "#EF4444";
+            e.currentTarget.style.borderColor = "#FCA5A5";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.color = "#9CA3AF";
+            e.currentTarget.style.borderColor = "#ECEDEF";
+          }}
         >
           <LogOut style={{ width: 15, height: 15 }} />
           Esci

@@ -31,51 +31,36 @@ Applicazione di gestione aziendale basata su AI per Evolution PRO LLC. Gestisce 
 - [x] Allineamento Globale Ruoli Team — 27 Mar 2026
 - [x] Aggiornamento MONGO_URL/DB_NAME — 27 Mar 2026
 - [x] **Modulo Fase 4: Funnel Builder** — 28 Mar 2026
-  - Landing Page Builder (11 sezioni, template HTML, pre-compilazione, progress bar)
-  - Documenti Legali (Cookie Policy, Privacy Policy, Condizioni di Vendita)
-  - Backend: `/app/backend/routers/funnel_builder.py` con 4 endpoint
-  - Frontend: `/app/frontend/src/components/admin/FunnelBuilder.jsx`
-  - Testato 100% (16/16 backend, UI verificata)
 - [x] **Fix bug /api/api/ doppio prefisso** — 28 Mar 2026
-  - `getApiUrl()` in App.js restituiva `/api` come base + `/api/partners` = `/api/api/partners`
-  - Corretto: ora restituisce URL base senza `/api` suffisso
-  - Fix applicato con `Promise.allSettled` per resilienza
 - [x] **Disabilitazione seed produzione** — 28 Mar 2026
-  - Seed `INITIAL_PARTNERS` (5 finti) e `INITIAL_ALERTS` (3 fantasma) protetti da `SEED_ENABLED` env var (default: `false`)
-  - Seed agents, modules, templates, notifications, success_cases mantenuti attivi
-  - 22 partner reali preservati in produzione
 - [x] **Fallback MONGO_URL Atlas** — 28 Mar 2026
-  - Se `MONGO_URL` contiene `customer-apps` (cluster interno Emergent), il backend usa automaticamente Atlas esterno
-  - Garantisce connessione al DB corretto (`evolution_pro` su `cluster0.4cgj8wx.mongodb.net`) anche dopo deploy
 - [x] **Fallback REDIS_URL + CELERY_ENABLED** — 28 Mar 2026
-  - Se mancanti in produzione, vengono forzati i valori Upstash hardcoded
-  - Worker e beat Celery si avviano correttamente allo startup
-  - NOTA: Upstash ha raggiunto il limite di 500k richieste, serve upgrade piano o reset mensile
 - [x] **Pulizia alert partner di test** — 28 Mar 2026
-  - Eliminati 3 alert fantasma (Marco Ferretti, Sara Lombardi, Antonio Bianchi) da MongoDB
-  - Pulizia automatica allo startup per prevenire ritorni
-
-## P0 - Prossimi
-- [ ] Configurare Tag Systeme.io (creare tag e inserire ID nel .env)
-
-## P1 - Alta Priorita
 - [x] Generazione PDF contratto firmato (ReportLab + Cloudinary) — 28 Mar 2026
 - [x] Configurazione SMTP per email conferma + PDF allegato — 28 Mar 2026
-  - SMTP: smtp.register.it:587 (info@evolution-pro.it)
-  - Endpoint test: POST /api/admin/partners/test-smtp
-  - NOTA: Porta 587 bloccata in preview Emergent, funziona in produzione
 - [x] **Upgrade PDF/Email** — 29 Mar 2026
-  - PDF layout professionale (tabella, HR, footer legale)
-  - SMTP non-bloccante via run_in_executor
-  - Email separate: partner + admin
-- [ ] Test E2E flusso Servizi Extra (Stripe)
+- [x] **P4 - Pagina Proposta Pubblica** — 29 Mar 2026 (13/13 test passati)
+- [x] **Fix critico Errore 520** — 30 Mar 2026 (Pydantic Union[str, dict] su contract)
+- [x] **Redesign Admin Sidebar — Cockpit Operativo** — 01 Apr 2026
+  - Tema chiaro (rimosso sfondo nero sidebar + ViewSwitcher)
+  - Larghezza aumentata a 280px con sublabel descrittive
+  - Nuova sezione "OPERATIVO" in cima: Oggi, Priorità Pipeline, Partner Bloccati, Guided System
+  - Rinominato: COMMERCIALE → ACQUISIZIONE, CONTROLLO → SISTEMA
+  - Vista Antonella: nasconde completamente voci non rilevanti (no opacity)
+  - 3 nuove pagine: OggiDashboard, PrioritaPipeline, PartnerBloccati
+  - Transition 0.15s ease su tutti gli hover/active states
 
-## P4 - Pagina Proposta Pubblica (COMPLETATA 29 Mar 2026)
-- [x] Backend router /api/proposta/ (genera, get, accetta, firma, pagamento-stripe, scelta-bonifico, upload-distinta, upload-documenti, conferma-bonifico, admin/lista)
-- [x] Frontend PropostaPage.jsx (15 sezioni, progress bar, contratto inline, pagamento Stripe/Bonifico IBAN Revolut, upload documenti, conferma)
-- [x] Webhook Stripe integrato per partnership via token
-- [x] Notifiche Telegram + tag Systeme.io
-- [x] Test: 13/13 backend + UI 100% (iteration_31)
+## P0 - Prossimi (Maxi Brief UX)
+- [ ] Aggiornamento Prompt Agenti AI (Fase 6 Brief UX)
+- [ ] Sistema Ruoli e Redirect Login (Parte 1 Brief UX)
+- [ ] Redesign Dashboard Cliente Pre/Post call (Parte 3 Brief UX)
+- [ ] Redesign Dashboard Partner 7 Fasi (Parte 4 Brief UX)
+- [ ] Redesign Dashboard Admin Claudio (Parte 5 Brief UX)
+- [ ] Modalità Impersonate Admin (Parte 7 Brief UX)
+
+## P1 - Alta Priorità
+- [ ] PRICE_ID Stripe per Servizi Extra Partner
+- [ ] Test E2E flusso Servizi Extra (Stripe)
 
 ## P2 - Media Priorità
 - [ ] UI Frontend Calendario Editoriale
