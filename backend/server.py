@@ -14580,6 +14580,9 @@ from routers.proposta import router as proposta_router, set_db as set_proposta_d
 set_proposta_db(db)
 app.include_router(proposta_router)
 
+from routers.partner_guided import router as partner_guided_router, set_db as set_partner_guided_db
+set_partner_guided_db(db)
+app.include_router(partner_guided_router)
 
 
 # Start scheduler for automated jobs
