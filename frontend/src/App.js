@@ -1367,8 +1367,32 @@ export default function App() {
 
     // Route: Decisione Partnership - NUOVO FLUSSO dopo attivazione admin
     if (window.location.pathname === "/decisione-partnership") {
+      // Verifica pagamento Stripe al ritorno
+      if (urlParams.get('payment') === 'success') {
+        const verifyDecisionePayment = async () => {
+          try {
+            await fetch(`${API}/api/flusso-analisi/verify-payment-partnership/${currentUser.id}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            });
+          } catch(e) { console.error(e); }
+          window.location.href = '/decisione-partnership';
+        };
+        verifyDecisionePayment();
+        return (
+          <div className="min-h-screen flex items-center justify-center" style={{ background: '#FAFAF7' }}>
+            <div className="text-center">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 animate-pulse"
+                   style={{ background: '#E8E8E8' }}>
+                <span className="text-2xl font-black" style={{ color: '#111111' }}>E</span>
+              </div>
+              <div className="text-sm" style={{ color: '#9CA3AF' }}>Verifica pagamento in corso...</div>
+            </div>
+          </div>
+        );
+      }
       return (
-        <DecisionePartnershipPage 
+        <DecisionePartnershipPage
           user={currentUser}
           onLogout={handleClienteLogout}
         />
