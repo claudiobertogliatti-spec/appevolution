@@ -14584,6 +14584,10 @@ from routers.partner_guided import router as partner_guided_router, set_db as se
 set_partner_guided_db(db)
 app.include_router(partner_guided_router)
 
+from routers.internal_partner import router as internal_partner_router, set_db as set_internal_partner_db
+set_internal_partner_db(db)
+app.include_router(internal_partner_router)
+
 
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler

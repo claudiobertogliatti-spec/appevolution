@@ -1,20 +1,20 @@
 """
 Partner Guided System — Evolution PRO
 ======================================
-Partner-facing endpoints for the guided step-by-step experience.
-Internal update endpoint for agents/admin/system completions.
+Partner-self endpoints for the guided step-by-step experience.
+All /me endpoints are strictly partner-identity: JWT must carry role=partner.
+
+Admin/system updates go through /api/internal/partner/{id}/update-progress.
 
 Auth model:
-- Partner-facing endpoints: Bearer JWT with role=partner
-- Internal endpoint: requires INTERNAL_API_KEY header (or admin JWT)
+- All endpoints here: Bearer JWT with role=partner (no admin overload)
 """
 
-from fastapi import APIRouter, HTTPException, Header, Depends
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from typing import Optional, Any
 from datetime import datetime, timezone
-import os
 import logging
 
 from auth import decode_token
@@ -26,9 +26,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/partner/me", tags=["partner-guided"])
 security = HTTPBearer(auto_error=False)
-
-# Internal API key for agent/system/admin calls
-INTERNAL_API_KEY = os.environ.get("INTERNAL_API_KEY", "evo-internal-2026")
 
 db = None
 
@@ -51,7 +48,7 @@ async def _get_partner_from_jwt(credentials: HTTPAuthorizationCredentials) -> tu
     if not token_data:
         raise HTTPException(status_code=401, detail="Token non valido o scaduto")
 
-    if token_data.role not in ("partner", "admin"):
+    if token_data.role != "partner":
         raise HTTPException(status_code=403, detail="Accesso riservato ai partner")
 
     user = await db.users.find_one({"id": token_data.user_id}, {"_id": 0})
@@ -98,14 +95,6 @@ async def _get_or_evaluate(partner: dict) -> dict:
 class CompleteStepRequest(BaseModel):
     step_code: str
     payload: Optional[dict[str, Any]] = None  # extra data (e.g., {"total": 5})
-
-class InternalUpdateRequest(BaseModel):
-    step_code: str
-    completed: bool = True
-    agent: Optional[str] = None    # e.g. "andrea", "gaia", "admin"
-    source: Optional[str] = None   # e.g. "agent:andrea", "webhook:stripe"
-    note: Optional[str] = None
-    payload: Optional[dict[str, Any]] = None
 
 class SupportRequest(BaseModel):
     message: str
@@ -354,88 +343,4 @@ async def request_support(
         "success": True,
         "message": f"La tua richiesta è stata inviata a {AGENT_PROFILES.get(assigned_agent, {}).get('name', assigned_agent)}. Ti risponderà al più presto.",
         "assigned_to": assigned_agent,
-    }
-
-
-# ── Internal/system update endpoint ───────────────────────────────────────────
-
-@router.post("/internal/update-progress/{partner_id}",
-             tags=["partner-guided-internal"])
-async def internal_update_progress(
-    partner_id: str,
-    request: InternalUpdateRequest,
-    x_internal_key: Optional[str] = Header(None, alias="X-Internal-Key"),
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-):
-    """
-    Internal endpoint for system/agent/admin step completions.
-    Accepts either:
-      - X-Internal-Key: INTERNAL_API_KEY header (for Celery tasks, webhooks, agents)
-      - Admin JWT token
-
-    Examples of callers:
-      - admin verifies identity → VERIFY_IDENTITY = true
-      - Andrea approves video  → VIDEO_APPROVED = true
-      - Gaia publishes funnel  → FUNNEL_BUILT = true
-      - Stripe webhook         → PAYMENT_CONFIGURED = true, CHECKOUT_TEST_PASSED = true
-      - System cron (7 days)   → FIRST_WEEK_DONE = true
-    """
-    # Auth: internal key OR admin JWT
-    is_internal_key = x_internal_key == INTERNAL_API_KEY
-    is_admin = False
-
-    if not is_internal_key:
-        if not credentials:
-            raise HTTPException(status_code=401, detail="Autenticazione richiesta")
-        token_data = decode_token(credentials.credentials)
-        if not token_data or token_data.role != "admin":
-            raise HTTPException(status_code=403, detail="Accesso riservato ad admin o sistema interno")
-        is_admin = True
-
-    # Load partner
-    partner = await db.partners.find_one(
-        {"$or": [{"id": partner_id}, {"id": str(partner_id)}]},
-        {"_id": 0}
-    )
-    if not partner:
-        raise HTTPException(status_code=404, detail=f"Partner {partner_id} non trovato")
-
-    guided = StefaniaEngine.evaluate(partner)
-
-    source = request.source or ("admin" if is_admin else "system")
-
-    updated_guided = StefaniaEngine.advance(
-        partner={**partner, "guided": guided},
-        step_code=request.step_code,
-        payload=request.payload,
-        source=source
-    )
-
-    # Persist
-    await db.partners.update_one(
-        {"id": partner_id},
-        {"$set": {
-            "guided": updated_guided,
-            f"guided_audit.{request.step_code}": {
-                "completed_at": datetime.now(timezone.utc).isoformat(),
-                "source": source,
-                "agent": request.agent,
-                "note": request.note,
-            }
-        }}
-    )
-
-    logger.info(
-        f"[STEFANIA] Internal update: partner={partner_id} step={request.step_code} "
-        f"source={source} new_state={updated_guided['current_state']}"
-    )
-
-    return {
-        "success": True,
-        "partner_id": partner_id,
-        "completed_step": request.step_code,
-        "source": source,
-        "new_state": updated_guided["current_state"],
-        "new_step": updated_guided["current_step"],
-        "completion_percentage": updated_guided["completion_percentage"],
     }
