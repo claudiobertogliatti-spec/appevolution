@@ -52,12 +52,12 @@ export function PrioritaPipeline({ onNavigate, onViewPartner }) {
   return (
     <div data-testid="priorita-pipeline" className="space-y-5 max-w-5xl">
       <div>
-        <div className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "#D97706" }}>
-          <Flame className="w-3.5 h-3.5 inline mr-1" style={{ marginTop: -2 }} />
+        <div className="text-xs font-bold uppercase tracking-wider" style={{ color: "#D4A017" }}>
+          <Flame className="w-4 h-4 inline mr-1" style={{ marginTop: -2 }} />
           Operativo
         </div>
-        <h1 className="text-2xl font-black mt-1" style={{ color: "#1E2128" }}>Priorità Pipeline</h1>
-        <p className="text-sm mt-0.5" style={{ color: "#9CA3AF" }}>Partner e prospect che richiedono azione immediata</p>
+        <h1 className="text-2xl font-black mt-1" style={{ color: "#1A1F24" }}>Priorità Pipeline</h1>
+        <p className="text-sm mt-0.5" style={{ color: "#8B8680" }}>Partner e prospect che richiedono azione immediata</p>
       </div>
 
       {/* Approvazioni pendenti */}
@@ -76,7 +76,7 @@ export function PrioritaPipeline({ onNavigate, onViewPartner }) {
           </div>
           {approvals.slice(0, 3).map((a, i) => (
             <div key={i} className="px-5 py-3 flex items-center gap-3" style={{ borderTop: "1px solid #F2C41830" }}>
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: "#F2C418", color: "#1E2128" }}>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: "#FFD24D", color: "#1A1F24" }}>
                 {(a.partner_name || a.nome || "?").split(" ").map(n => n[0]).join("")}
               </div>
               <div className="flex-1 min-w-0">
@@ -108,13 +108,13 @@ export function PrioritaPipeline({ onNavigate, onViewPartner }) {
         ) : (
           priorityPartners.map(p => (
             <div key={p.id} className="px-5 py-3 flex items-center gap-3 hover:bg-[#FAFAF7]" style={{ borderTop: "1px solid #ECEDEF", transition: "all 0.15s ease" }}>
-              <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: "#F2C418", color: "#1E2128" }}>
+              <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: "#FFD24D", color: "#1A1F24" }}>
                 {p.name.split(" ").map(n => n[0]).join("")}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-bold" style={{ color: "#1E2128" }}>{p.name}</span>
-                  <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: "#FEF3C4", color: "#C4990A" }}>{p.phase}</span>
+                  <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: "#FFF6D6", color: "#D4A017" }}>{p.phase}</span>
                 </div>
                 <div className="text-xs" style={{ color: "#9CA3AF" }}>{p.niche}</div>
               </div>
@@ -126,7 +126,7 @@ export function PrioritaPipeline({ onNavigate, onViewPartner }) {
               <button
                 onClick={() => onViewPartner && onViewPartner(p)}
                 className="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1"
-                style={{ background: "#F2C41815", color: "#C4990A", transition: "all 0.15s ease" }}
+                style={{ background: "#FFD24D20", color: "#D4A017", transition: "all 0.15s ease" }}
               >
                 <Eye className="w-3 h-3" />Apri
               </button>
