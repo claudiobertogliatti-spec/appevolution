@@ -606,6 +606,17 @@ async def process_partnership_payment(db, user_id: str, reference_id: str, backg
         }},
         upsert=True
     )
+
+    # Update pagamenti_partnership (usato da flusso_analisi/attiva-partnership)
+    await db.pagamenti_partnership.update_one(
+        {"user_id": user_id},
+        {"$set": {
+            "completato": True,
+            "pagato_at": now.isoformat(),
+            "stripe_session_id": reference_id
+        }},
+        upsert=True
+    )
     
     # Trigger welcome email for partnership
     background_tasks.add_task(send_partnership_welcome_email, partner_id)

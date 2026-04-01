@@ -1704,6 +1704,140 @@ async def get_clienti_analisi_admin():
         logging.error(f"Error loading clienti analisi: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.get("/admin/approvazioni/count")
+async def get_approvazioni_count():
+    """
+    Conta gli elementi che richiedono approvazione admin:
+    - analisi generate ma non ancora inviate al cliente
+    - bonifici caricati in attesa di conferma
+    """
+    try:
+        analisi_da_approvare = await db.users.count_documents({
+            "user_type": "cliente_analisi",
+            "analisi_generata": True,
+            "email_analisi_inviata": {"$ne": True}
+        })
+        bonifici_in_attesa = await db.proposte.count_documents({
+            "distinta_bonifico_url": {"$exists": True, "$ne": None},
+            "pagamento_completato": {"$ne": True}
+        })
+        total = analisi_da_approvare + bonifici_in_attesa
+        return {
+            "total": total,
+            "analisi_da_approvare": analisi_da_approvare,
+            "bonifici_in_attesa": bonifici_in_attesa
+        }
+    except Exception as e:
+        logging.error(f"Error counting approvazioni: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/admin/stats")
+async def get_admin_stats():
+    """
+    Statistiche generali admin dashboard.
+    """
+    try:
+        partners = await db.partners.find({}, {"_id": 0, "phase": 1, "fase": 1, "revenue": 1}).to_list(500)
+        alerts = await db.alerts.find({}, {"_id": 0}).to_list(100)
+
+        valid_phases = ["F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","F13"]
+        total_partners = len(partners)
+        active_partners = sum(
+            1 for p in partners
+            if p.get("phase") in valid_phases or (p.get("fase") and p.get("fase") != "F0")
+        )
+        total_revenue = sum(p.get("revenue", 0) for p in partners)
+        alerts_count = len(alerts)
+
+        phase_dist = {}
+        for p in partners:
+            phase = p.get("phase", p.get("fase", "F0"))
+            phase_dist[phase] = phase_dist.get(phase, 0) + 1
+
+        analisi_da_approvare = await db.users.count_documents({
+            "user_type": "cliente_analisi",
+            "analisi_generata": True,
+            "email_analisi_inviata": {"$ne": True}
+        })
+        bonifici_in_attesa = await db.proposte.count_documents({
+            "distinta_bonifico_url": {"$exists": True, "$ne": None},
+            "pagamento_completato": {"$ne": True}
+        })
+
+        return {
+            "total_partners": total_partners,
+            "active_partners": active_partners,
+            "total_revenue": total_revenue,
+            "alerts_count": alerts_count,
+            "phase_distribution": phase_dist,
+            "approvazioni_pending": analisi_da_approvare + bonifici_in_attesa
+        }
+    except Exception as e:
+        logging.error(f"Error loading admin stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/admin/prospect-pipeline")
+async def get_prospect_pipeline():
+    """
+    Tabella unificata flusso clienti con join su proposte.
+    Restituisce tutti i clienti_analisi con tutti gli step del funnel.
+    """
+    try:
+        clienti = await db.users.find(
+            {"user_type": "cliente_analisi"},
+            {"_id": 0, "password": 0}
+        ).sort("data_registrazione", -1).to_list(1000)
+
+        # Fetch tutte le proposte in blocco
+        proposte_list = await db.proposte.find({}, {"_id": 0}).to_list(2000)
+        proposte_map = {p["partner_id"]: p for p in proposte_list}
+
+        result = []
+        for c in clienti:
+            uid = c.get("id")
+            proposta = proposte_map.get(uid, {})
+            result.append({
+                "id": uid,
+                "nome": c.get("nome", ""),
+                "cognome": c.get("cognome", ""),
+                "email": c.get("email", ""),
+                "telefono": c.get("telefono", ""),
+                "data_registrazione": c.get("data_registrazione"),
+                # Step 1
+                "step_registrazione": True,
+                # Step 2
+                "step_questionario": bool(c.get("questionario_compilato")),
+                # Step 3
+                "step_pagamento_67": bool(c.get("pagamento_analisi")),
+                # Step 4
+                "step_analisi_generata": bool(c.get("analisi_generata")),
+                "step_analisi_approvata": bool(c.get("email_analisi_inviata")),
+                # Step 5
+                "call_stato": c.get("call_stato", "da_fissare"),
+                "step_call_completata": c.get("call_stato") == "completata",
+                # Step 6 - Proposta
+                "step_proposta_inviata": bool(proposta.get("token")),
+                "proposta_token": proposta.get("token"),
+                "proposta_url": f"/proposta/{proposta.get('token')}" if proposta.get("token") else None,
+                "proposta_vista": bool(proposta.get("visto_at")),
+                # Step 7
+                "step_contratto_firmato": bool(proposta.get("contratto_firmato_at")),
+                "contratto_firmato_at": proposta.get("contratto_firmato_at"),
+                # Step 8
+                "step_pagamento_2790": bool(proposta.get("pagamento_completato")),
+                "pagamento_metodo": proposta.get("pagamento_metodo"),
+                "distinta_bonifico_url": proposta.get("distinta_bonifico_url"),
+                # Step 9
+                "step_documenti": bool(proposta.get("documenti_identita_url")),
+                "documenti_identita_url": proposta.get("documenti_identita_url", []),
+            })
+
+        return {"success": True, "clienti": result, "totale": len(result)}
+    except Exception as e:
+        logging.error(f"Error loading prospect pipeline: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @api_router.get("/admin/clienti-analisi/{user_id}")
 async def get_cliente_analisi_detail(user_id: str):
     """
@@ -14446,6 +14580,13 @@ from routers.proposta import router as proposta_router, set_db as set_proposta_d
 set_proposta_db(db)
 app.include_router(proposta_router)
 
+from routers.partner_guided import router as partner_guided_router, set_db as set_partner_guided_db
+set_partner_guided_db(db)
+app.include_router(partner_guided_router)
+
+from routers.internal_partner import router as internal_partner_router, set_db as set_internal_partner_db
+set_internal_partner_db(db)
+app.include_router(internal_partner_router)
 
 
 # Start scheduler for automated jobs

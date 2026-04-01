@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import ContractSigning from "../ContractSigning";
 import { 
   FileText, Download, CheckCircle, Upload, CreditCard, 
   Loader2, AlertCircle, ChevronRight, Shield, Clock,
@@ -13,26 +14,27 @@ const SEZIONI = [
   { id: "analisi", label: "Analisi Strategica", icon: FileText, color: "#8B5CF6" },
   { id: "roadmap", label: "Roadmap Progetto", icon: Calendar, color: "#3B82F6" },
   { id: "proposta", label: "Proposta Partnership", icon: Star, color: "#F5C518" },
-  { id: "contratto", label: "Contratto", icon: FileCheck, color: "#22C55E" },
-  { id: "documenti", label: "I miei File", icon: Upload, color: "#F97316" },
+  { id: "contratto", label: "Contratto Partnership", icon: FileCheck, color: "#22C55E" },
+  { id: "clausole_firma", label: "Clausole & Firma", icon: FileCheck, color: "#16A34A" },
+  { id: "documenti", label: "Invio Doc", icon: Upload, color: "#F97316" },
   { id: "pagamento", label: "Pagamento", icon: CreditCard, color: "#10B981" }
 ];
 
 // IBAN per bonifico
 const IBAN_INFO = {
-  intestatario: "Evolution PRO di Claudio Bertogliatti",
-  iban: "IT60J3608105138261222222222",
+  intestatario: "Evolution PRO LLC - Claudio Bertogliatti",
+  iban: "LT94 3250 0974 4929 5781",
   bic: "REVOLT21",
-  banca: "Revolut",
-  causale: "Partnership Evolution PRO - [NOME COGNOME]"
+  banca: "Revolut Bank UAB",
+  causale: "Partnership Evolution PRO - [Nome e Cognome]"
 };
 
-export function DecisionePartnershipPage({ user, onLogout }) {
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState(null);
+export function DecisionePartnershipPage({ user, onLogout, demoData }) {
+  const [loading, setLoading] = useState(!demoData);
+  const [data, setData] = useState(demoData || null);
   const [error, setError] = useState(null);
   const [activeSection, setActiveSection] = useState("analisi");
-  
+
   // Stati per azioni
   const [signingContract, setSigningContract] = useState(false);
   const [contractAccepted, setContractAccepted] = useState(false);
@@ -43,6 +45,7 @@ export function DecisionePartnershipPage({ user, onLogout }) {
   const [activatingPartnership, setActivatingPartnership] = useState(false);
 
   useEffect(() => {
+    if (demoData) return;
     if (user?.id) {
       loadDecisioneData();
     }
@@ -276,6 +279,7 @@ export function DecisionePartnershipPage({ user, onLogout }) {
               if (sezione.id === "roadmap") isCompleted = true;
               if (sezione.id === "proposta") isCompleted = true;
               if (sezione.id === "contratto") isCompleted = data?.contratto_firmato;
+              if (sezione.id === "clausole_firma") isCompleted = data?.contratto_firmato;
               if (sezione.id === "documenti") isCompleted = data?.documenti?.length >= 2;
               if (sezione.id === "pagamento") isCompleted = data?.pagamento_completato;
               
@@ -576,8 +580,8 @@ export function DecisionePartnershipPage({ user, onLogout }) {
                   
                   <button
                     onClick={() => setActiveSection("contratto")}
-                    className="w-full py-4 rounded-xl font-bold text-lg transition-all hover:scale-[1.02]"
-                    style={{ background: "linear-gradient(135deg, #F5C518, #C4990A)", color: "#1E2128" }}
+                    className="w-full py-4 rounded-xl font-bold text-lg transition-all hover:bg-[#D0D0D0] hover:scale-[1.02]"
+                    style={{ background: "#E8E8E8", color: "#111111", boxShadow: "0 2px 8px rgba(0,0,0,0.10)" }}
                     data-testid="btn-procedi-contratto"
                   >
                     Procedi con il Contratto <ArrowRight className="inline w-5 h-5 ml-2" />
@@ -586,110 +590,67 @@ export function DecisionePartnershipPage({ user, onLogout }) {
               </div>
             )}
 
-            {/* SEZIONE: Contratto */}
+            {/* SEZIONE: Contratto Partnership (step 1 — lettura + chat) */}
             {activeSection === "contratto" && (
-              <div className="rounded-2xl overflow-hidden" style={{ background: "#FFFFFF", border: "1px solid #ECEDEF" }}>
-                <div className="p-6" style={{ background: "linear-gradient(135deg, #22C55E, #16A34A)" }}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xl font-bold text-white">Contratto di Partnership</h2>
-                      <p className="text-sm text-white/70">Leggi e accetta i termini</p>
-                    </div>
-                    <a
-                      href={`${API}/api/flusso-analisi/contratto-pdf/${user.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors hover:opacity-90"
-                      style={{ background: "rgba(255,255,255,0.2)", color: "#FFFFFF" }}
-                      data-testid="btn-download-contratto"
-                    >
-                      <Download className="w-4 h-4" />
-                      Scarica PDF
-                    </a>
-                  </div>
+              data?.contratto_firmato ? (
+                <div className="rounded-2xl p-8 text-center" style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
+                  <CheckCircle className="w-16 h-16 mx-auto mb-4" style={{ color: "#22C55E" }} />
+                  <h3 className="text-xl font-bold mb-2" style={{ color: "#166534" }}>Contratto Firmato</h3>
+                  <p className="text-sm mb-6" style={{ color: "#22C55E" }}>
+                    Hai accettato i termini il {new Date(data.contratto?.data_firma).toLocaleDateString("it-IT")}
+                  </p>
+                  <button
+                    onClick={() => setActiveSection("documenti")}
+                    className="px-6 py-3 rounded-xl font-medium transition-colors hover:opacity-90"
+                    style={{ background: "#22C55E", color: "#FFFFFF" }}
+                  >
+                    Vai a Invio Doc <ArrowRight className="inline w-4 h-4 ml-2" />
+                  </button>
                 </div>
-                
-                <div className="p-6">
-                  {data?.contratto_firmato ? (
-                    <div className="text-center p-8 rounded-xl" style={{ background: "#F0FDF4" }}>
-                      <CheckCircle className="w-16 h-16 mx-auto mb-4" style={{ color: "#22C55E" }} />
-                      <h3 className="text-xl font-bold mb-2" style={{ color: "#166534" }}>Contratto Firmato</h3>
-                      <p className="text-sm" style={{ color: "#22C55E" }}>
-                        Hai accettato i termini il {new Date(data.contratto?.data_firma).toLocaleDateString("it-IT")}
-                      </p>
-                      <button
-                        onClick={() => setActiveSection("documenti")}
-                        className="mt-6 px-6 py-3 rounded-xl font-medium transition-colors hover:opacity-90"
-                        style={{ background: "#22C55E", color: "#FFFFFF" }}
-                      >
-                        Continua con i Documenti <ArrowRight className="inline w-4 h-4 ml-2" />
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="mb-6 p-4 rounded-xl" style={{ background: "#FAFAF7" }}>
-                        <h4 className="font-bold mb-2" style={{ color: "#1E2128" }}>Punti Chiave del Contratto:</h4>
-                        <ul className="space-y-2 text-sm" style={{ color: "#5F6572" }}>
-                          <li className="flex items-start gap-2">
-                            <span className="mt-1">•</span>
-                            <span>Durata: 12 mesi dalla data di attivazione</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <span className="mt-1">•</span>
-                            <span>Corrispettivo: €2.790 una tantum</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <span className="mt-1">•</span>
-                            <span>Proprietà intellettuale: i contenuti creati restano tuoi</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <span className="mt-1">•</span>
-                            <span>Foro competente: Milano</span>
-                          </li>
-                        </ul>
-                      </div>
-                      
-                      <div className="mb-6">
-                        <label className="flex items-start gap-3 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={contractAccepted}
-                            onChange={(e) => setContractAccepted(e.target.checked)}
-                            className="w-5 h-5 mt-0.5 rounded border-2 cursor-pointer"
-                            style={{ accentColor: "#22C55E" }}
-                            data-testid="checkbox-contratto"
-                          />
-                          <span className="text-sm" style={{ color: "#1E2128" }}>
-                            Dichiaro di aver letto e accettato i termini e le condizioni del contratto di partnership Evolution PRO. 
-                            Confermo che i dati forniti sono corretti e mi impegno a rispettare gli obblighi previsti.
-                          </span>
-                        </label>
-                      </div>
-                      
-                      <button
-                        onClick={handleFirmaContratto}
-                        disabled={!contractAccepted || signingContract}
-                        className="w-full py-4 rounded-xl font-bold text-lg transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ background: contractAccepted ? "#22C55E" : "#9CA3AF", color: "#FFFFFF" }}
-                        data-testid="btn-firma-contratto"
-                      >
-                        {signingContract ? (
-                          <><Loader2 className="inline w-5 h-5 animate-spin mr-2" /> Firma in corso...</>
-                        ) : (
-                          <>Accetta e Firma il Contratto</>
-                        )}
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
+              ) : (
+                <ContractSigning
+                  key="decisione-contratto"
+                  embedded
+                  partner={{ id: user?.id, name: `${data?.cliente?.nome || ""} ${data?.cliente?.cognome || ""}`.trim() }}
+                  initialStep={1}
+                  onContractSigned={() => setActiveSection("clausole_firma")}
+                />
+              )
             )}
 
-            {/* SEZIONE: I miei File */}
+            {/* SEZIONE: Clausole & Firma (step 2 — clausole vessatorie + canvas) */}
+            {activeSection === "clausole_firma" && (
+              data?.contratto_firmato ? (
+                <div className="rounded-2xl p-8 text-center" style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
+                  <CheckCircle className="w-16 h-16 mx-auto mb-4" style={{ color: "#22C55E" }} />
+                  <h3 className="text-xl font-bold mb-2" style={{ color: "#166534" }}>Contratto Firmato</h3>
+                  <button
+                    onClick={() => setActiveSection("documenti")}
+                    className="mt-2 px-6 py-3 rounded-xl font-medium transition-colors hover:opacity-90"
+                    style={{ background: "#22C55E", color: "#FFFFFF" }}
+                  >
+                    Vai a Invio Doc <ArrowRight className="inline w-4 h-4 ml-2" />
+                  </button>
+                </div>
+              ) : (
+                <ContractSigning
+                  key="decisione-firma"
+                  embedded
+                  partner={{ id: user?.id, name: `${data?.cliente?.nome || ""} ${data?.cliente?.cognome || ""}`.trim() }}
+                  initialStep={2}
+                  onContractSigned={async () => {
+                    await loadDecisioneData();
+                    setActiveSection("documenti");
+                  }}
+                />
+              )
+            )}
+
+            {/* SEZIONE: Invio Doc */}
             {activeSection === "documenti" && (
               <div className="rounded-2xl overflow-hidden" style={{ background: "#FFFFFF", border: "1px solid #ECEDEF" }}>
                 <div className="p-6" style={{ background: "linear-gradient(135deg, #F97316, #EA580C)" }}>
-                  <h2 className="text-xl font-bold text-white">I miei File</h2>
+                  <h2 className="text-xl font-bold text-white">Invio Doc</h2>
                   <p className="text-sm text-white/70">Carica i documenti richiesti</p>
                 </div>
                 
@@ -746,8 +707,8 @@ export function DecisionePartnershipPage({ user, onLogout }) {
                   {data?.documenti?.length >= 2 && (
                     <button
                       onClick={() => setActiveSection("pagamento")}
-                      className="w-full py-4 rounded-xl font-bold text-lg transition-all hover:scale-[1.02]"
-                      style={{ background: "#F97316", color: "#FFFFFF" }}
+                      className="w-full py-4 rounded-xl font-bold text-lg transition-all hover:bg-[#D0D0D0] hover:scale-[1.02]"
+                      style={{ background: "#E8E8E8", color: "#111111", boxShadow: "0 2px 8px rgba(0,0,0,0.10)" }}
                     >
                       Continua con il Pagamento <ArrowRight className="inline w-5 h-5 ml-2" />
                     </button>
@@ -777,8 +738,8 @@ export function DecisionePartnershipPage({ user, onLogout }) {
                         <button
                           onClick={handleAttivaPartnership}
                           disabled={activatingPartnership}
-                          className="px-8 py-4 rounded-xl font-bold text-lg transition-all hover:scale-[1.02] disabled:opacity-50"
-                          style={{ background: "linear-gradient(135deg, #F5C518, #C4990A)", color: "#1E2128" }}
+                          className="px-8 py-4 rounded-xl font-bold text-lg transition-all hover:bg-[#D0D0D0] hover:scale-[1.02] disabled:opacity-50"
+                          style={{ background: "#E8E8E8", color: "#111111", boxShadow: "0 2px 8px rgba(0,0,0,0.10)" }}
                           data-testid="btn-attiva-partnership"
                         >
                           {activatingPartnership ? (
@@ -803,8 +764,8 @@ export function DecisionePartnershipPage({ user, onLogout }) {
                         <button
                           onClick={handlePagamentoStripe}
                           disabled={creatingPayment || !data?.contratto_firmato}
-                          className="w-full py-4 rounded-xl font-bold text-lg transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
-                          style={{ background: "#3B82F6", color: "#FFFFFF" }}
+                          className="w-full py-4 rounded-xl font-bold text-lg transition-all hover:bg-[#D0D0D0] hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{ background: "#E8E8E8", color: "#111111", boxShadow: "0 2px 8px rgba(0,0,0,0.10)" }}
                           data-testid="btn-paga-stripe"
                         >
                           {creatingPayment ? (
@@ -846,6 +807,10 @@ export function DecisionePartnershipPage({ user, onLogout }) {
                                 {copiedIban ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-gray-400" />}
                               </button>
                             </div>
+                          </div>
+                          <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: "#FFFFFF" }}>
+                            <span className="text-sm" style={{ color: "#5F6572" }}>Banca:</span>
+                            <span className="text-sm font-medium" style={{ color: "#1E2128" }}>{IBAN_INFO.banca}</span>
                           </div>
                           <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: "#FFFFFF" }}>
                             <span className="text-sm" style={{ color: "#5F6572" }}>BIC/SWIFT:</span>
@@ -932,8 +897,8 @@ export function DecisionePartnershipPage({ user, onLogout }) {
                 </p>
                 <button
                   onClick={() => setActiveSection("pagamento")}
-                  className="w-full py-3 rounded-xl font-bold transition-all hover:scale-[1.02]"
-                  style={{ background: "#F5C518", color: "#1E2128" }}
+                  className="w-full py-3 rounded-xl font-bold transition-all hover:bg-[#D0D0D0] hover:scale-[1.02]"
+                  style={{ background: "#E8E8E8", color: "#111111", boxShadow: "0 2px 8px rgba(0,0,0,0.10)" }}
                 >
                   Vai al Pagamento
                 </button>

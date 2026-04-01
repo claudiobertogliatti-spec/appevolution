@@ -259,8 +259,8 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
           <div className="text-center">
             <button
               onClick={() => onNavigate('questionario')}
-              className="inline-flex items-center gap-3 px-10 py-4 rounded-xl font-black text-lg uppercase tracking-wide transition-all hover:opacity-90 hover:scale-105"
-              style={{ background: '#F5C518', color: '#1E2128' }}
+              className="inline-flex items-center gap-3 px-10 py-4 rounded-xl font-black text-lg uppercase tracking-wide transition-all hover:bg-[#D0D0D0] hover:scale-105"
+              style={{ background: '#E8E8E8', color: '#111111', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
               data-testid="start-questionario-btn"
             >
               Inizia il Questionario
@@ -408,8 +408,8 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
           <div className="text-center">
             <button
               onClick={() => onNavigate('analisi-attivazione')}
-              className="inline-flex items-center gap-3 px-10 py-4 rounded-xl font-black text-lg uppercase tracking-wide transition-all hover:opacity-90 hover:scale-105"
-              style={{ background: '#F5C518', color: '#1E2128' }}
+              className="inline-flex items-center gap-3 px-10 py-4 rounded-xl font-black text-lg uppercase tracking-wide transition-all hover:bg-[#D0D0D0] hover:scale-105"
+              style={{ background: '#E8E8E8', color: '#111111', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
               data-testid="attiva-analisi-btn"
             >
               Attiva la tua Analisi Strategica
@@ -515,8 +515,8 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
                 onClick={() => {
                   window.open('https://calendar.app.google/ip1MfDcfcrju1WFh6', '_blank');
                 }}
-                className="inline-flex items-center gap-3 px-8 py-4 rounded-xl font-black text-lg transition-all hover:scale-105"
-                style={{ background: '#F5C518', color: '#1E2128' }}
+                className="inline-flex items-center gap-3 px-8 py-4 rounded-xl font-black text-lg transition-all hover:bg-[#D0D0D0] hover:scale-105"
+                style={{ background: '#E8E8E8', color: '#111111', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
                 data-testid="prenota-call-btn"
               >
                 Prenota la tua call strategica

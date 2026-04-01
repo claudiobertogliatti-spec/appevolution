@@ -1,365 +1,272 @@
 import { useState } from "react";
-import { LayoutDashboard, Users, Film, FileText, BarChart3, MessageCircle, AlertTriangle, Settings, ChevronDown, ChevronRight, LogOut, Database, Edit3, Trophy, Zap, HelpCircle, Webhook, Bot, DollarSign, UsersRound, FileCheck, ClipboardCheck, UserPlus, Unlock, Eye, Mail, Snowflake, ShoppingBag, Globe } from "lucide-react";
+import {
+  Users, Film, FileText, AlertTriangle,
+  Settings, LogOut, Bot, Bell, Target, Calendar,
+  Layers, Search, ShoppingBag, Snowflake, BarChart2,
+  Navigation, UserX
+} from "lucide-react";
 
-const CLAUDIO_NAV = [
-  { id: "overview", label: "Overview", icon: LayoutDashboard, 
-    subItems: [
-      { id: "sales-kpi", label: "Sales KPI", icon: DollarSign }
-    ]
-  },
-  { id: "agenti", label: "Agent Hub", icon: Bot },
-  { id: "clienti-analisi", label: "Clienti Analisi", icon: UserPlus, dot: true },
-  { id: "flusso-analisi", label: "Flusso Analisi", icon: Unlock, dot: true },
-  { id: "partner", label: "Partner", icon: Users,
-    subItems: [
-      { id: "documenti-partner", label: "Documenti Partner", icon: FileText },
-      { id: "onboarding-admin", label: "Onboarding Docs", icon: FileCheck }
-    ]
-  },
-  { id: "approvals", label: "Approvazioni", icon: ClipboardCheck, dot: true },
-  { id: "lista-fredda", label: "Lista Fredda", icon: Snowflake, dot: true },
-  { id: "servizi-admin", label: "Servizi Extra", icon: ShoppingBag },
-  { id: "andrea", label: "Editing", icon: Film },
-  { id: "youtube-heygen", label: "YouTube × HeyGen", icon: Film },
-  { id: "metriche", label: "Post-Lancio", icon: BarChart3 },
-  { id: "stefania", label: "STEFANIA", icon: MessageCircle, dot: true },
-  { id: "vista-antonella", label: "Antonella (Social & Comunicazione)", icon: Eye, special: true },
+// ── Nav config — single structure, all views ──────────────────────────────────
+
+const NAV_ITEMS = [
+  { section: "COMMERCIALE" },
+  { id: "clienti-analisi",   label: "Pipeline",              sublabel: "Lead nel funnel",              icon: Target },
+  { id: "flusso-analisi",    label: "Analisi Strategiche",   sublabel: "Genera e approva",             icon: Search },
+  { id: "approvals",         label: "Approvazioni Cliente",  sublabel: "Analisi, bonifici, documenti", icon: Bell,    badge: "approvals" },
+  { id: "lista-fredda",      label: "Lead da Riattivare",    sublabel: "Contatti da lavorare",         icon: Snowflake },
+
+  { section: "PARTNER" },
+  { id: "partner",           label: "Partner Attivi",        sublabel: "Lista e gestione",             icon: Users },
+  { id: "metriche",          label: "Percorsi e Fasi",       sublabel: "Stato avanzamento",            icon: Layers },
+  { id: "ex-partner",        label: "Ex Partner",            sublabel: "Storico partnership",          icon: UserX },
+  { id: "documenti-partner", label: "Documenti",             sublabel: "Onboarding e compliance",      icon: FileText },
+  { id: "servizi-admin",     label: "Servizi Extra",         sublabel: "Abbonamenti e acquisti",       icon: ShoppingBag },
+
+  { section: "MARKETING" },
+  { id: "warmode",           label: "Campagne Ads",          sublabel: "Meta, Google, strategie",      icon: BarChart2 },
+  { id: "calendario-admin",  label: "Calendario Editoriale", sublabel: "Contenuti pianificati",        icon: Calendar },
+  { id: "youtube-heygen",    label: "Video AI",              sublabel: "Video AI e pubblicazione",     icon: Film },
+
+  { section: "CONTROLLO" },
+  { id: "agenti",            label: "Agent Hub",             sublabel: "Tutti gli agenti AI",          icon: Bot },
+  { id: "guided-system",     label: "Guided System",         sublabel: "Percorsi partner guidati",     icon: Navigation },
+  { id: "alert",             label: "Alert",                 sublabel: "Situazioni urgenti",           icon: AlertTriangle, badge: "alerts" },
+  { id: "configurazione",    label: "Configurazione",        sublabel: "Email, Systeme, Funnel",       icon: Settings },
 ];
 
-const ANTONELLA_NAV = [
-  { id: "overview", label: "Overview", icon: LayoutDashboard,
-    subItems: [
-      { id: "sales-kpi", label: "Sales KPI", icon: DollarSign }
-    ]
-  },
-  { id: "agenti", label: "Agent Hub", icon: Bot },
-  { id: "clienti-analisi", label: "Clienti Analisi", icon: UserPlus, dot: true },
-  { id: "flusso-analisi", label: "Flusso Analisi", icon: Unlock, dot: true },
-  { id: "partner", label: "Partner", icon: Users,
-    subItems: [
-      { id: "documenti-partner", label: "Documenti Partner", icon: FileText },
-      { id: "onboarding-admin", label: "Onboarding Docs", icon: FileCheck }
-    ]
-  },
-  { id: "approvals", label: "Approvazioni", icon: ClipboardCheck, dot: true },
-  { id: "lista-fredda", label: "Lista Fredda", icon: Snowflake, dot: true },
-  { id: "servizi-admin", label: "Servizi Extra", icon: ShoppingBag },
-  { id: "andrea", label: "ANDREA — Editing Feed", icon: Film },
-  { id: "copyfactory", label: "Copy Factory", icon: Edit3 },
-];
+// Items relevant to Antonella — others are dimmed when currentView === "antonella"
+const ANTONELLA_ITEMS = new Set([
+  "partner", "metriche", "calendario-admin",
+  "approvals", "warmode", "youtube-heygen", "agenti",
+]);
 
-const TOOLS_NAV = [
-  { id: "webhooks", label: "Webhooks", icon: Webhook },
-  { id: "systeme", label: "Systeme.io", icon: Database },
-  { id: "email-templates", label: "Template Email", icon: Mail },
-  { id: "gaia", label: "Template Funnel", icon: Zap },
-  { id: "funnelbuilder", label: "Funnel Builder", icon: Globe },
-  { id: "warmode", label: "Campagne Ads", icon: AlertTriangle },
-  { id: "compliance", label: "Documenti & Compliance", icon: FileText },
-];
+// ── ViewSwitcher — top bar, rendered from App.js outside the sidebar ──────────
 
-export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminUser, alerts, onLogout, onSwitchToPartner, onSwitchToCliente, currentUser }) {
-  const [toolsOpen, setToolsOpen] = useState(false);
-  const [expandedMenus, setExpandedMenus] = useState(["overview", "partner"]); // Menu espansi di default
-  const navItems = adminUser === "antonella" ? ANTONELLA_NAV : CLAUDIO_NAV;
-  const isToolNav = TOOLS_NAV.some(t => t.id === currentNav);
+export function ViewSwitcher({ currentView, onChangeView, onSwitchToCliente, onSwitchToPartner }) {
+  const VIEWS = [
+    { id: "admin",     label: "Admin" },
+    { id: "cliente",   label: "Vista Cliente" },
+    { id: "partner",   label: "Vista Partner" },
+    { id: "antonella", label: "Antonella" },
+  ];
 
-  // Funzione per espandere/collassare menu con sub-items
-  const toggleMenu = (menuId) => {
-    setExpandedMenus(prev => 
-      prev.includes(menuId) 
-        ? prev.filter(id => id !== menuId)
-        : [...prev, menuId]
-    );
-  };
-
-  // Verifica se un menu o uno dei suoi sub-items è attivo
-  const isMenuActive = (item) => {
-    if (currentNav === item.id) return true;
-    if (item.subItems) {
-      return item.subItems.some(sub => sub.id === currentNav);
-    }
-    return false;
+  const handleClick = (id) => {
+    if (id === "cliente") { onSwitchToCliente(); return; }
+    if (id === "partner") { onSwitchToPartner(); return; }
+    onChangeView(id);
   };
 
   return (
-    <div className="w-64 min-w-64 flex flex-col h-full border-r overflow-y-auto" 
-         style={{ background: '#FFFFFF', borderColor: '#F0EFEB' }}>
-      
-      {/* Logo */}
-      <div className="p-5 border-b" style={{ borderColor: '#F0EFEB' }}>
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
-               style={{ background: '#F2C418' }}>
-            <span className="text-lg font-black text-[#1E2128]">E</span>
-          </div>
-          <div>
-            <div className="font-black text-base" style={{ color: '#2D3239' }}>
-              Evolution<span style={{ color: '#F2C418' }}>Pro</span>
-            </div>
-            <div className="text-[10px] font-medium" style={{ color: '#9CA3AF' }}>OS Platform</div>
-          </div>
-        </div>
-      </div>
+    <div className="flex items-center gap-1 px-5 flex-shrink-0"
+         style={{ height: 40, background: '#0A0F1A', borderBottom: '1px solid #1E293B' }}>
+      <span className="text-[11px] font-bold mr-3" style={{ color: '#334155' }}>Vista:</span>
+      {VIEWS.map(v => {
+        const active = currentView === v.id;
+        return (
+          <button
+            key={v.id}
+            onClick={() => handleClick(v.id)}
+            className="px-3 py-1 rounded-md text-[11px] font-bold transition-all"
+            style={{
+              background: active ? '#FDD32A' : 'transparent',
+              color: active ? '#0A0F1A' : '#475569',
+            }}
+          >
+            {v.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
-      {/* Mode Selector */}
-      <div className="px-4 py-3 space-y-2">
-        {/* Admin Button - Full Width */}
-        <button 
-          className="w-full py-2.5 text-sm font-bold rounded-xl transition-all"
-          style={{ background: '#F2C418', color: '#1E2128', boxShadow: '0 4px 20px rgba(242,196,24,0.25)' }}
+// ── Sidebar component ─────────────────────────────────────────────────────────
+
+export function AdminSidebarLight({
+  currentNav,
+  onNavigate,
+  currentView = "admin",
+  alerts,
+  approvazioniCount,
+  onLogout,
+  currentUser,
+}) {
+  const [hoveredId, setHoveredId] = useState(null);
+
+  const isActive = (id) => currentNav === id;
+
+  const getOpacity = (itemId) => {
+    if (currentView !== "antonella") return 1;
+    return ANTONELLA_ITEMS.has(itemId) ? 1 : 0.28;
+  };
+
+  const renderItem = (item) => {
+    // Section header
+    if (item.section) {
+      return (
+        <div
+          key={`s-${item.section}`}
+          style={{
+            padding: "20px 16px 6px",
+            fontSize: 10,
+            fontWeight: 800,
+            letterSpacing: "0.09em",
+            textTransform: "uppercase",
+            color: "#334155",
+          }}
         >
-          Admin
-        </button>
-        
-        {/* Cliente / Partner Row */}
-        <div className="flex gap-2">
-          <button 
-            onClick={onSwitchToCliente}
-            className="flex-1 py-2 text-xs font-bold rounded-lg transition-all hover:bg-[#FAFAF7]"
-            style={{ background: '#FAFAF7', color: '#5F6572', border: '1px solid #ECEDEF' }}
-          >
-            Cliente
-          </button>
-          <button 
-            onClick={onSwitchToPartner}
-            className="flex-1 py-2 text-xs font-bold rounded-lg transition-all hover:bg-[#FAFAF7]"
-            style={{ background: '#FAFAF7', color: '#5F6572', border: '1px solid #ECEDEF' }}
-          >
-            Partner
-          </button>
+          {item.section}
         </div>
+      );
+    }
 
-        {/* Claudio / Antonella Row */}
-        <div className="flex gap-2">
-          <button 
-            onClick={() => { setAdminUser("claudio"); onNavigate("overview"); }}
-            className="flex-1 py-2 text-xs font-bold rounded-lg transition-all"
-            style={{ 
-              background: adminUser === "claudio" ? '#1E2128' : '#FAFAF7',
-              color: adminUser === "claudio" ? '#F2C418' : '#9CA3AF',
-              border: adminUser === "claudio" ? 'none' : '1px solid #ECEDEF'
-            }}
+    const active  = isActive(item.id);
+    const hovered = hoveredId === item.id;
+    const opacity = getOpacity(item.id);
+    const Icon    = item.icon;
+
+    let badgeVal = 0;
+    if (item.badge === "approvals") badgeVal = approvazioniCount || 0;
+    if (item.badge === "alerts")    badgeVal = alerts?.length || 0;
+
+    return (
+      <button
+        key={item.id}
+        onClick={() => onNavigate(item.id)}
+        onMouseEnter={() => setHoveredId(item.id)}
+        onMouseLeave={() => setHoveredId(null)}
+        className="w-full flex items-center gap-3 px-3 rounded-xl text-left transition-all"
+        style={{
+          height: 46,
+          marginBottom: 2,
+          opacity,
+          background: active ? "#243041" : hovered ? "#1E293B" : "transparent",
+          border: `1px solid ${active ? "#3B475A" : hovered ? "#334155" : "transparent"}`,
+          boxShadow: active ? "inset 3px 0 0 #FDD32A" : "none",
+          transform: hovered && !active ? "translateY(-1px)" : "translateY(0)",
+          color: active ? "#FDD32A" : hovered ? "#F1F5F9" : "#94A3B8",
+        }}
+      >
+        <Icon
+          style={{
+            width: 17,
+            height: 17,
+            flexShrink: 0,
+            color: active || hovered ? "#FDD32A" : "#CBD5E1",
+            transition: "color 0.15s ease",
+          }}
+        />
+
+        <div className="flex-1 min-w-0">
+          <div
+            className="leading-tight truncate"
+            style={{ fontSize: 13, fontWeight: active ? 700 : 500 }}
           >
-            Claudio
-          </button>
-          <button 
-            onClick={() => { setAdminUser("antonella"); onNavigate("overview"); }}
-            className="flex-1 py-2 text-xs font-bold rounded-lg transition-all"
-            style={{ 
-              background: adminUser === "antonella" ? '#7B68AE' : '#FAFAF7',
-              color: adminUser === "antonella" ? 'white' : '#9CA3AF',
-              border: adminUser === "antonella" ? 'none' : '1px solid #ECEDEF'
-            }}
-          >
-            Antonella
-          </button>
-        </div>
-      </div>
-
-      {/* Divider */}
-      <div className="mx-4 my-1" style={{ height: 1, background: '#F5F4F1' }} />
-
-      {/* Main Navigation */}
-      <div className="flex-1 overflow-y-auto px-3 py-2">
-        <div className="text-[10px] font-bold uppercase tracking-wider px-2 py-2" 
-             style={{ color: '#9CA3AF' }}>
-          {adminUser === "antonella" ? "Area Antonella" : "Area Claudio"}
-        </div>
-        
-        <nav className="space-y-0.5">
-          {navItems.map((item) => {
-            const isActive = isMenuActive(item);
-            const hasSubItems = item.subItems && item.subItems.length > 0;
-            const isExpanded = expandedMenus.includes(item.id);
-            
-            // Gestione speciale per "Vista Antonella" - apre in nuova tab
-            if (item.special && item.id === "vista-antonella") {
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => window.open("/dashboard/operations", "_blank")}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all mt-4 border-t pt-4"
-                  style={{ 
-                    background: '#F0ECFA',
-                    borderLeft: '3px solid #7B68AE',
-                    color: '#7B68AE',
-                    borderTopColor: '#ECEDEF'
-                  }}
-                >
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                       style={{ background: '#7B68AE', color: 'white' }}>
-                    <item.icon className="w-3.5 h-3.5" />
-                  </div>
-                  <span className="text-sm flex-1 font-medium">
-                    👁 {item.label}
-                  </span>
-                </button>
-              );
-            }
-            
-            return (
-              <div key={item.id}>
-                <button
-                  onClick={() => {
-                    if (hasSubItems) {
-                      toggleMenu(item.id);
-                    }
-                    onNavigate(item.id);
-                  }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all"
-                  style={{ 
-                    background: isActive ? '#FFF3C4' : 'transparent',
-                    borderLeft: isActive ? '3px solid #F2C418' : '3px solid transparent',
-                    color: isActive ? '#1E2128' : '#3B4049'
-                  }}
-                >
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                       style={{ 
-                         background: isActive ? '#F2C418' : '#FFF8DC',
-                         color: isActive ? '#1E2128' : '#C4990A'
-                       }}>
-                    <item.icon className="w-3.5 h-3.5" />
-                  </div>
-                  <span className={`text-sm flex-1 ${isActive ? 'font-bold' : 'font-medium'}`}>
-                    {item.label}
-                  </span>
-                  {item.dot && (
-                    <span className="w-2 h-2 rounded-full" style={{ background: '#34C77B' }} />
-                  )}
-                  {hasSubItems && (
-                    isExpanded ? <ChevronDown className="w-4 h-4" style={{ color: '#9CA3AF' }} /> : <ChevronRight className="w-4 h-4" style={{ color: '#9CA3AF' }} />
-                  )}
-                </button>
-                
-                {/* Sub-items */}
-                {hasSubItems && isExpanded && (
-                  <div className="ml-5 mt-1 space-y-0.5 border-l pl-3" style={{ borderColor: '#F2C41850' }}>
-                    {item.subItems.map(subItem => {
-                      const isSubActive = currentNav === subItem.id;
-                      return (
-                        <button
-                          key={subItem.id}
-                          onClick={() => onNavigate(subItem.id)}
-                          className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-left transition-all"
-                          style={{ 
-                            background: isSubActive ? '#FFF8DC' : 'transparent',
-                            color: isSubActive ? '#1E2128' : '#5F6572'
-                          }}
-                        >
-                          <subItem.icon className="w-3.5 h-3.5" style={{ color: isSubActive ? '#C4990A' : '#9CA3AF' }} />
-                          <span className={`text-xs ${isSubActive ? 'font-bold' : 'font-medium'}`}>
-                            {subItem.label}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </nav>
-
-        {/* Tools Section - Solo per Claudio */}
-        {adminUser === "claudio" && (
-          <div className="mt-3">
-            <button 
-              onClick={() => setToolsOpen(!toolsOpen)}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all"
-              style={{ 
-                background: isToolNav ? '#FFF8DC' : 'transparent',
-                color: isToolNav ? '#1E2128' : '#8D929C'
+            {item.label}
+          </div>
+          {item.sublabel && (
+            <div
+              className="leading-tight truncate"
+              style={{
+                fontSize: 11,
+                marginTop: 1,
+                color: active ? "rgba(253,211,42,0.5)" : "#3D4A5C",
               }}
             >
-              <Settings className="w-4 h-4" />
-              <span className="text-xs font-bold flex-1">Strumenti</span>
-              {toolsOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-            </button>
-            
-            {toolsOpen && (
-              <nav className="mt-1 ml-2 pl-3 border-l space-y-0.5" style={{ borderColor: '#F5F4F1' }}>
-                {TOOLS_NAV.map(item => {
-                  const isActive = currentNav === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => onNavigate(item.id)}
-                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-all"
-                      style={{ 
-                        background: isActive ? '#FFF8DC' : 'transparent',
-                        color: isActive ? '#1E2128' : '#8D929C'
-                      }}
-                    >
-                      <item.icon className="w-3.5 h-3.5" />
-                      <span className="text-xs font-medium">{item.label}</span>
-                    </button>
-                  );
-                })}
-              </nav>
-            )}
-          </div>
-        )}
+              {item.sublabel}
+            </div>
+          )}
+        </div>
 
-        {/* Alert Button */}
-        <div className="mt-3 pt-3 border-t" style={{ borderColor: '#F5F4F1' }}>
-          <button 
-            onClick={() => onNavigate("alert")}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all"
-            style={{ 
-              background: currentNav === "alert" ? '#FDECEF' : alerts?.length > 0 ? '#FFFDF5' : 'transparent',
-              color: alerts?.length > 0 ? '#EF476F' : '#8D929C'
+        {item.badge && badgeVal > 0 && (
+          <span
+            className="flex-shrink-0 font-black text-[11px] rounded-full text-center"
+            style={{
+              padding: "2px 7px",
+              minWidth: 22,
+              background: item.badge === "alerts" ? "#EF476F" : "#FDD32A",
+              color: item.badge === "alerts" ? "white" : "#0A0F1A",
             }}
           >
-            <AlertTriangle className="w-4 h-4" />
-            <span className="text-xs font-bold flex-1">Alert</span>
-            {alerts?.length > 0 && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                    style={{ background: '#EF476F', color: 'white' }}>
-                {alerts.length}
-              </span>
-            )}
-          </button>
+            {badgeVal}
+          </span>
+        )}
+      </button>
+    );
+  };
+
+  const isAntonella  = currentView === "antonella";
+  const displayName  = isAntonella ? "Antonella Rossi"   : (currentUser?.name || "Claudio Bertogliatti");
+  const displayRole  = isAntonella ? "Operations Manager" : "Fondatore & CEO";
+  const avatarBg     = isAntonella ? "#7B68AE" : "#FDD32A";
+  const avatarColor  = isAntonella ? "white"   : "#0A0F1A";
+  const avatarText   = isAntonella
+    ? "AR"
+    : (currentUser?.name?.split(" ").map((n) => n[0]).join("") || "CB");
+
+  return (
+    <div
+      className="flex flex-col h-full"
+      style={{ width: 256, minWidth: 256, background: "#0A0F1A", borderRight: "1px solid #1E293B" }}
+    >
+      {/* Logo */}
+      <div
+        className="flex items-center gap-3 px-5 flex-shrink-0"
+        style={{ height: 56, borderBottom: "1px solid #1E293B" }}
+      >
+        <div
+          className="flex items-center justify-center flex-shrink-0 rounded-lg"
+          style={{ width: 32, height: 32, background: "#FDD32A" }}
+        >
+          <span style={{ fontSize: 15, fontWeight: 900, color: "#0A0F1A" }}>E</span>
+        </div>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 900, color: "#F1F5F9", lineHeight: 1.2 }}>
+            Evolution<span style={{ color: "#FDD32A" }}>Pro</span>
+          </div>
+          <div style={{ fontSize: 10, color: "#334155" }}>OS Platform</div>
         </div>
       </div>
 
-      {/* User Footer */}
-      <div className="p-3 border-t" style={{ borderColor: '#F5F4F1' }}>
-        <div className="flex items-center gap-2.5 mb-3">
-          <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold"
-               style={{ 
-                 background: adminUser === "antonella" ? '#7B68AE' : '#F2C418',
-                 color: adminUser === "antonella" ? 'white' : '#1E2128'
-               }}>
-            {currentUser?.name?.split(" ").map(n => n[0]).join("") || "CB"}
+      {/* Nav */}
+      <div className="flex-1 overflow-y-auto px-2 py-1">
+        <nav>{NAV_ITEMS.map((item) => renderItem(item))}</nav>
+      </div>
+
+      {/* Footer */}
+      <div className="flex-shrink-0 p-4" style={{ borderTop: "1px solid #1E293B" }}>
+        <div className="flex items-center gap-3 mb-3">
+          <div
+            className="flex items-center justify-center rounded-full flex-shrink-0 text-sm font-bold"
+            style={{ width: 36, height: 36, background: avatarBg, color: avatarColor }}
+          >
+            {avatarText}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-bold truncate" style={{ color: '#1E2128' }}>
-              {currentUser?.name || (adminUser === "antonella" ? "Antonella Rossi" : "Claudio Bertogliatti")}
+            <div className="font-bold truncate" style={{ fontSize: 13, color: "#F1F5F9" }}>
+              {displayName}
             </div>
-            <div className="text-[10px]" style={{ color: '#9CA3AF' }}>
-              Admin · {adminUser === "antonella" ? "Operations" : "Fondatore"}
+            <div className="truncate" style={{ fontSize: 11, color: "#475569" }}>
+              {displayRole}
             </div>
           </div>
         </div>
-        
-        <div className="flex gap-2">
-          <button 
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg transition-all hover:bg-[#FFF8DC]"
-            style={{ color: '#8D929C' }}
-          >
-            <HelpCircle className="w-4 h-4" />
-            <span className="text-xs font-semibold">Aiuto</span>
-          </button>
-          <button 
-            onClick={onLogout}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg transition-all hover:bg-red-50 hover:text-red-500"
-            style={{ color: '#8D929C' }}
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="text-xs font-semibold">Esci</span>
-          </button>
-        </div>
+        <button
+          onClick={onLogout}
+          className="w-full flex items-center justify-center gap-2 rounded-lg transition-all"
+          style={{
+            height: 36,
+            border: "1px solid #1E293B",
+            color: "#475569",
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(239,68,68,0.08)")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+        >
+          <LogOut style={{ width: 15, height: 15 }} />
+          Esci
+        </button>
       </div>
     </div>
   );

@@ -489,8 +489,8 @@ export function ClienteDashboard({ cliente, onLogout }) {
 
                 <button
                   onClick={() => setShowQuestionario(true)}
-                  className="w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all hover:opacity-90"
-                  style={{ background: '#F5C518', color: '#1E2128' }}
+                  className="w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all hover:bg-[#D0D0D0]"
+                  style={{ background: '#E8E8E8', color: '#111111', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
                   data-testid="inizia-questionario-btn"
                 >
                   INIZIA IL QUESTIONARIO
@@ -645,8 +645,8 @@ export function ClienteDashboard({ cliente, onLogout }) {
                   <button
                     onClick={handleSubmit}
                     disabled={!isFormValid || loading}
-                    className="w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
-                    style={{ background: '#F5C518', color: '#1E2128' }}
+                    className="w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#D0D0D0]"
+                    style={{ background: '#E8E8E8', color: '#111111', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
                     data-testid="submit-questionario"
                   >
                     {loading ? (
@@ -715,6 +715,30 @@ export function ClienteDashboard({ cliente, onLogout }) {
                   <p className="text-[#5F6572]">
                     Il team Evolution inizierà ora l'analisi strategica delle tue risposte.
                   </p>
+                </div>
+
+                {/* ═══════════════════════════════════════════════════════════════════════
+                    VIDEO MESSAGGIO CLAUDIO (post-questionario)
+                    ═══════════════════════════════════════════════════════════════════════ */}
+                <div className="rounded-2xl overflow-hidden" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
+                  <div className="p-4 border-b" style={{ borderColor: '#F0EFEB' }}>
+                    <h3 className="font-bold text-[#1E2128] flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: '#F2C418' }}>
+                        <Play className="w-3.5 h-3.5 text-[#1E2128]" />
+                      </span>
+                      Un messaggio di Claudio per te
+                    </h3>
+                  </div>
+                  <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                    <iframe
+                      src="https://app.heygen.com/embeds/442d3522ccc74ec2abb4d0a7845ae62a-7ad1fe2d703f45b2b15dcbf3c3eb3db7"
+                      title="Messaggio di Claudio"
+                      allow="autoplay; fullscreen"
+                      allowFullScreen
+                      className="absolute inset-0 w-full h-full"
+                      style={{ border: 'none' }}
+                    />
+                  </div>
                 </div>
 
                 {/* ═══════════════════════════════════════════════════════════════════════
@@ -796,31 +820,6 @@ export function ClienteDashboard({ cliente, onLogout }) {
                   </div>
                 </div>
 
-                {/* ═══════════════════════════════════════════════════════════════════════
-                    VIDEO DI BENVENUTO
-                    ═══════════════════════════════════════════════════════════════════════ */}
-                <div className="rounded-2xl overflow-hidden" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-                  <div className="p-6 pb-4">
-                    <h3 className="text-lg font-bold text-[#1E2128] mb-2 flex items-center gap-2">
-                      🎥 Messaggio di benvenuto
-                    </h3>
-                    <p className="text-sm text-[#5F6572]">
-                      Prima della call puoi guardare questo breve video di Claudio.
-                    </p>
-                    <p className="text-sm text-[#9CA3AF] mt-1">Durata: circa 3 minuti.</p>
-                  </div>
-                  <div className="mx-6 mb-6 rounded-xl overflow-hidden">
-                    <video 
-                      controls 
-                      className="w-full rounded-xl"
-                      poster=""
-                      data-testid="video-benvenuto"
-                    >
-                      <source src="https://customer-assets.emergentagent.com/job_stefania-agent/artifacts/ij5wirqf_Quick_Avatar_Video.mp4" type="video/mp4" />
-                      Il tuo browser non supporta il tag video.
-                    </video>
-                  </div>
-                </div>
 
                 {/* ═══════════════════════════════════════════════════════════════════════
                     MINI CORSO GRATUITO - 7 MODULI
