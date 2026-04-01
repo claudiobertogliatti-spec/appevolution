@@ -12,6 +12,14 @@ Applicazione di gestione aziendale basata su AI per Evolution PRO LLC. Gestisce 
 - Payments: Stripe
 - Background: Celery + Redis (Upstash)
 
+## Brand Palette
+- Giallo Evolution: #FFD24D (rgb 255,210,77)
+- Nero Antracite: #1A1F24 (rgb 26,31,36)
+- Sidebar Background: #F5F3EE (sabbia caldo)
+- Sidebar Border: #E8E4DC
+- Yellow Dark: #D4A017
+- Muted: #8B8680
+
 ## Team AI
 | ID Tecnico | Nome | Ruolo |
 |---|---|---|
@@ -29,26 +37,22 @@ Applicazione di gestione aziendale basata su AI per Evolution PRO LLC. Gestisce 
 - [x] Upload Documenti Onboarding (Cloudinary)
 - [x] System Prompt ANDREA, MARCO, VALENTINA
 - [x] Allineamento Globale Ruoli Team — 27 Mar 2026
-- [x] Aggiornamento MONGO_URL/DB_NAME — 27 Mar 2026
-- [x] **Modulo Fase 4: Funnel Builder** — 28 Mar 2026
-- [x] **Fix bug /api/api/ doppio prefisso** — 28 Mar 2026
-- [x] **Disabilitazione seed produzione** — 28 Mar 2026
-- [x] **Fallback MONGO_URL Atlas** — 28 Mar 2026
-- [x] **Fallback REDIS_URL + CELERY_ENABLED** — 28 Mar 2026
-- [x] **Pulizia alert partner di test** — 28 Mar 2026
-- [x] Generazione PDF contratto firmato (ReportLab + Cloudinary) — 28 Mar 2026
-- [x] Configurazione SMTP per email conferma + PDF allegato — 28 Mar 2026
-- [x] **Upgrade PDF/Email** — 29 Mar 2026
-- [x] **P4 - Pagina Proposta Pubblica** — 29 Mar 2026 (13/13 test passati)
-- [x] **Fix critico Errore 520** — 30 Mar 2026 (Pydantic Union[str, dict] su contract)
-- [x] **Redesign Admin Sidebar — Cockpit Operativo** — 01 Apr 2026
-  - Tema chiaro (rimosso sfondo nero sidebar + ViewSwitcher)
-  - Larghezza aumentata a 280px con sublabel descrittive
-  - Nuova sezione "OPERATIVO" in cima: Oggi, Priorità Pipeline, Partner Bloccati, Guided System
-  - Rinominato: COMMERCIALE → ACQUISIZIONE, CONTROLLO → SISTEMA
-  - Vista Antonella: nasconde completamente voci non rilevanti (no opacity)
+- [x] Modulo Fase 4: Funnel Builder — 28 Mar 2026
+- [x] Fix bug /api/api/ doppio prefisso — 28 Mar 2026
+- [x] Disabilitazione seed produzione — 28 Mar 2026
+- [x] Fallback MONGO_URL Atlas + REDIS_URL — 28 Mar 2026
+- [x] Generazione PDF contratto + SMTP Email — 28 Mar 2026
+- [x] P4 - Pagina Proposta Pubblica — 29 Mar 2026 (13/13 test)
+- [x] Fix critico Errore 520 — 30 Mar 2026
+- [x] **Redesign Admin Sidebar v1** — 01 Apr 2026 (struttura cockpit operativo)
+- [x] **Redesign Admin Sidebar v2** — 01 Apr 2026
+  - Palette corretta: #FFD24D + #1A1F24
+  - Sfondo sabbia #F5F3EE
+  - Titoli sezioni 15px/900 weight
+  - Pulsanti 52px altezza, font 15px, sidebar 300px
   - 3 nuove pagine: OggiDashboard, PrioritaPipeline, PartnerBloccati
-  - Transition 0.15s ease su tutti gli hover/active states
+  - Rinominato: COMMERCIALE→ACQUISIZIONE, CONTROLLO→SISTEMA
+  - Vista Antonella: nasconde completamente voci non rilevanti
 
 ## P0 - Prossimi (Maxi Brief UX)
 - [ ] Aggiornamento Prompt Agenti AI (Fase 6 Brief UX)
@@ -63,12 +67,10 @@ Applicazione di gestione aziendale basata su AI per Evolution PRO LLC. Gestisce 
 - [ ] Test E2E flusso Servizi Extra (Stripe)
 
 ## P2 - Media Priorità
-- [ ] UI Frontend Calendario Editoriale
 - [ ] Integrazioni Canva/Kling (serve API key)
 
 ## P3 - Technical Debt
 - [ ] Refactoring server.py monolite (>14000 righe)
-- [ ] Unificazione collection users/partners
 
 ## DB
 - `evolution_pro` su `cluster0.4cgj8wx.mongodb.net` (utente: evolution_admin)
