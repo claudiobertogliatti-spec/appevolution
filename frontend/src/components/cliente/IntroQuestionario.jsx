@@ -1,4 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+// Tracking stub — cablabile su PostHog/analytics senza modificare il componente
+const track = (event, props = {}) => {
+  if (window.posthog) {
+    window.posthog.capture(event, props);
+  }
+  // console.log('[track]', event, props);  // uncomment for local debug
+};
 
 const STEPS = [
   {
@@ -32,8 +40,22 @@ const FRICTION_ITEMS = [
 export function IntroQuestionario({ onStart }) {
   const [agreed, setAgreed] = useState(false);
 
+  // Traccia la visualizzazione della pagina una volta sola
+  useEffect(() => {
+    track("intro_view");
+  }, []);
+
+  const handleCheckbox = () => {
+    const next = !agreed;
+    setAgreed(next);
+    if (next) track("checkbox_click");
+  };
+
   const handleCta = () => {
     if (!agreed) return;
+    track("cta_click");
+    // Persiste il flag: utenti di ritorno salteranno l'intro la prossima volta
+    localStorage.setItem("intro_questionario_seen", "true");
     if (onStart) {
       onStart();
     } else {
@@ -206,7 +228,7 @@ export function IntroQuestionario({ onStart }) {
             </p>
             <label
               className="flex items-start gap-3 cursor-pointer group"
-              onClick={() => setAgreed(!agreed)}
+              onClick={handleCheckbox}
             >
               <div
                 className="flex-shrink-0 rounded flex items-center justify-center transition-all"

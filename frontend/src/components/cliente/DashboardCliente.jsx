@@ -54,6 +54,24 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
   const questionarioCompilato = user?.questionario_compilato || false;
   const pagamentoAnalisi = user?.pagamento_analisi || false;
   const analisiGenerata = user?.analisi_generata || false;
+
+  // Routing condizionale per la CTA questionario.
+  // Non tutti gli utenti devono vedere l'intro:
+  //   - questionario già compilato → vai direttamente all'attivazione
+  //   - intro già vista (localStorage) → vai direttamente al questionario
+  //   - primo accesso → mostra prima l'intro
+  const handleQuestionarioCta = () => {
+    if (questionarioCompilato) {
+      window.location.href = "/analisi-attivazione";
+      return;
+    }
+    const introSeen = localStorage.getItem("intro_questionario_seen") === "true";
+    if (introSeen) {
+      window.location.href = "/questionario";
+    } else {
+      window.location.href = "/intro-questionario";
+    }
+  };
   // NOTA: Quando analisi_generata=true, il cliente vede "Analisi pronta" 
   // ma NON vede il contenuto dell'analisi (sarà presentata durante la call)
 
@@ -258,7 +276,7 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
           {/* SEZIONE 5 — CTA */}
           <div className="text-center">
             <button
-              onClick={() => onNavigate('questionario')}
+              onClick={handleQuestionarioCta}
               className="inline-flex items-center gap-3 px-10 py-4 rounded-xl font-black text-lg uppercase tracking-wide transition-all hover:bg-[#D0D0D0] hover:scale-105"
               style={{ background: '#E8E8E8', color: '#111111', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
               data-testid="start-questionario-btn"
