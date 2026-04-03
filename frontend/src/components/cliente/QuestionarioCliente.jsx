@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowRight, Loader2, CheckCircle, LogOut } from 'lucide-react';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it")) ? "" : (process.env.REACT_APP_BACKEND_URL || "");
 
 const DOMANDE = [
   {

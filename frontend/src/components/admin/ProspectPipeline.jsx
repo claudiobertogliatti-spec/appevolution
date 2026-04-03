@@ -6,7 +6,7 @@ import {
   PenTool, DollarSign, Upload, User, FilePlus, Trash2, X, Eye
 } from "lucide-react";
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it")) ? "" : (process.env.REACT_APP_BACKEND_URL || "");
 
 // Configurazione colonne del funnel
 const STEPS = [

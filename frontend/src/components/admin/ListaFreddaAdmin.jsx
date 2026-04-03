@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it")) ? "" : (process.env.REACT_APP_BACKEND_URL || "");
 
 const STATI_COLORS = {
   "nuovo": { bg: "#E8F4FD", text: "#1E88E5", label: "Nuovo" },

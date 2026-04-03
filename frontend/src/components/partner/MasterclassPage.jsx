@@ -6,7 +6,7 @@ import {
   Zap, Award, ChevronRight, Eye, Save, ThumbsUp, ThumbsDown
 } from "lucide-react";
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it")) ? "" : (process.env.REACT_APP_BACKEND_URL || "");
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURAZIONE 7 DOMANDE STRATEGICHE

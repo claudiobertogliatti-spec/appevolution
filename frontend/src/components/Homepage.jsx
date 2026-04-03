@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CheckCircle, ArrowRight, X, Loader2, Eye, EyeOff, Mail, Lock, User, Phone } from 'lucide-react';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it")) ? "" : (process.env.REACT_APP_BACKEND_URL || "");
 
 export function Homepage() {
   const [showRegisterModal, setShowRegisterModal] = useState(false);
@@ -53,8 +53,8 @@ export function Homepage() {
         localStorage.setItem('user', JSON.stringify(data.user));
       }
 
-      // Redirect to dashboard
-      window.location.href = '/dashboard-cliente';
+      // Redirect al primo step del flusso guidato
+      window.location.href = '/benvenuto';
 
     } catch (err) {
       setRegisterError(err.message);
@@ -88,8 +88,8 @@ export function Homepage() {
 
       // Redirect based on user type
       if (data.user?.user_type === 'cliente_analisi') {
-        // Cliente - redirect alla dashboard cliente
-        window.location.href = '/dashboard-cliente';
+        // Cliente — il flow guard decide il redirect corretto
+        window.location.href = '/benvenuto';
       } else {
         // Partner/Admin - redirect alla dashboard partner
         window.location.href = '/dashboard-partner';

@@ -3,7 +3,7 @@ import { FileText, Check, Pen, AlertTriangle, ArrowRight, Loader2, Send, Message
 import axios from 'axios';
 import { toast } from 'sonner';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it")) ? "" : (process.env.REACT_APP_BACKEND_URL || "");
 
 const CONTRACT_TEXT = `Contratto di Collaborazione in Partnership per la Creazione, Promozione e Vendita di Videocorsi Digitali
 
