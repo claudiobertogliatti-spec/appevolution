@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CheckCircle, ArrowRight, Loader2, Phone, Mail, User, Lock, Eye, EyeOff } from 'lucide-react';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it")) ? "" : (process.env.REACT_APP_BACKEND_URL || "");
 
 export function AnalisiStrategicaLanding({ onRegisterSuccess }) {
   const [formData, setFormData] = useState({

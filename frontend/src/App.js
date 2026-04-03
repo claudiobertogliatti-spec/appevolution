@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import "@/App.css";
 import axios from "axios";
-import { LayoutDashboard, Users, Film, AlertTriangle, PlayCircle, FolderOpen, FileText, MessageCircle, Send, Download, Check, Clock, AlertCircle, TrendingUp, DollarSign, Upload, Trash2, FileVideo, FileCheck, Loader2, CheckCircle, XCircle, Youtube, Shield, Eye, RefreshCw, Zap, Link, Palette, Plus, BarChart3, Calendar, UserPlus, Sparkles, Video, Target, Edit3, Trophy, Database, ChevronDown, ChevronRight, Activity, Mic, Copy, Star, Rocket, Settings, HardDrive, LogOut, Bot, ClipboardCheck, Globe } from "lucide-react";
+import { LayoutDashboard, Users, Film, AlertTriangle, PlayCircle, FolderOpen, FileText, MessageCircle, Send, Download, Check, Clock, AlertCircle, TrendingUp, DollarSign, Upload, Trash2, FileVideo, FileCheck, Loader2, CheckCircle, XCircle, Youtube, Shield, Eye, RefreshCw, Zap, Link, Palette, Plus, BarChart3, Calendar, UserPlus, Sparkles, Video, Target, Edit3, Trophy, Database, ChevronDown, ChevronRight, Activity, Mic, Copy, Star, Rocket, Settings, HardDrive, LogOut, Bot, ClipboardCheck, Globe, User } from "lucide-react";
 
 import { NotificationBell } from "./components/common/NotificationBell";
 import { AdminSwitcher } from "./components/common/AdminSwitcher";
@@ -76,14 +76,16 @@ import { AdminDashboardPro } from "./components/admin/AdminDashboardPro";
 import { EmailTemplatesManager } from "./components/admin/EmailTemplatesManager";
 import { ClienteDashboard } from "./components/cliente/ClienteDashboard";
 import { DashboardPagamento } from "./components/cliente/DashboardPagamento";
-import { DashboardCliente } from "./components/cliente/DashboardCliente";
+import { BenvenutoPage } from "./components/cliente/BenvenutoPage";
+import { DemoFlussoCliente } from "./components/admin/DemoFlussoCliente";
 import { QuestionarioCliente } from "./components/cliente/QuestionarioCliente";
 import { IntroQuestionario } from "./components/cliente/IntroQuestionario";
-import { SbloccaAnalisi } from "./components/cliente/SbloccaAnalisi";
 import { AnalisiInPreparazione } from "./components/cliente/AnalisiInPreparazione";
 import { AttivazioneAnalisi } from "./components/cliente/AttivazioneAnalisi";
 import { AttivazionePartnership } from "./components/cliente/AttivazionePartnership";
 import { DecisionePartnershipPage } from "./components/cliente/DecisionePartnershipPage";
+import { CallBookingPage } from "./components/cliente/CallBookingPage";
+import { enforceClienteFlow, getCorrectPage } from "./utils/clienteFlowGuard";
 import { DashboardOperations } from "./components/operations/DashboardOperations";
 import { PartnerLogin } from "./components/partner/PartnerLogin";
 import { Homepage } from "./components/Homepage";
@@ -959,7 +961,7 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
   
   const [mode,setMode]=useState("admin");
-  const [nav,setNav]=useState("overview");
+  const [nav,setNav]=useState("oggi");
   const [adminUser,setAdminUser]=useState("claudio");
   const [showNP,setShowNP]=useState(false);
   const [showPartnerProfile,setShowPartnerProfile]=useState(false);
@@ -999,9 +1001,10 @@ export default function App() {
             setMode("admin");
             setAdminUser(userData.admin_type || "claudio");
           } else if (userData.role === "operations" || userData.ruolo === "operations") {
-            // Antonella - dashboard operations
             setMode("operations");
             setNav("partner");
+          } else if (userData.user_type === "cliente_analisi") {
+            // Cliente — nessun redirect, il render gestisce il flusso step-by-step
           } else {
             // Partner reale — redirect a /dashboard-partner
             if (window.location.pathname !== "/dashboard-partner") {
@@ -1025,13 +1028,14 @@ export default function App() {
     if (user.role === "admin") {
       setMode("admin");
       setAdminUser(user.admin_type || "claudio");
-      setNav("overview");
+      setNav("oggi");
     } else if (user.role === "operations" || user.ruolo === "operations") {
-      // Antonella - redirect a dashboard operations
       setMode("operations");
       setNav("partner");
+    } else if (user.user_type === "cliente_analisi") {
+      // Cliente — enforceClienteFlow nel render gestirà il redirect corretto
     } else {
-      // Partner reale — redirect a /dashboard-partner
+      // Partner reale
       window.location.href = "/dashboard-partner";
     }
     loadData();
@@ -1044,7 +1048,7 @@ export default function App() {
     setIsAuthenticated(false);
     setCurrentUser(null);
     setMode("admin");
-    setNav("overview");
+    setNav("oggi");
     if (window.location.pathname === "/dashboard-partner") {
       window.location.href = "/";
     }
@@ -1095,6 +1099,7 @@ export default function App() {
     {id:"agenti",label:"Agent Hub",icon:Bot},
     {id:"clienti-analisi",label:"Clienti Analisi",icon:UserPlus},
     {id:"flusso-analisi",label:"Flusso Analisi",icon:FileText},
+    {id:"demo-flusso-cliente",label:"Demo Flusso Cliente",icon:User},
     {id:"partner",label:"Partner",icon:Users},
     {id:"approvals",label:"Approvazioni",icon:ClipboardCheck},
     {id:"andrea",label:"Editing",icon:Film},
@@ -1140,7 +1145,7 @@ export default function App() {
   const adminNav=adminUser==="antonella"?antonellaNav:coreNav;
   const isToolNav=toolsNav.some(t=>t.id===nav);
 
-  const titles={overview:"Overview",oggi:"Oggi",oggi:"Oggi","pipeline-prioritaria":"Priorità Pipeline","partner-bloccati":"Partner Bloccati","guided-system":"Guided System",agenti:"Agent Hub",partner:"Partner Attivi","ex-partner":"Ex Partner","documenti-partner":"Documenti Partner","onboarding-admin":"Documenti Onboarding","youtube-heygen":"Video AI","servizi-admin":"Servizi Extra","calendario-admin":"Calendario Editoriale",andrea:adminUser==="antonella"?"ANDREA — Feed Video":"ANDREA — Surgical Cut",metriche:"Percorsi e Fasi",systeme:"SYSTEME.IO — Live Data",gaia:"Template Funnel",compliance:"Documenti & Compliance",copyfactory:"Copy Factory",warmode:"Campagne Ads",funnelbuilder:"Funnel Builder — Fase 4",alert:"Alert & Escalation",configurazione:"Configurazione",stefania:"STEFANIA — Chat",home:"Il tuo percorso","onboarding-docs":"Documenti Onboarding",corso:"PARTI DA QUI",bonus:"Bonus Strategici",masterclass:"Masterclass Builder",coursebuilder:"Course Builder AI",produzione:"ANDREA — Produzione Video",files:"I Miei File",brandkit:"Brand Kit",calendario:"Calendario Editoriale",documenti:"Documenti & Posizionamento",risorse:"Template & Risorse",renewal:"Piani Post-12 Mesi",supporto:"STEFANIA — Chat","clienti-analisi":"Pipeline","flusso-analisi":"Analisi Strategiche","lista-fredda":"Lead da Riattivare",approvals:"Approvazioni Cliente"};
+  const titles={overview:"Oggi",oggi:"Oggi","pipeline-prioritaria":"Priorità Pipeline","partner-bloccati":"Partner Bloccati","guided-system":"Guided System",agenti:"Agent Hub",partner:"Partner Attivi","ex-partner":"Ex Partner","documenti-partner":"Documenti Partner","onboarding-admin":"Documenti Onboarding","youtube-heygen":"Video AI","servizi-admin":"Servizi Extra","calendario-admin":"Calendario Editoriale",andrea:adminUser==="antonella"?"ANDREA — Feed Video":"ANDREA — Surgical Cut",metriche:"Percorsi e Fasi",systeme:"SYSTEME.IO — Live Data",gaia:"Template Funnel",compliance:"Documenti & Compliance",copyfactory:"Copy Factory",warmode:"Campagne Ads",funnelbuilder:"Funnel Builder — Fase 4",alert:"Alert & Escalation",configurazione:"Configurazione",stefania:"STEFANIA — Chat",home:"Il tuo percorso","onboarding-docs":"Documenti Onboarding",corso:"PARTI DA QUI",bonus:"Bonus Strategici",masterclass:"Masterclass Builder",coursebuilder:"Course Builder AI",produzione:"ANDREA — Produzione Video",files:"I Miei File",brandkit:"Brand Kit",calendario:"Calendario Editoriale",documenti:"Documenti & Posizionamento",risorse:"Template & Risorse",renewal:"Piani Post-12 Mesi",supporto:"STEFANIA — Chat","clienti-analisi":"Pipeline","flusso-analisi":"Analisi Strategiche","demo-flusso-cliente":"Demo Flusso Cliente","lista-fredda":"Lead da Riattivare",approvals:"Approvazioni Cliente"};
 
   // Loading state
   if (authLoading) {
@@ -1231,14 +1236,19 @@ export default function App() {
   // Se non autenticato e sulla homepage, mostra login admin/partner
   if (!isAuthenticated) {
     // Redirect in base al path
-    if (window.location.pathname.startsWith("/dashboard-cliente") || 
+    if (window.location.pathname === "/benvenuto" ||
+        window.location.pathname === "/intro-questionario" ||
         window.location.pathname === "/questionario" ||
-        window.location.pathname === "/sblocca-analisi" ||
+        window.location.pathname === "/attivazione-analisi" ||
         window.location.pathname === "/analisi-attivazione" ||
+        window.location.pathname === "/prenota-call" ||
+        window.location.pathname === "/call-booking" ||
+        window.location.pathname === "/proposta" ||
+        window.location.pathname === "/firma" ||
         window.location.pathname === "/analisi-in-preparazione" ||
+        window.location.pathname === "/decisione-partnership" ||
         window.location.pathname === "/attivazione-partnership" ||
-        window.location.pathname === "/decisione-partnership") {
-      // Utente cliente non loggato, redirect a registrazione
+        window.location.pathname.startsWith("/dashboard-cliente")) {
       window.location.href = "/analisi-strategica";
       return null;
     }
@@ -1256,233 +1266,168 @@ export default function App() {
       window.location.href = "/analisi-strategica";
     };
 
-    // Verifica payment success da Stripe
     const urlParams = new URLSearchParams(window.location.search);
-    const paymentStatus = urlParams.get('payment');
-    
-    if (paymentStatus === 'success' && !currentUser.pagamento_analisi) {
-      // Verifica pagamento e aggiorna stato
+    const currentPath = window.location.pathname;
+
+    // ── Schermata di caricamento generica ──────────────────────────────────
+    const LoadingScreen = () => (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#FAFAF7" }}>
+        <div className="text-center">
+          <div className="w-12 h-12 rounded-xl bg-[#F5C518] flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <span className="text-2xl font-black text-black">E</span>
+          </div>
+          <div className="text-sm" style={{ color: "#9CA3AF" }}>Un momento...</div>
+        </div>
+      </div>
+    );
+
+    // ── Verifica pagamento Stripe (analisi 67€) ────────────────────────────
+    if (urlParams.get("payment") === "success" && !currentUser.pagamento_analisi) {
       const verifyAndRedirect = async () => {
         try {
-          const response = await fetch(`${API}/api/cliente-analisi/verify-payment?user_id=${currentUser.id}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+          const res = await fetch(`${API}/api/cliente-analisi/verify-payment?user_id=${currentUser.id}`, {
+            method: "POST", headers: { "Content-Type": "application/json" }
           });
-          const data = await response.json();
+          const data = await res.json();
           if (data.success && data.paid) {
-            const updatedUser = { ...currentUser, pagamento_analisi: true, cliente_id: data.cliente_id };
-            setCurrentUser(updatedUser);
-            localStorage.setItem("user", JSON.stringify(updatedUser));
-            // Reindirizza alla pagina analisi in preparazione (senza query params)
-            window.location.href = "/analisi-in-preparazione";
+            const updated = { ...currentUser, pagamento_analisi: true, pagamento_effettuato: true, cliente_id: data.cliente_id };
+            setCurrentUser(updated);
+            localStorage.setItem("user", JSON.stringify(updated));
+            window.location.href = "/prenota-call";
           }
-        } catch (e) {
-          console.error("Payment verification error:", e);
-        }
+        } catch (e) { console.error(e); }
       };
       verifyAndRedirect();
-      return (
-        <div className="min-h-screen flex items-center justify-center" style={{ background: '#FAFAF7' }}>
-          <div className="text-center">
-            <div className="w-12 h-12 rounded-xl bg-[#F5C518] flex items-center justify-center mx-auto mb-4 animate-pulse">
-              <span className="text-2xl font-black text-black">E</span>
-            </div>
-            <div className="text-sm text-[#9CA3AF]">Verifica pagamento in corso...</div>
-          </div>
-        </div>
-      );
+      return <LoadingScreen />;
     }
 
-    // Route: Intro pre-questionario
-    if (window.location.pathname === "/intro-questionario") {
-      if (currentUser.questionario_compilato) {
-        window.location.href = "/analisi-attivazione";
-        return null;
-      }
-      return (
-        <IntroQuestionario
-          onStart={() => { window.location.href = "/questionario"; }}
-        />
-      );
+    // ── Guard centrale: applica il flusso lineare ─────────────────────────
+    // (non tocca le pagine speciali post-call)
+    if (enforceClienteFlow(currentUser, currentPath)) return null;
+
+    // ── Route: Benvenuto (primo step post-registrazione) ──────────────────
+    if (currentPath === "/benvenuto") {
+      return <BenvenutoPage onNext={() => { window.location.href = "/intro-questionario"; }} />;
     }
 
-    // Route: Questionario
-    if (window.location.pathname === "/questionario") {
-      if (currentUser.questionario_compilato) {
-        // Questionario già compilato, vai all'attivazione analisi
-        window.location.href = "/analisi-attivazione";
-        return null;
-      }
-      return (
-        <QuestionarioCliente 
-          user={currentUser}
-          onComplete={(data) => {
-            const updatedUser = { ...currentUser, questionario_compilato: true };
-            setCurrentUser(updatedUser);
-            localStorage.setItem("user", JSON.stringify(updatedUser));
-            // Reindirizza alla pagina di attivazione analisi
-            window.location.href = "/analisi-attivazione";
-          }}
-          onLogout={handleClienteLogout}
-        />
-      );
-    }
-
-    // Route: Attivazione Analisi Strategica (dopo questionario, prima del pagamento)
-    if (window.location.pathname === "/analisi-attivazione") {
-      if (!currentUser.questionario_compilato) {
-        // Deve prima compilare il questionario
+    // ── Route: Intro ───────────────────────────────────────────────────────
+    if (currentPath === "/intro-questionario") {
+      const skipIntro = urlParams.get("skip") === "true";
+      if (skipIntro) {
+        localStorage.setItem("intro_questionario_seen", "true");
+        const token = localStorage.getItem("token");
+        if (token) {
+          fetch(`${API}/api/cliente-analisi/intro-seen`, { method: "POST", headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+          fetch(`${API}/api/cliente-analisi/track-event?event=intro_skipped`, { method: "POST", headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+        }
         window.location.href = "/questionario";
         return null;
       }
-      if (currentUser.pagamento_analisi) {
-        // Già pagato, vai alla pagina analisi in preparazione
-        window.location.href = "/analisi-in-preparazione";
-        return null;
-      }
-      return (
-        <AttivazioneAnalisi 
-          user={currentUser}
-          onLogout={handleClienteLogout}
-        />
-      );
+      return <IntroQuestionario onStart={() => { window.location.href = "/questionario"; }} />;
     }
 
-    // Route: Sblocca Analisi (Pagamento) - pagina dedicata
-    if (window.location.pathname === "/sblocca-analisi") {
-      if (!currentUser.questionario_compilato) {
-        // Deve prima compilare il questionario
-        window.location.href = "/dashboard-cliente";
-        return null;
-      }
-      if (currentUser.pagamento_analisi) {
-        // Già pagato, torna alla dashboard
-        window.location.href = "/dashboard-cliente";
-        return null;
+    // ── Route: Questionario ────────────────────────────────────────────────
+    if (currentPath === "/questionario") {
+      if (!currentUser.questionario_started) {
+        const token = localStorage.getItem("token");
+        if (token) {
+          fetch(`${API}/api/cliente-analisi/questionario-started`, { method: "POST", headers: { Authorization: `Bearer ${token}` } })
+            .then(() => {
+              const updated = { ...currentUser, questionario_started: true };
+              setCurrentUser(updated);
+              localStorage.setItem("user", JSON.stringify(updated));
+            }).catch(() => {});
+        }
       }
       return (
-        <SbloccaAnalisi 
+        <QuestionarioCliente
           user={currentUser}
-          onPaymentSuccess={(data) => {
-            const updatedUser = { ...currentUser, pagamento_analisi: true, cliente_id: data.cliente_id };
-            setCurrentUser(updatedUser);
-            localStorage.setItem("user", JSON.stringify(updatedUser));
-            window.location.href = "/dashboard-cliente";
+          onComplete={() => {
+            const updated = { ...currentUser, questionario_compilato: true, questionario_completed: true };
+            setCurrentUser(updated);
+            localStorage.setItem("user", JSON.stringify(updated));
+            window.location.href = "/attivazione-analisi";
           }}
           onLogout={handleClienteLogout}
         />
       );
     }
 
-    // Route: Analisi in Preparazione - mostra dopo il pagamento
-    if (window.location.pathname === "/analisi-in-preparazione") {
-      if (!currentUser.pagamento_analisi) {
-        // Non ha ancora pagato, torna alla homepage
-        window.location.href = "/";
-        return null;
-      }
+    // ── Route: Attivazione Analisi (pagamento €67) ─────────────────────────
+    // Supporta anche il vecchio URL /analisi-attivazione per retrocompatibilità
+    if (currentPath === "/attivazione-analisi" || currentPath === "/analisi-attivazione") {
+      return <AttivazioneAnalisi user={currentUser} onLogout={handleClienteLogout} />;
+    }
+
+    // ── Route: Prenota Call ────────────────────────────────────────────────
+    // Supporta anche il vecchio URL /call-booking per retrocompatibilità
+    if (currentPath === "/prenota-call" || currentPath === "/call-booking") {
       return (
-        <AnalisiInPreparazione 
+        <CallBookingPage
           user={currentUser}
-          onLogout={handleClienteLogout}
+          onConfirm={() => {
+            const updated = { ...currentUser, call_prenotata: true };
+            setCurrentUser(updated);
+            localStorage.setItem("user", JSON.stringify(updated));
+            window.location.href = "/analisi-in-preparazione";
+          }}
         />
       );
     }
 
-    // Route: Decisione Partnership - NUOVO FLUSSO dopo attivazione admin
-    if (window.location.pathname === "/decisione-partnership") {
-      // Verifica pagamento Stripe al ritorno
-      if (urlParams.get('payment') === 'success') {
-        const verifyDecisionePayment = async () => {
+    // ── Route: Analisi in Preparazione ────────────────────────────────────
+    if (currentPath === "/analisi-in-preparazione") {
+      return <AnalisiInPreparazione user={currentUser} onLogout={handleClienteLogout} />;
+    }
+
+    // ── Route: Proposta (admin attiva fase decisione) ─────────────────────
+    // Supporta anche il vecchio URL /decisione-partnership
+    if (currentPath === "/proposta" || currentPath === "/decisione-partnership") {
+      if (urlParams.get("payment") === "success") {
+        const verifyDecisione = async () => {
           try {
             await fetch(`${API}/api/flusso-analisi/verify-payment-partnership/${currentUser.id}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' }
+              method: "POST", headers: { "Content-Type": "application/json" }
             });
-          } catch(e) { console.error(e); }
-          window.location.href = '/decisione-partnership';
+          } catch (e) { console.error(e); }
+          window.location.href = "/proposta";
         };
-        verifyDecisionePayment();
-        return (
-          <div className="min-h-screen flex items-center justify-center" style={{ background: '#FAFAF7' }}>
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 animate-pulse"
-                   style={{ background: '#E8E8E8' }}>
-                <span className="text-2xl font-black" style={{ color: '#111111' }}>E</span>
-              </div>
-              <div className="text-sm" style={{ color: '#9CA3AF' }}>Verifica pagamento in corso...</div>
-            </div>
-          </div>
-        );
+        verifyDecisione();
+        return <LoadingScreen />;
       }
-      return (
-        <DecisionePartnershipPage
-          user={currentUser}
-          onLogout={handleClienteLogout}
-        />
-      );
+      return <DecisionePartnershipPage user={currentUser} onLogout={handleClienteLogout} />;
     }
 
-    // Route: Attivazione Partnership - per clienti approvati dopo la call strategica
-    if (window.location.pathname === "/attivazione-partnership") {
-      // Verifica payment success da Stripe Partnership
-      const partnershipPaymentStatus = urlParams.get('payment');
-      if (partnershipPaymentStatus === 'success' && !currentUser.pagamento_verificato) {
-        // Verifica pagamento partnership
-        const verifyPartnershipPayment = async () => {
+    // ── Route: Firma (attivazione partnership) ────────────────────────────
+    // Supporta anche il vecchio URL /attivazione-partnership
+    if (currentPath === "/firma" || currentPath === "/attivazione-partnership") {
+      if (urlParams.get("payment") === "success" && !currentUser.pagamento_verificato) {
+        const verifyPartnership = async () => {
           try {
-            const response = await fetch(`${API}/api/partnership/verify-payment?user_id=${currentUser.id}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' }
+            const res = await fetch(`${API}/api/partnership/verify-payment?user_id=${currentUser.id}`, {
+              method: "POST", headers: { "Content-Type": "application/json" }
             });
-            const data = await response.json();
+            const data = await res.json();
             if (data.success && data.paid) {
-              const updatedUser = { ...currentUser, pagamento_verificato: true };
-              setCurrentUser(updatedUser);
-              localStorage.setItem("user", JSON.stringify(updatedUser));
-              window.location.href = "/attivazione-partnership";
+              const updated = { ...currentUser, pagamento_verificato: true };
+              setCurrentUser(updated);
+              localStorage.setItem("user", JSON.stringify(updated));
+              window.location.href = "/firma";
             }
-          } catch (e) {
-            console.error("Partnership payment verification error:", e);
-          }
+          } catch (e) { console.error(e); }
         };
-        verifyPartnershipPayment();
-        return (
-          <div className="min-h-screen flex items-center justify-center" style={{ background: '#FAFAF7' }}>
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-xl bg-[#F5C518] flex items-center justify-center mx-auto mb-4 animate-pulse">
-                <span className="text-2xl font-black text-black">E</span>
-              </div>
-              <div className="text-sm text-[#9CA3AF]">Verifica pagamento partnership in corso...</div>
-            </div>
-          </div>
-        );
+        verifyPartnership();
+        return <LoadingScreen />;
       }
-      
-      return (
-        <AttivazionePartnership 
-          user={currentUser}
-          onLogout={handleClienteLogout}
-        />
-      );
+      return <AttivazionePartnership user={currentUser} onLogout={handleClienteLogout} />;
     }
 
-    // Default: Dashboard Cliente (mostra contenuto basato sullo stato)
-    return (
-      <DashboardCliente 
-        user={currentUser}
-        onNavigate={(page) => {
-          if (page === 'questionario') {
-            window.location.href = "/questionario";
-          } else if (page === 'analisi-attivazione') {
-            window.location.href = "/analisi-attivazione";
-          } else if (page === 'sblocca-analisi') {
-            window.location.href = "/analisi-attivazione";
-          }
-        }}
-        onLogout={handleClienteLogout}
-      />
-    );
+    // ── Default: rimanda alla pagina corretta del flusso ──────────────────
+    const correct = getCorrectPage(currentUser);
+    if (correct) { window.location.href = correct; return null; }
+
+    // Flusso completato senza pagina specifica → analisi in preparazione
+    return <AnalisiInPreparazione user={currentUser} onLogout={handleClienteLogout} />;
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -1491,7 +1436,8 @@ export default function App() {
 
   // Blocca accesso cliente analisi alla dashboard partner
   if (currentUser?.user_type === "cliente_analisi") {
-    window.location.href = "/dashboard-cliente";
+    const correct = getCorrectPage(currentUser);
+    window.location.href = correct || "/analisi-in-preparazione";
     return null;
   }
 
@@ -1549,7 +1495,7 @@ export default function App() {
             partner={currentPartner}
             onLogout={handleLogout}
             onOpenChat={() => setPartnerShowChat(true)}
-            onSwitchToAdmin={() => { setMode("admin"); setNav("overview"); window.location.href = "/"; }}
+            onSwitchToAdmin={() => { setMode("admin"); setNav("oggi"); window.location.href = "/"; }}
             isAdmin={false}
           />
 
@@ -1575,12 +1521,32 @@ export default function App() {
     // Se è admin, mostra la dashboard admin normale (continua con il rendering)
   }
 
+  if (mode === "cliente") {
+    const handleBackToAdmin = () => { setMode("admin"); setNav("oggi"); setViewingCliente(null); };
+    const demoPartnerInfo = viewingCliente ? { id: viewingCliente.id, name: viewingCliente.nome + " " + viewingCliente.cognome } : { id: "demo", name: "Cliente Demo" };
+    const demoUser = viewingCliente ? { id: viewingCliente.id, nome: viewingCliente.nome, cognome: viewingCliente.cognome } : { id: "demo", nome: "Cliente", cognome: "Demo" };
+    return (
+      <div className="relative min-h-screen" style={{ background: '#FAFAF7' }}>
+        <Toaster position="top-center" richColors />
+        <div className="fixed top-3 right-3 z-50">
+          <button onClick={handleBackToAdmin} className="text-xs font-bold px-3 py-2 rounded-xl shadow-lg" style={{ background: '#1E2128', color: 'white' }}>Admin</button>
+        </div>
+        {nav === "cliente-contratto" && <ContractSigning key="cliente-contratto" partner={demoPartnerInfo} initialStep={1} onContractSigned={() => { setNav("cliente-firma"); }} />}
+        {nav === "cliente-firma" && <ContractSigning key="cliente-firma" partner={demoPartnerInfo} initialStep={2} onContractSigned={() => { setNav("cliente-decisione"); }} />}
+        {nav === "cliente-decisione" && <DecisionePartnershipPage user={demoUser} onLogout={handleBackToAdmin} />}
+        {nav !== "cliente-decisione" && nav !== "cliente-contratto" && nav !== "cliente-firma" && (
+          <ClienteDashboard cliente={viewingCliente || { id: "demo-cliente", nome: "Cliente Demo", cognome: "", email: "demo@cliente.it", stato: "pagato", data_acquisto: new Date().toISOString(), questionario: { completato: false, risposte: null } }} onLogout={handleBackToAdmin} />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#FAFAF7', color: '#1E2128' }}>
       {mode === "admin" && (
         <ViewSwitcher
           currentView={adminUser === "antonella" ? "antonella" : "admin"}
-          onChangeView={(v) => { setAdminUser(v === "antonella" ? "antonella" : "claudio"); setNav("overview"); }}
+          onChangeView={(v) => { setAdminUser(v === "antonella" ? "antonella" : "claudio"); setNav("oggi"); }}
           onSwitchToCliente={() => setMode("cliente")}
           onSwitchToPartner={() => { setMode("partner"); setNav("home"); }}
         />
@@ -1697,7 +1663,7 @@ export default function App() {
           partner={demoPartner}
           onLogout={handleLogout}
           onOpenChat={() => setNav("supporto")}
-          onSwitchToAdmin={() => { setMode("admin"); setNav("overview"); }}
+          onSwitchToAdmin={() => { setMode("admin"); setNav("oggi"); }}
           isAdmin={currentUser?.role === "admin"}
         />
       ) : (
@@ -1780,7 +1746,7 @@ export default function App() {
           {mode==="cliente"&&nav==="cliente-decisione"&&(
             <DecisionePartnershipPage
               user={viewingCliente ? { id: viewingCliente.id, nome: viewingCliente.nome, cognome: viewingCliente.cognome } : { id: "demo", nome: "Cliente", cognome: "Demo" }}
-              onLogout={() => { setMode("admin"); setNav("overview"); setViewingCliente(null); }}
+              onLogout={() => { setMode("admin"); setNav("oggi"); setViewingCliente(null); }}
               demoData={viewingCliente ? undefined : {
                 cliente: { nome: "Marco", cognome: "Verdi", email: "marco.verdi@example.com" },
                 contratto_firmato: false,
@@ -1875,13 +1841,12 @@ export default function App() {
                     }
                   : { completato: false, risposte: null }
               }}
-              onLogout={() => { setMode("admin"); setNav("overview"); setViewingCliente(null); }}
+              onLogout={() => { setMode("admin"); setNav("oggi"); setViewingCliente(null); }}
             />
           )}
 
           {mode==="admin"&&<>
-            {nav==="overview"&&<AdminDashboardPro onOpenPartnerProject={(p)=>{setSelectedPartner(p);setMode("partner");setNav("dashboard");}}/>}
-            {nav==="oggi"&&<OggiDashboard onNavigate={setNav}/>}
+            {(nav==="overview"||nav==="oggi")&&<OggiDashboard onNavigate={setNav}/>}
             {nav==="pipeline-prioritaria"&&<PrioritaPipeline onNavigate={setNav} onViewPartner={(p)=>{setSelectedPartner(p);setMode("partner");setNav("dashboard");}}/>}
             {nav==="partner-bloccati"&&<PartnerBloccati onNavigate={setNav} onViewPartner={(p)=>{setSelectedPartner(p);setMode("partner");setNav("dashboard");}}/>}
             {nav==="overview-old"&&<AdminOverview stats={stats} agents={agents} partners={partners} alerts={alerts} onNavigate={setNav}/>}
@@ -1892,6 +1857,7 @@ export default function App() {
             }}/>}
             {nav==="clienti-analisi"&&<ProspectPipeline onOpenCliente={(c)=>{setViewingCliente(c);setMode("cliente");}}/>}
             {nav==="flusso-analisi"&&<GestioneFlussoAnalisi/>}
+            {nav==="demo-flusso-cliente"&&<DemoFlussoCliente/>}
             {nav==="agenti"&&<AgentDashboard/>}
             {/* OrionLeadScoring rimosso - Lead gestiti esclusivamente in Systeme.io */}
             {nav==="approvals"&&<ApprovalDashboard/>}
@@ -1905,7 +1871,7 @@ export default function App() {
             {nav==="calendario-admin"&&<CalendarioEditoriale partner={selectedPartner||partners[0]}/>}
             {nav==="andrea"&&(adminUser==="antonella"?<FeedVideoNuovi onOpenPipeline={()=>{setAdminUser("claudio");setNav("andrea");}}/>:<AndreaPipeline partners={partners}/>)}
             {nav==="metriche"&&<MetrichePostLancio partners={partners}/>}
-            {nav==="stefania"&&<StefaniaChat partner={selectedPartner||partners[0]} onBack={()=>setNav("overview")} isAdmin={true}/>}
+            {nav==="stefania"&&<StefaniaChat partner={selectedPartner||partners[0]} onBack={()=>setNav("oggi")} isAdmin={true}/>}
             {nav==="webhooks"&&<WebhookDashboard/>}
             {nav==="systeme"&&<SystemeIODashboard partnerId={selectedPartner?.id||partners[0]?.id||"1"} partnerName={selectedPartner?.name||partners[0]?.name}/>}
             {nav==="gaia"&&<GaiaFunnelDeployer partners={partners}/>}

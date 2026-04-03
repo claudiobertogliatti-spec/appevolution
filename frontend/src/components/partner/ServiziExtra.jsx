@@ -5,7 +5,7 @@ import { ConsulenzaCheckout } from "./ConsulenzaCheckout";
 import { BrandingCheckout } from "./BrandingCheckout";
 import axios from "axios";
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it")) ? "" : (process.env.REACT_APP_BACKEND_URL || "");
 
 // Active services
 const ACTIVE_SERVICES = [

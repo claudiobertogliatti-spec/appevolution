@@ -1020,6 +1020,11 @@ async def seed_database():
 # =============================================================================
 
 from auth import AuthService, LoginRequest, RegisterRequest, Token, decode_token, UserResponse, create_access_token
+from services.stato_cliente import (
+    calcola_stato, aggiorna_stato,
+    STATO_PAGINA, STATO_LABEL_ADMIN,
+    StatiCliente, AzioniCliente,
+)
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 security = HTTPBearer(auto_error=False)
@@ -1302,6 +1307,16 @@ async def register_cliente_analisi(request: ClienteAnalisiRegisterRequest):
         "user_type": "cliente_analisi",
         "role": "cliente",  # Per compatibilità con auth
         "pagamento_analisi": False,
+        "intro_questionario_seen": False,
+        # Flusso guidato cliente
+        "questionario_started": False,
+        "questionario_completed": False,
+        "pagamento_effettuato": False,
+        "call_prenotata": False,
+        # Macchina a stati cliente (services/stato_cliente.py)
+        "stato_cliente": "REGISTRATO",
+        "azione_richiesta": "INIZIA_QUESTIONARIO",
+        "idoneo_partnership": False,
         "data_registrazione": datetime.now(timezone.utc).isoformat(),
         "created_at": datetime.now(timezone.utc).isoformat()
     }
@@ -1454,8 +1469,12 @@ async def verify_analisi_payment(user_id: str = None, session_id: str = None):
                 {"id": user["id"]},
                 {"$set": {
                     "pagamento_analisi": True,
+                    "pagamento_effettuato": True,
                     "data_pagamento": datetime.now(timezone.utc).isoformat(),
-                    "stripe_payment_status": "paid"
+                    "stripe_payment_status": "paid",
+                    # Macchina a stati
+                    "stato_cliente": StatiCliente.ANALISI_ATTIVATA,
+                    "azione_richiesta": None,
                 }}
             )
             
@@ -1552,8 +1571,173 @@ async def get_cliente_analisi_status(user_id: str):
         "data_pagamento": user.get("data_pagamento"),
         "questionario_completato": cliente.get("questionario_completato", False) if cliente else False,
         "cliente_id": user.get("cliente_id"),
-        "can_access_questionario": user.get("pagamento_analisi", False)
+        "can_access_questionario": user.get("pagamento_analisi", False),
+        "intro_questionario_seen": user.get("intro_questionario_seen", False),
+        # Flusso guidato
+        "questionario_started": user.get("questionario_started", False),
+        "questionario_completed": user.get("questionario_completed", user.get("questionario_compilato", False)),
+        "pagamento_effettuato": user.get("pagamento_effettuato", user.get("pagamento_analisi", False)),
+        "call_prenotata": user.get("call_prenotata", False),
+        # Macchina a stati
+        "stato_cliente": user.get("stato_cliente", "REGISTRATO"),
+        "azione_richiesta": user.get("azione_richiesta", "INIZIA_QUESTIONARIO"),
+        "idoneo_partnership": user.get("idoneo_partnership", False),
     }
+
+@api_router.post("/cliente-analisi/questionario-started")
+async def mark_questionario_started(credentials: HTTPAuthorizationCredentials = None):
+    """Segna questionario_started = True quando l'utente apre /questionario."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    token_data = decode_token(credentials.credentials)
+    if not token_data:
+        raise HTTPException(status_code=401, detail="Token non valido o scaduto")
+    await db.users.update_one(
+        {"id": token_data.user_id},
+        {"$set": {
+            "questionario_started": True,
+            "stato_cliente": StatiCliente.QUESTIONARIO_IN_COMPILAZIONE,
+            "azione_richiesta": AzioniCliente.COMPLETA_QUESTIONARIO,
+        }}
+    )
+    return {"success": True}
+
+
+@api_router.post("/cliente-analisi/call-prenotata")
+async def mark_call_prenotata(credentials: HTTPAuthorizationCredentials = None):
+    """Segna call_prenotata = True dopo che l'utente ha prenotato la call."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    token_data = decode_token(credentials.credentials)
+    if not token_data:
+        raise HTTPException(status_code=401, detail="Token non valido o scaduto")
+    await db.users.update_one(
+        {"id": token_data.user_id},
+        {"$set": {
+            "call_prenotata": True,
+            "stato_cliente": StatiCliente.CALL_PRENOTATA,
+            "azione_richiesta": AzioniCliente.PARTECIPA_CALL,
+        }}
+    )
+    return {"success": True}
+
+
+@api_router.get("/cliente-analisi/stato/{user_id}")
+async def get_stato_cliente(user_id: str):
+    """
+    Ricalcola e restituisce stato_cliente e azione_richiesta in tempo reale
+    dai dati presenti su DB (user + cliente + proposta).
+    Aggiorna anche il campo persistito su db.users.
+    """
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+
+    cliente = None
+    if user.get("cliente_id"):
+        cliente = await db.clienti.find_one({"id": user["cliente_id"]}, {"_id": 0})
+
+    proposta = None
+    if cliente:
+        proposta = await db.proposte.find_one({"cliente_id": user["cliente_id"]}, {"_id": 0})
+
+    stato, azione = calcola_stato(user, cliente, proposta)
+
+    # Persiste il risultato aggiornato
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"stato_cliente": stato, "azione_richiesta": azione}}
+    )
+
+    return {
+        "user_id": user_id,
+        "stato_cliente": stato,
+        "azione_richiesta": azione,
+        "pagina": STATO_PAGINA[stato],
+        "label_admin": STATO_LABEL_ADMIN[stato],
+    }
+
+
+@api_router.post("/cliente-analisi/intro-seen")
+async def mark_intro_seen(credentials: HTTPAuthorizationCredentials = None):
+    """
+    Segna intro_questionario_seen = True per l'utente autenticato.
+    Chiamato dalla CTA dell'IntroQuestionario (oltre al localStorage).
+    """
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    token_data = decode_token(credentials.credentials)
+    if not token_data:
+        raise HTTPException(status_code=401, detail="Token non valido o scaduto")
+
+    result = await db.users.update_one(
+        {"id": token_data.user_id},
+        {"$set": {"intro_questionario_seen": True}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+
+    return {"success": True}
+
+
+@api_router.post("/cliente-analisi/track-event")
+async def track_funnel_event(
+    event: str,
+    properties: Optional[Dict[str, Any]] = None,
+    credentials: HTTPAuthorizationCredentials = None
+):
+    """
+    Traccia un evento funnel (intro_view, cta_click, intro_skipped, checkbox_click).
+    Salva in db.funnel_events per KPI aggregation.
+    """
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    token_data = decode_token(credentials.credentials)
+    if not token_data:
+        raise HTTPException(status_code=401, detail="Token non valido o scaduto")
+
+    ALLOWED_EVENTS = {"intro_view", "checkbox_click", "cta_click", "intro_skipped"}
+    if event not in ALLOWED_EVENTS:
+        raise HTTPException(status_code=400, detail=f"Evento non riconosciuto: {event}")
+
+    await db.funnel_events.insert_one({
+        "user_id": token_data.user_id,
+        "event": event,
+        "properties": properties or {},
+        "ts": datetime.now(timezone.utc).isoformat()
+    })
+
+    return {"success": True}
+
+
+@api_router.get("/cliente-analisi/kpi/intro-conversion")
+async def get_intro_conversion_kpi(credentials: HTTPAuthorizationCredentials = None):
+    """
+    Calcola intro_conversion_rate = cta_click / intro_view.
+    Richiede JWT admin.
+    """
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    token_data = decode_token(credentials.credentials)
+    if not token_data or token_data.role != "admin":
+        raise HTTPException(status_code=403, detail="Accesso riservato agli admin")
+
+    intro_views  = await db.funnel_events.count_documents({"event": "intro_view"})
+    cta_clicks   = await db.funnel_events.count_documents({"event": "cta_click"})
+    skipped      = await db.funnel_events.count_documents({"event": "intro_skipped"})
+    checkbox_clicks = await db.funnel_events.count_documents({"event": "checkbox_click"})
+
+    rate = round(cta_clicks / intro_views, 4) if intro_views else 0
+
+    return {
+        "intro_views": intro_views,
+        "cta_clicks": cta_clicks,
+        "intro_skipped": skipped,
+        "checkbox_clicks": checkbox_clicks,
+        "intro_conversion_rate": rate,
+        "intro_conversion_pct": f"{rate * 100:.1f}%"
+    }
+
 
 class QuestionarioRequest(BaseModel):
     """Request per salvare il questionario cliente"""
@@ -1609,6 +1793,11 @@ async def save_questionario_cliente(request: QuestionarioRequest):
             "questionario_compilato": True,
             "questionario_id": questionario_id,
             "questionario_completato_at": questionario_doc["completato_at"],
+            # Flusso guidato
+            "questionario_completed": True,
+            # Macchina a stati: transitorio QUESTIONARIO_COMPLETATO
+            "stato_cliente": StatiCliente.QUESTIONARIO_COMPLETATO,
+            "azione_richiesta": AzioniCliente.EFFETTUA_PAGAMENTO,
             # Salva anche nel profilo utente per accesso rapido
             "expertise": request.expertise,
             "cliente_target": request.cliente_target,
@@ -1850,7 +2039,7 @@ async def get_cliente_analisi_detail(user_id: str):
     
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente non trovato")
-    
+
     # Recupera questionario
     if cliente.get("questionario_id"):
         questionario = await db.questionari_analisi.find_one(
@@ -1858,8 +2047,15 @@ async def get_cliente_analisi_detail(user_id: str):
             {"_id": 0}
         )
         cliente["questionario_dettagli"] = questionario
-    
-    return cliente
+
+    # Recupera log eventi funnel
+    log_eventi = await db.funnel_events.find(
+        {"user_id": user_id},
+        {"_id": 0}
+    ).sort("data", 1).to_list(length=100)
+    cliente["log_eventi"] = log_eventi
+
+    return {"success": True, "cliente": cliente}
 
 # ═══════════════════════════════════════════════════════════════════════════
 # TEMPLATE ANALISI STRATEGICA EVOLUTION PRO

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CreditCard, ArrowRight, Loader2, CheckCircle, FileText, Video, Calendar, Shield, LogOut } from 'lucide-react';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it")) ? "" : (process.env.REACT_APP_BACKEND_URL || "");
 
 export function SbloccaAnalisi({ user, onPaymentSuccess, onLogout }) {
   const [loading, setLoading] = useState(false);

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ArrowRight, ArrowLeft, Check, Sparkles, MessageCircle, RefreshCw, ThumbsUp, Edit3, Loader2 } from "lucide-react";
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it")) ? "" : (process.env.REACT_APP_BACKEND_URL || "");
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURAZIONE WIZARD

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { CreditCard, ArrowRight, Loader2, CheckCircle, FileText, Video, Calendar } from 'lucide-react';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it")) ? "" : (process.env.REACT_APP_BACKEND_URL || "");
 
 export function DashboardPagamento({ user, onPaymentSuccess }) {
   const [loading, setLoading] = useState(false);

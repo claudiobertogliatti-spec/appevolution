@@ -16,7 +16,7 @@ const C = {
   yellowDark: "#D4A017",
   dark:       "#1A1F24",
   darkSoft:   "#2D333B",
-  sidebarBg:  "#F5F3EE",   // warm sand, complements the gold/anthracite
+  sidebarBg:  "#F5F3EE",
   sidebarBdr: "#E8E4DC",
   muted:      "#8B8680",
   mutedLight: "#B5AFA8",
@@ -55,8 +55,8 @@ const NAV_ITEMS = [
 
   { section: "SISTEMA" },
   { id: "agenti",              label: "Agent Hub",           icon: Bot },
-  { id: "alert",               label: "Alert",              icon: AlertTriangle, badge: "alerts" },
-  { id: "configurazione",      label: "Configurazione",     icon: Settings },
+  { id: "alert",               label: "Alert",               icon: AlertTriangle, badge: "alerts" },
+  { id: "configurazione",      label: "Configurazione",      icon: Settings },
 ];
 
 const ANTONELLA_ITEMS = new Set([
@@ -207,7 +207,7 @@ export function AdminSidebarLight({
           style={{
             fontSize: 15,
             fontWeight: active ? 800 : 600,
-            color: active ? C.dark : hovered ? C.darkSoft : C.darkSoft,
+            color: active ? C.dark : C.darkSoft,
             transition: "color 0.15s ease",
           }}
         >

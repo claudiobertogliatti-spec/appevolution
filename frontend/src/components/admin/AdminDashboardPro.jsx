@@ -8,7 +8,7 @@ import {
 import { PartnerDetailModal } from "./PartnerDetailModal";
 import { PartnerDataOverrideModal, FunnelUnlockModal, ContractParamsModal } from "./AdminPartnerTools";
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it")) ? "" : (process.env.REACT_APP_BACKEND_URL || "");
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURAZIONE FASI

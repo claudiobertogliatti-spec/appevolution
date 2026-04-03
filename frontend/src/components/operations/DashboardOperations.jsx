@@ -7,7 +7,7 @@ import {
   ThumbsUp, ThumbsDown, RefreshCw, Filter, Inbox
 } from "lucide-react";
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it")) ? "" : (process.env.REACT_APP_BACKEND_URL || "");
 
 // Colori per le fasi
 const FASE_COLORS = {

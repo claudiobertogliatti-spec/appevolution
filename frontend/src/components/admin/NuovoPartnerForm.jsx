@@ -3,7 +3,7 @@ import { User, Mail, Briefcase, DollarSign, Lock, FileText, Check, Copy, ArrowLe
 import { S, NICCHIE_DISPONIBILI } from "../../data/constants";
 import axios from "axios";
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it")) ? "" : (process.env.REACT_APP_BACKEND_URL || "");
 
 // Utility functions
 function generatePassword() {
