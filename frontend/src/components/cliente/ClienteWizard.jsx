@@ -65,9 +65,9 @@ function ProgressBar({ current, total }) {
 // ══════════════════════════════════════════════════════════════════
 // MAIN WIZARD
 // ══════════════════════════════════════════════════════════════════
-export default function ClienteWizard({ user, onLogout, onPartnerAttivato, adminPreview = false }) {
-  const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(true);
+export default function ClienteWizard({ user, onLogout, onPartnerAttivato, adminPreview = false, forcedStep = null }) {
+  const [step, setStep] = useState(forcedStep || 1);
+  const [loading, setLoading] = useState(!forcedStep);
   const [quiz, setQuiz] = useState({});
   const [submittingQuiz, setSubmittingQuiz] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
@@ -76,8 +76,14 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
   const userId = user?.id || user?.user_id;
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
+  // ── Sync forcedStep from sidebar (admin preview) ────────────────
+  useEffect(() => {
+    if (forcedStep != null) setStep(forcedStep);
+  }, [forcedStep]);
+
   // ── Determine step from user status ────────────────────────────
   const fetchStatus = useCallback(async () => {
+    if (forcedStep != null) return;           // admin-preview: sidebar controlla lo step
     if (!userId) { setLoading(false); return; }
     try {
       const r = await axios.get(`${API}/api/cliente-analisi/stato/${userId}`);
