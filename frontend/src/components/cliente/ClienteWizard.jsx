@@ -185,11 +185,26 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
               <h1 className="text-2xl font-black mb-3" style={{ color: C.dark }}>
                 Benvenuto in Evolution PRO
               </h1>
-              <p className="text-sm leading-relaxed mb-8 max-w-md mx-auto" style={{ color: C.muted }}>
-                Se sei qui è perché stai valutando di trasformare la tua competenza
-                in un videocorso che possa generare entrate ricorrenti.<br /><br />
-                Prima di procedere, abbiamo bisogno di alcune informazioni per capire
-                se il tuo progetto ha le caratteristiche giuste.
+              <p className="text-sm leading-relaxed mb-4 max-w-md mx-auto" style={{ color: C.muted }}>
+                Se sei qui è perché vuoi capire se la tua competenza può trasformarsi
+                in un progetto digitale serio e sostenibile.
+              </p>
+              <p className="text-sm leading-relaxed mb-4 max-w-md mx-auto" style={{ color: C.muted }}>
+                Prima di procedere, ti chiediamo di compilare un breve questionario.<br />
+                Ci serve per raccogliere le informazioni essenziali sul tuo progetto
+                e preparare un'analisi strategica realmente utile, personalizzata sul tuo caso.
+              </p>
+              <p className="text-sm leading-relaxed mb-2 max-w-md mx-auto" style={{ color: C.muted }}>
+                In questo modo potremo valutare con maggiore precisione:
+              </p>
+              <ul className="text-sm leading-relaxed mb-4 max-w-md mx-auto text-left inline-block" style={{ color: C.muted }}>
+                <li className="flex items-start gap-2 mb-1"><span style={{ color: C.yellowDark }}>•</span> il tuo posizionamento,</li>
+                <li className="flex items-start gap-2 mb-1"><span style={{ color: C.yellowDark }}>•</span> il problema che risolvi,</li>
+                <li className="flex items-start gap-2 mb-1"><span style={{ color: C.yellowDark }}>•</span> il potenziale del progetto,</li>
+                <li className="flex items-start gap-2"><span style={{ color: C.yellowDark }}>•</span> l'eventuale accesso alla partnership.</li>
+              </ul>
+              <p className="text-xs font-bold mb-8 max-w-md mx-auto" style={{ color: C.muted }}>
+                Tempo richiesto: circa 5 minuti.
               </p>
               <button
                 data-testid="welcome-cta"
@@ -197,7 +212,7 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
                 className="px-10 py-3.5 rounded-xl text-sm font-black"
                 style={{ background: C.yellow, color: C.dark, transition: "all 0.15s ease" }}
               >
-                Inizia ora <ArrowRight className="w-4 h-4 inline ml-1" />
+                Inizia il questionario <ArrowRight className="w-4 h-4 inline ml-1" />
               </button>
             </div>
           )}
