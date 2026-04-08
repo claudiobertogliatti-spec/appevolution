@@ -74,7 +74,7 @@ import { PrioritaPipeline } from "./components/admin/PrioritaPipeline";
 import { PartnerBloccati } from "./components/admin/PartnerBloccati";
 import { AdminDashboardPro } from "./components/admin/AdminDashboardPro";
 import { EmailTemplatesManager } from "./components/admin/EmailTemplatesManager";
-import { ClienteDashboard } from "./components/cliente/ClienteDashboard";
+import ClienteDashboard from "./components/cliente/ClienteDashboard";
 import { DashboardPagamento } from "./components/cliente/DashboardPagamento";
 import { BenvenutoPage } from "./components/cliente/BenvenutoPage";
 import { DemoFlussoCliente } from "./components/admin/DemoFlussoCliente";
@@ -1003,8 +1003,9 @@ export default function App() {
           } else if (userData.role === "operations" || userData.ruolo === "operations") {
             setMode("operations");
             setNav("partner");
-          } else if (userData.user_type === "cliente_analisi") {
-            // Cliente — nessun redirect, il render gestisce il flusso step-by-step
+          } else if (userData.role === "cliente" || userData.user_type === "cliente_analisi") {
+            setMode("cliente");
+            setNav("overview");
           } else {
             // Partner reale — redirect a /dashboard-partner
             if (window.location.pathname !== "/dashboard-partner") {
@@ -1032,8 +1033,9 @@ export default function App() {
     } else if (user.role === "operations" || user.ruolo === "operations") {
       setMode("operations");
       setNav("partner");
-    } else if (user.user_type === "cliente_analisi") {
-      // Cliente — enforceClienteFlow nel render gestirà il redirect corretto
+    } else if (user.role === "cliente" || user.user_type === "cliente_analisi") {
+      setMode("cliente");
+      setNav("overview");
     } else {
       // Partner reale
       window.location.href = "/dashboard-partner";
@@ -1818,30 +1820,33 @@ export default function App() {
                   pronta: true,
                   testo: viewingCliente.analisi_generata
                 } : null
-              } : {
-                id: "demo-cliente",
-                nome: "Cliente Demo",
-                cognome: "",
-                email: "demo@cliente.it",
-                stato: nav === "cliente-post" ? "questionario_completato" : "pagato",
-                data_acquisto: new Date().toISOString(),
-                questionario: nav === "cliente-post" 
-                  ? { 
-                      completato: true, 
-                      data_compilazione: new Date().toISOString(),
-                      risposte: {
-                        expertise: "Coach di business per imprenditori digitali con 8 anni di esperienza nel settore",
-                        cliente_ideale: "Professionisti 35-50 anni che vogliono creare la loro prima accademia online",
-                        pubblico_esistente: "Newsletter 1.200 iscritti, LinkedIn 3.500 follower, gruppo Facebook 800 membri",
-                        esperienze_passate: "Ho venduto consulenze 1:1 per 5 anni, mai creato un corso strutturato",
-                        ostacolo_principale: "Non so da dove iniziare tecnicamente e ho paura di non avere abbastanza contenuti",
-                        obiettivo_12_mesi: "Lanciare il mio primo videocorso e generare almeno €30.000 di fatturato extra",
-                        perche_adesso: "Ho raggiunto il limite delle consulenze 1:1, voglio scalare senza lavorare più ore"
-                      }
-                    }
-                  : { completato: false, risposte: null }
+              } : currentUser ? {
+                id: currentUser.id || currentUser.user_id || "me",
+                nome: currentUser.nome || currentUser.name || "Cliente",
+                cognome: currentUser.cognome || "",
+                email: currentUser.email || "",
+                stato: currentUser.stato || "pagato",
+                data_acquisto: currentUser.data_acquisto || currentUser.created_at,
+                questionario: { completato: false, risposte: null },
+                analisi: null
+              } : null}
+              onLogout={() => {
+                if (viewingCliente) {
+                  setViewingCliente(null);
+                  setMode("admin");
+                  setNav("clienti");
+                } else {
+                  handleLogout();
+                }
               }}
-              onLogout={() => { setMode("admin"); setNav("oggi"); setViewingCliente(null); }}
+              onDecisione={() => setNav("cliente-decisione")}
+              onPartnerAttivato={(userData) => {
+                const updated = { ...currentUser, role: "partner", ...userData };
+                localStorage.setItem("user", JSON.stringify(updated));
+                setCurrentUser(updated);
+                setMode("partner");
+                setNav("home");
+              }}
             />
           )}
 

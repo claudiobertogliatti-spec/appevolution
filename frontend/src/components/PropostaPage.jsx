@@ -37,6 +37,8 @@ export default function PropostaPage({ token }) {
   const [paymentMethod, setPaymentMethod] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [bonifico, setBonifico] = useState(null);
+  const [stripeConfirming, setStripeConfirming] = useState(false);
+  const [partnerAttivato, setPartnerAttivato] = useState(false);
   const contractRef = useRef(null);
   const paymentRef = useRef(null);
 
@@ -46,12 +48,45 @@ export default function PropostaPage({ token }) {
     const pg = searchParams.get("pagamento");
     const sid = searchParams.get("session_id");
     if (pg === "successo" && sid) {
-      setStep("documenti");
-      toast.success("Pagamento ricevuto con successo!");
+      // Call backend to confirm payment + promote to partner
+      confirmStripePayment(sid);
     } else if (pg === "annullato") {
       toast.error("Pagamento annullato. Puoi riprovare.");
     }
   }, [token]);
+
+  const confirmStripePayment = async (sessionId) => {
+    setStripeConfirming(true);
+    setStep("documenti");
+    try {
+      const res = await fetch(`${API}/api/proposta/${token}/conferma-stripe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: sessionId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPartnerAttivato(true);
+        toast.success("Pagamento confermato! Benvenuto in Evolution PRO!");
+        // Aggiorna l'utente in localStorage se loggato
+        try {
+          const user = JSON.parse(localStorage.getItem("user") || "{}");
+          if (user.id || user.user_id) {
+            user.role = "partner";
+            user.partnership_pagata = true;
+            localStorage.setItem("user", JSON.stringify(user));
+          }
+        } catch(e) {}
+      } else {
+        toast.success("Pagamento ricevuto! Verrà confermato a breve.");
+      }
+    } catch (e) {
+      console.error("Conferma stripe error:", e);
+      // Non bloccare il flusso anche se il backend fallisce
+      toast.success("Pagamento ricevuto! Stiamo elaborando la conferma.");
+    }
+    setStripeConfirming(false);
+  };
 
   const fetchProposta = async () => {
     try {
@@ -414,7 +449,17 @@ export default function PropostaPage({ token }) {
       {/* UPLOAD DOCUMENTI */}
       {step === "documenti" && (
         <section className="max-w-[860px] mx-auto px-6 py-12" data-testid="documenti-section">
-          <DocumentiUpload onUpload={handleUploadDocumenti} uploading={uploading} prospectNome={proposta.prospect_nome} />
+          {stripeConfirming ? (
+            <div className="text-center py-20">
+              <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-[#FFD24D]/20 flex items-center justify-center">
+                <svg className="w-8 h-8 animate-spin text-[#D4A017]" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Stiamo confermando il tuo pagamento...</h2>
+              <p className="text-gray-500">Attendere qualche secondo</p>
+            </div>
+          ) : (
+            <DocumentiUpload onUpload={handleUploadDocumenti} uploading={uploading} prospectNome={proposta.prospect_nome} />
+          )}
         </section>
       )}
 
@@ -428,9 +473,19 @@ export default function PropostaPage({ token }) {
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Perfetto — sei ufficialmente un partner Evolution PRO</h2>
             <div className="text-left bg-gray-50 rounded-xl p-6 space-y-4 text-gray-700">
               <div className="flex items-start gap-3"><span className="text-[#1a1a2e] font-bold">1.</span> Riceverai una email con il contratto firmato in allegato</div>
-              <div className="flex items-start gap-3"><span className="text-[#1a1a2e] font-bold">2.</span> VALENTINA ti contrattera nelle prossime 24 ore</div>
+              <div className="flex items-start gap-3"><span className="text-[#1a1a2e] font-bold">2.</span> VALENTINA ti contatterà nelle prossime 24 ore</div>
               <div className="flex items-start gap-3"><span className="text-[#1a1a2e] font-bold">3.</span> Riceverai le credenziali di accesso alla piattaforma</div>
             </div>
+            {partnerAttivato && (
+              <button
+                data-testid="go-to-dashboard"
+                onClick={() => window.location.href = "/"}
+                className="mt-6 px-8 py-3 rounded-xl text-sm font-bold"
+                style={{ background: "#FFD24D", color: "#1A1F24" }}
+              >
+                Accedi alla tua Dashboard
+              </button>
+            )}
           </div>
         </section>
       )}
