@@ -48,6 +48,13 @@ Applicazione di gestione aziendale basata su AI per Evolution PRO LLC. Gestisce 
   - Pulsante "Chiudi Preview" riporta a Gestione Clienti
   - Rimosso codice morto (sidebar cliente nel layout principale)
   - mode="cliente" riservato esclusivamente al login del cliente reale
+- [x] **Sidebar Vista Cliente dedicata** — 08 Apr 2026 (11/11 test)
+  - Nuova ClientePreviewSidebar con sezioni PRE ANALISI e POST ANALISI
+  - 5 voci: Benvenuto, Questionario, Richiesta Analisi, Conferma Acquisto, Analisi e Partnership
+  - Ogni voce controlla lo step del wizard tramite forcedStep prop
+  - Pulsante "Torna ad Admin" sempre visibile
+  - ViewSwitcher nascosto in modalità Vista Cliente
+  - Pagina placeholder "Analisi e Partnership" con 6 sotto-sezioni
 
 ## P0 — Prossimi
 - [ ] Completamento ClienteWizard — Flusso 7 step (Stripe €67, verifica pagamento post-redirect, routing protetto)
