@@ -58,7 +58,12 @@ Applicazione di gestione aziendale basata su AI per Evolution PRO LLC. Gestisce 
   - Script call AI (6 sezioni: apertura, diagnosi, amplificazione, ponte, proposta, chiusura)
   - PDF generato con reportlab (header brandizzato, scoring table, analisi, dati questionario)
   - Endpoint: POST /api/cliente-analisi/mini-quiz, GET /output/{id}, GET /pdf/{id}
-  - Fallback deterministico se Claude non disponibile
+- [x] **Step 3 Checkout Analisi Strategica (€67)** — 08 Apr 2026 (15/15 test iter37)
+  - Layout single-column: mini-header riepilogo, hero, value stack, pricing €67, CTA Deep Blue, trust signals
+  - CTA chiama Stripe checkout via POST /api/cliente-analisi/checkout
+  - Trust signals: SSL Secured + Visa + Mastercard + Stripe
+  - Link supporto Stefania + pulsante Indietro
+  - Fix state machine: calcola_stato() ora riconosce questionario_completed/mini_quiz_completed
   - Nuova ClientePreviewSidebar con sezioni PRE ANALISI e POST ANALISI
   - 5 voci: Benvenuto, Questionario, Richiesta Analisi, Conferma Acquisto, Analisi e Partnership
   - Ogni voce controlla lo step del wizard tramite forcedStep prop
