@@ -1,0 +1,74 @@
+{
+  "summary": "Iteration 33 - Architectural Fix for Admin Cliente Preview Testing Complete. All 7 test cases PASSED. The fix ensures admin sidebar remains visible when viewing cliente wizard in preview mode. Key verification: setNav('cliente-preview') instead of setMode('cliente') preserves admin layout.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_33.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "ARCHITECTURAL FIX VERIFIED: ViewSwitcher 'Vista Cliente' now uses setNav('cliente-preview') instead of setMode('cliente')",
+    "SIDEBAR PRESERVATION VERIFIED: Admin sidebar (OPERATIVO, ACQUISIZIONE, PARTNER sections) remains visible during cliente preview",
+    "PREVIEW BANNER VERIFIED: Blue banner shows 'Preview Wizard Cliente (Demo)' or 'Preview Cliente: {name}' with 'Chiudi Preview' button",
+    "WIZARD DISPLAY VERIFIED: ClienteWizard renders with adminPreview=true, showing 7-step progress bar and 'Benvenuto in Evolution PRO'",
+    "CLOSE PREVIEW VERIFIED: Clicking 'Chiudi Preview' returns to 'clienti' (Gestione Clienti) page with sidebar intact",
+    "PIPELINE INTEGRATION VERIFIED: ProspectPipeline chevron click opens cliente preview with sidebar preserved",
+    "BACKEND AUTH VERIFIED: /api/auth/login returns role='admin' correctly for admin user"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% - Login endpoint returns correct admin role",
+    "frontend": "100% - All 7 UI test cases passed"
+  },
+  "test_credentials": {
+    "admin": "claudio.bertogliatti@gmail.com / Evoluzione74"
+  },
+  "seed_data_creation": "None - used existing test data",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Architectural fix for admin cliente preview is working correctly. When admin clicks 'Vista Cliente' or opens a client from Pipeline/AdminClientiPanel, the sidebar remains visible and the wizard is shown in preview mode with a blue banner and 'Chiudi Preview' button. The mode stays 'admin' and only nav changes to 'cliente-preview'.",
+  "features_tested": {
+    "test_1_admin_login_sidebar": {
+      "status": "PASSED",
+      "details": "Admin login loads dashboard with sidebar visible (OPERATIVO, ACQUISIZIONE, PARTNER sections)"
+    },
+    "test_2_vista_cliente_sidebar_preserved": {
+      "status": "PASSED",
+      "details": "Clicking 'Vista Cliente' in ViewSwitcher keeps sidebar visible, shows preview banner and wizard"
+    },
+    "test_3_chiudi_preview_returns_to_clienti": {
+      "status": "PASSED",
+      "details": "Clicking 'Chiudi Preview' returns to 'Gestione Clienti' page with sidebar intact"
+    },
+    "test_4_pipeline_navigation": {
+      "status": "PASSED",
+      "details": "Pipeline page (ProspectPipeline) loads correctly with sidebar visible"
+    },
+    "test_5_pipeline_client_preview": {
+      "status": "PASSED",
+      "details": "Clicking chevron on client row opens preview with sidebar preserved, wizard visible with 7-step progress bar"
+    },
+    "test_6_close_preview_from_pipeline": {
+      "status": "PASSED",
+      "details": "Closing preview from Pipeline returns to Gestione Clienti with sidebar visible"
+    },
+    "test_7_backend_login_role": {
+      "status": "PASSED",
+      "details": "/api/auth/login returns role='admin' and admin_type='claudio' correctly"
+    }
+  },
+  "mocked_apis": {
+    "canva_api": "MOCKED - Canva API integration is mocked",
+    "kling_ai_api": "MOCKED - Kling AI API integration is mocked"
+  },
+  "console_warnings": [
+    "HTML hydration warnings about <span> inside <option>, <select>, <tr>, <td>, <th>, <tbody> - These are React DevTools related and don't affect functionality"
+  ]
+}
