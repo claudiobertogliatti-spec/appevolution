@@ -1606,6 +1606,38 @@ async def mark_questionario_started(credentials: HTTPAuthorizationCredentials = 
     return {"success": True}
 
 
+@api_router.post("/cliente-analisi/mini-quiz")
+async def save_mini_quiz(request: Request, credentials: HTTPAuthorizationCredentials = None):
+    """
+    Salva le risposte del mini questionario pre-pagamento (5 domande).
+    Aggiorna stato → QUESTIONARIO_COMPLETATO.
+    """
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    token_data = decode_token(credentials.credentials)
+    if not token_data:
+        raise HTTPException(status_code=401, detail="Token non valido o scaduto")
+    
+    body = await request.json()
+    risposte = body.get("risposte", {})
+    
+    await db.users.update_one(
+        {"id": token_data.user_id},
+        {"$set": {
+            "mini_quiz": risposte,
+            "mini_quiz_completed": True,
+            "mini_quiz_completed_at": datetime.now(timezone.utc).isoformat(),
+            "questionario_started": True,
+            "questionario_completed": True,
+            "stato_cliente": StatiCliente.QUESTIONARIO_COMPLETATO,
+            "azione_richiesta": AzioniCliente.EFFETTUA_PAGAMENTO,
+        }}
+    )
+    return {"success": True, "stato": "MINI_QUIZ_DONE"}
+
+
+
+
 @api_router.post("/cliente-analisi/call-prenotata")
 async def mark_call_prenotata(credentials: HTTPAuthorizationCredentials = None):
     """Segna call_prenotata = True dopo che l'utente ha prenotato la call."""

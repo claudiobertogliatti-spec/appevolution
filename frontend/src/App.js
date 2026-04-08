@@ -75,6 +75,7 @@ import { PartnerBloccati } from "./components/admin/PartnerBloccati";
 import { AdminDashboardPro } from "./components/admin/AdminDashboardPro";
 import { EmailTemplatesManager } from "./components/admin/EmailTemplatesManager";
 import ClienteDashboard from "./components/cliente/ClienteDashboard";
+import ClienteWizard from "./components/cliente/ClienteWizard";
 import { DashboardPagamento } from "./components/cliente/DashboardPagamento";
 import { BenvenutoPage } from "./components/cliente/BenvenutoPage";
 import { DemoFlussoCliente } from "./components/admin/DemoFlussoCliente";
@@ -1524,21 +1525,39 @@ export default function App() {
   }
 
   if (mode === "cliente") {
-    const handleBackToAdmin = () => { setMode("admin"); setNav("oggi"); setViewingCliente(null); };
-    const demoPartnerInfo = viewingCliente ? { id: viewingCliente.id, name: viewingCliente.nome + " " + viewingCliente.cognome } : { id: "demo", name: "Cliente Demo" };
-    const demoUser = viewingCliente ? { id: viewingCliente.id, nome: viewingCliente.nome, cognome: viewingCliente.cognome } : { id: "demo", nome: "Cliente", cognome: "Demo" };
+    const isAdminViewing = !!viewingCliente;
+    const handleBackToAdmin = () => { setViewingCliente(null); setMode("admin"); setNav("oggi"); };
+    const clienteUser = viewingCliente ? {
+      id: viewingCliente.id,
+      nome: viewingCliente.nome,
+      cognome: viewingCliente.cognome,
+      email: viewingCliente.email,
+    } : currentUser ? {
+      id: currentUser.id || currentUser.user_id,
+      nome: currentUser.nome || currentUser.name,
+      cognome: currentUser.cognome || "",
+      email: currentUser.email,
+    } : null;
+
     return (
       <div className="relative min-h-screen" style={{ background: '#FAFAF7' }}>
         <Toaster position="top-center" richColors />
-        <div className="fixed top-3 right-3 z-50">
-          <button onClick={handleBackToAdmin} className="text-xs font-bold px-3 py-2 rounded-xl shadow-lg" style={{ background: '#1E2128', color: 'white' }}>Admin</button>
-        </div>
-        {nav === "cliente-contratto" && <ContractSigning key="cliente-contratto" partner={demoPartnerInfo} initialStep={1} onContractSigned={() => { setNav("cliente-firma"); }} />}
-        {nav === "cliente-firma" && <ContractSigning key="cliente-firma" partner={demoPartnerInfo} initialStep={2} onContractSigned={() => { setNav("cliente-decisione"); }} />}
-        {nav === "cliente-decisione" && <DecisionePartnershipPage user={demoUser} onLogout={handleBackToAdmin} />}
-        {nav !== "cliente-decisione" && nav !== "cliente-contratto" && nav !== "cliente-firma" && (
-          <ClienteDashboard cliente={viewingCliente || { id: "demo-cliente", nome: "Cliente Demo", cognome: "", email: "demo@cliente.it", stato: "pagato", data_acquisto: new Date().toISOString(), questionario: { completato: false, risposte: null } }} onLogout={handleBackToAdmin} />
+        {isAdminViewing && (
+          <div className="fixed top-3 right-3 z-50">
+            <button onClick={handleBackToAdmin} className="text-xs font-bold px-3 py-2 rounded-xl shadow-lg" style={{ background: '#1A1F24', color: 'white' }}>Admin</button>
+          </div>
         )}
+        <ClienteWizard
+          user={clienteUser}
+          onLogout={isAdminViewing ? handleBackToAdmin : handleLogout}
+          onPartnerAttivato={() => {
+            const updated = { ...currentUser, role: "partner" };
+            localStorage.setItem("user", JSON.stringify(updated));
+            setCurrentUser(updated);
+            setMode("partner");
+            setNav("home");
+          }}
+        />
       </div>
     );
   }
