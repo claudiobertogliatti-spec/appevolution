@@ -186,7 +186,7 @@ def calcola_stato(
         # Pagato €67, analisi non ancora generata
         stato = StatiCliente.ANALISI_ATTIVATA
 
-    elif c.get("questionario_compilato"):
+    elif c.get("questionario_compilato") or user.get("questionario_completed") or user.get("mini_quiz_completed"):
         # Questionario completato: rispetta QUESTIONARIO_COMPLETATO se già persistito,
         # altrimenti passa direttamente a IN_ATTESA_PAGAMENTO_ANALISI.
         stato_corrente = user.get("stato_cliente")
