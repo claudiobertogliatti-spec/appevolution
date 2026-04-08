@@ -1,285 +1,109 @@
 """
-PDF Generator Service for Evolution PRO Analysis Documents
+Generatore PDF per Analisi Strategica Evolution PRO.
+Usa reportlab per controllo completo su struttura, branding e copy.
 """
-from reportlab.lib import colors
+import io
+from datetime import datetime, timezone
+
 from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import cm
+from reportlab.lib.colors import HexColor
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+)
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import cm, mm
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle, PageBreak, HRFlowable
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from io import BytesIO
-import os
-import re
+from reportlab.lib.enums import TA_LEFT, TA_CENTER
 
-# Brand colors
-BRAND_YELLOW = colors.HexColor("#F5C518")
-BRAND_DARK = colors.HexColor("#1E2128")
-BRAND_GRAY = colors.HexColor("#5F6572")
-BRAND_LIGHT_BG = colors.HexColor("#FAFAF7")
+YELLOW     = HexColor("#FFD24D")
+DARK       = HexColor("#1A1F24")
+MUTED      = HexColor("#6B7280")
+BG_LIGHT   = HexColor("#FAFAF7")
+GREEN      = HexColor("#10B981")
+RED        = HexColor("#EF4444")
+ORANGE     = HexColor("#F59E0B")
 
-def create_styles():
-    """Create custom styles for the PDF"""
+LABEL_ESPERIENZA = {"meno_1": "Meno di 1 anno", "1_3": "1-3 anni", "3_5": "3-5 anni", "oltre_5": "Oltre 5 anni"}
+LABEL_PUBBLICO   = {"no": "Nessun pubblico", "piccolo": "< 1.000", "medio": "1.000-10.000", "grande": "> 10.000"}
+LABEL_VENDITE    = {"no": "Nessuna", "provato": "Tentativi", "attivo": "Ricorrente", "avanzato": "> 50k/anno"}
+
+
+def _get_styles():
     styles = getSampleStyleSheet()
-    
-    # Title style
-    styles.add(ParagraphStyle(
-        name='DocTitle',
-        fontSize=24,
-        leading=30,
-        textColor=BRAND_DARK,
-        alignment=TA_CENTER,
-        spaceAfter=20,
-        fontName='Helvetica-Bold'
-    ))
-    
-    # Section Header (H2)
-    styles.add(ParagraphStyle(
-        name='SectionHeader',
-        fontSize=16,
-        leading=20,
-        textColor=BRAND_DARK,
-        spaceBefore=25,
-        spaceAfter=12,
-        fontName='Helvetica-Bold',
-        borderColor=BRAND_YELLOW,
-        borderWidth=0,
-        borderPadding=0,
-    ))
-    
-    # Subsection Header (H3)
-    styles.add(ParagraphStyle(
-        name='SubHeader',
-        fontSize=13,
-        leading=16,
-        textColor=BRAND_DARK,
-        spaceBefore=15,
-        spaceAfter=8,
-        fontName='Helvetica-Bold'
-    ))
-    
-    # Body text
-    styles.add(ParagraphStyle(
-        name='CustomBody',
-        fontSize=10,
-        leading=14,
-        textColor=BRAND_GRAY,
-        alignment=TA_JUSTIFY,
-        spaceAfter=8,
-        fontName='Helvetica'
-    ))
-    
-    # Bold body text
-    styles.add(ParagraphStyle(
-        name='BodyBold',
-        fontSize=10,
-        leading=14,
-        textColor=BRAND_DARK,
-        spaceAfter=6,
-        fontName='Helvetica-Bold'
-    ))
-    
-    # List item
-    styles.add(ParagraphStyle(
-        name='ListItem',
-        fontSize=10,
-        leading=14,
-        textColor=BRAND_GRAY,
-        leftIndent=15,
-        spaceAfter=4,
-        fontName='Helvetica',
-        bulletIndent=5
-    ))
-    
-    # Consideration box text
-    styles.add(ParagraphStyle(
-        name='Consideration',
-        fontSize=10,
-        leading=13,
-        textColor=BRAND_DARK,
-        fontName='Helvetica-Oblique',
-        leftIndent=10,
-        rightIndent=10,
-        spaceBefore=8,
-        spaceAfter=12
-    ))
-    
-    # Footer style
-    styles.add(ParagraphStyle(
-        name='Footer',
-        fontSize=9,
-        textColor=BRAND_GRAY,
-        alignment=TA_CENTER,
-        fontName='Helvetica-Oblique'
-    ))
-    
-    # Esito style
-    styles.add(ParagraphStyle(
-        name='Esito',
-        fontSize=14,
-        leading=18,
-        textColor=BRAND_DARK,
-        alignment=TA_CENTER,
-        spaceBefore=15,
-        spaceAfter=15,
-        fontName='Helvetica-Bold',
-        backColor=colors.HexColor("#FEF9E7"),
-        borderPadding=10
-    ))
-    
+    styles.add(ParagraphStyle("EPTitle", parent=styles["Title"], fontName="Helvetica-Bold", fontSize=22, textColor=DARK, spaceAfter=6, alignment=TA_LEFT))
+    styles.add(ParagraphStyle("EPSubtitle", parent=styles["Normal"], fontName="Helvetica", fontSize=11, textColor=MUTED, spaceAfter=16, alignment=TA_LEFT))
+    styles.add(ParagraphStyle("EPH2", parent=styles["Heading2"], fontName="Helvetica-Bold", fontSize=14, textColor=DARK, spaceBefore=18, spaceAfter=8))
+    styles.add(ParagraphStyle("EPBody", parent=styles["Normal"], fontName="Helvetica", fontSize=10, textColor=DARK, leading=15, spaceAfter=6))
+    styles.add(ParagraphStyle("EPBullet", parent=styles["Normal"], fontName="Helvetica", fontSize=10, textColor=DARK, leading=15, leftIndent=16, bulletIndent=6, spaceAfter=4))
+    styles.add(ParagraphStyle("EPFooter", parent=styles["Normal"], fontName="Helvetica", fontSize=8, textColor=MUTED, alignment=TA_CENTER))
     return styles
 
-def parse_markdown_to_elements(markdown_text, styles):
-    """Parse markdown text and convert to ReportLab elements"""
-    elements = []
-    lines = markdown_text.split('\n')
-    
-    i = 0
-    while i < len(lines):
-        line = lines[i].strip()
-        
-        # Skip empty lines
-        if not line:
-            elements.append(Spacer(1, 6))
-            i += 1
-            continue
-        
-        # Main title (# )
-        if line.startswith('# '):
-            title = line[2:].strip()
-            elements.append(Paragraph(title, styles['DocTitle']))
-            elements.append(HRFlowable(width="100%", thickness=2, color=BRAND_YELLOW, spaceBefore=5, spaceAfter=15))
-            i += 1
-            continue
-        
-        # Section header (## )
-        if line.startswith('## '):
-            header = line[3:].strip()
-            elements.append(Spacer(1, 10))
-            elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#ECEDEF"), spaceBefore=5, spaceAfter=5))
-            elements.append(Paragraph(header, styles['SectionHeader']))
-            i += 1
-            continue
-        
-        # Subsection header (### )
-        if line.startswith('### '):
-            header = line[4:].strip()
-            elements.append(Paragraph(header, styles['SubHeader']))
-            i += 1
-            continue
-        
-        # Horizontal rule
-        if line == '---':
-            elements.append(Spacer(1, 10))
-            elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#ECEDEF"), spaceBefore=10, spaceAfter=10))
-            i += 1
-            continue
-        
-        # List items (- )
-        if line.startswith('- '):
-            item_text = line[2:].strip()
-            item_text = process_inline_formatting(item_text)
-            elements.append(Paragraph(f"• {item_text}", styles['ListItem']))
-            i += 1
-            continue
-        
-        # Numbered list items
-        if re.match(r'^\d+\.\s', line):
-            item_text = re.sub(r'^\d+\.\s', '', line).strip()
-            item_text = process_inline_formatting(item_text)
-            num = re.match(r'^(\d+)\.', line).group(1)
-            elements.append(Paragraph(f"{num}. {item_text}", styles['ListItem']))
-            i += 1
-            continue
-        
-        # Bold lines (starts with **)
-        if line.startswith('**') and ':**' in line:
-            # This is a label: value pair
-            text = process_inline_formatting(line)
-            elements.append(Paragraph(text, styles['BodyBold']))
-            i += 1
-            continue
-        
-        # Consideration text
-        if line.lower().startswith('**considerazioni:**') or line.lower().startswith('considerazioni:'):
-            text = line.replace('**Considerazioni:**', '').replace('**considerazioni:**', '').replace('Considerazioni:', '').strip()
-            text = process_inline_formatting(text)
-            elements.append(Paragraph(f"💡 {text}", styles['Consideration']))
-            i += 1
-            continue
-        
-        # Check for esito (verdict)
-        if '🟢' in line or '🟡' in line or '🔴' in line:
-            text = process_inline_formatting(line)
-            elements.append(Spacer(1, 10))
-            elements.append(Paragraph(text, styles['Esito']))
-            elements.append(Spacer(1, 10))
-            i += 1
-            continue
-        
-        # Regular paragraph
-        text = process_inline_formatting(line)
-        elements.append(Paragraph(text, styles['CustomBody']))
-        i += 1
-    
-    return elements
 
-def process_inline_formatting(text):
-    """Process inline markdown formatting (bold, italic)"""
-    # Replace **text** with <b>text</b>
-    text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)
-    # Replace *text* with <i>text</i>
-    text = re.sub(r'\*([^*]+)\*', r'<i>\1</i>', text)
-    # Handle emojis - keep them as is
-    return text
-
-def generate_analysis_pdf(analysis_text: str, cliente_nome: str, cliente_cognome: str) -> bytes:
-    """Generate a branded PDF from the analysis markdown text"""
-    
-    buffer = BytesIO()
-    
-    # Create document
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        rightMargin=2*cm,
-        leftMargin=2*cm,
-        topMargin=2.5*cm,
-        bottomMargin=2*cm
-    )
-    
-    styles = create_styles()
+def genera_pdf_analisi(quiz: dict, scoring: dict, analisi: dict, cliente_nome: str = "", cliente_email: str = "") -> bytes:
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=2*cm, bottomMargin=2*cm, leftMargin=2.5*cm, rightMargin=2.5*cm)
+    styles = _get_styles()
     elements = []
-    
-    # Add logo header
-    logo_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'logo_evolutionpro.png')
-    if os.path.exists(logo_path):
-        try:
-            logo = Image(logo_path, width=5*cm, height=1.5*cm)
-            logo.hAlign = 'CENTER'
-            elements.append(logo)
-            elements.append(Spacer(1, 20))
-        except Exception as e:
-            print(f"Could not load logo: {e}")
-    
-    # Parse and add markdown content
-    content_elements = parse_markdown_to_elements(analysis_text, styles)
-    elements.extend(content_elements)
-    
-    # Add footer section
-    elements.append(Spacer(1, 30))
-    elements.append(HRFlowable(width="100%", thickness=2, color=BRAND_YELLOW, spaceBefore=20, spaceAfter=15))
-    
-    footer_text = """<b>Evolution PRO</b><br/>
-    Trasformiamo competenze reali in asset digitali sostenibili<br/>
-    con metodo, serietà e visione di lungo periodo"""
-    elements.append(Paragraph(footer_text, styles['Footer']))
-    
-    # Build PDF
+
+    # Header
+    elements.append(Paragraph("EVOLUTION<font color='#D4A017'>PRO</font>", styles["EPTitle"]))
+    elements.append(Paragraph("Analisi Strategica Personalizzata", styles["EPSubtitle"]))
+    elements.append(HRFlowable(width="100%", thickness=2, color=YELLOW, spaceAfter=12))
+
+    if cliente_nome or cliente_email:
+        info = []
+        if cliente_nome: info.append(["Cliente:", cliente_nome])
+        if cliente_email: info.append(["Email:", cliente_email])
+        info.append(["Data:", datetime.now(timezone.utc).strftime("%d/%m/%Y")])
+        t = Table(info, colWidths=[60, 300])
+        t.setStyle(TableStyle([("FONTNAME", (0,0),(0,-1),"Helvetica-Bold"),("FONTSIZE",(0,0),(-1,-1),10),("TEXTCOLOR",(0,0),(0,-1),MUTED),("TEXTCOLOR",(1,0),(1,-1),DARK),("BOTTOMPADDING",(0,0),(-1,-1),4)]))
+        elements.append(t)
+        elements.append(Spacer(1, 12))
+
+    # Scoring
+    elements.append(Paragraph("Scoring Lead", styles["EPH2"]))
+    score_data = [
+        ["Dimensione", "Punteggio", "Valore"],
+        ["Esperienza", f"{scoring['breakdown']['esperienza']['punteggio']}/10", LABEL_ESPERIENZA.get(quiz.get("esperienza",""),"")],
+        ["Pubblico", f"{scoring['breakdown']['pubblico']['punteggio']}/10", LABEL_PUBBLICO.get(quiz.get("pubblico",""),"")],
+        ["Vendite", f"{scoring['breakdown']['vendite']['punteggio']}/10", LABEL_VENDITE.get(quiz.get("vendite_online",""),"")],
+        ["Chiarezza problema", f"{scoring['breakdown']['chiarezza_problema']['punteggio']}/10", ""],
+        ["TOTALE", f"{scoring['totale']}/{scoring['max']} ({scoring['percentuale']}%)", scoring.get("classificazione","").replace("_"," ")],
+    ]
+    st = Table(score_data, colWidths=[140, 100, 200])
+    st.setStyle(TableStyle([("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),("FONTNAME",(0,-1),(-1,-1),"Helvetica-Bold"),("FONTSIZE",(0,0),(-1,-1),9),("BACKGROUND",(0,0),(-1,0),YELLOW),("TEXTCOLOR",(0,0),(-1,0),DARK),("BACKGROUND",(0,-1),(-1,-1),BG_LIGHT),("GRID",(0,0),(-1,-1),0.5,HexColor("#E5E7EB")),("TOPPADDING",(0,0),(-1,-1),6),("BOTTOMPADDING",(0,0),(-1,-1),6),("LEFTPADDING",(0,0),(-1,-1),8)]))
+    elements.append(st)
+    elements.append(Spacer(1, 16))
+
+    # Analisi
+    elements.append(Paragraph("Analisi Strategica", styles["EPH2"]))
+    elements.append(Paragraph("<b>Sintesi del Progetto</b>", styles["EPBody"]))
+    elements.append(Paragraph(analisi.get("sintesi_progetto",""), styles["EPBody"]))
+    elements.append(Spacer(1, 8))
+    elements.append(Paragraph("<b>Punti di Forza</b>", styles["EPBody"]))
+    for p in analisi.get("punti_di_forza", []): elements.append(Paragraph(f"&bull; {p}", styles["EPBullet"]))
+    elements.append(Spacer(1, 8))
+    elements.append(Paragraph("<b>Criticità</b>", styles["EPBody"]))
+    for c in analisi.get("criticita", []): elements.append(Paragraph(f"&bull; {c}", styles["EPBullet"]))
+    elements.append(Spacer(1, 8))
+    elements.append(Paragraph("<b>Livello di Maturità</b>", styles["EPBody"]))
+    elements.append(Paragraph(analisi.get("livello_maturita",""), styles["EPBody"]))
+    elements.append(Spacer(1, 8))
+    elements.append(Paragraph("<b>Direzione Consigliata</b>", styles["EPBody"]))
+    elements.append(Paragraph(analisi.get("direzione_consigliata",""), styles["EPBody"]))
+    elements.append(Spacer(1, 16))
+
+    # Dati questionario
+    elements.append(Paragraph("Dati Raccolti", styles["EPH2"]))
+    qdata = [["Ambito",quiz.get("ambito","")],["Target",quiz.get("target","")],["Problema",quiz.get("problema","")],["Obiettivo",quiz.get("obiettivo","")],["Canale",quiz.get("canale_principale","N/A")],["Vendite",quiz.get("vendite_dettaglio","N/A")]]
+    qt = Table(qdata, colWidths=[120, 320])
+    qt.setStyle(TableStyle([("FONTNAME",(0,0),(0,-1),"Helvetica-Bold"),("FONTSIZE",(0,0),(-1,-1),9),("TEXTCOLOR",(0,0),(0,-1),MUTED),("VALIGN",(0,0),(-1,-1),"TOP"),("GRID",(0,0),(-1,-1),0.5,HexColor("#E5E7EB")),("TOPPADDING",(0,0),(-1,-1),6),("BOTTOMPADDING",(0,0),(-1,-1),6),("LEFTPADDING",(0,0),(-1,-1),8)]))
+    elements.append(qt)
+    elements.append(Spacer(1, 20))
+
+    # Footer
+    elements.append(HRFlowable(width="100%", thickness=1, color=HexColor("#E5E7EB"), spaceAfter=8))
+    elements.append(Paragraph(f"Evolution PRO — Analisi Strategica — {datetime.now(timezone.utc).strftime('%d/%m/%Y %H:%M')} UTC", styles["EPFooter"]))
+    elements.append(Paragraph("Documento riservato e confidenziale.", styles["EPFooter"]))
+
     doc.build(elements)
-    
-    pdf_bytes = buffer.getvalue()
-    buffer.close()
-    
-    return pdf_bytes
+    return buf.getvalue()

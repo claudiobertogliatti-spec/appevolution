@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   ArrowRight, ArrowLeft, CheckCircle, Loader2,
-  Sparkles, Play, Calendar, LogOut
+  Sparkles, Play, Calendar, LogOut, ChevronDown
 } from "lucide-react";
 import axios from "axios";
 import { API } from "../../utils/api-config";
@@ -22,82 +22,104 @@ const WIZARD_STEPS = [
 ];
 
 const QUIZ_FIELDS = [
-  // ─── BLOCCO 1: Posizionamento ──────────────────────────────────
+  // ─── ambito ──────────────────────────────────────────────────────
   {
-    id: "expertise",
-    blocco: "Posizionamento",
-    q: "Qual è la tua competenza principale?",
+    id: "ambito",
+    q: "In quale ambito operi o vuoi operare?",
     tipo: "textarea",
-    placeholder: "Es: coaching per imprenditori, nutrizione sportiva, marketing digitale, insegnamento lingue...",
-    ai_tag: "core_expertise",
+    placeholder: "Es: coaching per imprenditori, nutrizione sportiva, marketing digitale, formazione finanziaria, fotografia professionale...",
   },
+  // ─── target ──────────────────────────────────────────────────────
   {
     id: "target",
-    blocco: "Posizionamento",
     q: "Chi è il tuo cliente ideale?",
     tipo: "textarea",
-    placeholder: "Es: liberi professionisti 30-50 anni che vogliono scalare online, mamme che cercano un secondo reddito...",
-    ai_tag: "target_audience",
+    placeholder: "Es: liberi professionisti 30-50 anni che vogliono scalare online, mamme lavoratrici che cercano un secondo reddito, PMI italiane con fatturato 200-500k...",
   },
-  // ─── BLOCCO 2: Maturità ────────────────────────────────────────
+  // ─── problema ────────────────────────────────────────────────────
   {
-    id: "vendita_online",
-    blocco: "Maturità",
+    id: "problema",
+    q: "Quale problema concreto risolvi per i tuoi clienti?",
+    tipo: "textarea",
+    placeholder: "Es: aiuto a trovare i primi 10 clienti in 90 giorni, insegno a strutturare un business online partendo da zero, aiuto a perdere 10 kg con un metodo sostenibile...",
+  },
+  // ─── esperienza ──────────────────────────────────────────────────
+  {
+    id: "esperienza",
+    q: "Da quanto tempo lavori in questo ambito?",
+    tipo: "radio",
+    opzioni: [
+      { value: "meno_1",   label: "Meno di 1 anno" },
+      { value: "1_3",      label: "1 – 3 anni" },
+      { value: "3_5",      label: "3 – 5 anni" },
+      { value: "oltre_5",  label: "Oltre 5 anni" },
+    ],
+  },
+  // ─── pubblico + canale_principale (condizionale) ─────────────────
+  {
+    id: "pubblico",
+    q: "Hai già un pubblico o una base clienti?",
+    tipo: "radio",
+    opzioni: [
+      { value: "no",       label: "Non ancora, parto da zero" },
+      { value: "piccolo",  label: "Sì, meno di 1.000 contatti/follower" },
+      { value: "medio",    label: "Sì, tra 1.000 e 10.000" },
+      { value: "grande",   label: "Sì, oltre 10.000" },
+    ],
+    condizionale: {
+      mostraSe: ["piccolo", "medio", "grande"],
+      campo: {
+        id: "canale_principale",
+        q: "Dove sei più attivo?",
+        tipo: "select",
+        opzioni: [
+          { value: "instagram",   label: "Instagram" },
+          { value: "youtube",     label: "YouTube" },
+          { value: "linkedin",    label: "LinkedIn" },
+          { value: "facebook",    label: "Facebook" },
+          { value: "tiktok",      label: "TikTok" },
+          { value: "newsletter",  label: "Newsletter / Email list" },
+          { value: "blog",        label: "Blog / Sito web" },
+          { value: "altro",       label: "Altro" },
+        ],
+      },
+    },
+  },
+  // ─── vendite_online + vendite_dettaglio (condizionale) ──────────
+  {
+    id: "vendite_online",
     q: "Stai già vendendo prodotti o servizi online?",
     tipo: "radio",
     opzioni: [
-      { value: "no",         label: "No, parto da zero" },
-      { value: "inizio",     label: "Ho provato ma senza risultati costanti" },
-      { value: "attivo",     label: "Sì, ho già clienti e fatturato ricorrente" },
-      { value: "avanzato",   label: "Sì, fatturato >50k/anno dal digitale" },
+      { value: "no",       label: "No, non ancora" },
+      { value: "provato",  label: "Ho provato ma senza risultati costanti" },
+      { value: "attivo",   label: "Sì, ho già clienti e fatturato ricorrente" },
+      { value: "avanzato", label: "Sì, fatturato >50k/anno dal digitale" },
     ],
-    ai_tag: "digital_maturity",
+    condizionale: {
+      mostraSe: ["provato", "attivo", "avanzato"],
+      campo: {
+        id: "vendite_dettaglio",
+        q: "Cosa vendi e con quali risultati?",
+        tipo: "textarea",
+        placeholder: "Es: consulenze 1:1 a 150€/h, circa 4 clienti al mese. Oppure: ho un mini-corso a 47€ che vende 10 copie/mese...",
+      },
+    },
   },
-  {
-    id: "audience_size",
-    blocco: "Maturità",
-    q: "Hai già un pubblico che ti segue?",
-    tipo: "radio",
-    opzioni: [
-      { value: "nessuno",    label: "Non ancora" },
-      { value: "piccolo",    label: "Meno di 1.000 follower/iscritti" },
-      { value: "medio",      label: "1.000 – 10.000" },
-      { value: "grande",     label: "Oltre 10.000" },
-    ],
-    ai_tag: "audience_size",
-  },
-  // ─── BLOCCO 3: Validazione ─────────────────────────────────────
-  {
-    id: "problema_risolto",
-    blocco: "Validazione",
-    q: "Qual è il problema concreto che risolvi per i tuoi clienti?",
-    tipo: "textarea",
-    placeholder: "Es: li aiuto a trovare i primi 10 clienti online in 90 giorni, oppure a perdere 10 kg senza diete drastiche...",
-    ai_tag: "value_proposition",
-  },
-  // ─── BLOCCO 4: Obiettivo ───────────────────────────────────────
+  // ─── obiettivo ──────────────────────────────────────────────────
   {
     id: "obiettivo",
-    blocco: "Obiettivo",
-    q: "Cosa vuoi ottenere da questo percorso?",
-    tipo: "radio",
-    opzioni: [
-      { value: "videocorso",     label: "Creare e lanciare un videocorso" },
-      { value: "accademia",      label: "Costruire un'accademia digitale completa" },
-      { value: "membership",     label: "Avviare una membership/community a pagamento" },
-      { value: "scala_business", label: "Scalare un business già avviato con il digitale" },
-      { value: "altro",          label: "Altro (specificare)" },
-    ],
-    ai_tag: "project_goal",
+    q: "Qual è il tuo obiettivo principale con questo percorso?",
+    tipo: "textarea",
+    placeholder: "Es: lanciare il mio primo videocorso entro 3 mesi, costruire un'accademia digitale che generi 5k/mese, scalare il mio business di consulenza con prodotti digitali...",
   },
 ];
 
-const BLOCCHI_ORDINE = ["Posizionamento", "Maturità", "Validazione", "Obiettivo"];
+const BLOCCHI_ORDINE = ["Il tuo progetto", "La tua esperienza", "Il tuo obiettivo"];
 const BLOCCHI_META = {
-  Posizionamento: { colore: "#3B82F6", desc: "Definiamo chi sei e a chi ti rivolgi" },
-  Maturità:       { colore: "#8B5CF6", desc: "Valutiamo il tuo punto di partenza" },
-  Validazione:    { colore: "#10B981", desc: "Verifichiamo il valore della tua offerta" },
-  Obiettivo:      { colore: "#F59E0B", desc: "Capiamo dove vuoi arrivare" },
+  "Il tuo progetto":    { colore: "#3B82F6", desc: "Definiamo chi sei e cosa offri",       campi: ["ambito", "target", "problema"] },
+  "La tua esperienza":  { colore: "#8B5CF6", desc: "Valutiamo il tuo punto di partenza",   campi: ["esperienza", "pubblico", "vendite_online"] },
+  "Il tuo obiettivo":   { colore: "#F59E0B", desc: "Capiamo dove vuoi arrivare",           campi: ["obiettivo"] },
 };
 
 // ── Progress Bar ─────────────────────────────────────────────────
@@ -193,23 +215,18 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
     if (!isQuizComplete()) return;
     setSubmittingQuiz(true);
     try {
-      // Build structured JSON for AI pipeline
-      const structured = {};
-      QUIZ_FIELDS.forEach(f => {
-        structured[f.ai_tag] = {
-          domanda: f.q,
-          risposta: quiz[f.id],
-          tipo: f.tipo,
-          blocco: f.blocco,
-          ...(f.tipo === "radio" && {
-            label: f.opzioni?.find(o => o.value === quiz[f.id])?.label || quiz[f.id],
-          }),
-          // Include "altro_testo" if user selected "altro" and typed something
-          ...(quiz[f.id] === "altro" && quiz[`${f.id}_altro`] && {
-            altro_testo: quiz[`${f.id}_altro`],
-          }),
-        };
-      });
+      // Build flat structured JSON matching the DB schema
+      const structured = {
+        ambito: quiz.ambito || "",
+        target: quiz.target || "",
+        problema: quiz.problema || "",
+        esperienza: quiz.esperienza || "",
+        pubblico: quiz.pubblico || "",
+        canale_principale: quiz.canale_principale || "",
+        vendite_online: quiz.vendite_online || "",
+        vendite_dettaglio: quiz.vendite_dettaglio || "",
+        obiettivo: quiz.obiettivo || "",
+      };
       await axios.post(`${API}/api/cliente-analisi/mini-quiz`, { risposte: structured }, { headers });
       setStep(3);
     } catch (e) { console.error("Quiz submit:", e); }
@@ -322,23 +339,21 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
               <div className="text-center mb-2">
                 <h2 className="text-xl font-black" style={{ color: C.dark }}>Raccontaci del tuo progetto</h2>
                 <p className="text-sm mt-1" style={{ color: C.muted }}>
-                  6 domande strutturate — le useremo per generare la tua analisi strategica
+                  Queste risposte alimentano la tua analisi strategica personalizzata
                 </p>
               </div>
 
               {BLOCCHI_ORDINE.map(blocco => {
                 const meta = BLOCCHI_META[blocco];
-                const fields = QUIZ_FIELDS.filter(f => f.blocco === blocco);
+                const fields = QUIZ_FIELDS.filter(f => meta.campi.includes(f.id));
                 return (
                   <div key={blocco} className="rounded-xl overflow-hidden" style={{ border: `1px solid ${C.border}`, background: "white" }}>
-                    {/* Blocco header */}
                     <div className="px-4 py-2.5 flex items-center gap-2" style={{ background: `${meta.colore}08`, borderBottom: `1px solid ${C.border}` }}>
                       <div className="w-2 h-2 rounded-full" style={{ background: meta.colore }} />
                       <span className="text-xs font-bold uppercase tracking-wider" style={{ color: meta.colore }}>{blocco}</span>
                       <span className="text-xs ml-1" style={{ color: C.muted }}>{meta.desc}</span>
                     </div>
 
-                    {/* Domande del blocco */}
                     <div className="p-4 space-y-5">
                       {fields.map(f => (
                         <div key={f.id}>
@@ -351,7 +366,7 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
                               onChange={(e) => setQuiz(q => ({ ...q, [f.id]: e.target.value }))}
                               placeholder={f.placeholder}
                               className="w-full rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-2"
-                              style={{ border: `1px solid ${C.border}`, minHeight: 72, background: C.bg, focusRingColor: C.yellow }}
+                              style={{ border: `1px solid ${C.border}`, minHeight: 72, background: C.bg }}
                               rows={3}
                             />
                           )}
@@ -376,11 +391,7 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
                                     >
                                       {selected && <div className="w-2 h-2 rounded-full" style={{ background: C.yellowDark }} />}
                                     </div>
-                                    <input
-                                      type="radio"
-                                      name={f.id}
-                                      value={opt.value}
-                                      checked={selected}
+                                    <input type="radio" name={f.id} value={opt.value} checked={selected}
                                       onChange={() => setQuiz(q => ({ ...q, [f.id]: opt.value }))}
                                       className="sr-only"
                                     />
@@ -390,15 +401,40 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
                                   </label>
                                 );
                               })}
-                              {/* Campo testo "Altro" se l'opzione lo prevede */}
-                              {quiz[f.id] === "altro" && (
+                            </div>
+                          )}
+
+                          {/* Campo condizionale (select o textarea) */}
+                          {f.condizionale && f.condizionale.mostraSe.includes(quiz[f.id]) && (
+                            <div className="mt-3 pl-4" style={{ borderLeft: `2px solid ${C.yellow}` }}>
+                              <label className="text-sm font-bold block mb-2" style={{ color: C.dark }}>
+                                {f.condizionale.campo.q}
+                              </label>
+                              {f.condizionale.campo.tipo === "select" && (
+                                <div className="relative">
+                                  <select
+                                    data-testid={`quiz-${f.condizionale.campo.id}`}
+                                    value={quiz[f.condizionale.campo.id] || ""}
+                                    onChange={(e) => setQuiz(q => ({ ...q, [f.condizionale.campo.id]: e.target.value }))}
+                                    className="w-full rounded-lg p-3 text-sm appearance-none focus:outline-none focus:ring-2 pr-10"
+                                    style={{ border: `1px solid ${C.border}`, background: C.bg }}
+                                  >
+                                    <option value="">Seleziona...</option>
+                                    {f.condizionale.campo.opzioni.map(o => (
+                                      <option key={o.value} value={o.value}>{o.label}</option>
+                                    ))}
+                                  </select>
+                                  <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 pointer-events-none" style={{ color: C.muted }} />
+                                </div>
+                              )}
+                              {f.condizionale.campo.tipo === "textarea" && (
                                 <textarea
-                                  data-testid={`quiz-${f.id}-altro-testo`}
-                                  value={quiz[`${f.id}_altro`] || ""}
-                                  onChange={(e) => setQuiz(q => ({ ...q, [`${f.id}_altro`]: e.target.value }))}
-                                  placeholder="Descrivici il tuo obiettivo..."
-                                  className="w-full rounded-lg p-3 text-sm resize-none focus:outline-none mt-1"
-                                  style={{ border: `1px solid ${C.border}`, background: C.bg }}
+                                  data-testid={`quiz-${f.condizionale.campo.id}`}
+                                  value={quiz[f.condizionale.campo.id] || ""}
+                                  onChange={(e) => setQuiz(q => ({ ...q, [f.condizionale.campo.id]: e.target.value }))}
+                                  placeholder={f.condizionale.campo.placeholder}
+                                  className="w-full rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-2"
+                                  style={{ border: `1px solid ${C.border}`, minHeight: 60, background: C.bg }}
                                   rows={2}
                                 />
                               )}
