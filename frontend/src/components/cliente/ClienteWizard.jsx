@@ -22,12 +22,83 @@ const WIZARD_STEPS = [
 ];
 
 const QUIZ_FIELDS = [
-  { id: "expertise", q: "In cosa sei esperto/a?", placeholder: "Es: coaching, marketing, fitness, cucina..." },
-  { id: "cliente_ideale", q: "Chi è il tuo cliente ideale?", placeholder: "Es: imprenditori digitali, mamme lavoratrici..." },
-  { id: "problema", q: "Qual è il problema principale che aiuti a risolvere?", placeholder: "Descrivi il risultato che offri..." },
-  { id: "vendi_online", q: "Stai già vendendo qualcosa online?", placeholder: "Sì/No — e cosa, se sì" },
-  { id: "obiettivo", q: "Qual è il tuo obiettivo con questo progetto?", placeholder: "Es: lanciare un videocorso, scalare il fatturato..." },
+  // ─── BLOCCO 1: Posizionamento ──────────────────────────────────
+  {
+    id: "expertise",
+    blocco: "Posizionamento",
+    q: "Qual è la tua competenza principale?",
+    tipo: "textarea",
+    placeholder: "Es: coaching per imprenditori, nutrizione sportiva, marketing digitale, insegnamento lingue...",
+    ai_tag: "core_expertise",
+  },
+  {
+    id: "target",
+    blocco: "Posizionamento",
+    q: "Chi è il tuo cliente ideale?",
+    tipo: "textarea",
+    placeholder: "Es: liberi professionisti 30-50 anni che vogliono scalare online, mamme che cercano un secondo reddito...",
+    ai_tag: "target_audience",
+  },
+  // ─── BLOCCO 2: Maturità ────────────────────────────────────────
+  {
+    id: "vendita_online",
+    blocco: "Maturità",
+    q: "Stai già vendendo prodotti o servizi online?",
+    tipo: "radio",
+    opzioni: [
+      { value: "no",         label: "No, parto da zero" },
+      { value: "inizio",     label: "Ho provato ma senza risultati costanti" },
+      { value: "attivo",     label: "Sì, ho già clienti e fatturato ricorrente" },
+      { value: "avanzato",   label: "Sì, fatturato >50k/anno dal digitale" },
+    ],
+    ai_tag: "digital_maturity",
+  },
+  {
+    id: "audience_size",
+    blocco: "Maturità",
+    q: "Hai già un pubblico che ti segue?",
+    tipo: "radio",
+    opzioni: [
+      { value: "nessuno",    label: "Non ancora" },
+      { value: "piccolo",    label: "Meno di 1.000 follower/iscritti" },
+      { value: "medio",      label: "1.000 – 10.000" },
+      { value: "grande",     label: "Oltre 10.000" },
+    ],
+    ai_tag: "audience_size",
+  },
+  // ─── BLOCCO 3: Validazione ─────────────────────────────────────
+  {
+    id: "problema_risolto",
+    blocco: "Validazione",
+    q: "Qual è il problema concreto che risolvi per i tuoi clienti?",
+    tipo: "textarea",
+    placeholder: "Es: li aiuto a trovare i primi 10 clienti online in 90 giorni, oppure a perdere 10 kg senza diete drastiche...",
+    ai_tag: "value_proposition",
+  },
+  // ─── BLOCCO 4: Obiettivo ───────────────────────────────────────
+  {
+    id: "obiettivo",
+    blocco: "Obiettivo",
+    q: "Cosa vuoi ottenere da questo percorso?",
+    tipo: "radio",
+    opzioni: [
+      { value: "videocorso",     label: "Creare e lanciare un videocorso" },
+      { value: "accademia",      label: "Costruire un'accademia digitale completa" },
+      { value: "membership",     label: "Avviare una membership/community a pagamento" },
+      { value: "scala_business", label: "Scalare un business già avviato con il digitale" },
+      { value: "altro",          label: "Altro (specificare)" },
+    ],
+    ai_tag: "project_goal",
+  },
 ];
+
+const BLOCCHI_ORDINE = ["Posizionamento", "Maturità", "Validazione", "Obiettivo"];
+const BLOCCHI_META = {
+  Posizionamento: { colore: "#3B82F6", desc: "Definiamo chi sei e a chi ti rivolgi" },
+  Maturità:       { colore: "#8B5CF6", desc: "Valutiamo il tuo punto di partenza" },
+  Validazione:    { colore: "#10B981", desc: "Verifichiamo il valore della tua offerta" },
+  Obiettivo:      { colore: "#F59E0B", desc: "Capiamo dove vuoi arrivare" },
+};
 
 // ── Progress Bar ─────────────────────────────────────────────────
 function ProgressBar({ current, total }) {
@@ -112,12 +183,34 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
   useEffect(() => { fetchStatus(); }, [fetchStatus]);
 
   // ── Submit mini quiz ───────────────────────────────────────────
+  const isQuizComplete = () => QUIZ_FIELDS.every(f => {
+    const val = quiz[f.id];
+    if (f.tipo === "radio") return !!val;
+    return val?.trim?.()?.length > 0;
+  });
+
   const submitQuiz = async () => {
-    const allFilled = QUIZ_FIELDS.every(f => quiz[f.id]?.trim());
-    if (!allFilled) return;
+    if (!isQuizComplete()) return;
     setSubmittingQuiz(true);
     try {
-      await axios.post(`${API}/api/cliente-analisi/mini-quiz`, { risposte: quiz }, { headers });
+      // Build structured JSON for AI pipeline
+      const structured = {};
+      QUIZ_FIELDS.forEach(f => {
+        structured[f.ai_tag] = {
+          domanda: f.q,
+          risposta: quiz[f.id],
+          tipo: f.tipo,
+          blocco: f.blocco,
+          ...(f.tipo === "radio" && {
+            label: f.opzioni?.find(o => o.value === quiz[f.id])?.label || quiz[f.id],
+          }),
+          // Include "altro_testo" if user selected "altro" and typed something
+          ...(quiz[f.id] === "altro" && quiz[`${f.id}_altro`] && {
+            altro_testo: quiz[`${f.id}_altro`],
+          }),
+        };
+      });
+      await axios.post(`${API}/api/cliente-analisi/mini-quiz`, { risposte: structured }, { headers });
       setStep(3);
     } catch (e) { console.error("Quiz submit:", e); }
     setSubmittingQuiz(false);
@@ -178,8 +271,8 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
       )}
 
       {/* Content */}
-      <main className={`flex-1 flex items-center justify-center px-6 ${adminPreview ? 'py-6' : 'py-10'}`}>
-        <div className="w-full max-w-xl">
+      <main className={`flex-1 px-6 ${step === 2 ? 'py-6' : `flex items-center justify-center ${adminPreview ? 'py-6' : 'py-10'}`}`}>
+        <div className={`w-full ${step === 2 ? 'max-w-2xl mx-auto' : 'max-w-xl'}`}>
           <ProgressBar current={displayStep} total={totalSteps} />
 
           {/* ── STEP 1: Welcome ─────────────────────────────── */}
@@ -225,36 +318,110 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
 
           {/* ── STEP 2: Mini Quiz ───────────────────────────── */}
           {step === 2 && (
-            <div data-testid="step-mini-quiz" className="space-y-4">
-              <div className="text-center mb-6">
-                <h2 className="text-xl font-black" style={{ color: C.dark }}>Raccontaci di te</h2>
-                <p className="text-sm mt-1" style={{ color: C.muted }}>5 domande rapide per personalizzare la tua esperienza</p>
+            <div data-testid="step-mini-quiz" className="w-full max-w-2xl mx-auto space-y-6">
+              <div className="text-center mb-2">
+                <h2 className="text-xl font-black" style={{ color: C.dark }}>Raccontaci del tuo progetto</h2>
+                <p className="text-sm mt-1" style={{ color: C.muted }}>
+                  6 domande strutturate — le useremo per generare la tua analisi strategica
+                </p>
               </div>
-              {QUIZ_FIELDS.map(f => (
-                <div key={f.id} className="rounded-xl p-4" style={{ background: "white", border: `1px solid ${C.border}` }}>
-                  <label className="text-sm font-bold block mb-2" style={{ color: C.dark }}>{f.q}</label>
-                  <textarea
-                    data-testid={`quiz-${f.id}`}
-                    value={quiz[f.id] || ""}
-                    onChange={(e) => setQuiz(q => ({ ...q, [f.id]: e.target.value }))}
-                    placeholder={f.placeholder}
-                    className="w-full rounded-lg p-3 text-sm resize-none focus:outline-none"
-                    style={{ border: `1px solid ${C.border}`, minHeight: 60, background: C.bg }}
-                    rows={2}
-                  />
-                </div>
-              ))}
-              <div className="flex justify-between pt-4">
+
+              {BLOCCHI_ORDINE.map(blocco => {
+                const meta = BLOCCHI_META[blocco];
+                const fields = QUIZ_FIELDS.filter(f => f.blocco === blocco);
+                return (
+                  <div key={blocco} className="rounded-xl overflow-hidden" style={{ border: `1px solid ${C.border}`, background: "white" }}>
+                    {/* Blocco header */}
+                    <div className="px-4 py-2.5 flex items-center gap-2" style={{ background: `${meta.colore}08`, borderBottom: `1px solid ${C.border}` }}>
+                      <div className="w-2 h-2 rounded-full" style={{ background: meta.colore }} />
+                      <span className="text-xs font-bold uppercase tracking-wider" style={{ color: meta.colore }}>{blocco}</span>
+                      <span className="text-xs ml-1" style={{ color: C.muted }}>{meta.desc}</span>
+                    </div>
+
+                    {/* Domande del blocco */}
+                    <div className="p-4 space-y-5">
+                      {fields.map(f => (
+                        <div key={f.id}>
+                          <label className="text-sm font-bold block mb-2" style={{ color: C.dark }}>{f.q}</label>
+
+                          {f.tipo === "textarea" && (
+                            <textarea
+                              data-testid={`quiz-${f.id}`}
+                              value={quiz[f.id] || ""}
+                              onChange={(e) => setQuiz(q => ({ ...q, [f.id]: e.target.value }))}
+                              placeholder={f.placeholder}
+                              className="w-full rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-2"
+                              style={{ border: `1px solid ${C.border}`, minHeight: 72, background: C.bg, focusRingColor: C.yellow }}
+                              rows={3}
+                            />
+                          )}
+
+                          {f.tipo === "radio" && (
+                            <div className="space-y-2">
+                              {f.opzioni.map(opt => {
+                                const selected = quiz[f.id] === opt.value;
+                                return (
+                                  <label
+                                    key={opt.value}
+                                    data-testid={`quiz-${f.id}-${opt.value}`}
+                                    className="flex items-center gap-3 px-3.5 py-2.5 rounded-lg cursor-pointer transition-all"
+                                    style={{
+                                      border: `1.5px solid ${selected ? C.yellow : C.border}`,
+                                      background: selected ? `${C.yellow}12` : "transparent",
+                                    }}
+                                  >
+                                    <div
+                                      className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center"
+                                      style={{ border: `2px solid ${selected ? C.yellowDark : '#CBD5E1'}` }}
+                                    >
+                                      {selected && <div className="w-2 h-2 rounded-full" style={{ background: C.yellowDark }} />}
+                                    </div>
+                                    <input
+                                      type="radio"
+                                      name={f.id}
+                                      value={opt.value}
+                                      checked={selected}
+                                      onChange={() => setQuiz(q => ({ ...q, [f.id]: opt.value }))}
+                                      className="sr-only"
+                                    />
+                                    <span className="text-sm" style={{ color: selected ? C.dark : '#64748B', fontWeight: selected ? 600 : 400 }}>
+                                      {opt.label}
+                                    </span>
+                                  </label>
+                                );
+                              })}
+                              {/* Campo testo "Altro" se l'opzione lo prevede */}
+                              {quiz[f.id] === "altro" && (
+                                <textarea
+                                  data-testid={`quiz-${f.id}-altro-testo`}
+                                  value={quiz[`${f.id}_altro`] || ""}
+                                  onChange={(e) => setQuiz(q => ({ ...q, [`${f.id}_altro`]: e.target.value }))}
+                                  placeholder="Descrivici il tuo obiettivo..."
+                                  className="w-full rounded-lg p-3 text-sm resize-none focus:outline-none mt-1"
+                                  style={{ border: `1px solid ${C.border}`, background: C.bg }}
+                                  rows={2}
+                                />
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div className="flex justify-between pt-2">
                 <button onClick={() => setStep(1)} className="px-5 py-2.5 rounded-lg text-sm font-bold" style={{ color: C.muted }}>
                   <ArrowLeft className="w-4 h-4 inline mr-1" /> Indietro
                 </button>
                 <button
                   data-testid="quiz-submit"
                   onClick={submitQuiz}
-                  disabled={!QUIZ_FIELDS.every(f => quiz[f.id]?.trim()) || submittingQuiz}
+                  disabled={!isQuizComplete() || submittingQuiz}
                   className="px-8 py-2.5 rounded-xl text-sm font-black flex items-center gap-2"
                   style={{
-                    background: QUIZ_FIELDS.every(f => quiz[f.id]?.trim()) ? C.yellow : "#E8E4DC",
+                    background: isQuizComplete() ? C.yellow : "#E8E4DC",
                     color: C.dark, opacity: submittingQuiz ? 0.6 : 1,
                   }}
                 >
