@@ -65,7 +65,7 @@ function ProgressBar({ current, total }) {
 // ══════════════════════════════════════════════════════════════════
 // MAIN WIZARD
 // ══════════════════════════════════════════════════════════════════
-export default function ClienteWizard({ user, onLogout, onPartnerAttivato }) {
+export default function ClienteWizard({ user, onLogout, onPartnerAttivato, adminPreview = false }) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [quiz, setQuiz] = useState({});
@@ -145,8 +145,9 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato }) {
   const displayStep = Math.min(step, totalSteps);
 
   return (
-    <div data-testid="cliente-wizard" className="min-h-screen flex flex-col" style={{ background: C.bg }}>
-      {/* Header */}
+    <div data-testid="cliente-wizard" className={adminPreview ? "flex flex-col" : "min-h-screen flex flex-col"} style={{ background: C.bg }}>
+      {/* Header — solo per il cliente reale, non per la preview admin */}
+      {!adminPreview && (
       <header className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid ${C.border}` }}>
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: C.yellow }}>
@@ -168,9 +169,10 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato }) {
           </button>
         )}
       </header>
+      )}
 
       {/* Content */}
-      <main className="flex-1 flex items-center justify-center px-6 py-10">
+      <main className={`flex-1 flex items-center justify-center px-6 ${adminPreview ? 'py-6' : 'py-10'}`}>
         <div className="w-full max-w-xl">
           <ProgressBar current={displayStep} total={totalSteps} />
 

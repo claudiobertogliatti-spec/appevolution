@@ -1148,7 +1148,7 @@ export default function App() {
   const adminNav=adminUser==="antonella"?antonellaNav:coreNav;
   const isToolNav=toolsNav.some(t=>t.id===nav);
 
-  const titles={overview:"Oggi",oggi:"Oggi","pipeline-prioritaria":"Priorità Pipeline","partner-bloccati":"Partner Bloccati","guided-system":"Guided System",agenti:"Agent Hub",partner:"Partner Attivi","ex-partner":"Ex Partner","documenti-partner":"Documenti Partner","onboarding-admin":"Documenti Onboarding","youtube-heygen":"Video AI","servizi-admin":"Servizi Extra","calendario-admin":"Calendario Editoriale",andrea:adminUser==="antonella"?"ANDREA — Feed Video":"ANDREA — Surgical Cut",metriche:"Percorsi e Fasi",systeme:"SYSTEME.IO — Live Data",gaia:"Template Funnel",compliance:"Documenti & Compliance",copyfactory:"Copy Factory",warmode:"Campagne Ads",funnelbuilder:"Funnel Builder — Fase 4",alert:"Alert & Escalation",configurazione:"Configurazione",stefania:"STEFANIA — Chat",home:"Il tuo percorso","onboarding-docs":"Documenti Onboarding",corso:"PARTI DA QUI",bonus:"Bonus Strategici",masterclass:"Masterclass Builder",coursebuilder:"Course Builder AI",produzione:"ANDREA — Produzione Video",files:"I Miei File",brandkit:"Brand Kit",calendario:"Calendario Editoriale",documenti:"Documenti & Posizionamento",risorse:"Template & Risorse",renewal:"Piani Post-12 Mesi",supporto:"STEFANIA — Chat","clienti-analisi":"Pipeline","flusso-analisi":"Analisi Strategiche","demo-flusso-cliente":"Demo Flusso Cliente","lista-fredda":"Lead da Riattivare",approvals:"Approvazioni Cliente"};
+  const titles={overview:"Oggi",oggi:"Oggi","cliente-preview":"Preview Cliente","pipeline-prioritaria":"Priorità Pipeline","partner-bloccati":"Partner Bloccati","guided-system":"Guided System",agenti:"Agent Hub",partner:"Partner Attivi","ex-partner":"Ex Partner","documenti-partner":"Documenti Partner","onboarding-admin":"Documenti Onboarding","youtube-heygen":"Video AI","servizi-admin":"Servizi Extra","calendario-admin":"Calendario Editoriale",andrea:adminUser==="antonella"?"ANDREA — Feed Video":"ANDREA — Surgical Cut",metriche:"Percorsi e Fasi",systeme:"SYSTEME.IO — Live Data",gaia:"Template Funnel",compliance:"Documenti & Compliance",copyfactory:"Copy Factory",warmode:"Campagne Ads",funnelbuilder:"Funnel Builder — Fase 4",alert:"Alert & Escalation",configurazione:"Configurazione",stefania:"STEFANIA — Chat",home:"Il tuo percorso","onboarding-docs":"Documenti Onboarding",corso:"PARTI DA QUI",bonus:"Bonus Strategici",masterclass:"Masterclass Builder",coursebuilder:"Course Builder AI",produzione:"ANDREA — Produzione Video",files:"I Miei File",brandkit:"Brand Kit",calendario:"Calendario Editoriale",documenti:"Documenti & Posizionamento",risorse:"Template & Risorse",renewal:"Piani Post-12 Mesi",supporto:"STEFANIA — Chat","clienti-analisi":"Pipeline","flusso-analisi":"Analisi Strategiche","demo-flusso-cliente":"Demo Flusso Cliente","lista-fredda":"Lead da Riattivare",approvals:"Approvazioni Cliente"};
 
   // Loading state
   if (authLoading) {
@@ -1525,14 +1525,7 @@ export default function App() {
   }
 
   if (mode === "cliente") {
-    const isAdminViewing = !!viewingCliente;
-    const handleBackToAdmin = () => { setViewingCliente(null); setMode("admin"); setNav("oggi"); };
-    const clienteUser = viewingCliente ? {
-      id: viewingCliente.id,
-      nome: viewingCliente.nome,
-      cognome: viewingCliente.cognome,
-      email: viewingCliente.email,
-    } : currentUser ? {
+    const clienteUser = currentUser ? {
       id: currentUser.id || currentUser.user_id,
       nome: currentUser.nome || currentUser.name,
       cognome: currentUser.cognome || "",
@@ -1542,14 +1535,9 @@ export default function App() {
     return (
       <div className="relative min-h-screen" style={{ background: '#FAFAF7' }}>
         <Toaster position="top-center" richColors />
-        {isAdminViewing && (
-          <div className="fixed top-3 right-3 z-50">
-            <button onClick={handleBackToAdmin} className="text-xs font-bold px-3 py-2 rounded-xl shadow-lg" style={{ background: '#1A1F24', color: 'white' }}>Admin</button>
-          </div>
-        )}
         <ClienteWizard
           user={clienteUser}
-          onLogout={isAdminViewing ? handleBackToAdmin : handleLogout}
+          onLogout={handleLogout}
           onPartnerAttivato={() => {
             const updated = { ...currentUser, role: "partner" };
             localStorage.setItem("user", JSON.stringify(updated));
@@ -1568,116 +1556,14 @@ export default function App() {
         <ViewSwitcher
           currentView={adminUser === "antonella" ? "antonella" : "admin"}
           onChangeView={(v) => { setAdminUser(v === "antonella" ? "antonella" : "claudio"); setNav("oggi"); }}
-          onSwitchToCliente={() => setMode("cliente")}
+          onSwitchToCliente={() => { setViewingCliente(null); setNav("cliente-preview"); }}
           onSwitchToPartner={() => { setMode("partner"); setNav("home"); }}
         />
       )}
       <div className="flex flex-1 overflow-hidden min-h-0">
 
       {/* SIDEBAR - Light Theme for both modes */}
-      {mode === "cliente" ? (
-        /* Sidebar minima per vista Cliente */
-        <div className="w-64 min-w-64 flex flex-col h-full border-r overflow-hidden" 
-             style={{ background: '#FFFFFF', borderColor: '#F0EFEB' }}>
-          <div className="p-5 border-b" style={{ borderColor: '#F0EFEB' }}>
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
-                   style={{ background: '#F2C418' }}>
-                <span className="text-lg font-black text-[#1E2128]">E</span>
-              </div>
-              <div>
-                <div className="font-black text-base" style={{ color: '#2D3239' }}>
-                  Evolution<span style={{ color: '#F2C418' }}>Pro</span>
-                </div>
-                <div className="text-[10px] font-medium" style={{ color: '#9CA3AF' }}>
-                  {viewingCliente ? 'Vista Cliente' : 'Vista Cliente Demo'}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="px-4 py-3 space-y-3">
-            <button 
-              onClick={() => { setMode("admin"); setNav("clienti"); setViewingCliente(null); }}
-              className="w-full py-2.5 text-sm font-bold rounded-xl transition-all hover:bg-[#FAFAF7]"
-              style={{ background: '#FAFAF7', color: '#5F6572', border: '1px solid #ECEDEF' }}
-            >
-              ← Torna Admin
-            </button>
-            
-            {/* Info Cliente Visualizzato */}
-            {viewingCliente ? (
-              <div className="p-3 rounded-xl" style={{ background: '#3B82F610', border: '1px solid #3B82F630' }}>
-                <div className="text-xs font-bold text-[#3B82F6] mb-2">VISUALIZZANDO CLIENTE</div>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#F5C518] to-[#c49a12] flex items-center justify-center">
-                    <span className="text-xs font-bold text-black">
-                      {viewingCliente.nome?.[0]}{viewingCliente.cognome?.[0]}
-                    </span>
-                  </div>
-                  <div>
-                    <div className="font-bold text-sm text-[#1E2128]">{viewingCliente.nome} {viewingCliente.cognome}</div>
-                    <div className="text-xs text-[#9CA3AF]">{viewingCliente.email}</div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              /* Selettore Stato Cliente Demo */
-              <div className="p-3 rounded-xl" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
-                <div className="text-xs font-bold text-[#5F6572] mb-2">STATO CLIENTE DEMO</div>
-                <div className="space-y-1.5">
-                  <button
-                    onClick={() => setNav("cliente-pre")}
-                    className={`w-full px-3 py-2 rounded-lg text-xs font-bold text-left transition-all ${
-                      nav === "cliente-pre" || nav === "overview" 
-                        ? 'bg-[#F5C518] text-[#1E2128]' 
-                        : 'bg-white text-[#5F6572] hover:bg-[#FEF9E7]'
-                    }`}
-                    style={{ border: '1px solid #ECEDEF' }}
-                  >
-                    Analisi Pagata
-                    <div className="text-[10px] font-normal opacity-70">Ha pagato, deve compilare questionario</div>
-                  </button>
-                  <button
-                    onClick={() => setNav("cliente-post")}
-                    className={`w-full px-3 py-2 rounded-lg text-xs font-bold text-left transition-all ${
-                      nav === "cliente-post"
-                        ? 'bg-[#10B981] text-white'
-                        : 'bg-white text-[#5F6572] hover:bg-[#D1FAE5]'
-                    }`}
-                    style={{ border: '1px solid #ECEDEF' }}
-                  >
-                    Questionario Completato
-                    <div className="text-[10px] font-normal opacity-70">Ha compilato, attende call con Claudio</div>
-                  </button>
-                  <button
-                    onClick={() => setNav("cliente-decisione")}
-                    className={`w-full px-3 py-2 rounded-lg text-xs font-bold text-left transition-all ${
-                      nav === "cliente-decisione"
-                        ? 'bg-[#8B5CF6] text-white'
-                        : 'bg-white text-[#5F6572] hover:bg-[#EDE9FE]'
-                    }`}
-                    style={{ border: '1px solid #ECEDEF' }}
-                  >
-                    Proposta + Analisi + Roadmap
-                    <div className="text-[10px] font-normal opacity-70">Sales letter, analisi e proposta economica</div>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div className="p-3 rounded-xl bg-[#FEF9E7] border border-[#F5C518]/30">
-              <div className="text-xs font-bold text-[#C4990A] mb-1">
-                {viewingCliente ? 'VISTA REALE' : 'MODALITÀ DEMO'}
-              </div>
-              <div className="text-xs text-[#5F6572]">
-                {viewingCliente 
-                  ? `Stai visualizzando l'area come la vede ${viewingCliente.nome}` 
-                  : "Visualizzi l'area cliente come la vede chi ha acquistato l'Analisi Strategica"}
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : mode === "partner" ? (
+      {mode === "partner" ? (
         <PartnerSidebarLight 
           currentNav={nav}
           onNavigate={setNav}
@@ -1743,132 +1629,6 @@ export default function App() {
           
           {showPartnerProfile&&selectedPartner&&<PartnerProfileModal partner={selectedPartner} onClose={()=>{setShowPartnerProfile(false);}} onUpdate={loadData}/>}
 
-          {/* VISTA CLIENTE — Contratto Partnership (step 1: lettura + chat) */}
-          {mode==="cliente"&&nav==="cliente-contratto"&&(
-            <ContractSigning
-              key="cliente-contratto"
-              partner={viewingCliente ? { id: viewingCliente.id, name: `${viewingCliente.nome} ${viewingCliente.cognome}` } : { id: "demo", name: "Cliente Demo" }}
-              initialStep={1}
-              onContractSigned={() => { setNav("cliente-firma"); }}
-            />
-          )}
-
-          {/* VISTA CLIENTE — Clausole & Firma (step 2) */}
-          {mode==="cliente"&&nav==="cliente-firma"&&(
-            <ContractSigning
-              key="cliente-firma"
-              partner={viewingCliente ? { id: viewingCliente.id, name: `${viewingCliente.nome} ${viewingCliente.cognome}` } : { id: "demo", name: "Cliente Demo" }}
-              initialStep={2}
-              onContractSigned={() => { setNav("cliente-decisione"); }}
-            />
-          )}
-
-          {/* VISTA CLIENTE — Proposta + Analisi + Roadmap */}
-          {mode==="cliente"&&nav==="cliente-decisione"&&(
-            <DecisionePartnershipPage
-              user={viewingCliente ? { id: viewingCliente.id, nome: viewingCliente.nome, cognome: viewingCliente.cognome } : { id: "demo", nome: "Cliente", cognome: "Demo" }}
-              onLogout={() => { setMode("admin"); setNav("oggi"); setViewingCliente(null); }}
-              demoData={viewingCliente ? undefined : {
-                cliente: { nome: "Marco", cognome: "Verdi", email: "marco.verdi@example.com" },
-                contratto_firmato: false,
-                pagamento_completato: false,
-                documenti: [],
-                can_activate: false,
-                contratto: null,
-                analisi: {
-                  titolo: "Analisi Strategica — Accademia Digitale per Coach di Business",
-                  sezioni: {
-                    profilo_analizzato: {
-                      titolo: "Profilo Analizzato",
-                      contenuto: "Marco è un coach di business con 8 anni di esperienza che lavora principalmente con imprenditori digitali. Ha costruito una solida reputazione nel settore ma opera ancora prevalentemente con un modello di consulenze 1:1 che limita la sua scalabilità."
-                    },
-                    costo_modello_attuale: {
-                      titolo: "Il vero costo di rimanere nel modello attuale",
-                      contenuto: "Ogni ora che dedichi alle consulenze 1:1 è un'ora che non scala. Con il tuo attuale modello, il tuo fatturato è direttamente proporzionale alle ore lavorate — e le ore sono finite.",
-                      modello_attuale: {
-                        titolo: "Il tuo modello attuale",
-                        elementi: ["Consulenze 1:1 a €200/h", "Max 6 clienti attivi simultaneamente", "Nessuna fonte di reddito passivo", "Dipendenza totale dal tuo tempo"],
-                        limite: "Raggiunto il cap massimo a ~€60.000/anno senza possibilità di crescita"
-                      },
-                      obiettivo_accademia: {
-                        titolo: "Con la tua Accademia Digitale",
-                        benefici: ["Videocorso venduto 24/7 anche mentre dormi", "Masterclass di lancio che porta clienti in automatico", "Funnel automatizzato: da lead a vendita senza intervento manuale", "Potenziale di €80.000–€150.000/anno con lo stesso impegno"]
-                      }
-                    },
-                    valutazione_fattibilita: {
-                      titolo: "Esito del Check di Fattibilità",
-                      punteggio: 8.5,
-                      livello_potenziale: "Alto",
-                      esito: "Progetto altamente fattibile con forte potenziale di crescita",
-                      motivazione: "Marco dispone di un pubblico esistente, expertise consolidata e una chiara proposta di valore. La trasformazione in accademia digitale è naturale e strategicamente solida.",
-                      punti_forza: ["Newsletter attiva con 1.200 iscritti", "LinkedIn 3.500 follower", "8 anni di expertise documentata", "Chiaro target cliente ideale"],
-                      aree_miglioramento: ["Contenuti da strutturare in moduli", "Funnel di vendita da costruire", "Automazioni email da implementare"]
-                    },
-                    roadmap: {
-                      titolo: "Roadmap del Progetto",
-                      fasi: [
-                        { fase: "Fase 1 — Posizionamento e Brand", durata: "Settimane 1-2", descrizione: "Definizione del posizionamento unico, brand identity e messaggi chiave per differenziarti nel mercato dei coach." },
-                        { fase: "Fase 2 — Masterclass di Vendita", durata: "Settimane 3-5", descrizione: "Creazione della Masterclass gratuita che converte: struttura, script, slide e sistema di registrazione." },
-                        { fase: "Fase 3 — Videocorso Flagship", durata: "Settimane 6-10", descrizione: "Sviluppo completo del videocorso: struttura moduli, produzione contenuti, revisione e pubblicazione." },
-                        { fase: "Fase 4 — Funnel e Automazioni", durata: "Settimane 11-14", descrizione: "Costruzione del funnel automatizzato, sequenza email di vendita e sistema di pagamento integrato." },
-                        { fase: "Fase 5 — Lancio e Ottimizzazione", durata: "Settimane 15-18", descrizione: "Lancio ufficiale con campagna ads, analisi metriche e ottimizzazione continua per massimizzare le vendite." }
-                      ]
-                    }
-                  }
-                }
-              }}
-            />
-          )}
-
-          {/* VISTA CLIENTE (demo per admin) */}
-          {mode==="cliente"&&nav!=="cliente-decisione"&&nav!=="cliente-contratto"&&nav!=="cliente-firma"&&(
-            <ClienteDashboard
-              cliente={viewingCliente ? {
-                id: viewingCliente.id,
-                nome: viewingCliente.nome || "Cliente",
-                cognome: viewingCliente.cognome || "",
-                email: viewingCliente.email || "",
-                stato: viewingCliente.stato || viewingCliente.status || "pagato",
-                data_acquisto: viewingCliente.data_acquisto || viewingCliente.paid_at || viewingCliente.created_at,
-                questionario: viewingCliente.questionario || (viewingCliente.questionnaire ? {
-                  completato: true,
-                  data_compilazione: new Date().toISOString(),
-                  risposte: viewingCliente.questionnaire
-                } : { completato: false, risposte: null }),
-                analisi: viewingCliente.analisi_generata || viewingCliente.docx_analisi_url ? {
-                  pronta: true,
-                  testo: viewingCliente.analisi_generata
-                } : null
-              } : currentUser ? {
-                id: currentUser.id || currentUser.user_id || "me",
-                nome: currentUser.nome || currentUser.name || "Cliente",
-                cognome: currentUser.cognome || "",
-                email: currentUser.email || "",
-                stato: currentUser.stato || "pagato",
-                data_acquisto: currentUser.data_acquisto || currentUser.created_at,
-                questionario: { completato: false, risposte: null },
-                analisi: null
-              } : null}
-              onLogout={() => {
-                if (viewingCliente) {
-                  setViewingCliente(null);
-                  setMode("admin");
-                  setNav("clienti");
-                } else {
-                  handleLogout();
-                }
-              }}
-              onDecisione={() => setNav("cliente-decisione")}
-              onPartnerAttivato={(userData) => {
-                const updated = { ...currentUser, role: "partner", ...userData };
-                localStorage.setItem("user", JSON.stringify(updated));
-                setCurrentUser(updated);
-                setMode("partner");
-                setNav("home");
-              }}
-            />
-          )}
-
           {mode==="admin"&&<>
             {(nav==="overview"||nav==="oggi")&&<OggiDashboard onNavigate={setNav}/>}
             {nav==="pipeline-prioritaria"&&<PrioritaPipeline onNavigate={setNav} onViewPartner={(p)=>{setSelectedPartner(p);setMode("partner");setNav("dashboard");}}/>}
@@ -1876,10 +1636,53 @@ export default function App() {
             {nav==="overview-old"&&<AdminOverview stats={stats} agents={agents} partners={partners} alerts={alerts} onNavigate={setNav}/>}
             {nav==="clienti"&&<AdminClientiPanel onViewAsCliente={(cliente) => {
               setViewingCliente(cliente);
-              setMode("cliente");
-              setNav("cliente-post");
+              setNav("cliente-preview");
             }}/>}
-            {nav==="clienti-analisi"&&<ProspectPipeline onOpenCliente={(c)=>{setViewingCliente(c);setMode("cliente");}}/>}
+            {nav==="clienti-analisi"&&<ProspectPipeline onOpenCliente={(c)=>{setViewingCliente(c);setNav("cliente-preview");}}/>}
+            {nav==="cliente-preview"&&(
+              <div className="space-y-4">
+                {/* Banner preview admin */}
+                <div className="flex items-center justify-between rounded-xl px-5 py-3" style={{ background: '#3B82F610', border: '1px solid #3B82F640' }}>
+                  <div className="flex items-center gap-3">
+                    <Eye className="w-4 h-4" style={{ color: '#3B82F6' }} />
+                    <div>
+                      <span className="text-sm font-bold" style={{ color: '#3B82F6' }}>
+                        {viewingCliente ? `Preview Cliente: ${viewingCliente.nome || ''} ${viewingCliente.cognome || ''}` : 'Preview Wizard Cliente (Demo)'}
+                      </span>
+                      <span className="text-xs ml-2" style={{ color: '#6B7280' }}>
+                        {viewingCliente?.email || 'Visualizzazione come la vede il cliente'}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    data-testid="close-cliente-preview"
+                    onClick={() => { setViewingCliente(null); setNav("clienti"); }}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all hover:opacity-80"
+                    style={{ background: '#1A1F24', color: 'white' }}
+                  >
+                    <XCircle className="w-3.5 h-3.5" /> Chiudi Preview
+                  </button>
+                </div>
+                {/* Wizard dentro il layout admin */}
+                <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #ECEDEF', background: '#FAFAF7' }}>
+                  <ClienteWizard
+                    adminPreview={true}
+                    user={viewingCliente ? {
+                      id: viewingCliente.id,
+                      nome: viewingCliente.nome,
+                      cognome: viewingCliente.cognome,
+                      email: viewingCliente.email,
+                    } : {
+                      id: "demo",
+                      nome: "Cliente",
+                      cognome: "Demo",
+                      email: "demo@example.com",
+                    }}
+                    onLogout={() => { setViewingCliente(null); setNav("clienti"); }}
+                  />
+                </div>
+              </div>
+            )}
             {nav==="flusso-analisi"&&<GestioneFlussoAnalisi/>}
             {nav==="demo-flusso-cliente"&&<DemoFlussoCliente/>}
             {nav==="agenti"&&<AgentDashboard/>}
