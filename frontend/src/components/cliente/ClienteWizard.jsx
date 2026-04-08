@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   ArrowRight, ArrowLeft, CheckCircle, Loader2,
-  Sparkles, Play, Calendar, LogOut, ChevronDown
+  Sparkles, Play, Calendar, LogOut, ChevronDown,
+  Shield, Lock, FileText, PhoneCall, BadgeCheck
 } from "lucide-react";
 import axios from "axios";
 import { API } from "../../utils/api-config";
@@ -468,75 +469,129 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
             </div>
           )}
 
-          {/* ── STEP 3: Pre-Payment ─────────────────────────── */}
+          {/* ── STEP 3: Checkout Analisi Strategica (€67) ──── */}
           {step === 3 && (
-            <div data-testid="step-pre-payment" className="text-center">
-              <h1 className="text-2xl font-black mb-3" style={{ color: C.dark }}>
-                Sei ad un passo dalla tua Analisi Strategica
-              </h1>
-              <p className="text-sm leading-relaxed mb-6 max-w-md mx-auto" style={{ color: C.muted }}>
-                Sulla base delle informazioni che hai inserito, possiamo elaborare un'analisi
-                strategica personalizzata del tuo progetto.
-              </p>
-              <div className="rounded-xl p-6 mb-6 text-left" style={{ background: "white", border: `1px solid ${C.border}` }}>
-                <h3 className="font-bold text-sm mb-4" style={{ color: C.dark }}>Durante la videocall riceverai:</h3>
+            <div data-testid="step-checkout" className="w-full max-w-lg mx-auto">
+
+              {/* Mini-header riepilogo blocchi questionario */}
+              <div className="flex items-center justify-center gap-2 mb-6">
                 {[
-                  "Valutazione reale del tuo progetto",
-                  "Punti di forza e criticità",
-                  "Direzione strategica concreta",
-                  "Possibilità di accesso alla partnership",
-                ].map(item => (
-                  <div key={item} className="flex items-start gap-2.5 mb-3">
-                    <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: C.green }} />
-                    <span className="text-sm" style={{ color: C.dark }}>{item}</span>
+                  { label: "Progetto", color: "#3B82F6" },
+                  { label: "Esperienza", color: "#8B5CF6" },
+                  { label: "Obiettivo", color: "#F59E0B" },
+                ].map(b => (
+                  <div key={b.label} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+                    style={{ background: `${b.color}12`, border: `1px solid ${b.color}30` }}>
+                    <CheckCircle className="w-3 h-3" style={{ color: b.color }} />
+                    <span className="text-[10px] font-bold" style={{ color: b.color }}>{b.label}</span>
                   </div>
                 ))}
               </div>
-              <div className="rounded-xl p-6 mb-6" style={{ background: `${C.yellow}15`, border: `1px solid ${C.yellow}40` }}>
-                <div className="text-3xl font-black mb-1" style={{ color: C.dark }}>€67</div>
-                <div className="text-xs font-bold" style={{ color: C.yellowDark }}>una tantum — Analisi Strategica Personalizzata</div>
+
+              {/* Hero */}
+              <div className="text-center mb-6">
+                <h1 className="text-2xl font-black leading-tight mb-2" style={{ color: C.dark }}>
+                  Sei ad un passo dalla tua<br />Analisi Strategica
+                </h1>
+                <p className="text-sm leading-relaxed max-w-sm mx-auto" style={{ color: C.muted }}>
+                  Il tuo punteggio di idoneità è stato elaborato. Sblocca il report
+                  completo e prenota il tuo posto nel programma.
+                </p>
               </div>
+
+              {/* Value Stack Card */}
+              <div className="rounded-xl p-5 mb-5" style={{ background: "white", border: `1px solid ${C.border}` }}>
+                <div className="text-[10px] font-bold uppercase tracking-widest mb-4" style={{ color: C.yellowDark }}>
+                  Cosa è incluso
+                </div>
+                <div className="space-y-4">
+                  {[
+                    {
+                      icon: FileText, title: "Analisi Strategica AI-Driven",
+                      desc: "Report di 5 sezioni generato su dati deterministici, personalizzato sul tuo caso.",
+                    },
+                    {
+                      icon: PhoneCall, title: "Script Call Personalizzato",
+                      desc: "6 sezioni pronte per la tua videocall strategica con Claudio.",
+                    },
+                    {
+                      icon: BadgeCheck, title: "Verifica Idoneità Partnership",
+                      desc: "Validazione ufficiale per l'accesso al contratto da €2.790.",
+                    },
+                  ].map(v => (
+                    <div key={v.title} className="flex gap-3">
+                      <div className="w-9 h-9 rounded-lg flex-shrink-0 flex items-center justify-center"
+                        style={{ background: `${C.green}15` }}>
+                        <v.icon className="w-4 h-4" style={{ color: C.green }} />
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold" style={{ color: C.dark }}>{v.title}</div>
+                        <div className="text-xs leading-relaxed" style={{ color: C.muted }}>{v.desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Pricing Block */}
+              <div className="rounded-xl p-6 text-center mb-2"
+                style={{ background: `${C.yellow}12`, border: `1.5px solid ${C.yellow}50` }}>
+                <div className="text-4xl font-black tracking-tight" style={{ color: C.dark }}>€67</div>
+                <div className="text-xs font-bold mt-1" style={{ color: C.yellowDark }}>
+                  Investimento unico (IVA inclusa se applicabile)
+                </div>
+                <div className="text-[11px] mt-2 italic" style={{ color: C.muted }}>
+                  Questo importo verrà scalato dal costo della partnership in caso di esito positivo.
+                </div>
+              </div>
+
+              {/* CTA */}
               <button
                 data-testid="checkout-cta"
-                onClick={() => setStep(4)}
-                className="px-10 py-3.5 rounded-xl text-sm font-black"
-                style={{ background: C.yellow, color: C.dark }}
+                onClick={startCheckout}
+                disabled={checkingOut}
+                className="w-full py-4 rounded-xl text-sm font-black flex items-center justify-center gap-2 transition-all hover:shadow-lg hover:brightness-105 active:scale-[0.98]"
+                style={{ background: "#1A65D6", color: "white", opacity: checkingOut ? 0.7 : 1 }}
               >
-                Richiedi la tua Analisi Strategica <ArrowRight className="w-4 h-4 inline ml-1" />
+                {checkingOut ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Preparazione del gateway sicuro di pagamento...
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4" />
+                    Richiedi la tua Analisi Strategica
+                  </>
+                )}
               </button>
-            </div>
-          )}
 
-          {/* ── STEP 4: Checkout Stripe ─────────────────────── */}
-          {step === 4 && (
-            <div data-testid="step-checkout" className="text-center">
-              <h2 className="text-xl font-black mb-2" style={{ color: C.dark }}>Pagamento Analisi Strategica</h2>
-              <p className="text-sm mb-6" style={{ color: C.muted }}>Verrai reindirizzato a Stripe per il pagamento sicuro</p>
-              <div className="rounded-xl p-6 mb-6" style={{ background: "white", border: `1px solid ${C.border}` }}>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-sm font-bold" style={{ color: C.dark }}>Analisi Strategica Personalizzata</span>
-                  <span className="text-lg font-black" style={{ color: C.dark }}>€67</span>
+              {/* Trust Signals */}
+              <div className="flex items-center justify-center gap-4 mt-4">
+                <div className="flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5" style={{ color: "#9CA3AF" }} />
+                  <span className="text-[10px] font-bold" style={{ color: "#9CA3AF" }}>SSL Secured</span>
                 </div>
-                <div className="text-xs" style={{ color: C.muted }}>Pagamento sicuro con carta di credito/debito via Stripe</div>
+                <div className="h-3 w-px" style={{ background: "#E5E7EB" }} />
+                <div className="flex items-center gap-2">
+                  {["Visa", "Mastercard", "Stripe"].map(name => (
+                    <span key={name} className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                      style={{ background: "#F3F4F6", color: "#9CA3AF" }}>{name}</span>
+                  ))}
+                </div>
               </div>
-              <div className="flex justify-between">
-                <button onClick={() => setStep(3)} className="px-5 py-2.5 rounded-lg text-sm font-bold" style={{ color: C.muted }}>
+
+              {/* Back + Support */}
+              <div className="flex items-center justify-between mt-6">
+                <button onClick={() => setStep(2)} className="text-sm font-bold" style={{ color: C.muted }}>
                   <ArrowLeft className="w-4 h-4 inline mr-1" /> Indietro
                 </button>
-                <button
-                  data-testid="pay-btn"
-                  onClick={startCheckout}
-                  disabled={checkingOut}
-                  className="px-10 py-3.5 rounded-xl text-sm font-black flex items-center gap-2"
-                  style={{ background: C.yellow, color: C.dark, opacity: checkingOut ? 0.6 : 1 }}
-                >
-                  {checkingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                  Paga €67 <ArrowRight className="w-4 h-4" />
-                </button>
+                <a href="mailto:stefania@evolution-pro.it" className="text-[11px] underline" style={{ color: "#9CA3AF" }}>
+                  Problemi con il pagamento? Contatta Stefania
+                </a>
               </div>
             </div>
           )}
-
           {/* ── STEP 5: Thank You ───────────────────────────── */}
           {step === 5 && (
             <div data-testid="step-thank-you" className="text-center">
