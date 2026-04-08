@@ -1609,8 +1609,8 @@ async def mark_questionario_started(credentials: HTTPAuthorizationCredentials = 
 @api_router.post("/cliente-analisi/mini-quiz")
 async def save_mini_quiz(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
     """
-    Salva le risposte del mini questionario strutturato (6 domande, 4 blocchi).
-    Output JSON strutturato per pipeline AI (analisi, script call, scoring).
+    Salva le risposte del questionario strutturato (9 campi, 3 blocchi).
+    Output: JSON strutturato + scoring deterministico + generazione AI analisi/script.
     Aggiorna stato → QUESTIONARIO_COMPLETATO.
     """
     if not credentials:
@@ -1618,10 +1618,15 @@ async def save_mini_quiz(request: Request, credentials: HTTPAuthorizationCredent
     token_data = decode_token(credentials.credentials)
     if not token_data:
         raise HTTPException(status_code=401, detail="Token non valido o scaduto")
-    
+
     body = await request.json()
     risposte = body.get("risposte", {})
-    
+
+    # 1) Scoring deterministico
+    from services.analisi_generator import calcola_scoring
+    scoring = calcola_scoring(risposte)
+
+    # 2) Salva quiz + scoring
     await db.users.update_one(
         {"id": token_data.user_id},
         {"$set": {
@@ -1630,11 +1635,99 @@ async def save_mini_quiz(request: Request, credentials: HTTPAuthorizationCredent
             "mini_quiz_completed_at": datetime.now(timezone.utc).isoformat(),
             "questionario_started": True,
             "questionario_completed": True,
+            "scoring": scoring,
             "stato_cliente": StatiCliente.QUESTIONARIO_COMPLETATO,
             "azione_richiesta": AzioniCliente.EFFETTUA_PAGAMENTO,
         }}
     )
-    return {"success": True, "stato": "MINI_QUIZ_DONE"}
+
+    # 3) Genera analisi + script in background (non bloccare il frontend)
+    import asyncio
+    asyncio.create_task(_genera_output_post_quiz(token_data.user_id, risposte, scoring))
+
+    return {"success": True, "stato": "MINI_QUIZ_DONE", "scoring": scoring}
+
+
+async def _genera_output_post_quiz(user_id: str, quiz: dict, scoring: dict):
+    """Background: genera analisi AI + script call + PDF e li salva nel DB."""
+    try:
+        from services.analisi_generator import genera_analisi_ai, genera_script_call_ai
+        from services.pdf_generator import genera_pdf_analisi
+        import base64
+
+        # Genera analisi
+        analisi = await genera_analisi_ai(quiz, scoring)
+
+        # Genera script call basato sull'analisi
+        script_call = await genera_script_call_ai(quiz, scoring, analisi)
+
+        # Recupera info cliente
+        user = await db.users.find_one({"id": user_id}, {"_id": 0, "nome": 1, "cognome": 1, "email": 1})
+        nome = f"{user.get('nome', '')} {user.get('cognome', '')}" if user else ""
+        email = user.get("email", "") if user else ""
+
+        # Genera PDF
+        pdf_bytes = genera_pdf_analisi(quiz, scoring, analisi, nome, email)
+        pdf_b64 = base64.b64encode(pdf_bytes).decode("utf-8")
+
+        # Salva tutto nel DB
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {
+                "analisi_strategica": analisi,
+                "script_call": script_call,
+                "analisi_pdf_b64": pdf_b64,
+                "analisi_generata_il": datetime.now(timezone.utc).isoformat(),
+            }}
+        )
+        logger.info(f"Output post-quiz generato per utente {user_id}")
+    except Exception as e:
+        logger.error(f"Errore generazione output post-quiz per {user_id}: {e}")
+
+
+@api_router.get("/cliente-analisi/output/{user_id}")
+async def get_analisi_output(user_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Restituisce analisi, scoring, script call per un utente."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+
+    user = await db.users.find_one(
+        {"id": user_id},
+        {"_id": 0, "analisi_strategica": 1, "scoring": 1, "script_call": 1,
+         "analisi_generata_il": 1, "mini_quiz": 1}
+    )
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+    return {
+        "analisi": user.get("analisi_strategica"),
+        "scoring": user.get("scoring"),
+        "script_call": user.get("script_call"),
+        "quiz": user.get("mini_quiz"),
+        "generata_il": user.get("analisi_generata_il"),
+    }
+
+
+@api_router.get("/cliente-analisi/pdf/{user_id}")
+async def download_analisi_pdf(user_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Download PDF analisi strategica."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "analisi_pdf_b64": 1, "nome": 1, "cognome": 1})
+    if not user or not user.get("analisi_pdf_b64"):
+        raise HTTPException(status_code=404, detail="PDF non ancora generato")
+
+    import base64
+    from fastapi.responses import Response
+    pdf_bytes = base64.b64decode(user["analisi_pdf_b64"])
+    nome = f"{user.get('nome', '')}_{user.get('cognome', '')}".strip("_") or "analisi"
+    filename = f"EvolutionPRO_Analisi_{nome}.pdf"
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 
