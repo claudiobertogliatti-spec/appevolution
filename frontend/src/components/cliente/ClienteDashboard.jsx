@@ -1,1037 +1,397 @@
-import React, { useState, useEffect } from "react";
-import { 
-  CheckCircle, Clock, Gift, Play, Lock, Send,
-  Target, Lightbulb, Rocket, Megaphone, Users, Shield,
-  ChevronRight, Calendar, Video, FileText, ArrowRight,
-  Map, Sparkles, User, GraduationCap, TrendingUp, Award,
-  AlertTriangle, Star, Loader2, BookOpen, ChevronDown, Download
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  CheckCircle, Clock, FileText, Video, ArrowRight,
+  Sparkles, User, TrendingUp, Loader2, BookOpen,
+  LogOut, Play, Star, Rocket, Target, ChevronRight
 } from "lucide-react";
 import axios from "axios";
 import { API } from "../../utils/api-config";
 
-// Progress Steps
-const PROGRESS_STEPS = [
-  { id: 1, label: "Acquisto", icon: CheckCircle, status: "completed" },
-  { id: 2, label: "Questionario", icon: FileText, status: "current" },
-  { id: 3, label: "Call con Claudio", icon: Video, status: "pending" }
+// ── 5-step progress ──────────────────────────────────────────────
+const STEPS = [
+  { id: 1, label: "Acquisto",      icon: CheckCircle },
+  { id: 2, label: "Questionario",  icon: FileText },
+  { id: 3, label: "Analisi",       icon: Sparkles },
+  { id: 4, label: "Proposta",      icon: Target },
+  { id: 5, label: "Partnership",   icon: Rocket },
 ];
 
-// Team members for info box
-const TEAM_MEMBERS = [
-  { name: "VALENTINA", role: "strategia e onboarding", color: "#F5C518" },
-  { name: "ANDREA", role: "produzione contenuti", color: "#F5C518" },
-  { name: "MARCO", role: "accountability settimanale", color: "#F5C518" },
-  { name: "GAIA", role: "supporto tecnico", color: "#F5C518" },
-  { name: "STEFANIA", role: "coordinatrice", color: "#F5C518" },
-  { name: "Claudio", role: "supervisione e call strategiche", isHuman: true },
-  { name: "Antonella", role: "comunicazione e social", isHuman: true }
-];
+// ── Brand colors ─────────────────────────────────────────────────
+const C = {
+  yellow:     "#FFD24D",
+  yellowDark: "#D4A017",
+  dark:       "#1A1F24",
+  bg:         "#FAFAF7",
+  border:     "#E8E4DC",
+  muted:      "#8B8680",
+  green:      "#10B981",
+  red:        "#EF4444",
+};
 
-// Questions for pre-call questionnaire
+// ── Questions for pre-call questionnaire ─────────────────────────
 const QUESTIONS = [
-  {
-    id: "expertise",
-    question: "In cosa sei riconosciuto/a come esperto/a?",
-    description: "Descrivi la tua competenza principale.",
-    examples: [
-      "coach di comunicazione per manager",
-      "nutrizionista specializzata in donne over 40",
-      "consulente fiscale per freelance",
-      "formatore sulla gestione dello stress"
-    ],
-    important: false
-  },
-  {
-    id: "cliente_ideale",
-    question: "Chi è il tuo cliente ideale?",
-    description: "Descrivi la persona che vorresti aiutare con la tua accademia.",
-    bullets: [
-      "età o fase della vita",
-      "professione",
-      "problema principale",
-      "situazione attuale"
-    ],
-    bulletPrefix: "Se puoi, indica:",
-    important: false
-  },
-  {
-    id: "risultato_concreto",
-    question: "Quale risultato concreto vorresti aiutarlo a ottenere?",
-    description: "In altre parole: dopo il tuo percorso, cosa cambia per questa persona? Quale trasformazione prometti?",
-    examples: [
-      "superare l'ansia nel parlare in pubblico",
-      "migliorare la gestione del tempo",
-      "imparare a gestire la propria alimentazione"
-    ],
-    important: false
-  },
-  {
-    id: "pubblico_esistente",
-    question: "Hai già un pubblico o persone che ti seguono?",
-    description: "Social, community, newsletter, clienti.",
-    examples: [
-      "2.000 follower Instagram",
-      "newsletter da 500 iscritti",
-      "gruppo Facebook da 300 persone"
-    ],
-    note: "Se non hai ancora un pubblico, scrivi \"No\".",
-    important: false
-  },
-  {
-    id: "esperienze_passate",
-    question: "Hai già venduto qualcosa online o lavori già con clienti su questo tema?",
-    description: "Consulenze, corsi, workshop, percorsi 1:1. Raccontaci cosa hai già proposto e com'è andata.",
-    note: "Se è la prima volta, puoi scrivere: \"No, è la mia prima esperienza online\".",
-    important: false
-  },
-  {
-    id: "ostacolo_principale",
-    question: "Qual è il principale ostacolo che finora ti ha bloccato dal digitalizzare la tua competenza?",
-    description: "Ad esempio:",
-    bullets: [
-      "mancanza di tempo",
-      "difficoltà tecniche",
-      "non sapere da dove iniziare",
-      "paura che non funzioni",
-      "mancanza di pubblico",
-      "difficoltà a strutturare il percorso"
-    ],
-    important: false
-  },
-  {
-    id: "perche_adesso",
-    question: "Perché proprio adesso?",
-    description: "Cosa è cambiato rispetto ai mesi scorsi? Perché senti che questo è il momento giusto per costruire la tua Accademia Digitale?",
-    important: true
-  }
+  { id: "expertise", question: "In cosa sei riconosciuto/a come esperto/a?", description: "Descrivi la tua competenza principale." },
+  { id: "cliente_ideale", question: "Chi è il tuo cliente ideale?", description: "Descrivi la persona che vorresti aiutare." },
+  { id: "risultato_concreto", question: "Quale risultato concreto vorresti aiutarlo a ottenere?", description: "Quale trasformazione prometti?" },
+  { id: "pubblico_esistente", question: "Hai già un pubblico o persone che ti seguono?", description: "Social, community, newsletter, clienti." },
+  { id: "esperienze_passate", question: "Hai già venduto corsi, consulenze o servizi simili?", description: "Se sì, a che livello?" },
+  { id: "ostacolo_principale", question: "Qual è il blocco più grande per te oggi?", description: "Cosa ti impedisce di partire?" },
+  { id: "perche_adesso", question: "Perché vuoi farlo adesso?", description: "Cosa è cambiato nella tua situazione?" },
 ];
 
-// I 7 Bonus Formativi (contenuti completi come nella sezione Partner)
-const BONUS_DATA = [
-  {
-    id: 1,
-    title: "Il Blueprint che Evita il Fallimento del 90% dei Corsi",
-    content: `La maggior parte dei corsi fallisce prima ancora di essere registrata.
-
-Il motivo è semplice: si parte dai contenuti invece che dal problema.
-
-Molti professionisti pensano:
-
-"Ho tante cose da insegnare, faccio un corso."
-
-Il mercato però non compra contenuti.
-
-**Compra soluzioni.**
-
-La prima domanda da farsi non è:
-
-Cosa posso insegnare?
-
-Ma:
-
-**Quale problema urgente posso aiutare a risolvere?**
-
-**Punto chiave:**
-
-Un corso nasce da un problema chiaro, non da una lista di argomenti.`
-  },
-  {
-    id: 2,
-    title: "Argomenti che Vendono",
-    content: `Un errore molto comune è voler insegnare tutto.
-
-Si creano corsi lunghi, pieni di moduli, che cercano di coprire ogni possibile aspetto.
-
-Il risultato?
-
-Un percorso dispersivo che confonde lo studente e riduce le vendite.
-
-I corsi che funzionano fanno l'opposto:
-
-**selezionano pochi passaggi essenziali e costruiscono un percorso chiaro.**
-
-**Punto chiave:**
-
-Un buon corso elimina il superfluo prima ancora di registrare le lezioni.`
-  },
-  {
-    id: 3,
-    title: "La Durata delle Lezioni",
-    content: `Molti corsi online hanno lezioni troppo lunghe.
-
-Video da 30 o 40 minuti sembrano completi… ma spesso vengono abbandonati.
-
-Nel digitale la regola è semplice:
-
-**lezioni brevi, chiare e focalizzate.**
-
-Quando ogni lezione risolve un micro problema specifico, lo studente resta coinvolto e completa il percorso.
-
-**Punto chiave:**
-
-La struttura delle lezioni influenza direttamente l'esperienza dello studente.`
-  },
-  {
-    id: 4,
-    title: "Il Funnel di Vendita",
-    content: `Un corso non si vende da solo.
-
-Molti professionisti pensano che basti pubblicarlo su una piattaforma.
-
-In realtà ogni corso ha bisogno di una struttura minima di vendita:
-
-• una pagina che spiega il problema
-• una presentazione che mostra la soluzione
-• un percorso che accompagna il cliente alla decisione.
-
-Questo sistema è chiamato **funnel di vendita**.
-
-**Punto chiave:**
-
-Il corso è il prodotto. Il funnel è il sistema che lo vende.`
-  },
-  {
-    id: 5,
-    title: "Le ADV",
-    content: `Le campagne pubblicitarie possono accelerare molto la crescita di un corso.
-
-Ma funzionano solo quando la struttura strategica è già chiara.
-
-Se il posizionamento è confuso o il messaggio non è forte, le ADV amplificano il problema invece di risolverlo.
-
-Per questo le campagne funzionano solo quando il progetto è già solido.
-
-**Punto chiave:**
-
-Le ADV accelerano ciò che funziona già.`
-  },
-  {
-    id: 6,
-    title: "I Social",
-    content: `Molti professionisti pensano che i social servano per pubblicare contenuti ogni giorno.
-
-In realtà la funzione principale dei social è molto più semplice:
-
-**costruire fiducia.**
-
-I social non vendono direttamente il corso.
-
-Aiutano le persone a capire chi sei, cosa fai e perché dovrebbero fidarsi di te.
-
-**Punto chiave:**
-
-I social costruiscono relazione prima della vendita.`
-  },
-  {
-    id: 7,
-    title: "Non Fare Tutto da Solo",
-    content: `Il più grande ostacolo alla riuscita di un corso online non è la competenza.
-
-È cercare di fare tutto da soli.
-
-Strategia, contenuti, video, marketing, piattaforma, vendite.
-
-Quando una persona prova a gestire tutto insieme, il progetto rallenta o si blocca.
-
-I progetti che funzionano di solito hanno una struttura chiara e un sistema che guida ogni fase.
-
-**Punto chiave:**
-
-Un sistema riduce l'incertezza e accelera i risultati.`
-  }
+// ── Team members ─────────────────────────────────────────────────
+const TEAM = [
+  { name: "VALENTINA", role: "Strategia e Onboarding" },
+  { name: "ANDREA", role: "Produzione Contenuti" },
+  { name: "MARCO", role: "Accountability Settimanale" },
+  { name: "GAIA", role: "Supporto Tecnico" },
+  { name: "STEFANIA", role: "Coordinatrice" },
+  { name: "Claudio", role: "Supervisione e Call Strategiche", human: true },
+  { name: "Antonella", role: "Comunicazione e Social", human: true },
 ];
 
-// Introduzione del Mini Corso
-const INTRO_MINI_CORSO = `Se stai leggendo questa guida è molto probabile che tu sia una persona competente.
+export default function ClienteDashboard({ cliente, onLogout, onDecisione, onPartnerAttivato }) {
+  const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [currentStep, setCurrentStep] = useState(1);
 
-Hai esperienza. Hai lavorato con clienti reali. Hai costruito competenze che hanno valore.
+  // Questionnaire state
+  const [showQuestionnaire, setShowQuestionnaire] = useState(false);
+  const [currentQ, setCurrentQ] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [submittingQ, setSubmittingQ] = useState(false);
 
-Ed è naturale che prima o poi arrivi questa domanda:
+  const userId = cliente?.id;
 
-**"Posso trasformare quello che so fare in un videocorso?"**
-
-La risposta è sì.
-
-Ma c'è una cosa che quasi nessuno dice chiaramente:
-
-**Creare un videocorso è facile.
-Creare un progetto digitale che venda nel tempo è tutta un'altra cosa.**
-
-Ogni anno migliaia di professionisti registrano videocorsi che:
-
-✗ non vendono
-✗ vendono pochissimo
-✗ vengono abbandonati dagli studenti
-✗ non generano entrate nel tempo
-
-E quasi mai il problema è la qualità del contenuto.
-
-**Il problema è che manca una struttura strategica prima di iniziare.**
-
-In questa breve guida vedremo i principi fondamentali che permettono di evitare gli errori più comuni e costruire le basi di un progetto digitale sostenibile.`;
-
-// Conclusione del Mini Corso
-const CONCLUSIONE_MINI_CORSO = `Se hai letto tutti i moduli di questa guida, ormai è chiaro un punto.
-
-**Creare un videocorso non è difficile.**
-
-**Costruire un progetto digitale che venda nel tempo è un'altra cosa.**
-
-Serve:
-
-• un problema reale da risolvere
-• un posizionamento chiaro
-• un percorso formativo credibile
-• una struttura di vendita
-• un sistema che coordini tutto
-
-Quando questi elementi sono allineati, un corso può diventare un vero asset digitale.
-
-Quando mancano, il rischio è sempre lo stesso: mesi di lavoro per un prodotto che il mercato non compra.
-
-**Per questo la call strategica di analisi serve prima di tutto a verificare la fattibilità del progetto.**`;
-
-export function ClienteDashboard({ cliente, onLogout }) {
-  const [questionarioCompletato, setQuestionarioCompletato] = useState(
-    cliente?.questionario?.completato || false
-  );
-  const [risposte, setRisposte] = useState({
-    expertise: "",
-    cliente_ideale: "",
-    risultato_concreto: "",
-    pubblico_esistente: "",
-    esperienze_passate: "",
-    ostacolo_principale: "",
-    perche_adesso: ""
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [selectedBonus, setSelectedBonus] = useState(null);
-  const [expandedBonus, setExpandedBonus] = useState(null);
-  const [showQuestionario, setShowQuestionario] = useState(false); // Pre-questionario intro
-
-  // Aggiorna stato quando cambiano le props del cliente
-  useEffect(() => {
-    setQuestionarioCompletato(cliente?.questionario?.completato || false);
-  }, [cliente?.questionario?.completato]);
-
-  const clienteName = cliente?.nome || "Benvenuto";
-  const clienteEmail = cliente?.email || "";
-
-  // Check if all fields have at least 10 characters
-  const isFormValid = Object.values(risposte).every(v => v.trim().length >= 10);
-
-  const handleChange = (id, value) => {
-    setRisposte(prev => ({ ...prev, [id]: value }));
-  };
-
-  const handleSubmit = async () => {
-    if (!isFormValid) return;
-    
-    setLoading(true);
-    setError(null);
-    
+  // ── Fetch status & determine step ──────────────────────────────
+  const fetchStatus = useCallback(async () => {
+    if (!userId || userId === "demo-cliente") { setLoading(false); return; }
     try {
-      // 1. Salva le risposte del questionario
-      await axios.post(`${API}/api/clienti/${cliente.id}/questionario`, risposte);
-      
-      // 2. Avvia automaticamente il workflow di generazione analisi
-      try {
-        await axios.post(`${API}/api/clienti/${cliente.id}/avvia-analisi`);
-        console.log("Workflow analisi avviato in background");
-      } catch (workflowErr) {
-        console.warn("Errore avvio workflow (non bloccante):", workflowErr);
+      const r = await axios.get(`${API}/api/cliente-analisi/status/${userId}`);
+      const d = r.data;
+      setStatus(d);
+
+      if (d.analisi_generata && d.decisione_attivata) {
+        setCurrentStep(5); // partnership/decisione
+      } else if (d.analisi_generata) {
+        setCurrentStep(4); // proposta pronta
+      } else if (d.questionario_completed || d.questionario_completato) {
+        setCurrentStep(3); // analisi in preparazione
+      } else if (d.pagamento_effettuato || d.pagamento_analisi) {
+        setCurrentStep(2); // deve compilare questionario
+      } else {
+        setCurrentStep(1); // acquisto
       }
-      
-      setQuestionarioCompletato(true);
-    } catch (err) {
-      setError(err.response?.data?.detail || "Errore durante l'invio");
-    } finally {
-      setLoading(false);
+    } catch (e) {
+      console.error("Status fetch error:", e);
     }
+    setLoading(false);
+  }, [userId]);
+
+  useEffect(() => { fetchStatus(); }, [fetchStatus]);
+
+  // ── Polling every 30s for step 3 (analisi in preparazione) ─────
+  useEffect(() => {
+    if (currentStep !== 3) return;
+    const interval = setInterval(fetchStatus, 30000);
+    return () => clearInterval(interval);
+  }, [currentStep, fetchStatus]);
+
+  // ── Submit questionnaire ──────────────────────────────────────
+  const submitQuestionnaire = async () => {
+    setSubmittingQ(true);
+    try {
+      const token = localStorage.getItem("access_token");
+      await axios.post(`${API}/api/cliente-analisi/questionario`, { risposte: answers }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setShowQuestionnaire(false);
+      setCurrentStep(3);
+      fetchStatus();
+    } catch (e) {
+      console.error("Questionnaire submit error:", e);
+    }
+    setSubmittingQ(false);
   };
 
-  // Get progress status
-  const getStepStatus = (stepId) => {
-    if (stepId === 1) return "completed";
-    if (stepId === 2) return questionarioCompletato ? "completed" : "current";
-    if (stepId === 3) return questionarioCompletato ? "current" : "pending";
-    return "pending";
-  };
-
-  return (
-    <div className="min-h-screen" style={{ background: '#FAFAF7' }} data-testid="cliente-dashboard">
-      {/* Header */}
-      <header className="border-b sticky top-0 z-40" style={{ borderColor: '#ECEDEF', background: '#FFFFFF' }}>
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#F5C518] flex items-center justify-center">
-              <span className="font-black text-black">E</span>
+  // ── Progress bar ──────────────────────────────────────────────
+  const ProgressBar = () => (
+    <div data-testid="progress-bar" className="flex items-center gap-0 mb-8">
+      {STEPS.map((step, i) => {
+        const done = step.id < currentStep;
+        const active = step.id === currentStep;
+        const Icon = step.icon;
+        return (
+          <React.Fragment key={step.id}>
+            <div className="flex flex-col items-center" style={{ minWidth: 80 }}>
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center mb-1.5"
+                style={{
+                  background: done ? C.green : active ? C.yellow : "#E8E4DC",
+                  color: done ? "white" : active ? C.dark : C.muted,
+                  transition: "all 0.3s ease",
+                }}
+              >
+                {done ? <CheckCircle className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
+              </div>
+              <span
+                className="text-xs font-bold text-center"
+                style={{ color: done || active ? C.dark : C.muted }}
+              >
+                {step.label}
+              </span>
             </div>
-            <span className="font-bold text-[#1E2128]">Evolution<span className="text-[#F5C518]">PRO</span></span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-[#9CA3AF]">
-              Ciao, <span className="text-[#1E2128] font-semibold">{clienteName}</span>
-            </span>
-            <button 
-              onClick={onLogout}
-              className="text-sm text-[#9CA3AF] hover:text-[#1E2128] transition-colors"
-            >
-              Esci
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-
-            {/* PRE-QUESTIONARIO INTRO PAGE */}
-            {!questionarioCompletato && !showQuestionario ? (
-              <div className="rounded-2xl p-8" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-                
-                {/* PROGRESS BAR - PRE QUESTIONARIO */}
-                <div className="mb-8">
-                  <p className="text-sm text-[#5F6572] mb-4">
-                    ✅ Sei nella fase <strong>1/3</strong> del processo che porta alla costruzione della tua Accademia Digitale.
-                  </p>
-                  <div className="flex items-center gap-2">
-                    {/* Step 1 - Acquisto (Completato) */}
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-[#10B981] flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-white" />
-                      </div>
-                      <span className="text-sm font-medium text-[#10B981]">Acquisto</span>
-                    </div>
-                    <div className="flex-1 h-1 bg-[#ECEDEF] rounded mx-2">
-                      <div className="h-full w-0 bg-[#10B981] rounded"></div>
-                    </div>
-                    {/* Step 2 - Questionario (Da fare) */}
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-[#ECEDEF] flex items-center justify-center">
-                        <span className="text-sm font-bold text-[#9CA3AF]">2</span>
-                      </div>
-                      <span className="text-sm font-medium text-[#9CA3AF]">Questionario</span>
-                    </div>
-                    <div className="flex-1 h-1 bg-[#ECEDEF] rounded mx-2"></div>
-                    {/* Step 3 - Call (Da fare) */}
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-[#ECEDEF] flex items-center justify-center">
-                        <span className="text-sm font-bold text-[#9CA3AF]">3</span>
-                      </div>
-                      <span className="text-sm font-medium text-[#9CA3AF]">Call con Claudio</span>
-                    </div>
-                  </div>
-                </div>
-
-                <h2 className="text-2xl font-black text-[#1E2128] mb-4">
-                  ✅ Benvenuto in Evolution PRO
-                </h2>
-                
-                <p className="text-[#5F6572] mb-6 leading-relaxed">
-                  Hai completato correttamente l'accesso alla fase di Analisi Strategica.
-                </p>
-
-                <p className="text-[#5F6572] mb-4 leading-relaxed">
-                  Il prossimo passo è <strong>raccontarci il tuo progetto</strong>.<br />
-                  Ti faremo alcune domande semplici che ci aiuteranno a capire se la tua competenza può diventare una Accademia Digitale sostenibile nel tempo.
-                </p>
-
-                <div className="flex items-center gap-2 mb-6 text-[#5F6572]">
-                  <Clock className="w-5 h-5 text-[#F5C518]" />
-                  <span><strong>Tempo richiesto:</strong> circa 5 minuti.</span>
-                </div>
-
-                <div className="rounded-xl p-4 mb-6" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
-                  <p className="text-[#5F6572] leading-relaxed">
-                    Non esistono risposte giuste o sbagliate.<br />
-                    <strong>Più sarai concreto e dettagliato, più la nostra analisi sarà precisa e utile.</strong>
-                  </p>
-                </div>
-
-                {/* Sezione "Perché ti chiediamo queste informazioni" */}
-                <div className="mb-8">
-                  <h3 className="text-lg font-bold text-[#1E2128] mb-4 flex items-center gap-2">
-                    <Target className="w-5 h-5 text-[#F5C518]" />
-                    Perché ti chiediamo queste informazioni?
-                  </h3>
-                  <p className="text-[#5F6572] mb-3">Le tue risposte ci permettono di:</p>
-                  <ul className="space-y-2 text-[#5F6572]">
-                    <li className="flex items-start gap-2">
-                      <CheckCircle className="w-4 h-4 text-[#10B981] flex-shrink-0 mt-1" />
-                      <span>capire il tuo posizionamento</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <CheckCircle className="w-4 h-4 text-[#10B981] flex-shrink-0 mt-1" />
-                      <span>analizzare il potenziale del mercato</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <CheckCircle className="w-4 h-4 text-[#10B981] flex-shrink-0 mt-1" />
-                      <span>valutare la fattibilità del progetto</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <CheckCircle className="w-4 h-4 text-[#10B981] flex-shrink-0 mt-1" />
-                      <span>preparare la call strategica</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <p className="text-[#5F6572] mb-8 leading-relaxed">
-                  Una volta completato il questionario, il team Evolution analizzerà il tuo progetto e preparerà la tua <strong>Analisi Strategica</strong>.
-                </p>
-
-                <p className="text-[#5F6572] mb-6 font-medium">
-                  Quando sei pronto puoi iniziare.
-                </p>
-
-                <button
-                  onClick={() => setShowQuestionario(true)}
-                  className="w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all hover:bg-[#D0D0D0]"
-                  style={{ background: '#E8E8E8', color: '#111111', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
-                  data-testid="inizia-questionario-btn"
-                >
-                  INIZIA IL QUESTIONARIO
-                  <ArrowRight className="w-5 h-5" />
-                </button>
-              </div>
-            ) : !questionarioCompletato && showQuestionario ? (
-              /* QUESTIONARIO FORM - 4 BLOCCHI */
-              <div className="rounded-2xl p-8" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-                
-                {/* PROGRESS BAR - QUESTIONARIO */}
-                <div className="mb-8">
-                  <div className="flex items-center gap-2 mb-4">
-                    {/* Step 1 - Acquisto (Completato) */}
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-[#10B981] flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-white" />
-                      </div>
-                      <span className="text-sm font-medium text-[#10B981]">Acquisto</span>
-                    </div>
-                    <div className="flex-1 h-1 bg-[#10B981] rounded mx-2"></div>
-                    {/* Step 2 - Questionario (In corso) */}
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-[#F5C518] flex items-center justify-center">
-                        <span className="text-sm font-bold text-[#1E2128]">2</span>
-                      </div>
-                      <span className="text-sm font-medium text-[#1E2128]">Questionario</span>
-                    </div>
-                    <div className="flex-1 h-1 bg-[#ECEDEF] rounded mx-2"></div>
-                    {/* Step 3 - Call (Da fare) */}
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-[#ECEDEF] flex items-center justify-center">
-                        <span className="text-sm font-bold text-[#9CA3AF]">3</span>
-                      </div>
-                      <span className="text-sm font-medium text-[#9CA3AF]">Call con Claudio</span>
-                    </div>
-                  </div>
-                  <p className="text-sm text-[#10B981] font-medium">
-                    ✅ Ottimo... ci sei quasi
-                  </p>
-                </div>
-
-                {/* BLOCCO 1 — Titolo */}
-                <div className="mb-8">
-                  <h2 className="text-2xl font-black text-[#1E2128] mb-4">Raccontaci il tuo progetto</h2>
-                  <p className="text-[#5F6572] mb-2">
-                    <strong>7 domande — circa 5 minuti</strong>
-                  </p>
-                  <p className="text-[#5F6572]">
-                    Non ci sono risposte giuste o sbagliate.<br />
-                    Più sarai concreto nelle risposte, più l'analisi strategica sarà utile e precisa.
-                  </p>
-                </div>
-
-                {/* BLOCCO 2 — Spiegazione */}
-                <div className="rounded-xl p-5 mb-8" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
-                  <p className="text-[#5F6572] mb-3">
-                    Le informazioni che inserirai ci aiuteranno a capire se la tua competenza può essere trasformata in una <strong>Accademia Digitale</strong> sostenibile nel tempo.
-                  </p>
-                  <p className="text-[#5F6572] mb-3">
-                    Il nostro obiettivo non è creare semplicemente un videocorso, ma verificare se esistono le basi per costruire un <strong>vero asset digitale</strong>.
-                  </p>
-                  <p className="text-[#5F6572] font-medium">
-                    Rispondi nel modo più concreto possibile.
-                  </p>
-                </div>
-
-                {/* BLOCCO 3 — Il questionario */}
-                <div className="space-y-8">
-                  {QUESTIONS.map((q, idx) => (
-                    <div 
-                      key={q.id} 
-                      className={`space-y-3 ${q.important ? 'p-5 rounded-xl' : ''}`}
-                      style={q.important ? { border: '2px solid #F5C518', background: '#FEF9E7' } : {}}
-                    >
-                      {q.important && (
-                        <div className="flex items-center gap-2 mb-2">
-                          <Star className="w-4 h-4 text-[#F5C518]" fill="#F5C518" />
-                          <span className="text-xs font-bold text-[#C4990A] uppercase">La più importante</span>
-                        </div>
-                      )}
-                      
-                      {/* Titolo domanda */}
-                      <label className="block text-base font-bold text-[#1E2128]">
-                        {idx + 1}. {q.question}
-                      </label>
-                      
-                      {/* Spiegazione */}
-                      <div className="text-sm text-[#5F6572]">
-                        {q.description && <p className="mb-2">{q.description}</p>}
-                        
-                        {/* Bullet prefix (es: "Se puoi, indica:") */}
-                        {q.bulletPrefix && <p className="mb-1">{q.bulletPrefix}</p>}
-                        
-                        {/* Bullets list */}
-                        {q.bullets && (
-                          <ul className="mb-2 space-y-0.5">
-                            {q.bullets.map((b, i) => (
-                              <li key={i}>• {b}</li>
-                            ))}
-                          </ul>
-                        )}
-                        
-                        {/* Examples */}
-                        {q.examples && (
-                          <div className="mb-2">
-                            <span className="text-[#9CA3AF]">Esempi: </span>
-                            {q.examples.map((ex, i) => (
-                              <span key={i} className="text-[#5F6572]">
-                                {ex}{i < q.examples.length - 1 ? ', ' : ''}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        
-                        {/* Note */}
-                        {q.note && <p className="text-[#9CA3AF] italic">{q.note}</p>}
-                      </div>
-                      
-                      {/* Campo risposta */}
-                      <textarea
-                        value={risposte[q.id]}
-                        onChange={(e) => handleChange(q.id, e.target.value)}
-                        rows={4}
-                        className="w-full p-4 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F5C518]"
-                        style={{ background: q.important ? '#FFFFFF' : '#FAFAF7', border: '1px solid #ECEDEF' }}
-                        data-testid={`question-${q.id}`}
-                      />
-                      {risposte[q.id].length > 0 && risposte[q.id].length < 10 && (
-                        <p className="text-xs text-red-500">Minimo 10 caratteri ({10 - risposte[q.id].length} rimanenti)</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                {error && (
-                  <div className="mt-6 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4" />
-                    {error}
-                  </div>
-                )}
-
-                {/* BLOCCO 4 — Pulsante finale */}
-                <div className="mt-10 pt-6" style={{ borderTop: '1px solid #ECEDEF' }}>
-                  <p className="text-[#5F6572] mb-2">
-                    Una volta inviato il questionario il team Evolution analizzerà il tuo progetto e preparerà la tua <strong>Analisi Strategica</strong>.
-                  </p>
-                  <p className="text-[#5F6572] mb-6">
-                    Riceverai presto una comunicazione per la call di analisi.
-                  </p>
-                  
-                  <button
-                    onClick={handleSubmit}
-                    disabled={!isFormValid || loading}
-                    className="w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#D0D0D0]"
-                    style={{ background: '#E8E8E8', color: '#111111', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
-                    data-testid="submit-questionario"
-                  >
-                    {loading ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <>
-                        INVIA IL QUESTIONARIO
-                      </>
-                    )}
-                  </button>
-                  {!isFormValid && (
-                    <p className="text-xs text-center mt-3 text-[#9CA3AF]">
-                      Completa tutte le domande (minimo 10 caratteri ciascuna)
-                    </p>
-                  )}
-                </div>
-              </div>
-            ) : (
-              /* POST-QUESTIONARIO - Nuova struttura */
-              <div className="space-y-6">
-                
-                {/* ═══════════════════════════════════════════════════════════════════════
-                    PROGRESS BAR - POST QUESTIONARIO
-                    ═══════════════════════════════════════════════════════════════════════ */}
-                <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-                  <div className="flex items-center gap-2 mb-4">
-                    {/* Step 1 - Acquisto (Completato) */}
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-[#10B981] flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-white" />
-                      </div>
-                      <span className="text-sm font-medium text-[#10B981]">Acquisto</span>
-                    </div>
-                    <div className="flex-1 h-1 bg-[#10B981] rounded mx-2"></div>
-                    {/* Step 2 - Questionario (Completato) */}
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-[#10B981] flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-white" />
-                      </div>
-                      <span className="text-sm font-medium text-[#10B981]">Questionario</span>
-                    </div>
-                    <div className="flex-1 h-1 bg-[#10B981] rounded mx-2"></div>
-                    {/* Step 3 - Call (Completato) */}
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-[#10B981] flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-white" />
-                      </div>
-                      <span className="text-sm font-medium text-[#10B981]">Call con Claudio</span>
-                    </div>
-                  </div>
-                  <p className="text-sm text-[#10B981] font-medium">
-                    ✅ Complimenti... hai terminato questo processo
-                  </p>
-                </div>
-
-                {/* ═══════════════════════════════════════════════════════════════════════
-                    CONFERMA COMPLETAMENTO
-                    ═══════════════════════════════════════════════════════════════════════ */}
-                <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-                  <h2 className="text-2xl font-black text-[#1E2128] mb-4">
-                    ✅ Questionario completato!
-                  </h2>
-                  <p className="text-[#5F6572] mb-4">
-                    Grazie per aver condiviso le informazioni sul tuo progetto.
-                  </p>
-                  <p className="text-[#5F6572]">
-                    Il team Evolution inizierà ora l'analisi strategica delle tue risposte.
-                  </p>
-                </div>
-
-                {/* ═══════════════════════════════════════════════════════════════════════
-                    VIDEO MESSAGGIO CLAUDIO (post-questionario)
-                    ═══════════════════════════════════════════════════════════════════════ */}
-                <div className="rounded-2xl overflow-hidden" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-                  <div className="p-4 border-b" style={{ borderColor: '#F0EFEB' }}>
-                    <h3 className="font-bold text-[#1E2128] flex items-center gap-2">
-                      <span className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: '#F2C418' }}>
-                        <Play className="w-3.5 h-3.5 text-[#1E2128]" />
-                      </span>
-                      Un messaggio di Claudio per te
-                    </h3>
-                  </div>
-                  <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-                    <iframe
-                      src="https://app.heygen.com/embeds/442d3522ccc74ec2abb4d0a7845ae62a-7ad1fe2d703f45b2b15dcbf3c3eb3db7"
-                      title="Messaggio di Claudio"
-                      allow="autoplay; fullscreen"
-                      allowFullScreen
-                      className="absolute inset-0 w-full h-full"
-                      style={{ border: 'none' }}
-                    />
-                  </div>
-                </div>
-
-                {/* ═══════════════════════════════════════════════════════════════════════
-                    COSA SUCCEDE ADESSO - 3 STEP
-                    ═══════════════════════════════════════════════════════════════════════ */}
-                <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-                  <h3 className="text-lg font-bold text-[#1E2128] mb-6 flex items-center gap-2">
-                    📍 Cosa succede adesso
-                  </h3>
-                  
-                  <div className="space-y-6">
-                    {/* Step 1 */}
-                    <div className="flex gap-4">
-                      <div className="w-8 h-8 rounded-full bg-[#F5C518] flex items-center justify-center flex-shrink-0">
-                        <span className="font-bold text-[#1E2128] text-sm">1</span>
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-[#1E2128] mb-1">Analizziamo il tuo progetto</h4>
-                        <p className="text-sm text-[#5F6572]">Studieremo le informazioni che hai inserito nel questionario.</p>
-                      </div>
-                    </div>
-                    
-                    {/* Step 2 */}
-                    <div className="flex gap-4">
-                      <div className="w-8 h-8 rounded-full bg-[#F5C518] flex items-center justify-center flex-shrink-0">
-                        <span className="font-bold text-[#1E2128] text-sm">2</span>
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-[#1E2128] mb-1">Prepariamo la tua Analisi Strategica</h4>
-                        <p className="text-sm text-[#5F6572]">Valuteremo il potenziale del progetto e la possibile struttura della tua Accademia Digitale.</p>
-                      </div>
-                    </div>
-                    
-                    {/* Step 3 */}
-                    <div className="flex gap-4">
-                      <div className="w-8 h-8 rounded-full bg-[#F5C518] flex items-center justify-center flex-shrink-0">
-                        <span className="font-bold text-[#1E2128] text-sm">3</span>
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-[#1E2128] mb-1">Ti contatteremo per la Call Strategica</h4>
-                        <p className="text-sm text-[#5F6572]">Entro 48 ore riceverai una email per fissare una videocall di analisi con Claudio.</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ═══════════════════════════════════════════════════════════════════════
-                    I 3 ASPETTI DELLA CALL
-                    ═══════════════════════════════════════════════════════════════════════ */}
-                <div className="rounded-2xl p-6" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
-                  <p className="text-[#5F6572] mb-5">
-                    Durante la call lavoreremo insieme su <strong className="text-[#1E2128]">tre aspetti fondamentali</strong>:
-                  </p>
-                  
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-3">
-                      <Target className="w-5 h-5 text-[#F5C518] flex-shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-bold text-[#1E2128]">Verifica del problema</span>
-                        <p className="text-sm text-[#5F6572]">Capire se il problema che vuoi risolvere è reale, urgente e pagato dal mercato.</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-start gap-3">
-                      <Lightbulb className="w-5 h-5 text-[#F5C518] flex-shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-bold text-[#1E2128]">Studio di fattibilità</span>
-                        <p className="text-sm text-[#5F6572]">Valutare se il progetto è più adatto a diventare un corso, un percorso o una accademia.</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-start gap-3">
-                      <Map className="w-5 h-5 text-[#F5C518] flex-shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-bold text-[#1E2128]">Roadmap strategica</span>
-                        <p className="text-sm text-[#5F6572]">Definire target, struttura e possibili modelli di vendita.</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-
-                {/* ═══════════════════════════════════════════════════════════════════════
-                    MINI CORSO GRATUITO - 7 MODULI
-                    ═══════════════════════════════════════════════════════════════════════ */}
-                <div className="rounded-2xl p-6" style={{ background: 'linear-gradient(135deg, #1E2128 0%, #2D3038 100%)', border: '2px solid #F5C518' }}>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Gift className="w-5 h-5 text-[#F5C518]" />
-                    <span className="text-xs font-bold text-[#F5C518] uppercase">Mini Corso Gratuito</span>
-                  </div>
-                  <h2 className="text-2xl font-black text-white mb-2">
-                    Come Creare un Videocorso che Vende Davvero
-                  </h2>
-                  <p className="text-white/70 text-sm">
-                    Per prepararti al meglio alla call strategica abbiamo preparato una breve guida in 7 moduli che spiega i principi fondamentali per costruire un progetto digitale sostenibile.
-                  </p>
-                </div>
-
-                {/* Introduzione Mini Corso */}
-                <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-                  <div className="text-[#5F6572] space-y-3">
-                    {INTRO_MINI_CORSO.split('\n').filter(p => p.trim()).map((paragraph, pIdx) => {
-                      if (paragraph.trim().startsWith('✗')) {
-                        return (
-                          <p key={pIdx} className="ml-4 text-sm text-red-500">
-                            {paragraph}
-                          </p>
-                        );
-                      }
-                      const parts = paragraph.split(/(\*\*[^*]+\*\*)/g);
-                      const formattedParts = parts.map((part, i) => {
-                        if (part.startsWith('**') && part.endsWith('**')) {
-                          return <strong key={i} className="text-[#1E2128]">{part.slice(2, -2)}</strong>;
-                        }
-                        return part;
-                      });
-                      return (
-                        <p key={pIdx} className="text-sm leading-relaxed">
-                          {formattedParts}
-                        </p>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Lista 7 Moduli */}
-                <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-                  <div className="space-y-4">
-                    {BONUS_DATA.map((modulo, idx) => (
-                      <div 
-                        key={modulo.id}
-                        className="flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-all hover:bg-[#FAFAF7]"
-                        style={{ border: expandedBonus === modulo.id ? '2px solid #F5C518' : '1px solid #ECEDEF', background: expandedBonus === modulo.id ? '#FEF9E7' : 'transparent' }}
-                        onClick={() => setExpandedBonus(expandedBonus === modulo.id ? null : modulo.id)}
-                      >
-                        <div className="w-8 h-8 rounded-full bg-[#F5C518] flex items-center justify-center flex-shrink-0">
-                          <span className="font-bold text-[#1E2128] text-sm">{idx + 1}</span>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <h4 className="font-bold text-[#1E2128]">{modulo.title}</h4>
-                            <ChevronDown className={`w-5 h-5 text-[#9CA3AF] transition-transform ${expandedBonus === modulo.id ? 'rotate-180' : ''}`} />
-                          </div>
-                          {expandedBonus === modulo.id && (
-                            <div className="mt-3 pt-3 border-t border-[#ECEDEF]">
-                              <div className="text-sm text-[#5F6572] space-y-2">
-                                {modulo.content.split('\n').filter(p => p.trim()).map((paragraph, pIdx) => {
-                                  if (paragraph.trim().startsWith('•') || paragraph.trim().startsWith('-')) {
-                                    return (
-                                      <p key={pIdx} className="ml-4 text-sm">
-                                        {paragraph}
-                                      </p>
-                                    );
-                                  }
-                                  const parts = paragraph.split(/(\*\*[^*]+\*\*)/g);
-                                  const formattedParts = parts.map((part, i) => {
-                                    if (part.startsWith('**') && part.endsWith('**')) {
-                                      return <strong key={i} className="text-[#1E2128]">{part.slice(2, -2)}</strong>;
-                                    }
-                                    return part;
-                                  });
-                                  return (
-                                    <p key={pIdx} className="text-sm leading-relaxed">
-                                      {formattedParts}
-                                    </p>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Conclusione Mini Corso */}
-                <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-                  <h3 className="text-lg font-bold text-[#1E2128] mb-4 flex items-center gap-2">
-                    <Star className="w-5 h-5 text-[#F5C518]" />
-                    Conclusione
-                  </h3>
-                  <div className="text-[#5F6572] space-y-3">
-                    {CONCLUSIONE_MINI_CORSO.split('\n').filter(p => p.trim()).map((paragraph, pIdx) => {
-                      if (paragraph.trim().startsWith('•')) {
-                        return (
-                          <p key={pIdx} className="ml-4 text-sm flex items-center gap-2">
-                            <CheckCircle className="w-4 h-4 text-[#10B981] flex-shrink-0" />
-                            {paragraph.replace('•', '').trim()}
-                          </p>
-                        );
-                      }
-                      const parts = paragraph.split(/(\*\*[^*]+\*\*)/g);
-                      const formattedParts = parts.map((part, i) => {
-                        if (part.startsWith('**') && part.endsWith('**')) {
-                          return <strong key={i} className="text-[#1E2128]">{part.slice(2, -2)}</strong>;
-                        }
-                        return part;
-                      });
-                      return (
-                        <p key={pIdx} className="text-sm leading-relaxed">
-                          {formattedParts}
-                        </p>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Call to Action finale */}
-                <div className="rounded-2xl p-6" style={{ background: 'linear-gradient(135deg, #F5C518 0%, #E5B517 100%)' }}>
-                  <p className="text-[#1E2128] mb-4">
-                    Durante la call lavoreremo insieme su <strong>tre aspetti fondamentali</strong>:
-                  </p>
-                  <div className="space-y-3 mb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center">
-                        <span className="font-bold text-[#1E2128]">1</span>
-                      </div>
-                      <span className="font-medium text-[#1E2128]">Verifica del problema</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center">
-                        <span className="font-bold text-[#1E2128]">2</span>
-                      </div>
-                      <span className="font-medium text-[#1E2128]">Studio di fattibilità</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center">
-                        <span className="font-bold text-[#1E2128]">3</span>
-                      </div>
-                      <span className="font-medium text-[#1E2128]">Roadmap strategica</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 bg-white/20 rounded-xl">
-                    <Calendar className="w-5 h-5 text-[#1E2128]" />
-                    <span className="text-sm text-[#1E2128]">
-                      <strong>Il team Evolution ti contatterà presto per fissare la videocall.</strong>
-                    </span>
-                  </div>
-                </div>
-
-              </div>
+            {i < STEPS.length - 1 && (
+              <div
+                className="flex-1 h-0.5 mt-[-16px]"
+                style={{ background: step.id < currentStep ? C.green : "#E8E4DC" }}
+              />
             )}
-          </div>
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
 
-          {/* Sidebar - sticky */}
-          <div className="lg:sticky lg:top-24 space-y-6 self-start">
-            {/* Team Info Box */}
-            <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-              <h3 className="font-bold text-[#1E2128] mb-1">Il tuo team ti aspetta</h3>
-              <p className="text-xs text-[#5F6572] mb-4">
-                Dopo la call, se il progetto è adatto, avrai accesso a:
-              </p>
-              
-              <div className="space-y-3">
-                {TEAM_MEMBERS.map((member, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <div 
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
-                      style={{ 
-                        background: member.isHuman ? '#FAFAF7' : '#FEF9E7',
-                        color: member.isHuman ? '#5F6572' : '#C4990A'
-                      }}
-                    >
-                      {member.isHuman ? '👤' : '🟡'}
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold text-[#1E2128]">{member.name}</div>
-                      <div className="text-xs text-[#9CA3AF]">{member.role}</div>
-                    </div>
-                  </div>
+  // ── Loading ───────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: C.yellow }} />
+      </div>
+    );
+  }
+
+  // ── STEP 2: Questionario ──────────────────────────────────────
+  const renderQuestionario = () => {
+    if (showQuestionnaire) {
+      const q = QUESTIONS[currentQ];
+      const allAnswered = QUESTIONS.every(q => answers[q.id]?.trim());
+      return (
+        <div data-testid="questionario-inline" className="space-y-6">
+          <div className="rounded-xl p-6" style={{ background: "white", border: `1px solid ${C.border}` }}>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-xs font-bold" style={{ color: C.muted }}>
+                Domanda {currentQ + 1} di {QUESTIONS.length}
+              </span>
+              <div className="flex gap-1">
+                {QUESTIONS.map((_, i) => (
+                  <div key={i} className="w-6 h-1.5 rounded-full" style={{ background: i <= currentQ ? C.yellow : "#E8E4DC" }} />
                 ))}
               </div>
             </div>
-
-            {/* Contact Box */}
-            <div className="rounded-2xl p-6" style={{ background: '#1E2128' }}>
-              <h3 className="font-bold text-white mb-2">Hai domande?</h3>
-              <p className="text-xs text-white/60 mb-4">
-                Contattaci per qualsiasi informazione.
-              </p>
-              <a 
-                href="mailto:assistenza@evolution-pro.it"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm bg-[#F5C518] text-[#1E2128]"
+            <h3 className="text-lg font-bold mb-1" style={{ color: C.dark }}>{q.question}</h3>
+            <p className="text-sm mb-4" style={{ color: C.muted }}>{q.description}</p>
+            <textarea
+              data-testid={`question-${q.id}`}
+              value={answers[q.id] || ""}
+              onChange={(e) => setAnswers(a => ({ ...a, [q.id]: e.target.value }))}
+              placeholder="Scrivi qui la tua risposta..."
+              className="w-full rounded-xl p-4 text-sm resize-none focus:outline-none"
+              style={{ border: `1px solid ${C.border}`, minHeight: 120, background: C.bg }}
+            />
+            <div className="flex justify-between mt-4">
+              <button
+                onClick={() => setCurrentQ(Math.max(0, currentQ - 1))}
+                disabled={currentQ === 0}
+                className="px-4 py-2 rounded-lg text-sm font-bold"
+                style={{ color: currentQ === 0 ? "#ccc" : C.dark }}
               >
-                Scrivici <ArrowRight className="w-4 h-4" />
-              </a>
+                Indietro
+              </button>
+              {currentQ < QUESTIONS.length - 1 ? (
+                <button
+                  onClick={() => setCurrentQ(currentQ + 1)}
+                  disabled={!answers[q.id]?.trim()}
+                  className="px-6 py-2 rounded-lg text-sm font-bold"
+                  style={{
+                    background: answers[q.id]?.trim() ? C.yellow : "#E8E4DC",
+                    color: C.dark,
+                  }}
+                >
+                  Avanti <ChevronRight className="w-4 h-4 inline" />
+                </button>
+              ) : (
+                <button
+                  data-testid="submit-questionnaire"
+                  onClick={submitQuestionnaire}
+                  disabled={!allAnswered || submittingQ}
+                  className="px-6 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
+                  style={{ background: allAnswered ? C.yellow : "#E8E4DC", color: C.dark }}
+                >
+                  {submittingQ ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  Invia Questionario
+                </button>
+              )}
             </div>
           </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="rounded-xl p-8 text-center" style={{ background: "white", border: `1px solid ${C.border}` }}>
+        <FileText className="w-12 h-12 mx-auto mb-4" style={{ color: C.yellow }} />
+        <h3 className="text-xl font-bold mb-2" style={{ color: C.dark }}>Compila il Questionario Pre-Call</h3>
+        <p className="text-sm mb-6 max-w-md mx-auto" style={{ color: C.muted }}>
+          7 domande per permetterci di preparare un'analisi strategica personalizzata per il tuo progetto.
+        </p>
+        <button
+          data-testid="start-questionnaire"
+          onClick={() => setShowQuestionnaire(true)}
+          className="px-8 py-3 rounded-xl text-sm font-bold"
+          style={{ background: C.yellow, color: C.dark }}
+        >
+          Inizia il Questionario <ArrowRight className="w-4 h-4 inline ml-1" />
+        </button>
+      </div>
+    );
+  };
+
+  // ── STEP 3: Analisi in preparazione ───────────────────────────
+  const renderAnalisiInPreparazione = () => (
+    <div className="space-y-5">
+      <div className="rounded-xl p-8 text-center" style={{ background: "white", border: `1px solid ${C.border}` }}>
+        <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: `${C.yellow}20` }}>
+          <Loader2 className="w-8 h-8 animate-spin" style={{ color: C.yellowDark }} />
+        </div>
+        <h3 className="text-xl font-bold mb-2" style={{ color: C.dark }}>La tua Analisi Strategica è in preparazione</h3>
+        <p className="text-sm max-w-lg mx-auto" style={{ color: C.muted }}>
+          Claudio e il team stanno analizzando le tue risposte per creare un piano personalizzato.
+          Riceverai una notifica quando sarà pronta.
+        </p>
+      </div>
+
+      {/* Mini corso / contenuto utile */}
+      <div className="rounded-xl p-6" style={{ background: "white", border: `1px solid ${C.border}` }}>
+        <h4 className="font-bold mb-4 flex items-center gap-2" style={{ color: C.dark }}>
+          <BookOpen className="w-5 h-5" style={{ color: C.yellowDark }} />
+          Intanto, preparati al meglio
+        </h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[
+            { title: "Come funziona Evolution PRO", desc: "Il metodo in 7 fasi per la tua accademia digitale", icon: Play },
+            { title: "Il Team che ti seguirà", desc: "5 agenti AI + Claudio e Antonella al tuo fianco", icon: User },
+            { title: "Risultati dei nostri Partner", desc: "Storie reali di chi ha già lanciato", icon: TrendingUp },
+            { title: "FAQ — Domande frequenti", desc: "Tutto quello che devi sapere prima della call", icon: Star },
+          ].map(item => (
+            <div key={item.title} className="flex items-start gap-3 p-4 rounded-lg" style={{ background: C.bg }}>
+              <item.icon className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: C.yellowDark }} />
+              <div>
+                <div className="text-sm font-bold" style={{ color: C.dark }}>{item.title}</div>
+                <div className="text-xs mt-0.5" style={{ color: C.muted }}>{item.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Team Evolution */}
+      <div className="rounded-xl p-6" style={{ background: "white", border: `1px solid ${C.border}` }}>
+        <h4 className="font-bold mb-4" style={{ color: C.dark }}>Il Team Evolution PRO</h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {TEAM.map(m => (
+            <div key={m.name} className="p-3 rounded-lg text-center" style={{ background: C.bg }}>
+              <div
+                className="w-10 h-10 rounded-full mx-auto mb-2 flex items-center justify-center text-sm font-bold"
+                style={{ background: m.human ? "#E8E4DC" : C.yellow, color: C.dark }}
+              >
+                {m.name[0]}
+              </div>
+              <div className="text-xs font-bold" style={{ color: C.dark }}>{m.name}</div>
+              <div className="text-[10px]" style={{ color: C.muted }}>{m.role}</div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
   );
-}
 
-export default ClienteDashboard;
+  // ── STEP 4: Analisi pronta — hero card ────────────────────────
+  const renderAnalisiPronta = () => (
+    <div className="space-y-5">
+      <div
+        data-testid="analisi-pronta-card"
+        className="rounded-2xl p-10 text-center"
+        style={{ background: `linear-gradient(135deg, ${C.yellow} 0%, #FFBE0B 100%)`, border: "none" }}
+      >
+        <Sparkles className="w-14 h-14 mx-auto mb-4" style={{ color: C.dark }} />
+        <h2 className="text-2xl font-black mb-2" style={{ color: C.dark }}>
+          La tua Analisi Strategica è pronta!
+        </h2>
+        <p className="text-sm mb-6 max-w-md mx-auto" style={{ color: "#5F5020" }}>
+          Abbiamo analizzato il tuo profilo e preparato una roadmap personalizzata per la tua accademia digitale.
+        </p>
+        <button
+          data-testid="view-analisi-btn"
+          onClick={() => onDecisione && onDecisione()}
+          className="px-10 py-4 rounded-xl text-base font-black"
+          style={{ background: C.dark, color: "white", transition: "all 0.15s ease" }}
+        >
+          VISUALIZZA LA TUA ANALISI <ArrowRight className="w-5 h-5 inline ml-2" />
+        </button>
+      </div>
+
+      {/* Cosa troverai */}
+      <div className="rounded-xl p-6" style={{ background: "white", border: `1px solid ${C.border}` }}>
+        <h4 className="font-bold mb-4" style={{ color: C.dark }}>Cosa troverai nell'analisi:</h4>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[
+            { title: "Analisi del tuo Profilo", desc: "Punti di forza, potenziale e aree di miglioramento" },
+            { title: "Check di Fattibilità", desc: "Punteggio e valutazione del tuo progetto" },
+            { title: "Roadmap Personalizzata", desc: "Le fasi esatte del tuo percorso su misura" },
+          ].map(i => (
+            <div key={i.title} className="p-4 rounded-lg" style={{ background: C.bg }}>
+              <div className="text-sm font-bold mb-1" style={{ color: C.dark }}>{i.title}</div>
+              <div className="text-xs" style={{ color: C.muted }}>{i.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── Main render ───────────────────────────────────────────────
+  return (
+    <div data-testid="cliente-dashboard" className="max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-xl font-black" style={{ color: C.dark }}>
+            Ciao, {cliente?.nome || "Cliente"}
+          </h1>
+          <p className="text-sm" style={{ color: C.muted }}>Il tuo percorso verso Evolution PRO</p>
+        </div>
+        <div className="flex items-center gap-3">
+          {onLogout && (
+            <button
+              data-testid="cliente-logout"
+              onClick={onLogout}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold"
+              style={{ border: `1px solid ${C.border}`, color: C.muted, transition: "all 0.15s ease" }}
+            >
+              <LogOut className="w-4 h-4" />Esci
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Progress */}
+      <ProgressBar />
+
+      {/* Content based on step */}
+      {currentStep === 1 && (
+        <div className="rounded-xl p-8 text-center" style={{ background: "white", border: `1px solid ${C.border}` }}>
+          <CheckCircle className="w-12 h-12 mx-auto mb-4" style={{ color: C.green }} />
+          <h3 className="text-xl font-bold mb-2" style={{ color: C.dark }}>Acquisto Completato</h3>
+          <p className="text-sm" style={{ color: C.muted }}>Il tuo pagamento è stato confermato. Procedi con il questionario.</p>
+        </div>
+      )}
+
+      {currentStep === 2 && renderQuestionario()}
+      {currentStep === 3 && renderAnalisiInPreparazione()}
+      {currentStep === 4 && renderAnalisiPronta()}
+      {currentStep === 5 && renderAnalisiPronta()}
+    </div>
+  );
+}

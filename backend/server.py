@@ -1582,6 +1582,9 @@ async def get_cliente_analisi_status(user_id: str):
         "stato_cliente": user.get("stato_cliente", "REGISTRATO"),
         "azione_richiesta": user.get("azione_richiesta", "INIZIA_QUESTIONARIO"),
         "idoneo_partnership": user.get("idoneo_partnership", False),
+        # Analisi e decisione (usati dal ClienteDashboard per polling)
+        "analisi_generata": user.get("analisi_generata", False) or (cliente.get("analisi_generata", False) if cliente else False),
+        "decisione_attivata": user.get("decisione_attivata", False) or (cliente.get("decisione_attivata", False) if cliente else False),
     }
 
 @api_router.post("/cliente-analisi/questionario-started")
