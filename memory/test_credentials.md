@@ -1,4 +1,4 @@
-# Test Credentials - Evolution PRO
+# Test Credentials — Evolution PRO
 
 ## Admin
 - Email: claudio.bertogliatti@gmail.com
@@ -8,11 +8,12 @@
 - Email: antonella@evolution-pro.it
 - Password: OperationsAnto2024!
 
-## Test Data
-- Test proposta token: T3xb20kGBXEgcGZO (partner 23 - Daniele Andolfi)
-- Partner ID per test: 23
-
-## SMTP
-- Host: smtp.register.it:587
-- User: info@evolution-pro.it
+## Alternative Admin
+- Email: info@evolution-pro.it
 - Password: Brtcld74m24l219y
+
+## Test Cliente (created for testing)
+- Email: mario.rossi@test.com
+- Password: TestMario123
+- User ID: 2e3357f3-254b-49bc-98d8-a55771d75f0d
+- Note: Ha già compilato il quiz, stato_cliente = QUESTIONARIO_COMPLETATO
