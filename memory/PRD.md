@@ -41,14 +41,22 @@ Applicazione di gestione aziendale basata su AI per Evolution PRO LLC. Gestisce 
   - BUG 4: PropostaPage chiama backend dopo redirect Stripe
   - MOD 5: analisi_generata + decisione_attivata nell'endpoint status
   - MOD 6: Callback onDecisione + onPartnerAttivato in App.js
+- [x] **Correzione architetturale: Admin Preview Cliente** — 08 Apr 2026 (7/7 test)
+  - Admin "Vista Cliente" usa nav="cliente-preview" (non mode="cliente")
+  - Sidebar admin e topbar restano visibili durante la preview
+  - ClienteWizard accetta adminPreview={true} per integrarsi nel layout admin
+  - Pulsante "Chiudi Preview" riporta a Gestione Clienti
+  - Rimosso codice morto (sidebar cliente nel layout principale)
+  - mode="cliente" riservato esclusivamente al login del cliente reale
 
 ## P0 — Prossimi
-- [ ] Aggiornamento Prompt Agenti AI (Framework CMO, Copywriter)
+- [ ] Completamento ClienteWizard — Flusso 7 step (Stripe €67, verifica pagamento post-redirect, routing protetto)
+- [ ] Admin Panel: lista utenti wizard, dati mini-quiz, stato corrente, forza cambio stato
 - [ ] Sistema Ruoli completo (transizione customer → partner automatica)
-- [ ] Redesign Dashboard Admin Claudio
-- [ ] Modalità Impersonate Admin
 
 ## P1 — Alta Priorità
+- [ ] Generazione PDF contratto firmato (reportlab)
+- [ ] Configurazione SMTP per invio email post-firma
 - [ ] PRICE_ID Stripe per Servizi Extra
 - [ ] Deploy Cloud Run (utente deve fare git pull + build --no-cache)
 
