@@ -13,71 +13,50 @@ Applicazione di gestione aziendale basata su AI per Evolution PRO LLC. Gestisce 
 - Background: Celery + Redis (Upstash)
 
 ## Brand Palette
-- Giallo Evolution: #FFD24D (rgb 255,210,77)
-- Nero Antracite: #1A1F24 (rgb 26,31,36)
-- Sidebar Background: #F5F3EE (sabbia caldo)
-- Sidebar Border: #E8E4DC
+- Giallo Evolution: #FFD24D
+- Nero Antracite: #1A1F24
+- Sidebar Bg: #F5F3EE
 - Yellow Dark: #D4A017
-- Muted: #8B8680
 
-## API Config (CRITICO)
+## API Config
 - `api-config.js` → `API` ritorna URL base SENZA `/api`
-- Tutti i componenti usano `${API}/api/endpoint`
-- In produzione (evolution-pro.it): API = '' (relativo)
-- In preview: API = REACT_APP_BACKEND_URL
-
-## Team AI
-| ID Tecnico | Nome | Ruolo |
-|---|---|---|
-| STEFANIA | Stefania | Coordinatrice |
-| VALENTINA | Valentina | Strategia e Onboarding |
-| ANDREA | Andrea | Produzione Contenuti |
-| MARCO | Marco | Accountability Settimanale |
-| GAIA | Gaia | Supporto Tecnico |
+- Tutti i componenti: `${API}/api/endpoint`
 
 ## Completati
 - [x] Import Lista Fredda Systeme.io
 - [x] Calendario Editoriale Claude AI
-- [x] Modulo Firma Contratto Partnership
+- [x] Modulo Firma Contratto (PDF + Email SMTP)
 - [x] Upload Documenti Onboarding (Cloudinary)
-- [x] System Prompt ANDREA, MARCO, VALENTINA
-- [x] Modulo Fase 4: Funnel Builder — 28 Mar 2026
-- [x] Disabilitazione seed produzione — 28 Mar 2026
-- [x] Fallback MONGO_URL Atlas + REDIS_URL — 28 Mar 2026
-- [x] Generazione PDF contratto + SMTP Email — 28 Mar 2026
-- [x] P4 - Pagina Proposta Pubblica — 29 Mar 2026 (13/13 test)
-- [x] Fix critico Errore 520 — 30 Mar 2026
-- [x] Redesign Admin Sidebar v2 — 01 Apr 2026
-  - Palette corretta: #FFD24D + #1A1F24, sfondo #F5F3EE
-  - Titoli sezioni 15px/900, pulsanti 52px, sidebar 300px
-  - Sezione OPERATIVO: Oggi, Priorità Pipeline, Partner Bloccati, Guided System
-  - Rinominato: COMMERCIALE→ACQUISIZIONE, CONTROLLO→SISTEMA
-  - Vista Antonella: nasconde completamente voci non rilevanti
-- [x] **Fix critico doppio /api/api/ in produzione** — 01 Apr 2026
-  - Root cause: api-config.js restituiva `/api` + componenti aggiungevano `/api/`
-  - Fix: getApiUrl() ora restituisce URL base senza `/api`
-  - Impatto: 150+ chiamate API corrette in tutta l'app
+- [x] System Prompt 5 Agenti AI
+- [x] Funnel Builder Fase 4
+- [x] Seed protetto + Fallback Atlas/Redis/SMTP
+- [x] P4 - Pagina Proposta + Stripe (13/13 test)
+- [x] Fix Errore 520 Pydantic
+- [x] Redesign Admin Sidebar v2 — Cockpit Operativo (#FFD24D)
+- [x] Fix doppio /api/api/ in produzione
+- [x] **Fix Dashboard Cliente + Flusso €2.790** — 08 Apr 2026 (10/10 test)
+  - BUG 1: Login cliente → mode=cliente (non più mode=partner)
+  - BUG 2: ClienteDashboard v2 — 5 step progress bar + polling 30s + questionario inline
+  - BUG 3: Endpoint POST /api/proposta/{token}/conferma-stripe (verifica Stripe + promozione partner)
+  - BUG 4: PropostaPage chiama backend dopo redirect Stripe
+  - MOD 5: analisi_generata + decisione_attivata nell'endpoint status
+  - MOD 6: Callback onDecisione + onPartnerAttivato in App.js
 
-## P0 - Prossimi (Maxi Brief UX)
-- [ ] Aggiornamento Prompt Agenti AI (Fase 6 Brief UX)
-- [ ] Sistema Ruoli e Redirect Login (Parte 1 Brief UX)
-- [ ] Redesign Dashboard Cliente Pre/Post call (Parte 3 Brief UX)
-- [ ] Redesign Dashboard Partner 7 Fasi (Parte 4 Brief UX)
-- [ ] Redesign Dashboard Admin Claudio (Parte 5 Brief UX)
-- [ ] Modalità Impersonate Admin (Parte 7 Brief UX)
+## P0 — Prossimi
+- [ ] Aggiornamento Prompt Agenti AI (Framework CMO, Copywriter)
+- [ ] Sistema Ruoli completo (transizione customer → partner automatica)
+- [ ] Redesign Dashboard Admin Claudio
+- [ ] Modalità Impersonate Admin
 
-## P1 - Alta Priorità
-- [ ] PRICE_ID Stripe per Servizi Extra Partner
+## P1 — Alta Priorità
+- [ ] PRICE_ID Stripe per Servizi Extra
+- [ ] Deploy Cloud Run (utente deve fare git pull + build --no-cache)
 
-## P2 - Media Priorità
+## P2 — Media Priorità
 - [ ] Integrazioni Canva/Kling (serve API key)
 
-## P3 - Technical Debt
-- [ ] Refactoring server.py monolite (>14000 righe)
-
-## DB
-- `evolution_pro` su `cluster0.4cgj8wx.mongodb.net`
-- bcrypt==4.0.1 (compatibilità passlib)
+## P3 — Technical Debt
+- [ ] Refactoring server.py monolite (>14.800 righe)
 
 ## Credentials
 - Admin: claudio.bertogliatti@gmail.com / Evoluzione74
