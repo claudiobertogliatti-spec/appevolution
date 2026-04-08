@@ -8,7 +8,7 @@ if not hasattr(bcrypt, '__about__'):
     bcrypt.__about__.__version__ = bcrypt.__version__
 # === END PATCH ===
 
-from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks, Request
+from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks, Request, Depends
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
@@ -1607,9 +1607,10 @@ async def mark_questionario_started(credentials: HTTPAuthorizationCredentials = 
 
 
 @api_router.post("/cliente-analisi/mini-quiz")
-async def save_mini_quiz(request: Request, credentials: HTTPAuthorizationCredentials = None):
+async def save_mini_quiz(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
     """
-    Salva le risposte del mini questionario pre-pagamento (5 domande).
+    Salva le risposte del mini questionario strutturato (6 domande, 4 blocchi).
+    Output JSON strutturato per pipeline AI (analisi, script call, scoring).
     Aggiorna stato → QUESTIONARIO_COMPLETATO.
     """
     if not credentials:
