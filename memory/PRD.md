@@ -48,12 +48,17 @@ Applicazione di gestione aziendale basata su AI per Evolution PRO LLC. Gestisce 
   - Pulsante "Chiudi Preview" riporta a Gestione Clienti
   - Rimosso codice morto (sidebar cliente nel layout principale)
   - mode="cliente" riservato esclusivamente al login del cliente reale
-- [x] **Questionario strutturato per pipeline AI** — 08 Apr 2026 (11/11 test)
-  - 6 domande in 4 blocchi colorati: Posizionamento, Maturità, Validazione, Obiettivo
-  - Textarea dove serve, radio per dati strutturati (scoring automatico)
-  - Output JSON strutturato con ai_tag keys per generazione analisi, script call, lead scoring
-  - Campo "Altro (specificare)" con textarea aggiuntiva nel blocco Obiettivo
-  - Backend aggiornato con Depends(security) per auth corretta
+- [x] **Questionario strutturato per pipeline AI** — 08 Apr 2026 (11/11 test iter35, 19/19 test iter36)
+  - 9 campi in 3 blocchi: Il tuo progetto (ambito, target, problema), La tua esperienza (esperienza, pubblico+canale_principale, vendite_online+dettaglio), Il tuo obiettivo
+  - Campi condizionali: pubblico → canale_principale (select), vendite_online → vendite_dettaglio (textarea)
+  - Placeholder dettagliati per guidare risposte di qualità
+- [x] **Motore generazione output dal questionario** — 08 Apr 2026 (iter36)
+  - Scoring deterministico 4 dimensioni (esperienza, pubblico, vendite, chiarezza problema) → IDONEO / CON RISERVA / NON IDONEO
+  - Analisi strategica AI (5 sezioni: sintesi, punti forza, criticità, maturità, direzione)
+  - Script call AI (6 sezioni: apertura, diagnosi, amplificazione, ponte, proposta, chiusura)
+  - PDF generato con reportlab (header brandizzato, scoring table, analisi, dati questionario)
+  - Endpoint: POST /api/cliente-analisi/mini-quiz, GET /output/{id}, GET /pdf/{id}
+  - Fallback deterministico se Claude non disponibile
   - Nuova ClientePreviewSidebar con sezioni PRE ANALISI e POST ANALISI
   - 5 voci: Benvenuto, Questionario, Richiesta Analisi, Conferma Acquisto, Analisi e Partnership
   - Ogni voce controlla lo step del wizard tramite forcedStep prop
