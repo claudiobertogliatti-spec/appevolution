@@ -45,91 +45,42 @@ class ApproveScriptRequest(BaseModel):
 # SCRIPT GENERATION PROMPT
 # ═══════════════════════════════════════════════════════════════════════════════
 
-MASTERCLASS_SYSTEM_PROMPT = """Sei il Lead Strategist e Copywriter del Team Evolution AI. 
-Il tuo obiettivo è creare una Video Sales Letter (Masterclass) di 7-10 minuti per vendere un videocorso.
+MASTERCLASS_SYSTEM_PROMPT = """Sei uno script writer professionista per masterclass di vendita.
+Il tuo obiettivo è creare uno script strutturato e pronto da registrare per una masterclass gratuita.
 
-VINCOLI TECNICI OBBLIGATORI:
-- Lunghezza: ESATTAMENTE tra 1.000 e 1.400 parole (conta attentamente!)
-- Durata lettura: 7-10 minuti
-- Struttura: 7 blocchi sincronizzati
-- Tono: Varia tra i blocchi (Aggressivo nel Problema, Didattico nel Metodo, Urgente nell'Offerta)
+L'output DEVE essere in formato JSON con 7 sezioni obbligatorie:
+{
+  "sections": [
+    {"id": 1, "title": "Apertura", "content": "Script dell'apertura..."},
+    {"id": 2, "title": "Problema", "content": "Script del problema..."},
+    {"id": 3, "title": "Errore comune", "content": "Script dell'errore comune..."},
+    {"id": 4, "title": "Soluzione", "content": "Script della soluzione step by step..."},
+    {"id": 5, "title": "Esempio", "content": "Script dell'esempio concreto..."},
+    {"id": 6, "title": "Transizione al corso", "content": "Script della transizione..."},
+    {"id": 7, "title": "Chiusura / CTA", "content": "Script della chiusura e call to action..."}
+  ]
+}
 
-STRUTTURA DEI 7 BLOCCHI:
-
-BLOCCO 1 - HOOK (max 50 parole)
-[GUARDA IN CAMERA]
-Apri con il risultato promesso in modo diretto e provocatorio.
-Cattura l'attenzione nei primi 15 secondi.
-
-BLOCCO 2 - PROBLEMA (150-200 parole)
-[TONO AGGRESSIVO]
-Demolisci la "bugia del settore".
-Fai sentire il dolore del problema.
-Crea empatia mostrando di capire la frustrazione.
-
-BLOCCO 3 - AUTORITÀ + STORIA (100-150 parole)
-[TONO PERSONALE]
-Breve presentazione personale.
-Perché sei la persona giusta per risolvere questo problema?
-Usa numeri e risultati concreti.
-
-BLOCCO 4 - IL METODO (200-250 parole)
-[TONO DIDATTICO]
-Presenta i 3 pilastri del metodo.
-Spiega COSA fa ogni pilastro (non COME).
-Crea curiosità per il corso.
-
-BLOCCO 5 - MAGIC MOMENT (100-150 parole)
-[MOSTRA APP/STRUMENTO]
-Descrivi l'output pratico che l'utente ottiene ORA.
-Questo è il momento "AHA!" che converte.
-
-BLOCCO 6 - OFFERTA + URGENZA (200-250 parole)
-[TONO URGENTE]
-Presenta il valore totale (ancoraggio alto).
-Rivela il prezzo di lancio.
-Crea urgenza reale (tempo o posti limitati).
-Elenca i bonus dell'area riservata.
-
-BLOCCO 7 - CTA FINALE (50-100 parole)
-[INDICARE TASTO]
-Call to action chiara e diretta.
-Descrivi cosa succede subito dopo l'acquisto.
-Chiudi con una frase motivazionale.
-
-FORMATO OUTPUT:
-Scrivi lo script in modo fluido e naturale, includendo:
-- Note di regia tra parentesi quadre [...]
-- Transizioni naturali tra i blocchi
-- Linguaggio parlato, non scritto
-- Nessun titolo di blocco visibile (solo flow narrativo)"""
+REGOLE:
+- Ogni sezione deve avere un contenuto di 100-200 parole
+- Linguaggio parlato, naturale, coinvolgente
+- Tono professionale ma accessibile
+- Focalizzato sulla trasformazione del cliente
+- Lo script deve essere PRONTO DA LEGGERE/REGISTRARE
+- Rispondi SOLO con il JSON, senza altro testo"""
 
 def build_user_prompt(answers: Dict[str, str], partner_name: str) -> str:
     return f"""Crea lo script della masterclass per {partner_name} usando questi input:
 
-=== GANCIO (Risultato Promesso) ===
-{answers.get('gancio', 'Non specificato')}
+1. RISULTATO PRINCIPALE: {answers.get('risultato_principale', 'Non specificato')}
+2. PROBLEMA DEL PUBBLICO: {answers.get('problema_pubblico', 'Non specificato')}
+3. ERRORE COMUNE: {answers.get('errore_comune', 'Non specificato')}
+4. METODO: {answers.get('metodo_semplice', 'Non specificato')}
+5. ESEMPIO CONCRETO: {answers.get('esempio_concreto', 'Non specificato')}
+6. A CHI NON È ADATTA: {answers.get('non_adatta', 'Non specificato')}
+7. DOPO LA MASTERCLASS: {answers.get('dopo_masterclass', 'Non specificato')}
 
-=== PROBLEMA (Bugia del Settore) ===
-{answers.get('problema', 'Non specificato')}
-
-=== METODO (3 Pilastri) ===
-{answers.get('metodo', 'Non specificato')}
-
-=== MAGIC MOMENT (Output Pratico) ===
-{answers.get('magic_moment', 'Non specificato')}
-
-=== VALORE (Area Riservata) ===
-{answers.get('valore', 'Non specificato')}
-
-=== OFFERTA (Prezzo & Urgenza) ===
-{answers.get('offerta', 'Non specificato')}
-
-=== CTA (Azione Immediata) ===
-{answers.get('cta', 'Non specificato')}
-
-Genera uno script di ESATTAMENTE 1.000-1.400 parole, seguendo la struttura a 7 blocchi.
-Includi note di regia tra parentesi quadre.
+Genera lo script completo in formato JSON con le 7 sezioni obbligatorie (Apertura, Problema, Errore comune, Soluzione, Esempio, Transizione al corso, Chiusura/CTA).
 Scrivi in italiano, con tono naturale e coinvolgente."""
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -266,73 +217,67 @@ async def save_answers(partner_id: str, data: MasterclassAnswers):
 
 @router.post("/{partner_id}/generate-script")
 async def generate_script(partner_id: str, data: MasterclassAnswers):
-    """Genera lo script della masterclass usando Claude Sonnet 4.5"""
+    """Genera lo script strutturato della masterclass usando Claude"""
     from emergentintegrations.llm.chat import LlmChat, UserMessage
-    
-    # Get partner info
+    import json
+
     partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
     partner_name = partner.get("name") or partner.get("nome", "Partner") if partner else "Partner"
-    
-    # Get API key
+
     api_key = os.environ.get("EMERGENT_LLM_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="LLM API key non configurata")
-    
+
     try:
-        # Initialize chat with Claude Sonnet 4.5
         chat = LlmChat(
             api_key=api_key,
             session_id=f"masterclass-{partner_id}-{uuid.uuid4().hex[:8]}",
             system_message=MASTERCLASS_SYSTEM_PROMPT
         ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-        
-        # Build user prompt
-        user_prompt = build_user_prompt(data.answers, partner_name)
-        
-        # Generate script
-        logging.info(f"Generating masterclass script for partner {partner_id}")
-        script = await chat.send_message(UserMessage(text=user_prompt))
-        
-        # Validate script
-        validation_score = validate_script(script, data.answers)
-        
-        # If score is too low, try to regenerate once
-        if validation_score < 35:
-            logging.info(f"Script score too low ({validation_score}), regenerating...")
-            regenerate_prompt = f"""Lo script precedente ha ottenuto un punteggio di {validation_score}/50.
-Migliora questi aspetti:
-- Assicurati che il GANCIO sia presente nelle prime 50 parole
-- Verifica che il PROBLEMA sia chiaro entro le prime 200 parole
-- La lunghezza DEVE essere tra 1.000 e 1.400 parole
-- La CTA finale deve essere chiara e urgente
 
-Riscrivi lo script completo migliorandolo."""
-            
-            script = await chat.send_message(UserMessage(text=regenerate_prompt))
-            validation_score = validate_script(script, data.answers)
-        
-        # Save to database
+        user_prompt = build_user_prompt(data.answers, partner_name)
+
+        logging.info(f"Generating masterclass script for partner {partner_id}")
+        response = await chat.send_message(UserMessage(text=user_prompt))
+        response_text = response.strip()
+
+        # Parse JSON
+        if "```json" in response_text:
+            json_start = response_text.find("```json") + 7
+            json_end = response_text.find("```", json_start)
+            response_text = response_text[json_start:json_end].strip()
+        elif "```" in response_text:
+            json_start = response_text.find("```") + 3
+            json_end = response_text.find("```", json_start)
+            response_text = response_text[json_start:json_end].strip()
+
+        script_data = json.loads(response_text)
+        sections = script_data.get("sections", [])
+        full_script = "\n\n".join([f"## {s['title']}\n\n{s['content']}" for s in sections])
+
         await db.masterclass_factory.update_one(
             {"partner_id": partner_id},
             {"$set": {
                 "partner_id": partner_id,
                 "answers": data.answers,
-                "script": script,
-                "validation_score": validation_score,
+                "script": full_script,
+                "script_sections": sections,
                 "script_approved": False,
                 "generated_at": datetime.now(timezone.utc).isoformat(),
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }},
             upsert=True
         )
-        
+
         return {
             "success": True,
-            "script": script,
-            "validation_score": validation_score,
-            "word_count": len(script.split())
+            "script": full_script,
+            "script_sections": sections,
         }
-        
+
+    except json.JSONDecodeError as e:
+        logging.error(f"JSON parse error in masterclass script: {e}")
+        raise HTTPException(status_code=500, detail="Errore nel parsing dello script generato")
     except Exception as e:
         logging.error(f"Error generating masterclass script: {e}")
         raise HTTPException(status_code=500, detail=f"Errore generazione script: {str(e)}")

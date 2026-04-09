@@ -39,6 +39,16 @@ class PosizionamentoSaveRequest(BaseModel):
     step_number: int
     content: str
 
+class PosizionamentoInputs(BaseModel):
+    partner_id: str
+    competenza: str = ""
+    target: str = ""
+    problema_cliente: str = ""
+    risultato: str = ""
+    differenziazione: str = ""
+    esperienza: str = ""
+    esclusioni: str = ""
+
 class GenerateCourseStructureRequest(BaseModel):
     partner_id: str
 
@@ -151,7 +161,8 @@ async def get_posizionamento(partner_id: str):
         "partner_name": partner.get("name"),
         "posizionamento": posizionamento or {},
         "is_completed": posizionamento.get("completed", False) if posizionamento else False,
-        "course_structure": posizionamento.get("course_structure") if posizionamento else None
+        "course_structure": posizionamento.get("course_structure") if posizionamento else None,
+        "positioning_output": posizionamento.get("positioning_output") if posizionamento else None
     }
 
 @router.post("/posizionamento/save-step")
@@ -363,6 +374,162 @@ async def approve_course_structure(partner_id: str):
     return {
         "success": True,
         "message": "Struttura approvata! Puoi procedere alla Masterclass."
+    }
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# POSIZIONAMENTO AI-DRIVEN ENDPOINTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.post("/posizionamento/save-inputs")
+async def save_posizionamento_inputs(request: PosizionamentoInputs):
+    """Salva i 7 input del partner per il posizionamento AI-driven"""
+    partner = await get_partner_or_404(request.partner_id)
+
+    await db.partner_posizionamento.update_one(
+        {"partner_id": request.partner_id},
+        {
+            "$set": {
+                "inputs": {
+                    "competenza": request.competenza,
+                    "target": request.target,
+                    "problema_cliente": request.problema_cliente,
+                    "risultato": request.risultato,
+                    "differenziazione": request.differenziazione,
+                    "esperienza": request.esperienza,
+                    "esclusioni": request.esclusioni,
+                },
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            },
+            "$setOnInsert": {
+                "partner_id": request.partner_id,
+                "partner_name": partner.get("name"),
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+
+    return {"success": True, "message": "Input salvati"}
+
+
+@router.post("/posizionamento/generate-positioning")
+async def generate_positioning(request: GenerateCourseStructureRequest):
+    """Genera il posizionamento usando AI basandosi sui 7 input del partner"""
+    partner = await get_partner_or_404(request.partner_id)
+
+    posizionamento = await db.partner_posizionamento.find_one(
+        {"partner_id": request.partner_id}, {"_id": 0}
+    )
+
+    if not posizionamento or not posizionamento.get("inputs"):
+        raise HTTPException(status_code=400, detail="Completa prima le domande")
+
+    inputs = posizionamento.get("inputs", {})
+
+    prompt = f"""Sei un esperto di business strategy e posizionamento per accademie digitali.
+Genera un documento di posizionamento professionale basato sugli input del partner.
+
+PARTNER: {partner.get('name')}
+
+INPUT DEL PARTNER:
+1. IN COSA È COMPETENTE: {inputs.get('competenza', 'N/D')}
+2. CHI VUOLE AIUTARE (TARGET): {inputs.get('target', 'N/D')}
+3. PROBLEMA PRINCIPALE DEL CLIENTE: {inputs.get('problema_cliente', 'N/D')}
+4. RISULTATO CHE VUOLE FAR OTTENERE: {inputs.get('risultato', 'N/D')}
+5. COSA LO RENDE DIVERSO: {inputs.get('differenziazione', 'N/D')}
+6. ESPERIENZA E RISULTATI: {inputs.get('esperienza', 'N/D')}
+7. COSA NON VUOLE FARE: {inputs.get('esclusioni', 'N/D')}
+
+Genera un posizionamento strutturato in formato JSON con questa struttura esatta:
+{{
+  "sintesi_progetto": "Un paragrafo chiaro (3-4 frasi) che riassume il progetto e la sua proposta di valore unica",
+  "target_ideale": "Descrizione dettagliata e specifica del cliente ideale (chi è, cosa fa, quali sfide ha)",
+  "problema_principale": "Il problema principale che il target affronta e perché è urgente risolverlo",
+  "risultato_promesso": "Il risultato concreto e misurabile che il partner promette di far ottenere",
+  "differenziazione": "Cosa rende unico questo progetto rispetto alla concorrenza e perché il partner è la persona giusta",
+  "posizionamento_finale": "Aiuto [target specifico] a [risultato concreto] anche se [problema/obiezione principale]"
+}}
+
+REGOLE:
+- Il posizionamento_finale DEVE seguire ESATTAMENTE il formato: Aiuto [target] a [risultato] anche se [problema]
+- Ogni sezione deve essere chiara, concisa e professionale (2-4 frasi)
+- Usa un linguaggio diretto e orientato ai risultati
+- Non usare gergo tecnico
+- Rispondi SOLO con il JSON, senza altro testo"""
+
+    try:
+        llm = await get_llm_chat()
+        response = await llm.send_message(UserMessage(text=prompt))
+        response_text = response.strip()
+
+        if "```json" in response_text:
+            json_start = response_text.find("```json") + 7
+            json_end = response_text.find("```", json_start)
+            response_text = response_text[json_start:json_end].strip()
+        elif "```" in response_text:
+            json_start = response_text.find("```") + 3
+            json_end = response_text.find("```", json_start)
+            response_text = response_text[json_start:json_end].strip()
+
+        positioning_output = json.loads(response_text)
+
+        await db.partner_posizionamento.update_one(
+            {"partner_id": request.partner_id},
+            {"$set": {
+                "positioning_output": positioning_output,
+                "positioning_generated": True,
+                "positioning_generated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+
+        return {
+            "success": True,
+            "positioning_output": positioning_output
+        }
+
+    except json.JSONDecodeError as e:
+        logging.error(f"JSON parse error in positioning: {e}, response: {response_text[:500]}")
+        raise HTTPException(status_code=500, detail="Errore nel parsing del posizionamento generato")
+    except Exception as e:
+        logging.error(f"Positioning generation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore generazione posizionamento: {str(e)}")
+
+
+@router.post("/posizionamento/approve-positioning")
+async def approve_positioning(partner_id: str):
+    """Approva il posizionamento generato e completa la fase"""
+    partner = await get_partner_or_404(partner_id)
+
+    posizionamento = await db.partner_posizionamento.find_one(
+        {"partner_id": partner_id}, {"_id": 0}
+    )
+
+    if not posizionamento or not posizionamento.get("positioning_output"):
+        raise HTTPException(status_code=400, detail="Nessun posizionamento da approvare")
+
+    await db.partner_posizionamento.update_one(
+        {"partner_id": partner_id},
+        {"$set": {
+            "completed": True,
+            "approved_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+
+    await db.partners.update_one(
+        {"id": partner_id},
+        {"$set": {
+            "posizionamento_completato": True,
+            "posizionamento_completato_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+
+    await notify_telegram(
+        f"✅ POSIZIONAMENTO COMPLETATO\n\n👤 {partner.get('name')}\n📋 Posizionamento approvato dal partner"
+    )
+
+    return {
+        "success": True,
+        "message": "Posizionamento approvato! Puoi procedere alla Masterclass."
     }
 
 # ═══════════════════════════════════════════════════════════════════════════════
