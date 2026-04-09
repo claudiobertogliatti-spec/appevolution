@@ -23,10 +23,10 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) 
   };
 
   const phaseName = isOnboarding
-    ? 'ATTIVAZIONE'
+    ? 'la tua Attivazione'
     : isCompleted
-      ? 'COMPLETATO'
-      : activeStep?.title?.toUpperCase() || '';
+      ? 'Percorso Completato'
+      : activeStep?.title || '';
 
   const ctaAction = isOnboarding
     ? 'Completa la tua attivazione'
@@ -34,11 +34,11 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) 
       ? 'Monitora i tuoi risultati'
       : activeStep?.whatToDo;
 
-  const ctaDesc = isOnboarding
+  const ctaDetail = isOnboarding
     ? 'Inseriamo i dati necessari per partire. Ci vogliono pochi minuti.'
     : isCompleted
       ? 'Hai completato tutti gli step. Ora monitoriamo insieme i risultati.'
-      : activeStep?.desc;
+      : activeStep?.whatToDoDetail || activeStep?.desc;
 
   const buttonText = isOnboarding ? 'Iniziamo' : isCompleted ? 'Vedi i risultati' : 'VAI ORA';
 
@@ -52,7 +52,7 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) 
             SEI QUI
           </h1>
           <p className="text-lg sm:text-xl font-bold mb-1" style={{ color: '#FFD24D' }}>
-            Fase: {phaseName}
+            Stai lavorando {isOnboarding ? 'al' : isCompleted ? '' : 'alla tua'} {phaseName}
           </p>
           <p className="text-base" style={{ color: 'rgba(255,255,255,0.5)' }}>
             Step {isOnboarding ? 0 : currentStep} di {STEPS.length}
@@ -70,7 +70,7 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) 
               {ctaAction}
             </p>
             <p className="text-base leading-relaxed mb-6 max-w-lg" style={{ color: 'rgba(26,31,36,0.7)' }}>
-              {ctaDesc}
+              {ctaDetail}
             </p>
             <button
               data-testid="vai-ora-btn"
@@ -87,12 +87,15 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) 
         {/* ═══════════ 3. BLOCCO PROGRESSO — A CHE PUNTO SEI ═══════════ */}
         {!isOnboarding && (
           <section data-testid="progress-section" className="rounded-2xl p-6 bg-white" style={{ border: '1px solid #ECEDEF' }}>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-2">
               <h3 className="text-lg font-black" style={{ color: '#1A1F24' }}>A CHE PUNTO SEI</h3>
               <span className="text-sm font-black" style={{ color: progressPercent === 100 ? '#34C77B' : '#D4A017' }}>
-                {progressPercent}%
+                {progressPercent}% completato
               </span>
             </div>
+            <p className="text-sm mb-4" style={{ color: '#5F6572' }}>
+              Hai completato {completedSteps} step su {STEPS.length}
+            </p>
             <div className="w-full rounded-full mb-6" style={{ height: 8, background: '#ECEDEF' }}>
               <div
                 className="h-full rounded-full transition-all duration-700"
@@ -108,6 +111,8 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) 
                 const isStepCompleted = stepNum < currentStep;
                 const isCurrent = stepNum === currentStep;
                 const isLocked = stepNum > currentStep;
+                const statusLabel = isStepCompleted ? 'completato' : isCurrent ? 'in corso' : 'bloccato';
+                const statusColor = isStepCompleted ? '#34C77B' : isCurrent ? '#D4A017' : '#9CA3AF';
 
                 return (
                   <button
@@ -130,16 +135,14 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) 
                         color: isStepCompleted ? 'white' : isCurrent ? '#1A1F24' : '#9CA3AF',
                       }}
                     >
-                      {isStepCompleted ? <Check className="w-4 h-4" /> : isLocked ? <Lock className="w-3.5 h-3.5" /> : step.num}
+                      {isStepCompleted ? <Check className="w-4 h-4" /> : stepNum}
                     </span>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-base font-bold block" style={{ color: isStepCompleted ? '#2D9F6F' : isCurrent ? '#1A1F24' : '#9CA3AF' }}>
-                        {step.title}
-                      </span>
-                    </div>
-                    {isStepCompleted && <span className="text-sm font-bold" style={{ color: '#34C77B' }}>completato</span>}
-                    {isCurrent && <span className="text-sm font-bold" style={{ color: '#D4A017' }}>in corso</span>}
-                    {isLocked && <span className="text-sm font-bold" style={{ color: '#9CA3AF' }}>bloccato</span>}
+                    <span className="flex-1 text-base font-bold" style={{ color: isStepCompleted ? '#2D9F6F' : isCurrent ? '#1A1F24' : '#9CA3AF' }}>
+                      {step.title}
+                    </span>
+                    <span className="text-sm font-bold flex-shrink-0" style={{ color: statusColor }}>
+                      — {statusLabel}
+                    </span>
                   </button>
                 );
               })}
@@ -179,8 +182,8 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) 
                 <MessageCircle className="w-5 h-5" style={{ color: '#1A1F24' }} />
               </div>
               <div className="flex-1">
+                <span className="text-xs font-bold uppercase tracking-wider block mb-0.5" style={{ color: '#8B8680' }}>Per dubbi rapidi</span>
                 <span className="text-base font-bold block" style={{ color: '#1A1F24' }}>Chat con Stefania</span>
-                <span className="text-sm" style={{ color: '#8B8680' }}>Assistente AI sempre disponibile</span>
               </div>
               <ArrowRight className="w-4 h-4 flex-shrink-0" style={{ color: '#D4A017' }} />
             </button>
@@ -194,8 +197,8 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) 
                 <Calendar className="w-5 h-5" style={{ color: '#5F6572' }} />
               </div>
               <div className="flex-1">
+                <span className="text-xs font-bold uppercase tracking-wider block mb-0.5" style={{ color: '#8B8680' }}>Per decisioni strategiche</span>
                 <span className="text-base font-bold block" style={{ color: '#1A1F24' }}>Sessione con Claudio</span>
-                <span className="text-sm" style={{ color: '#8B8680' }}>Strategia e direzione</span>
               </div>
               <ArrowRight className="w-4 h-4 flex-shrink-0" style={{ color: '#8B8680' }} />
             </button>
@@ -209,8 +212,8 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) 
                 <Calendar className="w-5 h-5" style={{ color: '#5F6572' }} />
               </div>
               <div className="flex-1">
+                <span className="text-xs font-bold uppercase tracking-wider block mb-0.5" style={{ color: '#8B8680' }}>Per supporto operativo</span>
                 <span className="text-base font-bold block" style={{ color: '#1A1F24' }}>Sessione con Antonella</span>
-                <span className="text-sm" style={{ color: '#8B8680' }}>Operativo e supporto quotidiano</span>
               </div>
               <ArrowRight className="w-4 h-4 flex-shrink-0" style={{ color: '#8B8680' }} />
             </button>
@@ -220,10 +223,10 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) 
         {/* ═══════════ 6. BLOCCO REGOLE ═══════════ */}
         <section data-testid="rules-section" className="rounded-2xl p-6" style={{ background: '#F0EFEB', border: '1px solid #E8E4DC' }}>
           <h3 className="text-lg font-black mb-3" style={{ color: '#1A1F24' }}>COME FUNZIONA IL PERCORSO</h3>
-          <div className="space-y-2 text-base" style={{ color: '#5F6572' }}>
+          <div className="space-y-3 text-base" style={{ color: '#5F6572' }}>
             <p>Non devi fare tutto insieme.</p>
             <p>Completa uno step alla volta.</p>
-            <p>Quando uno step è finito, si sblocca il successivo.</p>
+            <p>Quando uno step è finito, si sblocca quello successivo.</p>
           </div>
         </section>
 
