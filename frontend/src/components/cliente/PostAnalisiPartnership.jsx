@@ -135,6 +135,8 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
   const [bonificoData, setBonificoData] = useState(null);
   const [copiedIban, setCopiedIban] = useState(false);
   const [expandedArticle, setExpandedArticle] = useState(null);
+  const [audioUrl, setAudioUrl] = useState("");
+  const [audioAvailable, setAudioAvailable] = useState(false);
 
   const userId = user?.id || user?.user_id;
   const token = localStorage.getItem("access_token");
@@ -146,14 +148,19 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
     if (!userId) { setLoadingAnalisi(false); return; }
     const fetchAll = async () => {
       try {
-        const [analisiRes, contractRes] = await Promise.allSettled([
+        const [analisiRes, contractRes, audioRes] = await Promise.allSettled([
           axios.get(`${API}/api/cliente-analisi/output/${userId}`, { headers }),
           axios.get(`${API}/api/cliente-analisi/contract-text/${userId}`, { headers }),
+          axios.get(`${API}/api/cliente-analisi/audio/${userId}`, { headers }),
         ]);
         if (analisiRes.status === "fulfilled") setAnalisi(analisiRes.value.data);
         if (contractRes.status === "fulfilled") {
           setContractText(contractRes.value.data.text || "");
           setCorrispettivo(contractRes.value.data.corrispettivo || 2790);
+        }
+        if (audioRes.status === "fulfilled" && audioRes.value.data?.available) {
+          setAudioUrl(audioRes.value.data.url);
+          setAudioAvailable(true);
         }
       } catch (e) { console.error("Fetch post-analisi:", e); }
       setLoadingAnalisi(false);
@@ -283,39 +290,77 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
         </div>
 
         {/* Sintesi scritta */}
-        {analisiData.sintesi && (
+        {(analisiData.sintesi_progetto || analisiData.sintesi) && (
           <div className="mb-4">
             <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.yellowDark }}>Sintesi</div>
-            <p className="text-base leading-relaxed" style={{ color: C.muted }}>{analisiData.sintesi}</p>
+            <p className="text-base leading-relaxed" style={{ color: C.muted }}>{analisiData.sintesi_progetto || analisiData.sintesi}</p>
           </div>
         )}
-        {analisiData.punti_forza && (
+        {analisiData.diagnosi && (
+          <div className="mb-4">
+            <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.blue }}>Diagnosi</div>
+            <p className="text-base leading-relaxed" style={{ color: C.muted }}>{analisiData.diagnosi}</p>
+          </div>
+        )}
+        {analisiData.punti_di_forza && Array.isArray(analisiData.punti_di_forza) && (
           <div className="mb-4">
             <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>Punti di forza</div>
-            <p className="text-base leading-relaxed" style={{ color: C.muted }}>{analisiData.punti_forza}</p>
+            <ul className="space-y-1">
+              {analisiData.punti_di_forza.map((p, i) => (
+                <li key={i} className="flex items-start gap-2 text-base" style={{ color: C.muted }}>
+                  <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: C.green }} /> {p}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
-        {analisiData.criticita && (
+        {analisiData.criticita && Array.isArray(analisiData.criticita) && (
           <div className="mb-4">
             <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.red }}>Criticità</div>
-            <p className="text-base leading-relaxed" style={{ color: C.muted }}>{analisiData.criticita}</p>
+            <ul className="space-y-1">
+              {analisiData.criticita.map((c, i) => (
+                <li key={i} className="flex items-start gap-2 text-base" style={{ color: C.muted }}>
+                  <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: C.red }} /> {c}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {analisiData.direzione_consigliata && (
+          <div className="mb-4">
+            <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.yellowDark }}>Direzione consigliata</div>
+            <p className="text-base leading-relaxed" style={{ color: C.muted }}>{analisiData.direzione_consigliata}</p>
           </div>
         )}
 
         {/* Azioni: PDF + Audio */}
-        <div className="flex flex-wrap gap-3 mt-6">
-          <button data-testid="download-pdf-btn" onClick={downloadPdf} disabled={downloadingPdf}
-            className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all hover:shadow-md"
-            style={{ background: C.dark, color: C.white }}>
-            {downloadingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            Scarica PDF Completo
-          </button>
-          <button data-testid="audio-overview-btn"
-            className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all"
-            style={{ background: `${C.purple}12`, color: C.purple, border: `1px solid ${C.purple}30` }}>
-            <Headphones className="w-4 h-4" />
-            Ascolta la sintesi audio
-          </button>
+        <div className="space-y-4 mt-6">
+          <div className="flex flex-wrap gap-3">
+            <button data-testid="download-pdf-btn" onClick={downloadPdf} disabled={downloadingPdf}
+              className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all hover:shadow-md"
+              style={{ background: C.dark, color: C.white }}>
+              {downloadingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              Scarica Analisi PDF
+            </button>
+          </div>
+
+          {/* Audio Player */}
+          <div className="rounded-xl p-4" style={{ background: `${C.purple}06`, border: `1px solid ${C.purple}20` }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Headphones className="w-4 h-4" style={{ color: C.purple }} />
+              <span className="text-sm font-bold" style={{ color: C.purple }}>Sintesi Audio dell'Analisi</span>
+            </div>
+            {audioAvailable ? (
+              <audio data-testid="audio-player" controls className="w-full" style={{ height: 40 }}>
+                <source src={`${API}${audioUrl}`} type="audio/mpeg" />
+                Il tuo browser non supporta il player audio.
+              </audio>
+            ) : (
+              <p className="text-sm" style={{ color: C.muted }}>
+                La sintesi audio è in fase di preparazione. Sarà disponibile a breve.
+              </p>
+            )}
+          </div>
         </div>
       </Section>
 

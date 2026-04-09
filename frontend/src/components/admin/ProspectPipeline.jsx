@@ -3,7 +3,7 @@ import {
   Search, RefreshCw, CheckCircle, Clock, Lock,
   ChevronRight, ExternalLink, AlertCircle, Loader2,
   FileText, CreditCard, Sparkles, Phone, Send,
-  PenTool, DollarSign, Upload, User, FilePlus, Trash2, X, Eye
+  PenTool, DollarSign, Upload, User, FilePlus, Trash2, X, Eye, Headphones
 } from "lucide-react";
 
 const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it")) ? "" : (process.env.REACT_APP_BACKEND_URL || "");
@@ -249,12 +249,141 @@ function ContrattoCustomModal({ cliente, onClose }) {
 }
 
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Modale Upload Audio Analisi
+// ─────────────────────────────────────────────────────────────────────────────
+function AudioAnalisiModal({ cliente, onClose }) {
+  const [audioUrl, setAudioUrl] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const fileRef = useRef(null);
+  const token = localStorage.getItem("access_token");
+
+  useEffect(() => { loadStatus(); }, []);
+
+  const loadStatus = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/api/cliente-analisi/audio/${cliente.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setAudioUrl(data.available ? data.url : "");
+    } catch {
+      setError("Errore caricamento stato");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpload = async (file) => {
+    if (!file) return;
+    if (!file.name.endsWith('.mp3') && !file.name.endsWith('.wav') && !file.name.endsWith('.m4a')) {
+      setError("Formato non supportato. Carica un file .mp3, .wav o .m4a");
+      return;
+    }
+    setUploading(true); setError(null); setSuccess(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch(`${API}/api/admin/cliente/${cliente.id}/upload-audio-analisi`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAudioUrl(data.url);
+        setSuccess(`Audio caricato (${data.size_kb} KB)`);
+      } else {
+        setError(data.detail || "Errore upload");
+      }
+    } catch (e) {
+      setError("Errore upload: " + e.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="flex items-center justify-between px-6 py-4 border-b"
+          style={{ background: "linear-gradient(135deg,#5B21B6,#7C3AED)", borderRadius: "16px 16px 0 0" }}>
+          <div>
+            <h3 className="font-bold text-white text-base">Audio Analisi</h3>
+            <p className="text-white/60 text-xs">{cliente.nome} {cliente.cognome}</p>
+          </div>
+          <button onClick={onClose} className="text-white/60 hover:text-white transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-6 space-y-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+            </div>
+          ) : audioUrl ? (
+            <>
+              <div className="rounded-xl p-4 space-y-3" style={{ background: "#F5F3FF", border: "1px solid #DDD6FE" }}>
+                <div className="flex items-center gap-2">
+                  <Headphones className="w-5 h-5 text-purple-600" />
+                  <span className="font-semibold text-purple-700 text-sm">Audio caricato</span>
+                </div>
+                <audio controls className="w-full" style={{ height: 40 }}>
+                  <source src={`${API}${audioUrl}`} type="audio/mpeg" />
+                </audio>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-2">Sostituisci con nuovo file:</p>
+                <input ref={fileRef} type="file" accept=".mp3,.wav,.m4a" className="hidden"
+                  onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0])} />
+                <button onClick={() => fileRef.current?.click()} disabled={uploading}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all"
+                  style={{ background: "#F5F4F1", color: "#5F6572", border: "1px dashed #D1D5DB" }}>
+                  {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                  {uploading ? "Caricamento..." : "Carica nuovo audio"}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="rounded-xl p-4 text-center space-y-2" style={{ background: "#FAFAF7", border: "1px solid #ECEDEF" }}>
+                <Headphones className="w-8 h-8 mx-auto text-gray-400" />
+                <p className="text-sm font-medium text-gray-600">Nessun audio caricato</p>
+                <p className="text-xs text-gray-400">Genera l'audio con NotebookLM e caricalo qui.</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-2">Carica il file MP3 generato da NotebookLM:</p>
+                <input ref={fileRef} type="file" accept=".mp3,.wav,.m4a" className="hidden"
+                  onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0])} />
+                <button onClick={() => fileRef.current?.click()} disabled={uploading}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
+                  style={{ background: "linear-gradient(135deg,#5B21B6,#7C3AED)", color: "#fff" }}>
+                  {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                  {uploading ? "Caricamento in corso..." : "Carica Audio Analisi (MP3)"}
+                </button>
+              </div>
+            </>
+          )}
+          {error && <p className="text-xs text-red-500 text-center">{error}</p>}
+          {success && <p className="text-xs text-emerald-600 text-center">{success}</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 export function ProspectPipeline({ onOpenCliente }) {
   const [clienti, setClienti] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("tutti");
   const [contrattoModal, setContrattoModal] = useState(null); // cliente selezionato per modale
+  const [audioModal, setAudioModal] = useState(null); // cliente selezionato per modale audio
 
   useEffect(() => { loadData(); }, []);
 
@@ -461,9 +590,16 @@ export function ProspectPipeline({ onOpenCliente }) {
                     {c.step_pagamento_67 && <CallBadge stato={c.call_stato} />}
                   </td>
 
-                  {/* Azione apri + contratto custom */}
+                  {/* Azione apri + contratto custom + audio */}
                   <td className="px-3 py-3 text-center">
                     <div className="flex items-center gap-1 justify-center">
+                      <button
+                        onClick={e => { e.stopPropagation(); setAudioModal(c); }}
+                        title="Carica audio analisi"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:bg-[#F5F3FF]"
+                        style={{ color: "#7C3AED" }}>
+                        <Headphones className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={e => { e.stopPropagation(); setContrattoModal(c); }}
                         title="Gestisci contratto custom"
@@ -501,6 +637,10 @@ export function ProspectPipeline({ onOpenCliente }) {
           <span>Bloccato (step precedente mancante)</span>
         </div>
         <div className="flex items-center gap-1">
+          <Headphones className="w-3.5 h-3.5" style={{ color: "#7C3AED" }} />
+          <span>Carica audio analisi (NotebookLM)</span>
+        </div>
+        <div className="flex items-center gap-1">
           <FilePlus className="w-3.5 h-3.5" style={{ color: "#6366F1" }} />
           <span>Carica contratto custom (PDF)</span>
         </div>
@@ -511,6 +651,14 @@ export function ProspectPipeline({ onOpenCliente }) {
         <ContrattoCustomModal
           cliente={contrattoModal}
           onClose={() => setContrattoModal(null)}
+        />
+      )}
+
+      {/* Modale audio analisi */}
+      {audioModal && (
+        <AudioAnalisiModal
+          cliente={audioModal}
+          onClose={() => setAudioModal(null)}
         />
       )}
     </div>

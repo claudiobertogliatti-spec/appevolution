@@ -1896,12 +1896,66 @@ async def partnership_bonifico(credentials: HTTPAuthorizationCredentials = Depen
         "banca": "Revolut Bank UAB",
         "causale": f"Partnership Evolution PRO - {nome}"
     }
-async def get_stato_cliente(user_id: str):
+
+
+# ── Upload audio analisi (Admin) ─────────────────────────────────
+@api_router.post("/admin/cliente/{user_id}/upload-audio-analisi")
+async def upload_audio_analisi(user_id: str, file: UploadFile = File(...), credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Upload mp3 della sintesi audio dell'analisi generata tramite NotebookLM."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    token_data = decode_token(credentials.credentials)
+    if not token_data:
+        raise HTTPException(status_code=401, detail="Token non valido")
+    caller = await db.users.find_one({"id": token_data.user_id}, {"_id": 0, "ruolo": 1, "role": 1})
+    if not caller or (caller.get("ruolo") != "admin" and caller.get("role") != "admin"):
+        raise HTTPException(status_code=403, detail="Solo admin può caricare audio")
+
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+
+    import os as _os
+    audio_dir = "/app/backend/static/uploads/audio_analisi"
+    _os.makedirs(audio_dir, exist_ok=True)
+    filename = f"{user_id}.mp3"
+    filepath = f"{audio_dir}/{filename}"
+
+    content = await file.read()
+    with open(filepath, "wb") as f:
+        f.write(content)
+
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "audio_analisi_url": f"/api/static/uploads/audio_analisi/{filename}",
+            "audio_analisi_uploaded_at": datetime.now(timezone.utc).isoformat(),
+        }}
+    )
+    return {"success": True, "url": f"/api/static/uploads/audio_analisi/{filename}", "size_kb": round(len(content) / 1024)}
+
+
+@api_router.get("/cliente-analisi/audio/{user_id}")
+async def get_audio_analisi(user_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Restituisce l'URL dell'audio analisi per il cliente."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "audio_analisi_url": 1})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+    url = user.get("audio_analisi_url", "")
+    return {"url": url, "available": bool(url)}
+
+
+@api_router.get("/cliente-analisi/stato/{user_id}")
+async def get_stato_cliente(user_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
     """
     Ricalcola e restituisce stato_cliente e azione_richiesta in tempo reale
     dai dati presenti su DB (user + cliente + proposta).
     Aggiorna anche il campo persistito su db.users.
     """
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
     user = await db.users.find_one({"id": user_id}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=404, detail="Utente non trovato")
