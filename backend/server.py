@@ -1845,8 +1845,8 @@ async def partnership_checkout(request: Request, credentials: HTTPAuthorizationC
         session_request = CheckoutSessionRequest(
             amount=float(corrispettivo),
             currency="eur",
-            success_url=f"{frontend_url}/dashboard?pagamento_partnership=successo&session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=f"{frontend_url}/dashboard?pagamento_partnership=annullato",
+            success_url=f"{frontend_url}/proposta?pagamento_partnership=successo&session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{frontend_url}/proposta?pagamento_partnership=annullato",
             metadata={
                 "user_id": user["id"],
                 "tipo": "partnership",
@@ -1957,7 +1957,7 @@ async def save_personal_data(request: Request, credentials: HTTPAuthorizationCre
     if not token_data:
         raise HTTPException(status_code=401, detail="Token non valido")
     body = await request.json()
-    required = ["nome_completo", "codice_fiscale", "indirizzo", "citta", "cap"]
+    required = ["nome_completo", "codice_fiscale", "indirizzo", "citta", "cap", "nome_azienda", "email_lavoro"]
     for field in required:
         if not body.get(field, "").strip():
             raise HTTPException(status_code=400, detail=f"Campo obbligatorio mancante: {field}")
@@ -1972,6 +1972,9 @@ async def save_personal_data(request: Request, credentials: HTTPAuthorizationCre
         "provincia": body.get("provincia", "").strip(),
         "partita_iva": body.get("partita_iva", "").strip(),
         "telefono": body.get("telefono", "").strip(),
+        "nome_azienda": body.get("nome_azienda", "").strip(),
+        "email_lavoro": body.get("email_lavoro", "").strip(),
+        "pec": body.get("pec", "").strip(),
         "saved_at": now,
     }
     await db.users.update_one(
@@ -2095,6 +2098,10 @@ async def send_signed_contract_email(request: Request, credentials: HTTPAuthoriz
     elements.append(Paragraph(f"<b>FIRMA DIGITALE</b>", styles["SignInfo"]))
     elements.append(Paragraph(f"Firmatario: {personal.get('nome_completo', nome)}", styles["SignInfo"]))
     elements.append(Paragraph(f"Codice Fiscale: {personal.get('codice_fiscale', 'N/A')}", styles["SignInfo"]))
+    elements.append(Paragraph(f"Azienda/Brand: {personal.get('nome_azienda', 'N/A')}", styles["SignInfo"]))
+    elements.append(Paragraph(f"Email Lavoro: {personal.get('email_lavoro', 'N/A')}", styles["SignInfo"]))
+    if personal.get("pec"):
+        elements.append(Paragraph(f"PEC: {personal['pec']}", styles["SignInfo"]))
     elements.append(Paragraph(f"Data firma: {firma_at}", styles["SignInfo"]))
     elements.append(Paragraph(f"Email: {email}", styles["SignInfo"]))
 

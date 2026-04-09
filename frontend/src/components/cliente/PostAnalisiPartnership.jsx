@@ -200,7 +200,7 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
   const [audioUrl, setAudioUrl] = useState("");
   const [audioAvailable, setAudioAvailable] = useState(false);
   // Personal data
-  const [personalData, setPersonalData] = useState({ nome_completo: "", codice_fiscale: "", indirizzo: "", citta: "", cap: "", provincia: "", partita_iva: "", telefono: "" });
+  const [personalData, setPersonalData] = useState({ nome_completo: "", codice_fiscale: "", indirizzo: "", citta: "", cap: "", provincia: "", partita_iva: "", telefono: "", nome_azienda: "", email_lavoro: "", pec: "" });
   const [personalSaved, setPersonalSaved] = useState(false);
   const [savingPersonal, setSavingPersonal] = useState(false);
   // Documents
@@ -754,6 +754,9 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
             <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
               <div><span style={{ color: C.muted }}>Nome:</span> <strong>{personalData.nome_completo}</strong></div>
               <div><span style={{ color: C.muted }}>CF:</span> <strong>{personalData.codice_fiscale}</strong></div>
+              <div><span style={{ color: C.muted }}>Azienda/Brand:</span> <strong>{personalData.nome_azienda}</strong></div>
+              <div><span style={{ color: C.muted }}>Email Lavoro:</span> <strong>{personalData.email_lavoro}</strong></div>
+              {personalData.pec && <div><span style={{ color: C.muted }}>PEC:</span> <strong>{personalData.pec}</strong></div>}
               <div><span style={{ color: C.muted }}>Indirizzo:</span> <strong>{personalData.indirizzo}</strong></div>
               <div><span style={{ color: C.muted }}>Città:</span> <strong>{personalData.citta} ({personalData.provincia}) {personalData.cap}</strong></div>
               {personalData.partita_iva && <div><span style={{ color: C.muted }}>P.IVA:</span> <strong>{personalData.partita_iva}</strong></div>}
@@ -766,6 +769,9 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
               {[
                 { id: "nome_completo", label: "Nome e Cognome *", placeholder: "Mario Rossi" },
                 { id: "codice_fiscale", label: "Codice Fiscale *", placeholder: "RSSMRA80A01H501Z" },
+                { id: "nome_azienda", label: "Nome Azienda / Brand *", placeholder: "La Mia Azienda Srl" },
+                { id: "email_lavoro", label: "Email Lavoro *", placeholder: "mario@azienda.it" },
+                { id: "pec", label: "PEC (se disponibile)", placeholder: "mario@pec.it" },
                 { id: "indirizzo", label: "Indirizzo *", placeholder: "Via Roma 1" },
                 { id: "citta", label: "Città *", placeholder: "Milano" },
                 { id: "cap", label: "CAP *", placeholder: "20100" },
@@ -783,7 +789,7 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
                 </div>
               ))}
             </div>
-            <button data-testid="save-personal-btn" onClick={savePersonal} disabled={savingPersonal || !personalData.nome_completo || !personalData.codice_fiscale || !personalData.indirizzo || !personalData.citta || !personalData.cap}
+            <button data-testid="save-personal-btn" onClick={savePersonal} disabled={savingPersonal || !personalData.nome_completo || !personalData.codice_fiscale || !personalData.indirizzo || !personalData.citta || !personalData.cap || !personalData.nome_azienda || !personalData.email_lavoro}
               className="px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all"
               style={{ background: C.yellow, color: C.dark, opacity: savingPersonal ? 0.6 : 1 }}>
               {savingPersonal ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}

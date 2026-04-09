@@ -1385,46 +1385,24 @@ export default function App() {
       return <AnalisiInPreparazione user={currentUser} onLogout={handleClienteLogout} />;
     }
 
-    // ── Route: Proposta (admin attiva fase decisione) ─────────────────────
-    // Supporta anche il vecchio URL /decisione-partnership
-    if (currentPath === "/proposta" || currentPath === "/decisione-partnership") {
-      if (urlParams.get("payment") === "success") {
-        const verifyDecisione = async () => {
+    // ── Route: Proposta / Firma — Funnel Post Analisi unificato ────────────
+    if (currentPath === "/proposta" || currentPath === "/decisione-partnership" || currentPath === "/firma" || currentPath === "/attivazione-partnership") {
+      if (urlParams.get("pagamento_partnership") === "successo") {
+        const verifyPartnershipPayment = async () => {
           try {
-            await fetch(`${API}/api/flusso-analisi/verify-payment-partnership/${currentUser.id}`, {
-              method: "POST", headers: { "Content-Type": "application/json" }
-            });
+            const sessionId = urlParams.get("session_id");
+            if (sessionId) {
+              await fetch(`${API}/api/flusso-analisi/verify-payment-partnership/${currentUser.id}`, {
+                method: "POST", headers: { "Content-Type": "application/json" }
+              });
+            }
           } catch (e) { console.error(e); }
           window.location.href = "/proposta";
         };
-        verifyDecisione();
+        verifyPartnershipPayment();
         return <LoadingScreen />;
       }
-      return <DecisionePartnershipPage user={currentUser} onLogout={handleClienteLogout} />;
-    }
-
-    // ── Route: Firma (attivazione partnership) ────────────────────────────
-    // Supporta anche il vecchio URL /attivazione-partnership
-    if (currentPath === "/firma" || currentPath === "/attivazione-partnership") {
-      if (urlParams.get("payment") === "success" && !currentUser.pagamento_verificato) {
-        const verifyPartnership = async () => {
-          try {
-            const res = await fetch(`${API}/api/partnership/verify-payment?user_id=${currentUser.id}`, {
-              method: "POST", headers: { "Content-Type": "application/json" }
-            });
-            const data = await res.json();
-            if (data.success && data.paid) {
-              const updated = { ...currentUser, pagamento_verificato: true };
-              setCurrentUser(updated);
-              localStorage.setItem("user", JSON.stringify(updated));
-              window.location.href = "/firma";
-            }
-          } catch (e) { console.error(e); }
-        };
-        verifyPartnership();
-        return <LoadingScreen />;
-      }
-      return <AttivazionePartnership user={currentUser} onLogout={handleClienteLogout} />;
+      return <PostAnalisiPartnership user={currentUser} />;
     }
 
     // ── Default: rimanda alla pagina corretta del flusso ──────────────────
