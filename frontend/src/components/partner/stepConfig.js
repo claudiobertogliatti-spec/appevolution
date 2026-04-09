@@ -16,6 +16,11 @@ export const STEPS = [
       'Creeremo insieme la tua Masterclass gratuita',
       'Inizierai a costruire la tua offerta',
     ],
+    materials: [
+      { label: 'Guida al Posizionamento', type: 'guide' },
+      { label: 'Template Target Ideale', type: 'template' },
+      { label: 'Esempi di Posizionamento', type: 'example' },
+    ],
   },
   {
     id: 'masterclass',
@@ -30,6 +35,11 @@ export const STEPS = [
       'Avrai uno script professionale pronto',
       'Costruiremo il tuo videocorso completo',
       'Potrai iniziare a registrare le lezioni',
+    ],
+    materials: [
+      { label: 'Template Script Masterclass', type: 'template' },
+      { label: 'Struttura Masterclass Tipo', type: 'guide' },
+      { label: 'Consigli per la Registrazione', type: 'guide' },
     ],
   },
   {
@@ -46,6 +56,11 @@ export const STEPS = [
       'Prepareremo la tua pagina di vendita',
       'Definirai la tua offerta commerciale',
     ],
+    materials: [
+      { label: 'Struttura Corso Tipo', type: 'template' },
+      { label: 'Checklist Registrazione Video', type: 'checklist' },
+      { label: 'Consigli Attrezzatura', type: 'guide' },
+    ],
   },
   {
     id: 'funnel',
@@ -61,6 +76,11 @@ export const STEPS = [
       'Inizierai a ricevere traffico',
       'Potrai ottenere le prime vendite',
     ],
+    materials: [
+      { label: 'Template Copy Landing Page', type: 'template' },
+      { label: 'Struttura Funnel Tipo', type: 'guide' },
+      { label: 'Esempi Landing di Successo', type: 'example' },
+    ],
   },
   {
     id: 'lancio',
@@ -75,6 +95,11 @@ export const STEPS = [
       'La tua accademia sarà online',
       'Monitoreremo insieme i risultati',
       'Ottimizzeremo per scalare le vendite',
+    ],
+    materials: [
+      { label: 'Checklist Pre-Lancio', type: 'checklist' },
+      { label: 'Calendario Editoriale Tipo', type: 'template' },
+      { label: 'Template Contenuti Social', type: 'template' },
     ],
   },
 ];

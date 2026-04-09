@@ -1,5 +1,12 @@
-import { ArrowLeft, Check, Clock, Lock, ChevronRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Clock, Lock, ChevronRight, FileText, BookOpen, ClipboardList } from "lucide-react";
 import { STEPS, getStepFromPhase } from "./stepConfig";
+
+const MATERIAL_ICONS = {
+  guide: BookOpen,
+  template: FileText,
+  example: BookOpen,
+  checklist: ClipboardList,
+};
 
 export function StepPageWrapper({ stepId, partner, onNavigate, children }) {
   const phase = partner?.phase || 'F1';
@@ -47,7 +54,7 @@ export function StepPageWrapper({ stepId, partner, onNavigate, children }) {
 
   return (
     <div className="min-h-full" style={{ background: '#FAFAF7' }}>
-      {/* Header */}
+      {/* ═══════ HEADER STICKY ═══════ */}
       <div data-testid="step-header" className="sticky top-0 z-10 bg-white" style={{ borderBottom: '1px solid #ECEDEF' }}>
         <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -82,26 +89,98 @@ export function StepPageWrapper({ stepId, partner, onNavigate, children }) {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="pb-8">
+      {/* ═══════ INTRO: TITOLO + DESCRIZIONE + AZIONE ═══════ */}
+      <div className="max-w-4xl mx-auto px-6 pt-6 pb-2 space-y-4">
+        {/* Titolo e descrizione */}
+        <section data-testid="step-intro" className="rounded-2xl p-6 text-center" style={{ background: '#1A1F24' }}>
+          <p className="text-sm font-bold uppercase tracking-widest mb-2" style={{ color: '#FFD24D' }}>
+            Step {step.num} di {STEPS.length}
+          </p>
+          <h1 className="text-2xl sm:text-3xl font-black mb-2" style={{ color: '#FFFFFF' }}>
+            {step.title}
+          </h1>
+          <p className="text-base" style={{ color: 'rgba(255,255,255,0.6)' }}>
+            {step.desc}
+          </p>
+        </section>
+
+        {/* Cosa devi fare adesso */}
+        {!isCompleted && (
+          <section data-testid="step-action" className="rounded-2xl p-6" style={{ background: '#FFD24D' }}>
+            <h2 className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: 'rgba(26,31,36,0.5)' }}>
+              COSA DEVI FARE ADESSO
+            </h2>
+            <p className="text-lg font-black mb-1" style={{ color: '#1A1F24' }}>
+              {step.whatToDo}
+            </p>
+            <p className="text-sm mb-4" style={{ color: 'rgba(26,31,36,0.6)' }}>
+              {step.whatToDoDetail}
+            </p>
+            <a
+              href="#step-content"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
+              style={{ background: '#1A1F24', color: '#FFFFFF' }}
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById('step-content')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
+              Inizia
+              <ArrowRight className="w-4 h-4" />
+            </a>
+          </section>
+        )}
+
+        {/* Materiali e template */}
+        {step.materials && step.materials.length > 0 && (
+          <section data-testid="step-materials" className="rounded-2xl p-6 bg-white" style={{ border: '1px solid #ECEDEF' }}>
+            <h3 className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: '#8B8680' }}>
+              Materiali utili
+            </h3>
+            <div className="grid gap-2">
+              {step.materials.map((mat, i) => {
+                const Icon = MATERIAL_ICONS[mat.type] || FileText;
+                return (
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 py-2.5 px-4 rounded-xl"
+                    style={{ background: '#F5F3EE', border: '1px solid #E8E4DC' }}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" style={{ color: '#8B8680' }} />
+                    <span className="text-sm font-medium" style={{ color: '#374151' }}>
+                      {mat.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+      </div>
+
+      {/* ═══════ CONTENUTO DELLO STEP (il tool vero e proprio) ═══════ */}
+      <div id="step-content" className="pb-8">
         {children}
       </div>
 
-      {/* What's next footer */}
-      {!isCompleted && step.afterStep && (
+      {/* ═══════ DOPO QUESTO STEP ═══════ */}
+      {!isCompleted && step.afterStepBullets && (
         <div data-testid="step-after-section" className="max-w-4xl mx-auto px-6 pb-8">
           <div className="rounded-2xl p-6 bg-white" style={{ border: '1px solid #ECEDEF' }}>
-            <div className="flex items-start gap-4">
-              <ChevronRight className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#3B82F6' }} />
-              <div>
-                <h3 className="text-base font-black mb-1" style={{ color: '#1A1F24' }}>
-                  Cosa succede dopo?
-                </h3>
-                <p className="text-sm" style={{ color: '#5F6572' }}>
-                  {step.afterStep}
-                </p>
-              </div>
-            </div>
+            <h3 className="text-lg font-black mb-3" style={{ color: '#1A1F24' }}>
+              DOPO QUESTO STEP
+            </h3>
+            <p className="text-base mb-3" style={{ color: '#5F6572' }}>
+              {step.afterStepIntro}
+            </p>
+            <ul className="space-y-2">
+              {step.afterStepBullets.map((bullet, i) => (
+                <li key={i} className="flex items-start gap-3 text-base" style={{ color: '#5F6572' }}>
+                  <Check className="w-4 h-4 flex-shrink-0 mt-1" style={{ color: '#34C77B' }} />
+                  <span>{bullet}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       )}
