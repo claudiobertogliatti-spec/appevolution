@@ -434,20 +434,28 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
 
       {/* ═══ 4. IL PERCORSO PARTNERSHIP ═════════════════════════════ */}
       <Section id="partnership" accent>
-        <div className="text-center mb-6">
+        <div className="mb-6">
           <h2 className="text-xl sm:text-2xl font-black" style={{ color: C.dark }}>
-            Il percorso che ti proponiamo
+            Il percorso che costruiremo insieme
           </h2>
-          <p className="text-base mt-2" style={{ color: C.muted }}>
-            Non è un corso. Non è una consulenza. È una partnership operativa in cui costruiamo insieme il tuo progetto digitale.
+          <p className="text-base mt-3 leading-relaxed" style={{ color: C.muted }}>
+            Quello che ti proponiamo non è un corso e non è una consulenza isolata.
+          </p>
+          <p className="text-base mt-2 leading-relaxed" style={{ color: C.muted }}>
+            È un percorso guidato in cui lavoriamo insieme per trasformare la tua
+            competenza in un sistema che genera risultati.
+          </p>
+          <p className="text-base mt-3 leading-relaxed" style={{ color: C.muted }}>
+            Il punto non è "imparare come fare".<br />
+            Il punto è <strong style={{ color: C.dark }}>costruire qualcosa che funzioni davvero</strong>.
           </p>
         </div>
         <div className="space-y-4">
           {[
-            { icon: Target, title: "Partiamo dal tuo posizionamento", desc: "Definiamo la tua nicchia, il tuo messaggio e la promessa unica che ti distingue." },
-            { icon: Video, title: "Creiamo il tuo videocorso", desc: "Ti guidiamo nella produzione: dalla scaletta dei moduli alla registrazione e post-produzione." },
-            { icon: Megaphone, title: "Costruiamo il tuo funnel di vendita", desc: "Landing page, email sequence, checkout. Tutto pronto per vendere." },
-            { icon: BarChart3, title: "Lanciamo e ottimizziamo", desc: "Campagne pubblicitarie, test A/B, scaling. Il team gestisce l'acquisizione clienti per te." },
+            { icon: Target, title: "Partiamo dal posizionamento", desc: "Definiamo in modo preciso chi aiuti, con quale promessa e perché qualcuno dovrebbe scegliere te." },
+            { icon: BookOpen, title: "Strutturiamo il tuo percorso formativo", desc: "Trasformiamo la tua competenza in un'accademia chiara, vendibile e scalabile." },
+            { icon: Megaphone, title: "Costruiamo il sistema di vendita", desc: "Landing, email, checkout: tutto viene progettato per convertire." },
+            { icon: BarChart3, title: "Attiviamo e ottimizziamo il sistema", desc: "Testiamo, misuriamo e miglioriamo per portare risultati concreti." },
           ].map((item, i) => (
             <div key={i} className="flex gap-4 items-start">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -465,17 +473,21 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
 
       {/* ═══ 5. PROCESSO OPERATIVO ══════════════════════════════════ */}
       <Section id="processo" accent>
-        <div className="text-center mb-6">
-          <h2 className="text-xl font-black" style={{ color: C.dark }}>Come funziona, in pratica</h2>
+        <div className="mb-2">
+          <h2 className="text-xl font-black" style={{ color: C.dark }}>Come lavoreremo, in pratica</h2>
+          <p className="text-base mt-2 leading-relaxed" style={{ color: C.muted }}>
+            Ogni progetto segue un percorso preciso.<br />
+            Non vai a tentativi: ogni fase ha un obiettivo chiaro.
+          </p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
           {[
-            { n: "01", label: "Onboarding e strategia", desc: "Documenti, brand kit, roadmap personalizzata" },
-            { n: "02", label: "Produzione contenuti", desc: "Videocorso, materiali didattici, risorse" },
-            { n: "03", label: "Funnel & Tech", desc: "Landing, checkout, email automation" },
-            { n: "04", label: "Lancio e ADV", desc: "Campagne social, ottimizzazione, scaling" },
-            { n: "05", label: "Supporto continuo", desc: "Accountability settimanale, chat dedicata" },
-            { n: "06", label: "Crescita", desc: "Analisi dati, iterazione, espansione gamma" },
+            { n: "01", label: "Allineamento iniziale", desc: "Definiamo le basi strategiche e impostiamo la direzione." },
+            { n: "02", label: "Costruzione del contenuto", desc: "Ti guidiamo nella creazione del tuo videocorso, con struttura validata." },
+            { n: "03", label: "Infrastruttura tecnica", desc: "Costruiamo il sistema che gestisce vendite, pagamenti e utenti." },
+            { n: "04", label: "Attivazione e lancio", desc: "Testiamo il mercato e ottimizziamo il percorso." },
+            { n: "05", label: "Supporto e monitoraggio", desc: "Ti seguiamo con controllo costante e feedback operativi." },
+            { n: "06", label: "Ottimizzazione e crescita", desc: "Analizziamo i dati e miglioriamo per scalare." },
           ].map(s => (
             <div key={s.n} className="flex gap-3 p-3 rounded-xl" style={{ background: C.bg }}>
               <span className="text-lg font-black" style={{ color: `${C.yellow}90` }}>{s.n}</span>
@@ -490,19 +502,20 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
 
       {/* ═══ 6. COSA OTTIENI CONCRETAMENTE ══════════════════════════ */}
       <Section id="valore" accent>
-        <div className="text-center mb-6">
+        <div className="mb-4">
           <h2 className="text-xl font-black" style={{ color: C.dark }}>Cosa ottieni concretamente</h2>
+          <p className="text-base mt-2 leading-relaxed" style={{ color: C.muted }}>
+            Alla fine del percorso non avrai solo contenuti.<br />
+            Avrai un <strong style={{ color: C.dark }}>sistema funzionante</strong>.
+          </p>
         </div>
         <div className="space-y-3">
           {[
-            "Il tuo videocorso professionale, pubblicato e pronto per vendere",
-            "Un funnel di vendita completo e ottimizzato",
-            "Campagne pubblicitarie gestite dal nostro team",
-            "5 agenti AI specializzati a tua disposizione h24",
-            "Supporto strategico diretto con Claudio e il team",
-            "Accountability settimanale per restare in carreggiata",
-            "Dashboard personale per monitorare vendite e progressi",
-            "12 mesi di partnership operativa",
+            "Un'accademia digitale strutturata e pronta per essere venduta",
+            "Un sistema di vendita completo, progettato per convertire",
+            "Un processo chiaro per acquisire clienti in modo continuativo",
+            "Supporto strategico costante durante tutto il percorso",
+            "Un'infrastruttura che puoi controllare e migliorare nel tempo",
           ].map((item, i) => (
             <div key={i} className="flex items-start gap-3">
               <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: C.green }} />
@@ -514,25 +527,29 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
 
       {/* ═══ 7. BONUS ═══════════════════════════════════════════════ */}
       <Section id="bonus" accent>
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${C.yellow}20` }}>
-            <Gift className="w-5 h-5" style={{ color: C.yellowDark }} />
+        <div className="mb-4">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${C.yellow}20` }}>
+              <Gift className="w-5 h-5" style={{ color: C.yellowDark }} />
+            </div>
+            <h2 className="text-xl font-black" style={{ color: C.dark }}>Strumenti inclusi nel percorso</h2>
           </div>
-          <h2 className="text-xl font-black" style={{ color: C.dark }}>Bonus inclusi nella Partnership</h2>
+          <p className="text-base leading-relaxed" style={{ color: C.muted }}>
+            Per accelerare il processo, avrai accesso a risorse già pronte e testate.
+          </p>
         </div>
         <div className="space-y-4">
           {[
-            { title: "Template Funnel Premium", desc: "Tutti i template di landing page, email e checkout già pronti e testati.", value: "Valore: €497" },
-            { title: "Calendario Editoriale AI", desc: "Piano di contenuti social generato dall'AI, personalizzato sulla tua nicchia.", value: "Valore: €297" },
-            { title: "Brand Kit Professionale", desc: "Logo, palette colori, font e linee guida visive per il tuo brand digitale.", value: "Valore: €197" },
-            { title: "Accesso Community Riservata", desc: "Networking con gli altri partner Evolution PRO, scambio strategie e risorse.", value: "Valore: inestimabile" },
+            { title: "Template Funnel", desc: "Strutture già validate per landing, email e checkout." },
+            { title: "Calendario contenuti AI", desc: "Linee guida per comunicare in modo coerente con il tuo progetto." },
+            { title: "Brand Kit base", desc: "Elementi visivi essenziali per partire in modo professionale." },
+            { title: "Accesso alla community", desc: "Confronto diretto con altri progetti in sviluppo." },
           ].map((b, i) => (
             <div key={i} className="flex gap-4 p-4 rounded-xl" style={{ background: `${C.yellow}08`, border: `1px solid ${C.yellow}30` }}>
               <Gift className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: C.yellowDark }} />
               <div>
                 <div className="text-base font-bold" style={{ color: C.dark }}>{b.title}</div>
                 <div className="text-sm" style={{ color: C.muted }}>{b.desc}</div>
-                <div className="text-xs font-bold mt-1" style={{ color: C.yellowDark }}>{b.value}</div>
               </div>
             </div>
           ))}
@@ -540,24 +557,29 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
       </Section>
 
       {/* ═══ 8. LA DECISIONE ════════════════════════════════════════ */}
-      <div className="py-4">
-        <h2 className="text-2xl sm:text-3xl font-black text-center mb-6" style={{ color: C.dark }}>
-          Due scenari. Una scelta.
+      <Section id="decisione" accent>
+        <h2 className="text-2xl sm:text-3xl font-black mb-3" style={{ color: C.dark }}>
+          La scelta che hai davanti
         </h2>
+        <p className="text-base leading-relaxed mb-2" style={{ color: C.muted }}>
+          A questo punto, la situazione è semplice.
+        </p>
+        <p className="text-base leading-relaxed mb-6" style={{ color: C.muted }}>
+          Non devi decidere se il progetto ha potenziale.<br />
+          Devi decidere <strong style={{ color: C.dark }}>come svilupparlo</strong>.
+        </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Scenario 1: senza */}
-          <div className="rounded-2xl p-5" style={{ background: C.white, border: `1px solid ${C.border}` }}>
+          <div className="rounded-2xl p-5" style={{ background: C.bg, border: `1px solid ${C.border}` }}>
             <div className="flex items-center gap-2 mb-4">
               <XCircle className="w-5 h-5" style={{ color: C.red }} />
-              <span className="text-sm font-bold uppercase tracking-wider" style={{ color: C.red }}>Senza la Partnership</span>
+              <span className="text-sm font-bold uppercase tracking-wider" style={{ color: C.red }}>Continuare da solo</span>
             </div>
             <div className="space-y-3">
               {[
-                "Continui a cercare clienti da solo",
-                "Nessun sistema automatizzato",
-                "Tempo perso in tecnologia e marketing",
-                "Risultati lenti e incerti",
-                "Rischio di rimanere fermo",
+                "Devi costruire tutto da zero",
+                "Rischi errori tecnici e strategici",
+                "Tempi lunghi e risultati incerti",
               ].map((item, i) => (
                 <div key={i} className="flex items-start gap-2 text-sm" style={{ color: C.muted }}>
                   <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: `${C.red}60` }} />
@@ -570,15 +592,13 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
           <div className="rounded-2xl p-5" style={{ background: `${C.green}06`, border: `2px solid ${C.green}40` }}>
             <div className="flex items-center gap-2 mb-4">
               <CheckCircle className="w-5 h-5" style={{ color: C.green }} />
-              <span className="text-sm font-bold uppercase tracking-wider" style={{ color: C.green }}>Con la Partnership</span>
+              <span className="text-sm font-bold uppercase tracking-wider" style={{ color: C.green }}>Entrare in partnership</span>
             </div>
             <div className="space-y-3">
               {[
-                "Un team dedicato lavora con te",
-                "Funnel e campagne gestiti per te",
-                "Accademia online pronta in settimane",
-                "Revenue ricorrente dal mese 3",
-                "Scalabilità reale del tuo business",
+                "Hai una struttura già definita",
+                "Lavori con un sistema guidato",
+                "Riduci errori e acceleri il processo",
               ].map((item, i) => (
                 <div key={i} className="flex items-start gap-2 text-sm" style={{ color: C.dark }}>
                   <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: C.green }} />
@@ -588,7 +608,11 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
             </div>
           </div>
         </div>
-      </div>
+        <p className="text-base text-center leading-relaxed mt-6" style={{ color: C.muted }}>
+          La differenza non è il progetto.<br />
+          <strong style={{ color: C.dark }}>È il modo in cui viene costruito.</strong>
+        </p>
+      </Section>
 
       {/* ═══ 9. CONTRATTO ═══════════════════════════════════════════ */}
       <Section id="contratto" accent>
@@ -598,7 +622,10 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
           </div>
           <div>
             <h2 className="text-xl font-black" style={{ color: C.dark }}>Contratto di Partnership</h2>
-            <p className="text-sm" style={{ color: C.muted }}>Leggi con attenzione ogni articolo. Per dubbi, usa la chat di supporto.</p>
+            <p className="text-sm" style={{ color: C.muted }}>
+              Prima di procedere, ti chiediamo di leggere con attenzione il contratto.
+              Per qualsiasi dubbio, puoi utilizzare la chat di supporto.
+            </p>
           </div>
         </div>
 
@@ -669,7 +696,7 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
           <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${C.green}15` }}>
             <PenLine className="w-5 h-5" style={{ color: C.green }} />
           </div>
-          <h2 className="text-xl font-black" style={{ color: C.dark }}>Firma del Contratto</h2>
+          <h2 className="text-xl font-black" style={{ color: C.dark }}>Conferma e firma</h2>
         </div>
 
         {signed ? (
@@ -681,7 +708,7 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
         ) : (
           <div>
             <p className="text-base mb-4" style={{ color: C.muted }}>
-              Digita il tuo nome completo qui sotto per firmare digitalmente il contratto.
+              Per confermare l'attivazione della partnership, inserisci i tuoi dati e procedi con la firma digitale.
             </p>
             <input data-testid="signature-input" type="text" value={signatureName}
               onChange={e => setSignatureName(e.target.value)}
