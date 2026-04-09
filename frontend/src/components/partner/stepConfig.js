@@ -8,6 +8,7 @@ export const STEPS = [
     title: 'Posizionamento',
     desc: 'Definiamo chi sei, cosa insegni e per chi lo fai.',
     whatToDo: 'Rispondi alle domande chiave sul tuo posizionamento',
+    whatToDoDetail: 'Ci serviranno per definire il tuo target ideale e creare un messaggio chiaro e convincente.',
     afterStep: 'Dopo il posizionamento, creeremo insieme la tua Masterclass gratuita.',
     afterStepIntro: 'Una volta completato il posizionamento:',
     afterStepBullets: [
@@ -22,6 +23,7 @@ export const STEPS = [
     title: 'Masterclass',
     desc: 'Creiamo la tua lezione gratuita che attira studenti.',
     whatToDo: 'Rispondi alle 7 domande strategiche per creare il tuo script',
+    whatToDoDetail: 'Ti serviranno per costruire una masterclass chiara, utile e pronta da registrare.',
     afterStep: 'Dopo la masterclass, costruiremo il tuo videocorso completo.',
     afterStepIntro: 'Una volta completata la masterclass:',
     afterStepBullets: [
@@ -36,6 +38,7 @@ export const STEPS = [
     title: 'Videocorso',
     desc: 'Realizziamo il tuo corso online completo.',
     whatToDo: 'Segui la struttura e registra le lezioni',
+    whatToDoDetail: 'Ti guidiamo passo passo nella registrazione per avere un corso completo e professionale.',
     afterStep: 'Dopo il videocorso, prepareremo il funnel di vendita.',
     afterStepIntro: 'Una volta completato il videocorso:',
     afterStepBullets: [
@@ -50,6 +53,7 @@ export const STEPS = [
     title: 'Funnel di Vendita',
     desc: 'Progettiamo la pagina che converte visitatori in studenti.',
     whatToDo: 'Completa la tua landing page',
+    whatToDoDetail: 'È il passaggio che ti permette di iniziare a vendere il tuo corso online.',
     afterStep: 'Dopo il funnel, saremo pronti per il lancio!',
     afterStepIntro: 'Una volta completata la landing:',
     afterStepBullets: [
@@ -64,6 +68,7 @@ export const STEPS = [
     title: 'Lancio',
     desc: 'Andiamo online insieme e generiamo le prime vendite.',
     whatToDo: 'Prepara calendario, contenuti e campagne',
+    whatToDoDetail: 'Coordiniamo tutto noi per portare la tua accademia davanti al tuo pubblico ideale.',
     afterStep: 'Dopo il lancio, monitoreremo insieme i risultati e ottimizzeremo.',
     afterStepIntro: 'Una volta completato il lancio:',
     afterStepBullets: [
