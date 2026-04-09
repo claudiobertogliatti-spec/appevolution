@@ -15254,6 +15254,10 @@ from routers.partner_progress import router as partner_progress_router, set_db a
 set_partner_progress_db(db)
 app.include_router(partner_progress_router)
 
+from routers.materials import router as materials_router
+app.include_router(materials_router)
+
+
 # Include operations router (Dashboard Antonella: Partner, Contenuti, Campagne ADV)
 from routers.operations import router as operations_router, set_operations_db
 set_operations_db(db)

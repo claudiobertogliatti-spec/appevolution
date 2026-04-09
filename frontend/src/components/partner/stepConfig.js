@@ -17,9 +17,9 @@ export const STEPS = [
       'Inizierai a costruire la tua offerta',
     ],
     materials: [
-      { label: 'Guida al Posizionamento', type: 'guide' },
-      { label: 'Template Target Ideale', type: 'template' },
-      { label: 'Esempi di Posizionamento', type: 'example' },
+      { label: 'Guida al Posizionamento', type: 'guide', downloadId: 'guida' },
+      { label: 'Template Target Ideale', type: 'template', downloadId: 'template-target' },
+      { label: 'Esempi di Posizionamento', type: 'example', downloadId: 'esempi' },
     ],
   },
   {

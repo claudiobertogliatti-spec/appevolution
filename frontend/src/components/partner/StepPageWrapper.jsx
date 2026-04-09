@@ -1,5 +1,7 @@
-import { ArrowLeft, ArrowRight, Check, Clock, Lock, ChevronRight, FileText, BookOpen, ClipboardList } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Clock, Lock, ChevronRight, FileText, BookOpen, ClipboardList, Download } from "lucide-react";
 import { STEPS, getStepFromPhase } from "./stepConfig";
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 const MATERIAL_ICONS = {
   guide: BookOpen,
@@ -134,12 +136,39 @@ export function StepPageWrapper({ stepId, partner, onNavigate, isAdmin, children
         {/* Materiali e template */}
         {step.materials && step.materials.length > 0 && (
           <section data-testid="step-materials" className="rounded-2xl p-6 bg-white" style={{ border: '1px solid #ECEDEF' }}>
-            <h3 className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: '#8B8680' }}>
+            <h3 className="text-sm font-black uppercase tracking-widest mb-1" style={{ color: '#8B8680' }}>
               Materiali utili
             </h3>
+            <p className="text-xs mb-4" style={{ color: '#9CA3AF' }}>
+              Scarica e compila prima di proseguire
+            </p>
             <div className="grid gap-2">
               {step.materials.map((mat, i) => {
                 const Icon = MATERIAL_ICONS[mat.type] || FileText;
+                const downloadUrl = mat.downloadId
+                  ? `${API}/api/materials/${step.id}/${mat.downloadId}`
+                  : null;
+
+                if (downloadUrl) {
+                  return (
+                    <a
+                      key={i}
+                      href={downloadUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-testid={`material-download-${mat.downloadId}`}
+                      className="flex items-center gap-3 py-3 px-4 rounded-xl transition-all hover:scale-[1.01] active:scale-[0.99] group cursor-pointer"
+                      style={{ background: '#F5F3EE', border: '1px solid #E8E4DC' }}
+                    >
+                      <Icon className="w-4 h-4 flex-shrink-0" style={{ color: '#8B8680' }} />
+                      <span className="text-sm font-medium flex-1" style={{ color: '#374151' }}>
+                        {mat.label}
+                      </span>
+                      <Download className="w-4 h-4 flex-shrink-0 transition-all group-hover:text-amber-600" style={{ color: '#8B8680' }} />
+                    </a>
+                  );
+                }
+
                 return (
                   <div
                     key={i}
