@@ -41,7 +41,13 @@ export function Homepage() {
         body: JSON.stringify(registerForm)
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.clone().json();
+      } catch {
+        const text = await response.text();
+        throw new Error(text || 'Errore nella comunicazione col server');
+      }
 
       if (!response.ok) {
         throw new Error(data.detail || 'Errore durante la registrazione');
@@ -76,7 +82,14 @@ export function Homepage() {
         body: JSON.stringify(loginForm)
       });
 
-      const data = await response.json();
+      // Clone per evitare "body stream already read"
+      let data;
+      try {
+        data = await response.clone().json();
+      } catch {
+        const text = await response.text();
+        throw new Error(text || 'Errore nella comunicazione col server');
+      }
 
       if (!response.ok) {
         throw new Error(data.detail || 'Credenziali non valide');
@@ -88,10 +101,8 @@ export function Homepage() {
 
       // Redirect based on user type
       if (data.user?.user_type === 'cliente_analisi') {
-        // Cliente — il flow guard decide il redirect corretto
         window.location.href = '/benvenuto';
       } else {
-        // Partner/Admin - redirect alla dashboard partner
         window.location.href = '/dashboard-partner';
       }
 
