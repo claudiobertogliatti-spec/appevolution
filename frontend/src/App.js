@@ -1716,8 +1716,8 @@ export default function App() {
           )}
 
           {mode==="partner"&&<>
-            {/* BLOCCO OBBLIGATORIO - Se contratto non firmato, mostra solo ContractSigning */}
-            {!(demoPartner?.contract?.signed_at || (typeof demoPartner?.contract === 'string' && demoPartner?.contract)) ? (
+            {/* BLOCCO OBBLIGATORIO - Se contratto non firmato, mostra solo ContractSigning (admin bypassa) */}
+            {!isAdminViewing && !(demoPartner?.contract?.signed_at || (typeof demoPartner?.contract === 'string' && demoPartner?.contract)) ? (
               <ContractSigning
                 key={nav === "partner-firma" ? "firma" : "contratto"}
                 partner={demoPartner}
