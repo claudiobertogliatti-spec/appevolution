@@ -4,7 +4,8 @@ import {
   CheckCircle, XCircle, Shield, CreditCard, Building2,
   PenLine, Loader2, MessageCircle, Send, ChevronDown,
   ChevronUp, Gift, Star, TrendingUp, Users, Zap,
-  Target, BookOpen, Video, Megaphone, BarChart3, Copy, Check
+  Target, BookOpen, Video, Megaphone, BarChart3, Copy, Check,
+  Upload, User, Mail
 } from "lucide-react";
 import axios from "axios";
 import { API } from "../../utils/api-config";
@@ -117,6 +118,67 @@ function ContractChat({ userId }) {
   );
 }
 
+// ── Inline Chat (per layout 2 colonne desktop) ──────────────────
+function InlineChat({ userId, token }) {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const endRef = useRef(null);
+
+  const send = async () => {
+    if (!input.trim() || loading) return;
+    const userMsg = input.trim();
+    setInput("");
+    setMessages(m => [...m, { role: "user", content: userMsg }]);
+    setLoading(true);
+    try {
+      const r = await axios.post(`${API}/api/contract/chat`, {
+        partner_id: userId, message: userMsg,
+        conversation_history: messages.slice(-6),
+      }, { headers: { Authorization: `Bearer ${token}` } });
+      setMessages(m => [...m, { role: "assistant", content: r.data.reply }]);
+    } catch {
+      setMessages(m => [...m, { role: "assistant", content: "Errore. Riprova." }]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+  return (
+    <>
+      <div className="overflow-y-auto p-3 space-y-2" style={{ background: C.bg, minHeight: 220, maxHeight: 400 }}>
+        {messages.length === 0 && (
+          <div className="text-center py-6">
+            <MessageCircle className="w-7 h-7 mx-auto mb-2" style={{ color: C.border }} />
+            <p className="text-xs" style={{ color: C.muted }}>Hai dubbi su un articolo?<br />Chiedimi qui.</p>
+          </div>
+        )}
+        {messages.map((m, i) => (
+          <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+            <div className="max-w-[85%] rounded-xl px-3 py-2 text-xs"
+              style={{ background: m.role === "user" ? C.yellow : C.white, color: C.dark, border: m.role === "assistant" ? `1px solid ${C.border}` : "none" }}>
+              {m.content}
+            </div>
+          </div>
+        ))}
+        {loading && <div className="flex justify-start"><div className="rounded-xl px-3 py-2 text-xs" style={{ background: C.white, border: `1px solid ${C.border}` }}><Loader2 className="w-3 h-3 animate-spin inline" /> ...</div></div>}
+        <div ref={endRef} />
+      </div>
+      <div className="p-2 flex gap-2" style={{ borderTop: `1px solid ${C.border}` }}>
+        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()}
+          placeholder="Scrivi una domanda..."
+          className="flex-1 rounded-lg px-3 py-2 text-xs focus:outline-none" style={{ border: `1px solid ${C.border}`, background: C.bg }} />
+        <button onClick={send} disabled={!input.trim() || loading}
+          className="w-8 h-8 rounded-lg flex items-center justify-center"
+          style={{ background: input.trim() ? C.yellow : C.border }}>
+          <Send className="w-3 h-3" style={{ color: C.dark }} />
+        </button>
+      </div>
+    </>
+  );
+}
+
 // ══════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ══════════════════════════════════════════════════════════════════
@@ -137,6 +199,16 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
   const [expandedArticle, setExpandedArticle] = useState(null);
   const [audioUrl, setAudioUrl] = useState("");
   const [audioAvailable, setAudioAvailable] = useState(false);
+  // Personal data
+  const [personalData, setPersonalData] = useState({ nome_completo: "", codice_fiscale: "", indirizzo: "", citta: "", cap: "", provincia: "", partita_iva: "", telefono: "" });
+  const [personalSaved, setPersonalSaved] = useState(false);
+  const [savingPersonal, setSavingPersonal] = useState(false);
+  // Documents
+  const [docs, setDocs] = useState({});
+  const [uploadingDoc, setUploadingDoc] = useState(null);
+  // Email
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
   const userId = user?.id || user?.user_id;
   const token = localStorage.getItem("access_token");
@@ -148,10 +220,12 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
     if (!userId) { setLoadingAnalisi(false); return; }
     const fetchAll = async () => {
       try {
-        const [analisiRes, contractRes, audioRes] = await Promise.allSettled([
+        const [analisiRes, contractRes, audioRes, personalRes, docsRes] = await Promise.allSettled([
           axios.get(`${API}/api/cliente-analisi/output/${userId}`, { headers }),
           axios.get(`${API}/api/cliente-analisi/contract-text/${userId}`, { headers }),
           axios.get(`${API}/api/cliente-analisi/audio/${userId}`, { headers }),
+          axios.get(`${API}/api/cliente-analisi/personal-data/${userId}`, { headers }),
+          axios.get(`${API}/api/cliente-analisi/documents/${userId}`, { headers }),
         ]);
         if (analisiRes.status === "fulfilled") setAnalisi(analisiRes.value.data);
         if (contractRes.status === "fulfilled") {
@@ -161,6 +235,13 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
         if (audioRes.status === "fulfilled" && audioRes.value.data?.available) {
           setAudioUrl(audioRes.value.data.url);
           setAudioAvailable(true);
+        }
+        if (personalRes.status === "fulfilled" && personalRes.value.data?.data?.nome_completo) {
+          setPersonalData(personalRes.value.data.data);
+          setPersonalSaved(true);
+        }
+        if (docsRes.status === "fulfilled") {
+          setDocs(docsRes.value.data?.documents || {});
         }
       } catch (e) { console.error("Fetch post-analisi:", e); }
       setLoadingAnalisi(false);
@@ -228,6 +309,41 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
     navigator.clipboard.writeText(bonificoData?.iban || "");
     setCopiedIban(true);
     setTimeout(() => setCopiedIban(false), 2000);
+  };
+
+  // ── Save personal data ──────────────────────────────────────────
+  const savePersonal = async () => {
+    setSavingPersonal(true);
+    try {
+      await axios.post(`${API}/api/cliente-analisi/save-personal-data`, personalData, { headers });
+      setPersonalSaved(true);
+    } catch (e) { console.error("Save personal:", e); }
+    setSavingPersonal(false);
+  };
+
+  // ── Upload document ─────────────────────────────────────────────
+  const uploadDoc = async (tipo, file) => {
+    if (!file) return;
+    setUploadingDoc(tipo);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const r = await axios.post(`${API}/api/cliente-analisi/upload-document?tipo=${tipo}`, form, {
+        headers: { ...headers, "Content-Type": "multipart/form-data" },
+      });
+      if (r.data?.success) setDocs(d => ({ ...d, [tipo]: r.data }));
+    } catch (e) { console.error("Upload doc:", e); }
+    setUploadingDoc(null);
+  };
+
+  // ── Send signed contract email ──────────────────────────────────
+  const sendContractEmail = async () => {
+    setSendingEmail(true);
+    try {
+      const r = await axios.post(`${API}/api/cliente-analisi/send-signed-contract`, null, { headers });
+      if (r.data?.success) setEmailSent(true);
+    } catch (e) { console.error("Send email:", e); }
+    setSendingEmail(false);
   };
 
   // ── Loading ──────────────────────────────────────────────────────
@@ -614,135 +730,259 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
         </p>
       </Section>
 
-      {/* ═══ 9. CONTRATTO ═══════════════════════════════════════════ */}
-      <Section id="contratto" accent>
+      {/* ═══ 9. DATI PERSONALI + CONTRATTO CON CHAT ═════════════════ */}
+
+      {/* 9a. Dati personali per contratto */}
+      <Section id="dati-personali" accent>
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${C.dark}10` }}>
-            <FileText className="w-5 h-5" style={{ color: C.dark }} />
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${C.blue}15` }}>
+            <User className="w-5 h-5" style={{ color: C.blue }} />
           </div>
           <div>
-            <h2 className="text-xl font-black" style={{ color: C.dark }}>Contratto di Partnership</h2>
-            <p className="text-sm" style={{ color: C.muted }}>
-              Prima di procedere, ti chiediamo di leggere con attenzione il contratto.
-              Per qualsiasi dubbio, puoi utilizzare la chat di supporto.
-            </p>
+            <h2 className="text-xl font-black" style={{ color: C.dark }}>I tuoi dati</h2>
+            <p className="text-sm" style={{ color: C.muted }}>Inserisci i dati che verranno riportati nel contratto.</p>
           </div>
         </div>
 
-        <div className="space-y-3">
-          {articles.map((art, i) => {
-            // Match both "Art. X" and "ARTICOLO X" formats
-            const match = art.match(/^(?:Art\.\s*(\d+)|ARTICOLO\s+(\d+))/);
-            const artNum = match ? parseInt(match[1] || match[2]) : i + 1;
-            const isImportant = IMPORTANT_ARTICLES.includes(artNum);
-            const isExpanded = expandedArticle === i;
-            const isConfirmed = confirmedArticles[artNum];
-
-            // First line as title
-            const lines = art.trim().split("\n");
-            const title = lines[0]?.trim() || `Articolo ${artNum}`;
-            const body = lines.slice(1).join("\n").trim();
-
-            return (
-              <div key={i} data-testid={`contract-art-${artNum}`}
-                className="rounded-xl overflow-hidden transition-all"
-                style={{
-                  border: `1px solid ${isImportant ? (isConfirmed ? `${C.green}60` : `${C.yellow}80`) : C.border}`,
-                  background: isImportant ? (isConfirmed ? `${C.green}04` : `${C.yellow}04`) : C.white,
-                }}>
-                <button onClick={() => setExpandedArticle(isExpanded ? null : i)}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left">
-                  {isImportant && (
-                    <Shield className="w-4 h-4 flex-shrink-0" style={{ color: isConfirmed ? C.green : C.yellowDark }} />
-                  )}
-                  <span className="text-sm font-bold flex-1" style={{ color: C.dark }}>{title}</span>
-                  {isExpanded ? <ChevronUp className="w-4 h-4" style={{ color: C.muted }} /> : <ChevronDown className="w-4 h-4" style={{ color: C.muted }} />}
-                </button>
-                {isExpanded && (
-                  <div className="px-4 pb-4">
-                    <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: C.muted }}>{body}</p>
-                    {isImportant && !isConfirmed && (
-                      <button data-testid={`confirm-art-${artNum}`}
-                        onClick={() => setConfirmedArticles(p => ({ ...p, [artNum]: true }))}
-                        className="mt-3 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all"
-                        style={{ background: `${C.yellow}20`, color: C.yellowDark }}>
-                        <CheckCircle className="w-4 h-4" />
-                        Confermo di aver letto e compreso
-                      </button>
-                    )}
-                    {isImportant && isConfirmed && (
-                      <div className="mt-3 flex items-center gap-2 text-sm font-bold" style={{ color: C.green }}>
-                        <CheckCircle className="w-4 h-4" /> Articolo confermato
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {!allImportantConfirmed && articles.length > 0 && (
-          <div className="mt-4 text-center text-sm" style={{ color: C.muted }}>
-            <Shield className="w-4 h-4 inline mr-1" style={{ color: C.yellowDark }} />
-            Conferma la lettura degli articoli evidenziati per procedere alla firma.
-          </div>
-        )}
-      </Section>
-
-      {/* ═══ 10. FIRMA ══════════════════════════════════════════════ */}
-      <Section id="firma" accent>
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${C.green}15` }}>
-            <PenLine className="w-5 h-5" style={{ color: C.green }} />
-          </div>
-          <h2 className="text-xl font-black" style={{ color: C.dark }}>Conferma e firma</h2>
-        </div>
-
-        {signed ? (
-          <div data-testid="firma-success" className="text-center py-6 rounded-xl" style={{ background: `${C.green}08` }}>
-            <CheckCircle className="w-12 h-12 mx-auto mb-3" style={{ color: C.green }} />
-            <div className="text-lg font-black" style={{ color: C.dark }}>Contratto firmato con successo</div>
-            <div className="text-sm mt-1" style={{ color: C.muted }}>Procedi al pagamento per attivare la Partnership.</div>
+        {personalSaved ? (
+          <div className="rounded-xl p-4" style={{ background: `${C.green}06`, border: `1px solid ${C.green}25` }}>
+            <div className="flex items-center gap-2 mb-3">
+              <CheckCircle className="w-4 h-4" style={{ color: C.green }} />
+              <span className="text-sm font-bold" style={{ color: C.green }}>Dati salvati</span>
+              <button onClick={() => setPersonalSaved(false)} className="ml-auto text-xs font-bold" style={{ color: C.blue }}>Modifica</button>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+              <div><span style={{ color: C.muted }}>Nome:</span> <strong>{personalData.nome_completo}</strong></div>
+              <div><span style={{ color: C.muted }}>CF:</span> <strong>{personalData.codice_fiscale}</strong></div>
+              <div><span style={{ color: C.muted }}>Indirizzo:</span> <strong>{personalData.indirizzo}</strong></div>
+              <div><span style={{ color: C.muted }}>Città:</span> <strong>{personalData.citta} ({personalData.provincia}) {personalData.cap}</strong></div>
+              {personalData.partita_iva && <div><span style={{ color: C.muted }}>P.IVA:</span> <strong>{personalData.partita_iva}</strong></div>}
+              {personalData.telefono && <div><span style={{ color: C.muted }}>Tel:</span> <strong>{personalData.telefono}</strong></div>}
+            </div>
           </div>
         ) : (
-          <div>
-            <p className="text-base mb-4" style={{ color: C.muted }}>
-              Per confermare l'attivazione della partnership, inserisci i tuoi dati e procedi con la firma digitale.
-            </p>
-            <input data-testid="signature-input" type="text" value={signatureName}
-              onChange={e => setSignatureName(e.target.value)}
-              placeholder="Nome e Cognome"
-              disabled={!allImportantConfirmed}
-              className="w-full rounded-xl px-4 py-3 text-lg font-bold text-center focus:outline-none focus:ring-2 mb-4"
-              style={{
-                border: `2px solid ${allImportantConfirmed ? C.yellow : C.border}`,
-                background: allImportantConfirmed ? C.white : C.bg,
-                color: C.dark,
-                fontFamily: "'Georgia', serif", fontStyle: "italic",
-              }} />
-            <button data-testid="sign-btn" onClick={handleSign}
-              disabled={!signatureName.trim() || !allImportantConfirmed || signing}
-              className="w-full py-3.5 rounded-xl text-base font-black flex items-center justify-center gap-2 transition-all"
-              style={{
-                background: (signatureName.trim() && allImportantConfirmed) ? C.green : "#E5E7EB",
-                color: (signatureName.trim() && allImportantConfirmed) ? C.white : "#9CA3AF",
-                opacity: signing ? 0.6 : 1,
-              }}>
-              {signing && <Loader2 className="w-4 h-4 animate-spin" />}
-              <PenLine className="w-4 h-4" />
-              Firma il Contratto
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                { id: "nome_completo", label: "Nome e Cognome *", placeholder: "Mario Rossi" },
+                { id: "codice_fiscale", label: "Codice Fiscale *", placeholder: "RSSMRA80A01H501Z" },
+                { id: "indirizzo", label: "Indirizzo *", placeholder: "Via Roma 1" },
+                { id: "citta", label: "Città *", placeholder: "Milano" },
+                { id: "cap", label: "CAP *", placeholder: "20100" },
+                { id: "provincia", label: "Provincia", placeholder: "MI" },
+                { id: "partita_iva", label: "P.IVA (se applicabile)", placeholder: "" },
+                { id: "telefono", label: "Telefono", placeholder: "+39 333 1234567" },
+              ].map(f => (
+                <div key={f.id}>
+                  <label className="text-xs font-bold mb-1 block" style={{ color: C.dark }}>{f.label}</label>
+                  <input data-testid={`personal-${f.id}`} value={personalData[f.id] || ""}
+                    onChange={e => setPersonalData(d => ({ ...d, [f.id]: e.target.value }))}
+                    placeholder={f.placeholder}
+                    className="w-full rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
+                    style={{ border: `1px solid ${C.border}`, background: C.white }} />
+                </div>
+              ))}
+            </div>
+            <button data-testid="save-personal-btn" onClick={savePersonal} disabled={savingPersonal || !personalData.nome_completo || !personalData.codice_fiscale || !personalData.indirizzo || !personalData.citta || !personalData.cap}
+              className="px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all"
+              style={{ background: C.yellow, color: C.dark, opacity: savingPersonal ? 0.6 : 1 }}>
+              {savingPersonal ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+              Salva dati
             </button>
-            {!allImportantConfirmed && (
-              <p className="text-xs text-center mt-2" style={{ color: C.muted }}>
-                Conferma prima la lettura degli articoli evidenziati nel contratto.
-              </p>
-            )}
           </div>
         )}
       </Section>
 
-      {/* ═══ 11. PAGAMENTO ══════════════════════════════════════════ */}
+      {/* 9b. Contratto a 2 colonne + chat laterale */}
+      {personalSaved && (
+        <div data-testid="section-contratto" className="scroll-mt-8">
+          <div className="flex gap-4" style={{ maxWidth: "none" }}>
+            {/* Colonna SX: Contratto */}
+            <div className="flex-1 min-w-0 rounded-2xl p-6" style={{ background: C.white, border: `1px solid ${C.border}` }}>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${C.dark}10` }}>
+                  <FileText className="w-5 h-5" style={{ color: C.dark }} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black" style={{ color: C.dark }}>Contratto di Partnership</h2>
+                  <p className="text-sm" style={{ color: C.muted }}>
+                    Prima di procedere, leggi con attenzione il contratto. Per dubbi, usa la chat.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {articles.map((art, i) => {
+                  const match = art.match(/^(?:Art\.\s*(\d+)|ARTICOLO\s+(\d+))/);
+                  const artNum = match ? parseInt(match[1] || match[2]) : i + 1;
+                  const isImportant = IMPORTANT_ARTICLES.includes(artNum);
+                  const isExpanded = expandedArticle === i;
+                  const isConfirmed = confirmedArticles[artNum];
+                  const lines = art.trim().split("\n");
+                  const title = lines[0]?.trim() || `Articolo ${artNum}`;
+                  const body = lines.slice(1).join("\n").trim();
+
+                  return (
+                    <div key={i} data-testid={`contract-art-${artNum}`}
+                      className="rounded-xl overflow-hidden transition-all"
+                      style={{
+                        border: `1px solid ${isImportant ? (isConfirmed ? `${C.green}60` : `${C.yellow}80`) : C.border}`,
+                        background: isImportant ? (isConfirmed ? `${C.green}04` : `${C.yellow}04`) : C.white,
+                      }}>
+                      <button onClick={() => setExpandedArticle(isExpanded ? null : i)}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left">
+                        {isImportant && <Shield className="w-4 h-4 flex-shrink-0" style={{ color: isConfirmed ? C.green : C.yellowDark }} />}
+                        <span className="text-sm font-bold flex-1" style={{ color: C.dark }}>{title}</span>
+                        {isExpanded ? <ChevronUp className="w-4 h-4" style={{ color: C.muted }} /> : <ChevronDown className="w-4 h-4" style={{ color: C.muted }} />}
+                      </button>
+                      {isExpanded && (
+                        <div className="px-4 pb-4">
+                          <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: C.muted }}>{body}</p>
+                          {isImportant && !isConfirmed && (
+                            <button data-testid={`confirm-art-${artNum}`}
+                              onClick={() => setConfirmedArticles(p => ({ ...p, [artNum]: true }))}
+                              className="mt-3 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all"
+                              style={{ background: `${C.yellow}20`, color: C.yellowDark }}>
+                              <CheckCircle className="w-4 h-4" /> Confermo di aver letto e compreso
+                            </button>
+                          )}
+                          {isImportant && isConfirmed && (
+                            <div className="mt-3 flex items-center gap-2 text-sm font-bold" style={{ color: C.green }}>
+                              <CheckCircle className="w-4 h-4" /> Articolo confermato
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {!allImportantConfirmed && articles.length > 0 && (
+                <div className="mt-4 text-center text-sm" style={{ color: C.muted }}>
+                  <Shield className="w-4 h-4 inline mr-1" style={{ color: C.yellowDark }} />
+                  Conferma la lettura degli articoli evidenziati per procedere.
+                </div>
+              )}
+            </div>
+
+            {/* Colonna DX: Chat supporto (fissa) */}
+            <div className="hidden lg:block w-80 flex-shrink-0">
+              <div className="sticky top-4 rounded-2xl overflow-hidden" style={{ border: `1px solid ${C.border}`, background: C.white }}>
+                <div className="px-4 py-3" style={{ background: C.dark }}>
+                  <div className="flex items-center gap-2">
+                    <MessageCircle className="w-4 h-4" style={{ color: C.yellow }} />
+                    <span className="text-sm font-bold text-white">Assistente Contrattuale</span>
+                  </div>
+                  <p className="text-xs text-white/50 mt-0.5">Chiedi chiarimenti su qualsiasi articolo</p>
+                </div>
+                <InlineChat userId={userId} token={token} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ 10. FIRMA + INVIO EMAIL ═════════════════════════════════ */}
+      {personalSaved && allImportantConfirmed && (
+        <Section id="firma" accent>
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${C.green}15` }}>
+              <PenLine className="w-5 h-5" style={{ color: C.green }} />
+            </div>
+            <h2 className="text-xl font-black" style={{ color: C.dark }}>Conferma e firma</h2>
+          </div>
+
+          {signed ? (
+            <div className="space-y-4">
+              <div data-testid="firma-success" className="text-center py-6 rounded-xl" style={{ background: `${C.green}08` }}>
+                <CheckCircle className="w-12 h-12 mx-auto mb-3" style={{ color: C.green }} />
+                <div className="text-lg font-black" style={{ color: C.dark }}>Contratto firmato con successo</div>
+                <div className="text-sm mt-1" style={{ color: C.muted }}>Il contratto PDF verrà inviato alla tua email.</div>
+              </div>
+              {!emailSent ? (
+                <button data-testid="send-email-btn" onClick={sendContractEmail} disabled={sendingEmail}
+                  className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
+                  style={{ background: C.dark, color: C.white, opacity: sendingEmail ? 0.6 : 1 }}>
+                  {sendingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                  Invia contratto firmato via email
+                </button>
+              ) : (
+                <div className="flex items-center justify-center gap-2 text-sm font-bold" style={{ color: C.green }}>
+                  <CheckCircle className="w-4 h-4" /> Email inviata con successo
+                </div>
+              )}
+            </div>
+          ) : (
+            <div>
+              <p className="text-base mb-4" style={{ color: C.muted }}>
+                Per confermare l'attivazione della partnership, inserisci il tuo nome e procedi con la firma digitale.
+              </p>
+              <input data-testid="signature-input" type="text" value={signatureName}
+                onChange={e => setSignatureName(e.target.value)}
+                placeholder="Nome e Cognome"
+                className="w-full rounded-xl px-4 py-3 text-lg font-bold text-center focus:outline-none focus:ring-2 mb-4"
+                style={{ border: `2px solid ${C.yellow}`, background: C.white, color: C.dark, fontFamily: "'Georgia', serif", fontStyle: "italic" }} />
+              <button data-testid="sign-btn" onClick={handleSign}
+                disabled={!signatureName.trim() || signing}
+                className="w-full py-3.5 rounded-xl text-base font-black flex items-center justify-center gap-2 transition-all"
+                style={{
+                  background: signatureName.trim() ? C.green : "#E5E7EB",
+                  color: signatureName.trim() ? C.white : "#9CA3AF",
+                  opacity: signing ? 0.6 : 1,
+                }}>
+                {signing && <Loader2 className="w-4 h-4 animate-spin" />}
+                <PenLine className="w-4 h-4" />
+                Firma il Contratto
+              </button>
+            </div>
+          )}
+        </Section>
+      )}
+
+      {/* ═══ 11. UPLOAD DOCUMENTI ════════════════════════════════════ */}
+      {signed && (
+        <Section id="documenti" accent>
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${C.blue}15` }}>
+              <Upload className="w-5 h-5" style={{ color: C.blue }} />
+            </div>
+            <div>
+              <h2 className="text-xl font-black" style={{ color: C.dark }}>Documenti obbligatori</h2>
+              <p className="text-sm" style={{ color: C.muted }}>Carica una copia del documento d'identità e del codice fiscale.</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {[
+              { tipo: "identita", label: "Documento d'identità", desc: "Carta d'identità o passaporto (fronte e retro)" },
+              { tipo: "codice_fiscale", label: "Codice Fiscale / Tessera Sanitaria", desc: "Fronte della tessera sanitaria" },
+            ].map(d => (
+              <div key={d.tipo} className="flex items-center gap-4 p-4 rounded-xl" style={{ border: `1px solid ${docs[d.tipo] ? `${C.green}50` : C.border}`, background: docs[d.tipo] ? `${C.green}04` : C.white }}>
+                <div className="flex-1">
+                  <div className="text-sm font-bold" style={{ color: C.dark }}>{d.label}</div>
+                  <div className="text-xs" style={{ color: C.muted }}>{d.desc}</div>
+                  {docs[d.tipo] && (
+                    <div className="flex items-center gap-1 mt-1 text-xs font-bold" style={{ color: C.green }}>
+                      <CheckCircle className="w-3 h-3" /> {docs[d.tipo].filename || "Caricato"}
+                    </div>
+                  )}
+                </div>
+                <label className="cursor-pointer">
+                  <input type="file" accept="image/*,.pdf" className="hidden"
+                    onChange={e => e.target.files?.[0] && uploadDoc(d.tipo, e.target.files[0])} />
+                  <span className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all"
+                    style={{ background: docs[d.tipo] ? C.bg : `${C.blue}10`, color: docs[d.tipo] ? C.muted : C.blue, border: `1px solid ${docs[d.tipo] ? C.border : `${C.blue}30`}` }}>
+                    {uploadingDoc === d.tipo ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                    {docs[d.tipo] ? "Sostituisci" : "Carica"}
+                  </span>
+                </label>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* ═══ 12. PAGAMENTO ═══════════════════════════════════════════ */}
       {signed && (
         <Section id="pagamento" accent>
           <div className="text-center mb-6">
@@ -780,36 +1020,61 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
               </div>
             </div>
           ) : (
-            <div data-testid="bonifico-details" className="rounded-xl p-5" style={{ background: C.bg, border: `1px solid ${C.border}` }}>
-              <div className="flex items-center gap-2 mb-4">
-                <Building2 className="w-5 h-5" style={{ color: C.dark }} />
-                <span className="text-base font-bold" style={{ color: C.dark }}>Dettagli Bonifico</span>
+            <div className="space-y-4">
+              <div data-testid="bonifico-details" className="rounded-xl p-5" style={{ background: C.bg, border: `1px solid ${C.border}` }}>
+                <div className="flex items-center gap-2 mb-4">
+                  <Building2 className="w-5 h-5" style={{ color: C.dark }} />
+                  <span className="text-base font-bold" style={{ color: C.dark }}>Dettagli Bonifico</span>
+                </div>
+                <div className="space-y-3">
+                  {[
+                    { label: "Beneficiario", value: bonificoData?.beneficiario },
+                    { label: "Banca", value: bonificoData?.banca },
+                    { label: "IBAN", value: bonificoData?.iban },
+                    { label: "Importo", value: `€${corrStr}` },
+                    { label: "Causale", value: bonificoData?.causale },
+                  ].map(row => (
+                    <div key={row.label}>
+                      <div className="text-xs font-bold uppercase tracking-wider" style={{ color: C.muted }}>{row.label}</div>
+                      <div className="text-base font-bold mt-0.5" style={{ color: C.dark }}>{row.value}</div>
+                    </div>
+                  ))}
+                </div>
+                <button onClick={copyIban}
+                  className="mt-4 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all"
+                  style={{ background: C.white, border: `1px solid ${C.border}`, color: C.dark }}>
+                  {copiedIban ? <Check className="w-4 h-4" style={{ color: C.green }} /> : <Copy className="w-4 h-4" />}
+                  {copiedIban ? "Copiato!" : "Copia IBAN"}
+                </button>
               </div>
-              <div className="space-y-3">
-                {[
-                  { label: "Beneficiario", value: bonificoData?.beneficiario },
-                  { label: "Banca", value: bonificoData?.banca },
-                  { label: "IBAN", value: bonificoData?.iban },
-                  { label: "Importo", value: `€${corrStr}` },
-                  { label: "Causale", value: bonificoData?.causale },
-                ].map(row => (
-                  <div key={row.label}>
-                    <div className="text-xs font-bold uppercase tracking-wider" style={{ color: C.muted }}>{row.label}</div>
-                    <div className="text-base font-bold mt-0.5" style={{ color: C.dark }}>{row.value}</div>
-                  </div>
-                ))}
+
+              {/* Upload distinta pagamento */}
+              <div className="flex items-center gap-4 p-4 rounded-xl" style={{ border: `1px solid ${docs.distinta_pagamento ? `${C.green}50` : C.border}`, background: docs.distinta_pagamento ? `${C.green}04` : C.white }}>
+                <div className="flex-1">
+                  <div className="text-sm font-bold" style={{ color: C.dark }}>Distinta di pagamento</div>
+                  <div className="text-xs" style={{ color: C.muted }}>Carica la conferma del bonifico effettuato</div>
+                  {docs.distinta_pagamento && (
+                    <div className="flex items-center gap-1 mt-1 text-xs font-bold" style={{ color: C.green }}>
+                      <CheckCircle className="w-3 h-3" /> {docs.distinta_pagamento.filename || "Caricata"}
+                    </div>
+                  )}
+                </div>
+                <label className="cursor-pointer">
+                  <input type="file" accept="image/*,.pdf" className="hidden"
+                    onChange={e => e.target.files?.[0] && uploadDoc("distinta_pagamento", e.target.files[0])} />
+                  <span className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all"
+                    style={{ background: docs.distinta_pagamento ? C.bg : `${C.yellow}15`, color: docs.distinta_pagamento ? C.muted : C.yellowDark, border: `1px solid ${docs.distinta_pagamento ? C.border : `${C.yellow}50`}` }}>
+                    {uploadingDoc === "distinta_pagamento" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                    {docs.distinta_pagamento ? "Sostituisci" : "Carica distinta"}
+                  </span>
+                </label>
               </div>
-              <button onClick={copyIban}
-                className="mt-4 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all"
-                style={{ background: C.white, border: `1px solid ${C.border}`, color: C.dark }}>
-                {copiedIban ? <Check className="w-4 h-4" style={{ color: C.green }} /> : <Copy className="w-4 h-4" />}
-                {copiedIban ? "Copiato!" : "Copia IBAN"}
-              </button>
-              <p className="text-xs mt-3" style={{ color: C.muted }}>
+
+              <p className="text-xs text-center" style={{ color: C.muted }}>
                 Dopo aver effettuato il bonifico, riceverai una conferma via email entro 24-48 ore lavorative.
               </p>
               <button onClick={() => setPaymentMethod(null)}
-                className="mt-3 text-sm font-bold" style={{ color: C.blue }}>
+                className="text-sm font-bold mx-auto block" style={{ color: C.blue }}>
                 Torna alle opzioni di pagamento
               </button>
             </div>
@@ -817,8 +1082,10 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
         </Section>
       )}
 
-      {/* Chat di supporto contrattuale */}
-      <ContractChat userId={userId} />
+      {/* Chat mobile (floating per schermi piccoli) */}
+      <div className="lg:hidden">
+        <ContractChat userId={userId} />
+      </div>
     </div>
   );
 }
