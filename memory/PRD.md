@@ -31,7 +31,8 @@ Sviluppo di "Evolution PRO", applicazione di gestione aziendale basata su AI per
 - [x] **AdminPartnerOpsPanel** (pannello operativo destra, 5 macro-step, micro-step, stati, fase auto-sync) ✅ 09/04/2026
 - [x] **API progress** (GET/PATCH /api/admin/partners/{id}/progress + phase sync) ✅ 09/04/2026
 
-- [x] **Fix Pannello Operativo Admin** (demoPartner con ID fittizio → usa partner reale da DB) ✅ 09/04/2026
+- [x] **Fix Pannello Operativo Admin** (demoPartner con ID fittizio -> usa partner reale da DB) ✅ 09/04/2026
+- [x] **Vista Admin Avanzata** (27 micro-step operativi, note admin, progress globale, sync automatica fase) ✅ 09/04/2026
 
 ### PROSSIMI (P0-P1)
 - [ ] P0: SMTP trigger email alla prenotazione call (Step 4)
