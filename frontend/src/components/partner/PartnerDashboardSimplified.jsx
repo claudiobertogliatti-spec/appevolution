@@ -85,7 +85,7 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat, is
         </section>
 
         {/* ═══════════ 3. BLOCCO PROGRESSO — A CHE PUNTO SEI ═══════════ */}
-        {!isOnboarding && (
+        {(!isOnboarding || isAdmin) && (
           <section data-testid="progress-section" className="rounded-2xl p-6 bg-white" style={{ border: '1px solid #ECEDEF' }}>
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-lg font-black" style={{ color: '#1A1F24' }}>A CHE PUNTO SEI</h3>
