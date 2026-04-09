@@ -12,29 +12,41 @@ Applicazione di gestione aziendale basata su AI per l'ecosistema Evolution PRO. 
 ## Cosa è stato implementato
 
 ### Sessione corrente (Aprile 2026)
-- **Posizionamento AI-driven** (COMPLETATO): Riscrittura completa di PosizionamentoPage.jsx con flusso Input → Generazione → Output → Validazione. 7 campi input, generazione AI con 6 sezioni + frase chiave, approvazione.
-- **Masterclass AI-driven** (COMPLETATO): Riscrittura completa di MasterclassPage.jsx con flusso Input → Generazione → Output → Validazione. 7 campi input, generazione script con 7 sezioni, modifica inline, approvazione.
-- **Fix LLM Integration** (COMPLETATO): Rimosso shim locale `/app/backend/emergentintegrations/` che bypassava il proxy Emergent. Ora usa il package venv (emergentintegrations==0.1.1).
+- **Posizionamento AI-driven** (COMPLETATO): 7 input → generazione AI 6 sezioni + frase chiave → approvazione
+- **Masterclass AI-driven** (COMPLETATO): 7 input → generazione script 7 sezioni → modifica inline → approvazione
+- **3 PDF Materiali Masterclass** (COMPLETATO): Template Script, Struttura Tipo, Consigli Registrazione via ReportLab
+- **VideocorsoPage AI-driven** (COMPLETATO): 3 input (durata/bonus/contenuti) → generazione corso completo con moduli, lezioni, bonus, prezzi, posizionamento → approvazione
+- **Fix LLM Integration** (COMPLETATO): Rimosso shim locale, usa il package venv emergentintegrations==0.1.1
 
 ### Sessioni precedenti
 - Vista Admin avanzata con pannello operativo (DONE)
 - Fix bug login produzione con Axios (DONE)
 - Generazione PDF ReportLab per Step 1 (DONE)
-- Videocorso: Approvazione Outline + Registrazione (DONE)
 - Fix Systeme.io import bulk/tag (DONE)
 - Fix routing frontend /api/ prefix (DONE)
 - Modulo Firma Contratto con Chatbot AI (DONE)
 
 ## Endpoint API Chiave
 
-### Posizionamento (Nuovi)
-- `POST /api/partner-journey/posizionamento/save-inputs` — Salva 7 input partner
-- `POST /api/partner-journey/posizionamento/generate-positioning` — Genera posizionamento AI
-- `POST /api/partner-journey/posizionamento/approve-positioning?partner_id=X` — Approva
+### Posizionamento
+- `POST /api/partner-journey/posizionamento/save-inputs`
+- `POST /api/partner-journey/posizionamento/generate-positioning`
+- `POST /api/partner-journey/posizionamento/approve-positioning?partner_id=X`
 
-### Masterclass (Aggiornati)
-- `POST /api/masterclass-factory/{id}/generate-script` — Genera script 7 sezioni
-- `POST /api/masterclass-factory/{id}/approve-script` — Approva script
+### Masterclass
+- `POST /api/masterclass-factory/{id}/generate-script` (7 sezioni strutturate)
+- `POST /api/masterclass-factory/{id}/approve-script`
+
+### Materiali PDF Masterclass
+- `GET /api/materials/masterclass/template-script`
+- `GET /api/materials/masterclass/struttura-tipo`
+- `GET /api/materials/masterclass/consigli-registrazione`
+
+### Videocorso
+- `POST /api/partner-journey/videocorso/save-inputs`
+- `POST /api/partner-journey/videocorso/generate-course`
+- `POST /api/partner-journey/videocorso/approve-course?partner_id=X`
+- `GET /api/partner-journey/videocorso/{partner_id}`
 
 ## Backlog Prioritizzato
 
@@ -54,14 +66,11 @@ Applicazione di gestione aziendale basata su AI per l'ecosistema Evolution PRO. 
 ### P3
 - Refactoring server.py (>15.400 righe)
 - Fix alert fantasma "Test AlertQuestionario"
-- Fix `legal_pages_service.py` che importa `emergentintegrations.llm.anthropic` (non presente nella nuova libreria)
-
-## Credenziali Test
-- Admin: claudio.bertogliatti@gmail.com / Evoluzione74
-- Partner Demo: testf0@evolutionpro.it
+- Fix `legal_pages_service.py` import shim anthropic
 
 ## Note Tecniche
 - NON toccare `frontend/Dockerfile` e `frontend/nginx.conf`
-- Usare Axios (non fetch) nel frontend per evitare errore `body stream already read`
-- Lo shim locale `emergentintegrations_OLD/` è stato disabilitato - NON riattivare
-- Il default LLM model è gpt-4o via Emergent Proxy (funziona anche .with_model per anthropic/openai)
+- Usare Axios (non fetch) nel frontend
+- Lo shim locale `emergentintegrations_OLD/` è disabilitato - NON riattivare
+- Default LLM model: gpt-4o via Emergent Proxy
+- Flusso AI-driven: Input → Generazione → Output → Validazione (pattern per tutte le pagine step)
