@@ -24,6 +24,8 @@ import { RenewalPlans } from "./components/partner/RenewalPlans";
 import PartnerOnboarding from "./components/partner/PartnerOnboarding";
 import { PartnerDashboardSimplified } from "./components/partner/PartnerDashboardSimplified";
 import { PartnerSidebarLight } from "./components/partner/PartnerSidebar";
+import { StepPageWrapper } from "./components/partner/StepPageWrapper";
+import { MioSpazioPage } from "./components/partner/MioSpazioPage";
 import { PosizionamentoPage } from "./components/partner/PosizionamentoPage";
 import { MasterclassPage } from "./components/partner/MasterclassPage";
 import { VideocorsoPage } from "./components/partner/VideocorsoPage";
@@ -983,8 +985,8 @@ export default function App() {
   // Get the partner data for the logged-in user (if they are a partner)
   // Falls back to demo partner for admin testing
   const basePartner = currentUser?.role === "partner" && currentUser?.partner_id
-    ? partners.find(p => p.id === currentUser.partner_id) || partners.find(p => p.name === "Marco Ferretti") || { id: "1", name: "Marco Ferretti", niche: "Business Coach", phase: "F3", revenue: 0, contract: "2025-01-10", alert: false, modules: [1, 1, 1, 0, 0, 0, 0, 0, 0, 0] }
-    : partners.find(p => p.name === "Marco Ferretti") || { id: "1", name: "Marco Ferretti", niche: "Business Coach", phase: "F3", revenue: 0, contract: "2025-01-10", alert: false, modules: [1, 1, 1, 0, 0, 0, 0, 0, 0, 0] };
+    ? partners.find(p => p.id === currentUser.partner_id) || partners.find(p => p.name === "Marco Ferretti") || { id: "1", name: "Marco Ferretti", niche: "Business Coach", phase: "F3", revenue: 0, contract: { signed_at: "2025-01-10" }, alert: false, modules: [1, 1, 1, 0, 0, 0, 0, 0, 0, 0] }
+    : partners.find(p => p.name === "Marco Ferretti") || { id: "1", name: "Marco Ferretti", niche: "Business Coach", phase: "F3", revenue: 0, contract: { signed_at: "2025-01-10" }, alert: false, modules: [1, 1, 1, 0, 0, 0, 0, 0, 0, 0] };
   
   // Se admin ha selezionato un partner specifico, usa quello
   const demoPartner = selectedPartner || basePartner;
@@ -1150,7 +1152,7 @@ export default function App() {
   const adminNav=adminUser==="antonella"?antonellaNav:coreNav;
   const isToolNav=toolsNav.some(t=>t.id===nav);
 
-  const titles={overview:"Oggi",oggi:"Oggi","cp-benvenuto":"Vista Cliente","cp-questionario":"Vista Cliente","cp-richiesta":"Vista Cliente","cp-conferma":"Vista Cliente","cp-analisi":"Vista Cliente","pipeline-prioritaria":"Priorità Pipeline","partner-bloccati":"Partner Bloccati","guided-system":"Guided System",agenti:"Agent Hub",partner:"Partner Attivi","ex-partner":"Ex Partner","documenti-partner":"Documenti Partner","onboarding-admin":"Documenti Onboarding","youtube-heygen":"Video AI","servizi-admin":"Servizi Extra","calendario-admin":"Calendario Editoriale",andrea:adminUser==="antonella"?"ANDREA — Feed Video":"ANDREA — Surgical Cut",metriche:"Percorsi e Fasi",systeme:"SYSTEME.IO — Live Data",gaia:"Template Funnel",compliance:"Documenti & Compliance",copyfactory:"Copy Factory",warmode:"Campagne Ads",funnelbuilder:"Funnel Builder — Fase 4",alert:"Alert & Escalation",configurazione:"Configurazione",stefania:"STEFANIA — Chat",home:"Il tuo percorso","onboarding-docs":"Documenti Onboarding",corso:"PARTI DA QUI",bonus:"Bonus Strategici",masterclass:"Masterclass Builder",coursebuilder:"Course Builder AI",produzione:"ANDREA — Produzione Video",files:"I Miei File",brandkit:"Brand Kit",calendario:"Calendario Editoriale",documenti:"Documenti & Posizionamento",risorse:"Template & Risorse",renewal:"Piani Post-12 Mesi",supporto:"STEFANIA — Chat","clienti-analisi":"Pipeline","flusso-analisi":"Analisi Strategiche","demo-flusso-cliente":"Demo Flusso Cliente","lista-fredda":"Lead da Riattivare",approvals:"Approvazioni Cliente"};
+  const titles={overview:"Oggi",oggi:"Oggi","cp-benvenuto":"Vista Cliente","cp-questionario":"Vista Cliente","cp-richiesta":"Vista Cliente","cp-conferma":"Vista Cliente","cp-analisi":"Vista Cliente","pipeline-prioritaria":"Priorità Pipeline","partner-bloccati":"Partner Bloccati","guided-system":"Guided System",agenti:"Agent Hub",partner:"Partner Attivi","ex-partner":"Ex Partner","documenti-partner":"Documenti Partner","onboarding-admin":"Documenti Onboarding","youtube-heygen":"Video AI","servizi-admin":"Servizi Extra","calendario-admin":"Calendario Editoriale",andrea:adminUser==="antonella"?"ANDREA — Feed Video":"ANDREA — Surgical Cut",metriche:"Percorsi e Fasi",systeme:"SYSTEME.IO — Live Data",gaia:"Template Funnel",compliance:"Documenti & Compliance",copyfactory:"Copy Factory",warmode:"Campagne Ads",funnelbuilder:"Funnel Builder — Fase 4",alert:"Alert & Escalation",configurazione:"Configurazione",stefania:"STEFANIA — Chat",home:"Il tuo percorso","onboarding-docs":"Documenti Onboarding",corso:"PARTI DA QUI",bonus:"Bonus Strategici",masterclass:"Masterclass Builder",coursebuilder:"Course Builder AI",produzione:"ANDREA — Produzione Video",files:"I Miei File",brandkit:"Brand Kit",calendario:"Calendario Editoriale",documenti:"Documenti & Posizionamento",risorse:"Template & Risorse",renewal:"Piani Post-12 Mesi",supporto:"STEFANIA — Chat","clienti-analisi":"Pipeline","flusso-analisi":"Analisi Strategiche","demo-flusso-cliente":"Demo Flusso Cliente","lista-fredda":"Lead da Riattivare",approvals:"Approvazioni Cliente","mio-spazio":"Il Mio Spazio",posizionamento:"Posizionamento",videocorso:"Videocorso",funnel:"Funnel di Vendita",lancio:"Lancio",ottimizzazione:"Risultati",kpi:"Risultati",lead:"Lead",pagamenti:"Pagamenti"};
 
   // Loading state
   if (authLoading) {
@@ -1433,37 +1435,22 @@ export default function App() {
       const renderPartnerSection = () => {
         const p = currentPartner;
         const nav = partnerDashNav;
-        if (nav === 'posizionamento') return <PosizionamentoPage partner={p} onNavigate={setPartnerDashNav} />;
-        if (nav === 'masterclass') return <MasterclassPage partner={p} onNavigate={setPartnerDashNav} />;
-        if (nav === 'videocorso') return <VideocorsoPage partner={p} onNavigate={setPartnerDashNav} />;
-        if (nav === 'funnel') return <FunnelPage partner={p} onNavigate={setPartnerDashNav} />;
-        if (nav === 'lancio') return <LancioPage partner={p} onNavigate={setPartnerDashNav} />;
+        // Step pages wrapped
+        if (nav === 'posizionamento') return <StepPageWrapper stepId="posizionamento" partner={p} onNavigate={setPartnerDashNav}><PosizionamentoPage partner={p} onNavigate={setPartnerDashNav} onComplete={() => setPartnerDashNav('dashboard')} /></StepPageWrapper>;
+        if (nav === 'masterclass') return <StepPageWrapper stepId="masterclass" partner={p} onNavigate={setPartnerDashNav}><MasterclassPage partner={p} onNavigate={setPartnerDashNav} onComplete={() => setPartnerDashNav('dashboard')} /></StepPageWrapper>;
+        if (nav === 'videocorso') return <StepPageWrapper stepId="videocorso" partner={p} onNavigate={setPartnerDashNav}><VideocorsoPage partner={p} onNavigate={setPartnerDashNav} onComplete={() => setPartnerDashNav('dashboard')} /></StepPageWrapper>;
+        if (nav === 'funnel') return <StepPageWrapper stepId="funnel" partner={p} onNavigate={setPartnerDashNav}><FunnelPage partner={p} onNavigate={setPartnerDashNav} onComplete={() => setPartnerDashNav('dashboard')} /></StepPageWrapper>;
+        if (nav === 'lancio') return <StepPageWrapper stepId="lancio" partner={p} onNavigate={setPartnerDashNav}><LancioPage partner={p} onNavigate={setPartnerDashNav} onComplete={() => setPartnerDashNav('dashboard')} /></StepPageWrapper>;
+        // Other pages
+        if (nav === 'mio-spazio') return <MioSpazioPage partner={p} onNavigate={setPartnerDashNav} />;
         if (nav === 'ottimizzazione') return <OttimizzazionePage partner={p} onNavigate={setPartnerDashNav} />;
         if (nav === 'lead') return <LeadPage partner={p} onNavigate={setPartnerDashNav} />;
         if (nav === 'pagamenti') return <PartnerPayments partner={p} />;
         if (nav === 'continuita') return <PianoContinuitaPage partner={p} onNavigate={setPartnerDashNav} />;
-        if (nav === 'calendario-pro') return <CalendarioEditoriale partner={p} />;
-        if (nav === 'avatar-pro') return <AvatarCheckout partner={p} />;
-        if (nav === 'consulenza-claudio' || nav === 'consulenza-antonella') return (
-          <div className="max-w-2xl mx-auto p-8 text-center">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: '#FFF3C4' }}>
-              <span className="text-2xl">📅</span>
-            </div>
-            <h2 className="text-xl font-black mb-2" style={{ color: '#1E2128' }}>
-              {nav === 'consulenza-claudio' ? 'Sessione con Claudio' : 'Sessione con Antonella'}
-            </h2>
-            <p className="text-sm mb-6" style={{ color: '#5F6572' }}>
-              Parla con Stefania per prenotare la tua sessione 1:1.
-            </p>
-            <button onClick={() => setPartnerShowChat(true)} className="px-6 py-3 rounded-xl font-bold text-sm" style={{ background: '#E8E8E8', color: '#111111', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}>
-              Parla con Stefania
-            </button>
-          </div>
-        );
+        if (nav === 'supporto') return <StefaniaChat partner={p} onBack={() => setPartnerDashNav('dashboard')} />;
         if (nav === 'profilo') return <PartnerProfileHub partner={p} onNavigate={setPartnerDashNav} />;
         if (nav === 'i-miei-file') return <PartnerFilesPage partner={p} />;
-        if (nav === 'onboarding-docs') return <OnboardingDocuments partner={p} />;
-        // Default: home dashboard
+        if (nav === 'onboarding-docs') return <OnboardingDocuments partner={p} onComplete={() => setPartnerDashNav('dashboard')} />;
         return <PartnerDashboardSimplified partner={p} onNavigate={setPartnerDashNav} />;
       };
 
@@ -1727,7 +1714,7 @@ export default function App() {
 
           {mode==="partner"&&<>
             {/* BLOCCO OBBLIGATORIO - Se contratto non firmato, mostra solo ContractSigning */}
-            {!demoPartner?.contract?.signed_at ? (
+            {!(demoPartner?.contract?.signed_at || (typeof demoPartner?.contract === 'string' && demoPartner?.contract)) ? (
               <ContractSigning
                 key={nav === "partner-firma" ? "firma" : "contratto"}
                 partner={demoPartner}
@@ -1754,27 +1741,27 @@ export default function App() {
             {nav==="onboarding-partner"&&<PartnerOnboarding partnerId={demoPartner?.id} partnerNome={demoPartner?.name||"Partner"} onComplete={()=>setNav("fase1-posizionamento")}/>}
             
             {/* FASE 1 - Posizionamento */}
-            {nav==="fase1-posizionamento"&&<PosizionamentoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("masterclass")}/>}
-            {nav==="documenti"&&<PosizionamentoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("masterclass")}/>}
-            {nav==="posizionamento"&&<PosizionamentoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("masterclass")}/>}
+            {nav==="fase1-posizionamento"&&<StepPageWrapper stepId="posizionamento" partner={demoPartner} onNavigate={setNav}><PosizionamentoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")}/></StepPageWrapper>}
+            {nav==="documenti"&&<StepPageWrapper stepId="posizionamento" partner={demoPartner} onNavigate={setNav}><PosizionamentoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")}/></StepPageWrapper>}
+            {nav==="posizionamento"&&<StepPageWrapper stepId="posizionamento" partner={demoPartner} onNavigate={setNav}><PosizionamentoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")}/></StepPageWrapper>}
             
             {/* FASE 2 - Outline */}
             {nav==="fase2-outline"&&<CourseBuilderWizard partnerId={demoPartner?.id||"demo"} positioningData={{trasformazione:"Demo",target:"Demo",problema:"Demo",soluzione:"Demo"}} onComplete={()=>setNav("fase3-script")}/>}
             {nav==="coursebuilder"&&<CourseBuilderWizard partnerId={demoPartner?.id||"demo"} positioningData={{trasformazione:"Demo",target:"Demo",problema:"Demo",soluzione:"Demo"}} onComplete={()=>setNav("fase3-script")}/>}
             
             {/* FASE 3 - Script (Masterclass + testi moduli) */}
-            {nav==="fase3-script"&&<MasterclassPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("produzione")}/>}
-            {nav==="masterclass"&&<MasterclassPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("produzione")}/>}
+            {nav==="fase3-script"&&<StepPageWrapper stepId="masterclass" partner={demoPartner} onNavigate={setNav}><MasterclassPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")}/></StepPageWrapper>}
+            {nav==="masterclass"&&<StepPageWrapper stepId="masterclass" partner={demoPartner} onNavigate={setNav}><MasterclassPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")}/></StepPageWrapper>}
             
             {/* FASE 4 - Copy Core (funnel + foto/logo) */}
-            {nav==="fase4-copycore"&&<FunnelPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("lancio")}/>}
-            {nav==="funnel"&&<FunnelPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("lancio")}/>}
+            {nav==="fase4-copycore"&&<StepPageWrapper stepId="funnel" partner={demoPartner} onNavigate={setNav}><FunnelPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")}/></StepPageWrapper>}
+            {nav==="funnel"&&<StepPageWrapper stepId="funnel" partner={demoPartner} onNavigate={setNav}><FunnelPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")}/></StepPageWrapper>}
             
             {/* FASE 5 - Videocorso (produzione video) */}
-            {nav==="fase5-masterclass"&&<VideocorsoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("funnel")}/>}
-            {nav==="consigli-registrazione"&&<VideocorsoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("funnel")}/>}
-            {nav==="produzione"&&<VideocorsoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("funnel")}/>}
-            {nav==="videocorso"&&<VideocorsoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("funnel")}/>}
+            {nav==="fase5-masterclass"&&<StepPageWrapper stepId="videocorso" partner={demoPartner} onNavigate={setNav}><VideocorsoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")}/></StepPageWrapper>}
+            {nav==="consigli-registrazione"&&<StepPageWrapper stepId="videocorso" partner={demoPartner} onNavigate={setNav}><VideocorsoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")}/></StepPageWrapper>}
+            {nav==="produzione"&&<StepPageWrapper stepId="videocorso" partner={demoPartner} onNavigate={setNav}><VideocorsoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")}/></StepPageWrapper>}
+            {nav==="videocorso"&&<StepPageWrapper stepId="videocorso" partner={demoPartner} onNavigate={setNav}><VideocorsoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")}/></StepPageWrapper>}
             
             {/* FASE 6 - Videocorso */}
             {nav==="fase6-videocorso"&&<VideoEditorAndrea partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
@@ -1800,7 +1787,7 @@ export default function App() {
             {nav==="piano-continuita"&&<PianoContinuitaPage partner={demoPartner} onNavigate={setNav}/>}
             
             {/* LANCIO */}
-            {nav==="lancio"&&<LancioPage partner={demoPartner} onNavigate={setNav} onLaunchComplete={()=>setNav("ottimizzazione")}/>}
+            {nav==="lancio"&&<StepPageWrapper stepId="lancio" partner={demoPartner} onNavigate={setNav}><LancioPage partner={demoPartner} onNavigate={setNav} onLaunchComplete={()=>setNav("dashboard")}/></StepPageWrapper>}
             
             {/* CALENDARIO LANCIO */}
             {nav==="calendario-lancio"&&<CalendarioLancioPage partner={demoPartner} onNavigate={setNav}/>}
@@ -1818,6 +1805,9 @@ export default function App() {
             {/* PIANI CONTINUITÀ */}
             {nav==="continuita"&&<PianoContinuitaPage partner={demoPartner} onNavigate={setNav}/>}
             {nav==="piano-continuita"&&<PianoContinuitaPage partner={demoPartner} onNavigate={setNav}/>}
+            
+            {/* IL MIO SPAZIO */}
+            {nav==="mio-spazio"&&<MioSpazioPage partner={demoPartner} onNavigate={setNav}/>}
             
             {/* PROFILO - Bonus */}
             {nav==="profilo-bonus"&&<BonusStrategici partner={demoPartner}/>}
