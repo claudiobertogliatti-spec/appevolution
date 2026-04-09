@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   ArrowRight, ArrowLeft, CheckCircle, Loader2,
   Sparkles, Play, Calendar, LogOut, ChevronDown,
-  Shield, Lock, FileText, PhoneCall, BadgeCheck
+  Shield, Lock, FileText, PhoneCall, BadgeCheck, X
 } from "lucide-react";
 import axios from "axios";
 import { API } from "../../utils/api-config";
@@ -169,6 +169,7 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
   const [selectedTime, setSelectedTime] = useState(null);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
+  const [playingVideo, setPlayingVideo] = useState(null);
 
   const token = localStorage.getItem("access_token");
   const userId = user?.id || user?.user_id;
@@ -679,23 +680,43 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
                     </p>
                     <div className="space-y-3">
                       {[
-                        { title: "Come funziona Evolution PRO", desc: "Il metodo in 7 fasi per creare la tua accademia digitale", dur: "8 min" },
-                        { title: "Il Team al tuo fianco", desc: "5 agenti AI specializzati + Claudio e Antonella", dur: "5 min" },
-                        { title: "Cosa aspettarti dalla Call", desc: "Come prepararti per ottenere il massimo", dur: "4 min" },
+                        { title: "Come funziona Evolution PRO", desc: "Il metodo in 7 fasi per creare la tua accademia digitale", dur: "8 min", src: "/api/static/uploads/minicorso/come-funziona-evolution-pro.mp4" },
+                        { title: "Il Team al tuo fianco", desc: "5 agenti AI specializzati + Claudio e Antonella", dur: "5 min", src: "/api/static/uploads/minicorso/il-team-al-tuo-fianco.mp4" },
+                        { title: "Cosa aspettarti dalla Call", desc: "Come prepararti per ottenere il massimo", dur: "4 min", src: "/api/static/uploads/minicorso/cosa-aspettarti-dalla-call.mp4" },
                       ].map((v, i) => (
-                        <div key={i} data-testid={`minicorso-video-${i}`}
-                          className="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all hover:shadow-sm"
-                          style={{ border: `1px solid ${C.border}` }}>
-                          <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                            style={{ background: `${C.yellow}20` }}>
-                            <Play className="w-4 h-4" style={{ color: C.yellowDark }} />
+                        <div key={i}>
+                          <div data-testid={`minicorso-video-${i}`}
+                            onClick={() => setPlayingVideo(playingVideo === i ? null : i)}
+                            className="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all hover:shadow-sm"
+                            style={{ border: `1px solid ${playingVideo === i ? C.yellow : C.border}`, background: playingVideo === i ? `${C.yellow}08` : "transparent" }}>
+                            <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                              style={{ background: playingVideo === i ? C.yellow : `${C.yellow}20` }}>
+                              {playingVideo === i
+                                ? <X className="w-4 h-4" style={{ color: C.dark }} />
+                                : <Play className="w-4 h-4" style={{ color: C.yellowDark }} />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-base font-bold" style={{ color: C.dark }}>{v.title}</div>
+                              <div className="text-sm" style={{ color: C.muted }}>{v.desc}</div>
+                            </div>
+                            <span className="text-xs font-bold px-2 py-1 rounded-md flex-shrink-0"
+                              style={{ background: C.bg, color: C.muted }}>{v.dur}</span>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-base font-bold" style={{ color: C.dark }}>{v.title}</div>
-                            <div className="text-sm" style={{ color: C.muted }}>{v.desc}</div>
-                          </div>
-                          <span className="text-xs font-bold px-2 py-1 rounded-md flex-shrink-0"
-                            style={{ background: C.bg, color: C.muted }}>{v.dur}</span>
+                          {playingVideo === i && (
+                            <div className="mt-2 rounded-lg overflow-hidden" style={{ background: "#000" }}>
+                              <video
+                                data-testid={`video-player-${i}`}
+                                className="w-full"
+                                controls
+                                autoPlay
+                                playsInline
+                                style={{ maxHeight: 400 }}
+                              >
+                                <source src={`${API}${v.src}`} type="video/mp4" />
+                                Il tuo browser non supporta il tag video.
+                              </video>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
