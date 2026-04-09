@@ -23,26 +23,24 @@ Applicazione di gestione aziendale basata su AI per Evolution PRO LLC. Gestisce 
 - [x] Pipeline AI Backend (Scoring + Claude + PDF)
 - [x] Post Analisi e Partnership - Funnel 11 sezioni
 - [x] Ristrutturazione PDF a 11 sezioni
-- [x] Aggiornamento prompt AI Claude
 - [x] Upload Audio Analisi (Admin)
 - [x] Funnel Post-Analisi unificato su /proposta
-  - Routing /proposta e /firma unificati a PostAnalisiPartnership
-  - Dati personali con campi: nome_azienda, email_lavoro, PEC
-  - Contratto a 2 colonne: testo legale + Assistente Contrattuale (chat AI Claude)
-  - Flag articoli importanti (3, 5, 7, 9, 11) con conferma obbligatoria
-  - Firma digitale con invio email PDF (SMTP smtp.register.it)
-  - Pagamento Stripe / Bonifico bancario con dati IBAN
-  - Upload distinta pagamento, doc identita, codice fiscale
-  - Testato: 14/14 backend, 100% frontend (iteration_41)
-- [x] **Admin Preview completo pagina Analisi e Partnership - 09 Apr 2026**
-  - Vista Admin (cp-analisi) mostra TUTTE le 13 sezioni senza condizioni
-  - Dati demo automatici quando utente non esiste nel DB
-  - Banner "Anteprima Admin" in modalita preview
-  - Sezioni firma, documenti, pagamento visibili senza dover confermare articoli
+- [x] Admin Preview completo pagina Analisi e Partnership
+- [x] Articoli contratto con accordion + Clausole Specifiche banner + Firma con flag
+- [x] Riscrittura copy decisionale (7 modifiche: apertura, diagnosi, conseguenze, transizione, pre-contratto, pagamento)
+- [x] **Sidebar Partner guidata — 09 Apr 2026**
+  - Blocco "Progresso Accademia" (%, fase, completati)
+  - Step con stati: completato (verde ✅), in corso (giallo pulsante), bloccato (grigio 🔒)
+  - Logica sblocco sequenziale
+  - Blocco "Prossima azione" sempre visibile (fondo nero, testo giallo)
+  - "I nostri risultati" con KPI sintetici (badge "dopo il lancio")
+  - "Vai oltre" nascosto fino al completamento del lancio
+  - Linguaggio "noi" in tutta la sidebar e modal bloccato
+  - Modal bloccato indica fase attuale da completare
 
 ## P0 - Prossimi
 - [ ] SMTP trigger email nell'endpoint /api/cliente-analisi/call-prenotata
-- [ ] Admin Panel: lista utenti wizard, dati mini-quiz, stato corrente, forza cambio stato
+- [ ] Admin Panel: lista utenti wizard, dati mini-quiz, stato corrente
 
 ## P1 - Alta Priorita
 - [ ] Generazione PDF contratto firmato standalone (download diretto)
