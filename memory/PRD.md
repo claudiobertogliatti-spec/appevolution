@@ -41,19 +41,24 @@ Applicazione di gestione aziendale basata su AI per Evolution PRO LLC. Gestisce 
 - [x] Step 3 Checkout Analisi Strategica (€67) — 08 Apr 2026
 - [x] Step 4 Conferma & Onboarding (Mini-Corso + Booking) — 08 Apr 2026
 - [x] Correzioni UI ClienteWizard — 09 Apr 2026
-  - Testo ingrandito su tutti gli step (heading text-3xl/4xl, body text-base)
-  - Step 3: "Analisi Strategica" (no AI-Driven), bullet points contenuti, no Script Call/Verifica
-  - Step 3: Rimossa frase "scalato dal costo della partnership"
-  - Step 4: Testo booking aggiornato (60 min, Claudio CEO, Servizio Partnership)
-  - Step 4: Orari aggiornati a 10-11-12-15-16-17-18
+- [x] Inserimento 3 video Mini-Corso nello Step 4 — 09 Apr 2026
+- [x] Fix frontend robustness (Array.isArray, loading guard) — 09 Apr 2026
+- [x] FRONTEND_URL default → app.evolution-pro.it — 09 Apr 2026
+- [x] AnalisiInPreparazione: verify-payment useEffect — 09 Apr 2026
+- [x] **Post Analisi e Partnership — 09 Apr 2026**
+  - Funnel di conversione a 11 sezioni sequenziali
+  - Sezioni: Recap → Analisi (PDF+Audio) → Transizione → Partnership → Processo → Valore → Bonus → Decisione → Contratto (accordion+chat AI) → Firma → Pagamento (Stripe+Bonifico)
+  - Backend: 4 nuovi endpoint (contract-text, partnership-firma, partnership-checkout, partnership-bonifico)
+  - 18 articoli contratto parsati, 5 articoli vessatori con flag conferma obbligatorio
+  - Chat supporto contrattuale Claude AI integrata
+  - Testato: 14/14 backend, 11/11 sezioni frontend (iteration_39)
 
 ## P0 — Prossimi
 - [ ] SMTP trigger email nell'endpoint /api/cliente-analisi/call-prenotata
-- [ ] Implementazione fase "Post Analisi" (Analisi e Partnership)
 - [ ] Admin Panel: lista utenti wizard, dati mini-quiz, stato corrente, forza cambio stato
 
 ## P1 — Alta Priorità
-- [ ] Pulsante "Ascolta sintesi audio" (stub NotebookLM)
+- [ ] Pulsante "Ascolta sintesi audio" — integrazione reale NotebookLM
 - [ ] Generazione PDF contratto firmato (reportlab)
 - [ ] PRICE_ID Stripe per Servizi Extra
 
