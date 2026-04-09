@@ -283,7 +283,7 @@ function ActivateLaunchSection({ onActivate, isActivating, isLaunched, disabled 
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function LancioPage({ partner, onNavigate, onLaunchComplete }) {
+export function LancioPage({ partner, onNavigate, onLaunchComplete, isAdmin }) {
   const [isLoading, setIsLoading] = useState(true);
   const [systemChecks, setSystemChecks] = useState(
     SYSTEM_CHECKS.map(check => ({ ...check, ready: false }))

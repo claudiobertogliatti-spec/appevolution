@@ -552,7 +552,7 @@ function PublishSection({ canPublish, publishState, onPublish, isPublishing, dom
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function FunnelPage({ partner, onNavigate, onComplete }) {
+export function FunnelPage({ partner, onNavigate, onComplete, isAdmin }) {
   const [isLoading, setIsLoading] = useState(true);
   const [funnelData, setFunnelData] = useState(null);
   const [pageStates, setPageStates] = useState({});

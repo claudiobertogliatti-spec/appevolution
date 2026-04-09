@@ -521,7 +521,7 @@ function RecordingPhase({ script, onUpload, uploadStatus, fileInputRef, onComple
 // MAIN COMPONENT - MASTERCLASS FACTORY
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function MasterclassPage({ partner, onNavigate, onComplete }) {
+export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
   const [phase, setPhase] = useState('questions'); // questions, script, recording
   const [currentQuestion, setCurrentQuestion] = useState(1);
   const [answers, setAnswers] = useState({});
@@ -768,10 +768,10 @@ ${GOLD_STANDARD.data.cta}
         )}
         
         {/* FASE 1: Domande Strategiche */}
-        {phase === 'questions' && (
+        {phase === 'questions' && !isAdmin && (
           <>
             <StefaniaTutor 
-              message={`Ciao ${partner?.name?.split(' ')[0] || 'Partner'}! 👋 Ti guiderò nella creazione della tua masterclass usando il nostro metodo collaudato. Rispondi alle 7 domande strategiche e genererò uno script professionale per te. Prima di iniziare, scarica l'esempio Gold Standard come riferimento.`}
+              message={`Ciao ${partner?.name?.split(' ')[0] || 'Partner'}! Ti guiderò nella creazione della tua masterclass usando il nostro metodo collaudato. Rispondi alle 7 domande strategiche e genererò uno script professionale per te. Prima di iniziare, scarica l'esempio Gold Standard come riferimento.`}
               showGoldStandard={true}
               onDownloadGoldStandard={handleDownloadGoldStandard}
             />
@@ -844,9 +844,44 @@ ${GOLD_STANDARD.data.cta}
             )}
           </>
         )}
+
+        {/* ═══ ADMIN: Panoramica completa tutte le 7 domande + script ═══ */}
+        {phase === 'questions' && isAdmin && (
+          <div className="space-y-4" data-testid="admin-panoramic-masterclass">
+            <div className="flex items-center gap-2 mb-2 px-1">
+              <Eye className="w-4 h-4" style={{ color: '#FBBF24' }} />
+              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#FBBF24' }}>Vista Admin — 7 Domande Strategiche</span>
+            </div>
+            {STRATEGIC_QUESTIONS.map(question => {
+              const answer = answers[question.key] || '';
+              return (
+                <div key={question.id} className="bg-white rounded-xl border p-5" style={{ borderColor: answer ? '#34C77B40' : '#ECEDEF' }}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
+                      style={{ background: answer ? '#34C77B' : '#F2C418', color: answer ? '#fff' : '#1E2128' }}>
+                      {answer ? <Check className="w-3.5 h-3.5" /> : question.id}
+                    </span>
+                    <span className="text-sm font-bold" style={{ color: '#1E2128' }}>{question.title}</span>
+                    {answer && <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: '#34C77B20', color: '#2D9F6F' }}>Compilato</span>}
+                    {!answer && <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: '#92400E' }}>Vuoto</span>}
+                  </div>
+                  <p className="text-sm font-medium mb-2" style={{ color: '#374151' }}>{question.question}</p>
+                  <p className="text-xs mb-2 italic" style={{ color: '#9CA3AF' }}>{question.description}</p>
+                  {answer ? (
+                    <div className="p-3 rounded-lg text-sm whitespace-pre-wrap" style={{ background: '#F9FAFB', color: '#1F2937', border: '1px solid #E5E7EB' }}>{answer}</div>
+                  ) : (
+                    <div className="p-3 rounded-lg text-sm italic" style={{ background: '#FFF7ED', color: '#9CA3AF', border: '1px dashed #E5E7EB' }}>
+                      Il partner non ha ancora risposto.
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
         
         {/* FASE 2: Script Preview & Edit */}
-        {phase === 'script' && generatedScript && (
+        {(phase === 'script' || (isAdmin && generatedScript)) && generatedScript && (
           <>
             <StefaniaTutor 
               message="Ecco il tuo script! L'ho validato con il nostro sistema di Quality Assurance. Puoi approvarlo, modificarlo o rigenerarlo se non ti convince."
