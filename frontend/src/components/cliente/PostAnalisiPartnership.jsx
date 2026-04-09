@@ -62,7 +62,7 @@ function ContractChat({ userId }) {
   if (!open) {
     return (
       <button data-testid="open-chat" onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center shadow-xl z-50 transition-transform hover:scale-110"
+        className="fixed bottom-20 right-6 w-14 h-14 rounded-full flex items-center justify-center shadow-xl z-50 transition-transform hover:scale-110"
         style={{ background: C.yellow }}>
         <MessageCircle className="w-6 h-6" style={{ color: C.dark }} />
       </button>
@@ -70,7 +70,7 @@ function ContractChat({ userId }) {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 w-80 sm:w-96 rounded-2xl shadow-2xl overflow-hidden z-50 flex flex-col"
+    <div className="fixed bottom-20 right-6 w-80 sm:w-96 rounded-2xl shadow-2xl overflow-hidden z-50 flex flex-col"
       style={{ background: C.white, border: `1px solid ${C.border}`, maxHeight: "60vh" }}>
       <div className="px-4 py-3 flex items-center justify-between" style={{ background: C.dark }}>
         <div className="flex items-center gap-2">
