@@ -233,7 +233,7 @@ async def generate_script(partner_id: str, data: MasterclassAnswers):
             api_key=api_key,
             session_id=f"masterclass-{partner_id}-{uuid.uuid4().hex[:8]}",
             system_message=MASTERCLASS_SYSTEM_PROMPT
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        )
 
         user_prompt = build_user_prompt(data.answers, partner_name)
 
