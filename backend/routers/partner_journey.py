@@ -78,6 +78,8 @@ class VideocorsoLessonUpload(BaseModel):
 
 class FunnelGenerateRequest(BaseModel):
     partner_id: str
+    bio_partner: str = ""
+    garanzia: str = ""
 
 class FunnelPublishRequest(BaseModel):
     partner_id: str
@@ -1140,96 +1142,214 @@ async def get_funnel(partner_id: str):
         "partner_id": partner_id,
         "funnel": funnel or {},
         "is_generated": funnel.get("generated", False) if funnel else False,
-        "is_published": funnel.get("published", False) if funnel else False
+        "is_published": funnel.get("published", False) if funnel else False,
+        "blueprint": funnel.get("blueprint") if funnel else None,
+        "inputs": funnel.get("inputs") if funnel else None,
+        "is_approved": funnel.get("blueprint_approved", False) if funnel else False,
     }
 
 @router.post("/funnel/generate")
 async def generate_funnel(request: FunnelGenerateRequest):
     """
-    AI Course Factory: Genera automaticamente tutto il materiale marketing
-    (pagine opt-in, sales page, email sequence) basandosi sul posizionamento
+    Genera l'Academy Blueprint completo: landing page, email sequence, area studenti.
+    Usa dati da posizionamento, masterclass e videocorso.
     """
     partner = await get_partner_or_404(request.partner_id)
-    
-    # Recupera tutti i dati necessari
+
+    # Recupera posizionamento
     posizionamento = await db.partner_posizionamento.find_one(
         {"partner_id": request.partner_id}, {"_id": 0}
     )
-    
-    if not posizionamento:
+    positioning = posizionamento.get("positioning_output", {}) if posizionamento else {}
+
+    if not positioning:
         raise HTTPException(status_code=400, detail="Completa prima il posizionamento")
-    
-    masterclass = await db.partner_masterclass.find_one(
+
+    # Recupera masterclass
+    masterclass = await db.masterclass_factory.find_one(
         {"partner_id": request.partner_id}, {"_id": 0}
     )
-    
-    # Costruisci prompt per AI
-    prompt = f"""Sei Stefania, Funnel Architect di Evolution PRO. Devi generare un sistema di vendita completo.
+    mc_answers = masterclass.get("answers", {}) if masterclass else {}
 
-DATI PARTNER:
-- Nome: {partner.get('name')}
-- Nicchia: {partner.get('niche', 'N/D')}
+    # Recupera videocorso
+    videocorso = await db.partner_videocorso.find_one(
+        {"partner_id": request.partner_id}, {"_id": 0}
+    )
+    course = videocorso.get("course_data", {}) if videocorso else {}
+
+    # Salva inputs
+    await db.partner_funnel.update_one(
+        {"partner_id": request.partner_id},
+        {
+            "$set": {
+                "inputs": {
+                    "bio_partner": request.bio_partner,
+                    "garanzia": request.garanzia,
+                },
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            },
+            "$setOnInsert": {
+                "partner_id": request.partner_id,
+                "partner_name": partner.get("name"),
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+
+    # Costruisci il moduli summary per il prompt
+    moduli_summary = ""
+    for m in course.get("moduli", []):
+        lezioni_list = ", ".join([l.get("titolo", "") for l in m.get("lezioni", [])])
+        moduli_summary += f"- Modulo {m.get('numero', '')}: {m.get('titolo', '')} ({len(m.get('lezioni', []))} lezioni: {lezioni_list})\n"
+
+    prompt = f"""Sei un esperto di funnel marketing e copywriting per corsi online.
+Genera un ACADEMY BLUEPRINT completo per il partner {partner.get('name')}.
+
+═══ DATI DEL PARTNER ═══
 
 POSIZIONAMENTO:
-- Studente ideale: {posizionamento.get('step_1_studente_ideale', 'N/D')}
-- Obiettivo: {posizionamento.get('step_2_obiettivo', 'N/D')}
-- Trasformazione: {posizionamento.get('step_3_trasformazione', 'N/D')}
-- Metodo: {posizionamento.get('step_4_metodo', 'N/D')}
-- Obiezioni: {posizionamento.get('step_5_obiezioni', 'N/D')}
+- Target: {positioning.get('target_ideale', 'N/D')}
+- Problema: {positioning.get('problema_principale', 'N/D')}
+- Risultato: {positioning.get('risultato_promesso', 'N/D')}
+- Differenziazione: {positioning.get('differenziazione', 'N/D')}
+- Posizionamento finale: {positioning.get('posizionamento_finale', 'N/D')}
 
-STRUTTURA CORSO:
-{json.dumps(posizionamento.get('course_structure', {}), ensure_ascii=False, indent=2)}
+MASTERCLASS INPUT:
+- Risultato principale: {mc_answers.get('risultato_principale', 'N/D')}
+- Errore comune: {mc_answers.get('errore_comune', 'N/D')}
+- Metodo: {mc_answers.get('metodo_semplice', 'N/D')}
 
-Genera il materiale marketing completo in formato JSON:
+VIDEOCORSO:
+- Titolo: {course.get('titolo', 'N/D')}
+- Sottotitolo: {course.get('sottotitolo', 'N/D')}
+- Descrizione: {course.get('descrizione', 'N/D')}
+- Moduli:
+{moduli_summary or 'N/D'}
+- Bonus: {', '.join(course.get('bonus', [])) or 'N/D'}
+- Risorse: {', '.join(course.get('risorse', [])) or 'N/D'}
+- Prezzo base: {course.get('prezzo_base', 'N/D')}
+- Offerta lancio: {course.get('offerta_lancio', 'N/D')}
+- Per chi e': {course.get('per_chi_e', 'N/D')}
+- Per chi NON e': {course.get('per_chi_non_e', 'N/D')}
+
+BIO PARTNER: {request.bio_partner or 'Non fornita'}
+GARANZIA: {request.garanzia or 'Soddisfatti o rimborsati entro 30 giorni'}
+
+═══ OUTPUT RICHIESTO ═══
+
+Genera un JSON con questa struttura ESATTA:
 {{
-  "optin_page": {{
-    "headline": "...",
-    "subheadline": "...",
-    "bullets": ["...", "...", "..."],
-    "cta": "..."
-  }},
-  "masterclass_page": {{
-    "headline": "...",
-    "subheadline": "...",
-    "bullets": ["...", "...", "..."],
-    "cta": "..."
-  }},
-  "sales_page": {{
-    "headline": "...",
-    "subheadline": "...",
-    "problem_section": "...",
-    "solution_section": "...",
-    "bullets": ["...", "...", "...", "...", "..."],
-    "price": "€497",
-    "cta": "...",
-    "guarantee": "..."
-  }},
-  "checkout": {{
-    "headline": "...",
-    "subheadline": "...",
-    "cta": "..."
+  "landing_sections": {{
+    "hero": {{
+      "headline": "Headline principale della sales page - orientata al risultato",
+      "subheadline": "Sottotitolo che espande il beneficio",
+      "cta_text": "Testo del bottone CTA principale"
+    }},
+    "problema": {{
+      "headline": "Titolo sezione problema",
+      "body": "Paragrafo che descrive il problema del target (3-4 frasi persuasive)"
+    }},
+    "promessa": {{
+      "headline": "Titolo sezione promessa/soluzione",
+      "body": "Paragrafo che descrive la trasformazione promessa (3-4 frasi)"
+    }},
+    "moduli": {{
+      "headline": "Cosa imparerai nel corso",
+      "items": ["Modulo 1: descrizione breve", "Modulo 2: descrizione breve", "..."]
+    }},
+    "bonus": {{
+      "headline": "Bonus inclusi",
+      "items": ["Bonus 1: descrizione e valore", "Bonus 2: descrizione e valore"]
+    }},
+    "garanzia": {{
+      "headline": "La nostra garanzia",
+      "body": "Testo garanzia rassicurante"
+    }},
+    "faq": [
+      {{"question": "Domanda frequente 1?", "answer": "Risposta dettagliata"}},
+      {{"question": "Domanda frequente 2?", "answer": "Risposta dettagliata"}},
+      {{"question": "Domanda frequente 3?", "answer": "Risposta dettagliata"}},
+      {{"question": "Domanda frequente 4?", "answer": "Risposta dettagliata"}},
+      {{"question": "Domanda frequente 5?", "answer": "Risposta dettagliata"}}
+    ],
+    "bio": {{
+      "name": "{partner.get('name', 'Partner')}",
+      "bio": "Biografia professionale del partner (3-4 frasi)"
+    }},
+    "cta_finale": {{
+      "headline": "Headline CTA finale urgente",
+      "body": "Breve paragrafo di urgenza e scarsita'",
+      "cta_text": "Testo bottone finale",
+      "prezzo": "{course.get('prezzo_base', '€297')}",
+      "offerta": "{course.get('offerta_lancio', '€197')}"
+    }}
   }},
   "email_sequence": [
-    {{"id": 1, "subject": "...", "preview": "...", "type": "access", "delay": "Immediata"}},
-    {{"id": 2, "subject": "...", "preview": "...", "type": "value", "delay": "+24 ore"}},
-    {{"id": 3, "subject": "...", "preview": "...", "type": "case_study", "delay": "+48 ore"}},
-    {{"id": 4, "subject": "...", "preview": "...", "type": "offer", "delay": "+72 ore"}},
-    {{"id": 5, "subject": "...", "preview": "...", "type": "urgency", "delay": "+96 ore"}},
-    {{"id": 6, "subject": "...", "preview": "...", "type": "closing", "delay": "+120 ore"}}
-  ]
+    {{
+      "id": 1,
+      "type": "consegna",
+      "delay": "Immediata",
+      "subject": "Subject email 1 - benvenuto e accesso",
+      "body": "Corpo completo email 1 (5-8 frasi). Benvenuto, contesto, link accesso, aspettative."
+    }},
+    {{
+      "id": 2,
+      "type": "problema",
+      "delay": "+24 ore",
+      "subject": "Subject email 2 - problema",
+      "body": "Corpo completo email 2 (5-8 frasi). Approfondisci il problema, crea empatia."
+    }},
+    {{
+      "id": 3,
+      "type": "errore",
+      "delay": "+48 ore",
+      "subject": "Subject email 3 - errore comune",
+      "body": "Corpo completo email 3 (5-8 frasi). L'errore che fanno tutti, perche' non funziona."
+    }},
+    {{
+      "id": 4,
+      "type": "soluzione",
+      "delay": "+72 ore",
+      "subject": "Subject email 4 - soluzione",
+      "body": "Corpo completo email 4 (5-8 frasi). Presenta il metodo, i risultati, testimonianze."
+    }},
+    {{
+      "id": 5,
+      "type": "urgenza",
+      "delay": "+96 ore",
+      "subject": "Subject email 5 - urgenza e CTA",
+      "body": "Corpo completo email 5 (5-8 frasi). Urgenza, scarsita', call to action finale."
+    }}
+  ],
+  "student_area": {{
+    "welcome_message": "Messaggio di benvenuto per l'area studenti (3-4 frasi motivazionali)",
+    "modules": [
+      {{
+        "title": "Titolo modulo",
+        "lessons": ["Titolo lezione 1", "Titolo lezione 2", "..."]
+      }}
+    ],
+    "bonus_section": ["Titolo bonus 1", "Titolo bonus 2"],
+    "resources_section": ["Risorsa scaricabile 1", "Risorsa scaricabile 2"]
+  }}
 }}
 
-Rendi il copy persuasivo, specifico per la nicchia, e focalizzato sulla trasformazione."""
+REGOLE:
+- Copy persuasivo, specifico per la nicchia del partner
+- Linguaggio diretto, orientato ai risultati
+- Ogni email deve avere un corpo COMPLETO (non placeholder)
+- Le FAQ devono essere realistiche per questo tipo di corso
+- La bio deve essere professionale e autorevole
+- Se la bio del partner non e' fornita, inventane una coerente col posizionamento
+- Il prezzo e l'offerta devono riflettere i dati del videocorso
+- Rispondi SOLO con il JSON, senza altro testo"""
 
     try:
         llm = await get_llm_chat()
-        
-        import json
-        
         response = await llm.send_message(UserMessage(text=prompt))
         response_text = response.strip()
-        
-        # Parse JSON
+
         if "```json" in response_text:
             json_start = response_text.find("```json") + 7
             json_end = response_text.find("```", json_start)
@@ -1238,36 +1358,68 @@ Rendi il copy persuasivo, specifico per la nicchia, e focalizzato sulla trasform
             json_start = response_text.find("```") + 3
             json_end = response_text.find("```", json_start)
             response_text = response_text[json_start:json_end].strip()
-        
-        funnel_content = json.loads(response_text)
-        
-        # Salva
+
+        blueprint = json.loads(response_text)
+
         await db.partner_funnel.update_one(
             {"partner_id": request.partner_id},
-            {
-                "$set": {
-                    "content": funnel_content,
-                    "generated": True,
-                    "generated_at": datetime.now(timezone.utc).isoformat(),
-                    "updated_at": datetime.now(timezone.utc).isoformat()
-                },
-                "$setOnInsert": {
-                    "partner_id": request.partner_id,
-                    "partner_name": partner.get("name"),
-                    "created_at": datetime.now(timezone.utc).isoformat()
-                }
-            },
-            upsert=True
+            {"$set": {
+                "blueprint": blueprint,
+                "generated": True,
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "content": blueprint.get("landing_sections", {}),
+                "email_sequence": blueprint.get("email_sequence", []),
+            }}
         )
-        
+
         return {
             "success": True,
-            "funnel_content": funnel_content
+            "blueprint": blueprint
         }
-        
+
+    except json.JSONDecodeError as e:
+        logging.error(f"Blueprint JSON parse error: {e}")
+        raise HTTPException(status_code=500, detail="Errore nel parsing del blueprint generato")
     except Exception as e:
-        logging.error(f"Funnel generation error: {e}")
-        raise HTTPException(status_code=500, detail=f"Errore generazione funnel: {str(e)}")
+        logging.error(f"Blueprint generation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore generazione blueprint: {str(e)}")
+
+@router.post("/funnel/approve-blueprint")
+async def approve_funnel_blueprint(partner_id: str):
+    """Approva il blueprint dell'academy e completa la fase funnel"""
+    partner = await get_partner_or_404(partner_id)
+
+    funnel = await db.partner_funnel.find_one(
+        {"partner_id": partner_id}, {"_id": 0}
+    )
+
+    if not funnel or not funnel.get("blueprint"):
+        raise HTTPException(status_code=400, detail="Nessun blueprint da approvare")
+
+    await db.partner_funnel.update_one(
+        {"partner_id": partner_id},
+        {"$set": {
+            "blueprint_approved": True,
+            "approved_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+
+    await db.partners.update_one(
+        {"id": partner_id},
+        {"$set": {
+            "funnel_completato": True,
+            "funnel_completato_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+
+    await notify_telegram(
+        f"📊 BLUEPRINT APPROVATO\n\n👤 {partner.get('name')}\n📋 Academy Blueprint approvato dal partner"
+    )
+
+    return {
+        "success": True,
+        "message": "Blueprint approvato! Puoi procedere al Lancio."
+    }
 
 @router.post("/funnel/publish")
 async def publish_funnel(request: FunnelPublishRequest):
