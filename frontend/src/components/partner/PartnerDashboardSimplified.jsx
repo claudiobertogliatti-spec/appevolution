@@ -1,7 +1,7 @@
 import { ArrowRight, Check, Lock, Info, MessageCircle, Calendar } from "lucide-react";
 import { STEPS, getStepFromPhase } from "./stepConfig";
 
-export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) {
+export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat, isAdmin }) {
   const phase = partner?.phase || 'F1';
   const currentStep = getStepFromPhase(phase);
   const nome = partner?.name?.split(" ")[0] || "Partner";
@@ -110,9 +110,9 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) 
                 const stepNum = i + 1;
                 const isStepCompleted = stepNum < currentStep;
                 const isCurrent = stepNum === currentStep;
-                const isLocked = stepNum > currentStep;
-                const statusLabel = isStepCompleted ? 'completato' : isCurrent ? 'in corso' : 'bloccato';
-                const statusColor = isStepCompleted ? '#34C77B' : isCurrent ? '#D4A017' : '#9CA3AF';
+                const isLocked = !isAdmin && stepNum > currentStep;
+                const statusLabel = isStepCompleted ? 'completato' : isCurrent ? 'in corso' : isLocked ? 'bloccato' : 'da fare';
+                const statusColor = isStepCompleted ? '#34C77B' : isCurrent ? '#D4A017' : isLocked ? '#9CA3AF' : '#8B8680';
 
                 return (
                   <button
@@ -131,13 +131,13 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) 
                     <span
                       className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-black flex-shrink-0"
                       style={{
-                        background: isStepCompleted ? '#34C77B' : isCurrent ? '#FFD24D' : '#ECEDEF',
+                        background: isStepCompleted ? '#34C77B' : isCurrent ? '#FFD24D' : isLocked ? '#ECEDEF' : '#E8E4DC',
                         color: isStepCompleted ? 'white' : isCurrent ? '#1A1F24' : '#9CA3AF',
                       }}
                     >
                       {isStepCompleted ? <Check className="w-4 h-4" /> : stepNum}
                     </span>
-                    <span className="flex-1 text-base font-bold" style={{ color: isStepCompleted ? '#2D9F6F' : isCurrent ? '#1A1F24' : '#9CA3AF' }}>
+                    <span className="flex-1 text-base font-bold" style={{ color: isStepCompleted ? '#2D9F6F' : isCurrent ? '#1A1F24' : isLocked ? '#9CA3AF' : '#5F6572' }}>
                       {step.title}
                     </span>
                     <span className="text-sm font-bold flex-shrink-0" style={{ color: statusColor }}>

@@ -8,7 +8,7 @@ const MATERIAL_ICONS = {
   checklist: ClipboardList,
 };
 
-export function StepPageWrapper({ stepId, partner, onNavigate, children }) {
+export function StepPageWrapper({ stepId, partner, onNavigate, isAdmin, children }) {
   const phase = partner?.phase || 'F1';
   const currentStep = getStepFromPhase(phase);
   const step = STEPS.find(s => s.id === stepId);
@@ -17,7 +17,7 @@ export function StepPageWrapper({ stepId, partner, onNavigate, children }) {
 
   const stepNum = step.num;
   const isCompleted = stepNum < currentStep;
-  const isLocked = stepNum > currentStep;
+  const isLocked = !isAdmin && stepNum > currentStep;
 
   if (isLocked) {
     const currentStepName = currentStep >= 1 && currentStep <= 5
