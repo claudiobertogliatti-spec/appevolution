@@ -983,9 +983,21 @@ async def seed_database():
     else:
         logging.info("Seed partners/alerts SKIPPED (SEED_ENABLED=false)")
     
-    # Pulizia alert relativi ai partner di test (one-time cleanup)
+    # Pulizia partner di test e alert relativi (one-time cleanup)
     test_partner_names = ["Marco Ferretti", "Sara Lombardi", "Antonio Bianchi", "Luca Marini", "Giulia Rossi"]
     test_partner_ids = ["1", "2", "3", "4", "5"]
+    
+    # Rimuovi partner demo dal database
+    partner_cleanup = await db.partners.delete_many({
+        "$or": [
+            {"name": {"$in": test_partner_names}, "id": {"$in": test_partner_ids}},
+            {"id": {"$in": test_partner_ids}, "niche": {"$in": ["Business Coach", "Psicologa", "Formatore HR", "Life Coach", "Consulente Fiscale"]}}
+        ]
+    })
+    if partner_cleanup.deleted_count > 0:
+        logging.info(f"Rimossi {partner_cleanup.deleted_count} partner di test dal database")
+    
+    # Rimuovi alert relativi
     cleanup = await db.alerts.delete_many({
         "$or": [
             {"partner": {"$in": test_partner_names}},
