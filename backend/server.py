@@ -1733,22 +1733,32 @@ async def download_analisi_pdf(user_id: str, credentials: HTTPAuthorizationCrede
 
 
 @api_router.post("/cliente-analisi/call-prenotata")
-async def mark_call_prenotata(credentials: HTTPAuthorizationCredentials = None):
-    """Segna call_prenotata = True dopo che l'utente ha prenotato la call."""
+async def mark_call_prenotata(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Prenota la call strategica: salva data, ora e aggiorna lo stato."""
     if not credentials:
         raise HTTPException(status_code=401, detail="Token non fornito")
     token_data = decode_token(credentials.credentials)
     if not token_data:
         raise HTTPException(status_code=401, detail="Token non valido o scaduto")
+
+    body = await request.json()
+    data_call = body.get("data", "")
+    ora_call = body.get("ora", "")
+
+    update_fields = {
+        "call_prenotata": True,
+        "call_data": data_call,
+        "call_ora": ora_call,
+        "call_prenotata_il": datetime.now(timezone.utc).isoformat(),
+        "stato_cliente": StatiCliente.CALL_PRENOTATA,
+        "azione_richiesta": AzioniCliente.PARTECIPA_CALL,
+    }
+
     await db.users.update_one(
         {"id": token_data.user_id},
-        {"$set": {
-            "call_prenotata": True,
-            "stato_cliente": StatiCliente.CALL_PRENOTATA,
-            "azione_richiesta": AzioniCliente.PARTECIPA_CALL,
-        }}
+        {"$set": update_fields}
     )
-    return {"success": True}
+    return {"success": True, "data": data_call, "ora": ora_call}
 
 
 @api_router.get("/cliente-analisi/stato/{user_id}")

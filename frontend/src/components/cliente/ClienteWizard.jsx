@@ -165,6 +165,10 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
   const [quiz, setQuiz] = useState({});
   const [submittingQuiz, setSubmittingQuiz] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedTime, setSelectedTime] = useState(null);
+  const [bookingConfirmed, setBookingConfirmed] = useState(false);
+  const [bookingLoading, setBookingLoading] = useState(false);
 
   const token = localStorage.getItem("access_token");
   const userId = user?.id || user?.user_id;
@@ -187,16 +191,14 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
         if (onPartnerAttivato) onPartnerAttivato();
         return;
       }
-      if (["IDONEO_PARTNERSHIP", "CALL_COMPLETATA"].includes(stato)) setStep(7);
-      else if (["CALL_PRENOTATA", "IN_ATTESA_CALL"].includes(stato)) setStep(7);
-      else if (["ANALISI_ATTIVATA"].includes(stato)) setStep(5);
+      if (["IDONEO_PARTNERSHIP", "CALL_COMPLETATA", "CALL_PRENOTATA", "IN_ATTESA_CALL", "ANALISI_ATTIVATA"].includes(stato)) setStep(4);
       else if (["IN_ATTESA_PAGAMENTO_ANALISI", "QUESTIONARIO_COMPLETATO"].includes(stato)) setStep(3);
       else if (stato === "REGISTRATO") setStep(1);
       else setStep(1);
 
       // Check if payment was just completed (URL param)
       const params = new URLSearchParams(window.location.search);
-      if (params.get("pagamento") === "successo") setStep(5);
+      if (params.get("pagamento") === "successo") setStep(4);
     } catch (e) {
       console.error("Status fetch:", e);
     }
@@ -258,7 +260,7 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
     );
   }
 
-  const totalSteps = 7;
+  const totalSteps = 4;
   const displayStep = Math.min(step, totalSteps);
 
   return (
@@ -289,8 +291,8 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
       )}
 
       {/* Content */}
-      <main className={`flex-1 px-6 ${step === 2 ? 'py-6' : `flex items-center justify-center ${adminPreview ? 'py-6' : 'py-10'}`}`}>
-        <div className={`w-full ${step === 2 ? 'max-w-2xl mx-auto' : 'max-w-xl'}`}>
+      <main className={`flex-1 px-6 ${(step === 2 || step === 4) ? 'py-6' : `flex items-center justify-center ${adminPreview ? 'py-6' : 'py-10'}`}`}>
+        <div className={`w-full ${(step === 2 || step === 4) ? 'max-w-2xl mx-auto' : 'max-w-xl'}`}>
           <ProgressBar current={displayStep} total={totalSteps} />
 
           {/* ── STEP 1: Welcome ─────────────────────────────── */}
@@ -592,116 +594,209 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
               </div>
             </div>
           )}
-          {/* ── STEP 5: Thank You ───────────────────────────── */}
-          {step === 5 && (
-            <div data-testid="step-thank-you" className="text-center">
-              <div className="w-16 h-16 rounded-full mx-auto mb-6 flex items-center justify-center" style={{ background: `${C.green}15` }}>
-                <CheckCircle className="w-8 h-8" style={{ color: C.green }} />
-              </div>
-              <h1 className="text-2xl font-black mb-2" style={{ color: C.dark }}>
-                Richiesta completata correttamente
-              </h1>
-              <p className="text-sm mb-8" style={{ color: C.muted }}>
-                Abbiamo ricevuto la tua richiesta. Ora puoi accedere ai prossimi step.
-              </p>
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  data-testid="goto-minicorso"
-                  onClick={() => setStep(6)}
-                  className="rounded-xl p-5 text-center"
-                  style={{ background: "white", border: `1px solid ${C.border}`, transition: "all 0.15s ease" }}
-                >
-                  <Play className="w-8 h-8 mx-auto mb-2" style={{ color: C.yellowDark }} />
-                  <div className="text-sm font-bold" style={{ color: C.dark }}>Accedi al Mini Corso</div>
-                  <div className="text-xs mt-1" style={{ color: C.muted }}>Preparati al meglio</div>
-                </button>
-                <button
-                  data-testid="goto-calendar"
-                  onClick={() => setStep(7)}
-                  className="rounded-xl p-5 text-center"
-                  style={{ background: "white", border: `1px solid ${C.border}`, transition: "all 0.15s ease" }}
-                >
-                  <Calendar className="w-8 h-8 mx-auto mb-2" style={{ color: C.yellowDark }} />
-                  <div className="text-sm font-bold" style={{ color: C.dark }}>Prenota la Call</div>
-                  <div className="text-xs mt-1" style={{ color: C.muted }}>Call Strategica con Claudio</div>
-                </button>
-              </div>
-            </div>
-          )}
+          {/* ── STEP 4: Conferma & Onboarding ────────────────── */}
+          {step === 4 && (() => {
+            // Generate available dates (next 14 weekdays)
+            const availableDates = [];
+            const today = new Date();
+            let d = new Date(today);
+            d.setDate(d.getDate() + 1);
+            while (availableDates.length < 14) {
+              if (d.getDay() !== 0 && d.getDay() !== 6) {
+                availableDates.push(new Date(d));
+              }
+              d.setDate(d.getDate() + 1);
+            }
+            const timeSlots = ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00"];
 
-          {/* ── STEP 6: Mini Corso ──────────────────────────── */}
-          {step === 6 && (
-            <div data-testid="step-mini-corso">
-              <h2 className="text-xl font-black mb-2 text-center" style={{ color: C.dark }}>Mini Corso Preparatorio</h2>
-              <p className="text-sm mb-6 text-center" style={{ color: C.muted }}>Preparati al meglio per la call strategica</p>
-              <div className="space-y-4">
-                {[
-                  { title: "Come funziona Evolution PRO", desc: "Il metodo in 7 fasi per creare la tua accademia digitale", dur: "8 min" },
-                  { title: "Il Team al tuo fianco", desc: "5 agenti AI specializzati + Claudio e Antonella", dur: "5 min" },
-                  { title: "Cosa aspettarti dalla Call", desc: "Come prepararti per ottenere il massimo", dur: "4 min" },
-                ].map((v, i) => (
-                  <div key={i} className="rounded-xl p-5 flex items-center gap-4" style={{ background: "white", border: `1px solid ${C.border}` }}>
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${C.yellow}20` }}>
-                      <Play className="w-5 h-5" style={{ color: C.yellowDark }} />
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-sm font-bold" style={{ color: C.dark }}>{v.title}</div>
-                      <div className="text-xs mt-0.5" style={{ color: C.muted }}>{v.desc}</div>
-                    </div>
-                    <span className="text-xs font-bold px-2 py-1 rounded-lg" style={{ background: C.bg, color: C.muted }}>{v.dur}</span>
+            const formatDate = (dt) => dt.toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short" });
+            const formatDateISO = (dt) => dt.toISOString().split("T")[0];
+
+            const confirmBooking = async () => {
+              if (!selectedDate || !selectedTime) return;
+              setBookingLoading(true);
+              try {
+                await axios.post(`${API}/api/cliente-analisi/call-prenotata`, {
+                  data: formatDateISO(selectedDate),
+                  ora: selectedTime,
+                }, { headers });
+                setBookingConfirmed(true);
+              } catch (e) { console.error("Booking error:", e); }
+              setBookingLoading(false);
+            };
+
+            return (
+              <div data-testid="step-onboarding" className="w-full max-w-2xl mx-auto space-y-6">
+
+                {/* Progress bar visiva: Richiesta ✔ → Formazione & Booking 🟢 → Analisi ⚪ */}
+                <div className="flex items-center justify-center gap-3 mb-2">
+                  {[
+                    { label: "Richiesta", done: true },
+                    { label: "Formazione & Booking", active: true },
+                    { label: "Analisi Strategica", pending: true },
+                  ].map((s, i) => (
+                    <React.Fragment key={s.label}>
+                      {i > 0 && <div className="w-8 h-px" style={{ background: s.done || s.active ? C.green : "#E5E7EB" }} />}
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold"
+                          style={{
+                            background: s.done ? C.green : s.active ? `${C.green}20` : "#F3F4F6",
+                            color: s.done ? "white" : s.active ? C.green : "#9CA3AF",
+                            border: s.active ? `1.5px solid ${C.green}` : "none",
+                          }}>
+                          {s.done ? <CheckCircle className="w-3 h-3" /> : (i + 1)}
+                        </div>
+                        <span className="text-[11px] font-bold" style={{ color: s.active ? C.green : s.done ? C.dark : "#9CA3AF" }}>
+                          {s.label}
+                        </span>
+                      </div>
+                    </React.Fragment>
+                  ))}
+                </div>
+
+                {/* Hero */}
+                <div className="text-center">
+                  <div className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center"
+                    style={{ background: `${C.green}15` }}>
+                    <CheckCircle className="w-7 h-7" style={{ color: C.green }} />
                   </div>
-                ))}
-              </div>
-              <div className="flex justify-between mt-6">
-                <button onClick={() => setStep(5)} className="px-5 py-2.5 rounded-lg text-sm font-bold" style={{ color: C.muted }}>
-                  <ArrowLeft className="w-4 h-4 inline mr-1" /> Indietro
-                </button>
-                <button
-                  data-testid="goto-calendar-from-course"
-                  onClick={() => setStep(7)}
-                  className="px-8 py-2.5 rounded-xl text-sm font-black"
-                  style={{ background: C.yellow, color: C.dark }}
-                >
-                  Prenota la Call <ArrowRight className="w-4 h-4 inline ml-1" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ── STEP 7: Calendario Call ─────────────────────── */}
-          {step === 7 && (
-            <div data-testid="step-calendar" className="text-center">
-              <Calendar className="w-12 h-12 mx-auto mb-4" style={{ color: C.yellowDark }} />
-              <h2 className="text-xl font-black mb-2" style={{ color: C.dark }}>Prenota la tua Call Strategica</h2>
-              <p className="text-sm mb-6" style={{ color: C.muted }}>
-                Scegli il giorno e l'orario che preferisci per la call con Claudio
-              </p>
-              <div className="rounded-xl p-6 mb-6" style={{ background: "white", border: `1px solid ${C.border}` }}>
-                <div className="text-center py-8">
-                  <Calendar className="w-16 h-16 mx-auto mb-4" style={{ color: "#E8E4DC" }} />
-                  <p className="text-sm font-bold" style={{ color: C.dark }}>Sistema di prenotazione</p>
-                  <p className="text-xs mt-1" style={{ color: C.muted }}>
-                    Il calendario verrà integrato con Calendly o sistema interno
+                  <h1 className="text-2xl font-black" style={{ color: C.dark }}>
+                    Ottimo lavoro! La tua Analisi Strategica è in fase di generazione.
+                  </h1>
+                  <p className="text-sm mt-2 max-w-md mx-auto" style={{ color: C.muted }}>
+                    Per massimizzare il valore della nostra futura videocall, segui questi due step obbligatori.
                   </p>
-                  <button
-                    data-testid="book-call-btn"
-                    onClick={async () => {
-                      try {
-                        await axios.post(`${API}/api/cliente-analisi/call-prenotata`, null, { headers });
-                      } catch (e) { console.error(e); }
-                    }}
-                    className="mt-4 px-8 py-3 rounded-xl text-sm font-black"
-                    style={{ background: C.yellow, color: C.dark }}
-                  >
-                    Conferma Prenotazione
-                  </button>
+                </div>
+
+                {/* STEP 1: Mini-Corso */}
+                <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${C.border}`, background: "white" }}>
+                  <div className="px-4 py-3 flex items-center gap-2" style={{ background: `${C.yellow}10`, borderBottom: `1px solid ${C.border}` }}>
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black" style={{ background: C.yellow, color: C.dark }}>1</div>
+                    <span className="text-xs font-bold uppercase tracking-wider" style={{ color: C.yellowDark }}>Formazione — Mini Corso Preparatorio</span>
+                  </div>
+                  <div className="p-4">
+                    <p className="text-sm mb-4" style={{ color: C.muted }}>
+                      Guarda questo breve video introduttivo. Ti spiegherà come leggere i dati della tua analisi
+                      e come prepararti alla partnership.
+                    </p>
+                    <div className="space-y-3">
+                      {[
+                        { title: "Come funziona Evolution PRO", desc: "Il metodo in 7 fasi per creare la tua accademia digitale", dur: "8 min" },
+                        { title: "Il Team al tuo fianco", desc: "5 agenti AI specializzati + Claudio e Antonella", dur: "5 min" },
+                        { title: "Cosa aspettarti dalla Call", desc: "Come prepararti per ottenere il massimo", dur: "4 min" },
+                      ].map((v, i) => (
+                        <div key={i} data-testid={`minicorso-video-${i}`}
+                          className="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all hover:shadow-sm"
+                          style={{ border: `1px solid ${C.border}` }}>
+                          <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                            style={{ background: `${C.yellow}20` }}>
+                            <Play className="w-4 h-4" style={{ color: C.yellowDark }} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-bold" style={{ color: C.dark }}>{v.title}</div>
+                            <div className="text-xs" style={{ color: C.muted }}>{v.desc}</div>
+                          </div>
+                          <span className="text-[10px] font-bold px-2 py-1 rounded-md flex-shrink-0"
+                            style={{ background: C.bg, color: C.muted }}>{v.dur}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* STEP 2: Booking Videocall */}
+                <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${C.border}`, background: "white" }}>
+                  <div className="px-4 py-3 flex items-center gap-2" style={{ background: `${C.green}08`, borderBottom: `1px solid ${C.border}` }}>
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black" style={{ background: C.green, color: "white" }}>2</div>
+                    <span className="text-xs font-bold uppercase tracking-wider" style={{ color: C.green }}>Prenotazione — Videocall Strategica</span>
+                  </div>
+                  <div className="p-4">
+                    <p className="text-sm mb-4" style={{ color: C.muted }}>
+                      Scegli il momento migliore per la tua call di consegna. Durante questo incontro,
+                      Claudio analizzerà con te i risultati e valuterà l'accesso alla Partnership da €2.790.
+                    </p>
+
+                    {bookingConfirmed ? (
+                      <div data-testid="booking-confirmed" className="rounded-xl p-5 text-center" style={{ background: `${C.green}08`, border: `1px solid ${C.green}25` }}>
+                        <CheckCircle className="w-10 h-10 mx-auto mb-3" style={{ color: C.green }} />
+                        <div className="text-sm font-black" style={{ color: C.dark }}>Call prenotata con successo!</div>
+                        <div className="text-sm mt-1" style={{ color: C.muted }}>
+                          {selectedDate && formatDate(selectedDate)} alle {selectedTime}
+                        </div>
+                        <div className="text-xs mt-2" style={{ color: C.muted }}>
+                          Riceverai una mail di conferma con il link alla videocall.
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Date picker */}
+                        <div className="mb-4">
+                          <div className="text-xs font-bold mb-2" style={{ color: C.dark }}>Scegli una data</div>
+                          <div className="flex flex-wrap gap-2">
+                            {availableDates.slice(0, 10).map(dt => {
+                              const sel = selectedDate && formatDateISO(selectedDate) === formatDateISO(dt);
+                              return (
+                                <button key={formatDateISO(dt)} data-testid={`date-${formatDateISO(dt)}`}
+                                  onClick={() => { setSelectedDate(dt); setSelectedTime(null); }}
+                                  className="px-3 py-2 rounded-lg text-xs font-bold transition-all"
+                                  style={{
+                                    border: `1.5px solid ${sel ? C.green : C.border}`,
+                                    background: sel ? `${C.green}12` : "transparent",
+                                    color: sel ? C.green : "#64748B",
+                                  }}>
+                                  {formatDate(dt)}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Time slots */}
+                        {selectedDate && (
+                          <div className="mb-4">
+                            <div className="text-xs font-bold mb-2" style={{ color: C.dark }}>Scegli un orario</div>
+                            <div className="grid grid-cols-3 gap-2">
+                              {timeSlots.map(t => {
+                                const sel = selectedTime === t;
+                                return (
+                                  <button key={t} data-testid={`time-${t}`}
+                                    onClick={() => setSelectedTime(t)}
+                                    className="py-2.5 rounded-lg text-sm font-bold transition-all"
+                                    style={{
+                                      border: `1.5px solid ${sel ? C.green : C.border}`,
+                                      background: sel ? `${C.green}12` : "transparent",
+                                      color: sel ? C.green : "#64748B",
+                                    }}>
+                                    {t}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Confirm */}
+                        <button
+                          data-testid="confirm-booking-btn"
+                          onClick={confirmBooking}
+                          disabled={!selectedDate || !selectedTime || bookingLoading}
+                          className="w-full py-3 rounded-xl text-sm font-black flex items-center justify-center gap-2 transition-all"
+                          style={{
+                            background: (selectedDate && selectedTime) ? C.green : "#E5E7EB",
+                            color: (selectedDate && selectedTime) ? "white" : "#9CA3AF",
+                            opacity: bookingLoading ? 0.6 : 1,
+                          }}>
+                          {bookingLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                          <Calendar className="w-4 h-4" />
+                          Conferma Prenotazione
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
-              <button onClick={() => setStep(6)} className="px-5 py-2.5 rounded-lg text-sm font-bold" style={{ color: C.muted }}>
-                <ArrowLeft className="w-4 h-4 inline mr-1" /> Torna al Mini Corso
-              </button>
-            </div>
-          )}
+            );
+          })()}
         </div>
       </main>
     </div>
