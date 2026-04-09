@@ -36,6 +36,7 @@ Sviluppo di "Evolution PRO", applicazione di gestione aziendale basata su AI per
 - [x] **Sblocco navigazione Admin** (admin naviga liberamente tutti gli step senza lock, partner resta bloccato) ✅ 09/04/2026
 - [x] **Panoramica Admin completa** (admin vede TUTTE le domande/contenuti di ogni step in un'unica vista, senza wizard passo-passo) ✅ 09/04/2026
 - [x] **Fix Login Produzione** (errore "body stream already read" → sostituito fetch con Axios in Homepage.jsx) ✅ 09/04/2026
+- [x] **PDF Materiali Posizionamento** (3 PDF operativi generati con ReportLab + download funzionante) ✅ 09/04/2026
 
 ### NOTE DEPLOY PRODUZIONE (CRITICO)
 - `frontend/Dockerfile` e `frontend/nginx.conf` devono essere nel repo (Emergent li cancella con auto-commit)
