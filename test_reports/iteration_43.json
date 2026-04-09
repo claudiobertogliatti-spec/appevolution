@@ -1,0 +1,41 @@
+{
+  "summary": "Completed testing of AdminPartnerOpsPanel and partner progress API endpoints. All 17 backend tests passed (100%). Frontend testing confirmed AdminPartnerOpsPanel visibility in admin partner view with all required features working.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "AdminPartnerOpsPanel", "issues": ["Shows 'Partner di anteprima' message for demo partner Marco Ferretti (id 1) since it's not in DB - this is expected behavior"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_partner_progress.py",
+    "/app/test_reports/pytest/pytest_partner_progress.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": ["/app/backend/tests/test_partner_progress.py"],
+  "success_rate": {"backend": "100% (17/17 tests passed)", "frontend": "100%"},
+  "test_credentials": "Admin: claudio.bertogliatti@gmail.com / Evoluzione74",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "AdminPartnerOpsPanel and partner progress endpoints fully tested. The panel shows on right side of admin partner view (accessed via 'Vista Partner' button). Demo partner Marco Ferretti shows 'Partner di anteprima' message. Use partner ID 3 (Marco Orlandi) for backend API tests.",
+  "features_tested": {
+    "Backend GET /api/admin/partners/{id}/progress returns 5 macro steps with micro-steps, status, and config": "PASS - Returns posizionamento, masterclass, videocorso, funnel, lancio with micro_steps and config",
+    "Backend PATCH /api/admin/partners/{id}/progress updates micro-step status and returns new_phase": "PASS - Updates status and returns new_phase in response",
+    "Backend PATCH /api/admin/partners/{id}/progress auto-computes macro status from micro-steps": "PASS - Completing all micro-steps sets macro status to 'completed'",
+    "Backend PATCH /api/admin/partners/{id}/progress auto-syncs partner phase based on progress": "PASS - Completing posizionamento sets phase to F3",
+    "Admin Partner view shows AdminPartnerOpsPanel on the right side (dark panel)": "PASS - Dark panel visible on right with 'PANNELLO OPERATIVO' header",
+    "AdminPartnerOpsPanel shows all 5 macro steps (Posizionamento, Masterclass, Videocorso, Funnel, Lancio)": "PASS - All 5 steps visible with numbered indicators",
+    "AdminPartnerOpsPanel macro steps are expandable/collapsible accordion": "PASS - Clicking macro step expands/collapses",
+    "AdminPartnerOpsPanel shows micro-step count per macro (e.g., 0/3 completati)": "PASS - Shows 'X/Y completati' for each macro step",
+    "Admin Partner OpsPanel shows phase badge with current partner phase": "PASS - Shows 'F3' badge for demo partner",
+    "AdminPartnerOpsPanel has collapse/expand toggle button": "PASS - Collapse button collapses panel, expand button restores it",
+    "Real partner login at /dashboard-partner does NOT show AdminPartnerOpsPanel": "PASS - Code review confirms ops panel only rendered when mode=partner AND role=admin",
+    "Partner sidebar remains minimal (4 items only) in both admin preview and real partner login": "PASS - Sidebar shows: Home, Il Mio Spazio, Supporto Team, Risultati"
+  }
+}
