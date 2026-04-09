@@ -35,6 +35,12 @@ Sviluppo di "Evolution PRO", applicazione di gestione aziendale basata su AI per
 - [x] **Vista Admin Avanzata** (27 micro-step operativi, note admin, progress globale, sync automatica fase) ✅ 09/04/2026
 - [x] **Sblocco navigazione Admin** (admin naviga liberamente tutti gli step senza lock, partner resta bloccato) ✅ 09/04/2026
 - [x] **Panoramica Admin completa** (admin vede TUTTE le domande/contenuti di ogni step in un'unica vista, senza wizard passo-passo) ✅ 09/04/2026
+- [x] **Fix Login Produzione** (errore "body stream already read" → sostituito fetch con Axios in Homepage.jsx) ✅ 09/04/2026
+
+### NOTE DEPLOY PRODUZIONE (CRITICO)
+- `frontend/Dockerfile` e `frontend/nginx.conf` devono essere nel repo (Emergent li cancella con auto-commit)
+- `nginx.conf` deve sostituire `/etc/nginx/nginx.conf` direttamente (non include subdirectory)
+- Deploy con **SHA esatto** del build (`@sha256:...`) mai con `:latest` (Emergent sovrascrive il tag)
 
 ### PROSSIMI (P0-P1)
 - [ ] P0: SMTP trigger email alla prenotazione call (Step 4)
