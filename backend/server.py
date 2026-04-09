@@ -1947,6 +1947,213 @@ async def get_audio_analisi(user_id: str, credentials: HTTPAuthorizationCredenti
     return {"url": url, "available": bool(url)}
 
 
+# ── Dati personali contratto (cliente compila) ───────────────────
+@api_router.post("/cliente-analisi/save-personal-data")
+async def save_personal_data(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Salva i dati personali del cliente per personalizzare il contratto."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    token_data = decode_token(credentials.credentials)
+    if not token_data:
+        raise HTTPException(status_code=401, detail="Token non valido")
+    body = await request.json()
+    required = ["nome_completo", "codice_fiscale", "indirizzo", "citta", "cap"]
+    for field in required:
+        if not body.get(field, "").strip():
+            raise HTTPException(status_code=400, detail=f"Campo obbligatorio mancante: {field}")
+
+    now = datetime.now(timezone.utc).isoformat()
+    personal_data = {
+        "nome_completo": body["nome_completo"].strip(),
+        "codice_fiscale": body["codice_fiscale"].strip().upper(),
+        "indirizzo": body["indirizzo"].strip(),
+        "citta": body["citta"].strip(),
+        "cap": body["cap"].strip(),
+        "provincia": body.get("provincia", "").strip(),
+        "partita_iva": body.get("partita_iva", "").strip(),
+        "telefono": body.get("telefono", "").strip(),
+        "saved_at": now,
+    }
+    await db.users.update_one(
+        {"id": token_data.user_id},
+        {"$set": {"contract_personal_data": personal_data}}
+    )
+    return {"success": True}
+
+
+@api_router.get("/cliente-analisi/personal-data/{user_id}")
+async def get_personal_data(user_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Restituisce i dati personali salvati dal cliente."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "contract_personal_data": 1})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+    return {"data": user.get("contract_personal_data", {})}
+
+
+# ── Upload documenti (identità + CF) ────────────────────────────
+@api_router.post("/cliente-analisi/upload-document")
+async def upload_client_document(
+    tipo: str,
+    file: UploadFile = File(...),
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Upload documento identità o codice fiscale del cliente."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    token_data = decode_token(credentials.credentials)
+    if not token_data:
+        raise HTTPException(status_code=401, detail="Token non valido")
+    if tipo not in ("identita", "codice_fiscale", "distinta_pagamento"):
+        raise HTTPException(status_code=400, detail="Tipo non valido")
+
+    import os as _os
+    doc_dir = f"/app/backend/static/uploads/documenti_cliente/{token_data.user_id}"
+    _os.makedirs(doc_dir, exist_ok=True)
+    ext = file.filename.rsplit(".", 1)[-1] if "." in file.filename else "pdf"
+    filename = f"{tipo}.{ext}"
+    filepath = f"{doc_dir}/{filename}"
+
+    content = await file.read()
+    with open(filepath, "wb") as f:
+        f.write(content)
+
+    url = f"/api/static/uploads/documenti_cliente/{token_data.user_id}/{filename}"
+    await db.users.update_one(
+        {"id": token_data.user_id},
+        {"$set": {f"documents.{tipo}": {"url": url, "filename": file.filename, "uploaded_at": datetime.now(timezone.utc).isoformat()}}}
+    )
+    return {"success": True, "url": url, "tipo": tipo, "filename": file.filename}
+
+
+@api_router.get("/cliente-analisi/documents/{user_id}")
+async def get_client_documents(user_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Restituisce i documenti caricati dal cliente."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "documents": 1})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+    return {"documents": user.get("documents", {})}
+
+
+# ── Invio email contratto firmato ────────────────────────────────
+@api_router.post("/cliente-analisi/send-signed-contract")
+async def send_signed_contract_email(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Genera PDF contratto firmato e lo invia via email al cliente."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    token_data = decode_token(credentials.credentials)
+    if not token_data:
+        raise HTTPException(status_code=401, detail="Token non valido")
+
+    user = await db.users.find_one({"id": token_data.user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+
+    email = user.get("email", "")
+    nome = f"{user.get('nome', '')} {user.get('cognome', '')}".strip() or "Cliente"
+
+    # Generate contract PDF
+    from routers.contract import render_contract_text, DEFAULT_CONTRACT_PARAMS
+    params = user.get("contract_params", DEFAULT_CONTRACT_PARAMS)
+    personal = user.get("contract_personal_data", {})
+    params["personal_data"] = personal
+    contract_text = render_contract_text(params)
+
+    # Build a simple PDF with the signed contract
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import cm
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.colors import HexColor
+    import io
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=2*cm, bottomMargin=2*cm, leftMargin=2.5*cm, rightMargin=2.5*cm)
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle("ContractBody", parent=styles["Normal"], fontSize=9, leading=13))
+    styles.add(ParagraphStyle("ContractTitle", parent=styles["Title"], fontSize=16, spaceAfter=10))
+    styles.add(ParagraphStyle("SignInfo", parent=styles["Normal"], fontSize=10, leading=14, textColor=HexColor("#1A1F24")))
+
+    elements = []
+    elements.append(Paragraph("CONTRATTO DI PARTNERSHIP", styles["ContractTitle"]))
+    elements.append(Paragraph(f"Evolution PRO — {nome}", styles["Normal"]))
+    elements.append(Spacer(1, 20))
+
+    for para in contract_text.split("\n\n"):
+        if para.strip():
+            elements.append(Paragraph(para.replace("\n", "<br/>"), styles["ContractBody"]))
+            elements.append(Spacer(1, 4))
+
+    elements.append(Spacer(1, 20))
+    elements.append(HRFlowable(width="100%", thickness=1, color=HexColor("#E5E7EB")))
+    elements.append(Spacer(1, 10))
+
+    firma_at = user.get("contratto_firmato_at", "")
+    elements.append(Paragraph(f"<b>FIRMA DIGITALE</b>", styles["SignInfo"]))
+    elements.append(Paragraph(f"Firmatario: {personal.get('nome_completo', nome)}", styles["SignInfo"]))
+    elements.append(Paragraph(f"Codice Fiscale: {personal.get('codice_fiscale', 'N/A')}", styles["SignInfo"]))
+    elements.append(Paragraph(f"Data firma: {firma_at}", styles["SignInfo"]))
+    elements.append(Paragraph(f"Email: {email}", styles["SignInfo"]))
+
+    doc.build(elements)
+    pdf_bytes = buf.getvalue()
+
+    # Send via SMTP
+    try:
+        import smtplib
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        from email.mime.application import MIMEApplication
+
+        SMTP_HOST_VAL = os.environ.get("SMTP_HOST", "smtp.register.it")
+        SMTP_PORT_VAL = int(os.environ.get("SMTP_PORT", "587"))
+        SMTP_USER_VAL = os.environ.get("SMTP_USER", "")
+        SMTP_PASS_VAL = os.environ.get("SMTP_PASSWORD", "")
+        SMTP_FROM_VAL = os.environ.get("SMTP_FROM", f"Evolution PRO <{SMTP_USER_VAL}>")
+
+        if not SMTP_USER_VAL or not SMTP_PASS_VAL:
+            return {"success": False, "error": "SMTP non configurato"}
+
+        msg = MIMEMultipart()
+        msg["From"] = SMTP_FROM_VAL
+        msg["To"] = email
+        msg["Cc"] = "claudio.bertogliatti@gmail.com"
+        msg["Subject"] = f"Contratto di Partnership Evolution PRO - {nome}"
+
+        body = f"""Gentile {nome},
+
+in allegato trovi il contratto di partnership Evolution PRO firmato digitalmente.
+
+Ti ringraziamo per la fiducia e ti diamo il benvenuto nel programma.
+
+A presto,
+Claudio Bertogliatti
+CEO — Evolution PRO"""
+        msg.attach(MIMEText(body, "plain", "utf-8"))
+
+        pdf_attach = MIMEApplication(pdf_bytes, _subtype="pdf")
+        pdf_attach.add_header("Content-Disposition", "attachment", filename=f"Contratto_EvolutionPRO_{nome.replace(' ', '_')}.pdf")
+        msg.attach(pdf_attach)
+
+        with smtplib.SMTP(SMTP_HOST_VAL, SMTP_PORT_VAL, timeout=15) as server:
+            server.starttls()
+            server.login(SMTP_USER_VAL, SMTP_PASS_VAL)
+            server.send_message(msg)
+
+        await db.users.update_one(
+            {"id": token_data.user_id},
+            {"$set": {"contratto_email_inviata": True, "contratto_email_inviata_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        return {"success": True, "message": f"Contratto inviato a {email}"}
+
+    except Exception as e:
+        logging.error(f"Send signed contract email error: {e}")
+        return {"success": False, "error": str(e)}
+
+
 @api_router.get("/cliente-analisi/stato/{user_id}")
 async def get_stato_cliente(user_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
     """
