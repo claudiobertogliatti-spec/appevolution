@@ -301,34 +301,34 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
               <div className="w-16 h-16 rounded-2xl mx-auto mb-6 flex items-center justify-center" style={{ background: `${C.yellow}25` }}>
                 <Sparkles className="w-8 h-8" style={{ color: C.yellowDark }} />
               </div>
-              <h1 className="text-2xl font-black mb-3" style={{ color: C.dark }}>
+              <h1 className="text-3xl sm:text-4xl font-black mb-4" style={{ color: C.dark }}>
                 Benvenuto in Evolution PRO
               </h1>
-              <p className="text-sm leading-relaxed mb-4 max-w-md mx-auto" style={{ color: C.muted }}>
+              <p className="text-base leading-relaxed mb-4 max-w-lg mx-auto" style={{ color: C.muted }}>
                 Se sei qui è perché vuoi capire se la tua competenza può trasformarsi
                 in un progetto digitale serio e sostenibile.
               </p>
-              <p className="text-sm leading-relaxed mb-4 max-w-md mx-auto" style={{ color: C.muted }}>
+              <p className="text-base leading-relaxed mb-4 max-w-lg mx-auto" style={{ color: C.muted }}>
                 Prima di procedere, ti chiediamo di compilare un breve questionario.<br />
                 Ci serve per raccogliere le informazioni essenziali sul tuo progetto
                 e preparare un'analisi strategica realmente utile, personalizzata sul tuo caso.
               </p>
-              <p className="text-sm leading-relaxed mb-2 max-w-md mx-auto" style={{ color: C.muted }}>
+              <p className="text-base leading-relaxed mb-2 max-w-lg mx-auto" style={{ color: C.muted }}>
                 In questo modo potremo valutare con maggiore precisione:
               </p>
-              <ul className="text-sm leading-relaxed mb-4 max-w-md mx-auto text-left inline-block" style={{ color: C.muted }}>
-                <li className="flex items-start gap-2 mb-1"><span style={{ color: C.yellowDark }}>•</span> il tuo posizionamento,</li>
-                <li className="flex items-start gap-2 mb-1"><span style={{ color: C.yellowDark }}>•</span> il problema che risolvi,</li>
-                <li className="flex items-start gap-2 mb-1"><span style={{ color: C.yellowDark }}>•</span> il potenziale del progetto,</li>
+              <ul className="text-base leading-relaxed mb-5 max-w-lg mx-auto text-left inline-block" style={{ color: C.muted }}>
+                <li className="flex items-start gap-2 mb-1.5"><span style={{ color: C.yellowDark }}>•</span> il tuo posizionamento,</li>
+                <li className="flex items-start gap-2 mb-1.5"><span style={{ color: C.yellowDark }}>•</span> il problema che risolvi,</li>
+                <li className="flex items-start gap-2 mb-1.5"><span style={{ color: C.yellowDark }}>•</span> il potenziale del progetto,</li>
                 <li className="flex items-start gap-2"><span style={{ color: C.yellowDark }}>•</span> l'eventuale accesso alla partnership.</li>
               </ul>
-              <p className="text-xs font-bold mb-8 max-w-md mx-auto" style={{ color: C.muted }}>
+              <p className="text-sm font-bold mb-8 max-w-lg mx-auto" style={{ color: C.muted }}>
                 Tempo richiesto: circa 5 minuti.
               </p>
               <button
                 data-testid="welcome-cta"
                 onClick={() => setStep(2)}
-                className="px-10 py-3.5 rounded-xl text-sm font-black"
+                className="px-10 py-4 rounded-xl text-base font-black"
                 style={{ background: C.yellow, color: C.dark, transition: "all 0.15s ease" }}
               >
                 Inizia il questionario <ArrowRight className="w-4 h-4 inline ml-1" />
@@ -340,8 +340,8 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
           {step === 2 && (
             <div data-testid="step-mini-quiz" className="w-full max-w-2xl mx-auto space-y-6">
               <div className="text-center mb-2">
-                <h2 className="text-xl font-black" style={{ color: C.dark }}>Raccontaci del tuo progetto</h2>
-                <p className="text-sm mt-1" style={{ color: C.muted }}>
+                <h2 className="text-2xl font-black" style={{ color: C.dark }}>Raccontaci del tuo progetto</h2>
+                <p className="text-base mt-2" style={{ color: C.muted }}>
                   Queste risposte alimentano la tua analisi strategica personalizzata
                 </p>
               </div>
@@ -353,14 +353,14 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
                   <div key={blocco} className="rounded-xl overflow-hidden" style={{ border: `1px solid ${C.border}`, background: "white" }}>
                     <div className="px-4 py-2.5 flex items-center gap-2" style={{ background: `${meta.colore}08`, borderBottom: `1px solid ${C.border}` }}>
                       <div className="w-2 h-2 rounded-full" style={{ background: meta.colore }} />
-                      <span className="text-xs font-bold uppercase tracking-wider" style={{ color: meta.colore }}>{blocco}</span>
-                      <span className="text-xs ml-1" style={{ color: C.muted }}>{meta.desc}</span>
+                      <span className="text-sm font-bold uppercase tracking-wider" style={{ color: meta.colore }}>{blocco}</span>
+                      <span className="text-sm ml-1" style={{ color: C.muted }}>{meta.desc}</span>
                     </div>
 
                     <div className="p-4 space-y-5">
                       {fields.map(f => (
                         <div key={f.id}>
-                          <label className="text-sm font-bold block mb-2" style={{ color: C.dark }}>{f.q}</label>
+                          <label className="text-base font-bold block mb-2" style={{ color: C.dark }}>{f.q}</label>
 
                           {f.tipo === "textarea" && (
                             <textarea
@@ -368,7 +368,7 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
                               value={quiz[f.id] || ""}
                               onChange={(e) => setQuiz(q => ({ ...q, [f.id]: e.target.value }))}
                               placeholder={f.placeholder}
-                              className="w-full rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-2"
+                              className="w-full rounded-lg p-3 text-base resize-none focus:outline-none focus:ring-2"
                               style={{ border: `1px solid ${C.border}`, minHeight: 72, background: C.bg }}
                               rows={3}
                             />
@@ -398,7 +398,7 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
                                       onChange={() => setQuiz(q => ({ ...q, [f.id]: opt.value }))}
                                       className="sr-only"
                                     />
-                                    <span className="text-sm" style={{ color: selected ? C.dark : '#64748B', fontWeight: selected ? 600 : 400 }}>
+                                    <span className="text-base" style={{ color: selected ? C.dark : '#64748B', fontWeight: selected ? 600 : 400 }}>
                                       {opt.label}
                                     </span>
                                   </label>
@@ -410,7 +410,7 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
                           {/* Campo condizionale (select o textarea) */}
                           {f.condizionale && f.condizionale.mostraSe.includes(quiz[f.id]) && (
                             <div className="mt-3 pl-4" style={{ borderLeft: `2px solid ${C.yellow}` }}>
-                              <label className="text-sm font-bold block mb-2" style={{ color: C.dark }}>
+                              <label className="text-base font-bold block mb-2" style={{ color: C.dark }}>
                                 {f.condizionale.campo.q}
                               </label>
                               {f.condizionale.campo.tipo === "select" && (
@@ -419,7 +419,7 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
                                     data-testid={`quiz-${f.condizionale.campo.id}`}
                                     value={quiz[f.condizionale.campo.id] || ""}
                                     onChange={(e) => setQuiz(q => ({ ...q, [f.condizionale.campo.id]: e.target.value }))}
-                                    className="w-full rounded-lg p-3 text-sm appearance-none focus:outline-none focus:ring-2 pr-10"
+                                    className="w-full rounded-lg p-3 text-base appearance-none focus:outline-none focus:ring-2 pr-10"
                                     style={{ border: `1px solid ${C.border}`, background: C.bg }}
                                   >
                                     <option value="">Seleziona...</option>
@@ -436,7 +436,7 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
                                   value={quiz[f.condizionale.campo.id] || ""}
                                   onChange={(e) => setQuiz(q => ({ ...q, [f.condizionale.campo.id]: e.target.value }))}
                                   placeholder={f.condizionale.campo.placeholder}
-                                  className="w-full rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-2"
+                                  className="w-full rounded-lg p-3 text-base resize-none focus:outline-none focus:ring-2"
                                   style={{ border: `1px solid ${C.border}`, minHeight: 60, background: C.bg }}
                                   rows={2}
                                 />
@@ -451,14 +451,14 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
               })}
 
               <div className="flex justify-between pt-2">
-                <button onClick={() => setStep(1)} className="px-5 py-2.5 rounded-lg text-sm font-bold" style={{ color: C.muted }}>
+                <button onClick={() => setStep(1)} className="px-5 py-2.5 rounded-lg text-base font-bold" style={{ color: C.muted }}>
                   <ArrowLeft className="w-4 h-4 inline mr-1" /> Indietro
                 </button>
                 <button
                   data-testid="quiz-submit"
                   onClick={submitQuiz}
                   disabled={!isQuizComplete() || submittingQuiz}
-                  className="px-8 py-2.5 rounded-xl text-sm font-black flex items-center gap-2"
+                  className="px-8 py-3 rounded-xl text-base font-black flex items-center gap-2"
                   style={{
                     background: isQuizComplete() ? C.yellow : "#E8E4DC",
                     color: C.dark, opacity: submittingQuiz ? 0.6 : 1,
@@ -484,18 +484,18 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
                 ].map(b => (
                   <div key={b.label} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
                     style={{ background: `${b.color}12`, border: `1px solid ${b.color}30` }}>
-                    <CheckCircle className="w-3 h-3" style={{ color: b.color }} />
-                    <span className="text-[10px] font-bold" style={{ color: b.color }}>{b.label}</span>
+                    <CheckCircle className="w-3.5 h-3.5" style={{ color: b.color }} />
+                    <span className="text-xs font-bold" style={{ color: b.color }}>{b.label}</span>
                   </div>
                 ))}
               </div>
 
               {/* Hero */}
               <div className="text-center mb-6">
-                <h1 className="text-2xl font-black leading-tight mb-2" style={{ color: C.dark }}>
+                <h1 className="text-3xl sm:text-4xl font-black leading-tight mb-3" style={{ color: C.dark }}>
                   Sei ad un passo dalla tua<br />Analisi Strategica
                 </h1>
-                <p className="text-sm leading-relaxed max-w-sm mx-auto" style={{ color: C.muted }}>
+                <p className="text-base leading-relaxed max-w-md mx-auto" style={{ color: C.muted }}>
                   Il tuo punteggio di idoneità è stato elaborato. Sblocca il report
                   completo e prenota il tuo posto nel programma.
                 </p>
@@ -503,47 +503,45 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
 
               {/* Value Stack Card */}
               <div className="rounded-xl p-5 mb-5" style={{ background: "white", border: `1px solid ${C.border}` }}>
-                <div className="text-[10px] font-bold uppercase tracking-widest mb-4" style={{ color: C.yellowDark }}>
+                <div className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: C.yellowDark }}>
                   Cosa è incluso
                 </div>
                 <div className="space-y-4">
-                  {[
-                    {
-                      icon: FileText, title: "Analisi Strategica AI-Driven",
-                      desc: "Report di 5 sezioni generato su dati deterministici, personalizzato sul tuo caso.",
-                    },
-                    {
-                      icon: PhoneCall, title: "Script Call Personalizzato",
-                      desc: "6 sezioni pronte per la tua videocall strategica con Claudio.",
-                    },
-                    {
-                      icon: BadgeCheck, title: "Verifica Idoneità Partnership",
-                      desc: "Validazione ufficiale per l'accesso al contratto da €2.790.",
-                    },
-                  ].map(v => (
-                    <div key={v.title} className="flex gap-3">
-                      <div className="w-9 h-9 rounded-lg flex-shrink-0 flex items-center justify-center"
-                        style={{ background: `${C.green}15` }}>
-                        <v.icon className="w-4 h-4" style={{ color: C.green }} />
-                      </div>
-                      <div>
-                        <div className="text-sm font-bold" style={{ color: C.dark }}>{v.title}</div>
-                        <div className="text-xs leading-relaxed" style={{ color: C.muted }}>{v.desc}</div>
-                      </div>
+                  <div className="flex gap-3">
+                    <div className="w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center"
+                      style={{ background: `${C.green}15` }}>
+                      <FileText className="w-5 h-5" style={{ color: C.green }} />
                     </div>
-                  ))}
+                    <div>
+                      <div className="text-lg font-bold" style={{ color: C.dark }}>Analisi Strategica</div>
+                      <div className="text-base leading-relaxed mt-1" style={{ color: C.muted }}>
+                        Report personalizzato sul tuo caso, che include:
+                      </div>
+                      <ul className="mt-2 space-y-1.5">
+                        {[
+                          "Sintesi del tuo posizionamento attuale",
+                          "Punti di forza e aree di miglioramento",
+                          "Livello di maturità del progetto digitale",
+                          "Criticità strategiche da affrontare",
+                          "Direzione consigliata per i prossimi 90 giorni",
+                        ].map((item, i) => (
+                          <li key={i} className="flex items-start gap-2 text-base" style={{ color: C.muted }}>
+                            <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: C.green }} />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               {/* Pricing Block */}
               <div className="rounded-xl p-6 text-center mb-2"
                 style={{ background: `${C.yellow}12`, border: `1.5px solid ${C.yellow}50` }}>
-                <div className="text-4xl font-black tracking-tight" style={{ color: C.dark }}>€67</div>
-                <div className="text-xs font-bold mt-1" style={{ color: C.yellowDark }}>
+                <div className="text-5xl font-black tracking-tight" style={{ color: C.dark }}>€67</div>
+                <div className="text-sm font-bold mt-1" style={{ color: C.yellowDark }}>
                   Investimento unico (IVA inclusa se applicabile)
-                </div>
-                <div className="text-[11px] mt-2 italic" style={{ color: C.muted }}>
-                  Questo importo verrà scalato dal costo della partnership in caso di esito positivo.
                 </div>
               </div>
 
@@ -552,7 +550,7 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
                 data-testid="checkout-cta"
                 onClick={startCheckout}
                 disabled={checkingOut}
-                className="w-full py-4 rounded-xl text-sm font-black flex items-center justify-center gap-2 transition-all hover:shadow-lg hover:brightness-105 active:scale-[0.98]"
+                className="w-full py-4 rounded-xl text-base font-black flex items-center justify-center gap-2 transition-all hover:shadow-lg hover:brightness-105 active:scale-[0.98]"
                 style={{ background: "#1A65D6", color: "white", opacity: checkingOut ? 0.7 : 1 }}
               >
                 {checkingOut ? (
@@ -572,12 +570,12 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
               <div className="flex items-center justify-center gap-4 mt-4">
                 <div className="flex items-center gap-1.5">
                   <Shield className="w-3.5 h-3.5" style={{ color: "#9CA3AF" }} />
-                  <span className="text-[10px] font-bold" style={{ color: "#9CA3AF" }}>SSL Secured</span>
+                  <span className="text-xs font-bold" style={{ color: "#9CA3AF" }}>SSL Secured</span>
                 </div>
                 <div className="h-3 w-px" style={{ background: "#E5E7EB" }} />
                 <div className="flex items-center gap-2">
                   {["Visa", "Mastercard", "Stripe"].map(name => (
-                    <span key={name} className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                    <span key={name} className="text-xs font-bold px-1.5 py-0.5 rounded"
                       style={{ background: "#F3F4F6", color: "#9CA3AF" }}>{name}</span>
                   ))}
                 </div>
@@ -585,10 +583,10 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
 
               {/* Back + Support */}
               <div className="flex items-center justify-between mt-6">
-                <button onClick={() => setStep(2)} className="text-sm font-bold" style={{ color: C.muted }}>
+                <button onClick={() => setStep(2)} className="text-base font-bold" style={{ color: C.muted }}>
                   <ArrowLeft className="w-4 h-4 inline mr-1" /> Indietro
                 </button>
-                <a href="mailto:stefania@evolution-pro.it" className="text-[11px] underline" style={{ color: "#9CA3AF" }}>
+                <a href="mailto:stefania@evolution-pro.it" className="text-sm underline" style={{ color: "#9CA3AF" }}>
                   Problemi con il pagamento? Contatta Stefania
                 </a>
               </div>
@@ -607,7 +605,7 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
               }
               d.setDate(d.getDate() + 1);
             }
-            const timeSlots = ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00"];
+            const timeSlots = ["10:00", "11:00", "12:00", "15:00", "16:00", "17:00", "18:00"];
 
             const formatDate = (dt) => dt.toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short" });
             const formatDateISO = (dt) => dt.toISOString().split("T")[0];
@@ -646,7 +644,7 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
                           }}>
                           {s.done ? <CheckCircle className="w-3 h-3" /> : (i + 1)}
                         </div>
-                        <span className="text-[11px] font-bold" style={{ color: s.active ? C.green : s.done ? C.dark : "#9CA3AF" }}>
+                        <span className="text-sm font-bold" style={{ color: s.active ? C.green : s.done ? C.dark : "#9CA3AF" }}>
                           {s.label}
                         </span>
                       </div>
@@ -660,10 +658,10 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
                     style={{ background: `${C.green}15` }}>
                     <CheckCircle className="w-7 h-7" style={{ color: C.green }} />
                   </div>
-                  <h1 className="text-2xl font-black" style={{ color: C.dark }}>
+                  <h1 className="text-3xl sm:text-4xl font-black" style={{ color: C.dark }}>
                     Ottimo lavoro! La tua Analisi Strategica è in fase di generazione.
                   </h1>
-                  <p className="text-sm mt-2 max-w-md mx-auto" style={{ color: C.muted }}>
+                  <p className="text-base mt-3 max-w-lg mx-auto" style={{ color: C.muted }}>
                     Per massimizzare il valore della nostra futura videocall, segui questi due step obbligatori.
                   </p>
                 </div>
@@ -672,10 +670,10 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
                 <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${C.border}`, background: "white" }}>
                   <div className="px-4 py-3 flex items-center gap-2" style={{ background: `${C.yellow}10`, borderBottom: `1px solid ${C.border}` }}>
                     <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black" style={{ background: C.yellow, color: C.dark }}>1</div>
-                    <span className="text-xs font-bold uppercase tracking-wider" style={{ color: C.yellowDark }}>Formazione — Mini Corso Preparatorio</span>
+                    <span className="text-sm font-bold uppercase tracking-wider" style={{ color: C.yellowDark }}>Formazione — Mini Corso Preparatorio</span>
                   </div>
                   <div className="p-4">
-                    <p className="text-sm mb-4" style={{ color: C.muted }}>
+                    <p className="text-base mb-4" style={{ color: C.muted }}>
                       Guarda questo breve video introduttivo. Ti spiegherà come leggere i dati della tua analisi
                       e come prepararti alla partnership.
                     </p>
@@ -693,10 +691,10 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
                             <Play className="w-4 h-4" style={{ color: C.yellowDark }} />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-bold" style={{ color: C.dark }}>{v.title}</div>
-                            <div className="text-xs" style={{ color: C.muted }}>{v.desc}</div>
+                            <div className="text-base font-bold" style={{ color: C.dark }}>{v.title}</div>
+                            <div className="text-sm" style={{ color: C.muted }}>{v.desc}</div>
                           </div>
-                          <span className="text-[10px] font-bold px-2 py-1 rounded-md flex-shrink-0"
+                          <span className="text-xs font-bold px-2 py-1 rounded-md flex-shrink-0"
                             style={{ background: C.bg, color: C.muted }}>{v.dur}</span>
                         </div>
                       ))}
@@ -708,22 +706,23 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
                 <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${C.border}`, background: "white" }}>
                   <div className="px-4 py-3 flex items-center gap-2" style={{ background: `${C.green}08`, borderBottom: `1px solid ${C.border}` }}>
                     <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black" style={{ background: C.green, color: "white" }}>2</div>
-                    <span className="text-xs font-bold uppercase tracking-wider" style={{ color: C.green }}>Prenotazione — Videocall Strategica</span>
+                    <span className="text-sm font-bold uppercase tracking-wider" style={{ color: C.green }}>Prenotazione — Videocall Strategica</span>
                   </div>
                   <div className="p-4">
-                    <p className="text-sm mb-4" style={{ color: C.muted }}>
-                      Scegli il momento migliore per la tua call di consegna. Durante questo incontro,
-                      Claudio analizzerà con te i risultati e valuterà l'accesso alla Partnership da €2.790.
+                    <p className="text-base mb-4" style={{ color: C.muted }}>
+                      Scegli il momento migliore per la tua call di consegna della durata di 60 minuti.
+                      Durante questo incontro, Claudio (CEO Evolution PRO) analizzerà con te i risultati
+                      e valuterà l'accesso al Servizio Partnership.
                     </p>
 
                     {bookingConfirmed ? (
                       <div data-testid="booking-confirmed" className="rounded-xl p-5 text-center" style={{ background: `${C.green}08`, border: `1px solid ${C.green}25` }}>
                         <CheckCircle className="w-10 h-10 mx-auto mb-3" style={{ color: C.green }} />
-                        <div className="text-sm font-black" style={{ color: C.dark }}>Call prenotata con successo!</div>
-                        <div className="text-sm mt-1" style={{ color: C.muted }}>
+                        <div className="text-base font-black" style={{ color: C.dark }}>Call prenotata con successo!</div>
+                        <div className="text-base mt-1" style={{ color: C.muted }}>
                           {selectedDate && formatDate(selectedDate)} alle {selectedTime}
                         </div>
-                        <div className="text-xs mt-2" style={{ color: C.muted }}>
+                        <div className="text-sm mt-2" style={{ color: C.muted }}>
                           Riceverai una mail di conferma con il link alla videocall.
                         </div>
                       </div>
@@ -731,14 +730,14 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
                       <>
                         {/* Date picker */}
                         <div className="mb-4">
-                          <div className="text-xs font-bold mb-2" style={{ color: C.dark }}>Scegli una data</div>
+                          <div className="text-sm font-bold mb-2" style={{ color: C.dark }}>Scegli una data</div>
                           <div className="flex flex-wrap gap-2">
                             {availableDates.slice(0, 10).map(dt => {
                               const sel = selectedDate && formatDateISO(selectedDate) === formatDateISO(dt);
                               return (
                                 <button key={formatDateISO(dt)} data-testid={`date-${formatDateISO(dt)}`}
                                   onClick={() => { setSelectedDate(dt); setSelectedTime(null); }}
-                                  className="px-3 py-2 rounded-lg text-xs font-bold transition-all"
+                                  className="px-3 py-2 rounded-lg text-sm font-bold transition-all"
                                   style={{
                                     border: `1.5px solid ${sel ? C.green : C.border}`,
                                     background: sel ? `${C.green}12` : "transparent",
@@ -754,14 +753,14 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
                         {/* Time slots */}
                         {selectedDate && (
                           <div className="mb-4">
-                            <div className="text-xs font-bold mb-2" style={{ color: C.dark }}>Scegli un orario</div>
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="text-sm font-bold mb-2" style={{ color: C.dark }}>Scegli un orario</div>
+                            <div className="grid grid-cols-4 gap-2">
                               {timeSlots.map(t => {
                                 const sel = selectedTime === t;
                                 return (
                                   <button key={t} data-testid={`time-${t}`}
                                     onClick={() => setSelectedTime(t)}
-                                    className="py-2.5 rounded-lg text-sm font-bold transition-all"
+                                    className="py-2.5 rounded-lg text-base font-bold transition-all"
                                     style={{
                                       border: `1.5px solid ${sel ? C.green : C.border}`,
                                       background: sel ? `${C.green}12` : "transparent",
@@ -780,7 +779,7 @@ export default function ClienteWizard({ user, onLogout, onPartnerAttivato, admin
                           data-testid="confirm-booking-btn"
                           onClick={confirmBooking}
                           disabled={!selectedDate || !selectedTime || bookingLoading}
-                          className="w-full py-3 rounded-xl text-sm font-black flex items-center justify-center gap-2 transition-all"
+                          className="w-full py-3.5 rounded-xl text-base font-black flex items-center justify-center gap-2 transition-all"
                           style={{
                             background: (selectedDate && selectedTime) ? C.green : "#E5E7EB",
                             color: (selectedDate && selectedTime) ? "white" : "#9CA3AF",
