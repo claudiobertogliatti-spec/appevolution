@@ -18,49 +18,29 @@ Applicazione di gestione aziendale basata su AI per Evolution PRO LLC. Gestisce 
 - Sidebar Bg: #F5F3EE
 - Yellow Dark: #D4A017
 
-## API Config
-- `api-config.js` → `API` ritorna URL base SENZA `/api`
-- Tutti i componenti: `${API}/api/endpoint`
-
 ## Completati
-- [x] Import Lista Fredda Systeme.io
-- [x] Calendario Editoriale Claude AI
-- [x] Modulo Firma Contratto (PDF + Email SMTP)
-- [x] Upload Documenti Onboarding (Cloudinary)
-- [x] System Prompt 5 Agenti AI
-- [x] Funnel Builder Fase 4
-- [x] Seed protetto + Fallback Atlas/Redis/SMTP
-- [x] P4 - Pagina Proposta + Stripe (13/13 test)
-- [x] Fix Errore 520 Pydantic
-- [x] Redesign Admin Sidebar v2 — Cockpit Operativo (#FFD24D)
-- [x] Fix doppio /api/api/ in produzione
-- [x] Fix Dashboard Cliente + Flusso €2.790 — 08 Apr 2026
-- [x] Correzione architetturale: Admin Preview Cliente — 08 Apr 2026
-- [x] Questionario strutturato per pipeline AI — 08 Apr 2026
-- [x] Motore generazione output dal questionario — 08 Apr 2026
-- [x] Step 3 Checkout Analisi Strategica (€67) — 08 Apr 2026
-- [x] Step 4 Conferma & Onboarding (Mini-Corso + Booking) — 08 Apr 2026
-- [x] Correzioni UI ClienteWizard — 09 Apr 2026
-- [x] Inserimento 3 video Mini-Corso nello Step 4 — 09 Apr 2026
-- [x] Fix frontend robustness (Array.isArray, loading guard) — 09 Apr 2026
-- [x] FRONTEND_URL default → app.evolution-pro.it — 09 Apr 2026
-- [x] AnalisiInPreparazione: verify-payment useEffect — 09 Apr 2026
-- [x] **Post Analisi e Partnership — 09 Apr 2026**
-  - Funnel di conversione a 11 sezioni sequenziali
-  - Sezioni: Recap → Analisi (PDF+Audio) → Transizione → Partnership → Processo → Valore → Bonus → Decisione → Contratto (accordion+chat AI) → Firma → Pagamento (Stripe+Bonifico)
-  - Backend: 4 nuovi endpoint (contract-text, partnership-firma, partnership-checkout, partnership-bonifico)
-  - 18 articoli contratto parsati, 5 articoli vessatori con flag conferma obbligatorio
-  - Chat supporto contrattuale Claude AI integrata
-  - Testato: 14/14 backend, 11/11 sezioni frontend (iteration_39)
+- [x] Step 1-4 ClienteWizard (Welcome → Quiz → Checkout → Onboarding)
+- [x] Pipeline AI Backend (Scoring + Claude + PDF)
+- [x] Post Analisi e Partnership — Funnel 11 sezioni
+- [x] **Ristrutturazione PDF a 11 sezioni — 09 Apr 2026**
+  - Titolo/Copertina → Sintesi → Diagnosi → Punti di forza → Criticità → Livello → Conseguenze → Direzione → Intro soluzione → Esito → Prossimo passo + Appendice Scoring
+  - Layout professionale con reportlab: tabelle, badge colorati, HR separatori
+- [x] **Aggiornamento prompt AI Claude — 09 Apr 2026**
+  - Nuovo prompt genera JSON a 11 sezioni specifiche
+  - Output strutturato: sintesi_progetto, diagnosi, punti_di_forza[], criticita[], livello_progetto, conseguenze, direzione, esito
+- [x] **Upload Audio Analisi (Admin) — 09 Apr 2026**
+  - Endpoint POST /api/admin/cliente/{user_id}/upload-audio-analisi
+  - Endpoint GET /api/cliente-analisi/audio/{user_id}
+  - AudioAnalisiModal nel ProspectPipeline con bottone cuffie viola
+  - Player HTML5 reale nel Post Analisi (o "in preparazione" se non caricato)
+  - Testato: 15/15 backend, frontend 100% (iteration_40)
 
 ## P0 — Prossimi
 - [ ] SMTP trigger email nell'endpoint /api/cliente-analisi/call-prenotata
 - [ ] Admin Panel: lista utenti wizard, dati mini-quiz, stato corrente, forza cambio stato
 
 ## P1 — Alta Priorità
-- [ ] Pulsante "Ascolta sintesi audio" — integrazione reale NotebookLM
 - [ ] Generazione PDF contratto firmato (reportlab)
-- [ ] PRICE_ID Stripe per Servizi Extra
 
 ## P2 — Media Priorità
 - [ ] Integrazione reale Google Calendar
