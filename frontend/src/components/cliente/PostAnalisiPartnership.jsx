@@ -903,53 +903,47 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
         </Section>
       )}
 
-      {/* 9c. Clausole Vessatorie (Art. 1341/1342 c.c.) */}
+      {/* 9c. Clausole Specifiche (Art. 1341/1342 c.c.) — Banner unico */}
       {(personalSaved || adminPreview) && (
-        <Section id="vessatorie" accent>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${C.red}10` }}>
-              <Shield className="w-5 h-5" style={{ color: C.red }} />
-            </div>
-            <div>
-              <h2 className="text-xl font-black" style={{ color: C.dark }}>Clausole Vessatorie</h2>
-              <p className="text-sm" style={{ color: C.muted }}>
-                Ai sensi degli artt. 1341 e 1342 c.c., approva specificamente le seguenti clausole.
+        <Section id="clausole-specifiche" accent>
+          <label data-testid="clausole-specifiche-flag"
+            className="flex items-start gap-4 p-5 rounded-xl cursor-pointer transition-all"
+            style={{
+              border: `2px solid ${allVessatoryConfirmed ? C.green : C.yellow}`,
+              background: allVessatoryConfirmed ? `${C.green}06` : `${C.yellow}06`,
+            }}>
+            <input type="checkbox" checked={allVessatoryConfirmed}
+              onChange={() => {
+                if (allVessatoryConfirmed) {
+                  setConfirmedVessatory({});
+                } else {
+                  const all = {};
+                  VESSATORY_ARTICLES.forEach(v => { all[v.id] = true; });
+                  setConfirmedVessatory(all);
+                }
+              }}
+              className="mt-1 w-5 h-5 rounded accent-green-600 flex-shrink-0" />
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <Shield className="w-5 h-5 flex-shrink-0" style={{ color: allVessatoryConfirmed ? C.green : C.yellowDark }} />
+                <span className="text-base font-black" style={{ color: C.dark }}>
+                  Approvazione Clausole Specifiche ai sensi degli artt. 1341 e 1342 c.c.
+                </span>
+              </div>
+              <p className="text-sm mb-3" style={{ color: C.muted }}>
+                Dichiaro di aver letto e di approvare specificamente le seguenti clausole:
               </p>
-            </div>
-          </div>
-          <div className="space-y-2 mt-4">
-            {VESSATORY_ARTICLES.map(v => {
-              const checked = confirmedVessatory[v.id];
-              return (
-                <label key={v.id} data-testid={`vessatoria-${v.id}`}
-                  className="flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all"
-                  style={{
-                    border: `1px solid ${checked ? `${C.green}50` : C.border}`,
-                    background: checked ? `${C.green}04` : C.white,
-                  }}>
-                  <input type="checkbox" checked={!!checked}
-                    onChange={() => setConfirmedVessatory(p => ({ ...p, [v.id]: !p[v.id] }))}
-                    className="mt-0.5 w-4 h-4 rounded accent-green-600 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <span className="text-sm font-bold" style={{ color: C.dark }}>{v.label}</span>
-                    <p className="text-xs mt-0.5" style={{ color: C.muted }}>{v.desc}</p>
+              <div className="space-y-1.5">
+                {VESSATORY_ARTICLES.map(v => (
+                  <div key={v.id} className="flex items-start gap-2 text-sm" style={{ color: C.dark }}>
+                    <span className="font-bold flex-shrink-0" style={{ minWidth: 64 }}>{v.label.split("—")[0].trim()}</span>
+                    <span style={{ color: C.muted }}>{v.label.split("—")[1]?.trim()}</span>
                   </div>
-                  {checked && <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: C.green }} />}
-                </label>
-              );
-            })}
-          </div>
-          {!allVessatoryConfirmed && (
-            <div className="mt-4 text-center text-sm" style={{ color: C.muted }}>
-              <Shield className="w-4 h-4 inline mr-1" style={{ color: C.red }} />
-              Devi approvare tutte le clausole vessatorie per procedere alla firma.
+                ))}
+              </div>
             </div>
-          )}
-          {allVessatoryConfirmed && (
-            <div className="mt-4 flex items-center justify-center gap-2 text-sm font-bold" style={{ color: C.green }}>
-              <CheckCircle className="w-4 h-4" /> Tutte le clausole vessatorie approvate
-            </div>
-          )}
+            {allVessatoryConfirmed && <CheckCircle className="w-6 h-6 flex-shrink-0 mt-1" style={{ color: C.green }} />}
+          </label>
         </Section>
       )}
 
@@ -1014,7 +1008,7 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
                     Firmo e accetto la proposta di partnership Evolution Pro
                   </span>
                   <p className="text-sm mt-1" style={{ color: C.muted }}>
-                    Dichiaro di aver letto integralmente il contratto, di approvare le clausole vessatorie sopra indicate ai sensi degli artt. 1341 e 1342 c.c., e di accettare tutti i termini e le condizioni della partnership.
+                    Dichiaro di aver letto integralmente il contratto, di approvare le clausole specifiche sopra indicate ai sensi degli artt. 1341 e 1342 c.c., e di accettare tutti i termini e le condizioni della partnership.
                   </p>
                 </div>
                 {firmaAccettata && <CheckCircle className="w-6 h-6 flex-shrink-0 mt-1" style={{ color: C.green }} />}
@@ -1098,6 +1092,9 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
                 {checkingOut ? <Loader2 className="w-5 h-5 animate-spin" /> : <CreditCard className="w-5 h-5" />}
                 Paga con Carta (Stripe)
               </button>
+              <p className="text-center text-sm font-bold" style={{ color: "#1A65D6" }}>
+                Puoi scegliere di pagare con Klarna in 3 comode rate mensili ad interessi zero.
+              </p>
               <button data-testid="pay-bonifico" onClick={selectBonifico}
                 className="w-full flex items-center justify-center gap-3 py-4 rounded-xl text-base font-bold transition-all"
                 style={{ background: C.white, color: C.dark, border: `2px solid ${C.border}` }}>
