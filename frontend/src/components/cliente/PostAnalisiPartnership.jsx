@@ -421,22 +421,33 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
         </div>
       )}
 
-      {/* ═══ 1. RIPRENDIAMO DA DOVE CI SIAMO FERMATI ════════════════ */}
+      {/* ═══ 1. RIPRENDIAMO IL PUNTO CHIAVE ═════════════════════════ */}
       <Section id="recap" accent>
         <div className="text-center mb-4">
           <div className="w-12 h-12 rounded-2xl mx-auto mb-4 flex items-center justify-center" style={{ background: `${C.green}15` }}>
             <CheckCircle className="w-6 h-6" style={{ color: C.green }} />
           </div>
           <h1 className="text-2xl sm:text-3xl font-black" style={{ color: C.dark }}>
-            Ciao {nome}, riprendiamo da dove ci siamo fermati.
+            Riprendiamo un attimo il punto chiave della call.
           </h1>
         </div>
-        <p className="text-base text-center leading-relaxed mb-4" style={{ color: C.muted }}>
-          Durante la call abbiamo analizzato insieme la tua situazione e il potenziale
-          del tuo progetto. Ecco un riepilogo di quello che è emerso.
+        <p className="text-base leading-relaxed mb-4" style={{ color: C.muted }}>
+          Quello che abbiamo visto insieme è semplice:
         </p>
+        <div className="space-y-2.5 mb-5">
+          <p className="text-base font-bold flex items-start gap-2" style={{ color: C.dark }}>
+            <span style={{ color: C.yellowDark }}>&#x1F449;</span> il tuo progetto ha potenziale reale
+          </p>
+          <p className="text-base font-bold flex items-start gap-2" style={{ color: C.dark }}>
+            <span style={{ color: C.yellowDark }}>&#x1F449;</span> ma nella forma attuale non è strutturato per generare risultati in modo continuativo
+          </p>
+        </div>
+        <p className="text-lg font-black" style={{ color: C.dark }}>
+          E questo è il punto su cui si gioca tutto.
+        </p>
+
         {analisi?.quiz && (
-          <div className="rounded-xl p-4 space-y-2" style={{ background: C.bg, border: `1px solid ${C.border}` }}>
+          <div className="rounded-xl p-4 space-y-2 mt-6" style={{ background: C.bg, border: `1px solid ${C.border}` }}>
             <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.yellowDark }}>Il tuo progetto</div>
             {analisi.quiz.ambito && <div className="text-sm"><strong style={{ color: C.dark }}>Ambito:</strong> <span style={{ color: C.muted }}>{analisi.quiz.ambito}</span></div>}
             {analisi.quiz.target && <div className="text-sm"><strong style={{ color: C.dark }}>Target:</strong> <span style={{ color: C.muted }}>{analisi.quiz.target}</span></div>}
@@ -473,7 +484,22 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
         {analisiData.diagnosi && (
           <div className="mb-4">
             <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.blue }}>Diagnosi</div>
-            <p className="text-base leading-relaxed" style={{ color: C.muted }}>{analisiData.diagnosi}</p>
+            <p className="text-base leading-relaxed mb-3" style={{ color: C.muted }}>
+              Il progetto ha basi solide, ma oggi non è supportato da un sistema che permetta di trasformarlo in risultati concreti.
+            </p>
+            <p className="text-sm font-bold mb-2" style={{ color: C.dark }}>In particolare:</p>
+            <ul className="space-y-1.5">
+              {[
+                "non esiste un processo di acquisizione clienti strutturato",
+                "non c'è un percorso di vendita definito",
+                "manca un'infrastruttura che renda il progetto scalabile",
+              ].map((item, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm" style={{ color: C.muted }}>
+                  <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: `${C.red}70` }} />
+                  {item}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
         {analisiData.punti_di_forza && Array.isArray(analisiData.punti_di_forza) && (
@@ -535,6 +561,25 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
               </p>
             )}
           </div>
+        </div>
+      </Section>
+
+      {/* ═══ 2b. SE NULLA CAMBIA (CONSEGUENZE) ═══════════════════════ */}
+      <Section id="conseguenze" accent>
+        <h2 className="text-xl font-black mb-4" style={{ color: C.dark }}>
+          Se nulla cambia, succede questo:
+        </h2>
+        <div className="space-y-3">
+          {[
+            "continuerai a dipendere dal tuo tempo",
+            "la crescita resterà lenta e incostante",
+            "ogni risultato sarà legato allo sforzo diretto",
+          ].map((item, i) => (
+            <div key={i} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: `${C.red}04`, border: `1px solid ${C.red}15` }}>
+              <XCircle className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: C.red }} />
+              <span className="text-base" style={{ color: C.dark }}>{item}</span>
+            </div>
+          ))}
         </div>
       </Section>
 
@@ -609,19 +654,14 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
       {/* ═══ 4. IL PERCORSO PARTNERSHIP ═════════════════════════════ */}
       <Section id="partnership" accent>
         <div className="mb-6">
-          <h2 className="text-xl sm:text-2xl font-black" style={{ color: C.dark }}>
-            Il percorso che costruiremo insieme
+          <h2 className="text-xl sm:text-2xl font-black mb-4" style={{ color: C.dark }}>
+            Ed è esattamente qui che entra in gioco la partnership.
           </h2>
-          <p className="text-base mt-3 leading-relaxed" style={{ color: C.muted }}>
-            Quello che ti proponiamo non è un corso e non è una consulenza isolata.
+          <p className="text-base leading-relaxed" style={{ color: C.muted }}>
+            Non per aggiungere qualcosa al tuo progetto,
           </p>
-          <p className="text-base mt-2 leading-relaxed" style={{ color: C.muted }}>
-            È un percorso guidato in cui lavoriamo insieme per trasformare la tua
-            competenza in un sistema che genera risultati.
-          </p>
-          <p className="text-base mt-3 leading-relaxed" style={{ color: C.muted }}>
-            Il punto non è "imparare come fare".<br />
-            Il punto è <strong style={{ color: C.dark }}>costruire qualcosa che funzioni davvero</strong>.
+          <p className="text-base leading-relaxed font-bold" style={{ color: C.dark }}>
+            ma per costruire quello che oggi manca: un sistema.
           </p>
         </div>
         <div className="space-y-4">
@@ -785,6 +825,31 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
         <p className="text-base text-center leading-relaxed mt-6" style={{ color: C.muted }}>
           La differenza non è il progetto.<br />
           <strong style={{ color: C.dark }}>È il modo in cui viene costruito.</strong>
+        </p>
+      </Section>
+
+      {/* ═══ 8b. HAI TUTTO PER DECIDERE (PRE-CONTRATTO) ════════════ */}
+      <Section id="pre-contratto" accent>
+        <h2 className="text-xl sm:text-2xl font-black mb-4" style={{ color: C.dark }}>
+          A questo punto hai tutto quello che ti serve per decidere
+        </h2>
+        <p className="text-base leading-relaxed mb-4" style={{ color: C.muted }}>
+          Hai:
+        </p>
+        <div className="space-y-2.5 mb-5">
+          {[
+            "la tua analisi",
+            "la direzione",
+            "il percorso",
+          ].map((item, i) => (
+            <div key={i} className="flex items-start gap-3">
+              <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: C.green }} />
+              <span className="text-base font-bold" style={{ color: C.dark }}>{item}</span>
+            </div>
+          ))}
+        </div>
+        <p className="text-base leading-relaxed font-bold" style={{ color: C.dark }}>
+          Ora puoi scegliere se attivare la partnership e iniziare il lavoro.
         </p>
       </Section>
 
@@ -1080,6 +1145,21 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
             <h2 className="text-xl sm:text-2xl font-black" style={{ color: C.dark }}>
               Attiva la tua Partnership
             </h2>
+            <p className="text-base leading-relaxed mt-3 mb-1" style={{ color: C.muted }}>
+              Questo è il passaggio che trasforma l'analisi in progetto operativo.
+            </p>
+            <p className="text-sm font-bold mt-3 mb-1" style={{ color: C.dark }}>Una volta completato:</p>
+            <div className="flex flex-col items-center gap-1.5 mt-2 mb-4">
+              {[
+                "il tuo progetto entra nella fase di costruzione",
+                "il team inizia a lavorare con te",
+                "viene avviato il percorso completo",
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-2 text-sm" style={{ color: C.muted }}>
+                  <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color: C.green }} /> {item}
+                </div>
+              ))}
+            </div>
             <div className="text-4xl font-black mt-2" style={{ color: C.dark }}>€{corrStr}</div>
             <p className="text-sm mt-1" style={{ color: C.muted }}>Investimento per 12 mesi di partnership operativa</p>
           </div>
