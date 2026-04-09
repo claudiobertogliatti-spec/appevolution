@@ -159,8 +159,10 @@ export function OggiDashboard({ onNavigate }) {
         const cStats  = clientiRes.status === "fulfilled" ? (clientiRes.value.data?.stats || {}) : {};
         const stats   = statsRes.status   === "fulfilled" ? statsRes.value.data   : {};
         const approv  = approvRes.status  === "fulfilled" ? approvRes.value.data  : {};
-        const alerts  = alertsRes.status  === "fulfilled" ? (alertsRes.value.data || []) : [];
-        const agents  = agentsRes.status  === "fulfilled" ? (agentsRes.value.data || []) : [];
+        const alertsRaw = alertsRes.status  === "fulfilled" ? alertsRes.value.data : [];
+        const agentsRaw = agentsRes.status  === "fulfilled" ? agentsRes.value.data : [];
+        const alerts  = Array.isArray(alertsRaw) ? alertsRaw : [];
+        const agents  = Array.isArray(agentsRaw) ? agentsRaw : [];
 
         // Clienti bloccati: fermo da > 3 giorni senza avanzare
         const bloccati = clienti.filter(c => {
@@ -216,7 +218,7 @@ export function OggiDashboard({ onNavigate }) {
     })();
   }, []);
 
-  if (loading) {
+  if (loading || !data) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 rounded-lg animate-pulse flex items-center justify-center" style={{ background: C.yellow }}>

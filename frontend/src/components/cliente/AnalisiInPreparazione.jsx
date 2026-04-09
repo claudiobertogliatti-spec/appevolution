@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle, PlayCircle, ChevronRight, Clock, BookOpen, LogOut, ClipboardList, Target, MessageCircle, BarChart3, Users, Calendar, Lightbulb, Video, Megaphone, UserCircle, Handshake, ArrowRight } from 'lucide-react';
+import axios from 'axios';
+
+const API = process.env.REACT_APP_BACKEND_URL || "";
 
 // 7 moduli del mini corso come da specifica
 const MINI_CORSO_MODULI = [
@@ -57,6 +60,23 @@ const MINI_CORSO_MODULI = [
 export function AnalisiInPreparazione({ user, onLogout }) {
   const [videoPlaying, setVideoPlaying] = useState(false);
   const [selectedModule, setSelectedModule] = useState(null);
+
+  // Verifica pagamento al ritorno da Stripe
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get("session_id");
+    const userId = user?.id || user?.user_id;
+    if (sessionId && userId) {
+      axios.post(`${API}/api/cliente-analisi/verify-payment`, null, {
+        params: { user_id: userId, session_id: sessionId }
+      }).then(res => {
+        if (res.data?.success) {
+          // Rimuovi session_id dall'URL per evitare ri-verifiche
+          window.history.replaceState({}, "", window.location.pathname);
+        }
+      }).catch(err => console.error("Verify payment error:", err));
+    }
+  }, [user]);
 
   // Steps per la progress bar
   const processSteps = [
