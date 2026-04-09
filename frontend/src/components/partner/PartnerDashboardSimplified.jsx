@@ -1,534 +1,223 @@
-import { useState } from "react";
-import { ArrowRight, Check, Lock, MessageCircle, Calendar } from "lucide-react";
+import { ArrowRight, Check, Lock, MessageCircle, ChevronRight, Phone, Info } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CONFIGURAZIONE
+// CONFIGURAZIONE FASI
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Fasi del progetto (non onboarding tecnico)
-const PROJECT_STEPS = [
-  { id: 1, title: "Posizionamento completato", phase: "F2" },
-  { id: 2, title: "Masterclass creata", phase: "F3" },
-  { id: 3, title: "Struttura videocorso definita", phase: "F4" },
-  { id: 4, title: "Produzione lezioni", phase: "F5" },
-  { id: 5, title: "Costruzione piattaforma", phase: "F6" },
-  { id: 6, title: "Preparazione lancio", phase: "F7" },
-  { id: 7, title: "Lancio", phase: "F8" },
+const STEPS = [
+  { id: 1, label: "Posizionamento",     desc: "Definiamo chi sei e cosa insegni",                  nav: "posizionamento" },
+  { id: 2, label: "Masterclass",        desc: "Creiamo la tua lezione gratuita",                   nav: "masterclass" },
+  { id: 3, label: "Videocorso",         desc: "Realizziamo il tuo corso completo",                 nav: "videocorso" },
+  { id: 4, label: "Funnel",             desc: "Costruiamo la tua pagina di vendita",               nav: "funnel" },
+  { id: 5, label: "Lancio",             desc: "Andiamo online insieme",                            nav: "lancio" },
 ];
 
-// Team Evolution PRO
-const TEAM_MEMBERS = [
-  { 
-    name: "Stefania", 
-    role: "Strategic Guide",
-    avatar: "V",
-    color: "#F2C418",
-    description: "Ti guida nella strategia e nel posizionamento"
-  },
-  { 
-    name: "Andrea", 
-    role: "Production Manager",
-    avatar: "A", 
-    color: "#3B82F6",
-    description: "Ti supporta nella produzione video e editing"
-  },
-  { 
-    name: "Stefania", 
-    role: "Growth Planner",
-    avatar: "S",
-    color: "#8B5CF6",
-    description: "Ti aiuta con copy, funnel e lancio"
-  },
+const PHASE_MAP = {
+  F0: { step: 0, action: "Completiamo la tua attivazione",        actionDesc: "Inseriamo i dati necessari per partire. Ci vogliono pochi minuti.",                  cta: "Iniziamo",               nav: "onboarding-docs" },
+  F1: { step: 0, action: "Completiamo la tua attivazione",        actionDesc: "Finalizziamo l'iscrizione e prepariamo tutto per iniziare il percorso insieme.",     cta: "Completiamo",             nav: "onboarding-docs" },
+  F2: { step: 1, action: "Definiamo il tuo posizionamento",       actionDesc: "Rispondiamo insieme a poche domande chiave: chi sei, cosa fai, per chi lo fai.",    cta: "Vai ora",                 nav: "posizionamento" },
+  F3: { step: 2, action: "Creiamo la tua Masterclass",            actionDesc: "Prepariamo lo script della lezione gratuita che attirerà i tuoi primi studenti.",   cta: "Vai ora",                 nav: "masterclass" },
+  F4: { step: 3, action: "Strutturiamo il videocorso",            actionDesc: "Organizziamo moduli e lezioni. Ci pensiamo noi a renderlo chiaro e coinvolgente.",  cta: "Vai ora",                 nav: "videocorso" },
+  F5: { step: 3, action: "Registriamo le lezioni",                actionDesc: "Seguiamo la struttura che abbiamo definito. Ti guidiamo nella registrazione.",      cta: "Vai ora",                 nav: "videocorso" },
+  F6: { step: 4, action: "Costruiamo il funnel di vendita",       actionDesc: "Progettiamo la pagina che trasforma i visitatori in studenti paganti.",             cta: "Vai ora",                 nav: "funnel" },
+  F7: { step: 5, action: "Prepariamo il lancio insieme",          actionDesc: "Calendario, contenuti, campagne. Ci occupiamo noi di coordinare tutto.",            cta: "Vai ora",                 nav: "lancio" },
+  F8: { step: 5, action: "Lanciamo la tua Accademia!",            actionDesc: "È tutto pronto. Attiviamo le campagne e iniziamo a generare le prime vendite.",    cta: "Lanciamo!",               nav: "lancio" },
+  LIVE: { step: 5, action: "Monitoriamo i risultati insieme",     actionDesc: "Analizziamo i dati e miglioriamo continuamente le performance.",                    cta: "Vedi i risultati",        nav: "ottimizzazione" },
+  OTTIMIZZAZIONE: { step: 5, action: "Monitoriamo i risultati insieme", actionDesc: "Analizziamo i dati e miglioriamo continuamente le performance.",             cta: "Vedi i risultati",        nav: "ottimizzazione" },
+};
+
+const AFTER_STEP = [
+  "Dopo il posizionamento, creeremo insieme la tua masterclass gratuita.",
+  "Dopo la masterclass, costruiremo il tuo videocorso completo.",
+  "Dopo il videocorso, prepareremo il funnel di vendita.",
+  "Dopo il funnel, saremo pronti per il lancio.",
+  "Dopo il lancio, monitoreremo insieme i risultati e ottimizzeremo.",
 ];
 
-// Mapping fase → info progetto
-const PHASE_INFO = {
-  F0: { 
-    name: "Onboarding", 
-    tutor: "Stefania", 
-    tutorRole: "Strategic Guide",
-    task: { 
-      title: "Completa l'attivazione", 
-      desc: "Inserisci i tuoi dati e prepara i documenti necessari per iniziare.",
-      cta: "Vai all'Attivazione", 
-      action: "onboarding" 
-    },
-    message: "Benvenuto in Evolution PRO! Sono qui per guidarti in ogni fase del tuo progetto. Iniziamo completando il tuo profilo.",
-    stepIndex: 0
-  },
-  F1: { 
-    name: "Onboarding", 
-    tutor: "Stefania", 
-    tutorRole: "Strategic Guide",
-    task: { 
-      title: "Completa l'attivazione", 
-      desc: "Finalizza la tua iscrizione e prepara tutto per iniziare il progetto.",
-      cta: "Completa Attivazione", 
-      action: "onboarding" 
-    },
-    message: "Prima di iniziare a costruire la tua Accademia, assicuriamoci di avere tutto in ordine. Completa i documenti richiesti.",
-    stepIndex: 0
-  },
-  F2: { 
-    name: "Posizionamento", 
-    tutor: "Stefania", 
-    tutorRole: "Strategic Guide",
-    task: { 
-      title: "Definisci il tuo posizionamento", 
-      desc: "Rispondi alle domande per definire chi sei, cosa fai e per chi lo fai. Questo è il fondamento della tua Accademia.",
-      cta: "Inizia il Wizard", 
-      action: "positioning" 
-    },
-    message: "Il posizionamento è la base di tutto. Prenditi il tempo necessario per rispondere con chiarezza. Non c'è fretta.",
-    stepIndex: 1
-  },
-  F3: { 
-    name: "Creazione Masterclass", 
-    tutor: "Stefania", 
-    tutorRole: "Growth Planner",
-    task: { 
-      title: "Crea la tua Masterclass gratuita", 
-      desc: "Scrivi lo script della masterclass che attirerà i tuoi primi studenti. Ti guiderò nella struttura e nei contenuti.",
-      cta: "Crea la Masterclass", 
-      action: "masterclass" 
-    },
-    message: "La masterclass gratuita è il tuo magnete. Deve risolvere un problema specifico e lasciare voglia di saperne di più.",
-    stepIndex: 2
-  },
-  F4: { 
-    name: "Struttura Corso", 
-    tutor: "Stefania", 
-    tutorRole: "Growth Planner",
-    task: { 
-      title: "Definisci la struttura del videocorso", 
-      desc: "Organizza i moduli e le lezioni del tuo corso. L'AI ti aiuterà a creare una struttura chiara e coinvolgente.",
-      cta: "Struttura il Corso", 
-      action: "course" 
-    },
-    message: "Un buon corso ha una struttura logica. Ogni modulo deve portare lo studente un passo avanti verso il risultato promesso.",
-    stepIndex: 3
-  },
-  F5: { 
-    name: "Creazione Accademia", 
-    tutor: "Andrea", 
-    tutorRole: "Production Manager",
-    task: { 
-      title: "Registra le lezioni del tuo videocorso", 
-      desc: "Segui la struttura definita e prepara i materiali. Ti guiderò nella revisione e nell'editing professionale.",
-      cta: "Vai alla Produzione Video", 
-      action: "production" 
-    },
-    message: "Marco, quando registri le lezioni cerca di mantenere video tra 6 e 10 minuti. Questo aumenta il completamento degli studenti.",
-    stepIndex: 4
-  },
-  F6: { 
-    name: "Creazione Accademia", 
-    tutor: "Andrea", 
-    tutorRole: "Production Manager",
-    task: { 
-      title: "Costruisci la tua piattaforma", 
-      desc: "Carica i video editati, configura l'area studenti e prepara tutto per il lancio.",
-      cta: "Configura Accademia", 
-      action: "academy" 
-    },
-    message: "Ottimo lavoro con i video! Ora configuriamo la piattaforma. L'esperienza utente è fondamentale per la retention.",
-    stepIndex: 5
-  },
-  F7: { 
-    name: "Preparazione Lancio", 
-    tutor: "Stefania", 
-    tutorRole: "Growth Planner",
-    task: { 
-      title: "Prepara il lancio", 
-      desc: "Definisci il calendario, crea i contenuti promozionali e attiva le campagne.",
-      cta: "Prepara il Lancio", 
-      action: "launch-prep" 
-    },
-    message: "Il lancio è un momento cruciale. Prepariamo tutto nei minimi dettagli: email, ads, contenuti social.",
-    stepIndex: 6
-  },
-  F8: { 
-    name: "Lancio", 
-    tutor: "Stefania", 
-    tutorRole: "Strategic Guide",
-    task: { 
-      title: "Lancia la tua Accademia!", 
-      desc: "È tutto pronto. Attiva le campagne e inizia a generare le prime vendite.",
-      cta: "Lancia Ora!", 
-      action: "launch" 
-    },
-    message: "Ci siamo! Hai costruito qualcosa di valore. Ora è il momento di condividerlo con il mondo.",
-    stepIndex: 7
-  },
-  LIVE: { 
-    name: "Ottimizzazione", 
-    tutor: "Stefania", 
-    tutorRole: "Growth Planner",
-    task: { 
-      title: "Ottimizza la tua Accademia", 
-      desc: "Monitora i KPI, analizza i dati e migliora continuamente le performance.",
-      cta: "Vai all'Ottimizzazione", 
-      action: "ottimizzazione" 
-    },
-    message: "La tua Accademia è live! Ora è il momento di ottimizzare e scalare i risultati.",
-    stepIndex: 8
-  },
-  OTTIMIZZAZIONE: { 
-    name: "Ottimizzazione", 
-    tutor: "Stefania", 
-    tutorRole: "Growth Planner",
-    task: { 
-      title: "Ottimizza la tua Accademia", 
-      desc: "Monitora i KPI, analizza i dati e migliora continuamente le performance.",
-      cta: "Vai all'Ottimizzazione", 
-      action: "ottimizzazione" 
-    },
-    message: "La tua Accademia è live! Ora è il momento di ottimizzare e scalare i risultati.",
-    stepIndex: 8
-  },
-};
-
-// Prossimo evento
-const UPCOMING_EVENT = {
-  title: "Webinar: Come registrare video professionali",
-  date: "Giovedì 20 feb",
-  time: "ore 18:00",
-  host: "Andrea"
-};
-
-function getGreeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Buongiorno";
-  if (hour < 18) return "Buon pomeriggio";
-  return "Buonasera";
-}
-
 // ═══════════════════════════════════════════════════════════════════════════════
-// COMPONENTI
+// COMPONENTE PRINCIPALE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function PageHeader() {
-  return (
-    <div className="mb-6">
-      <h1 className="text-2xl font-black" style={{ color: '#1E2128' }}>
-        La tua Accademia Digitale
-      </h1>
-      <p className="text-sm mt-1" style={{ color: '#5F6572' }}>
-        Segui lo sviluppo del tuo progetto insieme al team Evolution PRO
-      </p>
-    </div>
-  );
-}
+export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) {
+  const phaseKey = partner?.phase || "F1";
+  const phase = PHASE_MAP[phaseKey] || PHASE_MAP.F1;
+  const completedSteps = Math.min(phase.step, STEPS.length);
+  const progressPercent = Math.round((completedSteps / STEPS.length) * 100);
+  const nome = partner?.name?.split(" ")[0] || "Partner";
+  const currentStepLabel = STEPS[Math.min(completedSteps, STEPS.length - 1)]?.label || "Posizionamento";
 
-function ProjectStatus({ partnerName, phaseName, tutor, tutorRole, completedSteps, totalSteps }) {
   return (
-    <div className="bg-white rounded-2xl border border-[#ECEDEF] p-5">
-      {/* Saluto */}
-      <div className="flex items-center gap-3 mb-5">
-        <span className="text-3xl">👋</span>
-        <div>
-          <div className="text-lg font-bold" style={{ color: '#1E2128' }}>
-            {getGreeting()} {partnerName}!
-          </div>
-          <div className="text-sm" style={{ color: '#5F6572' }}>
-            Il tuo progetto sta procedendo bene.
-          </div>
-        </div>
-      </div>
-      
-      {/* Stato progetto */}
-      <div className="grid grid-cols-3 gap-4 pt-4 border-t border-[#ECEDEF]">
-        {/* Fase attuale */}
-        <div>
-          <div className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: '#9CA3AF' }}>
-            Fase attuale
-          </div>
-          <div className="text-lg font-black" style={{ color: '#1E2128' }}>
-            {phaseName}
-          </div>
-        </div>
-        
-        {/* Tutor */}
-        <div>
-          <div className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: '#9CA3AF' }}>
-            Tutor
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
-                 style={{ background: '#E8F4FD', color: '#3B82F6' }}>
-              {tutor?.charAt(0)}
-            </div>
-            <div>
-              <div className="text-sm font-bold" style={{ color: '#1E2128' }}>{tutor}</div>
-              <div className="text-xs" style={{ color: '#9CA3AF' }}>{tutorRole}</div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Progresso */}
-        <div>
-          <div className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: '#9CA3AF' }}>
-            Progresso
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="text-lg font-black" style={{ color: '#1E2128' }}>
-              {completedSteps} / {totalSteps}
-            </div>
-            <div className="text-xs" style={{ color: '#5F6572' }}>
-              attività completate
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+    <div className="min-h-full" style={{ background: "#FAFAF7" }}>
+      <div className="max-w-2xl mx-auto px-5 py-8 space-y-6">
 
-function NextAction({ task, onAction }) {
-  return (
-    <section 
-      className="rounded-2xl p-6 sm:p-8 relative overflow-hidden"
-      style={{ background: 'linear-gradient(135deg, #F2C418 0%, #FADA5E 100%)' }}
-    >
-      <div className="absolute top-0 right-0 w-48 h-48 rounded-full opacity-20" 
-           style={{ background: 'white', transform: 'translate(30%, -30%)' }} />
-      
-      <div className="relative z-10">
-        <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold mb-4"
-             style={{ background: 'rgba(255,255,255,0.3)', color: '#1E2128' }}>
-          📍 Cosa fare ora
-        </div>
-        <h2 className="text-2xl sm:text-3xl font-black mb-3" style={{ color: '#1E2128' }}>
-          {task.title}
-        </h2>
-        <p className="mb-6 max-w-lg text-sm sm:text-base leading-relaxed" style={{ color: 'rgba(30,33,40,0.8)' }}>
-          {task.desc}
-        </p>
-        <button 
-          onClick={onAction}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold hover:scale-105 transition-all"
-          style={{ background: '#E8E8E8', color: '#111111', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
-        >
-          {task.cta}
-          <ArrowRight className="w-5 h-5" />
-        </button>
-      </div>
-    </section>
-  );
-}
-
-function TutorMessage({ tutor, message }) {
-  const tutorInfo = TEAM_MEMBERS.find(t => t.name === tutor) || TEAM_MEMBERS[0];
-  
-  return (
-    <div className="bg-white rounded-2xl border border-[#ECEDEF] p-5">
-      <div className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: '#9CA3AF' }}>
-        Messaggio di {tutor}
-      </div>
-      <div className="flex gap-4">
-        <div 
-          className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-          style={{ background: tutorInfo.color + '20', color: tutorInfo.color }}
-        >
-          {tutorInfo.avatar}
-        </div>
-        <div className="flex-1">
-          <p className="text-sm leading-relaxed italic" style={{ color: '#5F6572' }}>
-            "{message}"
+        {/* ═══ 1. HERO — SEI QUI ═══════════════════════════════════════════ */}
+        <section data-testid="hero-section" className="rounded-2xl p-6 sm:p-8 text-center"
+          style={{ background: "#1A1F24" }}>
+          <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: "#FFD24D" }}>
+            Sei qui
           </p>
-        </div>
-      </div>
-    </div>
-  );
-}
+          <h1 className="text-3xl sm:text-4xl font-black mb-2" style={{ color: "#FFFFFF" }}>
+            {currentStepLabel}
+          </h1>
+          <p className="text-base" style={{ color: "rgba(255,255,255,0.5)" }}>
+            Step {completedSteps + 1} di {STEPS.length} — Ciao {nome}, procediamo insieme.
+          </p>
+        </section>
 
-function TeamSection() {
-  return (
-    <div className="bg-white rounded-2xl border border-[#ECEDEF] p-5">
-      <div className="text-xs font-bold uppercase tracking-wider mb-4" style={{ color: '#9CA3AF' }}>
-        Il tuo team Evolution PRO
-      </div>
-      <div className="grid grid-cols-3 gap-4">
-        {TEAM_MEMBERS.map(member => (
-          <div key={member.name} className="text-center">
-            <div 
-              className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold mx-auto mb-2"
-              style={{ background: member.color + '20', color: member.color }}
-            >
-              {member.avatar}
-            </div>
-            <div className="font-bold text-sm" style={{ color: '#1E2128' }}>{member.name}</div>
-            <div className="text-xs" style={{ color: '#9CA3AF' }}>{member.role}</div>
+        {/* ═══ 2. COSA DEVI FARE ADESSO ════════════════════════════════════ */}
+        <section data-testid="action-section" className="rounded-2xl p-6 sm:p-8 relative overflow-hidden"
+          style={{ background: "#FFD24D" }}>
+          <div className="absolute top-0 right-0 w-40 h-40 rounded-full opacity-15"
+            style={{ background: "white", transform: "translate(30%, -30%)" }} />
+          <div className="relative z-10">
+            <p className="text-xs font-black uppercase tracking-widest mb-4" style={{ color: "rgba(26,31,36,0.5)" }}>
+              Cosa dobbiamo fare adesso
+            </p>
+            <h2 className="text-2xl sm:text-3xl font-black mb-3" style={{ color: "#1A1F24" }}>
+              {phase.action}
+            </h2>
+            <p className="text-base leading-relaxed mb-6 max-w-lg" style={{ color: "rgba(26,31,36,0.7)" }}>
+              {phase.actionDesc}
+            </p>
+            <button
+              data-testid="vai-ora-btn"
+              onClick={() => onNavigate(phase.nav)}
+              className="inline-flex items-center gap-3 px-8 py-4 rounded-xl font-black text-lg transition-all hover:scale-[1.03] active:scale-[0.98]"
+              style={{ background: "#1A1F24", color: "#FFFFFF", boxShadow: "0 4px 16px rgba(0,0,0,0.2)" }}>
+              {phase.cta}
+              <ArrowRight className="w-5 h-5" />
+            </button>
           </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+        </section>
 
-function EventBanner({ event, onRemindMe }) {
-  return (
-    <div className="rounded-2xl p-5 flex items-start gap-4" style={{ background: '#E8F4FD', border: '1px solid #3B82F633' }}>
-      <div className="flex flex-col items-center justify-center w-12 h-12 rounded-xl" style={{ background: '#3B82F6', color: 'white' }}>
-        <Calendar className="w-5 h-5" />
-      </div>
-      <div className="flex-1">
-        <div className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: '#3B82F6' }}>
-          Prossimo evento live
-        </div>
-        <div className="font-bold" style={{ color: '#1E2128' }}>{event.title}</div>
-        <div className="text-sm" style={{ color: '#5F6572' }}>
-          {event.date} · {event.time} · con {event.host}
-        </div>
-      </div>
-      <button 
-        onClick={onRemindMe}
-        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all hover:scale-105"
-        style={{ background: '#25D366', color: 'white' }}
-      >
-        <MessageCircle className="w-4 h-4" />
-        Ricordamelo
-      </button>
-    </div>
-  );
-}
+        {/* ═══ 3. PROGRESSO ═════════════════════════════════════════════════ */}
+        <section data-testid="progress-section" className="rounded-2xl p-6 bg-white"
+          style={{ border: "1px solid #ECEDEF" }}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-black" style={{ color: "#1A1F24" }}>
+              Il nostro percorso
+            </h3>
+            <span className="text-sm font-black" style={{ color: progressPercent === 100 ? "#34C77B" : "#D4A017" }}>
+              {progressPercent}%
+            </span>
+          </div>
 
-function ProjectProgress({ steps, currentStepIndex }) {
-  return (
-    <div className="bg-white rounded-2xl border border-[#ECEDEF] p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div className="text-sm font-bold" style={{ color: '#1E2128' }}>
-          Sviluppo della tua Accademia
-        </div>
-        <div className="text-xs font-medium" style={{ color: '#9CA3AF' }}>
-          {currentStepIndex} di {steps.length}
-        </div>
-      </div>
-      
-      {/* Progress Bar */}
-      <div className="h-2 rounded-full overflow-hidden mb-4" style={{ background: '#ECEDEF' }}>
-        <div 
-          className="h-full rounded-full transition-all duration-700"
-          style={{ 
-            width: `${(currentStepIndex / steps.length) * 100}%`,
-            background: 'linear-gradient(90deg, #F2C418, #FADA5E)'
-          }}
-        />
-      </div>
-      
-      {/* Steps */}
-      <ul className="space-y-1">
-        {steps.map((step, i) => {
-          const isCompleted = i < currentStepIndex;
-          const isCurrent = i === currentStepIndex;
-          const isLocked = i > currentStepIndex;
-          
-          return (
-            <li 
-              key={step.id}
-              className="flex items-center gap-3 py-2.5 px-3 rounded-xl transition-all"
-              style={{ 
-                background: isCurrent ? '#FFF3C4' : isCompleted ? '#EAFAF1' : 'transparent',
-                border: isCurrent ? '2px solid #F2C418' : '2px solid transparent'
-              }}
-            >
-              <span 
-                className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                style={{ 
-                  background: isCompleted ? '#34C77B' : isCurrent ? '#F2C418' : '#ECEDEF',
-                  color: isCompleted ? 'white' : isCurrent ? '#1E2128' : '#9CA3AF'
-                }}
-              >
-                {isCompleted ? <Check className="w-3.5 h-3.5" /> : 
-                 isLocked ? <Lock className="w-3 h-3" /> : 
-                 step.id}
-              </span>
-              <span 
-                className="text-sm flex-1"
-                style={{ 
-                  color: isCompleted ? '#2D9F6F' : isCurrent ? '#1E2128' : '#9CA3AF',
-                  fontWeight: isCurrent ? 600 : 400
-                }}
-              >
-                {step.title}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
+          {/* Barra */}
+          <div className="w-full rounded-full mb-6" style={{ height: 8, background: "#ECEDEF" }}>
+            <div className="h-full rounded-full transition-all duration-700"
+              style={{
+                width: `${Math.max(progressPercent, 3)}%`,
+                background: progressPercent === 100 ? "#34C77B" : "linear-gradient(90deg, #FFD24D, #FADA5E)"
+              }} />
+          </div>
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// MAIN COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════════
+          {/* Elenco step */}
+          <div className="space-y-1">
+            {STEPS.map((step, i) => {
+              const isCompleted = i < completedSteps;
+              const isCurrent = i === completedSteps;
+              const isLocked = i > completedSteps;
+              return (
+                <div key={step.id} data-testid={`progress-step-${step.id}`}
+                  className="flex items-center gap-4 py-3 px-4 rounded-xl transition-all"
+                  style={{
+                    background: isCurrent ? "#FFF6D6" : isCompleted ? "#F0FDF4" : "transparent",
+                    border: isCurrent ? "2px solid #FFD24D" : "2px solid transparent",
+                  }}>
+                  <span className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-black flex-shrink-0"
+                    style={{
+                      background: isCompleted ? "#34C77B" : isCurrent ? "#FFD24D" : "#ECEDEF",
+                      color: isCompleted ? "white" : isCurrent ? "#1A1F24" : "#9CA3AF",
+                    }}>
+                    {isCompleted ? <Check className="w-4 h-4" /> : isLocked ? <Lock className="w-3.5 h-3.5" /> : step.id}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-base font-bold block"
+                      style={{ color: isCompleted ? "#2D9F6F" : isCurrent ? "#1A1F24" : "#9CA3AF" }}>
+                      {step.label}
+                    </span>
+                    <span className="text-sm"
+                      style={{ color: isCompleted ? "#86EFAC" : isCurrent ? "#5F6572" : "#D1D5DB" }}>
+                      {step.desc}
+                    </span>
+                  </div>
+                  {isCompleted && <Check className="w-5 h-5 flex-shrink-0" style={{ color: "#34C77B" }} />}
+                  {isCurrent && <span className="w-2.5 h-2.5 rounded-full flex-shrink-0 animate-pulse" style={{ background: "#FFD24D" }} />}
+                </div>
+              );
+            })}
+          </div>
+        </section>
 
-export function PartnerDashboardSimplified({ partner, onNavigate }) {
-  // Calcola fase corrente
-  const phaseKey = partner?.phase || 'F1';
-  const phaseInfo = PHASE_INFO[phaseKey] || PHASE_INFO.F1;
-  
-  // Info progetto
-  const phaseName = phaseInfo.name;
-  const tutor = phaseInfo.tutor;
-  const tutorRole = phaseInfo.tutorRole;
-  const currentTask = phaseInfo.task;
-  const tutorMessage = phaseInfo.message;
-  const currentStepIndex = phaseInfo.stepIndex;
-  
-  const partnerFirstName = partner?.name?.split(" ")[0] || "Partner";
-  
-  const handleTaskAction = () => {
-    const actionMap = {
-      'onboarding': 'documenti',
-      'positioning': 'documenti',
-      'masterclass': 'masterclass',
-      'course': 'coursebuilder',
-      'production': 'produzione',
-      'academy': 'brandkit',
-      'launch-prep': 'calendario',
-      'launch': 'calendario',
-    };
-    onNavigate(actionMap[currentTask.action] || 'corso');
-  };
-  
-  const handleWhatsAppReminder = () => {
-    const message = encodeURIComponent(`Ciao! Ricordami del webinar "${UPCOMING_EVENT.title}" - ${UPCOMING_EVENT.date} ${UPCOMING_EVENT.time}`);
-    window.open(`https://wa.me/?text=${message}`, '_blank');
-  };
-  
-  return (
-    <div className="min-h-full" style={{ background: '#FAFAF7' }}>
-      <div className="max-w-3xl mx-auto p-6 space-y-5">
-        
-        {/* Header */}
-        <PageHeader />
-        
-        {/* Sezione 1 — Stato progetto */}
-        <ProjectStatus 
-          partnerName={partnerFirstName}
-          phaseName={phaseName}
-          tutor={tutor}
-          tutorRole={tutorRole}
-          completedSteps={currentStepIndex}
-          totalSteps={PROJECT_STEPS.length}
-        />
-        
-        {/* Sezione 2 — Prossima azione */}
-        <NextAction task={currentTask} onAction={handleTaskAction} />
-        
-        {/* Messaggio del tutor */}
-        <TutorMessage tutor={tutor} message={tutorMessage} />
-        
-        {/* Sezione 3 — Il tuo team */}
-        <TeamSection />
-        
-        {/* Sezione 4 — Prossimo evento */}
-        <EventBanner event={UPCOMING_EVENT} onRemindMe={handleWhatsAppReminder} />
-        
-        {/* Sezione 5 — Sviluppo della tua Accademia */}
-        <ProjectProgress steps={PROJECT_STEPS} currentStepIndex={currentStepIndex} />
+        {/* ═══ 4. DOPO QUESTO STEP ═════════════════════════════════════════ */}
+        {completedSteps < STEPS.length && (
+          <section data-testid="after-step-section" className="rounded-2xl p-6 bg-white"
+            style={{ border: "1px solid #ECEDEF" }}>
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: "#E8F4FD" }}>
+                <ChevronRight className="w-5 h-5" style={{ color: "#3B82F6" }} />
+              </div>
+              <div>
+                <h3 className="text-base font-black mb-1" style={{ color: "#1A1F24" }}>
+                  Cosa succede dopo?
+                </h3>
+                <p className="text-base leading-relaxed" style={{ color: "#5F6572" }}>
+                  {AFTER_STEP[Math.min(completedSteps, AFTER_STEP.length - 1)]}
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ═══ 5. SUPPORTO ═════════════════════════════════════════════════ */}
+        <section data-testid="support-section" className="rounded-2xl p-6 bg-white"
+          style={{ border: "1px solid #ECEDEF" }}>
+          <h3 className="text-lg font-black mb-4" style={{ color: "#1A1F24" }}>
+            Siamo qui per te
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              data-testid="support-chat-btn"
+              onClick={() => onOpenChat ? onOpenChat() : onNavigate("supporto")}
+              className="flex items-center gap-4 p-4 rounded-xl text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
+              style={{ background: "#FFD24D", color: "#1A1F24" }}>
+              <MessageCircle className="w-6 h-6 flex-shrink-0" />
+              <div>
+                <div className="text-base font-black">Scrivici in chat</div>
+                <div className="text-sm" style={{ opacity: 0.6 }}>Stefania ti risponde subito</div>
+              </div>
+            </button>
+            <button
+              onClick={() => onNavigate("consulenza-claudio")}
+              className="flex items-center gap-4 p-4 rounded-xl text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
+              style={{ background: "#1A1F24", color: "#FFFFFF" }}>
+              <Phone className="w-6 h-6 flex-shrink-0" style={{ color: "#FFD24D" }} />
+              <div>
+                <div className="text-base font-black">Prenota una sessione</div>
+                <div className="text-sm" style={{ opacity: 0.5 }}>Con Claudio o Antonella</div>
+              </div>
+            </button>
+          </div>
+        </section>
+
+        {/* ═══ 6. COME FUNZIONA ════════════════════════════════════════════ */}
+        <section data-testid="rules-section" className="rounded-2xl p-6"
+          style={{ background: "#F0EFEB", border: "1px solid #E8E4DC" }}>
+          <div className="flex items-start gap-4">
+            <Info className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: "#8B8680" }} />
+            <div>
+              <h3 className="text-base font-black mb-2" style={{ color: "#1A1F24" }}>
+                Come funziona il percorso
+              </h3>
+              <ul className="space-y-1.5 text-sm" style={{ color: "#5F6572" }}>
+                <li>Ogni fase si sblocca solo dopo aver completato quella precedente.</li>
+                <li>Non devi pensare a cosa fare dopo: te lo diciamo noi.</li>
+                <li>Se hai dubbi, scrivici. Siamo sempre disponibili.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
 
       </div>
     </div>
