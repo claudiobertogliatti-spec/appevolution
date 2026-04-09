@@ -189,6 +189,8 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
   const [contractText, setContractText] = useState("");
   const [corrispettivo, setCorrispettivo] = useState(2790);
   const [confirmedArticles, setConfirmedArticles] = useState({});
+  const [confirmedVessatory, setConfirmedVessatory] = useState({});
+  const [firmaAccettata, setFirmaAccettata] = useState(false);
   const [signing, setSigning] = useState(false);
   const [signed, setSigned] = useState(false);
   const [signatureName, setSignatureName] = useState("");
@@ -303,19 +305,32 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
 
   // ── Contract articles ────────────────────────────────────────────
   const IMPORTANT_ARTICLES = [3, 5, 7, 9, 11];
+  const VESSATORY_ARTICLES = [
+    { id: "1.4", label: "Art. 1.4 — Esclusiva canali di pubblicazione e vendita", desc: "Evolution PRO ha l'esclusiva sulla pubblicazione e vendita del videocorso per la durata del contratto." },
+    { id: "2.6", label: "Art. 2.6 — Recesso unilaterale di Evolution PRO", desc: "Evolution PRO può recedere unilateralmente in caso di sopravvenuta impossibilità o inidoneità del progetto." },
+    { id: "2.7", label: "Art. 2.7 — Clausola risolutiva espressa", desc: "Il contratto si risolve automaticamente al verificarsi di specifici inadempimenti gravi." },
+    { id: "3", label: "Art. 3 — Sospensione/risoluzione per inattività del Partner", desc: "Evolution PRO può sospendere o risolvere il contratto se il Partner risulta inattivo o non collaborativo." },
+    { id: "5", label: "Art. 5 — Decadenza dilazione e disciplina rimborsi", desc: "Decadenza dal beneficio della rateizzazione in caso di mancato pagamento e non rimborsabilità del corrispettivo." },
+    { id: "6.5", label: "Art. 6.5 — Penale per violazione riservatezza", desc: "Penale contrattuale in caso di violazione degli obblighi di riservatezza." },
+    { id: "7", label: "Art. 7 — Limitazioni di responsabilità", desc: "Limitazione della responsabilità di Evolution PRO per danni indiretti e risultati economici." },
+    { id: "12", label: "Art. 12 — Tutela brand e penale post-contrattuale", desc: "Protezione del marchio Evolution PRO e penale per utilizzo improprio dopo la cessazione del contratto." },
+    { id: "14.3", label: "Art. 14.3 — Foro competente esclusivo", desc: "Per ogni controversia è competente in via esclusiva il Foro di Torino." },
+  ];
   // Match both "Art. X" and "ARTICOLO X" formats
   const articles = contractText.split(/(?=(?:Art\.\s*\d+|ARTICOLO\s+\d+))/).filter(a => a.trim());
   const allImportantConfirmed = IMPORTANT_ARTICLES.every(n => confirmedArticles[n]);
+  const allVessatoryConfirmed = VESSATORY_ARTICLES.every(v => confirmedVessatory[v.id]);
 
   // ── Sign ─────────────────────────────────────────────────────────
   const handleSign = async () => {
-    if (!signatureName.trim() || !allImportantConfirmed) return;
+    if (!firmaAccettata || !allVessatoryConfirmed) return;
     setSigning(true);
     try {
-      const firma64 = btoa(unescape(encodeURIComponent(`FIRMA DIGITALE: ${signatureName} - ${new Date().toISOString()}`)));
+      const nomeCompleto = personalData.nome_completo || nome;
+      const firma64 = btoa(unescape(encodeURIComponent(`FIRMA DIGITALE: ${nomeCompleto} - ${new Date().toISOString()}`)));
       await axios.post(`${API}/api/cliente-analisi/partnership-firma`, {
         firma_base64: firma64,
-        articoli_confermati: Object.keys(confirmedArticles).filter(k => confirmedArticles[k]).map(Number),
+        articoli_confermati: VESSATORY_ARTICLES.map(v => v.id),
       }, { headers });
       setSigned(true);
     } catch (e) { console.error("Sign error:", e); }
@@ -842,104 +857,124 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
         )}
       </Section>
 
-      {/* 9b. Contratto a 2 colonne + chat laterale */}
+      {/* 9b. Contratto (full width sopra) */}
       {(personalSaved || adminPreview) && (
-        <div data-testid="section-contratto" className="scroll-mt-8">
-          <div className="flex gap-4" style={{ maxWidth: "none" }}>
-            {/* Colonna SX: Contratto */}
-            <div className="flex-1 min-w-0 rounded-2xl p-6" style={{ background: C.white, border: `1px solid ${C.border}` }}>
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${C.dark}10` }}>
-                  <FileText className="w-5 h-5" style={{ color: C.dark }} />
-                </div>
-                <div>
-                  <h2 className="text-xl font-black" style={{ color: C.dark }}>Contratto di Partnership</h2>
-                  <p className="text-sm" style={{ color: C.muted }}>
-                    Prima di procedere, leggi con attenzione il contratto. Per dubbi, usa la chat.
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                {articles.map((art, i) => {
-                  const match = art.match(/^(?:Art\.\s*(\d+)|ARTICOLO\s+(\d+))/);
-                  const artNum = match ? parseInt(match[1] || match[2]) : i + 1;
-                  const isImportant = IMPORTANT_ARTICLES.includes(artNum);
-                  const isExpanded = expandedArticle === i;
-                  const isConfirmed = confirmedArticles[artNum];
-                  const lines = art.trim().split("\n");
-                  const title = lines[0]?.trim() || `Articolo ${artNum}`;
-                  const body = lines.slice(1).join("\n").trim();
-
-                  return (
-                    <div key={i} data-testid={`contract-art-${artNum}`}
-                      className="rounded-xl overflow-hidden transition-all"
-                      style={{
-                        border: `1px solid ${isImportant ? (isConfirmed ? `${C.green}60` : `${C.yellow}80`) : C.border}`,
-                        background: isImportant ? (isConfirmed ? `${C.green}04` : `${C.yellow}04`) : C.white,
-                      }}>
-                      <button onClick={() => setExpandedArticle(isExpanded ? null : i)}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left">
-                        {isImportant && <Shield className="w-4 h-4 flex-shrink-0" style={{ color: isConfirmed ? C.green : C.yellowDark }} />}
-                        <span className="text-sm font-bold flex-1" style={{ color: C.dark }}>{title}</span>
-                        {isExpanded ? <ChevronUp className="w-4 h-4" style={{ color: C.muted }} /> : <ChevronDown className="w-4 h-4" style={{ color: C.muted }} />}
-                      </button>
-                      {isExpanded && (
-                        <div className="px-4 pb-4">
-                          <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: C.muted }}>{body}</p>
-                          {isImportant && !isConfirmed && (
-                            <button data-testid={`confirm-art-${artNum}`}
-                              onClick={() => setConfirmedArticles(p => ({ ...p, [artNum]: true }))}
-                              className="mt-3 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all"
-                              style={{ background: `${C.yellow}20`, color: C.yellowDark }}>
-                              <CheckCircle className="w-4 h-4" /> Confermo di aver letto e compreso
-                            </button>
-                          )}
-                          {isImportant && isConfirmed && (
-                            <div className="mt-3 flex items-center gap-2 text-sm font-bold" style={{ color: C.green }}>
-                              <CheckCircle className="w-4 h-4" /> Articolo confermato
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {!allImportantConfirmed && articles.length > 0 && (
-                <div className="mt-4 text-center text-sm" style={{ color: C.muted }}>
-                  <Shield className="w-4 h-4 inline mr-1" style={{ color: C.yellowDark }} />
-                  Conferma la lettura degli articoli evidenziati per procedere.
-                </div>
-              )}
+        <Section id="contratto" accent>
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${C.dark}10` }}>
+              <FileText className="w-5 h-5" style={{ color: C.dark }} />
             </div>
-
-            {/* Colonna DX: Chat supporto (fissa) */}
-            <div className="hidden lg:block w-80 flex-shrink-0">
-              <div className="sticky top-4 rounded-2xl overflow-hidden" style={{ border: `1px solid ${C.border}`, background: C.white }}>
-                <div className="px-4 py-3" style={{ background: C.dark }}>
-                  <div className="flex items-center gap-2">
-                    <MessageCircle className="w-4 h-4" style={{ color: C.yellow }} />
-                    <span className="text-sm font-bold text-white">Assistente Contrattuale</span>
-                  </div>
-                  <p className="text-xs text-white/50 mt-0.5">Chiedi chiarimenti su qualsiasi articolo</p>
-                </div>
-                <InlineChat userId={userId} token={token} />
-              </div>
+            <div>
+              <h2 className="text-xl font-black" style={{ color: C.dark }}>Contratto di Partnership</h2>
+              <p className="text-sm" style={{ color: C.muted }}>
+                Leggi con attenzione ogni articolo. Per chiarimenti usa l'assistente in basso.
+              </p>
             </div>
           </div>
-        </div>
+
+          <div className="space-y-2">
+            {articles.map((art, i) => {
+              const match = art.match(/^(?:Art\.\s*(\d+)|ARTICOLO\s+(\d+))/);
+              const artNum = match ? parseInt(match[1] || match[2]) : i + 1;
+              const isExpanded = expandedArticle === i;
+              const lines = art.trim().split("\n");
+              const title = lines[0]?.trim() || `Articolo ${artNum}`;
+              const body = lines.slice(1).join("\n").trim();
+
+              return (
+                <div key={i} data-testid={`contract-art-${artNum}`}
+                  className="rounded-xl overflow-hidden transition-all"
+                  style={{ border: `1px solid ${C.border}`, background: C.white }}>
+                  <button onClick={() => setExpandedArticle(isExpanded ? null : i)}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left">
+                    <span className="text-xs font-bold px-2 py-0.5 rounded" style={{ background: `${C.dark}08`, color: C.muted }}>{artNum}</span>
+                    <span className="text-sm font-bold flex-1" style={{ color: C.dark }}>{title}</span>
+                    {isExpanded ? <ChevronUp className="w-4 h-4" style={{ color: C.muted }} /> : <ChevronDown className="w-4 h-4" style={{ color: C.muted }} />}
+                  </button>
+                  {isExpanded && (
+                    <div className="px-4 pb-4">
+                      <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: C.muted }}>{body}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </Section>
       )}
 
-      {/* ═══ 10. FIRMA + INVIO EMAIL ═════════════════════════════════ */}
-      {((personalSaved && allImportantConfirmed) || adminPreview) && (
+      {/* 9c. Clausole Vessatorie (Art. 1341/1342 c.c.) */}
+      {(personalSaved || adminPreview) && (
+        <Section id="vessatorie" accent>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${C.red}10` }}>
+              <Shield className="w-5 h-5" style={{ color: C.red }} />
+            </div>
+            <div>
+              <h2 className="text-xl font-black" style={{ color: C.dark }}>Clausole Vessatorie</h2>
+              <p className="text-sm" style={{ color: C.muted }}>
+                Ai sensi degli artt. 1341 e 1342 c.c., approva specificamente le seguenti clausole.
+              </p>
+            </div>
+          </div>
+          <div className="space-y-2 mt-4">
+            {VESSATORY_ARTICLES.map(v => {
+              const checked = confirmedVessatory[v.id];
+              return (
+                <label key={v.id} data-testid={`vessatoria-${v.id}`}
+                  className="flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all"
+                  style={{
+                    border: `1px solid ${checked ? `${C.green}50` : C.border}`,
+                    background: checked ? `${C.green}04` : C.white,
+                  }}>
+                  <input type="checkbox" checked={!!checked}
+                    onChange={() => setConfirmedVessatory(p => ({ ...p, [v.id]: !p[v.id] }))}
+                    className="mt-0.5 w-4 h-4 rounded accent-green-600 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-bold" style={{ color: C.dark }}>{v.label}</span>
+                    <p className="text-xs mt-0.5" style={{ color: C.muted }}>{v.desc}</p>
+                  </div>
+                  {checked && <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: C.green }} />}
+                </label>
+              );
+            })}
+          </div>
+          {!allVessatoryConfirmed && (
+            <div className="mt-4 text-center text-sm" style={{ color: C.muted }}>
+              <Shield className="w-4 h-4 inline mr-1" style={{ color: C.red }} />
+              Devi approvare tutte le clausole vessatorie per procedere alla firma.
+            </div>
+          )}
+          {allVessatoryConfirmed && (
+            <div className="mt-4 flex items-center justify-center gap-2 text-sm font-bold" style={{ color: C.green }}>
+              <CheckCircle className="w-4 h-4" /> Tutte le clausole vessatorie approvate
+            </div>
+          )}
+        </Section>
+      )}
+
+      {/* 9d. Chat Assistente Contrattuale (sotto) */}
+      {(personalSaved || adminPreview) && (
+        <Section id="chat-contratto" accent>
+          <div className="px-4 py-3 rounded-t-xl" style={{ background: C.dark }}>
+            <div className="flex items-center gap-2">
+              <MessageCircle className="w-4 h-4" style={{ color: C.yellow }} />
+              <span className="text-sm font-bold text-white">Assistente Contrattuale</span>
+            </div>
+            <p className="text-xs text-white/50 mt-0.5">Hai dubbi su un articolo? Chiedi chiarimenti qui sotto.</p>
+          </div>
+          <InlineChat userId={userId} token={token} />
+        </Section>
+      )}
+
+      {/* ═══ 10. FIRMA ═══════════════════════════════════════════════ */}
+      {((personalSaved && allVessatoryConfirmed) || adminPreview) && (
         <Section id="firma" accent>
           <div className="flex items-center gap-3 mb-5">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${C.green}15` }}>
               <PenLine className="w-5 h-5" style={{ color: C.green }} />
             </div>
-            <h2 className="text-xl font-black" style={{ color: C.dark }}>Conferma e firma</h2>
+            <h2 className="text-xl font-black" style={{ color: C.dark }}>Firma e Accettazione</h2>
           </div>
 
           {signed ? (
@@ -963,26 +998,39 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
               )}
             </div>
           ) : (
-            <div>
-              <p className="text-base mb-4" style={{ color: C.muted }}>
-                Per confermare l'attivazione della partnership, inserisci il tuo nome e procedi con la firma digitale.
-              </p>
-              <input data-testid="signature-input" type="text" value={signatureName}
-                onChange={e => setSignatureName(e.target.value)}
-                placeholder="Nome e Cognome"
-                className="w-full rounded-xl px-4 py-3 text-lg font-bold text-center focus:outline-none focus:ring-2 mb-4"
-                style={{ border: `2px solid ${C.yellow}`, background: C.white, color: C.dark, fontFamily: "'Georgia', serif", fontStyle: "italic" }} />
-              <button data-testid="sign-btn" onClick={handleSign}
-                disabled={!signatureName.trim() || signing}
-                className="w-full py-3.5 rounded-xl text-base font-black flex items-center justify-center gap-2 transition-all"
+            <div className="space-y-5">
+              {/* Flag di accettazione evidente */}
+              <label data-testid="firma-accettazione-flag"
+                className="flex items-start gap-4 p-5 rounded-xl cursor-pointer transition-all"
                 style={{
-                  background: signatureName.trim() ? C.green : "#E5E7EB",
-                  color: signatureName.trim() ? C.white : "#9CA3AF",
+                  border: `2px solid ${firmaAccettata ? C.green : C.yellow}`,
+                  background: firmaAccettata ? `${C.green}06` : `${C.yellow}06`,
+                }}>
+                <input type="checkbox" checked={firmaAccettata}
+                  onChange={() => setFirmaAccettata(!firmaAccettata)}
+                  className="mt-1 w-5 h-5 rounded accent-green-600 flex-shrink-0" />
+                <div className="flex-1">
+                  <span className="text-base font-black block" style={{ color: C.dark }}>
+                    Firmo e accetto la proposta di partnership Evolution Pro
+                  </span>
+                  <p className="text-sm mt-1" style={{ color: C.muted }}>
+                    Dichiaro di aver letto integralmente il contratto, di approvare le clausole vessatorie sopra indicate ai sensi degli artt. 1341 e 1342 c.c., e di accettare tutti i termini e le condizioni della partnership.
+                  </p>
+                </div>
+                {firmaAccettata && <CheckCircle className="w-6 h-6 flex-shrink-0 mt-1" style={{ color: C.green }} />}
+              </label>
+
+              <button data-testid="sign-btn" onClick={handleSign}
+                disabled={!firmaAccettata || signing}
+                className="w-full py-4 rounded-xl text-base font-black flex items-center justify-center gap-2 transition-all"
+                style={{
+                  background: firmaAccettata ? C.green : "#E5E7EB",
+                  color: firmaAccettata ? C.white : "#9CA3AF",
                   opacity: signing ? 0.6 : 1,
                 }}>
                 {signing && <Loader2 className="w-4 h-4 animate-spin" />}
-                <PenLine className="w-4 h-4" />
-                Firma il Contratto
+                <PenLine className="w-5 h-5" />
+                Conferma Firma
               </button>
             </div>
           )}
