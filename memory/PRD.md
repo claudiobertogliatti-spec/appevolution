@@ -22,10 +22,10 @@ Applicazione di gestione aziendale basata su AI per Evolution PRO LLC. Gestisce 
 - [x] Step 1-4 ClienteWizard (Welcome -> Quiz -> Checkout -> Onboarding)
 - [x] Pipeline AI Backend (Scoring + Claude + PDF)
 - [x] Post Analisi e Partnership - Funnel 11 sezioni
-- [x] Ristrutturazione PDF a 11 sezioni - 09 Apr 2026
-- [x] Aggiornamento prompt AI Claude - 09 Apr 2026
-- [x] Upload Audio Analisi (Admin) - 09 Apr 2026
-- [x] **Funnel Post-Analisi unificato su /proposta - 09 Apr 2026**
+- [x] Ristrutturazione PDF a 11 sezioni
+- [x] Aggiornamento prompt AI Claude
+- [x] Upload Audio Analisi (Admin)
+- [x] Funnel Post-Analisi unificato su /proposta
   - Routing /proposta e /firma unificati a PostAnalisiPartnership
   - Dati personali con campi: nome_azienda, email_lavoro, PEC
   - Contratto a 2 colonne: testo legale + Assistente Contrattuale (chat AI Claude)
@@ -34,6 +34,11 @@ Applicazione di gestione aziendale basata su AI per Evolution PRO LLC. Gestisce 
   - Pagamento Stripe / Bonifico bancario con dati IBAN
   - Upload distinta pagamento, doc identita, codice fiscale
   - Testato: 14/14 backend, 100% frontend (iteration_41)
+- [x] **Admin Preview completo pagina Analisi e Partnership - 09 Apr 2026**
+  - Vista Admin (cp-analisi) mostra TUTTE le 13 sezioni senza condizioni
+  - Dati demo automatici quando utente non esiste nel DB
+  - Banner "Anteprima Admin" in modalita preview
+  - Sezioni firma, documenti, pagamento visibili senza dover confermare articoli
 
 ## P0 - Prossimi
 - [ ] SMTP trigger email nell'endpoint /api/cliente-analisi/call-prenotata

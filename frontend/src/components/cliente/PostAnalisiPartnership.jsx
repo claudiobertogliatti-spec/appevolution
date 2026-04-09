@@ -215,10 +215,26 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
   const nome = user?.nome || "Cliente";
 
+  // ── Demo data for admin preview when user doesn't exist ─────────
+  const DEMO_ANALISI = {
+    analisi: {
+      sintesi_progetto: "Progetto nel settore della formazione digitale con focus su professionisti 30-50 anni.",
+      diagnosi: "Il progetto presenta basi solide ma necessita di strutturazione operativa professionale.",
+      punti_di_forza: ["Competenza verticale nel settore", "Target ben definito", "Esperienza diretta"],
+      criticita: ["Assenza funnel di vendita", "Mancanza contenuti video professionali"],
+      direzione_consigliata: "Partnership operativa per strutturare funnel e lancio in 60 giorni.",
+      esito: "IDONEO ALLA PARTNERSHIP",
+    },
+    scoring: { score_totale: 32, esito: "IDONEO" },
+    quiz: { ambito: "Formazione digitale", target: "Professionisti 30-50 anni" },
+  };
+  const DEMO_PERSONAL = { nome_completo: "Mario Rossi", codice_fiscale: "RSSMRA80A01H501Z", indirizzo: "Via Roma 1", citta: "Milano", cap: "20100", provincia: "MI", partita_iva: "IT12345678901", telefono: "+39 333 1234567", nome_azienda: "Rossi Digital Academy", email_lavoro: "mario@rossiacademy.it", pec: "rossi@pec.it" };
+
   // ── Fetch data ──────────────────────────────────────────────────
   useEffect(() => {
     if (!userId) { setLoadingAnalisi(false); return; }
     const fetchAll = async () => {
+      let anySuccess = false;
       try {
         const [analisiRes, contractRes, audioRes, personalRes, docsRes] = await Promise.allSettled([
           axios.get(`${API}/api/cliente-analisi/output/${userId}`, { headers }),
@@ -227,10 +243,11 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
           axios.get(`${API}/api/cliente-analisi/personal-data/${userId}`, { headers }),
           axios.get(`${API}/api/cliente-analisi/documents/${userId}`, { headers }),
         ]);
-        if (analisiRes.status === "fulfilled") setAnalisi(analisiRes.value.data);
-        if (contractRes.status === "fulfilled") {
+        if (analisiRes.status === "fulfilled") { setAnalisi(analisiRes.value.data); anySuccess = true; }
+        if (contractRes.status === "fulfilled" && contractRes.value.data?.text) {
           setContractText(contractRes.value.data.text || "");
           setCorrispettivo(contractRes.value.data.corrispettivo || 2790);
+          anySuccess = true;
         }
         if (audioRes.status === "fulfilled" && audioRes.value.data?.available) {
           setAudioUrl(audioRes.value.data.url);
@@ -239,11 +256,29 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
         if (personalRes.status === "fulfilled" && personalRes.value.data?.data?.nome_completo) {
           setPersonalData(personalRes.value.data.data);
           setPersonalSaved(true);
+          anySuccess = true;
         }
         if (docsRes.status === "fulfilled") {
           setDocs(docsRes.value.data?.documents || {});
         }
       } catch (e) { console.error("Fetch post-analisi:", e); }
+
+      // Admin preview fallback: if no real data loaded, inject demo data
+      if (adminPreview && !anySuccess) {
+        setAnalisi(DEMO_ANALISI);
+        setPersonalData(DEMO_PERSONAL);
+        setPersonalSaved(true);
+        // Load contract text from a generic template call
+        try {
+          const tpl = await axios.get(`${API}/api/contract/text/1`, { headers });
+          if (tpl.data?.text) {
+            setContractText(tpl.data.text);
+            setCorrispettivo(tpl.data.corrispettivo || 2790);
+          }
+        } catch {
+          setContractText("ARTICOLO 1 - OGGETTO\nContratto di partnership...\n\nARTICOLO 2 - DURATA\nIl presente contratto...\n\nARTICOLO 3 - CORRISPETTIVO\nIl corrispettivo della partnership...\n\nARTICOLO 4 - OBBLIGHI\nLe parti si impegnano a...\n\nARTICOLO 5 - PROPRIETA INTELLETTUALE\nTutti i contenuti...\n\nARTICOLO 6 - RISERVATEZZA\nLe informazioni...\n\nARTICOLO 7 - RECESSO\nCiascuna parte potra recedere...\n\nARTICOLO 8 - RESPONSABILITA\nEvolution PRO non sara...\n\nARTICOLO 9 - ESCLUSIVITA\nDurante la vigenza...\n\nARTICOLO 10 - FORZA MAGGIORE\nNessuna parte...\n\nARTICOLO 11 - RISOLUZIONE CONTROVERSIE\nPer qualsiasi controversia...\n\nARTICOLO 12 - DISPOSIZIONI FINALI\nIl presente contratto...");
+        }
+      }
       setLoadingAnalisi(false);
     };
     fetchAll();
@@ -362,6 +397,14 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
   return (
     <div data-testid="post-analisi-partnership" className="space-y-8 pb-12"
       style={{ maxWidth: 720, margin: "0 auto" }}>
+
+      {adminPreview && (
+        <div data-testid="admin-preview-banner" className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
+          style={{ background: `${C.yellow}20`, border: `1px solid ${C.yellow}`, color: C.dark }}>
+          <Shield className="w-4 h-4" style={{ color: C.yellowDark }} />
+          Anteprima Admin — Stai visualizzando la pagina come la vedrebbe il cliente
+        </div>
+      )}
 
       {/* ═══ 1. RIPRENDIAMO DA DOVE CI SIAMO FERMATI ════════════════ */}
       <Section id="recap" accent>
@@ -800,7 +843,7 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
       </Section>
 
       {/* 9b. Contratto a 2 colonne + chat laterale */}
-      {personalSaved && (
+      {(personalSaved || adminPreview) && (
         <div data-testid="section-contratto" className="scroll-mt-8">
           <div className="flex gap-4" style={{ maxWidth: "none" }}>
             {/* Colonna SX: Contratto */}
@@ -890,7 +933,7 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
       )}
 
       {/* ═══ 10. FIRMA + INVIO EMAIL ═════════════════════════════════ */}
-      {personalSaved && allImportantConfirmed && (
+      {((personalSaved && allImportantConfirmed) || adminPreview) && (
         <Section id="firma" accent>
           <div className="flex items-center gap-3 mb-5">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${C.green}15` }}>
@@ -947,7 +990,7 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
       )}
 
       {/* ═══ 11. UPLOAD DOCUMENTI ════════════════════════════════════ */}
-      {signed && (
+      {(signed || adminPreview) && (
         <Section id="documenti" accent>
           <div className="flex items-center gap-3 mb-5">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${C.blue}15` }}>
@@ -989,7 +1032,7 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
       )}
 
       {/* ═══ 12. PAGAMENTO ═══════════════════════════════════════════ */}
-      {signed && (
+      {(signed || adminPreview) && (
         <Section id="pagamento" accent>
           <div className="text-center mb-6">
             <h2 className="text-xl sm:text-2xl font-black" style={{ color: C.dark }}>
