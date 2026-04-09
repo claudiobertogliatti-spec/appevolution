@@ -1,6 +1,7 @@
 """
 Motore di generazione output dal questionario cliente.
 Genera: scoring deterministico, analisi strategica (AI), script call (AI), PDF.
+Struttura analisi a 11 sezioni come da procedura.
 """
 import os
 import logging
@@ -28,7 +29,6 @@ def calcola_scoring(quiz: dict) -> dict:
     pub = SCORE_PUBBLICO.get(quiz.get("pubblico", ""), 0)
     ven = SCORE_VENDITE.get(quiz.get("vendite_online", ""), 0)
 
-    # Chiarezza problema: basata su lunghezza e specificità
     problema = quiz.get("problema", "")
     if len(problema) > 120:
         prob = 10
@@ -65,11 +65,18 @@ def calcola_scoring(quiz: dict) -> dict:
     }
 
 
-# ─── GENERAZIONE AI (ANALISI + SCRIPT CALL) ─────────────────────────────────
+# ─── GENERAZIONE AI: ANALISI 11 SEZIONI ─────────────────────────────────────
 
 def _build_analisi_prompt(quiz: dict, scoring: dict) -> str:
-    """Prompt per Claude: genera analisi strategica strutturata."""
-    return f"""Sei un consulente strategico senior di Evolution PRO, azienda italiana che aiuta professionisti e imprenditori a costruire accademie digitali.
+    """Prompt per Claude: genera analisi strategica strutturata in 11 sezioni."""
+    classificazione = scoring["classificazione"]
+    esito_label = {
+        "IDONEO": "IDONEO",
+        "IDONEO_CON_RISERVA": "IDONEO CON RISERVA",
+        "NON_IDONEO": "NON IDONEO"
+    }.get(classificazione, classificazione)
+
+    return f"""Sei un consulente strategico senior di Evolution PRO, azienda italiana che aiuta professionisti a costruire accademie digitali.
 
 DATI CLIENTE:
 - Ambito: {quiz.get('ambito', 'N/A')}
@@ -82,17 +89,25 @@ DATI CLIENTE:
 - Dettaglio vendite: {quiz.get('vendite_dettaglio', 'N/A')}
 - Obiettivo: {quiz.get('obiettivo', 'N/A')}
 
-SCORING: {scoring['totale']}/{scoring['max']} ({scoring['percentuale']}%) — {scoring['classificazione']}
+SCORING: {scoring['totale']}/{scoring['max']} ({scoring['percentuale']}%) — {esito_label}
 
-Genera un'ANALISI STRATEGICA in italiano con ESATTAMENTE queste 5 sezioni.
-Rispondi SOLO in JSON valido, senza markdown, senza commenti.
+Genera un'ANALISI STRATEGICA in italiano.
+Regole: frasi brevi, linguaggio diretto, zero fuffa, niente storytelling lungo.
+
+Rispondi SOLO in JSON valido, senza markdown. Segui ESATTAMENTE questa struttura:
 
 {{
-  "sintesi_progetto": "2-3 frasi che sintetizzano il progetto, il posizionamento e la direzione strategica",
-  "punti_di_forza": ["punto 1", "punto 2", "punto 3"],
-  "criticita": ["criticità 1", "criticità 2"],
-  "livello_maturita": "Una frase che descrive il livello complessivo: principiante / intermedio / avanzato, con motivazione",
-  "direzione_consigliata": "2-3 frasi con la raccomandazione strategica principale e i primi passi consigliati"
+  "sintesi_progetto": "Massimo 3 righe. Ambito, target, problema. Vai dritto al punto.",
+  "diagnosi": "Testo di 4-5 frasi. Descrivi: cosa funziona, cosa non funziona, dove si blocca il progetto oggi.",
+  "punti_di_forza": ["forza 1", "forza 2", "forza 3"],
+  "criticita": ["criticità 1", "criticità 2", "criticità 3"],
+  "livello_progetto": "Base|Intermedio|Avanzato",
+  "livello_spiegazione": "1-2 frasi che motivano il livello assegnato.",
+  "conseguenze": "2-3 frasi su cosa succede se il cliente NON cambia approccio. Concreto, non generico.",
+  "direzione_consigliata": "2-3 frasi su cosa deve fare il cliente come prossimo step strategico. Nessuna vendita diretta, solo direzione.",
+  "introduzione_soluzione": "2 frasi che accennano a come Evolution PRO può aiutare in questo specifico caso. Breve, non promozionale.",
+  "esito": "{esito_label}",
+  "prossimo_passo": "1-2 frasi sul prossimo step concreto (call strategica con Claudio)."
 }}"""
 
 
@@ -113,8 +128,10 @@ SCORING: {scoring['classificazione']} ({scoring['percentuale']}%)
 
 ANALISI STRATEGICA GIÀ GENERATA:
 - Sintesi: {analisi.get('sintesi_progetto', '')}
+- Diagnosi: {analisi.get('diagnosi', '')}
 - Punti di forza: {', '.join(analisi.get('punti_di_forza', []))}
 - Criticità: {', '.join(analisi.get('criticita', []))}
+- Conseguenze: {analisi.get('conseguenze', '')}
 
 Genera uno SCRIPT CALL in italiano con ESATTAMENTE queste 6 sezioni.
 Il tono è diretto, professionale ma umano. Parla in prima persona.
@@ -189,34 +206,48 @@ def _analisi_fallback(quiz: dict, scoring: dict) -> dict:
     ambito = quiz.get("ambito", "il tuo ambito")
     target = quiz.get("target", "il tuo target")
     classificazione = scoring["classificazione"]
+    esito_label = classificazione.replace("_", " ")
 
     if classificazione == "IDONEO":
-        maturita = "Profilo avanzato con buone basi per la digitalizzazione"
-        direzione = f"Consigliamo di procedere rapidamente con la costruzione dell'accademia digitale nell'ambito {ambito}. Il pubblico esistente e l'esperienza di vendita rappresentano un forte vantaggio competitivo."
+        livello = "Avanzato"
+        livello_spieg = "Profilo con buone basi e esperienza concreta nella digitalizzazione."
+        conseguenze = f"Rimanendo nella situazione attuale, il rischio è che competitor nel settore {ambito} costruiscano le proprie piattaforme digitali prima, acquisendo il tuo pubblico."
+        direzione = f"Procedere con la costruzione dell'accademia digitale in {ambito}. Il primo passo è consolidare il posizionamento e definire il prodotto principale."
     elif classificazione == "IDONEO_CON_RISERVA":
-        maturita = "Profilo intermedio con margini di crescita significativi"
-        direzione = f"Raccomandiamo un percorso graduale: consolidare prima il posizionamento in {ambito} e costruire un primo prodotto digitale minimo per validare la domanda."
+        livello = "Intermedio"
+        livello_spieg = "Profilo con margini di crescita significativi, ma alcune lacune da colmare."
+        conseguenze = "Senza intervento, il progetto resterà dipendente dal lavoro manuale. La crescita sarà lenta e il rischio di stallo elevato."
+        direzione = f"Consolidare il posizionamento in {ambito} e costruire un primo prodotto digitale minimo per validare la domanda."
     else:
-        maturita = "Profilo alle prime fasi, necessita di lavoro preparatorio"
-        direzione = f"Suggeriamo di investire inizialmente nella costruzione del pubblico e nella validazione dell'offerta per {target} prima di procedere con prodotti digitali complessi."
+        livello = "Base"
+        livello_spieg = "Profilo alle prime fasi, necessita di lavoro preparatorio prima di scalare."
+        conseguenze = f"Senza una struttura, ogni tentativo di crescita genererà frustrazione. Il mercato in {ambito} non aspetta."
+        direzione = f"Investire nella costruzione del pubblico e validare l'offerta per {target} prima di prodotti digitali complessi."
 
     return {
-        "sintesi_progetto": f"Professionista nel settore {ambito} con focus su {target}. Scoring complessivo: {scoring['percentuale']}%.",
+        "sintesi_progetto": f"Professionista nel settore {ambito} con focus su {target}. Problema: {quiz.get('problema', 'N/A')[:80]}.",
+        "diagnosi": f"Il progetto ha una base di competenza solida nel settore {ambito}. Il target ({target}) è definito. Tuttavia, manca un sistema strutturato per convertire questa competenza in un asset digitale. Il canale attuale ({quiz.get('canale_principale', 'non definito')}) non è sufficiente a sostenere la crescita.",
         "punti_di_forza": [
-            f"Esperienza: {LABEL_ESPERIENZA.get(quiz.get('esperienza', ''), 'N/A')}",
-            f"Problema chiaro: {quiz.get('problema', 'N/A')[:80]}",
+            f"Esperienza nel settore: {LABEL_ESPERIENZA.get(quiz.get('esperienza', ''), 'N/A')}",
+            "Problema chiaro e specifico per il target",
+            f"Pubblico: {LABEL_PUBBLICO.get(quiz.get('pubblico', ''), 'N/A')}",
         ],
         "criticita": [
-            f"Pubblico: {LABEL_PUBBLICO.get(quiz.get('pubblico', ''), 'N/A')}",
+            "Mancanza di un sistema digitale strutturato",
             f"Vendite online: {LABEL_VENDITE.get(quiz.get('vendite_online', ''), 'N/A')}",
+            "Offerta non ancora pacchettizzata per il mercato digitale",
         ],
-        "livello_maturita": maturita,
+        "livello_progetto": livello,
+        "livello_spiegazione": livello_spieg,
+        "conseguenze": conseguenze,
         "direzione_consigliata": direzione,
+        "introduzione_soluzione": "Evolution PRO lavora esattamente su questo: trasformare competenze come le tue in accademie digitali strutturate. Il percorso è personalizzato sul caso specifico.",
+        "esito": esito_label,
+        "prossimo_passo": "Il prossimo step è una call strategica con Claudio (CEO Evolution PRO) per analizzare insieme i risultati e valutare il percorso più adatto.",
     }
 
 
 def _script_fallback(quiz: dict, scoring: dict) -> dict:
-    nome = "il cliente"
     ambito = quiz.get("ambito", "il tuo settore")
     return {
         "apertura_personalizzata": f"Ciao, ho letto con attenzione le tue risposte. Lavori in {ambito} e questo mi dice molto sul potenziale del tuo progetto.",
