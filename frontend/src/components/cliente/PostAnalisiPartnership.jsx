@@ -320,21 +320,72 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
       </Section>
 
       {/* ═══ 3. LA SITUAZIONE È QUESTA ══════════════════════════════ */}
-      <div className="text-center py-4">
-        <ArrowDown className="w-6 h-6 mx-auto mb-3" style={{ color: C.border }} />
-        <h2 className="text-2xl sm:text-3xl font-black mb-3" style={{ color: C.dark }}>
+      <Section id="situazione" accent>
+        <h2 className="text-2xl sm:text-3xl font-black mb-5" style={{ color: C.dark }}>
           La situazione è questa.
         </h2>
-        <p className="text-base leading-relaxed max-w-lg mx-auto" style={{ color: C.muted }}>
-          Hai le competenze e un mercato pronto ad ascoltarti.
-          Quello che ti manca è un sistema strutturato per trasformare
-          ciò che sai in un'Accademia Digitale che genera valore ogni mese.
+
+        <p className="text-base leading-relaxed mb-4" style={{ color: C.muted }}>
+          Durante la call abbiamo analizzato il tuo progetto in modo concreto.
         </p>
-        <p className="text-base leading-relaxed max-w-lg mx-auto mt-3" style={{ color: C.muted }}>
-          Non serve fare tutto da solo. Serve avere al fianco un team che ha già costruito
-          questo percorso decine di volte e che lavora con te, non per te.
+
+        <p className="text-base leading-relaxed mb-1" style={{ color: C.dark, fontWeight: 600 }}>
+          Abbiamo visto:
         </p>
-      </div>
+        <ul className="space-y-1.5 mb-5 pl-1">
+          {[
+            "dove si trova oggi",
+            "cosa funziona",
+            "cosa lo sta limitando",
+            "e soprattutto cosa serve per farlo evolvere",
+          ].map((item, i) => (
+            <li key={i} className="flex items-start gap-2 text-base" style={{ color: C.muted }}>
+              <span style={{ color: C.yellowDark }}>•</span> {item}
+            </li>
+          ))}
+        </ul>
+
+        <p className="text-base leading-relaxed mb-2" style={{ color: C.dark, fontWeight: 600 }}>
+          Il punto chiave è questo:
+        </p>
+        <p className="text-lg leading-relaxed mb-5 font-bold" style={{ color: C.dark }}>
+          <span role="img" aria-label="point">&#x1F449;</span> il tuo progetto ha potenziale, ma nella sua forma attuale non è strutturato per crescere in modo sostenibile.
+        </p>
+
+        <p className="text-base leading-relaxed mb-1" style={{ color: C.muted }}>
+          Questo non è un problema di competenza.
+        </p>
+        <p className="text-base leading-relaxed mb-1" style={{ color: C.muted }}>
+          È un problema di <strong style={{ color: C.dark }}>struttura</strong>.
+        </p>
+        <p className="text-base leading-relaxed mb-5" style={{ color: C.muted }}>
+          Ed è esattamente su questo che abbiamo lavorato insieme nell'analisi.
+        </p>
+
+        {/* Micro-blocco evidenziato */}
+        <div className="rounded-xl p-5 mb-5" style={{ background: `${C.yellow}10`, border: `1.5px solid ${C.yellow}50` }}>
+          <p className="text-base font-bold mb-2" style={{ color: C.dark }}>In sintesi:</p>
+          <ul className="space-y-1.5">
+            {[
+              "hai una base valida",
+              "hai qualcosa da offrire",
+              "ma manca un sistema che trasformi tutto questo in un risultato concreto",
+            ].map((item, i) => (
+              <li key={i} className="flex items-start gap-2 text-base" style={{ color: C.dark }}>
+                <CheckCircle className="w-4 h-4 mt-1 flex-shrink-0" style={{ color: i < 2 ? C.green : C.yellowDark }} />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p className="text-base leading-relaxed mb-1" style={{ color: C.muted }}>
+          Prima di prendere qualsiasi decisione, ti consigliamo di rivedere con attenzione i punti principali della tua analisi.
+        </p>
+        <p className="text-base leading-relaxed font-bold" style={{ color: C.dark }}>
+          Qui sotto trovi tutto.
+        </p>
+      </Section>
 
       {/* ═══ 4. IL PERCORSO PARTNERSHIP ═════════════════════════════ */}
       <Section id="partnership" accent>
