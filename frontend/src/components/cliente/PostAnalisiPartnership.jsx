@@ -273,9 +273,9 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
         // Load contract text from a generic template call
         try {
           const tpl = await axios.get(`${API}/api/contract/text/1`, { headers });
-          if (tpl.data?.text) {
-            setContractText(tpl.data.text);
-            setCorrispettivo(tpl.data.corrispettivo || 2790);
+          if (tpl.data?.contract_text) {
+            setContractText(tpl.data.contract_text);
+            setCorrispettivo(tpl.data.params?.corrispettivo || 2790);
           }
         } catch {
           setContractText("ARTICOLO 1 - OGGETTO\nContratto di partnership...\n\nARTICOLO 2 - DURATA\nIl presente contratto...\n\nARTICOLO 3 - CORRISPETTIVO\nIl corrispettivo della partnership...\n\nARTICOLO 4 - OBBLIGHI\nLe parti si impegnano a...\n\nARTICOLO 5 - PROPRIETA INTELLETTUALE\nTutti i contenuti...\n\nARTICOLO 6 - RISERVATEZZA\nLe informazioni...\n\nARTICOLO 7 - RECESSO\nCiascuna parte potra recedere...\n\nARTICOLO 8 - RESPONSABILITA\nEvolution PRO non sara...\n\nARTICOLO 9 - ESCLUSIVITA\nDurante la vigenza...\n\nARTICOLO 10 - FORZA MAGGIORE\nNessuna parte...\n\nARTICOLO 11 - RISOLUZIONE CONTROVERSIE\nPer qualsiasi controversia...\n\nARTICOLO 12 - DISPOSIZIONI FINALI\nIl presente contratto...");
