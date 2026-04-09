@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CheckCircle, ArrowRight, X, Loader2, Eye, EyeOff, Mail, Lock, User, Phone } from 'lucide-react';
+import axios from 'axios';
 
 const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it")) ? "" : (process.env.REACT_APP_BACKEND_URL || "");
 
@@ -35,23 +36,7 @@ export function Homepage() {
     setRegisterError(null);
 
     try {
-      const response = await fetch(`${API}/api/cliente-analisi/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(registerForm)
-      });
-
-      let data;
-      try {
-        data = await response.clone().json();
-      } catch {
-        const text = await response.text();
-        throw new Error(text || 'Errore nella comunicazione col server');
-      }
-
-      if (!response.ok) {
-        throw new Error(data.detail || 'Errore durante la registrazione');
-      }
+      const { data } = await axios.post(`${API}/api/cliente-analisi/register`, registerForm);
 
       // Save token and user
       if (data.token) {
@@ -63,7 +48,7 @@ export function Homepage() {
       window.location.href = '/benvenuto';
 
     } catch (err) {
-      setRegisterError(err.message);
+      setRegisterError(err.response?.data?.detail || err.message || 'Errore durante la registrazione');
     } finally {
       setRegisterLoading(false);
     }
@@ -76,24 +61,7 @@ export function Homepage() {
     setLoginError(null);
 
     try {
-      const response = await fetch(`${API}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(loginForm)
-      });
-
-      // Clone per evitare "body stream already read"
-      let data;
-      try {
-        data = await response.clone().json();
-      } catch {
-        const text = await response.text();
-        throw new Error(text || 'Errore nella comunicazione col server');
-      }
-
-      if (!response.ok) {
-        throw new Error(data.detail || 'Credenziali non valide');
-      }
+      const { data } = await axios.post(`${API}/api/auth/login`, loginForm);
 
       // Save token and user
       localStorage.setItem('access_token', data.access_token);
@@ -107,7 +75,7 @@ export function Homepage() {
       }
 
     } catch (err) {
-      setLoginError(err.message);
+      setLoginError(err.response?.data?.detail || err.message || 'Errore di connessione');
     } finally {
       setLoginLoading(false);
     }
