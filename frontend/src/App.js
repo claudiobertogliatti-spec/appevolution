@@ -1069,10 +1069,10 @@ export default function App() {
         axios.get(`${API}/api/stats`),
         axios.get(`${API}/api/admin/approvazioni/count`)
       ]);
-      if(results[0].status==="fulfilled") setAgents(results[0].value.data);
-      if(results[1].status==="fulfilled") setPartners(results[1].value.data);
-      if(results[2].status==="fulfilled") setAlerts(results[2].value.data);
-      if(results[3].status==="fulfilled") setModules(results[3].value.data);
+      if(results[0].status==="fulfilled") setAgents(Array.isArray(results[0].value.data)?results[0].value.data:[]);
+      if(results[1].status==="fulfilled") setPartners(Array.isArray(results[1].value.data)?results[1].value.data:[]);
+      if(results[2].status==="fulfilled") setAlerts(Array.isArray(results[2].value.data)?results[2].value.data:[]);
+      if(results[3].status==="fulfilled") setModules(Array.isArray(results[3].value.data)?results[3].value.data:[]);
       if(results[4].status==="fulfilled") setStats(results[4].value.data);
       if(results[5].status==="fulfilled") setApprovazioniCount(results[5].value.data.total||0);
       const failed = results.filter(r=>r.status==="rejected");
