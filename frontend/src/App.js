@@ -1657,7 +1657,7 @@ export default function App() {
                 email: viewingCliente.email,
               } : { id: "demo", nome: "Cliente", cognome: "Demo", email: "demo@example.com" };
 
-              const stepMap = { "cp-benvenuto": 1, "cp-questionario": 2, "cp-richiesta": 3, "cp-conferma": 5 };
+              const stepMap = { "cp-benvenuto": 1, "cp-questionario": 2, "cp-richiesta": 3, "cp-conferma": 4 };
 
               if (nav === "cp-analisi") {
                 return (
