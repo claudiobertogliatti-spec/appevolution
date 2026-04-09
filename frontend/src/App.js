@@ -87,6 +87,7 @@ import { AttivazioneAnalisi } from "./components/cliente/AttivazioneAnalisi";
 import { AttivazionePartnership } from "./components/cliente/AttivazionePartnership";
 import { DecisionePartnershipPage } from "./components/cliente/DecisionePartnershipPage";
 import { CallBookingPage } from "./components/cliente/CallBookingPage";
+import PostAnalisiPartnership from "./components/cliente/PostAnalisiPartnership";
 import { enforceClienteFlow, getCorrectPage } from "./utils/clienteFlowGuard";
 import { DashboardOperations } from "./components/operations/DashboardOperations";
 import { PartnerLogin } from "./components/partner/PartnerLogin";
@@ -1661,20 +1662,10 @@ export default function App() {
 
               if (nav === "cp-analisi") {
                 return (
-                  <div data-testid="cp-analisi-partnership" className="p-6 space-y-6" style={{ background: '#FAFAF7' }}>
-                    <h2 className="text-xl font-black" style={{ color: '#1A1F24' }}>Analisi e Partnership</h2>
-                    <p className="text-sm" style={{ color: '#6B7280' }}>
-                      Questa pagina sarà visibile al cliente dopo la call con Claudio.
-                    </p>
-                    <div className="grid grid-cols-2 gap-4">
-                      {["Analisi PDF", "Partnership", "Contratto", "Conferme", "Firma", "Pagamento"].map((s) => (
-                        <div key={s} className="p-4 rounded-xl" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
-                          <div className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: '#D4A017' }}>{s}</div>
-                          <div className="text-xs" style={{ color: '#9CA3AF' }}>Sezione da implementare</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <PostAnalisiPartnership
+                    user={clienteUser}
+                    adminPreview={true}
+                  />
                 );
               }
 

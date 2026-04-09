@@ -1761,7 +1761,141 @@ async def mark_call_prenotata(request: Request, credentials: HTTPAuthorizationCr
     return {"success": True, "data": data_call, "ora": ora_call}
 
 
-@api_router.get("/cliente-analisi/stato/{user_id}")
+# ═══════════════════════════════════════════════════════════════════
+# POST-ANALISI: Partnership flow per il cliente
+# ═══════════════════════════════════════════════════════════════════
+
+@api_router.get("/cliente-analisi/contract-text/{user_id}")
+async def get_client_contract_text(user_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Restituisce il testo del contratto parametrizzato per il cliente."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+
+    # Import the contract text renderer from the contract router
+    from routers.contract import render_contract_text, DEFAULT_CONTRACT_PARAMS
+    params = user.get("contract_params", DEFAULT_CONTRACT_PARAMS)
+    # Add personal data from user
+    params["personal_data"] = {
+        "nome": user.get("nome", ""),
+        "cognome": user.get("cognome", ""),
+        "email": user.get("email", ""),
+    }
+    text = render_contract_text(params)
+    corrispettivo = params.get("corrispettivo", DEFAULT_CONTRACT_PARAMS["corrispettivo"])
+    return {"text": text, "corrispettivo": corrispettivo}
+
+
+@api_router.post("/cliente-analisi/partnership-firma")
+async def firma_contratto_cliente(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Firma digitale del contratto di partnership dal flusso cliente."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    token_data = decode_token(credentials.credentials)
+    if not token_data:
+        raise HTTPException(status_code=401, detail="Token non valido")
+
+    body = await request.json()
+    firma_base64 = body.get("firma_base64", "")
+    articoli_confermati = body.get("articoli_confermati", [])
+
+    if not firma_base64:
+        raise HTTPException(status_code=400, detail="Firma mancante")
+
+    now = datetime.now(timezone.utc).isoformat()
+    await db.users.update_one(
+        {"id": token_data.user_id},
+        {"$set": {
+            "contratto_firmato": True,
+            "contratto_firmato_at": now,
+            "contratto_firma_base64": firma_base64,
+            "contratto_articoli_confermati": articoli_confermati,
+            "stato_cliente": "CONTRATTO_FIRMATO",
+        }}
+    )
+    return {"success": True, "signed_at": now}
+
+
+@api_router.post("/cliente-analisi/partnership-checkout")
+async def partnership_checkout(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Crea sessione Stripe per il pagamento della partnership."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    token_data = decode_token(credentials.credentials)
+    if not token_data:
+        raise HTTPException(status_code=401, detail="Token non valido")
+
+    user = await db.users.find_one({"id": token_data.user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+
+    from routers.contract import DEFAULT_CONTRACT_PARAMS
+    corrispettivo = user.get("contract_params", {}).get("corrispettivo", DEFAULT_CONTRACT_PARAMS["corrispettivo"])
+
+    stripe_key = os.environ.get('STRIPE_API_KEY')
+    if not stripe_key:
+        raise HTTPException(status_code=500, detail="Stripe non configurato")
+
+    frontend_url = os.environ.get('FRONTEND_URL', 'https://app.evolution-pro.it')
+    try:
+        from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
+        checkout = StripeCheckout(api_key=stripe_key)
+        session_request = CheckoutSessionRequest(
+            amount=float(corrispettivo),
+            currency="eur",
+            success_url=f"{frontend_url}/dashboard?pagamento_partnership=successo&session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{frontend_url}/dashboard?pagamento_partnership=annullato",
+            metadata={
+                "user_id": user["id"],
+                "tipo": "partnership",
+                "importo": str(corrispettivo),
+                "email": user.get("email", "")
+            }
+        )
+        session = await checkout.create_checkout_session(session_request)
+
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$set": {
+                "stripe_session_partnership": session.session_id,
+                "partnership_checkout_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        return {"success": True, "checkout_url": session.url, "session_id": session.session_id}
+
+    except Exception as e:
+        logging.error(f"Partnership Stripe checkout error: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore: {str(e)}")
+
+
+@api_router.post("/cliente-analisi/partnership-bonifico")
+async def partnership_bonifico(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Restituisce i dati per il bonifico e segna la scelta del metodo."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    token_data = decode_token(credentials.credentials)
+    if not token_data:
+        raise HTTPException(status_code=401, detail="Token non valido")
+
+    user = await db.users.find_one({"id": token_data.user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+
+    await db.users.update_one(
+        {"id": token_data.user_id},
+        {"$set": {"pagamento_metodo_partnership": "bonifico"}}
+    )
+
+    nome = f"{user.get('nome', '')} {user.get('cognome', '')}".strip()
+    return {
+        "success": True,
+        "iban": "LT94 3250 0974 4929 5781",
+        "beneficiario": "Evolution PRO LLC",
+        "banca": "Revolut Bank UAB",
+        "causale": f"Partnership Evolution PRO - {nome}"
+    }
 async def get_stato_cliente(user_id: str):
     """
     Ricalcola e restituisce stato_cliente e azione_richiesta in tempo reale

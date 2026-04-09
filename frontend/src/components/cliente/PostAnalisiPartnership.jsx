@@ -1,0 +1,701 @@
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import {
+  FileText, Download, Headphones, ArrowRight, ArrowDown,
+  CheckCircle, XCircle, Shield, CreditCard, Building2,
+  PenLine, Loader2, MessageCircle, Send, ChevronDown,
+  ChevronUp, Gift, Star, TrendingUp, Users, Zap,
+  Target, BookOpen, Video, Megaphone, BarChart3, Copy, Check
+} from "lucide-react";
+import axios from "axios";
+import { API } from "../../utils/api-config";
+
+const C = {
+  yellow: "#FFD24D", yellowDark: "#D4A017", dark: "#1A1F24",
+  bg: "#FAFAF7", white: "#FFFFFF", border: "#E8E4DC",
+  muted: "#8B8680", green: "#10B981", red: "#EF4444",
+  blue: "#3B82F6", purple: "#8B5CF6",
+};
+
+// ── Section wrapper ──────────────────────────────────────────────
+function Section({ id, children, accent }) {
+  return (
+    <div data-testid={`section-${id}`} className="scroll-mt-8">
+      {accent ? (
+        <div className="rounded-2xl p-6 sm:p-8" style={{ background: C.white, border: `1px solid ${C.border}` }}>
+          {children}
+        </div>
+      ) : children}
+    </div>
+  );
+}
+
+// ── Contract Chat Sidebar ────────────────────────────────────────
+function ContractChat({ userId }) {
+  const [open, setOpen] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const endRef = useRef(null);
+  const token = localStorage.getItem("access_token");
+
+  const send = async () => {
+    if (!input.trim() || loading) return;
+    const userMsg = input.trim();
+    setInput("");
+    setMessages(m => [...m, { role: "user", content: userMsg }]);
+    setLoading(true);
+    try {
+      const r = await axios.post(`${API}/api/contract/chat`, {
+        partner_id: userId,
+        message: userMsg,
+        conversation_history: messages.slice(-6),
+      }, { headers: { Authorization: `Bearer ${token}` } });
+      setMessages(m => [...m, { role: "assistant", content: r.data.reply }]);
+    } catch {
+      setMessages(m => [...m, { role: "assistant", content: "Errore di connessione. Riprova." }]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+  if (!open) {
+    return (
+      <button data-testid="open-chat" onClick={() => setOpen(true)}
+        className="fixed bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center shadow-xl z-50 transition-transform hover:scale-110"
+        style={{ background: C.yellow }}>
+        <MessageCircle className="w-6 h-6" style={{ color: C.dark }} />
+      </button>
+    );
+  }
+
+  return (
+    <div className="fixed bottom-6 right-6 w-80 sm:w-96 rounded-2xl shadow-2xl overflow-hidden z-50 flex flex-col"
+      style={{ background: C.white, border: `1px solid ${C.border}`, maxHeight: "60vh" }}>
+      <div className="px-4 py-3 flex items-center justify-between" style={{ background: C.dark }}>
+        <div className="flex items-center gap-2">
+          <MessageCircle className="w-4 h-4" style={{ color: C.yellow }} />
+          <span className="text-sm font-bold text-white">Assistente Contrattuale</span>
+        </div>
+        <button onClick={() => setOpen(false)} className="text-white/60 hover:text-white text-lg font-bold">&times;</button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-3 space-y-2 min-h-[200px]" style={{ background: C.bg }}>
+        {messages.length === 0 && (
+          <div className="text-center py-6">
+            <MessageCircle className="w-8 h-8 mx-auto mb-2" style={{ color: C.border }} />
+            <p className="text-sm" style={{ color: C.muted }}>Hai dubbi su un articolo del contratto? Chiedimi qui.</p>
+          </div>
+        )}
+        {messages.map((m, i) => (
+          <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+            <div className="max-w-[85%] rounded-xl px-3 py-2 text-sm"
+              style={{
+                background: m.role === "user" ? C.yellow : C.white,
+                color: C.dark,
+                border: m.role === "assistant" ? `1px solid ${C.border}` : "none",
+              }}>
+              {m.content}
+            </div>
+          </div>
+        ))}
+        {loading && <div className="flex justify-start"><div className="rounded-xl px-3 py-2 text-sm" style={{ background: C.white, border: `1px solid ${C.border}` }}><Loader2 className="w-4 h-4 animate-spin inline" /> ...</div></div>}
+        <div ref={endRef} />
+      </div>
+      <div className="p-2 flex gap-2" style={{ borderTop: `1px solid ${C.border}` }}>
+        <input data-testid="chat-input" value={input} onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && send()}
+          placeholder="Scrivi una domanda..."
+          className="flex-1 rounded-lg px-3 py-2 text-sm focus:outline-none"
+          style={{ border: `1px solid ${C.border}`, background: C.bg }} />
+        <button data-testid="chat-send" onClick={send} disabled={!input.trim() || loading}
+          className="w-9 h-9 rounded-lg flex items-center justify-center"
+          style={{ background: input.trim() ? C.yellow : C.border }}>
+          <Send className="w-4 h-4" style={{ color: C.dark }} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ══════════════════════════════════════════════════════════════════
+export default function PostAnalisiPartnership({ user, adminPreview = false }) {
+  const [analisi, setAnalisi] = useState(null);
+  const [loadingAnalisi, setLoadingAnalisi] = useState(true);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [contractText, setContractText] = useState("");
+  const [corrispettivo, setCorrispettivo] = useState(2790);
+  const [confirmedArticles, setConfirmedArticles] = useState({});
+  const [signing, setSigning] = useState(false);
+  const [signed, setSigned] = useState(false);
+  const [signatureName, setSignatureName] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState(null);
+  const [checkingOut, setCheckingOut] = useState(false);
+  const [bonificoData, setBonificoData] = useState(null);
+  const [copiedIban, setCopiedIban] = useState(false);
+  const [expandedArticle, setExpandedArticle] = useState(null);
+
+  const userId = user?.id || user?.user_id;
+  const token = localStorage.getItem("access_token");
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const nome = user?.nome || "Cliente";
+
+  // ── Fetch data ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (!userId) { setLoadingAnalisi(false); return; }
+    const fetchAll = async () => {
+      try {
+        const [analisiRes, contractRes] = await Promise.allSettled([
+          axios.get(`${API}/api/cliente-analisi/output/${userId}`, { headers }),
+          axios.get(`${API}/api/cliente-analisi/contract-text/${userId}`, { headers }),
+        ]);
+        if (analisiRes.status === "fulfilled") setAnalisi(analisiRes.value.data);
+        if (contractRes.status === "fulfilled") {
+          setContractText(contractRes.value.data.text || "");
+          setCorrispettivo(contractRes.value.data.corrispettivo || 2790);
+        }
+      } catch (e) { console.error("Fetch post-analisi:", e); }
+      setLoadingAnalisi(false);
+    };
+    fetchAll();
+  }, [userId]);
+
+  // ── PDF Download ─────────────────────────────────────────────────
+  const downloadPdf = async () => {
+    setDownloadingPdf(true);
+    try {
+      const r = await axios.get(`${API}/api/cliente-analisi/pdf/${userId}`, {
+        headers, responseType: "blob"
+      });
+      const url = window.URL.createObjectURL(new Blob([r.data]));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `EvolutionPRO_Analisi_${nome}.pdf`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (e) { console.error("PDF download:", e); }
+    setDownloadingPdf(false);
+  };
+
+  // ── Contract articles ────────────────────────────────────────────
+  const IMPORTANT_ARTICLES = [3, 5, 7, 9, 11];
+  // Match both "Art. X" and "ARTICOLO X" formats
+  const articles = contractText.split(/(?=(?:Art\.\s*\d+|ARTICOLO\s+\d+))/).filter(a => a.trim());
+  const allImportantConfirmed = IMPORTANT_ARTICLES.every(n => confirmedArticles[n]);
+
+  // ── Sign ─────────────────────────────────────────────────────────
+  const handleSign = async () => {
+    if (!signatureName.trim() || !allImportantConfirmed) return;
+    setSigning(true);
+    try {
+      const firma64 = btoa(unescape(encodeURIComponent(`FIRMA DIGITALE: ${signatureName} - ${new Date().toISOString()}`)));
+      await axios.post(`${API}/api/cliente-analisi/partnership-firma`, {
+        firma_base64: firma64,
+        articoli_confermati: Object.keys(confirmedArticles).filter(k => confirmedArticles[k]).map(Number),
+      }, { headers });
+      setSigned(true);
+    } catch (e) { console.error("Sign error:", e); }
+    setSigning(false);
+  };
+
+  // ── Payment ──────────────────────────────────────────────────────
+  const startStripeCheckout = async () => {
+    setCheckingOut(true);
+    try {
+      const r = await axios.post(`${API}/api/cliente-analisi/partnership-checkout`, null, { headers });
+      if (r.data?.checkout_url) { window.location.href = r.data.checkout_url; return; }
+    } catch (e) { console.error("Stripe:", e); }
+    setCheckingOut(false);
+  };
+
+  const selectBonifico = async () => {
+    try {
+      const r = await axios.post(`${API}/api/cliente-analisi/partnership-bonifico`, null, { headers });
+      setBonificoData(r.data);
+      setPaymentMethod("bonifico");
+    } catch (e) { console.error("Bonifico:", e); }
+  };
+
+  const copyIban = () => {
+    navigator.clipboard.writeText(bonificoData?.iban || "");
+    setCopiedIban(true);
+    setTimeout(() => setCopiedIban(false), 2000);
+  };
+
+  // ── Loading ──────────────────────────────────────────────────────
+  if (loadingAnalisi) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: C.yellow }} />
+      </div>
+    );
+  }
+
+  const analisiData = analisi?.analisi || {};
+  const scoring = analisi?.scoring || {};
+  const corrStr = corrispettivo.toLocaleString("it-IT");
+
+  return (
+    <div data-testid="post-analisi-partnership" className="space-y-8 pb-12"
+      style={{ maxWidth: 720, margin: "0 auto" }}>
+
+      {/* ═══ 1. RIPRENDIAMO DA DOVE CI SIAMO FERMATI ════════════════ */}
+      <Section id="recap" accent>
+        <div className="text-center mb-4">
+          <div className="w-12 h-12 rounded-2xl mx-auto mb-4 flex items-center justify-center" style={{ background: `${C.green}15` }}>
+            <CheckCircle className="w-6 h-6" style={{ color: C.green }} />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black" style={{ color: C.dark }}>
+            Ciao {nome}, riprendiamo da dove ci siamo fermati.
+          </h1>
+        </div>
+        <p className="text-base text-center leading-relaxed mb-4" style={{ color: C.muted }}>
+          Durante la call abbiamo analizzato insieme la tua situazione e il potenziale
+          del tuo progetto. Ecco un riepilogo di quello che è emerso.
+        </p>
+        {analisi?.quiz && (
+          <div className="rounded-xl p-4 space-y-2" style={{ background: C.bg, border: `1px solid ${C.border}` }}>
+            <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.yellowDark }}>Il tuo progetto</div>
+            {analisi.quiz.ambito && <div className="text-sm"><strong style={{ color: C.dark }}>Ambito:</strong> <span style={{ color: C.muted }}>{analisi.quiz.ambito}</span></div>}
+            {analisi.quiz.target && <div className="text-sm"><strong style={{ color: C.dark }}>Target:</strong> <span style={{ color: C.muted }}>{analisi.quiz.target}</span></div>}
+            {analisi.quiz.problema && <div className="text-sm"><strong style={{ color: C.dark }}>Problema che risolvi:</strong> <span style={{ color: C.muted }}>{analisi.quiz.problema}</span></div>}
+            {analisi.quiz.obiettivo && <div className="text-sm"><strong style={{ color: C.dark }}>Obiettivo:</strong> <span style={{ color: C.muted }}>{analisi.quiz.obiettivo}</span></div>}
+          </div>
+        )}
+        {scoring?.score_totale != null && (
+          <div className="mt-4 text-center">
+            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold"
+              style={{ background: `${C.green}12`, color: C.green }}>
+              <Star className="w-4 h-4" /> Punteggio di idoneità: {scoring.score_totale}/40 — {scoring.esito || "VALUTATO"}
+            </span>
+          </div>
+        )}
+      </Section>
+
+      {/* ═══ 2. LA TUA ANALISI STRATEGICA ═══════════════════════════ */}
+      <Section id="analisi" accent>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${C.blue}15` }}>
+            <FileText className="w-5 h-5" style={{ color: C.blue }} />
+          </div>
+          <h2 className="text-xl font-black" style={{ color: C.dark }}>La tua Analisi Strategica</h2>
+        </div>
+
+        {/* Sintesi scritta */}
+        {analisiData.sintesi && (
+          <div className="mb-4">
+            <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.yellowDark }}>Sintesi</div>
+            <p className="text-base leading-relaxed" style={{ color: C.muted }}>{analisiData.sintesi}</p>
+          </div>
+        )}
+        {analisiData.punti_forza && (
+          <div className="mb-4">
+            <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>Punti di forza</div>
+            <p className="text-base leading-relaxed" style={{ color: C.muted }}>{analisiData.punti_forza}</p>
+          </div>
+        )}
+        {analisiData.criticita && (
+          <div className="mb-4">
+            <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.red }}>Criticità</div>
+            <p className="text-base leading-relaxed" style={{ color: C.muted }}>{analisiData.criticita}</p>
+          </div>
+        )}
+
+        {/* Azioni: PDF + Audio */}
+        <div className="flex flex-wrap gap-3 mt-6">
+          <button data-testid="download-pdf-btn" onClick={downloadPdf} disabled={downloadingPdf}
+            className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all hover:shadow-md"
+            style={{ background: C.dark, color: C.white }}>
+            {downloadingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            Scarica PDF Completo
+          </button>
+          <button data-testid="audio-overview-btn"
+            className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all"
+            style={{ background: `${C.purple}12`, color: C.purple, border: `1px solid ${C.purple}30` }}>
+            <Headphones className="w-4 h-4" />
+            Ascolta la sintesi audio
+          </button>
+        </div>
+      </Section>
+
+      {/* ═══ 3. LA SITUAZIONE È QUESTA ══════════════════════════════ */}
+      <div className="text-center py-4">
+        <ArrowDown className="w-6 h-6 mx-auto mb-3" style={{ color: C.border }} />
+        <h2 className="text-2xl sm:text-3xl font-black mb-3" style={{ color: C.dark }}>
+          La situazione è questa.
+        </h2>
+        <p className="text-base leading-relaxed max-w-lg mx-auto" style={{ color: C.muted }}>
+          Hai le competenze e un mercato pronto ad ascoltarti.
+          Quello che ti manca è un sistema strutturato per trasformare
+          ciò che sai in un'Accademia Digitale che genera valore ogni mese.
+        </p>
+        <p className="text-base leading-relaxed max-w-lg mx-auto mt-3" style={{ color: C.muted }}>
+          Non serve fare tutto da solo. Serve avere al fianco un team che ha già costruito
+          questo percorso decine di volte e che lavora con te, non per te.
+        </p>
+      </div>
+
+      {/* ═══ 4. IL PERCORSO PARTNERSHIP ═════════════════════════════ */}
+      <Section id="partnership" accent>
+        <div className="text-center mb-6">
+          <h2 className="text-xl sm:text-2xl font-black" style={{ color: C.dark }}>
+            Il percorso che ti proponiamo
+          </h2>
+          <p className="text-base mt-2" style={{ color: C.muted }}>
+            Non è un corso. Non è una consulenza. È una partnership operativa in cui costruiamo insieme il tuo progetto digitale.
+          </p>
+        </div>
+        <div className="space-y-4">
+          {[
+            { icon: Target, title: "Partiamo dal tuo posizionamento", desc: "Definiamo la tua nicchia, il tuo messaggio e la promessa unica che ti distingue." },
+            { icon: Video, title: "Creiamo il tuo videocorso", desc: "Ti guidiamo nella produzione: dalla scaletta dei moduli alla registrazione e post-produzione." },
+            { icon: Megaphone, title: "Costruiamo il tuo funnel di vendita", desc: "Landing page, email sequence, checkout. Tutto pronto per vendere." },
+            { icon: BarChart3, title: "Lanciamo e ottimizziamo", desc: "Campagne pubblicitarie, test A/B, scaling. Il team gestisce l'acquisizione clienti per te." },
+          ].map((item, i) => (
+            <div key={i} className="flex gap-4 items-start">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: `${C.yellow}20` }}>
+                <item.icon className="w-5 h-5" style={{ color: C.yellowDark }} />
+              </div>
+              <div>
+                <div className="text-base font-bold" style={{ color: C.dark }}>{item.title}</div>
+                <div className="text-sm mt-0.5" style={{ color: C.muted }}>{item.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* ═══ 5. PROCESSO OPERATIVO ══════════════════════════════════ */}
+      <Section id="processo" accent>
+        <div className="text-center mb-6">
+          <h2 className="text-xl font-black" style={{ color: C.dark }}>Come funziona, in pratica</h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {[
+            { n: "01", label: "Onboarding e strategia", desc: "Documenti, brand kit, roadmap personalizzata" },
+            { n: "02", label: "Produzione contenuti", desc: "Videocorso, materiali didattici, risorse" },
+            { n: "03", label: "Funnel & Tech", desc: "Landing, checkout, email automation" },
+            { n: "04", label: "Lancio e ADV", desc: "Campagne social, ottimizzazione, scaling" },
+            { n: "05", label: "Supporto continuo", desc: "Accountability settimanale, chat dedicata" },
+            { n: "06", label: "Crescita", desc: "Analisi dati, iterazione, espansione gamma" },
+          ].map(s => (
+            <div key={s.n} className="flex gap-3 p-3 rounded-xl" style={{ background: C.bg }}>
+              <span className="text-lg font-black" style={{ color: `${C.yellow}90` }}>{s.n}</span>
+              <div>
+                <div className="text-sm font-bold" style={{ color: C.dark }}>{s.label}</div>
+                <div className="text-xs" style={{ color: C.muted }}>{s.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* ═══ 6. COSA OTTIENI CONCRETAMENTE ══════════════════════════ */}
+      <Section id="valore" accent>
+        <div className="text-center mb-6">
+          <h2 className="text-xl font-black" style={{ color: C.dark }}>Cosa ottieni concretamente</h2>
+        </div>
+        <div className="space-y-3">
+          {[
+            "Il tuo videocorso professionale, pubblicato e pronto per vendere",
+            "Un funnel di vendita completo e ottimizzato",
+            "Campagne pubblicitarie gestite dal nostro team",
+            "5 agenti AI specializzati a tua disposizione h24",
+            "Supporto strategico diretto con Claudio e il team",
+            "Accountability settimanale per restare in carreggiata",
+            "Dashboard personale per monitorare vendite e progressi",
+            "12 mesi di partnership operativa",
+          ].map((item, i) => (
+            <div key={i} className="flex items-start gap-3">
+              <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: C.green }} />
+              <span className="text-base" style={{ color: C.dark }}>{item}</span>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* ═══ 7. BONUS ═══════════════════════════════════════════════ */}
+      <Section id="bonus" accent>
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${C.yellow}20` }}>
+            <Gift className="w-5 h-5" style={{ color: C.yellowDark }} />
+          </div>
+          <h2 className="text-xl font-black" style={{ color: C.dark }}>Bonus inclusi nella Partnership</h2>
+        </div>
+        <div className="space-y-4">
+          {[
+            { title: "Template Funnel Premium", desc: "Tutti i template di landing page, email e checkout già pronti e testati.", value: "Valore: €497" },
+            { title: "Calendario Editoriale AI", desc: "Piano di contenuti social generato dall'AI, personalizzato sulla tua nicchia.", value: "Valore: €297" },
+            { title: "Brand Kit Professionale", desc: "Logo, palette colori, font e linee guida visive per il tuo brand digitale.", value: "Valore: €197" },
+            { title: "Accesso Community Riservata", desc: "Networking con gli altri partner Evolution PRO, scambio strategie e risorse.", value: "Valore: inestimabile" },
+          ].map((b, i) => (
+            <div key={i} className="flex gap-4 p-4 rounded-xl" style={{ background: `${C.yellow}08`, border: `1px solid ${C.yellow}30` }}>
+              <Gift className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: C.yellowDark }} />
+              <div>
+                <div className="text-base font-bold" style={{ color: C.dark }}>{b.title}</div>
+                <div className="text-sm" style={{ color: C.muted }}>{b.desc}</div>
+                <div className="text-xs font-bold mt-1" style={{ color: C.yellowDark }}>{b.value}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* ═══ 8. LA DECISIONE ════════════════════════════════════════ */}
+      <div className="py-4">
+        <h2 className="text-2xl sm:text-3xl font-black text-center mb-6" style={{ color: C.dark }}>
+          Due scenari. Una scelta.
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Scenario 1: senza */}
+          <div className="rounded-2xl p-5" style={{ background: C.white, border: `1px solid ${C.border}` }}>
+            <div className="flex items-center gap-2 mb-4">
+              <XCircle className="w-5 h-5" style={{ color: C.red }} />
+              <span className="text-sm font-bold uppercase tracking-wider" style={{ color: C.red }}>Senza la Partnership</span>
+            </div>
+            <div className="space-y-3">
+              {[
+                "Continui a cercare clienti da solo",
+                "Nessun sistema automatizzato",
+                "Tempo perso in tecnologia e marketing",
+                "Risultati lenti e incerti",
+                "Rischio di rimanere fermo",
+              ].map((item, i) => (
+                <div key={i} className="flex items-start gap-2 text-sm" style={{ color: C.muted }}>
+                  <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: `${C.red}60` }} />
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Scenario 2: con */}
+          <div className="rounded-2xl p-5" style={{ background: `${C.green}06`, border: `2px solid ${C.green}40` }}>
+            <div className="flex items-center gap-2 mb-4">
+              <CheckCircle className="w-5 h-5" style={{ color: C.green }} />
+              <span className="text-sm font-bold uppercase tracking-wider" style={{ color: C.green }}>Con la Partnership</span>
+            </div>
+            <div className="space-y-3">
+              {[
+                "Un team dedicato lavora con te",
+                "Funnel e campagne gestiti per te",
+                "Accademia online pronta in settimane",
+                "Revenue ricorrente dal mese 3",
+                "Scalabilità reale del tuo business",
+              ].map((item, i) => (
+                <div key={i} className="flex items-start gap-2 text-sm" style={{ color: C.dark }}>
+                  <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: C.green }} />
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ 9. CONTRATTO ═══════════════════════════════════════════ */}
+      <Section id="contratto" accent>
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${C.dark}10` }}>
+            <FileText className="w-5 h-5" style={{ color: C.dark }} />
+          </div>
+          <div>
+            <h2 className="text-xl font-black" style={{ color: C.dark }}>Contratto di Partnership</h2>
+            <p className="text-sm" style={{ color: C.muted }}>Leggi con attenzione ogni articolo. Per dubbi, usa la chat di supporto.</p>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {articles.map((art, i) => {
+            // Match both "Art. X" and "ARTICOLO X" formats
+            const match = art.match(/^(?:Art\.\s*(\d+)|ARTICOLO\s+(\d+))/);
+            const artNum = match ? parseInt(match[1] || match[2]) : i + 1;
+            const isImportant = IMPORTANT_ARTICLES.includes(artNum);
+            const isExpanded = expandedArticle === i;
+            const isConfirmed = confirmedArticles[artNum];
+
+            // First line as title
+            const lines = art.trim().split("\n");
+            const title = lines[0]?.trim() || `Articolo ${artNum}`;
+            const body = lines.slice(1).join("\n").trim();
+
+            return (
+              <div key={i} data-testid={`contract-art-${artNum}`}
+                className="rounded-xl overflow-hidden transition-all"
+                style={{
+                  border: `1px solid ${isImportant ? (isConfirmed ? `${C.green}60` : `${C.yellow}80`) : C.border}`,
+                  background: isImportant ? (isConfirmed ? `${C.green}04` : `${C.yellow}04`) : C.white,
+                }}>
+                <button onClick={() => setExpandedArticle(isExpanded ? null : i)}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left">
+                  {isImportant && (
+                    <Shield className="w-4 h-4 flex-shrink-0" style={{ color: isConfirmed ? C.green : C.yellowDark }} />
+                  )}
+                  <span className="text-sm font-bold flex-1" style={{ color: C.dark }}>{title}</span>
+                  {isExpanded ? <ChevronUp className="w-4 h-4" style={{ color: C.muted }} /> : <ChevronDown className="w-4 h-4" style={{ color: C.muted }} />}
+                </button>
+                {isExpanded && (
+                  <div className="px-4 pb-4">
+                    <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: C.muted }}>{body}</p>
+                    {isImportant && !isConfirmed && (
+                      <button data-testid={`confirm-art-${artNum}`}
+                        onClick={() => setConfirmedArticles(p => ({ ...p, [artNum]: true }))}
+                        className="mt-3 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all"
+                        style={{ background: `${C.yellow}20`, color: C.yellowDark }}>
+                        <CheckCircle className="w-4 h-4" />
+                        Confermo di aver letto e compreso
+                      </button>
+                    )}
+                    {isImportant && isConfirmed && (
+                      <div className="mt-3 flex items-center gap-2 text-sm font-bold" style={{ color: C.green }}>
+                        <CheckCircle className="w-4 h-4" /> Articolo confermato
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {!allImportantConfirmed && articles.length > 0 && (
+          <div className="mt-4 text-center text-sm" style={{ color: C.muted }}>
+            <Shield className="w-4 h-4 inline mr-1" style={{ color: C.yellowDark }} />
+            Conferma la lettura degli articoli evidenziati per procedere alla firma.
+          </div>
+        )}
+      </Section>
+
+      {/* ═══ 10. FIRMA ══════════════════════════════════════════════ */}
+      <Section id="firma" accent>
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${C.green}15` }}>
+            <PenLine className="w-5 h-5" style={{ color: C.green }} />
+          </div>
+          <h2 className="text-xl font-black" style={{ color: C.dark }}>Firma del Contratto</h2>
+        </div>
+
+        {signed ? (
+          <div data-testid="firma-success" className="text-center py-6 rounded-xl" style={{ background: `${C.green}08` }}>
+            <CheckCircle className="w-12 h-12 mx-auto mb-3" style={{ color: C.green }} />
+            <div className="text-lg font-black" style={{ color: C.dark }}>Contratto firmato con successo</div>
+            <div className="text-sm mt-1" style={{ color: C.muted }}>Procedi al pagamento per attivare la Partnership.</div>
+          </div>
+        ) : (
+          <div>
+            <p className="text-base mb-4" style={{ color: C.muted }}>
+              Digita il tuo nome completo qui sotto per firmare digitalmente il contratto.
+            </p>
+            <input data-testid="signature-input" type="text" value={signatureName}
+              onChange={e => setSignatureName(e.target.value)}
+              placeholder="Nome e Cognome"
+              disabled={!allImportantConfirmed}
+              className="w-full rounded-xl px-4 py-3 text-lg font-bold text-center focus:outline-none focus:ring-2 mb-4"
+              style={{
+                border: `2px solid ${allImportantConfirmed ? C.yellow : C.border}`,
+                background: allImportantConfirmed ? C.white : C.bg,
+                color: C.dark,
+                fontFamily: "'Georgia', serif", fontStyle: "italic",
+              }} />
+            <button data-testid="sign-btn" onClick={handleSign}
+              disabled={!signatureName.trim() || !allImportantConfirmed || signing}
+              className="w-full py-3.5 rounded-xl text-base font-black flex items-center justify-center gap-2 transition-all"
+              style={{
+                background: (signatureName.trim() && allImportantConfirmed) ? C.green : "#E5E7EB",
+                color: (signatureName.trim() && allImportantConfirmed) ? C.white : "#9CA3AF",
+                opacity: signing ? 0.6 : 1,
+              }}>
+              {signing && <Loader2 className="w-4 h-4 animate-spin" />}
+              <PenLine className="w-4 h-4" />
+              Firma il Contratto
+            </button>
+            {!allImportantConfirmed && (
+              <p className="text-xs text-center mt-2" style={{ color: C.muted }}>
+                Conferma prima la lettura degli articoli evidenziati nel contratto.
+              </p>
+            )}
+          </div>
+        )}
+      </Section>
+
+      {/* ═══ 11. PAGAMENTO ══════════════════════════════════════════ */}
+      {signed && (
+        <Section id="pagamento" accent>
+          <div className="text-center mb-6">
+            <h2 className="text-xl sm:text-2xl font-black" style={{ color: C.dark }}>
+              Attiva la tua Partnership
+            </h2>
+            <div className="text-4xl font-black mt-2" style={{ color: C.dark }}>€{corrStr}</div>
+            <p className="text-sm mt-1" style={{ color: C.muted }}>Investimento per 12 mesi di partnership operativa</p>
+          </div>
+
+          {!paymentMethod ? (
+            <div className="space-y-3">
+              <button data-testid="pay-stripe" onClick={startStripeCheckout} disabled={checkingOut}
+                className="w-full flex items-center justify-center gap-3 py-4 rounded-xl text-base font-black transition-all hover:shadow-lg"
+                style={{ background: "#1A65D6", color: C.white, opacity: checkingOut ? 0.7 : 1 }}>
+                {checkingOut ? <Loader2 className="w-5 h-5 animate-spin" /> : <CreditCard className="w-5 h-5" />}
+                Paga con Carta (Stripe)
+              </button>
+              <button data-testid="pay-bonifico" onClick={selectBonifico}
+                className="w-full flex items-center justify-center gap-3 py-4 rounded-xl text-base font-bold transition-all"
+                style={{ background: C.white, color: C.dark, border: `2px solid ${C.border}` }}>
+                <Building2 className="w-5 h-5" />
+                Paga con Bonifico Bancario
+              </button>
+              <div className="flex items-center justify-center gap-4 mt-2">
+                <div className="flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5" style={{ color: "#9CA3AF" }} />
+                  <span className="text-xs font-bold" style={{ color: "#9CA3AF" }}>SSL Secured</span>
+                </div>
+                <div className="h-3 w-px" style={{ background: "#E5E7EB" }} />
+                {["Visa", "Mastercard", "Stripe"].map(name => (
+                  <span key={name} className="text-xs font-bold px-1.5 py-0.5 rounded"
+                    style={{ background: "#F3F4F6", color: "#9CA3AF" }}>{name}</span>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div data-testid="bonifico-details" className="rounded-xl p-5" style={{ background: C.bg, border: `1px solid ${C.border}` }}>
+              <div className="flex items-center gap-2 mb-4">
+                <Building2 className="w-5 h-5" style={{ color: C.dark }} />
+                <span className="text-base font-bold" style={{ color: C.dark }}>Dettagli Bonifico</span>
+              </div>
+              <div className="space-y-3">
+                {[
+                  { label: "Beneficiario", value: bonificoData?.beneficiario },
+                  { label: "Banca", value: bonificoData?.banca },
+                  { label: "IBAN", value: bonificoData?.iban },
+                  { label: "Importo", value: `€${corrStr}` },
+                  { label: "Causale", value: bonificoData?.causale },
+                ].map(row => (
+                  <div key={row.label}>
+                    <div className="text-xs font-bold uppercase tracking-wider" style={{ color: C.muted }}>{row.label}</div>
+                    <div className="text-base font-bold mt-0.5" style={{ color: C.dark }}>{row.value}</div>
+                  </div>
+                ))}
+              </div>
+              <button onClick={copyIban}
+                className="mt-4 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all"
+                style={{ background: C.white, border: `1px solid ${C.border}`, color: C.dark }}>
+                {copiedIban ? <Check className="w-4 h-4" style={{ color: C.green }} /> : <Copy className="w-4 h-4" />}
+                {copiedIban ? "Copiato!" : "Copia IBAN"}
+              </button>
+              <p className="text-xs mt-3" style={{ color: C.muted }}>
+                Dopo aver effettuato il bonifico, riceverai una conferma via email entro 24-48 ore lavorative.
+              </p>
+              <button onClick={() => setPaymentMethod(null)}
+                className="mt-3 text-sm font-bold" style={{ color: C.blue }}>
+                Torna alle opzioni di pagamento
+              </button>
+            </div>
+          )}
+        </Section>
+      )}
+
+      {/* Chat di supporto contrattuale */}
+      <ContractChat userId={userId} />
+    </div>
+  );
+}
