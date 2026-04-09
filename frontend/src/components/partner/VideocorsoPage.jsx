@@ -358,8 +358,8 @@ function RecordingTips() {
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function VideocorsoPage({ partner, onNavigate, onComplete }) {
-  const [expandedModules, setExpandedModules] = useState([1]); // First module expanded by default
+export function VideocorsoPage({ partner, onNavigate, onComplete, isAdmin }) {
+  const [expandedModules, setExpandedModules] = useState(isAdmin ? COURSE_STRUCTURE.map(m => m.id) : [1]);
   const [lessonStatuses, setLessonStatuses] = useState({});
   
   // Calculate completion

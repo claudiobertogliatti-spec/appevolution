@@ -1744,27 +1744,27 @@ export default function App() {
             {nav==="onboarding-partner"&&<PartnerOnboarding partnerId={demoPartner?.id} partnerNome={demoPartner?.name||"Partner"} onComplete={()=>setNav("fase1-posizionamento")}/>}
             
             {/* FASE 1 - Posizionamento */}
-            {nav==="fase1-posizionamento"&&<StepPageWrapper stepId="posizionamento" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><PosizionamentoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")}/></StepPageWrapper>}
-            {nav==="documenti"&&<StepPageWrapper stepId="posizionamento" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><PosizionamentoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")}/></StepPageWrapper>}
-            {nav==="posizionamento"&&<StepPageWrapper stepId="posizionamento" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><PosizionamentoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")}/></StepPageWrapper>}
+            {nav==="fase1-posizionamento"&&<StepPageWrapper stepId="posizionamento" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><PosizionamentoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")} isAdmin={isAdminViewing}/></StepPageWrapper>}
+            {nav==="documenti"&&<StepPageWrapper stepId="posizionamento" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><PosizionamentoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")} isAdmin={isAdminViewing}/></StepPageWrapper>}
+            {nav==="posizionamento"&&<StepPageWrapper stepId="posizionamento" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><PosizionamentoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")} isAdmin={isAdminViewing}/></StepPageWrapper>}
             
             {/* FASE 2 - Outline */}
             {nav==="fase2-outline"&&<CourseBuilderWizard partnerId={demoPartner?.id||"demo"} positioningData={{trasformazione:"Demo",target:"Demo",problema:"Demo",soluzione:"Demo"}} onComplete={()=>setNav("fase3-script")}/>}
             {nav==="coursebuilder"&&<CourseBuilderWizard partnerId={demoPartner?.id||"demo"} positioningData={{trasformazione:"Demo",target:"Demo",problema:"Demo",soluzione:"Demo"}} onComplete={()=>setNav("fase3-script")}/>}
             
             {/* FASE 3 - Script (Masterclass + testi moduli) */}
-            {nav==="fase3-script"&&<StepPageWrapper stepId="masterclass" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><MasterclassPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")}/></StepPageWrapper>}
-            {nav==="masterclass"&&<StepPageWrapper stepId="masterclass" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><MasterclassPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")}/></StepPageWrapper>}
+            {nav==="fase3-script"&&<StepPageWrapper stepId="masterclass" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><MasterclassPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")} isAdmin={isAdminViewing}/></StepPageWrapper>}
+            {nav==="masterclass"&&<StepPageWrapper stepId="masterclass" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><MasterclassPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")} isAdmin={isAdminViewing}/></StepPageWrapper>}
             
             {/* FASE 4 - Copy Core (funnel + foto/logo) */}
-            {nav==="fase4-copycore"&&<StepPageWrapper stepId="funnel" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><FunnelPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")}/></StepPageWrapper>}
-            {nav==="funnel"&&<StepPageWrapper stepId="funnel" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><FunnelPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")}/></StepPageWrapper>}
+            {nav==="fase4-copycore"&&<StepPageWrapper stepId="funnel" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><FunnelPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")} isAdmin={isAdminViewing}/></StepPageWrapper>}
+            {nav==="funnel"&&<StepPageWrapper stepId="funnel" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><FunnelPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")} isAdmin={isAdminViewing}/></StepPageWrapper>}
             
             {/* FASE 5 - Videocorso (produzione video) */}
-            {nav==="fase5-masterclass"&&<StepPageWrapper stepId="videocorso" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><VideocorsoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")}/></StepPageWrapper>}
-            {nav==="consigli-registrazione"&&<StepPageWrapper stepId="videocorso" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><VideocorsoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")}/></StepPageWrapper>}
-            {nav==="produzione"&&<StepPageWrapper stepId="videocorso" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><VideocorsoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")}/></StepPageWrapper>}
-            {nav==="videocorso"&&<StepPageWrapper stepId="videocorso" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><VideocorsoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")}/></StepPageWrapper>}
+            {nav==="fase5-masterclass"&&<StepPageWrapper stepId="videocorso" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><VideocorsoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")} isAdmin={isAdminViewing}/></StepPageWrapper>}
+            {nav==="consigli-registrazione"&&<StepPageWrapper stepId="videocorso" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><VideocorsoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")} isAdmin={isAdminViewing}/></StepPageWrapper>}
+            {nav==="produzione"&&<StepPageWrapper stepId="videocorso" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><VideocorsoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")} isAdmin={isAdminViewing}/></StepPageWrapper>}
+            {nav==="videocorso"&&<StepPageWrapper stepId="videocorso" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><VideocorsoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")} isAdmin={isAdminViewing}/></StepPageWrapper>}
             
             {/* FASE 6 - Videocorso */}
             {nav==="fase6-videocorso"&&<VideoEditorAndrea partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
@@ -1790,7 +1790,7 @@ export default function App() {
             {nav==="piano-continuita"&&<PianoContinuitaPage partner={demoPartner} onNavigate={setNav}/>}
             
             {/* LANCIO */}
-            {nav==="lancio"&&<StepPageWrapper stepId="lancio" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><LancioPage partner={demoPartner} onNavigate={setNav} onLaunchComplete={()=>setNav("dashboard")}/></StepPageWrapper>}
+            {nav==="lancio"&&<StepPageWrapper stepId="lancio" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><LancioPage partner={demoPartner} onNavigate={setNav} onLaunchComplete={()=>setNav("dashboard")} isAdmin={isAdminViewing}/></StepPageWrapper>}
             
             {/* CALENDARIO LANCIO */}
             {nav==="calendario-lancio"&&<CalendarioLancioPage partner={demoPartner} onNavigate={setNav}/>}

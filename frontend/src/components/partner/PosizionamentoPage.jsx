@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowRight, ArrowLeft, Check, Sparkles, MessageCircle, RefreshCw, ThumbsUp, Edit3, Loader2 } from "lucide-react";
+import { ArrowRight, ArrowLeft, Check, Sparkles, MessageCircle, RefreshCw, ThumbsUp, Edit3, Loader2, Eye } from "lucide-react";
 
 const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it")) ? "" : (process.env.REACT_APP_BACKEND_URL || "");
 
@@ -369,7 +369,7 @@ function CompletedBanner({ onContinue }) {
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function PosizionamentoPage({ partner, onNavigate, onComplete }) {
+export function PosizionamentoPage({ partner, onNavigate, onComplete, isAdmin }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [answers, setAnswers] = useState({});
   const [isGenerating, setIsGenerating] = useState(false);
@@ -396,7 +396,6 @@ export function PosizionamentoPage({ partner, onNavigate, onComplete }) {
         if (res.ok) {
           const data = await res.json();
           if (data.posizionamento) {
-            // Ricostruisci answers dai dati salvati
             const savedAnswers = {};
             if (data.posizionamento.step_1_studente_ideale) savedAnswers[1] = data.posizionamento.step_1_studente_ideale;
             if (data.posizionamento.step_2_obiettivo) savedAnswers[2] = data.posizionamento.step_2_obiettivo;
@@ -567,8 +566,63 @@ export function PosizionamentoPage({ partner, onNavigate, onComplete }) {
         
         {/* Tutor Intro */}
         <TutorIntro />
-        
-        {/* Content based on state */}
+
+        {/* ═══ ADMIN: Panoramica completa di tutte le domande ═══ */}
+        {isAdmin ? (
+          <div className="space-y-4" data-testid="admin-panoramic-posizionamento">
+            <div className="flex items-center gap-2 mb-2 px-1">
+              <Eye className="w-4 h-4" style={{ color: '#FBBF24' }} />
+              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#FBBF24' }}>Vista Admin — Tutte le domande</span>
+            </div>
+
+            {WIZARD_STEPS.map((step) => {
+              const answer = answers[step.id] || '';
+              return (
+                <div key={step.id} className="bg-white rounded-xl border p-5" style={{ borderColor: answer ? '#34C77B40' : '#ECEDEF' }}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
+                      style={{ background: answer ? '#34C77B' : '#F2C418', color: answer ? '#fff' : '#1E2128' }}>
+                      {answer ? <Check className="w-3.5 h-3.5" /> : step.id}
+                    </span>
+                    <span className="text-sm font-bold" style={{ color: '#1E2128' }}>{step.title}</span>
+                    {answer && <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: '#34C77B20', color: '#2D9F6F' }}>Compilato</span>}
+                    {!answer && <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: '#92400E' }}>Vuoto</span>}
+                  </div>
+                  <p className="text-sm font-medium mb-2" style={{ color: '#374151' }}>{step.question}</p>
+                  {answer ? (
+                    <div className="p-3 rounded-lg text-sm whitespace-pre-wrap" style={{ background: '#F9FAFB', color: '#1F2937', border: '1px solid #E5E7EB' }}>
+                      {answer}
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-lg text-sm italic" style={{ background: '#FFF7ED', color: '#9CA3AF', border: '1px dashed #E5E7EB' }}>
+                      Il partner non ha ancora risposto a questa domanda.
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Struttura corso generata */}
+            {generatedStructure && (
+              <div className="mt-6">
+                <div className="flex items-center gap-2 mb-2 px-1">
+                  <Sparkles className="w-4 h-4" style={{ color: '#8B5CF6' }} />
+                  <span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#8B5CF6' }}>Struttura Corso Generata</span>
+                </div>
+                <CourseStructureOutput 
+                  structure={generatedStructure}
+                  onApprove={handleApprove}
+                  onRequestEdit={handleRequestEdit}
+                  isSaving={isSaving}
+                />
+              </div>
+            )}
+
+            {isCompleted && <CompletedBanner onContinue={handleContinue} />}
+          </div>
+        ) : (
+        /* ═══ PARTNER: Wizard step-by-step ═══ */
+        <>
         {isCompleted ? (
           <CompletedBanner onContinue={handleContinue} />
         ) : generatedStructure ? (
@@ -600,6 +654,8 @@ export function PosizionamentoPage({ partner, onNavigate, onComplete }) {
               isLast={currentStep === totalSteps}
             />
           </>
+        )}
+        </>
         )}
         
       </div>
