@@ -49,6 +49,12 @@ class PosizionamentoInputs(BaseModel):
     esperienza: str = ""
     esclusioni: str = ""
 
+class VideocorsoInputs(BaseModel):
+    partner_id: str
+    durata: str = "medio"
+    include_bonus: bool = True
+    contenuti_pronti: bool = False
+
 class GenerateCourseStructureRequest(BaseModel):
     partner_id: str
 
@@ -801,7 +807,11 @@ async def get_videocorso(partner_id: str):
         "partner_id": partner_id,
         "course_structure": course_structure,
         "lessons_status": videocorso.get("lessons", {}) if videocorso else {},
-        "is_completed": videocorso.get("completed", False) if videocorso else False
+        "is_completed": videocorso.get("completed", False) if videocorso else False,
+        "inputs": videocorso.get("inputs") if videocorso else None,
+        "course_data": videocorso.get("course_data") if videocorso else None,
+        "course_generated": videocorso.get("course_generated", False) if videocorso else False,
+        "course_approved": videocorso.get("course_approved", False) if videocorso else False,
     }
 
 @router.post("/videocorso/upload-lesson")
@@ -901,6 +911,216 @@ async def complete_videocorso(partner_id: str):
     )
     
     return {"success": True, "message": "Videocorso completato"}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# VIDEOCORSO AI-DRIVEN ENDPOINTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.post("/videocorso/save-inputs")
+async def save_videocorso_inputs(request: VideocorsoInputs):
+    """Salva le preferenze del partner per la generazione del videocorso"""
+    partner = await get_partner_or_404(request.partner_id)
+
+    await db.partner_videocorso.update_one(
+        {"partner_id": request.partner_id},
+        {
+            "$set": {
+                "inputs": {
+                    "durata": request.durata,
+                    "include_bonus": request.include_bonus,
+                    "contenuti_pronti": request.contenuti_pronti,
+                },
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            },
+            "$setOnInsert": {
+                "partner_id": request.partner_id,
+                "partner_name": partner.get("name"),
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+
+    return {"success": True, "message": "Preferenze salvate"}
+
+
+@router.post("/videocorso/generate-course")
+async def generate_videocorso_ai(request: VideocorsoInputs):
+    """Genera la struttura completa del videocorso usando AI, basandosi su posizionamento e masterclass"""
+    partner = await get_partner_or_404(request.partner_id)
+
+    # Leggi dati posizionamento
+    posizionamento = await db.partner_posizionamento.find_one(
+        {"partner_id": request.partner_id}, {"_id": 0}
+    )
+    positioning_output = posizionamento.get("positioning_output", {}) if posizionamento else {}
+
+    # Leggi dati masterclass
+    masterclass = await db.masterclass_factory.find_one(
+        {"partner_id": request.partner_id}, {"_id": 0}
+    )
+    masterclass_answers = masterclass.get("answers", {}) if masterclass else {}
+
+    durata_rules = {
+        "breve": "Genera ESATTAMENTE 3 moduli con 3 lezioni ciascuno. Corso compatto e veloce.",
+        "medio": "Genera ESATTAMENTE 4 moduli con 4 lezioni ciascuno. Corso bilanciato.",
+        "avanzato": "Genera ESATTAMENTE 5 moduli con 5 lezioni ciascuno. Corso completo e approfondito."
+    }
+    durata_rule = durata_rules.get(request.durata, durata_rules["medio"])
+
+    prompt = f"""Sei un esperto di formazione digitale e corsi online.
+Genera la struttura completa di un videocorso vendibile in italiano.
+
+POSIZIONAMENTO DEL PARTNER ({partner.get('name')}):
+- Sintesi progetto: {positioning_output.get('sintesi_progetto', 'N/D')}
+- Target ideale: {positioning_output.get('target_ideale', 'N/D')}
+- Problema principale: {positioning_output.get('problema_principale', 'N/D')}
+- Risultato promesso: {positioning_output.get('risultato_promesso', 'N/D')}
+- Differenziazione: {positioning_output.get('differenziazione', 'N/D')}
+- Posizionamento finale: {positioning_output.get('posizionamento_finale', 'N/D')}
+
+MASTERCLASS (input del partner):
+- Risultato: {masterclass_answers.get('risultato_principale', 'N/D')}
+- Problema pubblico: {masterclass_answers.get('problema_pubblico', 'N/D')}
+- Metodo: {masterclass_answers.get('metodo_semplice', 'N/D')}
+- Esempio: {masterclass_answers.get('esempio_concreto', 'N/D')}
+
+PREFERENZE:
+- Durata: {request.durata}
+- Include bonus: {'Si' if request.include_bonus else 'No'}
+- Ha contenuti pronti: {'Si' if request.contenuti_pronti else 'No'}
+
+{durata_rule}
+
+Genera un JSON con questa struttura ESATTA:
+{{
+  "titolo": "Titolo chiaro e orientato al risultato",
+  "sottotitolo": "Frase che spiega il beneficio principale",
+  "descrizione": "2-3 frasi: cosa impara lo studente e per chi e' il corso",
+  "moduli": [
+    {{
+      "numero": 1,
+      "titolo": "Titolo del modulo",
+      "obiettivo": "Cosa lo studente impara in questo modulo",
+      "lezioni": [
+        {{"numero": "1.1", "titolo": "Titolo orientato all'azione", "durata": "5-10 min", "contenuto": ["punto chiave 1", "punto chiave 2", "punto chiave 3"]}}
+      ]
+    }}
+  ],
+  "bonus": ["Checklist pratica", "Template operativo", "Esercizi guidati"],
+  "risorse": ["Workbook del corso", "Slide riassuntive"],
+  "prezzo_base": "€XXX",
+  "prezzo_motivazione": "Motivazione del prezzo consigliato",
+  "offerta_lancio": "€XXX",
+  "offerta_motivazione": "Es: prezzo early access per i primi 50 iscritti",
+  "per_chi_e": "Descrizione specifica del target ideale del corso",
+  "per_chi_non_e": "Chi NON dovrebbe acquistare questo corso"
+}}
+
+REGOLE:
+- Ogni lezione deve avere un titolo orientato all'azione (es: 'Come creare...', 'Costruisci il tuo...')
+- Il prezzo deve essere realistico per il mercato italiano della formazione online (range €97-€497)
+- Se bonus e' No, restituisci un array vuoto per bonus
+- Rispondi SOLO con il JSON, senza altro testo"""
+
+    try:
+        # Salva inputs
+        await db.partner_videocorso.update_one(
+            {"partner_id": request.partner_id},
+            {
+                "$set": {
+                    "inputs": {
+                        "durata": request.durata,
+                        "include_bonus": request.include_bonus,
+                        "contenuti_pronti": request.contenuti_pronti,
+                    },
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                },
+                "$setOnInsert": {
+                    "partner_id": request.partner_id,
+                    "partner_name": partner.get("name"),
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+            },
+            upsert=True
+        )
+
+        llm = await get_llm_chat()
+        response = await llm.send_message(UserMessage(text=prompt))
+        response_text = response.strip()
+
+        if "```json" in response_text:
+            json_start = response_text.find("```json") + 7
+            json_end = response_text.find("```", json_start)
+            response_text = response_text[json_start:json_end].strip()
+        elif "```" in response_text:
+            json_start = response_text.find("```") + 3
+            json_end = response_text.find("```", json_start)
+            response_text = response_text[json_start:json_end].strip()
+
+        course_data = json.loads(response_text)
+
+        await db.partner_videocorso.update_one(
+            {"partner_id": request.partner_id},
+            {"$set": {
+                "course_data": course_data,
+                "course_generated": True,
+                "course_generated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+
+        return {
+            "success": True,
+            "course_data": course_data
+        }
+
+    except json.JSONDecodeError as e:
+        logging.error(f"JSON parse error in videocorso: {e}")
+        raise HTTPException(status_code=500, detail="Errore nel parsing del videocorso generato")
+    except Exception as e:
+        logging.error(f"Videocorso generation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore generazione videocorso: {str(e)}")
+
+
+@router.post("/videocorso/approve-course")
+async def approve_videocorso_ai(partner_id: str):
+    """Approva la struttura del videocorso generata e completa la fase"""
+    partner = await get_partner_or_404(partner_id)
+
+    videocorso = await db.partner_videocorso.find_one(
+        {"partner_id": partner_id}, {"_id": 0}
+    )
+
+    if not videocorso or not videocorso.get("course_data"):
+        raise HTTPException(status_code=400, detail="Nessun videocorso da approvare")
+
+    await db.partner_videocorso.update_one(
+        {"partner_id": partner_id},
+        {"$set": {
+            "course_approved": True,
+            "completed": True,
+            "approved_at": datetime.now(timezone.utc).isoformat(),
+            "completed_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+
+    await db.partners.update_one(
+        {"id": partner_id},
+        {"$set": {
+            "videocorso_completato": True,
+            "videocorso_completato_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+
+    await notify_telegram(
+        f"🎬 VIDEOCORSO COMPLETATO\n\n👤 {partner.get('name')}\n📋 Struttura videocorso approvata dal partner"
+    )
+
+    return {
+        "success": True,
+        "message": "Videocorso approvato! Puoi procedere al Funnel."
+    }
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # FUNNEL ENDPOINTS (AI Course Factory)

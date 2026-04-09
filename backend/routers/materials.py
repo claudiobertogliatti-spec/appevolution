@@ -58,7 +58,7 @@ def _base_styles():
 
 
 def _header(story, styles, title, subtitle):
-    story.append(Paragraph(f"EVOLUTION PRO", ParagraphStyle(
+    story.append(Paragraph("EVOLUTION PRO", ParagraphStyle(
         "Logo", parent=styles["Normal"], fontSize=9, textColor=BRAND_GOLD,
         fontName="Helvetica-Bold", spaceAfter=2
     )))
@@ -222,6 +222,132 @@ def _esempi_posizionamento(story, styles):
 
 
 # ═══════════════════════════════════════════════════════════
+# 4. TEMPLATE SCRIPT MASTERCLASS
+# ═══════════════════════════════════════════════════════════
+def _template_script_masterclass(story, styles):
+    _header(story, styles,
+            "Template Script Masterclass",
+            "Questo template ti guida nella creazione della tua masterclass. "
+            "Non devi essere perfetto. Devi essere chiaro e utile.")
+
+    blocks = [
+        ("BLOCCO 1 — Apertura", "Cosa dire nei primi 30 secondi",
+         ["Chi sei", "Cosa fai", "Per chi e' questo contenuto"],
+         'Ciao, sono [nome] e aiuto [target] a [risultato].\nIn questo video vedremo come [beneficio].'),
+        ("BLOCCO 2 — Problema", "Descrivi il problema del tuo pubblico",
+         ["Qual e' la situazione attuale", "Cosa non funziona"], None),
+        ("BLOCCO 3 — Errore comune", "Cosa fanno tutti ma non funziona",
+         ["L'errore piu' diffuso", "Perche' non porta risultati"], None),
+        ("BLOCCO 4 — Soluzione", "Spiega il tuo metodo",
+         ["Step 1: _______________", "Step 2: _______________", "Step 3: _______________"], None),
+        ("BLOCCO 5 — Esempio", "Fai un esempio concreto",
+         ["Racconta un caso reale o un risultato ottenuto"], None),
+        ("BLOCCO 6 — Transizione", "Porta verso il corso",
+         [], 'Se vuoi approfondire questo percorso, nel corso completo trovi [beneficio].'),
+        ("BLOCCO 7 — Chiusura", "Invito all'azione",
+         ["Call to action chiara", "Cosa deve fare lo spettatore ORA"], None),
+    ]
+
+    for title, subtitle, points, example in blocks:
+        story.append(Paragraph(title, styles["SectionHead"]))
+        story.append(Paragraph(subtitle, styles["BrandBody"]))
+        for p in points:
+            story.append(Paragraph(f"&bull; {p}", styles["BrandBody"]))
+        if example:
+            story.append(Spacer(1, 4))
+            story.append(Paragraph(f"Esempio: {example}", styles["Example"]))
+        story.append(Spacer(1, 4))
+        story.append(Paragraph("Scrivi qui:", styles["BrandBody"]))
+        story.append(Paragraph("_______________________________________________", styles["FillIn"]))
+        story.append(Spacer(1, 6))
+
+
+# ═══════════════════════════════════════════════════════════
+# 5. STRUTTURA MASTERCLASS TIPO
+# ═══════════════════════════════════════════════════════════
+def _struttura_masterclass_tipo(story, styles):
+    _header(story, styles,
+            "Struttura Masterclass Tipo",
+            "Una buona masterclass NON e' teoria. E' un percorso guidato. "
+            "Segui questa struttura per creare contenuti efficaci.")
+
+    sections = [
+        ("1. Introduzione", "1-2 min", "Chi sei, cosa fai, cosa vedranno"),
+        ("2. Problema", "2-3 min", "Descrizione chiara della situazione reale del pubblico"),
+        ("3. Errori comuni", "2-3 min", "Cosa fanno tutti e perche' non funziona"),
+        ("4. Soluzione", "5-10 min", "Il tuo metodo spiegato in modo semplice"),
+        ("5. Esempio", "3-5 min", "Caso pratico e dimostrazione concreta"),
+        ("6. Transizione", "2 min", "Collegamento al corso completo"),
+        ("7. Chiusura", "1 min", "Call to action finale"),
+    ]
+
+    data = [["Sezione", "Durata", "Contenuto"]]
+    for title, dur, desc in sections:
+        data.append([title, dur, desc])
+
+    t = Table(data, colWidths=[4*cm, 2.5*cm, 10*cm])
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), BRAND_DARK),
+        ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#FFFFFF")),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("ALIGN", (1, 0), (1, -1), "CENTER"),
+        ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#E8E4DC")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [HexColor("#FFFFFF"), BRAND_LIGHT]),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+    ]))
+    story.append(t)
+
+    story.append(Spacer(1, 16))
+    story.append(Paragraph("Durata totale consigliata: 15-25 minuti", styles["GoldBox"]))
+
+    story.append(Spacer(1, 12))
+    story.append(Paragraph("REGOLE D'ORO", styles["SectionHead"]))
+    rules = [
+        "Una sola idea per sezione",
+        "Linguaggio semplice e diretto",
+        "Esempi concreti, non astratti",
+        "Il pubblico deve pensare: 'Questo mi serve'",
+    ]
+    for r in rules:
+        story.append(Paragraph(f"&bull; {r}", styles["BrandBody"]))
+
+
+# ═══════════════════════════════════════════════════════════
+# 6. CONSIGLI PER LA REGISTRAZIONE
+# ═══════════════════════════════════════════════════════════
+def _consigli_registrazione(story, styles):
+    _header(story, styles,
+            "Consigli per la Registrazione",
+            "Non serve essere perfetti. Serve essere chiari. "
+            "Segui questi consigli pratici per registrare senza ansia.")
+
+    tips = [
+        ("1. Audio", ["Usa un microfono (anche del telefono)", "Evita ambienti rumorosi", "Fai un test prima di iniziare"]),
+        ("2. Luce", ["Luce frontale (finestra o lampada davanti a te)", "Evita controluce", "Luce naturale e' la migliore"]),
+        ("3. Camera", ["Guarda in camera", "Tieni lo sguardo stabile", "Posiziona la camera all'altezza degli occhi"]),
+        ("4. Linguaggio", ["Parla semplice", "Evita termini complessi", "Come se spiegassi a un amico"]),
+        ("5. Errori", ["Se sbagli, continua", "Puoi tagliare dopo", "Meglio naturale che perfetto"]),
+        ("6. Energia", ["Parla come se stessi spiegando a una persona", "Non leggere in modo monotono", "Sorridi, fai pause"]),
+        ("7. Durata", ["Meglio chiaro che lungo", "15-25 minuti totali", "Se dura troppo, taglia"]),
+    ]
+
+    for title, points in tips:
+        story.append(Paragraph(title, styles["SectionHead"]))
+        for p in points:
+            story.append(Paragraph(f"&bull; {p}", styles["BrandBody"]))
+        story.append(Spacer(1, 6))
+
+    story.append(Spacer(1, 12))
+    story.append(Paragraph(
+        "La tua masterclass non deve essere perfetta. Deve essere utile.",
+        styles["GoldBox"]
+    ))
+
+
+# ═══════════════════════════════════════════════════════════
 # ROUTING
 # ═══════════════════════════════════════════════════════════
 MATERIAL_MAP = {
@@ -229,6 +355,11 @@ MATERIAL_MAP = {
         "guida": ("guida_posizionamento.pdf", _guida_posizionamento),
         "template-target": ("template_target_ideale.pdf", _template_target),
         "esempi": ("esempi_posizionamento.pdf", _esempi_posizionamento),
+    },
+    "masterclass": {
+        "template-script": ("template_script_masterclass.pdf", _template_script_masterclass),
+        "struttura-tipo": ("struttura_masterclass_tipo.pdf", _struttura_masterclass_tipo),
+        "consigli-registrazione": ("consigli_registrazione.pdf", _consigli_registrazione),
     },
 }
 

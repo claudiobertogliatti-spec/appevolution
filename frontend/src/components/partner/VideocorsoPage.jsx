@@ -1,534 +1,493 @@
 import { useState, useEffect } from "react";
+import axios from "axios";
 import {
-  ArrowRight, Check, Upload, Clock, CheckCircle2, Film,
-  AlertCircle, ChevronDown, ChevronRight, BookOpen, ThumbsUp,
-  RefreshCw, Loader2, FileText, Gift, Download, List, Eye
+  Sparkles, Check, ArrowRight, Loader2, RefreshCw, Edit3, Eye,
+  ChevronDown, ChevronRight, Gift, Download, DollarSign, Target,
+  BookOpen, Tag
 } from "lucide-react";
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = process.env.REACT_APP_BACKEND_URL || "";
 
-/* ═══════════════════════════════════════════════════════════
-   FASE 1 — REVISIONE OUTLINE
-   ═══════════════════════════════════════════════════════════ */
+const DURATA_OPTIONS = [
+  { value: "breve", label: "Breve", desc: "3 moduli — corso compatto" },
+  { value: "medio", label: "Medio", desc: "4 moduli — corso bilanciato" },
+  { value: "avanzato", label: "Avanzato", desc: "5 moduli — corso completo" },
+];
 
-function OutlineReview({ outline, onApprove, isApproving, isAdmin }) {
-  const [expandedModules, setExpandedModules] = useState(
-    isAdmin ? (outline?.moduli || []).map((_, i) => i) : [0]
-  );
-
-  const toggleModule = (idx) =>
-    setExpandedModules((prev) =>
-      prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx]
-    );
-
-  const moduli = outline?.moduli || [];
-
+function CompletedBanner({ onContinue }) {
   return (
-    <div className="space-y-4" data-testid="outline-review">
-      {/* Titolo corso */}
-      <div className="rounded-2xl p-6 bg-white" style={{ border: "1px solid #ECEDEF" }}>
-        <div className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: "#8B8680" }}>
-          Titolo del corso
-        </div>
-        <h2 className="text-xl font-black mb-1" style={{ color: "#1E2128" }}>
-          {outline?.corsoTitolo || "Titolo non definito"}
-        </h2>
-        {outline?.durataStimata && (
-          <p className="text-sm" style={{ color: "#5F6572" }}>
-            Durata stimata: <strong>{outline.durataStimata}</strong>
-          </p>
-        )}
+    <div className="rounded-2xl p-8 text-center" data-testid="videocorso-completed-banner"
+         style={{ background: "linear-gradient(135deg, #34C77B 0%, #2D9F6F 100%)" }}>
+      <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+           style={{ background: "rgba(255,255,255,0.2)" }}>
+        <Check className="w-8 h-8 text-white" />
       </div>
+      <h2 className="text-xl font-black text-white mb-2">Videocorso completato!</h2>
+      <p className="text-sm text-white/80 mb-6 max-w-md mx-auto">
+        La struttura del tuo corso è approvata. Ora puoi procedere alla creazione del Funnel.
+      </p>
+      <button onClick={onContinue} data-testid="go-to-funnel-btn"
+        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all hover:scale-105"
+        style={{ background: "white", color: "#2D9F6F" }}>
+        Vai al Funnel <ArrowRight className="w-5 h-5" />
+      </button>
+    </div>
+  );
+}
 
-      {/* Moduli */}
-      <div className="space-y-3">
-        {moduli.map((modulo, idx) => {
-          const isExp = expandedModules.includes(idx);
-          const lezioni = modulo.lezioni || [];
-          return (
-            <div
-              key={idx}
-              data-testid={`outline-module-${idx}`}
-              className="rounded-2xl bg-white overflow-hidden"
-              style={{ border: `1px solid ${isExp ? "#F2C41840" : "#ECEDEF"}` }}
-            >
-              {/* Module header */}
-              <button
-                onClick={() => toggleModule(idx)}
-                className="w-full flex items-center gap-3 p-5 text-left hover:bg-gray-50 transition-all"
-              >
-                <span
-                  className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black flex-shrink-0"
-                  style={{ background: "#F2C418", color: "#1E2128" }}
-                >
-                  {modulo.numero || idx + 1}
+function ModuleCard({ modulo, idx, isExpanded, onToggle, isEditing, onEditLesson, editState, setEditState }) {
+  const lezioni = modulo.lezioni || [];
+  return (
+    <div className="rounded-2xl bg-white overflow-hidden" data-testid={`module-${idx}`}
+         style={{ border: `1px solid ${isExpanded ? "#F2C41840" : "#ECEDEF"}` }}>
+      <button onClick={onToggle}
+        className="w-full flex items-center gap-3 p-5 text-left hover:bg-gray-50 transition-all">
+        <span className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black flex-shrink-0"
+              style={{ background: "#F2C418", color: "#1E2128" }}>
+          {modulo.numero || idx + 1}
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-bold" style={{ color: "#1E2128" }}>{modulo.titolo}</div>
+          {modulo.obiettivo && (
+            <div className="text-xs mt-0.5" style={{ color: "#5F6572" }}>{modulo.obiettivo}</div>
+          )}
+        </div>
+        <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "#F5F3EE", color: "#8B8680" }}>
+          {lezioni.length} lezioni
+        </span>
+        {isExpanded ? <ChevronDown className="w-4 h-4" style={{ color: "#8B8680" }} /> : <ChevronRight className="w-4 h-4" style={{ color: "#8B8680" }} />}
+      </button>
+      {isExpanded && (
+        <div className="px-5 pb-5 space-y-2">
+          {lezioni.map((lezione, li) => (
+            <div key={li} className="rounded-xl p-4" style={{ background: "#FAFAF7", border: "1px solid #F0EDE8" }}>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-bold px-2 py-0.5 rounded" style={{ background: "#E8E4DC", color: "#5F6572" }}>
+                  {lezione.numero || `${modulo.numero || idx + 1}.${li + 1}`}
                 </span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-bold" style={{ color: "#1E2128" }}>
-                    {modulo.titolo}
-                  </div>
-                  {modulo.obiettivo && (
-                    <div className="text-xs mt-0.5" style={{ color: "#5F6572" }}>
-                      {modulo.obiettivo}
-                    </div>
-                  )}
-                </div>
-                <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "#F5F3EE", color: "#8B8680" }}>
-                  {lezioni.length} lezioni
-                </span>
-                {isExp ? (
-                  <ChevronDown className="w-4 h-4" style={{ color: "#8B8680" }} />
-                ) : (
-                  <ChevronRight className="w-4 h-4" style={{ color: "#8B8680" }} />
+                <span className="text-sm font-bold" style={{ color: "#1E2128" }}>{lezione.titolo}</span>
+                {lezione.durata && (
+                  <span className="ml-auto text-xs" style={{ color: "#9CA3AF" }}>{lezione.durata}</span>
                 )}
-              </button>
-
-              {/* Lezioni */}
-              {isExp && (
-                <div className="px-5 pb-5 space-y-2">
-                  {lezioni.map((lezione, li) => (
-                    <div
-                      key={li}
-                      className="rounded-xl p-4"
-                      style={{ background: "#FAFAF7", border: "1px solid #F0EDE8" }}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-bold px-2 py-0.5 rounded" style={{ background: "#E8E4DC", color: "#5F6572" }}>
-                          {lezione.numero || `${modulo.numero || idx + 1}.${li + 1}`}
-                        </span>
-                        <span className="text-sm font-bold" style={{ color: "#1E2128" }}>
-                          {lezione.titolo}
-                        </span>
-                        {lezione.durata && (
-                          <span className="ml-auto text-xs" style={{ color: "#9CA3AF" }}>
-                            {lezione.durata}
-                          </span>
-                        )}
-                      </div>
-                      {lezione.contenuto && lezione.contenuto.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {lezione.contenuto.map((arg, ai) => (
-                            <span
-                              key={ai}
-                              className="text-[11px] px-2 py-0.5 rounded-full"
-                              style={{ background: "#F2C41815", color: "#92700C", border: "1px solid #F2C41830" }}
-                            >
-                              {arg}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+              </div>
+              {lezione.contenuto && lezione.contenuto.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {lezione.contenuto.map((arg, ai) => (
+                    <span key={ai} className="text-[11px] px-2 py-0.5 rounded-full"
+                      style={{ background: "#F2C41815", color: "#92700C", border: "1px solid #F2C41830" }}>
+                      {arg}
+                    </span>
                   ))}
                 </div>
               )}
             </div>
-          );
-        })}
-      </div>
-
-      {/* Bonus & Risorse */}
-      {(outline?.bonus || outline?.risorse) && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {outline?.bonus && (
-            <div className="rounded-2xl p-5 bg-white" style={{ border: "1px solid #ECEDEF" }}>
-              <div className="flex items-center gap-2 mb-3">
-                <Gift className="w-4 h-4" style={{ color: "#8B5CF6" }} />
-                <span className="text-sm font-bold" style={{ color: "#1E2128" }}>Bonus inclusi</span>
-              </div>
-              <ul className="space-y-1.5">
-                {(Array.isArray(outline.bonus) ? outline.bonus : [outline.bonus]).map((b, i) => (
-                  <li key={i} className="text-sm flex items-start gap-2" style={{ color: "#5F6572" }}>
-                    <Check className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: "#8B5CF6" }} />
-                    {typeof b === "string" ? b : b.titolo || b.title || JSON.stringify(b)}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {outline?.risorse && (
-            <div className="rounded-2xl p-5 bg-white" style={{ border: "1px solid #ECEDEF" }}>
-              <div className="flex items-center gap-2 mb-3">
-                <Download className="w-4 h-4" style={{ color: "#3B82F6" }} />
-                <span className="text-sm font-bold" style={{ color: "#1E2128" }}>Risorse scaricabili</span>
-              </div>
-              <ul className="space-y-1.5">
-                {(Array.isArray(outline.risorse) ? outline.risorse : [outline.risorse]).map((r, i) => (
-                  <li key={i} className="text-sm flex items-start gap-2" style={{ color: "#5F6572" }}>
-                    <FileText className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: "#3B82F6" }} />
-                    {typeof r === "string" ? r : r.titolo || r.title || JSON.stringify(r)}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          ))}
         </div>
       )}
-
-      {/* Riepilogo */}
-      <div className="rounded-2xl p-5" style={{ background: "#FFF8E1", border: "1px solid #F2C41830" }}>
-        <div className="flex items-center gap-2 mb-2">
-          <List className="w-4 h-4" style={{ color: "#92700C" }} />
-          <span className="text-sm font-bold" style={{ color: "#92700C" }}>Riepilogo struttura</span>
-        </div>
-        <div className="flex gap-6 text-sm" style={{ color: "#5F6572" }}>
-          <span><strong>{moduli.length}</strong> moduli</span>
-          <span><strong>{moduli.reduce((s, m) => s + (m.lezioni?.length || 0), 0)}</strong> lezioni</span>
-          {outline?.durataStimata && <span>Durata: <strong>{outline.durataStimata}</strong></span>}
-        </div>
-      </div>
-
-      {/* Bottone conferma */}
-      {!isAdmin && (
-        <button
-          data-testid="approve-outline-btn"
-          onClick={onApprove}
-          disabled={isApproving}
-          className="w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-base transition-all hover:scale-[1.01] active:scale-[0.99]"
-          style={{ background: "#34C77B", color: "white" }}
-        >
-          {isApproving ? (
-            <><Loader2 className="w-5 h-5 animate-spin" /> Salvataggio...</>
-          ) : (
-            <><ThumbsUp className="w-5 h-5" /> Confermo la struttura — procedi alla registrazione</>
-          )}
-        </button>
-      )}
     </div>
   );
 }
-
-/* ═══════════════════════════════════════════════════════════
-   FASE 2 — REGISTRAZIONE (existing)
-   ═══════════════════════════════════════════════════════════ */
-
-function RecordingTips() {
-  return (
-    <div className="bg-white rounded-2xl border border-[#ECEDEF] p-5 mb-6">
-      <h3 className="font-bold text-sm mb-3" style={{ color: "#1E2128" }}>
-        Consigli per la registrazione
-      </h3>
-      <ul className="space-y-2 text-sm" style={{ color: "#5F6572" }}>
-        <li className="flex items-start gap-2"><span className="mt-1">•</span><span>Ambiente silenzioso con buona illuminazione</span></li>
-        <li className="flex items-start gap-2"><span className="mt-1">•</span><span>Guarda in camera come se parlassi a un amico</span></li>
-        <li className="flex items-start gap-2"><span className="mt-1">•</span><span>Video tra 5 e 15 minuti per massimizzare l'engagement</span></li>
-        <li className="flex items-start gap-2"><span className="mt-1">•</span><span>Non cercare la perfezione — l'autenticita' e' piu' importante</span></li>
-      </ul>
-    </div>
-  );
-}
-
-function LessonCard({ lesson, status, onUpload }) {
-  const [isUploading, setIsUploading] = useState(false);
-
-  const handleUpload = async () => {
-    setIsUploading(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    setIsUploading(false);
-    onUpload(lesson.id || lesson.numero);
-  };
-
-  return (
-    <div
-      className="flex items-center gap-3 p-3 rounded-xl transition-all"
-      style={{
-        background: status === "approved" ? "#EAFAF1" : status === "uploaded" ? "#FFF8DC" : "#FAFAF7",
-        border: `1px solid ${status === "approved" ? "#34C77B40" : status === "uploaded" ? "#F2C41840" : "#ECEDEF"}`,
-      }}
-    >
-      <div
-        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-        style={{
-          background: status === "approved" ? "#34C77B" : status === "uploaded" ? "#F2C418" : "#ECEDEF",
-          color: status === "approved" || status === "uploaded" ? "white" : "#9CA3AF",
-        }}
-      >
-        {status === "approved" ? <Check className="w-4 h-4" /> : status === "uploaded" ? <Clock className="w-4 h-4" /> : <Film className="w-4 h-4" />}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="font-medium text-sm truncate" style={{ color: "#1E2128" }}>
-          {lesson.titolo || lesson.title}
-        </div>
-        <div className="text-xs" style={{ color: "#9CA3AF" }}>
-          {lesson.durata || lesson.duration || "5-15 min"}
-        </div>
-      </div>
-      {status === "approved" ? (
-        <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ background: "#34C77B20", color: "#2D9F6F" }}>
-          Approvato
-        </span>
-      ) : status === "uploaded" ? (
-        <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ background: "#FFF0B3", color: "#92700C" }}>
-          In revisione
-        </span>
-      ) : (
-        <button
-          onClick={handleUpload}
-          disabled={isUploading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-105"
-          style={{ background: "#F2C418", color: "#1E2128" }}
-          data-testid={`upload-lesson-${lesson.numero || lesson.id}`}
-        >
-          {isUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-          {isUploading ? "Caricamento..." : "Carica video"}
-        </button>
-      )}
-    </div>
-  );
-}
-
-function RecordingPhase({ outline, lessonStatuses, onUploadLesson, isAdmin }) {
-  const [expandedModules, setExpandedModules] = useState(
-    isAdmin ? (outline?.moduli || []).map((_, i) => i) : [0]
-  );
-  const moduli = outline?.moduli || [];
-  const allLessons = moduli.flatMap((m) => m.lezioni || []);
-  const totalLessons = allLessons.length;
-  const uploaded = Object.values(lessonStatuses).filter((s) => s === "uploaded" || s === "approved").length;
-  const approved = Object.values(lessonStatuses).filter((s) => s === "approved").length;
-
-  const toggleModule = (idx) =>
-    setExpandedModules((prev) => (prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx]));
-
-  return (
-    <div data-testid="recording-phase">
-      {/* Progress */}
-      <div className="bg-white rounded-2xl border border-[#ECEDEF] p-5 mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-bold" style={{ color: "#1E2128" }}>Progresso registrazione</span>
-          <span className="text-sm" style={{ color: "#5F6572" }}>{uploaded} di {totalLessons} video caricati</span>
-        </div>
-        <div className="h-3 rounded-full overflow-hidden" style={{ background: "#ECEDEF" }}>
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{
-              width: `${totalLessons > 0 ? (uploaded / totalLessons) * 100 : 0}%`,
-              background: approved === totalLessons ? "#34C77B" : "linear-gradient(90deg, #F2C418, #FADA5E)",
-            }}
-          />
-        </div>
-      </div>
-
-      <RecordingTips />
-
-      {/* Modules */}
-      <div className="space-y-3">
-        {moduli.map((modulo, idx) => {
-          const isExp = expandedModules.includes(idx);
-          return (
-            <div key={idx} className="rounded-2xl bg-white overflow-hidden" style={{ border: "1px solid #ECEDEF" }}>
-              <button
-                onClick={() => toggleModule(idx)}
-                className="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50 transition-all"
-              >
-                <span className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0"
-                  style={{ background: "#F2C418", color: "#1E2128" }}>
-                  {modulo.numero || idx + 1}
-                </span>
-                <span className="flex-1 text-sm font-bold" style={{ color: "#1E2128" }}>
-                  {modulo.titolo}
-                </span>
-                {isExp ? <ChevronDown className="w-4 h-4" style={{ color: "#8B8680" }} /> : <ChevronRight className="w-4 h-4" style={{ color: "#8B8680" }} />}
-              </button>
-              {isExp && (
-                <div className="px-4 pb-4 space-y-2">
-                  {(modulo.lezioni || []).map((lezione, li) => (
-                    <LessonCard
-                      key={li}
-                      lesson={lezione}
-                      status={lessonStatuses[lezione.numero || `${modulo.numero || idx + 1}.${li + 1}`]}
-                      onUpload={onUploadLesson}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════
-   MAIN
-   ═══════════════════════════════════════════════════════════ */
 
 export function VideocorsoPage({ partner, onNavigate, onComplete, isAdmin }) {
-  const [phase, setPhase] = useState("loading"); // loading | outline | recording | completed
-  const [outline, setOutline] = useState(null);
-  const [lessonStatuses, setLessonStatuses] = useState({});
-  const [isApproving, setIsApproving] = useState(false);
+  const [inputs, setInputs] = useState({ durata: "medio", include_bonus: true, contenuti_pronti: false });
+  const [courseData, setCourseData] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [expandedModules, setExpandedModules] = useState([0]);
 
   const partnerId = partner?.id;
 
-  // Load outline
   useEffect(() => {
-    if (!partnerId) { setPhase("outline"); return; }
-    (async () => {
+    const load = async () => {
+      if (!partnerId) { setIsLoading(false); return; }
       try {
-        const res = await fetch(`${API}/api/stefania/course-builder/${partnerId}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.outline) {
-            setOutline(data.outline);
-            setPhase(data.status === "approved" ? "recording" : "outline");
-          } else {
-            // Nessun outline: mostra outline vuoto con struttura placeholder
-            setOutline(null);
-            setPhase("outline");
-          }
-        } else {
-          setPhase("outline");
+        const res = await axios.get(`${API}/api/partner-journey/videocorso/${partnerId}`);
+        const data = res.data;
+        if (data.inputs) setInputs(prev => ({ ...prev, ...data.inputs }));
+        if (data.course_data) {
+          setCourseData(data.course_data);
+          setExpandedModules((data.course_data.moduli || []).map((_, i) => i));
         }
+        if (data.course_approved || data.is_completed) setIsCompleted(true);
       } catch (e) {
-        setError(e.message);
-        setPhase("outline");
+        console.error("Error loading videocorso:", e);
+      } finally {
+        setIsLoading(false);
       }
-    })();
+    };
+    load();
   }, [partnerId]);
 
-  const handleApproveOutline = async () => {
-    setIsApproving(true);
+  const handleGenerate = async () => {
+    if (!partnerId) return;
+    setIsGenerating(true);
+    setError(null);
     try {
-      await fetch(`${API}/api/stefania/course-builder/save`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          partner_id: partnerId,
-          outline: outline,
-          status: "approved",
-        }),
+      const res = await axios.post(`${API}/api/partner-journey/videocorso/generate-course`, {
+        partner_id: partnerId,
+        ...inputs,
       });
-      setPhase("recording");
+      setCourseData(res.data.course_data);
+      setExpandedModules((res.data.course_data?.moduli || []).map((_, i) => i));
     } catch (e) {
-      setError(e.message);
+      console.error("Error generating videocorso:", e);
+      setError(e.response?.data?.detail || "Errore nella generazione. Riprova.");
     } finally {
-      setIsApproving(false);
+      setIsGenerating(false);
     }
   };
 
-  const handleUploadLesson = (lessonId) => {
-    setLessonStatuses((prev) => ({ ...prev, [lessonId]: "uploaded" }));
-    setTimeout(() => {
-      setLessonStatuses((prev) => ({ ...prev, [lessonId]: "approved" }));
-    }, 3000);
+  const handleRegenerate = () => {
+    setCourseData(null);
+    setExpandedModules([0]);
   };
 
-  // Check completion
-  const allLessons = (outline?.moduli || []).flatMap((m) => m.lezioni || []);
-  const totalLessons = allLessons.length;
-  const uploadedCount = Object.values(lessonStatuses).filter((s) => s === "uploaded" || s === "approved").length;
-  const isCompleted = totalLessons > 0 && uploadedCount === totalLessons;
+  const handleApprove = async () => {
+    if (!partnerId) return;
+    setIsSaving(true);
+    try {
+      await axios.post(`${API}/api/partner-journey/videocorso/approve-course?partner_id=${partnerId}`);
+      setIsCompleted(true);
+      if (onComplete) onComplete();
+    } catch (e) {
+      console.error("Error approving:", e);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
-  if (isCompleted && phase !== "completed") setPhase("completed");
+  const toggleModule = (idx) => {
+    setExpandedModules(prev => prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-full flex items-center justify-center" style={{ background: "#FAFAF7" }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F2C418" }} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-full" style={{ background: "#FAFAF7" }}>
       <div className="max-w-2xl mx-auto p-6">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-black mb-2" style={{ color: "#1E2128" }}>
-            Creazione del tuo Videocorso
+
+        {/* HERO */}
+        <div className="mb-8" data-testid="videocorso-hero">
+          <h1 className="text-3xl font-black mb-3" style={{ color: "#1E2128" }}>
+            Costruiamo il tuo Videocorso
           </h1>
-          <p className="text-sm" style={{ color: "#5F6572" }}>
-            {phase === "outline"
-              ? "Rivedi e conferma la struttura del corso prima di registrare"
-              : phase === "recording"
-              ? "Registra le lezioni seguendo la struttura approvata"
-              : "Caricamento..."}
+          <p className="text-base leading-relaxed" style={{ color: "#5F6572" }}>
+            Sulla base del tuo posizionamento e della tua masterclass, il sistema creerà automaticamente
+            la struttura completa del tuo corso.
+            <br /><br />
+            <strong>Non devi progettarlo. Devi solo validarlo e registrarlo.</strong>
           </p>
         </div>
 
-        {/* Phase indicator */}
-        <div className="flex gap-2 mb-6">
-          {["Struttura", "Registrazione"].map((label, i) => {
-            const active = (i === 0 && phase === "outline") || (i === 1 && (phase === "recording" || phase === "completed"));
-            const done = (i === 0 && (phase === "recording" || phase === "completed")) || (i === 1 && phase === "completed");
-            return (
-              <div key={i} className="flex items-center gap-2 flex-1 py-2 px-3 rounded-lg"
-                style={{ background: done ? "#EAFAF1" : active ? "#FFF8E1" : "#F5F3EE", border: `1px solid ${done ? "#34C77B40" : active ? "#F2C41840" : "#E8E4DC"}` }}>
-                <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                  style={{ background: done ? "#34C77B" : active ? "#F2C418" : "#E8E4DC", color: done || active ? "#fff" : "#8B8680" }}>
-                  {done ? <Check className="w-3 h-3" /> : i + 1}
-                </span>
-                <span className="text-xs font-bold" style={{ color: done ? "#2D9F6F" : active ? "#92700C" : "#8B8680" }}>{label}</span>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Admin badge */}
-        {isAdmin && phase === "outline" && (
-          <div className="flex items-center gap-2 mb-4 px-1">
-            <Eye className="w-4 h-4" style={{ color: "#FBBF24" }} />
-            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "#FBBF24" }}>
-              Vista Admin — Outline completo
-            </span>
-          </div>
-        )}
-
-        {/* Loading */}
-        {phase === "loading" && (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F2C418" }} />
-          </div>
-        )}
-
-        {/* Error */}
         {error && (
-          <div className="mb-4 p-3 rounded-xl flex items-center gap-2 text-sm" style={{ background: "#FEE2E2", color: "#DC2626" }}>
-            <AlertCircle className="w-4 h-4" /> {error}
+          <div className="mb-4 p-4 rounded-xl text-sm" style={{ background: "#FEE2E2", color: "#991B1B" }}>
+            {error}
           </div>
         )}
 
-        {/* FASE 1: Outline review */}
-        {phase === "outline" && (
-          outline ? (
-            <OutlineReview outline={outline} onApprove={handleApproveOutline} isApproving={isApproving} isAdmin={isAdmin} />
-          ) : (
-            <div className="rounded-2xl p-8 text-center" style={{ background: "#FFF8E1", border: "1px solid #F2C41830" }}>
-              <BookOpen className="w-10 h-10 mx-auto mb-3" style={{ color: "#92700C" }} />
-              <h3 className="font-bold text-base mb-2" style={{ color: "#1E2128" }}>
-                Struttura corso non ancora generata
-              </h3>
-              <p className="text-sm" style={{ color: "#5F6572" }}>
-                La struttura del videocorso viene creata nella fase di Posizionamento.
-                <br />Completa prima lo Step 1 per generare l'outline del tuo corso.
-              </p>
+        {/* ADMIN VIEW */}
+        {isAdmin && (
+          <div className="space-y-4" data-testid="admin-panoramic-videocorso">
+            <div className="flex items-center gap-2 mb-2 px-1">
+              <Eye className="w-4 h-4" style={{ color: "#FBBF24" }} />
+              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "#FBBF24" }}>
+                Vista Admin — Videocorso Partner
+              </span>
             </div>
-          )
+            {/* Inputs */}
+            <div className="bg-white rounded-xl border p-5" style={{ borderColor: "#ECEDEF" }}>
+              <div className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "#9CA3AF" }}>Preferenze</div>
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                <div><span style={{ color: "#9CA3AF" }}>Durata:</span> <strong style={{ color: "#1E2128" }}>{inputs.durata}</strong></div>
+                <div><span style={{ color: "#9CA3AF" }}>Bonus:</span> <strong style={{ color: "#1E2128" }}>{inputs.include_bonus ? "Sì" : "No"}</strong></div>
+                <div><span style={{ color: "#9CA3AF" }}>Contenuti pronti:</span> <strong style={{ color: "#1E2128" }}>{inputs.contenuti_pronti ? "Sì" : "No"}</strong></div>
+              </div>
+            </div>
+            {/* Course data */}
+            {courseData && (
+              <>
+                <CourseOutputView courseData={courseData} expandedModules={expandedModules} toggleModule={toggleModule} />
+              </>
+            )}
+            {isCompleted && <CompletedBanner onContinue={() => onNavigate("funnel")} />}
+          </div>
         )}
 
-        {/* FASE 2: Recording */}
-        {phase === "recording" && outline && (
-          <RecordingPhase
-            outline={outline}
-            lessonStatuses={lessonStatuses}
-            onUploadLesson={handleUploadLesson}
-            isAdmin={isAdmin}
-          />
-        )}
+        {/* PARTNER VIEW */}
+        {!isAdmin && (
+          <>
+            {isCompleted ? (
+              <>
+                {courseData && <CourseOutputView courseData={courseData} expandedModules={expandedModules} toggleModule={toggleModule} />}
+                <div className="mt-6">
+                  <CompletedBanner onContinue={() => onNavigate("funnel")} />
+                </div>
+              </>
+            ) : courseData ? (
+              /* OUTPUT */
+              <div data-testid="videocorso-output">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "#34C77B20" }}>
+                    <Check className="w-5 h-5" style={{ color: "#34C77B" }} />
+                  </div>
+                  <h2 className="text-xl font-black" style={{ color: "#1E2128" }}>Il tuo videocorso è pronto</h2>
+                </div>
 
-        {/* COMPLETATO */}
-        {phase === "completed" && (
-          <div className="rounded-2xl p-8 text-center" style={{ background: "linear-gradient(135deg, #34C77B 0%, #2D9F6F 100%)" }}>
-            <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-white" />
-            <h3 className="font-bold text-lg text-white mb-2">Videocorso completato!</h3>
-            <p className="text-sm text-white/80 mb-4">
-              Tutte le lezioni sono state caricate e approvate. Prosegui con la creazione del Funnel.
-            </p>
-            <button
-              onClick={() => { if (onComplete) onComplete(); onNavigate("funnel"); }}
-              className="px-6 py-3 rounded-xl font-bold bg-white hover:scale-105 transition-all"
-              style={{ color: "#2D9F6F" }}
-            >
-              Prosegui al Funnel <ArrowRight className="w-4 h-4 inline ml-1" />
-            </button>
+                <CourseOutputView courseData={courseData} expandedModules={expandedModules} toggleModule={toggleModule} />
+
+                {/* ACTIONS */}
+                <div className="flex gap-3 mt-6">
+                  <button onClick={handleApprove} disabled={isSaving} data-testid="approve-videocorso-btn"
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-black text-base transition-all hover:scale-105 disabled:opacity-50"
+                    style={{ background: "#34C77B", color: "white" }}>
+                    {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+                    {isSaving ? "Salvataggio..." : "APPROVA VIDEOCORSO"}
+                  </button>
+                  <button onClick={handleRegenerate} data-testid="regenerate-videocorso-btn"
+                    className="flex items-center justify-center gap-2 px-5 py-4 rounded-xl font-bold transition-all hover:bg-gray-50"
+                    style={{ background: "white", border: "1px solid #ECEDEF", color: "#5F6572" }}>
+                    <RefreshCw className="w-5 h-5" /> Rigenera
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* INPUT */
+              <div data-testid="videocorso-input-section">
+                <h2 className="text-lg font-black mb-4" style={{ color: "#1E2128" }}>
+                  Ultime informazioni
+                </h2>
+
+                {/* Durata */}
+                <div className="bg-white rounded-xl border p-5 mb-4" style={{ borderColor: "#ECEDEF" }}>
+                  <label className="text-sm font-bold mb-3 block" style={{ color: "#1E2128" }}>
+                    Quanto vuoi che duri il tuo corso?
+                  </label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {DURATA_OPTIONS.map(opt => (
+                      <button key={opt.value} onClick={() => setInputs(p => ({ ...p, durata: opt.value }))}
+                        data-testid={`durata-${opt.value}`}
+                        className="p-3 rounded-xl text-left transition-all"
+                        style={{
+                          border: `2px solid ${inputs.durata === opt.value ? "#F2C418" : "#ECEDEF"}`,
+                          background: inputs.durata === opt.value ? "#FFF8E1" : "white"
+                        }}>
+                        <div className="text-sm font-bold" style={{ color: "#1E2128" }}>{opt.label}</div>
+                        <div className="text-xs mt-0.5" style={{ color: "#5F6572" }}>{opt.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Bonus */}
+                <div className="bg-white rounded-xl border p-5 mb-4" style={{ borderColor: "#ECEDEF" }}>
+                  <label className="text-sm font-bold mb-3 block" style={{ color: "#1E2128" }}>
+                    Vuoi includere bonus?
+                  </label>
+                  <div className="flex gap-3">
+                    {[true, false].map(val => (
+                      <button key={String(val)} onClick={() => setInputs(p => ({ ...p, include_bonus: val }))}
+                        data-testid={`bonus-${val}`}
+                        className="flex-1 p-3 rounded-xl text-center text-sm font-bold transition-all"
+                        style={{
+                          border: `2px solid ${inputs.include_bonus === val ? "#F2C418" : "#ECEDEF"}`,
+                          background: inputs.include_bonus === val ? "#FFF8E1" : "white",
+                          color: "#1E2128"
+                        }}>
+                        {val ? "Sì" : "No"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Contenuti */}
+                <div className="bg-white rounded-xl border p-5 mb-8" style={{ borderColor: "#ECEDEF" }}>
+                  <label className="text-sm font-bold mb-3 block" style={{ color: "#1E2128" }}>
+                    Hai già contenuti pronti?
+                  </label>
+                  <div className="flex gap-3">
+                    {[true, false].map(val => (
+                      <button key={String(val)} onClick={() => setInputs(p => ({ ...p, contenuti_pronti: val }))}
+                        data-testid={`contenuti-${val}`}
+                        className="flex-1 p-3 rounded-xl text-center text-sm font-bold transition-all"
+                        style={{
+                          border: `2px solid ${inputs.contenuti_pronti === val ? "#F2C418" : "#ECEDEF"}`,
+                          background: inputs.contenuti_pronti === val ? "#FFF8E1" : "white",
+                          color: "#1E2128"
+                        }}>
+                        {val ? "Sì" : "No"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* CTA */}
+                <button
+                  onClick={handleGenerate}
+                  disabled={isGenerating}
+                  data-testid="generate-videocorso-btn"
+                  className={`w-full flex items-center justify-center gap-3 px-8 py-5 rounded-xl font-black text-lg transition-all ${
+                    !isGenerating ? "hover:scale-[1.02]" : "opacity-70"
+                  }`}
+                  style={{ background: "#F2C418", color: "#1E2128" }}>
+                  {isGenerating ? (
+                    <><Loader2 className="w-6 h-6 animate-spin" /> Generazione in corso...</>
+                  ) : (
+                    <><Sparkles className="w-6 h-6" /> GENERA VIDEOCORSO</>
+                  )}
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* Componente riutilizzabile per la visualizzazione del corso generato */
+function CourseOutputView({ courseData, expandedModules, toggleModule }) {
+  if (!courseData) return null;
+  const moduli = courseData.moduli || [];
+  const totalLessons = moduli.reduce((s, m) => s + (m.lezioni?.length || 0), 0);
+
+  return (
+    <div className="space-y-4" data-testid="course-output-view">
+      {/* Titolo + Sottotitolo */}
+      <div className="rounded-2xl p-6 bg-white" style={{ border: "1px solid #ECEDEF" }}>
+        <div className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: "#8B8680" }}>
+          Titolo del corso
+        </div>
+        <h2 className="text-xl font-black mb-2" style={{ color: "#1E2128" }}>
+          {courseData.titolo}
+        </h2>
+        {courseData.sottotitolo && (
+          <p className="text-sm font-medium" style={{ color: "#5F6572" }}>{courseData.sottotitolo}</p>
+        )}
+      </div>
+
+      {/* Descrizione */}
+      {courseData.descrizione && (
+        <div className="bg-white rounded-xl border p-5" style={{ borderColor: "#ECEDEF" }}>
+          <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#9CA3AF" }}>Descrizione</div>
+          <p className="text-sm leading-relaxed" style={{ color: "#1E2128" }}>{courseData.descrizione}</p>
+        </div>
+      )}
+
+      {/* Moduli */}
+      <div className="space-y-3">
+        {moduli.map((modulo, idx) => (
+          <ModuleCard key={idx} modulo={modulo} idx={idx}
+            isExpanded={expandedModules.includes(idx)}
+            onToggle={() => toggleModule(idx)} />
+        ))}
+      </div>
+
+      {/* Riepilogo */}
+      <div className="rounded-2xl p-5" style={{ background: "#FFF8E1", border: "1px solid #F2C41830" }}>
+        <div className="flex items-center gap-2 mb-2">
+          <BookOpen className="w-4 h-4" style={{ color: "#92700C" }} />
+          <span className="text-sm font-bold" style={{ color: "#92700C" }}>Riepilogo struttura</span>
+        </div>
+        <div className="flex gap-6 text-sm" style={{ color: "#5F6572" }}>
+          <span><strong>{moduli.length}</strong> moduli</span>
+          <span><strong>{totalLessons}</strong> lezioni</span>
+        </div>
+      </div>
+
+      {/* Bonus */}
+      {courseData.bonus && courseData.bonus.length > 0 && (
+        <div className="bg-white rounded-xl border p-5" style={{ borderColor: "#ECEDEF" }}>
+          <div className="flex items-center gap-2 mb-3">
+            <Gift className="w-4 h-4" style={{ color: "#8B5CF6" }} />
+            <span className="text-sm font-bold" style={{ color: "#1E2128" }}>Bonus inclusi</span>
+          </div>
+          <ul className="space-y-1.5">
+            {courseData.bonus.map((b, i) => (
+              <li key={i} className="text-sm flex items-start gap-2" style={{ color: "#5F6572" }}>
+                <Check className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: "#8B5CF6" }} /> {b}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Risorse */}
+      {courseData.risorse && courseData.risorse.length > 0 && (
+        <div className="bg-white rounded-xl border p-5" style={{ borderColor: "#ECEDEF" }}>
+          <div className="flex items-center gap-2 mb-3">
+            <Download className="w-4 h-4" style={{ color: "#3B82F6" }} />
+            <span className="text-sm font-bold" style={{ color: "#1E2128" }}>Risorse scaricabili</span>
+          </div>
+          <ul className="space-y-1.5">
+            {courseData.risorse.map((r, i) => (
+              <li key={i} className="text-sm flex items-start gap-2" style={{ color: "#5F6572" }}>
+                <Download className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: "#3B82F6" }} /> {r}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Prezzo + Offerta */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {courseData.prezzo_base && (
+          <div className="rounded-xl p-5" style={{ background: "#1E2128" }}>
+            <div className="flex items-center gap-2 mb-2">
+              <DollarSign className="w-4 h-4" style={{ color: "#F2C418" }} />
+              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "#F2C418" }}>Prezzo consigliato</span>
+            </div>
+            <div className="text-2xl font-black text-white mb-1">{courseData.prezzo_base}</div>
+            {courseData.prezzo_motivazione && (
+              <p className="text-xs" style={{ color: "#9CA3AF" }}>{courseData.prezzo_motivazione}</p>
+            )}
+          </div>
+        )}
+        {courseData.offerta_lancio && (
+          <div className="rounded-xl p-5" style={{ background: "#FFF8E1", border: "1px solid #F2C41830" }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Tag className="w-4 h-4" style={{ color: "#92700C" }} />
+              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "#92700C" }}>Offerta lancio</span>
+            </div>
+            <div className="text-2xl font-black mb-1" style={{ color: "#1E2128" }}>{courseData.offerta_lancio}</div>
+            {courseData.offerta_motivazione && (
+              <p className="text-xs" style={{ color: "#5F6572" }}>{courseData.offerta_motivazione}</p>
+            )}
           </div>
         )}
       </div>
+
+      {/* Posizionamento corso */}
+      {(courseData.per_chi_e || courseData.per_chi_non_e) && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {courseData.per_chi_e && (
+            <div className="bg-white rounded-xl border p-5" style={{ borderColor: "#34C77B40" }}>
+              <div className="flex items-center gap-2 mb-2">
+                <Target className="w-4 h-4" style={{ color: "#34C77B" }} />
+                <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "#2D9F6F" }}>Per chi è</span>
+              </div>
+              <p className="text-sm" style={{ color: "#1E2128" }}>{courseData.per_chi_e}</p>
+            </div>
+          )}
+          {courseData.per_chi_non_e && (
+            <div className="bg-white rounded-xl border p-5" style={{ borderColor: "#EF444440" }}>
+              <div className="flex items-center gap-2 mb-2">
+                <Target className="w-4 h-4" style={{ color: "#EF4444" }} />
+                <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "#DC2626" }}>Per chi NON è</span>
+              </div>
+              <p className="text-sm" style={{ color: "#1E2128" }}>{courseData.per_chi_non_e}</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
