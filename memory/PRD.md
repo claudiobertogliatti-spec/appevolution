@@ -1,58 +1,59 @@
-# Evolution PRO - PRD
+# Evolution PRO - Product Requirements Document
 
 ## Problema Originale
-Applicazione di gestione aziendale basata su AI per Evolution PRO LLC. Gestisce partner (formatori), onboarding, contratti, produzione contenuti, accountability e supporto tecnico tramite agenti AI specializzati.
+Sviluppo di "Evolution PRO", un'applicazione di gestione aziendale basata su AI per la creazione e gestione di accademie digitali. Il sistema serve tre tipologie di utenti: Admin (Claudio), Partner (formatori/coach) e Clienti potenziali.
 
 ## Architettura
-- Frontend: React + Tailwind + shadcn/ui
-- Backend: FastAPI + MongoDB (Motor async)
-- AI: Claude via Emergent LLM Key
-- Storage: Cloudinary
-- CRM: Systeme.io
-- Payments: Stripe
-- Background: Celery + Redis (Upstash)
+- **Frontend**: React + Tailwind CSS + shadcn/ui
+- **Backend**: FastAPI + Pydantic + MongoDB
+- **AI**: Anthropic Claude (via Emergent LLM Key)
+- **Pagamenti**: Stripe
+- **Background tasks**: Celery
+- **PDF**: ReportLab
 
-## Brand Palette
-- Giallo Evolution: #FFD24D
-- Nero Antracite: #1A1F24
-- Sidebar Bg: #F5F3EE
-- Yellow Dark: #D4A017
+## Stato di avanzamento
 
-## Completati
-- [x] Step 1-4 ClienteWizard (Welcome -> Quiz -> Checkout -> Onboarding)
-- [x] Pipeline AI Backend (Scoring + Claude + PDF)
-- [x] Post Analisi e Partnership - Funnel 11 sezioni
-- [x] Ristrutturazione PDF a 11 sezioni
-- [x] Upload Audio Analisi (Admin)
-- [x] Funnel Post-Analisi unificato su /proposta
-- [x] Admin Preview completo pagina Analisi e Partnership
-- [x] Articoli contratto con accordion + Clausole Specifiche banner + Firma con flag
-- [x] Riscrittura copy decisionale (7 modifiche: apertura, diagnosi, conseguenze, transizione, pre-contratto, pagamento)
-- [x] **Sidebar Partner guidata — 09 Apr 2026**
-  - Blocco "Progresso Accademia" (%, fase, completati)
-  - Step con stati: completato (verde ✅), in corso (giallo pulsante), bloccato (grigio 🔒)
-  - Logica sblocco sequenziale
-  - Blocco "Prossima azione" sempre visibile (fondo nero, testo giallo)
-  - "I nostri risultati" con KPI sintetici (badge "dopo il lancio")
-  - "Vai oltre" nascosto fino al completamento del lancio
-  - Linguaggio "noi" in tutta la sidebar e modal bloccato
-  - Modal bloccato indica fase attuale da completare
+### COMPLETATO
+- [x] Sistema auth (JWT, login, ruoli admin/partner/operations)
+- [x] Dashboard Admin completa (pipeline, partner, metriche, alert)
+- [x] Funnel Cliente completo (4 step: questionario → analisi AI → proposta → booking)
+- [x] Post Analisi Partnership (13 sezioni, contratto, chat AI, pagamento Stripe)
+- [x] Fix globale routing frontend (/api/ prefix su 78+ file)
+- [x] Fix backend redirect_slashes=False
+- [x] Integrazione Systeme.io (import bulk, tag)
+- [x] Modulo Firma Contratto (UI 2 colonne, chatbot Claude, accordion articoli)
+- [x] Onboarding Partner (campi aziendali, upload documenti)
+- [x] **Sidebar Partner minimale (4 item: Home, Il Mio Spazio, Supporto, Risultati)** ✅ 09/04/2026
+- [x] **Home Partner come orchestratore (Hero "Sei qui", CTA, Progresso 5 step)** ✅ 09/04/2026
+- [x] **StepPageWrapper per pagine step (header, stato, back-to-home)** ✅ 09/04/2026
+- [x] **MioSpazioPage (Profilo + File in tabs)** ✅ 09/04/2026
+- [x] **Logica avanzamento step (completato/in corso/bloccato)** ✅ 09/04/2026
+- [x] **Admin vista partner con stessa logica semplificata** ✅ 09/04/2026
 
-## P0 - Prossimi
-- [ ] SMTP trigger email nell'endpoint /api/cliente-analisi/call-prenotata
-- [ ] Admin Panel: lista utenti wizard, dati mini-quiz, stato corrente
+### IN CORSO
+(nessuno)
 
-## P1 - Alta Priorita
-- [ ] Generazione PDF contratto firmato standalone (download diretto)
+### PROSSIMI (P0-P1)
+- [ ] P0: SMTP trigger email alla prenotazione call (Step 4)
+- [ ] P0: Admin Panel - lista utenti wizard con stato
+- [ ] P1: Download PDF contratto firmato
 
-## P2 - Media Priorita
-- [ ] Integrazione reale Google Calendar
-- [ ] Integrazioni Canva/Kling (serve API key)
+### BACKLOG (P2-P3)
+- [ ] P2: Integrazione reale Google Calendar
+- [ ] P2: Integrazione reale Canva / Kling AI
+- [ ] P3: Refactoring monolite server.py (>15k righe)
+- [ ] P3: Fix alert fantasma "Test AlertQuestionario"
 
-## P3 - Technical Debt
-- [ ] Refactoring server.py monolite (>15.000 righe)
-- [ ] Bug: Alert fantasma "Test AlertQuestionario"
+## File Chiave
+- `/app/frontend/src/App.js` — Routing principale
+- `/app/frontend/src/components/partner/PartnerSidebar.jsx` — Sidebar minimale
+- `/app/frontend/src/components/partner/PartnerDashboardSimplified.jsx` — Home orchestratore
+- `/app/frontend/src/components/partner/StepPageWrapper.jsx` — Wrapper step pages
+- `/app/frontend/src/components/partner/MioSpazioPage.jsx` — Profilo + File
+- `/app/frontend/src/components/partner/stepConfig.js` — Configurazione condivisa step
+- `/app/frontend/src/components/cliente/PostAnalisiPartnership.jsx` — Funnel 13 sezioni
+- `/app/backend/server.py` — Backend monolite
+- `/app/backend/routers/contract.py` — Logica contrattuale
 
-## Credentials
-- Admin: claudio.bertogliatti@gmail.com / Evoluzione74
-- Operations: antonella@evolution-pro.it / OperationsAnto2024!
+## Credenziali Test
+Vedi `/app/memory/test_credentials.md`
