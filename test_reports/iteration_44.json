@@ -1,0 +1,42 @@
+{
+  "summary": "Completed testing of AdminPartnerOpsPanel and partner progress API endpoints. All 25 backend tests passed (100%). Frontend testing confirmed AdminPartnerOpsPanel visibility in admin partner view with all required features working correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_partner_progress.py",
+    "/app/test_reports/pytest/pytest_partner_progress.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": ["/app/backend/tests/test_partner_progress.py"],
+  "success_rate": {"backend": "100% (25/25 tests passed)", "frontend": "100%"},
+  "test_credentials": "Admin: claudio.bertogliatti@gmail.com / Evoluzione74",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "AdminPartnerOpsPanel and partner progress endpoints fully tested. Updated test file to match new micro-step configuration (27 total: Posizionamento 4, Masterclass 6, Videocorso 7, Funnel 5, Lancio 5). The panel shows on right side of admin partner view (accessed via 'Vista Partner' button or 'Visualizza' on a partner). Partner dashboard (left side) correctly does NOT show micro-steps or admin notes.",
+  "features_tested": {
+    "GET /api/admin/partners/{id}/progress returns all micro-steps for 5 phases": "PASS - Returns posizionamento (4), masterclass (6), videocorso (7), funnel (5), lancio (5) = 27 total micro-steps with status/label/note fields",
+    "PATCH /api/admin/partners/{id}/progress changes micro-step status with auto macro-status recalc": "PASS - Updates status and auto-computes macro status (not_started/in_progress/completed)",
+    "PATCH /api/admin/partners/{id}/progress auto-syncs partner phase": "PASS - Completing posizionamento sets phase to F3",
+    "PATCH /api/admin/partners/{id}/progress/note saves note on micro-step": "PASS - Note saved and retrieved correctly",
+    "AdminPartnerOpsPanel visible only in Vista Partner for admin users": "PASS - Panel shows on right side only when mode=partner AND role=admin",
+    "Micro-steps expandable for each phase in ops panel": "PASS - Clicking macro step expands/collapses micro-steps list",
+    "Note inline editable for each micro-step": "PASS - '+ nota' button opens input, save/cancel buttons work",
+    "Progress bar global and per-phase in panel": "PASS - Shows 'X/27 (Y%)' global and 'X/N' per macro step",
+    "Partner dashboard (left) does NOT show micro-steps or admin notes": "PASS - Only shows 5 macro steps with status (in corso/bloccato/completato)",
+    "Status cycles: non iniziato -> in corso -> completato": "PASS - Clicking micro-step cycles through statuses",
+    "Partner phase auto-updates after status change": "PASS - Phase badge updates when progress changes"
+  },
+  "mocked_apis": {
+    "has_mocked_apis": true,
+    "mocked_apis_list": ["Canva", "Kling AI", "Google Calendar"]
+  }
+}

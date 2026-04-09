@@ -1,10 +1,17 @@
 """
 Test suite for Partner Progress API endpoints.
 Tests GET/PATCH progress endpoints with micro-step config and phase auto-sync.
+Updated for new micro-step configuration (27 total micro-steps):
+- Posizionamento: 4 steps
+- Masterclass: 6 steps
+- Videocorso: 7 steps
+- Funnel: 5 steps
+- Lancio: 5 steps
 """
 import pytest
 import requests
 import os
+import uuid
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
@@ -14,6 +21,15 @@ ADMIN_PASSWORD = "Evoluzione74"
 
 # Partner ID from DB (Marco Orlandi - F3)
 TEST_PARTNER_ID = "3"
+
+# Updated micro-step configuration
+EXPECTED_MICRO_STEPS = {
+    "posizionamento": ["questionario", "risposte_complete", "revisione_pos", "approvazione_pos"],  # 4 steps
+    "masterclass": ["script_generato", "script_revisionato", "script_approvato", "video_registrato", "video_caricato", "controllo_qualita_mc"],  # 6 steps
+    "videocorso": ["struttura_corso", "contenuti_moduli", "registrazione_vc", "upload_vc", "revisione_montaggio", "controllo_qualita_vc", "approvazione_vc"],  # 7 steps
+    "funnel": ["landing_creata", "copy_inserito", "email_sequence", "checkout_config", "test_funnel"],  # 5 steps
+    "lancio": ["calendario", "contenuti_pronti", "campagne_ads", "test_completo", "go_live"],  # 5 steps
+}
 
 
 class TestPartnerProgressAPI:
@@ -68,7 +84,7 @@ class TestPartnerProgressAPI:
             assert step in progress, f"Missing macro step: {step}"
     
     def test_get_progress_returns_micro_steps_config(self):
-        """GET progress returns config with micro-step definitions"""
+        """GET progress returns config with correct micro-step counts"""
         res = self.session.get(f"{BASE_URL}/api/admin/partners/{TEST_PARTNER_ID}/progress")
         assert res.status_code == 200
         data = res.json()
@@ -76,25 +92,41 @@ class TestPartnerProgressAPI:
         assert "config" in data, "Missing config field"
         config = data["config"]
         
-        # Check posizionamento has 3 micro-steps
+        # Check posizionamento has 4 micro-steps
         assert "posizionamento" in config
-        assert len(config["posizionamento"]) == 3
+        assert len(config["posizionamento"]) == 4, f"Expected 4 posizionamento steps, got {len(config['posizionamento'])}"
         
-        # Check masterclass has 5 micro-steps
+        # Check masterclass has 6 micro-steps
         assert "masterclass" in config
-        assert len(config["masterclass"]) == 5
+        assert len(config["masterclass"]) == 6, f"Expected 6 masterclass steps, got {len(config['masterclass'])}"
         
-        # Check videocorso has 6 micro-steps
+        # Check videocorso has 7 micro-steps
         assert "videocorso" in config
-        assert len(config["videocorso"]) == 6
+        assert len(config["videocorso"]) == 7, f"Expected 7 videocorso steps, got {len(config['videocorso'])}"
         
         # Check funnel has 5 micro-steps
         assert "funnel" in config
-        assert len(config["funnel"]) == 5
+        assert len(config["funnel"]) == 5, f"Expected 5 funnel steps, got {len(config['funnel'])}"
         
         # Check lancio has 5 micro-steps
         assert "lancio" in config
-        assert len(config["lancio"]) == 5
+        assert len(config["lancio"]) == 5, f"Expected 5 lancio steps, got {len(config['lancio'])}"
+        
+        # Total should be 27
+        total = sum(len(config[step]) for step in config)
+        assert total == 27, f"Expected 27 total micro-steps, got {total}"
+    
+    def test_get_progress_micro_steps_have_required_fields(self):
+        """Each micro-step in progress has status, label, note fields"""
+        res = self.session.get(f"{BASE_URL}/api/admin/partners/{TEST_PARTNER_ID}/progress")
+        assert res.status_code == 200
+        data = res.json()
+        
+        for step_id, step_data in data["progress"].items():
+            for micro_id, micro_data in step_data.get("micro_steps", {}).items():
+                assert "status" in micro_data, f"Missing status in {step_id}/{micro_id}"
+                assert "label" in micro_data, f"Missing label in {step_id}/{micro_id}"
+                assert "note" in micro_data, f"Missing note field in {step_id}/{micro_id}"
     
     def test_get_progress_macro_step_has_status(self):
         """Each macro step has status field"""
@@ -126,10 +158,6 @@ class TestPartnerProgressAPI:
     
     def test_patch_progress_updates_micro_step(self):
         """PATCH progress updates micro-step status"""
-        # First get current state
-        get_res = self.session.get(f"{BASE_URL}/api/admin/partners/{TEST_PARTNER_ID}/progress")
-        assert get_res.status_code == 200
-        
         # Update a micro-step
         patch_res = self.session.patch(
             f"{BASE_URL}/api/admin/partners/{TEST_PARTNER_ID}/progress",
@@ -169,11 +197,11 @@ class TestPartnerProgressAPI:
             f"{BASE_URL}/api/admin/partners/{TEST_PARTNER_ID}/progress",
             json={
                 "macro_step": "masterclass",
-                "micro_step_id": "script_scrittura",
+                "micro_step_id": "script_generato",  # Updated micro-step ID
                 "status": "in_progress"
             }
         )
-        assert patch_res.status_code == 200
+        assert patch_res.status_code == 200, f"PATCH failed: {patch_res.text}"
         data = patch_res.json()
         
         assert "macro_step_status" in data, "Missing macro_step_status"
@@ -181,8 +209,8 @@ class TestPartnerProgressAPI:
     
     def test_patch_progress_auto_computes_macro_status(self):
         """PATCH progress auto-computes macro status from micro-steps"""
-        # Complete all posizionamento micro-steps
-        for micro_id in ["questionario", "revisione_pos", "approvazione_pos"]:
+        # Complete all posizionamento micro-steps (4 steps now)
+        for micro_id in EXPECTED_MICRO_STEPS["posizionamento"]:
             patch_res = self.session.patch(
                 f"{BASE_URL}/api/admin/partners/{TEST_PARTNER_ID}/progress",
                 json={
@@ -191,7 +219,7 @@ class TestPartnerProgressAPI:
                     "status": "completed"
                 }
             )
-            assert patch_res.status_code == 200
+            assert patch_res.status_code == 200, f"PATCH failed for {micro_id}: {patch_res.text}"
         
         # Check macro status is now completed
         data = patch_res.json()
@@ -201,7 +229,7 @@ class TestPartnerProgressAPI:
     def test_patch_progress_auto_syncs_phase(self):
         """PATCH progress auto-syncs partner phase based on progress"""
         # Complete posizionamento → phase should become F3
-        for micro_id in ["questionario", "revisione_pos", "approvazione_pos"]:
+        for micro_id in EXPECTED_MICRO_STEPS["posizionamento"]:
             self.session.patch(
                 f"{BASE_URL}/api/admin/partners/{TEST_PARTNER_ID}/progress",
                 json={
@@ -268,6 +296,132 @@ class TestPartnerProgressAPI:
         assert patch_res.status_code == 404
 
 
+class TestPartnerProgressNoteAPI:
+    """Tests for /api/admin/partners/{id}/progress/note endpoint"""
+    
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        """Setup: Get admin token"""
+        self.session = requests.Session()
+        self.session.headers.update({"Content-Type": "application/json"})
+        
+        login_res = self.session.post(f"{BASE_URL}/api/auth/login", json={
+            "email": ADMIN_EMAIL,
+            "password": ADMIN_PASSWORD
+        })
+        assert login_res.status_code == 200
+        data = login_res.json()
+        self.token = data.get("access_token") or data.get("token")
+        self.session.headers.update({"Authorization": f"Bearer {self.token}"})
+    
+    def test_patch_note_saves_note(self):
+        """PATCH note saves note on micro-step"""
+        test_note = f"Test note {uuid.uuid4().hex[:8]}"
+        
+        patch_res = self.session.patch(
+            f"{BASE_URL}/api/admin/partners/{TEST_PARTNER_ID}/progress/note",
+            json={
+                "macro_step": "posizionamento",
+                "micro_step_id": "questionario",
+                "note": test_note
+            }
+        )
+        assert patch_res.status_code == 200, f"PATCH note failed: {patch_res.text}"
+        
+        data = patch_res.json()
+        assert data.get("success") == True
+        
+        # Verify note was saved
+        get_res = self.session.get(f"{BASE_URL}/api/admin/partners/{TEST_PARTNER_ID}/progress")
+        assert get_res.status_code == 200
+        progress = get_res.json()["progress"]
+        saved_note = progress["posizionamento"]["micro_steps"]["questionario"]["note"]
+        assert saved_note == test_note, f"Expected note '{test_note}', got '{saved_note}'"
+    
+    def test_patch_note_returns_success_fields(self):
+        """PATCH note returns success, partner_id, macro_step, micro_step_id"""
+        patch_res = self.session.patch(
+            f"{BASE_URL}/api/admin/partners/{TEST_PARTNER_ID}/progress/note",
+            json={
+                "macro_step": "masterclass",
+                "micro_step_id": "script_generato",
+                "note": "Test note"
+            }
+        )
+        assert patch_res.status_code == 200
+        data = patch_res.json()
+        
+        assert data.get("success") == True
+        assert data.get("partner_id") == TEST_PARTNER_ID
+        assert data.get("macro_step") == "masterclass"
+        assert data.get("micro_step_id") == "script_generato"
+    
+    def test_patch_note_can_clear_note(self):
+        """PATCH note with empty string clears the note"""
+        # First set a note
+        self.session.patch(
+            f"{BASE_URL}/api/admin/partners/{TEST_PARTNER_ID}/progress/note",
+            json={
+                "macro_step": "videocorso",
+                "micro_step_id": "struttura_corso",
+                "note": "Some note"
+            }
+        )
+        
+        # Clear the note
+        patch_res = self.session.patch(
+            f"{BASE_URL}/api/admin/partners/{TEST_PARTNER_ID}/progress/note",
+            json={
+                "macro_step": "videocorso",
+                "micro_step_id": "struttura_corso",
+                "note": ""
+            }
+        )
+        assert patch_res.status_code == 200
+        
+        # Verify note was cleared
+        get_res = self.session.get(f"{BASE_URL}/api/admin/partners/{TEST_PARTNER_ID}/progress")
+        progress = get_res.json()["progress"]
+        saved_note = progress["videocorso"]["micro_steps"]["struttura_corso"]["note"]
+        assert saved_note == "", f"Expected empty note, got '{saved_note}'"
+    
+    def test_patch_note_invalid_macro_step(self):
+        """PATCH note returns 400 for invalid macro_step"""
+        patch_res = self.session.patch(
+            f"{BASE_URL}/api/admin/partners/{TEST_PARTNER_ID}/progress/note",
+            json={
+                "macro_step": "invalid_step",
+                "micro_step_id": "test",
+                "note": "Test"
+            }
+        )
+        assert patch_res.status_code == 400
+    
+    def test_patch_note_invalid_micro_step(self):
+        """PATCH note returns 400 for invalid micro_step_id"""
+        patch_res = self.session.patch(
+            f"{BASE_URL}/api/admin/partners/{TEST_PARTNER_ID}/progress/note",
+            json={
+                "macro_step": "posizionamento",
+                "micro_step_id": "invalid_micro",
+                "note": "Test"
+            }
+        )
+        assert patch_res.status_code == 400
+    
+    def test_patch_note_404_for_nonexistent_partner(self):
+        """PATCH note returns 404 for non-existent partner"""
+        patch_res = self.session.patch(
+            f"{BASE_URL}/api/admin/partners/99999/progress/note",
+            json={
+                "macro_step": "posizionamento",
+                "micro_step_id": "questionario",
+                "note": "Test"
+            }
+        )
+        assert patch_res.status_code == 404
+
+
 class TestPartnerProgressPhaseMapping:
     """Tests for phase auto-sync based on progress"""
     
@@ -289,14 +443,14 @@ class TestPartnerProgressPhaseMapping:
     def test_phase_mapping_posizionamento_to_f3(self):
         """Completing posizionamento sets phase to F3"""
         # Reset first
-        for micro_id in ["questionario", "revisione_pos", "approvazione_pos"]:
+        for micro_id in EXPECTED_MICRO_STEPS["posizionamento"]:
             self.session.patch(
                 f"{BASE_URL}/api/admin/partners/{TEST_PARTNER_ID}/progress",
                 json={"macro_step": "posizionamento", "micro_step_id": micro_id, "status": "not_started"}
             )
         
         # Complete all
-        for micro_id in ["questionario", "revisione_pos", "approvazione_pos"]:
+        for micro_id in EXPECTED_MICRO_STEPS["posizionamento"]:
             res = self.session.patch(
                 f"{BASE_URL}/api/admin/partners/{TEST_PARTNER_ID}/progress",
                 json={"macro_step": "posizionamento", "micro_step_id": micro_id, "status": "completed"}
@@ -304,6 +458,39 @@ class TestPartnerProgressPhaseMapping:
         
         data = res.json()
         assert data["new_phase"] == "F3", f"Expected F3, got {data['new_phase']}"
+    
+    def test_status_cycles_correctly(self):
+        """Status cycles: not_started -> in_progress -> completed"""
+        # Set to not_started
+        res1 = self.session.patch(
+            f"{BASE_URL}/api/admin/partners/{TEST_PARTNER_ID}/progress",
+            json={"macro_step": "funnel", "micro_step_id": "landing_creata", "status": "not_started"}
+        )
+        assert res1.status_code == 200
+        
+        # Cycle to in_progress
+        res2 = self.session.patch(
+            f"{BASE_URL}/api/admin/partners/{TEST_PARTNER_ID}/progress",
+            json={"macro_step": "funnel", "micro_step_id": "landing_creata", "status": "in_progress"}
+        )
+        assert res2.status_code == 200
+        
+        # Verify status
+        get_res = self.session.get(f"{BASE_URL}/api/admin/partners/{TEST_PARTNER_ID}/progress")
+        status = get_res.json()["progress"]["funnel"]["micro_steps"]["landing_creata"]["status"]
+        assert status == "in_progress"
+        
+        # Cycle to completed
+        res3 = self.session.patch(
+            f"{BASE_URL}/api/admin/partners/{TEST_PARTNER_ID}/progress",
+            json={"macro_step": "funnel", "micro_step_id": "landing_creata", "status": "completed"}
+        )
+        assert res3.status_code == 200
+        
+        # Verify status
+        get_res = self.session.get(f"{BASE_URL}/api/admin/partners/{TEST_PARTNER_ID}/progress")
+        status = get_res.json()["progress"]["funnel"]["micro_steps"]["landing_creata"]["status"]
+        assert status == "completed"
 
 
 if __name__ == "__main__":
