@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Sparkles, Check, ArrowRight, Loader2, RefreshCw, Edit3, Eye, ChevronDown, ChevronUp } from "lucide-react";
+import { Sparkles, Check, ArrowRight, Loader2, RefreshCw, Edit3, Eye, ChevronDown, ChevronUp, FileText } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -370,11 +370,47 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
                     Compila tutti i campi (min. 10 caratteri) per generare lo script
                   </p>
                 )}
+
+                {/* MATERIALI DI SUPPORTO (facoltativi) */}
+                <MaterialiSupporto />
               </div>
             )}
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+function MaterialiSupporto() {
+  const [show, setShow] = useState(false);
+  const materials = [
+    { id: "template-script", label: "Template Script Masterclass" },
+    { id: "struttura-tipo", label: "Struttura Masterclass Tipo" },
+    { id: "consigli-registrazione", label: "Consigli per la Registrazione" },
+  ];
+  return (
+    <div className="mt-8">
+      <button onClick={() => setShow(!show)}
+        className="flex items-center gap-2 text-sm font-medium w-full" style={{ color: "#9CA3AF" }}>
+        <FileText className="w-4 h-4" />
+        Materiali di supporto (facoltativi)
+        {show ? <ChevronUp className="w-4 h-4 ml-auto" /> : <ChevronDown className="w-4 h-4 ml-auto" />}
+      </button>
+      {show && (
+        <div className="mt-3 p-4 rounded-xl space-y-2" style={{ background: "white", border: "1px solid #ECEDEF" }}>
+          <p className="text-xs mb-3" style={{ color: "#9CA3AF" }}>
+            Questi materiali NON sono obbligatori. Usali solo come supporto.
+          </p>
+          {materials.map(m => (
+            <a key={m.id} href={`${API}/api/materials/masterclass/${m.id}`} target="_blank" rel="noreferrer"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-medium transition-all hover:bg-gray-50"
+              style={{ border: "1px solid #ECEDEF", color: "#5F6572" }}>
+              <FileText className="w-3.5 h-3.5" /> {m.label}
+            </a>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
