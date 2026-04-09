@@ -9582,6 +9582,7 @@ class CourseBuilderChatRequest(BaseModel):
 class CourseOutlineSaveRequest(BaseModel):
     partner_id: str
     outline: Dict
+    status: Optional[str] = "saved"
 
 @api_router.post("/stefania/course-builder/generate")
 async def generate_course_structure(request: CourseBuilderRequest):
@@ -9843,7 +9844,7 @@ async def save_course_outline(request: CourseOutlineSaveRequest):
         {"$set": {
             "partner_id": request.partner_id,
             "outline": request.outline,
-            "status": "saved",
+            "status": request.status,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }},
         upsert=True
