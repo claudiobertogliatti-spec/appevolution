@@ -46,36 +46,29 @@ ROOT_DIR = Path(__file__).parent
 mongo_url = os.environ.get('MONGO_URL', '')
 db_name = os.environ.get('DB_NAME', 'evolution_pro')
 
-ATLAS_FALLBACK = "mongodb+srv://evolution_admin:EvoPro2026!@cluster0.4cgj8wx.mongodb.net/evolution_pro?appName=Cluster0&maxPoolSize=5&retryWrites=true&timeoutMS=10000&w=majority"
-REDIS_FALLBACK = "rediss://default:gQAAAAAAAUGcAAIncDIyNGQwYmQwM2JjOTQ0NGY3YjZkN2U0ODdlODkwNDFkMHAyODIzMzI@included-tomcat-82332.upstash.io:6379"
-SMTP_DEFAULTS = {
-    "SMTP_HOST": "smtp.register.it",
-    "SMTP_PORT": "587",
-    "SMTP_USER": "info@evolution-pro.it",
-    "SMTP_PASSWORD": "Brtcld74m24l219y",
-    "SMTP_FROM": "Evolution PRO <info@evolution-pro.it>",
-}
+# Fallback: se MONGO_URL punta al cluster interno Emergent, usa MONGO_ATLAS_URL
+ATLAS_FALLBACK = os.environ.get('MONGO_ATLAS_URL', '')
+REDIS_FALLBACK = os.environ.get('REDIS_FALLBACK_URL', '')
 
 if not mongo_url or "customer-apps" in mongo_url:
-    logging.warning(f"MONGO_URL contiene cluster interno Emergent o è vuota, uso Atlas esterno")
-    mongo_url = ATLAS_FALLBACK
-    db_name = "evolution_pro"
+    if ATLAS_FALLBACK:
+        logging.warning(f"MONGO_URL contiene cluster interno Emergent o è vuota, uso Atlas esterno")
+        mongo_url = ATLAS_FALLBACK
+        db_name = "evolution_pro"
+    else:
+        logging.warning("MONGO_URL non configurata e MONGO_ATLAS_URL non impostata")
 
-# Force Redis/Celery env vars per produzione Emergent (non permette custom secrets)
+# Force Redis/Celery env vars per produzione Emergent
 redis_url_env = os.environ.get('REDIS_URL', '')
-if not redis_url_env:
+if not redis_url_env and REDIS_FALLBACK:
     os.environ['REDIS_URL'] = REDIS_FALLBACK
-    logging.info("REDIS_URL non trovata, impostato fallback Upstash")
+    logging.info("REDIS_URL non trovata, impostato fallback")
 celery_env = os.environ.get('CELERY_ENABLED', '')
 if not celery_env:
     os.environ['CELERY_ENABLED'] = 'true'
     logging.info("CELERY_ENABLED non trovata, impostato true")
 
-# Force SMTP env vars per produzione Emergent
-for key, val in SMTP_DEFAULTS.items():
-    if not os.environ.get(key):
-        os.environ[key] = val
-        logging.info(f"{key} non trovata, impostato fallback")
+# SMTP env vars — già nel .env, nessun fallback hardcoded necessario
 
 print(f"Connecting to MongoDB: {db_name}")
 

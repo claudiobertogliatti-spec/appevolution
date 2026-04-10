@@ -20,10 +20,11 @@ router = APIRouter(prefix="/api/contract", tags=["contract"])
 # MongoDB connection - usa lo stesso fallback di server.py
 mongo_url = os.environ.get('MONGO_URL', '')
 db_name = os.environ.get('DB_NAME', 'evolution_pro')
-ATLAS_FALLBACK = "mongodb+srv://evolution_admin:EvoPro2026!@cluster0.4cgj8wx.mongodb.net/evolution_pro?appName=Cluster0&maxPoolSize=5&retryWrites=true&timeoutMS=10000&w=majority"
+ATLAS_FALLBACK = os.environ.get('MONGO_ATLAS_URL', '')
 if not mongo_url or "customer-apps" in mongo_url:
-    mongo_url = ATLAS_FALLBACK
-    db_name = "evolution_pro"
+    if ATLAS_FALLBACK:
+        mongo_url = ATLAS_FALLBACK
+        db_name = "evolution_pro"
 client = AsyncIOMotorClient(mongo_url)
 db = client[db_name]
 
