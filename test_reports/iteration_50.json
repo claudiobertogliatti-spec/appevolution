@@ -1,0 +1,64 @@
+{
+  "summary": "Tested Videocorso update-course feature. Backend: 9/9 tests passed - POST /api/partner-journey/videocorso/update-course works correctly for adding/removing modules and lessons. Frontend: Partial - The 'Modifica struttura' button (data-testid='edit-structure-btn') is NOT visible in admin view because it's only rendered when isAdmin=false. The button should be visible to partners when course is approved.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "VideocorsoPage",
+        "issue": "'Modifica struttura' button (data-testid='edit-structure-btn') not visible in admin view. Button only renders when !isAdmin && isCompleted && !isEditing. When admin views via 'Vista Partner', isAdmin=true is passed.",
+        "selector": "[data-testid='edit-structure-btn']",
+        "priority": "MEDIUM",
+        "note": "This is by design - the button is for partner view only. Admin sees admin-panoramic-videocorso view instead."
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_videocorso_update_course.py",
+    "/app/test_reports/pytest/pytest_videocorso_update_course.xml"
+  ],
+  "action_items": [
+    "VERIFY: Test the 'Modifica struttura' button by logging in as a partner user (not admin) to confirm it appears in partner view",
+    "OPTIONAL: Consider adding the edit functionality to admin view as well, or document that this feature is partner-only"
+  ],
+  "critical_code_review_comments": [
+    "Backend endpoint POST /api/partner-journey/videocorso/update-course is correctly implemented (lines 1092-1113 in partner_journey.py)",
+    "Frontend VideocorsoPage.jsx correctly implements the edit-structure-btn at line 361-366, but only in partner view (!isAdmin)",
+    "The isAdmin prop is passed as true when admin views via 'Vista Partner' tab (App.js lines 1764-1767)",
+    "Course data for partner 2 has 4 modules and course_approved=true"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_videocorso_update_course.py"
+  ],
+  "success_rate": {
+    "backend": "100% (9/9 tests passed)",
+    "frontend": "Partial - Admin view tested, partner view requires partner login"
+  },
+  "test_credentials": "Admin: claudio.bertogliatti@gmail.com / Evoluzione74. Partner demo: testf0@evolutionpro.it (no password available)",
+  "seed_data_creation": "Restored course_data for partner 2 with 4 modules after accidental deletion during testing",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend update-course endpoint works. Frontend 'Modifica struttura' button only appears in partner view (isAdmin=false). To fully test frontend, need to login as a partner user. The admin view shows admin-panoramic-videocorso with course-output-view and completed-banner, but no edit-structure-btn. Partner 2 has course_approved=true with 4 modules.",
+  "features_tested": {
+    "Backend POST /api/partner-journey/videocorso/update-course": "PASS - Accepts partner_id and course_data, saves to DB",
+    "Backend GET /api/partner-journey/videocorso/2": "PASS - Returns course_data with 4 modules, course_approved=true",
+    "Backend: Add module via update-course": "PASS - Module added and persisted",
+    "Backend: Add lesson via update-course": "PASS - Lesson added and persisted",
+    "Backend: Remove module via update-course": "PASS - Module removed and persisted",
+    "Backend: Invalid partner returns 404": "PASS",
+    "Backend: Missing partner_id returns 422": "PASS",
+    "Backend: course_approved status preserved after update": "PASS",
+    "Frontend: Admin view shows course-output-view": "PASS - 4 modules displayed",
+    "Frontend: Admin view shows videocorso-completed-banner": "PASS",
+    "Frontend: Admin view shows edit-structure-btn": "NOT APPLICABLE - Button only in partner view"
+  },
+  "code_locations": {
+    "Backend update-course endpoint": "/app/backend/routers/partner_journey.py lines 1092-1113",
+    "Frontend edit-structure-btn": "/app/frontend/src/components/partner/VideocorsoPage.jsx lines 361-366",
+    "Frontend isAdmin check": "/app/frontend/src/components/partner/VideocorsoPage.jsx line 352 (!isAdmin)"
+  }
+}
