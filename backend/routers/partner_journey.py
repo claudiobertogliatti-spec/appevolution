@@ -4786,20 +4786,37 @@ async def get_notification_log(partner_id: str, limit: int = 20):
 async def send_manual_notification(req: NotificaManuale):
     """Admin invia una notifica manuale al partner"""
     from services.notifications import (
-        notify_step_pronto, notify_azione_richiesta, notify_sistema_attivo
+        notify_step_pronto, notify_azione_richiesta, notify_sistema_attivo, notify_step_in_lavorazione
     )
     
+    valid_tipi = ["step_pronto", "azione_richiesta", "sistema_attivo", "step_in_lavorazione"]
+    if req.tipo not in valid_tipi:
+        raise HTTPException(status_code=400, detail=f"Tipo notifica non valido. Valori: {', '.join(valid_tipi)}")
+    
+    if req.tipo in ("step_pronto", "azione_richiesta", "step_in_lavorazione") and not req.step_id:
+        raise HTTPException(status_code=400, detail="step_id obbligatorio per questo tipo di notifica")
+    
+    # Verifica partner esistente
+    partner = await db.partners.find_one(
+        {"$or": [{"id": req.partner_id}, {"id": int(req.partner_id) if req.partner_id.isdigit() else req.partner_id}]},
+        {"_id": 0, "id": 1}
+    )
+    if not partner:
+        raise HTTPException(status_code=404, detail=f"Partner {req.partner_id} non trovato")
+    
     try:
-        if req.tipo == "step_pronto" and req.step_id:
+        if req.tipo == "step_pronto":
             await notify_step_pronto(req.partner_id, req.step_id)
-        elif req.tipo == "azione_richiesta" and req.step_id:
+        elif req.tipo == "azione_richiesta":
             await notify_azione_richiesta(req.partner_id, req.step_id, req.messaggio)
         elif req.tipo == "sistema_attivo":
             await notify_sistema_attivo(req.partner_id, req.messaggio)
-        else:
-            raise HTTPException(status_code=400, detail="Tipo notifica non valido o step_id mancante")
+        elif req.tipo == "step_in_lavorazione":
+            await notify_step_in_lavorazione(req.partner_id, req.step_id)
         
         return {"success": True, "message": f"Notifica '{req.tipo}' inviata"}
+    except HTTPException:
+        raise
     except Exception as e:
         logging.error(f"[NOTIFICA] Errore invio manuale: {e}")
         raise HTTPException(status_code=500, detail=str(e))
