@@ -31,18 +31,18 @@ const NAV_ITEMS = [
     matchNavs: ['mio-spazio', 'profilo', 'i-miei-file', 'profilo-hub'],
   },
   {
-    id: 'supporto',
-    label: 'Supporto Team',
-    icon: MessageCircle,
-    matchNavs: ['supporto'],
-    showDot: true,
-  },
-  {
     id: 'kpi',
     label: 'Risultati',
     icon: TrendingUp,
     matchNavs: ['kpi', 'ottimizzazione', 'lead', 'pagamenti'],
     lockedUntilLaunch: true,
+  },
+  {
+    id: 'supporto',
+    label: 'Supporto Team',
+    icon: MessageCircle,
+    matchNavs: ['supporto'],
+    showDot: true,
   },
 ];
 
@@ -279,23 +279,6 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
             </nav>
           )}
         </div>
-      </div>
-
-      {/* Stefania CTA */}
-      <div className="px-4 py-3 flex-shrink-0" style={{ borderTop: `1px solid ${C.sidebarBdr}` }}>
-        <button
-          data-testid="sidebar-chat"
-          onClick={onOpenChat}
-          className="w-full flex items-center gap-3 rounded-xl text-left transition-all hover:opacity-90"
-          style={{ height: 44, padding: '0 12px', background: C.yellow, color: C.dark }}
-        >
-          <MessageCircle style={{ width: 18, height: 18, flexShrink: 0 }} />
-          <div className="flex-1">
-            <div style={{ fontSize: 13, fontWeight: 800, lineHeight: 1.2 }}>Hai bisogno di aiuto?</div>
-            <div style={{ fontSize: 11, opacity: 0.6 }}>Parla con Stefania</div>
-          </div>
-          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0" />
-        </button>
       </div>
 
       {/* User + Logout */}
