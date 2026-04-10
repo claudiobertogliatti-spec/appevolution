@@ -10,8 +10,8 @@ import { API } from "../../utils/api-config";
 // CONSULENZA MARKETING 1:1 CHECKOUT
 // €147 - 90 min con Claudio o Antonella
 // ============================================
-export function ConsulenzaCheckout({ partner, onBack }) {
-  const [selectedConsultant, setSelectedConsultant] = useState(null);
+export function ConsulenzaCheckout({ partner, onBack, defaultConsultant }) {
+  const [selectedConsultant, setSelectedConsultant] = useState(defaultConsultant || null);
   const [selectedDate, setSelectedDate] = useState("");
   const [projectFocus, setProjectFocus] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);

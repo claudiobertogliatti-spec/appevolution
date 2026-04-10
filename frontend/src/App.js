@@ -54,6 +54,7 @@ import { MasterclassVideocorso } from "./components/partner/MasterclassVideocors
 import ContractSigning from "./components/ContractSigning";
 import { Toaster } from "sonner";
 import { ServiziExtra } from "./components/partner/ServiziExtra";
+import { AcceleraCrescitaPage } from "./components/partner/AcceleraCrescitaPage";
 import { VideoEditorAndrea } from "./components/partner/VideoEditorAndrea";
 import { LegalPagesGenerator } from "./components/partner/LegalPagesGenerator";
 import { ContrattoPartnership } from "./components/partner/ContrattoPartnership";
@@ -1840,6 +1841,12 @@ export default function App() {
             {nav==="calendario-pro"&&<ServiziExtra partner={demoPartner} defaultService="calendario_pro"/>}
             {nav==="consulenza-claudio"&&<ServiziExtra partner={demoPartner} defaultService="consulenza_claudio"/>}
             {nav==="consulenza-antonella"&&<ServiziExtra partner={demoPartner} defaultService="consulenza_antonella"/>}
+            
+            {/* ACCELERA LA CRESCITA */}
+            {nav==="acc-visibilita"&&<AcceleraCrescitaPage partner={demoPartner} categoryId="visibilita" onNavigate={setNav}/>}
+            {nav==="acc-costanza"&&<AcceleraCrescitaPage partner={demoPartner} categoryId="costanza" onNavigate={setNav}/>}
+            {nav==="acc-monetizzazione"&&<AcceleraCrescitaPage partner={demoPartner} categoryId="monetizzazione" onNavigate={setNav}/>}
+            {nav==="acc-direzione"&&<AcceleraCrescitaPage partner={demoPartner} categoryId="direzione" onNavigate={setNav}/>}
             
             {/* ALTRI */}
             {nav==="risorse"&&<PartnerResources/>}
