@@ -22,7 +22,7 @@ const NAV_ITEMS = [
     id: 'dashboard',
     label: 'Home',
     icon: Home,
-    matchNavs: ['dashboard', 'home', 'posizionamento', 'masterclass', 'videocorso', 'funnel', 'lancio', 'onboarding-docs'],
+    matchNavs: ['dashboard', 'home', 'posizionamento', 'funnel-light', 'masterclass', 'videocorso', 'funnel', 'lancio', 'onboarding-docs'],
   },
   {
     id: 'mio-spazio',

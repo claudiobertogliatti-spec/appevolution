@@ -9,12 +9,12 @@ export const STEPS = [
     desc: 'Definiamo chi sei, cosa insegni e per chi lo fai.',
     whatToDo: 'Rispondi alle domande chiave sul tuo posizionamento',
     whatToDoDetail: 'Ci serviranno per definire il tuo target ideale e creare un messaggio chiaro e convincente.',
-    afterStep: 'Dopo il posizionamento, creeremo insieme la tua Masterclass gratuita.',
+    afterStep: 'Dopo il posizionamento, attiveremo subito il tuo primo funnel.',
     afterStepIntro: 'Una volta completato il posizionamento:',
     afterStepBullets: [
       'Avremo definito il tuo target ideale',
-      'Creeremo insieme la tua Masterclass gratuita',
-      'Inizierai a costruire la tua offerta',
+      'Attiveremo il tuo primo funnel in automatico',
+      'Avrai un link live entro 24-48h',
     ],
     materials: [
       { label: 'Guida al Posizionamento', type: 'guide', downloadId: 'guida' },
@@ -23,8 +23,27 @@ export const STEPS = [
     ],
   },
   {
-    id: 'masterclass',
+    id: 'funnel-light',
     num: 2,
+    title: 'Funnel Light',
+    desc: 'Attiva il tuo primo funnel in automatico.',
+    whatToDo: 'Rivedi e pubblica il tuo funnel pre-compilato',
+    whatToDoDetail: 'Usiamo i dati del posizionamento per creare landing, form e thank you page. Tu devi solo confermare.',
+    afterStep: 'Dopo la pubblicazione, creeremo la tua Masterclass.',
+    afterStepIntro: 'Una volta pubblicato il funnel:',
+    afterStepBullets: [
+      'Avrai un link live che raccoglie contatti',
+      'Creeremo insieme la tua Masterclass',
+      'Inizierai a costruire la tua offerta',
+    ],
+    materials: [
+      { label: 'Template Landing Standard', type: 'template' },
+      { label: 'Guida Form Contatti', type: 'guide' },
+    ],
+  },
+  {
+    id: 'masterclass',
+    num: 3,
     title: 'Masterclass',
     desc: 'Creiamo la tua lezione gratuita che attira studenti.',
     whatToDo: 'Rispondi alle 7 domande strategiche per creare il tuo script',
@@ -44,12 +63,12 @@ export const STEPS = [
   },
   {
     id: 'videocorso',
-    num: 3,
+    num: 4,
     title: 'Videocorso',
     desc: 'Realizziamo il tuo corso online completo.',
     whatToDo: 'Segui la struttura e registra le lezioni',
     whatToDoDetail: 'Ti guidiamo passo passo nella registrazione per avere un corso completo e professionale.',
-    afterStep: 'Dopo il videocorso, prepareremo il funnel di vendita.',
+    afterStep: 'Dopo il videocorso, prepareremo il funnel di vendita completo.',
     afterStepIntro: 'Una volta completato il videocorso:',
     afterStepBullets: [
       'Avrai un corso completo pronto alla vendita',
@@ -64,7 +83,7 @@ export const STEPS = [
   },
   {
     id: 'funnel',
-    num: 4,
+    num: 5,
     title: 'Funnel di Vendita',
     desc: 'Progettiamo la pagina che converte visitatori in studenti.',
     whatToDo: 'Completa la tua landing page',
@@ -84,7 +103,7 @@ export const STEPS = [
   },
   {
     id: 'lancio',
-    num: 5,
+    num: 6,
     title: 'Lancio',
     desc: 'Andiamo online insieme e generiamo le prime vendite.',
     whatToDo: 'Prepara calendario, contenuti e campagne',
@@ -106,15 +125,23 @@ export const STEPS = [
 
 export function getStepFromPhase(phase) {
   if (!phase) return 0;
-  if (phase === 'LIVE' || phase === 'OTTIMIZZAZIONE') return 6;
+  if (phase === 'LIVE' || phase === 'OTTIMIZZAZIONE') return 7;
   const n = parseInt(phase.replace('F', '') || '1');
+  // F1 = Posizionamento (step 0)
+  // F2 = Funnel Light (step 1) — NUOVO
+  // F3 = Masterclass (step 2)
+  // F4 = Videocorso (step 3)
+  // F5 = Funnel di Vendita (step 4)
+  // F6 = Lancio (step 5)
+  // F7+ = Post-Lancio (step 6+)
   if (n <= 1) return 0;
   if (n === 2) return 1;
   if (n === 3) return 2;
-  if (n <= 5) return 3;
-  if (n === 6) return 4;
-  if (n <= 8) return 5;
-  return 6;
+  if (n === 4) return 3;
+  if (n === 5) return 4;
+  if (n === 6) return 5;
+  if (n <= 8) return 6;
+  return 7;
 }
 
 export function getStepStatus(stepNum, currentStep) {
