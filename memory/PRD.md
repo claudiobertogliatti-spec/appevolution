@@ -61,6 +61,15 @@ Piattaforma gestionale per l'onboarding e la crescita dei partner in un ecosiste
 - [x] Growth System Page (conversione)
 - [x] Distribuzione Funnel (Admin, share_link Systeme.io)
 
+### Sistema Notifiche Partner (NUOVO - 10 Apr 2026)
+- [x] **Telegram Bot**: Messaggi brevi con link diretto alla dashboard
+- [x] **Systeme.io Email**: Tag automatici per triggerare automazioni email
+- [x] **Trigger automatici**: Quando admin cambia stato step → notifica al partner
+- [x] **Anti-spam**: Deduplicazione 24h per tipo/step
+- [x] **Eventi**: step_pronto, azione_richiesta, sistema_attivo, step_in_lavorazione
+- [x] **Admin UI**: Pannello Notifiche Partner in sidebar admin
+- [x] **Storico**: Log notifiche con canali e timestamp
+
 ---
 
 ## Backlog Prioritizzato
