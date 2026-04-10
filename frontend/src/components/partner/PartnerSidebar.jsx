@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Home, User, MessageCircle, TrendingUp, Lock, LogOut, X, Rocket, ChevronDown, ChevronRight, Eye, Repeat, DollarSign, Compass } from "lucide-react";
+import { Home, User, MessageCircle, TrendingUp, Lock, LogOut, X, Rocket, ChevronDown, ChevronRight, Eye, Repeat, DollarSign, Compass, Layers } from "lucide-react";
 import { STEPS, getStepFromPhase } from "./stepConfig";
 
 const C = {
@@ -92,6 +92,7 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
   const [hoveredId, setHoveredId] = useState(null);
   const [showLockedModal, setShowLockedModal] = useState(false);
   const [acceleraOpen, setAcceleraOpen] = useState(false);
+  const [crescitaOpen, setCrescitaOpen] = useState(false);
 
   const phase = partner?.phase || 'F1';
   const currentStep = getStepFromPhase(phase);
@@ -276,6 +277,53 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
                   </button>
                 );
               })}
+            </nav>
+          )}
+        </div>
+
+        {/* Crescita continua */}
+        <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${C.sidebarBdr}` }}>
+          <button
+            onClick={() => setCrescitaOpen(!crescitaOpen)}
+            className="w-full flex items-center gap-2 px-3 mb-2"
+            style={{ cursor: 'pointer' }}
+          >
+            <Layers style={{ width: 14, height: 14, color: '#34C77B' }} />
+            <span style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: '0.05em', textTransform: 'uppercase', flex: 1, textAlign: 'left' }}>
+              Crescita continua
+            </span>
+            {crescitaOpen
+              ? <ChevronDown style={{ width: 14, height: 14, color: C.muted }} />
+              : <ChevronRight style={{ width: 14, height: 14, color: C.muted }} />}
+          </button>
+          {crescitaOpen && (
+            <nav className="space-y-0.5">
+              {(() => {
+                const active = currentNav === 'growth-system';
+                const hovered = hoveredId === 'growth-system';
+                return (
+                  <button
+                    data-testid="sidebar-growth-system"
+                    onClick={() => onNavigate('growth-system')}
+                    onMouseEnter={() => setHoveredId('growth-system')}
+                    onMouseLeave={() => setHoveredId(null)}
+                    className="w-full flex items-center gap-3 rounded-xl text-left"
+                    style={{
+                      height: 40,
+                      padding: '0 14px',
+                      background: active ? C.activeBg : hovered ? C.hoverBg : 'transparent',
+                      border: `1.5px solid ${active ? C.activeBdr : 'transparent'}`,
+                      boxShadow: active ? `inset 3px 0 0 #34C77B` : 'none',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <TrendingUp style={{ width: 17, height: 17, flexShrink: 0, color: active ? '#34C77B' : C.muted }} />
+                    <span style={{ fontSize: 14, fontWeight: active ? 800 : 600, color: active ? C.dark : C.darkSoft }}>
+                      Evolution Growth System
+                    </span>
+                  </button>
+                );
+              })()}
             </nav>
           )}
         </div>
