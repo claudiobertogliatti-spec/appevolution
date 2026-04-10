@@ -1,55 +1,77 @@
-# Evolution PRO - Product Requirements Document
+# Evolution PRO — PRD (Product Requirements Document)
 
-## Problema Originale
-App di gestione aziendale AI-driven. I partner vengono guidati step-by-step con supporto AI completo.
+## Problema originale
+Piattaforma gestionale per l'onboarding e la crescita dei partner in un ecosistema di accademie digitali. Il partner viene guidato step-by-step dalla definizione del posizionamento al lancio del corso online.
+
+## Utenti
+- **Admin (Claudio)**: Gestisce i partner, configura i contenuti, monitora KPI
+- **Antonella**: Operatrice, gestisce contatti quotidiani con i partner
+- **Partner**: Professionisti che creano la propria accademia digitale
 
 ## Architettura
-- Frontend: React, Tailwind CSS, Shadcn UI, Axios
-- Backend: FastAPI, Motor (MongoDB async), emergentintegrations (LLM via Emergent Proxy)
+- Frontend: React + Tailwind + shadcn/ui
+- Backend: FastAPI + MongoDB (motor) + Celery
+- Integrazioni: Systeme.io, Claude AI (Emergent LLM Key), Stripe
 
-## Flusso Partner (aggiornato 10 Aprile 2026)
-**Posizionamento → Funnel Light → Masterclass → Videocorso → Funnel di Vendita → Lancio**
+---
 
-## Implementato
+## Funzionalita Implementate
 
-### Distribuzione Funnel Systeme.io (10 Aprile 2026) — DONE
-- **Workflow Admin**: Assegna template → Copia share link → Importa nel sub-account → Personalizza → Rendi live → Consegna URL
-- **5 stati distribuzione**: da_importare → importato → personalizzato → live → consegnato
-- **4 template master**: Webinar Evergreen, Masterclass Transformation, Sales Page PRO, Lead Gen Freebie
-- **Auto-sync**: quando consegnato con URL, aggiorna automaticamente funnel_light del partner
-- **UI Admin**: Summary cards + pannello assegnazione + lista con stepper + share link copiabile + storico
+### Core Platform
+- [x] Login/Registrazione con JWT
+- [x] Dashboard Admin con pipeline conversione, alert, KPI
+- [x] Dashboard Partner con percorso guidato 6 step
+- [x] Sidebar Partner con navigazione step
+- [x] Pannello Operativo laterale con tracking fasi
+- [x] Firma Contratto Partnership con chatbot Claude
+- [x] Systeme.io import contatti bulk e tag
 
-### Funnel Light — "Attiva il tuo primo funnel" (10 Aprile 2026) — DONE
-- Nuovo step 2 nel percorso (tra Posizionamento e Masterclass)
-- Template-based: landing + form + thank you, auto-compilato dal posizionamento
+### Modello Done-for-You (NUOVO - 10 Apr 2026)
+- [x] **DoneForYouWrapper** — Componente riutilizzabile con 3 stati:
+  - Stato 1: In preparazione (in_lavorazione / in_revisione)
+  - Stato 2: Pronto (contenuto + Approva)
+  - Stato 3: Approvato (step completato)
+- [x] Backend API: GET/POST step-status, approve, bulk-update
+- [x] Tutte le pagine partner aggiornate al modello Done-for-You:
+  - FunnelLightPage, FunnelPage, MasterclassPage, VideocorsoPage
+  - LancioPage, CalendarioLancioPage, EmailAutomation, CourseBuilderWizard
+- [x] Rimossi tutti i bottoni "Genera" e "Rigenera" dal partner
+- [x] Messaggi chiari: "Non devi costruire nulla. Il sistema e il team costruiscono tutto per te."
+- [x] stepConfig.js aggiornato con descrizioni done-for-you
 
-### Dashboard Operativa - Vista Antonella (10 Aprile 2026) — DONE
-### Percorso Veloce — Go Live in 21 giorni (10 Aprile 2026) — DONE
-### Dashboard Risultati v3 (10 Aprile 2026) — DONE
-### GrowthSystemPage Conversione (10 Aprile 2026) — DONE
-### LancioPage AI-driven (DONE)
-### Accelera la crescita (DONE)
+### Pagina Webinar Partner (NUOVO - 10 Apr 2026)
+- [x] Pagina accessibile dalla sidebar partner
+- [x] Struttura 6 blocchi: Hook, Problema, Errori, Metodo, Offerta, CTA
+- [x] Sezione Azioni: Registra Video / Avatar AI
+- [x] Pianificazione: Data + Ora
+- [x] Links: Landing Webinar + Pagina Iscrizione
+- [x] Backend API: GET/POST webinar data
+- [x] Integrato con DoneForYouWrapper
 
-## Endpoint API Chiave
-- `GET /api/partner-journey/funnel-distribution/templates`
-- `GET /api/partner-journey/funnel-distribution/all-pending`
-- `POST /api/partner-journey/funnel-distribution/assign`
-- `POST /api/partner-journey/funnel-distribution/update-status`
-- `GET /api/partner-journey/funnel-light/{partner_id}`
-- `POST /api/partner-journey/funnel-light/generate`
-- `POST /api/partner-journey/funnel-light/publish`
-- `GET /api/partner-journey/dashboard-operativa`
+### Dashboard e Strumenti
+- [x] Dashboard Operativa (Vista Antonella)
+- [x] Percorso Veloce "Go Live in 21gg"
+- [x] Ottimizzazione Page (KPI decisionale)
+- [x] Growth System Page (conversione)
+- [x] Distribuzione Funnel (Admin, share_link Systeme.io)
 
-## Backlog
+---
 
-### P0
-- Configurare share link reali Systeme.io (sostituire placeholder)
+## Backlog Prioritizzato
 
-### P1
-- SMTP invio email, PDF contratto, personalizzazione contratto Admin
+### P0 - Critico
+(Nessuno al momento)
 
-### P2
-- Google Calendar, Canva, Kling AI
+### P1 - Alta Priorita
+- [ ] KPI Tracking reale (GA4 + Meta Pixel per partner)
+- [ ] Generazione PDF contratto firmato (reportlab)
+- [ ] Configurazione SMTP per email post-firma
 
-### P3
-- Refactoring server.py, fix alert fantasma
+### P2 - Media Priorita
+- [ ] Integrazione API reali Canva/Kling AI
+- [ ] Admin UI per gestire stati step dei partner (modale per cambiare in_lavorazione → pronto)
+
+### P3 - Bassa Priorita
+- [ ] Refactoring server.py (>15k righe monolite)
+- [ ] Fix alert fantasma "Test AlertQuestionario"
+- [ ] Fix JSONDecodeError backend startup log
