@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Home, User, MessageCircle, TrendingUp, Lock, LogOut, X } from "lucide-react";
+import { Home, User, MessageCircle, TrendingUp, Lock, LogOut, X, Rocket, ChevronDown, ChevronRight, Eye, Repeat, DollarSign, Compass } from "lucide-react";
 import { STEPS, getStepFromPhase } from "./stepConfig";
 
 const C = {
@@ -46,6 +46,13 @@ const NAV_ITEMS = [
   },
 ];
 
+const ACCELERA_ITEMS = [
+  { id: "acc-visibilita", label: "Visibilità", icon: Eye, nav: "acc-visibilita" },
+  { id: "acc-costanza", label: "Costanza", icon: Repeat, nav: "acc-costanza" },
+  { id: "acc-monetizzazione", label: "Monetizzazione", icon: DollarSign, nav: "acc-monetizzazione" },
+  { id: "acc-direzione", label: "Direzione", icon: Compass, nav: "acc-direzione" },
+];
+
 function LockedModal({ isOpen, onClose }) {
   if (!isOpen) return null;
   return (
@@ -84,6 +91,7 @@ function LockedModal({ isOpen, onClose }) {
 export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout, onOpenChat, onSwitchToAdmin, isAdmin }) {
   const [hoveredId, setHoveredId] = useState(null);
   const [showLockedModal, setShowLockedModal] = useState(false);
+  const [acceleraOpen, setAcceleraOpen] = useState(false);
 
   const phase = partner?.phase || 'F1';
   const currentStep = getStepFromPhase(phase);
@@ -223,6 +231,54 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
             );
           })}
         </nav>
+
+        {/* Accelera la crescita */}
+        <div className="mt-5 pt-4" style={{ borderTop: `1px solid ${C.sidebarBdr}` }}>
+          <button
+            onClick={() => setAcceleraOpen(!acceleraOpen)}
+            className="w-full flex items-center gap-2 px-3 mb-2"
+            style={{ cursor: 'pointer' }}
+          >
+            <Rocket style={{ width: 14, height: 14, color: C.yellowDark }} />
+            <span style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: '0.05em', textTransform: 'uppercase', flex: 1, textAlign: 'left' }}>
+              Accelera la crescita
+            </span>
+            {acceleraOpen
+              ? <ChevronDown style={{ width: 14, height: 14, color: C.muted }} />
+              : <ChevronRight style={{ width: 14, height: 14, color: C.muted }} />}
+          </button>
+          {acceleraOpen && (
+            <nav className="space-y-0.5">
+              {ACCELERA_ITEMS.map((item) => {
+                const active = currentNav === item.nav;
+                const hovered = hoveredId === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    data-testid={`sidebar-${item.id}`}
+                    onClick={() => onNavigate(item.nav)}
+                    onMouseEnter={() => setHoveredId(item.id)}
+                    onMouseLeave={() => setHoveredId(null)}
+                    className="w-full flex items-center gap-3 rounded-xl text-left"
+                    style={{
+                      height: 40,
+                      padding: '0 14px',
+                      background: active ? C.activeBg : hovered ? C.hoverBg : 'transparent',
+                      border: `1.5px solid ${active ? C.activeBdr : 'transparent'}`,
+                      boxShadow: active ? `inset 3px 0 0 ${C.yellow}` : 'none',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <item.icon style={{ width: 17, height: 17, flexShrink: 0, color: active ? C.yellowDark : C.muted }} />
+                    <span style={{ fontSize: 14, fontWeight: active ? 800 : 600, color: active ? C.dark : C.darkSoft }}>
+                      {item.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </nav>
+          )}
+        </div>
       </div>
 
       {/* Stefania CTA */}
