@@ -32,6 +32,7 @@ import { PosizionamentoPage } from "./components/partner/PosizionamentoPage";
 import { MasterclassPage } from "./components/partner/MasterclassPage";
 import { VideocorsoPage } from "./components/partner/VideocorsoPage";
 import { FunnelPage } from "./components/partner/FunnelPage";
+import { FunnelLightPage } from "./components/partner/FunnelLightPage";
 import { PianoContinuitaPage } from "./components/partner/PianoContinuitaPage";
 import { LancioPage } from "./components/partner/LancioPage";
 import { CalendarioLancioPage } from "./components/partner/CalendarioLancioPage";
@@ -127,7 +128,7 @@ const PHASES = ["F0","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F
 const PHASE_ACTIONS = {
   F0:{title:"Firma il contratto",desc:"Il tuo percorso inizia qui. Firma il contratto e carica i documenti richiesti.",cta:"Carica Documenti",nav:"documenti",tutor:"STEFANIA",color:"#6b7280"},
   F1:{title:"Completa il Posizionamento",desc:"Definisci chi sei, chi aiuti e cosa prometti. STEFANIA ti guida step-by-step.",cta:"Apri Wizard Posizionamento",nav:"documenti",tutor:"STEFANIA",color:"#7c3aed"},
-  F2:{title:"Crea la struttura del corso",desc:"STEFANIA genera la struttura del tuo videocorso dal posizionamento.",cta:"Genera Struttura Corso",nav:"coursebuilder",tutor:"STEFANIA",color:"#db2777"},
+  F2:{title:"Attiva il tuo primo funnel",desc:"Landing + Form + Thank You — tutto compilato in automatico dal posizionamento.",cta:"Genera Funnel Light",nav:"funnel-light",tutor:"STEFANIA",color:"#3B82F6"},
   F3:{title:"Scrivi la tua Masterclass",desc:"6 blocchi strategici. STEFANIA ti aiuta con ogni paragrafo.",cta:"Apri Masterclass Builder",nav:"masterclass",tutor:"STEFANIA",color:"#db2777"},
   F4:{title:"Rivedi la struttura del corso",desc:"Controlla i moduli prima di iniziare a registrare.",cta:"Vedi Struttura Corso",nav:"corso",tutor:"STEFANIA",color:"#db2777"},
   F5:{title:"Registra i video del corso",desc:"ANDREA ti guida. Completa il pre-flight checklist e carica ogni clip.",cta:"Inizia Produzione Video",nav:"produzione",tutor:"ANDREA",color:"#0369a1"},
@@ -144,7 +145,7 @@ const PHASE_ACTIONS = {
 const PHASE_TOOLS = {
   F0:[{icon:"📋",label:"Documenti",nav:"documenti",desc:"Carica contratto"},{icon:"💬",label:"STEFANIA",nav:"supporto",desc:"Assistente 24/7"}],
   F1:[{icon:"🎯",label:"Posizionamento",nav:"documenti",desc:"Wizard guidato"},{icon:"💬",label:"STEFANIA",nav:"supporto",desc:"Assistente 24/7"}],
-  F2:[{icon:"✨",label:"Course Builder",nav:"coursebuilder",desc:"Genera struttura AI"},{icon:"🎨",label:"Brand Kit",nav:"brandkit",desc:"Logo e colori"}],
+  F2:[{icon:"🚀",label:"Funnel Light",nav:"funnel-light",desc:"Landing + Form + Thank You"},{icon:"💬",label:"STEFANIA",nav:"supporto",desc:"Assistente 24/7"}],
   F3:[{icon:"✍️",label:"Masterclass",nav:"masterclass",desc:"6 blocchi strategici"},{icon:"✨",label:"Course Builder",nav:"coursebuilder",desc:"Struttura corso"}],
   F4:[{icon:"▶",label:"Videocorso",nav:"corso",desc:"Studia i moduli"},{icon:"✍️",label:"Masterclass",nav:"masterclass",desc:"Rifinisci lo script"}],
   F5:[{icon:"🎬",label:"Produzione Video",nav:"produzione",desc:"Pre-flight + upload"},{icon:"📁",label:"I Miei File",nav:"files",desc:"Gestione materiali"}],
@@ -1160,7 +1161,7 @@ export default function App() {
   const adminNav=adminUser==="antonella"?antonellaNav:coreNav;
   const isToolNav=toolsNav.some(t=>t.id===nav);
 
-  const titles={overview:"Oggi",oggi:"Oggi","cp-benvenuto":"Vista Cliente","cp-questionario":"Vista Cliente","cp-richiesta":"Vista Cliente","cp-conferma":"Vista Cliente","cp-analisi":"Vista Cliente","pipeline-prioritaria":"Priorità Pipeline","partner-bloccati":"Partner Bloccati","guided-system":"Guided System",agenti:"Agent Hub",partner:"Partner Attivi","ex-partner":"Ex Partner","documenti-partner":"Documenti Partner","onboarding-admin":"Documenti Onboarding","youtube-heygen":"Video AI","servizi-admin":"Servizi Extra","calendario-admin":"Calendario Editoriale",andrea:adminUser==="antonella"?"ANDREA — Feed Video":"ANDREA — Surgical Cut",metriche:"Percorsi e Fasi",systeme:"SYSTEME.IO — Live Data",gaia:"Template Funnel",compliance:"Documenti & Compliance",copyfactory:"Copy Factory",warmode:"Campagne Ads",funnelbuilder:"Funnel Builder — Fase 4",alert:"Alert & Escalation",configurazione:"Configurazione",stefania:"STEFANIA — Chat",home:"Il tuo percorso","onboarding-docs":"Documenti Onboarding",corso:"PARTI DA QUI",bonus:"Bonus Strategici",masterclass:"Masterclass Builder",coursebuilder:"Course Builder AI",produzione:"ANDREA — Produzione Video",files:"I Miei File",brandkit:"Brand Kit",calendario:"Calendario Editoriale",documenti:"Documenti & Posizionamento",risorse:"Template & Risorse",renewal:"Piani Post-12 Mesi",supporto:"STEFANIA — Chat","clienti-analisi":"Pipeline","flusso-analisi":"Analisi Strategiche","demo-flusso-cliente":"Demo Flusso Cliente","lista-fredda":"Lead da Riattivare",approvals:"Approvazioni Cliente","mio-spazio":"Il Mio Spazio",posizionamento:"Posizionamento",videocorso:"Videocorso",funnel:"Funnel di Vendita",lancio:"Lancio",ottimizzazione:"Risultati",kpi:"Risultati",lead:"Lead",pagamenti:"Pagamenti","percorso-veloce":"Percorso Veloce",operativa:"Dashboard Operativa"};
+  const titles={overview:"Oggi",oggi:"Oggi","cp-benvenuto":"Vista Cliente","cp-questionario":"Vista Cliente","cp-richiesta":"Vista Cliente","cp-conferma":"Vista Cliente","cp-analisi":"Vista Cliente","pipeline-prioritaria":"Priorità Pipeline","partner-bloccati":"Partner Bloccati","guided-system":"Guided System",agenti:"Agent Hub",partner:"Partner Attivi","ex-partner":"Ex Partner","documenti-partner":"Documenti Partner","onboarding-admin":"Documenti Onboarding","youtube-heygen":"Video AI","servizi-admin":"Servizi Extra","calendario-admin":"Calendario Editoriale",andrea:adminUser==="antonella"?"ANDREA — Feed Video":"ANDREA — Surgical Cut",metriche:"Percorsi e Fasi",systeme:"SYSTEME.IO — Live Data",gaia:"Template Funnel",compliance:"Documenti & Compliance",copyfactory:"Copy Factory",warmode:"Campagne Ads",funnelbuilder:"Funnel Builder — Fase 4",alert:"Alert & Escalation",configurazione:"Configurazione",stefania:"STEFANIA — Chat",home:"Il tuo percorso","onboarding-docs":"Documenti Onboarding",corso:"PARTI DA QUI",bonus:"Bonus Strategici",masterclass:"Masterclass Builder",coursebuilder:"Course Builder AI",produzione:"ANDREA — Produzione Video",files:"I Miei File",brandkit:"Brand Kit",calendario:"Calendario Editoriale",documenti:"Documenti & Posizionamento",risorse:"Template & Risorse",renewal:"Piani Post-12 Mesi",supporto:"STEFANIA — Chat","clienti-analisi":"Pipeline","flusso-analisi":"Analisi Strategiche","demo-flusso-cliente":"Demo Flusso Cliente","lista-fredda":"Lead da Riattivare",approvals:"Approvazioni Cliente","mio-spazio":"Il Mio Spazio",posizionamento:"Posizionamento",videocorso:"Videocorso",funnel:"Funnel di Vendita","funnel-light":"Funnel Light",lancio:"Lancio",ottimizzazione:"Risultati",kpi:"Risultati",lead:"Lead",pagamenti:"Pagamenti","percorso-veloce":"Percorso Veloce",operativa:"Dashboard Operativa"};
 
   // Loading state
   if (authLoading) {
@@ -1444,7 +1445,8 @@ export default function App() {
         const p = currentPartner;
         const nav = partnerDashNav;
         // Step pages wrapped
-        if (nav === 'posizionamento') return <StepPageWrapper stepId="posizionamento" partner={p} onNavigate={setPartnerDashNav}><PosizionamentoPage partner={p} onNavigate={setPartnerDashNav} onComplete={() => setPartnerDashNav('dashboard')} /></StepPageWrapper>;
+        if (nav === 'posizionamento') return <StepPageWrapper stepId="posizionamento" partner={p} onNavigate={setPartnerDashNav}><PosizionamentoPage partner={p} onNavigate={setPartnerDashNav} onComplete={() => setPartnerDashNav('funnel-light')} /></StepPageWrapper>;
+        if (nav === 'funnel-light') return <StepPageWrapper stepId="funnel-light" partner={p} onNavigate={setPartnerDashNav}><FunnelLightPage partner={p} onNavigate={setPartnerDashNav} onComplete={() => setPartnerDashNav('masterclass')} /></StepPageWrapper>;
         if (nav === 'masterclass') return <StepPageWrapper stepId="masterclass" partner={p} onNavigate={setPartnerDashNav}><MasterclassPage partner={p} onNavigate={setPartnerDashNav} onComplete={() => setPartnerDashNav('dashboard')} /></StepPageWrapper>;
         if (nav === 'videocorso') return <StepPageWrapper stepId="videocorso" partner={p} onNavigate={setPartnerDashNav}><VideocorsoPage partner={p} onNavigate={setPartnerDashNav} onComplete={() => setPartnerDashNav('dashboard')} /></StepPageWrapper>;
         if (nav === 'funnel') return <StepPageWrapper stepId="funnel" partner={p} onNavigate={setPartnerDashNav}><FunnelPage partner={p} onNavigate={setPartnerDashNav} onComplete={() => setPartnerDashNav('dashboard')} /></StepPageWrapper>;
@@ -1751,9 +1753,12 @@ export default function App() {
             {nav==="onboarding-partner"&&<PartnerOnboarding partnerId={demoPartner?.id} partnerNome={demoPartner?.name||"Partner"} onComplete={()=>setNav("fase1-posizionamento")}/>}
             
             {/* FASE 1 - Posizionamento */}
-            {nav==="fase1-posizionamento"&&<StepPageWrapper stepId="posizionamento" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><PosizionamentoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")} isAdmin={isAdminViewing}/></StepPageWrapper>}
-            {nav==="documenti"&&<StepPageWrapper stepId="posizionamento" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><PosizionamentoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")} isAdmin={isAdminViewing}/></StepPageWrapper>}
-            {nav==="posizionamento"&&<StepPageWrapper stepId="posizionamento" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><PosizionamentoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("dashboard")} isAdmin={isAdminViewing}/></StepPageWrapper>}
+            {nav==="fase1-posizionamento"&&<StepPageWrapper stepId="posizionamento" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><PosizionamentoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("funnel-light")} isAdmin={isAdminViewing}/></StepPageWrapper>}
+            {nav==="documenti"&&<StepPageWrapper stepId="posizionamento" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><PosizionamentoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("funnel-light")} isAdmin={isAdminViewing}/></StepPageWrapper>}
+            {nav==="posizionamento"&&<StepPageWrapper stepId="posizionamento" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><PosizionamentoPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("funnel-light")} isAdmin={isAdminViewing}/></StepPageWrapper>}
+            
+            {/* FUNNEL LIGHT */}
+            {nav==="funnel-light"&&<StepPageWrapper stepId="funnel-light" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><FunnelLightPage partner={demoPartner} onNavigate={setNav} onComplete={()=>setNav("masterclass")} isAdmin={isAdminViewing}/></StepPageWrapper>}
             
             {/* FASE 2 - Outline */}
             {nav==="fase2-outline"&&<CourseBuilderWizard partnerId={demoPartner?.id||"demo"} positioningData={{trasformazione:"Demo",target:"Demo",problema:"Demo",soluzione:"Demo"}} onComplete={()=>setNav("fase3-script")}/>}

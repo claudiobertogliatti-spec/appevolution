@@ -1,0 +1,60 @@
+{
+  "summary": "Completed comprehensive testing of Funnel Light feature. All 11 backend tests passed (100%). All 10 frontend features verified working correctly. The new step order (Posizionamento → Funnel Light → Masterclass) is correctly implemented.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_funnel_light.py",
+    "/app/test_reports/pytest/pytest_funnel_light.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "FunnelLightPage.jsx correctly implements all required features: hero, sections, generate/publish/regenerate buttons",
+    "Backend GET /api/partner-journey/funnel-light/{partner_id} returns correct structure with funnel_light data or null",
+    "Backend POST /api/partner-journey/funnel-light/generate creates landing, form, thankyou content from positioning data",
+    "Backend POST /api/partner-journey/funnel-light/publish marks funnel as published with URL (academy.evolution-pro.it placeholder)",
+    "stepConfig.js correctly defines 6 steps: posizionamento, funnel-light, masterclass, videocorso, funnel, lancio",
+    "PHASE_ACTIONS F2 correctly updated to 'Attiva il tuo primo funnel' instead of 'Crea struttura corso'",
+    "Hero shows 'Attiva il tuo primo funnel' with correct subtitle",
+    "Three sections displayed: Landing Page Webinar, Form Contatti, Thank You Page",
+    "Published banner shows 'Funnel pubblicato' with 'Apri funnel' link when published",
+    "'Prosegui alla Masterclass' CTA appears after publishing",
+    "All data-testid attributes present: funnel-light-hero, generate-funnel-light, publish-funnel-light, regenerate-funnel-light, continue-to-masterclass, section-landing, section-form, section-thankyou, funnel-published-banner"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_funnel_light.py"
+  ],
+  "success_rate": {
+    "backend": "100% (11/11 tests passed)",
+    "frontend": "100% (all 10 features verified)"
+  },
+  "test_credentials": "Admin: claudio.bertogliatti@gmail.com / Evoluzione74",
+  "seed_data_creation": "No seed data created - Partner 2 (Arianna Aceto) already has funnel generated and published, Partner 3 (Marco Orlandi) used for generation flow testing",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Funnel Light feature fully tested. Navigation: Login as admin → Click 'Vista Partner' → Select partner (e.g., Arianna Aceto) → Click 'Funnel Light' in sidebar (step 2). Features: 1) Hero with 'Attiva il tuo primo funnel', 2) Generate button creates landing/form/thankyou content, 3) Publish button marks funnel live with URL, 4) Published banner with 'Apri funnel' link, 5) 'Prosegui alla Masterclass' CTA after publishing. Backend endpoints: GET/POST /api/partner-journey/funnel-light/{partner_id}, POST /generate, POST /publish. Step order: Posizionamento(1) → Funnel Light(2) → Masterclass(3) → Videocorso(4) → Funnel di Vendita(5) → Lancio(6). MOCKED: Funnel URL (academy.evolution-pro.it) is a placeholder.",
+  "features_tested": {
+    "Backend GET /api/partner-journey/funnel-light/{partner_id} returns funnel data (or null if not generated)": "PASS",
+    "Backend POST /api/partner-journey/funnel-light/generate creates landing, form, thankyou content from positioning data": "PASS",
+    "Backend POST /api/partner-journey/funnel-light/publish marks funnel as published with URL": "PASS",
+    "Frontend FunnelLightPage renders with correct hero 'Attiva il tuo primo funnel'": "PASS",
+    "Frontend shows generated content sections: Landing Page Webinar, Form Contatti, Thank You Page": "PASS",
+    "Frontend shows 'Funnel pubblicato' banner when published with 'Apri funnel' link": "PASS",
+    "Frontend 'Prosegui alla Masterclass' CTA appears after publishing": "PASS",
+    "Step config updated: step 2 is now 'Funnel Light', step 3 is 'Masterclass'": "PASS",
+    "Sidebar shows correct step order: Posizionamento → Funnel Light → Masterclass → Videocorso → Funnel → Lancio": "PASS",
+    "PHASE_ACTIONS F2 updated to 'Attiva il tuo primo funnel' instead of 'Crea struttura corso'": "PASS"
+  },
+  "mocked_apis": {
+    "has_mocked_apis": true,
+    "mocked_apis_list": [
+      "Funnel URL (academy.evolution-pro.it/{partner_id}/webinar) is a placeholder - actual URL will be configured when Systeme.io integration is complete"
+    ]
+  }
+}

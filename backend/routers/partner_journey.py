@@ -388,8 +388,165 @@ async def approve_course_structure(partner_id: str):
     }
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# POSIZIONAMENTO AI-DRIVEN ENDPOINTS
+# FUNNEL LIGHT — Attiva il tuo primo funnel
 # ═══════════════════════════════════════════════════════════════════════════════
+
+class FunnelLightRequest(BaseModel):
+    partner_id: str
+
+
+@router.get("/funnel-light/{partner_id}")
+async def get_funnel_light(partner_id: str):
+    """Recupera il funnel light generato per il partner"""
+    await get_partner_or_404(partner_id)
+
+    record = await db.funnel_light.find_one(
+        {"partner_id": partner_id}, {"_id": 0}
+    )
+
+    return {
+        "success": True,
+        "funnel_light": record if record else None,
+    }
+
+
+@router.post("/funnel-light/generate")
+async def generate_funnel_light(request: FunnelLightRequest):
+    """Genera il funnel light dai dati del posizionamento"""
+    partner = await get_partner_or_404(request.partner_id)
+
+    # Recupera posizionamento
+    posizionamento = await db.partner_posizionamento.find_one(
+        {"partner_id": request.partner_id}, {"_id": 0}
+    )
+
+    # Estrai dati posizionamento (wizard o AI-driven)
+    nome = partner.get("name", "Partner")
+    niche = partner.get("niche", "")
+    studente = ""
+    obiettivo = ""
+    trasformazione = ""
+    metodo = ""
+
+    if posizionamento:
+        # Prova output AI-driven
+        pos_output = posizionamento.get("positioning_output", {})
+        if isinstance(pos_output, dict) and pos_output:
+            studente = pos_output.get("studente_ideale", pos_output.get("target", ""))
+            obiettivo = pos_output.get("obiettivo", pos_output.get("trasformazione", ""))
+            trasformazione = pos_output.get("promessa", pos_output.get("big_idea", ""))
+            metodo = pos_output.get("metodo", pos_output.get("proposta_unica", ""))
+        else:
+            # Fallback su wizard classico
+            studente = posizionamento.get("step_1_studente_ideale", "")
+            obiettivo = posizionamento.get("step_2_obiettivo", "")
+            trasformazione = posizionamento.get("step_3_trasformazione", "")
+            metodo = posizionamento.get("step_4_metodo", "")
+
+        # Anche i campi AI-driven
+        if not studente:
+            studente = posizionamento.get("inputs", {}).get("target", "")
+        if not obiettivo:
+            obiettivo = posizionamento.get("inputs", {}).get("risultato", "")
+
+    # Genera testi template-based (veloce, senza LLM)
+    studente_short = studente[:200] if studente else "il tuo studente ideale"
+    obiettivo_short = obiettivo[:200] if obiettivo else "raggiungere i propri obiettivi"
+    trasformazione_short = trasformazione[:200] if trasformazione else f"il percorso completo di {nome}"
+
+    landing_text = f"""HEADLINE: Webinar Gratuito con {nome}
+
+SOTTOTITOLO: Scopri come {obiettivo_short}
+
+TESTO PRINCIPALE:
+Se sei {studente_short} e vuoi ottenere risultati concreti, questo webinar fa per te.
+
+Ti mostrero esattamente:
+- Come funziona il mio metodo
+- Gli errori piu comuni da evitare
+- I primi passi per iniziare subito
+
+PROMESSA: {trasformazione_short}
+
+CTA: Iscriviti gratis al webinar"""
+
+    form_text = f"""CAMPI DEL FORM:
+- Nome (obbligatorio)
+- Email (obbligatorio)
+- Numero di telefono (opzionale)
+
+TESTO SOPRA IL FORM:
+Inserisci i tuoi dati per riservare il tuo posto al webinar gratuito con {nome}.
+
+TESTO SOTTO IL FORM:
+I tuoi dati sono al sicuro. Riceverai solo le informazioni relative al webinar."""
+
+    thankyou_text = f"""HEADLINE: Perfetto, ci sei!
+
+TESTO:
+Grazie per esserti iscritto al webinar con {nome}.
+
+COSA SUCCEDE ORA:
+1. Riceverai un'email di conferma con il link per partecipare
+2. 24h prima del webinar riceverai un reminder
+3. Presentati puntuale per non perdere nulla
+
+NOTA: Controlla anche la cartella spam se non vedi l'email."""
+
+    funnel_data = {
+        "partner_id": request.partner_id,
+        "landing": landing_text,
+        "form": form_text,
+        "thankyou": thankyou_text,
+        "published": False,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    await db.funnel_light.update_one(
+        {"partner_id": request.partner_id},
+        {"$set": funnel_data, "$setOnInsert": {"created_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True,
+    )
+
+    return {"success": True, "funnel_light": funnel_data}
+
+
+@router.post("/funnel-light/publish")
+async def publish_funnel_light(request: FunnelLightRequest):
+    """Pubblica il funnel light — lo rende attivo"""
+    partner = await get_partner_or_404(request.partner_id)
+
+    funnel = await db.funnel_light.find_one(
+        {"partner_id": request.partner_id}, {"_id": 0}
+    )
+
+    if not funnel:
+        raise HTTPException(status_code=400, detail="Genera prima il funnel")
+
+    url = f"https://academy.evolution-pro.it/{request.partner_id}/webinar"
+
+    await db.funnel_light.update_one(
+        {"partner_id": request.partner_id},
+        {"$set": {
+            "published": True,
+            "published_at": datetime.now(timezone.utc).isoformat(),
+            "url": url,
+        }},
+    )
+
+    # Notifica
+    await notify_telegram(
+        f"🚀 FUNNEL LIGHT PUBBLICATO\n\n👤 {partner.get('name')}\n🔗 {url}"
+    )
+
+    return {
+        "success": True,
+        "message": "Funnel pubblicato!",
+        "url": url,
+    }
+
+
 
 @router.post("/posizionamento/save-inputs")
 async def save_posizionamento_inputs(request: PosizionamentoInputs):
@@ -4017,12 +4174,12 @@ async def save_percorso_veloce_checklist(request: PercorsoVeloceChecklistRequest
 PHASE_LABELS = {
     "F0": "Onboarding",
     "F1": "Posizionamento",
-    "F2": "Masterclass",
-    "F3": "Videocorso",
-    "F4": "Funnel",
-    "F5": "Lancio",
-    "F6": "Post-Lancio",
-    "F7": "Ottimizzazione",
+    "F2": "Funnel Light",
+    "F3": "Masterclass",
+    "F4": "Videocorso",
+    "F5": "Funnel di Vendita",
+    "F6": "Lancio",
+    "F7": "Post-Lancio",
     "F8": "Accademia Live",
     "F9": "Scaling",
     "F10": "Accademia Matura",
