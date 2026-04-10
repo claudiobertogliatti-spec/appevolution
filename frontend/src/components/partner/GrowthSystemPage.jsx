@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ArrowRight, Check, TrendingUp, BarChart3, Zap, Users,
   AlertTriangle, ChevronRight, Target, Shield, Rocket,
-  XCircle, Clock, ArrowDown
+  XCircle, Clock, ArrowDown, Loader2
 } from "lucide-react";
+
+const API = process.env.REACT_APP_BACKEND_URL || "";
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DIAGNOSTICA "DOVE SEI OGGI"
@@ -168,7 +170,7 @@ function DiagnosticBlock({ selected, onSelect }) {
   );
 }
 
-function LevelCard({ level, isRecommended, isExpanded, onToggle, onSelect }) {
+function LevelCard({ level, isRecommended, isExpanded, onToggle, onSelect, saving }) {
   const LevelIcon = level.icon;
 
   return (
@@ -262,14 +264,15 @@ function LevelCard({ level, isRecommended, isExpanded, onToggle, onSelect }) {
           <button
             data-testid={`level-cta-${level.id}`}
             onClick={() => onSelect(level.id)}
-            className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-black text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
+            disabled={saving}
+            className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-black text-sm transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
             style={{
               background: level.color,
               color: level.id === "growth" ? "#1E2128" : "white",
               boxShadow: `0 4px 16px ${level.color}40`,
             }}
           >
-            {level.cta} <ArrowRight className="w-4 h-4" />
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <>{level.cta} <ArrowRight className="w-4 h-4" /></>}
           </button>
         </div>
       )}
@@ -328,6 +331,25 @@ export function GrowthSystemPage({ partner }) {
   const [selectedScenario, setSelectedScenario] = useState(null);
   const [expandedLevel, setExpandedLevel] = useState(null);
   const [chosenLevel, setChosenLevel] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  const partnerId = partner?.id || partner?.partner_id;
+
+  // Carica livello esistente
+  useEffect(() => {
+    if (!partnerId) return;
+    fetch(`${API}/api/partner-journey/growth-level/${partnerId}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.data) {
+          setChosenLevel(d.data.level);
+          if (d.data.scenario) setSelectedScenario(d.data.scenario);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoaded(true));
+  }, [partnerId]);
 
   const recommendedLevel = selectedScenario || null;
 
@@ -337,9 +359,27 @@ export function GrowthSystemPage({ partner }) {
     setExpandedLevel(id);
   };
 
-  const handleLevelSelect = (id) => {
-    setChosenLevel(id);
-    // In futuro: qui si integra con Stripe o contatto admin
+  const handleLevelSelect = async (id) => {
+    if (!partnerId) {
+      setChosenLevel(id);
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch(`${API}/api/partner-journey/growth-level/choose`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ partner_id: String(partnerId), scenario: selectedScenario, level: id })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setChosenLevel(id);
+      }
+    } catch (e) {
+      console.warn("Errore salvataggio growth level:", e);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -389,6 +429,7 @@ export function GrowthSystemPage({ partner }) {
               isExpanded={expandedLevel === level.id}
               onToggle={() => setExpandedLevel(expandedLevel === level.id ? null : level.id)}
               onSelect={handleLevelSelect}
+              saving={saving}
             />
           ))}
         </div>
