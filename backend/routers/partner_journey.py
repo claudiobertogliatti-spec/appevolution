@@ -2130,9 +2130,20 @@ async def get_ottimizzazione(partner_id: str):
         "success": True,
         "partner_id": partner_id,
         "partner_name": partner.get("name"),
-        "kpi": kpi_data,
+        "kpi": {
+            "visite": kpi_data.get("lead_generati", 0) * 5,  # stima visite
+            "visite_trend": 0,
+            "contatti": kpi_data.get("lead_generati", 0),
+            "contatti_trend": 0,
+            "vendite": kpi_data.get("vendite_mese", 0),
+            "vendite_trend": 0,
+            "conversione": kpi_data.get("conversione_funnel", 0),
+            "conversione_trend": 0,
+        },
         "ultimo_report": ottimizzazione.get("ultimo_report") if ottimizzazione else None,
         "azioni": azioni,
+        "protocollo_settimana": ottimizzazione.get("protocollo_settimana") if ottimizzazione else None,
+        "protocollo_checklist": ottimizzazione.get("protocollo_checklist") if ottimizzazione else None,
         "caso_studio": {
             "studenti": kpi_data.get("studenti_totali", 0),
             "fatturato": kpi_data.get("fatturato_totale", 0),
