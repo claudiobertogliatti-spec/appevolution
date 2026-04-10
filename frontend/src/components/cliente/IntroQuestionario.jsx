@@ -9,7 +9,7 @@ export function IntroQuestionario({ onStart }) {
 
   useEffect(() => {
     track("intro_view");
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("access_token") || localStorage.getItem("token");
     if (token) {
       fetch("/api/cliente-analisi/track-event?event=intro_view", {
         method: "POST",
@@ -22,7 +22,7 @@ export function IntroQuestionario({ onStart }) {
     if (!agreed) return;
     track("cta_click");
     localStorage.setItem("intro_questionario_seen", "true");
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("access_token") || localStorage.getItem("token");
     if (token) {
       fetch("/api/cliente-analisi/intro-seen", {
         method: "POST",

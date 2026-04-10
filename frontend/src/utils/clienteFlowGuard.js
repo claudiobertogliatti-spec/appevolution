@@ -36,7 +36,9 @@ export function getCorrectPage(user) {
   if (user.questionario_completed || user.questionario_compilato) return "/attivazione-analisi";
 
   // Questionario aperto o intro vista → completa questionario
-  if (user.questionario_started || user.intro_questionario_seen) return "/questionario";
+  const introSeen = user.questionario_started || user.intro_questionario_seen ||
+    (typeof localStorage !== "undefined" && localStorage.getItem("intro_questionario_seen"));
+  if (introSeen) return "/questionario";
 
   // Benvenuto visto (localStorage) → intro questionario
   if (typeof localStorage !== "undefined" && localStorage.getItem("benvenuto_seen")) {
