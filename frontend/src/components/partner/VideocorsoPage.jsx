@@ -33,7 +33,7 @@ function ModuleCard({ modulo, idx, isExpanded, onToggle }) {
       {isExpanded && (
         <div className="px-5 pb-5 space-y-2">
           {lezioni.map((lezione, li) => (
-            <div key={li} className="rounded-xl p-4" style={{ background: "#FAFAF7", border: "1px solid #F0EDE8" }}>
+            <div key={lezione.numero || lezione.titolo || `lez-${li}`} className="rounded-xl p-4" style={{ background: "#FAFAF7", border: "1px solid #F0EDE8" }}>
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-xs font-bold px-2 py-0.5 rounded" style={{ background: "#E8E4DC", color: "#5F6572" }}>
                   {lezione.numero || `${modulo.numero || idx + 1}.${li + 1}`}
@@ -46,7 +46,7 @@ function ModuleCard({ modulo, idx, isExpanded, onToggle }) {
               {lezione.contenuto && lezione.contenuto.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {lezione.contenuto.map((arg, ai) => (
-                    <span key={ai} className="text-[11px] px-2 py-0.5 rounded-full"
+                    <span key={`${arg}-${ai}`} className="text-[11px] px-2 py-0.5 rounded-full"
                       style={{ background: "#F2C41815", color: "#92700C", border: "1px solid #F2C41830" }}>
                       {arg}
                     </span>

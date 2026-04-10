@@ -182,7 +182,7 @@ def generate_lead_id(source: str, username: str) -> str:
     """Genera ID univoco per lead"""
     import hashlib
     unique_str = f"{source}_{username}".lower()
-    return hashlib.md5(unique_str.encode()).hexdigest()[:12]
+    return hashlib.sha256(unique_str.encode()).hexdigest()[:12]
 
 
 async def check_duplicate(source: str, username: str, email: Optional[str] = None) -> bool:
@@ -827,19 +827,18 @@ async def search_youtube_with_oauth(query: SearchQuery, credentials_path) -> dic
     from google.oauth2.credentials import Credentials
     from google.auth.transport.requests import Request
     from googleapiclient.discovery import build
+    from services.secure_credentials import load_credentials, save_credentials
     
     logger.info(f"[YOUTUBE_SEARCH] Using OAuth for query: {query.query}")
     
     # Load credentials
-    with open(credentials_path, 'rb') as f:
-        credentials = pickle.load(f)
+    credentials = load_credentials(credentials_path)
     
     if not credentials or not credentials.valid:
         if credentials and credentials.expired and credentials.refresh_token:
             try:
                 credentials.refresh(Request())
-                with open(credentials_path, 'wb') as f:
-                    pickle.dump(credentials, f)
+                save_credentials(credentials, credentials_path)
             except Exception as e:
                 logger.error(f"[YOUTUBE_SEARCH] Failed to refresh credentials: {e}")
                 raise HTTPException(status_code=401, detail="YouTube OAuth expired. Re-authenticate or add YOUTUBE_API_KEY.")
@@ -1762,7 +1761,9 @@ async def linkedin_search_stub(query: str = "", limit: int = 10):
 
 
 @router.post("/integrations/instagram/search")
-async def instagram_search_stub(hashtags: List[str] = [], limit: int = 10):
+async def instagram_search_stub(hashtags: List[str] = None, limit: int = 10):
+    if hashtags is None:
+        hashtags = []
     """
     STUB: Ricerca lead su Instagram.
     TODO: Implementare con Apify Instagram Scraper.
@@ -1783,7 +1784,9 @@ async def instagram_search_stub(hashtags: List[str] = [], limit: int = 10):
 
 
 @router.post("/integrations/facebook/search")
-async def facebook_search_stub(groups: List[str] = [], limit: int = 10):
+async def facebook_search_stub(groups: List[str] = None, limit: int = 10):
+    if groups is None:
+        groups = []
     """
     STUB: Ricerca lead su Facebook Groups.
     TODO: Implementare con Apify Facebook Scraper.
