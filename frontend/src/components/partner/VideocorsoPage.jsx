@@ -3,7 +3,7 @@ import axios from "axios";
 import {
   Sparkles, Check, ArrowRight, Loader2, RefreshCw, Edit3, Eye,
   ChevronDown, ChevronRight, Gift, Download, DollarSign, Target,
-  BookOpen, Tag
+  BookOpen, Tag, Plus, Trash2, X
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL || "";
@@ -35,8 +35,19 @@ function CompletedBanner({ onContinue }) {
   );
 }
 
-function ModuleCard({ modulo, idx, isExpanded, onToggle, isEditing, onEditLesson, editState, setEditState }) {
+function ModuleCard({ modulo, idx, isExpanded, onToggle, editable, onAddLesson, onRemoveLesson, onRemoveModule }) {
   const lezioni = modulo.lezioni || [];
+  const [newLesson, setNewLesson] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
+
+  const handleAdd = () => {
+    if (newLesson.trim()) {
+      onAddLesson(idx, newLesson.trim());
+      setNewLesson("");
+      setShowAdd(false);
+    }
+  };
+
   return (
     <div className="rounded-2xl bg-white overflow-hidden" data-testid={`module-${idx}`}
          style={{ border: `1px solid ${isExpanded ? "#F2C41840" : "#ECEDEF"}` }}>
@@ -55,19 +66,33 @@ function ModuleCard({ modulo, idx, isExpanded, onToggle, isEditing, onEditLesson
         <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "#F5F3EE", color: "#8B8680" }}>
           {lezioni.length} lezioni
         </span>
+        {editable && onRemoveModule && (
+          <button onClick={(e) => { e.stopPropagation(); onRemoveModule(idx); }}
+            data-testid={`remove-module-${idx}`}
+            className="p-1.5 rounded-lg hover:bg-red-50 transition-all" title="Rimuovi modulo">
+            <Trash2 className="w-3.5 h-3.5" style={{ color: "#EF4444" }} />
+          </button>
+        )}
         {isExpanded ? <ChevronDown className="w-4 h-4" style={{ color: "#8B8680" }} /> : <ChevronRight className="w-4 h-4" style={{ color: "#8B8680" }} />}
       </button>
       {isExpanded && (
         <div className="px-5 pb-5 space-y-2">
           {lezioni.map((lezione, li) => (
-            <div key={li} className="rounded-xl p-4" style={{ background: "#FAFAF7", border: "1px solid #F0EDE8" }}>
+            <div key={li} className="rounded-xl p-4 group" style={{ background: "#FAFAF7", border: "1px solid #F0EDE8" }}>
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-xs font-bold px-2 py-0.5 rounded" style={{ background: "#E8E4DC", color: "#5F6572" }}>
                   {lezione.numero || `${modulo.numero || idx + 1}.${li + 1}`}
                 </span>
-                <span className="text-sm font-bold" style={{ color: "#1E2128" }}>{lezione.titolo}</span>
+                <span className="text-sm font-bold flex-1" style={{ color: "#1E2128" }}>{lezione.titolo}</span>
                 {lezione.durata && (
-                  <span className="ml-auto text-xs" style={{ color: "#9CA3AF" }}>{lezione.durata}</span>
+                  <span className="text-xs" style={{ color: "#9CA3AF" }}>{lezione.durata}</span>
+                )}
+                {editable && onRemoveLesson && (
+                  <button onClick={() => onRemoveLesson(idx, li)}
+                    data-testid={`remove-lesson-${idx}-${li}`}
+                    className="p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-50 transition-all" title="Rimuovi lezione">
+                    <X className="w-3 h-3" style={{ color: "#EF4444" }} />
+                  </button>
                 )}
               </div>
               {lezione.contenuto && lezione.contenuto.length > 0 && (
@@ -82,6 +107,40 @@ function ModuleCard({ modulo, idx, isExpanded, onToggle, isEditing, onEditLesson
               )}
             </div>
           ))}
+          {/* Aggiungi Lezione */}
+          {editable && (
+            <>
+              {showAdd ? (
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    value={newLesson}
+                    onChange={e => setNewLesson(e.target.value)}
+                    placeholder="Titolo della nuova lezione..."
+                    data-testid={`new-lesson-input-${idx}`}
+                    onKeyDown={e => e.key === "Enter" && handleAdd()}
+                    className="flex-1 px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#F2C418]"
+                    style={{ borderColor: "#ECEDEF", color: "#1E2128" }}
+                    autoFocus
+                  />
+                  <button onClick={handleAdd} data-testid={`confirm-add-lesson-${idx}`}
+                    className="px-3 py-2 rounded-lg text-xs font-bold" style={{ background: "#34C77B", color: "white" }}>
+                    Aggiungi
+                  </button>
+                  <button onClick={() => { setShowAdd(false); setNewLesson(""); }}
+                    className="px-3 py-2 rounded-lg text-xs font-bold" style={{ background: "#ECEDEF", color: "#5F6572" }}>
+                    Annulla
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => setShowAdd(true)}
+                  data-testid={`add-lesson-btn-${idx}`}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold mt-1 transition-all hover:bg-gray-50"
+                  style={{ border: "1px dashed #ECEDEF", color: "#5F6572" }}>
+                  <Plus className="w-3.5 h-3.5" /> Aggiungi lezione
+                </button>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>
@@ -163,6 +222,54 @@ export function VideocorsoPage({ partner, onNavigate, onComplete, isAdmin }) {
     setExpandedModules(prev => prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]);
   };
 
+  const handleAddLesson = (moduleIdx, title) => {
+    setCourseData(prev => {
+      const updated = { ...prev, moduli: [...prev.moduli] };
+      const mod = { ...updated.moduli[moduleIdx], lezioni: [...(updated.moduli[moduleIdx].lezioni || [])] };
+      mod.lezioni.push({
+        numero: `${mod.numero || moduleIdx + 1}.${mod.lezioni.length + 1}`,
+        titolo: title,
+        durata: "5-10 min",
+        contenuto: []
+      });
+      updated.moduli[moduleIdx] = mod;
+      return updated;
+    });
+  };
+
+  const handleRemoveLesson = (moduleIdx, lessonIdx) => {
+    setCourseData(prev => {
+      const updated = { ...prev, moduli: [...prev.moduli] };
+      const mod = { ...updated.moduli[moduleIdx], lezioni: [...updated.moduli[moduleIdx].lezioni] };
+      mod.lezioni.splice(lessonIdx, 1);
+      updated.moduli[moduleIdx] = mod;
+      return updated;
+    });
+  };
+
+  const handleAddModule = (title) => {
+    setCourseData(prev => {
+      const moduli = [...prev.moduli];
+      moduli.push({
+        numero: moduli.length + 1,
+        titolo: title,
+        obiettivo: "",
+        lezioni: []
+      });
+      return { ...prev, moduli };
+    });
+    setExpandedModules(prev => [...prev, courseData.moduli.length]);
+  };
+
+  const handleRemoveModule = (moduleIdx) => {
+    setCourseData(prev => {
+      const moduli = [...prev.moduli];
+      moduli.splice(moduleIdx, 1);
+      return { ...prev, moduli };
+    });
+    setExpandedModules(prev => prev.filter(i => i !== moduleIdx).map(i => i > moduleIdx ? i - 1 : i));
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-full flex items-center justify-center" style={{ background: "#FAFAF7" }}>
@@ -242,7 +349,9 @@ export function VideocorsoPage({ partner, onNavigate, onComplete, isAdmin }) {
                   <h2 className="text-xl font-black" style={{ color: "#1E2128" }}>Il tuo videocorso è pronto</h2>
                 </div>
 
-                <CourseOutputView courseData={courseData} expandedModules={expandedModules} toggleModule={toggleModule} />
+                <CourseOutputView courseData={courseData} expandedModules={expandedModules} toggleModule={toggleModule}
+                  editable onAddLesson={handleAddLesson} onRemoveLesson={handleRemoveLesson}
+                  onAddModule={handleAddModule} onRemoveModule={handleRemoveModule} />
 
                 {/* ACTIONS */}
                 <div className="flex gap-3 mt-6">
@@ -354,10 +463,20 @@ export function VideocorsoPage({ partner, onNavigate, onComplete, isAdmin }) {
 }
 
 /* Componente riutilizzabile per la visualizzazione del corso generato */
-function CourseOutputView({ courseData, expandedModules, toggleModule }) {
+function CourseOutputView({ courseData, expandedModules, toggleModule, editable, onAddLesson, onRemoveLesson, onAddModule, onRemoveModule }) {
   if (!courseData) return null;
   const moduli = courseData.moduli || [];
   const totalLessons = moduli.reduce((s, m) => s + (m.lezioni?.length || 0), 0);
+  const [newModuleTitle, setNewModuleTitle] = useState("");
+  const [showAddModule, setShowAddModule] = useState(false);
+
+  const handleAddModuleSubmit = () => {
+    if (newModuleTitle.trim() && onAddModule) {
+      onAddModule(newModuleTitle.trim());
+      setNewModuleTitle("");
+      setShowAddModule(false);
+    }
+  };
 
   return (
     <div className="space-y-4" data-testid="course-output-view">
@@ -387,8 +506,46 @@ function CourseOutputView({ courseData, expandedModules, toggleModule }) {
         {moduli.map((modulo, idx) => (
           <ModuleCard key={idx} modulo={modulo} idx={idx}
             isExpanded={expandedModules.includes(idx)}
-            onToggle={() => toggleModule(idx)} />
+            onToggle={() => toggleModule(idx)}
+            editable={editable}
+            onAddLesson={onAddLesson}
+            onRemoveLesson={onRemoveLesson}
+            onRemoveModule={onRemoveModule} />
         ))}
+        {/* Aggiungi Modulo */}
+        {editable && (
+          <>
+            {showAddModule ? (
+              <div className="flex items-center gap-2">
+                <input
+                  value={newModuleTitle}
+                  onChange={e => setNewModuleTitle(e.target.value)}
+                  placeholder="Titolo del nuovo modulo..."
+                  data-testid="new-module-input"
+                  onKeyDown={e => e.key === "Enter" && handleAddModuleSubmit()}
+                  className="flex-1 px-4 py-3 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#F2C418]"
+                  style={{ borderColor: "#ECEDEF", color: "#1E2128" }}
+                  autoFocus
+                />
+                <button onClick={handleAddModuleSubmit} data-testid="confirm-add-module"
+                  className="px-4 py-3 rounded-xl text-sm font-bold" style={{ background: "#34C77B", color: "white" }}>
+                  Aggiungi
+                </button>
+                <button onClick={() => { setShowAddModule(false); setNewModuleTitle(""); }}
+                  className="px-4 py-3 rounded-xl text-sm font-bold" style={{ background: "#ECEDEF", color: "#5F6572" }}>
+                  Annulla
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => setShowAddModule(true)}
+                data-testid="add-module-btn"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all hover:bg-gray-50"
+                style={{ border: "2px dashed #ECEDEF", color: "#5F6572" }}>
+                <Plus className="w-4 h-4" /> Aggiungi modulo
+              </button>
+            )}
+          </>
+        )}
       </div>
 
       {/* Riepilogo */}
