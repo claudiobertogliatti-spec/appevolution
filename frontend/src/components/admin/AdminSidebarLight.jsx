@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   Users, Film, FileText, AlertTriangle,
   Settings, LogOut, Bot, Bell, Target, Calendar,
-  Layers, Search, ShoppingBag, Snowflake, BarChart2,
+  Layers, Search, ShoppingBag, Snowflake, BarChart2, BarChart3,
   Navigation, UserX, Flame, CalendarDays, AlertOctagon, Package
 } from "lucide-react";
 
@@ -59,6 +59,7 @@ const NAV_ITEMS = [
   { section: "SISTEMA" },
   { id: "agenti",              label: "Agent Hub",           icon: Bot },
   { id: "alert",               label: "Alert",               icon: AlertTriangle, badge: "alerts" },
+  { id: "tracking",            label: "KPI Tracking",        icon: BarChart3 },
   { id: "configurazione",      label: "Configurazione",      icon: Settings },
 ];
 

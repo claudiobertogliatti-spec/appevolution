@@ -1549,6 +1549,137 @@ async def verify_analisi_payment(user_id: str = None, session_id: str = None):
         logging.error(f"Payment verification error: {e}")
         raise HTTPException(status_code=500, detail=f"Errore verifica pagamento: {str(e)}")
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# STRIPE WEBHOOK — Conferma pagamento automatica
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.post("/api/webhook/stripe")
+async def stripe_webhook(request: Request):
+    """
+    Riceve eventi webhook da Stripe (checkout.session.completed).
+    Conferma il pagamento automaticamente senza dipendere dal redirect.
+    """
+    stripe_key = os.environ.get('STRIPE_API_KEY')
+    if not stripe_key:
+        raise HTTPException(status_code=500, detail="Stripe non configurato")
+    
+    body = await request.body()
+    sig = request.headers.get("Stripe-Signature", "")
+    
+    try:
+        host_url = str(request.base_url).rstrip("/")
+        webhook_url = f"{host_url}/api/webhook/stripe"
+        checkout = StripeCheckout(api_key=stripe_key, webhook_url=webhook_url)
+        event = await checkout.handle_webhook(body, sig)
+        
+        logging.info(f"[WEBHOOK] Stripe event: type={event.event_type}, session={event.session_id}, status={event.payment_status}")
+        
+        # Salva transazione
+        tx_data = {
+            "event_id": event.event_id,
+            "event_type": event.event_type,
+            "session_id": event.session_id,
+            "payment_status": event.payment_status,
+            "metadata": event.metadata if hasattr(event, 'metadata') else {},
+            "received_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.payment_transactions.update_one(
+            {"session_id": event.session_id},
+            {"$set": tx_data},
+            upsert=True
+        )
+        
+        # Processa solo checkout.session.completed con pagamento confermato
+        if event.payment_status == "paid":
+            metadata = event.metadata if hasattr(event, 'metadata') else {}
+            user_id = metadata.get("user_id", "")
+            tipo = metadata.get("tipo", "")
+            
+            if not user_id:
+                logging.warning(f"[WEBHOOK] Pagamento senza user_id nei metadata: {event.session_id}")
+                return {"received": True}
+            
+            # Controlla se gia processato (idempotenza)
+            user = await db.users.find_one({"id": user_id}, {"_id": 0})
+            if not user:
+                logging.warning(f"[WEBHOOK] user_id {user_id} non trovato")
+                return {"received": True}
+            
+            if user.get("pagamento_analisi"):
+                logging.info(f"[WEBHOOK] Pagamento gia confermato per {user_id}")
+                return {"received": True, "already_processed": True}
+            
+            # Conferma pagamento
+            cliente_id = str(uuid.uuid4())
+            await db.users.update_one(
+                {"id": user_id},
+                {"$set": {
+                    "pagamento_analisi": True,
+                    "pagamento_effettuato": True,
+                    "data_pagamento": datetime.now(timezone.utc).isoformat(),
+                    "stripe_payment_status": "paid",
+                    "stato_cliente": StatiCliente.ANALISI_ATTIVATA,
+                    "azione_richiesta": None,
+                    "payment_confirmed_via": "webhook",
+                }}
+            )
+            
+            # Crea record cliente (se non esiste gia)
+            existing_cliente = await db.clienti.find_one({"user_id": user_id}, {"_id": 0})
+            if not existing_cliente:
+                await db.clienti.insert_one({
+                    "id": cliente_id,
+                    "user_id": user_id,
+                    "nome": user.get("nome"),
+                    "cognome": user.get("cognome"),
+                    "email": user.get("email"),
+                    "telefono": user.get("telefono"),
+                    "questionario_completato": False,
+                    "data_pagamento": datetime.now(timezone.utc).isoformat(),
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                })
+                await db.users.update_one(
+                    {"id": user_id},
+                    {"$set": {"cliente_id": cliente_id}}
+                )
+            
+            # Notifica Telegram
+            try:
+                telegram_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+                admin_chat_id = os.environ.get('TELEGRAM_ADMIN_CHAT_ID')
+                if telegram_token and admin_chat_id:
+                    message = f"💰 PAGAMENTO CONFERMATO (webhook)\n\n👤 {user.get('nome')} {user.get('cognome')}\n📧 {user.get('email')}\n💶 €67 — Analisi Strategica\n\n✅ Cliente pronto"
+                    async with httpx.AsyncClient() as client_http:
+                        await client_http.post(
+                            f"https://api.telegram.org/bot{telegram_token}/sendMessage",
+                            json={"chat_id": admin_chat_id, "text": message}
+                        )
+            except Exception as e:
+                logging.warning(f"[WEBHOOK] Telegram notify failed: {e}")
+            
+            # Sync Systeme.io
+            try:
+                await sync_payment_to_systeme(
+                    email=user.get("email"),
+                    nome=user.get("nome", ""),
+                    cognome=user.get("cognome", ""),
+                    payment_type="analisi",
+                    amount=67.0,
+                    metadata={"user_id": user_id, "cliente_id": cliente_id}
+                )
+            except Exception as e:
+                logging.warning(f"[WEBHOOK] Systeme.io sync failed: {e}")
+            
+            logging.info(f"[WEBHOOK] Pagamento confermato via webhook per {user.get('email')} ({user_id})")
+        
+        return {"received": True, "event_type": event.event_type}
+        
+    except Exception as e:
+        logging.error(f"[WEBHOOK] Error processing webhook: {e}")
+        # Return 200 to avoid Stripe retries for non-critical errors
+        return {"received": True, "error": str(e)}
+
+
 @api_router.get("/cliente-analisi/status/{user_id}")
 async def get_cliente_analisi_status(user_id: str):
     """
@@ -5382,6 +5513,55 @@ async def get_pending_onboarding_documents():
     }
 
 # =============================================================================
+
+# =============================================================================
+# ROUTES - KPI TRACKING (GA4 + Meta Pixel)
+# =============================================================================
+
+@api_router.get("/tracking/config")
+async def get_tracking_config():
+    """Restituisce la configurazione di tracking (GA4 + Meta Pixel) pubblica."""
+    config = await db.app_settings.find_one({"key": "tracking"}, {"_id": 0})
+    if not config:
+        return {"ga4_id": "", "meta_pixel_id": ""}
+    return {
+        "ga4_id": config.get("ga4_id", ""),
+        "meta_pixel_id": config.get("meta_pixel_id", "")
+    }
+
+@api_router.get("/admin/tracking/config")
+async def get_admin_tracking_config():
+    """Restituisce la configurazione completa di tracking per l'admin."""
+    config = await db.app_settings.find_one({"key": "tracking"}, {"_id": 0})
+    if not config:
+        return {"success": True, "config": {"ga4_id": "", "meta_pixel_id": "", "ga4_enabled": False, "meta_enabled": False}}
+    return {"success": True, "config": config}
+
+class TrackingConfigUpdate(BaseModel):
+    ga4_id: Optional[str] = ""
+    meta_pixel_id: Optional[str] = ""
+    ga4_enabled: Optional[bool] = False
+    meta_enabled: Optional[bool] = False
+
+@api_router.patch("/admin/tracking/config")
+async def update_tracking_config(body: TrackingConfigUpdate):
+    """Aggiorna la configurazione di tracking."""
+    now = datetime.now(timezone.utc).isoformat()
+    await db.app_settings.update_one(
+        {"key": "tracking"},
+        {"$set": {
+            "key": "tracking",
+            "ga4_id": body.ga4_id or "",
+            "meta_pixel_id": body.meta_pixel_id or "",
+            "ga4_enabled": body.ga4_enabled,
+            "meta_enabled": body.meta_enabled,
+            "updated_at": now
+        }},
+        upsert=True
+    )
+    return {"success": True, "message": "Tracking configurato"}
+
+
 # ROUTES - ALERTS
 # =============================================================================
 
