@@ -3,7 +3,7 @@ import {
   Users, Film, FileText, AlertTriangle,
   Settings, LogOut, Bot, Bell, Target, Calendar,
   Layers, Search, ShoppingBag, Snowflake, BarChart2,
-  Navigation, UserX, Flame, CalendarDays, AlertOctagon
+  Navigation, UserX, Flame, CalendarDays, AlertOctagon, Package
 } from "lucide-react";
 
 /* ─── Brand Palette ─────────────────────────────────────────────────────────
@@ -32,6 +32,7 @@ const NAV_ITEMS = [
   { section: "OPERATIVO", accent: true },
   { id: "oggi",                label: "Oggi",                icon: CalendarDays },
   { id: "operativa",           label: "Dashboard Operativa", icon: Target },
+  { id: "funnel-distribution", label: "Distribuzione Funnel", icon: Package },
   { id: "pipeline-prioritaria",label: "Priorità Pipeline",   icon: Flame },
   { id: "partner-bloccati",    label: "Partner Bloccati",    icon: AlertOctagon },
   { id: "guided-system",       label: "Guided System",       icon: Navigation },
@@ -63,7 +64,7 @@ const NAV_ITEMS = [
 const ANTONELLA_ITEMS = new Set([
   "partner", "metriche", "calendario-admin",
   "approvals", "warmode", "youtube-heygen", "agenti",
-  "oggi", "operativa", "pipeline-prioritaria", "partner-bloccati",
+  "oggi", "operativa", "funnel-distribution", "pipeline-prioritaria", "partner-bloccati",
 ]);
 const ANTONELLA_SECTIONS = new Set([
   "OPERATIVO", "ACQUISIZIONE", "PARTNER", "MARKETING",

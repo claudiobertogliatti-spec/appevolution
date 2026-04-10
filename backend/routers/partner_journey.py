@@ -547,6 +547,195 @@ async def publish_funnel_light(request: FunnelLightRequest):
     }
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# FUNNEL DISTRIBUTION — Systeme.io Share Link Workflow (Admin)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+FUNNEL_TEMPLATES = [
+    {
+        "id": "webinar-evergreen",
+        "name": "Webinar Evergreen",
+        "share_link": "https://systeme.io/share/webinar-evergreen",
+        "desc": "Landing iscrizione + Thank You + Reminder email + Replay",
+        "includes": ["landing_iscrizione", "thank_you", "email_reminder", "replay_page"],
+        "default_for": "funnel-light",
+    },
+    {
+        "id": "masterclass-transformation",
+        "name": "Masterclass Transformation",
+        "share_link": "https://systeme.io/share/masterclass-transformation",
+        "desc": "Opt-in + Watch page + Email sequence post-visione",
+        "includes": ["opt_in", "watch_page", "email_sequence", "thank_you"],
+        "default_for": "masterclass",
+    },
+    {
+        "id": "sales-page-pro",
+        "name": "Sales Page PRO",
+        "share_link": "https://systeme.io/share/sales-page-pro",
+        "desc": "Sales page lunga + Checkout + Upsell + Thank You",
+        "includes": ["sales_page", "checkout", "upsell", "thank_you"],
+        "default_for": "funnel-vendita",
+    },
+    {
+        "id": "lead-gen-basic",
+        "name": "Lead Gen Freebie",
+        "share_link": "https://systeme.io/share/lead-gen-basic",
+        "desc": "Landing freebie + Thank You + Email nurturing",
+        "includes": ["landing", "thank_you", "email_sequence"],
+        "default_for": "lead-gen",
+    },
+]
+
+# Distribution statuses
+DIST_STATUSES = ["da_importare", "importato", "personalizzato", "live", "consegnato"]
+
+
+class FunnelDistributionRequest(BaseModel):
+    partner_id: str
+    template_id: str
+    notes: str = ""
+
+
+class FunnelDistributionUpdateRequest(BaseModel):
+    partner_id: str
+    distribution_id: str
+    status: str
+    live_url: str = ""
+    notes: str = ""
+
+
+@router.get("/funnel-distribution/templates")
+async def get_funnel_templates():
+    """Lista dei funnel master disponibili con share link"""
+    return {"success": True, "templates": FUNNEL_TEMPLATES}
+
+
+@router.get("/funnel-distribution/all-pending")
+async def get_all_pending_distributions():
+    """Lista tutte le distribuzioni non ancora consegnate (vista team)"""
+    distributions = await db.funnel_distributions.find(
+        {"status": {"$ne": "consegnato"}}, {"_id": 0}
+    ).sort("assigned_at", -1).to_list(100)
+
+    # Anche quelle consegnate di recente (ultime 20)
+    recent_delivered = await db.funnel_distributions.find(
+        {"status": "consegnato"}, {"_id": 0}
+    ).sort("updated_at", -1).to_list(20)
+
+    return {
+        "success": True,
+        "pending": distributions,
+        "delivered": recent_delivered,
+        "templates": FUNNEL_TEMPLATES,
+    }
+
+
+@router.get("/funnel-distribution/{partner_id}")
+async def get_funnel_distributions(partner_id: str):
+    """Recupera tutte le distribuzioni funnel per un partner"""
+    await get_partner_or_404(partner_id)
+
+    distributions = await db.funnel_distributions.find(
+        {"partner_id": partner_id}, {"_id": 0}
+    ).to_list(50)
+
+    return {"success": True, "distributions": distributions}
+
+
+@router.post("/funnel-distribution/assign")
+async def assign_funnel_distribution(request: FunnelDistributionRequest):
+    """Assegna un template funnel a un partner (avvia distribuzione)"""
+    partner = await get_partner_or_404(request.partner_id)
+
+    template = next((t for t in FUNNEL_TEMPLATES if t["id"] == request.template_id), None)
+    if not template:
+        raise HTTPException(status_code=400, detail="Template non trovato")
+
+    dist_id = f"{request.partner_id}-{request.template_id}-{int(datetime.now(timezone.utc).timestamp())}"
+
+    distribution = {
+        "distribution_id": dist_id,
+        "partner_id": request.partner_id,
+        "partner_name": partner.get("name", ""),
+        "template_id": request.template_id,
+        "template_name": template["name"],
+        "share_link": template["share_link"],
+        "status": "da_importare",
+        "live_url": "",
+        "notes": request.notes,
+        "assigned_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "history": [
+            {
+                "status": "da_importare",
+                "at": datetime.now(timezone.utc).isoformat(),
+                "note": f"Template '{template['name']}' assegnato",
+            }
+        ],
+    }
+
+    await db.funnel_distributions.insert_one(distribution)
+
+    await notify_telegram(
+        f"📦 FUNNEL ASSEGNATO\n\n👤 {partner.get('name')}\n📋 {template['name']}\n🔗 {template['share_link']}\n\nImportare nel sub-account del partner."
+    )
+
+    # Remove _id before returning
+    distribution.pop("_id", None)
+    return {"success": True, "distribution": distribution}
+
+
+@router.post("/funnel-distribution/update-status")
+async def update_funnel_distribution(request: FunnelDistributionUpdateRequest):
+    """Aggiorna lo stato di una distribuzione funnel"""
+    await get_partner_or_404(request.partner_id)
+
+    update_data = {
+        "status": request.status,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if request.live_url:
+        update_data["live_url"] = request.live_url
+    if request.notes:
+        update_data["notes"] = request.notes
+
+    history_entry = {
+        "status": request.status,
+        "at": datetime.now(timezone.utc).isoformat(),
+        "note": request.notes or f"Stato aggiornato a {request.status}",
+    }
+
+    result = await db.funnel_distributions.update_one(
+        {"distribution_id": request.distribution_id, "partner_id": request.partner_id},
+        {
+            "$set": update_data,
+            "$push": {"history": history_entry},
+        },
+    )
+
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Distribuzione non trovata")
+
+    # Se consegnato, aggiorna anche il funnel_light con l'URL live
+    if request.status == "consegnato" and request.live_url:
+        await db.funnel_light.update_one(
+            {"partner_id": request.partner_id},
+            {"$set": {
+                "published": True,
+                "url": request.live_url,
+                "published_at": datetime.now(timezone.utc).isoformat(),
+                "systeme_url": request.live_url,
+            }},
+            upsert=True,
+        )
+
+    return {"success": True, "message": f"Stato aggiornato a {request.status}"}
+
+
+
+
+
+
 
 @router.post("/posizionamento/save-inputs")
 async def save_posizionamento_inputs(request: PosizionamentoInputs):
