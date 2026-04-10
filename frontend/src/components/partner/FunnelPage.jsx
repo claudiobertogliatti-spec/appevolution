@@ -159,7 +159,7 @@ function BlueprintOutput({ blueprint, activeTab, setActiveTab, expandedEmails, t
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded" style={{ background: cfg.color + "15", color: cfg.color }}>
-                        Email {email.id} — {cfg.label}
+                        Email {email.id || idx + 1} — {cfg.label}
                       </span>
                       <span className="text-[10px]" style={{ color: "#9CA3AF" }}>{email.delay}</span>
                     </div>

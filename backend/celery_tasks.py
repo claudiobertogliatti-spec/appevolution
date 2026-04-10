@@ -246,19 +246,17 @@ def upload_to_youtube(self, job_id: str, video_url: str):
             partner_niche = partner.get("niche", "Business") if partner else "Business"
             
             # Check YouTube auth
-            creds_path = Path("/app/storage/youtube_credentials.pickle")
-            if not creds_path.exists():
+            from services.secure_credentials import load_credentials, save_credentials
+            creds_path = "/app/storage/youtube_credentials.pickle"
+            creds = load_credentials(creds_path)
+            if not creds:
                 raise Exception("YouTube non autorizzato")
-            
-            with open(creds_path, 'rb') as f:
-                creds = pickle.load(f)
             
             if not creds.valid:
                 if creds.expired and creds.refresh_token:
                     from google.auth.transport.requests import Request
                     creds.refresh(Request())
-                    with open(creds_path, 'wb') as f:
-                        pickle.dump(creds, f)
+                    save_credentials(creds, creds_path)
                 else:
                     raise Exception("Token YouTube scaduto")
             

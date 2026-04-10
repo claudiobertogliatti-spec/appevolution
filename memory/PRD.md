@@ -70,12 +70,19 @@ Piattaforma gestionale per l'onboarding e la crescita dei partner in un ecosiste
 - [x] **Admin UI**: Pannello Notifiche Partner in sidebar admin
 - [x] **Storico**: Log notifiche con canali e timestamp
 
+### Code Quality Fix (10 Apr 2026)
+- [x] **CRITICAL: eval() → safe parser**: video_editor_service.py fps parsing
+- [x] **CRITICAL: pickle → JSON**: youtube_uploader, youtube_heygen, heygen_production, discovery_engine, celery_tasks (creato secure_credentials.py con fallback pickle legacy)
+- [x] **CRITICAL: Circular import risolto**: notifications.py usa dependency injection (init_notification_db) dal server.py
+- [x] **SECURITY: MD5 → SHA-256**: discovery_engine.py generate_lead_id
+- [x] **SECURITY: Validazione input**: notifiche/invia con controllo tipo, step_id e partner esistente (400/404)
+- [x] **BUG: Mutable defaults**: discovery_engine.py instagram/facebook stubs ([] → None)
+- [x] **QUALITY: Index-as-key**: VideocorsoPage.jsx, FunnelPage.jsx (chiavi stabili)
+- [x] **QUALITY: Empty catch**: WebinarPage.jsx (aggiunto console.warn)
+
 ---
 
 ## Backlog Prioritizzato
-
-### P0 - Critico
-(Nessuno al momento)
 
 ### P1 - Alta Priorita
 - [ ] KPI Tracking reale (GA4 + Meta Pixel per partner)
@@ -85,8 +92,12 @@ Piattaforma gestionale per l'onboarding e la crescita dei partner in un ecosiste
 ### P2 - Media Priorita
 - [ ] Integrazione API reali Canva/Kling AI
 - [ ] Admin UI per gestire stati step dei partner (modale per cambiare in_lavorazione → pronto)
+- [ ] Migrazione localStorage → httpOnly cookies per token auth
+- [ ] Splitting App.js (934 righe) in componenti piu piccoli
+- [ ] Rimuovere 238 console.log legacy dal codebase
 
 ### P3 - Bassa Priorita
 - [ ] Refactoring server.py (>15k righe monolite)
 - [ ] Fix alert fantasma "Test AlertQuestionario"
 - [ ] Fix JSONDecodeError backend startup log
+- [ ] Refactoring componenti massive (PartnerDetailModal 1065 righe, AgentDashboard 1021 righe)

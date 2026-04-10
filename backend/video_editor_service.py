@@ -13,6 +13,18 @@ from typing import List, Dict, Optional, Tuple
 from datetime import datetime
 import tempfile
 import shutil
+
+
+def _safe_parse_fps(fps_str: str) -> float:
+    """Parsa fps in formato 'num/den' senza usare eval()"""
+    try:
+        if '/' in str(fps_str):
+            num, den = str(fps_str).split('/', 1)
+            return float(num) / float(den) if float(den) != 0 else 30.0
+        return float(fps_str)
+    except (ValueError, ZeroDivisionError):
+        return 30.0
+
 import httpx
 
 logger = logging.getLogger(__name__)
@@ -77,7 +89,7 @@ class VideoEditorService:
             "size_bytes": int(format_info.get("size", 0)),
             "width": int(video_stream.get("width", 0)),
             "height": int(video_stream.get("height", 0)),
-            "fps": eval(video_stream.get("r_frame_rate", "30/1")),
+            "fps": _safe_parse_fps(video_stream.get("r_frame_rate", "30/1")),
             "video_codec": video_stream.get("codec_name", "unknown"),
             "audio_codec": audio_stream.get("codec_name", "unknown"),
             "audio_channels": int(audio_stream.get("channels", 2)),

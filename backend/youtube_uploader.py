@@ -107,8 +107,8 @@ class YouTubeUploader:
             self.credentials = flow.credentials
             
             # Save credentials
-            with open(CREDENTIALS_PATH, 'wb') as f:
-                pickle.dump(self.credentials, f)
+            from services.secure_credentials import save_credentials
+            save_credentials(self.credentials, str(CREDENTIALS_PATH))
             
             logger.info("YouTube OAuth completed successfully")
             return True
@@ -120,15 +120,14 @@ class YouTubeUploader:
     def _load_credentials(self) -> bool:
         """Load saved credentials"""
         if CREDENTIALS_PATH.exists():
-            with open(CREDENTIALS_PATH, 'rb') as f:
-                self.credentials = pickle.load(f)
+            from services.secure_credentials import load_credentials, save_credentials
+            self.credentials = load_credentials(str(CREDENTIALS_PATH))
             
             # Refresh if expired
             if self.credentials and self.credentials.expired and self.credentials.refresh_token:
                 try:
                     self.credentials.refresh(Request())
-                    with open(CREDENTIALS_PATH, 'wb') as f:
-                        pickle.dump(self.credentials, f)
+                    save_credentials(self.credentials, str(CREDENTIALS_PATH))
                 except Exception as e:
                     logger.error(f"Token refresh failed: {e}")
                     return False

@@ -15242,6 +15242,10 @@ from routers.partner_journey import router as partner_journey_router, set_db as 
 set_partner_journey_db(db)
 app.include_router(partner_journey_router)
 
+# Init notification service DB
+from services.notifications import init_notification_db
+init_notification_db(db)
+
 # Include Masterclass Factory router (Evolution Masterclass Factory)
 from routers.masterclass_factory import router as masterclass_factory_router, set_db as set_masterclass_factory_db
 set_masterclass_factory_db(db)

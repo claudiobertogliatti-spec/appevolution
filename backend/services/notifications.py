@@ -20,15 +20,20 @@ from datetime import datetime, timezone, timedelta
 
 logger = logging.getLogger(__name__)
 
+# Dependency injection: il db viene settato dal server.py all'avvio
+_injected_db = None
+
+def init_notification_db(database):
+    """Chiamato da server.py per iniettare il riferimento al database"""
+    global _injected_db
+    _injected_db = database
+    logger.info("[NOTIFICA] Database inizializzato nel servizio notifiche")
 
 def _get_db():
-    """Importa il db dal router partner_journey (condivisione connessione)"""
-    try:
-        from routers.partner_journey import db
-        return db
-    except Exception:
-        logger.warning("[NOTIFICA] Impossibile importare db dal router")
-        return None
+    """Restituisce il db iniettato"""
+    if _injected_db is None:
+        logger.warning("[NOTIFICA] DB non inizializzato — chiamare init_notification_db() prima")
+    return _injected_db
 
 # Telegram
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')

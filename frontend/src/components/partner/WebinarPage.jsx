@@ -183,7 +183,7 @@ function LinkRow({ label, url, placeholder }) {
   const handleCopy = async () => {
     if (!url) return;
     try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); }
-    catch (e) { /* ignore */ }
+    catch (e) { console.warn("Clipboard copy failed:", e); }
   };
 
   return (

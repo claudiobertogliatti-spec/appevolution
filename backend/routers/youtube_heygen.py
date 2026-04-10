@@ -221,8 +221,16 @@ async def youtube_auth_status():
         }
     
     try:
-        with open(creds_path, 'rb') as f:
-            creds = pickle.load(f)
+        from services.secure_credentials import load_credentials, save_credentials
+        creds = load_credentials(creds_path)
+        
+        if not creds:
+            return {
+                "status": "not_authorized",
+                "valid": False,
+                "message": "Credenziali non valide. Riautorizza.",
+                "next_step": "get_auth_url"
+            }
         
         if creds.valid:
             return {
@@ -236,8 +244,7 @@ async def youtube_auth_status():
             from google.auth.transport.requests import Request
             try:
                 creds.refresh(Request())
-                with open(creds_path, 'wb') as f:
-                    pickle.dump(creds, f)
+                save_credentials(creds, creds_path)
                 return {
                     "status": "authorized",
                     "valid": True,
@@ -428,27 +435,24 @@ async def upload_heygen_video_to_youtube(video_id: str, privacy_status: str = "u
     Upload automatico di un video HeyGen completato su YouTube.
     Chiamato automaticamente quando un video HeyGen è pronto.
     """
-    import pickle
     import httpx
     from pathlib import Path
     from datetime import datetime, timezone
+    from services.secure_credentials import load_credentials, save_credentials
     
     # Verifica auth
-    creds_path = Path("/app/storage/youtube_credentials.pickle")
-    if not creds_path.exists():
+    creds_path = "/app/storage/youtube_credentials.pickle"
+    creds = load_credentials(creds_path)
+    if not creds:
         raise HTTPException(status_code=400, detail="YouTube non autorizzato")
-    
-    with open(creds_path, 'rb') as f:
-        creds = pickle.load(f)
     
     if not creds.valid:
         if creds.expired and creds.refresh_token:
             from google.auth.transport.requests import Request
             try:
                 creds.refresh(Request())
-                with open(creds_path, 'wb') as f:
-                    pickle.dump(creds, f)
-            except:
+                save_credentials(creds, creds_path)
+            except Exception:
                 raise HTTPException(status_code=401, detail="Token scaduto, riautorizza")
         else:
             raise HTTPException(status_code=401, detail="Token non valido")
