@@ -3,7 +3,7 @@ import {
   X, User, FileText, CreditCard, Save, Plus, 
   Youtube, Mail, Tag, Loader2, CheckCircle, AlertCircle,
   Trash2, ExternalLink, Edit3, Upload, Film, MessageSquare,
-  Calendar, AlertTriangle, Eye, Shield, Image, XCircle, Settings
+  Calendar, AlertTriangle, Eye, Shield, Image, XCircle, Settings, Globe
 } from "lucide-react";
 import axios from "axios";
 import { ContractParamsModal } from "./ContractParamsModal";
@@ -134,7 +134,8 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
     social_instagram: "",
     social_linkedin: "",
     social_website: "",
-    contract_end: ""
+    contract_end: "",
+    systeme_subdomain: ""
   });
   
   // Payments state
@@ -171,6 +172,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
         social_linkedin: partner.social_linkedin || "",
         social_website: partner.social_website || "",
         contract_end: partner.contract_end || "",
+        systeme_subdomain: partner.systeme_subdomain || "",
         // Admin control fields
         partnership_pagata: partner.partnership_pagata || false,
         contratto_firmato: partner.contratto_firmato || false,
@@ -281,6 +283,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
           social_linkedin: formData.social_linkedin,
           social_website: formData.social_website,
           contract_end: formData.contract_end,
+          systeme_subdomain: formData.systeme_subdomain,
           // Admin control fields
           partnership_pagata: formData.partnership_pagata,
           contratto_firmato: formData.contratto_firmato,
@@ -593,6 +596,33 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                   )}
                 </div>
                 
+                {/* Systeme.io Subdomain */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Globe className="w-4 h-4 inline mr-2 text-blue-600" />
+                    Systeme.io Subdomain
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.systeme_subdomain}
+                    onChange={e => setFormData({...formData, systeme_subdomain: e.target.value})}
+                    placeholder="Es: nomepartner (senza .systeme.io)"
+                    className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                    data-testid="input-systeme-subdomain"
+                  />
+                  {formData.systeme_subdomain && (
+                    <a
+                      href={`https://${formData.systeme_subdomain}.systeme.io`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 mt-2 text-sm text-blue-600 hover:underline"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      Verifica su Systeme.io
+                    </a>
+                  )}
+                </div>
+
                 {/* Bio */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">

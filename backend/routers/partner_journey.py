@@ -544,7 +544,8 @@ async def publish_funnel_light(request: FunnelLightRequest):
     if not funnel:
         raise HTTPException(status_code=400, detail="Genera prima il funnel")
 
-    url = f"https://academy.evolution-pro.it/{request.partner_id}/webinar"
+    systeme_subdomain = partner.get("systeme_subdomain", "")
+    url = f"https://{systeme_subdomain}.systeme.io/webinar-gratuito" if systeme_subdomain else ""
 
     await db.funnel_light.update_one(
         {"partner_id": request.partner_id},
@@ -556,8 +557,9 @@ async def publish_funnel_light(request: FunnelLightRequest):
     )
 
     # Notifica
+    url_display = url if url else "(subdomain Systeme non ancora configurato)"
     await notify_telegram(
-        f"🚀 FUNNEL LIGHT PUBBLICATO\n\n👤 {partner.get('name')}\n🔗 {url}"
+        f"🚀 FUNNEL LIGHT PUBBLICATO\n\n👤 {partner.get('name')}\n🔗 {url_display}"
     )
 
     return {

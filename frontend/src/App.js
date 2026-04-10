@@ -535,11 +535,24 @@ export default function App() {
   const [viewingCliente,setViewingCliente]=useState(null); // Cliente da visualizzare in modalità cliente
   const [partnerDashNav,setPartnerDashNav]=useState('dashboard'); // Nav state per dashboard partner
   const [partnerShowChat,setPartnerShowChat]=useState(false); // Toggle chat Stefania partner
+  const [partnerSelf,setPartnerSelf]=useState(null); // Dati reali del partner loggato via API diretta
+
+  // Fetch dati reali del partner loggato (non dipende dall'array partners che può essere vuoto)
+  useEffect(() => {
+    if (currentUser?.role === "partner" && currentUser?.partner_id) {
+      const token = localStorage.getItem("access_token") || localStorage.getItem("token");
+      if (token) {
+        axios.get(`${API}/api/partners/${currentUser.partner_id}`, { headers: { Authorization: `Bearer ${token}` } })
+          .then(r => setPartnerSelf(r.data))
+          .catch(() => {});
+      }
+    }
+  }, [currentUser?.partner_id]);
 
   // Get the partner data for the logged-in user (if they are a partner)
   // Falls back to first real partner for admin testing
   const basePartner = currentUser?.role === "partner" && currentUser?.partner_id
-    ? partners.find(p => p.id === currentUser.partner_id) || partners[0] || null
+    ? partnerSelf || partners.find(p => p.id === currentUser.partner_id) || { id: currentUser.partner_id, name: currentUser.name || "Partner", niche: "", phase: "F1", revenue: 0, contract: {}, alert: false, modules: [] }
     : partners[0] || null;
   
   // Se admin ha selezionato un partner specifico, usa quello
@@ -895,14 +908,13 @@ export default function App() {
     // ── Route: Questionario ────────────────────────────────────────────────
     if (currentPath === "/questionario") {
       if (!currentUser.questionario_started) {
-        const token = localStorage.getItem("token");
+        const updated = { ...currentUser, questionario_started: true };
+        setCurrentUser(updated);
+        localStorage.setItem("user", JSON.stringify(updated));
+        const token = localStorage.getItem("access_token") || localStorage.getItem("token");
         if (token) {
           fetch(`${API}/api/cliente-analisi/questionario-started`, { method: "POST", headers: { Authorization: `Bearer ${token}` } })
-            .then(() => {
-              const updated = { ...currentUser, questionario_started: true };
-              setCurrentUser(updated);
-              localStorage.setItem("user", JSON.stringify(updated));
-            }).catch(() => {});
+            .catch(() => {});
         }
       }
       return (
@@ -1012,6 +1024,9 @@ export default function App() {
         if (nav === 'i-miei-file') return <PartnerFilesPage partner={p} />;
         if (nav === 'onboarding-docs') return <OnboardingDocuments partner={p} onComplete={() => setPartnerDashNav('dashboard')} />;
         if (nav === 'percorso-veloce') return <PercorsoVelocePage partner={p} onNavigate={setPartnerDashNav} />;
+        if (nav === 'calendario-lancio') return <CalendarioLancioPage partner={p} onNavigate={setPartnerDashNav} />;
+        if (nav === 'webinar') return <WebinarPage partner={p} onNavigate={setPartnerDashNav} />;
+        if (nav === 'growth-system') return <GrowthSystemPage partner={p} onNavigate={setPartnerDashNav} />;
         return <PartnerDashboardSimplified partner={p} onNavigate={setPartnerDashNav} />;
       };
 

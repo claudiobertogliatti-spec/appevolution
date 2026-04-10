@@ -1,7 +1,7 @@
 import { ArrowLeft, ArrowRight, Check, Clock, Lock, ChevronRight, FileText, BookOpen, ClipboardList, Download } from "lucide-react";
 import { STEPS, getStepFromPhase } from "./stepConfig";
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it")) ? "" : (process.env.REACT_APP_BACKEND_URL || "");
 
 const MATERIAL_ICONS = {
   guide: BookOpen,

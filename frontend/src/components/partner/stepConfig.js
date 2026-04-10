@@ -143,17 +143,11 @@ STEP_SLA['webinar'] = { sla: '48h', label: 'Completamento entro 48 ore' };
 STEP_SLA['email'] = { sla: '24h', label: 'Completamento entro 24 ore' };
 
 export function getStepFromPhase(phase) {
-  if (!phase) return 0;
+  if (!phase) return 1;
   if (phase === 'LIVE' || phase === 'OTTIMIZZAZIONE') return 7;
   const n = parseInt(phase.replace('F', '') || '1');
-  if (n <= 1) return 0;
-  if (n === 2) return 1;
-  if (n === 3) return 2;
-  if (n === 4) return 3;
-  if (n === 5) return 4;
-  if (n === 6) return 5;
-  if (n <= 8) return 6;
-  return 7;
+  if (n < 1) return 1;
+  return Math.min(n, 7);
 }
 
 export function getStepStatus(stepNum, currentStep) {

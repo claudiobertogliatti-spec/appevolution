@@ -55,7 +55,7 @@ function FunnelLightContent({ funnelData, published }) {
   if (!funnelData) return null;
   return (
     <div>
-      {published && (
+      {published && funnelData.url && (
         <div className="rounded-2xl p-4 mb-5 flex items-center gap-3"
           data-testid="funnel-published-banner"
           style={{ background: "#F0FDF4", border: "2px solid #BBF7D0" }}>
@@ -64,13 +64,22 @@ function FunnelLightContent({ funnelData, published }) {
             <p className="text-sm font-black" style={{ color: "#166534" }}>Funnel pubblicato</p>
             <p className="text-xs" style={{ color: "#15803D" }}>Il tuo link e attivo e raccoglie contatti.</p>
           </div>
-          {funnelData.url && (
-            <a href={funnelData.url} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs font-bold px-3 py-2 rounded-lg"
-              style={{ background: "#34C77B", color: "white" }}>
-              <ExternalLink className="w-3.5 h-3.5" /> Apri funnel
-            </a>
-          )}
+          <a href={funnelData.url} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1 text-xs font-bold px-3 py-2 rounded-lg"
+            style={{ background: "#34C77B", color: "white" }}>
+            <ExternalLink className="w-3.5 h-3.5" /> Apri funnel
+          </a>
+        </div>
+      )}
+      {published && !funnelData.url && (
+        <div className="rounded-2xl p-4 mb-5 flex items-center gap-3"
+          data-testid="funnel-pending-banner"
+          style={{ background: "#FFFBEB", border: "2px solid #FDE68A" }}>
+          <CheckCircle2 className="w-6 h-6 flex-shrink-0" style={{ color: "#D97706" }} />
+          <div className="flex-1">
+            <p className="text-sm font-black" style={{ color: "#92400E" }}>Funnel in preparazione</p>
+            <p className="text-xs" style={{ color: "#B45309" }}>Il team sta configurando il tuo spazio su Systeme. Il link sarà disponibile a breve.</p>
+          </div>
         </div>
       )}
       <SectionPreview section={SECTIONS[0]} content={funnelData.landing} isGenerated={!!funnelData.landing} />

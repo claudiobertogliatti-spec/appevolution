@@ -5,7 +5,7 @@ import {
   XCircle, Clock, ArrowDown, Loader2
 } from "lucide-react";
 
-const API = process.env.REACT_APP_BACKEND_URL || "";
+const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it")) ? "" : (process.env.REACT_APP_BACKEND_URL || "");
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DIAGNOSTICA "DOVE SEI OGGI"

@@ -4154,7 +4154,14 @@ async def update_partner(
     # Revision Notes (admin only)
     if body.get("revision_notes") is not None:
         update["revision_notes"] = body["revision_notes"]
-    
+
+    # Systeme.io subdomain (senza https:// e senza .systeme.io)
+    if body.get("systeme_subdomain") is not None:
+        raw = body["systeme_subdomain"].strip().lower()
+        raw = raw.replace("https://", "").replace("http://", "")
+        raw = raw.replace(".systeme.io", "").split("/")[0]
+        update["systeme_subdomain"] = raw
+
     if update:
         update["updated_at"] = datetime.now(timezone.utc).isoformat()
         await db.partners.update_one({"id": partner_id}, {"$set": update})
