@@ -1,5 +1,5 @@
-import { ArrowRight, Check, Lock, Info, MessageCircle, Calendar } from "lucide-react";
-import { STEPS, getStepFromPhase } from "./stepConfig";
+import { ArrowRight, Check, Lock, Info, MessageCircle, Calendar, Shield, Clock, Zap } from "lucide-react";
+import { STEPS, getStepFromPhase, STEP_SLA } from "./stepConfig";
 
 export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat, isAdmin }) {
   const phase = partner?.phase || 'F1';
@@ -59,6 +59,41 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat, is
           </p>
         </section>
 
+        {/* ═══════════ BLOCCO SLA — IL TUO PERCORSO IN 21 GIORNI ═══════════ */}
+        <section data-testid="sla-21-giorni" className="rounded-2xl overflow-hidden" style={{ border: '1px solid #1E212815' }}>
+          <div className="px-6 py-5" style={{ background: '#1E2128' }}>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(242,196,24,0.15)' }}>
+                <Shield className="w-5 h-5" style={{ color: '#F2C418' }} />
+              </div>
+              <div>
+                <p className="text-sm font-black text-white">
+                  Il percorso e progettato per portarti online in 21 giorni.
+                </p>
+                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                  Seguiamo un processo preciso per ottenere il risultato.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="px-6 py-4 grid grid-cols-3 gap-3" style={{ background: '#FAFAF7' }}>
+            {[
+              { label: 'Setup e Funnel', sla: '24h', step: '1-2' },
+              { label: 'Contenuti e Corso', sla: '48h', step: '3-4' },
+              { label: 'Lancio', sla: '24h', step: '5-6' },
+            ].map((item, i) => (
+              <div key={i} className="rounded-xl p-3 text-center" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <Clock className="w-3.5 h-3.5" style={{ color: '#F2C418' }} />
+                  <span className="text-sm font-black" style={{ color: '#1E2128' }}>{item.sla}</span>
+                </div>
+                <p className="text-[11px] font-bold" style={{ color: '#5F6572' }}>{item.label}</p>
+                <p className="text-[10px]" style={{ color: '#9CA3AF' }}>Step {item.step}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* ═══════════ 2. BLOCCO PRINCIPALE — COSA DEVI FARE ADESSO ═══════════ */}
         <section data-testid="action-section" className="rounded-2xl p-6 sm:p-8 relative overflow-hidden" style={{ background: '#FFD24D' }}>
           <div className="absolute top-0 right-0 w-40 h-40 rounded-full opacity-15" style={{ background: 'white', transform: 'translate(30%, -30%)' }} />
@@ -69,9 +104,19 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat, is
             <p className="text-xl sm:text-2xl font-black mb-2" style={{ color: '#1A1F24' }}>
               {ctaAction}
             </p>
-            <p className="text-base leading-relaxed mb-6 max-w-lg" style={{ color: 'rgba(26,31,36,0.7)' }}>
+            <p className="text-base leading-relaxed mb-4 max-w-lg" style={{ color: 'rgba(26,31,36,0.7)' }}>
               {ctaDetail}
             </p>
+            {activeStep && STEP_SLA[activeStep.id] && (
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl mb-5"
+                style={{ background: 'rgba(26,31,36,0.08)' }}>
+                <Clock className="w-4 h-4" style={{ color: '#1A1F24' }} />
+                <span className="text-sm font-bold" style={{ color: '#1A1F24' }}>
+                  Tempo stimato: {STEP_SLA[activeStep.id].sla}
+                </span>
+              </div>
+            )}
+            <div>
             <button
               data-testid="vai-ora-btn"
               onClick={handleVaiOra}
@@ -81,6 +126,7 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat, is
               {buttonText}
               <ArrowRight className="w-5 h-5" />
             </button>
+            </div>
           </div>
         </section>
 
@@ -140,6 +186,12 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat, is
                     <span className="flex-1 text-base font-bold" style={{ color: isStepCompleted ? '#2D9F6F' : isCurrent ? '#1A1F24' : isLocked ? '#9CA3AF' : '#5F6572' }}>
                       {step.title}
                     </span>
+                    {isCurrent && step.sla && (
+                      <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                        style={{ background: '#1A1F2410', color: '#1A1F24' }}>
+                        <Clock className="w-3 h-3" /> {step.sla}
+                      </span>
+                    )}
                     <span className="text-sm font-bold flex-shrink-0" style={{ color: statusColor }}>
                       — {statusLabel}
                     </span>
