@@ -156,6 +156,7 @@ export function VideocorsoPage({ partner, onNavigate, onComplete, isAdmin }) {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
   const [expandedModules, setExpandedModules] = useState([0]);
+  const [isEditing, setIsEditing] = useState(false);
 
   const partnerId = partner?.id;
 
@@ -208,11 +209,29 @@ export function VideocorsoPage({ partner, onNavigate, onComplete, isAdmin }) {
     if (!partnerId) return;
     setIsSaving(true);
     try {
-      await axios.post(`${API}/api/partner-journey/videocorso/approve-course?partner_id=${partnerId}`);
+      await axios.post(`${API}/api/partner-journey/videocorso/approve-course?partner_id=${partnerId}`, courseData);
       setIsCompleted(true);
+      setIsEditing(false);
       if (onComplete) onComplete();
     } catch (e) {
       console.error("Error approving:", e);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveEdits = async () => {
+    if (!partnerId || !courseData) return;
+    setIsSaving(true);
+    try {
+      await axios.post(`${API}/api/partner-journey/videocorso/update-course`, {
+        partner_id: partnerId,
+        course_data: courseData,
+      });
+      setIsEditing(false);
+    } catch (e) {
+      console.error("Error saving edits:", e);
+      setError("Errore nel salvataggio. Riprova.");
     } finally {
       setIsSaving(false);
     }
@@ -332,21 +351,31 @@ export function VideocorsoPage({ partner, onNavigate, onComplete, isAdmin }) {
         {/* PARTNER VIEW */}
         {!isAdmin && (
           <>
-            {isCompleted ? (
+            {isCompleted && !isEditing ? (
               <>
                 {courseData && <CourseOutputView courseData={courseData} expandedModules={expandedModules} toggleModule={toggleModule} />}
-                <div className="mt-6">
-                  <CompletedBanner onContinue={() => onNavigate("funnel")} />
+                <div className="flex gap-3 mt-6">
+                  <div className="flex-1">
+                    <CompletedBanner onContinue={() => onNavigate("funnel")} />
+                  </div>
+                  <button onClick={() => { setIsEditing(true); setExpandedModules((courseData?.moduli || []).map((_, i) => i)); }}
+                    data-testid="edit-structure-btn"
+                    className="flex items-center gap-2 px-5 py-4 rounded-xl font-bold transition-all hover:bg-gray-50 self-start"
+                    style={{ background: "white", border: "1px solid #ECEDEF", color: "#5F6572" }}>
+                    <Edit3 className="w-5 h-5" /> Modifica struttura
+                  </button>
                 </div>
               </>
             ) : courseData ? (
-              /* OUTPUT */
+              /* OUTPUT — modalità editing (anche post-approvazione) */
               <div data-testid="videocorso-output">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "#34C77B20" }}>
-                    <Check className="w-5 h-5" style={{ color: "#34C77B" }} />
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: isEditing ? "#F2C41820" : "#34C77B20" }}>
+                    {isEditing ? <Edit3 className="w-5 h-5" style={{ color: "#F2C418" }} /> : <Check className="w-5 h-5" style={{ color: "#34C77B" }} />}
                   </div>
-                  <h2 className="text-xl font-black" style={{ color: "#1E2128" }}>Il tuo videocorso è pronto</h2>
+                  <h2 className="text-xl font-black" style={{ color: "#1E2128" }}>
+                    {isEditing ? "Modifica la struttura del videocorso" : "Il tuo videocorso è pronto"}
+                  </h2>
                 </div>
 
                 <CourseOutputView courseData={courseData} expandedModules={expandedModules} toggleModule={toggleModule}
@@ -355,17 +384,35 @@ export function VideocorsoPage({ partner, onNavigate, onComplete, isAdmin }) {
 
                 {/* ACTIONS */}
                 <div className="flex gap-3 mt-6">
-                  <button onClick={handleApprove} disabled={isSaving} data-testid="approve-videocorso-btn"
-                    className="flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-black text-base transition-all hover:scale-105 disabled:opacity-50"
-                    style={{ background: "#34C77B", color: "white" }}>
-                    {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
-                    {isSaving ? "Salvataggio..." : "APPROVA VIDEOCORSO"}
-                  </button>
-                  <button onClick={handleRegenerate} data-testid="regenerate-videocorso-btn"
-                    className="flex items-center justify-center gap-2 px-5 py-4 rounded-xl font-bold transition-all hover:bg-gray-50"
-                    style={{ background: "white", border: "1px solid #ECEDEF", color: "#5F6572" }}>
-                    <RefreshCw className="w-5 h-5" /> Rigenera
-                  </button>
+                  {isEditing ? (
+                    <>
+                      <button onClick={handleSaveEdits} disabled={isSaving} data-testid="save-edits-btn"
+                        className="flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-black text-base transition-all hover:scale-105 disabled:opacity-50"
+                        style={{ background: "#F2C418", color: "#1E2128" }}>
+                        {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+                        {isSaving ? "Salvataggio..." : "SALVA MODIFICHE"}
+                      </button>
+                      <button onClick={() => setIsEditing(false)} data-testid="cancel-edit-btn"
+                        className="flex items-center justify-center gap-2 px-5 py-4 rounded-xl font-bold transition-all hover:bg-gray-50"
+                        style={{ background: "white", border: "1px solid #ECEDEF", color: "#5F6572" }}>
+                        Annulla
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={handleApprove} disabled={isSaving} data-testid="approve-videocorso-btn"
+                        className="flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-black text-base transition-all hover:scale-105 disabled:opacity-50"
+                        style={{ background: "#34C77B", color: "white" }}>
+                        {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+                        {isSaving ? "Salvataggio..." : "APPROVA VIDEOCORSO"}
+                      </button>
+                      <button onClick={handleRegenerate} data-testid="regenerate-videocorso-btn"
+                        className="flex items-center justify-center gap-2 px-5 py-4 rounded-xl font-bold transition-all hover:bg-gray-50"
+                        style={{ background: "white", border: "1px solid #ECEDEF", color: "#5F6572" }}>
+                        <RefreshCw className="w-5 h-5" /> Rigenera
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             ) : (

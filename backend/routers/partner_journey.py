@@ -1061,6 +1061,10 @@ REGOLE:
             json_end = response_text.find("```", json_start)
             response_text = response_text[json_start:json_end].strip()
 
+        # Pulizia robusta: rimuovi virgole trailing prima di } o ]
+        import re
+        response_text = re.sub(r',\s*([}\]])', r'\1', response_text)
+
         course_data = json.loads(response_text)
 
         await db.partner_videocorso.update_one(
@@ -1084,6 +1088,29 @@ REGOLE:
         logging.error(f"Videocorso generation error: {e}")
         raise HTTPException(status_code=500, detail=f"Errore generazione videocorso: {str(e)}")
 
+
+class VideocorsoUpdateRequest(BaseModel):
+    partner_id: str
+    course_data: Dict[str, Any]
+
+@router.post("/videocorso/update-course")
+async def update_videocorso_course(request: VideocorsoUpdateRequest):
+    """Aggiorna la struttura del videocorso (modifica manuale moduli/lezioni)"""
+    partner = await get_partner_or_404(request.partner_id)
+
+    await db.partner_videocorso.update_one(
+        {"partner_id": request.partner_id},
+        {"$set": {
+            "course_data": request.course_data,
+            "course_edited_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+
+    return {
+        "success": True,
+        "message": "Struttura videocorso aggiornata"
+    }
 
 @router.post("/videocorso/approve-course")
 async def approve_videocorso_ai(partner_id: str):
