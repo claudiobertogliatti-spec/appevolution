@@ -38,6 +38,12 @@ Piattaforma gestionale per l'onboarding e la crescita dei partner in un ecosiste
 - [x] Rimossi tutti i bottoni "Genera" e "Rigenera" dal partner
 - [x] Messaggi chiari: "Non devi costruire nulla. Il sistema e il team costruiscono tutto per te."
 - [x] stepConfig.js aggiornato con descrizioni done-for-you
+- [x] **SLA chiari e comunicazione autorevole** (10 Apr 2026):
+  - StatusBadge + SlaBadge (Entro 24h/48h) su ogni step
+  - Blocco "21 giorni" nella dashboard partner (3 card SLA)
+  - Tempo stimato nel CTA e nella progress list
+  - Copy autorevole: "Il team sta lavorando. Sara pronto entro X ore."
+  - Blocco "Processo garantito" con icona Shield
 
 ### Pagina Webinar Partner (NUOVO - 10 Apr 2026)
 - [x] Pagina accessibile dalla sidebar partner
