@@ -1554,8 +1554,10 @@ async def generate_lancio_plan(request: LancioGenerateRequest):
     landing_headline = landing.get("hero", {}).get("headline", "N/D")
     landing_problema = landing.get("problema", {}).get("body", "N/D")
 
-    prompt = f"""Sei un esperto di marketing digitale, social media, advertising Meta e webinar per corsi online.
+    prompt = f"""Sei un esperto di marketing digitale e lanci di corsi online.
 Genera un PIANO DI LANCIO COMPLETO per il partner {partner.get('name')}.
+
+MODELLO DI VENDITA: Traffico → Landing → Webinar → Offerta → Follow-up
 
 ═══ DATI DEL PARTNER ═══
 
@@ -1584,109 +1586,197 @@ MASTERCLASS:
 
 ═══ OUTPUT RICHIESTO ═══
 
-Genera un JSON con questa struttura ESATTA. Ogni contenuto deve essere COMPLETO e OPERATIVO (non segnaposto).
+Genera un JSON con questa struttura ESATTA. Ogni contenuto deve essere COMPLETO e OPERATIVO.
 
 {{
+  "landing_page": {{
+    "headline": "headline principale della landing (orientata al risultato)",
+    "sub_headline": "sotto-titolo che espande la promessa",
+    "promessa": "promessa chiara e specifica di cosa ottiene chi si iscrive al webinar",
+    "problema": "descrizione del problema principale del target (3-4 frasi che creano identificazione)",
+    "soluzione_preview": "anticipazione della soluzione senza rivelare tutto (2-3 frasi)",
+    "benefici": [
+      "beneficio 1 concreto e misurabile",
+      "beneficio 2 concreto e misurabile",
+      "beneficio 3 concreto e misurabile",
+      "beneficio 4 concreto e misurabile"
+    ],
+    "cta_iscrizione": "testo del bottone di iscrizione al webinar",
+    "social_proof": "frase di riprova sociale o credibilita"
+  }},
+  "webinar": {{
+    "titolo": "titolo del webinar accattivante e orientato al risultato",
+    "promessa": "cosa il partecipante otterra alla fine del webinar",
+    "durata": "durata consigliata (es. 60-90 minuti)",
+    "scaletta": [
+      {{
+        "momento": "Apertura (0-5 min)",
+        "contenuto": "cosa dire esattamente in questa fase",
+        "obiettivo": "obiettivo di questa fase"
+      }},
+      {{
+        "momento": "Il Problema (5-15 min)",
+        "contenuto": "come presentare il problema del target",
+        "obiettivo": "creare consapevolezza del problema"
+      }},
+      {{
+        "momento": "La Soluzione (15-30 min)",
+        "contenuto": "presentare il metodo/framework",
+        "obiettivo": "posizionarsi come esperto"
+      }},
+      {{
+        "momento": "Caso Studio (30-40 min)",
+        "contenuto": "mostrare risultati concreti",
+        "obiettivo": "costruire fiducia"
+      }},
+      {{
+        "momento": "L'Offerta (40-55 min)",
+        "contenuto": "presentare il corso come soluzione completa",
+        "obiettivo": "transizione alla vendita"
+      }},
+      {{
+        "momento": "Q&A e Chiusura (55-70 min)",
+        "contenuto": "rispondere alle obiezioni e chiudere con urgenza",
+        "obiettivo": "superare le obiezioni e convertire"
+      }}
+    ],
+    "cta_vendita": "CTA di vendita specifica con offerta e urgenza",
+    "obiezioni_comuni": [
+      {{
+        "obiezione": "obiezione tipica del target",
+        "risposta": "come rispondere in modo efficace"
+      }}
+    ]
+  }},
+  "offerta": {{
+    "nome_prodotto": "nome commerciale del corso",
+    "prezzo_pieno": "prezzo pieno del corso",
+    "prezzo_lancio": "prezzo speciale di lancio",
+    "sconto_percentuale": "percentuale di sconto",
+    "bonus": [
+      {{
+        "nome": "nome del bonus",
+        "descrizione": "cosa include il bonus",
+        "valore": "valore percepito del bonus"
+      }}
+    ],
+    "garanzia": "tipo e durata della garanzia (es. soddisfatti o rimborsati 30 giorni)",
+    "urgenza": "elemento di urgenza/scarsita per spingere all'azione",
+    "riepilogo_valore": "frase che riassume il valore totale dell'offerta"
+  }},
+  "email_followup": [
+    {{
+      "numero": 1,
+      "timing": "subito dopo il webinar",
+      "tipo": "replay",
+      "subject": "oggetto email",
+      "body": "corpo completo dell'email (300-500 parole)"
+    }},
+    {{
+      "numero": 2,
+      "timing": "giorno dopo",
+      "tipo": "valore",
+      "subject": "oggetto email",
+      "body": "email che aggiunge valore e rinforza la decisione"
+    }},
+    {{
+      "numero": 3,
+      "timing": "2 giorni dopo",
+      "tipo": "caso_studio",
+      "subject": "oggetto email",
+      "body": "email con caso studio o testimonianza"
+    }},
+    {{
+      "numero": 4,
+      "timing": "3 giorni dopo",
+      "tipo": "obiezioni",
+      "subject": "oggetto email",
+      "body": "email che supera le obiezioni principali"
+    }},
+    {{
+      "numero": 5,
+      "timing": "5 giorni dopo",
+      "tipo": "bonus",
+      "subject": "oggetto email",
+      "body": "email che presenta un bonus esclusivo a tempo"
+    }},
+    {{
+      "numero": 6,
+      "timing": "7 giorni dopo (ultimo giorno)",
+      "tipo": "urgenza",
+      "subject": "oggetto email",
+      "body": "email finale con urgenza e scadenza offerta"
+    }}
+  ],
   "calendario_30g": [
     {{
       "giorno": 1,
       "tipo": "REEL",
       "obiettivo": "attenzione",
       "titolo": "titolo specifico e accattivante",
-      "cta": "CTA specifica che porta al funnel"
+      "cta": "CTA che porta alla landing del webinar"
     }}
   ],
   "contenuti_pronti": {{
     "reel": [
       {{
         "titolo": "titolo reel",
-        "hook": "frase iniziale che cattura attenzione nei primi 2 secondi",
-        "script": "script completo del reel (60-90 secondi)",
-        "cta": "CTA specifica"
+        "hook": "frase iniziale che cattura nei primi 2 secondi",
+        "script": "script completo (60-90 secondi)",
+        "cta": "CTA verso la landing del webinar"
       }}
     ],
     "carousel": [
       {{
         "titolo": "titolo carousel",
-        "slide": ["Slide 1: testo", "Slide 2: testo", "Slide 3: testo", "Slide 4: testo", "Slide 5: testo CTA"],
-        "cta": "CTA specifica"
+        "slide": ["Slide 1", "Slide 2", "Slide 3", "Slide 4", "Slide 5 CTA"],
+        "cta": "CTA verso la landing del webinar"
       }}
     ],
     "post": [
       {{
         "titolo": "titolo post",
-        "testo": "testo completo del post (200-400 parole) con formattazione, emoji e hashtag",
-        "cta": "CTA specifica"
+        "testo": "testo completo (200-400 parole) con formattazione e hashtag",
+        "cta": "CTA verso la landing del webinar"
       }}
     ]
   }},
   "piano_ads": {{
-    "obiettivo_campagna": "obiettivo specifico della campagna Meta",
-    "pubblico_target": "descrizione dettagliata del pubblico target per Meta Ads",
-    "budget_consigliato": "budget giornaliero/mensile consigliato con range",
+    "obiettivo_campagna": "obiettivo specifico Meta Ads",
+    "pubblico_target": "descrizione pubblico target dettagliata",
+    "budget_consigliato": "budget giornaliero/mensile con range",
     "creativita": [
       {{
-        "tipo": "tipo creativita (immagine/video/carousel)",
-        "descrizione": "descrizione dettagliata della creativita",
+        "tipo": "tipo (immagine/video/carousel)",
+        "descrizione": "descrizione dettagliata",
         "headline": "headline dell'ad",
-        "testo_primario": "testo primario dell'ad completo"
+        "testo_primario": "testo primario completo"
       }}
     ],
     "copy_ads": [
       {{
-        "angolo": "angolo di comunicazione (dolore/aspirazione/prova sociale)",
+        "angolo": "angolo comunicazione (dolore/aspirazione/prova sociale)",
         "headline": "headline",
-        "testo_primario": "testo primario completo dell'ad",
+        "testo_primario": "testo primario completo",
         "cta_button": "testo bottone CTA"
-      }}
-    ]
-  }},
-  "webinar": {{
-    "titolo": "titolo del webinar (accattivante e orientato al risultato)",
-    "promessa": "cosa il partecipante otterra alla fine del webinar",
-    "scaletta": [
-      {{
-        "momento": "Apertura (0-5 min)",
-        "contenuto": "descrizione dettagliata di cosa dire",
-        "obiettivo": "creare connessione"
-      }}
-    ],
-    "cta_vendita": "CTA di vendita specifica con offerta"
-  }},
-  "promozione_webinar": {{
-    "contenuti_social": [
-      {{
-        "tipo": "REEL/POST/STORY",
-        "titolo": "titolo contenuto",
-        "testo": "testo completo"
-      }}
-    ],
-    "ads_webinar": [
-      {{
-        "headline": "headline ad webinar",
-        "testo": "copy completo dell'ad",
-        "cta": "CTA specifica"
-      }}
-    ],
-    "email_sequence": [
-      {{
-        "timing": "quando inviare (es. 7 giorni prima)",
-        "subject": "oggetto email",
-        "body": "corpo completo dell'email"
       }}
     ]
   }}
 }}
 
 REGOLE IMPORTANTI:
-- Il calendario deve avere esattamente 30 giorni con mix di REEL, CAROUSEL, POST e STORY
-- I contenuti pronti devono avere almeno 4 reel, 3 carousel e 3 post COMPLETI
-- Il piano ads deve avere almeno 3 creativita e 3 copy ads
+- MODELLO: Traffico (social+ads) → Landing (iscrizione webinar) → Webinar (vendita) → Offerta → Follow-up (6 email)
+- La landing DEVE portare al webinar, il webinar DEVE vendere il corso
+- L'offerta deve avere almeno 3 bonus con valore percepito
+- Le 6 email follow-up devono coprire: replay, valore, caso studio, obiezioni, bonus, urgenza
+- Il calendario deve avere 30 giorni con CTA che portano ALLA LANDING del webinar
+- I contenuti social devono portare traffico alla landing
+- Le ads devono portare traffico alla landing
+- Almeno 4 reel, 3 carousel, 3 post pronti
+- Almeno 3 creativita e 3 copy ads
 - La scaletta webinar deve avere almeno 6 momenti dettagliati
-- La promozione webinar deve avere almeno 3 contenuti social, 2 ads e 3 email
-- Tutto deve essere OPERATIVO: il partner copia e incolla senza modificare
-- Ogni CTA deve portare al funnel o al webinar
-- Lo scopo finale e': il funnel porta al webinar, il webinar vende il corso
+- Almeno 3 obiezioni comuni con risposte
+- Tutto OPERATIVO: il partner copia e incolla
 - Scrivi tutto in ITALIANO
 - Rispondi SOLO con il JSON, senza commenti o markdown"""
 
