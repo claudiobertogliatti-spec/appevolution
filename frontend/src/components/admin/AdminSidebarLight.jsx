@@ -33,6 +33,7 @@ const NAV_ITEMS = [
   { id: "oggi",                label: "Oggi",                icon: CalendarDays },
   { id: "operativa",           label: "Dashboard Operativa", icon: Target },
   { id: "funnel-distribution", label: "Distribuzione Funnel", icon: Package },
+  { id: "notifiche",           label: "Notifiche Partner",   icon: Bell },
   { id: "pipeline-prioritaria",label: "Priorità Pipeline",   icon: Flame },
   { id: "partner-bloccati",    label: "Partner Bloccati",    icon: AlertOctagon },
   { id: "guided-system",       label: "Guided System",       icon: Navigation },
@@ -64,7 +65,7 @@ const NAV_ITEMS = [
 const ANTONELLA_ITEMS = new Set([
   "partner", "metriche", "calendario-admin",
   "approvals", "warmode", "youtube-heygen", "agenti",
-  "oggi", "operativa", "funnel-distribution", "pipeline-prioritaria", "partner-bloccati",
+  "oggi", "operativa", "funnel-distribution", "notifiche", "pipeline-prioritaria", "partner-bloccati",
 ]);
 const ANTONELLA_SECTIONS = new Set([
   "OPERATIVO", "ACQUISIZIONE", "PARTNER", "MARKETING",
