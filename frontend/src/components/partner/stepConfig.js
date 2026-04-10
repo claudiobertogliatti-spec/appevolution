@@ -1,4 +1,4 @@
-// Configurazione condivisa del percorso guidato Partner
+// Configurazione condivisa del percorso guidato Partner — Modello Done-for-You
 // Utilizzata da: PartnerSidebar, PartnerDashboardSimplified, StepPageWrapper
 
 export const STEPS = [
@@ -6,14 +6,14 @@ export const STEPS = [
     id: 'posizionamento',
     num: 1,
     title: 'Posizionamento',
-    desc: 'Definiamo chi sei, cosa insegni e per chi lo fai.',
+    desc: 'Il team definisce chi sei, cosa insegni e per chi lo fai.',
     whatToDo: 'Rispondi alle domande chiave sul tuo posizionamento',
-    whatToDoDetail: 'Ci serviranno per definire il tuo target ideale e creare un messaggio chiaro e convincente.',
-    afterStep: 'Dopo il posizionamento, attiveremo subito il tuo primo funnel.',
+    whatToDoDetail: 'Ci serviranno per costruire il tuo messaggio e il tuo funnel. Tu rispondi, noi facciamo il resto.',
+    afterStep: 'Dopo il posizionamento, il team attivera il tuo primo funnel.',
     afterStepIntro: 'Una volta completato il posizionamento:',
     afterStepBullets: [
-      'Avremo definito il tuo target ideale',
-      'Attiveremo il tuo primo funnel in automatico',
+      'Il team definira il tuo target ideale',
+      'Costruiremo il tuo primo funnel in automatico',
       'Avrai un link live entro 24-48h',
     ],
     materials: [
@@ -26,14 +26,14 @@ export const STEPS = [
     id: 'funnel-light',
     num: 2,
     title: 'Funnel Light',
-    desc: 'Attiva il tuo primo funnel in automatico.',
-    whatToDo: 'Rivedi e pubblica il tuo funnel pre-compilato',
-    whatToDoDetail: 'Usiamo i dati del posizionamento per creare landing, form e thank you page. Tu devi solo confermare.',
-    afterStep: 'Dopo la pubblicazione, creeremo la tua Masterclass.',
-    afterStepIntro: 'Una volta pubblicato il funnel:',
+    desc: 'Il team costruisce e attiva il tuo primo funnel.',
+    whatToDo: 'Rivedi e approva il funnel preparato dal team',
+    whatToDoDetail: 'Usiamo i dati del posizionamento per creare landing, form e thank you page. Non devi costruire nulla.',
+    afterStep: 'Dopo l\'approvazione, il team preparera la tua Masterclass.',
+    afterStepIntro: 'Una volta approvato il funnel:',
     afterStepBullets: [
       'Avrai un link live che raccoglie contatti',
-      'Creeremo insieme la tua Masterclass',
+      'Il team preparera la tua Masterclass',
       'Inizierai a costruire la tua offerta',
     ],
     materials: [
@@ -45,14 +45,14 @@ export const STEPS = [
     id: 'masterclass',
     num: 3,
     title: 'Masterclass',
-    desc: 'Creiamo la tua lezione gratuita che attira studenti.',
-    whatToDo: 'Rispondi alle 7 domande strategiche per creare il tuo script',
-    whatToDoDetail: 'Ti serviranno per costruire una masterclass chiara, utile e pronta da registrare.',
-    afterStep: 'Dopo la masterclass, costruiremo il tuo videocorso completo.',
-    afterStepIntro: 'Una volta completata la masterclass:',
+    desc: 'Il team crea la tua lezione gratuita che attira studenti.',
+    whatToDo: 'Rivedi lo script preparato dal team e approva',
+    whatToDoDetail: 'Il team costruisce una masterclass professionale basata sul tuo posizionamento. Tu la rivedi e approvi.',
+    afterStep: 'Dopo la masterclass, il team costruira il tuo videocorso.',
+    afterStepIntro: 'Una volta approvata la masterclass:',
     afterStepBullets: [
       'Avrai uno script professionale pronto',
-      'Costruiremo il tuo videocorso completo',
+      'Il team costruira il tuo videocorso completo',
       'Potrai iniziare a registrare le lezioni',
     ],
     materials: [
@@ -65,15 +65,15 @@ export const STEPS = [
     id: 'videocorso',
     num: 4,
     title: 'Videocorso',
-    desc: 'Realizziamo il tuo corso online completo.',
-    whatToDo: 'Segui la struttura e registra le lezioni',
-    whatToDoDetail: 'Ti guidiamo passo passo nella registrazione per avere un corso completo e professionale.',
-    afterStep: 'Dopo il videocorso, prepareremo il funnel di vendita completo.',
-    afterStepIntro: 'Una volta completato il videocorso:',
+    desc: 'Il team struttura il tuo corso online completo.',
+    whatToDo: 'Rivedi la struttura del corso e approva',
+    whatToDoDetail: 'Il team progetta la struttura completa del corso. Tu la rivedi e approvi, poi registriamo insieme.',
+    afterStep: 'Dopo il videocorso, il team preparera il funnel di vendita.',
+    afterStepIntro: 'Una volta approvato il videocorso:',
     afterStepBullets: [
       'Avrai un corso completo pronto alla vendita',
-      'Prepareremo la tua pagina di vendita',
-      'Definirai la tua offerta commerciale',
+      'Il team preparera la tua pagina di vendita',
+      'Definiremo la tua offerta commerciale',
     ],
     materials: [
       { label: 'Struttura Corso Tipo', type: 'template' },
@@ -85,13 +85,13 @@ export const STEPS = [
     id: 'funnel',
     num: 5,
     title: 'Funnel di Vendita',
-    desc: 'Progettiamo la pagina che converte visitatori in studenti.',
-    whatToDo: 'Completa la tua landing page',
-    whatToDoDetail: 'È il passaggio che ti permette di iniziare a vendere il tuo corso online.',
-    afterStep: 'Dopo il funnel, saremo pronti per il lancio!',
-    afterStepIntro: 'Una volta completata la landing:',
+    desc: 'Il team costruisce la pagina che converte visitatori in studenti.',
+    whatToDo: 'Rivedi il funnel di vendita e approva',
+    whatToDoDetail: 'Il team crea landing, email sequence e area studenti. Tu rivedi e approvi.',
+    afterStep: 'Dopo il funnel, il team preparera il lancio!',
+    afterStepIntro: 'Una volta approvato il funnel:',
     afterStepBullets: [
-      'Attiveremo il lancio',
+      'Il team attiverà il lancio',
       'Inizierai a ricevere traffico',
       'Potrai ottenere le prime vendite',
     ],
@@ -105,13 +105,13 @@ export const STEPS = [
     id: 'lancio',
     num: 6,
     title: 'Lancio',
-    desc: 'Andiamo online insieme e generiamo le prime vendite.',
-    whatToDo: 'Prepara calendario, contenuti e campagne',
-    whatToDoDetail: 'Coordiniamo tutto noi per portare la tua accademia davanti al tuo pubblico ideale.',
-    afterStep: 'Dopo il lancio, monitoreremo insieme i risultati e ottimizzeremo.',
+    desc: 'Il team coordina il lancio e genera le prime vendite.',
+    whatToDo: 'Rivedi il piano di lancio e approva',
+    whatToDoDetail: 'Il team coordina calendario, contenuti e campagne. Tu approvi e vai online.',
+    afterStep: 'Dopo il lancio, monitoreremo insieme i risultati.',
     afterStepIntro: 'Una volta completato il lancio:',
     afterStepBullets: [
-      'La tua accademia sarà online',
+      'La tua accademia sara online',
       'Monitoreremo insieme i risultati',
       'Ottimizzeremo per scalare le vendite',
     ],
@@ -127,13 +127,6 @@ export function getStepFromPhase(phase) {
   if (!phase) return 0;
   if (phase === 'LIVE' || phase === 'OTTIMIZZAZIONE') return 7;
   const n = parseInt(phase.replace('F', '') || '1');
-  // F1 = Posizionamento (step 0)
-  // F2 = Funnel Light (step 1) — NUOVO
-  // F3 = Masterclass (step 2)
-  // F4 = Videocorso (step 3)
-  // F5 = Funnel di Vendita (step 4)
-  // F6 = Lancio (step 5)
-  // F7+ = Post-Lancio (step 6+)
   if (n <= 1) return 0;
   if (n === 2) return 1;
   if (n === 3) return 2;

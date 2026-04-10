@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Home, User, MessageCircle, TrendingUp, Lock, LogOut, X, Rocket, ChevronDown, ChevronRight, Eye, Repeat, DollarSign, Compass, Layers, Zap } from "lucide-react";
+import { Home, User, MessageCircle, TrendingUp, Lock, LogOut, X, Rocket, ChevronDown, ChevronRight, Eye, Repeat, DollarSign, Compass, Layers, Zap, Video } from "lucide-react";
 import { STEPS, getStepFromPhase } from "./stepConfig";
 
 const C = {
@@ -23,6 +23,12 @@ const NAV_ITEMS = [
     label: 'Home',
     icon: Home,
     matchNavs: ['dashboard', 'home', 'posizionamento', 'funnel-light', 'masterclass', 'videocorso', 'funnel', 'lancio', 'onboarding-docs'],
+  },
+  {
+    id: 'webinar',
+    label: 'Webinar',
+    icon: Video,
+    matchNavs: ['webinar'],
   },
   {
     id: 'mio-spazio',
