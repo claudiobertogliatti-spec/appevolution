@@ -1,13 +1,13 @@
 # Evolution PRO — PRD (Product Requirements Document)
 
 ## Problema originale
-Piattaforma gestionale per l'onboarding e la crescita dei partner in un ecosistema di accademie digitali. Il partner viene guidato step-by-step dalla definizione del posizionamento al lancio del corso online.
+Piattaforma gestionale per l'onboarding e la crescita dei partner in un ecosistema di accademie digitali.
 
 ## Utenti
-- **Admin (Claudio)**: Gestisce i partner, configura i contenuti, monitora KPI
-- **Antonella**: Operatrice, gestisce contatti quotidiani con i partner
+- **Admin (Claudio)**: Gestisce partner, configura contenuti, monitora KPI
+- **Antonella**: Operatrice, gestisce contatti quotidiani
 - **Partner**: Professionisti che creano la propria accademia digitale
-- **Cliente Analisi**: Prospect che compilano questionario e pagano per l'analisi strategica
+- **Cliente Analisi**: Prospect che compilano questionario e pagano analisi strategica (67 EUR)
 
 ## Architettura
 - Frontend: React + Tailwind + shadcn/ui
@@ -21,20 +21,20 @@ Piattaforma gestionale per l'onboarding e la crescita dei partner in un ecosiste
 ### Core Platform
 - [x] Login/Registrazione con JWT
 - [x] Dashboard Admin con pipeline conversione, alert, KPI
-- [x] Dashboard Partner con percorso guidato 6 step
+- [x] Dashboard Partner con percorso guidato 6+ step
 - [x] Sidebar Partner con navigazione step
 - [x] Pannello Operativo laterale con tracking fasi
 - [x] Systeme.io import contatti bulk e tag
 
 ### Firma Contratto Partnership
-- [x] UI firma digitale con chatbot Claude
+- [x] UI firma digitale con chatbot Claude (2 colonne)
 - [x] Redirect obbligatorio per partner non firmati
-- [x] **PDF generazione contratto firmato** (reportlab, 52KB, layout A4 professionale)
-- [x] PDF salvato in MongoDB (collection `contract_pdfs`) + backup Cloudinary
-- [x] Download PDF via `/api/contract/pdf-download/{partner_id}`
-- [x] **Notifica post-firma via Systeme.io** (tag `contratto_firmato` ID 1958860)
+- [x] PDF generazione contratto firmato (reportlab, 52KB A4)
+- [x] PDF salvato in MongoDB (collection contract_pdfs) + backup Cloudinary
+- [x] Download PDF via /api/contract/pdf-download/{partner_id}
+- [x] Notifica post-firma via Systeme.io (tag contratto_firmato ID 1958860)
 - [x] Notifica Telegram admin con link PDF
-- [x] SMTP rimosso, sostituito con Systeme.io + Telegram
+- [x] **Admin UI personalizzazione parametri contratto** (ContractParamsModal.jsx) - 10 Apr 2026
 
 ### Modello Done-for-You
 - [x] DoneForYouWrapper con 3 stati (in_lavorazione, pronto, approvato)
@@ -47,37 +47,41 @@ Piattaforma gestionale per l'onboarding e la crescita dei partner in un ecosiste
 
 ### Growth System
 - [x] Scelta livello (foundation/growth/scale) con API backend
-- [x] GET/POST `/api/partner-journey/growth-level/{partner_id}`
+- [x] GET/POST /api/partner-journey/growth-level/{partner_id}
 - [x] Notifica Telegram admin alla scelta
 
 ### Pagamento Cliente Analisi
-- [x] Stripe checkout 67 euro funzionante (chiave aggiornata 10 Apr 2026)
+- [x] Stripe checkout 67 EUR funzionante (chiave aggiornata 10 Apr 2026)
 - [x] Flusso: questionario -> /attivazione-analisi -> Stripe -> verifica
 
 ### Code Quality & Security
 - [x] eval() -> safe parser
 - [x] pickle -> JSON (secure_credentials.py)
 - [x] Circular import risolto
-- [x] **Credenziali hardcoded rimosse da server.py** (ATLAS, Redis, SMTP)
-- [x] Tutte le credenziali ora solo in `.env` (MONGO_ATLAS_URL, REDIS_FALLBACK_URL)
+- [x] Credenziali hardcoded rimosse da server.py, contract.py, proposta.py
+- [x] Tutte credenziali ora solo in .env (MONGO_ATLAS_URL, REDIS_FALLBACK_URL)
+
+### Refactoring (10 Apr 2026)
+- [x] **App.js splitting: da 1907 a 1449 righe** (-24%)
+  - Estratto: constants/appConstants.js (API, PHASES, PHASE_LABELS, etc.)
+  - Estratto: components/shared/DashboardWidgets.jsx (Logo, PhaseProgressBar, KPICard, AgentCard)
+  - Estratto: components/partner/PartnerSections.jsx (PartnerFileManager, PartnerChat, PartnerResources, PartnerCurrentPhase)
 
 ---
 
 ## Backlog Prioritizzato
 
 ### P1 - Alta Priorita
-- [ ] Personalizzazione parametri contratto Admin (PATCH/GET contract-params)
 - [ ] KPI Tracking reale (GA4 + Meta Pixel per partner)
+- [ ] Webhook Stripe per conferma pagamento automatica
 
 ### P2 - Media Priorita
 - [ ] Integrazione API reali Canva/Kling AI
 - [ ] Admin UI per gestire stati step dei partner
-- [ ] Splitting App.js (1903 righe) in componenti piu piccoli
-- [ ] Rimuovere 238 console.log legacy dal codebase
+- [ ] Migrazione localStorage -> httpOnly cookies per token auth
+- [ ] Rimuovere 238 console.log legacy
 
 ### P3 - Bassa Priorita
 - [ ] Refactoring server.py (>15k righe monolite)
-- [ ] Fix alert fantasma "Test AlertQuestionario"
-- [ ] Fix JSONDecodeError backend startup log
-- [ ] Refactoring componenti massive (PartnerDetailModal, AgentDashboard)
-- [ ] Migrazione localStorage -> httpOnly cookies per token auth
+- [ ] Refactoring componenti massive (PartnerDetailModal 1200 righe)
+- [ ] Fix JSONDecodeError backend startup log (artefatto hot-reload)
