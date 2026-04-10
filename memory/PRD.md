@@ -12,41 +12,38 @@ App di gestione aziendale AI-driven. I partner vengono guidati step-by-step con 
 
 ## Implementato
 
+### Distribuzione Funnel Systeme.io (10 Aprile 2026) — DONE
+- **Workflow Admin**: Assegna template → Copia share link → Importa nel sub-account → Personalizza → Rendi live → Consegna URL
+- **5 stati distribuzione**: da_importare → importato → personalizzato → live → consegnato
+- **4 template master**: Webinar Evergreen, Masterclass Transformation, Sales Page PRO, Lead Gen Freebie
+- **Auto-sync**: quando consegnato con URL, aggiorna automaticamente funnel_light del partner
+- **UI Admin**: Summary cards + pannello assegnazione + lista con stepper + share link copiabile + storico
+
 ### Funnel Light — "Attiva il tuo primo funnel" (10 Aprile 2026) — DONE
-- Nuovo step 2 nel percorso (inserito tra Posizionamento e Masterclass)
-- Template-based: landing webinar + form contatti + thank you page
-- Auto-compilato dai dati del posizionamento (no LLM, veloce)
-- Pubblicazione immediata con URL generato
-- Endpoints: `GET /funnel-light/{id}`, `POST /generate`, `POST /publish`
-- stepConfig.js aggiornato: 6 step (posizionamento, funnel-light, masterclass, videocorso, funnel, lancio)
-- PHASE_ACTIONS F2 aggiornato
+- Nuovo step 2 nel percorso (tra Posizionamento e Masterclass)
+- Template-based: landing + form + thank you, auto-compilato dal posizionamento
 
 ### Dashboard Operativa - Vista Antonella (10 Aprile 2026) — DONE
-- Summary Cards + Filtri + Lista partner con rischio/esecuzione/azione
-
 ### Percorso Veloce — Go Live in 21 giorni (10 Aprile 2026) — DONE
-- 5 fasi, countdown, checklist giornaliera
-
 ### Dashboard Risultati v3 (10 Aprile 2026) — DONE
-- 6 sezioni: Stato, KPI, Diagnosi, Prossima Azione, Prossimo Livello, Trend
-
 ### GrowthSystemPage Conversione (10 Aprile 2026) — DONE
-
 ### LancioPage AI-driven (DONE)
 ### Accelera la crescita (DONE)
 
 ## Endpoint API Chiave
+- `GET /api/partner-journey/funnel-distribution/templates`
+- `GET /api/partner-journey/funnel-distribution/all-pending`
+- `POST /api/partner-journey/funnel-distribution/assign`
+- `POST /api/partner-journey/funnel-distribution/update-status`
 - `GET /api/partner-journey/funnel-light/{partner_id}`
 - `POST /api/partner-journey/funnel-light/generate`
 - `POST /api/partner-journey/funnel-light/publish`
 - `GET /api/partner-journey/dashboard-operativa`
-- `POST /api/partner-journey/percorso-veloce/activate`
-- `GET /api/partner-journey/percorso-veloce/{partner_id}`
 
 ## Backlog
 
 ### P0
-- Integrazione Execution Layer Systeme.io (collegare funnel light a Systeme.io reale)
+- Configurare share link reali Systeme.io (sostituire placeholder)
 
 ### P1
 - SMTP invio email, PDF contratto, personalizzazione contratto Admin
