@@ -4644,6 +4644,16 @@ async def update_step_status(req: StepStatusUpdate):
     # Se lo status è "pronto", possiamo anche aggiornare la fase del partner
     logging.info(f"[DONE-FOR-YOU] Step '{req.step_id}' → '{req.status}' per partner {req.partner_id}")
     
+    # ═══ NOTIFICHE AUTOMATICHE AL PARTNER ═══
+    try:
+        from services.notifications import notify_step_pronto, notify_step_in_lavorazione
+        if req.status == "pronto":
+            await notify_step_pronto(str(req.partner_id), req.step_id)
+        elif req.status == "in_lavorazione":
+            await notify_step_in_lavorazione(str(req.partner_id), req.step_id)
+    except Exception as e:
+        logging.warning(f"[NOTIFICA] Errore invio notifica: {e}")
+    
     return {"success": True, "step_id": req.step_id, "status": req.status}
 
 
@@ -4748,3 +4758,48 @@ async def save_webinar_data(partner_id: str, data: Dict[str, Any]):
     )
     
     return {"success": True, "message": "Webinar salvato"}
+
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NOTIFICHE — Endpoint API
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class NotificaManuale(BaseModel):
+    partner_id: str
+    tipo: str  # step_pronto, azione_richiesta, sistema_attivo
+    step_id: Optional[str] = None
+    messaggio: Optional[str] = None
+
+@router.get("/notifiche/{partner_id}")
+async def get_notification_log(partner_id: str, limit: int = 20):
+    """Restituisce lo storico notifiche per un partner"""
+    cursor = db.notification_log.find(
+        {"partner_id": str(partner_id)}, {"_id": 0}
+    ).sort("sent_at", -1).limit(limit)
+    
+    logs = await cursor.to_list(length=limit)
+    return {"success": True, "notifications": logs}
+
+
+@router.post("/notifiche/invia")
+async def send_manual_notification(req: NotificaManuale):
+    """Admin invia una notifica manuale al partner"""
+    from services.notifications import (
+        notify_step_pronto, notify_azione_richiesta, notify_sistema_attivo
+    )
+    
+    try:
+        if req.tipo == "step_pronto" and req.step_id:
+            await notify_step_pronto(req.partner_id, req.step_id)
+        elif req.tipo == "azione_richiesta" and req.step_id:
+            await notify_azione_richiesta(req.partner_id, req.step_id, req.messaggio)
+        elif req.tipo == "sistema_attivo":
+            await notify_sistema_attivo(req.partner_id, req.messaggio)
+        else:
+            raise HTTPException(status_code=400, detail="Tipo notifica non valido o step_id mancante")
+        
+        return {"success": True, "message": f"Notifica '{req.tipo}' inviata"}
+    except Exception as e:
+        logging.error(f"[NOTIFICA] Errore invio manuale: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
