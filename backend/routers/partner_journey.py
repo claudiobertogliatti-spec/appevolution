@@ -4008,3 +4008,211 @@ async def save_percorso_veloce_checklist(request: PercorsoVeloceChecklistRequest
     )
 
     return {"success": True, "message": "Checklist salvata"}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DASHBOARD OPERATIVA — Vista Team
+# ═══════════════════════════════════════════════════════════════════════════════
+
+PHASE_LABELS = {
+    "F0": "Onboarding",
+    "F1": "Posizionamento",
+    "F2": "Masterclass",
+    "F3": "Videocorso",
+    "F4": "Funnel",
+    "F5": "Lancio",
+    "F6": "Post-Lancio",
+    "F7": "Ottimizzazione",
+    "F8": "Accademia Live",
+    "F9": "Scaling",
+    "F10": "Accademia Matura",
+}
+
+PHASE_ORDER = ["F0", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10"]
+
+
+def compute_risk(days_in_step, phase):
+    """Calcola il livello di rischio basato sui giorni nello step"""
+    # Fasi iniziali: tolleranza più bassa
+    if phase in ("F1", "F2", "F3"):
+        if days_in_step > 14:
+            return "bloccato"
+        if days_in_step > 7:
+            return "rallentato"
+        return "in_linea"
+    # Fasi avanzate: tolleranza più alta
+    if days_in_step > 30:
+        return "bloccato"
+    if days_in_step > 14:
+        return "rallentato"
+    return "in_linea"
+
+
+def compute_execution_level(modules, phase):
+    """Calcola il livello di esecuzione"""
+    if not modules:
+        return "basso"
+    done = sum(1 for m in modules if m)
+    total = len(modules)
+    if total == 0:
+        return "basso"
+    ratio = done / total
+    phase_idx = PHASE_ORDER.index(phase) if phase in PHASE_ORDER else 0
+    expected_ratio = max(0.1, phase_idx / 10)
+
+    if ratio >= expected_ratio:
+        return "alto"
+    if ratio >= expected_ratio * 0.6:
+        return "medio"
+    return "basso"
+
+
+def get_suggested_action(risk, phase, days_in_step, execution_level):
+    """Genera l'azione consigliata basata sullo stato"""
+    if risk == "bloccato":
+        if phase in ("F1", "F2"):
+            return "Contattare il partner: potrebbe aver bisogno di supporto per completare il posizionamento"
+        if phase in ("F3", "F4"):
+            return "Verificare se il partner ha difficolta tecniche con la produzione del corso o del funnel"
+        return "Chiamata urgente: il partner e fermo da troppo tempo"
+
+    if risk == "rallentato":
+        if execution_level == "basso":
+            return "Inviare reminder motivazionale e proporre una call di supporto"
+        return "Follow-up leggero: verificare se ci sono ostacoli"
+
+    # in_linea
+    if phase in ("F5", "F6"):
+        return "Monitorare i risultati del lancio e preparare l'ottimizzazione"
+    if phase in ("F8", "F9", "F10"):
+        return "Proporre Growth System per scalare i risultati"
+    return "Nessuna azione richiesta: il partner sta procedendo bene"
+
+
+@router.get("/dashboard-operativa")
+async def get_dashboard_operativa():
+    """Dashboard operativa per il team: stato di tutti i partner"""
+    partners = await db.partners.find({}, {"_id": 0}).to_list(200)
+
+    # Fetch journey data for each partner
+    journey_data = {}
+    async for doc in db.partner_journey.find({}, {"_id": 0}):
+        pid = doc.get("partner_id")
+        if pid:
+            journey_data[pid] = doc
+
+    # Fetch percorso veloce data
+    pv_data = {}
+    async for doc in db.percorso_veloce.find({}, {"_id": 0}):
+        pid = doc.get("partner_id")
+        if pid:
+            pv_data[pid] = doc
+
+    now = datetime.now(timezone.utc)
+    results = []
+
+    for p in partners:
+        pid = str(p.get("id", ""))
+        phase = p.get("phase", "F1")
+        modules = p.get("modules", [0] * 10)
+        name = p.get("name", "")
+        niche = p.get("niche", "")
+
+        # Compute days in step
+        journey = journey_data.get(pid, {})
+        last_phase_change = journey.get("last_phase_change") or journey.get("updated_at") or p.get("contract", "")
+
+        days_in_step = 0
+        last_advancement = None
+        if isinstance(last_phase_change, str) and last_phase_change:
+            try:
+                dt = datetime.fromisoformat(last_phase_change.replace("Z", "+00:00"))
+                days_in_step = (now - dt).days
+                last_advancement = last_phase_change
+            except Exception:
+                days_in_step = 0
+
+        # Check if there's a more recent step-specific date
+        for step_key in ["posizionamento", "masterclass", "videocorso", "funnel", "lancio"]:
+            step_data = journey.get(step_key, {})
+            if isinstance(step_data, dict):
+                step_date = step_data.get("completed_at") or step_data.get("approved_at") or step_data.get("updated_at")
+                if step_date:
+                    try:
+                        dt2 = datetime.fromisoformat(step_date.replace("Z", "+00:00"))
+                        if not last_advancement or dt2 > datetime.fromisoformat(last_advancement.replace("Z", "+00:00")):
+                            last_advancement = step_date
+                            days_in_step = (now - dt2).days
+                    except Exception:
+                        pass
+
+        # Determine current block
+        current_block = "Nessun blocco"
+        if phase == "F1":
+            pos = journey.get("posizionamento", {})
+            if not pos or not pos.get("approved"):
+                current_block = "In attesa di approvazione posizionamento"
+        elif phase == "F2":
+            mc = journey.get("masterclass", {})
+            if not mc or not mc.get("approved"):
+                current_block = "Masterclass da completare"
+        elif phase == "F3":
+            vc = journey.get("videocorso", {})
+            if not vc or not vc.get("approved"):
+                current_block = "Videocorso in produzione"
+        elif phase == "F4":
+            fn = journey.get("funnel", {})
+            if not fn or not fn.get("approved"):
+                current_block = "Funnel da costruire"
+        elif phase == "F5":
+            current_block = "Lancio in corso"
+
+        risk = compute_risk(days_in_step, phase)
+        execution_level = compute_execution_level(modules, phase)
+        suggested_action = get_suggested_action(risk, phase, days_in_step, execution_level)
+
+        # Percorso veloce info
+        pv = pv_data.get(pid)
+        percorso_veloce = None
+        if pv and pv.get("status") == "active":
+            percorso_veloce = {
+                "active": True,
+                "current_day": pv.get("current_day", 1),
+            }
+
+        results.append({
+            "id": pid,
+            "name": name,
+            "niche": niche,
+            "phase": phase,
+            "phase_label": PHASE_LABELS.get(phase, phase),
+            "days_in_step": days_in_step,
+            "last_advancement": last_advancement,
+            "current_block": current_block,
+            "execution_level": execution_level,
+            "risk": risk,
+            "suggested_action": suggested_action,
+            "percorso_veloce": percorso_veloce,
+            "alert": p.get("alert", False),
+        })
+
+    # Sort: bloccati first, then rallentati, then in_linea
+    risk_order = {"bloccato": 0, "rallentato": 1, "in_linea": 2}
+    results.sort(key=lambda x: (risk_order.get(x["risk"], 2), -x["days_in_step"]))
+
+    # Summary stats
+    total = len(results)
+    bloccati = sum(1 for r in results if r["risk"] == "bloccato")
+    rallentati = sum(1 for r in results if r["risk"] == "rallentato")
+    in_linea = sum(1 for r in results if r["risk"] == "in_linea")
+
+    return {
+        "success": True,
+        "summary": {
+            "total": total,
+            "bloccati": bloccati,
+            "rallentati": rallentati,
+            "in_linea": in_linea,
+        },
+        "partners": results,
+    }
