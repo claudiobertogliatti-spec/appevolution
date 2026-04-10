@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import {
-  Loader2, Check, Clock, Eye, Palette, ArrowRight,
-  Sparkles, Shield, Settings
+  Loader2, Check, Clock, Eye, ArrowRight,
+  Sparkles, Shield, Settings, Timer, Zap
 } from "lucide-react";
+import { STEP_SLA } from "./stepConfig";
 
 const API = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -13,7 +14,6 @@ const STATUS_CONFIG = {
     bgColor: "#FFF8E1",
     borderColor: "#F2C41840",
     icon: Settings,
-    message: "Il team Evolution PRO sta lavorando a questo step per te.",
   },
   in_revisione: {
     label: "In revisione",
@@ -21,7 +21,6 @@ const STATUS_CONFIG = {
     bgColor: "#EFF6FF",
     borderColor: "#3B82F640",
     icon: Eye,
-    message: "Il team sta rivedendo e perfezionando il contenuto prima della consegna.",
   },
   pronto: {
     label: "Pronto per te",
@@ -29,7 +28,6 @@ const STATUS_CONFIG = {
     bgColor: "#F0FDF4",
     borderColor: "#34C77B40",
     icon: Check,
-    message: "Il contenuto e pronto. Rivedi e approva per proseguire.",
   },
   approvato: {
     label: "Approvato",
@@ -37,7 +35,6 @@ const STATUS_CONFIG = {
     bgColor: "#F0FDF4",
     borderColor: "#34C77B40",
     icon: Check,
-    message: "Step completato con successo.",
   },
 };
 
@@ -61,12 +58,37 @@ function StatusBadge({ status }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   STATO 1 — IN PREPARAZIONE (in_lavorazione / in_revisione)
+   SLA BADGE
    ═══════════════════════════════════════════════════════════════════════════ */
 
-function PreparazioneView({ status, stepTitle, stepIcon: StepIcon, notes }) {
+function SlaBadge({ stepId }) {
+  const slaInfo = STEP_SLA[stepId];
+  if (!slaInfo) return null;
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
+      style={{ background: "#1E212810", color: "#1E2128", border: "1px solid #1E212815" }}
+      data-testid={`sla-badge-${stepId}`}
+    >
+      <Timer className="w-3.5 h-3.5" />
+      Entro {slaInfo.sla}
+    </span>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   STATO 1 — IN PREPARAZIONE (in_lavorazione / in_revisione) + SLA
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function PreparazioneView({ status, stepTitle, stepId, stepIcon: StepIcon, notes }) {
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.in_lavorazione;
   const isRevisione = status === "in_revisione";
+  const slaInfo = STEP_SLA[stepId];
+  const slaTime = slaInfo?.sla || "48h";
+
+  const statusMessage = isRevisione
+    ? `Il team sta rivedendo e perfezionando il contenuto.\nSara pronto entro ${slaTime}.`
+    : `Il team sta lavorando su questo step.\nSara pronto entro ${slaTime}.`;
 
   return (
     <div className="max-w-xl mx-auto text-center py-8" data-testid="dfy-preparazione">
@@ -85,46 +107,60 @@ function PreparazioneView({ status, stepTitle, stepIcon: StepIcon, notes }) {
         </div>
       </div>
 
-      <StatusBadge status={status} />
+      {/* Status + SLA badges */}
+      <div className="flex items-center justify-center gap-2 mb-4">
+        <StatusBadge status={status} />
+        <SlaBadge stepId={stepId} />
+      </div>
 
-      <h2 className="text-xl font-black mt-4 mb-2" style={{ color: "#1E2128" }}>
+      <h2 className="text-xl font-black mb-3" style={{ color: "#1E2128" }}>
         {stepTitle || "Step in preparazione"}
       </h2>
 
-      <p className="text-sm leading-relaxed mb-6" style={{ color: "#5F6572" }}>
-        {cfg.message}
+      {/* Authoritative SLA message */}
+      <p className="text-sm leading-relaxed mb-6 whitespace-pre-line" style={{ color: "#5F6572" }}>
+        {statusMessage}
       </p>
 
-      {/* Done-for-you core message */}
-      <div
-        className="rounded-2xl p-5 mb-6"
-        style={{ background: "#1E2128" }}
-      >
-        <Sparkles className="w-6 h-6 mx-auto mb-3" style={{ color: "#F2C418" }} />
+      {/* Done-for-you core message with SLA */}
+      <div className="rounded-2xl p-5 mb-6" style={{ background: "#1E2128" }}>
+        <div className="flex items-center justify-center gap-2 mb-3">
+          <Shield className="w-5 h-5" style={{ color: "#F2C418" }} />
+          <span className="text-xs font-black uppercase tracking-widest" style={{ color: "#F2C418" }}>
+            Processo garantito
+          </span>
+        </div>
         <p className="text-sm font-bold text-white mb-1">
           Non devi costruire nulla.
         </p>
-        <p className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>
+        <p className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.6)" }}>
           Il sistema e il team Evolution PRO costruiscono tutto per te.
-          Quando sara pronto, ti basta approvare.
+          Quando sara pronto, ti bastera approvare.
         </p>
+
+        {/* SLA detail row */}
+        <div
+          className="mt-4 flex items-center justify-center gap-3 px-4 py-2.5 rounded-xl mx-auto"
+          style={{ background: "rgba(255,255,255,0.08)", maxWidth: 320 }}
+          data-testid="sla-detail"
+        >
+          <Clock className="w-4 h-4 flex-shrink-0" style={{ color: "#F2C418" }} />
+          <span className="text-xs font-bold" style={{ color: "rgba(255,255,255,0.9)" }}>
+            Tempo stimato: {slaTime}
+          </span>
+          <span className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.color }} />
+          <span className="text-xs font-bold" style={{ color: cfg.color }}>
+            {isRevisione ? "In revisione" : "In lavorazione"}
+          </span>
+        </div>
       </div>
 
       {/* Progress indicator */}
       <div className="flex items-center justify-center gap-3">
         <div className="flex gap-1">
-          <div
-            className="w-8 h-1.5 rounded-full"
-            style={{ background: "#F2C418" }}
-          />
-          <div
-            className="w-8 h-1.5 rounded-full"
-            style={{ background: isRevisione ? "#3B82F6" : "#E5E7EB" }}
-          />
-          <div
-            className="w-8 h-1.5 rounded-full"
-            style={{ background: "#E5E7EB" }}
-          />
+          <div className="w-8 h-1.5 rounded-full" style={{ background: "#F2C418" }} />
+          <div className="w-8 h-1.5 rounded-full" style={{ background: isRevisione ? "#3B82F6" : "#E5E7EB" }} />
+          <div className="w-8 h-1.5 rounded-full" style={{ background: "#E5E7EB" }} />
         </div>
         <span className="text-xs font-bold" style={{ color: "#9CA3AF" }}>
           {isRevisione ? "2/3" : "1/3"}
@@ -145,13 +181,12 @@ function PreparazioneView({ status, stepTitle, stepIcon: StepIcon, notes }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   STATO 2 — PRONTO (contenuto + Approva / Personalizza)
+   STATO 2 — PRONTO (contenuto + Approva)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function ProntoView({ stepTitle, children, onApprove, isApproving }) {
   return (
     <div data-testid="dfy-pronto">
-      {/* Banner */}
       <div
         className="rounded-2xl p-4 mb-5 flex items-center gap-3"
         style={{ background: "#F0FDF4", border: "2px solid #BBF7D0" }}
@@ -167,16 +202,14 @@ function ProntoView({ stepTitle, children, onApprove, isApproving }) {
             {stepTitle || "Contenuto"} pronto per te
           </p>
           <p className="text-xs" style={{ color: "#15803D" }}>
-            Il team ha preparato tutto. Rivedi il contenuto e approva.
+            Il team ha completato questo step. Rivedi il contenuto e approva per proseguire.
           </p>
         </div>
         <StatusBadge status="pronto" />
       </div>
 
-      {/* Content slot */}
       {children}
 
-      {/* Action buttons */}
       <div className="flex gap-3 mt-6" data-testid="dfy-pronto-actions">
         <button
           onClick={onApprove}
@@ -185,11 +218,7 @@ function ProntoView({ stepTitle, children, onApprove, isApproving }) {
           className="flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-black text-base transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
           style={{ background: "#34C77B", color: "white", boxShadow: "0 4px 16px #34C77B40" }}
         >
-          {isApproving ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          ) : (
-            <Check className="w-5 h-5" />
-          )}
+          {isApproving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
           {isApproving ? "Approvazione..." : "APPROVA"}
         </button>
       </div>
@@ -215,10 +244,10 @@ function ApprovatoView({ stepTitle, nextStepLabel, onContinue }) {
         <Check className="w-8 h-8 text-white" />
       </div>
       <h2 className="text-xl font-black text-white mb-2">
-        {stepTitle || "Step"} approvato!
+        {stepTitle || "Step"} approvato
       </h2>
       <p className="text-sm text-white/80 mb-6 max-w-md mx-auto">
-        Ottimo! Il team procedera con il prossimo step del tuo percorso.
+        Step completato. Il team procedera immediatamente con il prossimo.
       </p>
       {nextStepLabel && onContinue && (
         <button
@@ -235,7 +264,7 @@ function ApprovatoView({ stepTitle, nextStepLabel, onContinue }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   MAIN WRAPPER — useDoneForYou hook
+   HOOK — useDoneForYou
    ═══════════════════════════════════════════════════════════════════════════ */
 
 export function useDoneForYou(partnerId, stepId) {
@@ -292,7 +321,7 @@ export function useDoneForYou(partnerId, stepId) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   EXPORT WRAPPER COMPONENT
+   MAIN WRAPPER COMPONENT
    ═══════════════════════════════════════════════════════════════════════════ */
 
 export function DoneForYouWrapper({
@@ -303,8 +332,8 @@ export function DoneForYouWrapper({
   nextStepLabel,
   onContinue,
   isAdmin,
-  children,         // Contenuto da mostrare quando "pronto"
-  adminChildren,    // Contenuto admin-only (sempre visibile per admin)
+  children,
+  adminChildren,
 }) {
   const { status, content, notes, isLoading, isApproving, approve } = useDoneForYou(partnerId, stepId);
 
@@ -326,15 +355,12 @@ export function DoneForYouWrapper({
             Vista Admin
           </span>
           <StatusBadge status={status} />
+          <SlaBadge stepId={stepId} />
         </div>
         {adminChildren || children}
         {status === "approvato" && (
           <div className="mt-6">
-            <ApprovatoView
-              stepTitle={stepTitle}
-              nextStepLabel={nextStepLabel}
-              onContinue={onContinue}
-            />
+            <ApprovatoView stepTitle={stepTitle} nextStepLabel={nextStepLabel} onContinue={onContinue} />
           </div>
         )}
       </div>
@@ -347,11 +373,7 @@ export function DoneForYouWrapper({
       <div>
         {children}
         <div className="mt-6">
-          <ApprovatoView
-            stepTitle={stepTitle}
-            nextStepLabel={nextStepLabel}
-            onContinue={onContinue}
-          />
+          <ApprovatoView stepTitle={stepTitle} nextStepLabel={nextStepLabel} onContinue={onContinue} />
         </div>
       </div>
     );
@@ -359,11 +381,7 @@ export function DoneForYouWrapper({
 
   if (status === "pronto") {
     return (
-      <ProntoView
-        stepTitle={stepTitle}
-        onApprove={approve}
-        isApproving={isApproving}
-      >
+      <ProntoView stepTitle={stepTitle} onApprove={approve} isApproving={isApproving}>
         {children}
       </ProntoView>
     );
@@ -374,11 +392,12 @@ export function DoneForYouWrapper({
     <PreparazioneView
       status={status}
       stepTitle={stepTitle}
+      stepId={stepId}
       stepIcon={stepIcon}
       notes={notes}
     />
   );
 }
 
-export { StatusBadge, PreparazioneView, ProntoView, ApprovatoView };
+export { StatusBadge, SlaBadge, PreparazioneView, ProntoView, ApprovatoView };
 export default DoneForYouWrapper;
