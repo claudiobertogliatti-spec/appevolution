@@ -10,43 +10,34 @@ App di gestione aziendale AI-driven. I partner vengono guidati step-by-step (Pos
 
 ## Implementato
 
-### GrowthSystemPage Redesign Conversione (10 Aprile 2026) — DONE
-- **Blocco "Dove sei oggi"**: 3 scenari diagnostici (A/B/C) che guidano il partner
-- **Scelta guidata**: selezione scenario → auto-espansione livello consigliato con badge "PER TE"
-- **Copy migliorato**: ogni livello ha sezioni Problema (rosso), Soluzione (verde), Target (blu)
-- **Blocco Realtà**: sezione scura "Cosa succede se non fai nulla" con 4 punti di urgenza
-- **CTA di conversione**: bottoni con conferma visiva dopo la scelta
-- Badge "CONSIGLIATO" fisso su Growth
+### Dashboard KPI Risultati (10 Aprile 2026) — DONE
+- **Blocco Stato**: "Come sta andando" con 3 stati (In attesa / Da migliorare / Sistema funziona)
+- **KPI Principali**: Visite, Contatti, Vendite, Conversione — numeri grandi + trend badge
+- **Diagnosi Automatica**: poche visite=traffico, pochi contatti=landing, poche vendite=webinar, tutto ok=funziona
+- **Prossima Azione**: singola azione chiara su blocco scuro (pubblica contenuti / migliora landing / lavora sul webinar)
+- **Trend**: andamento generale (migliorando / stabile / peggiorando)
+- **Protocollo Vendite**: checklist settimanale 4 azioni con persistenza MongoDB
 
-### Protocollo Vendite Backend (10 Aprile 2026) — DONE
-- Endpoint `POST /api/partner-journey/ottimizzazione/salva-protocollo` creato
-- Salva checklist settimanale in `partner_ottimizzazione` MongoDB
+### GrowthSystemPage Redesign Conversione (10 Aprile 2026) — DONE
+- Blocco "Dove sei oggi": 3 scenari diagnostici (A/B/C) che guidano il partner
+- Scelta guidata: selezione scenario → auto-espansione livello consigliato con badge "PER TE"
+- Copy migliorato: ogni livello ha sezioni Problema, Soluzione, Target
+- Blocco Realta: sezione scura "Cosa succede se non fai nulla"
+- CTA di conversione con conferma visiva
 
 ### Modello di Vendita nella LancioPage (DONE)
-- **Landing Page**: headline, promessa, problema, benefici, CTA iscrizione, social proof
-- **Webinar**: titolo, promessa, scaletta 6 fasi, CTA vendita, obiezioni comuni con risposte
-- **Offerta**: prezzo pieno/lancio, 3+ bonus con valore percepito, garanzia, urgenza
-- **Email Follow-up**: 6 email complete (replay, valore, caso studio, obiezioni, bonus, urgenza)
-- **Calendario 30gg**: contenuti giornalieri con CTA verso la landing
-- **Contenuti Social**: reel/carousel/post pronti collegati al funnel
-- **Piano Ads Meta**: obiettivo, target, budget, creatività, copy
-- **UI**: 7 tabs + FunnelSteps indicator (Landing → Webinar → Offerta → Follow-up)
+- Landing Page, Webinar, Offerta, Email Follow-up, Calendario 30gg, Contenuti Social, Piano Ads Meta
+- UI: 7 tabs + FunnelSteps indicator
 
 ### Sezione "Accelera la crescita" (DONE)
-- 4 categorie sidebar: Visibilità, Costanza, Monetizzazione, Direzione
-- Pagine semplici: problema → soluzione → beneficio → CTA
+- 4 categorie sidebar: Visibilita, Costanza, Monetizzazione, Direzione
 
 ### Fix precedenti (DONE)
-- React Hooks bug CourseOutputView
-- Editing manuale moduli/lezioni VideocorsoPage (admin + partner)
-- Posizionamento/Masterclass/Videocorso/Funnel AI-driven
-- Fix LLM Integration / emergentintegrations
+- React Hooks bug, Editing manuale VideocorsoPage, Posizionamento/Masterclass/Videocorso/Funnel AI-driven, Fix LLM Integration
 
 ## Endpoint API Chiave
-- `POST /api/partner-journey/lancio/generate-plan` - genera piano vendita completo
-- `POST /api/partner-journey/lancio/approve-plan?partner_id=X`
-- `GET /api/partner-journey/lancio/{partner_id}` - stato + plan_data
-- `GET /api/partner-journey/ottimizzazione/{partner_id}` - KPI + protocollo
+- `POST /api/partner-journey/lancio/generate-plan`
+- `GET /api/partner-journey/ottimizzazione/{partner_id}` - KPI + protocollo + diagnosi
 - `POST /api/partner-journey/ottimizzazione/salva-protocollo` - salva checklist settimanale
 
 ## Backlog
