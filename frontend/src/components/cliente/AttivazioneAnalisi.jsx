@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CheckCircle, ArrowRight, Loader2, CreditCard, LogOut, Target, BarChart3, Shield, BookOpen, Coins, Calendar } from 'lucide-react';
+import { trackPaymentInitiated } from '../../utils/tracking';
 
 const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it")) ? "" : (process.env.REACT_APP_BACKEND_URL || "");
 
@@ -8,6 +9,7 @@ export function AttivazioneAnalisi({ user, onLogout }) {
   const [error, setError] = useState(null);
 
   const handleProceedToPayment = async () => {
+    trackPaymentInitiated(67, user?.id);
     setLoading(true);
     setError(null);
 

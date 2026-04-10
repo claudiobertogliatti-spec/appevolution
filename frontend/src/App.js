@@ -112,6 +112,8 @@ import ServiziExtraAdmin from "./components/admin/ServiziExtraAdmin";
 import FunnelBuilder from "./components/admin/FunnelBuilder";
 import { NotifichePanel } from "./components/admin/NotifichePanel";
 import PropostaPage from "./components/PropostaPage";
+import { TrackingConfigPanel } from "./components/admin/TrackingConfigPanel";
+import { initTracking, trackPageView, trackQuestionarioStarted, trackQuestionarioCompleted, trackPaymentInitiated, trackPaymentCompleted, trackContractSigned } from "./utils/tracking";
 import "./styles/design-system.css";
 
 // Constants and extracted components
@@ -579,6 +581,8 @@ export default function App() {
       setAuthLoading(false);
     };
     checkAuth();
+    // Init KPI tracking (GA4 + Meta Pixel)
+    initTracking();
   }, []);
 
   // Handle login
@@ -1221,6 +1225,7 @@ export default function App() {
             {nav==="operativa"&&<DashboardOperativa onViewPartner={(p)=>{setSelectedPartner(p);setMode("partner");setNav("dashboard");}}/>}
             {nav==="funnel-distribution"&&<FunnelDistribution/>}
             {nav==="notifiche"&&<div className="max-w-lg mx-auto"><NotifichePanel partnerId={selectedPartner?.id||partners[0]?.id||"1"} partnerNome={selectedPartner?.name||partners[0]?.name}/></div>}
+            {nav==="tracking"&&<div className="max-w-lg mx-auto"><TrackingConfigPanel/></div>}
             {nav==="stefania"&&<StefaniaChat partner={selectedPartner||partners[0]} onBack={()=>setNav("oggi")} isAdmin={true}/>}
             {nav==="webhooks"&&<WebhookDashboard/>}
             {nav==="systeme"&&<SystemeIODashboard partnerId={selectedPartner?.id||partners[0]?.id||"1"} partnerName={selectedPartner?.name||partners[0]?.name}/>}
