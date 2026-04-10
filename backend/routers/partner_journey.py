@@ -2062,6 +2062,13 @@ class GeneraReportRequest(BaseModel):
 class CreaCasoStudioRequest(BaseModel):
     partner_id: str
 
+
+class SalvaProtocolloRequest(BaseModel):
+    partner_id: str
+    settimana: str
+    checklist: List[Dict[str, Any]]
+
+
 @router.get("/ottimizzazione/{partner_id}")
 async def get_ottimizzazione(partner_id: str):
     """
@@ -2338,6 +2345,27 @@ async def salva_azioni(request: SalvaAzioniRequest):
     )
     
     return {"success": True, "message": "Azioni salvate"}
+
+
+@router.post("/ottimizzazione/salva-protocollo")
+async def salva_protocollo(request: SalvaProtocolloRequest):
+    """Salva la checklist settimanale del Protocollo Vendite"""
+    await get_partner_or_404(request.partner_id)
+
+    await db.partner_ottimizzazione.update_one(
+        {"partner_id": request.partner_id},
+        {
+            "$set": {
+                "protocollo_settimana": request.settimana,
+                "protocollo_checklist": request.checklist,
+                "protocollo_updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+
+    return {"success": True, "message": "Protocollo salvato"}
+
 
 
 @router.post("/ottimizzazione/crea-caso-studio")
