@@ -28,6 +28,8 @@ Applicazione di gestione aziendale basata su AI per l'ecosistema Evolution PRO. 
   - Email Sequence (5 email con body completo: consegna, problema, errore, soluzione, urgenza)
   - Area Studenti (welcome, moduli, lezioni, bonus, risorse)
 - **Fix LLM Integration** (DONE): Rimosso shim locale, usa emergentintegrations==0.1.1
+- **Fix React Hooks bug in CourseOutputView** (DONE - 10 Apr): useState spostato prima del return condizionale
+- **Editing manuale moduli/lezioni** (DONE - 10 Apr): Aggiungi/Rimuovi modulo e lezione in VideocorsoPage
 
 ### Sessioni precedenti
 - Vista Admin avanzata con pannello operativo (DONE)
@@ -66,6 +68,7 @@ Input → Generazione AI → Output strutturato → Validazione Partner → Appr
 ## Backlog Prioritizzato
 
 ### P0
+- Integrazione "Execution Layer" con Systeme.io (Funnel) - duplicare template e riempire blocchi con blueprint approvato
 - Step 5 (LancioPage) AI-driven: pubblicazione, go-live, checklist lancio
 - Admin Panel: lista utenti wizard con stato avanzamento
 - Trigger email SMTP alla conferma booking
