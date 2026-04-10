@@ -56,6 +56,7 @@ import { Toaster } from "sonner";
 import { ServiziExtra } from "./components/partner/ServiziExtra";
 import { AcceleraCrescitaPage } from "./components/partner/AcceleraCrescitaPage";
 import { GrowthSystemPage } from "./components/partner/GrowthSystemPage";
+import { PercorsoVelocePage } from "./components/partner/PercorsoVelocePage";
 import { VideoEditorAndrea } from "./components/partner/VideoEditorAndrea";
 import { LegalPagesGenerator } from "./components/partner/LegalPagesGenerator";
 import { ContrattoPartnership } from "./components/partner/ContrattoPartnership";
@@ -1157,7 +1158,7 @@ export default function App() {
   const adminNav=adminUser==="antonella"?antonellaNav:coreNav;
   const isToolNav=toolsNav.some(t=>t.id===nav);
 
-  const titles={overview:"Oggi",oggi:"Oggi","cp-benvenuto":"Vista Cliente","cp-questionario":"Vista Cliente","cp-richiesta":"Vista Cliente","cp-conferma":"Vista Cliente","cp-analisi":"Vista Cliente","pipeline-prioritaria":"Priorità Pipeline","partner-bloccati":"Partner Bloccati","guided-system":"Guided System",agenti:"Agent Hub",partner:"Partner Attivi","ex-partner":"Ex Partner","documenti-partner":"Documenti Partner","onboarding-admin":"Documenti Onboarding","youtube-heygen":"Video AI","servizi-admin":"Servizi Extra","calendario-admin":"Calendario Editoriale",andrea:adminUser==="antonella"?"ANDREA — Feed Video":"ANDREA — Surgical Cut",metriche:"Percorsi e Fasi",systeme:"SYSTEME.IO — Live Data",gaia:"Template Funnel",compliance:"Documenti & Compliance",copyfactory:"Copy Factory",warmode:"Campagne Ads",funnelbuilder:"Funnel Builder — Fase 4",alert:"Alert & Escalation",configurazione:"Configurazione",stefania:"STEFANIA — Chat",home:"Il tuo percorso","onboarding-docs":"Documenti Onboarding",corso:"PARTI DA QUI",bonus:"Bonus Strategici",masterclass:"Masterclass Builder",coursebuilder:"Course Builder AI",produzione:"ANDREA — Produzione Video",files:"I Miei File",brandkit:"Brand Kit",calendario:"Calendario Editoriale",documenti:"Documenti & Posizionamento",risorse:"Template & Risorse",renewal:"Piani Post-12 Mesi",supporto:"STEFANIA — Chat","clienti-analisi":"Pipeline","flusso-analisi":"Analisi Strategiche","demo-flusso-cliente":"Demo Flusso Cliente","lista-fredda":"Lead da Riattivare",approvals:"Approvazioni Cliente","mio-spazio":"Il Mio Spazio",posizionamento:"Posizionamento",videocorso:"Videocorso",funnel:"Funnel di Vendita",lancio:"Lancio",ottimizzazione:"Risultati",kpi:"Risultati",lead:"Lead",pagamenti:"Pagamenti"};
+  const titles={overview:"Oggi",oggi:"Oggi","cp-benvenuto":"Vista Cliente","cp-questionario":"Vista Cliente","cp-richiesta":"Vista Cliente","cp-conferma":"Vista Cliente","cp-analisi":"Vista Cliente","pipeline-prioritaria":"Priorità Pipeline","partner-bloccati":"Partner Bloccati","guided-system":"Guided System",agenti:"Agent Hub",partner:"Partner Attivi","ex-partner":"Ex Partner","documenti-partner":"Documenti Partner","onboarding-admin":"Documenti Onboarding","youtube-heygen":"Video AI","servizi-admin":"Servizi Extra","calendario-admin":"Calendario Editoriale",andrea:adminUser==="antonella"?"ANDREA — Feed Video":"ANDREA — Surgical Cut",metriche:"Percorsi e Fasi",systeme:"SYSTEME.IO — Live Data",gaia:"Template Funnel",compliance:"Documenti & Compliance",copyfactory:"Copy Factory",warmode:"Campagne Ads",funnelbuilder:"Funnel Builder — Fase 4",alert:"Alert & Escalation",configurazione:"Configurazione",stefania:"STEFANIA — Chat",home:"Il tuo percorso","onboarding-docs":"Documenti Onboarding",corso:"PARTI DA QUI",bonus:"Bonus Strategici",masterclass:"Masterclass Builder",coursebuilder:"Course Builder AI",produzione:"ANDREA — Produzione Video",files:"I Miei File",brandkit:"Brand Kit",calendario:"Calendario Editoriale",documenti:"Documenti & Posizionamento",risorse:"Template & Risorse",renewal:"Piani Post-12 Mesi",supporto:"STEFANIA — Chat","clienti-analisi":"Pipeline","flusso-analisi":"Analisi Strategiche","demo-flusso-cliente":"Demo Flusso Cliente","lista-fredda":"Lead da Riattivare",approvals:"Approvazioni Cliente","mio-spazio":"Il Mio Spazio",posizionamento:"Posizionamento",videocorso:"Videocorso",funnel:"Funnel di Vendita",lancio:"Lancio",ottimizzazione:"Risultati",kpi:"Risultati",lead:"Lead",pagamenti:"Pagamenti","percorso-veloce":"Percorso Veloce"};
 
   // Loading state
   if (authLoading) {
@@ -1456,6 +1457,7 @@ export default function App() {
         if (nav === 'profilo') return <PartnerProfileHub partner={p} onNavigate={setPartnerDashNav} />;
         if (nav === 'i-miei-file') return <PartnerFilesPage partner={p} />;
         if (nav === 'onboarding-docs') return <OnboardingDocuments partner={p} onComplete={() => setPartnerDashNav('dashboard')} />;
+        if (nav === 'percorso-veloce') return <PercorsoVelocePage partner={p} onNavigate={setPartnerDashNav} />;
         return <PartnerDashboardSimplified partner={p} onNavigate={setPartnerDashNav} />;
       };
 
@@ -1851,6 +1853,9 @@ export default function App() {
             
             {/* CRESCITA CONTINUA */}
             {nav==="growth-system"&&<GrowthSystemPage partner={demoPartner}/>}
+            
+            {/* PERCORSO VELOCE */}
+            {nav==="percorso-veloce"&&<PercorsoVelocePage partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}/>}
             
             {/* ALTRI */}
             {nav==="risorse"&&<PartnerResources/>}
