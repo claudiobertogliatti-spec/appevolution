@@ -7,6 +7,7 @@ import {
   Play, Image, FileText, Zap, Clock, Users,
   Globe, Gift, Shield, AlertTriangle, DollarSign
 } from "lucide-react";
+import { DoneForYouWrapper } from "./DoneForYouWrapper";
 
 const API = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -515,61 +516,19 @@ function CompletedBanner() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   MAIN COMPONENT
+   MAIN COMPONENT — Done-for-You
    ═══════════════════════════════════════════════════════════════════════════ */
-export function LancioPage({ partner, onNavigate, onLaunchComplete, isAdmin }) {
-  const [planData, setPlanData] = useState(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isApproved, setIsApproved] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("landing");
 
-  const partnerId = partner?.id;
-
-  useEffect(() => {
-    const load = async () => {
-      if (!partnerId) { setIsLoading(false); return; }
-      try {
-        const res = await axios.get(`${API}/api/partner-journey/lancio/${partnerId}`);
-        if (res.data.plan_data) setPlanData(res.data.plan_data);
-        if (res.data.plan_approved) setIsApproved(true);
-      } catch (e) { console.error("Error loading lancio:", e); }
-      finally { setIsLoading(false); }
-    };
-    load();
-  }, [partnerId]);
-
-  const handleGenerate = async () => {
-    if (!partnerId) return;
-    setIsGenerating(true); setError(null);
-    try {
-      const res = await axios.post(`${API}/api/partner-journey/lancio/generate-plan`, { partner_id: partnerId });
-      if (res.data.plan_data) { setPlanData(res.data.plan_data); setIsApproved(false); setActiveTab("landing"); }
-    } catch (e) { setError("Errore nella generazione. Riprova."); }
-    finally { setIsGenerating(false); }
-  };
-
-  const handleApprove = async () => {
-    if (!partnerId) return;
-    setIsSaving(true);
-    try {
-      await axios.post(`${API}/api/partner-journey/lancio/approve-plan?partner_id=${partnerId}`);
-      setIsApproved(true);
-      if (onLaunchComplete) onLaunchComplete();
-    } catch (e) { console.error(e); }
-    finally { setIsSaving(false); }
-  };
-
-  if (isLoading) {
-    return <div className="min-h-full flex items-center justify-center" style={{ background: "#FAFAF7" }}>
-      <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F2C418" }} />
-    </div>;
+function LancioContent({ planData, activeTab, setActiveTab }) {
+  if (!planData) {
+    return (
+      <div className="text-center py-6 text-sm" style={{ color: "#9CA3AF" }}>
+        Il team sta preparando il tuo piano di lancio completo.
+      </div>
+    );
   }
 
   const renderTab = () => {
-    if (!planData) return null;
     switch (activeTab) {
       case "landing": return <LandingView data={planData.landing_page} />;
       case "webinar": return <WebinarView data={planData.webinar} />;
@@ -582,121 +541,69 @@ export function LancioPage({ partner, onNavigate, onLaunchComplete, isAdmin }) {
     }
   };
 
-  const TabBar = () => (
-    <div className="flex gap-1 overflow-x-auto pb-1">
-      {TABS.map((tab) => (
-        <button key={tab.id} onClick={() => setActiveTab(tab.id)} data-testid={`lancio-tab-${tab.id}`}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all"
-          style={{ background: activeTab === tab.id ? "#1E2128" : "white", color: activeTab === tab.id ? "#F2C418" : "#5F6572", border: activeTab === tab.id ? "none" : "1px solid #ECEDEF" }}>
-          <tab.icon className="w-3 h-3" /> {tab.label}
-        </button>
-      ))}
+  return (
+    <div className="space-y-4" data-testid="lancio-output">
+      <FunnelSteps activeTab={activeTab} />
+      <div className="flex gap-1 overflow-x-auto pb-1">
+        {TABS.map((tab) => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)} data-testid={`lancio-tab-${tab.id}`}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all"
+            style={{ background: activeTab === tab.id ? "#1E2128" : "white", color: activeTab === tab.id ? "#F2C418" : "#5F6572", border: activeTab === tab.id ? "none" : "1px solid #ECEDEF" }}>
+            <tab.icon className="w-3 h-3" /> {tab.label}
+          </button>
+        ))}
+      </div>
+      {renderTab()}
     </div>
   );
+}
+
+export function LancioPage({ partner, onNavigate, onLaunchComplete, isAdmin }) {
+  const [planData, setPlanData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("landing");
+  const partnerId = partner?.id;
+
+  useEffect(() => {
+    const load = async () => {
+      if (!partnerId) { setIsLoading(false); return; }
+      try {
+        const res = await axios.get(`${API}/api/partner-journey/lancio/${partnerId}`);
+        if (res.data.plan_data) setPlanData(res.data.plan_data);
+      } catch (e) { console.error("Error loading lancio:", e); }
+      finally { setIsLoading(false); }
+    };
+    load();
+  }, [partnerId]);
+
+  if (isLoading) {
+    return <div className="min-h-full flex items-center justify-center" style={{ background: "#FAFAF7" }}>
+      <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F2C418" }} />
+    </div>;
+  }
 
   return (
     <div className="min-h-full" style={{ background: "#FAFAF7" }}>
       <div className="max-w-2xl mx-auto p-6">
-        {/* HERO */}
         <div className="mb-6" data-testid="lancio-hero">
-          <h1 className="text-3xl font-black mb-2" style={{ color: "#1E2128" }}>Attiviamo il tuo lancio</h1>
+          <h1 className="text-3xl font-black mb-2" style={{ color: "#1E2128" }}>Il tuo Lancio</h1>
           <p className="text-base leading-relaxed" style={{ color: "#5F6572" }}>
-            Il sistema genera il tuo piano di vendita completo.
-            <br /><strong>Traffico → Landing → Webinar → Offerta → Follow-up</strong>
+            Il team prepara il piano di vendita completo per te.
+            <br /><strong>Non devi costruire nulla. Rivedi e approva.</strong>
           </p>
         </div>
 
-        {error && (
-          <div className="mb-4 p-3 rounded-xl text-sm" style={{ background: "#FEE2E2", color: "#991B1B", border: "1px solid #FECACA" }}>{error}</div>
-        )}
-
-        {/* ADMIN VIEW */}
-        {isAdmin && planData && (
-          <div className="space-y-4" data-testid="admin-panoramic-lancio">
-            <div className="flex items-center gap-2 mb-2 px-1">
-              <Eye className="w-4 h-4" style={{ color: "#FBBF24" }} />
-              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "#FBBF24" }}>Vista Admin</span>
-            </div>
-            <FunnelSteps activeTab={activeTab} />
-            <TabBar />
-            {renderTab()}
-            {isApproved && <CompletedBanner />}
-          </div>
-        )}
-        {isAdmin && !planData && (
-          <div className="bg-white rounded-xl border p-6 text-center" style={{ borderColor: "#ECEDEF" }}>
-            <p className="text-sm" style={{ color: "#9CA3AF" }}>Piano non ancora generato</p>
-          </div>
-        )}
-
-        {/* PARTNER VIEW */}
-        {!isAdmin && (
-          <>
-            {isApproved && planData ? (
-              <>
-                <CompletedBanner />
-                <div className="mt-5 space-y-4">
-                  <FunnelSteps activeTab={activeTab} />
-                  <TabBar />
-                  {renderTab()}
-                </div>
-              </>
-            ) : planData ? (
-              <div data-testid="lancio-output" className="space-y-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "#34C77B20" }}>
-                    <Check className="w-5 h-5" style={{ color: "#34C77B" }} />
-                  </div>
-                  <h2 className="text-xl font-black" style={{ color: "#1E2128" }}>Il tuo piano di lancio è pronto</h2>
-                </div>
-                <FunnelSteps activeTab={activeTab} />
-                <TabBar />
-                {renderTab()}
-                <div className="flex gap-3 mt-6">
-                  <button onClick={handleApprove} disabled={isSaving} data-testid="approve-lancio-btn"
-                    className="flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-black text-base transition-all hover:scale-105 disabled:opacity-50"
-                    style={{ background: "#34C77B", color: "white" }}>
-                    {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
-                    {isSaving ? "Salvataggio..." : "APPROVA PIANO DI LANCIO"}
-                  </button>
-                  <button onClick={handleGenerate} disabled={isGenerating} data-testid="regenerate-lancio-btn"
-                    className="flex items-center justify-center gap-2 px-5 py-4 rounded-xl font-bold transition-all hover:bg-gray-50"
-                    style={{ background: "white", border: "1px solid #ECEDEF", color: "#5F6572" }}>
-                    <RefreshCw className="w-5 h-5" /> Rigenera
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div data-testid="lancio-input" className="space-y-4">
-                <div className="rounded-2xl p-6" style={{ background: "#1E2128" }}>
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#F2C41830" }}>
-                      <Sparkles className="w-5 h-5" style={{ color: "#F2C418" }} />
-                    </div>
-                    <div>
-                      <h3 className="font-black text-white">Genera il tuo Piano di Lancio</h3>
-                      <p className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>Il sistema crea tutto in automatico</p>
-                    </div>
-                  </div>
-                  {/* Funnel model preview */}
-                  <div className="flex items-center gap-2 mb-4 overflow-x-auto">
-                    {["Landing Page", "Webinar", "Offerta", "Follow-up", "Contenuti", "Ads"].map((step, i) => (
-                      <div key={i} className="flex items-center gap-2 flex-shrink-0">
-                        {i > 0 && <ArrowRight className="w-3 h-3" style={{ color: "#3D4451" }} />}
-                        <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "#F2C41815", color: "#F2C418" }}>{step}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <button onClick={handleGenerate} disabled={isGenerating} data-testid="generate-lancio-btn"
-                    className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-black text-base transition-all hover:scale-105 disabled:opacity-50"
-                    style={{ background: "#F2C418", color: "#1E2128" }}>
-                    {isGenerating ? <><Loader2 className="w-5 h-5 animate-spin" /> Generazione in corso... (circa 60 sec)</> : <><Sparkles className="w-5 h-5" /> GENERA PIANO DI LANCIO</>}
-                  </button>
-                </div>
-              </div>
-            )}
-          </>
-        )}
+        <DoneForYouWrapper
+          partnerId={partnerId}
+          stepId="lancio"
+          stepTitle="Piano di Lancio"
+          stepIcon={Megaphone}
+          nextStepLabel={null}
+          onContinue={onLaunchComplete}
+          isAdmin={isAdmin}
+        >
+          <LancioContent planData={planData} activeTab={activeTab} setActiveTab={setActiveTab} />
+        </DoneForYouWrapper>
       </div>
     </div>
   );

@@ -1807,13 +1807,13 @@ export default function App() {
             {nav==="lancio"&&<StepPageWrapper stepId="lancio" partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}><LancioPage partner={demoPartner} onNavigate={setNav} onLaunchComplete={()=>setNav("dashboard")} isAdmin={isAdminViewing}/></StepPageWrapper>}
             
             {/* CALENDARIO LANCIO */}
-            {nav==="calendario-lancio"&&<CalendarioLancioPage partner={demoPartner} onNavigate={setNav}/>}
+            {nav==="calendario-lancio"&&<CalendarioLancioPage partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}/>}
             
             {/* OTTIMIZZAZIONE (Fase 6 - Post Lancio) */}
             {nav==="ottimizzazione"&&<OttimizzazionePage partner={demoPartner} onNavigate={setNav}/>}
             
             {/* WEBINAR MENSILE */}
-            {nav==="webinar"&&<WebinarPage partner={demoPartner} onNavigate={setNav}/>}
+            {nav==="webinar"&&<WebinarPage partner={demoPartner} onNavigate={setNav} isAdmin={isAdminViewing}/>}
             
             {/* GESTIONE LEAD */}
             {nav==="lead"&&<LeadPage partner={demoPartner}/>}
@@ -1872,7 +1872,7 @@ export default function App() {
             {nav==="renewal"&&<RenewalPlans partnerName={demoPartner?.name||"Partner"} currentRevenue={demoPartner?.revenue||0} onSelectPlan={(plan)=>console.log(plan)}/>}
             {nav==="supporto"&&<StefaniaChat partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
             {nav==="profilo-hub"&&<PartnerProfileHub partner={demoPartner} onNavigate={setNav}/>}
-            {nav==="email-automation"&&<EmailAutomation partner={demoPartner}/>}
+            {nav==="email-automation"&&<EmailAutomation partner={demoPartner} isAdmin={isAdminViewing}/>}
             
             {/* IL MIO ACCOUNT */}
             {nav==="profilo"&&<PartnerProfile partner={demoPartner} onUpdate={loadData}/>}

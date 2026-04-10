@@ -91,6 +91,26 @@ class LancioGenerateRequest(BaseModel):
     partner_id: str
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# DONE-FOR-YOU MODELS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class StepStatusUpdate(BaseModel):
+    partner_id: str
+    step_id: str  # posizionamento, funnel-light, masterclass, videocorso, funnel, lancio, webinar
+    status: str   # in_lavorazione, in_revisione, pronto, approvato
+    content: Optional[Dict[str, Any]] = None
+    notes: Optional[str] = None
+
+class StepApproveRequest(BaseModel):
+    partner_id: str
+    step_id: str
+
+VALID_STEP_IDS = ["posizionamento", "funnel-light", "masterclass", "videocorso", "funnel", "lancio", "webinar", "email"]
+VALID_STATUSES = ["in_lavorazione", "in_revisione", "pronto", "approvato"]
+
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # HELPER FUNCTIONS
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -4562,3 +4582,169 @@ async def get_dashboard_operativa():
         },
         "partners": results,
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DONE-FOR-YOU — STEP STATUS MANAGEMENT
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/step-status/{partner_id}")
+async def get_step_statuses(partner_id: str):
+    """Restituisce lo stato di tutti gli step per un partner"""
+    partner = await get_partner_or_404(partner_id)
+    
+    doc = await db.step_statuses.find_one({"partner_id": str(partner_id)}, {"_id": 0})
+    
+    if not doc:
+        # Inizializza stati default
+        default_steps = {}
+        for sid in VALID_STEP_IDS:
+            default_steps[sid] = {
+                "status": "in_lavorazione",
+                "content": None,
+                "notes": None,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        doc = {
+            "partner_id": str(partner_id),
+            "steps": default_steps,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.step_statuses.insert_one(doc)
+        doc.pop("_id", None)
+    
+    return {"success": True, "data": doc}
+
+
+@router.post("/step-status/update")
+async def update_step_status(req: StepStatusUpdate):
+    """Admin aggiorna lo stato di uno step (in_lavorazione → in_revisione → pronto)"""
+    if req.step_id not in VALID_STEP_IDS:
+        raise HTTPException(status_code=400, detail=f"Step non valido: {req.step_id}")
+    if req.status not in VALID_STATUSES:
+        raise HTTPException(status_code=400, detail=f"Stato non valido: {req.status}")
+    
+    partner = await get_partner_or_404(req.partner_id)
+    
+    update_data = {
+        f"steps.{req.step_id}.status": req.status,
+        f"steps.{req.step_id}.updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if req.content is not None:
+        update_data[f"steps.{req.step_id}.content"] = req.content
+    if req.notes is not None:
+        update_data[f"steps.{req.step_id}.notes"] = req.notes
+    
+    result = await db.step_statuses.update_one(
+        {"partner_id": str(req.partner_id)},
+        {"$set": update_data},
+        upsert=True
+    )
+    
+    # Se lo status è "pronto", possiamo anche aggiornare la fase del partner
+    logging.info(f"[DONE-FOR-YOU] Step '{req.step_id}' → '{req.status}' per partner {req.partner_id}")
+    
+    return {"success": True, "step_id": req.step_id, "status": req.status}
+
+
+@router.post("/step-status/approve")
+async def approve_step(req: StepApproveRequest):
+    """Il partner approva uno step (pronto → approvato)"""
+    if req.step_id not in VALID_STEP_IDS:
+        raise HTTPException(status_code=400, detail=f"Step non valido: {req.step_id}")
+    
+    partner = await get_partner_or_404(req.partner_id)
+    
+    # Verifica che lo step sia in stato "pronto"
+    doc = await db.step_statuses.find_one({"partner_id": str(req.partner_id)}, {"_id": 0})
+    if doc and doc.get("steps", {}).get(req.step_id, {}).get("status") != "pronto":
+        current = doc.get("steps", {}).get(req.step_id, {}).get("status", "sconosciuto")
+        if current == "approvato":
+            return {"success": True, "message": "Step già approvato"}
+        raise HTTPException(status_code=400, detail=f"Lo step non è pronto per l'approvazione (stato attuale: {current})")
+    
+    await db.step_statuses.update_one(
+        {"partner_id": str(req.partner_id)},
+        {"$set": {
+            f"steps.{req.step_id}.status": "approvato",
+            f"steps.{req.step_id}.approved_at": datetime.now(timezone.utc).isoformat(),
+            f"steps.{req.step_id}.updated_at": datetime.now(timezone.utc).isoformat(),
+        }},
+        upsert=True
+    )
+    
+    # Avanza la fase del partner in base allo step approvato
+    step_to_phase = {
+        "posizionamento": "F2",
+        "funnel-light": "F3",
+        "masterclass": "F4",
+        "videocorso": "F5",
+        "funnel": "F6",
+        "lancio": "LIVE",
+    }
+    next_phase = step_to_phase.get(req.step_id)
+    if next_phase:
+        await db.partners.update_one(
+            {"id": partner.get("id")},
+            {"$set": {"phase": next_phase}}
+        )
+        logging.info(f"[DONE-FOR-YOU] Partner {req.partner_id} → fase {next_phase}")
+    
+    logging.info(f"[DONE-FOR-YOU] Step '{req.step_id}' APPROVATO da partner {req.partner_id}")
+    
+    return {"success": True, "step_id": req.step_id, "status": "approvato"}
+
+
+@router.post("/step-status/bulk-update")
+async def bulk_update_step_statuses(partner_id: str, updates: Dict[str, str]):
+    """Admin aggiorna più step in una volta"""
+    partner = await get_partner_or_404(partner_id)
+    
+    update_data = {}
+    for step_id, status in updates.items():
+        if step_id in VALID_STEP_IDS and status in VALID_STATUSES:
+            update_data[f"steps.{step_id}.status"] = status
+            update_data[f"steps.{step_id}.updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    if update_data:
+        await db.step_statuses.update_one(
+            {"partner_id": str(partner_id)},
+            {"$set": update_data},
+            upsert=True
+        )
+    
+    return {"success": True, "updated": len(update_data) // 2}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WEBINAR DONE-FOR-YOU
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/webinar/{partner_id}")
+async def get_webinar_data(partner_id: str):
+    """Restituisce i dati del webinar per il partner"""
+    partner = await get_partner_or_404(partner_id)
+    
+    doc = await db.webinar_data.find_one({"partner_id": str(partner_id)}, {"_id": 0})
+    
+    if not doc:
+        return {"success": True, "webinar": None}
+    
+    return {"success": True, "webinar": doc}
+
+
+@router.post("/webinar/save")
+async def save_webinar_data(partner_id: str, data: Dict[str, Any]):
+    """Admin salva/aggiorna i dati del webinar per un partner"""
+    partner = await get_partner_or_404(partner_id)
+    
+    data["partner_id"] = str(partner_id)
+    data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.webinar_data.update_one(
+        {"partner_id": str(partner_id)},
+        {"$set": data},
+        upsert=True
+    )
+    
+    return {"success": True, "message": "Webinar salvato"}
