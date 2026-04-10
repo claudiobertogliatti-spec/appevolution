@@ -1,11 +1,9 @@
-# Test Credentials
+## Test Credentials
 
-## Admin
+### Admin
 - Email: claudio.bertogliatti@gmail.com
 - Password: Evoluzione74
-- Ruolo: Amministratore
 
-## Partner Demo
+### Partner Demo
 - Email: testf0@evolutionpro.it
-- Partner ID: 2 (Arianna Aceto - usato per test)
-- Ha analisi strategica + scoring (32/40 IDONEO)
+- Partner ID per test: 2 (Arianna Aceto)
