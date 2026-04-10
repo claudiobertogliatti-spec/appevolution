@@ -464,11 +464,12 @@ export function VideocorsoPage({ partner, onNavigate, onComplete, isAdmin }) {
 
 /* Componente riutilizzabile per la visualizzazione del corso generato */
 function CourseOutputView({ courseData, expandedModules, toggleModule, editable, onAddLesson, onRemoveLesson, onAddModule, onRemoveModule }) {
+  const [newModuleTitle, setNewModuleTitle] = useState("");
+  const [showAddModule, setShowAddModule] = useState(false);
+
   if (!courseData) return null;
   const moduli = courseData.moduli || [];
   const totalLessons = moduli.reduce((s, m) => s + (m.lezioni?.length || 0), 0);
-  const [newModuleTitle, setNewModuleTitle] = useState("");
-  const [showAddModule, setShowAddModule] = useState(false);
 
   const handleAddModuleSubmit = () => {
     if (newModuleTitle.trim() && onAddModule) {
