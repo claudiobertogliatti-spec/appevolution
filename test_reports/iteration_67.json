@@ -1,0 +1,65 @@
+{
+  "summary": "Tested Evolution PRO iteration 67: Admin UI for contract params, App.js splitting, and code refactoring. Fixed 3 bugs during testing: 1) React 'Objects are not valid as React child' error when rendering contract object, 2) 'Invalid time value' in calculateContractEnd function, 3) ContractParamsModal not loading due to API response field mismatch. All backend APIs working, frontend loads correctly after App.js split.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_contract_params.py"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "App.js successfully split from 1907 to ~1450 lines - good refactoring",
+    "PartnerDetailModal now properly integrated with ContractParamsModal",
+    "Contract object handling needed fixes in multiple places (App.js line 255, PartnerProfileModal)"
+  ],
+  "updated_files": [
+    "/app/frontend/src/App.js - Fixed contract object rendering, added PartnerDetailModal import and state",
+    "/app/frontend/src/components/admin/PartnerProfileModal.jsx - Fixed calculateContractEnd and contract_start handling",
+    "/app/frontend/src/components/admin/ContractParamsModal.jsx - Fixed API response field mapping (contract_signed vs is_signed)"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": "Admin: claudio.bertogliatti@gmail.com / Evoluzione74",
+  "seed_data_creation": "None - used existing partner_id=2 (Arianna Aceto)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Contract params admin endpoints working. PartnerDetailModal accessible via Partner Attivi -> click partner. ContractParamsModal opens via 'Personalizza Contratto' button. Vista Partner tab working with extracted PartnerSections. Partner 2 (Arianna Aceto) has signed contract so PATCH returns 400.",
+  "bugs_fixed_during_testing": [
+    {
+      "file": "/app/frontend/src/App.js",
+      "line": 255,
+      "issue": "Rendering p.contract directly when it's an object caused 'Objects are not valid as React child' error",
+      "fix": "Added type check: typeof p.contract === 'object' ? (p.contract?.signed_at ? '✓ Firmato' : 'In attesa') : (p.contract || '—')"
+    },
+    {
+      "file": "/app/frontend/src/components/admin/PartnerProfileModal.jsx",
+      "line": 170,
+      "issue": "calculateContractEnd received object instead of date string causing 'Invalid time value'",
+      "fix": "Added handling for contract object: const dateStr = typeof startDate === 'object' ? startDate?.signed_at : startDate"
+    },
+    {
+      "file": "/app/frontend/src/components/admin/ContractParamsModal.jsx",
+      "line": 19,
+      "issue": "Frontend expected d.success and d.is_signed but backend returns d.params and d.contract_signed",
+      "fix": "Changed condition from d.success to d.params and d.is_signed to d.contract_signed"
+    }
+  ],
+  "features_verified": [
+    "GET /api/admin/partners/{partner_id}/contract-params - returns default or custom params",
+    "PATCH /api/admin/partners/{partner_id}/contract-params - correctly rejects for signed contracts",
+    "Admin dashboard loads correctly after App.js splitting",
+    "PartnerDetailModal shows 'Personalizza Contratto' button",
+    "ContractParamsModal opens, shows form fields (corrispettivo, royalty, durata, rate)",
+    "Vista Partner works with extracted PartnerSections",
+    "POST /api/contract/sign works",
+    "GET /api/contract/pdf-download/2 serves PDF correctly"
+  ]
+}

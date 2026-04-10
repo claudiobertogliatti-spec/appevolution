@@ -5,6 +5,9 @@ import { LayoutDashboard, Users, Film, AlertTriangle, PlayCircle, FolderOpen, Fi
 
 import { NotificationBell } from "./components/common/NotificationBell";
 import { AdminSwitcher } from "./components/common/AdminSwitcher";
+import { API, PHASES, PHASE_LABELS, PHASE_ACTIONS, PHASE_TOOLS, RESOURCES } from "./constants/appConstants";
+import { Logo, PhaseProgressBar, KPICard, AgentCard } from "./components/shared/DashboardWidgets";
+import { PartnerFileManager, PartnerChat, PartnerResources, PartnerCurrentPhase } from "./components/partner/PartnerSections";
 import { MetrichePostLancio } from "./components/admin/MetrichePostLancio";
 import { DashboardOperativa } from "./components/admin/DashboardOperativa";
 import { FunnelDistribution } from "./components/admin/FunnelDistribution";
@@ -15,6 +18,7 @@ import { StefaniaWarMode } from "./components/admin/StefaniaWarMode";
 import { SystemeIODashboard } from "./components/admin/SystemeIODashboard";
 import { PartnerDocumentsView } from "./components/admin/PartnerDocumentsView";
 import { PartnerProfileModal } from "./components/admin/PartnerProfileModal";
+import { PartnerDetailModal } from "./components/admin/PartnerDetailModal";
 import { CalendarioEditoriale } from "./components/partner/CalendarioEditoriale";
 import { WizardPosizionamento } from "./components/partner/WizardPosizionamento";
 import { MasterclassBuilder } from "./components/partner/MasterclassBuilder";
@@ -110,155 +114,11 @@ import { NotifichePanel } from "./components/admin/NotifichePanel";
 import PropostaPage from "./components/PropostaPage";
 import "./styles/design-system.css";
 
-// Use relative URL in production (same domain), absolute URL in development
-const getApiUrl = () => {
-  const backendUrl = process.env.REACT_APP_BACKEND_URL;
-  if (typeof window !== 'undefined' && window.location.hostname.includes('evolution-pro.it')) {
-    return '';
-  }
-  return backendUrl || '';
-};
-const API = getApiUrl();
+// Constants and extracted components
+// API, PHASES, PHASE_LABELS, etc. imported from appConstants.js
+// Logo, PhaseProgressBar, etc. imported from DashboardWidgets.jsx
+// PartnerFileManager, PartnerChat, etc. imported from PartnerSections.jsx
 
-const PHASE_LABELS = {
-  F0:"Pre-Onboarding",F1:"Attivazione",F2:"Posizionamento",F3:"Masterclass",
-  F4:"Struttura Corso",F5:"Produzione",F6:"Accademia",F7:"Pre-Lancio",
-  F8:"Lancio",F9:"Ottimizzazione",F10:"Scalabilità",F11:"La mia Accademia",F12:"I miei Studenti",F13:"Impegni Settimana"
-};
-const PHASES = ["F0","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","F13"];
-
-const PHASE_ACTIONS = {
-  F0:{title:"Firma il contratto",desc:"Il tuo percorso inizia qui. Firma il contratto e carica i documenti richiesti.",cta:"Carica Documenti",nav:"documenti",tutor:"STEFANIA",color:"#6b7280"},
-  F1:{title:"Completa il Posizionamento",desc:"Definisci chi sei, chi aiuti e cosa prometti. STEFANIA ti guida step-by-step.",cta:"Apri Wizard Posizionamento",nav:"documenti",tutor:"STEFANIA",color:"#7c3aed"},
-  F2:{title:"Attiva il tuo primo funnel",desc:"Landing + Form + Thank You — tutto compilato in automatico dal posizionamento.",cta:"Genera Funnel Light",nav:"funnel-light",tutor:"STEFANIA",color:"#3B82F6"},
-  F3:{title:"Scrivi la tua Masterclass",desc:"6 blocchi strategici. STEFANIA ti aiuta con ogni paragrafo.",cta:"Apri Masterclass Builder",nav:"masterclass",tutor:"STEFANIA",color:"#db2777"},
-  F4:{title:"Rivedi la struttura del corso",desc:"Controlla i moduli prima di iniziare a registrare.",cta:"Vedi Struttura Corso",nav:"corso",tutor:"STEFANIA",color:"#db2777"},
-  F5:{title:"Registra i video del corso",desc:"ANDREA ti guida. Completa il pre-flight checklist e carica ogni clip.",cta:"Inizia Produzione Video",nav:"produzione",tutor:"ANDREA",color:"#0369a1"},
-  F6:{title:"Configura la tua Academy",desc:"Carica i video, configura il Brand Kit e imposta Systeme.io.",cta:"Configura Academy",nav:"brandkit",tutor:"ANDREA",color:"#0369a1"},
-  F7:{title:"Prepara il lancio",desc:"STEFANIA crea email, post social e calendario dei 30 giorni.",cta:"Apri Calendario Editoriale",nav:"calendario",tutor:"STEFANIA",color:"#db2777"},
-  F8:{title:"Lancio attivo 🚀",desc:"Stai lanciando! Monitora le conversioni e chiedi supporto a STEFANIA.",cta:"Supporto Live",nav:"supporto",tutor:"STEFANIA",color:"#16a34a"},
-  F9:{title:"Ottimizza le performance",desc:"Analizza i dati e ottimizza il funnel con STEFANIA.",cta:"Analizza Metriche",nav:"calendario",tutor:"STEFANIA",color:"#f59e0b"},
-  F10:{title:"La mia Accademia",desc:"Gestisci la tua accademia: studenti, metriche e contenuti.",cta:"Apri Accademia",nav:"accademia",tutor:"STEFANIA",color:"#F5C518"},
-  F11:{title:"I miei Studenti",desc:"Monitora i progressi dei tuoi studenti e le conversioni.",cta:"Vedi Studenti",nav:"studenti",tutor:"MARCO",color:"#10B981"},
-  F12:{title:"Impegni Settimana",desc:"Pianifica le tue attività settimanali e mantieni il ritmo.",cta:"Vedi Impegni",nav:"impegni",tutor:"MARCO",color:"#3B82F6"},
-  F13:{title:"Report Mensile",desc:"Analizza le performance del mese e pianifica il prossimo.",cta:"Vedi Report",nav:"report",tutor:"STEFANIA",color:"#8B5CF6"},
-};
-
-const PHASE_TOOLS = {
-  F0:[{icon:"📋",label:"Documenti",nav:"documenti",desc:"Carica contratto"},{icon:"💬",label:"STEFANIA",nav:"supporto",desc:"Assistente 24/7"}],
-  F1:[{icon:"🎯",label:"Posizionamento",nav:"documenti",desc:"Wizard guidato"},{icon:"💬",label:"STEFANIA",nav:"supporto",desc:"Assistente 24/7"}],
-  F2:[{icon:"🚀",label:"Funnel Light",nav:"funnel-light",desc:"Landing + Form + Thank You"},{icon:"💬",label:"STEFANIA",nav:"supporto",desc:"Assistente 24/7"}],
-  F3:[{icon:"✍️",label:"Masterclass",nav:"masterclass",desc:"6 blocchi strategici"},{icon:"✨",label:"Course Builder",nav:"coursebuilder",desc:"Struttura corso"}],
-  F4:[{icon:"▶",label:"Videocorso",nav:"corso",desc:"Studia i moduli"},{icon:"✍️",label:"Masterclass",nav:"masterclass",desc:"Rifinisci lo script"}],
-  F5:[{icon:"🎬",label:"Produzione Video",nav:"produzione",desc:"Pre-flight + upload"},{icon:"📁",label:"I Miei File",nav:"files",desc:"Gestione materiali"}],
-  F6:[{icon:"🎨",label:"Brand Kit",nav:"brandkit",desc:"Configura identità"},{icon:"📁",label:"I Miei File",nav:"files",desc:"Video e documenti"}],
-  F7:[{icon:"📅",label:"Calendario",nav:"calendario",desc:"30 giorni editoriale"},{icon:"📋",label:"Template",nav:"risorse",desc:"Scarica risorse"}],
-  F8:[{icon:"📅",label:"Calendario",nav:"calendario",desc:"Post programmati"},{icon:"💬",label:"STEFANIA",nav:"supporto",desc:"Supporto live"}],
-  F9:[{icon:"📅",label:"Calendario",nav:"calendario",desc:"Ottimizza contenuti"},{icon:"🎬",label:"Produzione",nav:"produzione",desc:"Nuovi video"}],
-  F10:[{icon:"🎓",label:"Accademia",nav:"accademia",desc:"Gestisci academy"},{icon:"💬",label:"STEFANIA",nav:"supporto",desc:"Strategia avanzata"}],
-  F11:[{icon:"👥",label:"Studenti",nav:"studenti",desc:"Lista studenti"},{icon:"📊",label:"Metriche",nav:"accademia",desc:"Performance"}],
-  F12:[{icon:"📋",label:"Impegni",nav:"impegni",desc:"Task settimana"},{icon:"💬",label:"MARCO",nav:"supporto",desc:"Accountability"}],
-  F13:[{icon:"📈",label:"Report",nav:"report",desc:"Analisi mensile"},{icon:"💬",label:"STEFANIA",nav:"supporto",desc:"Consulenza"}],
-};
-
-const RESOURCES = [
-  {name:"Scheda Posizionamento Videocorso",type:"DOCX",size:"24 KB"},
-  {name:"Template Analisi Strategica",type:"DOCX",size:"18 KB"},
-  {name:"Template Masterclass",type:"DOCX",size:"15 KB"},
-  {name:"Proforma Partnership",type:"PDF",size:"210 KB"},
-  {name:"Documento di Supporto",type:"PDF",size:"180 KB"},
-  {name:"Contratto Partnership",type:"PDF",size:"320 KB"},
-];
-
-// ─── LOGO ─────────────────────────────────────────────────────────────────────
-function Logo() {
-  return (
-    <div className="flex items-center gap-3">
-      <div className="w-9 h-9 rounded-lg flex items-center justify-center font-black text-lg" style={{ background: '#F2C418', color: '#2D3239' }}>E</div>
-      <div>
-        <div className="text-sm font-extrabold text-white leading-none"><span style={{ color: '#F2C418' }}>volution</span>Pro</div>
-        <div className="text-[9px] text-[#9CA3AF] uppercase tracking-[2px] font-bold mt-0.5">OS Platform</div>
-      </div>
-    </div>
-  );
-}
-
-// ─── PHASE PROGRESS BAR ───────────────────────────────────────────────────────
-function PhaseProgressBar({ currentPhase }) {
-  const idx = PHASES.indexOf(currentPhase);
-  const pct = Math.round((idx / (PHASES.length - 1)) * 100);
-  return (
-    <div className="rounded-xl p-4 mb-5" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Il tuo percorso</span>
-          <div className="text-base font-extrabold mt-0.5">
-            <span style={{ color: '#F2C418' }}>{currentPhase}</span>
-            <span className="font-semibold text-sm ml-2" style={{ color: '#5F6572' }}>— {PHASE_LABELS[currentPhase]}</span>
-          </div>
-        </div>
-        <div className="text-right">
-          <div className="font-mono text-2xl font-bold" style={{ color: '#F2C418' }}>{pct}%</div>
-          <div className="text-[10px] font-semibold" style={{ color: '#9CA3AF' }}>completato</div>
-        </div>
-      </div>
-      <div className="relative mt-2">
-        <div className="absolute top-3 left-0 right-0 h-0.5 rounded" style={{ background: '#ECEDEF' }} />
-        <div className="absolute top-3 left-0 h-0.5 rounded transition-all duration-700" style={{ width: `${pct}%`, background: '#F2C418' }} />
-        <div className="relative flex justify-between">
-          {PHASES.map((p,i)=>(
-            <div key={p} className="flex flex-col items-center">
-              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-[9px] font-bold transition-all`}
-                   style={{ 
-                     background: i < idx ? '#F2C418' : 'white',
-                     borderColor: i <= idx ? '#F2C418' : '#ECEDEF',
-                     color: i < idx ? '#1E2128' : i === idx ? '#F2C418' : '#9CA3AF',
-                     boxShadow: i === idx ? '0 0 10px rgba(242,196,24,0.35)' : 'none'
-                   }}>
-                {i<idx?<Check className="w-3 h-3"/>:p.replace("F","")}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── KPI CARD ──────────────────────────────────────────────────────────────────
-function KPICard({ label, value, delta, deltaType, icon: Icon, accent }) {
-  return (
-    <div className="rounded-xl p-5 relative overflow-hidden" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
-      {accent && <div className="absolute top-0 left-0 right-0 h-1 rounded-t-xl" style={{background:accent}} />}
-      <div className="flex items-start justify-between mb-3">
-        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#9CA3AF' }}>{label}</span>
-        {Icon && <Icon className="w-4 h-4" style={{ color: '#D1D5DB' }} />}
-      </div>
-      <div className="font-mono text-3xl font-bold mb-1" style={{ color: '#1E2128' }}>{value}</div>
-      {delta && <div className={`text-xs font-bold ${deltaType==="up"?"text-[#10B981]":deltaType==="warn"?"text-[#F59E0B]":"text-[#EF4444]"}`}>{delta}</div>}
-    </div>
-  );
-}
-
-// ─── AGENT CARD ────────────────────────────────────────────────────────────────
-function AgentCard({ agent }) {
-  const pct = agent.budget;
-  const color = pct>70?"#EF4444":pct>40?"#F59E0B":"#10B981";
-  const sc = {ACTIVE:"#10B981",IDLE:"#9CA3AF",ALERT:"#EF4444"};
-  return (
-    <div className="rounded-xl p-4 relative overflow-hidden" style={{ background: 'white', border: `1px solid ${agent.status==="ALERT"?"#FDECEF":"#ECEDEF"}` }}>
-      <div className="absolute top-0 left-0 right-0 h-1 rounded-t-xl" style={{background:sc[agent.status]||"#9CA3AF"}} />
-      <div className="flex items-center justify-between mb-2">
-        <span className="font-mono text-xs font-bold" style={{ color: '#9CA3AF' }}>{agent.id}</span>
-        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{background:`${sc[agent.status]||"#9CA3AF"}15`,color:sc[agent.status]||"#9CA3AF"}}>{agent.status}</span>
-      </div>
-      <div className="text-sm font-bold mb-0.5" style={{ color: '#1E2128' }}>{agent.role}</div>
-      <div className="text-[10px] font-semibold mb-3" style={{ color: '#9CA3AF' }}>{agent.category}</div>
-      <div className="flex justify-between text-[10px] font-bold mb-1" style={{ color: '#9CA3AF' }}><span>Budget</span><span className="font-mono" style={{color}}>${agent.budget}/$100</span></div>
-      <div className="h-1 rounded-full overflow-hidden" style={{ background: '#ECEDEF' }}><div className="h-full rounded-full transition-all" style={{width:`${pct}%`,background:color}} /></div>
-    </div>
-  );
-}
 
 // ─── ADMIN OVERVIEW ────────────────────────────────────────────────────────────
 function AdminOverview({ stats, agents, partners, alerts, onNavigate }) {
@@ -393,7 +253,7 @@ function AdminPartners({ partners, onSelect, onViewAsPartner, onDeletePartner })
               <div><span className="font-mono text-xs font-bold px-2 py-1 rounded" style={{ background: '#FFF3C4', color: '#C4990A' }}>{p.phase}</span></div>
               <div className="font-mono text-sm" style={{ color: '#5F6572' }}>{p.revenue>0?`€${p.revenue.toLocaleString()}`:"—"}</div>
               <div>{getPianoBadge(p)}</div>
-              <div className="text-sm" style={{ color: '#9CA3AF' }}>{p.contract}</div>
+              <div className="text-sm" style={{ color: '#9CA3AF' }}>{typeof p.contract === 'object' ? (p.contract?.signed_at ? '✓ Firmato' : 'In attesa') : (p.contract || '—')}</div>
               <div>{p.alert?<span className="text-xs font-bold text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3"/>Alert</span>:<span className="text-xs font-bold text-green-500 flex items-center gap-1"><Check className="w-3 h-3"/>OK</span>}</div>
               <div className="flex items-center gap-2">
                 <button
@@ -648,323 +508,6 @@ function AndreaPipeline({ partners }) {
   );
 }
 
-// ─── PARTNER FILE MANAGER ──────────────────────────────────────────────────────
-function PartnerFileManager({ partner }) {
-  const [files,setFiles]=useState({video:[],document:[],image:[],audio:[],onboarding:[]});
-  const [uploading,setUploading]=useState(false);
-  const [totalFiles, setTotalFiles] = useState(0);
-  
-  useEffect(()=>{
-    (async()=>{
-      try{
-        const r=await axios.get(`${API}/api/files/partner/${partner.id}`);
-        if(r.data.files) {
-          setFiles(r.data.files);
-          setTotalFiles(r.data.total || 0);
-        }
-      }catch(e){console.error('Error loading files:', e);}
-    })();
-  },[partner]);
-  
-  const handleUpload=async(e,cat)=>{
-    const file=e.target.files[0];
-    if(!file)return;
-    setUploading(true);
-    try{
-      const fd=new FormData();
-      fd.append("file",file);
-      fd.append("partner_id",partner.id);
-      fd.append("category",cat);
-      await axios.post(`${API}/api/files/upload`,fd);
-      const r=await axios.get(`${API}/api/files/partner/${partner.id}`);
-      if(r.data.files) {
-        setFiles(r.data.files);
-        setTotalFiles(r.data.total || 0);
-      }
-    }catch(e){console.error('Upload error:', e);}finally{setUploading(false);}
-  };
-  
-  // Flatten files for display
-  const allFiles = [...(files.video||[]), ...(files.document||[]), ...(files.image||[]), ...(files.audio||[])];
-  const onboardingDocs = files.onboarding || [];
-  
-  return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-4">
-        {[{label:"Carica Video",accept:"video/*",cat:"video",color:"yellow",Icon:FileVideo},{label:"Carica Documenti",accept:".pdf,.docx,.doc,.xlsx",cat:"document",color:"blue",Icon:FileText}].map(({label,accept,cat,color,Icon})=>(
-          <div key={cat} className="bg-white border border-[#ECEDEF] rounded-xl p-5">
-            <div className="flex items-center gap-2 mb-3"><Icon className={`w-4 h-4 text-${color}-400`}/><h3 className="font-bold text-sm">{label}</h3></div>
-            <div onClick={()=>document.getElementById(`${cat}-up`).click()} className="border-2 border-dashed border-[#ECEDEF] rounded-xl p-6 text-center hover:border-[#F2C418] cursor-pointer transition-colors">
-              <input id={`${cat}-up`} type="file" accept={accept} onChange={e=>handleUpload(e,cat)} className="hidden"/>
-              <Upload className="w-7 h-7 text-[#9CA3AF] mx-auto mb-2"/><div className="text-xs font-semibold text-[#9CA3AF]">Max {cat==="video"?"500":"50"}MB</div>
-            </div>
-          </div>
-        ))}
-      </div>
-      
-      {uploading&&<div className="bg-[#F5C518]/8 border border-[#F5C518]/20 rounded-xl p-3 flex items-center gap-2 text-sm"><Loader2 className="w-4 h-4 text-[#F5C518] animate-spin"/>Caricamento...</div>}
-      
-      {/* Onboarding Documents Section */}
-      {onboardingDocs.length>0&&(
-        <div className="bg-white border border-[#ECEDEF] rounded-xl overflow-hidden">
-          <div className="px-5 py-3 border-b border-[#ECEDEF] font-bold text-sm flex items-center gap-2">
-            <Shield className="w-4 h-4 text-green-500"/>Documenti Onboarding ({onboardingDocs.length})
-          </div>
-          {onboardingDocs.map(f=>(
-            <div key={f.file_id} className="px-5 py-3 flex items-center gap-3 border-t border-[#ECEDEF] hover:bg-[#FAFAF7] transition-colors">
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-green-500/20">
-                <FileCheck className="w-4 h-4 text-green-500"/>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold text-sm truncate">{f.document_type?.replace(/_/g, ' ').toUpperCase()}</div>
-                <div className="text-xs text-[#9CA3AF]">{f.original_name} • {f.size_readable}</div>
-              </div>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${f.status==="verified"?"bg-green-500/20 text-green-500":f.status==="rejected"?"bg-red-500/20 text-red-500":"bg-yellow-500/20 text-yellow-500"}`}>
-                {f.status?.toUpperCase()}
-              </span>
-              {f.internal_url&&<button onClick={()=>window.open(`${API}${f.internal_url.replace('/api','')}`, "_blank")} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FAFAF7] border border-[#ECEDEF] flex items-center gap-1 hover:border-[#F2C418] transition-colors"><Download className="w-3 h-3"/>Visualizza</button>}
-            </div>
-          ))}
-        </div>
-      )}
-      
-      {/* Regular Files Section */}
-      {allFiles.length>0&&(
-        <div className="bg-white border border-[#ECEDEF] rounded-xl overflow-hidden">
-          <div className="px-5 py-3 border-b border-[#ECEDEF] font-bold text-sm">I Tuoi File ({allFiles.length})</div>
-          {allFiles.map(f=>(
-            <div key={f.file_id || f.filename} className="px-5 py-3 flex items-center gap-3 border-t border-[#ECEDEF] hover:bg-[#FAFAF7] transition-colors">
-              <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${f.category==="video"?"bg-yellow-500/20":"bg-blue-500/20"}`}>
-                {f.category==="video"?<FileVideo className="w-4 h-4 text-yellow-400"/>:<FileText className="w-4 h-4 text-blue-400"/>}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold text-sm truncate">{f.original_name || f.filename}</div>
-                <div className="text-xs text-[#9CA3AF]">{f.size_readable}</div>
-              </div>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${f.status==="verified"||f.status==="approved"?"bg-green-500/20 text-green-400":"bg-yellow-500/20 text-yellow-400"}`}>
-                {f.status?.toUpperCase()}
-              </span>
-              <button onClick={()=>window.open(`${API}${f.internal_url?.replace('/api','')}`, "_blank")} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FAFAF7] border border-[#ECEDEF] flex items-center gap-1 hover:border-[#F2C418] transition-colors"><Download className="w-3 h-3"/>Scarica</button>
-            </div>
-          ))}
-        </div>
-      )}
-      
-      {/* Empty State */}
-      {totalFiles===0&&(
-        <div className="bg-white border border-[#ECEDEF] rounded-xl p-8 text-center">
-          <FolderOpen className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3"/>
-          <h3 className="font-bold text-[#1E2128] mb-1">Nessun file caricato</h3>
-          <p className="text-sm text-[#9CA3AF]">Carica video o documenti usando i pulsanti sopra</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── PARTNER COURSE ────────────────────────────────────────────────────────────
-function PartnerCourse({ partner, modules }) {
-  const [activeModule,setActiveModule]=useState(null);const [activeLesson,setActiveLesson]=useState(0);const [playing,setPlaying]=useState(false);
-  const [welcomeVideoPlaying, setWelcomeVideoPlaying] = useState(false);
-  const phaseIdx=PHASES.indexOf(partner.phase);const done=(partner.modules||[]).filter(Boolean).length;
-  const cm=activeModule!==null?modules[activeModule]:null;const cl=cm?.lessons[activeLesson];
-  
-  // Team Evolution Data - 6 Core Agents
-  const TEAM_AGENTS = [
-    { id: "stefania", name: "Stefania", role: "Coordinatrice", emoji: "💬", color: "#EC4899", desc: "Coordinamento team e smistamento richieste" },
-    { id: "valentina", name: "Valentina", role: "Strategia e Onboarding", emoji: "🎯", color: "#10B981", desc: "Strategia partner e percorso di onboarding" },
-    { id: "andrea", name: "Andrea", role: "Produzione Contenuti", emoji: "🎬", color: "#8B5CF6", desc: "Editing video, produzione e contenuti del corso" },
-    { id: "marco", name: "Marco", role: "Accountability Settimanale", emoji: "📋", color: "#F59E0B", desc: "Check-in settimanali e monitoraggio obiettivi" },
-    { id: "gaia", name: "Gaia", role: "Supporto Tecnico", emoji: "🔧", color: "#0EA5E9", desc: "Assistenza tecnica e configurazione strumenti" },
-    { id: "main", name: "Main", role: "Sistema Centrale", emoji: "🎛️", color: "#6B7280", desc: "Coordinamento generale del sistema" },
-  ];
-
-  return (
-    <div className="space-y-6">
-      {/* Welcome Video Section - Compact & Centered */}
-      <div className="flex justify-center">
-        <div className="w-full max-w-2xl">
-          <div className="text-center mb-4">
-            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold mb-2" 
-                  style={{ background: '#F2C41820', color: '#C4990A' }}>
-              <PlayCircle className="w-3 h-3" /> START
-            </span>
-            <h2 className="text-xl font-bold" style={{ color: '#1E2128' }}>Benvenuto nel Percorso Evolution PRO</h2>
-            <p className="text-sm" style={{ color: '#9CA3AF' }}>Guarda questo video prima di iniziare</p>
-          </div>
-          
-          <div className="rounded-2xl overflow-hidden shadow-xl" style={{ border: '1px solid #ECEDEF' }}>
-            <div className="relative" style={{ aspectRatio: '16/9', background: 'linear-gradient(135deg, #1E2128 0%, #2D3038 100%)' }}>
-              {!welcomeVideoPlaying ? (
-                <div 
-                  className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer group"
-                  onClick={() => setWelcomeVideoPlaying(true)}
-                >
-                  <video 
-                    className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-70 transition-opacity"
-                    muted
-                    playsInline
-                  >
-                    <source src="https://customer-assets.emergentagent.com/job_workflow-sync-6/artifacts/g7nm3aau_Benvenuto_nel_Percorso_Evolution_PRO.mp4" type="video/mp4" />
-                  </video>
-                  <div className="relative z-10 text-center">
-                    <div className="w-16 h-16 bg-[#F5C518] rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform shadow-lg">
-                      <PlayCircle className="w-8 h-8 text-black" />
-                    </div>
-                    <div className="font-bold text-white text-lg mb-1">Guarda il Video</div>
-                    <div className="text-xs text-white/70">Claudio ti spiega come funziona il percorso</div>
-                  </div>
-                </div>
-              ) : (
-                <video 
-                  className="w-full h-full object-cover"
-                  controls
-                  autoPlay
-                  playsInline
-                >
-                  <source src="https://customer-assets.emergentagent.com/job_workflow-sync-6/artifacts/g7nm3aau_Benvenuto_nel_Percorso_Evolution_PRO.mp4" type="video/mp4" />
-                </video>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Team Evolution Section - Integrated */}
-      <div className="bg-white rounded-2xl border border-[#ECEDEF] overflow-hidden">
-        <div className="p-5 border-b border-[#ECEDEF]" style={{ background: '#FAFAF7' }}>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#1E2128' }}>
-              <Users className="w-5 h-5" style={{ color: '#F5C518' }} />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold" style={{ color: '#1E2128' }}>Il Tuo Team Evolution</h2>
-              <p className="text-xs" style={{ color: '#9CA3AF' }}>5 agenti AI + supervisione di Claudio (CEO) e Antonella (Social & Comunicazione)</p>
-            </div>
-          </div>
-        </div>
-        <div className="p-5">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {TEAM_AGENTS.map(agent => (
-              <div 
-                key={agent.id}
-                className="p-4 rounded-xl text-center transition-all hover:shadow-md"
-                style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}
-              >
-                <div 
-                  className="w-12 h-12 rounded-xl mx-auto mb-2 flex items-center justify-center text-xl"
-                  style={{ background: `${agent.color}15` }}
-                >
-                  {agent.emoji}
-                </div>
-                <div className="font-bold text-sm" style={{ color: '#1E2128' }}>{agent.name}</div>
-                <div className="text-[10px] font-medium mb-1" style={{ color: agent.color }}>{agent.role}</div>
-                <div className="text-[10px]" style={{ color: '#9CA3AF' }}>{agent.desc}</div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 p-4 rounded-xl text-center" style={{ background: '#FFF8DC', border: '1px solid #F2C41830' }}>
-            <div className="text-sm" style={{ color: '#92700C' }}>
-              💡 <strong>Stefania</strong> coordina tutto il team. Parla con lei per qualsiasi domanda!
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Course Progress - Simplified */}
-      <div className="bg-white border border-[#ECEDEF] rounded-xl p-5">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-extrabold">Il Tuo Percorso</h2>
-          <span className="text-xs font-bold text-[#9CA3AF]">{done}/{(modules||[]).length} moduli completati</span>
-        </div>
-        <div className="h-2 bg-[#FAFAF7] rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-[#F5C518] to-[#FADA5E] rounded-full transition-all" style={{width:`${(done/Math.max((modules||[]).length,1))*100}%`}}/>
-        </div>
-        <div className="mt-4 grid grid-cols-5 gap-2">
-          {(modules||[]).slice(0,5).map((m,mi)=>{
-            const unlocked=mi<=phaseIdx+1;
-            const isDone=(partner.modules||[])[mi];
-            return(
-              <div key={m.num} className={`p-3 rounded-lg text-center ${isDone?"bg-green-50 border-green-200":unlocked?"bg-[#FFF8DC] border-[#F2C418]":"bg-gray-50 border-gray-200"} border`}>
-                <div className={`text-lg font-black ${isDone?"text-green-500":unlocked?"text-[#C4990A]":"text-gray-400"}`}>
-                  {isDone?"✓":`M${m.num}`}
-                </div>
-                <div className="text-[10px] font-medium truncate" style={{ color: isDone?"#22C55E":unlocked?"#1E2128":"#9CA3AF" }}>
-                  {m.title.split(" ").slice(0,2).join(" ")}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── PARTNER CHAT ──────────────────────────────────────────────────────────────
-function PartnerChat({ partner }) {
-  const [messages,setMessages]=useState([]);const [input,setInput]=useState("");const [loading,setLoading]=useState(false);const [sessionId]=useState(()=>`chat-${partner.id}-${Date.now()}`);const bottomRef=useRef(null);
-  const qr=["Cosa devo fare adesso?","Come funziona il prossimo step?","Ho un problema tecnico","Quando lanceremo?"];
-  useEffect(()=>{setMessages([{role:"assistant",content:`Ciao ${partner.name.split(" ")[0]}! Sono STEFANIA, la Coordinatrice del team. Sei in **${partner.phase} — ${PHASE_LABELS[partner.phase]}**. Come posso aiutarti?`,time:new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}]);},[partner]);
-  useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:"smooth"});},[messages,loading]);
-  const send=async(text)=>{const msg=text||input.trim();if(!msg||loading)return;setInput("");setMessages(p=>[...p,{role:"user",content:msg,time:new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}]);setLoading(true);try{const r=await axios.post(`${API}/api/chat`,{session_id:sessionId,message:msg,partner_name:partner.name,partner_niche:partner.niche,partner_phase:partner.phase,modules_done:(partner.modules||[]).filter(Boolean).length});setMessages(p=>[...p,{role:"assistant",content:r.data.response,time:new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}]);}catch(e){setMessages(p=>[...p,{role:"assistant",content:"⚠ Problema di connessione. Escalando ad Antonella.",time:new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}),error:true}]);}finally{setLoading(false);}};
-  return (
-    <div className="bg-white border border-[#ECEDEF] rounded-xl overflow-hidden flex flex-col" style={{height:"calc(100vh - 180px)",minHeight:500}}>
-      <div className="bg-[#FAFAF7] p-4 flex items-center gap-3 border-b border-[#ECEDEF]"><div className="w-9 h-9 rounded-full bg-[#F5C518] flex items-center justify-center text-sm font-bold text-black">S</div><div className="flex-1"><div className="text-sm font-bold">STEFANIA</div><div className="text-[10px] text-[#9CA3AF]">Coordinatrice · sempre disponibile</div></div><div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"/></div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.map((m,i)=><div key={i} className={`flex gap-2.5 ${m.role==="user"?"flex-row-reverse":""}`}><div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${m.role==="assistant"?"bg-[#F5C518] text-black":"bg-[#ECEDEF] text-white"}`}>{m.role==="assistant"?"S":partner.name.split(" ").map(n=>n[0]).join("")}</div><div className="max-w-[78%]"><div className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${m.role==="user"?"bg-[#F5C518] text-black rounded-tr-sm":"bg-[#FAFAF7] text-[#5F6572] rounded-tl-sm"} ${m.error?"!bg-red-500/10 !text-red-300":""}`}>{m.content.replace(/\*\*(.*?)\*\*/g,"$1")}</div><div className={`text-[10px] text-[#9CA3AF] mt-1 ${m.role==="user"?"text-right":""}`}>{m.time}</div></div></div>)}
-        {loading&&<div className="flex gap-2.5"><div className="w-7 h-7 rounded-full bg-[#F5C518] flex items-center justify-center text-[10px] font-bold text-black">S</div><div className="bg-[#FAFAF7] rounded-2xl rounded-tl-sm px-4 py-3 flex gap-1">{[0,1,2].map(i=><span key={i} className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{animationDelay:`${i*0.15}s`}}/>)}</div></div>}
-        <div ref={bottomRef}/>
-      </div>
-      {messages.length<=2&&<div className="px-4 py-2 border-t border-[#ECEDEF] flex gap-2 flex-wrap">{qr.map((q,i)=><button key={i} onClick={()=>send(q)} className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-full px-3 py-1.5 text-[11px] font-semibold hover:bg-[#F5C518] hover:text-black hover:border-[#F5C518] transition-all">{q}</button>)}</div>}
-      <div className="p-3 border-t border-[#F5C518]/25 flex gap-2"><textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}} placeholder="Scrivi a STEFANIA..." rows={1} className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-3 py-2.5 text-sm resize-none focus:border-[#F5C518] outline-none transition-colors"/><button onClick={()=>send()} disabled={!input.trim()||loading} className="w-11 h-11 rounded-full bg-[#F5C518] flex items-center justify-center text-black disabled:opacity-25 hover:bg-[#e0a800] transition-colors"><Send className="w-4 h-4"/></button></div>
-    </div>
-  );
-}
-
-// ─── PARTNER RESOURCES ─────────────────────────────────────────────────────────
-function PartnerResources() {
-  return (
-    <div className="space-y-2">{RESOURCES.map((r,i)=><div key={i} className="bg-white border border-[#ECEDEF] rounded-xl p-4 flex items-center gap-3 hover:border-[#F2C418] transition-colors cursor-pointer"><span className="text-xl">{r.type==="PDF"?"📄":"📝"}</span><div className="flex-1"><div className="text-sm font-bold">{r.name}</div><div className="text-xs text-[#9CA3AF]">{r.size}</div></div><span className={`font-mono text-[10px] font-bold px-2 py-0.5 rounded ${r.type==="PDF"?"bg-red-500/20 text-red-400":"bg-blue-500/20 text-blue-400"}`}>{r.type}</span><button className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FAFAF7] border border-[#ECEDEF] flex items-center gap-1 hover:border-[#F2C418] transition-colors"><Download className="w-3 h-3"/>Scarica</button></div>)}</div>
-  );
-}
-
-// ─── PARTNER HOME (cosa fare ora) ─────────────────────────────────────────────
-function PartnerCurrentPhase({ partner, onNavigate }) {
-  const phase=partner.phase;const action=PHASE_ACTIONS[phase]||PHASE_ACTIONS["F1"];const tools=PHASE_TOOLS[phase]||PHASE_TOOLS["F1"];
-  const tc={STEFANIA:"#F5C518",STEFANIA:"#db2777",ANDREA:"#0ea5e9"};const tutorColor=tc[action.tutor]||"#F5C518";
-  return (
-    <div className="space-y-5">
-      <PhaseProgressBar currentPhase={phase}/>
-      <div className="relative overflow-hidden rounded-2xl border border-[#ECEDEF] bg-gradient-to-br from-[#1a2332] to-[#0d1520]">
-        <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl" style={{background:action.color}}/>
-        <div className="absolute -right-10 -top-10 w-48 h-48 rounded-full opacity-5" style={{background:action.color}}/>
-        <div className="p-6 relative flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0" style={{background:`${action.color}15`}}>
-            {phase==="F8"?"🚀":phase==="F10"?"⭐":"🎯"}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{color:action.color}}>Azione corrente · {phase}</div>
-            <h2 className="text-xl font-extrabold mb-2">{action.title}</h2>
-            <p className="text-sm text-[#9CA3AF] leading-relaxed mb-5">{action.desc}</p>
-            <button onClick={()=>onNavigate(action.nav)} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-black transition-all hover:scale-105 active:scale-100" style={{background:action.color}}>
-              {action.cta} →
-            </button>
-          </div>
-          <div className="flex-shrink-0 text-center ml-2">
-            <div className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-black mb-1.5" style={{background:`${tutorColor}15`,border:`2px solid ${tutorColor}30`}}>{action.tutor[0]}</div>
-            <div className="text-[10px] font-bold" style={{color:tutorColor}}>{action.tutor}</div>
-            <div className="w-1.5 h-1.5 rounded-full bg-green-400 mx-auto mt-1 animate-pulse"/>
-          </div>
-        </div>
-      </div>
-      <div>
-        <div className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-3">Strumenti disponibili ora</div>
-        <div className="grid grid-cols-2 gap-3">{tools.map(t=><button key={t.nav} onClick={()=>onNavigate(t.nav)} className="bg-white border border-[#ECEDEF] rounded-xl p-4 text-left hover:border-[#F5C518]/30 transition-all group"><div className="text-xl mb-2">{t.icon}</div><div className="text-sm font-bold group-hover:text-[#F5C518] transition-colors">{t.label}</div><div className="text-[10px] text-[#9CA3AF] mt-0.5">{t.desc}</div></button>)}</div>
-      </div>
-    </div>
-  );
-}
 
 // ─── MAIN APP ──────────────────────────────────────────────────────────────────
 export default function App() {
@@ -978,6 +521,7 @@ export default function App() {
   const [adminUser,setAdminUser]=useState("claudio");
   const [showNP,setShowNP]=useState(false);
   const [showPartnerProfile,setShowPartnerProfile]=useState(false);
+  const [showPartnerDetail,setShowPartnerDetail]=useState(false);
   const [toolsOpen,setToolsOpen]=useState(false);
   const [agents,setAgents]=useState([]);
   const [partners,setPartners]=useState([]);
@@ -1615,6 +1159,8 @@ export default function App() {
           {showNP&&<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"><div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto"><NuovoPartnerForm onClose={()=>setShowNP(false)} onComplete={()=>{setShowNP(false);loadData();}}/></div></div>}
           
           {showPartnerProfile&&selectedPartner&&<PartnerProfileModal partner={selectedPartner} onClose={()=>{setShowPartnerProfile(false);}} onUpdate={loadData}/>}
+          
+          {showPartnerDetail&&selectedPartner&&<PartnerDetailModal partner={selectedPartner} isOpen={showPartnerDetail} onClose={()=>{setShowPartnerDetail(false);}} onUpdate={loadData} onDelete={handleDeletePartner}/>}
 
           {mode==="admin"&&<>
             {(nav==="overview"||nav==="oggi")&&<OggiDashboard onNavigate={setNav}/>}
@@ -1665,7 +1211,7 @@ export default function App() {
             {nav==="sales-kpi"&&<SalesKPIDashboard/>}
             {nav==="lista-fredda"&&<ListaFreddaAdmin/>}
             {nav==="servizi-admin"&&<ServiziExtraAdmin/>}
-            {nav==="partner"&&<AdminPartners partners={partners} onSelect={(p)=>{setSelectedPartner(p);setShowPartnerProfile(true);}} onViewAsPartner={(p)=>{setSelectedPartner(p);setMode("partner");setNav("dashboard");}} onDeletePartner={handleDeletePartner}/>}
+            {nav==="partner"&&<AdminPartners partners={partners} onSelect={(p)=>{setSelectedPartner(p);setShowPartnerDetail(true);}} onViewAsPartner={(p)=>{setSelectedPartner(p);setMode("partner");setNav("dashboard");}} onDeletePartner={handleDeletePartner}/>}
             {nav==="documenti-partner"&&<PartnerDocumentsView partners={partners}/>}
             {nav==="onboarding-admin"&&<OnboardingDocumentsAdmin/>}
             {nav==="youtube-heygen"&&<YouTubeHeygenHub/>}
