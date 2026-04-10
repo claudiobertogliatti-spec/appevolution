@@ -7,41 +7,46 @@ App di gestione aziendale AI-driven. I partner vengono guidati step-by-step con 
 - Frontend: React, Tailwind CSS, Shadcn UI, Axios
 - Backend: FastAPI, Motor (MongoDB async), emergentintegrations (LLM via Emergent Proxy)
 
+## Flusso Partner (aggiornato 10 Aprile 2026)
+**Posizionamento → Funnel Light → Masterclass → Videocorso → Funnel di Vendita → Lancio**
+
 ## Implementato
 
+### Funnel Light — "Attiva il tuo primo funnel" (10 Aprile 2026) — DONE
+- Nuovo step 2 nel percorso (inserito tra Posizionamento e Masterclass)
+- Template-based: landing webinar + form contatti + thank you page
+- Auto-compilato dai dati del posizionamento (no LLM, veloce)
+- Pubblicazione immediata con URL generato
+- Endpoints: `GET /funnel-light/{id}`, `POST /generate`, `POST /publish`
+- stepConfig.js aggiornato: 6 step (posizionamento, funnel-light, masterclass, videocorso, funnel, lancio)
+- PHASE_ACTIONS F2 aggiornato
+
 ### Dashboard Operativa - Vista Antonella (10 Aprile 2026) — DONE
-- **Summary Cards**: Totale Partner, In linea, Rallentati, Bloccati
-- **Filtri**: Tutti / Bloccati / Rallentati / In linea
-- **Per ogni partner**: fase attuale, giorni nello step, ultimo avanzamento, blocco attuale, livello esecuzione (alto/medio/basso)
-- **Stato rischio**: in_linea (verde) / rallentato (giallo) / bloccato (rosso)
-- **Azione consigliata**: generata automaticamente in base a rischio + fase + livello esecuzione
-- **Row espandibile**: blocco attuale + azione consigliata + CTA "Apri scheda partner"
-- Sidebar Antonella aggiornata con "Dashboard Operativa" sotto OPERATIVO
+- Summary Cards + Filtri + Lista partner con rischio/esecuzione/azione
 
 ### Percorso Veloce — Go Live in 21 giorni (10 Aprile 2026) — DONE
-- 5 fasi, countdown hero, checklist giornaliera con persistenza, phase stepper
+- 5 fasi, countdown, checklist giornaliera
 
 ### Dashboard Risultati v3 (10 Aprile 2026) — DONE
-- 6 sezioni: Stato, KPI, Diagnosi, Prossima Azione, Prossimo Livello Consigliato, Trend
+- 6 sezioni: Stato, KPI, Diagnosi, Prossima Azione, Prossimo Livello, Trend
 
-### GrowthSystemPage Redesign Conversione (10 Aprile 2026) — DONE
-- Blocco "Dove sei oggi", scelta guidata, copy migliorato, blocco realta
+### GrowthSystemPage Conversione (10 Aprile 2026) — DONE
 
 ### LancioPage AI-driven (DONE)
 ### Accelera la crescita (DONE)
 
 ## Endpoint API Chiave
-- `GET /api/partner-journey/dashboard-operativa` - Dashboard operativa team
+- `GET /api/partner-journey/funnel-light/{partner_id}`
+- `POST /api/partner-journey/funnel-light/generate`
+- `POST /api/partner-journey/funnel-light/publish`
+- `GET /api/partner-journey/dashboard-operativa`
 - `POST /api/partner-journey/percorso-veloce/activate`
 - `GET /api/partner-journey/percorso-veloce/{partner_id}`
-- `POST /api/partner-journey/percorso-veloce/save-checklist`
-- `GET /api/partner-journey/ottimizzazione/{partner_id}`
 
 ## Backlog
 
 ### P0
-- Integrazione Execution Layer Systeme.io
-- Admin Panel lista utenti con stato avanzamento (PARZIALMENTE COMPLETATO con Dashboard Operativa)
+- Integrazione Execution Layer Systeme.io (collegare funnel light a Systeme.io reale)
 
 ### P1
 - SMTP invio email, PDF contratto, personalizzazione contratto Admin
@@ -51,8 +56,3 @@ App di gestione aziendale AI-driven. I partner vengono guidati step-by-step con 
 
 ### P3
 - Refactoring server.py, fix alert fantasma
-
-## Note Tecniche
-- `UserMessage(text=...)` non `content=`
-- `send_message()` ritorna stringa
-- LLM gpt-4o via Emergent Proxy
