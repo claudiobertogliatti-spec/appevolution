@@ -6,6 +6,7 @@ import { LayoutDashboard, Users, Film, AlertTriangle, PlayCircle, FolderOpen, Fi
 import { NotificationBell } from "./components/common/NotificationBell";
 import { AdminSwitcher } from "./components/common/AdminSwitcher";
 import { MetrichePostLancio } from "./components/admin/MetrichePostLancio";
+import { DashboardOperativa } from "./components/admin/DashboardOperativa";
 import { FeedVideoNuovi } from "./components/admin/FeedVideoNuovi";
 import { NuovoPartnerForm } from "./components/admin/NuovoPartnerForm";
 import { CopyFactoryAdmin } from "./components/admin/CopyFactoryAdmin";
@@ -1130,6 +1131,7 @@ export default function App() {
   ];
   const antonellaNav=[
     {id:"overview",label:"Overview",icon:LayoutDashboard},
+    {id:"operativa",label:"Dashboard Operativa",icon:Target},
     {id:"agenti",label:"Agent Hub",icon:Bot},
     {id:"clienti-analisi",label:"Clienti Analisi",icon:UserPlus},
     {id:"flusso-analisi",label:"Flusso Analisi",icon:FileText},
@@ -1158,7 +1160,7 @@ export default function App() {
   const adminNav=adminUser==="antonella"?antonellaNav:coreNav;
   const isToolNav=toolsNav.some(t=>t.id===nav);
 
-  const titles={overview:"Oggi",oggi:"Oggi","cp-benvenuto":"Vista Cliente","cp-questionario":"Vista Cliente","cp-richiesta":"Vista Cliente","cp-conferma":"Vista Cliente","cp-analisi":"Vista Cliente","pipeline-prioritaria":"Priorità Pipeline","partner-bloccati":"Partner Bloccati","guided-system":"Guided System",agenti:"Agent Hub",partner:"Partner Attivi","ex-partner":"Ex Partner","documenti-partner":"Documenti Partner","onboarding-admin":"Documenti Onboarding","youtube-heygen":"Video AI","servizi-admin":"Servizi Extra","calendario-admin":"Calendario Editoriale",andrea:adminUser==="antonella"?"ANDREA — Feed Video":"ANDREA — Surgical Cut",metriche:"Percorsi e Fasi",systeme:"SYSTEME.IO — Live Data",gaia:"Template Funnel",compliance:"Documenti & Compliance",copyfactory:"Copy Factory",warmode:"Campagne Ads",funnelbuilder:"Funnel Builder — Fase 4",alert:"Alert & Escalation",configurazione:"Configurazione",stefania:"STEFANIA — Chat",home:"Il tuo percorso","onboarding-docs":"Documenti Onboarding",corso:"PARTI DA QUI",bonus:"Bonus Strategici",masterclass:"Masterclass Builder",coursebuilder:"Course Builder AI",produzione:"ANDREA — Produzione Video",files:"I Miei File",brandkit:"Brand Kit",calendario:"Calendario Editoriale",documenti:"Documenti & Posizionamento",risorse:"Template & Risorse",renewal:"Piani Post-12 Mesi",supporto:"STEFANIA — Chat","clienti-analisi":"Pipeline","flusso-analisi":"Analisi Strategiche","demo-flusso-cliente":"Demo Flusso Cliente","lista-fredda":"Lead da Riattivare",approvals:"Approvazioni Cliente","mio-spazio":"Il Mio Spazio",posizionamento:"Posizionamento",videocorso:"Videocorso",funnel:"Funnel di Vendita",lancio:"Lancio",ottimizzazione:"Risultati",kpi:"Risultati",lead:"Lead",pagamenti:"Pagamenti","percorso-veloce":"Percorso Veloce"};
+  const titles={overview:"Oggi",oggi:"Oggi","cp-benvenuto":"Vista Cliente","cp-questionario":"Vista Cliente","cp-richiesta":"Vista Cliente","cp-conferma":"Vista Cliente","cp-analisi":"Vista Cliente","pipeline-prioritaria":"Priorità Pipeline","partner-bloccati":"Partner Bloccati","guided-system":"Guided System",agenti:"Agent Hub",partner:"Partner Attivi","ex-partner":"Ex Partner","documenti-partner":"Documenti Partner","onboarding-admin":"Documenti Onboarding","youtube-heygen":"Video AI","servizi-admin":"Servizi Extra","calendario-admin":"Calendario Editoriale",andrea:adminUser==="antonella"?"ANDREA — Feed Video":"ANDREA — Surgical Cut",metriche:"Percorsi e Fasi",systeme:"SYSTEME.IO — Live Data",gaia:"Template Funnel",compliance:"Documenti & Compliance",copyfactory:"Copy Factory",warmode:"Campagne Ads",funnelbuilder:"Funnel Builder — Fase 4",alert:"Alert & Escalation",configurazione:"Configurazione",stefania:"STEFANIA — Chat",home:"Il tuo percorso","onboarding-docs":"Documenti Onboarding",corso:"PARTI DA QUI",bonus:"Bonus Strategici",masterclass:"Masterclass Builder",coursebuilder:"Course Builder AI",produzione:"ANDREA — Produzione Video",files:"I Miei File",brandkit:"Brand Kit",calendario:"Calendario Editoriale",documenti:"Documenti & Posizionamento",risorse:"Template & Risorse",renewal:"Piani Post-12 Mesi",supporto:"STEFANIA — Chat","clienti-analisi":"Pipeline","flusso-analisi":"Analisi Strategiche","demo-flusso-cliente":"Demo Flusso Cliente","lista-fredda":"Lead da Riattivare",approvals:"Approvazioni Cliente","mio-spazio":"Il Mio Spazio",posizionamento:"Posizionamento",videocorso:"Videocorso",funnel:"Funnel di Vendita",lancio:"Lancio",ottimizzazione:"Risultati",kpi:"Risultati",lead:"Lead",pagamenti:"Pagamenti","percorso-veloce":"Percorso Veloce",operativa:"Dashboard Operativa"};
 
   // Loading state
   if (authLoading) {
@@ -1666,6 +1668,7 @@ export default function App() {
             {nav==="calendario-admin"&&<CalendarioEditoriale partner={selectedPartner||partners[0]}/>}
             {nav==="andrea"&&(adminUser==="antonella"?<FeedVideoNuovi onOpenPipeline={()=>{setAdminUser("claudio");setNav("andrea");}}/>:<AndreaPipeline partners={partners}/>)}
             {nav==="metriche"&&<MetrichePostLancio partners={partners}/>}
+            {nav==="operativa"&&<DashboardOperativa onViewPartner={(p)=>{setSelectedPartner(p);setMode("partner");setNav("dashboard");}}/>}
             {nav==="stefania"&&<StefaniaChat partner={selectedPartner||partners[0]} onBack={()=>setNav("oggi")} isAdmin={true}/>}
             {nav==="webhooks"&&<WebhookDashboard/>}
             {nav==="systeme"&&<SystemeIODashboard partnerId={selectedPartner?.id||partners[0]?.id||"1"} partnerName={selectedPartner?.name||partners[0]?.name}/>}
