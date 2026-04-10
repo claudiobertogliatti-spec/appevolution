@@ -3763,3 +3763,248 @@ async def receive_lead_webhook(partner_id: str, data: dict):
     )
     
     return {"success": True, "message": "Lead registrato", "lead_id": lead_data["id"]}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PERCORSO VELOCE — Go Live in 21 Giorni
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class PercorsoVeloceActivateRequest(BaseModel):
+    partner_id: str
+
+class PercorsoVeloceChecklistRequest(BaseModel):
+    partner_id: str
+    day: int
+    checklist: List[Dict[str, Any]]
+
+
+PERCORSO_VELOCE_PHASES = [
+    {
+        "id": "posizionamento",
+        "name": "Posizionamento",
+        "day_start": 1,
+        "day_end": 2,
+        "daily_tasks": {
+            1: [
+                {"id": "definisci_target", "label": "Definisci il tuo studente ideale", "desc": "Chi vuoi aiutare? Che problema ha?"},
+                {"id": "definisci_promessa", "label": "Scrivi la tua promessa", "desc": "Quale trasformazione offri?"},
+                {"id": "scegli_nome", "label": "Scegli il nome del tuo corso", "desc": "Deve essere chiaro e specifico"},
+            ],
+            2: [
+                {"id": "valida_posizionamento", "label": "Valida il posizionamento", "desc": "Conferma target + promessa + nome"},
+                {"id": "prepara_bio", "label": "Prepara la tua bio professionale", "desc": "Chi sei e perche sei credibile"},
+                {"id": "approva_posizionamento", "label": "Approva e passa alla fase successiva", "desc": "Blocca il posizionamento definitivo"},
+            ],
+        },
+    },
+    {
+        "id": "webinar",
+        "name": "Webinar / Masterclass",
+        "day_start": 3,
+        "day_end": 7,
+        "daily_tasks": {
+            3: [
+                {"id": "scaletta_webinar", "label": "Crea la scaletta del webinar", "desc": "6 blocchi: hook, problema, soluzione, metodo, offerta, CTA"},
+                {"id": "definisci_offerta", "label": "Definisci l'offerta", "desc": "Prezzo, bonus, garanzia, urgenza"},
+            ],
+            4: [
+                {"id": "scrivi_slide", "label": "Prepara le slide", "desc": "Usa il template fornito, personalizza i contenuti"},
+                {"id": "prepara_obiezioni", "label": "Prepara le risposte alle obiezioni", "desc": "Le 5 obiezioni piu comuni del tuo target"},
+            ],
+            5: [
+                {"id": "registra_prova", "label": "Registra una prova del webinar", "desc": "Fai un run-through completo, cronometra"},
+                {"id": "ottimizza_presentazione", "label": "Ottimizza la presentazione", "desc": "Taglia le parti lente, rafforza l'offerta"},
+            ],
+            6: [
+                {"id": "crea_avatar", "label": "Configura avatar AI (opzionale)", "desc": "Se vuoi, usa l'avatar AI per la presentazione"},
+                {"id": "finalizza_webinar", "label": "Finalizza il webinar", "desc": "Versione definitiva pronta per il live"},
+            ],
+            7: [
+                {"id": "testa_piattaforma", "label": "Testa la piattaforma live", "desc": "Prova audio, video, condivisione schermo"},
+                {"id": "approva_webinar", "label": "Approva il webinar", "desc": "Tutto pronto per il lancio"},
+            ],
+        },
+    },
+    {
+        "id": "funnel",
+        "name": "Funnel",
+        "day_start": 8,
+        "day_end": 10,
+        "daily_tasks": {
+            8: [
+                {"id": "crea_landing", "label": "Crea la landing page", "desc": "Headline + promessa + CTA iscrizione webinar"},
+                {"id": "crea_thankyou", "label": "Crea la thank you page", "desc": "Conferma iscrizione + istruzioni"},
+            ],
+            9: [
+                {"id": "crea_email_sequence", "label": "Crea la sequenza email", "desc": "Conferma + reminder + replay + offerta"},
+                {"id": "collega_pagamento", "label": "Collega il sistema di pagamento", "desc": "Stripe o PayPal configurato"},
+            ],
+            10: [
+                {"id": "testa_funnel", "label": "Testa tutto il funnel", "desc": "Iscrizione → email → webinar → pagamento"},
+                {"id": "pubblica_funnel", "label": "Pubblica il funnel", "desc": "Il funnel e LIVE. Pronto per ricevere traffico"},
+            ],
+        },
+    },
+    {
+        "id": "traffico",
+        "name": "Traffico",
+        "day_start": 11,
+        "day_end": 14,
+        "daily_tasks": {
+            11: [
+                {"id": "crea_contenuto_1", "label": "Crea 3 contenuti social", "desc": "Post/reel collegati alla landing page"},
+                {"id": "pubblica_contenuto_1", "label": "Pubblica il primo contenuto", "desc": "Inizia a portare traffico organico"},
+            ],
+            12: [
+                {"id": "configura_ads", "label": "Configura le ads", "desc": "Target, budget, creativita, copy"},
+                {"id": "lancia_ads", "label": "Lancia la prima campagna", "desc": "Budget minimo, testa 2-3 creativita"},
+            ],
+            13: [
+                {"id": "pubblica_contenuto_2", "label": "Pubblica altri contenuti", "desc": "Costanza: un contenuto al giorno"},
+                {"id": "promuovi_webinar", "label": "Promuovi il webinar", "desc": "Condividi il link ovunque"},
+            ],
+            14: [
+                {"id": "analizza_primi_dati", "label": "Analizza i primi risultati", "desc": "Visite, iscrizioni, costo per lead"},
+                {"id": "ottimizza_campagna", "label": "Ottimizza la campagna", "desc": "Spegni cio che non funziona, scala cio che funziona"},
+            ],
+        },
+    },
+    {
+        "id": "webinar_live",
+        "name": "Webinar Live",
+        "day_start": 15,
+        "day_end": 21,
+        "daily_tasks": {
+            15: [
+                {"id": "conferma_data", "label": "Conferma la data del webinar", "desc": "Scegli giorno e ora definitivi"},
+                {"id": "invia_inviti", "label": "Invia gli inviti", "desc": "Email a tutti gli iscritti + reminder"},
+            ],
+            16: [
+                {"id": "continua_traffico", "label": "Continua a portare traffico", "desc": "Non fermarti: contenuti + ads ogni giorno"},
+                {"id": "prepara_bonus_live", "label": "Prepara un bonus per chi partecipa live", "desc": "Incentivo per la partecipazione diretta"},
+            ],
+            17: [
+                {"id": "reminder_iscritti", "label": "Invia reminder agli iscritti", "desc": "Email + messaggio social 48h prima"},
+                {"id": "prova_tecnica", "label": "Fai una prova tecnica finale", "desc": "Audio, video, slide, link pagamento"},
+            ],
+            18: [
+                {"id": "reminder_24h", "label": "Reminder 24h prima", "desc": "Ultimo messaggio: domani e il giorno"},
+                {"id": "preparati", "label": "Preparati mentalmente", "desc": "Ripassa la scaletta, rilassati"},
+            ],
+            19: [
+                {"id": "vai_live", "label": "VAI LIVE", "desc": "Il tuo primo webinar dal vivo. Ce la fai."},
+                {"id": "invia_replay", "label": "Invia il replay", "desc": "Email con il link del replay a chi non era presente"},
+            ],
+            20: [
+                {"id": "followup_partecipanti", "label": "Follow-up ai partecipanti", "desc": "Email con offerta speciale per chi ha partecipato"},
+                {"id": "followup_assenti", "label": "Follow-up agli assenti", "desc": "Email con replay + offerta limitata"},
+            ],
+            21: [
+                {"id": "chiudi_lancio", "label": "Chiudi il lancio", "desc": "Ultimo messaggio: offerta in scadenza"},
+                {"id": "analizza_risultati", "label": "Analizza i risultati", "desc": "Iscritti, partecipanti, vendite, fatturato"},
+            ],
+        },
+    },
+]
+
+
+@router.post("/percorso-veloce/activate")
+async def activate_percorso_veloce(request: PercorsoVeloceActivateRequest):
+    """Attiva il Percorso Veloce per un partner"""
+    partner = await get_partner_or_404(request.partner_id)
+
+    await db.percorso_veloce.update_one(
+        {"partner_id": request.partner_id},
+        {
+            "$set": {
+                "partner_id": request.partner_id,
+                "activated_at": datetime.now(timezone.utc).isoformat(),
+                "current_day": 1,
+                "status": "active",
+                "checklists": {},
+            },
+            "$setOnInsert": {"created_at": datetime.now(timezone.utc).isoformat()},
+        },
+        upsert=True,
+    )
+
+    return {"success": True, "message": "Percorso Veloce attivato", "day": 1}
+
+
+@router.get("/percorso-veloce/{partner_id}")
+async def get_percorso_veloce(partner_id: str):
+    """Recupera stato del Percorso Veloce"""
+    await get_partner_or_404(partner_id)
+
+    record = await db.percorso_veloce.find_one(
+        {"partner_id": partner_id}, {"_id": 0}
+    )
+
+    if not record:
+        return {"success": True, "active": False}
+
+    activated_at = record.get("activated_at")
+    current_day = 1
+    if activated_at:
+        try:
+            start = datetime.fromisoformat(activated_at.replace("Z", "+00:00"))
+            diff = (datetime.now(timezone.utc) - start).days
+            current_day = min(max(diff + 1, 1), 21)
+        except Exception:
+            current_day = record.get("current_day", 1)
+
+    # Determine current phase
+    current_phase = None
+    for phase in PERCORSO_VELOCE_PHASES:
+        if phase["day_start"] <= current_day <= phase["day_end"]:
+            current_phase = phase["id"]
+            break
+    if not current_phase:
+        current_phase = "webinar_live"
+
+    # Get today's tasks
+    today_tasks = []
+    for phase in PERCORSO_VELOCE_PHASES:
+        if current_day in phase["daily_tasks"]:
+            today_tasks = phase["daily_tasks"][current_day]
+            break
+
+    # Get saved checklist for today
+    checklists = record.get("checklists", {})
+    saved_today = checklists.get(str(current_day), [])
+
+    return {
+        "success": True,
+        "active": True,
+        "current_day": current_day,
+        "current_phase": current_phase,
+        "status": "completed" if current_day > 21 else record.get("status", "active"),
+        "activated_at": activated_at,
+        "phases": [
+            {
+                "id": p["id"],
+                "name": p["name"],
+                "day_start": p["day_start"],
+                "day_end": p["day_end"],
+                "is_current": p["id"] == current_phase,
+                "is_completed": current_day > p["day_end"],
+            }
+            for p in PERCORSO_VELOCE_PHASES
+        ],
+        "today_tasks": today_tasks,
+        "today_checklist": saved_today,
+        "checklists": checklists,
+    }
+
+
+@router.post("/percorso-veloce/save-checklist")
+async def save_percorso_veloce_checklist(request: PercorsoVeloceChecklistRequest):
+    """Salva checklist giornaliera del Percorso Veloce"""
+    await get_partner_or_404(request.partner_id)
+
+    await db.percorso_veloce.update_one(
+        {"partner_id": request.partner_id},
+        {"$set": {f"checklists.{request.day}": request.checklist}},
+    )
+
+    return {"success": True, "message": "Checklist salvata"}

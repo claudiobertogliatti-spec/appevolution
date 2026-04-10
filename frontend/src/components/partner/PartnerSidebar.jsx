@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Home, User, MessageCircle, TrendingUp, Lock, LogOut, X, Rocket, ChevronDown, ChevronRight, Eye, Repeat, DollarSign, Compass, Layers } from "lucide-react";
+import { Home, User, MessageCircle, TrendingUp, Lock, LogOut, X, Rocket, ChevronDown, ChevronRight, Eye, Repeat, DollarSign, Compass, Layers, Zap } from "lucide-react";
 import { STEPS, getStepFromPhase } from "./stepConfig";
 
 const C = {
@@ -232,6 +232,36 @@ export function PartnerSidebarLight({ currentNav, onNavigate, partner, onLogout,
             );
           })}
         </nav>
+
+        {/* Percorso Veloce */}
+        <div className="mt-5 pt-4" style={{ borderTop: `1px solid ${C.sidebarBdr}` }}>
+          {(() => {
+            const active = currentNav === 'percorso-veloce';
+            const hovered = hoveredId === 'percorso-veloce';
+            return (
+              <button
+                data-testid="sidebar-percorso-veloce"
+                onClick={() => onNavigate('percorso-veloce')}
+                onMouseEnter={() => setHoveredId('percorso-veloce')}
+                onMouseLeave={() => setHoveredId(null)}
+                className="w-full flex items-center gap-3 rounded-xl text-left"
+                style={{
+                  height: 42,
+                  padding: '0 14px',
+                  background: active ? '#FEF2F2' : hovered ? C.hoverBg : 'transparent',
+                  border: `1.5px solid ${active ? '#FECACA' : 'transparent'}`,
+                  boxShadow: active ? `inset 3px 0 0 #EF4444` : 'none',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Zap style={{ width: 17, height: 17, flexShrink: 0, color: active ? '#EF4444' : '#EF4444' }} />
+                <span style={{ fontSize: 14, fontWeight: active ? 800 : 700, color: active ? '#991B1B' : '#EF4444' }}>
+                  Go Live in 21gg
+                </span>
+              </button>
+            );
+          })()}
+        </div>
 
         {/* Accelera la crescita */}
         <div className="mt-5 pt-4" style={{ borderTop: `1px solid ${C.sidebarBdr}` }}>
