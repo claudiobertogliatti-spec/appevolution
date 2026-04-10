@@ -4820,3 +4820,81 @@ async def send_manual_notification(req: NotificaManuale):
     except Exception as e:
         logging.error(f"[NOTIFICA] Errore invio manuale: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GROWTH SYSTEM — Scelta livello di crescita
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class GrowthLevelRequest(BaseModel):
+    partner_id: str
+    scenario: Optional[str] = None  # foundation, growth, scale
+    level: str  # foundation, growth, scale
+
+@router.get("/growth-level/{partner_id}")
+async def get_growth_level(partner_id: str):
+    """Restituisce il livello di crescita scelto dal partner"""
+    doc = await db.growth_levels.find_one(
+        {"partner_id": str(partner_id)}, {"_id": 0}
+    )
+    return {"success": True, "data": doc}
+
+@router.post("/growth-level/choose")
+async def choose_growth_level(req: GrowthLevelRequest):
+    """Salva la scelta del livello di crescita del partner"""
+    valid_levels = ["foundation", "growth", "scale"]
+    if req.level not in valid_levels:
+        raise HTTPException(status_code=400, detail=f"Livello non valido. Valori: {', '.join(valid_levels)}")
+
+    partner = await db.partners.find_one(
+        {"$or": [{"id": req.partner_id}, {"id": int(req.partner_id) if req.partner_id.isdigit() else req.partner_id}]},
+        {"_id": 0, "id": 1, "nome": 1, "cognome": 1}
+    )
+    if not partner:
+        raise HTTPException(status_code=404, detail=f"Partner {req.partner_id} non trovato")
+
+    now = datetime.now(timezone.utc).isoformat()
+    await db.growth_levels.update_one(
+        {"partner_id": str(req.partner_id)},
+        {"$set": {
+            "partner_id": str(req.partner_id),
+            "scenario": req.scenario,
+            "level": req.level,
+            "chosen_at": now,
+            "updated_at": now
+        },
+        "$setOnInsert": {"created_at": now}},
+        upsert=True
+    )
+
+    # Aggiorna anche il documento partner
+    await db.partners.update_one(
+        {"$or": [{"id": req.partner_id}, {"id": int(req.partner_id) if req.partner_id.isdigit() else req.partner_id}]},
+        {"$set": {"growth_level": req.level, "growth_level_chosen_at": now}}
+    )
+
+    # Notifica Telegram admin
+    try:
+        telegram_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+        admin_chat_id = os.environ.get('TELEGRAM_ADMIN_CHAT_ID')
+        if telegram_token and admin_chat_id:
+            import httpx
+            nome = partner.get('nome', '')
+            cognome = partner.get('cognome', '')
+            level_names = {"foundation": "Foundation", "growth": "Growth", "scale": "Scale"}
+            msg = f"📈 GROWTH SYSTEM\n\n👤 {nome} {cognome}\n🎯 Livello scelto: {level_names.get(req.level, req.level)}\n\n✅ Il partner è pronto per il percorso di crescita"
+            async with httpx.AsyncClient() as client_http:
+                await client_http.post(
+                    f"https://api.telegram.org/bot{telegram_token}/sendMessage",
+                    json={"chat_id": admin_chat_id, "text": msg}
+                )
+    except Exception as e:
+        logging.warning(f"[GROWTH] Telegram notification error: {e}")
+
+    return {
+        "success": True,
+        "message": f"Livello {req.level} salvato",
+        "level": req.level,
+        "chosen_at": now
+    }
