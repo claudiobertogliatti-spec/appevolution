@@ -822,13 +822,6 @@ async def sign_contract(request: ContractSignRequest, req: Request):
         
         logger.info(f"[CONTRACT] Contratto firmato da {partner.get('name', '')} ({request.partner_id})")
         
-        # Systeme.io notification
-        try:
-            from services.systeme_notifications import notify_contract_signed
-            await notify_contract_signed(request.partner_id)
-        except Exception as e:
-            logger.warning(f"[CONTRACT] Systeme.io notification failed: {e}")
-        
         return {
             "success": True,
             "message": "Contratto firmato con successo",
@@ -864,6 +857,60 @@ async def get_contract_status(partner_id: str):
         "signed_at": contract.get("signed_at"),
         "contract_version": contract.get("version")
     }
+
+
+@router.get("/pdf/{partner_id}")
+async def get_contract_pdf(partner_id: str):
+    """
+    Restituisce l'URL del PDF del contratto firmato.
+    Se non esiste, lo rigenera.
+    """
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner non trovato")
+    
+    contract = partner.get("contract", {})
+    if not isinstance(contract, dict) or not contract.get("signed_at"):
+        raise HTTPException(status_code=400, detail="Contratto non ancora firmato")
+    
+    # Controlla se il PDF è già in MongoDB
+    existing = await db.contract_pdfs.find_one({"partner_id": str(partner_id)}, {"_id": 0, "partner_id": 1})
+    if existing:
+        return {"success": True, "pdf_url": f"/api/contract/pdf-download/{partner_id}"}
+    
+    # Rigenera il PDF
+    try:
+        pdf_url = await generate_contract_pdf(partner, contract)
+        if pdf_url:
+            return {"success": True, "pdf_url": pdf_url}
+    except Exception as e:
+        logger.error(f"[CONTRACT] Errore rigenerazione PDF: {e}")
+    
+    raise HTTPException(status_code=500, detail="Impossibile generare il PDF")
+
+
+@router.get("/pdf-download/{partner_id}")
+async def download_contract_pdf(partner_id: str):
+    """Serve il PDF del contratto direttamente dal database."""
+    from fastapi.responses import Response
+    
+    doc = await db.contract_pdfs.find_one({"partner_id": str(partner_id)}, {"_id": 0})
+    if not doc or not doc.get("pdf_base64"):
+        raise HTTPException(status_code=404, detail="PDF non trovato")
+    
+    pdf_bytes = base64.b64decode(doc["pdf_base64"])
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0, "name": 1})
+    partner_name = (partner.get("name", "partner") if partner else "partner").replace(" ", "_")
+    
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="contratto_evolution_pro_{partner_name}.pdf"'
+        }
+    )
+
+
 
 
 @router.get("/text/{partner_id}")
@@ -1231,7 +1278,20 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
         doc.build(story)
         pdf_bytes = buffer.getvalue()
         
-        # Upload to Cloudinary
+        # Salva il PDF in MongoDB per download sicuro
+        partner_id = partner.get('id', 'unknown')
+        await db.contract_pdfs.update_one(
+            {"partner_id": str(partner_id)},
+            {"$set": {
+                "partner_id": str(partner_id),
+                "pdf_base64": base64.b64encode(pdf_bytes).decode('utf-8'),
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "size_bytes": len(pdf_bytes)
+            }},
+            upsert=True
+        )
+        
+        # Upload anche su Cloudinary come backup (non bloccante)
         try:
             import cloudinary
             import cloudinary.uploader
@@ -1239,17 +1299,17 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
                 cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
                 api_key=os.environ.get('CLOUDINARY_API_KEY'),
                 api_secret=os.environ.get('CLOUDINARY_API_SECRET'))
-            result = cloudinary.uploader.upload(pdf_bytes, resource_type="raw",
+            cloudinary.uploader.upload(
+                BytesIO(pdf_bytes),
+                resource_type="raw",
                 folder="contracts",
-                public_id=f"contract_{partner.get('id')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-                format="pdf")
-            return result.get('secure_url')
+                public_id=f"contract_{partner_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                format="pdf"
+            )
         except Exception as e:
-            logger.warning(f"Cloudinary upload failed: {e}")
-            local_path = f"/tmp/contract_{partner.get('id')}.pdf"
-            with open(local_path, 'wb') as f:
-                f.write(pdf_bytes)
-            return local_path
+            logger.warning(f"Cloudinary backup upload failed (non bloccante): {e}")
+        
+        return f"/api/contract/pdf-download/{partner_id}"
         
     except ImportError:
         logger.warning("ReportLab non installato, skip generazione PDF")
@@ -1259,117 +1319,54 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
         return None
 
 
-async def _smtp_send_async(msg):
-    """Invia email SMTP in modo non-bloccante via executor."""
-    import asyncio
-    import smtplib
-    loop = asyncio.get_event_loop()
-    def _send():
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASS)
-            server.send_message(msg)
-    await loop.run_in_executor(None, _send)
-
-
 async def send_contract_email(partner: dict, pdf_url: Optional[str] = None):
     """
-    Invia email di conferma firma contratto al partner.
-    Invia notifica separata all'admin con PDF allegato.
-    Non-bloccante grazie a run_in_executor.
+    Notifica post-firma contratto:
+    1. Systeme.io: assegna tag 'contratto_firmato' → trigga automazione email
+    2. Telegram: notifica admin con link al PDF
+    3. Salva il pdf_url nel documento partner per download futuro
     """
-    if not SMTP_PASS:
-        logger.warning("SMTP_PASSWORD non configurata, skip invio email")
-        return
-    
-    partner_email = partner.get('email')
+    partner_id = partner.get("id", "")
+    partner_email = partner.get('email', '')
     partner_name = partner.get('name', 'Partner')
-    admin_email = "claudio.bertogliatti@gmail.com"
-    
-    if not partner_email:
-        logger.warning("Email partner non disponibile")
-        return
-    
-    # Scarica PDF per allegare a entrambe le email
-    pdf_bytes = None
+
+    # --- 1. Salva pdf_url nel partner per accesso futuro ---
     if pdf_url:
         try:
-            if pdf_url.startswith('http'):
-                import httpx
-                async with httpx.AsyncClient(timeout=15) as http_client:
-                    resp = await http_client.get(pdf_url)
-                    if resp.status_code == 200:
-                        pdf_bytes = resp.content
-            elif pdf_url.startswith('/tmp/'):
-                with open(pdf_url, 'rb') as f:
-                    pdf_bytes = f.read()
+            await db.partners.update_one(
+                {"id": partner_id},
+                {"$set": {"contract_pdf_url": pdf_url}}
+            )
         except Exception as e:
-            logger.warning(f"Impossibile scaricare PDF: {e}")
-    
-    def _build_attachment(pdf_data, filename):
-        from email.mime.application import MIMEApplication
-        att = MIMEApplication(pdf_data, _subtype='pdf')
-        att.add_header('Content-Disposition', 'attachment', filename=filename)
-        return att
-    
-    # --- EMAIL 1: Partner ---
+            logger.warning(f"[CONTRACT] Errore salvataggio pdf_url: {e}")
+
+    # --- 2. Systeme.io: tag contratto_firmato ---
     try:
-        from email.mime.multipart import MIMEMultipart
-        from email.mime.text import MIMEText
-        
-        first_name = partner_name.split()[0] if partner_name else "Partner"
-        
-        msg_partner = MIMEMultipart()
-        msg_partner['From'] = SMTP_FROM
-        msg_partner['To'] = partner_email
-        msg_partner['Subject'] = "Il tuo contratto Evolution PRO - copia firmata"
-        
-        body_partner = f"""Ciao {first_name},
-
-in allegato trovi la copia del contratto Evolution PRO firmato.
-
-Conserva questo documento: e' la tua prova di adesione al programma.
-
-Se hai domande, rispondi direttamente a questa email.
-
-A presto,
-Claudio
-Evolution PRO"""
-        
-        msg_partner.attach(MIMEText(body_partner, 'plain', 'utf-8'))
-        if pdf_bytes:
-            msg_partner.attach(_build_attachment(pdf_bytes,
-                f"contratto_evolution_pro_{partner_name.replace(' ', '_')}.pdf"))
-        
-        await _smtp_send_async(msg_partner)
-        logger.info(f"[CONTRACT] Email contratto inviata a {partner_email}")
+        from services.systeme_notifications import notify_contract_signed
+        await notify_contract_signed(partner_id)
+        logger.info(f"[CONTRACT] Systeme.io tag 'contratto_firmato' assegnato a {partner_email}")
     except Exception as e:
-        logger.error(f"Errore invio email partner: {e}")
-    
-    # --- EMAIL 2: Admin (Claudio) ---
+        logger.warning(f"[CONTRACT] Systeme.io notification failed: {e}")
+
+    # --- 3. Telegram: notifica admin ---
     try:
-        from email.mime.multipart import MIMEMultipart
-        from email.mime.text import MIMEText
-        
-        msg_admin = MIMEMultipart()
-        msg_admin['From'] = SMTP_FROM
-        msg_admin['To'] = admin_email
-        msg_admin['Subject'] = f"Contratto firmato - {partner_name}"
-        
-        body_admin = f"""Nuovo contratto firmato.
-
-Partner: {partner_name}
-Email: {partner_email}
-Data firma: {datetime.now(timezone.utc).strftime('%d/%m/%Y %H:%M')}
-
-Il PDF e' in allegato."""
-        
-        msg_admin.attach(MIMEText(body_admin, 'plain', 'utf-8'))
-        if pdf_bytes:
-            msg_admin.attach(_build_attachment(pdf_bytes,
-                f"contratto_{partner_name.replace(' ', '_')}.pdf"))
-        
-        await _smtp_send_async(msg_admin)
-        logger.info(f"[CONTRACT] Notifica admin inviata a {admin_email}")
+        telegram_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+        admin_chat_id = os.environ.get('TELEGRAM_ADMIN_CHAT_ID')
+        if telegram_token and admin_chat_id:
+            import httpx
+            pdf_link = f"\n📄 PDF: {os.environ.get('FRONTEND_URL', '')}{pdf_url}" if pdf_url and pdf_url.startswith("/api/") else (f"\n📄 PDF: {pdf_url}" if pdf_url and pdf_url.startswith("http") else "")
+            msg = (
+                f"✅ CONTRATTO FIRMATO\n\n"
+                f"👤 {partner_name}\n"
+                f"📧 {partner_email}\n"
+                f"🕐 {datetime.now(timezone.utc).strftime('%d/%m/%Y %H:%M')}"
+                f"{pdf_link}"
+            )
+            async with httpx.AsyncClient() as http_client:
+                await http_client.post(
+                    f"https://api.telegram.org/bot{telegram_token}/sendMessage",
+                    json={"chat_id": admin_chat_id, "text": msg}
+                )
+            logger.info(f"[CONTRACT] Telegram notifica admin inviata")
     except Exception as e:
-        logger.error(f"Errore invio notifica admin: {e}")
+        logger.warning(f"[CONTRACT] Telegram notification failed: {e}")
