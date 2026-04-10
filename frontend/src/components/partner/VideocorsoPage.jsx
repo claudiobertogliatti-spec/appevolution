@@ -353,17 +353,24 @@ export function VideocorsoPage({ partner, onNavigate, onComplete, isAdmin }) {
           <>
             {isCompleted && !isEditing ? (
               <>
-                {courseData && <CourseOutputView courseData={courseData} expandedModules={expandedModules} toggleModule={toggleModule} />}
-                <div className="flex gap-3 mt-6">
-                  <div className="flex-1">
-                    <CompletedBanner onContinue={() => onNavigate("funnel")} />
+                {/* Header con azione modifica */}
+                <div className="flex items-center justify-between mb-4 p-4 rounded-xl" style={{ background: "#34C77B10", border: "1px solid #34C77B30" }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "#34C77B20" }}>
+                      <Check className="w-4 h-4" style={{ color: "#34C77B" }} />
+                    </div>
+                    <span className="font-bold text-sm" style={{ color: "#2D9F6F" }}>Struttura approvata</span>
                   </div>
                   <button onClick={() => { setIsEditing(true); setExpandedModules((courseData?.moduli || []).map((_, i) => i)); }}
                     data-testid="edit-structure-btn"
-                    className="flex items-center gap-2 px-5 py-4 rounded-xl font-bold transition-all hover:bg-gray-50 self-start"
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all hover:scale-105"
                     style={{ background: "white", border: "1px solid #ECEDEF", color: "#5F6572" }}>
-                    <Edit3 className="w-5 h-5" /> Modifica struttura
+                    <Edit3 className="w-4 h-4" /> Modifica struttura
                   </button>
+                </div>
+                {courseData && <CourseOutputView courseData={courseData} expandedModules={expandedModules} toggleModule={toggleModule} />}
+                <div className="mt-6">
+                  <CompletedBanner onContinue={() => onNavigate("funnel")} />
                 </div>
               </>
             ) : courseData ? (
