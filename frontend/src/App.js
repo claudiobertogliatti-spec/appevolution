@@ -55,6 +55,7 @@ import ContractSigning from "./components/ContractSigning";
 import { Toaster } from "sonner";
 import { ServiziExtra } from "./components/partner/ServiziExtra";
 import { AcceleraCrescitaPage } from "./components/partner/AcceleraCrescitaPage";
+import { GrowthSystemPage } from "./components/partner/GrowthSystemPage";
 import { VideoEditorAndrea } from "./components/partner/VideoEditorAndrea";
 import { LegalPagesGenerator } from "./components/partner/LegalPagesGenerator";
 import { ContrattoPartnership } from "./components/partner/ContrattoPartnership";
@@ -1847,6 +1848,9 @@ export default function App() {
             {nav==="acc-costanza"&&<AcceleraCrescitaPage partner={demoPartner} categoryId="costanza" onNavigate={setNav}/>}
             {nav==="acc-monetizzazione"&&<AcceleraCrescitaPage partner={demoPartner} categoryId="monetizzazione" onNavigate={setNav}/>}
             {nav==="acc-direzione"&&<AcceleraCrescitaPage partner={demoPartner} categoryId="direzione" onNavigate={setNav}/>}
+            
+            {/* CRESCITA CONTINUA */}
+            {nav==="growth-system"&&<GrowthSystemPage partner={demoPartner}/>}
             
             {/* ALTRI */}
             {nav==="risorse"&&<PartnerResources/>}
