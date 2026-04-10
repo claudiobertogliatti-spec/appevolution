@@ -18,15 +18,16 @@ Applicazione di gestione aziendale basata su AI per l'ecosistema Evolution PRO. 
 ## Cosa è stato implementato
 
 ### Sessione corrente (10 Aprile 2026)
-- **Fix React Hooks bug in CourseOutputView** (DONE): useState spostato prima del return condizionale
-- **Editing manuale moduli/lezioni VideocorsoPage** (DONE): sia vista admin che partner, con bottone "Modifica struttura", salvataggio endpoint backend
-- **LancioPage AI-driven** (DONE): Completamente riscritto con generazione AI automatica di:
-  - Calendario contenuti 30 giorni (tipo, obiettivo, titolo, CTA per ogni giorno)
-  - Contenuti pronti: 4+ Reel (hook, script, CTA), 3+ Carousel (slide, CTA), 3+ Post (testo completo, CTA)
-  - Piano Ads Meta (obiettivo, target, budget, 3 creatività, 3 copy ads)
-  - Webinar mensile (titolo, promessa, scaletta 6+ momenti, CTA vendita)
-  - Promozione webinar (3 social, 2 ads, 3 email)
-  - UI con tab system e filtri settimana per il calendario
+- **Fix React Hooks bug in CourseOutputView** (DONE)
+- **Editing manuale moduli/lezioni VideocorsoPage** (DONE): sia vista admin che partner
+- **LancioPage AI-driven** (DONE): Calendario 30gg, Contenuti Pronti, Piano Ads Meta, Webinar, Promozione Webinar
+- **Sezione "Accelera la crescita"** (DONE): Sostituita "Vai oltre" nella sidebar con 4 categorie:
+  - Visibilità (Avatar PRO)
+  - Costanza (Gestione contenuti 3 mesi)
+  - Monetizzazione (Ebook/Audiobook/Audiolezioni - in arrivo)
+  - Direzione (Sessioni con Claudio e Antonella)
+  - Pagine semplici: problema → soluzione → beneficio → CTA
+  - Framing "strumenti per accelerare" (no "servizi extra")
 
 ### Sessioni precedenti
 - Posizionamento AI-driven (DONE)
@@ -42,10 +43,10 @@ Applicazione di gestione aziendale basata su AI per l'ecosistema Evolution PRO. 
 
 ## Endpoint API Chiave
 
-### Lancio (NUOVO)
-- `POST /api/partner-journey/lancio/generate-plan` (partner_id) - genera piano completo via LLM
+### Lancio
+- `POST /api/partner-journey/lancio/generate-plan` - genera piano completo via LLM
 - `POST /api/partner-journey/lancio/approve-plan?partner_id=X` - approva piano
-- `GET /api/partner-journey/lancio/{partner_id}` - stato + plan_data completo
+- `GET /api/partner-journey/lancio/{partner_id}` - stato + plan_data
 
 ### Posizionamento
 - `POST /api/partner-journey/posizionamento/save-inputs`
@@ -61,25 +62,9 @@ Applicazione di gestione aziendale basata su AI per l'ecosistema Evolution PRO. 
 - `POST /api/partner-journey/videocorso/update-course` (modifica manuale)
 - `POST /api/partner-journey/videocorso/approve-course?partner_id=X`
 
-### Funnel (Academy Blueprint)
+### Funnel
 - `POST /api/partner-journey/funnel/generate` (bio_partner, garanzia)
 - `POST /api/partner-journey/funnel/approve-blueprint?partner_id=X`
-
-## DB Schema (partner_lancio)
-```json
-{
-  "partner_id": "2",
-  "plan_data": {
-    "calendario_30g": [{giorno, tipo, obiettivo, titolo, cta}],
-    "contenuti_pronti": {reel: [...], carousel: [...], post: [...]},
-    "piano_ads": {obiettivo_campagna, pubblico_target, budget_consigliato, creativita, copy_ads},
-    "webinar": {titolo, promessa, scaletta, cta_vendita},
-    "promozione_webinar": {contenuti_social, ads_webinar, email_sequence}
-  },
-  "plan_generated": true,
-  "plan_approved": true
-}
-```
 
 ## Backlog Prioritizzato
 
@@ -101,7 +86,6 @@ Applicazione di gestione aziendale basata su AI per l'ecosistema Evolution PRO. 
 
 ## Note Tecniche
 - Usare SOLO `emergentintegrations` da pip, mai shim locali
-- Il LancioPage genera contenuti massicci (~3 min LLM) - gestire timeout frontend
-- Default LLM: gpt-4o via Emergent Proxy
 - `UserMessage(text=...)` non `content=`
 - `send_message()` ritorna stringa, non oggetto con `.content`
+- Default LLM: gpt-4o via Emergent Proxy
