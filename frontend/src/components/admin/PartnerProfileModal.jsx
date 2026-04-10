@@ -166,7 +166,7 @@ export function PartnerProfileModal({ partner, onClose, onUpdate }) {
         email: partner.email || "",
         phone: partner.phone || "",
         contract_type: partner.contract_type || "standard",
-        contract_start: partner.contract || new Date().toISOString().split("T")[0],
+        contract_start: (typeof partner.contract === 'object' ? partner.contract?.signed_at : partner.contract) || new Date().toISOString().split("T")[0],
         contract_end: calculateContractEnd(partner.contract, "standard"),
         company: partner.company || "",
         vat_number: partner.vat_number || "",
@@ -180,7 +180,11 @@ export function PartnerProfileModal({ partner, onClose, onUpdate }) {
 
   const calculateContractEnd = (startDate, contractType) => {
     if (!startDate) return null;
-    const start = new Date(startDate);
+    // Handle case where contract is an object with signed_at
+    const dateStr = typeof startDate === 'object' ? startDate?.signed_at : startDate;
+    if (!dateStr) return null;
+    const start = new Date(dateStr);
+    if (isNaN(start.getTime())) return null; // Invalid date
     const months = CONTRACT_TYPES[contractType]?.duration || 12;
     start.setMonth(start.getMonth() + months);
     return start.toISOString().split("T")[0];
@@ -243,7 +247,7 @@ Nicchia: ${profileData?.niche || partner.niche}
 
 📄 CONTRATTO
 Tipo: ${CONTRACT_TYPES[profileData?.contract_type]?.label || "Standard"}
-Data Inizio: ${profileData?.contract_start || partner.contract}
+Data Inizio: ${profileData?.contract_start || (typeof partner.contract === 'object' ? (partner.contract?.signed_at ? new Date(partner.contract.signed_at).toLocaleDateString('it-IT') : '—') : partner.contract) || '—'}
 Data Fine: ${profileData?.contract_end || "—"}
 
 📊 STATO

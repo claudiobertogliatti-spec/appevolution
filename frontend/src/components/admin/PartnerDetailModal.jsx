@@ -3,9 +3,10 @@ import {
   X, User, FileText, CreditCard, Save, Plus, 
   Youtube, Mail, Tag, Loader2, CheckCircle, AlertCircle,
   Trash2, ExternalLink, Edit3, Upload, Film, MessageSquare,
-  Calendar, AlertTriangle, Eye, Shield, Image, XCircle
+  Calendar, AlertTriangle, Eye, Shield, Image, XCircle, Settings
 } from "lucide-react";
 import axios from "axios";
+import { ContractParamsModal } from "./ContractParamsModal";
 
 const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it")) ? "" : (process.env.REACT_APP_BACKEND_URL || "");
 
@@ -122,6 +123,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
   const [error, setError] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showContractParams, setShowContractParams] = useState(false);
   
   // Form state for profile tab
   const [formData, setFormData] = useState({
@@ -740,6 +742,16 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                       />
                       <span className="text-sm font-medium text-gray-700">Contratto Firmato</span>
                     </label>
+
+                    {/* Personalizza Contratto Button */}
+                    <button
+                      data-testid="btn-personalizza-contratto"
+                      onClick={() => setShowContractParams(true)}
+                      className="flex items-center gap-2 p-3 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition-colors"
+                    >
+                      <Settings className="w-4 h-4 text-amber-400" />
+                      Personalizza Contratto
+                    </button>
                     
                     <label className="flex items-center gap-3 p-3 rounded-lg bg-white border cursor-pointer hover:bg-amber-50">
                       <input
@@ -1175,6 +1187,14 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
             </div>
           </div>
         </>
+      )}
+
+      {showContractParams && (
+        <ContractParamsModal
+          partnerId={partner?.id || ""}
+          partnerName={partner?.name || "Partner"}
+          onClose={() => setShowContractParams(false)}
+        />
       )}
     </>
   );
