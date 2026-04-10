@@ -87,6 +87,9 @@ class FunnelPublishRequest(BaseModel):
 class LancioActivateRequest(BaseModel):
     partner_id: str
 
+class LancioGenerateRequest(BaseModel):
+    partner_id: str
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # HELPER FUNCTIONS
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1525,6 +1528,249 @@ STATUS: PENDING"""
 # LANCIO ENDPOINTS
 # ═══════════════════════════════════════════════════════════════════════════════
 
+@router.post("/lancio/generate-plan")
+async def generate_lancio_plan(request: LancioGenerateRequest):
+    """Genera il piano di lancio completo AI-driven: calendario, contenuti, ads, webinar"""
+    partner = await get_partner_or_404(request.partner_id)
+    
+    # Raccogli tutto il contesto del partner
+    positioning = await db.partner_positioning.find_one({"partner_id": request.partner_id}, {"_id": 0})
+    masterclass = await db.partner_masterclass.find_one({"partner_id": request.partner_id}, {"_id": 0})
+    videocorso = await db.partner_videocorso.find_one({"partner_id": request.partner_id}, {"_id": 0})
+    funnel = await db.partner_funnel.find_one({"partner_id": request.partner_id}, {"_id": 0})
+
+    pos_data = positioning.get("generated_positioning", {}) if positioning else {}
+    mc_data = masterclass.get("answers", {}) if masterclass else {}
+    course = videocorso.get("course_data", {}) if videocorso else {}
+    blueprint = funnel.get("blueprint", {}) if funnel else {}
+    landing = blueprint.get("landing_sections", {}) if blueprint else {}
+
+    # Riassunto moduli
+    moduli_summary = ""
+    for m in course.get("moduli", []):
+        moduli_summary += f"- {m.get('titolo', 'N/D')}\n"
+
+    # Riassunto landing
+    landing_headline = landing.get("hero", {}).get("headline", "N/D")
+    landing_problema = landing.get("problema", {}).get("body", "N/D")
+
+    prompt = f"""Sei un esperto di marketing digitale, social media, advertising Meta e webinar per corsi online.
+Genera un PIANO DI LANCIO COMPLETO per il partner {partner.get('name')}.
+
+═══ DATI DEL PARTNER ═══
+
+POSIZIONAMENTO:
+- Target: {pos_data.get('target_ideale', 'N/D')}
+- Problema: {pos_data.get('problema_principale', 'N/D')}
+- Risultato: {pos_data.get('risultato_promesso', 'N/D')}
+- Differenziazione: {pos_data.get('differenziazione', 'N/D')}
+- Frase chiave: {pos_data.get('posizionamento_finale', 'N/D')}
+
+VIDEOCORSO:
+- Titolo: {course.get('titolo', 'N/D')}
+- Descrizione: {course.get('descrizione', 'N/D')}
+- Prezzo: {course.get('prezzo_base', 'N/D')}
+- Offerta lancio: {course.get('offerta_lancio', 'N/D')}
+- Moduli: {moduli_summary or 'N/D'}
+
+FUNNEL:
+- Headline landing: {landing_headline}
+- Problema landing: {landing_problema[:300] if landing_problema != 'N/D' else 'N/D'}
+
+MASTERCLASS:
+- Risultato: {mc_data.get('risultato_principale', 'N/D')}
+- Errore comune: {mc_data.get('errore_comune', 'N/D')}
+- Metodo: {mc_data.get('metodo_semplice', 'N/D')}
+
+═══ OUTPUT RICHIESTO ═══
+
+Genera un JSON con questa struttura ESATTA. Ogni contenuto deve essere COMPLETO e OPERATIVO (non segnaposto).
+
+{{
+  "calendario_30g": [
+    {{
+      "giorno": 1,
+      "tipo": "REEL",
+      "obiettivo": "attenzione",
+      "titolo": "titolo specifico e accattivante",
+      "cta": "CTA specifica che porta al funnel"
+    }}
+  ],
+  "contenuti_pronti": {{
+    "reel": [
+      {{
+        "titolo": "titolo reel",
+        "hook": "frase iniziale che cattura attenzione nei primi 2 secondi",
+        "script": "script completo del reel (60-90 secondi)",
+        "cta": "CTA specifica"
+      }}
+    ],
+    "carousel": [
+      {{
+        "titolo": "titolo carousel",
+        "slide": ["Slide 1: testo", "Slide 2: testo", "Slide 3: testo", "Slide 4: testo", "Slide 5: testo CTA"],
+        "cta": "CTA specifica"
+      }}
+    ],
+    "post": [
+      {{
+        "titolo": "titolo post",
+        "testo": "testo completo del post (200-400 parole) con formattazione, emoji e hashtag",
+        "cta": "CTA specifica"
+      }}
+    ]
+  }},
+  "piano_ads": {{
+    "obiettivo_campagna": "obiettivo specifico della campagna Meta",
+    "pubblico_target": "descrizione dettagliata del pubblico target per Meta Ads",
+    "budget_consigliato": "budget giornaliero/mensile consigliato con range",
+    "creativita": [
+      {{
+        "tipo": "tipo creativita (immagine/video/carousel)",
+        "descrizione": "descrizione dettagliata della creativita",
+        "headline": "headline dell'ad",
+        "testo_primario": "testo primario dell'ad completo"
+      }}
+    ],
+    "copy_ads": [
+      {{
+        "angolo": "angolo di comunicazione (dolore/aspirazione/prova sociale)",
+        "headline": "headline",
+        "testo_primario": "testo primario completo dell'ad",
+        "cta_button": "testo bottone CTA"
+      }}
+    ]
+  }},
+  "webinar": {{
+    "titolo": "titolo del webinar (accattivante e orientato al risultato)",
+    "promessa": "cosa il partecipante otterra alla fine del webinar",
+    "scaletta": [
+      {{
+        "momento": "Apertura (0-5 min)",
+        "contenuto": "descrizione dettagliata di cosa dire",
+        "obiettivo": "creare connessione"
+      }}
+    ],
+    "cta_vendita": "CTA di vendita specifica con offerta"
+  }},
+  "promozione_webinar": {{
+    "contenuti_social": [
+      {{
+        "tipo": "REEL/POST/STORY",
+        "titolo": "titolo contenuto",
+        "testo": "testo completo"
+      }}
+    ],
+    "ads_webinar": [
+      {{
+        "headline": "headline ad webinar",
+        "testo": "copy completo dell'ad",
+        "cta": "CTA specifica"
+      }}
+    ],
+    "email_sequence": [
+      {{
+        "timing": "quando inviare (es. 7 giorni prima)",
+        "subject": "oggetto email",
+        "body": "corpo completo dell'email"
+      }}
+    ]
+  }}
+}}
+
+REGOLE IMPORTANTI:
+- Il calendario deve avere esattamente 30 giorni con mix di REEL, CAROUSEL, POST e STORY
+- I contenuti pronti devono avere almeno 4 reel, 3 carousel e 3 post COMPLETI
+- Il piano ads deve avere almeno 3 creativita e 3 copy ads
+- La scaletta webinar deve avere almeno 6 momenti dettagliati
+- La promozione webinar deve avere almeno 3 contenuti social, 2 ads e 3 email
+- Tutto deve essere OPERATIVO: il partner copia e incolla senza modificare
+- Ogni CTA deve portare al funnel o al webinar
+- Lo scopo finale e': il funnel porta al webinar, il webinar vende il corso
+- Scrivi tutto in ITALIANO
+- Rispondi SOLO con il JSON, senza commenti o markdown"""
+
+    try:
+        chat = await get_llm_chat(
+            session_id=f"lancio-plan-{request.partner_id}-{uuid.uuid4()}",
+            system_message="Sei un esperto di digital marketing e lanci di corsi online. Generi piani di lancio operativi e completi. Rispondi SOLO in JSON valido."
+        )
+
+        response = await chat.send_message(UserMessage(text=prompt))
+        response_text = response.strip()
+
+        # Estrai JSON dalla risposta
+        if "```json" in response_text:
+            json_start = response_text.find("```json") + 7
+            json_end = response_text.find("```", json_start)
+            response_text = response_text[json_start:json_end].strip()
+        elif "```" in response_text:
+            json_start = response_text.find("```") + 3
+            json_end = response_text.find("```", json_start)
+            response_text = response_text[json_start:json_end].strip()
+
+        import re
+        response_text = re.sub(r',\s*([}\]])', r'\1', response_text)
+
+        plan_data = json.loads(response_text)
+
+        # Salva nel database
+        await db.partner_lancio.update_one(
+            {"partner_id": request.partner_id},
+            {
+                "$set": {
+                    "plan_data": plan_data,
+                    "plan_generated": True,
+                    "plan_generated_at": datetime.now(timezone.utc).isoformat(),
+                    "plan_approved": False,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                },
+                "$setOnInsert": {
+                    "partner_id": request.partner_id,
+                    "partner_name": partner.get("name"),
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+            },
+            upsert=True
+        )
+
+        return {
+            "success": True,
+            "plan_data": plan_data,
+            "message": "Piano di lancio generato!"
+        }
+
+    except json.JSONDecodeError as e:
+        logging.error(f"JSON parse error in lancio plan: {e}")
+        raise HTTPException(status_code=500, detail="Errore nel parsing del piano generato")
+    except Exception as e:
+        logging.error(f"Error generating lancio plan: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore nella generazione: {str(e)}")
+
+
+@router.post("/lancio/approve-plan")
+async def approve_lancio_plan(partner_id: str):
+    """Approva il piano di lancio generato"""
+    partner = await get_partner_or_404(partner_id)
+
+    lancio = await db.partner_lancio.find_one({"partner_id": partner_id}, {"_id": 0})
+    if not lancio or not lancio.get("plan_generated"):
+        raise HTTPException(status_code=400, detail="Genera prima il piano di lancio")
+
+    await db.partner_lancio.update_one(
+        {"partner_id": partner_id},
+        {"$set": {
+            "plan_approved": True,
+            "plan_approved_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+
+    return {
+        "success": True,
+        "message": "Piano di lancio approvato!"
+    }
+
+
 @router.get("/lancio/{partner_id}")
 async def get_lancio_status(partner_id: str):
     """Recupera lo stato di preparazione al lancio"""
@@ -1540,7 +1786,7 @@ async def get_lancio_status(partner_id: str):
         "masterclass_completata": masterclass.get("video_approved", False) if masterclass else False,
         "videocorso_completato": videocorso.get("completed", False) if videocorso else False,
         "funnel_approvato": funnel.get("published", False) if funnel else False,
-        "email_attive": funnel.get("published", False) if funnel else False,  # Assume email attive se funnel pubblicato
+        "email_attive": funnel.get("published", False) if funnel else False,
     }
     
     all_ready = all(system_checks.values())
@@ -1551,7 +1797,10 @@ async def get_lancio_status(partner_id: str):
         "system_checks": system_checks,
         "all_ready": all_ready,
         "is_launched": lancio.get("launched", False) if lancio else False,
-        "funnel_url": lancio.get("funnel_url") if lancio else None
+        "funnel_url": lancio.get("funnel_url") if lancio else None,
+        "plan_data": lancio.get("plan_data") if lancio else None,
+        "plan_generated": lancio.get("plan_generated", False) if lancio else False,
+        "plan_approved": lancio.get("plan_approved", False) if lancio else False
     }
 
 @router.post("/lancio/publish-funnel")
