@@ -323,11 +323,21 @@ export function VideocorsoPage({ partner, onNavigate, onComplete, isAdmin }) {
         {/* ADMIN VIEW */}
         {isAdmin && (
           <div className="space-y-4" data-testid="admin-panoramic-videocorso">
-            <div className="flex items-center gap-2 mb-2 px-1">
-              <Eye className="w-4 h-4" style={{ color: "#FBBF24" }} />
-              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "#FBBF24" }}>
-                Vista Admin — Videocorso Partner
-              </span>
+            <div className="flex items-center justify-between mb-2 px-1">
+              <div className="flex items-center gap-2">
+                <Eye className="w-4 h-4" style={{ color: "#FBBF24" }} />
+                <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "#FBBF24" }}>
+                  Vista Admin — Videocorso Partner
+                </span>
+              </div>
+              {courseData && !isEditing && (
+                <button onClick={() => { setIsEditing(true); setExpandedModules((courseData?.moduli || []).map((_, i) => i)); }}
+                  data-testid="admin-edit-structure-btn"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all hover:scale-105"
+                  style={{ background: "white", border: "1px solid #ECEDEF", color: "#5F6572" }}>
+                  <Edit3 className="w-3.5 h-3.5" /> Modifica struttura
+                </button>
+              )}
             </div>
             {/* Inputs */}
             <div className="bg-white rounded-xl border p-5" style={{ borderColor: "#ECEDEF" }}>
@@ -341,10 +351,37 @@ export function VideocorsoPage({ partner, onNavigate, onComplete, isAdmin }) {
             {/* Course data */}
             {courseData && (
               <>
-                <CourseOutputView courseData={courseData} expandedModules={expandedModules} toggleModule={toggleModule} />
+                {isEditing ? (
+                  <>
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "#F2C41820" }}>
+                        <Edit3 className="w-4 h-4" style={{ color: "#F2C418" }} />
+                      </div>
+                      <span className="text-sm font-bold" style={{ color: "#1E2128" }}>Modalità modifica attiva</span>
+                    </div>
+                    <CourseOutputView courseData={courseData} expandedModules={expandedModules} toggleModule={toggleModule}
+                      editable onAddLesson={handleAddLesson} onRemoveLesson={handleRemoveLesson}
+                      onAddModule={handleAddModule} onRemoveModule={handleRemoveModule} />
+                    <div className="flex gap-3 mt-4">
+                      <button onClick={handleSaveEdits} disabled={isSaving} data-testid="admin-save-edits-btn"
+                        className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-black text-sm transition-all hover:scale-105 disabled:opacity-50"
+                        style={{ background: "#F2C418", color: "#1E2128" }}>
+                        {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                        {isSaving ? "Salvataggio..." : "SALVA MODIFICHE"}
+                      </button>
+                      <button onClick={() => setIsEditing(false)} data-testid="admin-cancel-edit-btn"
+                        className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all hover:bg-gray-50"
+                        style={{ background: "white", border: "1px solid #ECEDEF", color: "#5F6572" }}>
+                        Annulla
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <CourseOutputView courseData={courseData} expandedModules={expandedModules} toggleModule={toggleModule} />
+                )}
               </>
             )}
-            {isCompleted && <CompletedBanner onContinue={() => onNavigate("funnel")} />}
+            {isCompleted && !isEditing && <CompletedBanner onContinue={() => onNavigate("funnel")} />}
           </div>
         )}
 
