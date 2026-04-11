@@ -1,11 +1,12 @@
 import { useEffect } from "react";
 
+const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it")) ? "" : (process.env.REACT_APP_BACKEND_URL || "");
+
 export function BenvenutoPage({ onNext }) {
   useEffect(() => {
-    // Traccia arrivo alla pagina di benvenuto
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("access_token") || localStorage.getItem("token");
     if (token) {
-      fetch("/api/cliente-analisi/track-event?event=benvenuto_view", {
+      fetch(`${API}/api/cliente-analisi/track-event?event=benvenuto_view`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       }).catch(() => {});

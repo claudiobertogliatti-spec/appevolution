@@ -1724,7 +1724,7 @@ async def get_cliente_analisi_status(user_id: str):
     }
 
 @api_router.post("/cliente-analisi/questionario-started")
-async def mark_questionario_started(credentials: HTTPAuthorizationCredentials = None):
+async def mark_questionario_started(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Segna questionario_started = True quando l'utente apre /questionario."""
     if not credentials:
         raise HTTPException(status_code=401, detail="Token non fornito")
@@ -2336,7 +2336,7 @@ async def get_stato_cliente(user_id: str, credentials: HTTPAuthorizationCredenti
 
 
 @api_router.post("/cliente-analisi/intro-seen")
-async def mark_intro_seen(credentials: HTTPAuthorizationCredentials = None):
+async def mark_intro_seen(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """
     Segna intro_questionario_seen = True per l'utente autenticato.
     Chiamato dalla CTA dell'IntroQuestionario (oltre al localStorage).
@@ -2361,7 +2361,7 @@ async def mark_intro_seen(credentials: HTTPAuthorizationCredentials = None):
 async def track_funnel_event(
     event: str,
     properties: Optional[Dict[str, Any]] = None,
-    credentials: HTTPAuthorizationCredentials = None
+    credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     """
     Traccia un evento funnel (intro_view, cta_click, intro_skipped, checkbox_click).
@@ -2388,7 +2388,7 @@ async def track_funnel_event(
 
 
 @api_router.get("/cliente-analisi/kpi/intro-conversion")
-async def get_intro_conversion_kpi(credentials: HTTPAuthorizationCredentials = None):
+async def get_intro_conversion_kpi(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """
     Calcola intro_conversion_rate = cta_click / intro_view.
     Richiede JWT admin.
@@ -3902,7 +3902,7 @@ async def get_onboarding_status():
     return {"partners": partners}
 
 @api_router.get("/auth/me")
-async def get_current_user(credentials: HTTPAuthorizationCredentials = None):
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Get current authenticated user"""
     if not credentials:
         raise HTTPException(status_code=401, detail="Token non fornito")
@@ -3933,7 +3933,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = None):
     )
 
 @api_router.post("/auth/verify")
-async def verify_token(credentials: HTTPAuthorizationCredentials = None):
+async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Verify if token is valid"""
     if not credentials:
         return {"valid": False, "error": "No token provided"}
