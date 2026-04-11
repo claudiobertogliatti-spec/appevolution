@@ -1894,6 +1894,26 @@ async def mark_call_prenotata(request: Request, credentials: HTTPAuthorizationCr
         {"id": token_data.user_id},
         {"$set": update_fields}
     )
+
+    # Notifica Telegram admin
+    try:
+        user = await db.users.find_one({"id": token_data.user_id}, {"_id": 0})
+        telegram_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+        admin_chat_id = os.environ.get('TELEGRAM_ADMIN_CHAT_ID')
+        if telegram_token and admin_chat_id and user:
+            nome = f"{user.get('nome', '')} {user.get('cognome', '')}".strip() or user.get('name', 'Cliente')
+            email = user.get('email', '')
+            data_info = f"\nData: {data_call}" if data_call else ""
+            ora_info = f"\nOra: {ora_call}" if ora_call else ""
+            message = f"📞 CALL PRENOTATA\n\n👤 {nome}\n📧 {email}{data_info}{ora_info}\n\n✅ Vai su Calendly per confermare"
+            async with httpx.AsyncClient() as client_http:
+                await client_http.post(
+                    f"https://api.telegram.org/bot{telegram_token}/sendMessage",
+                    json={"chat_id": admin_chat_id, "text": message}
+                )
+    except Exception as e:
+        logging.warning(f"Telegram call notification failed: {e}")
+
     return {"success": True, "data": data_call, "ora": ora_call}
 
 
