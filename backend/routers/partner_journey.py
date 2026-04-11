@@ -644,6 +644,28 @@ async def get_all_pending_distributions():
         {"status": "consegnato"}, {"_id": 0}
     ).sort("updated_at", -1).to_list(20)
 
+    # Arricchisce con systeme_subdomain dal profilo partner
+    all_dists = distributions + recent_delivered
+    partner_ids = list({d["partner_id"] for d in all_dists})
+    partners_map = {}
+    if partner_ids:
+        partner_records = await db.partners.find(
+            {"id": {"$in": partner_ids}}, {"id": 1, "systeme_subdomain": 1, "_id": 0}
+        ).to_list(200)
+        partners_map = {p["id"]: p.get("systeme_subdomain", "") for p in partner_records}
+
+    for d in distributions:
+        subdomain = partners_map.get(d["partner_id"], "")
+        d["systeme_subdomain"] = subdomain
+        if subdomain and not d.get("live_url"):
+            d["suggested_url"] = f"https://{subdomain}.systeme.io/webinar-gratuito"
+
+    for d in recent_delivered:
+        subdomain = partners_map.get(d["partner_id"], "")
+        d["systeme_subdomain"] = subdomain
+        if subdomain and not d.get("live_url"):
+            d["suggested_url"] = f"https://{subdomain}.systeme.io/webinar-gratuito"
+
     return {
         "success": True,
         "pending": distributions,
@@ -675,6 +697,7 @@ async def assign_funnel_distribution(request: FunnelDistributionRequest):
 
     dist_id = f"{request.partner_id}-{request.template_id}-{int(datetime.now(timezone.utc).timestamp())}"
 
+    subdomain = partner.get("systeme_subdomain", "")
     distribution = {
         "distribution_id": dist_id,
         "partner_id": request.partner_id,
@@ -684,6 +707,8 @@ async def assign_funnel_distribution(request: FunnelDistributionRequest):
         "share_link": template["share_link"],
         "status": "da_importare",
         "live_url": "",
+        "systeme_subdomain": subdomain,
+        "suggested_url": f"https://{subdomain}.systeme.io/webinar-gratuito" if subdomain else "",
         "notes": request.notes,
         "assigned_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat(),
