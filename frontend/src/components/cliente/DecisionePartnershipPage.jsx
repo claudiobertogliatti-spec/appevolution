@@ -544,49 +544,149 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
 
             {/* SEZIONE: Proposta Partnership */}
             {activeSection === "proposta" && (
-              <div className="rounded-2xl overflow-hidden" style={{ background: "#FFFFFF", border: "1px solid #ECEDEF" }}>
-                <div className="p-6" style={{ background: "linear-gradient(135deg, #F5C518, #C4990A)" }}>
-                  <h2 className="text-xl font-bold" style={{ color: "#1E2128" }}>Partnership Evolution PRO</h2>
-                  <p className="text-sm" style={{ color: "#1E212880" }}>Il programma completo per la tua Accademia Digitale</p>
-                </div>
-                
-                <div className="p-6">
-                  <div className="text-center mb-8">
-                    <div className="inline-block px-6 py-3 rounded-2xl mb-4" style={{ background: "#FFF8DC" }}>
-                      <span className="text-4xl font-black" style={{ color: "#1E2128" }}>€2.790</span>
-                      <span className="text-lg ml-2" style={{ color: "#5F6572" }}>una tantum</span>
-                    </div>
-                    <p className="text-sm" style={{ color: "#5F6572" }}>Pagamento unico, accesso completo per 12 mesi</p>
+              <div className="space-y-5">
+
+                {/* HERO — problema → soluzione */}
+                <div className="rounded-2xl p-7" style={{ background: "#1E2128" }}>
+                  <div
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest mb-4"
+                    style={{ background: "#F5C51820", color: "#F5C518" }}
+                  >
+                    <Sparkles className="w-3.5 h-3.5" /> Proposta riservata
                   </div>
-                  
-                  <div className="space-y-4 mb-8">
+                  <h2 className="text-2xl font-black mb-3 leading-tight" style={{ color: "#FFFFFF" }}>
+                    La tua competenza diventa un sistema che vende mentre dormi.
+                  </h2>
+                  <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.65)" }}>
+                    Hai la call alle spalle. Hai visto l'analisi. Sai che il tuo progetto ha potenziale.
+                    Adesso la domanda è una sola: lo costruisci da solo in 12-18 mesi — o lo costruiamo insieme in 90 giorni?
+                  </p>
+                </div>
+
+                {/* COSA SUCCEDE NEI PRIMI 90 GIORNI */}
+                <div className="rounded-2xl p-6" style={{ background: "#FFFFFF", border: "1px solid #ECEDEF" }}>
+                  <h3 className="font-black mb-5" style={{ color: "#1E2128", fontSize: 16 }}>
+                    Cosa succede dal giorno 1
+                  </h3>
+                  <div className="space-y-3">
                     {[
-                      "Posizionamento strategico personalizzato",
-                      "Creazione Masterclass di vendita",
-                      "Sviluppo Videocorso completo (struttura + revisione)",
-                      "Costruzione Funnel automatizzato",
-                      "Sequenza email di vendita (6 email)",
-                      "Supporto strategico per 12 mesi",
-                      "Accesso alla piattaforma Evolution PRO OS",
-                      "Call di allineamento mensili",
-                      "Community partner esclusiva"
-                    ].map((item, idx) => (
-                      <div key={idx} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "#F0FDF4" }}>
-                        <CheckCircle className="w-5 h-5 flex-shrink-0" style={{ color: "#22C55E" }} />
-                        <span className="text-sm font-medium" style={{ color: "#166534" }}>{item}</span>
+                      { giorni: "Entro 48h", titolo: "Posizionamento strategico", desc: "Definiamo nichia, cliente ideale e promessa di risultato. Il tuo messaggio diventa preciso e vendibile.", color: "#F5C518" },
+                      { giorni: "Entro 7 giorni", titolo: "Funnel live su Systeme.io", desc: "Landing page, webinar e sequenza email attivi sul tuo subdomain dedicato. Non copy da approvare — URL funzionante.", color: "#3B82F6" },
+                      { giorni: "Entro 14 giorni", titolo: "Script masterclass pronto", desc: "Il contenuto che presenti nel webinar è scritto, testato e ottimizzato per la conversione.", color: "#8B5CF6" },
+                      { giorni: "Entro 30 giorni", titolo: "Prima campagna lanciata", desc: "Copy ads, targeting e piano lancio. Il tuo sistema inizia a generare traffico qualificato.", color: "#10B981" },
+                    ].map((step, idx) => (
+                      <div key={idx} className="flex gap-4 p-4 rounded-xl" style={{ background: "#FAFAF7", border: "1px solid #ECEDEF" }}>
+                        <div className="flex-shrink-0">
+                          <div
+                            className="w-2.5 h-2.5 rounded-full mt-1.5"
+                            style={{ background: step.color }}
+                          />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs font-black px-2 py-0.5 rounded-full" style={{ background: `${step.color}20`, color: step.color }}>
+                              {step.giorni}
+                            </span>
+                            <span className="font-bold text-sm" style={{ color: "#1E2128" }}>{step.titolo}</span>
+                          </div>
+                          <p className="text-xs leading-relaxed" style={{ color: "#5F6572" }}>{step.desc}</p>
+                        </div>
                       </div>
                     ))}
                   </div>
-                  
-                  <button
-                    onClick={() => setActiveSection("contratto")}
-                    className="w-full py-4 rounded-xl font-bold text-lg transition-all hover:bg-[#D0D0D0] hover:scale-[1.02]"
-                    style={{ background: "#E8E8E8", color: "#111111", boxShadow: "0 2px 8px rgba(0,0,0,0.10)" }}
-                    data-testid="btn-procedi-contratto"
-                  >
-                    Procedi con il Contratto <ArrowRight className="inline w-5 h-5 ml-2" />
-                  </button>
                 </div>
+
+                {/* COSA INCLUDE */}
+                <div className="rounded-2xl p-6" style={{ background: "#FFFFFF", border: "1px solid #ECEDEF" }}>
+                  <h3 className="font-black mb-4" style={{ color: "#1E2128", fontSize: 16 }}>
+                    Tutto incluso nella partnership
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {[
+                      "Posizionamento strategico personalizzato",
+                      "Masterclass di vendita (script + struttura)",
+                      "Videocorso completo (struttura + revisione contenuti)",
+                      "Funnel automatizzato su Systeme.io",
+                      "Sequenza email di vendita (6 email)",
+                      "Copy per ads Meta e Google",
+                      "Supporto strategico per 12 mesi",
+                      "Piattaforma Evolution PRO OS",
+                      "Call di allineamento mensili",
+                      "Community partner esclusiva",
+                    ].map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-2.5 p-2.5 rounded-lg" style={{ background: "#F0FDF4" }}>
+                        <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color: "#22C55E" }} />
+                        <span className="text-xs font-medium" style={{ color: "#166534" }}>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* GARANZIA */}
+                <div className="rounded-2xl p-6" style={{ background: "#FFF8DC", border: "2px solid #F5C518" }}>
+                  <div className="flex items-start gap-4">
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: "#F5C518" }}
+                    >
+                      <Shield className="w-6 h-6" style={{ color: "#1E2128" }} />
+                    </div>
+                    <div>
+                      <h3 className="font-black mb-1" style={{ color: "#1E2128", fontSize: 16 }}>
+                        Garanzia Evolution PRO
+                      </h3>
+                      <p className="text-sm leading-relaxed" style={{ color: "#78590A" }}>
+                        Se entro <strong>30 giorni dall'attivazione</strong> il tuo funnel non è live su Systeme.io con landing page, webinar e sequenza email funzionanti, ti rimborsiamo integralmente. Nessuna domanda.
+                      </p>
+                      <p className="text-xs mt-2 font-bold" style={{ color: "#C4990A" }}>
+                        Questa è la nostra promessa operativa. Non un'eccezione — uno standard.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* URGENCY */}
+                <div className="rounded-2xl p-5 flex items-center gap-4" style={{ background: "#FEF2F2", border: "1px solid #FECACA" }}>
+                  <Clock className="w-5 h-5 flex-shrink-0" style={{ color: "#DC2626" }} />
+                  <div>
+                    <p className="text-sm font-bold" style={{ color: "#991B1B" }}>
+                      Accettiamo massimo 3 nuovi partner al mese
+                    </p>
+                    <p className="text-xs" style={{ color: "#B91C1C" }}>
+                      Per garantire il livello di attenzione che ogni progetto merita, limitiamo i nuovi ingressi. Questa proposta è valida per 7 giorni dalla call.
+                    </p>
+                  </div>
+                </div>
+
+                {/* PREZZO + CTA */}
+                <div className="rounded-2xl overflow-hidden" style={{ border: "2px solid #F5C518" }}>
+                  <div className="p-6 text-center" style={{ background: "#1E2128" }}>
+                    <p className="text-sm font-bold uppercase tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.5)" }}>
+                      Investimento Partnership
+                    </p>
+                    <div className="mb-1">
+                      <span className="text-5xl font-black" style={{ color: "#F5C518" }}>€2.790</span>
+                      <span className="text-lg ml-2" style={{ color: "rgba(255,255,255,0.5)" }}>una tantum</span>
+                    </div>
+                    <p className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>
+                      Pagamento unico · Accesso completo 12 mesi · Garanzia rimborso 30 giorni
+                    </p>
+                  </div>
+                  <div className="p-5" style={{ background: "#FAFAF7" }}>
+                    <button
+                      onClick={() => setActiveSection("contratto")}
+                      className="w-full py-4 rounded-xl font-black text-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      style={{ background: "#F5C518", color: "#1E2128", boxShadow: "0 4px 20px rgba(245,197,24,0.35)" }}
+                      data-testid="btn-procedi-contratto"
+                    >
+                      Attiva la Partnership <ArrowRight className="inline w-5 h-5 ml-2" />
+                    </button>
+                    <p className="text-xs text-center mt-3" style={{ color: "#9CA3AF" }}>
+                      Il prossimo step è la lettura e firma del contratto — ci vogliono 5 minuti.
+                    </p>
+                  </div>
+                </div>
+
               </div>
             )}
 
@@ -738,8 +838,8 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                         <button
                           onClick={handleAttivaPartnership}
                           disabled={activatingPartnership}
-                          className="px-8 py-4 rounded-xl font-bold text-lg transition-all hover:bg-[#D0D0D0] hover:scale-[1.02] disabled:opacity-50"
-                          style={{ background: "#E8E8E8", color: "#111111", boxShadow: "0 2px 8px rgba(0,0,0,0.10)" }}
+                          className="px-8 py-4 rounded-xl font-black text-lg transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                          style={{ background: "#F5C518", color: "#1E2128", boxShadow: "0 4px 20px rgba(245,197,24,0.35)" }}
                           data-testid="btn-attiva-partnership"
                         >
                           {activatingPartnership ? (
@@ -764,14 +864,14 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                         <button
                           onClick={handlePagamentoStripe}
                           disabled={creatingPayment || !data?.contratto_firmato}
-                          className="w-full py-4 rounded-xl font-bold text-lg transition-all hover:bg-[#D0D0D0] hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
-                          style={{ background: "#E8E8E8", color: "#111111", boxShadow: "0 2px 8px rgba(0,0,0,0.10)" }}
+                          className="w-full py-4 rounded-xl font-black text-lg transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{ background: "#F5C518", color: "#1E2128", boxShadow: "0 4px 20px rgba(245,197,24,0.35)" }}
                           data-testid="btn-paga-stripe"
                         >
                           {creatingPayment ? (
                             <><Loader2 className="inline w-5 h-5 animate-spin mr-2" /> Preparazione...</>
                           ) : (
-                            <>Paga €2.790 con Carta</>
+                            <>Paga €2.790 con Carta <ArrowRight className="inline w-5 h-5 ml-1" /></>
                           )}
                         </button>
                         {!data?.contratto_firmato && (
