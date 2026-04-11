@@ -82,9 +82,24 @@ function ContractChat({ userId }) {
       </div>
       <div className="flex-1 overflow-y-auto p-3 space-y-2 min-h-[200px]" style={{ background: C.bg }}>
         {messages.length === 0 && (
-          <div className="text-center py-6">
-            <MessageCircle className="w-8 h-8 mx-auto mb-2" style={{ color: C.border }} />
-            <p className="text-sm" style={{ color: C.muted }}>Hai dubbi su un articolo del contratto? Chiedimi qui.</p>
+          <div className="py-3">
+            <p className="text-xs text-center mb-3" style={{ color: C.muted }}>Domande frequenti — clicca per una risposta immediata:</p>
+            <div className="flex flex-col gap-1.5">
+              {[
+                "Cos'è una LLC americana?",
+                "Perché il pagamento va su Revolut?",
+                "Cosa significa reverse charge?",
+                "Posso avere un rimborso?",
+                "In cosa consiste l'esclusiva?",
+                "Pago €2.790 E il 10%?",
+              ].map(q => (
+                <button key={q} onClick={() => { setInput(q); }}
+                  className="text-left text-xs px-3 py-2 rounded-xl transition-all hover:opacity-80"
+                  style={{ background: C.white, border: `1px solid ${C.border}`, color: C.dark }}>
+                  {q}
+                </button>
+              ))}
+            </div>
           </div>
         )}
         {messages.map((m, i) => (
@@ -149,9 +164,24 @@ function InlineChat({ userId, token }) {
     <>
       <div className="overflow-y-auto p-3 space-y-2" style={{ background: C.bg, minHeight: 220, maxHeight: 400 }}>
         {messages.length === 0 && (
-          <div className="text-center py-6">
-            <MessageCircle className="w-7 h-7 mx-auto mb-2" style={{ color: C.border }} />
-            <p className="text-xs" style={{ color: C.muted }}>Hai dubbi su un articolo?<br />Chiedimi qui.</p>
+          <div className="py-2">
+            <p className="text-xs text-center mb-2" style={{ color: C.muted }}>Domande frequenti:</p>
+            <div className="flex flex-col gap-1.5">
+              {[
+                "Cos'è una LLC americana?",
+                "Perché il pagamento va su Revolut?",
+                "Cosa significa reverse charge?",
+                "Posso avere un rimborso?",
+                "In cosa consiste l'esclusiva?",
+                "Pago €2.790 E il 10%?",
+              ].map(q => (
+                <button key={q} onClick={() => setInput(q)}
+                  className="text-left text-xs px-2.5 py-1.5 rounded-lg transition-all hover:opacity-80"
+                  style={{ background: C.white, border: `1px solid ${C.border}`, color: C.dark }}>
+                  {q}
+                </button>
+              ))}
+            </div>
           </div>
         )}
         {messages.map((m, i) => (
