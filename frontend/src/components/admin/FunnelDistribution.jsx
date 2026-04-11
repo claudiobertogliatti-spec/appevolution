@@ -85,7 +85,7 @@ function StatusStepper({ currentStatus }) {
 
 function DistributionCard({ dist, onUpdateStatus }) {
   const [expanded, setExpanded] = useState(false);
-  const [liveUrl, setLiveUrl] = useState(dist.live_url || "");
+  const [liveUrl, setLiveUrl] = useState(dist.live_url || dist.suggested_url || "");
   const [notes, setNotes] = useState("");
   const [updating, setUpdating] = useState(false);
 
@@ -169,15 +169,28 @@ function DistributionCard({ dist, onUpdateStatus }) {
               <div className="space-y-2 mt-3">
                 {/* URL input when moving to "live" or "consegnato" */}
                 {(dist.status === "personalizzato" || dist.status === "live") && (
-                  <input
-                    type="text"
-                    value={liveUrl}
-                    onChange={(e) => setLiveUrl(e.target.value)}
-                    placeholder="URL Systeme.io del partner (es: partner.systeme.io/webinar)"
-                    className="w-full px-4 py-3 rounded-xl text-sm"
-                    style={{ background: "#FAFAF7", border: "1px solid #ECEDEF", color: "#1E2128" }}
-                    data-testid="live-url-input"
-                  />
+                  <div>
+                    {dist.systeme_subdomain && !dist.live_url && (
+                      <p className="text-[10px] font-bold mb-1.5 flex items-center gap-1"
+                        style={{ color: "#15803D" }}>
+                        <Globe className="w-3 h-3" />
+                        URL pre-generato da subdomain — verifica e conferma
+                      </p>
+                    )}
+                    <input
+                      type="text"
+                      value={liveUrl}
+                      onChange={(e) => setLiveUrl(e.target.value)}
+                      placeholder="URL Systeme.io del partner (es: partner.systeme.io/webinar)"
+                      className="w-full px-4 py-3 rounded-xl text-sm font-mono"
+                      style={{
+                        background: (dist.systeme_subdomain && !dist.live_url) ? "#F0FDF4" : "#FAFAF7",
+                        border: `1px solid ${(dist.systeme_subdomain && !dist.live_url) ? "#BBF7D0" : "#ECEDEF"}`,
+                        color: "#1E2128"
+                      }}
+                      data-testid="live-url-input"
+                    />
+                  </div>
                 )}
 
                 <input
