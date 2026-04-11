@@ -1651,6 +1651,14 @@ async def verify_payment_partnership(user_id: str):
                     "pagato_at": datetime.now(timezone.utc).isoformat()
                 }}
             )
+            # Attiva partnership automaticamente se contratto già firmato
+            try:
+                import httpx
+                backend_url = os.environ.get("BACKEND_URL", "http://localhost:8001")
+                async with httpx.AsyncClient(timeout=10) as hc:
+                    await hc.post(f"{backend_url}/api/flusso-analisi/attiva-partnership/{user_id}")
+            except Exception as ae:
+                logging.warning(f"[VERIFY_PAYMENT] attiva-partnership call failed (non critico): {ae}")
             return {"success": True, "paid": True}
 
         return {"success": True, "paid": False}
