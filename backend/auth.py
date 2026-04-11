@@ -59,11 +59,18 @@ class UserResponse(BaseModel):
     admin_type: Optional[str] = None
     # Campi per cliente_analisi
     user_type: Optional[str] = None
-    questionario_compilato: Optional[bool] = None
-    pagamento_analisi: Optional[bool] = None
-    analisi_generata: Optional[bool] = None
     nome: Optional[str] = None
     cognome: Optional[str] = None
+    # Stato flusso cliente (tutti necessari per clienteFlowGuard)
+    questionario_started: Optional[bool] = None
+    questionario_compilato: Optional[bool] = None
+    questionario_completed: Optional[bool] = None
+    intro_questionario_seen: Optional[bool] = None
+    pagamento_analisi: Optional[bool] = None
+    pagamento_effettuato: Optional[bool] = None
+    call_prenotata: Optional[bool] = None
+    cliente_id: Optional[str] = None
+    analisi_generata: Optional[bool] = None
 
 
 class Token(BaseModel):
@@ -236,13 +243,20 @@ class AuthService:
                 partner_id=user.get("partner_id"),
                 phase=user.get("phase"),
                 admin_type=user.get("admin_type"),
-                # Campi cliente_analisi
+                # Campi cliente_analisi — base
                 user_type=user.get("user_type"),
-                questionario_compilato=user.get("questionario_compilato"),
-                pagamento_analisi=user.get("pagamento_analisi"),
-                analisi_generata=user.get("analisi_generata"),
                 nome=user.get("nome"),
-                cognome=user.get("cognome")
+                cognome=user.get("cognome"),
+                # Stato flusso cliente (necessari per clienteFlowGuard dopo re-login)
+                questionario_started=user.get("questionario_started"),
+                questionario_compilato=user.get("questionario_compilato"),
+                questionario_completed=user.get("questionario_completed", user.get("questionario_compilato")),
+                intro_questionario_seen=user.get("intro_questionario_seen"),
+                pagamento_analisi=user.get("pagamento_analisi"),
+                pagamento_effettuato=user.get("pagamento_effettuato", user.get("pagamento_analisi")),
+                call_prenotata=user.get("call_prenotata"),
+                cliente_id=user.get("cliente_id"),
+                analisi_generata=user.get("analisi_generata"),
             )
         )
     

@@ -28,11 +28,12 @@ export function CallBookingPage({ user, onConfirm }) {
   const handleConferma = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("access_token") || localStorage.getItem("token");
       if (token) {
         await fetch(`${API}/api/cliente-analisi/call-prenotata`, {
           method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({})
         });
       }
       // Aggiorna stato locale
