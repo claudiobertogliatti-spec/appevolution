@@ -2254,6 +2254,28 @@ async def approve_lancio_plan(partner_id: str):
     }
 
 
+@router.get("/lancio/email-followup/{partner_id}")
+async def get_lancio_email_followup(partner_id: str):
+    """Restituisce le 6 email follow-up del piano di lancio con subject e body pronti da copiare"""
+    await get_partner_or_404(partner_id)
+    lancio = await db.partner_lancio.find_one({"partner_id": partner_id}, {"_id": 0})
+
+    if not lancio or not lancio.get("plan_generated"):
+        return {"success": True, "emails": [], "plan_generated": False}
+
+    plan_data = lancio.get("plan_data", {})
+    # Supporta sia email_followup (nuovo formato lancio) che email_sequence (formato blueprint)
+    emails = plan_data.get("email_followup") or plan_data.get("email_sequence") or []
+
+    return {
+        "success": True,
+        "emails": emails,
+        "plan_generated": True,
+        "plan_approved": lancio.get("plan_approved", False),
+        "generated_at": lancio.get("plan_generated_at")
+    }
+
+
 @router.get("/lancio/{partner_id}")
 async def get_lancio_status(partner_id: str):
     """Recupera lo stato di preparazione al lancio"""
