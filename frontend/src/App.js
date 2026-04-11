@@ -868,8 +868,8 @@ export default function App() {
             method: "POST", headers: { "Content-Type": "application/json" }
           });
           const data = await res.json();
-          if (data.success && data.paid) {
-            const updated = { ...currentUser, pagamento_analisi: true, pagamento_effettuato: true, cliente_id: data.cliente_id };
+          if (data.success && (data.paid || data.already_paid)) {
+            const updated = { ...currentUser, pagamento_analisi: true, pagamento_effettuato: true, ...(data.cliente_id ? { cliente_id: data.cliente_id } : {}) };
             setCurrentUser(updated);
             localStorage.setItem("user", JSON.stringify(updated));
             window.location.href = "/prenota-call";
