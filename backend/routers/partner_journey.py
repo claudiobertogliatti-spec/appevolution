@@ -2531,7 +2531,7 @@ async def get_ottimizzazione(partner_id: str):
         "partner_id": partner_id,
         "partner_name": partner.get("name"),
         "kpi": {
-            "visite": kpi_data.get("lead_generati", 0) * 5,  # stima visite
+            "visite": kpi_data.get("visite_raw", kpi_data.get("lead_generati", 0)),
             "visite_trend": 0,
             "contatti": kpi_data.get("lead_generati", 0),
             "contatti_trend": 0,
@@ -2539,6 +2539,8 @@ async def get_ottimizzazione(partner_id: str):
             "vendite_trend": 0,
             "conversione": kpi_data.get("conversione_funnel", 0),
             "conversione_trend": 0,
+            "fonte": kpi_data.get("fonte", "nessuna"),
+            "aggiornato_at": kpi_data.get("aggiornato_at"),
         },
         "ultimo_report": ottimizzazione.get("ultimo_report") if ottimizzazione else None,
         "azioni": azioni,
@@ -2556,65 +2558,92 @@ async def get_ottimizzazione(partner_id: str):
 
 
 async def get_partner_kpi_from_systeme(partner_id: str, partner: dict) -> dict:
-    """Helper per recuperare KPI da Systeme.io"""
-    try:
-        # Import del client Systeme.io
-        from systeme_mcp_client import get_accademia_revenue, get_contact_by_email, is_configured
-        
-        if not is_configured():
-            logging.warning("[OTTIMIZZAZIONE] Systeme.io non configurato - uso dati mock")
-            return {
-                "studenti_totali": 0,
-                "vendite_mese": 0,
-                "lead_generati": 0,
-                "conversione_funnel": 0,
-                "fatturato_totale": 0,
-                "recensioni": 0,
-                "demo_mode": True
-            }
-        
-        # Recupera dati corso/accademia partner
-        course_id = partner.get("systeme_course_id")
-        if course_id:
-            revenue_data = get_accademia_revenue(course_id)
-            studenti = revenue_data.get("students", 0)
-            fatturato = revenue_data.get("revenue", 0)
-        else:
-            studenti = 0
-            fatturato = 0
-        
-        # Recupera lead (contatti con tag specifico)
-        email = partner.get("email")
-        if email:
-            contact = get_contact_by_email(email)
-            # In una implementazione reale, conteresti i lead dal funnel
-            lead_count = 0  # Placeholder
-        else:
-            lead_count = 0
-        
-        # Calcola conversione
-        conversione = round((studenti / lead_count * 100), 1) if lead_count > 0 else 0
-        
+    """
+    Recupera KPI del partner con questa priorità:
+    1. KPI manuali salvati dall'admin (fonte principale finché non c'è Systeme configurato)
+    2. Dati interni aggregati (visite da tracking pixel, contatti da systeme_contacts)
+    3. Systeme.io API (se configurata per questo partner)
+    """
+    # ── 1. KPI manuali (admin li aggiorna dal modal) ──────────────────────────
+    kpi_manual = partner.get("kpi_manual")
+    if kpi_manual and any(kpi_manual.get(k, 0) > 0 for k in ["visite", "contatti", "vendite"]):
         return {
-            "studenti_totali": studenti,
-            "vendite_mese": fatturato,  # Semplificato
-            "lead_generati": lead_count,
-            "conversione_funnel": conversione,
-            "fatturato_totale": fatturato,
-            "recensioni": 0  # TODO: implementare raccolta recensioni
-        }
-        
-    except Exception as e:
-        logging.error(f"Error getting KPI from Systeme: {e}")
-        return {
-            "studenti_totali": 0,
-            "vendite_mese": 0,
-            "lead_generati": 0,
-            "conversione_funnel": 0,
-            "fatturato_totale": 0,
+            "studenti_totali": int(kpi_manual.get("contatti", 0)),
+            "vendite_mese": float(kpi_manual.get("vendite", 0)),
+            "lead_generati": int(kpi_manual.get("contatti", 0)),
+            "conversione_funnel": float(kpi_manual.get("conversione", 0)),
+            "fatturato_totale": float(kpi_manual.get("vendite", 0)),
             "recensioni": 0,
-            "error": str(e)
+            "fonte": "manuale",
+            "aggiornato_at": kpi_manual.get("aggiornato_at", ""),
         }
+
+    # ── 2. Dati interni aggregati ─────────────────────────────────────────────
+    try:
+        # Visite dal tracking pixel
+        visite = await db.partner_visits.count_documents({"partner_id": str(partner_id)})
+
+        # Contatti: systeme_contacts filtrati per partner
+        contatti = await db.systeme_contacts.count_documents({"partner_id": str(partner_id)})
+        if contatti == 0:
+            # Fallback: contatti con subdomain tag
+            subdomain = partner.get("systeme_subdomain", "")
+            if subdomain:
+                contatti = await db.systeme_contacts.count_documents({"source_subdomain": subdomain})
+
+        # Vendite: da pagamenti Stripe relativi al corso del partner
+        # (semplificato: usa i dati già in DB se disponibili)
+        vendite_pipeline = await db.pagamenti_studenti.count_documents(
+            {"partner_id": str(partner_id), "stato": "completato"}
+        )
+
+        if visite > 0 or contatti > 0:
+            conversione = round((contatti / visite * 100), 1) if visite > 0 else 0
+            return {
+                "studenti_totali": contatti,
+                "vendite_mese": float(vendite_pipeline),
+                "lead_generati": contatti,
+                "conversione_funnel": conversione,
+                "fatturato_totale": float(vendite_pipeline),
+                "recensioni": 0,
+                "fonte": "interno",
+                "visite_raw": visite,
+            }
+    except Exception as e:
+        logging.warning(f"[KPI] Errore aggregazione interna: {e}")
+
+    # ── 3. Systeme.io API (se configurata) ────────────────────────────────────
+    try:
+        from systeme_mcp_client import get_accademia_revenue, is_configured
+        if is_configured():
+            course_id = partner.get("systeme_course_id")
+            if course_id:
+                revenue_data = get_accademia_revenue(course_id)
+                studenti = revenue_data.get("students", 0)
+                fatturato = revenue_data.get("revenue", 0)
+                return {
+                    "studenti_totali": studenti,
+                    "vendite_mese": fatturato,
+                    "lead_generati": studenti,
+                    "conversione_funnel": 0,
+                    "fatturato_totale": fatturato,
+                    "recensioni": 0,
+                    "fonte": "systeme",
+                }
+    except Exception as e:
+        logging.warning(f"[KPI] Systeme.io non disponibile: {e}")
+
+    # ── Fallback: tutti zero ma NON demo mode ─────────────────────────────────
+    return {
+        "studenti_totali": 0,
+        "vendite_mese": 0,
+        "lead_generati": 0,
+        "conversione_funnel": 0,
+        "fatturato_totale": 0,
+        "recensioni": 0,
+        "fonte": "nessuna",
+        "demo_mode": False,
+    }
 
 
 @router.post("/ottimizzazione/genera-report")

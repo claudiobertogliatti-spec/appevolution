@@ -4223,6 +4223,17 @@ async def update_partner(
         raw = raw.replace(".systeme.io", "").split("/")[0]
         update["systeme_subdomain"] = raw
 
+    # KPI manuali (admin aggiorna i numeri reali visti su Systeme)
+    if body.get("kpi_manual") is not None:
+        kpi = body["kpi_manual"]
+        update["kpi_manual"] = {
+            "visite": int(kpi.get("visite", 0)),
+            "contatti": int(kpi.get("contatti", 0)),
+            "vendite": float(kpi.get("vendite", 0)),
+            "conversione": float(kpi.get("conversione", 0)),
+            "aggiornato_at": datetime.now(timezone.utc).isoformat(),
+        }
+
     if update:
         update["updated_at"] = datetime.now(timezone.utc).isoformat()
         await db.partners.update_one({"id": partner_id}, {"$set": update})
@@ -14958,6 +14969,51 @@ async def notify_telegram_endpoint(request: TelegramNotifyRequest):
     except Exception as e:
         logger.error(f"Failed to send Telegram notification: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get("/p/{partner_id}/v")
+async def track_partner_visit(partner_id: str, request: Request):
+    """
+    Pixel di tracking visite per le landing page dei partner su Systeme.
+    Embed come: <img src="https://app.evolution-pro.it/api/p/{partner_id}/v" style="display:none">
+    Restituisce un GIF 1x1 trasparente e registra la visita.
+    """
+    from fastapi.responses import Response
+    # Registra visita (fire-and-forget, ignora errori)
+    try:
+        now = datetime.now(timezone.utc)
+        await db.partner_visits.insert_one({
+            "partner_id": partner_id,
+            "ts": now.isoformat(),
+            "ip": request.client.host if request.client else None,
+            "ua": request.headers.get("user-agent", "")[:200],
+            "ref": request.headers.get("referer", "")[:500],
+        })
+    except Exception:
+        pass
+    # GIF 1x1 trasparente
+    gif = b"\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00\x21\xf9\x04\x00\x00\x00\x00\x00\x2c\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02\x44\x01\x00\x3b"
+    return Response(content=gif, media_type="image/gif", headers={
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "Access-Control-Allow-Origin": "*",
+    })
+
+
+@api_router.get("/admin/partners/{partner_id}/kpi")
+async def get_partner_kpi_admin(partner_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """KPI correnti di un partner (usato dall'admin modal)."""
+    await verify_admin(credentials)
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner non trovato")
+    visite = await db.partner_visits.count_documents({"partner_id": partner_id})
+    contatti = await db.systeme_contacts.count_documents({"partner_id": partner_id})
+    kpi_manual = partner.get("kpi_manual", {})
+    return {
+        "success": True,
+        "kpi_manual": kpi_manual,
+        "kpi_interno": {"visite": visite, "contatti": contatti},
+    }
 
 
 @api_router.post("/admin/morning-briefing/trigger")
