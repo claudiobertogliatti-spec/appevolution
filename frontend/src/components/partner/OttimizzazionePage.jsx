@@ -466,6 +466,23 @@ export function OttimizzazionePage({ partner, onNavigate, isAdmin }) {
           </div>
         )}
 
+        {/* FONTE DATI */}
+        {kpiData?.fonte && (
+          <div className="flex items-center justify-between mb-4 px-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#9CA3AF" }}>
+              {kpiData.fonte === "manuale" && "Dati aggiornati dal team"}
+              {kpiData.fonte === "interno" && "Dati da tracking interno"}
+              {kpiData.fonte === "systeme" && "Dati da Systeme.io"}
+              {kpiData.fonte === "nessuna" && "Dati non ancora disponibili"}
+            </span>
+            {kpiData.aggiornato_at && (
+              <span className="text-[10px]" style={{ color: "#9CA3AF" }}>
+                agg. {new Date(kpiData.aggiornato_at).toLocaleDateString("it-IT")}
+              </span>
+            )}
+          </div>
+        )}
+
         {/* 1. STATO */}
         <BloccoStato kpi={kpiData} />
 

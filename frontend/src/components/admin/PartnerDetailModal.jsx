@@ -177,7 +177,8 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
         partnership_pagata: partner.partnership_pagata || false,
         contratto_firmato: partner.contratto_firmato || false,
         onboarding_completato: partner.onboarding_completato || false,
-        masterclass_pronta: partner.masterclass_pronta || false
+        masterclass_pronta: partner.masterclass_pronta || false,
+        kpi_manual: partner.kpi_manual || null,
       });
       setRevisionNotes(partner.revision_notes || "");
       fetchPayments();
@@ -288,7 +289,8 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
           partnership_pagata: formData.partnership_pagata,
           contratto_firmato: formData.contratto_firmato,
           onboarding_completato: formData.onboarding_completato,
-          masterclass_pronta: formData.masterclass_pronta
+          masterclass_pronta: formData.masterclass_pronta,
+          ...(formData.kpi_manual ? { kpi_manual: formData.kpi_manual } : {}),
         })
       });
       
@@ -620,6 +622,48 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                       <ExternalLink className="w-3 h-3" />
                       Verifica su Systeme.io
                     </a>
+                  )}
+                </div>
+
+                {/* KPI Manuali */}
+                <div className="rounded-xl p-4" style={{ background: "#FFFBEB", border: "1px solid #FDE68A" }}>
+                  <label className="block text-sm font-bold text-gray-800 mb-1">
+                    KPI Dashboard Partner
+                  </label>
+                  <p className="text-xs text-gray-500 mb-3">
+                    Inserisci i dati reali che vedi su Systeme. Il partner li vedrà nella dashboard di ottimizzazione.
+                    {formData.systeme_subdomain && (
+                      <span> · Pixel tracking: <code className="bg-white px-1 rounded text-xs">https://app.evolution-pro.it/api/p/{partner?.id}/v</code></span>
+                    )}
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { key: "visite", label: "Visite landing", placeholder: "es. 1240" },
+                      { key: "contatti", label: "Lead iscritti", placeholder: "es. 87" },
+                      { key: "vendite", label: "Vendite (€)", placeholder: "es. 1290" },
+                      { key: "conversione", label: "Conversione %", placeholder: "es. 7.0" },
+                    ].map(({ key, label, placeholder }) => (
+                      <div key={key}>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step={key === "conversione" || key === "vendite" ? "0.1" : "1"}
+                          value={formData.kpi_manual?.[key] ?? ""}
+                          onChange={e => setFormData({
+                            ...formData,
+                            kpi_manual: { ...(formData.kpi_manual || {}), [key]: e.target.value }
+                          })}
+                          placeholder={placeholder}
+                          className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  {formData.kpi_manual?.aggiornato_at && (
+                    <p className="text-xs text-gray-400 mt-2">
+                      Ultimo aggiornamento: {new Date(formData.kpi_manual.aggiornato_at).toLocaleString("it-IT")}
+                    </p>
                   )}
                 </div>
 
