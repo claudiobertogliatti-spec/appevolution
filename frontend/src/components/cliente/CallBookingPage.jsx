@@ -8,7 +8,7 @@ const API = (() => {
 
 const GCAL_URL =
   process.env.REACT_APP_GCAL_URL ||
-  "https://calendar.app.google/ip1MfDcfcrju1WFh6";
+  "https://calendar.app.google/SzqmVraMNxYvF9CF7";
 
 export function CallBookingPage({ user, onConfirm }) {
   const [confermata, setConfermata] = useState(user?.call_prenotata || false);

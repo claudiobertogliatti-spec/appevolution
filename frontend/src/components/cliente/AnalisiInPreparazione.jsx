@@ -257,7 +257,7 @@ export function AnalisiInPreparazione({ user, onLogout }) {
                 Durante la videocall presenteremo la tua Analisi Strategica personalizzata e valuteremo insieme se il tuo progetto è adatto per la partnership Evolution PRO.
               </p>
               <button
-                onClick={() => window.open('https://calendar.app.google/ip1MfDcfcrju1WFh6', '_blank')}
+                onClick={() => window.open('https://calendar.app.google/SzqmVraMNxYvF9CF7', '_blank')}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all hover:opacity-90 hover:scale-105"
                 style={{ background: '#F5C518', color: '#1E2128' }}
                 data-testid="prenota-call-btn"
