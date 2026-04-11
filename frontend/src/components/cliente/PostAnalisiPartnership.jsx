@@ -5,7 +5,7 @@ import {
   PenLine, Loader2, MessageCircle, Send, ChevronDown,
   ChevronUp, Gift, Star, TrendingUp, Users, Zap,
   Target, BookOpen, Video, Megaphone, BarChart3, Copy, Check,
-  Upload, User, Mail
+  Upload, User, Mail, Clock, AlertTriangle
 } from "lucide-react";
 import axios from "axios";
 import { API } from "../../utils/api-config";
@@ -714,6 +714,40 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
         </div>
       </Section>
 
+      {/* ═══ 5b. TIMELINE 90 GIORNI ════════════════════════════════ */}
+      <Section id="timeline" accent>
+        <div className="mb-5">
+          <h2 className="text-xl font-black mb-2" style={{ color: C.dark }}>Cosa succede nei primi 90 giorni</h2>
+          <p className="text-base leading-relaxed" style={{ color: C.muted }}>
+            Non aspetti mesi per vedere i risultati.<br />
+            Ecco le tappe concrete del percorso.
+          </p>
+        </div>
+        <div className="space-y-0">
+          {[
+            { giorni: "Entro 48h", label: "Posizionamento definito", desc: "Il tuo messaggio è chiaro, il tuo target è preciso. Sai esattamente cosa vendere e a chi.", color: C.yellowDark },
+            { giorni: "Entro 7 giorni", label: "Funnel attivo", desc: "Landing page + sequenza email online. Il sistema inizia a lavorare.", color: C.blue },
+            { giorni: "Entro 14 giorni", label: "Masterclass live", desc: "Il tuo primo contenuto di valore è pubblicato e in distribuzione.", color: C.purple },
+            { giorni: "Entro 30 giorni", label: "Prima campagna", desc: "Attiviamo il traffico. I primi dati reali sono disponibili per ottimizzare.", color: C.green },
+          ].map((item, i) => (
+            <div key={i} className="flex gap-0">
+              <div className="flex flex-col items-center mr-4">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 z-10"
+                  style={{ background: item.color, color: "#fff", fontSize: 11, fontWeight: 900 }}>
+                  {i + 1}
+                </div>
+                {i < 3 && <div className="w-0.5 flex-1 mt-0" style={{ background: `${item.color}30`, minHeight: 32 }} />}
+              </div>
+              <div className={`pb-6 ${i === 3 ? "pb-0" : ""}`} style={{ flex: 1 }}>
+                <div className="text-xs font-black uppercase tracking-wider mb-0.5" style={{ color: item.color }}>{item.giorni}</div>
+                <div className="text-base font-black mb-1" style={{ color: C.dark }}>{item.label}</div>
+                <div className="text-sm leading-relaxed" style={{ color: C.muted }}>{item.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
       {/* ═══ 6. COSA OTTIENI CONCRETAMENTE ══════════════════════════ */}
       <Section id="valore" accent>
         <div className="mb-4">
@@ -736,6 +770,62 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
               <span className="text-base" style={{ color: C.dark }}>{item}</span>
             </div>
           ))}
+        </div>
+      </Section>
+
+      {/* ═══ 6b. GARANZIA ═══════════════════════════════════════════ */}
+      <Section id="garanzia" accent>
+        <div className="rounded-2xl p-6" style={{ background: C.dark }}>
+          <div className="flex items-start gap-4 mb-4">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: C.yellow }}>
+              <Shield className="w-6 h-6" style={{ color: C.dark }} />
+            </div>
+            <div>
+              <div className="text-xs font-black uppercase tracking-widest mb-1" style={{ color: C.yellow }}>
+                Garanzia
+              </div>
+              <h3 className="text-xl font-black" style={{ color: "#FFFFFF" }}>
+                30 giorni o ti rimborsiamo
+              </h3>
+            </div>
+          </div>
+          <p className="text-base leading-relaxed mb-4" style={{ color: "rgba(255,255,255,0.75)" }}>
+            Se entro 30 giorni dall'inizio il funnel non è online, ti restituiamo l'investimento intero.<br />
+            Senza domande, senza clausole.
+          </p>
+          <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.06)" }}>
+            <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: C.green }} />
+            <p className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>
+              La garanzia copre il caso in cui il funnel non sia operativo entro 30 giorni dall'avvio ufficiale, per cause imputabili al nostro team.
+            </p>
+          </div>
+        </div>
+      </Section>
+
+      {/* ═══ 6c. URGENZA ═════════════════════════════════════════════ */}
+      <Section id="urgenza" accent>
+        <div className="rounded-2xl p-5" style={{ background: `${C.yellow}12`, border: `2px solid ${C.yellow}` }}>
+          <div className="flex items-start gap-3 mb-3">
+            <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: C.yellowDark }} />
+            <div>
+              <div className="text-base font-black" style={{ color: C.dark }}>Attenzione — posti limitati</div>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <Clock className="w-4 h-4 flex-shrink-0" style={{ color: C.yellowDark }} />
+              <span className="text-sm font-bold" style={{ color: C.dark }}>
+                Massimo 3 nuovi partner al mese — per garantire la qualità del supporto.
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Clock className="w-4 h-4 flex-shrink-0" style={{ color: C.yellowDark }} />
+              <span className="text-sm font-bold" style={{ color: C.dark }}>
+                Questa proposta è riservata per 7 giorni dalla call.
+              </span>
+            </div>
+          </div>
         </div>
       </Section>
 
@@ -1141,39 +1231,42 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
       {/* ═══ 12. PAGAMENTO ═══════════════════════════════════════════ */}
       {(signed || adminPreview) && (
         <Section id="pagamento" accent>
-          <div className="text-center mb-6">
-            <h2 className="text-xl sm:text-2xl font-black" style={{ color: C.dark }}>
-              Attiva la tua Partnership
-            </h2>
-            <p className="text-base leading-relaxed mt-3 mb-1" style={{ color: C.muted }}>
-              Questo è il passaggio che trasforma l'analisi in progetto operativo.
-            </p>
-            <p className="text-sm font-bold mt-3 mb-1" style={{ color: C.dark }}>Una volta completato:</p>
-            <div className="flex flex-col items-center gap-1.5 mt-2 mb-4">
-              {[
-                "il tuo progetto entra nella fase di costruzione",
-                "il team inizia a lavorare con te",
-                "viene avviato il percorso completo",
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-2 text-sm" style={{ color: C.muted }}>
-                  <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color: C.green }} /> {item}
-                </div>
-              ))}
+          <div className="mb-6">
+            <div className="rounded-2xl p-6 mb-5" style={{ background: C.dark }}>
+              <h2 className="text-2xl font-black mb-1 text-center" style={{ color: "#FFFFFF" }}>
+                Attiva la tua Partnership
+              </h2>
+              <p className="text-base text-center mb-5" style={{ color: "rgba(255,255,255,0.6)" }}>
+                Il passaggio che trasforma l'analisi in progetto operativo.
+              </p>
+              <div className="text-center mb-5">
+                <div className="text-5xl font-black" style={{ color: C.yellow }}>€{corrStr}</div>
+                <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.5)" }}>12 mesi di partnership operativa completa</p>
+              </div>
+              <div className="space-y-2">
+                {[
+                  "Posizionamento + funnel online entro 7 giorni",
+                  "Team dedicato al tuo progetto per 12 mesi",
+                  "Garanzia rimborso 30 giorni se il funnel non è live",
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-2 text-sm" style={{ color: "rgba(255,255,255,0.75)" }}>
+                    <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color: C.green }} /> {item}
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="text-4xl font-black mt-2" style={{ color: C.dark }}>€{corrStr}</div>
-            <p className="text-sm mt-1" style={{ color: C.muted }}>Investimento per 12 mesi di partnership operativa</p>
           </div>
 
           {!paymentMethod ? (
             <div className="space-y-3">
               <button data-testid="pay-stripe" onClick={startStripeCheckout} disabled={checkingOut}
-                className="w-full flex items-center justify-center gap-3 py-4 rounded-xl text-base font-black transition-all hover:shadow-lg"
-                style={{ background: "#1A65D6", color: C.white, opacity: checkingOut ? 0.7 : 1 }}>
+                className="w-full flex items-center justify-center gap-3 py-4 rounded-xl text-base font-black transition-all hover:opacity-90"
+                style={{ background: C.yellow, color: C.dark, opacity: checkingOut ? 0.7 : 1 }}>
                 {checkingOut ? <Loader2 className="w-5 h-5 animate-spin" /> : <CreditCard className="w-5 h-5" />}
-                Paga con Carta (Stripe)
+                Attiva la Partnership →
               </button>
-              <p className="text-center text-sm font-bold" style={{ color: "#1A65D6" }}>
-                Puoi scegliere di pagare con Klarna in 3 comode rate mensili ad interessi zero.
+              <p className="text-center text-sm font-bold" style={{ color: C.muted }}>
+                Carta di credito, Klarna (3 rate senza interessi), Apple Pay
               </p>
               <button data-testid="pay-bonifico" onClick={selectBonifico}
                 className="w-full flex items-center justify-center gap-3 py-4 rounded-xl text-base font-bold transition-all"
