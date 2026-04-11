@@ -451,6 +451,55 @@ export default function PostAnalisiPartnership({ user, adminPreview = false }) {
         </div>
       )}
 
+      {/* ═══ 0. NOTEBOOKLM — ANALISI PERSONALIZZATA ════════════════ */}
+      {analisi?.notebooklm && (analisi.notebooklm.audio_url || analisi.notebooklm.share_url) && (
+        <Section id="notebooklm" accent>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{ background: `${C.yellow}20` }}>
+              <Headphones className="w-5 h-5" style={{ color: C.yellowDark }} />
+            </div>
+            <div>
+              <h2 className="text-lg font-black" style={{ color: C.dark }}>
+                {analisi.notebooklm.title || "La tua analisi — formato audio"}
+              </h2>
+              <p className="text-xs" style={{ color: C.muted }}>
+                Riascoltala quando vuoi. Condividila con chi vuoi coinvolgere nella decisione.
+              </p>
+            </div>
+          </div>
+
+          {analisi.notebooklm.audio_url && (
+            <div className="rounded-xl p-4 mb-4" style={{ background: C.bg, border: `1px solid ${C.border}` }}>
+              <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.muted }}>
+                Podcast — analisi del tuo progetto
+              </div>
+              <audio
+                controls
+                className="w-full"
+                style={{ borderRadius: 8 }}
+                src={analisi.notebooklm.audio_url}
+              >
+                Il tuo browser non supporta l'audio. <a href={analisi.notebooklm.audio_url} target="_blank" rel="noreferrer">Scarica il file</a>.
+              </audio>
+            </div>
+          )}
+
+          {analisi.notebooklm.share_url && (
+            <a
+              href={analisi.notebooklm.share_url}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-bold text-sm transition-opacity hover:opacity-80"
+              style={{ background: C.dark, color: C.yellow }}
+            >
+              <BookOpen className="w-4 h-4" />
+              Apri la presentazione completa →
+            </a>
+          )}
+        </Section>
+      )}
+
       {/* ═══ 1. RIPRENDIAMO IL PUNTO CHIAVE ═════════════════════════ */}
       <Section id="recap" accent>
         <div className="text-center mb-4">

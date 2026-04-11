@@ -4,7 +4,7 @@ import {
   CheckCircle, Clock, AlertTriangle, XCircle, Circle,
   ChevronDown, ChevronUp, Zap, Target, User, FileText,
   CreditCard, CalendarCheck, Sparkles, Briefcase, Download,
-  RotateCcw, Save, Trash2, ExternalLink
+  RotateCcw, Save, Trash2, ExternalLink, Headphones, BookOpen, Link
 } from "lucide-react";
 
 const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it")) ? "" : (process.env.REACT_APP_BACKEND_URL || "");
@@ -109,6 +109,12 @@ export function ClienteDecisionale({ clienteId, onClose, onUpdate }) {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deletingCliente, setDeletingCliente] = useState(false);
 
+  // NotebookLM
+  const [nlmShareUrl, setNlmShareUrl] = useState("");
+  const [nlmAudioUrl, setNlmAudioUrl] = useState("");
+  const [nlmTitle, setNlmTitle] = useState("");
+  const [savingNlm, setSavingNlm] = useState(false);
+
   useEffect(() => {
     if (clienteId) loadDettaglio();
     // eslint-disable-next-line
@@ -119,7 +125,15 @@ export function ClienteDecisionale({ clienteId, onClose, onUpdate }) {
     try {
       const res = await fetch(`${API}/api/admin/clienti-analisi/${clienteId}`);
       const data = await res.json();
-      if (data.success) setCliente(data.cliente);
+      if (data.success) {
+        setCliente(data.cliente);
+        const nlm = data.cliente?.notebooklm;
+        if (nlm) {
+          setNlmShareUrl(nlm.share_url || "");
+          setNlmAudioUrl(nlm.audio_url || "");
+          setNlmTitle(nlm.title || "");
+        }
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -248,6 +262,32 @@ export function ClienteDecisionale({ clienteId, onClose, onUpdate }) {
       window.URL.revokeObjectURL(url);
     } catch (e) {
       alert("Errore nel download PDF");
+    }
+  };
+
+  const handleSalvaNlm = async () => {
+    if (!nlmShareUrl && !nlmAudioUrl) {
+      alert("Inserisci almeno l'URL della presentazione o dell'audio.");
+      return;
+    }
+    setSavingNlm(true);
+    try {
+      const res = await fetch(`${API}/api/admin/clienti-analisi/${clienteId}/notebooklm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ share_url: nlmShareUrl, audio_url: nlmAudioUrl, title: nlmTitle }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        reload();
+        alert("Dati NotebookLM salvati. Il cliente vedrà la presentazione su /proposta.");
+      } else {
+        alert(data.detail || "Errore nel salvataggio");
+      }
+    } catch (e) {
+      alert("Errore di rete");
+    } finally {
+      setSavingNlm(false);
     }
   };
 
@@ -579,6 +619,94 @@ export function ClienteDecisionale({ clienteId, onClose, onUpdate }) {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+
+        {/* ───── 4b. NOTEBOOKLM ───── */}
+        <div className="rounded-2xl p-5" style={{ background: C.white, border: `1px solid ${C.border}` }}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Headphones className="w-4 h-4" style={{ color: C.muted }} />
+              <span className="text-xs font-black uppercase tracking-widest" style={{ color: C.muted }}>
+                NotebookLM — Presentazione + Audio
+              </span>
+            </div>
+            {cliente.notebooklm ? (
+              <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: "#DCFCE7", color: "#16A34A" }}>
+                ✓ Generato
+              </span>
+            ) : (
+              <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: "#FEF3C7", color: "#92400E" }}>
+                Non generato
+              </span>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-semibold block mb-1" style={{ color: C.muted }}>Titolo (opzionale)</label>
+              <input
+                type="text"
+                value={nlmTitle}
+                onChange={(e) => setNlmTitle(e.target.value)}
+                placeholder={`Analisi ${cliente.nome} ${cliente.cognome}`}
+                className="w-full text-sm rounded-xl px-3 py-2 outline-none"
+                style={{ background: C.bg, border: `1px solid ${C.border}`, color: C.dark }}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold block mb-1" style={{ color: C.muted }}>
+                <Link className="w-3 h-3 inline mr-1" />
+                URL Presentazione (NotebookLM share link)
+              </label>
+              <input
+                type="url"
+                value={nlmShareUrl}
+                onChange={(e) => setNlmShareUrl(e.target.value)}
+                placeholder="https://notebooklm.google.com/notebook/..."
+                className="w-full text-sm rounded-xl px-3 py-2 outline-none"
+                style={{ background: C.bg, border: `1px solid ${C.border}`, color: C.dark }}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold block mb-1" style={{ color: C.muted }}>
+                <Headphones className="w-3 h-3 inline mr-1" />
+                URL Audio (link diretto al file .mp3 / Google Drive)
+              </label>
+              <input
+                type="url"
+                value={nlmAudioUrl}
+                onChange={(e) => setNlmAudioUrl(e.target.value)}
+                placeholder="https://drive.google.com/file/d/..."
+                className="w-full text-sm rounded-xl px-3 py-2 outline-none"
+                style={{ background: C.bg, border: `1px solid ${C.border}`, color: C.dark }}
+              />
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                onClick={handleSalvaNlm}
+                disabled={savingNlm}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-opacity hover:opacity-80"
+                style={{ background: C.yellow, color: C.dark }}
+              >
+                {savingNlm ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {savingNlm ? "Salvando..." : "Salva e pubblica su /proposta"}
+              </button>
+
+              {cliente.notebooklm?.share_url && (
+                <a
+                  href={cliente.notebooklm.share_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-opacity hover:opacity-80"
+                  style={{ background: C.bg, color: C.dark, border: `1px solid ${C.border}` }}
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Apri notebook
+                </a>
+              )}
+            </div>
           </div>
         </div>
 
