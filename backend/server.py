@@ -1834,12 +1834,17 @@ async def get_analisi_output(user_id: str, credentials: HTTPAuthorizationCredent
     )
     if not user:
         raise HTTPException(status_code=404, detail="Utente non trovato")
+
+    # Recupera dati NotebookLM
+    nlm = await db.notebooklm_clienti.find_one({"user_id": user_id}, {"_id": 0})
+
     return {
         "analisi": user.get("analisi_strategica"),
         "scoring": user.get("scoring"),
         "script_call": user.get("script_call"),
         "quiz": user.get("mini_quiz"),
         "generata_il": user.get("analisi_generata_il"),
+        "notebooklm": nlm or None,
     }
 
 
@@ -2752,7 +2757,43 @@ async def get_cliente_analisi_detail(user_id: str):
     ).sort("data", 1).to_list(length=100)
     cliente["log_eventi"] = log_eventi
 
+    # Recupera dati NotebookLM se presenti
+    nlm = await db.notebooklm_clienti.find_one({"user_id": user_id}, {"_id": 0})
+    if nlm:
+        cliente["notebooklm"] = nlm
+
     return {"success": True, "cliente": cliente}
+
+
+@api_router.post("/admin/clienti-analisi/{user_id}/notebooklm")
+async def salva_notebooklm_cliente(user_id: str, request: Request):
+    """Salva o aggiorna i dati NotebookLM per un cliente (notebook_id, share_url, audio_url)."""
+    body = await request.json()
+    now = datetime.now(timezone.utc).isoformat()
+
+    data = {
+        "user_id": user_id,
+        "notebook_id": body.get("notebook_id", ""),
+        "share_url": body.get("share_url", ""),
+        "audio_url": body.get("audio_url", ""),
+        "title": body.get("title", ""),
+        "aggiornato_at": now,
+    }
+    existing = await db.notebooklm_clienti.find_one({"user_id": user_id})
+    if not existing:
+        data["creato_at"] = now
+    await db.notebooklm_clienti.update_one(
+        {"user_id": user_id},
+        {"$set": data},
+        upsert=True
+    )
+    # Aggiorna anche il campo notebooklm_generato su users per tracking
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"notebooklm_generato": True, "notebooklm_aggiornato_at": now}}
+    )
+    return {"success": True, "data": data}
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # TEMPLATE ANALISI STRATEGICA EVOLUTION PRO
@@ -14917,6 +14958,63 @@ async def notify_telegram_endpoint(request: TelegramNotifyRequest):
     except Exception as e:
         logger.error(f"Failed to send Telegram notification: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/admin/morning-briefing/trigger")
+async def trigger_morning_briefing(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """
+    Trigger manuale del morning briefing per Claudio.
+    Utile per test o per forzare il digest fuori orario.
+    """
+    user = await verify_admin(credentials)
+    try:
+        from morning_briefing_task import morning_lead_briefing
+        result = morning_lead_briefing.delay()
+        return {"success": True, "task_id": result.id, "message": "Morning briefing in esecuzione — arriverà su Telegram tra pochi secondi."}
+    except Exception as e:
+        # Fallback sincrono se Celery non disponibile
+        try:
+            from morning_briefing_task import morning_lead_briefing, run_async
+            import asyncio
+
+            async def _run():
+                from morning_briefing_task import _send_telegram
+                now = datetime.now(timezone.utc)
+                ieri = (now - timedelta(hours=24)).isoformat()
+                sette_giorni_fa = (now - timedelta(days=7)).isoformat()
+                nuovi = await db.users.find({
+                    "user_type": "cliente_analisi",
+                    "data_registrazione": {"$gte": ieri}
+                }, {"nome": 1, "cognome": 1, "email": 1}).to_list(50)
+                bloccati_pagamento = await db.users.find({
+                    "user_type": "cliente_analisi",
+                    "questionario_compilato": True,
+                    "pagamento_analisi": {"$ne": True},
+                    "data_registrazione": {"$gte": sette_giorni_fa}
+                }, {"nome": 1, "cognome": 1, "email": 1}).to_list(20)
+                bloccati_call = await db.users.find({
+                    "user_type": "cliente_analisi",
+                    "pagamento_analisi": True,
+                    "call_prenotata": {"$ne": True},
+                    "data_registrazione": {"$gte": sette_giorni_fa}
+                }, {"nome": 1, "cognome": 1, "email": 1}).to_list(20)
+                data_it = now.strftime("%d/%m/%Y")
+                linee = [f"Buongiorno Claudio.\n*MORNING BRIEFING — {data_it}* (sync)\n"]
+                if nuovi:
+                    linee.append(f"Nuovi registrati (24h): {len(nuovi)}")
+                if bloccati_pagamento:
+                    linee.append(f"Bloccati pagamento: {len(bloccati_pagamento)}")
+                if bloccati_call:
+                    linee.append(f"Pagato, no call: {len(bloccati_call)}")
+                totale = len(nuovi) + len(bloccati_pagamento) + len(bloccati_call)
+                linee.append(f"Totale azioni: {totale}" if totale else "Nessuna azione urgente.")
+                await send_telegram_alert("\n".join(linee))
+                return {"success": True, "azioni": totale, "mode": "sync"}
+
+            result = await _run()
+            return result
+        except Exception as e2:
+            raise HTTPException(status_code=500, detail=f"Errore: {e2}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

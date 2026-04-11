@@ -45,7 +45,7 @@ celery_app = Celery(
     'evolution_pro',
     broker=broker_url,
     backend=backend_url,
-    include=['celery_tasks']
+    include=['celery_tasks', 'morning_briefing_task']
 )
 
 # Celery configuration
@@ -99,6 +99,10 @@ celery_app.conf.update(
             'task': 'celery_tasks.daily_hot_leads_outreach',
             'schedule': crontab(hour=9, minute=0),  # Every day at 9:00 AM
             'kwargs': {'max_leads': 5},  # Max 5 leads/day
+        },
+        'morning-lead-briefing': {
+            'task': 'morning_lead_briefing',
+            'schedule': crontab(hour=7, minute=0),  # Every day at 7:00 AM CET
         },
     },
 )
