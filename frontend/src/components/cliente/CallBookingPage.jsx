@@ -1,29 +1,18 @@
-import { useState, useEffect } from "react";
-import { Phone, CheckCircle, Calendar, ArrowRight } from "lucide-react";
+import { useState } from "react";
+import { Phone, CheckCircle, Calendar, ArrowRight, ExternalLink } from "lucide-react";
 
 const API = (() => {
   if (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it")) return "";
   return process.env.REACT_APP_BACKEND_URL || "";
 })();
 
-// Configurabile via env — inserire URL Calendly reale
-const CALENDLY_URL =
-  process.env.REACT_APP_CALENDLY_URL ||
-  "https://calendly.com/evolutionpro/call-strategica";
+const GCAL_URL =
+  process.env.REACT_APP_GCAL_URL ||
+  "https://calendar.app.google/ip1MfDcfcrju1WFh6";
 
 export function CallBookingPage({ user, onConfirm }) {
   const [confermata, setConfermata] = useState(user?.call_prenotata || false);
   const [loading, setLoading] = useState(false);
-
-  // Carica Calendly widget script
-  useEffect(() => {
-    if (confermata) return;
-    const script = document.createElement("script");
-    script.src = "https://assets.calendly.com/assets/external/widget.js";
-    script.async = true;
-    document.body.appendChild(script);
-    return () => { document.body.removeChild(script); };
-  }, [confermata]);
 
   const handleConferma = async () => {
     setLoading(true);
@@ -36,7 +25,6 @@ export function CallBookingPage({ user, onConfirm }) {
           body: JSON.stringify({})
         });
       }
-      // Aggiorna stato locale
       const stored = localStorage.getItem("user");
       if (stored) {
         const parsed = JSON.parse(stored);
@@ -127,7 +115,7 @@ export function CallBookingPage({ user, onConfirm }) {
             <p style={{ fontSize: 16, color: "#5F6572", lineHeight: 1.65 }}>
               Hai pagato e il tuo questionario è stato analizzato.
               <br />
-              Scegli un orario per la tua call di 45 minuti con il team.
+              Scegli un orario per la tua call di 45 minuti con Claudio.
             </p>
           </div>
 
@@ -150,33 +138,57 @@ export function CallBookingPage({ user, onConfirm }) {
             </div>
           </div>
 
-          {/* Calendly inline widget */}
+          {/* Google Calendar embed */}
           <div
             className="rounded-2xl overflow-hidden mb-6"
-            style={{ border: "1px solid #ECEDEF", minHeight: 600 }}
+            style={{ border: "1px solid #ECEDEF", background: "#FFFFFF" }}
           >
-            <div
-              className="calendly-inline-widget"
-              data-url={`${CALENDLY_URL}?hide_landing_page_details=1&hide_gdpr_banner=1&primary_color=F2C418`}
-              style={{ minWidth: "100%", height: 600 }}
+            <iframe
+              src={GCAL_URL}
+              style={{ width: "100%", height: 600, border: "none", display: "block" }}
+              title="Prenota la tua call strategica"
             />
           </div>
 
-          {/* Conferma manuale (fallback) */}
+          {/* Pulsante apertura esterna (fallback se iframe bloccato) */}
           <div
-            className="px-5 py-5 rounded-2xl"
+            className="mb-6 px-5 py-4 rounded-2xl flex items-center justify-between gap-4"
             style={{ background: "#FFFFFF", border: "1px solid #ECEDEF" }}
           >
-            <p className="font-semibold mb-1" style={{ fontSize: 14, color: "#1E2128" }}>
-              Hai già scelto l'orario?
+            <div>
+              <p className="font-semibold mb-0.5" style={{ fontSize: 14, color: "#1E2128" }}>
+                Il calendario non si carica?
+              </p>
+              <p style={{ fontSize: 13, color: "#5F6572" }}>
+                Apri la pagina di prenotazione direttamente.
+              </p>
+            </div>
+            <a
+              href={GCAL_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all hover:opacity-90"
+              style={{ background: "#1E2128", color: "#FFFFFF" }}
+            >
+              Apri <ExternalLink className="w-4 h-4" />
+            </a>
+          </div>
+
+          {/* Conferma manuale */}
+          <div
+            className="px-5 py-5 rounded-2xl"
+            style={{ background: "#1E2128" }}
+          >
+            <p className="font-bold mb-1" style={{ fontSize: 14, color: "#FFFFFF" }}>
+              Hai già scelto l'orario sul calendario?
             </p>
-            <p className="mb-4" style={{ fontSize: 13, color: "#5F6572" }}>
-              Clicca per confermare la prenotazione e accedere all'analisi.
+            <p className="mb-4" style={{ fontSize: 13, color: "rgba(255,255,255,0.6)" }}>
+              Clicca qui per confermare la prenotazione e accedere all'analisi.
             </p>
             <button
               onClick={handleConferma}
               disabled={loading}
-              className="w-full font-black rounded-2xl"
+              className="w-full font-black rounded-2xl transition-all hover:opacity-90"
               style={{
                 height: 52,
                 fontSize: 15,
@@ -189,6 +201,7 @@ export function CallBookingPage({ user, onConfirm }) {
               {loading ? "Salvataggio..." : "Confermo — ho prenotato la call →"}
             </button>
           </div>
+
         </div>
       </div>
     </div>
