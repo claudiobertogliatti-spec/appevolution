@@ -618,9 +618,21 @@ async def process_partnership_payment(db, user_id: str, reference_id: str, backg
         upsert=True
     )
     
+    # Attiva partnership automaticamente (se contratto già firmato)
+    async def _trigger_attiva(uid: str):
+        try:
+            import httpx
+            backend_url = os.environ.get("BACKEND_URL", "http://localhost:8001")
+            async with httpx.AsyncClient(timeout=10) as hc:
+                await hc.post(f"{backend_url}/api/flusso-analisi/attiva-partnership/{uid}")
+        except Exception as e:
+            logger.warning(f"[STRIPE_WEBHOOK] attiva-partnership call failed (non critico): {e}")
+
+    background_tasks.add_task(_trigger_attiva, user_id)
+
     # Trigger welcome email for partnership
     background_tasks.add_task(send_partnership_welcome_email, partner_id)
-    
+
     logger.info(f"[STRIPE_WEBHOOK] Partnership payment processed for {partner_id}")
 
 
