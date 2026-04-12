@@ -2757,20 +2757,33 @@ async def get_partner_kpi_from_systeme(partner_id: str, partner: dict) -> dict:
             if subdomain:
                 contatti = await db.systeme_contacts.count_documents({"source_subdomain": subdomain})
 
-        # Vendite: da pagamenti Stripe relativi al corso del partner
-        # (semplificato: usa i dati già in DB se disponibili)
-        vendite_pipeline = await db.pagamenti_studenti.count_documents(
-            {"partner_id": str(partner_id), "stato": "completato"}
-        )
+        # Vendite: da db.payments (unica collezione, popolata da Systeme webhook new_sale)
+        partner_email = partner.get("email", "")
+        vendite_query = {
+            "$or": [
+                {"partner_id": str(partner_id)},
+                {"partner_email": partner_email},
+            ],
+            "status": "completed",
+            "type": {"$ne": "analisi_strategica"},  # esclude acquisti analisi (nostri, non del partner)
+        }
+        # Conta vendite
+        vendite_count = await db.payments.count_documents(vendite_query) if partner_email else 0
+        # Somma fatturato
+        fatturato_agg = await db.payments.aggregate([
+            {"$match": vendite_query},
+            {"$group": {"_id": None, "total": {"$sum": "$amount"}}},
+        ]).to_list(1) if partner_email else []
+        fatturato_totale = float(fatturato_agg[0]["total"]) if fatturato_agg else 0.0
 
-        if visite > 0 or contatti > 0:
+        if visite > 0 or contatti > 0 or vendite_count > 0:
             conversione = round((contatti / visite * 100), 1) if visite > 0 else 0
             return {
                 "studenti_totali": contatti,
-                "vendite_mese": float(vendite_pipeline),
+                "vendite_mese": float(vendite_count),
                 "lead_generati": contatti,
                 "conversione_funnel": conversione,
-                "fatturato_totale": float(vendite_pipeline),
+                "fatturato_totale": fatturato_totale,
                 "recensioni": 0,
                 "fonte": "interno",
                 "visite_raw": visite,
