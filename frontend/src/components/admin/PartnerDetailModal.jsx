@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { 
-  X, User, FileText, CreditCard, Save, Plus, 
+import {
+  X, User, FileText, CreditCard, Save, Plus,
   Youtube, Mail, Tag, Loader2, CheckCircle, AlertCircle,
   Trash2, ExternalLink, Edit3, Upload, Film, MessageSquare,
-  Calendar, AlertTriangle, Eye, Shield, Image, XCircle, Settings, Globe
+  Calendar, AlertTriangle, Eye, Shield, Image, XCircle, Settings, Globe,
+  ChevronDown, ChevronUp, BookOpen, Video, Link2, Target, Sparkles
 } from "lucide-react";
 import axios from "axios";
 import { ContractParamsModal } from "./ContractParamsModal";
@@ -112,6 +113,234 @@ function DeleteConfirmModal({ isOpen, onClose, onConfirm, partnerName, isDeletin
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+// JOURNEY EDITOR — Editor completo dati step per step
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function JourneySection({ title, icon: Icon, color = "#F2C418", children, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #E5E2DD" }}>
+      <button onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-gray-50"
+        style={{ background: open ? "#FAFAF7" : "#FFFFFF" }}>
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: color + "20" }}>
+          <Icon className="w-4 h-4" style={{ color }} />
+        </div>
+        <span className="font-bold text-sm flex-1" style={{ color: "#1E2128" }}>{title}</span>
+        {open ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+      </button>
+      {open && <div className="p-5 pt-0 space-y-4">{children}</div>}
+    </div>
+  );
+}
+
+function JField({ label, value, onChange, multiline = false, placeholder = "" }) {
+  return (
+    <div>
+      <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: "#9CA3AF" }}>
+        {label}
+      </label>
+      {multiline ? (
+        <textarea
+          value={value || ""}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder}
+          rows={4}
+          className="w-full px-3 py-2.5 rounded-lg text-sm resize-y"
+          style={{ border: "1px solid #E5E2DD", color: "#1E2128", background: "#FFFFFF" }}
+        />
+      ) : (
+        <input
+          type="text"
+          value={value || ""}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="w-full px-3 py-2.5 rounded-lg text-sm"
+          style={{ border: "1px solid #E5E2DD", color: "#1E2128", background: "#FFFFFF" }}
+        />
+      )}
+    </div>
+  );
+}
+
+function SaveBtn({ onClick, saving, saved, label = "Salva" }) {
+  return (
+    <button onClick={onClick} disabled={saving}
+      className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all mt-2"
+      style={{
+        background: saved ? "#F0FDF4" : "#1E2128",
+        color: saved ? "#16A34A" : "#F2C418",
+        border: `1px solid ${saved ? "#BBF7D0" : "transparent"}`
+      }}>
+      {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <CheckCircle className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+      {saving ? "Salvataggio..." : saved ? "Salvato!" : label}
+    </button>
+  );
+}
+
+function JourneyEditor({ data, saving, saved, onSave, onDataChange }) {
+  const [pos, setPos] = useState(data.posizionamento || {});
+  const [mc, setMc] = useState(data.masterclass || {});
+  const [vc, setVc] = useState(data.videocorso || {});
+  const [fn, setFn] = useState(data.funnel || {});
+  const [partner, setPartner] = useState(data.partner || {});
+
+  const updatePos = (path, val) => setPos(p => setNested(p, path, val));
+  const updateMc = (path, val) => setMc(p => setNested(p, path, val));
+  const updateVc = (path, val) => setVc(p => setNested(p, path, val));
+  const updateFn = (path, val) => setFn(p => setNested(p, path, val));
+  const updatePartner = (path, val) => setPartner(p => setNested(p, path, val));
+
+  function setNested(obj, path, val) {
+    const parts = path.split(".");
+    const result = { ...obj };
+    let cur = result;
+    for (let i = 0; i < parts.length - 1; i++) {
+      cur[parts[i]] = { ...(cur[parts[i]] || {}) };
+      cur = cur[parts[i]];
+    }
+    cur[parts[parts.length - 1]] = val;
+    return result;
+  }
+
+  // Lessons: array or object
+  const lessons = vc.lessons ? Object.entries(vc.lessons) : [];
+
+  return (
+    <div className="space-y-3">
+      {/* ANAGRAFICA BASE */}
+      <JourneySection title="Anagrafica e Sistemi" icon={User} color="#3B82F6" defaultOpen={true}>
+        <div className="grid grid-cols-2 gap-3">
+          <JField label="Nome" value={partner.name} onChange={v => updatePartner("name", v)} />
+          <JField label="Email" value={partner.email} onChange={v => updatePartner("email", v)} />
+          <JField label="Nicchia" value={partner.nicchia || partner.niche} onChange={v => updatePartner("nicchia", v)} />
+          <JField label="Subdomain Systeme" value={partner.systeme_subdomain} onChange={v => updatePartner("systeme_subdomain", v)} placeholder="es. mariorossi" />
+          <JField label="YouTube Playlist ID" value={partner.youtube_playlist_id} onChange={v => updatePartner("youtube_playlist_id", v)} />
+          <JField label="Fase attuale" value={partner.phase || partner.fase} onChange={v => updatePartner("phase", v)} placeholder="F1, F2, ..." />
+        </div>
+        <SaveBtn onClick={() => onSave("partner", "partners", {
+          name: partner.name, email: partner.email, nicchia: partner.nicchia,
+          systeme_subdomain: partner.systeme_subdomain,
+          youtube_playlist_id: partner.youtube_playlist_id,
+          phase: partner.phase
+        })} saving={saving.partner} saved={saved.partner} />
+      </JourneySection>
+
+      {/* POSIZIONAMENTO */}
+      <JourneySection title="Posizionamento" icon={Target} color="#8B5CF6">
+        <div className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: "#9CA3AF" }}>Input del partner</div>
+        <div className="grid grid-cols-2 gap-3">
+          <JField label="Target" value={pos.inputs?.target} onChange={v => updatePos("inputs.target", v)} multiline placeholder="Chi è il tuo cliente ideale?" />
+          <JField label="Risultato principale" value={pos.inputs?.risultato} onChange={v => updatePos("inputs.risultato", v)} multiline placeholder="Che risultato ottiene?" />
+          <JField label="Unicità" value={pos.inputs?.unicita} onChange={v => updatePos("inputs.unicita", v)} multiline placeholder="Cosa ti differenzia?" />
+          <JField label="Nome corso" value={pos.inputs?.corso_nome} onChange={v => updatePos("inputs.corso_nome", v)} placeholder="Titolo del corso" />
+        </div>
+        <div className="text-xs font-bold uppercase tracking-wide mb-2 mt-4" style={{ color: "#9CA3AF" }}>Output generato</div>
+        <JField label="Testo posizionamento" value={pos.positioning_output?.positioning_statement || (typeof pos.positioning_output === "string" ? pos.positioning_output : "")}
+          onChange={v => updatePos("positioning_output.positioning_statement", v)} multiline placeholder="Statement di posizionamento..." />
+        <JField label="Valore unico" value={pos.positioning_output?.unique_value}
+          onChange={v => updatePos("positioning_output.unique_value", v)} multiline placeholder="Proposta di valore unica..." />
+        <SaveBtn onClick={() => onSave("posizionamento", "partner_posizionamento", { inputs: pos.inputs, positioning_output: pos.positioning_output })}
+          saving={saving.posizionamento} saved={saved.posizionamento} />
+      </JourneySection>
+
+      {/* MASTERCLASS */}
+      <JourneySection title="Masterclass" icon={Sparkles} color="#F59E0B">
+        <JField label="YouTube URL masterclass (video pulito)" value={mc.video_youtube_url}
+          onChange={v => setMc(p => ({ ...p, video_youtube_url: v }))} placeholder="https://www.youtube.com/watch?v=..." />
+        {mc.video_youtube_url && (
+          <a href={mc.video_youtube_url} target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold" style={{ color: "#EF4444" }}>
+            <Youtube className="w-3.5 h-3.5" /> Guarda video
+          </a>
+        )}
+        <div className="text-xs font-bold uppercase tracking-wide mt-3 mb-2" style={{ color: "#9CA3AF" }}>Script (testo completo)</div>
+        <JField label="Script masterclass" value={mc.script} onChange={v => setMc(p => ({ ...p, script: v }))} multiline placeholder="Incolla lo script completo..." />
+        {mc.script_sections && mc.script_sections.length > 0 && (
+          <div className="mt-2 space-y-2">
+            {mc.script_sections.map((s, i) => (
+              <JField key={i} label={s.title || `Sezione ${i+1}`}
+                value={s.content}
+                onChange={v => {
+                  const sections = [...mc.script_sections];
+                  sections[i] = { ...sections[i], content: v };
+                  setMc(p => ({ ...p, script_sections: sections }));
+                }}
+                multiline />
+            ))}
+          </div>
+        )}
+        <SaveBtn onClick={() => onSave("masterclass", "masterclass_factory", {
+          video_youtube_url: mc.video_youtube_url,
+          script: mc.script,
+          ...(mc.script_sections ? { script_sections: mc.script_sections } : {})
+        })} saving={saving.masterclass} saved={saved.masterclass} />
+      </JourneySection>
+
+      {/* VIDEOCORSO */}
+      <JourneySection title="Videocorso — URL Lezioni" icon={BookOpen} color="#22C55E">
+        <JField label="Titolo corso" value={vc.course_data?.titolo_corso}
+          onChange={v => updateVc("course_data.titolo_corso", v)} placeholder="Titolo del corso" />
+        {lessons.length > 0 ? (
+          <div className="space-y-3 mt-3">
+            <div className="text-xs font-bold uppercase tracking-wide" style={{ color: "#9CA3AF" }}>URL YouTube per lezione</div>
+            {lessons.map(([lessonId, lesson]) => (
+              <div key={lessonId} className="p-3 rounded-xl" style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
+                <div className="text-xs font-bold mb-2" style={{ color: "#16A34A" }}>
+                  Lezione {lessonId} — {lesson.original_name || lessonId}
+                </div>
+                <JField label="YouTube URL"
+                  value={lesson.video_youtube_url}
+                  onChange={v => updateVc(`lessons.${lessonId}.video_youtube_url`, v)}
+                  placeholder="https://www.youtube.com/watch?v=..." />
+                {lesson.video_youtube_url && (
+                  <a href={lesson.video_youtube_url} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs mt-1" style={{ color: "#EF4444" }}>
+                    <Youtube className="w-3 h-3" /> Guarda
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-xs py-3" style={{ color: "#9CA3AF" }}>
+            Nessuna lezione ancora caricata per questo partner.
+          </div>
+        )}
+        <SaveBtn onClick={() => onSave("videocorso", "partner_videocorso", {
+          ...(vc.course_data ? { course_data: vc.course_data } : {}),
+          ...(vc.lessons ? { lessons: vc.lessons } : {})
+        })} saving={saving.videocorso} saved={saved.videocorso} />
+      </JourneySection>
+
+      {/* FUNNEL & URL */}
+      <JourneySection title="Funnel & URL" icon={Link2} color="#EF4444">
+        <JField label="URL Funnel Live (Systeme)" value={fn.live_url}
+          onChange={v => setFn(p => ({ ...p, live_url: v }))} placeholder="https://xxx.systeme.io/funnel" />
+        <JField label="URL Funnel Light" value={fn.funnel_light_url}
+          onChange={v => setFn(p => ({ ...p, funnel_light_url: v }))} placeholder="https://xxx.systeme.io/funnel-light" />
+        <JField label="Tipo funnel" value={fn.funnel_type}
+          onChange={v => setFn(p => ({ ...p, funnel_type: v }))} placeholder="es. webinar, video_sales_letter" />
+        <SaveBtn onClick={() => onSave("funnel", "partner_funnel", {
+          live_url: fn.live_url, funnel_light_url: fn.funnel_light_url, funnel_type: fn.funnel_type
+        })} saving={saving.funnel} saved={saved.funnel} />
+      </JourneySection>
+
+      {/* VIDEO MASTERCLASS INFO (da pipeline) */}
+      {mc.video_systeme_embed && (
+        <JourneySection title="Embed Sisteme (masterclass)" icon={Video} color="#EF4444">
+          <div className="text-xs font-mono p-3 rounded-lg overflow-x-auto" style={{ background: "#1E2128", color: "#F2C418" }}>
+            {mc.video_systeme_embed}
+          </div>
+        </JourneySection>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPALE - CENTRALE OPERATIVA PARTNER
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -164,6 +393,12 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
   const [videoPipeline, setVideoPipeline] = useState(null);
   const [approvingVideo, setApprovingVideo] = useState(false);
   const [embedCopied, setEmbedCopied] = useState(false);
+
+  // Journey tab state
+  const [journeyData, setJourneyData] = useState(null);
+  const [journeyLoading, setJourneyLoading] = useState(false);
+  const [journeySaving, setJourneySaving] = useState({});
+  const [journeySaved, setJourneySaved] = useState({});
   
   // Initialize form data when partner changes
   useEffect(() => {
@@ -300,6 +535,38 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
       setEmbedCopied(true);
       setTimeout(() => setEmbedCopied(false), 2500);
     });
+  };
+
+  const loadJourneyData = async () => {
+    if (!partner?.id || journeyData) return;
+    setJourneyLoading(true);
+    try {
+      const res = await fetch(`${API}/api/admin/partner/${partner.id}/full-data`);
+      if (res.ok) setJourneyData(await res.json());
+    } catch (e) {
+      console.error("Error loading journey data:", e);
+    } finally {
+      setJourneyLoading(false);
+    }
+  };
+
+  const saveJourneySection = async (section, collection, data) => {
+    setJourneySaving(prev => ({ ...prev, [section]: true }));
+    try {
+      const res = await fetch(`${API}/api/admin/partner/${partner.id}/journey`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ collection, data })
+      });
+      if (res.ok) {
+        setJourneySaved(prev => ({ ...prev, [section]: true }));
+        setTimeout(() => setJourneySaved(prev => ({ ...prev, [section]: false })), 2500);
+      }
+    } catch (e) {
+      console.error("Error saving journey section:", e);
+    } finally {
+      setJourneySaving(prev => ({ ...prev, [section]: false }));
+    }
   };
 
   const handleSaveProfile = async () => {
@@ -485,6 +752,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
   
   const tabs = [
     { id: "profilo", label: "Profilo", icon: User },
+    { id: "journey", label: "Dati Journey", icon: Edit3 },
     { id: "documenti", label: "Documenti", icon: FileText },
     { id: "pagamenti", label: "Pagamenti", icon: CreditCard }
   ];
@@ -534,7 +802,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
             {tabs.map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => { setActiveTab(tab.id); if (tab.id === "journey") loadJourneyData(); }}
                 className={`flex items-center gap-2 px-6 py-4 font-medium transition-all border-b-2 ${
                   activeTab === tab.id 
                     ? "border-[#F2C418] text-gray-900 bg-white" 
@@ -567,6 +835,31 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
               </div>
             )}
             
+            {/* TAB JOURNEY */}
+            {activeTab === "journey" && (
+              <div className="space-y-5" data-testid="tab-content-journey">
+                {journeyLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F2C418" }} />
+                  </div>
+                ) : journeyData ? (
+                  <JourneyEditor
+                    data={journeyData}
+                    saving={journeySaving}
+                    saved={journeySaved}
+                    onSave={saveJourneySection}
+                    onDataChange={setJourneyData}
+                  />
+                ) : (
+                  <div className="text-center py-12 text-gray-400">
+                    <button onClick={loadJourneyData} className="px-4 py-2 rounded-lg bg-gray-100 text-sm font-medium">
+                      Carica dati journey
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* TAB PROFILO */}
             {activeTab === "profilo" && (
               <div className="space-y-6" data-testid="tab-content-profilo">
