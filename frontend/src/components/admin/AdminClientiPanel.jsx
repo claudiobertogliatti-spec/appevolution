@@ -1,12 +1,222 @@
 import React, { useState, useEffect } from "react";
-import { 
-  Users, Search, Filter, Eye, CheckCircle, XCircle, 
+import {
+  Users, Search, Filter, Eye, CheckCircle, XCircle,
   Clock, AlertTriangle, ChevronRight, Mail, Phone,
   FileText, Calendar, Target, X, Loader2, RefreshCw,
-  ArrowRight, MapPin, Sparkles, Download, FileDown
+  ArrowRight, MapPin, Sparkles, Download, FileDown,
+  Edit3, Save, User, ToggleLeft, ToggleRight, MessageSquare
 } from "lucide-react";
 import axios from "axios";
 import { API } from "../../utils/api-config";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CLIENTE EDIT MODAL
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function ClienteEditModal({ cliente, onClose, onSaved }) {
+  const [activeTab, setActiveTab] = useState("anagrafica");
+  const [form, setForm] = useState({
+    nome: cliente.nome || "",
+    cognome: cliente.cognome || "",
+    email: cliente.email || "",
+    telefono: cliente.telefono || "",
+    paese: cliente.paese || "",
+    note_admin: cliente.note_admin || "",
+    questionario_compilato: cliente.questionario_compilato || false,
+    pagamento_analisi: cliente.pagamento_analisi || false,
+    analisi_generata: cliente.analisi_generata || false,
+    questionario: { ...(cliente.questionario || {}) },
+  });
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API}/api/admin/clienti-analisi/${cliente.id}/dati`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form)
+      });
+      if (!res.ok) throw new Error("Errore salvataggio");
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+      onSaved({ ...cliente, ...form });
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const tabs = [
+    { id: "anagrafica", label: "Anagrafica", icon: User },
+    { id: "questionario", label: "Questionario", icon: FileText },
+    { id: "stato", label: "Stato & Note", icon: ToggleLeft },
+  ];
+
+  const QLABELS = {
+    expertise: "Competenza / Esperienza",
+    cliente_ideale: "Cliente ideale",
+    pubblico_esistente: "Pubblico esistente",
+    esperienze_passate: "Esperienze passate",
+    ostacolo_principale: "Ostacolo principale",
+    obiettivo_12_mesi: "Obiettivo 12 mesi",
+    perche_adesso: "Perché adesso",
+    attivita: "Attività e ruolo",
+    guadagno: "Come guadagna oggi",
+    difficolta: "Difficoltà principale",
+    prodotto_digitale: "Prodotto digitale",
+    audience: "Audience",
+    investimento: "Pronto a investire",
+  };
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.75)" }} onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between p-5" style={{ background: "#1E2128" }}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm"
+              style={{ background: "#F2C418", color: "#1E2128" }}>
+              {cliente.nome?.[0]}{cliente.cognome?.[0]}
+            </div>
+            <div>
+              <div className="font-black text-white">{cliente.nome} {cliente.cognome}</div>
+              <div className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>{cliente.email}</div>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10">
+            <X className="w-5 h-5 text-white" />
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex border-b" style={{ background: "#FAFAF7" }}>
+          {tabs.map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-all ${
+                activeTab === tab.id ? "border-[#F2C418] text-gray-900 bg-white" : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}>
+              <tab.icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-5">
+          {activeTab === "anagrafica" && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                {[["nome", "Nome"], ["cognome", "Cognome"], ["email", "Email"], ["telefono", "Telefono"], ["paese", "Paese"]].map(([key, label]) => (
+                  <div key={key} className={key === "email" ? "col-span-2" : ""}>
+                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: "#9CA3AF" }}>{label}</label>
+                    <input type="text" value={form[key] || ""}
+                      onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
+                      className="w-full px-3 py-2.5 rounded-lg text-sm border outline-none focus:ring-2 focus:ring-yellow-400"
+                      style={{ borderColor: "#E5E2DD", color: "#1E2128" }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "questionario" && (
+            <div className="space-y-4">
+              {Object.entries(form.questionario || {}).length === 0 ? (
+                <p className="text-sm text-center py-6" style={{ color: "#9CA3AF" }}>Nessuna risposta al questionario.</p>
+              ) : Object.entries(form.questionario).map(([key, val]) => (
+                <div key={key}>
+                  <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: "#9CA3AF" }}>
+                    {QLABELS[key] || key}
+                  </label>
+                  <textarea
+                    value={val || ""}
+                    onChange={e => setForm(p => ({ ...p, questionario: { ...p.questionario, [key]: e.target.value } }))}
+                    rows={3}
+                    className="w-full px-3 py-2.5 rounded-lg text-sm border outline-none focus:ring-2 focus:ring-yellow-400 resize-y"
+                    style={{ borderColor: "#E5E2DD", color: "#1E2128" }}
+                  />
+                </div>
+              ))}
+              {/* Aggiungi campo questionario */}
+              <div className="pt-2 border-t" style={{ borderColor: "#F0EDE8" }}>
+                <p className="text-xs font-semibold mb-2" style={{ color: "#9CA3AF" }}>Aggiungi campo:</p>
+                <div className="flex gap-2">
+                  <select className="flex-1 px-3 py-2 rounded-lg text-sm border" style={{ borderColor: "#E5E2DD" }}
+                    onChange={e => {
+                      if (e.target.value && !(e.target.value in form.questionario)) {
+                        setForm(p => ({ ...p, questionario: { ...p.questionario, [e.target.value]: "" } }));
+                      }
+                      e.target.value = "";
+                    }}>
+                    <option value="">Seleziona campo...</option>
+                    {Object.entries(QLABELS).filter(([k]) => !(k in (form.questionario || {}))).map(([k, l]) => (
+                      <option key={k} value={k}>{l}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "stato" && (
+            <div className="space-y-4">
+              <div className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: "#9CA3AF" }}>Flag funnel</div>
+              {[
+                ["questionario_compilato", "Questionario compilato"],
+                ["pagamento_analisi", "Pagamento analisi (€67)"],
+                ["analisi_generata", "Analisi generata"]
+              ].map(([key, label]) => (
+                <div key={key} className="flex items-center justify-between p-3 rounded-xl"
+                  style={{ background: form[key] ? "#F0FDF4" : "#FAFAF7", border: `1px solid ${form[key] ? "#BBF7D0" : "#F0EDE8"}` }}>
+                  <span className="text-sm font-medium" style={{ color: "#1E2128" }}>{label}</span>
+                  <button onClick={() => setForm(p => ({ ...p, [key]: !p[key] }))}
+                    className="w-12 h-6 rounded-full relative transition-colors"
+                    style={{ background: form[key] ? "#22C55E" : "#D1D5DB" }}>
+                    <div className="w-5 h-5 bg-white rounded-full absolute top-0.5 transition-all shadow-sm"
+                      style={{ left: form[key] ? "26px" : "2px" }} />
+                  </button>
+                </div>
+              ))}
+              <div className="pt-3">
+                <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: "#9CA3AF" }}>
+                  Note admin (interne)
+                </label>
+                <textarea value={form.note_admin || ""}
+                  onChange={e => setForm(p => ({ ...p, note_admin: e.target.value }))}
+                  rows={4} placeholder="Note interne su questo cliente..."
+                  className="w-full px-3 py-2.5 rounded-lg text-sm border outline-none resize-y"
+                  style={{ borderColor: "#E5E2DD", color: "#1E2128" }} />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-5 border-t flex items-center justify-between" style={{ background: "#FAFAF7", borderColor: "#F0EDE8" }}>
+          {error && <span className="text-sm text-red-600">{error}</span>}
+          {!error && saved && <span className="text-sm font-semibold" style={{ color: "#16A34A" }}>✓ Salvato</span>}
+          {!error && !saved && <span />}
+          <div className="flex gap-3">
+            <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100">
+              Chiudi
+            </button>
+            <button onClick={handleSave} disabled={saving}
+              className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all"
+              style={{ background: "#F2C418", color: "#1E2128" }}>
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {saving ? "Salvataggio..." : "Salva modifiche"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Status configuration (nuovo modello - solo stati attivi)
 const STATUS_CONFIG = {
@@ -70,6 +280,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
   const [notesClaudio, setNotesClaudio] = useState("");
   const [dataCall, setDataCall] = useState("");
   const [stats, setStats] = useState({ totale: 0, questionario_completato: 0, call_fissata: 0, convertiti: 0 });
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     loadClienti();
@@ -518,12 +729,23 @@ export function AdminClientiPanel({ onViewAsCliente }) {
                     </p>
                   </div>
                 </div>
-                <button 
-                  onClick={() => setSelectedCliente(null)}
-                  className="p-1 hover:bg-black/5 rounded"
-                >
-                  <X className="w-5 h-5 text-[#9CA3AF]" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowEditModal(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                    style={{ background: "#F2C418", color: "#1E2128" }}
+                    title="Modifica dati cliente"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    Modifica
+                  </button>
+                  <button
+                    onClick={() => setSelectedCliente(null)}
+                    className="p-1 hover:bg-black/5 rounded"
+                  >
+                    <X className="w-5 h-5 text-[#9CA3AF]" />
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -659,6 +881,19 @@ export function AdminClientiPanel({ onViewAsCliente }) {
           </div>
         )}
       </div>
+
+      {/* Cliente Edit Modal */}
+      {showEditModal && selectedCliente && (
+        <ClienteEditModal
+          cliente={selectedCliente}
+          onClose={() => setShowEditModal(false)}
+          onSaved={(updated) => {
+            setSelectedCliente(updated);
+            setClienti(prev => prev.map(c => c.id === updated.id ? updated : c));
+            setShowEditModal(false);
+          }}
+        />
+      )}
 
       {/* Analysis Modal */}
       {showAnalysis && analysis && (

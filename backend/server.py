@@ -3451,6 +3451,97 @@ async def modifica_stato_cliente(user_id: str, body: dict = None):
     }
 
 
+@api_router.patch("/admin/clienti-analisi/{user_id}/dati")
+async def update_cliente_dati(user_id: str, body: dict):
+    """Admin modifica anagrafica, questionario e stato funnel di un cliente."""
+    cliente = await db.users.find_one({"id": user_id, "user_type": "cliente_analisi"})
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente non trovato")
+
+    allowed = {
+        "nome", "cognome", "email", "telefono", "paese",
+        "questionario", "stato", "fase",
+        "questionario_compilato", "pagamento_analisi", "analisi_generata",
+        "note_admin"
+    }
+    update = {k: v for k, v in body.items() if k in allowed}
+    if not update:
+        raise HTTPException(status_code=400, detail="Nessun campo valido da aggiornare")
+
+    update["updated_at"] = datetime.now(timezone.utc).isoformat()
+    update["last_edited_by"] = "admin"
+
+    await db.users.update_one({"id": user_id}, {"$set": update})
+    return {"success": True, "message": "Dati cliente aggiornati"}
+
+
+@api_router.get("/admin/partner/{partner_id}/full-data")
+async def get_partner_full_data(partner_id: str):
+    """Carica tutti i dati journey di un partner per l'editor admin."""
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0, "password": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner non trovato")
+
+    posizionamento = await db.partner_posizionamento.find_one({"partner_id": partner_id}, {"_id": 0})
+    masterclass = await db.masterclass_factory.find_one({"partner_id": partner_id}, {"_id": 0})
+    videocorso = await db.partner_videocorso.find_one({"partner_id": partner_id}, {"_id": 0})
+    funnel = await db.partner_funnel.find_one({"partner_id": partner_id}, {"_id": 0})
+    lancio = await db.partner_lancio.find_one({"partner_id": partner_id}, {"_id": 0})
+
+    return {
+        "success": True,
+        "partner": partner,
+        "posizionamento": posizionamento or {},
+        "masterclass": masterclass or {},
+        "videocorso": videocorso or {},
+        "funnel": funnel or {},
+        "lancio": {"plan_generated": lancio.get("plan_generated", False)} if lancio else {},
+    }
+
+
+@api_router.patch("/admin/partner/{partner_id}/journey")
+async def update_partner_journey(partner_id: str, body: dict):
+    """
+    Admin override per dati journey partner.
+    Body: { "collection": "masterclass_factory"|"partner_posizionamento"|"partner_videocorso"|"partner_funnel",
+            "data": { field: value, ... } }
+    """
+    partner = await db.partners.find_one({"id": partner_id})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner non trovato")
+
+    collection_map = {
+        "masterclass_factory": db.masterclass_factory,
+        "partner_posizionamento": db.partner_posizionamento,
+        "partner_videocorso": db.partner_videocorso,
+        "partner_funnel": db.partner_funnel,
+        "partners": db.partners,
+    }
+
+    collection_name = body.get("collection")
+    data = body.get("data", {})
+
+    if not collection_name or collection_name not in collection_map:
+        raise HTTPException(status_code=400, detail=f"Collection non valida. Valide: {list(collection_map.keys())}")
+    if not data:
+        raise HTTPException(status_code=400, detail="Nessun dato da salvare")
+
+    data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    data["last_edited_by"] = "admin"
+
+    coll = collection_map[collection_name]
+    if collection_name == "partners":
+        await coll.update_one({"id": partner_id}, {"$set": data})
+    else:
+        await coll.update_one(
+            {"partner_id": partner_id},
+            {"$set": data, "$setOnInsert": {"partner_id": partner_id, "created_at": datetime.now(timezone.utc).isoformat()}},
+            upsert=True
+        )
+
+    return {"success": True, "message": f"Dati {collection_name} aggiornati"}
+
+
 @api_router.delete("/admin/clienti-analisi/{user_id}")
 async def delete_cliente_analisi(user_id: str):
     """
