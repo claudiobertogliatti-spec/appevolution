@@ -159,6 +159,11 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
   
   // Partnership payment state
   const [markingPartnership, setMarkingPartnership] = useState(false);
+
+  // Video pipeline state
+  const [videoPipeline, setVideoPipeline] = useState(null);
+  const [approvingVideo, setApprovingVideo] = useState(false);
+  const [embedCopied, setEmbedCopied] = useState(false);
   
   // Initialize form data when partner changes
   useEffect(() => {
@@ -183,6 +188,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
       setRevisionNotes(partner.revision_notes || "");
       fetchPayments();
       fetchDocuments();
+      fetchVideoPipeline(partner.id);
     }
   }, [partner]);
   
@@ -266,6 +272,36 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
     }
   };
   
+  const fetchVideoPipeline = async (partnerId) => {
+    if (!partnerId) return;
+    try {
+      const res = await fetch(`${API}/api/partner-journey/masterclass/video-status/${partnerId}`);
+      if (res.ok) setVideoPipeline(await res.json());
+    } catch (e) {}
+  };
+
+  const handleApproveVideo = async () => {
+    if (!partner?.id) return;
+    setApprovingVideo(true);
+    try {
+      const res = await fetch(`${API}/api/partner-journey/masterclass/approve-video?partner_id=${partner.id}`, { method: "POST" });
+      if (res.ok) {
+        setVideoPipeline(prev => ({ ...prev, pipeline_status: "approved", video_approved: true }));
+      }
+    } catch (e) {} finally {
+      setApprovingVideo(false);
+    }
+  };
+
+  const handleCopyEmbed = () => {
+    const embed = videoPipeline?.video_systeme_embed;
+    if (!embed) return;
+    navigator.clipboard.writeText(embed).then(() => {
+      setEmbedCopied(true);
+      setTimeout(() => setEmbedCopied(false), 2500);
+    });
+  };
+
   const handleSaveProfile = async () => {
     if (!partner?.id) return;
     setSaving(true);
@@ -1031,6 +1067,116 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                   </div>
                 )}
                 
+                {/* VIDEO PIPELINE REVIEW */}
+                {videoPipeline?.pipeline_status && (
+                  <div className="mt-6 rounded-xl overflow-hidden" style={{ border: "1px solid #E5E2DD" }}>
+                    <div className="px-5 py-4 flex items-center justify-between" style={{ background: "#1E2128" }}>
+                      <div className="flex items-center gap-3">
+                        <Film className="w-5 h-5" style={{ color: "#F2C418" }} />
+                        <span className="font-bold text-white text-sm">Video Masterclass — Pipeline</span>
+                      </div>
+                      <span className="text-[11px] font-bold px-2.5 py-1 rounded-full"
+                        style={{
+                          background: videoPipeline.pipeline_status === "approved" ? "#22C55E25" :
+                                      videoPipeline.pipeline_status === "ready_for_review" ? "#F59E0B25" : "#3B82F625",
+                          color: videoPipeline.pipeline_status === "approved" ? "#16A34A" :
+                                 videoPipeline.pipeline_status === "ready_for_review" ? "#B45309" : "#2563EB"
+                        }}>
+                        {videoPipeline.pipeline_status === "approved" ? "✓ Approvato" :
+                         videoPipeline.pipeline_status === "ready_for_review" ? "Pronto per review" :
+                         videoPipeline.pipeline_status}
+                      </span>
+                    </div>
+
+                    <div className="p-5 space-y-4" style={{ background: "#FAFAF7" }}>
+                      {/* Stats */}
+                      {videoPipeline.video_time_saved_s > 0 && (
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="text-center p-3 bg-white rounded-xl" style={{ border: "1px solid #F0EDE8" }}>
+                            <div className="text-lg font-black" style={{ color: "#1E2128" }}>
+                              {Math.floor(videoPipeline.video_raw_duration_s / 60)}:{String(videoPipeline.video_raw_duration_s % 60).padStart(2, "0")}
+                            </div>
+                            <div className="text-[11px]" style={{ color: "#9CA3AF" }}>Originale</div>
+                          </div>
+                          <div className="text-center p-3 bg-white rounded-xl" style={{ border: "1px solid #F0EDE8" }}>
+                            <div className="text-lg font-black" style={{ color: "#1E2128" }}>
+                              {Math.floor(videoPipeline.video_final_duration_s / 60)}:{String(videoPipeline.video_final_duration_s % 60).padStart(2, "0")}
+                            </div>
+                            <div className="text-[11px]" style={{ color: "#9CA3AF" }}>Dopo cleaning</div>
+                          </div>
+                          <div className="text-center p-3 rounded-xl" style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
+                            <div className="text-lg font-black" style={{ color: "#16A34A" }}>
+                              -{Math.floor(videoPipeline.video_time_saved_s / 60)}:{String(videoPipeline.video_time_saved_s % 60).padStart(2, "0")}
+                            </div>
+                            <div className="text-[11px]" style={{ color: "#16A34A" }}>Rimosso</div>
+                          </div>
+                        </div>
+                      )}
+                      {videoPipeline.video_filler_report?.count > 0 && (
+                        <p className="text-xs" style={{ color: "#6B7280" }}>
+                          ✂️ Filler rimossi: <strong>{videoPipeline.video_filler_report.count}</strong>
+                          {videoPipeline.video_filler_report.words_found?.length > 0 && (
+                            <> ({videoPipeline.video_filler_report.words_found.join(", ")})</>
+                          )}
+                        </p>
+                      )}
+
+                      {/* YouTube embed preview */}
+                      {videoPipeline.video_youtube_id && (
+                        <div className="aspect-video rounded-xl overflow-hidden bg-black">
+                          <iframe
+                            width="100%" height="100%"
+                            src={`https://www.youtube.com/embed/${videoPipeline.video_youtube_id}`}
+                            title="Video Masterclass"
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="flex gap-3 flex-wrap">
+                        {videoPipeline.video_youtube_url && (
+                          <a href={videoPipeline.video_youtube_url} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold"
+                            style={{ background: "#EF444415", color: "#EF4444", border: "1px solid #EF444430" }}>
+                            <Youtube className="w-4 h-4" />
+                            YouTube
+                          </a>
+                        )}
+                        {videoPipeline.video_systeme_embed && (
+                          <button onClick={handleCopyEmbed}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+                            style={{
+                              background: embedCopied ? "#22C55E15" : "#F0EDE8",
+                              color: embedCopied ? "#16A34A" : "#374151",
+                              border: `1px solid ${embedCopied ? "#22C55E40" : "#E5E2DD"}`
+                            }}>
+                            {embedCopied ? <CheckCircle className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
+                            {embedCopied ? "Copiato!" : "Copia embed Systeme"}
+                          </button>
+                        )}
+                        {videoPipeline.pipeline_status === "ready_for_review" && (
+                          <button onClick={handleApproveVideo} disabled={approvingVideo}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all"
+                            style={{ background: "#F2C418", color: "#1E2128" }}>
+                            {approvingVideo ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                            Approva Video
+                          </button>
+                        )}
+                        {videoPipeline.pipeline_status === "approved" && (
+                          <span className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold"
+                            style={{ background: "#F0FDF4", color: "#16A34A", border: "1px solid #BBF7D0" }}>
+                            <CheckCircle className="w-4 h-4" />
+                            Video approvato
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Revision Notes Section (existing) */}
                 <div className="mt-6 p-4 rounded-xl" style={{ background: "#FFF8DC", border: "1px solid #F2C41850" }}>
                   <h4 className="font-bold mb-3 flex items-center gap-2" style={{ color: "#1E2128" }}>

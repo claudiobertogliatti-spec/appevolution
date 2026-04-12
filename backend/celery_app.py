@@ -45,7 +45,7 @@ celery_app = Celery(
     'evolution_pro',
     broker=broker_url,
     backend=backend_url,
-    include=['celery_tasks', 'morning_briefing_task']
+    include=['celery_tasks', 'morning_briefing_task', 'video_pipeline_task']
 )
 
 # Celery configuration

@@ -1312,6 +1312,150 @@ async def complete_videocorso(partner_id: str):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# VIDEO PIPELINE — SUBMIT LINK + STATUS + APPROVE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class VideoLinkRequest(BaseModel):
+    partner_id: str
+    video_url: str
+    lesson_id: Optional[str] = None  # solo per videocorso
+
+
+@router.post("/masterclass/submit-video-link")
+async def submit_masterclass_video_link(req: VideoLinkRequest):
+    """Partner invia link Drive/WeTransfer del video masterclass grezzo"""
+    await get_partner_or_404(req.partner_id)
+
+    # Aggiorna stato a "queued"
+    await db.masterclass_factory.update_one(
+        {"partner_id": req.partner_id},
+        {"$set": {
+            "video_raw_url": req.video_url,
+            "video_pipeline_status": "queued",
+            "video_submitted_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+
+    # Avvia Celery task
+    from video_pipeline_task import process_partner_video
+    process_partner_video.delay(
+        partner_id=req.partner_id,
+        video_url=req.video_url,
+        video_type="masterclass"
+    )
+
+    return {"success": True, "message": "Video in elaborazione. Ti notificheremo quando è pronto."}
+
+
+@router.post("/videocorso/submit-video-link")
+async def submit_videocorso_video_link(req: VideoLinkRequest):
+    """Partner invia link Drive/WeTransfer per una lezione del videocorso"""
+    if not req.lesson_id:
+        raise HTTPException(status_code=400, detail="lesson_id obbligatorio per videocorso")
+    await get_partner_or_404(req.partner_id)
+
+    lk = f"lessons.{req.lesson_id}"
+    await db.partner_videocorso.update_one(
+        {"partner_id": req.partner_id},
+        {"$set": {
+            f"{lk}.video_raw_url": req.video_url,
+            f"{lk}.pipeline_status": "queued",
+            f"{lk}.status": "queued",
+            f"{lk}.video_submitted_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+
+    from video_pipeline_task import process_partner_video
+    process_partner_video.delay(
+        partner_id=req.partner_id,
+        video_url=req.video_url,
+        video_type="videocorso",
+        lesson_id=req.lesson_id
+    )
+
+    return {"success": True, "message": f"Lezione {req.lesson_id} in elaborazione."}
+
+
+@router.get("/masterclass/video-status/{partner_id}")
+async def get_masterclass_video_status(partner_id: str):
+    """Stato pipeline video masterclass"""
+    await get_partner_or_404(partner_id)
+    doc = await db.masterclass_factory.find_one({"partner_id": partner_id}, {"_id": 0})
+    if not doc:
+        return {"success": True, "pipeline_status": None}
+    return {
+        "success": True,
+        "pipeline_status": doc.get("video_pipeline_status"),
+        "video_youtube_url": doc.get("video_youtube_url"),
+        "video_youtube_id": doc.get("video_youtube_id"),
+        "video_embed_url": doc.get("video_embed_url"),
+        "video_systeme_embed": doc.get("video_systeme_embed"),
+        "video_approved": doc.get("video_approved", False),
+        "video_raw_duration_s": doc.get("video_raw_duration_s"),
+        "video_final_duration_s": doc.get("video_final_duration_s"),
+        "video_time_saved_s": doc.get("video_time_saved_s"),
+        "video_filler_report": doc.get("video_filler_report"),
+        "pipeline_completed_at": doc.get("pipeline_completed_at"),
+        "video_submitted_at": doc.get("video_submitted_at"),
+    }
+
+
+@router.post("/masterclass/approve-video")
+async def approve_masterclass_video(partner_id: str):
+    """Admin approva il video masterclass pulito"""
+    await get_partner_or_404(partner_id)
+    doc = await db.masterclass_factory.find_one({"partner_id": partner_id})
+    if not doc or doc.get("video_pipeline_status") != "ready_for_review":
+        raise HTTPException(status_code=400, detail="Nessun video pronto per approvazione")
+
+    await db.masterclass_factory.update_one(
+        {"partner_id": partner_id},
+        {"$set": {
+            "video_approved": True,
+            "video_pipeline_status": "approved",
+            "video_approved_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    await db.partners.update_one(
+        {"id": partner_id},
+        {"$set": {"masterclass_video_approved": True}}
+    )
+
+    partner = await db.partners.find_one({"id": partner_id})
+    await notify_telegram(
+        f"✅ VIDEO MASTERCLASS APPROVATO\n\n"
+        f"👤 {partner.get('name', partner_id)}\n"
+        f"📺 {doc.get('video_youtube_url', 'N/A')}"
+    )
+
+    return {"success": True, "message": "Video approvato"}
+
+
+@router.post("/videocorso/approve-video")
+async def approve_videocorso_video(partner_id: str, lesson_id: str):
+    """Admin approva il video di una lezione del videocorso"""
+    await get_partner_or_404(partner_id)
+
+    lk = f"lessons.{lesson_id}"
+    await db.partner_videocorso.update_one(
+        {"partner_id": partner_id},
+        {"$set": {
+            f"{lk}.video_approved": True,
+            f"{lk}.pipeline_status": "approved",
+            f"{lk}.status": "approved",
+            f"{lk}.video_approved_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+
+    return {"success": True, "message": f"Lezione {lesson_id} approvata"}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # VIDEOCORSO AI-DRIVEN ENDPOINTS
 # ═══════════════════════════════════════════════════════════════════════════════
 
