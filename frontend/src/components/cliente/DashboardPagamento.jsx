@@ -78,7 +78,7 @@ export function DashboardPagamento({ user, onPaymentSuccess }) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#FAFAF7' }}>
         <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" style={{ color: '#F5C518' }} />
+          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" style={{ color: '#FFD24D' }} />
           <p className="text-lg" style={{ color: '#1E2128' }}>Verifica pagamento in corso...</p>
         </div>
       </div>
@@ -92,7 +92,7 @@ export function DashboardPagamento({ user, onPaymentSuccess }) {
         {/* Header */}
         <div className="text-center mb-12">
           <span className="text-xl font-black" style={{ color: '#1E2128' }}>
-            EVOLUTION <span style={{ color: '#F5C518' }}>PRO</span>
+            EVOLUTION <span style={{ color: '#FFD24D' }}>PRO</span>
           </span>
         </div>
 
@@ -109,7 +109,7 @@ export function DashboardPagamento({ user, onPaymentSuccess }) {
         {/* Main Card */}
         <div className="rounded-2xl p-8 mb-8" style={{ background: '#FFFFFF', border: '2px solid #ECEDEF' }}>
           <div className="flex items-start gap-6">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: '#F5C518' }}>
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: '#FFD24D' }}>
               <FileText className="w-8 h-8" style={{ color: '#1E2128' }} />
             </div>
             
@@ -159,7 +159,7 @@ export function DashboardPagamento({ user, onPaymentSuccess }) {
                 onClick={handleProceedToPayment}
                 disabled={loading}
                 className="w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 hover:opacity-90"
-                style={{ background: '#F5C518', color: '#1E2128' }}
+                style={{ background: '#FFD24D', color: '#1E2128' }}
                 data-testid="proceed-payment-btn"
               >
                 {loading ? (

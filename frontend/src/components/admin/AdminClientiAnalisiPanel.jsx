@@ -16,7 +16,7 @@ const API = (typeof window !== "undefined" && window.location.hostname.includes(
 const STATUS_CONFIG = {
   registrato: { label: "Registrato", color: "#9CA3AF", icon: Users },
   questionario: { label: "Questionario ✓", color: "#3B82F6", icon: FileText },
-  pagato: { label: "Pagato", color: "#F5C518", icon: CreditCard },
+  pagato: { label: "Pagato", color: "#FFD24D", icon: CreditCard },
   analisi_da_generare: { label: "Da generare", color: "#EF4444", icon: AlertCircle },
   analisi_pronta: { label: "Analisi Pronta", color: "#22C55E", icon: Sparkles },
   call_da_fissare: { label: "Call da fissare", color: "#8B5CF6", icon: CalendarCheck }
@@ -470,7 +470,7 @@ export function AdminClientiAnalisiPanel() {
         <button
           onClick={loadClienti}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          style={{ background: '#F5C518', color: '#1E2128' }}
+          style={{ background: '#FFD24D', color: '#1E2128' }}
           data-testid="refresh-btn"
         >
           <RefreshCw className="w-4 h-4" />
@@ -488,7 +488,7 @@ export function AdminClientiAnalisiPanel() {
           <div className="text-2xl font-bold" style={{ color: '#3B82F6' }}>{stats.questionario_compilato || 0}</div>
           <div className="text-xs" style={{ color: '#3B82F6' }}>Questionario ✓</div>
         </div>
-        <div className="rounded-xl p-4" style={{ background: '#F5C51815', border: '1px solid #F5C51830' }}>
+        <div className="rounded-xl p-4" style={{ background: '#FFD24D15', border: '1px solid #FFD24D30' }}>
           <div className="text-2xl font-bold" style={{ color: '#C4990A' }}>{stats.pagato || 0}</div>
           <div className="text-xs" style={{ color: '#C4990A' }}>Da generare</div>
         </div>
@@ -515,7 +515,7 @@ export function AdminClientiAnalisiPanel() {
             placeholder="Cerca per nome, cognome o email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F5C518]"
+            className="w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD24D]"
             style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}
             data-testid="search-input"
           />
@@ -533,10 +533,10 @@ export function AdminClientiAnalisiPanel() {
               onClick={() => setFilterStatus(filtro.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive ? 'ring-2 ring-offset-1' : ''}`}
               style={{ 
-                background: isActive ? '#F5C518' : '#FFFFFF', 
+                background: isActive ? '#FFD24D' : '#FFFFFF', 
                 color: isActive ? '#1E2128' : '#5F6572',
                 border: '1px solid #ECEDEF',
-                ringColor: '#F5C518'
+                ringColor: '#FFD24D'
               }}
               data-testid={`filter-${filtro.id}`}
             >
@@ -550,7 +550,7 @@ export function AdminClientiAnalisiPanel() {
       {/* Lista clienti */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#F5C518' }} />
+          <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#FFD24D' }} />
         </div>
       ) : filteredClienti.length === 0 ? (
         <div className="text-center py-12 rounded-xl" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
@@ -649,7 +649,7 @@ export function AdminClientiAnalisiPanel() {
                             setSelectedCliente(cliente);
                           }}
                           className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:opacity-80"
-                          style={{ background: '#F5C518', color: '#1E2128' }}
+                          style={{ background: '#FFD24D', color: '#1E2128' }}
                           data-testid={`btn-dettagli-${cliente.id}`}
                         >
                           <Eye className="w-3 h-3" />
@@ -809,7 +809,7 @@ export function AdminClientiAnalisiPanel() {
 
                 {/* Partnership */}
                 {scriptCallGenerato.presentazione_partnership && (
-                  <div className="p-4 rounded-xl" style={{ background: '#FFF8DC', border: '1px solid #F5C518' }}>
+                  <div className="p-4 rounded-xl" style={{ background: '#FFF8DC', border: '1px solid #FFD24D' }}>
                     <h4 className="font-bold text-sm uppercase tracking-wider mb-2" style={{ color: '#92700C' }}>
                       6. Partnership Evolution PRO
                     </h4>

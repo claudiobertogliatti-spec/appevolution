@@ -217,7 +217,7 @@ function PartnerRow({ partner, onViewPartner }) {
             data-testid={`view-partner-${partner.id}`}
             onClick={(e) => { e.stopPropagation(); onViewPartner(partner); }}
             className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg transition-all hover:scale-[1.02]"
-            style={{ background: "#F2C418", color: "#1E2128" }}
+            style={{ background: "#FFD24D", color: "#1E2128" }}
           >
             Apri scheda partner <ArrowRight className="w-3.5 h-3.5" />
           </button>
@@ -254,7 +254,7 @@ export function DashboardOperativa({ onViewPartner }) {
   if (isLoading) {
     return (
       <div className="min-h-full flex items-center justify-center" style={{ background: "#FAFAF7" }}>
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F2C418" }} />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FFD24D" }} />
       </div>
     );
   }

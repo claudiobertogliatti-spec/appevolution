@@ -96,14 +96,14 @@ export function StefaniaChat({ partner, currentBlock, scriptContext, onScriptUpd
           <div key={i} className={`flex items-start gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
             <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
               ${msg.role === "user" 
-                ? "bg-[#F5C518] text-black" 
+                ? "bg-[#FFD24D] text-black" 
                 : "bg-gradient-to-br from-pink-500 to-purple-500 text-[#1E2128]"}`}
             >
               {msg.role === "user" ? <User className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
             </div>
             <div className={`max-w-[80%] rounded-xl px-4 py-3 
               ${msg.role === "user" 
-                ? "bg-[#F5C518] text-black" 
+                ? "bg-[#FFD24D] text-black" 
                 : "bg-[#FAFAF7] border border-[#ECEDEF] text-[#5F6572]"}`}
             >
               <div 

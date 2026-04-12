@@ -51,11 +51,11 @@ function FunnelSteps({ activeTab }) {
         const StepIcon = step.icon;
         return (
           <div key={step.id} className="flex items-center gap-1 flex-shrink-0">
-            {i > 0 && <ArrowRight className="w-3 h-3 mx-1" style={{ color: i <= activeIdx ? "#F2C418" : "#3D4451" }} />}
+            {i > 0 && <ArrowRight className="w-3 h-3 mx-1" style={{ color: i <= activeIdx ? "#FFD24D" : "#3D4451" }} />}
             <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
-              style={{ background: active ? "#F2C41820" : "transparent" }}>
-              <StepIcon className="w-3.5 h-3.5" style={{ color: active ? "#F2C418" : i <= activeIdx ? "#F2C41880" : "#3D4451" }} />
-              <span className="text-[11px] font-bold" style={{ color: active ? "#F2C418" : i <= activeIdx ? "#F2C41880" : "#3D4451" }}>
+              style={{ background: active ? "#FFD24D20" : "transparent" }}>
+              <StepIcon className="w-3.5 h-3.5" style={{ color: active ? "#FFD24D" : i <= activeIdx ? "#FFD24D80" : "#3D4451" }} />
+              <span className="text-[11px] font-bold" style={{ color: active ? "#FFD24D" : i <= activeIdx ? "#FFD24D80" : "#3D4451" }}>
                 {step.label}
               </span>
             </div>
@@ -80,7 +80,7 @@ function LandingView({ data }) {
           <p className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>{data.sub_headline}</p>
         </div>
         <div className="bg-white p-5 space-y-4">
-          <Section label="Promessa" color="#F2C418">{data.promessa}</Section>
+          <Section label="Promessa" color="#FFD24D">{data.promessa}</Section>
           <Section label="Il problema del target" color="#EF4444">{data.problema}</Section>
           <Section label="Anticipazione soluzione" color="#8B5CF6">{data.soluzione_preview}</Section>
           <div>
@@ -96,7 +96,7 @@ function LandingView({ data }) {
           </div>
           <div className="pt-2 text-center">
             <div className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-black text-sm"
-              style={{ background: "#F2C418", color: "#1E2128" }}>
+              style={{ background: "#FFD24D", color: "#1E2128" }}>
               {data.cta_iscrizione}
             </div>
           </div>
@@ -130,14 +130,14 @@ function WebinarView({ data }) {
       {/* Scaletta */}
       <div className="bg-white rounded-xl border overflow-hidden" style={{ borderColor: "#ECEDEF" }}>
         <div className="p-4 flex items-center gap-2" style={{ borderBottom: "1px solid #ECEDEF" }}>
-          <Play className="w-4 h-4" style={{ color: "#F2C418" }} />
+          <Play className="w-4 h-4" style={{ color: "#FFD24D" }} />
           <span className="text-sm font-bold" style={{ color: "#1E2128" }}>Scaletta ({(data.scaletta || []).length} fasi)</span>
         </div>
         <div className="divide-y" style={{ borderColor: "#F5F3EE" }}>
           {(data.scaletta || []).map((s, i) => (
             <div key={i} className="flex gap-3 p-4">
               <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0"
-                style={{ background: "#F2C41830", color: "#C4990A" }}>{i + 1}</span>
+                style={{ background: "#FFD24D30", color: "#C4990A" }}>{i + 1}</span>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-0.5">
                   <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "#1E212810", color: "#5F6572" }}>
@@ -153,7 +153,7 @@ function WebinarView({ data }) {
       </div>
 
       {/* CTA vendita */}
-      <div className="rounded-xl p-4" style={{ background: "#F2C41820", border: "1px solid #F2C41840" }}>
+      <div className="rounded-xl p-4" style={{ background: "#FFD24D20", border: "1px solid #FFD24D40" }}>
         <div className="text-[10px] font-bold uppercase mb-1" style={{ color: "#92400E" }}>CTA Vendita</div>
         <p className="text-sm font-bold" style={{ color: "#1E2128" }}>{data.cta_vendita}</p>
       </div>
@@ -202,12 +202,12 @@ function OffertaView({ data }) {
   return (
     <div className="space-y-3" data-testid="offerta-view">
       {/* Pricing card */}
-      <div className="rounded-2xl overflow-hidden" style={{ border: "2px solid #F2C418" }}>
+      <div className="rounded-2xl overflow-hidden" style={{ border: "2px solid #FFD24D" }}>
         <div className="p-5 text-center" style={{ background: "#1E2128" }}>
           <h3 className="text-lg font-black text-white mb-1">{data.nome_prodotto}</h3>
           <div className="flex items-center justify-center gap-3">
             <span className="text-sm line-through" style={{ color: "rgba(255,255,255,0.4)" }}>{data.prezzo_pieno}</span>
-            <span className="text-2xl font-black" style={{ color: "#F2C418" }}>{data.prezzo_lancio}</span>
+            <span className="text-2xl font-black" style={{ color: "#FFD24D" }}>{data.prezzo_lancio}</span>
             {data.sconto_percentuale && (
               <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: "#EF444420", color: "#EF4444" }}>
                 -{data.sconto_percentuale}
@@ -220,8 +220,8 @@ function OffertaView({ data }) {
           <div className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: "#9CA3AF" }}>Bonus inclusi</div>
           <div className="space-y-2 mb-4">
             {(data.bonus || []).map((b, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: "#F2C41810" }}>
-                <Gift className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "#F2C418" }} />
+              <div key={i} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: "#FFD24D10" }}>
+                <Gift className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "#FFD24D" }} />
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-bold" style={{ color: "#1E2128" }}>{b.nome}</span>
@@ -267,7 +267,7 @@ function FollowUpView({ data }) {
 
   const TIPO_COLORS = {
     replay: "#3B82F6", valore: "#34C77B", caso_studio: "#8B5CF6",
-    obiezioni: "#F59E0B", bonus: "#F2C418", urgenza: "#EF4444",
+    obiezioni: "#F59E0B", bonus: "#FFD24D", urgenza: "#EF4444",
   };
 
   return (
@@ -327,7 +327,7 @@ function CalendarioView({ data }) {
         {weeks.map((w, i) => (
           <button key={i} onClick={() => setWeekFilter(i)} data-testid={`week-filter-${i}`}
             className="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all"
-            style={{ background: weekFilter === i ? "#1E2128" : "white", color: weekFilter === i ? "#F2C418" : "#5F6572", border: weekFilter === i ? "none" : "1px solid #ECEDEF" }}>
+            style={{ background: weekFilter === i ? "#1E2128" : "white", color: weekFilter === i ? "#FFD24D" : "#5F6572", border: weekFilter === i ? "none" : "1px solid #ECEDEF" }}>
             {w.label}
           </button>
         ))}
@@ -338,7 +338,7 @@ function CalendarioView({ data }) {
           const TipoIcon = TIPO_ICONS[day.tipo] || FileText;
           return (
             <div key={day.giorno} className="bg-white rounded-xl border p-3 flex items-start gap-3" style={{ borderColor: "#ECEDEF" }}>
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "#F2C41820" }}>
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "#FFD24D20" }}>
                 <span className="text-xs font-black" style={{ color: "#C4990A" }}>{day.giorno}</span>
               </div>
               <div className="flex-1 min-w-0">
@@ -383,7 +383,7 @@ function ContenutiView({ data }) {
         {subTabs.map((t) => (
           <button key={t.id} onClick={() => { setSubTab(t.id); setExpanded([0]); }} data-testid={`content-tab-${t.id}`}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all"
-            style={{ background: subTab === t.id ? "#1E2128" : "white", color: subTab === t.id ? "#F2C418" : "#5F6572", border: subTab === t.id ? "none" : "1px solid #ECEDEF" }}>
+            style={{ background: subTab === t.id ? "#1E2128" : "white", color: subTab === t.id ? "#FFD24D" : "#5F6572", border: subTab === t.id ? "none" : "1px solid #ECEDEF" }}>
             <t.icon className="w-3.5 h-3.5" /> {t.label} ({t.count})
           </button>
         ))}
@@ -392,7 +392,7 @@ function ContenutiView({ data }) {
         {items.map((item, idx) => (
           <div key={idx} className="bg-white rounded-xl border overflow-hidden" style={{ borderColor: "#ECEDEF" }}>
             <button onClick={() => toggle(idx)} className="w-full flex items-center gap-3 p-3 text-left hover:bg-gray-50 transition-all">
-              <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0" style={{ background: "#F2C41830", color: "#C4990A" }}>{idx + 1}</span>
+              <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0" style={{ background: "#FFD24D30", color: "#C4990A" }}>{idx + 1}</span>
               <span className="flex-1 text-sm font-bold" style={{ color: "#1E2128" }}>{item.titolo}</span>
               {expanded.includes(idx) ? <ChevronDown className="w-4 h-4" style={{ color: "#9CA3AF" }} /> : <ChevronRight className="w-4 h-4" style={{ color: "#9CA3AF" }} />}
             </button>
@@ -413,7 +413,7 @@ function ContenutiView({ data }) {
                 )}
                 {item.testo && <MiniSection label="Testo" bg="#F5F3EE" color="#8B8680">{item.testo}</MiniSection>}
                 <div className="flex items-center gap-1.5 pt-1">
-                  <Zap className="w-3 h-3" style={{ color: "#F2C418" }} />
+                  <Zap className="w-3 h-3" style={{ color: "#FFD24D" }} />
                   <span className="text-xs font-bold" style={{ color: "#C4990A" }}>{item.cta}</span>
                 </div>
               </div>
@@ -437,7 +437,7 @@ function AdsView({ data }) {
         {[{ id: "overview", label: "Panoramica" }, { id: "creativita", label: `Creatività (${(data.creativita || []).length})` }, { id: "copy", label: `Copy (${(data.copy_ads || []).length})` }].map((t) => (
           <button key={t.id} onClick={() => setSection(t.id)}
             className="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all"
-            style={{ background: section === t.id ? "#1E2128" : "white", color: section === t.id ? "#F2C418" : "#5F6572", border: section === t.id ? "none" : "1px solid #ECEDEF" }}>
+            style={{ background: section === t.id ? "#1E2128" : "white", color: section === t.id ? "#FFD24D" : "#5F6572", border: section === t.id ? "none" : "1px solid #ECEDEF" }}>
             {t.label}
           </button>
         ))}
@@ -449,7 +449,7 @@ function AdsView({ data }) {
             { label: "Budget", value: data.budget_consigliato, icon: Zap }].map((row, i) => (
             <div key={i}>
               <div className="flex items-center gap-2 mb-1">
-                <row.icon className="w-3.5 h-3.5" style={{ color: "#F2C418" }} />
+                <row.icon className="w-3.5 h-3.5" style={{ color: "#FFD24D" }} />
                 <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#9CA3AF" }}>{row.label}</span>
               </div>
               <p className="text-sm" style={{ color: "#1E2128" }}>{row.value}</p>
@@ -460,7 +460,7 @@ function AdsView({ data }) {
       {section === "creativita" && (data.creativita || []).map((c, i) => (
         <div key={i} className="bg-white rounded-xl border p-4 space-y-2" style={{ borderColor: "#ECEDEF" }}>
           <div className="flex items-center gap-2">
-            <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black" style={{ background: "#F2C41830", color: "#C4990A" }}>{i + 1}</span>
+            <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black" style={{ background: "#FFD24D30", color: "#C4990A" }}>{i + 1}</span>
             <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "#1E212810", color: "#5F6572" }}>{c.tipo}</span>
           </div>
           <p className="text-sm font-bold" style={{ color: "#1E2128" }}>{c.headline}</p>
@@ -472,7 +472,7 @@ function AdsView({ data }) {
           <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "#8B5CF620", color: "#8B5CF6" }}>{c.angolo}</span>
           <p className="text-sm font-bold" style={{ color: "#1E2128" }}>{c.headline}</p>
           <MiniSection label="Testo" bg="#F5F3EE" color="#8B8680">{c.testo_primario}</MiniSection>
-          <span className="inline-flex px-3 py-1 rounded-full text-xs font-bold" style={{ background: "#F2C418", color: "#1E2128" }}>{c.cta_button}</span>
+          <span className="inline-flex px-3 py-1 rounded-full text-xs font-bold" style={{ background: "#FFD24D", color: "#1E2128" }}>{c.cta_button}</span>
         </div>
       ))}
     </div>
@@ -548,7 +548,7 @@ function LancioContent({ planData, activeTab, setActiveTab }) {
         {TABS.map((tab) => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)} data-testid={`lancio-tab-${tab.id}`}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all"
-            style={{ background: activeTab === tab.id ? "#1E2128" : "white", color: activeTab === tab.id ? "#F2C418" : "#5F6572", border: activeTab === tab.id ? "none" : "1px solid #ECEDEF" }}>
+            style={{ background: activeTab === tab.id ? "#1E2128" : "white", color: activeTab === tab.id ? "#FFD24D" : "#5F6572", border: activeTab === tab.id ? "none" : "1px solid #ECEDEF" }}>
             <tab.icon className="w-3 h-3" /> {tab.label}
           </button>
         ))}
@@ -578,7 +578,7 @@ export function LancioPage({ partner, onNavigate, onLaunchComplete, isAdmin }) {
 
   if (isLoading) {
     return <div className="min-h-full flex items-center justify-center" style={{ background: "#FAFAF7" }}>
-      <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F2C418" }} />
+      <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FFD24D" }} />
     </div>;
   }
 

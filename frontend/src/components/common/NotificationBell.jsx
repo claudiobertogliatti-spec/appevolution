@@ -25,7 +25,7 @@ export function NotificationBell({ onNavigate }) {
     <div style={{ position: "relative" }}>
       <div
         onClick={() => setOpen(!open)}
-        className="w-10 h-10 rounded-full bg-white border border-white/20 flex items-center justify-center cursor-pointer hover:border-[#F5C518] hover:bg-[#FFFBEA] transition-all relative"
+        className="w-10 h-10 rounded-full bg-white border border-white/20 flex items-center justify-center cursor-pointer hover:border-[#FFD24D] hover:bg-[#FFFBEA] transition-all relative"
         data-testid="notification-bell"
       >
         <Bell className="w-4 h-4 text-[#5F6572]" />
@@ -68,7 +68,7 @@ export function NotificationBell({ onNavigate }) {
                   key={n.id}
                   onClick={() => handleClick(n)}
                   className={`flex items-start gap-3 p-4 border-b border-[#e4e8ef] cursor-pointer transition-colors hover:bg-[#FFFBEA]
-                    ${!n.read ? 'bg-[#FFFBEA] border-l-4 border-l-[#F5C518]' : ''}
+                    ${!n.read ? 'bg-[#FFFBEA] border-l-4 border-l-[#FFD24D]' : ''}
                     ${!n.read && n.type === 'escalation' ? 'bg-[#fee2e2] border-l-[#dc2626]' : ''}`}
                 >
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0
@@ -86,7 +86,7 @@ export function NotificationBell({ onNavigate }) {
                   </div>
                   {!n.read && (
                     <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-1
-                      ${n.type === 'escalation' ? 'bg-[#dc2626]' : 'bg-[#F5C518]'}`}
+                      ${n.type === 'escalation' ? 'bg-[#dc2626]' : 'bg-[#FFD24D]'}`}
                     />
                   )}
                 </div>

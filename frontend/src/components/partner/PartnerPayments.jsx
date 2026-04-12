@@ -117,7 +117,7 @@ const NEXT_STEPS = [
   {
     num: "3",
     icon: Rocket,
-    color: "#F2C418",
+    color: "#FFD24D",
     title: "Segui il tuo Percorso Evolution",
     desc: "Il percorso è diviso in fasi: ogni fase sblocca la successiva. Completa la Fase 1 prima di tutto il resto.",
     done: false,
@@ -129,8 +129,8 @@ function CosaSuccedeAdesso({ onNavigate }) {
   return (
     <div className="mb-6" data-testid="cosa-succede-adesso">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#F2C41820" }}>
-          <Rocket className="w-5 h-5" style={{ color: "#F2C418" }} />
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#FFD24D20" }}>
+          <Rocket className="w-5 h-5" style={{ color: "#FFD24D" }} />
         </div>
         <div>
           <h2 className="text-base font-black" style={{ color: "#1E2128" }}>Cosa succede adesso</h2>
@@ -164,7 +164,7 @@ function CosaSuccedeAdesso({ onNavigate }) {
                     <button
                       onClick={() => onNavigate && onNavigate(step.navTarget)}
                       className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg"
-                      style={{ background: `${step.color}15`, color: step.color === "#F2C418" ? "#92700C" : step.color }}
+                      style={{ background: `${step.color}15`, color: step.color === "#FFD24D" ? "#92700C" : step.color }}
                     >
                       Vai al percorso <ArrowRight className="w-3 h-3" />
                     </button>
@@ -365,7 +365,7 @@ export function PartnerPayments({ partner, onNavigate }) {
               <button
                 onClick={() => onNavigate && onNavigate("percorso")}
                 className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-black transition-all hover:scale-[1.02] active:scale-[0.98]"
-                style={{ background: "#F2C418", color: "#1E2128" }}
+                style={{ background: "#FFD24D", color: "#1E2128" }}
               >
                 <Rocket className="w-4 h-4" />
                 Vai al Percorso <ArrowRight className="w-4 h-4" />

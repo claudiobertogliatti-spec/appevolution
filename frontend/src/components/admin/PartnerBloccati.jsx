@@ -34,7 +34,7 @@ export function PartnerBloccati({ onNavigate, onViewPartner }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 rounded-lg bg-[#F2C418] animate-pulse flex items-center justify-center">
+        <div className="w-8 h-8 rounded-lg bg-[#FFD24D] animate-pulse flex items-center justify-center">
           <span className="text-sm font-black text-[#1E2128]">E</span>
         </div>
       </div>

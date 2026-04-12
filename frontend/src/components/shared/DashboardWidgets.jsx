@@ -4,9 +4,9 @@ import { PHASES, PHASE_LABELS } from "../../constants/appConstants";
 export function Logo() {
   return (
     <div className="flex items-center gap-3">
-      <div className="w-9 h-9 rounded-lg flex items-center justify-center font-black text-lg" style={{ background: '#F2C418', color: '#2D3239' }}>E</div>
+      <div className="w-9 h-9 rounded-lg flex items-center justify-center font-black text-lg" style={{ background: '#FFD24D', color: '#2D3239' }}>E</div>
       <div>
-        <div className="text-sm font-extrabold text-white leading-none"><span style={{ color: '#F2C418' }}>volution</span>Pro</div>
+        <div className="text-sm font-extrabold text-white leading-none"><span style={{ color: '#FFD24D' }}>volution</span>Pro</div>
         <div className="text-[9px] text-[#9CA3AF] uppercase tracking-[2px] font-bold mt-0.5">OS Platform</div>
       </div>
     </div>
@@ -22,26 +22,26 @@ export function PhaseProgressBar({ currentPhase }) {
         <div>
           <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Il tuo percorso</span>
           <div className="text-base font-extrabold mt-0.5">
-            <span style={{ color: '#F2C418' }}>{currentPhase}</span>
+            <span style={{ color: '#FFD24D' }}>{currentPhase}</span>
             <span className="font-semibold text-sm ml-2" style={{ color: '#5F6572' }}>— {PHASE_LABELS[currentPhase]}</span>
           </div>
         </div>
         <div className="text-right">
-          <div className="font-mono text-2xl font-bold" style={{ color: '#F2C418' }}>{pct}%</div>
+          <div className="font-mono text-2xl font-bold" style={{ color: '#FFD24D' }}>{pct}%</div>
           <div className="text-[10px] font-semibold" style={{ color: '#9CA3AF' }}>completato</div>
         </div>
       </div>
       <div className="relative mt-2">
         <div className="absolute top-3 left-0 right-0 h-0.5 rounded" style={{ background: '#ECEDEF' }} />
-        <div className="absolute top-3 left-0 h-0.5 rounded transition-all duration-700" style={{ width: `${pct}%`, background: '#F2C418' }} />
+        <div className="absolute top-3 left-0 h-0.5 rounded transition-all duration-700" style={{ width: `${pct}%`, background: '#FFD24D' }} />
         <div className="relative flex justify-between">
           {PHASES.map((p,i)=>(
             <div key={p} className="flex flex-col items-center">
               <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-[9px] font-bold transition-all`}
                    style={{ 
-                     background: i < idx ? '#F2C418' : 'white',
-                     borderColor: i <= idx ? '#F2C418' : '#ECEDEF',
-                     color: i < idx ? '#1E2128' : i === idx ? '#F2C418' : '#9CA3AF',
+                     background: i < idx ? '#FFD24D' : 'white',
+                     borderColor: i <= idx ? '#FFD24D' : '#ECEDEF',
+                     color: i < idx ? '#1E2128' : i === idx ? '#FFD24D' : '#9CA3AF',
                      boxShadow: i === idx ? '0 0 10px rgba(242,196,24,0.35)' : 'none'
                    }}>
                 {i<idx?<Check className="w-3 h-3"/>:p.replace("F","")}

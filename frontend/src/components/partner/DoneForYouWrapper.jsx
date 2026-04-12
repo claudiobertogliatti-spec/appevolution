@@ -10,9 +10,9 @@ const API = process.env.REACT_APP_BACKEND_URL || "";
 const STATUS_CONFIG = {
   in_lavorazione: {
     label: "In lavorazione",
-    color: "#F2C418",
+    color: "#FFD24D",
     bgColor: "#FFF8E1",
-    borderColor: "#F2C41840",
+    borderColor: "#FFD24D40",
     icon: Settings,
   },
   in_revisione: {
@@ -125,8 +125,8 @@ function PreparazioneView({ status, stepTitle, stepId, stepIcon: StepIcon, notes
       {/* Done-for-you core message with SLA */}
       <div className="rounded-2xl p-5 mb-6" style={{ background: "#1E2128" }}>
         <div className="flex items-center justify-center gap-2 mb-3">
-          <Shield className="w-5 h-5" style={{ color: "#F2C418" }} />
-          <span className="text-xs font-black uppercase tracking-widest" style={{ color: "#F2C418" }}>
+          <Shield className="w-5 h-5" style={{ color: "#FFD24D" }} />
+          <span className="text-xs font-black uppercase tracking-widest" style={{ color: "#FFD24D" }}>
             Processo garantito
           </span>
         </div>
@@ -144,7 +144,7 @@ function PreparazioneView({ status, stepTitle, stepId, stepIcon: StepIcon, notes
           style={{ background: "rgba(255,255,255,0.08)", maxWidth: 320 }}
           data-testid="sla-detail"
         >
-          <Clock className="w-4 h-4 flex-shrink-0" style={{ color: "#F2C418" }} />
+          <Clock className="w-4 h-4 flex-shrink-0" style={{ color: "#FFD24D" }} />
           <span className="text-xs font-bold" style={{ color: "rgba(255,255,255,0.9)" }}>
             Tempo stimato: {slaTime}
           </span>
@@ -158,7 +158,7 @@ function PreparazioneView({ status, stepTitle, stepId, stepIcon: StepIcon, notes
       {/* Progress indicator */}
       <div className="flex items-center justify-center gap-3">
         <div className="flex gap-1">
-          <div className="w-8 h-1.5 rounded-full" style={{ background: "#F2C418" }} />
+          <div className="w-8 h-1.5 rounded-full" style={{ background: "#FFD24D" }} />
           <div className="w-8 h-1.5 rounded-full" style={{ background: isRevisione ? "#3B82F6" : "#E5E7EB" }} />
           <div className="w-8 h-1.5 rounded-full" style={{ background: "#E5E7EB" }} />
         </div>
@@ -340,7 +340,7 @@ export function DoneForYouWrapper({
   if (isLoading) {
     return (
       <div className="min-h-full flex items-center justify-center" style={{ background: "#FAFAF7" }}>
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F2C418" }} />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FFD24D" }} />
       </div>
     );
   }

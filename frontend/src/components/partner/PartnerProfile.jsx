@@ -79,7 +79,7 @@ export function PartnerProfile({ partner, onUpdate }) {
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-lg"
-               style={{ background: "#F2C418", color: "#1E2128" }}>
+               style={{ background: "#FFD24D", color: "#1E2128" }}>
             {partnerName[0]?.toUpperCase()}
           </div>
           <div>
@@ -141,7 +141,7 @@ export function PartnerProfile({ partner, onUpdate }) {
             <div>
               <label className="block text-sm font-medium text-gray-500 mb-1">Fase Attuale</label>
               <span className="inline-block px-3 py-1 rounded-full text-sm font-bold" 
-                    style={{ background: "#F2C418", color: "#1E2128" }}>
+                    style={{ background: "#FFD24D", color: "#1E2128" }}>
                 {partner?.phase || partner?.fase || "F1"}
               </span>
             </div>
@@ -230,7 +230,7 @@ export function PartnerProfile({ partner, onUpdate }) {
               onClick={handleSave}
               disabled={saving}
               className="w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all hover:opacity-90"
-              style={{ background: "#F2C418", color: "#1E2128" }}
+              style={{ background: "#FFD24D", color: "#1E2128" }}
               data-testid="save-profile-btn"
             >
               {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}

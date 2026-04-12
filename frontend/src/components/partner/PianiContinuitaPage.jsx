@@ -36,7 +36,7 @@ const PIANI = [
     price: "197",
     period: "/mese",
     popular: true,
-    color: "#F2C418",
+    color: "#FFD24D",
     features: [
       { text: "Tutto il piano Continuity", icon: Check, included: true },
       { text: "Analisi vendite avanzata", icon: BarChart3 },
@@ -219,22 +219,22 @@ export function PianiContinuitaPage({ partner, onNavigate }) {
           }}
         />
         <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 left-0 w-96 h-96 rounded-full blur-3xl" style={{ background: '#F2C418' }} />
+          <div className="absolute top-0 left-0 w-96 h-96 rounded-full blur-3xl" style={{ background: '#FFD24D' }} />
           <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full blur-3xl" style={{ background: '#3B82F6' }} />
         </div>
         
         <div className="relative max-w-4xl mx-auto px-6 py-16 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6"
-               style={{ background: '#F2C41820', border: '1px solid #F2C41850' }}>
-            <Sparkles className="w-4 h-4" style={{ color: '#F2C418' }} />
-            <span className="text-sm font-bold" style={{ color: '#F2C418' }}>
+               style={{ background: '#FFD24D20', border: '1px solid #FFD24D50' }}>
+            <Sparkles className="w-4 h-4" style={{ color: '#FFD24D' }} />
+            <span className="text-sm font-bold" style={{ color: '#FFD24D' }}>
               Piani Continuità Evolution PRO
             </span>
           </div>
           
           <h1 className="text-3xl md:text-4xl font-black mb-4 text-white">
             Continua a far crescere la tua
-            <span className="block" style={{ color: '#F2C418' }}>Accademia Digitale</span>
+            <span className="block" style={{ color: '#FFD24D' }}>Accademia Digitale</span>
           </h1>
           
           <p className="text-lg max-w-2xl mx-auto" style={{ color: '#9CA3AF' }}>

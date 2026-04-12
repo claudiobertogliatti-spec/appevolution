@@ -11,7 +11,7 @@ const TIPO_CONFIG = {
   step_pronto: { label: "Step pronto", color: "#34C77B", icon: Check, desc: "Notifica che lo step e pronto per l'approvazione" },
   azione_richiesta: { label: "Azione richiesta", color: "#F59E0B", icon: AlertCircle, desc: "Richiedi un'azione al partner" },
   sistema_attivo: { label: "Sistema attivo", color: "#3B82F6", icon: Zap, desc: "Comunica che il sistema e attivo" },
-  step_in_lavorazione: { label: "In lavorazione", color: "#F2C418", icon: Clock, desc: "Notifica avvio lavori su uno step" },
+  step_in_lavorazione: { label: "In lavorazione", color: "#FFD24D", icon: Clock, desc: "Notifica avvio lavori su uno step" },
 };
 
 const STEP_OPTIONS = [
@@ -155,8 +155,8 @@ export function NotifichePanel({ partnerId, partnerNome }) {
       {/* Header */}
       <div className="px-5 py-4 flex items-center gap-3" style={{ borderBottom: "1px solid #ECEDEF" }}>
         <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{ background: "#F2C41820" }}>
-          <Bell className="w-5 h-5" style={{ color: "#F2C418" }} />
+          style={{ background: "#FFD24D20" }}>
+          <Bell className="w-5 h-5" style={{ color: "#FFD24D" }} />
         </div>
         <div className="flex-1">
           <h3 className="text-sm font-black" style={{ color: "#1E2128" }}>

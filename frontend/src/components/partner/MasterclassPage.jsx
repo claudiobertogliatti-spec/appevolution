@@ -84,8 +84,8 @@ function VideoSubmissionCard({ partnerId }) {
       <div className="px-5 pt-5 pb-4" style={{ background: "#1E2128" }}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ background: "#F2C41820" }}>
-            <Video className="w-5 h-5" style={{ color: "#F2C418" }} />
+            style={{ background: "#FFD24D20" }}>
+            <Video className="w-5 h-5" style={{ color: "#FFD24D" }} />
           </div>
           <div>
             <div className="text-sm font-black text-white">Invia il tuo video</div>
@@ -188,7 +188,7 @@ function VideoSubmissionCard({ partnerId }) {
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all"
                 style={{
                   background: videoUrl.trim() && !submitting ? "#1E2128" : "#F0EDE8",
-                  color: videoUrl.trim() && !submitting ? "#F2C418" : "#9CA3AF"
+                  color: videoUrl.trim() && !submitting ? "#FFD24D" : "#9CA3AF"
                 }}
               >
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
@@ -268,7 +268,7 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
   if (isLoading) {
     return (
       <div className="min-h-full flex items-center justify-center" style={{ background: "#FAFAF7" }}>
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F2C418" }} />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FFD24D" }} />
       </div>
     );
   }

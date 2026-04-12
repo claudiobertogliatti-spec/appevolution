@@ -377,8 +377,8 @@ export function VideoEditorAndrea({ partner, onBack }) {
             <div className="bg-white rounded-2xl p-8 shadow-sm">
               <div className="text-center">
                 <div className="w-24 h-24 rounded-full mx-auto mb-6 flex items-center justify-center"
-                     style={{ background: '#F2C41820' }}>
-                  <Upload className="w-10 h-10" style={{ color: '#F2C418' }} />
+                     style={{ background: '#FFD24D20' }}>
+                  <Upload className="w-10 h-10" style={{ color: '#FFD24D' }} />
                 </div>
                 <h2 className="text-xl font-bold mb-2" style={{ color: '#1E2128' }}>
                   Carica il tuo video
@@ -449,7 +449,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
                   <div className="absolute h-full rounded-full"
                        style={{ 
                          width: `${(currentTime / duration) * 100}%`,
-                         background: '#F2C418'
+                         background: '#FFD24D'
                        }} />
                 </div>
                 
@@ -672,7 +672,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
               {/* Branding Tool */}
               <div className="bg-white rounded-xl p-5 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
-                  <Film className="w-5 h-5" style={{ color: '#F2C418' }} />
+                  <Film className="w-5 h-5" style={{ color: '#FFD24D' }} />
                   <h3 className="font-bold" style={{ color: '#1E2128' }}>Intro & Outro</h3>
                 </div>
                 <p className="text-xs mb-4" style={{ color: '#9CA3AF' }}>
@@ -683,7 +683,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
                   onClick={handleAddBranding}
                   disabled={isProcessing}
                   className="w-full py-3 rounded-lg font-bold text-sm text-white transition-all hover:opacity-90"
-                  style={{ background: '#F2C418', color: '#1E2128' }}
+                  style={{ background: '#FFD24D', color: '#1E2128' }}
                 >
                   Aggiungi Branding
                 </button>

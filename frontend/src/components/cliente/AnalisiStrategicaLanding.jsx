@@ -84,14 +84,14 @@ export function AnalisiStrategicaLanding({ onRegisterSuccess }) {
             {/* Logo */}
             <div className="mb-8">
               <span className="text-2xl font-black" style={{ color: '#1E2128' }}>
-                EVOLUTION <span style={{ color: '#F5C518' }}>PRO</span>
+                EVOLUTION <span style={{ color: '#FFD24D' }}>PRO</span>
               </span>
             </div>
 
             {/* Headline */}
             <h1 className="text-4xl lg:text-5xl font-black leading-tight mb-6" style={{ color: '#1E2128' }}>
               Scopri se la tua competenza può diventare un'
-              <span style={{ color: '#F5C518' }}>Accademia Digitale</span> che vende davvero
+              <span style={{ color: '#FFD24D' }}>Accademia Digitale</span> che vende davvero
             </h1>
 
             {/* Subheadline */}
@@ -112,7 +112,7 @@ export function AnalisiStrategicaLanding({ onRegisterSuccess }) {
             {/* Price Badge */}
             <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full" style={{ background: '#1E2128' }}>
               <span className="text-white">Investimento:</span>
-              <span className="text-2xl font-black" style={{ color: '#F5C518' }}>€67</span>
+              <span className="text-2xl font-black" style={{ color: '#FFD24D' }}>€67</span>
               <span className="text-white/60 text-sm">una tantum</span>
             </div>
           </div>
@@ -139,7 +139,7 @@ export function AnalisiStrategicaLanding({ onRegisterSuccess }) {
                       onChange={(e) => handleChange('nome', e.target.value)}
                       placeholder="Il tuo nome"
                       className="w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2"
-                      style={{ background: '#FAFAF7', border: '1px solid #ECEDEF', focusRing: '#F5C518' }}
+                      style={{ background: '#FAFAF7', border: '1px solid #ECEDEF', focusRing: '#FFD24D' }}
                       data-testid="input-nome"
                     />
                   </div>
@@ -236,7 +236,7 @@ export function AnalisiStrategicaLanding({ onRegisterSuccess }) {
                   type="submit"
                   disabled={!isFormValid() || loading}
                   className="w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
-                  style={{ background: '#F5C518', color: '#1E2128' }}
+                  style={{ background: '#FFD24D', color: '#1E2128' }}
                   data-testid="register-btn"
                 >
                   {loading ? (
@@ -259,7 +259,7 @@ export function AnalisiStrategicaLanding({ onRegisterSuccess }) {
               <div className="mt-6 pt-6" style={{ borderTop: '1px solid #ECEDEF' }}>
                 <p className="text-sm text-center" style={{ color: '#5F6572' }}>
                   Hai già un account?{' '}
-                  <a href="/" className="font-medium hover:underline" style={{ color: '#F5C518' }}>
+                  <a href="/" className="font-medium hover:underline" style={{ color: '#FFD24D' }}>
                     Accedi
                   </a>
                 </p>

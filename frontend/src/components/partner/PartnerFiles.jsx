@@ -168,12 +168,12 @@ export function PartnerFiles({ partner }) {
           />
           {uploading ? (
             <div>
-              <Loader2 className="w-12 h-12 mx-auto mb-3 animate-spin" style={{ color: "#F2C418" }} />
+              <Loader2 className="w-12 h-12 mx-auto mb-3 animate-spin" style={{ color: "#FFD24D" }} />
               <p className="font-medium" style={{ color: "#1E2128" }}>Caricamento in corso...</p>
             </div>
           ) : (
             <>
-              <CloudUpload className="w-12 h-12 mx-auto mb-3" style={{ color: dragActive ? "#F2C418" : "#9CA3AF" }} />
+              <CloudUpload className="w-12 h-12 mx-auto mb-3" style={{ color: dragActive ? "#FFD24D" : "#9CA3AF" }} />
               <p className="font-bold mb-1" style={{ color: "#1E2128" }}>Carica Materiale</p>
               <p className="text-sm text-gray-500 mb-3">
                 Trascina qui i tuoi file o clicca per selezionarli

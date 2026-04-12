@@ -98,7 +98,7 @@ export function ScriptBuilder({ partner, onBack, onComplete }) {
             <div className="w-24 h-2 rounded-full" style={{ background: 'rgba(255,255,255,0.2)' }}>
               <div 
                 className="h-full rounded-full transition-all"
-                style={{ width: `${totalProgress}%`, background: '#F2C418' }}
+                style={{ width: `${totalProgress}%`, background: '#FFD24D' }}
               />
             </div>
           </div>
@@ -107,9 +107,9 @@ export function ScriptBuilder({ partner, onBack, onComplete }) {
 
       <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Intro Card */}
-        <div className="flex gap-4 p-5 rounded-2xl mb-6" style={{ background: '#FFF8DC', border: '1px solid #F2C41850' }}>
+        <div className="flex gap-4 p-5 rounded-2xl mb-6" style={{ background: '#FFF8DC', border: '1px solid #FFD24D50' }}>
           <div className="relative">
-            <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl" style={{ background: '#F2C418' }}>
+            <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl" style={{ background: '#FFD24D' }}>
               ✍️
             </div>
           </div>
@@ -128,7 +128,7 @@ export function ScriptBuilder({ partner, onBack, onComplete }) {
             onClick={() => setActiveTab("masterclass")}
             className="flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all"
             style={{ 
-              background: activeTab === "masterclass" ? '#F2C418' : 'white',
+              background: activeTab === "masterclass" ? '#FFD24D' : 'white',
               color: activeTab === "masterclass" ? '#1E2128' : '#5F6572',
               border: activeTab === "masterclass" ? 'none' : '2px solid #ECEDEF'
             }}
@@ -140,7 +140,7 @@ export function ScriptBuilder({ partner, onBack, onComplete }) {
             onClick={() => setActiveTab("moduli")}
             className="flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all"
             style={{ 
-              background: activeTab === "moduli" ? '#F2C418' : 'white',
+              background: activeTab === "moduli" ? '#FFD24D' : 'white',
               color: activeTab === "moduli" ? '#1E2128' : '#5F6572',
               border: activeTab === "moduli" ? 'none' : '2px solid #ECEDEF'
             }}
@@ -174,7 +174,7 @@ export function ScriptBuilder({ partner, onBack, onComplete }) {
                 className="rounded-xl overflow-hidden"
                 style={{ 
                   background: 'white', 
-                  border: expandedBlock === block.id ? '2px solid #F2C418' : '2px solid #ECEDEF' 
+                  border: expandedBlock === block.id ? '2px solid #FFD24D' : '2px solid #ECEDEF' 
                 }}
               >
                 {/* Block Header */}
@@ -185,7 +185,7 @@ export function ScriptBuilder({ partner, onBack, onComplete }) {
                   <div 
                     className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
                     style={{ 
-                      background: approvedBlocks.includes(block.id) ? '#34C77B' : '#F2C418', 
+                      background: approvedBlocks.includes(block.id) ? '#34C77B' : '#FFD24D', 
                       color: approvedBlocks.includes(block.id) ? 'white' : '#1E2128' 
                     }}
                   >
@@ -232,7 +232,7 @@ export function ScriptBuilder({ partner, onBack, onComplete }) {
                           onChange={(e) => setTempText(e.target.value)}
                           placeholder={`Scrivi qui lo script per "${block.title}"...\n\nEsempio:\n"Ciao! Sono [Nome] e oggi voglio parlarti di..."`}
                           className="w-full h-48 p-4 rounded-xl text-sm resize-none"
-                          style={{ background: '#FAFAF7', border: '2px solid #F2C418', color: '#1E2128' }}
+                          style={{ background: '#FAFAF7', border: '2px solid #FFD24D', color: '#1E2128' }}
                           autoFocus
                         />
                         <div className="flex gap-2">

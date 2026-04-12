@@ -27,7 +27,7 @@ export const PHASE_ACTIONS = {
   F7:{title:"Prepara il lancio",desc:"STEFANIA crea email, post social e calendario dei 30 giorni.",cta:"Apri Calendario Editoriale",nav:"calendario",tutor:"STEFANIA",color:"#db2777"},
   F8:{title:"Lancio attivo",desc:"Stai lanciando! Monitora le conversioni e chiedi supporto a STEFANIA.",cta:"Supporto Live",nav:"supporto",tutor:"STEFANIA",color:"#16a34a"},
   F9:{title:"Ottimizza le performance",desc:"Analizza i dati e ottimizza il funnel con STEFANIA.",cta:"Analizza Metriche",nav:"calendario",tutor:"STEFANIA",color:"#f59e0b"},
-  F10:{title:"La mia Accademia",desc:"Gestisci la tua accademia: studenti, metriche e contenuti.",cta:"Apri Accademia",nav:"accademia",tutor:"STEFANIA",color:"#F5C518"},
+  F10:{title:"La mia Accademia",desc:"Gestisci la tua accademia: studenti, metriche e contenuti.",cta:"Apri Accademia",nav:"accademia",tutor:"STEFANIA",color:"#FFD24D"},
   F11:{title:"I miei Studenti",desc:"Monitora i progressi dei tuoi studenti e le conversioni.",cta:"Vedi Studenti",nav:"studenti",tutor:"MARCO",color:"#10B981"},
   F12:{title:"Impegni Settimana",desc:"Pianifica le tue attivita settimanali e mantieni il ritmo.",cta:"Vedi Impegni",nav:"impegni",tutor:"MARCO",color:"#3B82F6"},
   F13:{title:"Report Mensile",desc:"Analizza le performance del mese e pianifica il prossimo.",cta:"Vedi Report",nav:"report",tutor:"STEFANIA",color:"#8B5CF6"},

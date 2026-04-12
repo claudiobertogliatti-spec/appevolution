@@ -36,7 +36,7 @@ function DocumentModal({ partner, documents, onClose }) {
         {/* Header */}
         <div className="p-5 border-b border-[#ECEDEF] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#F5C518] flex items-center justify-center text-sm font-bold text-black">
+            <div className="w-10 h-10 rounded-full bg-[#FFD24D] flex items-center justify-center text-sm font-bold text-black">
               {partner.partner_name?.split(" ").map(n => n[0]).join("")}
             </div>
             <div>
@@ -56,7 +56,7 @@ function DocumentModal({ partner, documents, onClose }) {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold transition-all
-                ${activeTab === tab.id ? "text-[#F5C518] border-b-2 border-[#F5C518]" : "text-[#9CA3AF] hover:text-[#5F6572]"}`}
+                ${activeTab === tab.id ? "text-[#FFD24D] border-b-2 border-[#FFD24D]" : "text-[#9CA3AF] hover:text-[#5F6572]"}`}
             >
               <tab.icon className="w-4 h-4" />
               {tab.label}
@@ -118,7 +118,7 @@ function PositioningContent({ data }) {
         <div className="grid grid-cols-2 gap-3 mt-4">
           {Object.entries(data.answers).map(([key, value]) => (
             <div key={key} className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg p-3">
-              <div className="text-[10px] font-bold text-[#F5C518] uppercase tracking-wider mb-1">
+              <div className="text-[10px] font-bold text-[#FFD24D] uppercase tracking-wider mb-1">
                 {key.replace(/_/g, " ")}
               </div>
               <div className="text-sm text-[#5F6572]">{value || "—"}</div>
@@ -223,7 +223,7 @@ function CourseContent({ data }) {
         {modules.map((mod, idx) => (
           <div key={idx} className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl p-4">
             <div className="flex items-center gap-3 mb-2">
-              <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-[#F5C518]/20 text-[#F5C518]">
+              <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-[#FFD24D]/20 text-[#FFD24D]">
                 M{idx + 1}
               </span>
               <span className="font-bold text-sm">{mod.title}</span>
@@ -282,7 +282,7 @@ export function PartnerDocumentsView({ partners }) {
   if (loading) {
     return (
       <div className="bg-white border border-[#ECEDEF] rounded-xl p-12 text-center">
-        <div className="w-8 h-8 border-2 border-[#F5C518] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+        <div className="w-8 h-8 border-2 border-[#FFD24D] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
         <div className="text-sm text-[#9CA3AF]">Caricamento documenti...</div>
       </div>
     );
@@ -322,13 +322,13 @@ export function PartnerDocumentsView({ partners }) {
                 className="grid grid-cols-6 items-center hover:bg-white/2 transition-colors px-5 py-3"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[#F5C518] flex items-center justify-center text-xs font-bold text-black">
+                  <div className="w-8 h-8 rounded-full bg-[#FFD24D] flex items-center justify-center text-xs font-bold text-black">
                     {partner.partner_name?.split(" ").map(n => n[0]).join("")}
                   </div>
                   <span className="text-sm font-semibold">{partner.partner_name}</span>
                 </div>
                 <div>
-                  <span className="font-mono text-xs font-bold px-2 py-1 rounded bg-[#F5C518]/15 text-[#F5C518]">
+                  <span className="font-mono text-xs font-bold px-2 py-1 rounded bg-[#FFD24D]/15 text-[#FFD24D]">
                     {partner.partner_phase}
                   </span>
                 </div>
@@ -352,7 +352,7 @@ export function PartnerDocumentsView({ partners }) {
                 <div className="text-right">
                   <button
                     onClick={() => openPartnerDocs(partner)}
-                    className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FAFAF7] border border-[#ECEDEF] hover:border-[#F5C518]/30 hover:bg-[#F5C518]/10 transition-all flex items-center gap-1.5 ml-auto"
+                    className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FAFAF7] border border-[#ECEDEF] hover:border-[#FFD24D]/30 hover:bg-[#FFD24D]/10 transition-all flex items-center gap-1.5 ml-auto"
                   >
                     <Eye className="w-3 h-3" />
                     Visualizza

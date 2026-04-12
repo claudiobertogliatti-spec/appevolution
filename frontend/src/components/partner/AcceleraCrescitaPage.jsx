@@ -32,7 +32,7 @@ const CATEGORIES = {
   costanza: {
     id: "costanza",
     icon: Repeat,
-    color: "#F2C418",
+    color: "#FFD24D",
     title: "Costanza",
     tagline: "Pubblica ogni giorno senza pensarci",
     items: [

@@ -155,12 +155,12 @@ export function QuestionarioCliente({ user, onComplete, onLogout }) {
       <header className="border-b" style={{ background: '#FFFFFF', borderColor: '#ECEDEF' }}>
         <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#FFD24D' }}>
               <span className="text-lg font-black" style={{ color: '#1E2128' }}>E</span>
             </div>
             <div>
               <span className="font-black text-lg" style={{ color: '#1E2128' }}>
-                EVOLUTION <span style={{ color: '#F5C518' }}>PRO</span>
+                EVOLUTION <span style={{ color: '#FFD24D' }}>PRO</span>
               </span>
             </div>
           </div>
@@ -192,7 +192,7 @@ export function QuestionarioCliente({ user, onComplete, onLogout }) {
                       step.active ? '' : 'opacity-40'
                     }`}
                     style={{ 
-                      background: step.active ? '#F5C518' : '#ECEDEF',
+                      background: step.active ? '#FFD24D' : '#ECEDEF',
                       color: step.active ? '#1E2128' : '#9CA3AF'
                     }}
                   >
@@ -264,7 +264,7 @@ export function QuestionarioCliente({ user, onComplete, onLogout }) {
                   onChange={(e) => handleRispostaChange(domanda.campo, e.target.value)}
                   placeholder={domanda.placeholder}
                   rows={3}
-                  className="w-full px-4 py-3 rounded-xl text-base resize-none focus:outline-none focus:ring-2 focus:ring-[#F5C518] transition-all"
+                  className="w-full px-4 py-3 rounded-xl text-base resize-none focus:outline-none focus:ring-2 focus:ring-[#FFD24D] transition-all"
                   style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}
                   data-testid={`risposta-${domanda.id}`}
                 />
@@ -272,7 +272,7 @@ export function QuestionarioCliente({ user, onComplete, onLogout }) {
                 <select
                   value={risposte[domanda.campo] || ''}
                   onChange={(e) => handleRispostaChange(domanda.campo, e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-[#F5C518] transition-all appearance-none cursor-pointer"
+                  className="w-full px-4 py-3 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-[#FFD24D] transition-all appearance-none cursor-pointer"
                   style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}
                   data-testid={`risposta-${domanda.id}`}
                 >
@@ -315,7 +315,7 @@ export function QuestionarioCliente({ user, onComplete, onLogout }) {
             onClick={handleSubmit}
             disabled={loading || !tutteRisposteCompilate}
             className="inline-flex items-center gap-3 px-10 py-4 rounded-xl font-black text-lg uppercase tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 hover:scale-105"
-            style={{ background: '#F5C518', color: '#1E2128' }}
+            style={{ background: '#FFD24D', color: '#1E2128' }}
             data-testid="submit-questionario-btn"
           >
             {loading ? (

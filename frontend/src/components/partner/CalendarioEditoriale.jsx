@@ -24,10 +24,10 @@ export function CalendarioEditoriale({ partner }) {
     <div className="animate-slide-in space-y-6" data-testid="calendario-editoriale">
       {/* Hero */}
       <div className="bg-gradient-to-br from-[#1a2332] to-[#2c3e55] rounded-xl p-6 relative overflow-hidden">
-        <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-[#F5C518]/10" />
+        <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-[#FFD24D]/10" />
         <div className="relative">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-xl bg-[#F5C518] flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl bg-[#FFD24D] flex items-center justify-center">
               <Calendar className="w-6 h-6 text-black" />
             </div>
             <div>
@@ -45,7 +45,7 @@ export function CalendarioEditoriale({ partner }) {
               <div key={p.label} className="bg-white/10 rounded-lg px-4 py-2 flex items-center gap-2">
                 <span className="text-lg">{p.icon}</span>
                 <span className="text-xs font-bold text-white/80">{p.label}</span>
-                <span className="font-mono text-sm font-bold text-[#F5C518]">{p.count}</span>
+                <span className="font-mono text-sm font-bold text-[#FFD24D]">{p.count}</span>
               </div>
             ))}
           </div>
@@ -83,7 +83,7 @@ export function CalendarioEditoriale({ partner }) {
               className="p-4 flex items-center gap-3 cursor-pointer hover:bg-[#FAFAF7] transition-colors"
             >
               <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-mono text-sm font-bold
-                ${wi <= 1 ? 'bg-[#F5C518] text-black' : 'bg-[#ECEDEF] text-[#5F6572]'}`}
+                ${wi <= 1 ? 'bg-[#FFD24D] text-black' : 'bg-[#ECEDEF] text-[#5F6572]'}`}
               >
                 W{week.week}
               </div>
@@ -126,7 +126,7 @@ export function CalendarioEditoriale({ partner }) {
                         <div className="text-sm font-bold text-[#5F6572]">{c.title}</div>
                         <div className={`text-xs font-semibold mt-0.5 ${config.color}`}>{c.platform}</div>
                       </div>
-                      <button className="text-xs font-bold text-[#9CA3AF] hover:text-[#F5C518] transition-colors">
+                      <button className="text-xs font-bold text-[#9CA3AF] hover:text-[#FFD24D] transition-colors">
                         Modifica
                       </button>
                     </div>
@@ -139,11 +139,11 @@ export function CalendarioEditoriale({ partner }) {
       </div>
 
       {/* Tips */}
-      <div className="bg-[#FFFBEA]/10 border border-[#F5C518]/30 rounded-xl p-4">
-        <div className="text-xs font-extrabold text-[#F5C518] mb-2">💡 SUGGERIMENTO</div>
+      <div className="bg-[#FFFBEA]/10 border border-[#FFD24D]/30 rounded-xl p-4">
+        <div className="text-xs font-extrabold text-[#FFD24D] mb-2">💡 SUGGERIMENTO</div>
         <div className="text-sm text-[#5F6572] leading-relaxed">
           Questo calendario è una traccia. Personalizzalo in base alla tua nicchia e al tuo stile. 
-          L'importante è mantenere la <span className="text-[#F5C518] font-bold">costanza</span>: 
+          L'importante è mantenere la <span className="text-[#FFD24D] font-bold">costanza</span>: 
           meglio 3 contenuti/settimana fatti bene che 7 fatti di fretta.
         </div>
       </div>

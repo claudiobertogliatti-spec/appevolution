@@ -130,7 +130,7 @@ export function PosizionamentoPage({ partner, onNavigate, onComplete, isAdmin })
   if (isLoading) {
     return (
       <div className="min-h-full flex items-center justify-center" style={{ background: "#FAFAF7" }}>
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F2C418" }} />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FFD24D" }} />
       </div>
     );
   }
@@ -229,7 +229,7 @@ export function PosizionamentoPage({ partner, onNavigate, onComplete, isAdmin })
                     ))}
                     {positioningOutput.posizionamento_finale && (
                       <div className="rounded-xl p-5 mt-4" style={{ background: "#1E2128" }}>
-                        <div className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "#F2C418" }}>Posizionamento finale</div>
+                        <div className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "#FFD24D" }}>Posizionamento finale</div>
                         <p className="text-lg font-black leading-relaxed text-white">{positioningOutput.posizionamento_finale}</p>
                       </div>
                     )}
@@ -259,7 +259,7 @@ export function PosizionamentoPage({ partner, onNavigate, onComplete, isAdmin })
                 {positioningOutput.posizionamento_finale && (
                   <div className="rounded-xl p-6 mt-4 mb-6 relative" data-testid="posizionamento-finale-phrase"
                        style={{ background: "#1E2128" }}>
-                    <div className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "#F2C418" }}>
+                    <div className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "#FFD24D" }}>
                       Posizionamento finale
                     </div>
                     <p className="text-lg font-black leading-relaxed text-white mb-4">
@@ -301,7 +301,7 @@ export function PosizionamentoPage({ partner, onNavigate, onComplete, isAdmin })
                     <div key={field.key} className="bg-white rounded-xl border p-5" style={{ borderColor: "#ECEDEF" }}>
                       <label className="flex items-start gap-3 mb-3">
                         <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5"
-                              style={{ background: inputs[field.key]?.length >= 10 ? "#34C77B" : "#F2C418",
+                              style={{ background: inputs[field.key]?.length >= 10 ? "#34C77B" : "#FFD24D",
                                        color: inputs[field.key]?.length >= 10 ? "white" : "#1E2128" }}>
                           {inputs[field.key]?.length >= 10 ? <Check className="w-3.5 h-3.5" /> : idx + 1}
                         </span>
@@ -313,7 +313,7 @@ export function PosizionamentoPage({ partner, onNavigate, onComplete, isAdmin })
                         placeholder={field.placeholder}
                         rows={3}
                         data-testid={`input-${field.key}`}
-                        className="w-full p-4 rounded-xl border resize-none text-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#F2C418] focus:border-transparent"
+                        className="w-full p-4 rounded-xl border resize-none text-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#FFD24D] focus:border-transparent"
                         style={{ background: "#FAFAF7", borderColor: "#ECEDEF", color: "#1E2128" }}
                       />
                     </div>
@@ -328,7 +328,7 @@ export function PosizionamentoPage({ partner, onNavigate, onComplete, isAdmin })
                   className={`w-full flex items-center justify-center gap-3 px-8 py-5 rounded-xl font-black text-lg transition-all ${
                     allFieldsFilled && !isGenerating ? "hover:scale-[1.02]" : "opacity-50 cursor-not-allowed"
                   }`}
-                  style={{ background: "#F2C418", color: "#1E2128" }}>
+                  style={{ background: "#FFD24D", color: "#1E2128" }}>
                   {isGenerating ? (
                     <><Loader2 className="w-6 h-6 animate-spin" /> Generazione in corso...</>
                   ) : (

@@ -140,7 +140,7 @@ export function AvatarCheckout({ partner, onBack }) {
     return (
       <div className="p-8 flex items-center justify-center" style={{ minHeight: '60vh' }}>
         <div className="text-center">
-          <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4" style={{ color: '#F2C418' }} />
+          <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4" style={{ color: '#FFD24D' }} />
           <p className="text-sm" style={{ color: '#9CA3AF' }}>Caricamento pacchetti...</p>
         </div>
       </div>
@@ -205,7 +205,7 @@ export function AvatarCheckout({ partner, onBack }) {
                 window.history.replaceState({}, '', window.location.pathname);
               }}
               className="px-6 py-3 rounded-xl font-bold"
-              style={{ background: '#F2C418', color: '#1E2128' }}
+              style={{ background: '#FFD24D', color: '#1E2128' }}
             >
               {paymentStatus.status === 'success' ? 'Torna alla Dashboard' : 'Riprova'}
             </button>
@@ -239,7 +239,7 @@ export function AvatarCheckout({ partner, onBack }) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
           {/* Video Demo */}
           <div className="relative bg-gradient-to-br from-[#1E2128] to-[#2D3038] p-6 flex items-center justify-center min-h-[300px]">
-            <div className="absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold bg-[#F2C418] text-[#1E2128]">
+            <div className="absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold bg-[#FFD24D] text-[#1E2128]">
               ESEMPIO AVATAR
             </div>
             <div className="w-full max-w-md">
@@ -266,7 +266,7 @@ export function AvatarCheckout({ partner, onBack }) {
           {/* Description */}
           <div className="p-8 flex flex-col justify-center">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold mb-4 w-fit"
-                 style={{ background: '#F2C41815', color: '#C4990A' }}>
+                 style={{ background: '#FFD24D15', color: '#C4990A' }}>
               <Sparkles className="w-3 h-3" />
               SERVIZIO PREMIUM
             </div>
@@ -349,7 +349,7 @@ export function AvatarCheckout({ partner, onBack }) {
               key={id}
               onClick={() => setSelectedPackage(id)}
               className={`relative bg-white rounded-2xl p-6 cursor-pointer transition-all ${
-                isSelected ? 'ring-2 ring-[#F2C418] shadow-lg scale-[1.02]' : 'hover:shadow-md hover:scale-[1.01]'
+                isSelected ? 'ring-2 ring-[#FFD24D] shadow-lg scale-[1.02]' : 'hover:shadow-md hover:scale-[1.01]'
               }`}
               style={{ border: '1px solid #ECEDEF' }}
             >
@@ -368,7 +368,7 @@ export function AvatarCheckout({ partner, onBack }) {
               
               <div className="flex items-start justify-between mb-4">
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                  isSelected ? 'bg-[#F2C418]' : 'bg-[#FFF8DC]'
+                  isSelected ? 'bg-[#FFD24D]' : 'bg-[#FFF8DC]'
                 }`}>
                   <Package className="w-6 h-6" style={{ color: isSelected ? '#1E2128' : '#C4990A' }} />
                 </div>
@@ -397,7 +397,7 @@ export function AvatarCheckout({ partner, onBack }) {
               
               {isSelected && (
                 <div className="absolute top-4 right-4 w-6 h-6 rounded-full flex items-center justify-center"
-                     style={{ background: '#F2C418' }}>
+                     style={{ background: '#FFD24D' }}>
                   <Check className="w-4 h-4" style={{ color: '#1E2128' }} />
                 </div>
               )}
@@ -448,7 +448,7 @@ export function AvatarCheckout({ partner, onBack }) {
             onClick={handleCheckout}
             disabled={!selectedPackage || isProcessing}
             className="px-8 py-4 rounded-xl font-bold text-lg flex items-center gap-3 transition-all hover:opacity-90 disabled:opacity-50"
-            style={{ background: '#F2C418', color: '#1E2128' }}
+            style={{ background: '#FFD24D', color: '#1E2128' }}
           >
             {isProcessing ? (
               <>

@@ -201,11 +201,11 @@ export function AnalisiStrategicaApp() {
         {/* Header */}
         <header className="border-b" style={{ borderColor: '#ECEDEF', background: '#FFFFFF' }}>
           <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#FFD24D' }}>
               <span className="text-lg font-black text-[#1E2128]">E</span>
             </div>
             <div>
-              <div className="font-black text-base text-[#1E2128]">Evolution<span style={{ color: '#F5C518' }}>PRO</span></div>
+              <div className="font-black text-base text-[#1E2128]">Evolution<span style={{ color: '#FFD24D' }}>PRO</span></div>
               <div className="text-[10px] font-medium text-[#9CA3AF]">Analisi Strategica</div>
             </div>
           </div>
@@ -216,14 +216,14 @@ export function AnalisiStrategicaApp() {
             {/* Left: Info */}
             <div>
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold mb-6"
-                   style={{ background: '#FEF9E7', color: '#C4990A', border: '1px solid #F5C518' }}>
+                   style={{ background: '#FEF9E7', color: '#C4990A', border: '1px solid #FFD24D' }}>
                 <Clock className="w-4 h-4" />
                 Solo 4 progetti al mese
               </div>
               
               <h1 className="text-3xl md:text-4xl font-black text-[#1E2128] leading-tight mb-4">
                 Verifica se il tuo Progetto è pronto per diventare un'{" "}
-                <span style={{ color: '#F5C518' }}>Accademia Digitale</span>
+                <span style={{ color: '#FFD24D' }}>Accademia Digitale</span>
               </h1>
               
               <p className="text-base text-[#5F6572] mb-6">
@@ -240,7 +240,7 @@ export function AnalisiStrategicaApp() {
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-3 text-sm text-[#1E2128]">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#FEF9E7' }}>
-                      <item.icon className="w-4 h-4 text-[#F5C518]" />
+                      <item.icon className="w-4 h-4 text-[#FFD24D]" />
                     </div>
                     {item.text}
                   </div>
@@ -252,11 +252,11 @@ export function AnalisiStrategicaApp() {
             <div className="p-6 rounded-2xl" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
               <div className="flex gap-2 mb-6">
                 <button onClick={() => setIsLoginMode(false)}
-                  className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${!isLoginMode ? 'bg-[#F5C518] text-black' : 'bg-[#FAFAF7] text-[#9CA3AF]'}`}>
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${!isLoginMode ? 'bg-[#FFD24D] text-black' : 'bg-[#FAFAF7] text-[#9CA3AF]'}`}>
                   Registrati
                 </button>
                 <button onClick={() => setIsLoginMode(true)}
-                  className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${isLoginMode ? 'bg-[#F5C518] text-black' : 'bg-[#FAFAF7] text-[#9CA3AF]'}`}>
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${isLoginMode ? 'bg-[#FFD24D] text-black' : 'bg-[#FAFAF7] text-[#9CA3AF]'}`}>
                   Accedi
                 </button>
               </div>
@@ -298,7 +298,7 @@ export function AnalisiStrategicaApp() {
                 )}
 
                 <button type="submit" disabled={loading}
-                  className="w-full py-3.5 rounded-xl font-bold bg-[#F5C518] text-black hover:bg-[#e0b115] flex items-center justify-center gap-2">
+                  className="w-full py-3.5 rounded-xl font-bold bg-[#FFD24D] text-black hover:bg-[#e0b115] flex items-center justify-center gap-2">
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 
                     isLoginMode ? <>Accedi<ArrowRight className="w-4 h-4" /></> : 
                     <>Acquista e Registrati — €67<CreditCard className="w-4 h-4" /></>}
@@ -324,10 +324,10 @@ export function AnalisiStrategicaApp() {
         <header className="border-b" style={{ borderColor: '#ECEDEF', background: '#FFFFFF' }}>
           <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#FFD24D' }}>
                 <span className="text-lg font-black text-[#1E2128]">E</span>
               </div>
-              <span className="font-black text-[#1E2128]">Evolution<span style={{ color: '#F5C518' }}>PRO</span></span>
+              <span className="font-black text-[#1E2128]">Evolution<span style={{ color: '#FFD24D' }}>PRO</span></span>
             </div>
             <button onClick={handleLogout} className="text-sm text-[#9CA3AF] hover:text-[#1E2128] flex items-center gap-1">
               <LogOut className="w-4 h-4" />Esci
@@ -337,7 +337,7 @@ export function AnalisiStrategicaApp() {
 
         <div className="max-w-md mx-auto px-6 py-16 text-center">
           <div className="w-16 h-16 rounded-full mx-auto mb-6 flex items-center justify-center" style={{ background: '#FEF9E7' }}>
-            <CreditCard className="w-8 h-8 text-[#F5C518]" />
+            <CreditCard className="w-8 h-8 text-[#FFD24D]" />
           </div>
           <h1 className="text-xl font-bold text-[#1E2128] mb-2">Completa il pagamento</h1>
           <p className="text-sm text-[#5F6572] mb-6">
@@ -362,7 +362,7 @@ export function AnalisiStrategicaApp() {
               setLoading(false);
             }}
             disabled={loading}
-            className="px-8 py-3 rounded-xl font-bold bg-[#F5C518] text-black hover:bg-[#e0b115] flex items-center justify-center gap-2 mx-auto"
+            className="px-8 py-3 rounded-xl font-bold bg-[#FFD24D] text-black hover:bg-[#e0b115] flex items-center justify-center gap-2 mx-auto"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Paga €67<ArrowRight className="w-4 h-4" /></>}
           </button>
@@ -403,10 +403,10 @@ export function AnalisiStrategicaApp() {
       <header className="border-b" style={{ borderColor: '#ECEDEF', background: '#FFFFFF' }}>
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#FFD24D' }}>
               <span className="text-lg font-black text-[#1E2128]">E</span>
             </div>
-            <span className="font-black text-[#1E2128]">Evolution<span style={{ color: '#F5C518' }}>PRO</span></span>
+            <span className="font-black text-[#1E2128]">Evolution<span style={{ color: '#FFD24D' }}>PRO</span></span>
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-[#9CA3AF]">Ciao, <span className="text-[#1E2128] font-semibold">{user?.nome}</span></span>
@@ -431,7 +431,7 @@ export function AnalisiStrategicaApp() {
             <span>{Math.round(progress)}% completato</span>
           </div>
           <div className="h-2 rounded-full" style={{ background: '#ECEDEF' }}>
-            <div className="h-full bg-[#F5C518] rounded-full transition-all" style={{ width: `${progress}%` }} />
+            <div className="h-full bg-[#FFD24D] rounded-full transition-all" style={{ width: `${progress}%` }} />
           </div>
         </div>
 
@@ -439,7 +439,7 @@ export function AnalisiStrategicaApp() {
         <div className="p-6 rounded-2xl mb-6" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: '#FEF9E7' }}>
-              <question.icon className="w-6 h-6 text-[#F5C518]" />
+              <question.icon className="w-6 h-6 text-[#FFD24D]" />
             </div>
             <h2 className="text-lg font-bold text-[#1E2128] flex-1">{question.question}</h2>
           </div>
@@ -455,9 +455,9 @@ export function AnalisiStrategicaApp() {
               {question.options.map((opt, i) => (
                 <button key={i} onClick={() => handleAnswerChange(question.id, opt)}
                   className="w-full p-4 rounded-xl text-left flex items-center gap-3 transition-all text-sm"
-                  style={{ background: answers[question.id] === opt ? '#FEF9E7' : '#FAFAF7', border: answers[question.id] === opt ? '2px solid #F5C518' : '1px solid #ECEDEF' }}>
+                  style={{ background: answers[question.id] === opt ? '#FEF9E7' : '#FAFAF7', border: answers[question.id] === opt ? '2px solid #FFD24D' : '1px solid #ECEDEF' }}>
                   <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center"
-                    style={{ borderColor: answers[question.id] === opt ? '#F5C518' : '#9CA3AF', background: answers[question.id] === opt ? '#F5C518' : 'transparent' }}>
+                    style={{ borderColor: answers[question.id] === opt ? '#FFD24D' : '#9CA3AF', background: answers[question.id] === opt ? '#FFD24D' : 'transparent' }}>
                     {answers[question.id] === opt && <Check className="w-3 h-3 text-black" />}
                   </div>
                   {opt}
@@ -471,7 +471,7 @@ export function AnalisiStrategicaApp() {
               {question.options.map((opt, i) => (
                 <button key={i} onClick={() => handleAnswerChange(question.id, opt)}
                   className="p-4 rounded-xl text-center transition-all"
-                  style={{ background: answers[question.id] === opt ? '#FEF9E7' : '#FAFAF7', border: answers[question.id] === opt ? '2px solid #F5C518' : '1px solid #ECEDEF' }}>
+                  style={{ background: answers[question.id] === opt ? '#FEF9E7' : '#FAFAF7', border: answers[question.id] === opt ? '2px solid #FFD24D' : '1px solid #ECEDEF' }}>
                   <div className="text-2xl mb-1">{["😕", "🤔", "🙂", "😃"][i]}</div>
                   <span className="text-xs text-[#5F6572]">{opt}</span>
                 </button>
@@ -487,7 +487,7 @@ export function AnalisiStrategicaApp() {
             </button>
             {currentQuestion < QUESTIONS.length - 1 && (
               <button onClick={() => setCurrentQuestion(currentQuestion + 1)} disabled={!answers[question.id]}
-                className="px-5 py-2.5 rounded-xl text-sm font-bold bg-[#F5C518] text-black flex items-center gap-2 disabled:opacity-30">
+                className="px-5 py-2.5 rounded-xl text-sm font-bold bg-[#FFD24D] text-black flex items-center gap-2 disabled:opacity-30">
                 Successiva<ArrowRight className="w-4 h-4" />
               </button>
             )}
@@ -498,7 +498,7 @@ export function AnalisiStrategicaApp() {
         <div className="flex justify-center gap-2 mb-8">
           {QUESTIONS.map((q, i) => (
             <button key={i} onClick={() => setCurrentQuestion(i)}
-              className={`w-3 h-3 rounded-full transition-all ${i === currentQuestion ? 'bg-[#F5C518] scale-125' : answers[q.id] ? 'bg-[#10B981]' : 'bg-[#ECEDEF]'}`} />
+              className={`w-3 h-3 rounded-full transition-all ${i === currentQuestion ? 'bg-[#FFD24D] scale-125' : answers[q.id] ? 'bg-[#10B981]' : 'bg-[#ECEDEF]'}`} />
           ))}
         </div>
 
@@ -510,7 +510,7 @@ export function AnalisiStrategicaApp() {
         )}
 
         <button onClick={handleSaveQuestionnaire} disabled={!allAnswered || savingAnswers}
-          className="w-full py-4 rounded-xl font-bold text-lg bg-[#F5C518] text-black flex items-center justify-center gap-3 disabled:opacity-50">
+          className="w-full py-4 rounded-xl font-bold text-lg bg-[#FFD24D] text-black flex items-center justify-center gap-3 disabled:opacity-50">
           {savingAnswers ? <><Loader2 className="w-5 h-5 animate-spin" />Salvataggio...</> : 
            <>Invia Questionario<CheckCircle className="w-5 h-5" /></>}
         </button>

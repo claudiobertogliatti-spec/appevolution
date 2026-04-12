@@ -64,7 +64,7 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat, is
           <div className="px-6 py-5" style={{ background: '#1E2128' }}>
             <div className="flex items-center gap-3 mb-2">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(242,196,24,0.15)' }}>
-                <Shield className="w-5 h-5" style={{ color: '#F2C418' }} />
+                <Shield className="w-5 h-5" style={{ color: '#FFD24D' }} />
               </div>
               <div>
                 <p className="text-sm font-black text-white">
@@ -84,7 +84,7 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat, is
             ].map((item, i) => (
               <div key={i} className="rounded-xl p-3 text-center" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
                 <div className="flex items-center justify-center gap-1 mb-1">
-                  <Clock className="w-3.5 h-3.5" style={{ color: '#F2C418' }} />
+                  <Clock className="w-3.5 h-3.5" style={{ color: '#FFD24D' }} />
                   <span className="text-sm font-black" style={{ color: '#1E2128' }}>{item.sla}</span>
                 </div>
                 <p className="text-[11px] font-bold" style={{ color: '#5F6572' }}>{item.label}</p>

@@ -947,7 +947,7 @@ export function ContractParamsModal({ isOpen, onClose, partner, onSuccess }) {
               onClick={handleSave}
               disabled={loading}
               className="flex items-center gap-2 px-5 py-2 text-sm font-bold rounded-lg transition-all hover:scale-105 disabled:opacity-50"
-              style={{ background: '#F2C418', color: '#1E2128' }}
+              style={{ background: '#FFD24D', color: '#1E2128' }}
               data-testid="btn-save-contract-params"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}

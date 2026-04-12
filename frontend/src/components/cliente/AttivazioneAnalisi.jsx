@@ -59,12 +59,12 @@ export function AttivazioneAnalisi({ user, onLogout }) {
       <header className="border-b" style={{ background: '#FFFFFF', borderColor: '#ECEDEF' }}>
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#FFD24D' }}>
               <span className="text-lg font-black" style={{ color: '#1E2128' }}>E</span>
             </div>
             <div>
               <span className="font-black text-lg" style={{ color: '#1E2128' }}>
-                EVOLUTION <span style={{ color: '#F5C518' }}>PRO</span>
+                EVOLUTION <span style={{ color: '#FFD24D' }}>PRO</span>
               </span>
             </div>
           </div>
@@ -98,7 +98,7 @@ export function AttivazioneAnalisi({ user, onLogout }) {
                       step.status === 'pending' ? 'opacity-40' : ''
                     }`}
                     style={{ 
-                      background: step.status === 'completed' ? '#22C55E' : step.status === 'active' ? '#F5C518' : '#ECEDEF',
+                      background: step.status === 'completed' ? '#22C55E' : step.status === 'active' ? '#FFD24D' : '#ECEDEF',
                       color: step.status === 'pending' ? '#9CA3AF' : '#1E2128'
                     }}
                   >
@@ -160,7 +160,7 @@ export function AttivazioneAnalisi({ user, onLogout }) {
                 <div key={index} className="flex items-start gap-3">
                   <div 
                     className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ background: '#F5C51815' }}
+                    style={{ background: '#FFD24D15' }}
                   >
                     <IconComponent className="w-4 h-4" style={{ color: '#C4990A' }} />
                   </div>
@@ -176,7 +176,7 @@ export function AttivazioneAnalisi({ user, onLogout }) {
         ═══════════════════════════════════════════════════════════════════ */}
         <div 
           className="rounded-2xl p-6 mb-8"
-          style={{ background: '#FFF8DC', border: '1px solid #F5C51840' }}
+          style={{ background: '#FFF8DC', border: '1px solid #FFD24D40' }}
         >
           <p className="text-sm leading-relaxed mb-3" style={{ color: '#78590A' }}>
             L'Analisi Strategica è il passaggio che ci permette di capire se il tuo progetto è realmente adatto alla partnership Evolution PRO.
@@ -198,7 +198,7 @@ export function AttivazioneAnalisi({ user, onLogout }) {
               Attiva la tua Analisi Strategica
             </h2>
             <div className="mb-3">
-              <div className="text-4xl font-black" style={{ color: '#F5C518' }}>€67</div>
+              <div className="text-4xl font-black" style={{ color: '#FFD24D' }}>€67</div>
               <span className="text-sm" style={{ color: '#9CA3AF' }}>una tantum</span>
             </div>
             <p className="text-sm" style={{ color: '#9CA3AF' }}>

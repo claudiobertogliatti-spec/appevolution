@@ -117,7 +117,7 @@ function DeleteConfirmModal({ isOpen, onClose, onConfirm, partnerName, isDeletin
 // JOURNEY EDITOR — Editor completo dati step per step
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function JourneySection({ title, icon: Icon, color = "#F2C418", children, defaultOpen = false }) {
+function JourneySection({ title, icon: Icon, color = "#FFD24D", children, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #E5E2DD" }}>
@@ -171,7 +171,7 @@ function SaveBtn({ onClick, saving, saved, label = "Salva" }) {
       className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all mt-2"
       style={{
         background: saved ? "#F0FDF4" : "#1E2128",
-        color: saved ? "#16A34A" : "#F2C418",
+        color: saved ? "#16A34A" : "#FFD24D",
         border: `1px solid ${saved ? "#BBF7D0" : "transparent"}`
       }}>
       {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <CheckCircle className="w-4 h-4" /> : <Save className="w-4 h-4" />}
@@ -331,7 +331,7 @@ function JourneyEditor({ data, saving, saved, onSave, onDataChange }) {
       {/* VIDEO MASTERCLASS INFO (da pipeline) */}
       {mc.video_systeme_embed && (
         <JourneySection title="Embed Sisteme (masterclass)" icon={Video} color="#EF4444">
-          <div className="text-xs font-mono p-3 rounded-lg overflow-x-auto" style={{ background: "#1E2128", color: "#F2C418" }}>
+          <div className="text-xs font-mono p-3 rounded-lg overflow-x-auto" style={{ background: "#1E2128", color: "#FFD24D" }}>
             {mc.video_systeme_embed}
           </div>
         </JourneySection>
@@ -774,7 +774,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
             <div className="flex items-center gap-4">
               <div 
                 className="w-14 h-14 rounded-xl flex items-center justify-center text-xl font-bold shadow-lg"
-                style={{ backgroundColor: "#F2C418", color: "#1E2128" }}
+                style={{ backgroundColor: "#FFD24D", color: "#1E2128" }}
               >
                 {partnerName[0]?.toUpperCase()}
               </div>
@@ -782,7 +782,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                 <h2 className="text-xl font-black text-white">{partnerName}</h2>
                 <div className="flex items-center gap-3 mt-1">
                   <span className="text-sm text-gray-400">{partner.email}</span>
-                  <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: "#F2C418", color: "#1E2128" }}>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: "#FFD24D", color: "#1E2128" }}>
                     {formData.phase}
                   </span>
                 </div>
@@ -805,7 +805,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                 onClick={() => { setActiveTab(tab.id); if (tab.id === "journey") loadJourneyData(); }}
                 className={`flex items-center gap-2 px-6 py-4 font-medium transition-all border-b-2 ${
                   activeTab === tab.id 
-                    ? "border-[#F2C418] text-gray-900 bg-white" 
+                    ? "border-[#FFD24D] text-gray-900 bg-white" 
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-white/50"
                 }`}
                 data-testid={`tab-${tab.id}`}
@@ -840,7 +840,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
               <div className="space-y-5" data-testid="tab-content-journey">
                 {journeyLoading ? (
                   <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F2C418" }} />
+                    <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FFD24D" }} />
                   </div>
                 ) : journeyData ? (
                   <JourneyEditor
@@ -1196,7 +1196,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                     onClick={handleSaveProfile}
                     disabled={saving}
                     className="flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all hover:opacity-90"
-                    style={{ backgroundColor: "#F2C418", color: "#1E2128" }}
+                    style={{ backgroundColor: "#FFD24D", color: "#1E2128" }}
                     data-testid="save-profile-btn"
                   >
                     {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
@@ -1365,7 +1365,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                   <div className="mt-6 rounded-xl overflow-hidden" style={{ border: "1px solid #E5E2DD" }}>
                     <div className="px-5 py-4 flex items-center justify-between" style={{ background: "#1E2128" }}>
                       <div className="flex items-center gap-3">
-                        <Film className="w-5 h-5" style={{ color: "#F2C418" }} />
+                        <Film className="w-5 h-5" style={{ color: "#FFD24D" }} />
                         <span className="font-bold text-white text-sm">Video Masterclass — Pipeline</span>
                       </div>
                       <span className="text-[11px] font-bold px-2.5 py-1 rounded-full"
@@ -1453,7 +1453,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                         {videoPipeline.pipeline_status === "ready_for_review" && (
                           <button onClick={handleApproveVideo} disabled={approvingVideo}
                             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all"
-                            style={{ background: "#F2C418", color: "#1E2128" }}>
+                            style={{ background: "#FFD24D", color: "#1E2128" }}>
                             {approvingVideo ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                             Approva Video
                           </button>
@@ -1471,7 +1471,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                 )}
 
                 {/* Revision Notes Section (existing) */}
-                <div className="mt-6 p-4 rounded-xl" style={{ background: "#FFF8DC", border: "1px solid #F2C41850" }}>
+                <div className="mt-6 p-4 rounded-xl" style={{ background: "#FFF8DC", border: "1px solid #FFD24D50" }}>
                   <h4 className="font-bold mb-3 flex items-center gap-2" style={{ color: "#1E2128" }}>
                     <MessageSquare className="w-5 h-5" style={{ color: "#C4990A" }} />
                     Note Revisione Video (Solo Admin)
@@ -1488,7 +1488,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                     onClick={handleSaveRevisionNotes}
                     disabled={savingNotes}
                     className="mt-3 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-all"
-                    style={{ backgroundColor: "#F2C418", color: "#1E2128" }}
+                    style={{ backgroundColor: "#FFD24D", color: "#1E2128" }}
                   >
                     {savingNotes ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     Salva Note
@@ -1621,7 +1621,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                     onClick={handleAddPayment}
                     disabled={saving || !newPayment.description || !newPayment.amount}
                     className="mt-4 px-6 py-2 rounded-lg font-bold flex items-center gap-2 transition-all disabled:opacity-50"
-                    style={{ backgroundColor: "#F2C418", color: "#1E2128" }}
+                    style={{ backgroundColor: "#FFD24D", color: "#1E2128" }}
                     data-testid="add-payment-btn"
                   >
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
@@ -1644,7 +1644,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                       </div>
                       <div>
                         <span className="text-gray-400 text-sm">Da Incassare</span>
-                        <div className="text-2xl font-black" style={{ color: "#F2C418" }}>
+                        <div className="text-2xl font-black" style={{ color: "#FFD24D" }}>
                           €{payments
                             .filter(p => p.status === "pending")
                             .reduce((sum, p) => sum + (p.amount || 0), 0)

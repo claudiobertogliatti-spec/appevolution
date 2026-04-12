@@ -31,7 +31,7 @@ export function MiaAccademiaPage({ partner }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <RefreshCw className="w-8 h-8 animate-spin" style={{ color: '#F2C418' }} />
+        <RefreshCw className="w-8 h-8 animate-spin" style={{ color: '#FFD24D' }} />
       </div>
     );
   }
@@ -46,7 +46,7 @@ export function MiaAccademiaPage({ partner }) {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl p-5 shadow-sm" style={{ border: '1px solid #ECEDEF' }}>
-          <div className="flex items-center gap-2 mb-2" style={{ color: '#F2C418' }}>
+          <div className="flex items-center gap-2 mb-2" style={{ color: '#FFD24D' }}>
             <ExternalLink className="w-5 h-5" />
             <span className="text-sm font-medium">URL Accademia</span>
           </div>
@@ -143,7 +143,7 @@ export function MieiStudentiPage({ partner }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <RefreshCw className="w-8 h-8 animate-spin" style={{ color: '#F2C418' }} />
+        <RefreshCw className="w-8 h-8 animate-spin" style={{ color: '#FFD24D' }} />
       </div>
     );
   }
@@ -157,7 +157,7 @@ export function MieiStudentiPage({ partner }) {
         </div>
         <button 
           className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm"
-          style={{ background: '#F2C418', color: '#1E2128' }}
+          style={{ background: '#FFD24D', color: '#1E2128' }}
         >
           <RefreshCw className="w-4 h-4" />
           Aggiorna
@@ -200,7 +200,7 @@ export function MieiStudentiPage({ partner }) {
                       <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
                         <div 
                           className="h-full rounded-full"
-                          style={{ width: `${student.progress || 0}%`, background: '#F2C418' }}
+                          style={{ width: `${student.progress || 0}%`, background: '#FFD24D' }}
                         />
                       </div>
                       <span className="text-sm font-bold" style={{ color: '#1E2128' }}>{student.progress || 0}%</span>
@@ -265,7 +265,7 @@ export function ImpegniSettimanaPage({ partner }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <RefreshCw className="w-8 h-8 animate-spin" style={{ color: '#F2C418' }} />
+        <RefreshCw className="w-8 h-8 animate-spin" style={{ color: '#FFD24D' }} />
       </div>
     );
   }
@@ -279,7 +279,7 @@ export function ImpegniSettimanaPage({ partner }) {
         </div>
         <button 
           className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm"
-          style={{ background: '#F2C418', color: '#1E2128' }}
+          style={{ background: '#FFD24D', color: '#1E2128' }}
         >
           <Plus className="w-4 h-4" />
           Aggiungi Impegno
@@ -311,7 +311,7 @@ export function ImpegniSettimanaPage({ partner }) {
             </span>
             <button 
               className="text-sm font-medium hover:opacity-80"
-              style={{ color: '#F2C418' }}
+              style={{ color: '#FFD24D' }}
             >
               Aggiorna
             </button>
@@ -349,7 +349,7 @@ export function ReportMensilePage({ partner }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <RefreshCw className="w-8 h-8 animate-spin" style={{ color: '#F2C418' }} />
+        <RefreshCw className="w-8 h-8 animate-spin" style={{ color: '#FFD24D' }} />
       </div>
     );
   }
@@ -436,7 +436,7 @@ export function PianoContinuitaBanner({ partner, onTalkToStefania }) {
           <button
             onClick={onTalkToStefania}
             className="px-4 py-2 rounded-lg font-bold text-sm"
-            style={{ background: '#1E2128', color: '#F2C418' }}
+            style={{ background: '#1E2128', color: '#FFD24D' }}
           >
             Parla con Stefania →
           </button>

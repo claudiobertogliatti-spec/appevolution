@@ -42,7 +42,7 @@ function BlueprintOutput({ blueprint, activeTab, setActiveTab, expandedEmails, t
               className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold transition-all"
               style={{
                 background: isActive ? "#1E2128" : "white",
-                color: isActive ? "#F2C418" : "#5F6572"
+                color: isActive ? "#FFD24D" : "#5F6572"
               }}>
               <Icon className="w-4 h-4" /> {tab.label}
             </button>
@@ -55,10 +55,10 @@ function BlueprintOutput({ blueprint, activeTab, setActiveTab, expandedEmails, t
         <div className="space-y-3" data-testid="tab-landing-content">
           {ls.hero && (
             <div className="rounded-2xl p-6" style={{ background: "#1E2128" }}>
-              <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: "#F2C418" }}>Hero</div>
+              <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: "#FFD24D" }}>Hero</div>
               <h3 className="text-xl font-black text-white mb-2">{ls.hero.headline}</h3>
               <p className="text-sm mb-3" style={{ color: "#9CA3AF" }}>{ls.hero.subheadline}</p>
-              <span className="inline-block px-4 py-2 rounded-lg text-sm font-bold" style={{ background: "#F2C418", color: "#1E2128" }}>
+              <span className="inline-block px-4 py-2 rounded-lg text-sm font-bold" style={{ background: "#FFD24D", color: "#1E2128" }}>
                 {ls.hero.cta_text}
               </span>
             </div>
@@ -72,7 +72,7 @@ function BlueprintOutput({ blueprint, activeTab, setActiveTab, expandedEmails, t
               <ul className="space-y-1.5">
                 {(ls.moduli.items || []).map((item, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm" style={{ color: "#5F6572" }}>
-                    <Check className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: "#F2C418" }} /> {item}
+                    <Check className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: "#FFD24D" }} /> {item}
                   </li>
                 ))}
               </ul>
@@ -115,8 +115,8 @@ function BlueprintOutput({ blueprint, activeTab, setActiveTab, expandedEmails, t
             <div className="bg-white rounded-xl border p-5" style={{ borderColor: "#ECEDEF" }}>
               <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#9CA3AF" }}>Bio Partner</div>
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "#F2C41830" }}>
-                  <User className="w-6 h-6" style={{ color: "#F2C418" }} />
+                <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "#FFD24D30" }}>
+                  <User className="w-6 h-6" style={{ color: "#FFD24D" }} />
                 </div>
                 <div>
                   <h4 className="text-sm font-bold mb-1" style={{ color: "#1E2128" }}>{ls.bio.name}</h4>
@@ -126,7 +126,7 @@ function BlueprintOutput({ blueprint, activeTab, setActiveTab, expandedEmails, t
             </div>
           )}
           {ls.cta_finale && (
-            <div className="rounded-2xl p-6" style={{ background: "#FFF8E1", border: "1px solid #F2C41830" }}>
+            <div className="rounded-2xl p-6" style={{ background: "#FFF8E1", border: "1px solid #FFD24D30" }}>
               <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#92700C" }}>CTA Finale</div>
               <h4 className="text-base font-black mb-2" style={{ color: "#1E2128" }}>{ls.cta_finale.headline}</h4>
               <p className="text-sm mb-3" style={{ color: "#5F6572" }}>{ls.cta_finale.body}</p>
@@ -184,7 +184,7 @@ function BlueprintOutput({ blueprint, activeTab, setActiveTab, expandedEmails, t
       {activeTab === "area" && (
         <div className="space-y-3" data-testid="tab-area-content">
           {area.welcome_message && (
-            <div className="rounded-xl p-5" style={{ background: "#FFF8E1", border: "1px solid #F2C41830" }}>
+            <div className="rounded-xl p-5" style={{ background: "#FFF8E1", border: "1px solid #FFD24D30" }}>
               <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#92700C" }}>Messaggio di benvenuto</div>
               <p className="text-sm leading-relaxed" style={{ color: "#1E2128" }}>{area.welcome_message}</p>
             </div>
@@ -192,7 +192,7 @@ function BlueprintOutput({ blueprint, activeTab, setActiveTab, expandedEmails, t
           {(area.modules || []).map((mod, idx) => (
             <div key={idx} className="bg-white rounded-xl border p-5" style={{ borderColor: "#ECEDEF" }}>
               <div className="flex items-center gap-2 mb-3">
-                <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold" style={{ background: "#F2C418", color: "#1E2128" }}>
+                <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold" style={{ background: "#FFD24D", color: "#1E2128" }}>
                   {idx + 1}
                 </span>
                 <span className="text-sm font-bold" style={{ color: "#1E2128" }}>{mod.title}</span>
@@ -283,7 +283,7 @@ export function FunnelPage({ partner, onNavigate, onComplete, isAdmin }) {
   if (isLoading) {
     return (
       <div className="min-h-full flex items-center justify-center" style={{ background: "#FAFAF7" }}>
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F2C418" }} />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FFD24D" }} />
       </div>
     );
   }

@@ -156,7 +156,7 @@ export function AgentDashboard() {
     return (
       <div className="p-8 flex items-center justify-center" style={{ minHeight: '60vh' }}>
         <div className="text-center">
-          <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4" style={{ color: '#F2C418' }} />
+          <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4" style={{ color: '#FFD24D' }} />
           <p className="text-sm" style={{ color: '#9CA3AF' }}>Caricamento Agent Hub...</p>
         </div>
       </div>
@@ -181,7 +181,7 @@ export function AgentDashboard() {
           onClick={() => { loadData(true); loadDiscoveryLeads(); }}
           disabled={isRefreshing}
           className="px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all hover:opacity-90"
-          style={{ background: '#F2C418', color: '#1E2128' }}
+          style={{ background: '#FFD24D', color: '#1E2128' }}
         >
           <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           Aggiorna
@@ -199,7 +199,7 @@ export function AgentDashboard() {
           }`}
           style={{ 
             color: activeTab === "leads" ? '#1E2128' : '#9CA3AF',
-            borderBottom: activeTab === "leads" ? '3px solid #F2C418' : 'none'
+            borderBottom: activeTab === "leads" ? '3px solid #FFD24D' : 'none'
           }}
         >
           <Search className="w-4 h-4" />
@@ -214,7 +214,7 @@ export function AgentDashboard() {
           }`}
           style={{ 
             color: activeTab === "agents" ? '#1E2128' : '#9CA3AF',
-            borderBottom: activeTab === "agents" ? '3px solid #F2C418' : 'none'
+            borderBottom: activeTab === "agents" ? '3px solid #FFD24D' : 'none'
           }}
         >
           <Bot className="w-4 h-4" />
@@ -355,7 +355,7 @@ export function AgentDashboard() {
 
           {loadingLeads ? (
             <div className="p-10 text-center">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3" style={{ color: '#F2C418' }} />
+              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3" style={{ color: '#FFD24D' }} />
               <p className="text-sm" style={{ color: '#9CA3AF' }}>Caricamento lead...</p>
             </div>
           ) : discoveryLeads.length === 0 ? (
@@ -461,7 +461,7 @@ export function AgentDashboard() {
                               disabled={analyzingLead === lead.id}
                               className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-wait"
                               style={{ 
-                                background: lead.website_analysis && !lead.website_analysis.error ? '#EAFAF1' : '#F2C418',
+                                background: lead.website_analysis && !lead.website_analysis.error ? '#EAFAF1' : '#FFD24D',
                                 color: lead.website_analysis && !lead.website_analysis.error ? '#10B981' : '#1E2128'
                               }}
                               data-testid={`analyze-btn-${lead.id}`}
@@ -938,7 +938,7 @@ export function AgentDashboard() {
                   onClick={() => { handleAnalyzeLead(selectedLead.id); }}
                   disabled={analyzingLead === selectedLead.id}
                   className="flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
-                  style={{ background: '#F2C418', color: '#1E2128' }}
+                  style={{ background: '#FFD24D', color: '#1E2128' }}
                 >
                   {analyzingLead === selectedLead.id ? (
                     <>

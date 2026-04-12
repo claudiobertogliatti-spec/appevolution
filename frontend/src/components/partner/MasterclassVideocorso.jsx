@@ -695,9 +695,9 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName, partnerI
 
 function AndreaIntro({ message }) {
   return (
-    <div className="flex gap-4 p-5 rounded-2xl mb-6" style={{ background: '#FFF8DC', border: '1px solid #F2C41850' }}>
+    <div className="flex gap-4 p-5 rounded-2xl mb-6" style={{ background: '#FFF8DC', border: '1px solid #FFD24D50' }}>
       <div className="relative">
-        <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl" style={{ background: '#F2C418' }}>
+        <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl" style={{ background: '#FFD24D' }}>
           🧑‍💻
         </div>
         <span className="absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white" style={{ background: '#34C77B' }} />
@@ -923,7 +923,7 @@ function ProductionModeSelector({ onSelect, selectedLessons = [], totalLessons =
           onClick={() => onSelect({ avatarLessons, diyLessons: VIDEOCORSO_LESSONS.filter(l => !avatarLessons.includes(l.id)).map(l => l.id) })}
           className="w-full py-4 rounded-xl font-bold text-sm transition-all hover:scale-[1.01]"
           style={{ 
-            background: 'linear-gradient(135deg, #F2C418, #FADA5E)',
+            background: 'linear-gradient(135deg, #FFD24D, #FADA5E)',
             color: '#1E2128',
             boxShadow: '0 4px 20px rgba(242, 196, 24, 0.3)'
           }}
@@ -965,10 +965,10 @@ function MasterclassTab({ partnerName, approvedSections, setApprovedSections }) 
       <AndreaIntro message={`Ciao ${partnerName}! 👋 Ho preparato la <strong>scaletta completa della tua masterclass</strong> basandomi sul tuo posizionamento. È strutturata in 5 blocchi. <strong>Approva la struttura</strong>, poi potrai registrarla quando sei pronto!`} />
       
       {/* Section 1: Scaletta */}
-      <div className="rounded-xl overflow-hidden" style={{ background: 'white', border: openSection === 1 ? '2px solid #F2C418' : '2px solid #ECEDEF' }}>
+      <div className="rounded-xl overflow-hidden" style={{ background: 'white', border: openSection === 1 ? '2px solid #FFD24D' : '2px solid #ECEDEF' }}>
         <div className="flex items-center gap-3 p-4 cursor-pointer" onClick={() => setOpenSection(openSection === 1 ? null : 1)}>
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-               style={{ background: approvedSections.includes(1) ? '#34C77B' : '#F2C418', color: approvedSections.includes(1) ? 'white' : '#1E2128' }}>
+               style={{ background: approvedSections.includes(1) ? '#34C77B' : '#FFD24D', color: approvedSections.includes(1) ? 'white' : '#1E2128' }}>
             {approvedSections.includes(1) ? '✓' : '1'}
           </div>
           <div className="flex-1">
@@ -1016,7 +1016,7 @@ function MasterclassTab({ partnerName, approvedSections, setApprovedSections }) 
                 </div>
               ))}
               
-              <div className="p-4 rounded-xl mt-4" style={{ background: '#FFF8DC', borderLeft: '4px solid #F2C418' }}>
+              <div className="p-4 rounded-xl mt-4" style={{ background: '#FFF8DC', borderLeft: '4px solid #FFD24D' }}>
                 💡 <strong>Consiglio di Stefania:</strong> Non vendere nel blocco 3 — dai vero valore. La vendita arriva naturalmente nel blocco 5 solo se i blocchi prima sono stati utili.
               </div>
             </div>
@@ -1041,10 +1041,10 @@ function MasterclassTab({ partnerName, approvedSections, setApprovedSections }) 
       </div>
       
       {/* Section 2: Setup Registrazione */}
-      <div className="rounded-xl overflow-hidden" style={{ background: 'white', border: openSection === 2 ? '2px solid #F2C418' : '2px solid #ECEDEF' }}>
+      <div className="rounded-xl overflow-hidden" style={{ background: 'white', border: openSection === 2 ? '2px solid #FFD24D' : '2px solid #ECEDEF' }}>
         <div className="flex items-center gap-3 p-4 cursor-pointer" onClick={() => setOpenSection(openSection === 2 ? null : 2)}>
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-               style={{ background: approvedSections.includes(2) ? '#34C77B' : '#F2C418', color: approvedSections.includes(2) ? 'white' : '#1E2128' }}>
+               style={{ background: approvedSections.includes(2) ? '#34C77B' : '#FFD24D', color: approvedSections.includes(2) ? 'white' : '#1E2128' }}>
             {approvedSections.includes(2) ? '✓' : '2'}
           </div>
           <div className="flex-1">
@@ -1073,7 +1073,7 @@ function MasterclassTab({ partnerName, approvedSections, setApprovedSections }) 
               ))}
             </div>
             
-            <div className="p-4 rounded-xl" style={{ background: '#FFF8DC', borderLeft: '4px solid #F2C418' }}>
+            <div className="p-4 rounded-xl" style={{ background: '#FFF8DC', borderLeft: '4px solid #FFD24D' }}>
               🎯 <strong>Ricorda:</strong> Puoi registrare un blocco alla volta. Non devi fare tutto in una sola sessione! Andrea si occuperà del montaggio e dell'editing.
             </div>
             
@@ -1100,7 +1100,7 @@ function MasterclassTab({ partnerName, approvedSections, setApprovedSections }) 
       <div 
         className={`flex items-center gap-4 p-5 rounded-2xl transition-all ${allApproved ? '' : 'opacity-60'}`}
         style={{ 
-          background: allApproved ? 'linear-gradient(135deg, #F2C418, #FADA5E)' : '#ECEDEF',
+          background: allApproved ? 'linear-gradient(135deg, #FFD24D, #FADA5E)' : '#ECEDEF',
           boxShadow: allApproved ? '0 8px 30px rgba(242, 196, 24, 0.3)' : 'none'
         }}
       >
@@ -1165,7 +1165,7 @@ function VideocorsoTab({ partnerName, productionMode, recordedLessons, setRecord
             <span className="text-sm font-bold" style={{ color: '#1E2128' }}>{completedCount} di {VIDEOCORSO_LESSONS.length}</span>
           </div>
           <div className="h-2 rounded-full overflow-hidden" style={{ background: '#ECEDEF' }}>
-            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #F2C418, #34C77B)' }} />
+            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #FFD24D, #34C77B)' }} />
           </div>
         </div>
       </div>
@@ -1184,7 +1184,7 @@ function VideocorsoTab({ partnerName, productionMode, recordedLessons, setRecord
             className="rounded-xl overflow-hidden transition-all"
             style={{ 
               background: 'white', 
-              border: isCompleted ? '2px solid #34C77B' : isCurrent ? `2px solid ${isAvatarLesson ? '#7B68AE' : '#F2C418'}` : '2px solid #ECEDEF',
+              border: isCompleted ? '2px solid #34C77B' : isCurrent ? `2px solid ${isAvatarLesson ? '#7B68AE' : '#FFD24D'}` : '2px solid #ECEDEF',
               opacity: isLocked ? 0.6 : 1
             }}
           >
@@ -1195,7 +1195,7 @@ function VideocorsoTab({ partnerName, productionMode, recordedLessons, setRecord
               <div 
                 className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
                 style={{ 
-                  background: isCompleted ? '#34C77B' : isAvatarLesson ? '#7B68AE' : isCurrent ? '#F2C418' : '#ECEDEF',
+                  background: isCompleted ? '#34C77B' : isAvatarLesson ? '#7B68AE' : isCurrent ? '#FFD24D' : '#ECEDEF',
                   color: isCompleted || isAvatarLesson ? 'white' : isCurrent ? '#1E2128' : '#9CA3AF'
                 }}
               >
@@ -1303,7 +1303,7 @@ function VideocorsoTab({ partnerName, productionMode, recordedLessons, setRecord
                     </div>
                     
                     {lesson.tip && (
-                      <div className="p-4 rounded-xl mb-4" style={{ background: '#FFF8DC', borderLeft: '4px solid #F2C418' }}>
+                      <div className="p-4 rounded-xl mb-4" style={{ background: '#FFF8DC', borderLeft: '4px solid #FFD24D' }}>
                         💡 <strong>Tip di Andrea:</strong> {lesson.tip}
                       </div>
                     )}
@@ -1347,7 +1347,7 @@ function VideocorsoTab({ partnerName, productionMode, recordedLessons, setRecord
       <div 
         className={`flex items-center gap-4 p-5 rounded-2xl transition-all ${completedCount === VIDEOCORSO_LESSONS.length ? '' : 'opacity-60'}`}
         style={{ 
-          background: completedCount === VIDEOCORSO_LESSONS.length ? 'linear-gradient(135deg, #F2C418, #FADA5E)' : '#ECEDEF',
+          background: completedCount === VIDEOCORSO_LESSONS.length ? 'linear-gradient(135deg, #FFD24D, #FADA5E)' : '#ECEDEF',
           boxShadow: completedCount === VIDEOCORSO_LESSONS.length ? '0 8px 30px rgba(242, 196, 24, 0.3)' : 'none'
         }}
       >
@@ -1359,7 +1359,7 @@ function VideocorsoTab({ partnerName, productionMode, recordedLessons, setRecord
           </div>
         </div>
         {completedCount === VIDEOCORSO_LESSONS.length && (
-          <button className="px-6 py-3 rounded-xl font-bold text-sm" style={{ background: '#1E2128', color: '#F2C418' }}>
+          <button className="px-6 py-3 rounded-xl font-bold text-sm" style={{ background: '#1E2128', color: '#FFD24D' }}>
             Pubblica 🚀
           </button>
         )}

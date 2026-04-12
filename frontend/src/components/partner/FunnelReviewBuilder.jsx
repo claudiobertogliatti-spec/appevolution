@@ -92,9 +92,9 @@ const FUNNEL_SECTIONS = [
 
 function AndreaIntro({ message }) {
   return (
-    <div className="flex gap-4 p-5 rounded-2xl mb-6" style={{ background: '#FFF8DC', border: '1px solid #F2C41850' }}>
+    <div className="flex gap-4 p-5 rounded-2xl mb-6" style={{ background: '#FFF8DC', border: '1px solid #FFD24D50' }}>
       <div className="relative">
-        <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl" style={{ background: '#F2C418' }}>
+        <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl" style={{ background: '#FFD24D' }}>
           🧑‍💻
         </div>
         <span className="absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white" style={{ background: '#34C77B' }} />
@@ -121,7 +121,7 @@ function StatusBar({ sections, approvedIds }) {
               style={{ 
                 background: isApproved ? '#EAFAF1' : isCurrent ? '#FFF3C4' : '#FAFAF7',
                 color: isApproved ? '#34C77B' : isCurrent ? '#C4990A' : '#9CA3AF',
-                border: isCurrent ? '2px solid #F2C418' : '2px solid transparent'
+                border: isCurrent ? '2px solid #FFD24D' : '2px solid transparent'
               }}
             >
               <span>{s.icon}</span>
@@ -155,7 +155,7 @@ function FunnelFlowPreview({ sections, approvedIds, currentSection }) {
                 className="p-4 rounded-xl text-center min-w-[120px] transition-all"
                 style={{ 
                   background: isApproved ? '#EAFAF1' : isCurrent ? '#FFF3C4' : '#FAFAF7',
-                  border: isCurrent ? '2px solid #F2C418' : '2px solid #ECEDEF'
+                  border: isCurrent ? '2px solid #FFD24D' : '2px solid #ECEDEF'
                 }}
               >
                 <div className="text-2xl mb-1">{s.icon}</div>
@@ -184,7 +184,7 @@ function SectionCard({ section, isApproved, isOpen, onToggle, onApprove, onReque
       className="rounded-xl mb-4 overflow-hidden transition-all"
       style={{ 
         background: 'white', 
-        border: isApproved ? '2px solid #34C77B' : isOpen ? '2px solid #F2C418' : '2px solid #ECEDEF'
+        border: isApproved ? '2px solid #34C77B' : isOpen ? '2px solid #FFD24D' : '2px solid #ECEDEF'
       }}
     >
       {/* Header */}
@@ -195,7 +195,7 @@ function SectionCard({ section, isApproved, isOpen, onToggle, onApprove, onReque
         <div 
           className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
           style={{ 
-            background: isApproved ? '#34C77B' : '#F2C418',
+            background: isApproved ? '#34C77B' : '#FFD24D',
             color: isApproved ? 'white' : '#1E2128'
           }}
         >
@@ -257,7 +257,7 @@ function SectionCard({ section, isApproved, isOpen, onToggle, onApprove, onReque
                     <input className="w-full p-3 rounded-lg text-sm" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }} placeholder="Il tuo nome" disabled />
                     <input className="w-full p-3 rounded-lg text-sm" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }} placeholder="La tua email" disabled />
                     <input className="w-full p-3 rounded-lg text-sm" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }} placeholder="Il tuo numero WhatsApp" disabled />
-                    <button className="w-full p-3 rounded-lg text-sm font-bold" style={{ background: '#F2C418', color: '#1E2128' }} disabled>
+                    <button className="w-full p-3 rounded-lg text-sm font-bold" style={{ background: '#FFD24D', color: '#1E2128' }} disabled>
                       {content.cta}
                     </button>
                   </div>
@@ -378,7 +378,7 @@ function SectionCard({ section, isApproved, isOpen, onToggle, onApprove, onReque
                   <ul className="mt-2 space-y-2">
                     {content.prossimiPassi.map((item) => (
                       <li key={item.step} className="text-sm flex items-start gap-2" style={{ color: '#5F6572' }}>
-                        <span className="font-bold" style={{ color: '#F2C418' }}>Passo {item.step}:</span> {item.text}
+                        <span className="font-bold" style={{ color: '#FFD24D' }}>Passo {item.step}:</span> {item.text}
                       </li>
                     ))}
                   </ul>
@@ -416,7 +416,7 @@ function SectionCard({ section, isApproved, isOpen, onToggle, onApprove, onReque
                 <button 
                   onClick={onRequestChange}
                   className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all hover:scale-[1.02]"
-                  style={{ background: '#FFF8DC', color: '#C4990A', border: '1px solid #F2C41850' }}
+                  style={{ background: '#FFF8DC', color: '#C4990A', border: '1px solid #FFD24D50' }}
                 >
                   <MessageCircle className="w-4 h-4" /> Chiedi modifica ad Andrea
                 </button>
@@ -435,7 +435,7 @@ function SectionCard({ section, isApproved, isOpen, onToggle, onApprove, onReque
                 <button 
                   onClick={onSendChat}
                   className="px-4 rounded-xl font-bold text-sm"
-                  style={{ background: '#1E2128', color: '#F2C418' }}
+                  style={{ background: '#1E2128', color: '#FFD24D' }}
                 >
                   Invia →
                 </button>
@@ -553,7 +553,7 @@ export function FunnelReviewBuilder({ partner, onBack }) {
         <div 
           className={`flex items-center gap-4 p-5 rounded-2xl mt-6 transition-all ${allApproved ? 'cursor-pointer hover:scale-[1.01]' : 'opacity-60'}`}
           style={{ 
-            background: allApproved ? 'linear-gradient(135deg, #F2C418, #FADA5E)' : '#ECEDEF',
+            background: allApproved ? 'linear-gradient(135deg, #FFD24D, #FADA5E)' : '#ECEDEF',
             boxShadow: allApproved ? '0 8px 30px rgba(242, 196, 24, 0.3)' : 'none'
           }}
           onClick={allApproved && !isExporting ? handleLaunch : undefined}
@@ -574,7 +574,7 @@ export function FunnelReviewBuilder({ partner, onBack }) {
             className="px-6 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-2"
             style={{ 
               background: allApproved ? '#1E2128' : '#9CA3AF',
-              color: allApproved ? '#F2C418' : 'white'
+              color: allApproved ? '#FFD24D' : 'white'
             }}
           >
             {isExporting ? (
@@ -618,7 +618,7 @@ export function FunnelReviewBuilder({ partner, onBack }) {
                 href={`${API}/api/funnel/export/download/${exportResult.filename}`}
                 download
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-sm transition-all hover:scale-105"
-                style={{ background: '#F2C418', color: '#1E2128' }}
+                style={{ background: '#FFD24D', color: '#1E2128' }}
               >
                 <Download className="w-4 h-4" /> Scarica HTML
               </a>

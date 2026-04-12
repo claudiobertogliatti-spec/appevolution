@@ -28,7 +28,7 @@ export function ConsulenzaCheckout({ partner, onBack, defaultConsultant }) {
       name: "Claudio Bertogliatti",
       role: "Fondatore & Strategist",
       avatar: "CB",
-      color: "#F2C418",
+      color: "#FFD24D",
       expertise: ["Strategia di lancio", "Posizionamento", "Scaling business"],
       description: "20+ anni di esperienza nel digital marketing. Esperto in strategie di crescita e monetizzazione."
     },
@@ -114,7 +114,7 @@ export function ConsulenzaCheckout({ partner, onBack, defaultConsultant }) {
             <button
               onClick={onBack}
               className="px-6 py-3 rounded-xl font-bold"
-              style={{ background: '#F2C418', color: '#1E2128' }}
+              style={{ background: '#FFD24D', color: '#1E2128' }}
             >
               Torna ai Servizi
             </button>
@@ -153,7 +153,7 @@ export function ConsulenzaCheckout({ partner, onBack, defaultConsultant }) {
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
               <span className="px-2 py-1 rounded-full text-xs font-bold"
-                    style={{ background: '#F2C41815', color: '#C4990A' }}>
+                    style={{ background: '#FFD24D15', color: '#C4990A' }}>
                 SESSIONE PREMIUM
               </span>
               <span className="text-2xl font-black" style={{ color: '#1E2128' }}>€147</span>
@@ -185,7 +185,7 @@ export function ConsulenzaCheckout({ partner, onBack, defaultConsultant }) {
       {/* Consultant Selection */}
       <div>
         <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
-          <User className="w-5 h-5" style={{ color: '#F2C418' }} />
+          <User className="w-5 h-5" style={{ color: '#FFD24D' }} />
           Scegli il Tuo Consulente
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -196,7 +196,7 @@ export function ConsulenzaCheckout({ partner, onBack, defaultConsultant }) {
                 key={consultant.id}
                 onClick={() => setSelectedConsultant(consultant.id)}
                 className={`bg-white rounded-xl p-5 cursor-pointer transition-all ${
-                  isSelected ? 'ring-2 ring-[#F2C418] shadow-lg' : 'hover:shadow-md'
+                  isSelected ? 'ring-2 ring-[#FFD24D] shadow-lg' : 'hover:shadow-md'
                 }`}
                 style={{ border: '1px solid #ECEDEF' }}
                 data-testid={`consultant-${consultant.id}`}
@@ -213,7 +213,7 @@ export function ConsulenzaCheckout({ partner, onBack, defaultConsultant }) {
                       <h4 className="font-bold" style={{ color: '#1E2128' }}>{consultant.name}</h4>
                       {isSelected && (
                         <div className="w-5 h-5 rounded-full flex items-center justify-center"
-                             style={{ background: '#F2C418' }}>
+                             style={{ background: '#FFD24D' }}>
                           <Check className="w-3 h-3" style={{ color: '#1E2128' }} />
                         </div>
                       )}
@@ -271,7 +271,7 @@ export function ConsulenzaCheckout({ partner, onBack, defaultConsultant }) {
             onClick={handleCheckout}
             disabled={!selectedConsultant || isProcessing}
             className="px-8 py-4 rounded-xl font-bold text-lg flex items-center gap-3 transition-all hover:opacity-90 disabled:opacity-50"
-            style={{ background: '#F2C418', color: '#1E2128' }}
+            style={{ background: '#FFD24D', color: '#1E2128' }}
             data-testid="consulenza-checkout-btn"
           >
             {isProcessing ? (

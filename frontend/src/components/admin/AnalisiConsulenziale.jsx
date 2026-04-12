@@ -55,7 +55,7 @@ function BloccoScriptCall({ blocco, isExpanded, onToggle }) {
         <div className="flex items-center gap-3">
           <span 
             className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold"
-            style={{ background: '#F2C41830', color: '#F2C418' }}
+            style={{ background: '#FFD24D30', color: '#FFD24D' }}
           >
             {blocco.numero}
           </span>
@@ -76,8 +76,8 @@ function BloccoScriptCall({ blocco, isExpanded, onToggle }) {
           
           {/* SCRIPT ESATTO - Priorità alta, evidenziato */}
           {blocco.script_esatto && (
-            <div className="p-4 rounded-lg border-l-4" style={{ background: '#1E212810', borderColor: '#F2C418' }}>
-              <label className="text-xs font-bold flex items-center gap-2" style={{ color: '#F2C418' }}>
+            <div className="p-4 rounded-lg border-l-4" style={{ background: '#1E212810', borderColor: '#FFD24D' }}>
+              <label className="text-xs font-bold flex items-center gap-2" style={{ color: '#FFD24D' }}>
                 <MessageSquare className="w-4 h-4" />
                 SCRIPT ESATTO (leggi testualmente)
               </label>
@@ -123,7 +123,7 @@ function BloccoScriptCall({ blocco, isExpanded, onToggle }) {
               <ul className="mt-1 space-y-1">
                 {blocco.domande.map((d, i) => (
                   <li key={i} className="text-sm flex items-start gap-2" style={{ color: '#1E2128' }}>
-                    <span style={{ color: '#F2C418' }}>•</span> {d}
+                    <span style={{ color: '#FFD24D' }}>•</span> {d}
                   </li>
                 ))}
               </ul>
@@ -615,7 +615,7 @@ export function AnalisiConsulenziale({ clienteId, onClose }) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
         <div className="bg-white rounded-2xl p-8">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto" style={{ color: '#F2C418' }} />
+          <Loader2 className="w-8 h-8 animate-spin mx-auto" style={{ color: '#FFD24D' }} />
           <p className="text-sm mt-4" style={{ color: '#5F6572' }}>Caricamento...</p>
         </div>
       </div>
@@ -645,7 +645,7 @@ export function AnalisiConsulenziale({ clienteId, onClose }) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold"
-                   style={{ background: '#F2C41830', color: '#F2C418' }}>
+                   style={{ background: '#FFD24D30', color: '#FFD24D' }}>
                 {data.cliente?.nome?.charAt(0) || '?'}
               </div>
               <div>
@@ -681,8 +681,8 @@ export function AnalisiConsulenziale({ clienteId, onClose }) {
                 className="flex-1 py-3 flex items-center justify-center gap-2 text-sm font-medium transition-colors"
                 style={{ 
                   background: isActive ? '#FEF9E7' : 'transparent',
-                  color: isActive ? '#F2C418' : '#5F6572',
-                  borderBottom: isActive ? '2px solid #F2C418' : 'none'
+                  color: isActive ? '#FFD24D' : '#5F6572',
+                  borderBottom: isActive ? '2px solid #FFD24D' : 'none'
                 }}
               >
                 <Icon className="w-4 h-4" />
@@ -734,10 +734,10 @@ export function AnalisiConsulenziale({ clienteId, onClose }) {
                 <button
                   onClick={handleGeneraPreliminare}
                   disabled={isGenerating || data.has_analisi_preliminare}
-                  className="p-4 rounded-xl border-2 border-dashed text-left transition-all hover:border-[#F2C418] disabled:opacity-50"
+                  className="p-4 rounded-xl border-2 border-dashed text-left transition-all hover:border-[#FFD24D] disabled:opacity-50"
                   style={{ borderColor: data.has_analisi_preliminare ? '#22C55E' : '#ECEDEF' }}
                 >
-                  <Sparkles className="w-6 h-6 mb-2" style={{ color: data.has_analisi_preliminare ? '#22C55E' : '#F2C418' }} />
+                  <Sparkles className="w-6 h-6 mb-2" style={{ color: data.has_analisi_preliminare ? '#22C55E' : '#FFD24D' }} />
                   <h4 className="font-bold text-sm" style={{ color: '#1E2128' }}>
                     {data.has_analisi_preliminare ? '✓ Analisi Preliminare Generata' : '1. Genera Analisi Preliminare'}
                   </h4>
@@ -750,7 +750,7 @@ export function AnalisiConsulenziale({ clienteId, onClose }) {
                 <button
                   onClick={handleGeneraScriptCall}
                   disabled={isGenerating || !data.has_analisi_preliminare || data.has_script_call}
-                  className="p-4 rounded-xl border-2 border-dashed text-left transition-all hover:border-[#F2C418] disabled:opacity-50"
+                  className="p-4 rounded-xl border-2 border-dashed text-left transition-all hover:border-[#FFD24D] disabled:opacity-50"
                   style={{ borderColor: data.has_script_call ? '#22C55E' : '#ECEDEF' }}
                 >
                   <Phone className="w-6 h-6 mb-2" style={{ color: data.has_script_call ? '#22C55E' : '#3B82F6' }} />

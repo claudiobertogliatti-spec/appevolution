@@ -71,7 +71,7 @@ function SimpleRichEditor({ value, onChange, placeholder }) {
       const end = textarea.selectionEnd;
       const selectedText = value.substring(start, end) || "Link";
       
-      const linkHtml = `<a href="${url}" style="color: #F2C418; font-weight: bold;">${selectedText}</a>`;
+      const linkHtml = `<a href="${url}" style="color: #FFD24D; font-weight: bold;">${selectedText}</a>`;
       const newText = value.substring(0, start) + linkHtml + value.substring(end);
       onChange(newText);
     }

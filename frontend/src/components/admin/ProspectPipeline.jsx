@@ -29,7 +29,7 @@ function StepCell({ done, partial, locked }) {
   );
   if (partial) return (
     <div className="flex justify-center">
-      <Clock className="w-4 h-4" style={{ color: "#F2C418" }} />
+      <Clock className="w-4 h-4" style={{ color: "#FFD24D" }} />
     </div>
   );
   if (locked) return (
@@ -56,7 +56,7 @@ function FunnelProgress({ cliente }) {
       </div>
       <div className="w-full h-1.5 rounded-full" style={{ background: "#F0EFEB" }}>
         <div className="h-1.5 rounded-full transition-all"
-             style={{ width: `${pct}%`, background: pct === 100 ? "#22C55E" : "#F2C418" }} />
+             style={{ width: `${pct}%`, background: pct === 100 ? "#22C55E" : "#FFD24D" }} />
       </div>
     </div>
   );
@@ -65,7 +65,7 @@ function FunnelProgress({ cliente }) {
 function CallBadge({ stato }) {
   const map = {
     da_fissare: { label: "Da fissare", color: "#EF4444" },
-    fissata:    { label: "Fissata",    color: "#F2C418" },
+    fissata:    { label: "Fissata",    color: "#FFD24D" },
     completata: { label: "Completata", color: "#22C55E" },
     annullata:  { label: "Annullata",  color: "#9CA3AF" },
   };
@@ -439,7 +439,7 @@ export function ProspectPipeline({ onOpenCliente }) {
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <Loader2 className="w-6 h-6 animate-spin" style={{ color: "#F2C418" }} />
+      <Loader2 className="w-6 h-6 animate-spin" style={{ color: "#FFD24D" }} />
     </div>
   );
 
@@ -467,7 +467,7 @@ export function ProspectPipeline({ onOpenCliente }) {
         {[
           { label: "Totali",      value: stats.totale,      color: "#6B7280" },
           { label: "Questionario",value: stats.questionario, color: "#3B82F6" },
-          { label: "Pagato €67",  value: stats.pagato_67,   color: "#F2C418" },
+          { label: "Pagato €67",  value: stats.pagato_67,   color: "#FFD24D" },
           { label: "Analisi OK",  value: stats.analisi,     color: "#8B5CF6" },
           { label: "Contratto",   value: stats.contratto,   color: "#F97316" },
           { label: "Partner",     value: stats.partner,     color: "#22C55E" },
@@ -498,7 +498,7 @@ export function ProspectPipeline({ onOpenCliente }) {
                     onClick={() => setFilter(f.id)}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
                     style={{
-                      background: filter === f.id ? "#F2C418" : "#F5F4F1",
+                      background: filter === f.id ? "#FFD24D" : "#F5F4F1",
                       color: filter === f.id ? "#1E2128" : "#5F6572"
                     }}>
               {f.label}

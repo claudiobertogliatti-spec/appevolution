@@ -242,7 +242,7 @@ export function StefaniaWarMode({ partners }) {
           <div className="flex-1">
             <h2 className="text-xl font-extrabold text-[#1E2128] flex items-center gap-2">
               Campagne Ads Partner
-              <span className="text-xs bg-[#F5C518] text-[#1E2128] px-2 py-0.5 rounded-full">ADS</span>
+              <span className="text-xs bg-[#FFD24D] text-[#1E2128] px-2 py-0.5 rounded-full">ADS</span>
             </h2>
             <p className="text-sm text-[#5F6572]">Gestione campagne Meta Ads per i partner in fase Growth e Scala</p>
           </div>
@@ -262,7 +262,7 @@ export function StefaniaWarMode({ partners }) {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
                 activeTab === tab.id 
-                  ? "bg-[#F5C518] text-[#1E2128]" 
+                  ? "bg-[#FFD24D] text-[#1E2128]" 
                   : "bg-[#FAFAF7] text-[#9CA3AF] hover:text-[#5F6572]"
               }`}
             >
@@ -307,7 +307,7 @@ export function StefaniaWarMode({ partners }) {
                   : "bg-[#FAFAF7] border border-[#ECEDEF] text-[#5F6572] hover:border-red-500/30"
               }`}
             >
-              <div className="w-6 h-6 rounded-full bg-[#F5C518] flex items-center justify-center text-[10px] font-bold text-black">
+              <div className="w-6 h-6 rounded-full bg-[#FFD24D] flex items-center justify-center text-[10px] font-bold text-black">
                 {p.name?.split(" ").map(n => n[0]).join("")}
               </div>
               {p.name}

@@ -207,7 +207,7 @@ export function CopyFactoryAdmin({ currentAdmin }) {
                     ${isSelected ? "border-pink-500 bg-pink-500/5" : "border-[#ECEDEF] hover:border-pink-500/30"}`}
                 >
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-[#F5C518] flex items-center justify-center text-sm font-bold text-black">
+                    <div className="w-10 h-10 rounded-full bg-[#FFD24D] flex items-center justify-center text-sm font-bold text-black">
                       {script.partner_info?.name?.split(" ").map(n => n[0]).join("") || "?"}
                     </div>
                     <div className="flex-1">
@@ -244,7 +244,7 @@ export function CopyFactoryAdmin({ currentAdmin }) {
               <div className="bg-white border border-pink-500/30 rounded-xl p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-[#F5C518] flex items-center justify-center text-lg font-bold text-black">
+                    <div className="w-12 h-12 rounded-full bg-[#FFD24D] flex items-center justify-center text-lg font-bold text-black">
                       {selectedScript.partner_info?.name?.split(" ").map(n => n[0]).join("") || "?"}
                     </div>
                     <div>

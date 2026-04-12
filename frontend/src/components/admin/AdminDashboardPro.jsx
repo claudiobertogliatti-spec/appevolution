@@ -118,7 +118,7 @@ function PartnerRow({ partner, onOpenProject, onOverrideData, onUnlockFunnel, on
       <td className="py-3 px-4">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
-               style={{ background: '#F2C418', color: '#1E2128' }}>
+               style={{ background: '#FFD24D', color: '#1E2128' }}>
             {partner.name?.split(" ").map(n => n[0]).join("") || "?"}
           </div>
           <div>
@@ -148,7 +148,7 @@ function PartnerRow({ partner, onOpenProject, onOverrideData, onUnlockFunnel, on
               className="h-full rounded-full transition-all"
               style={{ 
                 width: `${progress}%`,
-                background: progress === 100 ? '#22C55E' : '#F2C418'
+                background: progress === 100 ? '#22C55E' : '#FFD24D'
               }}
             />
           </div>
@@ -208,7 +208,7 @@ function PartnerRow({ partner, onOpenProject, onOverrideData, onUnlockFunnel, on
             <button
               onClick={() => onOpenProject(partner)}
               className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg transition-all hover:scale-105"
-              style={{ background: '#F2C418', color: '#1E2128' }}
+              style={{ background: '#FFD24D', color: '#1E2128' }}
               data-testid={`btn-open-partner-${partner.id}`}
             >
               <Eye className="w-3.5 h-3.5" />
@@ -667,7 +667,7 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
             icon={Users} 
             label="Partner attivi" 
             value={stats.partnerAttivi}
-            color="#F2C418"
+            color="#FFD24D"
           />
           <StatCard 
             icon={TrendingUp} 
@@ -686,7 +686,7 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
         {/* BLOCCO 7: Conversione */}
         <div className="bg-white rounded-xl border border-[#ECEDEF] p-5 mb-6">
           <div className="flex items-center gap-3 mb-4">
-            <BarChart3 className="w-5 h-5" style={{ color: '#F2C418' }} />
+            <BarChart3 className="w-5 h-5" style={{ color: '#FFD24D' }} />
             <span className="font-bold" style={{ color: '#1E2128' }}>Statistiche Conversione</span>
           </div>
           <div className="grid grid-cols-3 gap-6">
@@ -695,7 +695,7 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
               <div className="text-xs" style={{ color: '#9CA3AF' }}>Analisi vendute</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-black" style={{ color: '#F2C418' }}>{stats.partnerAttivi}</div>
+              <div className="text-3xl font-black" style={{ color: '#FFD24D' }}>{stats.partnerAttivi}</div>
               <div className="text-xs" style={{ color: '#9CA3AF' }}>Partner attivati</div>
             </div>
             <div className="text-center">
@@ -728,7 +728,7 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
           <button
             onClick={() => setActiveTab("partners")}
             className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-              activeTab === "partners" ? 'bg-[#F2C418] text-[#1E2128]' : 'bg-white text-[#5F6572] hover:bg-[#FAFAF7]'
+              activeTab === "partners" ? 'bg-[#FFD24D] text-[#1E2128]' : 'bg-white text-[#5F6572] hover:bg-[#FAFAF7]'
             }`}
           >
             Pipeline Partner
@@ -736,7 +736,7 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
           <button
             onClick={() => setActiveTab("analisi")}
             className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-              activeTab === "analisi" ? 'bg-[#F2C418] text-[#1E2128]' : 'bg-white text-[#5F6572] hover:bg-[#FAFAF7]'
+              activeTab === "analisi" ? 'bg-[#FFD24D] text-[#1E2128]' : 'bg-white text-[#5F6572] hover:bg-[#FAFAF7]'
             }`}
           >
             Clienti Analisi (€67)
@@ -756,7 +756,7 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
                     placeholder="Cerca partner..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#F2C418]"
+                    className="w-full pl-10 pr-4 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#FFD24D]"
                     style={{ borderColor: '#ECEDEF' }}
                   />
                 </div>
@@ -767,7 +767,7 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
                       onClick={() => setFilterStatus(status)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                         filterStatus === status 
-                          ? 'bg-[#F2C418] text-[#1E2128]' 
+                          ? 'bg-[#FFD24D] text-[#1E2128]' 
                           : 'bg-[#FAFAF7] text-[#5F6572] hover:bg-[#ECEDEF]'
                       }`}
                     >

@@ -25,7 +25,7 @@ const SCENARIOS = [
     emoji: "B",
     title: "Qualche vendita, ma non abbastanza",
     desc: "Il sistema funziona, ma le vendite sono poche. Serve spingere ads e conversioni.",
-    color: "#F2C418",
+    color: "#FFD24D",
     recommended: "growth",
   },
   {
@@ -66,7 +66,7 @@ const LEVELS = [
     num: 2,
     name: "Growth",
     tagline: "Aumentiamo le vendite",
-    color: "#F2C418",
+    color: "#FFD24D",
     icon: TrendingUp,
     problema: "Le vendite ci sono ma restano piatte. Il traffico non basta, le conversioni non salgono, e non sai come scalare senza sprecare budget.",
     soluzione: "Gestiamo insieme le ads, ottimizziamo ogni step del funnel e creiamo contenuti che portano persone pronte a comprare. Crescita misurabile.",
@@ -119,8 +119,8 @@ function DiagnosticBlock({ selected, onSelect }) {
   return (
     <div className="mb-8" data-testid="dove-sei-oggi">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#F2C41820" }}>
-          <Target className="w-5 h-5" style={{ color: "#F2C418" }} />
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#FFD24D20" }}>
+          <Target className="w-5 h-5" style={{ color: "#FFD24D" }} />
         </div>
         <div>
           <h2 className="text-base font-black" style={{ color: "#1E2128" }}>Dove sei oggi?</h2>
@@ -314,7 +314,7 @@ function RealityBlock() {
             <p className="text-sm font-bold text-white text-center">
               Chi cresce investe nella crescita.
               <br />
-              <span style={{ color: "#F2C418" }}>Chi resta fermo, torna indietro.</span>
+              <span style={{ color: "#FFD24D" }}>Chi resta fermo, torna indietro.</span>
             </p>
           </div>
         </div>

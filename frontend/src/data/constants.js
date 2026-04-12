@@ -41,7 +41,7 @@ export const NICCHIE_DISPONIBILI = [
 
 // Color palette
 export const S = {
-  Y: "#F5C518",
+  Y: "#FFD24D",
   YD: "#e0a800",
   YL: "#FFFBEA",
   YM: "#FEF3B0",

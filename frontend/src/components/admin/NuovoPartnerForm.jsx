@@ -195,7 +195,7 @@ Primo step: Modulo 0 nell'app`;
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-xs font-bold text-[#9CA3AF] w-28">Password App</span>
-                <span className="font-mono text-sm font-bold text-[#F5C518]">{generatedData.appPassword}</span>
+                <span className="font-mono text-sm font-bold text-[#FFD24D]">{generatedData.appPassword}</span>
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-xs font-bold text-[#9CA3AF] w-28">Password Systeme</span>
@@ -213,7 +213,7 @@ Primo step: Modulo 0 nell'app`;
             </button>
             <button
               onClick={onClose}
-              className="flex-1 bg-[#F5C518] text-black rounded-xl px-4 py-3 text-sm font-extrabold hover:bg-[#e0a800] transition-colors"
+              className="flex-1 bg-[#FFD24D] text-black rounded-xl px-4 py-3 text-sm font-extrabold hover:bg-[#e0a800] transition-colors"
             >
               Vai alla scheda Partner →
             </button>
@@ -254,7 +254,7 @@ Primo step: Modulo 0 nell'app`;
             <button
               onClick={handleCreate}
               disabled={isSubmitting}
-              className="flex-1 flex items-center justify-center gap-2 bg-[#F5C518] text-black rounded-xl px-4 py-3 text-sm font-extrabold hover:bg-[#e0a800] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 flex items-center justify-center gap-2 bg-[#FFD24D] text-black rounded-xl px-4 py-3 text-sm font-extrabold hover:bg-[#e0a800] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <>
@@ -306,7 +306,7 @@ Primo step: Modulo 0 nell'app`;
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" />
               <input
                 className={`w-full bg-[#FAFAF7] border rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-[#1E2128] placeholder:text-[#9CA3AF] outline-none transition-colors
-                  ${errors.name ? 'border-red-500 bg-red-500/10' : 'border-[#ECEDEF] focus:border-[#F5C518]'}`}
+                  ${errors.name ? 'border-red-500 bg-red-500/10' : 'border-[#ECEDEF] focus:border-[#FFD24D]'}`}
                 placeholder="es. Marco Ferretti"
                 value={formData.name}
                 onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
@@ -324,7 +324,7 @@ Primo step: Modulo 0 nell'app`;
               <input
                 type="email"
                 className={`w-full bg-[#FAFAF7] border rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-[#1E2128] placeholder:text-[#9CA3AF] outline-none transition-colors
-                  ${errors.email ? 'border-red-500 bg-red-500/10' : 'border-[#ECEDEF] focus:border-[#F5C518]'}`}
+                  ${errors.email ? 'border-red-500 bg-red-500/10' : 'border-[#ECEDEF] focus:border-[#FFD24D]'}`}
                 placeholder="marco.ferretti@gmail.com"
                 value={formData.email}
                 onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
@@ -342,7 +342,7 @@ Primo step: Modulo 0 nell'app`;
               <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" />
               <select
                 className={`w-full bg-[#FAFAF7] border rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-[#1E2128] outline-none transition-colors appearance-none cursor-pointer
-                  ${errors.niche ? 'border-red-500 bg-red-500/10' : 'border-[#ECEDEF] focus:border-[#F5C518]'}`}
+                  ${errors.niche ? 'border-red-500 bg-red-500/10' : 'border-[#ECEDEF] focus:border-[#FFD24D]'}`}
                 value={formData.niche}
                 onChange={e => setFormData(prev => ({ ...prev, niche: e.target.value }))}
               >
@@ -362,7 +362,7 @@ Primo step: Modulo 0 nell'app`;
               <input
                 type="number"
                 className={`w-full bg-[#FAFAF7] border rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-[#1E2128] placeholder:text-[#9CA3AF] outline-none transition-colors
-                  ${errors.investment ? 'border-red-500 bg-red-500/10' : 'border-[#ECEDEF] focus:border-[#F5C518]'}`}
+                  ${errors.investment ? 'border-red-500 bg-red-500/10' : 'border-[#ECEDEF] focus:border-[#FFD24D]'}`}
                 placeholder="3000"
                 value={formData.investment}
                 onChange={e => setFormData(prev => ({ ...prev, investment: e.target.value }))}
@@ -389,7 +389,7 @@ Primo step: Modulo 0 nell'app`;
             <input
               type="text"
               className={`w-full bg-[#FAFAF7] border rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-[#1E2128] placeholder:text-[#9CA3AF] outline-none transition-colors
-                ${errors.systemePassword ? 'border-red-500 bg-red-500/10' : 'border-[#ECEDEF] focus:border-[#F5C518]'}`}
+                ${errors.systemePassword ? 'border-red-500 bg-red-500/10' : 'border-[#ECEDEF] focus:border-[#FFD24D]'}`}
               placeholder="SysEvo2026_MF"
               value={formData.systemePassword}
               onChange={e => setFormData(prev => ({ ...prev, systemePassword: e.target.value }))}
@@ -408,7 +408,7 @@ Primo step: Modulo 0 nell'app`;
         <div className="relative">
           <FileText className="absolute left-3 top-3 w-4 h-4 text-[#9CA3AF]" />
           <textarea
-            className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-[#1E2128] placeholder:text-[#9CA3AF] outline-none transition-colors focus:border-[#F5C518] resize-none min-h-[80px]"
+            className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 pl-10 text-sm font-semibold text-[#1E2128] placeholder:text-[#9CA3AF] outline-none transition-colors focus:border-[#FFD24D] resize-none min-h-[80px]"
             placeholder="es. Bonifico ricevuto 10/02 - causale EP2026MF - Provenienza: LinkedIn"
             value={formData.notes}
             onChange={e => setFormData(prev => ({ ...prev, notes: e.target.value }))}
@@ -417,14 +417,14 @@ Primo step: Modulo 0 nell'app`;
       </div>
 
       {/* Send Email Checkbox */}
-      <div className="bg-[#FFFBEA]/10 border border-[#F5C518]/30 rounded-xl p-4 flex items-start gap-3 mb-6">
+      <div className="bg-[#FFFBEA]/10 border border-[#FFD24D]/30 rounded-xl p-4 flex items-start gap-3 mb-6">
         <input
           type="checkbox"
-          className="w-5 h-5 cursor-pointer accent-[#F5C518] flex-shrink-0 mt-0.5"
+          className="w-5 h-5 cursor-pointer accent-[#FFD24D] flex-shrink-0 mt-0.5"
           checked={formData.sendEmail}
           onChange={e => setFormData(prev => ({ ...prev, sendEmail: e.target.checked }))}
         />
-        <label className="text-xs font-bold text-[#F5C518]">
+        <label className="text-xs font-bold text-[#FFD24D]">
           Invia email benvenuto automaticamente con entrambi gli accessi (App + Systeme.io)
         </label>
       </div>
@@ -439,7 +439,7 @@ Primo step: Modulo 0 nell'app`;
         </button>
         <button
           onClick={handlePreview}
-          className="flex-1 flex items-center justify-center gap-2 bg-[#F5C518] text-black rounded-xl px-4 py-3 text-sm font-extrabold hover:bg-[#e0a800] transition-colors"
+          className="flex-1 flex items-center justify-center gap-2 bg-[#FFD24D] text-black rounded-xl px-4 py-3 text-sm font-extrabold hover:bg-[#e0a800] transition-colors"
         >
           Continua <ArrowRight className="w-4 h-4" />
         </button>

@@ -42,14 +42,14 @@ export function AnalisiQuestionario({ userData, onComplete, onBack, isProcessing
             <span>{Math.round(progress)}%</span>
           </div>
           <div className="h-2 rounded-full overflow-hidden" style={{ background: '#ECEDEF' }}>
-            <div className="h-full bg-[#F5C518] transition-all duration-500" style={{ width: `${progress}%` }} />
+            <div className="h-full bg-[#FFD24D] transition-all duration-500" style={{ width: `${progress}%` }} />
           </div>
         </div>
 
         {/* Question Card */}
         <div className="rounded-2xl p-8" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
           <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-6" style={{ background: '#FEF9E7' }}>
-            <question.icon className="w-7 h-7 text-[#F5C518]" />
+            <question.icon className="w-7 h-7 text-[#FFD24D]" />
           </div>
 
           <h2 className="text-xl md:text-2xl font-bold text-[#1E2128] mb-6">{question.question}</h2>
@@ -69,10 +69,10 @@ export function AnalisiQuestionario({ userData, onComplete, onBack, isProcessing
                     className={`w-full p-4 rounded-xl text-left transition-all flex items-center gap-3`}
                     style={{ 
                       background: currentAnswer === option ? '#FEF9E7' : '#FAFAF7',
-                      border: currentAnswer === option ? '2px solid #F5C518' : '1px solid #ECEDEF'
+                      border: currentAnswer === option ? '2px solid #FFD24D' : '1px solid #ECEDEF'
                     }} data-testid={`option-${i}`}>
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0`}
-                      style={{ borderColor: currentAnswer === option ? '#F5C518' : '#9CA3AF', background: currentAnswer === option ? '#F5C518' : 'transparent' }}>
+                      style={{ borderColor: currentAnswer === option ? '#FFD24D' : '#9CA3AF', background: currentAnswer === option ? '#FFD24D' : 'transparent' }}>
                       {currentAnswer === option && <Check className="w-3 h-3 text-black" />}
                     </div>
                     <span className="text-sm text-[#1E2128]">{option}</span>
@@ -88,7 +88,7 @@ export function AnalisiQuestionario({ userData, onComplete, onBack, isProcessing
                     className="p-4 rounded-xl text-center transition-all"
                     style={{ 
                       background: currentAnswer === option ? '#FEF9E7' : '#FAFAF7',
-                      border: currentAnswer === option ? '2px solid #F5C518' : '1px solid #ECEDEF'
+                      border: currentAnswer === option ? '2px solid #FFD24D' : '1px solid #ECEDEF'
                     }} data-testid={`scale-${i}`}>
                     <div className="text-2xl mb-1">{["😕", "🤔", "🙂", "😃"][i]}</div>
                     <span className="text-xs text-[#5F6572]">{option}</span>
@@ -104,7 +104,7 @@ export function AnalisiQuestionario({ userData, onComplete, onBack, isProcessing
             </button>
 
             <button onClick={handleNext} disabled={!canProceed || isProcessingPayment}
-              className={`px-8 py-3 rounded-xl font-bold flex items-center gap-2 transition-all ${canProceed && !isProcessingPayment ? 'bg-[#F5C518] text-black hover:bg-[#e0b115]' : 'bg-[#ECEDEF] text-[#9CA3AF] cursor-not-allowed'}`}
+              className={`px-8 py-3 rounded-xl font-bold flex items-center gap-2 transition-all ${canProceed && !isProcessingPayment ? 'bg-[#FFD24D] text-black hover:bg-[#e0b115]' : 'bg-[#ECEDEF] text-[#9CA3AF] cursor-not-allowed'}`}
               data-testid="btn-next">
               {isProcessingPayment ? <><Loader2 className="w-4 h-4 animate-spin" />Elaborazione...</> : 
                isLastStep ? <>Procedi al Pagamento<CreditCard className="w-4 h-4" /></> : <>Continua<ArrowRight className="w-4 h-4" /></>}

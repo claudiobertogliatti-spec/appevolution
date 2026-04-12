@@ -13,7 +13,7 @@ export function FeedVideoNuovi({ onOpenPipeline }) {
   const getStatusConfig = (status) => {
     switch (status) {
       case "new":
-        return { bg: "bg-[#FFFBEA]", border: "border-l-[#F5C518]", dot: "bg-[#F5C518]", badge: "bg-[#FEF3B0] text-[#1a2332]", label: "🆕 Nuovo" };
+        return { bg: "bg-[#FFFBEA]", border: "border-l-[#FFD24D]", dot: "bg-[#FFD24D]", badge: "bg-[#FEF3B0] text-[#1a2332]", label: "🆕 Nuovo" };
       case "assigned":
         return { bg: "bg-blue-500/5", border: "border-l-blue-500", dot: "bg-blue-500", badge: "bg-blue-500/15 text-blue-600", label: "In lavorazione" };
       case "waiting":
@@ -27,14 +27,14 @@ export function FeedVideoNuovi({ onOpenPipeline }) {
     <div className="animate-slide-in space-y-4" data-testid="feed-video-nuovi">
       {/* Alert for new videos */}
       {newVideos.length > 0 && (
-        <div className="bg-[#FFFBEA] border border-[#F5C518] rounded-xl p-4 flex items-center gap-3">
-          <div className="w-3 h-3 rounded-full bg-[#F5C518] animate-pulse shadow-lg shadow-[#F5C518]/50" />
+        <div className="bg-[#FFFBEA] border border-[#FFD24D] rounded-xl p-4 flex items-center gap-3">
+          <div className="w-3 h-3 rounded-full bg-[#FFD24D] animate-pulse shadow-lg shadow-[#FFD24D]/50" />
           <span className="text-sm font-extrabold text-[#1a2332]">
             {newVideos.length} nuovo/i video in attesa di editing
           </span>
           <button
             onClick={onOpenPipeline}
-            className="ml-auto bg-white border border-[#e4e8ef] rounded-lg px-4 py-2 text-xs font-bold text-[#5a6a82] hover:border-[#F5C518] hover:text-[#1a2332] transition-all"
+            className="ml-auto bg-white border border-[#e4e8ef] rounded-lg px-4 py-2 text-xs font-bold text-[#5a6a82] hover:border-[#FFD24D] hover:text-[#1a2332] transition-all"
           >
             Apri pipeline →
           </button>
@@ -51,7 +51,7 @@ export function FeedVideoNuovi({ onOpenPipeline }) {
               className={`bg-white border border-[#e4e8ef] rounded-xl p-4 flex items-center gap-4 transition-all shadow-sm
                 border-l-4 ${config.border} ${config.bg}`}
             >
-              <div className={`w-3 h-3 rounded-full flex-shrink-0 ${config.dot} ${v.status === "new" ? "animate-pulse shadow-lg shadow-[#F5C518]/50" : ""}`} />
+              <div className={`w-3 h-3 rounded-full flex-shrink-0 ${config.dot} ${v.status === "new" ? "animate-pulse shadow-lg shadow-[#FFD24D]/50" : ""}`} />
               
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-extrabold text-[#1a2332]">{v.lesson}</div>
@@ -82,7 +82,7 @@ export function FeedVideoNuovi({ onOpenPipeline }) {
                 {v.status === "new" && (
                   <button
                     onClick={() => handleTakeCharge(v.id)}
-                    className="bg-[#F5C518] text-[#1a2332] px-4 py-1.5 rounded-lg text-xs font-extrabold hover:bg-[#e0a800] transition-colors"
+                    className="bg-[#FFD24D] text-[#1a2332] px-4 py-1.5 rounded-lg text-xs font-extrabold hover:bg-[#e0a800] transition-colors"
                   >
                     Prendi in carico
                   </button>

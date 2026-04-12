@@ -40,12 +40,12 @@ export function SbloccaAnalisi({ user, onPaymentSuccess, onLogout }) {
       <header className="border-b" style={{ background: '#FFFFFF', borderColor: '#ECEDEF' }}>
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#FFD24D' }}>
               <span className="text-lg font-black" style={{ color: '#1E2128' }}>E</span>
             </div>
             <div>
               <span className="font-black text-lg" style={{ color: '#1E2128' }}>
-                EVOLUTION <span style={{ color: '#F5C518' }}>PRO</span>
+                EVOLUTION <span style={{ color: '#FFD24D' }}>PRO</span>
               </span>
             </div>
           </div>
@@ -71,7 +71,7 @@ export function SbloccaAnalisi({ user, onPaymentSuccess, onLogout }) {
             <CheckCircle className="w-4 h-4" /> Questionario
           </span>
           <span style={{ color: '#ECEDEF' }}>→</span>
-          <span className="flex items-center gap-1 text-sm font-bold" style={{ color: '#F5C518' }}>
+          <span className="flex items-center gap-1 text-sm font-bold" style={{ color: '#FFD24D' }}>
             Analisi Strategica
           </span>
           <span style={{ color: '#ECEDEF' }}>→</span>
@@ -79,11 +79,11 @@ export function SbloccaAnalisi({ user, onPaymentSuccess, onLogout }) {
         </div>
 
         {/* Main Card */}
-        <div className="rounded-2xl overflow-hidden" style={{ background: '#FFFFFF', border: '2px solid #F5C518' }}>
+        <div className="rounded-2xl overflow-hidden" style={{ background: '#FFFFFF', border: '2px solid #FFD24D' }}>
           {/* Header */}
           <div className="p-8 text-center" style={{ background: 'linear-gradient(135deg, #1E2128 0%, #2D3038 100%)' }}>
             <h1 className="text-3xl font-black mb-2" style={{ color: '#FFFFFF' }}>
-              Sblocca la tua <span style={{ color: '#F5C518' }}>Analisi Strategica</span>
+              Sblocca la tua <span style={{ color: '#FFD24D' }}>Analisi Strategica</span>
             </h1>
             <p style={{ color: '#9CA3AF' }}>
               Il nostro team analizzerà il tuo progetto in profondità
@@ -99,7 +99,7 @@ export function SbloccaAnalisi({ user, onPaymentSuccess, onLogout }) {
             
             <div className="grid grid-cols-2 gap-4 mb-8">
               <div className="flex items-start gap-3 p-4 rounded-xl" style={{ background: '#FAFAF7' }}>
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#F5C51820' }}>
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#FFD24D20' }}>
                   <FileText className="w-5 h-5" style={{ color: '#C4990A' }} />
                 </div>
                 <div>
@@ -158,7 +158,7 @@ export function SbloccaAnalisi({ user, onPaymentSuccess, onLogout }) {
             <div className="flex items-center justify-between p-5 rounded-xl mb-6" style={{ background: '#1E2128' }}>
               <span className="font-medium" style={{ color: '#FFFFFF' }}>Investimento</span>
               <div className="text-right">
-                <span className="text-3xl font-black" style={{ color: '#F5C518' }}>€67</span>
+                <span className="text-3xl font-black" style={{ color: '#FFD24D' }}>€67</span>
                 <span className="text-sm ml-2" style={{ color: '#9CA3AF' }}>una tantum</span>
               </div>
             </div>
