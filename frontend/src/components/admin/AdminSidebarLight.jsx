@@ -3,7 +3,7 @@ import {
   Users, Film, FileText, AlertTriangle,
   Settings, LogOut, Bot, Bell, Target, Calendar,
   Layers, Search, ShoppingBag, Snowflake, BarChart2, BarChart3,
-  Navigation, UserX, Flame, CalendarDays, AlertOctagon, Package
+  Navigation, UserX, Flame, CalendarDays, AlertOctagon, Package, UserPlus
 } from "lucide-react";
 
 /* ─── Brand Palette ─────────────────────────────────────────────────────────
@@ -43,6 +43,7 @@ const NAV_ITEMS = [
   { id: "flusso-analisi",      label: "Analisi Strategiche", icon: Search },
   { id: "approvals",           label: "Approvazioni Cliente",icon: Bell,    badge: "approvals" },
   { id: "lista-fredda",        label: "Lead da Riattivare",  icon: Snowflake },
+  { id: "lead-manager",        label: "Gestione Lead",       icon: UserPlus },
 
   { section: "PARTNER" },
   { id: "partner",             label: "Partner Attivi",      icon: Users },

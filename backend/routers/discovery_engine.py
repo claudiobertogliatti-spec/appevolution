@@ -689,6 +689,31 @@ async def delete_lead(lead_id: str):
     return {"success": True, "deleted": lead_id}
 
 
+@router.patch("/leads/{lead_id}")
+async def update_lead(lead_id: str, body: dict):
+    """Admin modifica dati di un discovery lead"""
+    lead = await db.discovery_leads.find_one({"id": lead_id})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead non trovato")
+
+    allowed = {
+        "display_name", "email", "bio", "website_url", "platform_url",
+        "platform_username", "niche_detected", "status", "score_total",
+        "followers_count", "phone", "notes_admin", "source",
+        "email_sequence_stopped", "email_sequence_started",
+        "temperatura",  # caldo, tiepido, freddo (per ELENA)
+    }
+    update = {k: v for k, v in body.items() if k in allowed}
+    if not update:
+        raise HTTPException(status_code=400, detail="Nessun campo valido")
+
+    update["updated_at"] = datetime.now(timezone.utc).isoformat()
+    update["last_edited_by"] = "admin"
+
+    await db.discovery_leads.update_one({"id": lead_id}, {"$set": update})
+    return {"success": True, "message": "Lead aggiornato"}
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # TASK 2: GAIA - BROWSER SEARCH & WEBSITE ANALYSIS
 # ═══════════════════════════════════════════════════════════════════════════════
