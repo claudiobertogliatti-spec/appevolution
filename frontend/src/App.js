@@ -32,7 +32,6 @@ import { PartnerDashboardSimplified } from "./components/partner/PartnerDashboar
 import { PartnerSidebarLight } from "./components/partner/PartnerSidebar";
 import { StepPageWrapper } from "./components/partner/StepPageWrapper";
 import { MioSpazioPage } from "./components/partner/MioSpazioPage";
-import { AdminPartnerOpsPanel } from "./components/partner/AdminPartnerOpsPanel";
 import { PosizionamentoPage } from "./components/partner/PosizionamentoPage";
 import { MasterclassPage } from "./components/partner/MasterclassPage";
 import { VideocorsoPage } from "./components/partner/VideocorsoPage";
@@ -1100,8 +1099,6 @@ export default function App() {
         <ViewSwitcher
           currentView={adminUser === "antonella" ? "antonella" : "admin"}
           onChangeView={(v) => { setAdminUser(v === "antonella" ? "antonella" : "claudio"); setNav("oggi"); }}
-          onSwitchToCliente={() => { setViewingCliente(null); setNav("cp-benvenuto"); }}
-          onSwitchToPartner={() => { setMode("partner"); setNav("home"); }}
         />
       )}
       <div className="flex flex-1 overflow-hidden min-h-0">
@@ -1453,17 +1450,6 @@ export default function App() {
           </>}
         </div>
       </div>
-      {/* Admin Ops Panel - visible only to admin in partner view */}
-      {mode === "partner" && currentUser?.role === "admin" && (
-        <AdminPartnerOpsPanel
-          partner={demoPartner}
-          token={localStorage.getItem("access_token")}
-          onPhaseChanged={(newPhase) => {
-            if (demoPartner) demoPartner.phase = newPhase;
-            loadData();
-          }}
-        />
-      )}
       </div>
       <Toaster position="top-right" richColors />
     </div>

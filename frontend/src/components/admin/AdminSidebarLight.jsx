@@ -75,19 +75,11 @@ const ANTONELLA_SECTIONS = new Set([
 
 // ── ViewSwitcher — top bar ────────────────────────────────────────────────────
 
-export function ViewSwitcher({ currentView, onChangeView, onSwitchToCliente, onSwitchToPartner }) {
+export function ViewSwitcher({ currentView, onChangeView }) {
   const VIEWS = [
     { id: "admin",     label: "Admin" },
-    { id: "cliente",   label: "Vista Cliente" },
-    { id: "partner",   label: "Vista Partner" },
     { id: "antonella", label: "Antonella" },
   ];
-
-  const handleClick = (id) => {
-    if (id === "cliente") { onSwitchToCliente(); return; }
-    if (id === "partner") { onSwitchToPartner(); return; }
-    onChangeView(id);
-  };
 
   return (
     <div
@@ -102,7 +94,7 @@ export function ViewSwitcher({ currentView, onChangeView, onSwitchToCliente, onS
           <button
             key={v.id}
             data-testid={`view-switch-${v.id}`}
-            onClick={() => handleClick(v.id)}
+            onClick={() => onChangeView(v.id)}
             className="px-4 py-1.5 rounded-lg text-xs font-extrabold"
             style={{
               background: active ? C.yellow : "transparent",
