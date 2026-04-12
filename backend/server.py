@@ -12030,14 +12030,16 @@ async def handle_new_sale(data: dict) -> List[str]:
     
     # Check if this is a partner program sale
     is_partner_sale = any(kw in product_name.lower() for kw in ["partner", "academy", "evolution", "programma"])
-    
+
+    found_partner_id = None
     if is_partner_sale:
         # Check if partner already exists
         existing = await db.partners.find_one({"email": contact_email})
-        
+
         if not existing:
             # Create new partner
             partner_id = f"p{str(uuid.uuid4())[:8]}"
+            found_partner_id = partner_id
             new_partner = {
                 "id": partner_id,
                 "name": contact_name or contact_email.split("@")[0].title(),
@@ -12081,10 +12083,11 @@ async def handle_new_sale(data: dict) -> List[str]:
             })
             actions.append(f"🔐 Account creato (password temporanea generata)")
         else:
+            found_partner_id = existing.get("id")
             actions.append(f"ℹ️ Partner già esistente: {contact_email}")
-    
+
     # Record payment/order
-    await db.payments.insert_one({
+    payment_doc = {
         "partner_email": contact_email,
         "order_id": order_id,
         "product": product_name,
@@ -12092,7 +12095,10 @@ async def handle_new_sale(data: dict) -> List[str]:
         "currency": data.get("currency", "EUR"),
         "status": "completed",
         "created_at": datetime.now(timezone.utc).isoformat()
-    })
+    }
+    if found_partner_id:
+        payment_doc["partner_id"] = found_partner_id
+    await db.payments.insert_one(payment_doc)
     actions.append(f"💳 Pagamento registrato: €{amount}")
     
     return actions
