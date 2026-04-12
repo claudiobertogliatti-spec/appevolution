@@ -23,15 +23,15 @@ function getSystemStatus(kpi) {
   if (vendite < 500 && contatti > 10) problems.push("offerta");
   if (conversione < 2 && visite > 100) problems.push("conversione");
 
-  // Non stabile: dati a zero o quasi
+  // Sistema non ancora avviato — zero-state incoraggiante
   if (visite === 0 && contatti === 0 && vendite === 0) {
     return {
-      label: "Non stabile",
-      sub: "Non ci sono ancora dati. Inizia a promuovere il tuo webinar.",
-      color: "#EF4444",
-      bg: "#FEF2F2",
-      border: "#FECACA",
-      icon: AlertTriangle,
+      label: "Pronto al lancio",
+      sub: "Il tuo sistema è configurato. Segui la guida sotto per le prime 3 mosse.",
+      color: "#3B82F6",
+      bg: "#EFF6FF",
+      border: "#BFDBFE",
+      icon: Rocket,
     };
   }
 
@@ -376,6 +376,94 @@ function ProssimoLivello({ kpi, onNavigate }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   5b. GUIDA LANCIO — zero-state: 3 azioni concrete per partire
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const LANCIO_STEPS = [
+  {
+    num: "1",
+    title: "Attiva il tuo webinar su Systeme",
+    desc: "Entra nella sezione 'Il mio funnel', copia il link del webinar gratuito e incollalo nella pagina Systeme che ti abbiamo preparato. Da quel momento il funnel è live.",
+    icon: Zap,
+    color: "#F2C418",
+    action: "Il mio funnel",
+    navTarget: "funnel",
+  },
+  {
+    num: "2",
+    title: "Pubblica il primo contenuto",
+    desc: "Crea un post o un reel dove parli del problema principale che risolvi. Non vendere nulla — racconta. Aggiungi il link alla tua landing in bio. Un contenuto basta per iniziare.",
+    icon: Megaphone,
+    color: "#8B5CF6",
+    action: null,
+  },
+  {
+    num: "3",
+    title: "Scrivi a 10 persone che già conosci",
+    desc: "Identifica 10 contatti nella tua rete offline che potrebbero beneficiare del tuo corso. Manda un messaggio personale — non un template — e invitali a guardare il webinar.",
+    icon: Users,
+    color: "#34C77B",
+    action: null,
+  },
+];
+
+function GuidaLancio({ onNavigate }) {
+  return (
+    <div className="mb-6" data-testid="guida-lancio">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#F2C41820" }}>
+          <Rocket className="w-5 h-5" style={{ color: "#F2C418" }} />
+        </div>
+        <div>
+          <h2 className="text-base font-black" style={{ color: "#1E2128" }}>Guida al lancio</h2>
+          <p className="text-xs" style={{ color: "#9CA3AF" }}>Le prime 3 mosse per portare i numeri da zero</p>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {LANCIO_STEPS.map((step) => {
+          const SIcon = step.icon;
+          return (
+            <div key={step.num} className="bg-white rounded-2xl p-5"
+              data-testid={`lancio-step-${step.num}`}
+              style={{ border: `1.5px solid ${step.color}30` }}>
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm"
+                  style={{ background: `${step.color}15`, color: step.color }}>
+                  {step.num}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <SIcon className="w-4 h-4 flex-shrink-0" style={{ color: step.color }} />
+                    <p className="text-sm font-black" style={{ color: "#1E2128" }}>{step.title}</p>
+                  </div>
+                  <p className="text-sm leading-relaxed" style={{ color: "#5F6572" }}>{step.desc}</p>
+                  {step.action && (
+                    <button
+                      onClick={() => onNavigate && onNavigate(step.navTarget)}
+                      className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-all hover:scale-[1.02]"
+                      style={{ background: `${step.color}15`, color: step.color }}
+                    >
+                      {step.action} <ArrowRight className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-4 rounded-xl p-4" style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
+        <p className="text-xs font-bold" style={{ color: "#166534" }}>
+          💡 Dopo queste 3 azioni, i tuoi KPI inizieranno a muoversi. Torna qui ogni settimana per monitorare l'andamento.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    6. TREND — andamento generale
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -422,6 +510,12 @@ export function OttimizzazionePage({ partner, onNavigate, isAdmin }) {
   const [isLoading, setIsLoading] = useState(true);
   const [kpiData, setKpiData] = useState(null);
   const partnerId = partner?.id;
+
+  const isZeroState = !kpiData || (
+    (kpiData.visite ?? 0) === 0 &&
+    (kpiData.contatti ?? 0) === 0 &&
+    (kpiData.vendite ?? 0) === 0
+  );
 
   useEffect(() => {
     const load = async () => {
@@ -489,17 +583,20 @@ export function OttimizzazionePage({ partner, onNavigate, isAdmin }) {
         {/* 2. KPI */}
         <KpiGrid kpi={kpiData} />
 
-        {/* 3. DIAGNOSI */}
-        <DiagnosiAutomatica kpi={kpiData} />
+        {/* 3. DIAGNOSI o GUIDA LANCIO */}
+        {isZeroState
+          ? <GuidaLancio onNavigate={onNavigate} />
+          : <DiagnosiAutomatica kpi={kpiData} />
+        }
 
-        {/* 4. PROSSIMA AZIONE */}
-        <ProssimaAzione kpi={kpiData} />
+        {/* 4. PROSSIMA AZIONE (solo se ci sono dati) */}
+        {!isZeroState && <ProssimaAzione kpi={kpiData} />}
 
         {/* 5. PROSSIMO LIVELLO CONSIGLIATO */}
         <ProssimoLivello kpi={kpiData} onNavigate={onNavigate} />
 
-        {/* 6. TREND */}
-        <TrendBlock kpi={kpiData} />
+        {/* 6. TREND (solo se ci sono dati) */}
+        {!isZeroState && <TrendBlock kpi={kpiData} />}
 
       </div>
     </div>
