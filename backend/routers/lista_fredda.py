@@ -312,6 +312,57 @@ async def export_lista_fredda_csv(
     )
 
 
+@router.post("/leads")
+async def add_single_lead(lead: ListaFreddaLead):
+    """Aggiunge un singolo contatto alla lista fredda (form manuale)."""
+    existing = await db.lista_fredda.find_one({"email": lead.email.lower().strip()})
+    if existing:
+        raise HTTPException(status_code=409, detail="Email già presente nella lista")
+
+    doc = lead.dict()
+    doc["email"] = doc["email"].lower().strip()
+    doc["id"] = f"lf_{re.sub(r'[^a-z0-9]', '', doc['email'])[:20]}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    doc["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    await db.lista_fredda.insert_one(doc)
+    return {"success": True, "id": doc["id"], "message": "Contatto aggiunto"}
+
+
+@router.patch("/leads/{email}")
+async def update_lista_fredda_lead(email: str, body: dict):
+    """Admin modifica un contatto della lista fredda (ricerca per email)."""
+    from urllib.parse import unquote
+    email_decoded = unquote(email).lower().strip()
+
+    existing = await db.lista_fredda.find_one({"email": email_decoded})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Contatto non trovato")
+
+    allowed = {
+        "first_name", "last_name", "phone", "email", "tag",
+        "stato", "note_admin", "risposta_ricevuta", "entrato_in_funnel"
+    }
+    update = {k: v for k, v in body.items() if k in allowed}
+    if not update:
+        raise HTTPException(status_code=400, detail="Nessun campo valido")
+
+    update["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.lista_fredda.update_one({"email": email_decoded}, {"$set": update})
+    return {"success": True, "message": "Contatto aggiornato"}
+
+
+@router.delete("/leads/{email}")
+async def delete_lista_fredda_lead(email: str):
+    """Elimina un contatto dalla lista fredda."""
+    from urllib.parse import unquote
+    email_decoded = unquote(email).lower().strip()
+    result = await db.lista_fredda.delete_one({"email": email_decoded})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Contatto non trovato")
+    return {"success": True}
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # PARTE 2: WEBHOOK TRACKING DA SYSTEME.IO
 # ═══════════════════════════════════════════════════════════════════════════════
