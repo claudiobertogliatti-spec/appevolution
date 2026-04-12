@@ -21,7 +21,7 @@ function CourseContent({ outline }) {
     <div className="space-y-4" data-testid="course-outline">
       {outline.titolo && (
         <div className="rounded-2xl p-5" style={{ background: "#1E2128" }}>
-          <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: "#F2C418" }}>
+          <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: "#FFD24D" }}>
             Il tuo Corso
           </div>
           <h2 className="text-lg font-black text-white">{outline.titolo}</h2>
@@ -42,11 +42,11 @@ function ModuleCard({ modulo, idx }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="bg-white rounded-xl border overflow-hidden" style={{ borderColor: isOpen ? "#F2C41840" : "#ECEDEF" }}>
+    <div className="bg-white rounded-xl border overflow-hidden" style={{ borderColor: isOpen ? "#FFD24D40" : "#ECEDEF" }}>
       <button onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50 transition-all">
         <span className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black flex-shrink-0"
-          style={{ background: "#F2C418", color: "#1E2128" }}>
+          style={{ background: "#FFD24D", color: "#1E2128" }}>
           {idx + 1}
         </span>
         <div className="flex-1 min-w-0">
@@ -97,7 +97,7 @@ export function CourseBuilderWizard({ partnerId, positioningData, onComplete }) 
   if (isLoading) {
     return (
       <div className="min-h-full flex items-center justify-center" style={{ background: "#FAFAF7" }}>
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F2C418" }} />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FFD24D" }} />
       </div>
     );
   }

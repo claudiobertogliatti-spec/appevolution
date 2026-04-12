@@ -6,7 +6,7 @@ import { API } from "../../utils/api-config"; // API configured
 
 export function BrandKitEditor({ partner, onSave }) {
   const [brandKit, setBrandKit] = useState({
-    brand_color: "#F5C518",
+    brand_color: "#FFD24D",
     brand_color_secondary: "#1a2332",
     logo_url: "",
     tagline: "",
@@ -60,7 +60,7 @@ export function BrandKitEditor({ partner, onSave }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-48">
-        <Loader2 className="w-6 h-6 text-[#F5C518] animate-spin" />
+        <Loader2 className="w-6 h-6 text-[#FFD24D] animate-spin" />
       </div>
     );
   }
@@ -68,9 +68,9 @@ export function BrandKitEditor({ partner, onSave }) {
   return (
     <div className="bg-white border border-[#ECEDEF] rounded-xl overflow-hidden" data-testid="brand-kit-editor">
       {/* Header */}
-      <div className="p-5 border-b border-[#ECEDEF] bg-gradient-to-r from-[#F5C518]/10 to-transparent">
+      <div className="p-5 border-b border-[#ECEDEF] bg-gradient-to-r from-[#FFD24D]/10 to-transparent">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#F5C518] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-[#FFD24D] flex items-center justify-center">
             <Palette className="w-5 h-5 text-black" />
           </div>
           <div>
@@ -83,7 +83,7 @@ export function BrandKitEditor({ partner, onSave }) {
             className={`ml-auto flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all
               ${saved 
                 ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                : 'bg-[#F5C518] text-black hover:bg-[#e0a800]'}`}
+                : 'bg-[#FFD24D] text-black hover:bg-[#e0a800]'}`}
           >
             {saving ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -168,7 +168,7 @@ export function BrandKitEditor({ partner, onSave }) {
                 value={brandKit.logo_url || ""}
                 onChange={e => updateField('logo_url', e.target.value)}
                 placeholder="https://esempio.com/logo.png"
-                className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2.5 text-sm text-[#1E2128] placeholder:text-[#9CA3AF] outline-none focus:border-[#F5C518] transition-colors"
+                className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2.5 text-sm text-[#1E2128] placeholder:text-[#9CA3AF] outline-none focus:border-[#FFD24D] transition-colors"
               />
               <div className="text-[10px] text-[#9CA3AF] mt-1">Incolla l'URL del tuo logo (PNG trasparente consigliato)</div>
             </div>
@@ -185,7 +185,7 @@ export function BrandKitEditor({ partner, onSave }) {
             value={brandKit.tagline || ""}
             onChange={e => updateField('tagline', e.target.value)}
             placeholder="es. 'Trasforma la tua expertise in un business digitale'"
-            className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 text-sm text-[#1E2128] placeholder:text-[#9CA3AF] outline-none focus:border-[#F5C518] transition-colors"
+            className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 text-sm text-[#1E2128] placeholder:text-[#9CA3AF] outline-none focus:border-[#FFD24D] transition-colors"
           />
         </div>
 
@@ -200,14 +200,14 @@ export function BrandKitEditor({ partner, onSave }) {
               value={brandKit.email || ""}
               onChange={e => updateField('email', e.target.value)}
               placeholder="Email"
-              className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2.5 text-sm text-[#1E2128] placeholder:text-[#9CA3AF] outline-none focus:border-[#F5C518]"
+              className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2.5 text-sm text-[#1E2128] placeholder:text-[#9CA3AF] outline-none focus:border-[#FFD24D]"
             />
             <input
               type="url"
               value={brandKit.website || ""}
               onChange={e => updateField('website', e.target.value)}
               placeholder="Sito web"
-              className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2.5 text-sm text-[#1E2128] placeholder:text-[#9CA3AF] outline-none focus:border-[#F5C518]"
+              className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2.5 text-sm text-[#1E2128] placeholder:text-[#9CA3AF] outline-none focus:border-[#FFD24D]"
             />
           </div>
         </div>
@@ -225,7 +225,7 @@ export function BrandKitEditor({ partner, onSave }) {
                 value={brandKit.social_instagram || ""}
                 onChange={e => updateField('social_instagram', e.target.value)}
                 placeholder="@username"
-                className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-[#9CA3AF] outline-none focus:border-[#F5C518]"
+                className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-[#9CA3AF] outline-none focus:border-[#FFD24D]"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -235,7 +235,7 @@ export function BrandKitEditor({ partner, onSave }) {
                 value={brandKit.social_linkedin || ""}
                 onChange={e => updateField('social_linkedin', e.target.value)}
                 placeholder="linkedin.com/in/username"
-                className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-[#9CA3AF] outline-none focus:border-[#F5C518]"
+                className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-[#9CA3AF] outline-none focus:border-[#FFD24D]"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -245,7 +245,7 @@ export function BrandKitEditor({ partner, onSave }) {
                 value={brandKit.social_youtube || ""}
                 onChange={e => updateField('social_youtube', e.target.value)}
                 placeholder="youtube.com/@channel"
-                className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-[#9CA3AF] outline-none focus:border-[#F5C518]"
+                className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#1E2128] placeholder:text-[#9CA3AF] outline-none focus:border-[#FFD24D]"
               />
             </div>
           </div>
@@ -259,7 +259,7 @@ export function BrandKitEditor({ partner, onSave }) {
           <div className="grid grid-cols-2 gap-2 text-xs font-mono">
             <div className="flex items-center gap-2">
               <span className="text-[#9CA3AF]">{`{{Brand_Color}}`}</span>
-              <span className="text-[#F5C518]">{brandKit.brand_color}</span>
+              <span className="text-[#FFD24D]">{brandKit.brand_color}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[#9CA3AF]">{`{{Logo_URL}}`}</span>

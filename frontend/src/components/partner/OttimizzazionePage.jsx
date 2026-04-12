@@ -90,7 +90,7 @@ const KPI_DEF = [
   { id: "visite", label: "Visite", icon: Eye, color: "#3B82F6", fmt: (v) => v.toLocaleString("it-IT") },
   { id: "contatti", label: "Contatti", icon: Users, color: "#8B5CF6", fmt: (v) => v.toLocaleString("it-IT") },
   { id: "vendite", label: "Vendite", icon: DollarSign, color: "#34C77B", fmt: (v) => `${v.toLocaleString("it-IT")}` },
-  { id: "conversione", label: "Conversione", icon: TrendingUp, color: "#F2C418", fmt: (v) => `${v}%` },
+  { id: "conversione", label: "Conversione", icon: TrendingUp, color: "#FFD24D", fmt: (v) => `${v}%` },
 ];
 
 function TrendBadge({ trend }) {
@@ -285,7 +285,7 @@ const GROWTH_LEVELS = {
     name: "Growth",
     tagline: "Aumentiamo le vendite",
     icon: TrendingUp,
-    color: "#F2C418",
+    color: "#FFD24D",
     motivation: "Il sistema funziona ma le vendite possono crescere molto di piu. Serve ottimizzare ads, funnel e contenuti per raddoppiare i risultati.",
     cta: "Scopri Growth",
   },
@@ -385,7 +385,7 @@ const LANCIO_STEPS = [
     title: "Attiva il tuo webinar su Systeme",
     desc: "Entra nella sezione 'Il mio funnel', copia il link del webinar gratuito e incollalo nella pagina Systeme che ti abbiamo preparato. Da quel momento il funnel è live.",
     icon: Zap,
-    color: "#F2C418",
+    color: "#FFD24D",
     action: "Il mio funnel",
     navTarget: "funnel",
   },
@@ -411,8 +411,8 @@ function GuidaLancio({ onNavigate }) {
   return (
     <div className="mb-6" data-testid="guida-lancio">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#F2C41820" }}>
-          <Rocket className="w-5 h-5" style={{ color: "#F2C418" }} />
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#FFD24D20" }}>
+          <Rocket className="w-5 h-5" style={{ color: "#FFD24D" }} />
         </div>
         <div>
           <h2 className="text-base font-black" style={{ color: "#1E2128" }}>Guida al lancio</h2>
@@ -536,7 +536,7 @@ export function OttimizzazionePage({ partner, onNavigate, isAdmin }) {
   if (isLoading) {
     return (
       <div className="min-h-full flex items-center justify-center" style={{ background: "#FAFAF7" }}>
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F2C418" }} />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FFD24D" }} />
       </div>
     );
   }

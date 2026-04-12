@@ -442,8 +442,8 @@ export function LegalPagesGenerator({ partner, onBack }) {
           <div className="bg-white rounded-2xl p-8 shadow-sm">
             <div className="text-center mb-8">
               <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center"
-                   style={{ background: '#F2C41820' }}>
-                <FileText className="w-8 h-8" style={{ color: '#F2C418' }} />
+                   style={{ background: '#FFD24D20' }}>
+                <FileText className="w-8 h-8" style={{ color: '#FFD24D' }} />
               </div>
               <h2 className="text-xl font-bold" style={{ color: '#1E2128' }}>
                 Seleziona le Pagine da Generare

@@ -88,12 +88,12 @@ export function Homepage() {
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#FFD24D' }}>
               <span className="text-lg font-black" style={{ color: '#1E2128' }}>E</span>
             </div>
             <div>
               <span className="font-black text-lg" style={{ color: '#1E2128' }}>
-                EVOLUTION <span style={{ color: '#F5C518' }}>PRO</span>
+                EVOLUTION <span style={{ color: '#FFD24D' }}>PRO</span>
               </span>
             </div>
           </div>
@@ -119,7 +119,7 @@ export function Homepage() {
             style={{ color: '#1E2128' }}
           >
             Scopri se la tua competenza può diventare una{' '}
-            <span style={{ color: '#F5C518' }}>Accademia Digitale</span>{' '}
+            <span style={{ color: '#FFD24D' }}>Accademia Digitale</span>{' '}
             che vende davvero
           </h1>
 
@@ -157,7 +157,7 @@ export function Homepage() {
                     key={index}
                     className="flex items-center gap-3"
                   >
-                    <CheckCircle className="w-5 h-5 flex-shrink-0" style={{ color: '#F5C518' }} />
+                    <CheckCircle className="w-5 h-5 flex-shrink-0" style={{ color: '#FFD24D' }} />
                     <span style={{ color: '#1E2128' }}>{benefit}</span>
                   </div>
                 ))}
@@ -167,7 +167,7 @@ export function Homepage() {
               <button
                 onClick={() => setShowRegisterModal(true)}
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-bold text-lg transition-all hover:opacity-90 hover:scale-105"
-                style={{ background: '#F5C518', color: '#1E2128' }}
+                style={{ background: '#FFD24D', color: '#1E2128' }}
                 data-testid="cta-analisi-strategica"
               >
                 Richiedi l'Analisi Strategica
@@ -190,7 +190,7 @@ export function Homepage() {
                   style={{ color: '#5F6572' }}
                 >
                   Sei già partner Evolution PRO?{' '}
-                  <span className="font-medium" style={{ color: '#F5C518' }}>Accedi</span>
+                  <span className="font-medium" style={{ color: '#FFD24D' }}>Accedi</span>
                 </button>
               </div>
             </div>
@@ -202,11 +202,11 @@ export function Homepage() {
       <footer className="py-6 text-center" style={{ borderTop: '1px solid #ECEDEF' }}>
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: '#F5C518' }}>
+            <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: '#FFD24D' }}>
               <span className="text-xs font-black" style={{ color: '#1E2128' }}>E</span>
             </div>
             <span className="font-bold text-sm" style={{ color: '#1E2128' }}>
-              EVOLUTION <span style={{ color: '#F5C518' }}>PRO</span>
+              EVOLUTION <span style={{ color: '#FFD24D' }}>PRO</span>
             </span>
           </div>
           <p className="text-sm mb-2" style={{ color: '#5F6572' }}>
@@ -217,7 +217,7 @@ export function Homepage() {
             target="_blank" 
             rel="noopener noreferrer"
             className="text-sm font-medium hover:opacity-70 transition-colors"
-            style={{ color: '#F5C518' }}
+            style={{ color: '#FFD24D' }}
           >
             www.evolution-pro.it
           </a>
@@ -259,7 +259,7 @@ export function Homepage() {
                     onChange={(e) => setRegisterForm({ ...registerForm, nome: e.target.value })}
                     placeholder="Il tuo nome"
                     required
-                    className="w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F5C518] transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD24D] transition-all"
                     style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}
                     data-testid="register-nome"
                   />
@@ -277,7 +277,7 @@ export function Homepage() {
                     onChange={(e) => setRegisterForm({ ...registerForm, cognome: e.target.value })}
                     placeholder="Il tuo cognome"
                     required
-                    className="w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F5C518] transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD24D] transition-all"
                     style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}
                     data-testid="register-cognome"
                   />
@@ -295,7 +295,7 @@ export function Homepage() {
                     onChange={(e) => setRegisterForm({ ...registerForm, telefono: e.target.value })}
                     placeholder="+39 333 1234567"
                     required
-                    className="w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F5C518] transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD24D] transition-all"
                     style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}
                     data-testid="register-telefono"
                   />
@@ -313,7 +313,7 @@ export function Homepage() {
                     onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
                     placeholder="tuaemail@esempio.com"
                     required
-                    className="w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F5C518] transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD24D] transition-all"
                     style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}
                     data-testid="register-email"
                   />
@@ -332,7 +332,7 @@ export function Homepage() {
                     placeholder="Crea una password"
                     required
                     minLength={6}
-                    className="w-full pl-11 pr-11 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F5C518] transition-all"
+                    className="w-full pl-11 pr-11 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD24D] transition-all"
                     style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}
                     data-testid="register-password"
                   />
@@ -362,7 +362,7 @@ export function Homepage() {
                 type="submit"
                 disabled={registerLoading}
                 className="w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 hover:opacity-90"
-                style={{ background: '#F5C518', color: '#1E2128' }}
+                style={{ background: '#FFD24D', color: '#1E2128' }}
                 data-testid="register-submit"
               >
                 {registerLoading ? (
@@ -387,7 +387,7 @@ export function Homepage() {
                   type="button"
                   onClick={() => { setShowRegisterModal(false); setShowLoginModal(true); }}
                   className="font-medium hover:underline"
-                  style={{ color: '#F5C518' }}
+                  style={{ color: '#FFD24D' }}
                   data-testid="switch-to-login"
                 >
                   Accedi
@@ -417,11 +417,11 @@ export function Homepage() {
 
             {/* Logo */}
             <div className="flex items-center justify-center gap-2 mb-6">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#FFD24D' }}>
                 <span className="text-lg font-black" style={{ color: '#1E2128' }}>E</span>
               </div>
               <span className="font-black text-lg" style={{ color: '#1E2128' }}>
-                EVOLUTION <span style={{ color: '#F5C518' }}>PRO</span>
+                EVOLUTION <span style={{ color: '#FFD24D' }}>PRO</span>
               </span>
             </div>
 
@@ -446,7 +446,7 @@ export function Homepage() {
                     onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
                     placeholder="tuaemail@esempio.com"
                     required
-                    className="w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F5C518] transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD24D] transition-all"
                     style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}
                     data-testid="login-email"
                   />
@@ -464,7 +464,7 @@ export function Homepage() {
                     onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
                     placeholder="La tua password"
                     required
-                    className="w-full pl-11 pr-11 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F5C518] transition-all"
+                    className="w-full pl-11 pr-11 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD24D] transition-all"
                     style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}
                     data-testid="login-password"
                   />
@@ -494,7 +494,7 @@ export function Homepage() {
                 type="submit"
                 disabled={loginLoading}
                 className="w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 hover:opacity-90"
-                style={{ background: '#F5C518', color: '#1E2128' }}
+                style={{ background: '#FFD24D', color: '#1E2128' }}
                 data-testid="login-submit"
               >
                 {loginLoading ? (
@@ -512,7 +512,7 @@ export function Homepage() {
                 type="button"
                 onClick={() => { setShowLoginModal(false); setShowRegisterModal(true); }}
                 className="font-medium hover:underline"
-                style={{ color: '#F5C518' }}
+                style={{ color: '#FFD24D' }}
                 data-testid="switch-to-register"
               >
                 Crea Account

@@ -53,8 +53,8 @@ export function AnalisiRegistrazione({ onComplete, onBack }) {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: '#FEF9E7', border: '1px solid #F5C518' }}>
-            <User className="w-8 h-8 text-[#F5C518]" />
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: '#FEF9E7', border: '1px solid #FFD24D' }}>
+            <User className="w-8 h-8 text-[#FFD24D]" />
           </div>
           <h1 className="text-2xl font-bold text-[#1E2128] mb-2">Crea il tuo Account</h1>
           <p className="text-sm text-[#9CA3AF]">Per procedere con l'Analisi Strategica</p>
@@ -128,7 +128,7 @@ export function AnalisiRegistrazione({ onComplete, onBack }) {
               style={{ border: '1px solid #ECEDEF' }}>
               <ArrowLeft className="w-4 h-4" />Indietro
             </button>
-            <button type="submit" disabled={loading} className="flex-1 py-3 rounded-xl font-bold bg-[#F5C518] text-black hover:bg-[#e0b115] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            <button type="submit" disabled={loading} className="flex-1 py-3 rounded-xl font-bold bg-[#FFD24D] text-black hover:bg-[#e0b115] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
               data-testid="btn-register">
               {loading ? <><Loader2 className="w-4 h-4 animate-spin" />Registrazione...</> : <>Continua<ArrowRight className="w-4 h-4" /></>}
             </button>
@@ -136,7 +136,7 @@ export function AnalisiRegistrazione({ onComplete, onBack }) {
         </form>
 
         <p className="text-xs text-[#9CA3AF] text-center mt-6">
-          Registrandoti accetti i nostri <a href="#" className="text-[#F5C518] hover:underline">Termini</a> e <a href="#" className="text-[#F5C518] hover:underline">Privacy</a>
+          Registrandoti accetti i nostri <a href="#" className="text-[#FFD24D] hover:underline">Termini</a> e <a href="#" className="text-[#FFD24D] hover:underline">Privacy</a>
         </p>
       </div>
     </div>

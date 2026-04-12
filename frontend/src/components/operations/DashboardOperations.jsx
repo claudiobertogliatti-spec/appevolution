@@ -13,7 +13,7 @@ const API = (typeof window !== "undefined" && window.location.hostname.includes(
 const FASE_COLORS = {
   F1: { bg: "#9CA3AF", text: "#FFFFFF", label: "F1 - Posizionamento" },
   F2: { bg: "#3B82F6", text: "#FFFFFF", label: "F2 - Masterclass" },
-  F3: { bg: "#F5C518", text: "#1E2128", label: "F3 - Videocorso" },
+  F3: { bg: "#FFD24D", text: "#1E2128", label: "F3 - Videocorso" },
   F4: { bg: "#F97316", text: "#FFFFFF", label: "F4 - Funnel" },
   F5: { bg: "#22C55E", text: "#FFFFFF", label: "F5 - Lancio" }
 };
@@ -43,7 +43,7 @@ function OperationsSidebar({ activeSection, onNavigate }) {
       {/* Logo */}
       <div className="p-6 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#F5C518" }}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#FFD24D" }}>
             <span className="text-lg font-black" style={{ color: "#1E2128" }}>E</span>
           </div>
           <div>
@@ -63,7 +63,7 @@ function OperationsSidebar({ activeSection, onNavigate }) {
               key={item.id}
               onClick={() => onNavigate(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${isActive ? "bg-white/10" : "hover:bg-white/5"}`}
-              style={{ color: isActive ? "#F5C518" : "#9CA3AF" }}
+              style={{ color: isActive ? "#FFD24D" : "#9CA3AF" }}
               data-testid={`nav-${item.id}`}
             >
               <IconComponent className="w-5 h-5" />
@@ -151,7 +151,7 @@ function PartnerSection() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F5C518" }} />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FFD24D" }} />
       </div>
     );
   }
@@ -167,7 +167,7 @@ function PartnerSection() {
             placeholder="Cerca partner..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F5C518]"
+            className="w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD24D]"
             style={{ background: "#FFFFFF", border: "1px solid #ECEDEF" }}
           />
         </div>
@@ -223,7 +223,7 @@ function PartnerSection() {
               </div>
 
               <div className="mt-4 pt-3 border-t" style={{ borderColor: "#ECEDEF" }}>
-                <button className="text-sm font-medium flex items-center gap-1" style={{ color: "#F5C518" }}>
+                <button className="text-sm font-medium flex items-center gap-1" style={{ color: "#FFD24D" }}>
                   Vedi dettaglio <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
@@ -291,7 +291,7 @@ function PartnerSection() {
                   value={noteText}
                   onChange={(e) => setNoteText(e.target.value)}
                   rows={5}
-                  className="w-full p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F5C518]"
+                  className="w-full p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD24D]"
                   style={{ background: "#FAFAF7", border: "1px solid #ECEDEF" }}
                   placeholder="Aggiungi note su questo partner..."
                 />
@@ -299,7 +299,7 @@ function PartnerSection() {
                   onClick={saveNote}
                   disabled={savingNote}
                   className="mt-3 flex items-center gap-2 px-4 py-2 rounded-lg font-medium"
-                  style={{ background: "#F5C518", color: "#1E2128" }}
+                  style={{ background: "#FFD24D", color: "#1E2128" }}
                 >
                   {savingNote ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   Salva Note
@@ -433,7 +433,7 @@ function ContenutiSection() {
         <select
           value={selectedPartnerId}
           onChange={handlePartnerChange}
-          className="w-full md:w-96 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F5C518]"
+          className="w-full md:w-96 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD24D]"
           style={{ background: "#FFFFFF", border: "1px solid #ECEDEF" }}
         >
           <option value="">-- Seleziona un partner --</option>
@@ -447,7 +447,7 @@ function ContenutiSection() {
 
       {loading && (
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F5C518" }} />
+          <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FFD24D" }} />
         </div>
       )}
 
@@ -475,8 +475,8 @@ function ContenutiSection() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex-1 flex items-center justify-center gap-2 px-4 py-4 text-sm font-medium transition-colors ${isActive ? "border-b-2" : ""}`}
                   style={{
-                    color: isActive ? "#F5C518" : "#5F6572",
-                    borderColor: isActive ? "#F5C518" : "transparent"
+                    color: isActive ? "#FFD24D" : "#5F6572",
+                    borderColor: isActive ? "#FFD24D" : "transparent"
                   }}
                 >
                   <IconComponent className="w-4 h-4" />
@@ -529,7 +529,7 @@ function ContenutiSection() {
                             onClick={() => addCommento(doc.tipo)}
                             disabled={addingCommento}
                             className="px-3 py-2 rounded-lg"
-                            style={{ background: "#F5C518", color: "#1E2128" }}
+                            style={{ background: "#FFD24D", color: "#1E2128" }}
                           >
                             <MessageSquare className="w-4 h-4" />
                           </button>
@@ -580,7 +580,7 @@ function ContenutiSection() {
                                 <button
                                   onClick={() => updateCalendarStatus(item.giorno, "approvato")}
                                   className="text-xs font-medium px-3 py-1 rounded-lg"
-                                  style={{ background: "#F5C518", color: "#1E2128" }}
+                                  style={{ background: "#FFD24D", color: "#1E2128" }}
                                 >
                                   Approva
                                 </button>
@@ -771,7 +771,7 @@ function CampagneSection() {
           <select
             value={selectedPartnerId}
             onChange={handlePartnerChange}
-            className="px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F5C518]"
+            className="px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD24D]"
             style={{ background: "#FFFFFF", border: "1px solid #ECEDEF", minWidth: "250px" }}
           >
             <option value="">-- Seleziona Partner --</option>
@@ -785,7 +785,7 @@ function CampagneSection() {
           <button
             onClick={openNewCampagna}
             className="flex items-center gap-2 px-4 py-3 rounded-xl font-medium"
-            style={{ background: "#F5C518", color: "#1E2128" }}
+            style={{ background: "#FFD24D", color: "#1E2128" }}
           >
             <Plus className="w-5 h-5" />
             Nuova Campagna
@@ -795,7 +795,7 @@ function CampagneSection() {
 
       {loading && (
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F5C518" }} />
+          <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FFD24D" }} />
         </div>
       )}
 
@@ -817,7 +817,7 @@ function CampagneSection() {
             ) : (
               campagne.map((c) => {
                 const platColor = PIATTAFORMA_COLORS[c.piattaforma] || PIATTAFORMA_COLORS.Altro;
-                const statoColor = c.stato === "attiva" ? "#22C55E" : c.stato === "in_pausa" ? "#F5C518" : "#9CA3AF";
+                const statoColor = c.stato === "attiva" ? "#22C55E" : c.stato === "in_pausa" ? "#FFD24D" : "#9CA3AF";
                 
                 return (
                   <div
@@ -895,15 +895,15 @@ function CampagneSection() {
               <h3 className="font-bold text-white mb-4">Riepilogo Partner</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold" style={{ color: "#F5C518" }}>{aggregati.totale_lead}</div>
+                  <div className="text-2xl font-bold" style={{ color: "#FFD24D" }}>{aggregati.totale_lead}</div>
                   <div className="text-xs" style={{ color: "#9CA3AF" }}>Lead totali</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold" style={{ color: "#F5C518" }}>€{aggregati.budget_investito}</div>
+                  <div className="text-2xl font-bold" style={{ color: "#FFD24D" }}>€{aggregati.budget_investito}</div>
                   <div className="text-xs" style={{ color: "#9CA3AF" }}>Budget investito</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold" style={{ color: "#F5C518" }}>€{aggregati.cpl_medio}</div>
+                  <div className="text-2xl font-bold" style={{ color: "#FFD24D" }}>€{aggregati.cpl_medio}</div>
                   <div className="text-xs" style={{ color: "#9CA3AF" }}>CPL medio</div>
                 </div>
                 <div className="text-center">
@@ -1093,7 +1093,7 @@ function CampagneSection() {
                 onClick={saveCampagna}
                 disabled={saving || !formData.nome_campagna}
                 className="w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold disabled:opacity-50"
-                style={{ background: "#F5C518", color: "#1E2128" }}
+                style={{ background: "#FFD24D", color: "#1E2128" }}
               >
                 {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                 {editingCampagna ? "Salva Modifiche" : "Crea Campagna"}
@@ -1154,7 +1154,7 @@ export function DashboardOperations({ user, onLogout }) {
             {stats && (
               <div className="flex gap-6">
                 <div className="text-center">
-                  <div className="text-2xl font-bold" style={{ color: "#F5C518" }}>{stats.partner_attivi}</div>
+                  <div className="text-2xl font-bold" style={{ color: "#FFD24D" }}>{stats.partner_attivi}</div>
                   <div className="text-xs" style={{ color: "#9CA3AF" }}>Partner attivi</div>
                 </div>
                 <div className="text-center">
@@ -1324,8 +1324,8 @@ function LeadDiscoverySection() {
         
         <div className="p-4 rounded-xl" style={{ background: "#FAFAF7", border: "1px solid #ECEDEF" }}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "#F5C51820" }}>
-              <Send className="w-5 h-5" style={{ color: "#F5C518" }} />
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "#FFD24D20" }}>
+              <Send className="w-5 h-5" style={{ color: "#FFD24D" }} />
             </div>
             <div>
               <div className="text-2xl font-bold" style={{ color: "#1E2128" }}>{stats?.today?.messages_sent || 0}</div>

@@ -18,7 +18,7 @@ const ACTIVE_SERVICES = [
     priceLabel: "/mese",
     status: "active",
     badge: "BESTSELLER",
-    color: "#F2C418",
+    color: "#FFD24D",
     features: [
       "8 post grafici (Canva)",
       "4 caroselli (Canva)",
@@ -179,9 +179,9 @@ export function ServiziExtra({ partner, onSelectService }) {
         </div>
 
         {/* Andrea Intro */}
-        <div className="flex gap-4 p-5 rounded-2xl mb-8" style={{ background: '#FFF8DC', border: '1px solid #F2C41850' }}>
+        <div className="flex gap-4 p-5 rounded-2xl mb-8" style={{ background: '#FFF8DC', border: '1px solid #FFD24D50' }}>
           <div className="relative">
-            <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl" style={{ background: '#F2C418' }}>
+            <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl" style={{ background: '#FFD24D' }}>
               🧑‍💻
             </div>
             <span className="absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white" style={{ background: '#34C77B' }} />
@@ -200,7 +200,7 @@ export function ServiziExtra({ partner, onSelectService }) {
             ═══════════════════════════════════════════════════════════════════════ */}
         <div className="mb-8">
           <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
-            <Zap className="w-5 h-5" style={{ color: '#F2C418' }} />
+            <Zap className="w-5 h-5" style={{ color: '#FFD24D' }} />
             Servizi Disponibili
           </h2>
           
@@ -290,7 +290,7 @@ export function ServiziExtra({ partner, onSelectService }) {
         {calendari.length > 0 && (
           <div className="mb-8">
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
-              <Calendar className="w-5 h-5" style={{ color: '#F2C418' }} />
+              <Calendar className="w-5 h-5" style={{ color: '#FFD24D' }} />
               I Tuoi Calendari
               <button onClick={loadMieiServizi} className="ml-auto text-sm text-gray-400 hover:text-gray-600">
                 <RefreshCw className="w-4 h-4" />
@@ -331,7 +331,7 @@ export function ServiziExtra({ partner, onSelectService }) {
         {/* What to expect */}
         <div className="rounded-xl p-6" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
           <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
-            <Star className="w-5 h-5" style={{ color: '#F2C418' }} />
+            <Star className="w-5 h-5" style={{ color: '#FFD24D' }} />
             Perché scegliere i nostri servizi
           </h3>
           <div className="grid grid-cols-2 gap-4">

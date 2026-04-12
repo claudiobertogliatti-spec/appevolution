@@ -245,7 +245,7 @@ export function GestioneFlussoAnalisi() {
         <button
           onClick={loadClienti}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          style={{ background: '#F5C518', color: '#1E2128' }}
+          style={{ background: '#FFD24D', color: '#1E2128' }}
           data-testid="refresh-flusso-btn"
         >
           <RefreshCw className="w-4 h-4" />
@@ -296,7 +296,7 @@ export function GestioneFlussoAnalisi() {
             placeholder="Cerca per nome, cognome o email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F5C518]"
+            className="w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD24D]"
             style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}
             data-testid="search-flusso-input"
           />
@@ -306,7 +306,7 @@ export function GestioneFlussoAnalisi() {
       {/* Lista Clienti */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#F5C518' }} />
+          <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#FFD24D' }} />
         </div>
       ) : filteredClienti.length === 0 ? (
         <div className="text-center py-12 rounded-xl" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
@@ -370,7 +370,7 @@ export function GestioneFlussoAnalisi() {
                           loadAnalisi(cliente.id);
                         }}
                         className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:opacity-80"
-                        style={{ background: '#F5C518', color: '#1E2128' }}
+                        style={{ background: '#FFD24D', color: '#1E2128' }}
                         data-testid={`btn-gestisci-${cliente.id}`}
                       >
                         <Briefcase className="w-3 h-3" />

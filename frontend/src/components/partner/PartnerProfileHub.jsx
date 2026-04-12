@@ -41,7 +41,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
     // Brand Kit
     logo: partner?.brandKit?.logo || null,
     primaryColor: partner?.brandKit?.primaryColor || "#2C5F8A",
-    accentColor: partner?.brandKit?.accentColor || "#F2C418",
+    accentColor: partner?.brandKit?.accentColor || "#FFD24D",
     textColor: partner?.brandKit?.textColor || "#1E2128",
     bgColor: partner?.brandKit?.bgColor || "#FAFAF7",
     fontPrimary: partner?.brandKit?.fontPrimary || "Nunito Bold",
@@ -201,7 +201,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
       <div className="p-6 flex items-center justify-center" style={{ background: '#FAFAF7', minHeight: '100vh' }}>
         <div className="text-center">
           <div className="w-12 h-12 rounded-full border-4 border-t-transparent animate-spin mx-auto mb-4" 
-               style={{ borderColor: '#F2C418', borderTopColor: 'transparent' }} />
+               style={{ borderColor: '#FFD24D', borderTopColor: 'transparent' }} />
           <p className="text-sm font-bold" style={{ color: '#9CA3AF' }}>Caricamento profilo...</p>
         </div>
       </div>
@@ -230,7 +230,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
       {/* Profile Hero */}
       <div className="bg-white rounded-2xl p-6 mb-6 shadow-sm flex items-center gap-6">
         <div className="w-20 h-20 rounded-full flex items-center justify-center text-4xl"
-             style={{ background: '#F2C41820' }}>
+             style={{ background: '#FFD24D20' }}>
           👨‍💼
         </div>
         <div className="flex-1">

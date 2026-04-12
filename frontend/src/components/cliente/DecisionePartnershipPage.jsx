@@ -13,7 +13,7 @@ const API = (typeof window !== "undefined" && window.location.hostname.includes(
 const SEZIONI = [
   { id: "analisi", label: "Analisi Strategica", icon: FileText, color: "#8B5CF6" },
   { id: "roadmap", label: "Roadmap Progetto", icon: Calendar, color: "#3B82F6" },
-  { id: "proposta", label: "Proposta Partnership", icon: Star, color: "#F5C518" },
+  { id: "proposta", label: "Proposta Partnership", icon: Star, color: "#FFD24D" },
   { id: "contratto", label: "Contratto Partnership", icon: FileCheck, color: "#22C55E" },
   { id: "clausole_firma", label: "Clausole & Firma", icon: FileCheck, color: "#16A34A" },
   { id: "documenti", label: "Invio Doc", icon: Upload, color: "#F97316" },
@@ -200,7 +200,7 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "#FAFAF7" }}>
         <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" style={{ color: "#F5C518" }} />
+          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" style={{ color: "#FFD24D" }} />
           <p style={{ color: "#5F6572" }}>Caricamento dati...</p>
         </div>
       </div>
@@ -242,8 +242,8 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <div className="px-4 py-2 rounded-xl" style={{ background: "#F5C51820" }}>
-                <span className="text-sm font-bold" style={{ color: "#F5C518" }}>€2.790</span>
+              <div className="px-4 py-2 rounded-xl" style={{ background: "#FFD24D20" }}>
+                <span className="text-sm font-bold" style={{ color: "#FFD24D" }}>€2.790</span>
                 <span className="text-xs ml-1" style={{ color: "#9CA3AF" }}>una tantum</span>
               </div>
               {onLogout && (
@@ -550,7 +550,7 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                 <div className="rounded-2xl p-7" style={{ background: "#1E2128" }}>
                   <div
                     className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest mb-4"
-                    style={{ background: "#F5C51820", color: "#F5C518" }}
+                    style={{ background: "#FFD24D20", color: "#FFD24D" }}
                   >
                     <Sparkles className="w-3.5 h-3.5" /> Proposta riservata
                   </div>
@@ -570,7 +570,7 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                   </h3>
                   <div className="space-y-3">
                     {[
-                      { giorni: "Entro 48h", titolo: "Posizionamento strategico", desc: "Definiamo nichia, cliente ideale e promessa di risultato. Il tuo messaggio diventa preciso e vendibile.", color: "#F5C518" },
+                      { giorni: "Entro 48h", titolo: "Posizionamento strategico", desc: "Definiamo nichia, cliente ideale e promessa di risultato. Il tuo messaggio diventa preciso e vendibile.", color: "#FFD24D" },
                       { giorni: "Entro 7 giorni", titolo: "Funnel live su Systeme.io", desc: "Landing page, webinar e sequenza email attivi sul tuo subdomain dedicato. Non copy da approvare — URL funzionante.", color: "#3B82F6" },
                       { giorni: "Entro 14 giorni", titolo: "Script masterclass pronto", desc: "Il contenuto che presenti nel webinar è scritto, testato e ottimizzato per la conversione.", color: "#8B5CF6" },
                       { giorni: "Entro 30 giorni", titolo: "Prima campagna lanciata", desc: "Copy ads, targeting e piano lancio. Il tuo sistema inizia a generare traffico qualificato.", color: "#10B981" },
@@ -623,11 +623,11 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                 </div>
 
                 {/* GARANZIA */}
-                <div className="rounded-2xl p-6" style={{ background: "#FFF8DC", border: "2px solid #F5C518" }}>
+                <div className="rounded-2xl p-6" style={{ background: "#FFF8DC", border: "2px solid #FFD24D" }}>
                   <div className="flex items-start gap-4">
                     <div
                       className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ background: "#F5C518" }}
+                      style={{ background: "#FFD24D" }}
                     >
                       <Shield className="w-6 h-6" style={{ color: "#1E2128" }} />
                     </div>
@@ -659,13 +659,13 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                 </div>
 
                 {/* PREZZO + CTA */}
-                <div className="rounded-2xl overflow-hidden" style={{ border: "2px solid #F5C518" }}>
+                <div className="rounded-2xl overflow-hidden" style={{ border: "2px solid #FFD24D" }}>
                   <div className="p-6 text-center" style={{ background: "#1E2128" }}>
                     <p className="text-sm font-bold uppercase tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.5)" }}>
                       Investimento Partnership
                     </p>
                     <div className="mb-1">
-                      <span className="text-5xl font-black" style={{ color: "#F5C518" }}>€2.790</span>
+                      <span className="text-5xl font-black" style={{ color: "#FFD24D" }}>€2.790</span>
                       <span className="text-lg ml-2" style={{ color: "rgba(255,255,255,0.5)" }}>una tantum</span>
                     </div>
                     <p className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>
@@ -676,7 +676,7 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                     <button
                       onClick={() => setActiveSection("contratto")}
                       className="w-full py-4 rounded-xl font-black text-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
-                      style={{ background: "#F5C518", color: "#1E2128", boxShadow: "0 4px 20px rgba(245,197,24,0.35)" }}
+                      style={{ background: "#FFD24D", color: "#1E2128", boxShadow: "0 4px 20px rgba(245,197,24,0.35)" }}
                       data-testid="btn-procedi-contratto"
                     >
                       Attiva la Partnership <ArrowRight className="inline w-5 h-5 ml-2" />
@@ -839,7 +839,7 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                           onClick={handleAttivaPartnership}
                           disabled={activatingPartnership}
                           className="px-8 py-4 rounded-xl font-black text-lg transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
-                          style={{ background: "#F5C518", color: "#1E2128", boxShadow: "0 4px 20px rgba(245,197,24,0.35)" }}
+                          style={{ background: "#FFD24D", color: "#1E2128", boxShadow: "0 4px 20px rgba(245,197,24,0.35)" }}
                           data-testid="btn-attiva-partnership"
                         >
                           {activatingPartnership ? (
@@ -865,7 +865,7 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                           onClick={handlePagamentoStripe}
                           disabled={creatingPayment || !data?.contratto_firmato}
                           className="w-full py-4 rounded-xl font-black text-lg transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                          style={{ background: "#F5C518", color: "#1E2128", boxShadow: "0 4px 20px rgba(245,197,24,0.35)" }}
+                          style={{ background: "#FFD24D", color: "#1E2128", boxShadow: "0 4px 20px rgba(245,197,24,0.35)" }}
                           data-testid="btn-paga-stripe"
                         >
                           {creatingPayment ? (
@@ -989,7 +989,7 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
 
             {/* CTA Finale */}
             {data?.can_activate && !data?.pagamento_completato && (
-              <div className="rounded-2xl p-6" style={{ background: "linear-gradient(135deg, #FFF8DC, #FEF3C7)", border: "2px solid #F5C518" }}>
+              <div className="rounded-2xl p-6" style={{ background: "linear-gradient(135deg, #FFF8DC, #FEF3C7)", border: "2px solid #FFD24D" }}>
                 <Sparkles className="w-8 h-8 mb-3" style={{ color: "#C4990A" }} />
                 <h3 className="font-bold mb-2" style={{ color: "#1E2128" }}>Quasi fatto!</h3>
                 <p className="text-sm mb-4" style={{ color: "#5F6572" }}>

@@ -41,7 +41,7 @@ export function FunnelAnalytics({ partner }) {
   if (isLoading) {
     return (
       <div className="bg-white rounded-2xl p-8 shadow-sm text-center">
-        <Loader2 className="w-8 h-8 animate-spin mx-auto" style={{ color: '#F2C418' }} />
+        <Loader2 className="w-8 h-8 animate-spin mx-auto" style={{ color: '#FFD24D' }} />
         <p className="mt-3 text-sm" style={{ color: '#9CA3AF' }}>Caricamento analytics...</p>
       </div>
     );
@@ -115,7 +115,7 @@ export function FunnelAnalytics({ partner }) {
               onClick={() => loadStats(true)}
               disabled={isRefreshing}
               className="px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all hover:opacity-90 disabled:opacity-50"
-              style={{ background: '#F2C418', color: '#1E2128' }}
+              style={{ background: '#FFD24D', color: '#1E2128' }}
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               Aggiorna
@@ -126,7 +126,7 @@ export function FunnelAnalytics({ partner }) {
         {/* Demo Mode Banner */}
         {isDemo && (
           <div className="mt-4 p-4 rounded-xl flex items-center justify-between" 
-               style={{ background: '#FFF3C4', border: '1px solid #F2C41830' }}>
+               style={{ background: '#FFF3C4', border: '1px solid #FFD24D30' }}>
             <div className="flex items-center gap-3">
               <span className="text-2xl">🔗</span>
               <div>

@@ -116,7 +116,7 @@ export function FunnelLightPage({ partner, onNavigate, onComplete, isAdmin }) {
   if (isLoading) {
     return (
       <div className="min-h-full flex items-center justify-center" style={{ background: "#FAFAF7" }}>
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F2C418" }} />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FFD24D" }} />
       </div>
     );
   }
@@ -128,8 +128,8 @@ export function FunnelLightPage({ partner, onNavigate, onComplete, isAdmin }) {
         <div className="mb-6" data-testid="funnel-light-hero">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
-              style={{ background: "#F2C41820" }}>
-              <Zap className="w-6 h-6" style={{ color: "#F2C418" }} />
+              style={{ background: "#FFD24D20" }}>
+              <Zap className="w-6 h-6" style={{ color: "#FFD24D" }} />
             </div>
             <div>
               <h1 className="text-2xl font-black" style={{ color: "#1E2128" }}>

@@ -15,7 +15,7 @@ function KPICard({ label, value, delta, deltaType, icon: Icon, subtext }) {
     <div className="bg-white border border-[#ECEDEF] rounded-xl p-5 card-hover" data-testid={`systeme-kpi-${label.toLowerCase().replace(/\s/g, '-')}`}>
       <div className="flex items-start justify-between mb-3">
         <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">{label}</span>
-        {Icon && <Icon className="w-4 h-4 text-[#F5C518]" />}
+        {Icon && <Icon className="w-4 h-4 text-[#FFD24D]" />}
       </div>
       <div className="font-mono text-3xl font-bold mb-1">{value}</div>
       {delta && (
@@ -40,7 +40,7 @@ function FunnelVisualization({ stats }) {
   const maxValue = funnel_stats?.leads || 1;
   
   const stages = [
-    { key: "leads", label: "Lead", color: "#F5C518", value: funnel_stats?.leads || 0 },
+    { key: "leads", label: "Lead", color: "#FFD24D", value: funnel_stats?.leads || 0 },
     { key: "engaged", label: "Engaged", color: "#8B5CF6", value: funnel_stats?.engaged || 0 },
     { key: "qualified", label: "Qualificati", color: "#3B82F6", value: funnel_stats?.qualified || 0 },
     { key: "customers", label: "Clienti", color: "#10B981", value: funnel_stats?.customers || 0 },
@@ -49,7 +49,7 @@ function FunnelVisualization({ stats }) {
   return (
     <div className="bg-white border border-[#ECEDEF] rounded-xl p-6" data-testid="systeme-funnel">
       <h3 className="text-sm font-bold text-[#5F6572] uppercase tracking-wider mb-6 flex items-center gap-2">
-        <Target className="w-4 h-4 text-[#F5C518]" />
+        <Target className="w-4 h-4 text-[#FFD24D]" />
         Funnel Conversione
       </h3>
       <div className="space-y-4">
@@ -103,7 +103,7 @@ function TagsDistribution({ tags }) {
   return (
     <div className="bg-white border border-[#ECEDEF] rounded-xl p-6" data-testid="systeme-tags">
       <h3 className="text-sm font-bold text-[#5F6572] uppercase tracking-wider mb-4 flex items-center gap-2">
-        <Tag className="w-4 h-4 text-[#F5C518]" />
+        <Tag className="w-4 h-4 text-[#FFD24D]" />
         Distribuzione Tag
       </h3>
       <div className="space-y-3">
@@ -112,7 +112,7 @@ function TagsDistribution({ tags }) {
             <span className="text-xs font-semibold text-[#5F6572] w-24 truncate">{tag}</span>
             <div className="flex-1 h-2 bg-[#FAFAF7] rounded-full overflow-hidden">
               <div 
-                className="h-full bg-[#F5C518] rounded-full"
+                className="h-full bg-[#FFD24D] rounded-full"
                 style={{ width: `${(count / maxCount) * 100}%` }}
               />
             </div>
@@ -135,13 +135,13 @@ function RecentContacts({ contacts }) {
   return (
     <div className="bg-white border border-[#ECEDEF] rounded-xl p-6" data-testid="systeme-recent-contacts">
       <h3 className="text-sm font-bold text-[#5F6572] uppercase tracking-wider mb-4 flex items-center gap-2">
-        <UserPlus className="w-4 h-4 text-[#F5C518]" />
+        <UserPlus className="w-4 h-4 text-[#FFD24D]" />
         Contatti Recenti
       </h3>
       <div className="space-y-3">
         {contacts.map((contact, idx) => (
           <div key={contact.id || idx} className="flex items-center gap-3 p-3 bg-[#FAFAF7] rounded-lg">
-            <div className="w-9 h-9 rounded-full bg-[#F5C518] flex items-center justify-center text-sm font-bold text-black">
+            <div className="w-9 h-9 rounded-full bg-[#FFD24D] flex items-center justify-center text-sm font-bold text-black">
               {(contact.first_name || contact.email || "?")[0].toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
@@ -200,7 +200,7 @@ function ConnectionSetup({ partnerId, onConnect, onClose }) {
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" data-testid="systeme-connection-modal">
       <div className="bg-white border border-[#ECEDEF] rounded-2xl p-8 max-w-md w-full mx-4">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 rounded-xl bg-[#F5C518] flex items-center justify-center">
+          <div className="w-12 h-12 rounded-xl bg-[#FFD24D] flex items-center justify-center">
             <Link2 className="w-6 h-6 text-black" />
           </div>
           <div>
@@ -216,7 +216,7 @@ function ConnectionSetup({ partnerId, onConnect, onClose }) {
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
             placeholder="Incolla la tua API Key..."
-            className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 text-sm focus:border-[#F5C518] focus:outline-none"
+            className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-3 text-sm focus:border-[#FFD24D] focus:outline-none"
           />
           <p className="text-xs text-[#9CA3AF] mt-2">
             Trova la tua API Key in Systeme.io → Impostazioni → Public API Keys
@@ -240,7 +240,7 @@ function ConnectionSetup({ partnerId, onConnect, onClose }) {
           <button
             onClick={handleConnect}
             disabled={loading}
-            className="flex-1 px-4 py-3 rounded-lg bg-[#F5C518] text-black font-bold hover:bg-[#F5C518]/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-3 rounded-lg bg-[#FFD24D] text-black font-bold hover:bg-[#FFD24D]/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
             Connetti
@@ -296,7 +296,7 @@ export function SystemeIODashboard({ partnerId, partnerName }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64" data-testid="systeme-loading">
-        <Loader2 className="w-8 h-8 text-[#F5C518] animate-spin" />
+        <Loader2 className="w-8 h-8 text-[#FFD24D] animate-spin" />
       </div>
     );
   }
@@ -311,7 +311,7 @@ export function SystemeIODashboard({ partnerId, partnerName }) {
       <div className="bg-white rounded-xl p-6 border border-[#ECEDEF]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-[#F5C518] flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl bg-[#FFD24D] flex items-center justify-center">
               <Database className="w-6 h-6 text-black" />
             </div>
             <div>
@@ -356,7 +356,7 @@ export function SystemeIODashboard({ partnerId, partnerName }) {
             {!isConnected && (
               <button
                 onClick={() => setShowSetup(true)}
-                className="px-4 py-2 rounded-lg bg-[#F5C518] text-black font-bold text-sm hover:bg-[#F5C518]/90 transition-colors flex items-center gap-2"
+                className="px-4 py-2 rounded-lg bg-[#FFD24D] text-black font-bold text-sm hover:bg-[#FFD24D]/90 transition-colors flex items-center gap-2"
                 data-testid="systeme-connect-btn"
               >
                 <Plus className="w-4 h-4" />
@@ -429,7 +429,7 @@ export function SystemeIODashboard({ partnerId, partnerName }) {
       {/* Piano Continuità Riepilogo */}
       <div className="bg-white border border-[#ECEDEF] rounded-xl p-6" data-testid="systeme-piano-continuita">
         <h3 className="text-sm font-bold text-[#5F6572] uppercase tracking-wider mb-6 flex items-center gap-2">
-          <BarChart3 className="w-4 h-4 text-[#F5C518]" />
+          <BarChart3 className="w-4 h-4 text-[#FFD24D]" />
           Piano Continuità — Riepilogo Systeme.io
         </h3>
         <div className="grid grid-cols-5 gap-4">

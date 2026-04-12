@@ -77,7 +77,7 @@ function EmailContent({ automations, sequences, expandedSequence, setExpandedSeq
           <div className="space-y-2">
             {sequences.map((seq, idx) => (
               <div key={idx} className="bg-white rounded-xl border overflow-hidden"
-                style={{ borderColor: expandedSequence === idx ? "#F2C41840" : "#ECEDEF" }}>
+                style={{ borderColor: expandedSequence === idx ? "#FFD24D40" : "#ECEDEF" }}>
                 <button onClick={() => setExpandedSequence(expandedSequence === idx ? null : idx)}
                   className="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50 transition-all">
                   <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -163,7 +163,7 @@ export function EmailAutomation({ partner, isAdmin }) {
   if (isLoading) {
     return (
       <div className="min-h-full flex items-center justify-center" style={{ background: "#FAFAF7" }}>
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F2C418" }} />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FFD24D" }} />
       </div>
     );
   }

@@ -76,7 +76,7 @@ export function DatiPersonali({ partner, onBack }) {
           className="w-full px-4 py-3 rounded-xl text-sm transition-all"
           style={{ 
             background: editMode && !disabled ? 'white' : '#FAFAF7',
-            border: editMode && !disabled ? '2px solid #F2C418' : '1px solid #ECEDEF',
+            border: editMode && !disabled ? '2px solid #FFD24D' : '1px solid #ECEDEF',
             color: '#1E2128',
             paddingLeft: Icon ? '40px' : '16px'
           }}
@@ -123,7 +123,7 @@ export function DatiPersonali({ partner, onBack }) {
               <button
                 onClick={() => setEditMode(true)}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold"
-                style={{ background: '#F2C418', color: '#1E2128' }}
+                style={{ background: '#FFD24D', color: '#1E2128' }}
               >
                 <Edit3 className="w-4 h-4" />
                 Modifica
@@ -138,7 +138,7 @@ export function DatiPersonali({ partner, onBack }) {
         <div className="flex items-center gap-6 mb-8">
           <div className="relative">
             <div className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold"
-                 style={{ background: '#F2C418', color: '#1E2128' }}>
+                 style={{ background: '#FFD24D', color: '#1E2128' }}>
               {formData.nome?.[0]?.toUpperCase() || "P"}
             </div>
             {editMode && (
@@ -159,7 +159,7 @@ export function DatiPersonali({ partner, onBack }) {
         {/* Dati Personali */}
         <div className="p-6 rounded-2xl mb-6" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
           <h2 className="font-bold text-lg mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
-            <User className="w-5 h-5" style={{ color: '#F2C418' }} />
+            <User className="w-5 h-5" style={{ color: '#FFD24D' }} />
             Dati Personali
           </h2>
           <div className="grid grid-cols-2 gap-4">
@@ -173,7 +173,7 @@ export function DatiPersonali({ partner, onBack }) {
         {/* Dati Attività */}
         <div className="p-6 rounded-2xl mb-6" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
           <h2 className="font-bold text-lg mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
-            <Building2 className="w-5 h-5" style={{ color: '#F2C418' }} />
+            <Building2 className="w-5 h-5" style={{ color: '#FFD24D' }} />
             Dati Attività
           </h2>
           <div className="grid grid-cols-2 gap-4">
@@ -191,7 +191,7 @@ export function DatiPersonali({ partner, onBack }) {
         {/* Dati Fatturazione */}
         <div className="p-6 rounded-2xl mb-6" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
           <h2 className="font-bold text-lg mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
-            <Mail className="w-5 h-5" style={{ color: '#F2C418' }} />
+            <Mail className="w-5 h-5" style={{ color: '#FFD24D' }} />
             Dati Fatturazione Elettronica
           </h2>
           <div className="grid grid-cols-2 gap-4">
@@ -209,7 +209,7 @@ export function DatiPersonali({ partner, onBack }) {
         {/* Social */}
         <div className="p-6 rounded-2xl" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
           <h2 className="font-bold text-lg mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
-            <Globe className="w-5 h-5" style={{ color: '#F2C418' }} />
+            <Globe className="w-5 h-5" style={{ color: '#FFD24D' }} />
             Social e Sito Web
           </h2>
           <div className="grid grid-cols-2 gap-4">

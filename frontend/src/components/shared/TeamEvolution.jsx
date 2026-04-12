@@ -145,20 +145,20 @@ export function TeamEvolution({ isAdmin = false }) {
             >
               <span 
                 className="absolute top-4 right-4 text-xs font-bold px-3 py-1 rounded-full"
-                style={{ background: '#F2C41820', color: '#C4990A' }}
+                style={{ background: '#FFD24D20', color: '#C4990A' }}
               >
                 {human.tag}
               </span>
               <div className="flex items-start gap-4">
                 <div 
                   className="w-16 h-16 rounded-full flex items-center justify-center text-3xl flex-shrink-0"
-                  style={{ background: '#F2C41830' }}
+                  style={{ background: '#FFD24D30' }}
                 >
                   <User className="w-8 h-8" style={{ color: '#C4990A' }} />
                 </div>
                 <div>
                   <h3 className="font-bold text-lg" style={{ color: '#1E2128' }}>{human.name}</h3>
-                  <div className="text-sm font-medium mb-2" style={{ color: '#F2C418' }}>{human.role}</div>
+                  <div className="text-sm font-medium mb-2" style={{ color: '#FFD24D' }}>{human.role}</div>
                   <p className="text-sm" style={{ color: '#5F6572' }}>{human.desc}</p>
                 </div>
               </div>
@@ -184,9 +184,9 @@ export function TeamEvolution({ isAdmin = false }) {
           <div className="flex items-start gap-4 mb-4">
             <div 
               className="w-16 h-16 rounded-xl flex items-center justify-center"
-              style={{ background: '#F2C41830' }}
+              style={{ background: '#FFD24D30' }}
             >
-              <Layers className="w-8 h-8" style={{ color: '#F2C418' }} />
+              <Layers className="w-8 h-8" style={{ color: '#FFD24D' }} />
             </div>
             <div>
               <h3 className="text-xl font-bold text-white">Main</h3>
@@ -293,7 +293,7 @@ export function TeamEvolution({ isAdmin = false }) {
 
         {/* Flow Visual */}
         <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
-          <div className="px-4 py-2 rounded-xl font-bold text-sm" style={{ background: '#F2C41820', color: '#1E2128' }}>
+          <div className="px-4 py-2 rounded-xl font-bold text-sm" style={{ background: '#FFD24D20', color: '#1E2128' }}>
             🧑 Tu (Partner)
           </div>
           <ArrowRight className="w-5 h-5" style={{ color: '#9CA3AF' }} />

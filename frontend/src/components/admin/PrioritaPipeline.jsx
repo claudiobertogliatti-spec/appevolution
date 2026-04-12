@@ -42,7 +42,7 @@ export function PrioritaPipeline({ onNavigate, onViewPartner }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 rounded-lg bg-[#F2C418] animate-pulse flex items-center justify-center">
+        <div className="w-8 h-8 rounded-lg bg-[#FFD24D] animate-pulse flex items-center justify-center">
           <span className="text-sm font-black text-[#1E2128]">E</span>
         </div>
       </div>
@@ -62,8 +62,8 @@ export function PrioritaPipeline({ onNavigate, onViewPartner }) {
 
       {/* Approvazioni pendenti */}
       {approvals.length > 0 && (
-        <div className="rounded-xl overflow-hidden" style={{ background: "#FEF9E7", border: "1px solid #F2C41830" }}>
-          <div className="px-5 py-3 flex items-center justify-between" style={{ borderBottom: "1px solid #F2C41830" }}>
+        <div className="rounded-xl overflow-hidden" style={{ background: "#FEF9E7", border: "1px solid #FFD24D30" }}>
+          <div className="px-5 py-3 flex items-center justify-between" style={{ borderBottom: "1px solid #FFD24D30" }}>
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4" style={{ color: "#D97706" }} />
               <span className="font-bold text-sm" style={{ color: "#1E2128" }}>
@@ -75,7 +75,7 @@ export function PrioritaPipeline({ onNavigate, onViewPartner }) {
             </button>
           </div>
           {approvals.slice(0, 3).map((a, i) => (
-            <div key={i} className="px-5 py-3 flex items-center gap-3" style={{ borderTop: "1px solid #F2C41830" }}>
+            <div key={i} className="px-5 py-3 flex items-center gap-3" style={{ borderTop: "1px solid #FFD24D30" }}>
               <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: "#FFD24D", color: "#1A1F24" }}>
                 {(a.partner_name || a.nome || "?").split(" ").map(n => n[0]).join("")}
               </div>
@@ -95,7 +95,7 @@ export function PrioritaPipeline({ onNavigate, onViewPartner }) {
           <span className="font-bold text-sm" style={{ color: "#1E2128" }}>
             Partner Prioritari ({priorityPartners.length})
           </span>
-          <button onClick={() => onNavigate("partner")} className="text-xs font-bold" style={{ color: "#F2C418" }}>
+          <button onClick={() => onNavigate("partner")} className="text-xs font-bold" style={{ color: "#FFD24D" }}>
             Vedi tutti <ArrowRight className="w-3 h-3 inline" />
           </button>
         </div>

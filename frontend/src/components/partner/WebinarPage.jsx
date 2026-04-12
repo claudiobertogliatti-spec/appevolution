@@ -10,7 +10,7 @@ const API = process.env.REACT_APP_BACKEND_URL || "";
 
 const STRUTTURA_WEBINAR = [
   { id: 1, titolo: "Hook / Apertura", desc: "Cattura l'attenzione e presenta il tema.",
-    durata: "3 min", icon: Zap, color: "#F2C418" },
+    durata: "3 min", icon: Zap, color: "#FFD24D" },
   { id: 2, titolo: "Il Problema", desc: "Spiega il problema principale del tuo target.",
     durata: "8 min", icon: Target, color: "#EF4444" },
   { id: 3, titolo: "Gli errori comuni", desc: "Mostra i 3 errori che il tuo pubblico commette.",
@@ -36,7 +36,7 @@ function WebinarContent({ webinarData }) {
     <div className="space-y-5" data-testid="webinar-content">
       {/* Titolo e promessa */}
       <div className="rounded-2xl p-5" style={{ background: "#1E2128" }}>
-        <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: "#F2C418" }}>
+        <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: "#FFD24D" }}>
           Il tuo Webinar
         </div>
         <h2 className="text-lg font-black text-white mb-2">
@@ -52,7 +52,7 @@ function WebinarContent({ webinarData }) {
       {/* Struttura */}
       <div className="bg-white rounded-2xl border p-5" style={{ borderColor: "#ECEDEF" }}>
         <div className="flex items-center gap-2 mb-4">
-          <FileText className="w-5 h-5" style={{ color: "#F2C418" }} />
+          <FileText className="w-5 h-5" style={{ color: "#FFD24D" }} />
           <span className="font-bold text-sm" style={{ color: "#1E2128" }}>Struttura del Webinar</span>
           <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "#FAFAF7", color: "#9CA3AF" }}>45 min</span>
         </div>
@@ -120,7 +120,7 @@ function WebinarContent({ webinarData }) {
       {/* Pianificazione */}
       <div className="bg-white rounded-2xl border p-5" style={{ borderColor: "#ECEDEF" }}>
         <div className="flex items-center gap-2 mb-4">
-          <Calendar className="w-5 h-5" style={{ color: "#F2C418" }} />
+          <Calendar className="w-5 h-5" style={{ color: "#FFD24D" }} />
           <span className="font-bold text-sm" style={{ color: "#1E2128" }}>Pianificazione</span>
         </div>
         <div className="grid grid-cols-2 gap-4">
@@ -142,7 +142,7 @@ function WebinarContent({ webinarData }) {
       {/* Link */}
       <div className="bg-white rounded-2xl border p-5" style={{ borderColor: "#ECEDEF" }}>
         <div className="flex items-center gap-2 mb-4">
-          <Link className="w-5 h-5" style={{ color: "#F2C418" }} />
+          <Link className="w-5 h-5" style={{ color: "#FFD24D" }} />
           <span className="font-bold text-sm" style={{ color: "#1E2128" }}>I tuoi link</span>
         </div>
         <div className="space-y-3">
@@ -160,7 +160,7 @@ function WebinarContent({ webinarData }) {
       </div>
 
       {/* Info Done-for-You */}
-      <div className="rounded-xl p-4" style={{ background: "#FEF9E7", border: "1px solid #F2C41830" }}>
+      <div className="rounded-xl p-4" style={{ background: "#FEF9E7", border: "1px solid #FFD24D30" }}>
         <div className="flex items-start gap-3">
           <Sparkles className="w-5 h-5 flex-shrink-0" style={{ color: "#C4990A" }} />
           <div>
@@ -236,7 +236,7 @@ export function WebinarPage({ partner, onNavigate, isAdmin }) {
   if (isLoading) {
     return (
       <div className="min-h-full flex items-center justify-center" style={{ background: "#FAFAF7" }}>
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F2C418" }} />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FFD24D" }} />
       </div>
     );
   }

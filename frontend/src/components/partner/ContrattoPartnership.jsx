@@ -218,14 +218,14 @@ function ArticleCard({ article, isOpen, onToggle }) {
 
   return (
     <div className={`bg-white rounded-xl border transition-all duration-200 ${
-      isOpen ? "border-[#F5C518] shadow-sm" : "border-[#ECEDEF] hover:border-[#F5C518]/50"
+      isOpen ? "border-[#FFD24D] shadow-sm" : "border-[#ECEDEF] hover:border-[#FFD24D]/50"
     }`}>
       <button
         onClick={onToggle}
         className="w-full flex items-center gap-3 p-4 text-left"
       >
         <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-             style={{ background: isOpen ? '#F5C518' : '#FEF9E7', color: isOpen ? '#1E2128' : '#C4990A' }}>
+             style={{ background: isOpen ? '#FFD24D' : '#FEF9E7', color: isOpen ? '#1E2128' : '#C4990A' }}>
           <span className="font-bold text-sm">{article.num}</span>
         </div>
         <div className="flex-1 min-w-0">
@@ -233,7 +233,7 @@ function ArticleCard({ article, isOpen, onToggle }) {
           <div className="text-xs text-[#9CA3AF]">{article.subtitle}</div>
         </div>
         <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
-          isOpen ? "bg-[#F5C518]/20" : "bg-[#FAFAF7]"
+          isOpen ? "bg-[#FFD24D]/20" : "bg-[#FAFAF7]"
         }`}>
           {isOpen ? <ChevronUp className="w-4 h-4 text-[#5F6572]"/> : <ChevronDown className="w-4 h-4 text-[#9CA3AF]"/>}
         </div>
@@ -241,7 +241,7 @@ function ArticleCard({ article, isOpen, onToggle }) {
       
       {isOpen && (
         <div className="px-4 pb-4 border-t border-[#ECEDEF]">
-          <div className="mt-4 p-4 rounded-lg bg-[#FEF9E7] border border-[#F5C518]/20">
+          <div className="mt-4 p-4 rounded-lg bg-[#FEF9E7] border border-[#FFD24D]/20">
             <div className="text-[10px] font-bold uppercase tracking-wider text-[#C4990A] mb-2 flex items-center gap-1.5">
               💡 Cosa significa in pratica
             </div>
@@ -300,7 +300,7 @@ export function ContrattoPartnership({ partner, onBack }) {
             </div>
           </div>
           <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold"
-                  style={{ background: '#F2C418', color: '#1E2128' }}>
+                  style={{ background: '#FFD24D', color: '#1E2128' }}>
             <Download className="w-4 h-4" />
             Scarica PDF
           </button>

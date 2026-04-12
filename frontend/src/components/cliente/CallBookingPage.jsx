@@ -14,7 +14,7 @@ const C = {
   bg: "#FAFAF7",
   white: "#FFFFFF",
   dark: "#1A1F24",
-  yellow: "#F2C418",
+  yellow: "#FFD24D",
   border: "#ECEDEF",
   muted: "#5F6572",
   mutedLight: "#9CA3AF",

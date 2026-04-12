@@ -68,12 +68,12 @@ export function PartnerLogin({ onLogin }) {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: '#FFD24D' }}>
               <span className="text-2xl font-black" style={{ color: '#1E2128' }}>E</span>
             </div>
             <div className="text-left">
               <span className="text-2xl font-black" style={{ color: '#FFFFFF' }}>
-                EVOLUTION <span style={{ color: '#F5C518' }}>PRO</span>
+                EVOLUTION <span style={{ color: '#FFD24D' }}>PRO</span>
               </span>
               <div className="text-xs font-medium" style={{ color: '#9CA3AF' }}>
                 Area Partner
@@ -104,7 +104,7 @@ export function PartnerLogin({ onLogin }) {
                   value={formData.email}
                   onChange={(e) => handleChange('email', e.target.value)}
                   placeholder="tuaemail@esempio.com"
-                  className="w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F5C518] transition-all"
+                  className="w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD24D] transition-all"
                   style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}
                   data-testid="partner-email-input"
                 />
@@ -123,7 +123,7 @@ export function PartnerLogin({ onLogin }) {
                   value={formData.password}
                   onChange={(e) => handleChange('password', e.target.value)}
                   placeholder="La tua password"
-                  className="w-full pl-11 pr-11 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F5C518] transition-all"
+                  className="w-full pl-11 pr-11 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFD24D] transition-all"
                   style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}
                   data-testid="partner-password-input"
                 />
@@ -153,7 +153,7 @@ export function PartnerLogin({ onLogin }) {
               type="submit"
               disabled={loading}
               className="w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 hover:opacity-90"
-              style={{ background: '#F5C518', color: '#1E2128' }}
+              style={{ background: '#FFD24D', color: '#1E2128' }}
               data-testid="partner-login-btn"
             >
               {loading ? (

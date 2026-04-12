@@ -12,11 +12,11 @@ function ModuleCard({ modulo, idx, isExpanded, onToggle }) {
   const lezioni = modulo.lezioni || [];
   return (
     <div className="rounded-2xl bg-white overflow-hidden" data-testid={`module-${idx}`}
-      style={{ border: `1px solid ${isExpanded ? "#F2C41840" : "#ECEDEF"}` }}>
+      style={{ border: `1px solid ${isExpanded ? "#FFD24D40" : "#ECEDEF"}` }}>
       <button onClick={onToggle}
         className="w-full flex items-center gap-3 p-5 text-left hover:bg-gray-50 transition-all">
         <span className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black flex-shrink-0"
-          style={{ background: "#F2C418", color: "#1E2128" }}>
+          style={{ background: "#FFD24D", color: "#1E2128" }}>
           {modulo.numero || idx + 1}
         </span>
         <div className="flex-1 min-w-0">
@@ -47,7 +47,7 @@ function ModuleCard({ modulo, idx, isExpanded, onToggle }) {
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {lezione.contenuto.map((arg, ai) => (
                     <span key={`${arg}-${ai}`} className="text-[11px] px-2 py-0.5 rounded-full"
-                      style={{ background: "#F2C41815", color: "#92700C", border: "1px solid #F2C41830" }}>
+                      style={{ background: "#FFD24D15", color: "#92700C", border: "1px solid #FFD24D30" }}>
                       {arg}
                     </span>
                   ))}
@@ -86,7 +86,7 @@ function CourseContent({ courseData, expandedModules, toggleModule }) {
           <div className="text-xs" style={{ color: "#9CA3AF" }}>Lezioni</div>
         </div>
         <div className="bg-white rounded-xl border p-4 text-center" style={{ borderColor: "#ECEDEF" }}>
-          <div className="text-2xl font-black" style={{ color: "#F2C418" }}>
+          <div className="text-2xl font-black" style={{ color: "#FFD24D" }}>
             {courseData.titolo_corso ? "1" : "0"}
           </div>
           <div className="text-xs" style={{ color: "#9CA3AF" }}>Corso</div>
@@ -95,7 +95,7 @@ function CourseContent({ courseData, expandedModules, toggleModule }) {
 
       {courseData.titolo_corso && (
         <div className="rounded-2xl p-5 mb-5" style={{ background: "#1E2128" }}>
-          <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: "#F2C418" }}>
+          <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: "#FFD24D" }}>
             Titolo del corso
           </div>
           <h3 className="text-lg font-black text-white">{courseData.titolo_corso}</h3>
@@ -171,7 +171,7 @@ export function VideocorsoPage({ partner, onNavigate, onComplete, isAdmin }) {
   if (isLoading) {
     return (
       <div className="min-h-full flex items-center justify-center" style={{ background: "#FAFAF7" }}>
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F2C418" }} />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FFD24D" }} />
       </div>
     );
   }

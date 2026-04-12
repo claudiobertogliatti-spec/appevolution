@@ -51,7 +51,7 @@ function SectionCard({ title, icon: Icon, children, action }) {
     <div className="bg-white border border-[#ECEDEF] rounded-xl overflow-hidden">
       <div className="px-4 py-3 border-b border-[#ECEDEF] flex items-center justify-between">
         <div className="flex items-center gap-2">
-          {Icon && <Icon className="w-4 h-4 text-[#F5C518]" />}
+          {Icon && <Icon className="w-4 h-4 text-[#FFD24D]" />}
           <span className="text-sm font-bold">{title}</span>
         </div>
         {action}
@@ -302,7 +302,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
     return (
       <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
         <div className="bg-white border border-[#ECEDEF] rounded-2xl p-12">
-          <div className="w-8 h-8 border-2 border-[#F5C518] border-t-transparent rounded-full animate-spin mx-auto" />
+          <div className="w-8 h-8 border-2 border-[#FFD24D] border-t-transparent rounded-full animate-spin mx-auto" />
         </div>
       </div>
     );
@@ -314,14 +314,14 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
         {/* Header */}
         <div className="p-5 border-b border-[#ECEDEF] flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-xl bg-[#F5C518] flex items-center justify-center text-xl font-black text-black">
+            <div className="w-14 h-14 rounded-xl bg-[#FFD24D] flex items-center justify-center text-xl font-black text-black">
               {partner.name?.split(" ").map(n => n[0]).join("")}
             </div>
             <div>
               <h2 className="text-xl font-extrabold">{partner.name}</h2>
               <div className="flex items-center gap-3 mt-1">
                 <span className="text-sm text-[#9CA3AF]">{partner.niche}</span>
-                <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-[#F5C518]/20 text-[#F5C518]">
+                <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-[#FFD24D]/20 text-[#FFD24D]">
                   {partner.phase}
                 </span>
                 {daysRemaining !== null && (
@@ -347,7 +347,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                 </button>
                 <button
                   onClick={handleSave}
-                  className="px-3 py-1.5 rounded-lg bg-[#F5C518] text-black text-xs font-bold hover:bg-[#e0a800] transition-colors flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-lg bg-[#FFD24D] text-black text-xs font-bold hover:bg-[#e0a800] transition-colors flex items-center gap-1.5"
                 >
                   <Save className="w-3.5 h-3.5" /> Salva
                 </button>
@@ -372,7 +372,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                 </button>
                 <button
                   onClick={() => setEditing(true)}
-                  className="px-3 py-1.5 rounded-lg bg-[#F5C518] text-black text-xs font-bold hover:bg-[#e0a800] transition-colors flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-lg bg-[#FFD24D] text-black text-xs font-bold hover:bg-[#e0a800] transition-colors flex items-center gap-1.5"
                 >
                   <Edit3 className="w-3.5 h-3.5" /> Modifica
                 </button>
@@ -567,7 +567,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                 title="Pagamenti" 
                 icon={CreditCard}
                 action={
-                  <button className="text-[10px] font-bold text-[#F5C518] hover:opacity-80">
+                  <button className="text-[10px] font-bold text-[#FFD24D] hover:opacity-80">
                     + Aggiungi
                   </button>
                 }
@@ -587,7 +587,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                 <div className="mt-4 pt-4 border-t border-[#ECEDEF]">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold text-[#9CA3AF] uppercase">Revenue Totale</span>
-                    <span className="font-mono text-lg font-bold text-[#F5C518]">
+                    <span className="font-mono text-lg font-bold text-[#FFD24D]">
                       €{partner.revenue?.toLocaleString() || 0}
                     </span>
                   </div>
@@ -601,7 +601,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-semibold">Fase Attuale</span>
-                    <span className="font-mono text-sm font-bold px-2 py-0.5 rounded bg-[#F5C518]/20 text-[#F5C518]">
+                    <span className="font-mono text-sm font-bold px-2 py-0.5 rounded bg-[#FFD24D]/20 text-[#FFD24D]">
                       {partner.phase}
                     </span>
                   </div>
@@ -611,7 +611,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                   <div className="relative">
                     <div className="h-2 bg-white/10 rounded-full overflow-hidden">
                       <div 
-                        className="h-full bg-[#F5C518] rounded-full transition-all"
+                        className="h-full bg-[#FFD24D] rounded-full transition-all"
                         style={{ width: `${(parseInt(partner.phase?.replace("F", "") || 0) / 10) * 100}%` }}
                       />
                     </div>
@@ -655,7 +655,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                   !editingPiano && (
                     <button 
                       onClick={() => setEditingPiano(true)}
-                      className="text-[10px] font-bold text-[#F5C518] hover:opacity-80"
+                      className="text-[10px] font-bold text-[#FFD24D] hover:opacity-80"
                     >
                       {pianoContinuita?.piano_attivo ? "Modifica" : "+ Attiva"}
                     </button>
@@ -768,7 +768,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                             console.error("Failed to save piano:", e);
                           }
                         }}
-                        className="flex-1 py-2 px-4 bg-[#F5C518] text-[#1E2128] rounded-lg text-sm font-bold"
+                        className="flex-1 py-2 px-4 bg-[#FFD24D] text-[#1E2128] rounded-lg text-sm font-bold"
                       >
                         Salva Piano
                       </button>
@@ -799,7 +799,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
               {/* Quick Stats */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-white border border-[#ECEDEF] rounded-xl p-4 text-center">
-                  <div className="text-2xl font-bold text-[#F5C518]">
+                  <div className="text-2xl font-bold text-[#FFD24D]">
                     {partner.modules?.filter(Boolean).length || 0}
                   </div>
                   <div className="text-[10px] text-[#9CA3AF] uppercase">Moduli</div>

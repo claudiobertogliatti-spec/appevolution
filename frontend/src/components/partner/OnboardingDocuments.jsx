@@ -103,7 +103,7 @@ function DocumentCard({ docType, config, docData, partnerId, onRefresh }) {
   return (
     <div
       className={`rounded-xl border-2 transition-all ${
-        isDragging ? "border-[#F2C418] bg-[#F2C418]/5"
+        isDragging ? "border-[#FFD24D] bg-[#FFD24D]/5"
         : status === "verified" ? "border-emerald-200 bg-emerald-50/30"
         : status === "rejected" ? "border-red-200 bg-red-50/20"
         : "border-[#ECEDEF]"
@@ -118,7 +118,7 @@ function DocumentCard({ docType, config, docData, partnerId, onRefresh }) {
               status === "verified" ? "bg-emerald-100 text-emerald-600"
               : status === "rejected" ? "bg-red-100 text-red-500"
               : hasFile ? "bg-amber-100 text-amber-600"
-              : "bg-[#F2C418]/10 text-[#F2C418]"
+              : "bg-[#FFD24D]/10 text-[#FFD24D]"
             }`}>
               <Icon className="w-5 h-5" />
             </div>
@@ -143,7 +143,7 @@ function DocumentCard({ docType, config, docData, partnerId, onRefresh }) {
         {hasFile ? (
           <div className="bg-white rounded-lg border border-[#ECEDEF] p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <FileText className="w-8 h-8 text-[#F2C418]" />
+              <FileText className="w-8 h-8 text-[#FFD24D]" />
               <div>
                 <div className="font-semibold text-sm text-[#1E2128] truncate max-w-[220px]">
                   {docData.original_name || "Documento"}
@@ -186,7 +186,7 @@ function DocumentCard({ docType, config, docData, partnerId, onRefresh }) {
             onDrop={onDrop}
             onClick={() => fileRef.current?.click()}
             className={`cursor-pointer rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
-              isDragging ? "border-[#F2C418] bg-[#F2C418]/5" : "border-[#ECEDEF] hover:border-[#F2C418]/50"
+              isDragging ? "border-[#FFD24D] bg-[#FFD24D]/5" : "border-[#ECEDEF] hover:border-[#FFD24D]/50"
             }`}
             data-testid={`dropzone-${docType}`}
           >
@@ -194,14 +194,14 @@ function DocumentCard({ docType, config, docData, partnerId, onRefresh }) {
                    onChange={e => e.target.files[0] && doUpload(e.target.files[0])} className="hidden" />
             {uploading ? (
               <div className="flex flex-col items-center">
-                <Loader2 className="w-8 h-8 text-[#F2C418] animate-spin mb-2" />
+                <Loader2 className="w-8 h-8 text-[#FFD24D] animate-spin mb-2" />
                 <span className="text-sm text-[#5F6572]">Caricamento in corso...</span>
               </div>
             ) : (
               <>
                 <Upload className="w-8 h-8 text-[#9CA3AF] mx-auto mb-2" />
                 <p className="text-sm text-[#5F6572]">
-                  <span className="font-semibold text-[#F2C418]">Clicca per caricare</span> o trascina qui
+                  <span className="font-semibold text-[#FFD24D]">Clicca per caricare</span> o trascina qui
                 </p>
               </>
             )}
@@ -254,7 +254,7 @@ export function OnboardingDocuments({ partner, onComplete }) {
   if (loading || !data) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="w-8 h-8 text-[#F2C418] animate-spin" />
+        <Loader2 className="w-8 h-8 text-[#FFD24D] animate-spin" />
       </div>
     );
   }
@@ -288,7 +288,7 @@ export function OnboardingDocuments({ partner, onComplete }) {
             </p>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-bold" style={{ color: pct === 100 ? '#22C55E' : '#F2C418' }}>
+            <div className="text-2xl font-bold" style={{ color: pct === 100 ? '#22C55E' : '#FFD24D' }}>
               {requiredDone} / {requiredTotal}
             </div>
             <div className="text-xs text-[#9CA3AF]">obbligatori</div>
@@ -298,7 +298,7 @@ export function OnboardingDocuments({ partner, onComplete }) {
         {/* Progress bar */}
         <div className="h-2.5 bg-[#ECEDEF] rounded-full overflow-hidden">
           <div className="h-full rounded-full transition-all duration-500"
-               style={{ width: `${pct}%`, background: pct === 100 ? '#22C55E' : '#F2C418' }} />
+               style={{ width: `${pct}%`, background: pct === 100 ? '#22C55E' : '#FFD24D' }} />
         </div>
 
         {/* Status messages */}
@@ -346,7 +346,7 @@ export function OnboardingDocuments({ partner, onComplete }) {
             onClick={handleSubmitReview}
             disabled={submitting}
             className="inline-flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-bold transition-all hover:scale-105 disabled:opacity-50"
-            style={{ background: '#F2C418', color: '#1E2128' }}
+            style={{ background: '#FFD24D', color: '#1E2128' }}
             data-testid="btn-submit-review"
           >
             {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
@@ -357,11 +357,11 @@ export function OnboardingDocuments({ partner, onComplete }) {
 
       {/* Help */}
       <div className="bg-[#1E2128] rounded-xl p-5 text-white">
-        <h3 className="font-bold text-[#F2C418] mb-2">Hai bisogno di aiuto?</h3>
+        <h3 className="font-bold text-[#FFD24D] mb-2">Hai bisogno di aiuto?</h3>
         <p className="text-sm text-white/80 mb-3">
           Se hai dubbi sui documenti da caricare o problemi tecnici, contatta il supporto.
         </p>
-        <a href="mailto:assistenza@evolution-pro.it" className="text-sm text-[#F2C418] hover:underline">
+        <a href="mailto:assistenza@evolution-pro.it" className="text-sm text-[#FFD24D] hover:underline">
           assistenza@evolution-pro.it
         </a>
       </div>

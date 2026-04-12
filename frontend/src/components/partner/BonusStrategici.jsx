@@ -583,7 +583,7 @@ const BONUS_DATA = [
     title: "Il Blueprint",
     subtitle: "Che Evita il Fallimento del 90% dei Corsi",
     icon: Target,
-    color: "#F5C518",
+    color: "#FFD24D",
     chapters: [
       { id: "intro",     title: "Introduzione",  icon: BookOpen },
       { id: "cap1",      title: "Il Vero Nemico", icon: AlertTriangle },
@@ -833,7 +833,7 @@ function BonusCard({ bonus, isCompleted, onOpen }) {
   return (
     <div
       onClick={onOpen}
-      className="bg-white rounded-xl border border-[#ECEDEF] p-5 cursor-pointer hover:shadow-lg hover:border-[#F5C518]/50 transition-all group"
+      className="bg-white rounded-xl border border-[#ECEDEF] p-5 cursor-pointer hover:shadow-lg hover:border-[#FFD24D]/50 transition-all group"
     >
       <div className="flex items-start gap-4">
         <div
@@ -853,13 +853,13 @@ function BonusCard({ bonus, isCompleted, onOpen }) {
               Sbloccato
             </span>
           </div>
-          <h3 className="font-bold text-[#1E2128] group-hover:text-[#F5C518] transition-colors">
+          <h3 className="font-bold text-[#1E2128] group-hover:text-[#FFD24D] transition-colors">
             {bonus.title}
           </h3>
           <p className="text-sm text-[#9CA3AF]">{bonus.subtitle}</p>
           <p className="text-xs mt-1.5 leading-relaxed" style={{ color: "#6B7280" }}>{bonus.summary}</p>
         </div>
-        <div className="w-8 h-8 rounded-lg bg-[#FAFAF7] flex items-center justify-center group-hover:bg-[#F5C518] transition-colors flex-shrink-0">
+        <div className="w-8 h-8 rounded-lg bg-[#FAFAF7] flex items-center justify-center group-hover:bg-[#FFD24D] transition-colors flex-shrink-0">
           <ChevronRight className="w-4 h-4 text-[#9CA3AF] group-hover:text-[#1E2128]" />
         </div>
       </div>
@@ -894,7 +894,7 @@ function BonusReader({ bonus, onBack, onComplete, completedChapters, setComplete
         <div className="p-4 border-b border-[#ECEDEF]">
           <button
             onClick={onBack}
-            className="flex items-center gap-2 text-sm font-semibold text-[#5F6572] hover:text-[#F5C518] transition-colors"
+            className="flex items-center gap-2 text-sm font-semibold text-[#5F6572] hover:text-[#FFD24D] transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             Torna ai Bonus
@@ -1063,12 +1063,12 @@ export function BonusStrategici({ partner }) {
       {/* Header */}
       <div className="text-center mb-8">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold mb-4"
-          style={{ background: "#FEF9E7", color: "#C4990A", border: "1px solid #F5C518" }}>
+          style={{ background: "#FEF9E7", color: "#C4990A", border: "1px solid #FFD24D" }}>
           <Gift className="w-4 h-4" />
           Contenuti Esclusivi
         </div>
         <h1 className="text-2xl font-bold text-[#1E2128] mb-2">
-          I Tuoi <span style={{ color: "#F5C518" }}>7 Bonus Strategici</span>
+          I Tuoi <span style={{ color: "#FFD24D" }}>7 Bonus Strategici</span>
         </h1>
         <p className="text-sm text-[#9CA3AF] max-w-lg mx-auto">
           Guide operative per chi vuole costruire un corso online che vende davvero.
@@ -1083,12 +1083,12 @@ export function BonusStrategici({ partner }) {
             <h3 className="font-bold text-[#1E2128]">Il Tuo Progresso</h3>
             <p className="text-sm text-[#9CA3AF]">{completedCount} di {totalCount} bonus completati</p>
           </div>
-          <div className="text-3xl font-bold" style={{ color: "#F5C518" }}>{progressPercent}%</div>
+          <div className="text-3xl font-bold" style={{ color: "#FFD24D" }}>{progressPercent}%</div>
         </div>
         <div className="h-3 bg-[#ECEDEF] rounded-full overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-500"
-            style={{ width: `${progressPercent}%`, background: "#F5C518" }}
+            style={{ width: `${progressPercent}%`, background: "#FFD24D" }}
           />
         </div>
         {completedCount === totalCount && (
@@ -1115,7 +1115,7 @@ export function BonusStrategici({ partner }) {
 
       {/* Footer */}
       <div className="bg-[#1E2128] rounded-xl p-5 text-white mt-8">
-        <h3 className="font-bold text-[#F5C518] mb-2">Come usare questi bonus</h3>
+        <h3 className="font-bold text-[#FFD24D] mb-2">Come usare questi bonus</h3>
         <p className="text-sm text-white/80">
           Leggili in ordine — ogni bonus costruisce sulle basi del precedente.
           Completa la checklist al fondo di ogni guida prima di passare alla successiva.

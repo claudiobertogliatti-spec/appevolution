@@ -241,12 +241,12 @@ export function AttivazionePartnership({ user, onLogout }) {
       <header className="border-b" style={{ background: '#FFFFFF', borderColor: '#ECEDEF' }}>
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#FFD24D' }}>
               <span className="text-lg font-black" style={{ color: '#1E2128' }}>E</span>
             </div>
             <div>
               <span className="font-black text-lg" style={{ color: '#1E2128' }}>
-                EVOLUTION <span style={{ color: '#F5C518' }}>PRO</span>
+                EVOLUTION <span style={{ color: '#FFD24D' }}>PRO</span>
               </span>
             </div>
           </div>
@@ -287,13 +287,13 @@ export function AttivazionePartnership({ user, onLogout }) {
                 }`}
                 style={{ 
                   background: step.completed ? '#F0FDF4' : currentStep === step.id ? '#FFF8DC' : '#FAFAF7',
-                  ringColor: '#F5C518'
+                  ringColor: '#FFD24D'
                 }}
               >
                 {step.completed ? (
                   <CheckCircle className="w-6 h-6 flex-shrink-0" style={{ color: '#22C55E' }} />
                 ) : (
-                  <Circle className="w-6 h-6 flex-shrink-0" style={{ color: currentStep === step.id ? '#F5C518' : '#D1D5DB' }} />
+                  <Circle className="w-6 h-6 flex-shrink-0" style={{ color: currentStep === step.id ? '#FFD24D' : '#D1D5DB' }} />
                 )}
                 <span 
                   className={`font-medium ${step.completed ? '' : currentStep === step.id ? '' : 'opacity-50'}`}
@@ -314,13 +314,13 @@ export function AttivazionePartnership({ user, onLogout }) {
         ═══════════════════════════════════════════════════════════════════ */}
         <div className="rounded-2xl p-6 mb-6" style={{ 
           background: '#FFFFFF', 
-          border: currentStep === 1 ? '2px solid #F5C518' : '1px solid #ECEDEF',
+          border: currentStep === 1 ? '2px solid #FFD24D' : '1px solid #ECEDEF',
           opacity: currentStep < 1 ? 0.5 : 1
         }}>
           <div className="flex items-start gap-4">
             <div 
               className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: analisiVisualizzata ? '#22C55E' : '#F5C51815' }}
+              style={{ background: analisiVisualizzata ? '#22C55E' : '#FFD24D15' }}
             >
               {analisiVisualizzata ? (
                 <Check className="w-5 h-5 text-white" />
@@ -340,7 +340,7 @@ export function AttivazionePartnership({ user, onLogout }) {
                   onClick={handleVisualizzaAnalisi}
                   disabled={loading}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all hover:opacity-90 disabled:opacity-50"
-                  style={{ background: '#F5C518', color: '#1E2128' }}
+                  style={{ background: '#FFD24D', color: '#1E2128' }}
                 >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
                   Visualizza Analisi
@@ -366,13 +366,13 @@ export function AttivazionePartnership({ user, onLogout }) {
         ═══════════════════════════════════════════════════════════════════ */}
         <div className="rounded-2xl p-6 mb-6" style={{ 
           background: '#FFFFFF', 
-          border: currentStep === 2 ? '2px solid #F5C518' : '1px solid #ECEDEF',
+          border: currentStep === 2 ? '2px solid #FFD24D' : '1px solid #ECEDEF',
           opacity: currentStep < 2 ? 0.5 : 1
         }}>
           <div className="flex items-start gap-4">
             <div 
               className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: partnershipConfermata ? '#22C55E' : '#F5C51815' }}
+              style={{ background: partnershipConfermata ? '#22C55E' : '#FFD24D15' }}
             >
               {partnershipConfermata ? (
                 <Check className="w-5 h-5 text-white" />
@@ -390,19 +390,19 @@ export function AttivazionePartnership({ user, onLogout }) {
               
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <div className="flex items-center gap-2 p-3 rounded-lg" style={{ background: '#FAFAF7' }}>
-                  <Calendar className="w-4 h-4" style={{ color: '#F5C518' }} />
+                  <Calendar className="w-4 h-4" style={{ color: '#FFD24D' }} />
                   <span className="text-sm" style={{ color: '#5F6572' }}>Durata 12 mesi</span>
                 </div>
                 <div className="flex items-center gap-2 p-3 rounded-lg" style={{ background: '#FAFAF7' }}>
-                  <Building className="w-4 h-4" style={{ color: '#F5C518' }} />
+                  <Building className="w-4 h-4" style={{ color: '#FFD24D' }} />
                   <span className="text-sm" style={{ color: '#5F6572' }}>Creazione Accademia Digitale</span>
                 </div>
                 <div className="flex items-center gap-2 p-3 rounded-lg" style={{ background: '#FAFAF7' }}>
-                  <Headphones className="w-4 h-4" style={{ color: '#F5C518' }} />
+                  <Headphones className="w-4 h-4" style={{ color: '#FFD24D' }} />
                   <span className="text-sm" style={{ color: '#5F6572' }}>Supporto strategico e tecnico</span>
                 </div>
                 <div className="flex items-center gap-2 p-3 rounded-lg" style={{ background: '#FAFAF7' }}>
-                  <Rocket className="w-4 h-4" style={{ color: '#F5C518' }} />
+                  <Rocket className="w-4 h-4" style={{ color: '#FFD24D' }} />
                   <span className="text-sm" style={{ color: '#5F6572' }}>Lancio e crescita progetto</span>
                 </div>
               </div>
@@ -425,7 +425,7 @@ export function AttivazionePartnership({ user, onLogout }) {
                   onClick={handleConfermaPartnership}
                   disabled={loading}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all hover:opacity-90 disabled:opacity-50"
-                  style={{ background: '#F5C518', color: '#1E2128' }}
+                  style={{ background: '#FFD24D', color: '#1E2128' }}
                 >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                   Confermo di aver letto e compreso
@@ -440,13 +440,13 @@ export function AttivazionePartnership({ user, onLogout }) {
         ═══════════════════════════════════════════════════════════════════ */}
         <div className="rounded-2xl p-6 mb-6" style={{ 
           background: '#FFFFFF', 
-          border: currentStep === 3 ? '2px solid #F5C518' : '1px solid #ECEDEF',
+          border: currentStep === 3 ? '2px solid #FFD24D' : '1px solid #ECEDEF',
           opacity: currentStep < 3 ? 0.5 : 1
         }}>
           <div className="flex items-start gap-4">
             <div 
               className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: contrattoFirmato ? '#22C55E' : '#F5C51815' }}
+              style={{ background: contrattoFirmato ? '#22C55E' : '#FFD24D15' }}
             >
               {contrattoFirmato ? (
                 <Check className="w-5 h-5 text-white" />
@@ -466,7 +466,7 @@ export function AttivazionePartnership({ user, onLogout }) {
                 <div className="space-y-3">
                   <label className="block">
                     <div 
-                      className="flex items-center justify-center gap-3 p-6 rounded-xl border-2 border-dashed cursor-pointer transition-colors hover:border-[#F5C518]"
+                      className="flex items-center justify-center gap-3 p-6 rounded-xl border-2 border-dashed cursor-pointer transition-colors hover:border-[#FFD24D]"
                       style={{ borderColor: contrattoFile ? '#22C55E' : '#ECEDEF' }}
                     >
                       <Upload className="w-5 h-5" style={{ color: contrattoFile ? '#22C55E' : '#9CA3AF' }} />
@@ -510,13 +510,13 @@ export function AttivazionePartnership({ user, onLogout }) {
         ═══════════════════════════════════════════════════════════════════ */}
         <div className="rounded-2xl p-6 mb-6" style={{ 
           background: '#FFFFFF', 
-          border: currentStep === 4 ? '2px solid #F5C518' : '1px solid #ECEDEF',
+          border: currentStep === 4 ? '2px solid #FFD24D' : '1px solid #ECEDEF',
           opacity: currentStep < 4 ? 0.5 : 1
         }}>
           <div className="flex items-start gap-4">
             <div 
               className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: documentiCaricati ? '#22C55E' : '#F5C51815' }}
+              style={{ background: documentiCaricati ? '#22C55E' : '#FFD24D15' }}
             >
               {documentiCaricati ? (
                 <Check className="w-5 h-5 text-white" />
@@ -537,7 +537,7 @@ export function AttivazionePartnership({ user, onLogout }) {
                   <label className="block">
                     <span className="text-xs font-medium mb-1 block" style={{ color: '#5F6572' }}>Carta d'identità</span>
                     <div 
-                      className="flex items-center justify-center gap-3 p-4 rounded-xl border-2 border-dashed cursor-pointer transition-colors hover:border-[#F5C518]"
+                      className="flex items-center justify-center gap-3 p-4 rounded-xl border-2 border-dashed cursor-pointer transition-colors hover:border-[#FFD24D]"
                       style={{ borderColor: cartaIdentitaFile ? '#22C55E' : '#ECEDEF' }}
                     >
                       <Upload className="w-4 h-4" style={{ color: cartaIdentitaFile ? '#22C55E' : '#9CA3AF' }} />
@@ -556,7 +556,7 @@ export function AttivazionePartnership({ user, onLogout }) {
                   <label className="block">
                     <span className="text-xs font-medium mb-1 block" style={{ color: '#5F6572' }}>Codice fiscale</span>
                     <div 
-                      className="flex items-center justify-center gap-3 p-4 rounded-xl border-2 border-dashed cursor-pointer transition-colors hover:border-[#F5C518]"
+                      className="flex items-center justify-center gap-3 p-4 rounded-xl border-2 border-dashed cursor-pointer transition-colors hover:border-[#FFD24D]"
                       style={{ borderColor: codiceFiscaleFile ? '#22C55E' : '#ECEDEF' }}
                     >
                       <Upload className="w-4 h-4" style={{ color: codiceFiscaleFile ? '#22C55E' : '#9CA3AF' }} />
@@ -601,13 +601,13 @@ export function AttivazionePartnership({ user, onLogout }) {
         ═══════════════════════════════════════════════════════════════════ */}
         <div className="rounded-2xl p-6 mb-6" style={{ 
           background: '#FFFFFF', 
-          border: currentStep === 5 ? '2px solid #F5C518' : '1px solid #ECEDEF',
+          border: currentStep === 5 ? '2px solid #FFD24D' : '1px solid #ECEDEF',
           opacity: currentStep < 5 ? 0.5 : 1
         }}>
           <div className="flex items-start gap-4">
             <div 
               className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: pagamentoVerificato ? '#22C55E' : '#F5C51815' }}
+              style={{ background: pagamentoVerificato ? '#22C55E' : '#FFD24D15' }}
             >
               {pagamentoVerificato ? (
                 <Check className="w-5 h-5 text-white" />
@@ -631,8 +631,8 @@ export function AttivazionePartnership({ user, onLogout }) {
                     className={`p-4 rounded-xl cursor-pointer transition-all ${metodoPagamento === 'stripe' ? 'ring-2 ring-offset-2' : ''}`}
                     style={{ 
                       background: '#FAFAF7', 
-                      border: metodoPagamento === 'stripe' ? '2px solid #F5C518' : '1px solid #ECEDEF',
-                      ringColor: '#F5C518'
+                      border: metodoPagamento === 'stripe' ? '2px solid #FFD24D' : '1px solid #ECEDEF',
+                      ringColor: '#FFD24D'
                     }}
                   >
                     <div className="flex items-center gap-3">
@@ -650,8 +650,8 @@ export function AttivazionePartnership({ user, onLogout }) {
                     className={`p-4 rounded-xl cursor-pointer transition-all ${metodoPagamento === 'bonifico' ? 'ring-2 ring-offset-2' : ''}`}
                     style={{ 
                       background: '#FAFAF7', 
-                      border: metodoPagamento === 'bonifico' ? '2px solid #F5C518' : '1px solid #ECEDEF',
-                      ringColor: '#F5C518'
+                      border: metodoPagamento === 'bonifico' ? '2px solid #FFD24D' : '1px solid #ECEDEF',
+                      ringColor: '#FFD24D'
                     }}
                   >
                     <div className="flex items-center gap-3">
@@ -738,7 +738,7 @@ export function AttivazionePartnership({ user, onLogout }) {
         <div className="text-center mt-8">
           <p className="text-sm" style={{ color: '#9CA3AF' }}>
             Hai domande? Scrivi a{' '}
-            <a href="mailto:supporto@evolution-pro.it" className="font-medium" style={{ color: '#F5C518' }}>
+            <a href="mailto:supporto@evolution-pro.it" className="font-medium" style={{ color: '#FFD24D' }}>
               supporto@evolution-pro.it
             </a>
           </p>

@@ -90,12 +90,12 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
     <header className="border-b" style={{ background: '#FFFFFF', borderColor: '#ECEDEF' }}>
       <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#FFD24D' }}>
             <span className="text-lg font-black" style={{ color: '#1E2128' }}>E</span>
           </div>
           <div>
             <span className="font-black text-lg" style={{ color: '#1E2128' }}>
-              EVOLUTION <span style={{ color: '#F5C518' }}>PRO</span>
+              EVOLUTION <span style={{ color: '#FFD24D' }}>PRO</span>
             </span>
           </div>
         </div>
@@ -123,7 +123,7 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
         <div 
           className="absolute top-5 left-0 h-0.5 transition-all duration-500" 
           style={{ 
-            background: '#F5C518', 
+            background: '#FFD24D', 
             width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` 
           }} 
         />
@@ -136,11 +136,11 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
                   step.completed 
                     ? 'border-transparent' 
                     : index === currentStep - 1 
-                      ? 'border-[#F5C518]' 
+                      ? 'border-[#FFD24D]' 
                       : 'border-[#ECEDEF]'
                 }`}
                 style={{ 
-                  background: step.completed ? '#F5C518' : '#FFFFFF',
+                  background: step.completed ? '#FFD24D' : '#FFFFFF',
                 }}
               >
                 {step.completed ? (
@@ -148,7 +148,7 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
                 ) : (
                   <span 
                     className="text-sm font-bold" 
-                    style={{ color: index === currentStep - 1 ? '#F5C518' : '#9CA3AF' }}
+                    style={{ color: index === currentStep - 1 ? '#FFD24D' : '#9CA3AF' }}
                   >
                     {step.id}
                   </span>
@@ -197,7 +197,7 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
                         step.active ? '' : 'opacity-40'
                       }`}
                       style={{ 
-                        background: step.active ? '#F5C518' : '#ECEDEF',
+                        background: step.active ? '#FFD24D' : '#ECEDEF',
                         color: step.active ? '#1E2128' : '#9CA3AF'
                       }}
                     >
@@ -242,7 +242,7 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
           {/* SEZIONE 3 — SPIEGAZIONE QUESTIONARIO */}
           <div 
             className="rounded-2xl p-6 mb-10 text-center"
-            style={{ background: '#FFF8DC', border: '1px solid #F5C51840' }}
+            style={{ background: '#FFF8DC', border: '1px solid #FFD24D40' }}
           >
             <p className="font-bold mb-2" style={{ color: '#92700C' }}>
               Tempo richiesto: circa 5 minuti
@@ -266,7 +266,7 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
                 'preparare la tua Analisi Strategica'
               ].map((item, index) => (
                 <div key={index} className="flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5" style={{ color: '#F5C518' }} />
+                  <CheckCircle className="w-5 h-5" style={{ color: '#FFD24D' }} />
                   <span style={{ color: '#5F6572' }}>{item}</span>
                 </div>
               ))}
@@ -322,7 +322,7 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
                         step.status === 'pending' ? 'opacity-40' : ''
                       }`}
                       style={{ 
-                        background: step.status === 'completed' ? '#22C55E' : step.status === 'active' ? '#F5C518' : '#ECEDEF',
+                        background: step.status === 'completed' ? '#22C55E' : step.status === 'active' ? '#FFD24D' : '#ECEDEF',
                         color: step.status === 'pending' ? '#9CA3AF' : '#1E2128'
                       }}
                     >
@@ -383,7 +383,7 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
                 'Preparazione della call strategica'
               ].map((item, index) => (
                 <div key={index} className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#F5C518' }} />
+                  <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#FFD24D' }} />
                   <span className="text-sm" style={{ color: '#5F6572' }}>{item}</span>
                 </div>
               ))}
@@ -393,7 +393,7 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
           {/* SEZIONE 4 — MESSAGGIO IMPORTANTE */}
           <div 
             className="rounded-2xl p-6 mb-8"
-            style={{ background: '#FFF8DC', border: '1px solid #F5C51840' }}
+            style={{ background: '#FFF8DC', border: '1px solid #FFD24D40' }}
           >
             <p className="text-sm leading-relaxed" style={{ color: '#78590A' }}>
               L'Analisi Strategica è il passaggio che ci permette di capire se il tuo progetto è realmente adatto alla partnership Evolution PRO.
@@ -414,7 +414,7 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
               </h2>
               <div className="mb-3">
                 <span className="text-sm" style={{ color: '#9CA3AF' }}>Una tantum</span>
-                <div className="text-4xl font-black" style={{ color: '#F5C518' }}>€67</div>
+                <div className="text-4xl font-black" style={{ color: '#FFD24D' }}>€67</div>
               </div>
               <p className="text-sm" style={{ color: '#9CA3AF' }}>
                 L'analisi verrà preparata dal team Evolution PRO e discussa insieme durante la call strategica.
@@ -469,7 +469,7 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
                     <div 
                       className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm"
                       style={{ 
-                        background: step.status === 'completed' ? '#22C55E' : '#F5C518',
+                        background: step.status === 'completed' ? '#22C55E' : '#FFD24D',
                         color: '#1E2128'
                       }}
                     >
@@ -519,7 +519,7 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
             <div className="text-center">
               <div 
                 className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-                style={{ background: '#F5C518' }}
+                style={{ background: '#FFD24D' }}
               >
                 <Calendar className="w-8 h-8" style={{ color: '#1E2128' }} />
               </div>
@@ -544,11 +544,11 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
           </div>
 
           {/* Info box */}
-          <div className="rounded-xl p-6" style={{ background: '#FFF8DC', border: '1px solid #F5C51840' }}>
+          <div className="rounded-xl p-6" style={{ background: '#FFF8DC', border: '1px solid #FFD24D40' }}>
             <div className="flex items-start gap-4">
               <div 
                 className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: '#F5C51830' }}
+                style={{ background: '#FFD24D30' }}
               >
                 <FileText className="w-5 h-5" style={{ color: '#92700C' }} />
               </div>
@@ -570,7 +570,7 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
           <div className="mt-8 text-center">
             <p className="text-sm" style={{ color: '#9CA3AF' }}>
               Hai domande? Scrivi a{' '}
-              <a href="mailto:supporto@evolution-pro.it" className="font-medium" style={{ color: '#F5C518' }}>
+              <a href="mailto:supporto@evolution-pro.it" className="font-medium" style={{ color: '#FFD24D' }}>
                 supporto@evolution-pro.it
               </a>
             </p>
@@ -610,7 +610,7 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
                     <div 
                       className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm"
                       style={{ 
-                        background: step.status === 'completed' ? '#22C55E' : '#F5C518',
+                        background: step.status === 'completed' ? '#22C55E' : '#FFD24D',
                         color: '#1E2128'
                       }}
                     >
@@ -676,7 +676,7 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
                   <div className="relative z-10 text-center">
                     <div 
                       className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform"
-                      style={{ background: '#F5C518' }}
+                      style={{ background: '#FFD24D' }}
                     >
                       <PlayCircle className="w-8 h-8" style={{ color: '#1E2128' }} />
                     </div>
@@ -699,7 +699,7 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
           {/* Messaggio finale */}
           <div 
             className="rounded-2xl p-6 text-center"
-            style={{ background: '#FFF8DC', border: '1px solid #F5C51840' }}
+            style={{ background: '#FFF8DC', border: '1px solid #FFD24D40' }}
           >
             <Clock className="w-8 h-8 mx-auto mb-3" style={{ color: '#C4990A' }} />
             <p className="font-bold" style={{ color: '#92700C' }}>
@@ -714,18 +714,18 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
           <div className="mt-8 text-center">
             <p className="text-sm" style={{ color: '#9CA3AF' }}>
               Hai domande? Scrivi a{' '}
-              <a href="mailto:supporto@evolution-pro.it" className="font-medium" style={{ color: '#F5C518' }}>
+              <a href="mailto:supporto@evolution-pro.it" className="font-medium" style={{ color: '#FFD24D' }}>
                 supporto@evolution-pro.it
               </a>
             </p>
           </div>
 
           {/* CTA Prenota Call */}
-          <div className="rounded-2xl p-8" style={{ background: '#FFFFFF', border: '2px solid #F5C518' }}>
+          <div className="rounded-2xl p-8" style={{ background: '#FFFFFF', border: '2px solid #FFD24D' }}>
             <div className="flex items-start gap-6">
               <div 
                 className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0" 
-                style={{ background: '#F5C51815' }}
+                style={{ background: '#FFD24D15' }}
               >
                 <Calendar className="w-7 h-7" style={{ color: '#C4990A' }} />
               </div>
@@ -741,7 +741,7 @@ export function DashboardCliente({ user, onNavigate, onLogout }) {
                     window.open('https://calendar.app.google/ip1MfDcfcrju1WFh6', '_blank');
                   }}
                   className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-lg transition-all hover:opacity-90 hover:scale-105"
-                  style={{ background: '#F5C518', color: '#1E2128' }}
+                  style={{ background: '#FFD24D', color: '#1E2128' }}
                   data-testid="prenota-call-btn"
                 >
                   Prenota la tua call strategica

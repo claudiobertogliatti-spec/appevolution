@@ -44,7 +44,7 @@ function Message({ msg, isLast }) {
         <div 
           className={`px-4 py-2.5 rounded-2xl ${
             isUser 
-              ? "bg-[#F5C518] text-black rounded-br-md" 
+              ? "bg-[#FFD24D] text-black rounded-br-md" 
               : isAction
                 ? "bg-green-500/20 border border-green-500/30 text-green-700 rounded-bl-md"
                 : isEscalation

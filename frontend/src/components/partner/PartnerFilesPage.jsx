@@ -154,12 +154,12 @@ export function PartnerFilesPage({ partner }) {
       {/* Header */}
       <div className="text-center mb-8">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold mb-4"
-             style={{ background: '#FEF9E7', color: '#C4990A', border: '1px solid #F5C518' }}>
+             style={{ background: '#FEF9E7', color: '#C4990A', border: '1px solid #FFD24D' }}>
           <FolderOpen className="w-4 h-4" />
           I Miei File
         </div>
         <h1 className="text-2xl font-bold text-[#1E2128] mb-2">
-          Tutti i tuoi <span style={{ color: '#F5C518' }}>Materiali</span>
+          Tutti i tuoi <span style={{ color: '#FFD24D' }}>Materiali</span>
         </h1>
         <p className="text-sm text-[#9CA3AF] max-w-lg mx-auto">
           Qui trovi tutti i file che hai caricato durante il percorso: script, posizionamento, video, documenti e distinte di pagamento.
@@ -169,7 +169,7 @@ export function PartnerFilesPage({ partner }) {
       {/* Upload Section */}
       <div className="bg-white rounded-2xl border border-[#ECEDEF] p-6">
         <h3 className="font-bold text-[#1E2128] mb-4 flex items-center gap-2">
-          <Upload className="w-5 h-5 text-[#F5C518]"/>
+          <Upload className="w-5 h-5 text-[#FFD24D]"/>
           Carica nuovi file
         </h3>
         
@@ -227,7 +227,7 @@ export function PartnerFilesPage({ partner }) {
         </div>
         
         {uploading && (
-          <div className="mt-4 flex items-center gap-2 text-sm text-[#F5C518]">
+          <div className="mt-4 flex items-center gap-2 text-sm text-[#FFD24D]">
             <Loader2 className="w-4 h-4 animate-spin"/>
             Caricamento in corso...
           </div>
@@ -240,8 +240,8 @@ export function PartnerFilesPage({ partner }) {
           onClick={() => setActiveCategory("all")}
           className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
             activeCategory === "all" 
-              ? "bg-[#F5C518] text-black" 
-              : "bg-white border border-[#ECEDEF] text-[#5F6572] hover:border-[#F5C518]"
+              ? "bg-[#FFD24D] text-black" 
+              : "bg-white border border-[#ECEDEF] text-[#5F6572] hover:border-[#FFD24D]"
           }`}
         >
           Tutti ({allFiles.length})
@@ -256,7 +256,7 @@ export function PartnerFilesPage({ partner }) {
               className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
                 activeCategory === key 
                   ? "text-white" 
-                  : "bg-white border border-[#ECEDEF] hover:border-[#F5C518]"
+                  : "bg-white border border-[#ECEDEF] hover:border-[#FFD24D]"
               }`}
               style={{ 
                 background: activeCategory === key ? config.color : undefined,
@@ -274,7 +274,7 @@ export function PartnerFilesPage({ partner }) {
       {filteredFiles.length > 0 && (
         <div className="bg-white rounded-2xl border border-[#ECEDEF] overflow-hidden">
           <div className="px-6 py-4 border-b border-[#ECEDEF] flex items-center gap-2">
-            <FolderOpen className="w-5 h-5 text-[#F5C518]"/>
+            <FolderOpen className="w-5 h-5 text-[#FFD24D]"/>
             <span className="font-bold text-[#1E2128]">
               {activeCategory === "all" ? "Tutti i File" : FILE_CATEGORIES[activeCategory]?.label}
             </span>
@@ -316,7 +316,7 @@ export function PartnerFilesPage({ partner }) {
                   {f.internal_url && (
                     <button 
                       onClick={() => window.open(`${API}${f.internal_url.replace('/api','')}`, "_blank")}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-[#FAFAF7] border border-[#ECEDEF] hover:border-[#F5C518] transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-[#FAFAF7] border border-[#ECEDEF] hover:border-[#FFD24D] transition-colors"
                     >
                       <Download className="w-3.5 h-3.5"/>
                       Scarica
@@ -344,7 +344,7 @@ export function PartnerFilesPage({ partner }) {
       )}
 
       {/* Info Box */}
-      <div className="bg-[#FEF9E7] rounded-xl p-4 border border-[#F5C518]/30">
+      <div className="bg-[#FEF9E7] rounded-xl p-4 border border-[#FFD24D]/30">
         <div className="flex items-start gap-3">
           <Shield className="w-5 h-5 text-[#C4990A] flex-shrink-0 mt-0.5"/>
           <div>

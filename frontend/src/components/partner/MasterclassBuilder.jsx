@@ -252,7 +252,7 @@ export function MasterclassBuilder({ partner, isAdmin = false }) {
               <p className="text-sm text-[#5F6572]">Masterclass Trasformativa per {partner?.name}</p>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-mono font-bold text-[#F5C518]">{completion}%</div>
+              <div className="text-2xl font-mono font-bold text-[#FFD24D]">{completion}%</div>
               <div className="text-[10px] text-[#9CA3AF] uppercase">Completato</div>
             </div>
           </div>

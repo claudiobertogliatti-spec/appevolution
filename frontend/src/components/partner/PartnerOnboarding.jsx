@@ -37,7 +37,7 @@ const PartnerOnboarding = ({ partnerId, partnerNome, onComplete }) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-[#F5C518]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#FFD24D]" />
       </div>
     );
   }
@@ -72,7 +72,7 @@ const PartnerOnboarding = ({ partnerId, partnerNome, onComplete }) => {
                   stepCorrente > step.num
                     ? "bg-[#10B981] text-white"
                     : stepCorrente === step.num
-                    ? "bg-[#F5C518] text-[#1E2128]"
+                    ? "bg-[#FFD24D] text-[#1E2128]"
                     : "bg-[#ECEDEF] text-[#9CA3AF]"
                 }`}
               >
@@ -181,7 +181,7 @@ const Step1Profilo = ({ partnerId, onComplete }) => {
   return (
     <div className="bg-white rounded-xl p-6" style={{ border: "1px solid #ECEDEF" }}>
       <h2 className="text-lg font-bold text-[#1E2128] mb-4 flex items-center gap-2">
-        <User className="w-5 h-5 text-[#F5C518]" />
+        <User className="w-5 h-5 text-[#FFD24D]" />
         Completa il tuo profilo
       </h2>
 
@@ -222,7 +222,7 @@ const Step1Profilo = ({ partnerId, onComplete }) => {
           type="submit"
           disabled={!isValid || loading}
           className="w-full py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-          style={{ background: "#F5C518", color: "#1E2128" }}
+          style={{ background: "#FFD24D", color: "#1E2128" }}
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronRight className="w-4 h-4" />}
           Salva e continua
@@ -271,7 +271,7 @@ const Step2Contratto = ({ partnerId, onboarding, onComplete }) => {
   return (
     <div className="bg-white rounded-xl p-6" style={{ border: "1px solid #ECEDEF" }}>
       <h2 className="text-lg font-bold text-[#1E2128] mb-4 flex items-center gap-2">
-        <FileText className="w-5 h-5 text-[#F5C518]" />
+        <FileText className="w-5 h-5 text-[#FFD24D]" />
         Scarica e firma il contratto
       </h2>
 
@@ -281,14 +281,14 @@ const Step2Contratto = ({ partnerId, onboarding, onComplete }) => {
         </div>
       )}
 
-      <div className="bg-[#FEF9E7] rounded-xl p-4 mb-4" style={{ border: "1px solid #F5C518" }}>
+      <div className="bg-[#FEF9E7] rounded-xl p-4 mb-4" style={{ border: "1px solid #FFD24D" }}>
         <p className="text-sm text-[#1E2128] mb-3">
           Il tuo contratto è pronto e già compilato con i tuoi dati.
         </p>
         <button
           onClick={handleDownload}
           className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all"
-          style={{ background: "#F5C518", color: "#1E2128" }}
+          style={{ background: "#FFD24D", color: "#1E2128" }}
         >
           <Download className="w-4 h-4" /> Scarica il Contratto
         </button>
@@ -298,19 +298,19 @@ const Step2Contratto = ({ partnerId, onboarding, onComplete }) => {
         <h3 className="font-bold text-sm text-[#1E2128] mb-2">Istruzioni:</h3>
         <ol className="space-y-2 text-sm text-[#5F6572]">
           <li className="flex items-start gap-2">
-            <span className="w-6 h-6 rounded-full bg-[#F5C518] text-[#1E2128] flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
+            <span className="w-6 h-6 rounded-full bg-[#FFD24D] text-[#1E2128] flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
             Stampa il documento
           </li>
           <li className="flex items-start gap-2">
-            <span className="w-6 h-6 rounded-full bg-[#F5C518] text-[#1E2128] flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
+            <span className="w-6 h-6 rounded-full bg-[#FFD24D] text-[#1E2128] flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
             Firmalo in fondo (firma + approvazione clausole)
           </li>
           <li className="flex items-start gap-2">
-            <span className="w-6 h-6 rounded-full bg-[#F5C518] text-[#1E2128] flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
+            <span className="w-6 h-6 rounded-full bg-[#FFD24D] text-[#1E2128] flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
             Scansiona o fotografa tutte le pagine
           </li>
           <li className="flex items-start gap-2">
-            <span className="w-6 h-6 rounded-full bg-[#F5C518] text-[#1E2128] flex items-center justify-center text-xs font-bold flex-shrink-0">4</span>
+            <span className="w-6 h-6 rounded-full bg-[#FFD24D] text-[#1E2128] flex items-center justify-center text-xs font-bold flex-shrink-0">4</span>
             Carica il file qui sotto
           </li>
         </ol>
@@ -322,9 +322,9 @@ const Step2Contratto = ({ partnerId, onboarding, onComplete }) => {
         </div>
       ) : (
         <label className="block cursor-pointer">
-          <div className="border-2 border-dashed border-[#ECEDEF] rounded-xl p-8 text-center hover:border-[#F5C518] transition-colors">
+          <div className="border-2 border-dashed border-[#ECEDEF] rounded-xl p-8 text-center hover:border-[#FFD24D] transition-colors">
             {uploading ? (
-              <Loader2 className="w-8 h-8 animate-spin text-[#F5C518] mx-auto" />
+              <Loader2 className="w-8 h-8 animate-spin text-[#FFD24D] mx-auto" />
             ) : (
               <>
                 <Upload className="w-10 h-10 text-[#9CA3AF] mx-auto mb-2" />
@@ -379,7 +379,7 @@ const Step3Pagamento = ({ partnerId, onboarding, onComplete }) => {
   return (
     <div className="bg-white rounded-xl p-6" style={{ border: "1px solid #ECEDEF" }}>
       <h2 className="text-lg font-bold text-[#1E2128] mb-4 flex items-center gap-2">
-        <CreditCard className="w-5 h-5 text-[#F5C518]" />
+        <CreditCard className="w-5 h-5 text-[#FFD24D]" />
         Effettua il pagamento di €2.790
       </h2>
 
@@ -393,7 +393,7 @@ const Step3Pagamento = ({ partnerId, onboarding, onComplete }) => {
             key={t.id}
             onClick={() => setTab(t.id)}
             className={`flex-1 py-2 px-4 rounded-lg font-medium text-sm transition-all ${
-              tab === t.id ? "bg-[#F5C518] text-[#1E2128]" : "bg-[#FAFAF7] text-[#5F6572]"
+              tab === t.id ? "bg-[#FFD24D] text-[#1E2128]" : "bg-[#FAFAF7] text-[#5F6572]"
             }`}
           >
             {t.label}
@@ -489,7 +489,7 @@ const Step4Documenti = ({ partnerId, onComplete }) => {
   return (
     <div className="bg-white rounded-xl p-6" style={{ border: "1px solid #ECEDEF" }}>
       <h2 className="text-lg font-bold text-[#1E2128] mb-4 flex items-center gap-2">
-        <Shield className="w-5 h-5 text-[#F5C518]" />
+        <Shield className="w-5 h-5 text-[#FFD24D]" />
         Carica i documenti d'identità
       </h2>
 
@@ -525,7 +525,7 @@ const Step4Documenti = ({ partnerId, onComplete }) => {
         onClick={handleUpload}
         disabled={!allUploaded || uploading}
         className="w-full py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-        style={{ background: "#F5C518", color: "#1E2128" }}
+        style={{ background: "#FFD24D", color: "#1E2128" }}
       >
         {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronRight className="w-4 h-4" />}
         Continua
@@ -569,7 +569,7 @@ const Step5Distinta = ({ partnerId, onboarding, onComplete }) => {
   return (
     <div className="bg-white rounded-xl p-6" style={{ border: "1px solid #ECEDEF" }}>
       <h2 className="text-lg font-bold text-[#1E2128] mb-4 flex items-center gap-2">
-        <Upload className="w-5 h-5 text-[#F5C518]" />
+        <Upload className="w-5 h-5 text-[#FFD24D]" />
         Carica la distinta di pagamento
       </h2>
 
@@ -594,9 +594,9 @@ const Step5Distinta = ({ partnerId, onboarding, onComplete }) => {
         </div>
       ) : (
         <label className="block cursor-pointer">
-          <div className="border-2 border-dashed border-[#ECEDEF] rounded-xl p-8 text-center hover:border-[#F5C518] transition-colors">
+          <div className="border-2 border-dashed border-[#ECEDEF] rounded-xl p-8 text-center hover:border-[#FFD24D] transition-colors">
             {uploading ? (
-              <Loader2 className="w-8 h-8 animate-spin text-[#F5C518] mx-auto" />
+              <Loader2 className="w-8 h-8 animate-spin text-[#FFD24D] mx-auto" />
             ) : (
               <>
                 <Upload className="w-10 h-10 text-[#9CA3AF] mx-auto mb-2" />
@@ -625,7 +625,7 @@ const InputField = ({ label, name, value, onChange, placeholder, type = "text" }
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#F5C518]"
+      className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FFD24D]"
       style={{ background: "#FAFAF7", border: "1px solid #ECEDEF" }}
     />
   </div>
@@ -635,7 +635,7 @@ const InfoRow = ({ label, value, copyable, onCopy, copied, highlight }) => (
   <div className="flex items-center justify-between">
     <span className="text-xs text-[#5F6572]">{label}</span>
     <div className="flex items-center gap-2">
-      <span className={`text-sm font-medium ${highlight ? "text-[#F5C518]" : "text-[#1E2128]"}`}>{value}</span>
+      <span className={`text-sm font-medium ${highlight ? "text-[#FFD24D]" : "text-[#1E2128]"}`}>{value}</span>
       {copyable && (
         <button onClick={onCopy} className="p-1 hover:bg-[#ECEDEF] rounded">
           {copied ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-[#9CA3AF]" />}
@@ -649,7 +649,7 @@ const UploadCard = ({ label, file, onFileChange }) => (
   <label className="block cursor-pointer">
     <div
       className={`rounded-xl p-4 text-center transition-all ${
-        file ? "bg-green-50 border-green-200" : "bg-[#FAFAF7] border-[#ECEDEF] hover:border-[#F5C518]"
+        file ? "bg-green-50 border-green-200" : "bg-[#FAFAF7] border-[#ECEDEF] hover:border-[#FFD24D]"
       }`}
       style={{ border: "2px dashed" }}
     >

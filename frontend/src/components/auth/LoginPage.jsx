@@ -35,11 +35,11 @@ export function LoginPage({ onLogin }) {
       <header className="border-b sticky top-0 z-40" style={{ borderColor: '#ECEDEF', background: '#FFFFFF' }}>
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#FFD24D' }}>
               <span className="text-lg font-black text-[#1E2128]">E</span>
             </div>
             <div>
-              <div className="font-black text-base text-[#1E2128]">Evolution<span style={{ color: '#F5C518' }}>PRO</span></div>
+              <div className="font-black text-base text-[#1E2128]">Evolution<span style={{ color: '#FFD24D' }}>PRO</span></div>
               <div className="text-[10px] font-medium text-[#9CA3AF]">Operating System</div>
             </div>
           </div>
@@ -47,7 +47,7 @@ export function LoginPage({ onLogin }) {
           <button
             onClick={() => setShowLoginModal(true)}
             className="px-5 py-2.5 rounded-xl font-bold text-sm transition-all hover:scale-105"
-            style={{ background: '#F5C518', color: '#1E2128' }}
+            style={{ background: '#FFD24D', color: '#1E2128' }}
             data-testid="open-login-btn"
           >
             Accedi
@@ -62,14 +62,14 @@ export function LoginPage({ onLogin }) {
             {/* Left: Content */}
             <div>
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold mb-6"
-                   style={{ background: '#FEF9E7', color: '#C4990A', border: '1px solid #F5C518' }}>
+                   style={{ background: '#FEF9E7', color: '#C4990A', border: '1px solid #FFD24D' }}>
                 <Clock className="w-4 h-4" />
                 Solo 4 progetti al mese
               </div>
               
               <h1 className="text-4xl md:text-5xl font-black text-[#1E2128] leading-tight mb-6">
                 La tua competenza merita un{" "}
-                <span style={{ color: '#F5C518' }}>sistema che lavora anche quando tu non ci sei</span>
+                <span style={{ color: '#FFD24D' }}>sistema che lavora anche quando tu non ci sei</span>
               </h1>
               
               <p className="text-lg text-[#5F6572] mb-8 leading-relaxed">
@@ -82,7 +82,7 @@ export function LoginPage({ onLogin }) {
                 <a 
                   href="/analisi-strategica" 
                   className="px-6 py-3.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-all hover:scale-105"
-                  style={{ background: '#F5C518', color: '#1E2128' }}
+                  style={{ background: '#FFD24D', color: '#1E2128' }}
                   data-testid="cta-analisi"
                 >
                   Richiedi l'Analisi Strategica <ArrowRight className="w-4 h-4" />
@@ -116,7 +116,7 @@ export function LoginPage({ onLogin }) {
                 { icon: FileText, title: "Dashboard Personalizzata", desc: "Gestisci tutto da un unico pannello", color: "#3B82F6" },
                 { icon: Target, title: "Percorso Guidato", desc: "Step-by-step verso il lancio", color: "#8B5CF6" },
                 { icon: Video, title: "Produzione Video", desc: "Assistenza professionale AI", color: "#EC4899" },
-                { icon: Sparkles, title: "AI Assistant", desc: "STEFANIA ti guida 24/7", color: "#F5C518" }
+                { icon: Sparkles, title: "AI Assistant", desc: "STEFANIA ti guida 24/7", color: "#FFD24D" }
               ].map((item, i) => (
                 <div 
                   key={i} 
@@ -152,7 +152,7 @@ export function LoginPage({ onLogin }) {
                 step: "1", 
                 title: "Analisi Strategica", 
                 desc: "Acquisti l'analisi a €67, compili il questionario e fissi una videocall di 60 minuti con Claudio.",
-                color: "#F5C518"
+                color: "#FFD24D"
               },
               { 
                 step: "2", 
@@ -186,10 +186,10 @@ export function LoginPage({ onLogin }) {
       <footer className="py-8 border-t" style={{ borderColor: '#ECEDEF' }}>
         <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#F5C518' }}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#FFD24D' }}>
               <span className="text-sm font-black text-[#1E2128]">E</span>
             </div>
-            <span className="text-sm font-bold text-[#1E2128]">Evolution<span style={{ color: '#F5C518' }}>PRO</span></span>
+            <span className="text-sm font-bold text-[#1E2128]">Evolution<span style={{ color: '#FFD24D' }}>PRO</span></span>
           </div>
           <p className="text-xs text-[#9CA3AF]">
             © 2026 Evolution PRO. Tutti i diritti riservati.
@@ -216,7 +216,7 @@ export function LoginPage({ onLogin }) {
 
             {/* Header */}
             <div className="text-center mb-6">
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: '#F5C518' }}>
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: '#FFD24D' }}>
                 <span className="text-2xl font-black text-[#1E2128]">E</span>
               </div>
               <h2 className="text-xl font-bold text-[#1E2128] mb-1">Bentornato!</h2>
@@ -235,7 +235,7 @@ export function LoginPage({ onLogin }) {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="La tua email"
                     required
-                    className="w-full p-3 pl-10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F5C518]"
+                    className="w-full p-3 pl-10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FFD24D]"
                     style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}
                     data-testid="login-email"
                   />
@@ -253,7 +253,7 @@ export function LoginPage({ onLogin }) {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="La tua password"
                     required
-                    className="w-full p-3 pl-10 pr-10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F5C518]"
+                    className="w-full p-3 pl-10 pr-10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FFD24D]"
                     style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}
                     data-testid="login-password"
                   />
@@ -279,7 +279,7 @@ export function LoginPage({ onLogin }) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3.5 rounded-xl font-bold bg-[#F5C518] text-black hover:bg-[#e0b115] flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
+                className="w-full py-3.5 rounded-xl font-bold bg-[#FFD24D] text-black hover:bg-[#e0b115] flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
                 data-testid="login-submit"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Accedi<ArrowRight className="w-4 h-4" /></>}
@@ -288,7 +288,7 @@ export function LoginPage({ onLogin }) {
 
             {/* Footer */}
             <p className="text-xs text-center text-[#9CA3AF] mt-6">
-              Problemi di accesso? <a href="mailto:assistenza@evolution-pro.it" className="font-semibold hover:underline" style={{ color: '#F5C518' }}>Contattaci</a>
+              Problemi di accesso? <a href="mailto:assistenza@evolution-pro.it" className="font-semibold hover:underline" style={{ color: '#FFD24D' }}>Contattaci</a>
             </p>
           </div>
         </div>

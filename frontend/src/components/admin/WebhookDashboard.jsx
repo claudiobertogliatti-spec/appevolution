@@ -127,7 +127,7 @@ export function WebhookDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-extrabold flex items-center gap-2" style={{ color: '#1E2128' }}>
-            <Webhook className="w-6 h-6" style={{ color: '#F2C418' }} />
+            <Webhook className="w-6 h-6" style={{ color: '#FFD24D' }} />
             Webhooks Systeme.io
           </h1>
           <p className="text-sm" style={{ color: '#9CA3AF' }}>
@@ -138,7 +138,7 @@ export function WebhookDashboard() {
           onClick={loadData}
           disabled={loading}
           className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all hover:scale-105"
-          style={{ background: '#F2C418', color: '#1E2128' }}
+          style={{ background: '#FFD24D', color: '#1E2128' }}
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           Aggiorna
@@ -146,7 +146,7 @@ export function WebhookDashboard() {
       </div>
 
       {/* Webhook URL Box */}
-      <div className="rounded-xl p-4 border" style={{ background: '#FFF8DC', borderColor: '#F2C41850' }}>
+      <div className="rounded-xl p-4 border" style={{ background: '#FFF8DC', borderColor: '#FFD24D50' }}>
         <div className="flex items-center justify-between">
           <div>
             <div className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: '#C4990A' }}>
@@ -159,7 +159,7 @@ export function WebhookDashboard() {
           <button 
             onClick={() => navigator.clipboard.writeText(webhookUrl)}
             className="px-3 py-1.5 rounded-lg text-xs font-bold"
-            style={{ background: '#F2C418', color: '#1E2128' }}
+            style={{ background: '#FFD24D', color: '#1E2128' }}
           >
             Copia
           </button>

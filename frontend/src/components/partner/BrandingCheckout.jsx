@@ -110,7 +110,7 @@ export function BrandingCheckout({ partner, onBack }) {
             <button
               onClick={onBack}
               className="px-6 py-3 rounded-xl font-bold"
-              style={{ background: '#F2C418', color: '#1E2128' }}
+              style={{ background: '#FFD24D', color: '#1E2128' }}
             >
               Torna ai Servizi
             </button>
@@ -181,7 +181,7 @@ export function BrandingCheckout({ partner, onBack }) {
       {/* Brand Info Form */}
       <div className="bg-white rounded-xl p-6" style={{ border: '1px solid #ECEDEF' }}>
         <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
-          <Sparkles className="w-5 h-5" style={{ color: '#F2C418' }} />
+          <Sparkles className="w-5 h-5" style={{ color: '#FFD24D' }} />
           Parlaci del Tuo Brand
         </h3>
         

@@ -179,7 +179,7 @@ const ApprovalDashboard = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64" style={{ background: '#FAFAF7' }}>
-        <RefreshCw className="w-8 h-8 animate-spin" style={{ color: '#F2C418' }} />
+        <RefreshCw className="w-8 h-8 animate-spin" style={{ color: '#FFD24D' }} />
       </div>
     );
   }
@@ -293,8 +293,8 @@ const ApprovalDashboard = () => {
           <span className="text-3xl font-bold" style={{ color: '#1E2128' }}>{stats.rejected_today}</span>
         </div>
         
-        <div className="bg-white rounded-xl p-4 shadow-sm" style={{ border: '1px solid #ECEDEF', borderTop: stats.stale_over_4h > 0 ? '3px solid #EF4444' : '3px solid #F2C418' }}>
-          <div className="flex items-center gap-2 mb-2" style={{ color: '#F2C418' }}>
+        <div className="bg-white rounded-xl p-4 shadow-sm" style={{ border: '1px solid #ECEDEF', borderTop: stats.stale_over_4h > 0 ? '3px solid #EF4444' : '3px solid #FFD24D' }}>
+          <div className="flex items-center gap-2 mb-2" style={{ color: '#FFD24D' }}>
             <AlertTriangle className="w-5 h-5" />
             <span className="text-sm font-medium">&gt;4h Attesa</span>
           </div>
@@ -324,7 +324,7 @@ const ApprovalDashboard = () => {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#F5C518] to-[#c49a12] flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FFD24D] to-[#c49a12] flex items-center justify-center">
                         <span className="text-sm font-bold text-black">
                           {cliente.nome?.[0]}{cliente.cognome?.[0]}
                         </span>

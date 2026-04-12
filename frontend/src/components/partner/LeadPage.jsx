@@ -68,7 +68,7 @@ function LeadRow({ lead, onStatusChange, onViewDetails }) {
       <td className="py-3 px-4">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-               style={{ background: '#F2C41830', color: '#F2C418' }}>
+               style={{ background: '#FFD24D30', color: '#FFD24D' }}>
             {lead.name?.charAt(0)?.toUpperCase() || '?'}
           </div>
           <span className="font-medium text-sm" style={{ color: '#1E2128' }}>
@@ -333,7 +333,7 @@ export function LeadPage({ partner }) {
   if (isLoading && leads.length === 0) {
     return (
       <div className="min-h-full flex items-center justify-center" style={{ background: '#FAFAF7' }}>
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#F2C418' }} />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#FFD24D' }} />
       </div>
     );
   }

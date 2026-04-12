@@ -102,7 +102,7 @@ export function RenewalPlans({ partnerName, currentRevenue, onSelectPlan }) {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm text-[#5F6572] mb-1">Il tuo Asset Value</div>
-              <div className="font-mono text-3xl font-bold text-[#F5C518]">
+              <div className="font-mono text-3xl font-bold text-[#FFD24D]">
                 €{currentRevenue.toLocaleString()}
               </div>
             </div>
@@ -195,7 +195,7 @@ export function RenewalPlans({ partnerName, currentRevenue, onSelectPlan }) {
       <div className="text-center">
         <p className="text-gray-500 text-sm">
           Hai domande? Scrivici su{" "}
-          <a href="#" className="text-[#F5C518] font-bold hover:underline">
+          <a href="#" className="text-[#FFD24D] font-bold hover:underline">
             Telegram
           </a>{" "}
           o contatta{" "}

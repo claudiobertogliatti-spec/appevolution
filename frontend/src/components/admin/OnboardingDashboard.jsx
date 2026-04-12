@@ -85,7 +85,7 @@ export function OnboardingDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black flex items-center gap-2" style={{ color: '#1E2128' }}>
-            <UserPlus className="w-6 h-6" style={{ color: '#F2C418' }} />
+            <UserPlus className="w-6 h-6" style={{ color: '#FFD24D' }} />
             Onboarding Partner
           </h1>
           <p className="text-sm" style={{ color: '#9CA3AF' }}>
@@ -161,7 +161,7 @@ export function OnboardingDashboard() {
                 <button 
                   onClick={() => setShowSystemeModal({ partner, action: 'create' })}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all hover:opacity-90"
-                  style={{ background: '#F2C418', color: '#1E2128' }}
+                  style={{ background: '#FFD24D', color: '#1E2128' }}
                 >
                   <Settings className="w-4 h-4" />
                   Segna Creato
@@ -227,7 +227,7 @@ export function OnboardingDashboard() {
               {loading ? (
                 <tr>
                   <td colSpan={6} className="p-8 text-center">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" style={{ color: '#F2C418' }} />
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" style={{ color: '#FFD24D' }} />
                     <span style={{ color: '#9CA3AF' }}>Caricamento...</span>
                   </td>
                 </tr>
@@ -243,7 +243,7 @@ export function OnboardingDashboard() {
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
-                             style={{ background: '#F2C41820', color: '#C4990A' }}>
+                             style={{ background: '#FFD24D20', color: '#C4990A' }}>
                           {partner.name?.split(" ").map(n => n[0]).join("") || "?"}
                         </div>
                         <div>
@@ -254,7 +254,7 @@ export function OnboardingDashboard() {
                     </td>
                     <td className="p-4">
                       <span className="px-2 py-1 rounded-full text-xs font-bold"
-                            style={{ background: '#F2C41820', color: '#C4990A' }}>
+                            style={{ background: '#FFD24D20', color: '#C4990A' }}>
                         {partner.phase || 'F1'}
                       </span>
                     </td>
@@ -309,7 +309,7 @@ export function OnboardingDashboard() {
                   value={systemeEmail}
                   onChange={(e) => setSystemeEmail(e.target.value)}
                   placeholder={showSystemeModal.partner.email}
-                  className="w-full px-4 py-3 rounded-xl border border-[#ECEDEF] focus:outline-none focus:border-[#F2C418]"
+                  className="w-full px-4 py-3 rounded-xl border border-[#ECEDEF] focus:outline-none focus:border-[#FFD24D]"
                 />
               </div>
               
@@ -323,7 +323,7 @@ export function OnboardingDashboard() {
                     value={systemePassword}
                     onChange={(e) => setSystemePassword(e.target.value)}
                     placeholder="Lascia vuoto se comunicata separatamente"
-                    className="w-full px-4 py-3 rounded-xl border border-[#ECEDEF] focus:outline-none focus:border-[#F2C418]"
+                    className="w-full px-4 py-3 rounded-xl border border-[#ECEDEF] focus:outline-none focus:border-[#FFD24D]"
                   />
                 </div>
               )}
@@ -338,7 +338,7 @@ export function OnboardingDashboard() {
                 }}
                 disabled={sendingEmail}
                 className="w-full py-3 rounded-xl font-bold transition-all hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
-                style={{ background: showSystemeModal.action === 'create' ? '#F2C418' : '#8B5CF6', color: showSystemeModal.action === 'create' ? '#1E2128' : 'white' }}
+                style={{ background: showSystemeModal.action === 'create' ? '#FFD24D' : '#8B5CF6', color: showSystemeModal.action === 'create' ? '#1E2128' : 'white' }}
               >
                 {sendingEmail ? (
                   <Loader2 className="w-5 h-5 animate-spin" />

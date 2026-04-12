@@ -54,8 +54,8 @@ function DocumentCard({ doc, onVerify, onReject, isProcessing }) {
       <div className="p-4 border-b border-[#ECEDEF] bg-gradient-to-r from-[#FAFAF7] to-white">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-[#F5C518]/10">
-              <FileText className="w-5 h-5 text-[#F5C518]" />
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-[#FFD24D]/10">
+              <FileText className="w-5 h-5 text-[#FFD24D]" />
             </div>
             <div>
               <h3 className="font-bold text-[#1E2128]">
@@ -95,7 +95,7 @@ function DocumentCard({ doc, onVerify, onReject, isProcessing }) {
               href={`${API}${doc.internal_url.replace('/api', '')}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-[#FAFAF7] border border-[#ECEDEF] hover:border-[#F5C518] transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-[#FAFAF7] border border-[#ECEDEF] hover:border-[#FFD24D] transition-colors"
             >
               <Eye className="w-3.5 h-3.5" />
               Visualizza
@@ -140,7 +140,7 @@ function DocumentCard({ doc, onVerify, onReject, isProcessing }) {
               value={rejectReason}
               onChange={e => setRejectReason(e.target.value)}
               placeholder="Motivo del rifiuto..."
-              className="w-full p-3 rounded-xl border border-[#ECEDEF] text-sm resize-none h-24 focus:outline-none focus:border-[#F5C518]"
+              className="w-full p-3 rounded-xl border border-[#ECEDEF] text-sm resize-none h-24 focus:outline-none focus:border-[#FFD24D]"
             />
             <div className="flex justify-end gap-2 mt-4">
               <button
@@ -269,7 +269,7 @@ export function OnboardingDocumentsAdmin() {
             onClick={loadDocuments}
             disabled={loading}
             className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-colors"
-            style={{ background: '#F5C518', color: '#1E2128' }}
+            style={{ background: '#FFD24D', color: '#1E2128' }}
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Aggiorna
@@ -315,7 +315,7 @@ export function OnboardingDocumentsAdmin() {
             onClick={() => setFilter(tab.id)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
               filter === tab.id 
-                ? "bg-[#F5C518] text-[#1E2128]" 
+                ? "bg-[#FFD24D] text-[#1E2128]" 
                 : "text-[#5F6572] hover:bg-[#FAFAF7]"
             }`}
           >
@@ -332,7 +332,7 @@ export function OnboardingDocumentsAdmin() {
       {/* Documents Grid */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 text-[#F5C518] animate-spin" />
+          <Loader2 className="w-8 h-8 text-[#FFD24D] animate-spin" />
         </div>
       ) : filteredDocs.length === 0 ? (
         <div className="bg-white rounded-2xl border border-[#ECEDEF] p-12 text-center">
@@ -364,7 +364,7 @@ export function OnboardingDocumentsAdmin() {
       
       {/* Help Section */}
       <div className="bg-[#1E2128] rounded-xl p-5 text-white">
-        <h3 className="font-bold text-[#F5C518] mb-2">Guida alla Verifica</h3>
+        <h3 className="font-bold text-[#FFD24D] mb-2">Guida alla Verifica</h3>
         <div className="space-y-2 text-sm text-white/80">
           <p>• <strong>Contratto Firmato:</strong> Verifica che il PDF sia firmato in tutte le pagine richieste</p>
           <p>• <strong>Documenti Personali:</strong> Controlla che la carta d'identità sia leggibile e valida</p>

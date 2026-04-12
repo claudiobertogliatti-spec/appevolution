@@ -26,7 +26,7 @@ const DISCOVERY_STATUSES = {
   discovered:    { label: "Scoperto",      color: "#3B82F6" },
   analyzing:     { label: "In analisi",    color: "#8B5CF6" },
   scored:        { label: "Scorato",       color: "#F59E0B" },
-  message_ready: { label: "Msg pronto",   color: "#F2C418" },
+  message_ready: { label: "Msg pronto",   color: "#FFD24D" },
   message_sent:  { label: "Msg inviato",  color: "#22C55E" },
   contacted:     { label: "Contattato",   color: "#10B981" },
   interested:    { label: "Interessato",  color: "#EF4444" },
@@ -222,7 +222,7 @@ function DiscoveryEditModal({ lead, onClose, onSaved }) {
             <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">Annulla</button>
             <button onClick={save} disabled={saving}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold"
-              style={{ background: "#F2C418", color: "#1E2128" }}>
+              style={{ background: "#FFD24D", color: "#1E2128" }}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               Salva
             </button>
@@ -325,7 +325,7 @@ function FreddaEditModal({ lead, onClose, onSaved }) {
             <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">Annulla</button>
             <button onClick={save} disabled={saving}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold"
-              style={{ background: "#F2C418", color: "#1E2128" }}>
+              style={{ background: "#FFD24D", color: "#1E2128" }}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               Salva
             </button>
@@ -462,7 +462,7 @@ function ImportModal({ type, onClose, onImported }) {
               )}
               <button onClick={handleCsvUpload} disabled={!csvFile || uploading}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all"
-                style={{ background: csvFile && !uploading ? "#1E2128" : "#F0EDE8", color: csvFile && !uploading ? "#F2C418" : "#9CA3AF" }}>
+                style={{ background: csvFile && !uploading ? "#1E2128" : "#F0EDE8", color: csvFile && !uploading ? "#FFD24D" : "#9CA3AF" }}>
                 {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
                 {uploading ? "Importazione..." : "Importa CSV"}
               </button>
@@ -507,7 +507,7 @@ function ImportModal({ type, onClose, onImported }) {
               {manualError && <p className="text-sm text-red-600">{manualError}</p>}
               <button onClick={handleManualSave} disabled={manualSaving || !form.email}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm"
-                style={{ background: !form.email || manualSaving ? "#F0EDE8" : "#1E2128", color: !form.email || manualSaving ? "#9CA3AF" : "#F2C418" }}>
+                style={{ background: !form.email || manualSaving ? "#F0EDE8" : "#1E2128", color: !form.email || manualSaving ? "#9CA3AF" : "#FFD24D" }}>
                 {manualSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserPlus className="w-5 h-5" />}
                 Aggiungi lead
               </button>
@@ -785,7 +785,7 @@ export default function LeadManagerAdmin() {
               <Icon className="w-4 h-4" />
               {label}
               <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full"
-                style={{ background: activeTab === id ? "#F2C41820" : "transparent", color: "#F2C418" }}>
+                style={{ background: activeTab === id ? "#FFD24D20" : "transparent", color: "#FFD24D" }}>
                 {activeTab === id ? total : ""}
               </span>
             </button>
@@ -840,7 +840,7 @@ export default function LeadManagerAdmin() {
 
         <button onClick={() => setShowImport(true)}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all"
-          style={{ background: "#1E2128", color: "#F2C418" }}>
+          style={{ background: "#1E2128", color: "#FFD24D" }}>
           <Plus className="w-4 h-4" />
           Importa
         </button>
@@ -850,7 +850,7 @@ export default function LeadManagerAdmin() {
       <div className="flex-1 overflow-auto">
         {loading ? (
           <div className="flex items-center justify-center h-48">
-            <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F2C418" }} />
+            <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FFD24D" }} />
           </div>
         ) : leads.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 gap-3">
@@ -930,7 +930,7 @@ export default function LeadManagerAdmin() {
                       )}
                       <button onClick={() => setEditLead(lead)}
                         className="p-1.5 rounded-lg hover:bg-yellow-50 transition-colors">
-                        <Edit3 className="w-3.5 h-3.5" style={{ color: "#F2C418" }} />
+                        <Edit3 className="w-3.5 h-3.5" style={{ color: "#FFD24D" }} />
                       </button>
                       <button onClick={() => handleDelete(lead)} disabled={deletingId === lead.id}
                         className="p-1.5 rounded-lg hover:bg-red-50 transition-colors">
@@ -977,7 +977,7 @@ export default function LeadManagerAdmin() {
                     <div className="flex items-center gap-1 justify-end">
                       <button onClick={() => setEditLead(lead)}
                         className="p-1.5 rounded-lg hover:bg-yellow-50 transition-colors">
-                        <Edit3 className="w-3.5 h-3.5" style={{ color: "#F2C418" }} />
+                        <Edit3 className="w-3.5 h-3.5" style={{ color: "#FFD24D" }} />
                       </button>
                       <button onClick={() => handleDelete(lead)} disabled={deletingId === lead.email}
                         className="p-1.5 rounded-lg hover:bg-red-50 transition-colors">

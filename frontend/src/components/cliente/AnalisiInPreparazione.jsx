@@ -107,12 +107,12 @@ export function AnalisiInPreparazione({ user, onLogout }) {
       <header className="border-b" style={{ background: '#FFFFFF', borderColor: '#ECEDEF' }}>
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#FFD24D' }}>
               <span className="text-lg font-black" style={{ color: '#1E2128' }}>E</span>
             </div>
             <div>
               <span className="font-black text-lg" style={{ color: '#1E2128' }}>
-                EVOLUTION <span style={{ color: '#F5C518' }}>PRO</span>
+                EVOLUTION <span style={{ color: '#FFD24D' }}>PRO</span>
               </span>
             </div>
           </div>
@@ -147,7 +147,7 @@ export function AnalisiInPreparazione({ user, onLogout }) {
                       step.status === 'pending' ? 'opacity-40' : ''
                     }`}
                     style={{ 
-                      background: step.status === 'completed' ? '#22C55E' : step.status === 'active' ? '#F5C518' : '#ECEDEF',
+                      background: step.status === 'completed' ? '#22C55E' : step.status === 'active' ? '#FFD24D' : '#ECEDEF',
                       color: step.status === 'pending' ? '#9CA3AF' : '#1E2128'
                     }}
                   >
@@ -208,7 +208,7 @@ export function AnalisiInPreparazione({ user, onLogout }) {
           <div className="flex items-center gap-3 mb-4">
             <div 
               className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ background: '#F5C51815' }}
+              style={{ background: '#FFD24D15' }}
             >
               <ClipboardList className="w-5 h-5" style={{ color: '#C4990A' }} />
             </div>
@@ -222,7 +222,7 @@ export function AnalisiInPreparazione({ user, onLogout }) {
               <div key={index} className="flex items-start gap-3">
                 <div 
                   className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                  style={{ background: '#F5C51820' }}
+                  style={{ background: '#FFD24D20' }}
                 >
                   <CheckCircle className="w-3.5 h-3.5" style={{ color: '#C4990A' }} />
                 </div>
@@ -241,11 +241,11 @@ export function AnalisiInPreparazione({ user, onLogout }) {
         </div>
 
         {/* CTA PRENOTA CALL */}
-        <div className="rounded-2xl p-6 mb-8" style={{ background: '#FFFFFF', border: '2px solid #F5C518' }}>
+        <div className="rounded-2xl p-6 mb-8" style={{ background: '#FFFFFF', border: '2px solid #FFD24D' }}>
           <div className="flex items-start gap-4">
             <div 
               className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: '#F5C51815' }}
+              style={{ background: '#FFD24D15' }}
             >
               <Calendar className="w-6 h-6" style={{ color: '#C4990A' }} />
             </div>
@@ -259,7 +259,7 @@ export function AnalisiInPreparazione({ user, onLogout }) {
               <button
                 onClick={() => window.open('https://calendar.app.google/SzqmVraMNxYvF9CF7', '_blank')}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all hover:opacity-90 hover:scale-105"
-                style={{ background: '#F5C518', color: '#1E2128' }}
+                style={{ background: '#FFD24D', color: '#1E2128' }}
                 data-testid="prenota-call-btn"
               >
                 Prenota la tua call strategica
@@ -276,7 +276,7 @@ export function AnalisiInPreparazione({ user, onLogout }) {
           <div className="flex items-center gap-3 mb-4">
             <div 
               className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ background: '#F5C51815' }}
+              style={{ background: '#FFD24D15' }}
             >
               <Video className="w-5 h-5" style={{ color: '#C4990A' }} />
             </div>
@@ -310,7 +310,7 @@ export function AnalisiInPreparazione({ user, onLogout }) {
                   <div className="relative z-10 text-center">
                     <div 
                       className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform shadow-2xl"
-                      style={{ background: '#F5C518' }}
+                      style={{ background: '#FFD24D' }}
                     >
                       <PlayCircle className="w-10 h-10" style={{ color: '#1E2128' }} />
                     </div>
@@ -355,7 +355,7 @@ export function AnalisiInPreparazione({ user, onLogout }) {
               <div className="flex items-center gap-3">
                 <div 
                   className="w-12 h-12 rounded-xl flex items-center justify-center"
-                  style={{ background: '#F5C518' }}
+                  style={{ background: '#FFD24D' }}
                 >
                   <BookOpen className="w-6 h-6" style={{ color: '#1E2128' }} />
                 </div>
@@ -383,7 +383,7 @@ export function AnalisiInPreparazione({ user, onLogout }) {
                     <div 
                       className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors"
                       style={{ 
-                        background: selectedModule === modulo.id ? '#F5C518' : '#FFF8DC',
+                        background: selectedModule === modulo.id ? '#FFD24D' : '#FFF8DC',
                         color: selectedModule === modulo.id ? '#1E2128' : '#C4990A'
                       }}
                     >
@@ -423,7 +423,7 @@ export function AnalisiInPreparazione({ user, onLogout }) {
           <div className="flex items-center gap-3 mb-4">
             <div 
               className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ background: '#F5C518' }}
+              style={{ background: '#FFD24D' }}
             >
               <Calendar className="w-5 h-5" style={{ color: '#1E2128' }} />
             </div>
@@ -441,9 +441,9 @@ export function AnalisiInPreparazione({ user, onLogout }) {
               <div key={index} className="flex items-start gap-3">
                 <div 
                   className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                  style={{ background: '#F5C51830' }}
+                  style={{ background: '#FFD24D30' }}
                 >
-                  <CheckCircle className="w-3.5 h-3.5" style={{ color: '#F5C518' }} />
+                  <CheckCircle className="w-3.5 h-3.5" style={{ color: '#FFD24D' }} />
                 </div>
                 <span className="text-sm capitalize" style={{ color: '#FFFFFF' }}>{item}</span>
               </div>
@@ -453,7 +453,7 @@ export function AnalisiInPreparazione({ user, onLogout }) {
           <div className="mt-6 pt-4" style={{ borderTop: '1px solid #333' }}>
             <p className="text-xs text-center" style={{ color: '#5F6572' }}>
               Hai domande? Scrivi a{' '}
-              <a href="mailto:supporto@evolution-pro.it" className="font-medium hover:underline" style={{ color: '#F5C518' }}>
+              <a href="mailto:supporto@evolution-pro.it" className="font-medium hover:underline" style={{ color: '#FFD24D' }}>
                 supporto@evolution-pro.it
               </a>
             </p>

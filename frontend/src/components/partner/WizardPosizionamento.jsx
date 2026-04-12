@@ -109,9 +109,9 @@ ${answers.bonus || "Non definito"}
       <div className="max-w-2xl mx-auto animate-slide-in" data-testid="wizard-output">
         <div className="bg-white border border-[#ECEDEF] rounded-xl overflow-hidden">
           {/* Header */}
-          <div className="p-5 border-b border-[#ECEDEF] bg-gradient-to-r from-[#F5C518]/20 to-transparent">
+          <div className="p-5 border-b border-[#ECEDEF] bg-gradient-to-r from-[#FFD24D]/20 to-transparent">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[#F5C518] flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg bg-[#FFD24D] flex items-center justify-center">
                 <Target className="w-5 h-5 text-black" />
               </div>
               <div>
@@ -159,7 +159,7 @@ ${answers.bonus || "Non definito"}
                 }
                 onComplete && onComplete(output);
               }}
-              className="flex-1 flex items-center justify-center gap-2 bg-[#F5C518] text-black rounded-xl px-4 py-3 text-sm font-extrabold hover:bg-[#e0a800] transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 bg-[#FFD24D] text-black rounded-xl px-4 py-3 text-sm font-extrabold hover:bg-[#e0a800] transition-colors"
             >
               <Check className="w-4 h-4" /> Salva e Continua
             </button>
@@ -177,11 +177,11 @@ ${answers.bonus || "Non definito"}
           <span className="text-xs font-bold text-[#9CA3AF]">
             Domanda {currentStep + 1} di {totalSteps}
           </span>
-          <span className="text-xs font-bold text-[#F5C518]">{Math.round(progress)}%</span>
+          <span className="text-xs font-bold text-[#FFD24D]">{Math.round(progress)}%</span>
         </div>
         <div className="h-2 bg-white/10 rounded-full overflow-hidden">
           <div
-            className="h-full bg-[#F5C518] rounded-full transition-all duration-300"
+            className="h-full bg-[#FFD24D] rounded-full transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -194,7 +194,7 @@ ${answers.bonus || "Non definito"}
             key={i}
             onClick={() => setCurrentStep(i)}
             className={`w-3 h-3 rounded-full transition-all
-              ${i < currentStep ? 'bg-[#16a34a]' : i === currentStep ? 'bg-[#F5C518] ring-2 ring-[#F5C518]/30' : 'bg-white/10'}`}
+              ${i < currentStep ? 'bg-[#16a34a]' : i === currentStep ? 'bg-[#FFD24D] ring-2 ring-[#FFD24D]/30' : 'bg-white/10'}`}
           />
         ))}
       </div>
@@ -204,7 +204,7 @@ ${answers.bonus || "Non definito"}
         {/* Question Header */}
         <div className="p-6 border-b border-[#ECEDEF]">
           <div className="flex items-start gap-3 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-[#F5C518] flex items-center justify-center font-mono text-sm font-bold text-black flex-shrink-0">
+            <div className="w-10 h-10 rounded-lg bg-[#FFD24D] flex items-center justify-center font-mono text-sm font-bold text-black flex-shrink-0">
               {currentStep + 1}
             </div>
             <div className="text-lg font-extrabold text-[#1E2128] leading-snug">
@@ -213,10 +213,10 @@ ${answers.bonus || "Non definito"}
           </div>
 
           {/* Hint */}
-          <div className="bg-[#FFFBEA]/10 border border-[#F5C518]/30 rounded-lg p-4">
+          <div className="bg-[#FFFBEA]/10 border border-[#FFD24D]/30 rounded-lg p-4">
             <div className="flex items-start gap-2">
-              <Sparkles className="w-4 h-4 text-[#F5C518] flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-[#F5C518]/80 leading-relaxed">
+              <Sparkles className="w-4 h-4 text-[#FFD24D] flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-[#FFD24D]/80 leading-relaxed">
                 {question.hint}
               </div>
             </div>
@@ -229,7 +229,7 @@ ${answers.bonus || "Non definito"}
             value={answers[question.id] || ""}
             onChange={(e) => setAnswers(prev => ({ ...prev, [question.id]: e.target.value }))}
             placeholder={question.placeholder}
-            className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-4 text-sm font-semibold text-[#1E2128] placeholder:text-[#9CA3AF] outline-none transition-colors focus:border-[#F5C518] resize-none min-h-[160px] leading-relaxed"
+            className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-4 text-sm font-semibold text-[#1E2128] placeholder:text-[#9CA3AF] outline-none transition-colors focus:border-[#FFD24D] resize-none min-h-[160px] leading-relaxed"
           />
         </div>
 
@@ -247,7 +247,7 @@ ${answers.bonus || "Non definito"}
           <button
             onClick={handleNext}
             disabled={!answers[question.id]?.trim()}
-            className={`flex-1 flex items-center justify-center gap-2 bg-[#F5C518] text-black rounded-xl px-6 py-3 text-sm font-extrabold transition-colors
+            className={`flex-1 flex items-center justify-center gap-2 bg-[#FFD24D] text-black rounded-xl px-6 py-3 text-sm font-extrabold transition-colors
               ${!answers[question.id]?.trim() ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#e0a800]'}`}
           >
             {currentStep === totalSteps - 1 ? (

@@ -263,8 +263,8 @@ function AssignPanel({ templates, partners, onAssign, isAssigning }) {
     <div className="bg-white rounded-2xl p-5 mb-6" style={{ border: "1px solid #ECEDEF" }}
       data-testid="assign-panel">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#F2C41820" }}>
-          <Package className="w-5 h-5" style={{ color: "#F2C418" }} />
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#FFD24D20" }}>
+          <Package className="w-5 h-5" style={{ color: "#FFD24D" }} />
         </div>
         <div>
           <h2 className="text-base font-black" style={{ color: "#1E2128" }}>Assegna funnel</h2>
@@ -312,7 +312,7 @@ function AssignPanel({ templates, partners, onAssign, isAssigning }) {
           onClick={handleSubmit}
           disabled={!selectedPartner || !selectedTemplate || isAssigning}
           className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-black text-sm transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
-          style={{ background: "#F2C418", color: "#1E2128" }}
+          style={{ background: "#FFD24D", color: "#1E2128" }}
           data-testid="assign-btn"
         >
           {isAssigning ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Package className="w-4 h-4" /> Assegna funnel</>}
@@ -379,7 +379,7 @@ export function FunnelDistribution() {
   if (isLoading) {
     return (
       <div className="min-h-full flex items-center justify-center" style={{ background: "#FAFAF7" }}>
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F2C418" }} />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FFD24D" }} />
       </div>
     );
   }

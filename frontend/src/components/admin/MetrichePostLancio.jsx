@@ -65,8 +65,8 @@ export function MetrichePostLancio({ partners = [] }) {
             onClick={() => setSel(p.name)}
             className={`px-4 py-2 rounded-full text-xs font-bold transition-all
               ${sel === p.name
-                ? 'bg-[#F5C518] text-black'
-                : 'bg-[#FAFAF7] border border-[#ECEDEF] text-[#5F6572] hover:border-[#F5C518]/30'}`}
+                ? 'bg-[#FFD24D] text-black'
+                : 'bg-[#FAFAF7] border border-[#ECEDEF] text-[#5F6572] hover:border-[#FFD24D]/30'}`}
           >
             {p.name} · {p.phase}
           </button>
@@ -114,7 +114,7 @@ export function MetrichePostLancio({ partners = [] }) {
                     className="w-full rounded-t transition-all"
                     style={{
                       height: `${(v / max) * 48}px`,
-                      background: isMax ? '#F5C518' : '#2c3e55',
+                      background: isMax ? '#FFD24D' : '#2c3e55',
                       opacity: isMax ? 1 : 0.6
                     }}
                   />
@@ -176,7 +176,7 @@ export function MetrichePostLancio({ partners = [] }) {
                   className="h-full rounded-full transition-all"
                   style={{
                     width: `${pct}%`,
-                    background: pct > 70 ? '#16a34a' : pct > 40 ? '#F5C518' : '#ea580c'
+                    background: pct > 70 ? '#16a34a' : pct > 40 ? '#FFD24D' : '#ea580c'
                   }}
                 />
               </div>

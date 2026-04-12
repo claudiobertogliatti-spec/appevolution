@@ -131,17 +131,17 @@ function AdminOverview({ stats, agents, partners, alerts, onNavigate }) {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-4 gap-4">
-        <KPICard label="Revenue Totale" value={`€${rev.toLocaleString()}`} delta="Partner attivi" deltaType="up" icon={DollarSign} accent="#F5C518" />
+        <KPICard label="Revenue Totale" value={`€${rev.toLocaleString()}`} delta="Partner attivi" deltaType="up" icon={DollarSign} accent="#FFD24D" />
         <KPICard label="Partner Attivi" value={activePartners.length} delta={`${(partners||[]).length} in pipeline`} deltaType="up" icon={Users} accent="#10B981" />
         <KPICard label="Budget AI" value={`$${stats.total_ai_budget||0}`} delta={`$${900-(stats.total_ai_budget||0)} disponibili`} deltaType="warn" icon={Activity} accent="#F59E0B" />
         <KPICard label="Alert Aperti" value={alerts.length} delta={alerts.length>0?"Richiedono attenzione":"Tutto OK"} deltaType={alerts.length>0?"down":"up"} icon={AlertTriangle} accent={alerts.length>0?"#EF4444":"#10B981"} />
       </div>
       
       {/* Card Clienti Analisi */}
-      <div className="rounded-xl overflow-hidden cursor-pointer hover:shadow-lg transition-shadow" style={{ background: '#F5C51815', border: '2px solid #F5C518' }} onClick={()=>onNavigate("clienti-analisi")}>
+      <div className="rounded-xl overflow-hidden cursor-pointer hover:shadow-lg transition-shadow" style={{ background: '#FFD24D15', border: '2px solid #FFD24D' }} onClick={()=>onNavigate("clienti-analisi")}>
         <div className="px-5 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#FFD24D' }}>
               <FileText className="w-5 h-5" style={{ color: '#1E2128' }} />
             </div>
             <div>
@@ -149,7 +149,7 @@ function AdminOverview({ stats, agents, partners, alerts, onNavigate }) {
               <div className="text-xs" style={{ color: '#5F6572' }}>Visualizza clienti registrati, questionari e pagamenti</div>
             </div>
           </div>
-          <ChevronRight className="w-5 h-5" style={{ color: '#F5C518' }} />
+          <ChevronRight className="w-5 h-5" style={{ color: '#FFD24D' }} />
         </div>
       </div>
       
@@ -178,7 +178,7 @@ function AdminOverview({ stats, agents, partners, alerts, onNavigate }) {
       <div className="rounded-xl overflow-hidden" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
         <div className="px-5 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid #ECEDEF' }}>
           <span className="font-bold text-sm" style={{ color: '#1E2128' }}>Pipeline Partner</span>
-          <button onClick={()=>onNavigate("partner")} className="text-xs font-bold hover:opacity-80 transition-opacity" style={{ color: '#F2C418' }}>Vedi tutti →</button>
+          <button onClick={()=>onNavigate("partner")} className="text-xs font-bold hover:opacity-80 transition-opacity" style={{ color: '#FFD24D' }}>Vedi tutti →</button>
         </div>
         <div className="divide-y" style={{ borderColor: '#ECEDEF' }}>
           <div className="grid grid-cols-4 px-5 py-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#9CA3AF' }}>
@@ -187,7 +187,7 @@ function AdminOverview({ stats, agents, partners, alerts, onNavigate }) {
           {(partners||[]).slice(0,5).map(p=>(
             <div key={p.id} className="grid grid-cols-4 items-center px-5 py-3 cursor-pointer transition-colors hover:bg-[#FAFAF7]" onClick={()=>onNavigate("partner")}>
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: '#F2C418', color: '#1E2128' }}>{p.name.split(" ").map(n=>n[0]).join("")}</div>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: '#FFD24D', color: '#1E2128' }}>{p.name.split(" ").map(n=>n[0]).join("")}</div>
                 <div><div className="text-sm font-bold" style={{ color: '#1E2128' }}>{p.name}</div><div className="text-xs" style={{ color: '#9CA3AF' }}>{p.niche}</div></div>
               </div>
               <div><span className="font-mono text-xs font-bold px-2 py-1 rounded" style={{ background: '#FFF3C4', color: '#C4990A' }}>{p.phase}</span></div>
@@ -198,7 +198,7 @@ function AdminOverview({ stats, agents, partners, alerts, onNavigate }) {
         </div>
       </div>
       <div>
-        <div className="flex items-center justify-between mb-3"><span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Agenti AI</span><button onClick={()=>onNavigate("agenti")} className="text-xs font-bold hover:opacity-80 transition-opacity" style={{ color: '#F2C418' }}>Vedi tutti →</button></div>
+        <div className="flex items-center justify-between mb-3"><span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Agenti AI</span><button onClick={()=>onNavigate("agenti")} className="text-xs font-bold hover:opacity-80 transition-opacity" style={{ color: '#FFD24D' }}>Vedi tutti →</button></div>
         <div className="grid grid-cols-4 gap-3">{(agents||[]).slice(0,4).map(a=><AgentCard key={a.id} agent={a}/>)}</div>
       </div>
     </div>
@@ -208,7 +208,7 @@ function AdminOverview({ stats, agents, partners, alerts, onNavigate }) {
 function AdminAgents({ agents }) {
   return (
     <div className="space-y-5">
-      <div className="rounded-xl p-4 text-sm font-semibold" style={{ background: '#FFF3C4', border: '1px solid #F2C41830', color: '#5F6572' }}>
+      <div className="rounded-xl p-4 text-sm font-semibold" style={{ background: '#FFF3C4', border: '1px solid #FFD24D30', color: '#5F6572' }}>
         Budget sistema: <strong className="font-mono" style={{ color: '#C4990A' }}>${(agents||[]).reduce((s,a)=>s+a.budget,0)} / $900</strong> · Rinnovo fine mese
       </div>
       <div className="grid grid-cols-3 gap-4">{(agents||[]).map(a=><AgentCard key={a.id} agent={a}/>)}</div>
@@ -250,7 +250,7 @@ function AdminPartners({ partners, onSelect, onViewAsPartner, onDeletePartner })
           {(partners||[]).map(p=>(
             <div key={p.id} className="grid grid-cols-7 items-center px-5 py-3 transition-colors hover:bg-[#FAFAF7]">
               <div className="flex items-center gap-3 cursor-pointer" onClick={()=>onSelect(p)}>
-                <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: '#F2C418', color: '#1E2128' }}>{p.name.split(" ").map(n=>n[0]).join("")}</div>
+                <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: '#FFD24D', color: '#1E2128' }}>{p.name.split(" ").map(n=>n[0]).join("")}</div>
                 <div><div className="text-sm font-bold" style={{ color: '#1E2128' }}>{p.name}</div><div className="text-xs" style={{ color: '#9CA3AF' }}>{p.niche}</div></div>
               </div>
               <div><span className="font-mono text-xs font-bold px-2 py-1 rounded" style={{ background: '#FFF3C4', color: '#C4990A' }}>{p.phase}</span></div>
@@ -389,14 +389,14 @@ function ComplianceDashboard() {
           <KPICard label="Verificati" value={stats.verified_count||0} icon={FileCheck}/>
           <KPICard label="Tasso" value={`${stats.verification_rate||0}%`} icon={TrendingUp}/>
         </div>
-        <button onClick={()=>setShowAddDoc(true)} className="ml-4 flex items-center gap-2 bg-[#F5C518] text-black rounded-lg px-4 py-2 text-sm font-bold hover:bg-[#e0a800] transition-colors">
+        <button onClick={()=>setShowAddDoc(true)} className="ml-4 flex items-center gap-2 bg-[#FFD24D] text-black rounded-lg px-4 py-2 text-sm font-bold hover:bg-[#e0a800] transition-colors">
           <Plus className="w-4 h-4"/>Nuovo Documento
         </button>
       </div>
       
       {/* Form Nuovo Documento */}
       {showAddDoc&&(
-        <div className="bg-white border border-[#F5C518]/30 rounded-xl p-5">
+        <div className="bg-white border border-[#FFD24D]/30 rounded-xl p-5">
           <h3 className="font-bold text-sm mb-4 flex items-center gap-2"><FileText className="w-4 h-4"/>Nuovo Documento</h3>
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
@@ -419,7 +419,7 @@ function ComplianceDashboard() {
             </div>
           </div>
           <div className="flex gap-2">
-            <label className={`flex-1 flex items-center justify-center gap-2 bg-[#F5C518] text-black rounded-lg px-4 py-2 text-sm font-bold cursor-pointer hover:bg-[#e0a800] ${!newDoc.partner_id&&"opacity-50 cursor-not-allowed"}`}>
+            <label className={`flex-1 flex items-center justify-center gap-2 bg-[#FFD24D] text-black rounded-lg px-4 py-2 text-sm font-bold cursor-pointer hover:bg-[#e0a800] ${!newDoc.partner_id&&"opacity-50 cursor-not-allowed"}`}>
               <Upload className="w-4 h-4"/>{uploading?"Caricamento...":"Allega File"}
               <input type="file" className="hidden" onChange={handleUpload} disabled={!newDoc.partner_id||uploading}/>
             </label>
@@ -434,7 +434,7 @@ function ComplianceDashboard() {
           <div key={tipo.id} className="bg-white border border-[#ECEDEF] rounded-xl p-4">
             <div className="font-bold text-sm mb-1">{tipo.label}</div>
             <p className="text-xs text-[#9CA3AF]">{tipo.desc}</p>
-            <div className="mt-3 text-lg font-bold text-[#F5C518]">{docs.filter(d=>d.tipo_documento===tipo.id).length}</div>
+            <div className="mt-3 text-lg font-bold text-[#FFD24D]">{docs.filter(d=>d.tipo_documento===tipo.id).length}</div>
           </div>
         ))}
       </div>
@@ -468,13 +468,13 @@ function GaiaFunnelDeployer({ partners }) {
     <div className="space-y-5">
       <div className="flex items-center gap-3">
         <div className="flex gap-2 overflow-x-auto pb-1 flex-1">
-          <button onClick={()=>setActiveCategory("all")} className={`px-3 py-1.5 rounded-full text-xs font-bold flex-shrink-0 transition-all ${activeCategory==="all"?"bg-[#F5C518] text-black":"bg-[#FAFAF7] border border-[#ECEDEF] text-[#9CA3AF]"}`}>Tutti ({templates.length})</button>
-          {categories.map(c=><button key={c.id} onClick={()=>setActiveCategory(c.id)} className={`px-3 py-1.5 rounded-full text-xs font-bold flex-shrink-0 transition-all ${activeCategory===c.id?"bg-[#F5C518] text-black":"bg-[#FAFAF7] border border-[#ECEDEF] text-[#9CA3AF]"}`}>{c.icon} {c.name}</button>)}
+          <button onClick={()=>setActiveCategory("all")} className={`px-3 py-1.5 rounded-full text-xs font-bold flex-shrink-0 transition-all ${activeCategory==="all"?"bg-[#FFD24D] text-black":"bg-[#FAFAF7] border border-[#ECEDEF] text-[#9CA3AF]"}`}>Tutti ({templates.length})</button>
+          {categories.map(c=><button key={c.id} onClick={()=>setActiveCategory(c.id)} className={`px-3 py-1.5 rounded-full text-xs font-bold flex-shrink-0 transition-all ${activeCategory===c.id?"bg-[#FFD24D] text-black":"bg-[#FAFAF7] border border-[#ECEDEF] text-[#9CA3AF]"}`}>{c.icon} {c.name}</button>)}
         </div>
-        <button onClick={()=>setShowAdd(true)} className="flex items-center gap-1.5 bg-[#F5C518] text-black rounded-lg px-3 py-1.5 text-xs font-bold hover:bg-[#e0a800] transition-colors flex-shrink-0"><Plus className="w-3 h-3"/>Aggiungi</button>
+        <button onClick={()=>setShowAdd(true)} className="flex items-center gap-1.5 bg-[#FFD24D] text-black rounded-lg px-3 py-1.5 text-xs font-bold hover:bg-[#e0a800] transition-colors flex-shrink-0"><Plus className="w-3 h-3"/>Aggiungi</button>
       </div>
-      {showAdd&&<div className="bg-white border border-[#F5C518]/30 rounded-xl p-5"><h3 className="font-bold text-sm mb-4">Nuovo Template</h3><div className="grid grid-cols-2 gap-3 mb-4"><input type="text" placeholder="Nome" value={nt.name} onChange={e=>setNt({...nt,name:e.target.value})} className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm focus:border-[#F5C518] outline-none"/><select value={nt.category} onChange={e=>setNt({...nt,category:e.target.value})} className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm">{categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select><input type="text" placeholder="Share Link Systeme.io" value={nt.share_link} onChange={e=>setNt({...nt,share_link:e.target.value})} className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm col-span-2 focus:border-[#F5C518] outline-none"/></div><div className="flex gap-2"><button onClick={handleAdd} className="bg-[#F5C518] text-black px-4 py-2 rounded-lg text-xs font-bold">Salva</button><button onClick={()=>setShowAdd(false)} className="bg-[#FAFAF7] border border-[#ECEDEF] px-4 py-2 rounded-lg text-xs font-bold">Annulla</button></div></div>}
-      {!filtered.length?<div className="bg-white border border-[#ECEDEF] rounded-xl p-12 text-center"><Zap className="w-8 h-8 text-[#9CA3AF] mx-auto mb-3"/><div className="font-bold text-sm">Nessun template — aggiungi Share Links Systeme.io</div></div>:<div className="grid grid-cols-2 gap-4">{filtered.map(t=><div key={t.id} className="bg-white border border-[#ECEDEF] rounded-xl p-5"><div className="flex items-start justify-between mb-3"><span className="text-xl">{categories.find(c=>c.id===t.category)?.icon||"📁"}</span><span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#ECEDEF] text-[#9CA3AF]">{categories.find(c=>c.id===t.category)?.name||t.category}</span></div><h3 className="font-bold text-sm mb-1">{t.name}</h3>{t.description&&<p className="text-xs text-[#9CA3AF] mb-3">{t.description}</p>}<div className="flex gap-2 mt-3"><button onClick={()=>navigator.clipboard.writeText(t.share_link)} className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-1.5 text-xs font-bold flex items-center justify-center gap-1 hover:border-[#F2C418] transition-colors"><Copy className="w-3 h-3"/>Copia</button><button onClick={()=>window.open(t.share_link,"_blank")} className="flex-1 bg-[#F5C518] text-black rounded-lg px-3 py-1.5 text-xs font-bold flex items-center justify-center gap-1 hover:bg-[#e0a800] transition-colors"><Link className="w-3 h-3"/>Apri</button></div></div>)}</div>}
+      {showAdd&&<div className="bg-white border border-[#FFD24D]/30 rounded-xl p-5"><h3 className="font-bold text-sm mb-4">Nuovo Template</h3><div className="grid grid-cols-2 gap-3 mb-4"><input type="text" placeholder="Nome" value={nt.name} onChange={e=>setNt({...nt,name:e.target.value})} className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm focus:border-[#FFD24D] outline-none"/><select value={nt.category} onChange={e=>setNt({...nt,category:e.target.value})} className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm">{categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select><input type="text" placeholder="Share Link Systeme.io" value={nt.share_link} onChange={e=>setNt({...nt,share_link:e.target.value})} className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-sm col-span-2 focus:border-[#FFD24D] outline-none"/></div><div className="flex gap-2"><button onClick={handleAdd} className="bg-[#FFD24D] text-black px-4 py-2 rounded-lg text-xs font-bold">Salva</button><button onClick={()=>setShowAdd(false)} className="bg-[#FAFAF7] border border-[#ECEDEF] px-4 py-2 rounded-lg text-xs font-bold">Annulla</button></div></div>}
+      {!filtered.length?<div className="bg-white border border-[#ECEDEF] rounded-xl p-12 text-center"><Zap className="w-8 h-8 text-[#9CA3AF] mx-auto mb-3"/><div className="font-bold text-sm">Nessun template — aggiungi Share Links Systeme.io</div></div>:<div className="grid grid-cols-2 gap-4">{filtered.map(t=><div key={t.id} className="bg-white border border-[#ECEDEF] rounded-xl p-5"><div className="flex items-start justify-between mb-3"><span className="text-xl">{categories.find(c=>c.id===t.category)?.icon||"📁"}</span><span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#ECEDEF] text-[#9CA3AF]">{categories.find(c=>c.id===t.category)?.name||t.category}</span></div><h3 className="font-bold text-sm mb-1">{t.name}</h3>{t.description&&<p className="text-xs text-[#9CA3AF] mb-3">{t.description}</p>}<div className="flex gap-2 mt-3"><button onClick={()=>navigator.clipboard.writeText(t.share_link)} className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-1.5 text-xs font-bold flex items-center justify-center gap-1 hover:border-[#FFD24D] transition-colors"><Copy className="w-3 h-3"/>Copia</button><button onClick={()=>window.open(t.share_link,"_blank")} className="flex-1 bg-[#FFD24D] text-black rounded-lg px-3 py-1.5 text-xs font-bold flex items-center justify-center gap-1 hover:bg-[#e0a800] transition-colors"><Link className="w-3 h-3"/>Apri</button></div></div>)}</div>}
     </div>
   );
 }
@@ -489,18 +489,18 @@ function AndreaPipeline({ partners }) {
   return (
     <div className="space-y-5">
       <div className="bg-white border border-[#ECEDEF] rounded-xl p-5">
-        <div className="flex items-center gap-4 mb-4"><div className="w-11 h-11 rounded-xl bg-[#F5C518] flex items-center justify-center"><Film className="w-5 h-5 text-black"/></div><div><h2 className="text-lg font-extrabold">ANDREA — Surgical Cut</h2><p className="text-xs text-[#9CA3AF]">Auto-Trim · 1.15x · Branding · -14 LUFS</p></div></div>
-        <div className="flex gap-2 flex-wrap mb-4">{(partners||[]).map(p=><button key={p.id} onClick={()=>setSel(p)} className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${sel?.id===p.id?"bg-[#F5C518] text-black":"bg-[#FAFAF7] border border-[#ECEDEF] text-[#9CA3AF] hover:border-[#F5C518]/30"}`}>{p.name}</button>)}</div>
-        {sel&&<div onClick={()=>ref.current?.click()} className="border-2 border-dashed border-[#ECEDEF] rounded-xl p-8 text-center hover:border-[#F5C518]/30 cursor-pointer transition-colors"><input ref={ref} type="file" accept="video/*" onChange={handleUpload} className="hidden"/>{uploading||processing?<div className="flex flex-col items-center"><Loader2 className="w-8 h-8 text-[#F5C518] animate-spin mb-3"/><div className="font-bold text-sm">{uploading?"Caricamento...":"Processing FFmpeg..."}</div></div>:<><Upload className="w-8 h-8 text-[#9CA3AF] mx-auto mb-3"/><div className="font-bold text-sm">Carica video per {sel.name}</div><div className="text-xs text-[#9CA3AF] mt-1">MP4, MOV, AVI — Max 500MB</div></>}</div>}
+        <div className="flex items-center gap-4 mb-4"><div className="w-11 h-11 rounded-xl bg-[#FFD24D] flex items-center justify-center"><Film className="w-5 h-5 text-black"/></div><div><h2 className="text-lg font-extrabold">ANDREA — Surgical Cut</h2><p className="text-xs text-[#9CA3AF]">Auto-Trim · 1.15x · Branding · -14 LUFS</p></div></div>
+        <div className="flex gap-2 flex-wrap mb-4">{(partners||[]).map(p=><button key={p.id} onClick={()=>setSel(p)} className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${sel?.id===p.id?"bg-[#FFD24D] text-black":"bg-[#FAFAF7] border border-[#ECEDEF] text-[#9CA3AF] hover:border-[#FFD24D]/30"}`}>{p.name}</button>)}</div>
+        {sel&&<div onClick={()=>ref.current?.click()} className="border-2 border-dashed border-[#ECEDEF] rounded-xl p-8 text-center hover:border-[#FFD24D]/30 cursor-pointer transition-colors"><input ref={ref} type="file" accept="video/*" onChange={handleUpload} className="hidden"/>{uploading||processing?<div className="flex flex-col items-center"><Loader2 className="w-8 h-8 text-[#FFD24D] animate-spin mb-3"/><div className="font-bold text-sm">{uploading?"Caricamento...":"Processing FFmpeg..."}</div></div>:<><Upload className="w-8 h-8 text-[#9CA3AF] mx-auto mb-3"/><div className="font-bold text-sm">Carica video per {sel.name}</div><div className="text-xs text-[#9CA3AF] mt-1">MP4, MOV, AVI — Max 500MB</div></>}</div>}
       </div>
       <div className="flex items-center justify-between mb-3"><span className="text-xs font-bold text-[#9CA3AF] uppercase tracking-wider flex items-center gap-2"><FileVideo className="w-4 h-4"/>Coda ({jobs.length})</span><button onClick={loadJobs} className="text-[#9CA3AF] hover:text-[#1E2128] transition-colors"><RefreshCw className="w-4 h-4"/></button></div>
       {!jobs.length?<div className="bg-white border border-[#ECEDEF] rounded-xl p-10 text-center"><Film className="w-8 h-8 text-[#9CA3AF] mx-auto mb-3"/><div className="font-bold text-sm">Nessun video in coda</div></div>:jobs.map(job=>(
         <div key={job.id} className="bg-white border border-[#ECEDEF] rounded-xl p-4 mb-3">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-[#FAFAF7] flex items-center justify-center flex-shrink-0">{job.status==="processing"?<Loader2 className="w-5 h-5 text-[#F5C518] animate-spin"/>:job.status==="approved"?<CheckCircle className="w-5 h-5 text-green-400"/>:job.status==="failed"?<XCircle className="w-5 h-5 text-red-400"/>:<Film className="w-5 h-5 text-[#9CA3AF]"/>}</div>
+            <div className="w-12 h-12 rounded-lg bg-[#FAFAF7] flex items-center justify-center flex-shrink-0">{job.status==="processing"?<Loader2 className="w-5 h-5 text-[#FFD24D] animate-spin"/>:job.status==="approved"?<CheckCircle className="w-5 h-5 text-green-400"/>:job.status==="failed"?<XCircle className="w-5 h-5 text-red-400"/>:<Film className="w-5 h-5 text-[#9CA3AF]"/>}</div>
             <div className="flex-1 min-w-0"><div className="flex items-center gap-2 mb-1"><span className="font-bold text-sm">{job.partner_name}</span><span className={`text-[10px] font-bold ${sc[job.status]}`}>{job.status?.toUpperCase()}</span></div><div className="text-xs text-[#9CA3AF] truncate">{job.input_file}</div>{job.processing_result?.time_saved&&<span className="text-green-400 text-xs font-bold">-{Math.round(job.processing_result.time_saved)}s risparmiati</span>}</div>
             <div className="flex gap-2 flex-shrink-0">
-              {job.status==="completed"&&<><button onClick={()=>window.open(`${API}/api/files/videos/processed/${job.output_file}`,"_blank")} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FAFAF7] border border-[#ECEDEF] flex items-center gap-1"><Eye className="w-3 h-3"/>Preview</button><button onClick={async()=>{await axios.post(`${API}/api/videos/jobs/${job.id}/approve`);loadJobs();}} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#F5C518] text-black flex items-center gap-1"><Check className="w-3 h-3"/>Approva</button></>}
+              {job.status==="completed"&&<><button onClick={()=>window.open(`${API}/api/files/videos/processed/${job.output_file}`,"_blank")} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FAFAF7] border border-[#ECEDEF] flex items-center gap-1"><Eye className="w-3 h-3"/>Preview</button><button onClick={async()=>{await axios.post(`${API}/api/videos/jobs/${job.id}/approve`);loadJobs();}} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FFD24D] text-black flex items-center gap-1"><Check className="w-3 h-3"/>Approva</button></>}
               {job.status==="approved"&&<button onClick={()=>{const t=prompt("Titolo YouTube:");if(t)axios.post(`${API}/api/youtube/upload/${job.id}`,{job_id:job.id,title:t,privacy_status:"unlisted"}).then(()=>{alert("Upload avviato!");loadJobs();});}} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 flex items-center gap-1"><Youtube className="w-3 h-3"/>YouTube</button>}
               <button onClick={async()=>{await axios.delete(`${API}/api/videos/jobs/${job.id}`);loadJobs();}} className="text-[#9CA3AF] hover:text-red-400 p-1.5 transition-colors"><Trash2 className="w-4 h-4"/></button>
             </div>
@@ -732,7 +732,7 @@ export default function App() {
     return (
       <div className="min-h-screen bg-[#FAFAF7] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 rounded-xl bg-[#F5C518] flex items-center justify-center mx-auto mb-4 animate-pulse">
+          <div className="w-12 h-12 rounded-xl bg-[#FFD24D] flex items-center justify-center mx-auto mb-4 animate-pulse">
             <span className="text-2xl font-black text-black">E</span>
           </div>
           <div className="text-sm text-[#9CA3AF]">Caricamento...</div>
@@ -853,7 +853,7 @@ export default function App() {
     const LoadingScreen = () => (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "#FAFAF7" }}>
         <div className="text-center">
-          <div className="w-12 h-12 rounded-xl bg-[#F5C518] flex items-center justify-center mx-auto mb-4 animate-pulse">
+          <div className="w-12 h-12 rounded-xl bg-[#FFD24D] flex items-center justify-center mx-auto mb-4 animate-pulse">
             <span className="text-2xl font-black text-black">E</span>
           </div>
           <div className="text-sm" style={{ color: "#9CA3AF" }}>Un momento...</div>
@@ -1156,7 +1156,7 @@ export default function App() {
             {mode === "admin" && nav === "partner" && (
               <button onClick={() => setShowNP(true)} 
                       className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors hover:opacity-90"
-                      style={{ background: '#F2C418', color: '#1E2128' }}>
+                      style={{ background: '#FFD24D', color: '#1E2128' }}>
                 <UserPlus className="w-3.5 h-3.5"/>Nuovo Partner
               </button>
             )}
@@ -1280,7 +1280,7 @@ export default function App() {
             {nav==="guided-system"&&<div className="space-y-4">
               <h2 className="text-lg font-bold" style={{color:'#1E2128'}}>Guided System</h2>
               <p className="text-sm" style={{color:'#9CA3AF'}}>Percorsi guidati per i partner — Stefania Engine</p>
-              <div className="rounded-xl p-6" style={{background:'#FEF9E7',border:'1px solid #F2C41830'}}>
+              <div className="rounded-xl p-6" style={{background:'#FEF9E7',border:'1px solid #FFD24D30'}}>
                 <div className="font-bold text-sm mb-2" style={{color:'#C4990A'}}>Sistema Attivo</div>
                 <p className="text-sm" style={{color:'#5F6572'}}>Il Guided System valuta automaticamente lo stato dei partner e li guida attraverso le fasi del percorso Evolution PRO.</p>
               </div>

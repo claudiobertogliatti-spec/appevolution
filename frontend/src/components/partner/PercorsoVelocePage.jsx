@@ -15,7 +15,7 @@ const API = process.env.REACT_APP_BACKEND_URL || "";
 const PHASES = [
   { id: "posizionamento", name: "Posizionamento", dayStart: 1, dayEnd: 2, icon: Target, color: "#3B82F6" },
   { id: "webinar", name: "Webinar", dayStart: 3, dayEnd: 7, icon: Video, color: "#8B5CF6" },
-  { id: "funnel", name: "Funnel", dayStart: 8, dayEnd: 10, icon: Layers, color: "#F2C418" },
+  { id: "funnel", name: "Funnel", dayStart: 8, dayEnd: 10, icon: Layers, color: "#FFD24D" },
   { id: "traffico", name: "Traffico", dayStart: 11, dayEnd: 14, icon: Megaphone, color: "#EF4444" },
   { id: "webinar_live", name: "Webinar Live", dayStart: 15, dayEnd: 21, icon: Radio, color: "#34C77B" },
 ];
@@ -61,7 +61,7 @@ function CountdownHero({ currentDay }) {
         {/* Progress bar */}
         <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.15)" }}>
           <div className="h-full rounded-full transition-all duration-700"
-            style={{ width: `${progress}%`, background: completed ? "white" : "#F2C418" }} />
+            style={{ width: `${progress}%`, background: completed ? "white" : "#FFD24D" }} />
         </div>
       </div>
     </div>
@@ -76,8 +76,8 @@ function PhaseStepper({ currentDay, currentPhase }) {
   return (
     <div className="mb-6" data-testid="phase-stepper">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#F2C41820" }}>
-          <Calendar className="w-5 h-5" style={{ color: "#F2C418" }} />
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#FFD24D20" }}>
+          <Calendar className="w-5 h-5" style={{ color: "#FFD24D" }} />
         </div>
         <div>
           <h2 className="text-base font-black" style={{ color: "#1E2128" }}>Le 5 fasi</h2>
@@ -146,7 +146,7 @@ function DailyChecklist({ currentDay, tasks, checklist, onToggle }) {
   const currentPhase = PHASES.find(
     (p) => currentDay >= p.dayStart && currentDay <= p.dayEnd
   );
-  const phaseColor = currentPhase?.color || "#F2C418";
+  const phaseColor = currentPhase?.color || "#FFD24D";
 
   return (
     <div className="mb-6" data-testid="daily-checklist">
@@ -215,8 +215,8 @@ function ActivationScreen({ onActivate, isActivating }) {
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-5"
-            style={{ background: "#F2C41820" }}>
-            <Zap className="w-10 h-10" style={{ color: "#F2C418" }} />
+            style={{ background: "#FFD24D20" }}>
+            <Zap className="w-10 h-10" style={{ color: "#FFD24D" }} />
           </div>
           <h1 className="text-3xl font-black mb-3" style={{ color: "#1E2128" }}>
             Go Live in 21 giorni
@@ -272,7 +272,7 @@ function ActivationScreen({ onActivate, isActivating }) {
           onClick={onActivate}
           disabled={isActivating}
           className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-black text-base transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
-          style={{ background: "#F2C418", color: "#1E2128", boxShadow: "0 4px 16px #F2C41840" }}>
+          style={{ background: "#FFD24D", color: "#1E2128", boxShadow: "0 4px 16px #FFD24D40" }}>
           {isActivating ? (
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
@@ -348,7 +348,7 @@ export function PercorsoVelocePage({ partner, onNavigate, isAdmin }) {
   if (isLoading) {
     return (
       <div className="min-h-full flex items-center justify-center" style={{ background: "#FAFAF7" }}>
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#F2C418" }} />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FFD24D" }} />
       </div>
     );
   }
