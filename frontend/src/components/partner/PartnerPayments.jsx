@@ -1,157 +1,379 @@
 import { useState, useEffect } from "react";
-import { CreditCard, CheckCircle, Clock, Download, Receipt } from "lucide-react";
+import {
+  CreditCard, CheckCircle, Clock, Receipt, ArrowRight,
+  FileText, Rocket, Phone, ChevronDown, ChevronUp, Shield,
+  AlertCircle,
+} from "lucide-react";
 
-const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it")) ? "" : (process.env.REACT_APP_BACKEND_URL || "");
+const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it"))
+  ? "" : (process.env.REACT_APP_BACKEND_URL || "");
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// PARTNER PAYMENTS - I Miei Pagamenti (Solo Lettura)
-// ═══════════════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════════════
+   HELPERS
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-export function PartnerPayments({ partner }) {
-  const [payments, setPayments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  
-  useEffect(() => {
-    if (partner?.id) {
-      fetchPayments();
-    }
-  }, [partner]);
-  
-  const fetchPayments = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API}/api/partners/${partner.id}/payments`);
-      if (res.ok) {
-        const data = await res.json();
-        setPayments(Array.isArray(data) ? data : []);
-      }
-    } catch (e) {
-      console.error("Error fetching payments:", e);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const totalPaid = payments.filter(p => p.status === "paid").reduce((sum, p) => sum + (p.amount || 0), 0);
-  const totalPending = payments.filter(p => p.status === "pending").reduce((sum, p) => sum + (p.amount || 0), 0);
-  
-  return (
-    <div className="min-h-full p-6" style={{ background: "#FAFAF7" }}>
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg"
-               style={{ background: "linear-gradient(135deg, #10B981, #059669)" }}>
-            <CreditCard className="w-7 h-7 text-white" />
+function fmtEur(amount) {
+  return `€${Number(amount || 0).toLocaleString("it-IT", { minimumFractionDigits: 2 })}`;
+}
+
+function fmtDate(d) {
+  if (!d) return "-";
+  return new Date(d).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   1. CONFERMA PAGAMENTO PRINCIPALE
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function ConfermaHero({ payments }) {
+  const mainPayment = payments.find((p) => p.status === "paid" && p.amount >= 2000);
+  const hasPaid = !!mainPayment;
+
+  if (!hasPaid) {
+    return (
+      <div className="rounded-2xl p-5 mb-6" style={{ background: "#FFFBEB", border: "2px solid #FDE68A" }}>
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+            style={{ background: "#F59E0B20" }}>
+            <Clock className="w-6 h-6" style={{ color: "#F59E0B" }} />
           </div>
           <div>
-            <h1 className="text-2xl font-black" style={{ color: "#1E2128" }}>I Miei Pagamenti</h1>
-            <p className="text-sm" style={{ color: "#9CA3AF" }}>Storico delle transazioni della partnership</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: "#92400E" }}>
+              Pagamento in attesa
+            </p>
+            <p className="text-lg font-black" style={{ color: "#1E2128" }}>Partnership non ancora attiva</p>
+            <p className="text-sm mt-1" style={{ color: "#5F6572" }}>
+              Non risulta ancora un pagamento confermato. Se hai già pagato, contatta il team tramite la chat.
+            </p>
           </div>
         </div>
-        
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <div className="bg-white rounded-2xl p-5 shadow-sm" style={{ border: "1px solid #ECEDEF" }}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Totale Pagato</p>
-                <p className="text-3xl font-black text-green-600">
-                  €{totalPaid.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl overflow-hidden mb-6" data-testid="conferma-hero"
+      style={{ background: "#1E2128" }}>
+      <div className="p-6">
+        {/* Badge */}
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "#34C77B20" }}>
+            <CheckCircle className="w-5 h-5" style={{ color: "#34C77B" }} />
           </div>
-          
-          <div className="bg-white rounded-2xl p-5 shadow-sm" style={{ border: "1px solid #ECEDEF" }}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">In Attesa</p>
-                <p className="text-3xl font-black" style={{ color: "#F59E0B" }}>
-                  €{totalPending.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+          <span className="text-xs font-black uppercase tracking-widest" style={{ color: "#34C77B" }}>
+            Pagamento confermato
+          </span>
+        </div>
+
+        {/* Importo */}
+        <p className="text-5xl font-black text-white mb-1">{fmtEur(mainPayment.amount)}</p>
+        <p className="text-sm mb-5" style={{ color: "rgba(255,255,255,0.5)" }}>
+          Partnership Evolution PRO · {fmtDate(mainPayment.date)}
+        </p>
+
+        {/* Receipt row */}
+        <div className="rounded-xl p-4" style={{ background: "rgba(255,255,255,0.06)" }}>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: "Riferimento", val: mainPayment.stripe_id ? `#${mainPayment.stripe_id.slice(-8).toUpperCase()}` : `#${mainPayment.id?.toString().slice(-6).padStart(6, "0")}` },
+              { label: "Metodo", val: mainPayment.method === "bonifico" ? "Bonifico" : "Carta di credito" },
+              { label: "Stato", val: "Pagato" },
+            ].map((item) => (
+              <div key={item.label}>
+                <p className="text-[9px] font-bold uppercase tracking-wider mb-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>
+                  {item.label}
                 </p>
+                <p className="text-xs font-bold text-white">{item.val}</p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-yellow-100 flex items-center justify-center">
-                <Clock className="w-6 h-6 text-yellow-600" />
-              </div>
-            </div>
+            ))}
           </div>
         </div>
-        
-        {/* Payments List */}
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden" style={{ border: "1px solid #ECEDEF" }}>
-          <div className="p-5 border-b" style={{ background: "#FAFAF7" }}>
-            <h2 className="font-bold flex items-center gap-2" style={{ color: "#1E2128" }}>
-              <Receipt className="w-5 h-5" />
-              Storico Transazioni
-            </h2>
-          </div>
-          
-          {loading ? (
-            <div className="p-12 text-center">
-              <div className="w-8 h-8 border-3 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-              <p className="text-gray-500">Caricamento...</p>
-            </div>
-          ) : payments.length > 0 ? (
-            <div className="divide-y">
-              {payments.map((payment, idx) => (
-                <div key={payment.id || idx} className="p-5 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        payment.status === "paid" ? "bg-green-100" : "bg-yellow-100"
-                      }`}>
-                        {payment.status === "paid" ? (
-                          <CheckCircle className="w-5 h-5 text-green-600" />
-                        ) : (
-                          <Clock className="w-5 h-5 text-yellow-600" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-bold" style={{ color: "#1E2128" }}>{payment.description}</p>
-                        <p className="text-sm text-gray-500">
-                          {payment.date ? new Date(payment.date).toLocaleDateString('it-IT', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric'
-                          }) : '-'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xl font-black" style={{ color: "#1E2128" }}>
-                        €{payment.amount?.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
-                      </p>
-                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${
-                        payment.status === "paid" 
-                          ? "bg-green-100 text-green-700" 
-                          : "bg-yellow-100 text-yellow-700"
-                      }`}>
-                        {payment.status === "paid" ? "Pagato" : "Da pagare"}
-                      </span>
-                    </div>
-                  </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   2. COSA SUCCEDE ADESSO
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const NEXT_STEPS = [
+  {
+    num: "1",
+    icon: CheckCircle,
+    color: "#34C77B",
+    title: "Account attivo",
+    desc: "Hai accesso completo alla piattaforma: percorso, strumenti, bonus e supporto. Inizia da dove vuoi.",
+    done: true,
+  },
+  {
+    num: "2",
+    icon: Phone,
+    color: "#3B82F6",
+    title: "Call di onboarding entro 24h",
+    desc: "Il team ti contatterà per configurare insieme il tuo funnel Systeme, il posizionamento e i primi contenuti.",
+    done: false,
+  },
+  {
+    num: "3",
+    icon: Rocket,
+    color: "#F2C418",
+    title: "Segui il tuo Percorso Evolution",
+    desc: "Il percorso è diviso in fasi: ogni fase sblocca la successiva. Completa la Fase 1 prima di tutto il resto.",
+    done: false,
+    navTarget: "percorso",
+  },
+];
+
+function CosaSuccedeAdesso({ onNavigate }) {
+  return (
+    <div className="mb-6" data-testid="cosa-succede-adesso">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#F2C41820" }}>
+          <Rocket className="w-5 h-5" style={{ color: "#F2C418" }} />
+        </div>
+        <div>
+          <h2 className="text-base font-black" style={{ color: "#1E2128" }}>Cosa succede adesso</h2>
+          <p className="text-xs" style={{ color: "#9CA3AF" }}>I prossimi passi della tua partnership</p>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {NEXT_STEPS.map((step) => {
+          const SIcon = step.icon;
+          return (
+            <div key={step.num} className="bg-white rounded-2xl p-5"
+              style={{ border: step.done ? `1.5px solid ${step.color}40` : "1.5px solid #ECEDEF" }}>
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
+                  style={{ background: `${step.color}15` }}>
+                  <SIcon className="w-4 h-4" style={{ color: step.color }} />
                 </div>
-              ))}
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-sm font-black" style={{ color: "#1E2128" }}>{step.title}</p>
+                    {step.done && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        style={{ background: "#DCFCE7", color: "#166534" }}>
+                        Completato
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm leading-relaxed" style={{ color: "#5F6572" }}>{step.desc}</p>
+                  {step.navTarget && (
+                    <button
+                      onClick={() => onNavigate && onNavigate(step.navTarget)}
+                      className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg"
+                      style={{ background: `${step.color}15`, color: step.color === "#F2C418" ? "#92700C" : step.color }}
+                    >
+                      Vai al percorso <ArrowRight className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
-          ) : (
-            <div className="p-12 text-center">
-              <CreditCard className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p className="text-gray-500">Nessun pagamento registrato</p>
-            </div>
-          )}
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   3. CONTRATTO
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function ContrattoBlocco({ partner }) {
+  const contractUrl = partner?.contract_url || null;
+
+  return (
+    <div className="bg-white rounded-2xl p-5 mb-6" data-testid="contratto-blocco"
+      style={{ border: "1.5px solid #ECEDEF" }}>
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "#EFF6FF" }}>
+          <FileText className="w-4 h-4" style={{ color: "#3B82F6" }} />
         </div>
-        
-        {/* Info Box */}
-        <div className="mt-6 p-4 rounded-xl" style={{ background: "#FFF8DC", border: "1px solid #F2C41850" }}>
-          <p className="text-sm" style={{ color: "#92700C" }}>
-            💡 <strong>Nota:</strong> Per domande sui pagamenti o per richiedere una fattura, 
-            contatta il team Evolution PRO tramite la chat con Stefania.
+        <div>
+          <p className="text-sm font-black" style={{ color: "#1E2128" }}>Contratto di partnership</p>
+          <p className="text-xs" style={{ color: "#9CA3AF" }}>Documento firmato e archivato</p>
+        </div>
+      </div>
+
+      {contractUrl ? (
+        <a
+          href={contractUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all hover:scale-[1.01]"
+          style={{ background: "#EFF6FF", color: "#3B82F6", border: "1px solid #BFDBFE" }}
+        >
+          <FileText className="w-4 h-4" />
+          Scarica contratto PDF
+        </a>
+      ) : (
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl"
+          style={{ background: "#FAFAF7", border: "1px solid #ECEDEF" }}>
+          <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: "#9CA3AF" }} />
+          <p className="text-sm" style={{ color: "#9CA3AF" }}>
+            Contratto non ancora disponibile — il team lo caricherà a breve.
           </p>
         </div>
+      )}
+
+      <div className="mt-4 flex items-center gap-2 px-1">
+        <Shield className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "#9CA3AF" }} />
+        <p className="text-[11px]" style={{ color: "#9CA3AF" }}>
+          Coperto da garanzia soddisfatti o rimborsati 30 giorni · dati protetti e riservati
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   4. STORICO PAGAMENTI
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function StoricoTransazioni({ payments }) {
+  const [open, setOpen] = useState(false);
+  if (payments.length === 0) return null;
+
+  return (
+    <div className="mb-6" data-testid="storico-transazioni">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-5 py-4 rounded-2xl bg-white"
+        style={{ border: "1px solid #ECEDEF" }}
+      >
+        <div className="flex items-center gap-2">
+          <Receipt className="w-4 h-4" style={{ color: "#9CA3AF" }} />
+          <span className="text-sm font-bold" style={{ color: "#1E2128" }}>Storico transazioni</span>
+          <span className="text-xs font-bold px-2 py-0.5 rounded-full"
+            style={{ background: "#F5F3EE", color: "#9CA3AF" }}>
+            {payments.length}
+          </span>
+        </div>
+        {open
+          ? <ChevronUp className="w-4 h-4" style={{ color: "#9CA3AF" }} />
+          : <ChevronDown className="w-4 h-4" style={{ color: "#9CA3AF" }} />
+        }
+      </button>
+
+      {open && (
+        <div className="mt-2 bg-white rounded-2xl overflow-hidden" style={{ border: "1px solid #ECEDEF" }}>
+          {payments.map((p, idx) => (
+            <div key={p.id || idx}
+              className={`px-5 py-4 flex items-center justify-between ${idx < payments.length - 1 ? "border-b" : ""}`}
+              style={{ borderColor: "#ECEDEF" }}>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ background: p.status === "paid" ? "#DCFCE7" : "#FFFBEB" }}>
+                  {p.status === "paid"
+                    ? <CheckCircle className="w-4 h-4" style={{ color: "#34C77B" }} />
+                    : <Clock className="w-4 h-4" style={{ color: "#F59E0B" }} />
+                  }
+                </div>
+                <div>
+                  <p className="text-sm font-bold" style={{ color: "#1E2128" }}>
+                    {p.description || "Pagamento partnership"}
+                  </p>
+                  <p className="text-xs" style={{ color: "#9CA3AF" }}>{fmtDate(p.date)}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-black" style={{ color: "#1E2128" }}>{fmtEur(p.amount)}</p>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                  style={{
+                    background: p.status === "paid" ? "#DCFCE7" : "#FFFBEB",
+                    color: p.status === "paid" ? "#166534" : "#92400E",
+                  }}>
+                  {p.status === "paid" ? "Pagato" : "In attesa"}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MAIN
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+export function PartnerPayments({ partner, onNavigate }) {
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!partner?.id) { setLoading(false); return; }
+    fetch(`${API}/api/partners/${partner.id}/payments`)
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => setPayments(Array.isArray(data) ? data : []))
+      .catch(() => setPayments([]))
+      .finally(() => setLoading(false));
+  }, [partner?.id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-full flex items-center justify-center" style={{ background: "#FAFAF7" }}>
+        <div className="w-8 h-8 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const hasPaid = payments.some((p) => p.status === "paid" && p.amount >= 2000);
+
+  return (
+    <div className="min-h-full" style={{ background: "#FAFAF7" }}>
+      <div className="max-w-2xl mx-auto p-6">
+
+        {/* HERO */}
+        <div className="mb-6" data-testid="payments-hero">
+          <h1 className="text-3xl font-black mb-1" style={{ color: "#1E2128" }}>Pagamenti</h1>
+          <p className="text-sm" style={{ color: "#9CA3AF" }}>
+            Stato della tua partnership e prossimi passi.
+          </p>
+        </div>
+
+        {/* 1. CONFERMA */}
+        <ConfermaHero payments={payments} />
+
+        {/* 2. COSA SUCCEDE ADESSO (solo se pagamento confermato) */}
+        {hasPaid && <CosaSuccedeAdesso onNavigate={onNavigate} />}
+
+        {/* 3. CONTRATTO */}
+        <ContrattoBlocco partner={partner} />
+
+        {/* 4. STORICO (collassabile) */}
+        <StoricoTransazioni payments={payments} />
+
+        {/* CTA PERCORSO */}
+        {hasPaid && (
+          <div className="rounded-2xl overflow-hidden" data-testid="cta-percorso"
+            style={{ background: "#1E2128" }}>
+            <div className="p-5">
+              <p className="text-[10px] font-bold uppercase tracking-widest mb-3"
+                style={{ color: "rgba(255,255,255,0.4)" }}>
+                Inizia adesso
+              </p>
+              <p className="text-lg font-black text-white mb-1">Apri il tuo Percorso Evolution</p>
+              <p className="text-sm mb-4" style={{ color: "rgba(255,255,255,0.55)" }}>
+                Il percorso ti guida passo per passo dal posizionamento al lancio. Ogni fase ha obiettivi chiari e materiali pronti.
+              </p>
+              <button
+                onClick={() => onNavigate && onNavigate("percorso")}
+                className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-black transition-all hover:scale-[1.02] active:scale-[0.98]"
+                style={{ background: "#F2C418", color: "#1E2128" }}
+              >
+                <Rocket className="w-4 h-4" />
+                Vai al Percorso <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
