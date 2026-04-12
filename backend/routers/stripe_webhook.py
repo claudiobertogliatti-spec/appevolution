@@ -123,7 +123,9 @@ async def handle_checkout_completed(db, session, background_tasks: BackgroundTas
         if partner_id:
             await process_partnership_payment(db, partner_id, session_id, background_tasks)
     else:
-        logger.warning(f"[STRIPE_WEBHOOK] Unknown payment type: {tipo}")
+        # Servizi extra (avatar_pro, consulenza_marketing, branding_pack) o tipo sconosciuto
+        logger.info(f"[STRIPE_WEBHOOK] Routing to servizi extra handler: tipo={tipo}, session={session_id}")
+        await process_servizi_extra_payment(db, session_id, background_tasks)
 
 
 async def handle_payment_succeeded(db, payment_intent, background_tasks: BackgroundTasks):
@@ -176,17 +178,52 @@ async def process_analisi_payment(db, user_id: str, reference_id: str, backgroun
         {"id": user_id},
         {"$set": {
             "pagamento_analisi": True,
+            "pagamento_effettuato": True,
             "data_pagamento_analisi": now.isoformat(),
+            "data_pagamento": now.isoformat(),
             "webhook_processed": True,
             "webhook_reference": reference_id,
             "cliente_id": cliente_id,
-            "stato_processo": "pagamento_completato"
+            "stato_processo": "pagamento_completato",
+            "stato_cliente": "ANALISI_ATTIVATA",
+            "azione_richiesta": None,
+            "payment_confirmed_via": "webhook",
+            "stripe_payment_status": "paid",
         }}
     )
-    
+
+    # 1b. Log raw transaction
+    await db.payment_transactions.update_one(
+        {"session_id": reference_id},
+        {"$set": {
+            "event_type": "checkout.session.completed",
+            "session_id": reference_id,
+            "payment_status": "paid",
+            "user_id": user_id,
+            "tipo": "analisi_strategica",
+            "received_at": now.isoformat(),
+        }},
+        upsert=True,
+    )
+
     logger.info(f"[STRIPE_WEBHOOK] Payment confirmed for user {user_id}")
     
-    # 2. Create/update clienti_analisi record
+    # 2. Create/update clienti record (legacy collection used by clienteFlowGuard)
+    existing_cliente_legacy = await db.clienti.find_one({"user_id": user_id})
+    if not existing_cliente_legacy:
+        await db.clienti.insert_one({
+            "id": cliente_id,
+            "user_id": user_id,
+            "nome": user.get("nome"),
+            "cognome": user.get("cognome"),
+            "email": user.get("email"),
+            "telefono": user.get("telefono"),
+            "questionario_completato": user.get("questionario_compilato", False),
+            "data_pagamento": now.isoformat(),
+            "created_at": now.isoformat(),
+        })
+
+    # 2b. Create/update clienti_analisi record (full tracking)
     existing_cliente = await db.clienti_analisi.find_one({"user_id": user_id})
     if not existing_cliente:
         await db.clienti_analisi.insert_one({
@@ -217,10 +254,24 @@ async def process_analisi_payment(db, user_id: str, reference_id: str, backgroun
             }}
         )
     
-    # 3. Send Telegram notification
+    # 3. Sync to Systeme.io (tags: acquisto_analisi, cliente_analisi, pagamento_67)
+    try:
+        await _sync_to_systeme(
+            db=db,
+            email=user.get("email", ""),
+            nome=user.get("nome", ""),
+            cognome=user.get("cognome", ""),
+            payment_type="analisi",
+            amount=67.0,
+            metadata={"user_id": user_id, "cliente_id": cliente_id},
+        )
+    except Exception as e:
+        logger.warning(f"[STRIPE_WEBHOOK] Systeme sync failed (non-blocking): {e}")
+
+    # 4. Send Telegram notification
     await send_payment_notification(user, 67, "analisi_strategica")
-    
-    # 4. Schedule background automation tasks
+
+    # 5. Schedule background automation tasks
     background_tasks.add_task(run_post_payment_automation, user_id, cliente_id)
     
     logger.info(f"[STRIPE_WEBHOOK] Post-payment automation scheduled for {user_id}")
@@ -649,6 +700,150 @@ async def send_partnership_welcome_email(partner_id: str):
             logger.info(f"[STRIPE_WEBHOOK] Welcome email triggered for partner {partner_id}")
     except Exception as e:
         logger.error(f"[STRIPE_WEBHOOK] Welcome email trigger failed: {e}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SERVIZI EXTRA PAYMENT (avatar_pro, consulenza_marketing, branding_pack)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+async def process_servizi_extra_payment(db, session_id: str, background_tasks: BackgroundTasks):
+    """Handle confirmed payment for servizi extra — update payment_transactions + Systeme sync."""
+    now = datetime.now(timezone.utc)
+
+    transaction = await db.payment_transactions.find_one({"session_id": session_id})
+    if not transaction:
+        logger.warning(f"[STRIPE_WEBHOOK] No payment_transaction found for session {session_id}")
+        return
+
+    if transaction.get("systeme_synced"):
+        logger.info(f"[STRIPE_WEBHOOK] Servizio extra already synced: {session_id}")
+        return
+
+    update_data: dict = {
+        "payment_status": "paid",
+        "paid_at": now.isoformat(),
+        "updated_at": now.isoformat(),
+    }
+
+    service_type = transaction.get("service_type", "")
+    partner_email = transaction.get("partner_email", "")
+    partner_name = transaction.get("partner_name", "")
+    amount = float(transaction.get("amount", 0))
+
+    # Fallback: look up email from partners collection
+    if not partner_email and transaction.get("partner_id"):
+        partner = await db.partners.find_one({"id": transaction["partner_id"]}, {"_id": 0})
+        if partner:
+            partner_email = partner.get("email", "")
+            if not partner_name:
+                partner_name = partner.get("name", "")
+
+    if partner_email:
+        payment_type_map = {
+            "avatar_pro": "avatar",
+            "consulenza_marketing": "consulenza",
+            "branding_pack": "branding",
+        }
+        payment_type = payment_type_map.get(service_type, service_type or "unknown")
+        name_parts = partner_name.split(" ", 1)
+        nome = name_parts[0] if name_parts else ""
+        cognome = name_parts[1] if len(name_parts) > 1 else ""
+
+        try:
+            result = await _sync_to_systeme(
+                db=db,
+                email=partner_email,
+                nome=nome,
+                cognome=cognome,
+                payment_type=payment_type,
+                amount=amount,
+                metadata={
+                    "partner_id": transaction.get("partner_id"),
+                    "service_type": service_type,
+                    "session_id": session_id,
+                },
+            )
+            update_data["systeme_synced"] = result.get("success", False)
+            update_data["systeme_sync_result"] = result
+        except Exception as e:
+            logger.error(f"[STRIPE_WEBHOOK] Systeme sync servizio extra failed: {e}")
+
+    await db.payment_transactions.update_one(
+        {"session_id": session_id},
+        {"$set": update_data},
+    )
+    logger.info(f"[STRIPE_WEBHOOK] Servizio extra processed: {service_type} — {partner_email}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SYSTEME.IO SYNC — self-contained (no server.py import to avoid circular deps)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+async def _sync_to_systeme(db, email: str, nome: str, cognome: str,
+                           payment_type: str, amount: float, metadata: dict = None) -> dict:
+    """Sync a confirmed payment to Systeme.io: find/create contact + add tags."""
+    import httpx
+
+    api_key = os.environ.get("SYSTEME_API_KEY")
+    if not api_key:
+        logger.warning("[SYSTEME SYNC] API key not configured — skip")
+        return {"success": False, "reason": "api_key_missing"}
+
+    base_url = "https://api.systeme.io/api"
+    headers = {"X-API-KEY": api_key, "Content-Type": "application/json", "Accept": "application/json"}
+
+    tags_map = {
+        "analisi": ["acquisto_analisi", "cliente_analisi", "pagamento_67"],
+        "partnership": ["acquisto_partnership", "partner_attivo", "pagamento_2790", "cliente_premium"],
+        "avatar": ["acquisto_avatar", "servizio_extra", "avatar_pro"],
+        "consulenza": ["acquisto_consulenza", "servizio_extra", "pagamento_147"],
+        "branding": ["acquisto_branding", "servizio_extra", "pagamento_297"],
+    }
+    tags = list(tags_map.get(payment_type, [f"acquisto_{payment_type}", f"pagamento_{int(amount)}"]))
+    month_tag = datetime.now(timezone.utc).strftime("%Y_%m")
+    if payment_type in ("analisi", "partnership"):
+        tags.append(f"{payment_type}_{month_tag}")
+
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            # Find or create contact
+            r = await client.get(f"{base_url}/contacts", headers=headers, params={"email": email})
+            contacts = r.json().get("items", []) if r.is_success else []
+            if contacts:
+                contact_id = contacts[0]["id"]
+            else:
+                cr = await client.post(f"{base_url}/contacts", headers=headers,
+                                       json={"email": email, "firstName": nome, "lastName": cognome})
+                contact_id = cr.json().get("id") if cr.is_success else None
+
+            if not contact_id:
+                logger.error(f"[SYSTEME SYNC] Cannot get contact_id for {email}")
+                return {"success": False, "reason": "contact_not_found"}
+
+            tags_added = []
+            for tag in tags:
+                tr = await client.post(f"{base_url}/contacts/{contact_id}/tags",
+                                       headers=headers, json={"name": tag})
+                if tr.is_success:
+                    tags_added.append(tag)
+
+        # Log sync
+        await db.systeme_payment_syncs.insert_one({
+            "email": email,
+            "payment_type": payment_type,
+            "amount": amount,
+            "contact_id": contact_id,
+            "tags_added": tags_added,
+            "metadata": metadata or {},
+            "synced_at": datetime.now(timezone.utc).isoformat(),
+        })
+
+        logger.info(f"[SYSTEME SYNC] {email} — {payment_type} — tags: {tags_added}")
+        return {"success": True, "contact_id": contact_id, "tags_added": tags_added}
+
+    except Exception as e:
+        logger.error(f"[SYSTEME SYNC] Error for {email}: {e}")
+        return {"success": False, "error": str(e)}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
