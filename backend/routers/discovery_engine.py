@@ -46,8 +46,55 @@ class LeadSource(str, Enum):
     LINKEDIN = "linkedin"
     YOUTUBE = "youtube"
     GOOGLE = "google"
+    GOOGLE_PLACES = "google_places"
     FACEBOOK = "facebook"
     MANUAL = "manual"
+
+
+# ─── Categorie di professionisti offline target ────────────────────────────────
+# Liberi professionisti a P.IVA, lavoro offline/passaparola, scarsa presenza digitale
+PROFESSION_GROUPS = {
+    "consulenza_fiscale": {
+        "label": "Commercialisti / Consulenti Fiscali",
+        "queries": ["dottore commercialista", "consulente fiscale", "studio commercialistico"],
+    },
+    "consulenza_legale": {
+        "label": "Avvocati / Studi Legali",
+        "queries": ["avvocato", "studio legale", "consulente legale"],
+    },
+    "consulenza_lavoro": {
+        "label": "Consulenti del Lavoro",
+        "queries": ["consulente del lavoro", "studio consulenza del lavoro"],
+    },
+    "professioni_sanitarie": {
+        "label": "Fisioterapisti / Osteopati / Nutrizionisti",
+        "queries": ["fisioterapista", "osteopata", "nutrizionista", "psicologo libero professionista"],
+    },
+    "professioni_tecniche": {
+        "label": "Geometri / Architetti",
+        "queries": ["geometra", "studio geometra", "architetto libero professionista"],
+    },
+    "coaching_formazione": {
+        "label": "Coach / Formatori Aziendali",
+        "queries": ["business coach", "formatore aziendale", "consulente aziendale"],
+    },
+    "assicurazioni": {
+        "label": "Agenti / Broker Assicurativi",
+        "queries": ["agente assicurativo", "broker assicurativo", "agenzia assicurativa indipendente"],
+    },
+    "immobiliare": {
+        "label": "Agenti Immobiliari Indipendenti",
+        "queries": ["agente immobiliare indipendente", "mediatore immobiliare"],
+    },
+}
+
+# Città italiane principali per ricerca Places
+ITALIAN_CITIES = [
+    "Milano", "Roma", "Torino", "Napoli", "Bologna", "Firenze",
+    "Venezia", "Genova", "Palermo", "Bari", "Catania", "Verona",
+    "Brescia", "Padova", "Trieste", "Taranto", "Messina", "Parma",
+    "Reggio Calabria", "Modena", "Livorno", "Cagliari", "Foggia", "Salerno",
+]
 
 
 class LeadStatus(str, Enum):
@@ -131,6 +178,15 @@ class DiscoveryLead(BaseModel):
     discovered_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     
+    # Campi specifici per professionisti offline (Google Places)
+    business_address: Optional[str] = None
+    business_phone: Optional[str] = None
+    profession_category: Optional[str] = None   # es. "Commercialista", "Avvocato"
+    google_place_id: Optional[str] = None
+    google_rating: Optional[float] = None
+    google_review_count: Optional[int] = None
+    has_website: bool = False                    # False = segnale offline forte
+
     # Systeme.io
     systeme_contact_id: Optional[str] = None
     systeme_injected_at: Optional[str] = None
@@ -702,6 +758,8 @@ async def update_lead(lead_id: str, body: dict):
         "followers_count", "phone", "notes_admin", "source",
         "email_sequence_stopped", "email_sequence_started",
         "temperatura",  # caldo, tiepido, freddo (per ELENA)
+        # Campi Google Places
+        "business_phone", "business_address", "profession_category",
     }
     update = {k: v for k, v in body.items() if k in allowed}
     if not update:
@@ -1152,6 +1210,318 @@ def calculate_target_fit(score: int) -> str:
         return 'basso'
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# GOOGLE PLACES — LEAD GEN LIBERI PROFESSIONISTI OFFLINE
+# ═══════════════════════════════════════════════════════════════════════════════
+# Target: P.IVA, lavoro offline/passaparola, scarsa presenza digitale
+# Segnali positivi: no sito web, solo telefono, recensioni 4-50, categoria professionale
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class PlacesSearchRequest(BaseModel):
+    profession: str          # Es. "commercialista" o gruppo: "consulenza_fiscale"
+    city: str                # Es. "Milano"
+    max_results: int = 20
+    min_rating: float = 0.0
+    only_without_website: bool = False  # Filtra solo chi non ha sito
+    use_group: bool = False             # Se True, profession = chiave PROFESSION_GROUPS
+
+
+@router.get("/search-places/professions")
+async def get_profession_groups():
+    """Lista categorie di professionisti offline disponibili per la ricerca"""
+    return {
+        "groups": {k: v["label"] for k, v in PROFESSION_GROUPS.items()},
+        "cities": ITALIAN_CITIES,
+        "usage": "Passa group_key come 'profession' con use_group=true, oppure testo libero"
+    }
+
+
+@router.post("/search-places")
+async def search_places(request: PlacesSearchRequest, background_tasks: BackgroundTasks):
+    """
+    Cerca liberi professionisti su Google Places.
+    Ottimizzato per target offline: premia assenza sito, presenza telefono,
+    categorie professionali, recensioni costruite su passaparola.
+
+    Richiede env: GOOGLE_PLACES_API_KEY
+    """
+    api_key = os.environ.get("GOOGLE_PLACES_API_KEY")
+    if not api_key:
+        raise HTTPException(
+            status_code=501,
+            detail="GOOGLE_PLACES_API_KEY non configurata. Aggiungila alle variabili d'ambiente."
+        )
+
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database non inizializzato")
+
+    # Risolvi il gruppo di professioni se richiesto
+    queries_to_run = []
+    if request.use_group and request.profession in PROFESSION_GROUPS:
+        group = PROFESSION_GROUPS[request.profession]
+        queries_to_run = [(q, group["label"]) for q in group["queries"]]
+        logger.info(f"[PLACES] Gruppo '{group['label']}' → {len(queries_to_run)} query per {request.city}")
+    else:
+        queries_to_run = [(request.profession, request.profession)]
+
+    total_imported = 0
+    total_skipped = 0
+    total_hot = 0
+    errors = []
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        for query_text, category_label in queries_to_run:
+            try:
+                result = await _run_places_query(
+                    client, api_key, query_text, category_label,
+                    request.city, request.max_results,
+                    request.min_rating, request.only_without_website
+                )
+                total_imported += result["imported"]
+                total_skipped += result["skipped"]
+                total_hot += result["hot"]
+            except Exception as e:
+                errors.append(f"{query_text}: {str(e)}")
+                logger.error(f"[PLACES] Errore query '{query_text}': {e}")
+
+    return {
+        "success": True,
+        "city": request.city,
+        "profession": request.profession,
+        "new_leads": total_imported,
+        "duplicates_skipped": total_skipped,
+        "hot_leads": total_hot,
+        "errors": errors,
+        "message": f"{total_imported} nuovi lead da Google Places ({request.city})"
+    }
+
+
+async def _run_places_query(
+    client: httpx.AsyncClient,
+    api_key: str,
+    query: str,
+    category_label: str,
+    city: str,
+    max_results: int,
+    min_rating: float,
+    only_without_website: bool
+) -> dict:
+    """Esegue una singola ricerca Places e salva i lead trovati"""
+
+    full_query = f"{query} {city}"
+    text_search_url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
+
+    # ── 1. Text Search ──────────────────────────────────────────────────────────
+    params = {
+        "query": full_query,
+        "language": "it",
+        "region": "it",
+        "key": api_key,
+    }
+    resp = await client.get(text_search_url, params=params)
+    resp.raise_for_status()
+    data = resp.json()
+
+    if data.get("status") not in ("OK", "ZERO_RESULTS"):
+        raise Exception(f"Places API error: {data.get('status')} — {data.get('error_message', '')}")
+
+    places = data.get("results", [])[:max_results]
+    imported = 0
+    skipped = 0
+    hot = 0
+    now = datetime.now(timezone.utc)
+
+    for place in places:
+        try:
+            place_id = place.get("place_id", "")
+            name = place.get("name", "")
+            rating = place.get("rating", 0.0)
+            review_count = place.get("user_ratings_total", 0)
+            address = place.get("formatted_address", "")
+            types = place.get("types", [])
+            business_status = place.get("business_status", "")
+
+            # Salta non operativi
+            if business_status and business_status != "OPERATIONAL":
+                continue
+
+            # Filtra per rating minimo
+            if rating and rating < min_rating:
+                continue
+
+            # Check duplicato per place_id
+            existing = await db.discovery_leads.find_one({"google_place_id": place_id})
+            if existing:
+                skipped += 1
+                continue
+
+            # ── 2. Place Details (telefono + sito web + email) ──────────────
+            details = await _get_place_details(client, api_key, place_id)
+            phone = details.get("formatted_phone_number") or details.get("international_phone_number")
+            website = details.get("website")
+            has_website = bool(website)
+
+            # Salta se only_without_website e ha un sito
+            if only_without_website and has_website:
+                continue
+
+            # Cerca email nel sito (campo non fornito da Places)
+            email = None
+
+            # ── 3. Score offline professional ───────────────────────────────
+            score = calculate_offline_professional_score(
+                types=types,
+                rating=rating,
+                review_count=review_count,
+                has_website=has_website,
+                has_phone=bool(phone),
+                website_url=website or "",
+            )
+            target_fit = calculate_target_fit(score)
+
+            lead_id = generate_lead_id("google_places", place_id)
+            doc = {
+                "id": lead_id,
+                "source": "google_places",
+                "display_name": name,
+                "platform_username": name.lower().replace(" ", "_"),
+                "platform_url": f"https://www.google.com/maps/place/?q=place_id:{place_id}",
+                "google_place_id": place_id,
+                "business_address": address,
+                "business_phone": phone,
+                "profession_category": category_label,
+                "niche_detected": category_label,
+                "google_rating": rating,
+                "google_review_count": review_count,
+                "has_website": has_website,
+                "website_url": website,
+                "email": email,
+                "score_total": score,
+                "target_fit_level": target_fit,
+                "status": "discovered",
+                "followers_count": 0,   # N/A per offline
+                "score_breakdown": {
+                    "categoria_professionale": 25 if any(t in _PROFESSIONAL_PLACE_TYPES for t in types) else 10,
+                    "assenza_sito_web": 20 if not has_website else (10 if "facebook" in (website or "").lower() else 0),
+                    "telefono_disponibile": 20 if phone else 0,
+                    "rating_passaparola": 15 if 3.8 <= rating <= 4.8 else (10 if rating > 4.8 else 5 if rating >= 3.0 else 0),
+                    "volume_recensioni": 15 if 5 <= review_count <= 50 else (10 if 51 <= review_count <= 100 else 5 if review_count > 0 else 0),
+                    "attivita_operativa": 5,
+                },
+                "discovered_at": now.isoformat(),
+                "updated_at": now.isoformat(),
+            }
+
+            await db.discovery_leads.insert_one(doc)
+            imported += 1
+
+            if score >= 75:
+                hot += 1
+                await db.system_alerts.insert_one({
+                    "type": "hot_lead_discovered",
+                    "lead_id": lead_id,
+                    "lead_name": name,
+                    "score": score,
+                    "source": "google_places",
+                    "message": f"🔥 Lead HOT: {name} — {category_label} a {city} (Score: {score}) | {phone or 'no tel'} | {'no sito' if not has_website else website}",
+                    "created_at": now.isoformat(),
+                    "read": False,
+                })
+
+            logger.info(f"[PLACES] Importato: {name} | score={score} | phone={bool(phone)} | website={has_website}")
+
+        except Exception as e:
+            logger.error(f"[PLACES] Errore su place {place.get('name', '?')}: {e}")
+            continue
+
+    return {"imported": imported, "skipped": skipped, "hot": hot}
+
+
+async def _get_place_details(client: httpx.AsyncClient, api_key: str, place_id: str) -> dict:
+    """Recupera dettagli singolo posto: telefono + sito web"""
+    try:
+        resp = await client.get(
+            "https://maps.googleapis.com/maps/api/place/details/json",
+            params={
+                "place_id": place_id,
+                "fields": "formatted_phone_number,international_phone_number,website",
+                "language": "it",
+                "key": api_key,
+            },
+        )
+        resp.raise_for_status()
+        return resp.json().get("result", {})
+    except Exception as e:
+        logger.warning(f"[PLACES] Place details fallita per {place_id}: {e}")
+        return {}
+
+
+_PROFESSIONAL_PLACE_TYPES = {
+    "lawyer", "accounting", "insurance_agency", "real_estate_agency",
+    "physiotherapist", "dentist", "doctor", "health",
+    "financial_institution", "finance", "establishment", "point_of_interest",
+}
+
+
+def calculate_offline_professional_score(
+    types: list,
+    rating: float,
+    review_count: int,
+    has_website: bool,
+    has_phone: bool,
+    website_url: str = "",
+) -> int:
+    """
+    Score per libero professionista offline (0-100).
+    Logica INVERSA rispetto al motore social:
+    - Premia assenza di sito web (lavora offline)
+    - Premia presenza telefono (contattabile direttamente)
+    - Premia recensioni in fascia 5-50 (passaparola, non digital marketing)
+    - Premia categoria professionale (P.IVA target Evolution PRO)
+    """
+    score = 0
+
+    # 1. Categoria professionale (+25 se match diretto, +10 generico)
+    if any(t in _PROFESSIONAL_PLACE_TYPES for t in types):
+        score += 25
+    else:
+        score += 10
+
+    # 2. Assenza di sito web = segnale forte di offline (+20)
+    #    Solo pagina Facebook invece di sito = quasi offline (+10)
+    if not has_website:
+        score += 20
+    elif "facebook.com" in website_url.lower() or "fb.com" in website_url.lower():
+        score += 10  # Solo FB, nessun sito vero
+
+    # 3. Telefono disponibile = contattabile via WhatsApp/chiamata (+20)
+    if has_phone:
+        score += 20
+
+    # 4. Rating 3.8-4.8 = ha clienti soddisfatti (passaparola), non ha inflazionato
+    if 3.8 <= rating <= 4.8:
+        score += 15
+    elif rating > 4.8:
+        score += 10  # Perfetto può essere manipolato
+    elif 3.0 <= rating < 3.8:
+        score += 5
+
+    # 5. Volume recensioni 5-50 = presente ma non digitalmente attivo
+    if 5 <= review_count <= 50:
+        score += 15
+    elif 51 <= review_count <= 150:
+        score += 10
+    elif review_count > 150:
+        score += 3   # Troppo noto, probabilmente già ha marketing
+    elif 1 <= review_count < 5:
+        score += 5
+
+    # 6. Bonus attività operativa
+    score += 5
+
+    return min(score, 100)
+
+
 @router.post("/analyze-website/{lead_id}")
 async def analyze_website(lead_id: str):
     """
@@ -1242,21 +1612,42 @@ async def analyze_website(lead_id: str):
 @router.post("/score/{lead_id}")
 async def score_lead(lead_id: str):
     """
-    Calcola lo score AI del lead basato sui criteri definiti.
-    
-    Criteri:
-    - audience_size (followers/iscritti): 0-25 punti
-    - engagement_rate: 0-20 punti
-    - content_frequency: 0-15 punti
-    - monetization_signals: 0-20 punti
-    - niche_fit: 0-20 punti
+    Calcola lo score AI del lead.
+    - Lead Google Places → scoring offline professional (assenza digitale)
+    - Lead social (YouTube/Instagram/LinkedIn) → scoring creator digitale
     """
     lead = await db.discovery_leads.find_one({"id": lead_id})
     if not lead:
         raise HTTPException(status_code=404, detail="Lead non trovato")
-    
+
+    # ── Google Places: usa scoring per professionista offline ─────────────────
+    if lead.get("source") == "google_places":
+        score_total = calculate_offline_professional_score(
+            types=[],  # non disponibili dopo il salvataggio, usa breakdown esistente
+            rating=lead.get("google_rating") or 0.0,
+            review_count=lead.get("google_review_count") or 0,
+            has_website=lead.get("has_website", False),
+            has_phone=bool(lead.get("business_phone")),
+            website_url=lead.get("website_url") or "",
+        )
+        score_breakdown = lead.get("score_breakdown", {})
+        target_fit_level = calculate_target_fit(score_total)
+        await db.discovery_leads.update_one(
+            {"id": lead_id},
+            {"$set": {
+                "score_total": score_total,
+                "score_breakdown": score_breakdown,
+                "target_fit_level": target_fit_level,
+                "status": LeadStatus.SCORED.value,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }}
+        )
+        return {"success": True, "lead_id": lead_id, "score_total": score_total,
+                "score_breakdown": score_breakdown, "target_fit_level": target_fit_level}
+
+    # ── Social (YouTube/Instagram/etc): scoring creator digitale ─────────────
     score_breakdown = {}
-    
+
     # 1. Audience Size (0-25)
     followers = lead.get("followers_count", 0)
     if followers >= 50000:
@@ -1271,7 +1662,7 @@ async def score_lead(lead_id: str):
         score_breakdown["audience_size"] = 5
     else:
         score_breakdown["audience_size"] = 0
-    
+
     # 2. Engagement Rate (0-20)
     engagement = lead.get("engagement_rate", 0)
     if engagement >= 5:
@@ -1284,23 +1675,19 @@ async def score_lead(lead_id: str):
         score_breakdown["engagement_rate"] = 5
     else:
         score_breakdown["engagement_rate"] = 0
-    
+
     # 3. Content Frequency (0-15)
     frequency = lead.get("content_frequency", "unknown")
     frequency_scores = {
-        "daily": 15,
-        "weekly": 12,
-        "biweekly": 8,
-        "monthly": 5,
-        "sporadic": 2,
-        "unknown": 0
+        "daily": 15, "weekly": 12, "biweekly": 8,
+        "monthly": 5, "sporadic": 2, "unknown": 0
     }
     score_breakdown["content_frequency"] = frequency_scores.get(frequency, 0)
-    
+
     # 4. Monetization Signals (0-20)
     monetization = lead.get("monetization_signals", [])
     website_analysis = lead.get("website_analysis") or {}
-    
+
     mon_score = 0
     if monetization:
         mon_score += min(len(monetization) * 4, 12)
@@ -1309,14 +1696,14 @@ async def score_lead(lead_id: str):
     if website_analysis.get("email_capture"):
         mon_score += 4
     score_breakdown["monetization_signals"] = min(mon_score, 20)
-    
+
     # 5. Niche Fit (0-20) - basato su analisi Stefania
     niche_fit = 10  # Default medio
     if website_analysis:
         opportunity = website_analysis.get("opportunity_score", 5)
         niche_fit = opportunity * 2
     score_breakdown["niche_fit"] = min(niche_fit, 20)
-    
+
     # Calcola totale
     score_total = sum(score_breakdown.values())
     

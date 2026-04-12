@@ -12,7 +12,7 @@ import {
   X, Save, Loader2, CheckCircle, AlertCircle, ChevronDown,
   Instagram, Linkedin, Youtube, Globe, Mail, Phone, Target,
   Flame, Snowflake, TrendingUp, Filter, Download, Copy, Check,
-  ExternalLink, UserPlus
+  ExternalLink, UserPlus, MapPin
 } from "lucide-react";
 
 const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it"))
@@ -35,13 +35,33 @@ const DISCOVERY_STATUSES = {
 };
 
 const SOURCES = {
-  instagram: { label: "Instagram", color: "#E1306C" },
-  linkedin:  { label: "LinkedIn",  color: "#0A66C2" },
-  youtube:   { label: "YouTube",   color: "#FF0000" },
-  google:    { label: "Google",    color: "#4285F4" },
-  facebook:  { label: "Facebook",  color: "#1877F2" },
-  manual:    { label: "Manuale",   color: "#6B7280" },
+  instagram:     { label: "Instagram",      color: "#E1306C" },
+  linkedin:      { label: "LinkedIn",       color: "#0A66C2" },
+  youtube:       { label: "YouTube",        color: "#FF0000" },
+  google:        { label: "Google",         color: "#4285F4" },
+  google_places: { label: "Google Places",  color: "#0F9D58" },
+  facebook:      { label: "Facebook",       color: "#1877F2" },
+  manual:        { label: "Manuale",        color: "#6B7280" },
 };
+
+// Categorie professionisti offline (speculare a backend PROFESSION_GROUPS)
+const PROFESSION_GROUPS = [
+  { key: "consulenza_fiscale",   label: "Commercialisti / Consulenti Fiscali" },
+  { key: "consulenza_legale",    label: "Avvocati / Studi Legali" },
+  { key: "consulenza_lavoro",    label: "Consulenti del Lavoro" },
+  { key: "professioni_sanitarie",label: "Fisioterapisti / Osteopati / Nutrizionisti" },
+  { key: "professioni_tecniche", label: "Geometri / Architetti" },
+  { key: "coaching_formazione",  label: "Coach / Formatori Aziendali" },
+  { key: "assicurazioni",        label: "Agenti / Broker Assicurativi" },
+  { key: "immobiliare",          label: "Agenti Immobiliari Indipendenti" },
+];
+
+const ITALIAN_CITIES = [
+  "Milano","Roma","Torino","Napoli","Bologna","Firenze",
+  "Venezia","Genova","Palermo","Bari","Catania","Verona",
+  "Brescia","Padova","Trieste","Parma","Modena","Reggio Calabria",
+  "Salerno","Livorno","Cagliari","Foggia","Messina","Taranto",
+];
 
 const TEMPERATURE = {
   caldo:   { label: "Caldo",   color: "#EF4444", icon: Flame },
@@ -88,6 +108,7 @@ function ScoreBadge({ score }) {
 // ─────────────────────────────────────────────────────────────
 
 function DiscoveryEditModal({ lead, onClose, onSaved }) {
+  const isPlaces = lead.source === "google_places";
   const [form, setForm] = useState({
     display_name: lead.display_name || "",
     email: lead.email || "",
@@ -95,13 +116,17 @@ function DiscoveryEditModal({ lead, onClose, onSaved }) {
     website_url: lead.website_url || "",
     platform_url: lead.platform_url || "",
     platform_username: lead.platform_username || "",
-    phone: lead.phone || "",
+    phone: lead.phone || lead.business_phone || "",
     niche_detected: lead.niche_detected || "",
     source: lead.source || "manual",
     status: lead.status || "discovered",
     score_total: lead.score_total || 0,
     temperatura: lead.temperatura || "",
     notes_admin: lead.notes_admin || "",
+    // Google Places specific
+    business_phone: lead.business_phone || "",
+    business_address: lead.business_address || "",
+    profession_category: lead.profession_category || "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -155,13 +180,30 @@ function DiscoveryEditModal({ lead, onClose, onSaved }) {
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button>
         </div>
         <div className="flex-1 overflow-y-auto p-5 space-y-3">
+          {isPlaces && (
+            <div className="p-3 rounded-xl text-xs font-semibold" style={{ background: "#F0FDF4", color: "#16A34A", border: "1px solid #BBF7D0" }}>
+              Google Attività · {lead.google_rating ? `★ ${lead.google_rating}` : ""} · {lead.google_review_count || 0} recensioni · {lead.has_website ? "ha sito" : "no sito web ✓"}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <F label="Nome" k="display_name" />
             <F label="Email" k="email" type="email" />
-            <F label="Username piattaforma" k="platform_username" />
-            <F label="Telefono" k="phone" />
-            <F label="Sito web" k="website_url" />
-            <F label="URL profilo" k="platform_url" />
+            {isPlaces ? (
+              <>
+                <F label="Telefono (Google)" k="business_phone" />
+                <F label="Categoria professionale" k="profession_category" />
+                <div className="col-span-2">
+                  <F label="Indirizzo" k="business_address" />
+                </div>
+              </>
+            ) : (
+              <>
+                <F label="Username piattaforma" k="platform_username" />
+                <F label="Telefono" k="phone" />
+                <F label="Sito web" k="website_url" />
+                <F label="URL profilo" k="platform_url" />
+              </>
+            )}
             <F label="Nicchia rilevata" k="niche_detected" />
             <F label="Score (0-100)" k="score_total" type="number" />
             <F label="Fonte" k="source" options={Object.entries(SOURCES).map(([v, c]) => ({ value: v, label: c.label }))} />
@@ -171,7 +213,7 @@ function DiscoveryEditModal({ lead, onClose, onSaved }) {
               ...Object.entries(TEMPERATURE).map(([v, c]) => ({ value: v, label: c.label }))
             ]} />
           </div>
-          <F label="Bio / Descrizione" k="bio" multiline />
+          {!isPlaces && <F label="Bio / Descrizione" k="bio" multiline />}
           <F label="Note admin (interne)" k="notes_admin" multiline />
         </div>
         <div className="p-4 border-t flex items-center justify-between" style={{ borderColor: "#F0EDE8", background: "#FAFAF7" }}>
@@ -478,6 +520,168 @@ function ImportModal({ type, onClose, onImported }) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// GOOGLE PLACES SEARCH MODAL
+// ─────────────────────────────────────────────────────────────
+
+function PlacesSearchModal({ onClose, onImported }) {
+  const [form, setForm] = useState({
+    profession_group: "consulenza_fiscale",
+    custom_profession: "",
+    use_group: true,
+    city: "Milano",
+    max_results: 20,
+    only_without_website: false,
+  });
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+
+  const run = async () => {
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    try {
+      const body = {
+        profession: form.use_group ? form.profession_group : form.custom_profession,
+        city: form.city,
+        max_results: Number(form.max_results),
+        only_without_website: form.only_without_website,
+        use_group: form.use_group,
+      };
+      const res = await fetch(`${API}/api/discovery/search-places`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Errore ricerca");
+      setResult(data);
+      if (data.new_leads > 0) onImported();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.75)" }} onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-5" style={{ background: "#0F9D58" }}>
+          <div>
+            <div className="font-black text-white text-base">Cerca su Google Attività</div>
+            <div className="text-xs text-white/60">Liberi professionisti offline · P.IVA · Passaparola</div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5 text-white" /></button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {/* Tipo ricerca */}
+          <div className="flex gap-2">
+            {[true, false].map(v => (
+              <button key={String(v)} onClick={() => setForm(p => ({ ...p, use_group: v }))}
+                className="flex-1 py-2 rounded-xl text-sm font-semibold border transition-all"
+                style={{
+                  background: form.use_group === v ? "#0F9D58" : "transparent",
+                  color: form.use_group === v ? "#FFF" : "#6B7280",
+                  borderColor: form.use_group === v ? "#0F9D58" : "#E5E2DD",
+                }}>
+                {v ? "Categoria predefinita" : "Testo libero"}
+              </button>
+            ))}
+          </div>
+
+          {form.use_group ? (
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: "#9CA3AF" }}>Categoria professionale</label>
+              <select value={form.profession_group} onChange={e => setForm(p => ({ ...p, profession_group: e.target.value }))}
+                className="w-full px-3 py-2.5 rounded-xl text-sm border" style={{ borderColor: "#E5E2DD" }}>
+                {PROFESSION_GROUPS.map(g => <option key={g.key} value={g.key}>{g.label}</option>)}
+              </select>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: "#9CA3AF" }}>Professione (testo libero)</label>
+              <input type="text" value={form.custom_profession} onChange={e => setForm(p => ({ ...p, custom_profession: e.target.value }))}
+                placeholder="es. commercialista, fisioterapista..."
+                className="w-full px-3 py-2.5 rounded-xl text-sm border" style={{ borderColor: "#E5E2DD" }} />
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: "#9CA3AF" }}>Città</label>
+              <select value={form.city} onChange={e => setForm(p => ({ ...p, city: e.target.value }))}
+                className="w-full px-3 py-2.5 rounded-xl text-sm border" style={{ borderColor: "#E5E2DD" }}>
+                {ITALIAN_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: "#9CA3AF" }}>Max risultati</label>
+              <select value={form.max_results} onChange={e => setForm(p => ({ ...p, max_results: e.target.value }))}
+                className="w-full px-3 py-2.5 rounded-xl text-sm border" style={{ borderColor: "#E5E2DD" }}>
+                {[10, 20, 40, 60].map(n => <option key={n} value={n}>{n} professionisti</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Filtro solo senza sito */}
+          <div className="flex items-center justify-between p-3 rounded-xl"
+            style={{ background: form.only_without_website ? "#F0FDF4" : "#FAFAF7", border: `1px solid ${form.only_without_website ? "#BBF7D0" : "#F0EDE8"}` }}>
+            <div>
+              <div className="text-sm font-semibold" style={{ color: "#1E2128" }}>Solo senza sito web</div>
+              <div className="text-[11px]" style={{ color: "#9CA3AF" }}>Filtra solo chi non ha un sito → segnale offline forte</div>
+            </div>
+            <button onClick={() => setForm(p => ({ ...p, only_without_website: !p.only_without_website }))}
+              className="w-10 h-5 rounded-full relative transition-colors flex-shrink-0"
+              style={{ background: form.only_without_website ? "#0F9D58" : "#D1D5DB" }}>
+              <div className="w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all shadow-sm"
+                style={{ left: form.only_without_website ? "22px" : "2px" }} />
+            </button>
+          </div>
+
+          {/* Info costi */}
+          <div className="p-3 rounded-xl text-xs" style={{ background: "#F0EDE8" }}>
+            <strong>Costo API stimato:</strong> ~€0,37 per 20 risultati (Text Search + Place Details).<br/>
+            Richiede <code>GOOGLE_PLACES_API_KEY</code> nelle variabili d'ambiente.
+          </div>
+
+          {/* Risultato */}
+          {result && (
+            <div className="p-3 rounded-xl text-sm" style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
+              <div className="font-bold" style={{ color: "#16A34A" }}>
+                ✓ {result.new_leads} nuovi lead · {result.hot_leads} HOT (score ≥75)
+              </div>
+              {result.duplicates_skipped > 0 && (
+                <div className="text-xs mt-1" style={{ color: "#9CA3AF" }}>{result.duplicates_skipped} già presenti, saltati</div>
+              )}
+              {result.errors?.length > 0 && (
+                <div className="text-xs mt-1" style={{ color: "#EF4444" }}>Errori: {result.errors.join(", ")}</div>
+              )}
+            </div>
+          )}
+          {error && (
+            <div className="p-3 rounded-xl text-sm" style={{ background: "#FEF2F2" }}>
+              <span style={{ color: "#DC2626" }}>Errore: {error}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="px-5 pb-5">
+          <button onClick={run} disabled={loading || (form.use_group ? false : !form.custom_profession)}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all"
+            style={{ background: loading ? "#E5E2DD" : "#0F9D58", color: loading ? "#9CA3AF" : "#FFF" }}>
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
+            {loading ? "Ricerca in corso..." : "Avvia ricerca su Google Attività"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// ─────────────────────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────
 
@@ -493,6 +697,7 @@ export default function LeadManagerAdmin() {
   const [page, setPage] = useState(0);
   const [editLead, setEditLead] = useState(null);
   const [showImport, setShowImport] = useState(false);
+  const [showPlacesSearch, setShowPlacesSearch] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
 
   const PER_PAGE = 50;
@@ -624,6 +829,15 @@ export default function LeadManagerAdmin() {
           <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} style={{ color: "#9CA3AF" }} />
         </button>
 
+        {isDiscovery && (
+          <button onClick={() => setShowPlacesSearch(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all"
+            style={{ background: "#0F9D58", color: "#FFF" }}>
+            <MapPin className="w-4 h-4" />
+            Google Attività
+          </button>
+        )}
+
         <button onClick={() => setShowImport(true)}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all"
           style={{ background: "#1E2128", color: "#F2C418" }}>
@@ -657,17 +871,40 @@ export default function LeadManagerAdmin() {
                 <tr key={lead.id || i} className="hover:bg-white transition-colors border-b" style={{ borderColor: "#F5F3F0" }}>
                   <td className="px-4 py-3">
                     <div className="font-semibold" style={{ color: "#1E2128" }}>{lead.display_name || "—"}</div>
-                    {lead.website_url && (
+                    {lead.source === "google_places" ? (
+                      <div className="text-[11px] mt-0.5" style={{ color: "#9CA3AF" }}>
+                        {lead.business_address?.split(",").slice(0,2).join(",")}
+                      </div>
+                    ) : lead.website_url ? (
                       <a href={lead.website_url} target="_blank" rel="noopener noreferrer"
                         className="text-[11px] flex items-center gap-1" style={{ color: "#9CA3AF" }}>
                         <Globe className="w-3 h-3" /> {lead.website_url.replace(/^https?:\/\//, "").slice(0, 30)}
                       </a>
-                    )}
+                    ) : null}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="text-xs" style={{ color: "#6B7280" }}>{lead.email}</div>
-                    {lead.platform_username && (
-                      <div className="text-[11px]" style={{ color: "#9CA3AF" }}>@{lead.platform_username}</div>
+                    {lead.source === "google_places" ? (
+                      <div>
+                        {lead.business_phone && (
+                          <div className="text-xs flex items-center gap-1" style={{ color: "#1E2128" }}>
+                            <Phone className="w-3 h-3" style={{ color: "#0F9D58" }} />
+                            {lead.business_phone}
+                          </div>
+                        )}
+                        {lead.google_rating && (
+                          <div className="text-[11px]" style={{ color: "#9CA3AF" }}>
+                            ★ {lead.google_rating} ({lead.google_review_count || 0} rec.)
+                            {!lead.has_website && <span className="ml-1 font-bold" style={{ color: "#0F9D58" }}>· no sito</span>}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="text-xs" style={{ color: "#6B7280" }}>{lead.email}</div>
+                        {lead.platform_username && (
+                          <div className="text-[11px]" style={{ color: "#9CA3AF" }}>@{lead.platform_username}</div>
+                        )}
+                      </div>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -786,6 +1023,11 @@ export default function LeadManagerAdmin() {
       {showImport && (
         <ImportModal type={activeTab === "discovery" ? "discovery" : "fredda"}
           onClose={() => setShowImport(false)}
+          onImported={() => { load(); }} />
+      )}
+      {showPlacesSearch && (
+        <PlacesSearchModal
+          onClose={() => setShowPlacesSearch(false)}
           onImported={() => { load(); }} />
       )}
     </div>
