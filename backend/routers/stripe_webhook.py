@@ -206,6 +206,24 @@ async def process_analisi_payment(db, user_id: str, reference_id: str, backgroun
         upsert=True,
     )
 
+    # 1c. Write to canonical payments collection (single source of truth for all sales)
+    await db.payments.update_one(
+        {"session_id": reference_id},
+        {"$set": {
+            "user_id": user_id,
+            "email": user.get("email", ""),
+            "session_id": reference_id,
+            "tipo": "analisi_strategica",
+            "type": "analisi_strategica",
+            "amount": 67.0,
+            "currency": "eur",
+            "status": "completed",
+            "payment_confirmed_via": "stripe_webhook",
+            "created_at": now.isoformat(),
+        }},
+        upsert=True,
+    )
+
     logger.info(f"[STRIPE_WEBHOOK] Payment confirmed for user {user_id}")
     
     # 2. Create/update clienti record (legacy collection used by clienteFlowGuard)

@@ -3267,7 +3267,11 @@ async def modifica_stato_cliente(user_id: str, body: dict = None):
     value = body.get("value")
     
     # Campi modificabili
-    allowed_fields = ["questionario_compilato", "pagamento_analisi", "analisi_generata"]
+    allowed_fields = [
+        "questionario_compilato", "pagamento_analisi", "analisi_generata",
+        "stato_cliente", "pagamento_effettuato", "azione_richiesta",
+        "call_stato", "idoneo_partnership",
+    ]
     
     if field not in allowed_fields:
         raise HTTPException(status_code=400, detail=f"Campo non modificabile. Campi consentiti: {allowed_fields}")
