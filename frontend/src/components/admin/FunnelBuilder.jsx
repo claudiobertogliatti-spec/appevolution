@@ -294,6 +294,8 @@ function DocumentiLegaliTab({ partnerId }) {
   const [docs, setDocs] = useState({ cookie: "", privacy: "", condizioni: "" });
   const [stato, setStato] = useState("non_generato");
   const [loading, setLoading] = useState(false);
+  const [autoLoading, setAutoLoading] = useState(false);
+  const [campiMancanti, setCampiMancanti] = useState([]);
   const [toast, setToast] = useState("");
   const [copiedDoc, setCopiedDoc] = useState("");
 
@@ -312,6 +314,25 @@ function DocumentiLegaliTab({ partnerId }) {
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
   const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
+
+  const generateAuto = async () => {
+    setAutoLoading(true);
+    try {
+      const r = await axios.post(`${API}/api/partner-journey/funnel/${partnerId}/documenti-legali/genera-auto`);
+      setDocs({ cookie: r.data.cookie_policy_html, privacy: r.data.privacy_policy_html, condizioni: r.data.condizioni_vendita_html });
+      setForm(r.data.dati_usati || {});
+      setCampiMancanti(r.data.campi_mancanti || []);
+      setStato("generato");
+      if (r.data.campi_mancanti?.length > 0) {
+        showToast(`Documenti generati. Campi mancanti: ${r.data.campi_mancanti.join(", ")}`);
+      } else {
+        showToast("Tutti e 3 i documenti generati!");
+      }
+    } catch (e) {
+      showToast(e.response?.data?.detail || "Errore nella generazione automatica");
+    }
+    setAutoLoading(false);
+  };
 
   const generate = async () => {
     setLoading(true);
@@ -346,6 +367,34 @@ function DocumentiLegaliTab({ partnerId }) {
   return (
     <div className="space-y-5" data-testid="documenti-legali-tab">
       {toast && <div className="fixed top-4 right-4 bg-[#1a1a2e] text-white px-4 py-2 rounded-lg text-sm font-medium z-50 shadow-lg">{toast}</div>}
+
+      {/* Genera automatico */}
+      <div className="bg-gradient-to-r from-[#1a1a2e] to-[#2d2d44] rounded-xl p-4 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-white text-sm font-bold">Genera automatico dal profilo</p>
+          <p className="text-gray-400 text-xs mt-0.5">Legge PIVA, email, subdomain Systeme dal profilo partner e genera i 3 documenti in un clic</p>
+        </div>
+        <button
+          onClick={generateAuto}
+          disabled={autoLoading}
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#e94560] text-white rounded-lg text-sm font-bold hover:bg-[#d63d56] transition disabled:opacity-50 whitespace-nowrap"
+          data-testid="btn-genera-auto"
+        >
+          <Sparkles size={14} />
+          {autoLoading ? "Generazione..." : "Genera automatico"}
+        </button>
+      </div>
+
+      {/* Warning campi mancanti */}
+      {campiMancanti.length > 0 && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 flex items-start gap-2">
+          <AlertTriangle size={14} className="text-yellow-600 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-xs font-bold text-yellow-800">Campi non trovati nel profilo — aggiungi manualmente:</p>
+            <p className="text-xs text-yellow-700 mt-0.5">{campiMancanti.join(" · ")}</p>
+          </div>
+        </div>
+      )}
 
       {/* Form */}
       <div className="bg-white rounded-xl border border-[#e8e8e8] p-5">

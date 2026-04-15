@@ -431,6 +431,104 @@ async def save_documenti_legali(partner_id: str, body: DocumentiLegaliRequest):
 
 
 # ════════════════════════════════════════
+# ENDPOINT — GENERA DOCUMENTI LEGALI AUTO
+# ════════════════════════════════════════
+
+@router.post("/{partner_id}/documenti-legali/genera-auto")
+async def genera_documenti_legali_auto(partner_id: str):
+    """
+    Genera automaticamente i 3 documenti legali (cookie, privacy, condizioni di vendita)
+    raccogliendo tutti i dati disponibili dal profilo partner senza input manuale.
+    """
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner non trovato")
+
+    # Costruisci dati dal profilo
+    name_parts = (partner.get("name", "") or "").split(" ", 1)
+    titolare_nome = name_parts[0] if name_parts else ""
+    titolare_cognome = name_parts[1] if len(name_parts) > 1 else ""
+
+    # Indirizzo: prova onboarding documents o campo diretto
+    onboarding = partner.get("documents", {}) or {}
+    indirizzo = (
+        partner.get("indirizzo", "")
+        or onboarding.get("indirizzo", "")
+        or ""
+    )
+    citta = (
+        partner.get("citta", "")
+        or partner.get("città", "")
+        or onboarding.get("citta", "")
+        or ""
+    )
+    cap = (
+        partner.get("cap", "")
+        or onboarding.get("cap", "")
+        or ""
+    )
+
+    # sito_url: preferisci systeme_subdomain, poi CTA_LINK della landing, poi placeholder
+    subdomain = partner.get("systeme_subdomain", "")
+    lp_cta = (partner.get("landing_page", {}) or {}).get("dati", {}).get("CTA_LINK", "")
+    if subdomain:
+        sito_url = f"https://{subdomain}.systeme.io"
+    elif lp_cta:
+        sito_url = lp_cta
+    else:
+        sito_url = ""
+
+    nicchia = partner.get("niche", "") or partner.get("nicchia", "")
+
+    dati = {
+        "titolare_nome": titolare_nome,
+        "titolare_cognome": titolare_cognome,
+        "piva": partner.get("piva", ""),
+        "codice_fiscale": partner.get("codice_fiscale", ""),
+        "indirizzo": indirizzo,
+        "citta": citta,
+        "cap": cap,
+        "email_legale": partner.get("email", ""),
+        "sito_url": sito_url,
+        "nome_sito": nicchia or titolare_nome,
+    }
+
+    now = datetime.now(timezone.utc).isoformat()
+    docs = genera_documenti_legali(dati)
+
+    # Campi mancanti da segnalare (non bloccanti)
+    campi_mancanti = [k for k, v in dati.items() if not v]
+
+    await db.partners.update_one({"id": partner_id}, {"$set": {
+        "documenti_legali.dati": dati,
+        "documenti_legali.cookie_policy_html": docs["cookie_policy"],
+        "documenti_legali.privacy_policy_html": docs["privacy_policy"],
+        "documenti_legali.condizioni_vendita_html": docs["condizioni_vendita"],
+        "documenti_legali.stato": "generato",
+        "documenti_legali.ultimo_aggiornamento": now,
+    }})
+
+    await db.audit_log.insert_one({
+        "partner_id": partner_id,
+        "azione": "documenti_legali_auto_generati",
+        "timestamp": now,
+        "campi_mancanti": campi_mancanti,
+    })
+
+    logger.info(f"[DOCS_AUTO] Documenti generati per {partner_id}. Mancanti: {campi_mancanti}")
+
+    return {
+        "success": True,
+        "cookie_policy_html": docs["cookie_policy"],
+        "privacy_policy_html": docs["privacy_policy"],
+        "condizioni_vendita_html": docs["condizioni_vendita"],
+        "dati_usati": dati,
+        "campi_mancanti": campi_mancanti,
+        "stato": "generato",
+    }
+
+
+# ════════════════════════════════════════
 # TEMPLATES
 # ════════════════════════════════════════
 
