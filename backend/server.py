@@ -1347,14 +1347,17 @@ async def register_cliente_analisi(request: ClienteAnalisiRegisterRequest):
         admin_chat_id = os.environ.get('TELEGRAM_ADMIN_CHAT_ID')
         if telegram_token and admin_chat_id:
             message = f"📝 Nuovo Cliente Analisi Registrato\n\n👤 {request.nome} {request.cognome}\n📧 {request.email}\n📱 {request.telefono}\n\n⏳ In attesa di pagamento €67"
-            async with httpx.AsyncClient() as client_http:
+            async with httpx.AsyncClient(timeout=8.0) as client_http:
                 await client_http.post(
                     f"https://api.telegram.org/bot{telegram_token}/sendMessage",
                     json={"chat_id": admin_chat_id, "text": message}
                 )
     except Exception as e:
         logging.warning(f"Telegram notification failed: {e}")
-    
+
+    # R6 — Tag Systeme: lead_registrato (trigger campagna AC - Welcome Questionario)
+    asyncio.create_task(integrated_add_tag(request.email.lower(), "lead_registrato"))
+
     return {
         "success": True,
         "user_id": user_id,  # Aggiunto per facilitare il checkout
@@ -1787,6 +1790,14 @@ async def mark_call_prenotata(request: Request, credentials: HTTPAuthorizationCr
                 )
     except Exception as e:
         logging.warning(f"Telegram call notification failed: {e}")
+
+    # R10 — Tag Systeme: call_prenotata (trigger campagna AC - Conferma Call)
+    try:
+        user_for_tag = await db.users.find_one({"id": token_data.user_id}, {"email": 1, "_id": 0})
+        if user_for_tag:
+            asyncio.create_task(integrated_add_tag(user_for_tag.get("email", ""), "call_prenotata"))
+    except Exception:
+        pass
 
     return {"success": True, "data": data_call, "ora": ora_call}
 
@@ -2400,6 +2411,9 @@ async def save_questionario_cliente(request: QuestionarioRequest):
             logging.warning(f"Telegram notification failed: {e}")
 
     asyncio.create_task(_send_telegram_notification())
+
+    # R7 — Tag Systeme: questionario_compilato (trigger campagna AC - Reminder Pagamento)
+    asyncio.create_task(integrated_add_tag(user.get("email", ""), "questionario_compilato"))
 
     # AUTO-GENERA BOZZA ANALISI (background)
     try:
@@ -3191,7 +3205,16 @@ async def aggiorna_stato_call(user_id: str, stato: str = "da_fissare"):
     
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Cliente non trovato")
-    
+
+    # R11 — Tag Systeme: call_fatta (trigger campagna AC - Recap Post-Call)
+    if stato == "completata":
+        try:
+            u = await db.users.find_one({"id": user_id}, {"email": 1, "_id": 0})
+            if u:
+                asyncio.create_task(integrated_add_tag(u.get("email", ""), "call_fatta"))
+        except Exception:
+            pass
+
     return {"success": True, "message": f"Stato call aggiornato a: {stato}"}
 
 
@@ -3317,6 +3340,10 @@ async def modifica_stato_cliente(user_id: str, body: dict = None):
         "created_at": datetime.now(timezone.utc).isoformat()
     })
     
+    # R12 — Tag Systeme: decisione_positiva (trigger campagna AC - Proposta Partnership)
+    if field == "idoneo_partnership" and value is True:
+        asyncio.create_task(integrated_add_tag(cliente.get("email", ""), "decisione_positiva"))
+
     return {
         "success": True,
         "message": f"Stato '{field}' aggiornato a {value} per {cliente.get('nome', '')} {cliente.get('cognome', '')}"
@@ -12340,7 +12367,8 @@ async def sync_payment_to_systeme(
         tags_to_add = []
         
         if payment_type == "analisi":
-            tags_to_add = ["acquisto_analisi", "cliente_analisi", "pagamento_67", f"acquisto_{datetime.now().strftime('%Y_%m')}"]
+            # "analisi_pagata" è il tag del piano R8 — trigger campagna AC - Reminder Pagamento
+            tags_to_add = ["analisi_pagata", "acquisto_analisi", "cliente_analisi", "pagamento_67", f"acquisto_{datetime.now().strftime('%Y_%m')}"]
         elif payment_type == "partnership":
             tags_to_add = ["acquisto_partnership", "partner_attivo", "pagamento_2790", "cliente_premium", f"partnership_{datetime.now().strftime('%Y_%m')}"]
         elif payment_type == "avatar":
