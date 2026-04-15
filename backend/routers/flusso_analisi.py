@@ -1788,7 +1788,18 @@ async def attiva_partnership(user_id: str, background_tasks: BackgroundTasks):
         {"$set": partner_data},
         upsert=True
     )
-    
+
+    # ═══════════════════════════════════════════════════════════════════
+    # STEP 2b: Tag Systeme — R14 fase_ONBOARDING + R15 partner_attivo
+    # ═══════════════════════════════════════════════════════════════════
+    try:
+        from integrated_services import add_systeme_tag as _add_tag
+        import asyncio as _asyncio
+        _asyncio.create_task(_add_tag(email, "fase_ONBOARDING"))
+        _asyncio.create_task(_add_tag(email, "partner_attivo"))
+    except Exception as _e:
+        logging.warning(f"Systeme tag attiva_partnership failed: {_e}")
+
     # ═══════════════════════════════════════════════════════════════════
     # STEP 3: Invia email partnership_welcome
     # ═══════════════════════════════════════════════════════════════════
