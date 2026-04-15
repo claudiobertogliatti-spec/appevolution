@@ -6,6 +6,8 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timezone, date
 import logging
+import os
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -217,6 +219,136 @@ async def save_landing_page(partner_id: str, body: LandingPageRequest):
         "stato": update.get("landing_page.stato", "bozza"),
         "ultimo_aggiornamento": now
     }
+
+
+# ════════════════════════════════════════
+# ENDPOINT — GENERA COPY CON AI
+# ════════════════════════════════════════
+
+@router.post("/{partner_id}/genera-ai")
+async def genera_ai(partner_id: str):
+    """
+    Genera automaticamente i campi copy della landing page usando Claude AI,
+    basandosi sui dati del profilo partner (nome, nicchia, bio, fase).
+    """
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner non trovato")
+
+    api_key = os.environ.get("EMERGENT_LLM_KEY") or os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="API key AI non configurata")
+
+    nome = partner.get("name", "")
+    nicchia = partner.get("niche", "") or partner.get("nicchia", "")
+    bio = partner.get("bio", "")
+    fase_num = partner.get("phase", partner.get("fase", 1))
+
+    FASE_LABELS = {
+        1: "Posizionamento", 2: "Masterclass", 3: "Videocorso",
+        4: "Funnel", 5: "Lancio", 6: "Ottimizzazione", 7: "Continuità"
+    }
+    fase_label = FASE_LABELS.get(int(fase_num) if fase_num else 1, "Posizionamento")
+
+    prompt = f"""Sei un copywriter esperto di digital marketing italiano per Evolution PRO, una piattaforma B2B per professionisti che lanciano accademie online.
+
+Devi generare il copy completo per la landing page di vendita di un videocorso del seguente partner:
+
+NOME: {nome}
+NICCHIA: {nicchia}
+BIO: {bio or "Professionista esperto nel suo settore"}
+FASE: {fase_label}
+
+Genera un JSON con ESATTAMENTE questi campi (tutti in italiano, tono professionale e persuasivo):
+
+{{
+  "HEADLINE_PRINCIPALE": "headline potente e specifica per la nicchia, max 10 parole",
+  "HEADLINE_SPAN": "parola o frase breve da evidenziare in colore nella headline, max 3 parole",
+  "SOTTOTITOLO": "sottotitolo che espande la headline, max 20 parole, beneficio principale",
+  "URGENCY_TEXT": "testo breve per barra urgenza tipo 'Posti limitati – chiude venerdì'",
+  "CTA_TESTO_PRINCIPALE": "testo bottone CTA principale, 3-5 parole tipo 'Accedi Subito al Corso'",
+  "SOTTO_CTA_TESTO": "testo sotto il CTA, rassicurante, tipo 'Garanzia 30 giorni · Accesso immediato'",
+  "PROBLEMA_HEADLINE": "headline sezione problema, max 8 parole",
+  "PROBLEMA_TESTO_1": "primo paragrafo problema che il target affronta, 2-3 frasi empatiche",
+  "PROBLEMA_TESTO_2": "secondo paragrafo che agita il problema, 2-3 frasi",
+  "DOLORE_1": "punto dolore specifico, max 8 parole",
+  "DOLORE_2": "punto dolore specifico, max 8 parole",
+  "DOLORE_3": "punto dolore specifico, max 8 parole",
+  "DOLORE_4": "punto dolore specifico, max 8 parole",
+  "SOLUZIONE_HEADLINE": "headline sezione soluzione, max 8 parole",
+  "SOLUZIONE_SPAN": "parola chiave da evidenziare nella headline soluzione",
+  "SOLUZIONE_TESTO": "descrizione della soluzione, 2-3 frasi che presentano il corso come la risposta",
+  "STAT_1_NUMERO": "statistica rilevante per la nicchia (es. '87%')",
+  "STAT_1_TESTO": "cosa rappresenta la statistica, max 8 parole",
+  "STAT_2_NUMERO": "seconda statistica (es. '3x')",
+  "STAT_2_TESTO": "cosa rappresenta, max 8 parole",
+  "STAT_3_NUMERO": "terza statistica (es. '12.000+')",
+  "STAT_3_TESTO": "cosa rappresenta, max 8 parole",
+  "CORSO_NOME": "nome del videocorso specifico per la nicchia, 3-6 parole",
+  "MODULO_1_TITOLO": "titolo modulo 1, 3-5 parole",
+  "MODULO_1_DESC": "descrizione modulo 1, 1 frase",
+  "MODULO_2_TITOLO": "titolo modulo 2, 3-5 parole",
+  "MODULO_2_DESC": "descrizione modulo 2, 1 frase",
+  "MODULO_3_TITOLO": "titolo modulo 3, 3-5 parole",
+  "MODULO_3_DESC": "descrizione modulo 3, 1 frase",
+  "MODULO_4_TITOLO": "titolo modulo 4, 3-5 parole",
+  "MODULO_4_DESC": "descrizione modulo 4, 1 frase",
+  "MODULO_5_TITOLO": "titolo modulo 5, 3-5 parole",
+  "MODULO_5_DESC": "descrizione modulo 5, 1 frase",
+  "INCLUSO_1": "cosa è incluso nel corso, 1 riga",
+  "INCLUSO_2": "cosa è incluso, 1 riga",
+  "INCLUSO_3": "cosa è incluso, 1 riga",
+  "INCLUSO_4": "cosa è incluso, 1 riga",
+  "INCLUSO_5": "cosa è incluso, 1 riga",
+  "FAQ_1_DOMANDA": "domanda frequente tipica del target",
+  "FAQ_1_RISPOSTA": "risposta convincente, 2-3 frasi",
+  "FAQ_2_DOMANDA": "domanda frequente 2",
+  "FAQ_2_RISPOSTA": "risposta, 2-3 frasi",
+  "FAQ_3_DOMANDA": "domanda frequente 3",
+  "FAQ_3_RISPOSTA": "risposta, 2-3 frasi",
+  "FAQ_4_DOMANDA": "domanda frequente 4",
+  "FAQ_4_RISPOSTA": "risposta, 2-3 frasi",
+  "CTA_FINALE_HEADLINE": "headline CTA finale, 5-8 parole, urgenza e beneficio",
+  "CTA_FINALE_TESTO": "testo sotto il CTA finale, 1-2 frasi motivanti"
+}}
+
+Rispondi SOLO con il JSON, nessun altro testo."""
+
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        llm = LlmChat(
+            api_key=api_key,
+            session_id=f"funnel_ai_{partner_id}_{datetime.now().timestamp()}",
+            system_message="Sei un copywriter esperto di digital marketing italiano. Rispondi sempre e solo con JSON valido."
+        ).with_model("anthropic", "claude-sonnet-4-6")
+
+        risposta = await llm.send_message(UserMessage(text=prompt))
+
+        # Estrai JSON dalla risposta
+        testo = risposta.strip()
+        if testo.startswith("```"):
+            testo = testo.split("```")[1]
+            if testo.startswith("json"):
+                testo = testo[4:]
+        testo = testo.strip()
+
+        campi = json.loads(testo)
+
+        # Aggiungi campi fissi dal profilo
+        campi["PARTNER_NOME"] = nome
+        campi["PARTNER_NICCHIA"] = nicchia
+        if bio:
+            campi["PARTNER_BIO"] = bio
+
+        logger.info(f"[FUNNEL_AI] Generati {len(campi)} campi per partner {partner_id}")
+        return {"success": True, "campi": campi}
+
+    except json.JSONDecodeError as e:
+        logger.error(f"[FUNNEL_AI] JSON parse error: {e}")
+        raise HTTPException(status_code=500, detail="Errore nel parsing della risposta AI")
+    except Exception as e:
+        logger.error(f"[FUNNEL_AI] Errore generazione AI: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore generazione AI: {str(e)}")
 
 
 # ════════════════════════════════════════

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Eye, Copy, Save, CheckCircle, FileText, Globe, ChevronDown, ChevronUp, Palette, Video, AlertTriangle, Target, BookOpen, MessageSquare, DollarSign, HelpCircle, Flag, X } from "lucide-react";
+import { Eye, Copy, Save, CheckCircle, FileText, Globe, ChevronDown, ChevronUp, Palette, Video, AlertTriangle, Target, BookOpen, MessageSquare, DollarSign, HelpCircle, Flag, X, Sparkles } from "lucide-react";
 import axios from "axios";
 
 const API = (() => {
@@ -94,6 +94,7 @@ function LandingPageTab({ partnerId }) {
   const [html, setHtml] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
   const [openSection, setOpenSection] = useState("partner");
   const [checks, setChecks] = useState(Array(8).fill(false));
   const [copied, setCopied] = useState(false);
@@ -114,6 +115,21 @@ function LandingPageTab({ partnerId }) {
   const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
+
+  const generateWithAI = async () => {
+    setAiLoading(true);
+    try {
+      const r = await axios.post(`${API}/api/partner-journey/funnel/${partnerId}/genera-ai`);
+      if (r.data.success && r.data.campi) {
+        setForm(prev => ({ ...prev, ...r.data.campi }));
+        setOpenSection("hero");
+        showToast("Copy generato con AI! Controlla e personalizza i campi.");
+      }
+    } catch (e) {
+      showToast(e.response?.data?.detail || "Errore nella generazione AI");
+    }
+    setAiLoading(false);
+  };
 
   const saveDraft = async () => {
     setSaving(true);
@@ -171,6 +187,23 @@ function LandingPageTab({ partnerId }) {
         <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
           <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progress}%`, background: progress === 100 ? '#22c55e' : '#e94560' }} />
         </div>
+      </div>
+
+      {/* Genera con AI */}
+      <div className="bg-gradient-to-r from-[#1a1a2e] to-[#2d2d44] rounded-xl p-4 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-white text-sm font-bold">Genera copy con AI</p>
+          <p className="text-gray-400 text-xs mt-0.5">Claude compila automaticamente tutti i campi di testo partendo dal profilo partner</p>
+        </div>
+        <button
+          onClick={generateWithAI}
+          disabled={aiLoading}
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#e94560] text-white rounded-lg text-sm font-bold hover:bg-[#d63d56] transition disabled:opacity-50 whitespace-nowrap"
+          data-testid="btn-genera-ai"
+        >
+          <Sparkles size={14} />
+          {aiLoading ? "Generazione AI..." : "Genera con AI"}
+        </button>
       </div>
 
       {/* Form sections */}
