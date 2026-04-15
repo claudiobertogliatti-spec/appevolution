@@ -72,6 +72,7 @@ export function QuestionarioCliente({ user, onComplete, onLogout }) {
   const [risposte, setRisposte] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [campiInvalidi, setCampiInvalidi] = useState([]);
 
   const handleRispostaChange = (campo, value) => {
     setRisposte(prev => ({
@@ -79,20 +80,27 @@ export function QuestionarioCliente({ user, onComplete, onLogout }) {
       [campo]: value
     }));
     setError(null);
+    setCampiInvalidi(prev => prev.filter(c => c !== campo));
+  };
+
+  // Verifica validità singola risposta
+  const isRispostaValida = (d, risposte) => {
+    const risposta = risposte[d.campo];
+    if (d.tipo === 'select') return risposta && risposta !== '';
+    return risposta && risposta.trim().length >= 2;
   };
 
   // Verifica se tutte le domande hanno risposta
-  const tutteRisposteCompilate = DOMANDE.every(d => {
-    const risposta = risposte[d.campo];
-    if (d.tipo === 'select') {
-      return risposta && risposta !== '';
-    }
-    return risposta && risposta.trim().length >= 5;
-  });
+  const tutteRisposteCompilate = DOMANDE.every(d => isRispostaValida(d, risposte));
 
   const handleSubmit = async () => {
     if (!tutteRisposteCompilate) {
-      setError('Per favore rispondi a tutte le domande prima di continuare.');
+      const invalidi = DOMANDE.filter(d => !isRispostaValida(d, risposte)).map(d => d.campo);
+      setCampiInvalidi(invalidi);
+      setError('Compila tutte le domande prima di continuare. Le sezioni evidenziate in rosso sono incomplete.');
+      // Scroll alla prima domanda invalida
+      const primaInvalida = document.querySelector('[data-campo-invalido="true"]');
+      if (primaInvalida) primaInvalida.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
 
@@ -232,10 +240,15 @@ export function QuestionarioCliente({ user, onComplete, onLogout }) {
         {/* SEZIONE 3 — QUESTIONARIO */}
         <div className="space-y-6">
           {DOMANDE.map((domanda, index) => (
-            <div 
+            <div
               key={domanda.id}
               className="rounded-2xl p-6"
-              style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}
+              data-campo-invalido={campiInvalidi.includes(domanda.campo) ? "true" : "false"}
+              style={{
+                background: '#FFFFFF',
+                border: campiInvalidi.includes(domanda.campo) ? '2px solid #DC2626' : '1px solid #ECEDEF',
+                transition: 'border-color 0.2s'
+              }}
             >
               {/* Numero domanda */}
               <div 
@@ -284,20 +297,16 @@ export function QuestionarioCliente({ user, onComplete, onLogout }) {
                 </select>
               ) : null}
 
-              {/* Indicatore risposta valida */}
-              {risposte[domanda.campo] && (
-                domanda.tipo === 'select' 
-                  ? risposte[domanda.campo] !== '' && (
-                      <div className="mt-2 flex items-center gap-1 text-xs" style={{ color: '#22C55E' }}>
-                        <CheckCircle className="w-3 h-3" /> Risposta compilata
-                      </div>
-                    )
-                  : risposte[domanda.campo].trim().length >= 5 && (
-                      <div className="mt-2 flex items-center gap-1 text-xs" style={{ color: '#22C55E' }}>
-                        <CheckCircle className="w-3 h-3" /> Risposta compilata
-                      </div>
-                    )
-              )}
+              {/* Indicatore risposta valida / invalida */}
+              {isRispostaValida(domanda, risposte) ? (
+                <div className="mt-2 flex items-center gap-1 text-xs" style={{ color: '#22C55E' }}>
+                  <CheckCircle className="w-3 h-3" /> Risposta compilata
+                </div>
+              ) : campiInvalidi.includes(domanda.campo) ? (
+                <div className="mt-2 flex items-center gap-1 text-xs font-medium" style={{ color: '#DC2626' }}>
+                  ⚠ Compila questa risposta per continuare
+                </div>
+              ) : null}
             </div>
           ))}
         </div>
@@ -313,7 +322,7 @@ export function QuestionarioCliente({ user, onComplete, onLogout }) {
         <div className="mt-10 text-center">
           <button
             onClick={handleSubmit}
-            disabled={loading || !tutteRisposteCompilate}
+            disabled={loading}
             className="inline-flex items-center gap-3 px-10 py-4 rounded-xl font-black text-lg uppercase tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 hover:scale-105"
             style={{ background: '#FFD24D', color: '#1E2128' }}
             data-testid="submit-questionario-btn"
@@ -328,7 +337,7 @@ export function QuestionarioCliente({ user, onComplete, onLogout }) {
             )}
           </button>
 
-          {!tutteRisposteCompilate && (
+          {!tutteRisposteCompilate && campiInvalidi.length === 0 && (
             <p className="mt-3 text-sm" style={{ color: '#9CA3AF' }}>
               Rispondi a tutte le domande per continuare
             </p>

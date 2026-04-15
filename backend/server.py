@@ -22,7 +22,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any, Union
 import uuid
 from datetime import datetime, timezone, timedelta
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+# from emergentintegrations.llm.chat import LlmChat, UserMessage
 from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 import httpx
 
@@ -2332,10 +2332,10 @@ async def save_questionario_cliente(request: QuestionarioRequest):
     # Trova l'utente
     user = await db.users.find_one({"id": request.user_id}, {"_id": 0})
     if not user:
-        raise HTTPException(status_code=404, detail="Utente non trovato")
-    
+        raise HTTPException(status_code=404, detail="Utente non trovato. Effettua il login e riprova.")
+
     if user.get("user_type") != "cliente_analisi":
-        raise HTTPException(status_code=400, detail="Solo i clienti analisi possono compilare questo questionario")
+        raise HTTPException(status_code=400, detail="Accesso non autorizzato. Effettua il logout e riaccedi.")
     
     # Salva questionario
     questionario_id = str(uuid.uuid4())
@@ -2380,31 +2380,30 @@ async def save_questionario_cliente(request: QuestionarioRequest):
         }}
     )
     
-    # Notifica Telegram
-    try:
-        telegram_token = os.environ.get('TELEGRAM_BOT_TOKEN')
-        admin_chat_id = os.environ.get('TELEGRAM_ADMIN_CHAT_ID')
-        if telegram_token and admin_chat_id:
-            nome = user.get('nome', '')
-            cognome = user.get('cognome', '')
-            email = user.get('email', '')
-            expertise = request.expertise[:100] if request.expertise else 'N/D'
-            message = f"📋 QUESTIONARIO COMPLETATO\n\n👤 {nome} {cognome}\n📧 {email}\n💼 {expertise}\n\n✅ Pronto per analisi e pagamento"
-            async with httpx.AsyncClient() as client_http:
-                await client_http.post(
-                    f"https://api.telegram.org/bot{telegram_token}/sendMessage",
-                    json={"chat_id": admin_chat_id, "text": message}
-                )
-    except Exception as e:
-        logging.warning(f"Telegram notification failed: {e}")
-    
-    # AUTO-GENERA BOZZA ANALISI (NUOVO FLUSSO)
-    # La bozza viene generata automaticamente e resta nascosta al cliente
-    # fino a quando l'admin non attiva la fase decisione
+    # Notifica Telegram (background — non blocca la risposta al cliente)
+    async def _send_telegram_notification():
+        try:
+            telegram_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+            admin_chat_id = os.environ.get('TELEGRAM_ADMIN_CHAT_ID')
+            if telegram_token and admin_chat_id:
+                nome = user.get('nome', '')
+                cognome = user.get('cognome', '')
+                email = user.get('email', '')
+                expertise = request.expertise[:100] if request.expertise else 'N/D'
+                message = f"📋 QUESTIONARIO COMPLETATO\n\n👤 {nome} {cognome}\n📧 {email}\n💼 {expertise}\n\n✅ Pronto per analisi e pagamento"
+                async with httpx.AsyncClient(timeout=8.0) as client_http:
+                    await client_http.post(
+                        f"https://api.telegram.org/bot{telegram_token}/sendMessage",
+                        json={"chat_id": admin_chat_id, "text": message}
+                    )
+        except Exception as e:
+            logging.warning(f"Telegram notification failed: {e}")
+
+    asyncio.create_task(_send_telegram_notification())
+
+    # AUTO-GENERA BOZZA ANALISI (background)
     try:
         from routers.flusso_analisi import genera_analisi_auto
-        # Chiamata asincrona per generare l'analisi in background
-        import asyncio
         asyncio.create_task(genera_analisi_auto(request.user_id))
         logging.info(f"[FLUSSO] Triggered auto-generation of bozza analisi for user {request.user_id}")
     except Exception as e:
