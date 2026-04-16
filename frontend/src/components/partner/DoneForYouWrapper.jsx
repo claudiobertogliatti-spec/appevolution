@@ -358,9 +358,32 @@ export function DoneForYouWrapper({
           <SlaBadge stepId={stepId} />
         </div>
         {adminChildren || children}
-        {status === "approvato" && (
+        {status === "approvato" ? (
           <div className="mt-6">
             <ApprovatoView stepTitle={stepTitle} nextStepLabel={nextStepLabel} onContinue={onContinue} />
+          </div>
+        ) : (
+          <div className="flex gap-3 mt-6">
+            <button
+              onClick={approve}
+              disabled={isApproving}
+              data-testid="dfy-admin-approve-btn"
+              className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all hover:opacity-90 disabled:opacity-50"
+              style={{ background: "#FBBF24", color: "#1E2128", border: "1.5px solid #F59E0B" }}
+            >
+              {isApproving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              {isApproving ? "Approvazione..." : "Approva (Admin)"}
+            </button>
+            {nextStepLabel && onContinue && (
+              <button
+                onClick={onContinue}
+                data-testid="dfy-admin-continue-btn"
+                className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all hover:opacity-90"
+                style={{ background: "#F3F4F6", color: "#374151", border: "1.5px solid #E5E7EB" }}
+              >
+                {nextStepLabel} <ArrowRight className="w-4 h-4" />
+              </button>
+            )}
           </div>
         )}
       </div>
