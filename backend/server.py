@@ -2684,6 +2684,47 @@ async def get_prospect_pipeline():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@api_router.delete("/admin/prospect/{prospect_id}")
+async def delete_prospect(prospect_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """
+    Admin only. Elimina un prospect e tutti i dati collegati:
+    db.users, db.proposte, db.analisi_consulenziale, db.flusso_analisi,
+    db.pagamenti, db.questionari, db.funnel_events
+    """
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    token_data = decode_token(credentials.credentials)
+    if not token_data:
+        raise HTTPException(status_code=401, detail="Token non valido")
+    caller = await db.users.find_one({"id": token_data.user_id})
+    if not caller or caller.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    # Verifica che il prospect esista
+    prospect = await db.users.find_one({"id": prospect_id, "user_type": "cliente_analisi"})
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Prospect non trovato")
+
+    deleted = {}
+
+    # Elimina l'utente
+    r = await db.users.delete_one({"id": prospect_id})
+    deleted["users"] = r.deleted_count
+
+    # Elimina proposta
+    r = await db.proposte.delete_many({"partner_id": prospect_id})
+    deleted["proposte"] = r.deleted_count
+
+    # Elimina analisi consulenziale
+    for coll_name in ["analisi_consulenziale", "flusso_analisi", "pagamenti", "questionari", "funnel_events"]:
+        coll = db[coll_name]
+        r = await coll.delete_many({"user_id": prospect_id})
+        deleted[coll_name] = r.deleted_count
+
+    logging.info(f"Admin {caller.get('email')} deleted prospect {prospect_id} ({prospect.get('email')}): {deleted}")
+    return {"success": True, "deleted": deleted, "prospect_email": prospect.get("email")}
+
+
 @api_router.get("/admin/clienti-analisi/{user_id}")
 async def get_cliente_analisi_detail(user_id: str):
     """

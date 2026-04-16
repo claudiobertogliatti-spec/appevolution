@@ -382,10 +382,33 @@ export function ProspectPipeline({ onOpenCliente }) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("tutti");
-  const [contrattoModal, setContrattoModal] = useState(null); // cliente selezionato per modale
-  const [audioModal, setAudioModal] = useState(null); // cliente selezionato per modale audio
+  const [contrattoModal, setContrattoModal] = useState(null);
+  const [audioModal, setAudioModal] = useState(null);
+  const [deleteModal, setDeleteModal] = useState(null);   // { id, nome, cognome, email }
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => { loadData(); }, []);
+
+  const handleDeleteProspect = async () => {
+    if (!deleteModal) return;
+    setDeleting(true);
+    try {
+      const token = localStorage.getItem("access_token") || localStorage.getItem("token");
+      const res = await fetch(`${API}/api/admin/prospect/${deleteModal.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setClienti(prev => prev.filter(c => c.id !== deleteModal.id));
+        setDeleteModal(null);
+      }
+    } catch (e) {
+      console.error("Errore eliminazione prospect:", e);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -590,7 +613,7 @@ export function ProspectPipeline({ onOpenCliente }) {
                     {c.step_pagamento_67 && <CallBadge stato={c.call_stato} />}
                   </td>
 
-                  {/* Azione apri + contratto custom + audio */}
+                  {/* Azione apri + contratto custom + audio + elimina */}
                   <td className="px-3 py-3 text-center">
                     <div className="flex items-center gap-1 justify-center">
                       <button
@@ -612,6 +635,13 @@ export function ProspectPipeline({ onOpenCliente }) {
                         className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:bg-[#FFF3C4]"
                         style={{ color: "#C4990A" }}>
                         <ChevronRight className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={e => { e.stopPropagation(); setDeleteModal(c); }}
+                        title="Elimina prospect"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:bg-[#FEE2E2]"
+                        style={{ color: "#EF4444" }}>
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </td>
@@ -660,6 +690,58 @@ export function ProspectPipeline({ onOpenCliente }) {
           cliente={audioModal}
           onClose={() => setAudioModal(null)}
         />
+      )}
+
+      {/* Modale conferma eliminazione */}
+      {deleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+            <div className="px-6 py-5 border-b" style={{ borderColor: "#FEE2E2" }}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "#FEE2E2" }}>
+                  <Trash2 className="w-5 h-5" style={{ color: "#EF4444" }} />
+                </div>
+                <div>
+                  <h3 className="font-black text-base" style={{ color: "#1E2128" }}>Elimina Prospect</h3>
+                  <p className="text-xs" style={{ color: "#9CA3AF" }}>Operazione irreversibile</p>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <p className="text-sm" style={{ color: "#5F6572" }}>
+                Stai per eliminare <strong style={{ color: "#1E2128" }}>{deleteModal.nome} {deleteModal.cognome}</strong>
+                {" "}({deleteModal.email}) e tutti i suoi dati:
+              </p>
+              <ul className="space-y-1 text-xs" style={{ color: "#9CA3AF" }}>
+                {["Account utente", "Questionario", "Analisi strategica", "Proposta e contratto", "Pagamenti e documenti"].map(item => (
+                  <li key={item} className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#EF4444" }} />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setDeleteModal(null)}
+                  disabled={deleting}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                  style={{ background: "#F5F4F1", color: "#5F6572" }}>
+                  Annulla
+                </button>
+                <button
+                  onClick={handleDeleteProspect}
+                  disabled={deleting}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-50"
+                  style={{ background: "#EF4444", color: "#fff" }}>
+                  {deleting
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <Trash2 className="w-4 h-4" />}
+                  {deleting ? "Eliminando..." : "Elimina"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
