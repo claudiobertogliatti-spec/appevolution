@@ -1,4 +1,4 @@
-import { ArrowRight, Check, Lock, Info, MessageCircle, Calendar, Shield, Clock, Zap } from "lucide-react";
+import { ArrowRight, Check, Lock, Info, MessageCircle, Calendar, Shield, Clock, Zap, Rocket, Globe, CheckCircle } from "lucide-react";
 import { STEPS, getStepFromPhase, STEP_SLA } from "./stepConfig";
 
 export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat, isAdmin }) {
@@ -129,6 +129,65 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat, is
             </div>
           </div>
         </section>
+
+        {/* ═══════════ GO LIVE — SOLO QUANDO STEP 6 ═══════════ */}
+        {isCompleted && (
+          <section data-testid="golive-section" className="rounded-2xl overflow-hidden" style={{ border: '2px solid #34C77B' }}>
+            {/* Hero verde */}
+            <div className="px-6 py-6 text-center" style={{ background: 'linear-gradient(135deg, #0F7A4A, #34C77B)' }}>
+              <div className="w-16 h-16 rounded-2xl mx-auto mb-3 flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.15)' }}>
+                <Rocket className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-2xl font-black text-white mb-1">SEI ONLINE 🚀</h2>
+              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                Il tuo sistema è attivo. Ora si tratta di portare traffico e convertire.
+              </p>
+            </div>
+
+            {/* Checklist lancio */}
+            <div className="px-6 py-5" style={{ background: 'white' }}>
+              <p className="text-xs font-black uppercase tracking-widest mb-4" style={{ color: '#9CA3AF' }}>CHECKLIST DI LANCIO</p>
+              <div className="space-y-3">
+                {[
+                  { label: 'Funnel pubblicato e funzionante', done: true },
+                  { label: 'Sequenza email attiva su Systeme', done: true },
+                  { label: 'Calendario prenotazioni configurato', done: true },
+                  { label: 'Prima campagna traffico partita', done: false },
+                  { label: 'Prime 10 lead acquisite', done: false },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div
+                      className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{ background: item.done ? '#34C77B' : '#ECEDEF' }}
+                    >
+                      {item.done
+                        ? <Check className="w-3.5 h-3.5 text-white" />
+                        : <span className="text-[10px] font-black" style={{ color: '#9CA3AF' }}>{i + 1}</span>
+                      }
+                    </div>
+                    <span className="text-sm font-bold" style={{ color: item.done ? '#2D9F6F' : '#5F6572' }}>
+                      {item.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* CTA */}
+            <div className="px-6 pb-6" style={{ background: 'white' }}>
+              <button
+                data-testid="golive-cta"
+                onClick={() => onNavigate('lancio')}
+                className="w-full py-4 rounded-xl font-black text-base flex items-center justify-center gap-3 transition-all hover:opacity-90"
+                style={{ background: '#34C77B', color: 'white' }}
+              >
+                <Globe className="w-5 h-5" />
+                Vai al Piano di Lancio
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            </div>
+          </section>
+        )}
 
         {/* ═══════════ 3. BLOCCO PROGRESSO — A CHE PUNTO SEI ═══════════ */}
         {(!isOnboarding || isAdmin) && (

@@ -3374,18 +3374,46 @@ async def update_cliente_dati(user_id: str, body: dict):
     return {"success": True, "message": "Dati cliente aggiornati"}
 
 
+def _partner_id_query(partner_id: str) -> dict:
+    """
+    Genera query MongoDB che matcha partner_id sia come stringa che come intero.
+    Necessario perché i partner reali hanno id numerico (1, 2, 3...)
+    ma il path parameter arriva sempre come stringa.
+    """
+    conditions = [{"id": partner_id}]
+    try:
+        conditions.append({"id": int(partner_id)})
+    except (ValueError, TypeError):
+        pass
+    return {"$or": conditions} if len(conditions) > 1 else conditions[0]
+
+def _sub_collection_query(partner_id: str) -> dict:
+    """Stessa logica per le sub-collection che usano partner_id."""
+    conditions = [{"partner_id": partner_id}]
+    try:
+        int_id = int(partner_id)
+        conditions.append({"partner_id": int_id})
+        conditions.append({"partner_id": str(int_id)})
+    except (ValueError, TypeError):
+        pass
+    return {"$or": conditions} if len(conditions) > 1 else conditions[0]
+
+
 @api_router.get("/admin/partner/{partner_id}/full-data")
 async def get_partner_full_data(partner_id: str):
     """Carica tutti i dati journey di un partner per l'editor admin."""
-    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0, "password": 0})
+    partner = await db.partners.find_one(_partner_id_query(partner_id), {"_id": 0, "password": 0})
     if not partner:
         raise HTTPException(status_code=404, detail="Partner non trovato")
 
-    posizionamento = await db.partner_posizionamento.find_one({"partner_id": partner_id}, {"_id": 0})
-    masterclass = await db.masterclass_factory.find_one({"partner_id": partner_id}, {"_id": 0})
-    videocorso = await db.partner_videocorso.find_one({"partner_id": partner_id}, {"_id": 0})
-    funnel = await db.partner_funnel.find_one({"partner_id": partner_id}, {"_id": 0})
-    lancio = await db.partner_lancio.find_one({"partner_id": partner_id}, {"_id": 0})
+    # Usa sempre l'id canonico trovato nel documento per le sub-collection
+    canonical_id = str(partner.get("id", partner_id))
+
+    posizionamento = await db.partner_posizionamento.find_one(_sub_collection_query(canonical_id), {"_id": 0})
+    masterclass = await db.masterclass_factory.find_one(_sub_collection_query(canonical_id), {"_id": 0})
+    videocorso = await db.partner_videocorso.find_one(_sub_collection_query(canonical_id), {"_id": 0})
+    funnel = await db.partner_funnel.find_one(_sub_collection_query(canonical_id), {"_id": 0})
+    lancio = await db.partner_lancio.find_one(_sub_collection_query(canonical_id), {"_id": 0})
 
     return {
         "success": True,
@@ -3402,12 +3430,14 @@ async def get_partner_full_data(partner_id: str):
 async def update_partner_journey(partner_id: str, body: dict):
     """
     Admin override per dati journey partner.
-    Body: { "collection": "masterclass_factory"|"partner_posizionamento"|"partner_videocorso"|"partner_funnel",
+    Body: { "collection": "masterclass_factory"|"partner_posizionamento"|"partner_videocorso"|"partner_funnel"|"partners",
             "data": { field: value, ... } }
     """
-    partner = await db.partners.find_one({"id": partner_id})
+    partner = await db.partners.find_one(_partner_id_query(partner_id))
     if not partner:
         raise HTTPException(status_code=404, detail="Partner non trovato")
+
+    canonical_id = str(partner.get("id", partner_id))
 
     collection_map = {
         "masterclass_factory": db.masterclass_factory,
@@ -3430,11 +3460,11 @@ async def update_partner_journey(partner_id: str, body: dict):
 
     coll = collection_map[collection_name]
     if collection_name == "partners":
-        await coll.update_one({"id": partner_id}, {"$set": data})
+        await coll.update_one(_partner_id_query(canonical_id), {"$set": data})
     else:
         await coll.update_one(
-            {"partner_id": partner_id},
-            {"$set": data, "$setOnInsert": {"partner_id": partner_id, "created_at": datetime.now(timezone.utc).isoformat()}},
+            _sub_collection_query(canonical_id),
+            {"$set": data, "$setOnInsert": {"partner_id": canonical_id, "created_at": datetime.now(timezone.utc).isoformat()}},
             upsert=True
         )
 
@@ -4153,7 +4183,7 @@ async def update_partner(
         body = {}
     
     # Get current partner data for comparison
-    current_partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+    current_partner = await db.partners.find_one(_partner_id_query(partner_id), {"_id": 0})
     if not current_partner:
         raise HTTPException(status_code=404, detail="Partner non trovato")
     
@@ -4226,9 +4256,9 @@ async def update_partner(
 
     if update:
         update["updated_at"] = datetime.now(timezone.utc).isoformat()
-        await db.partners.update_one({"id": partner_id}, {"$set": update})
-    
-    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
+        await db.partners.update_one(_partner_id_query(partner_id), {"$set": update})
+
+    partner = await db.partners.find_one(_partner_id_query(partner_id), {"_id": 0})
     
     # Send Telegram notification if phase changed
     new_phase = body.get("phase")
@@ -14489,6 +14519,100 @@ async def create_consulenza_checkout(request: Request, data: ConsulenzaPaymentRe
     except Exception as e:
         logging.error(f"Consulenza checkout error: {e}")
         raise HTTPException(status_code=500, detail=f"Errore creazione checkout: {str(e)}")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GROWTH SYSTEM CHECKOUT — Piani abbonamento mensile (Foundation/Growth/Scale)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+GROWTH_PLANS = {
+    "foundation": {"name": "Growth System Foundation", "price": 297, "description": "Monitoraggio funnel + analisi KPI + correzioni settimanali"},
+    "growth":     {"name": "Growth System Growth",     "price": 497, "description": "Gestione ads Meta + A/B test + piano contenuti orientato alla vendita"},
+    "scale":      {"name": "Growth System Scale",      "price": 797, "description": "Nuovi prodotti + funnel avanzati + affiancamento strategico diretto"},
+}
+
+class GrowthSystemCheckoutRequest(BaseModel):
+    partner_id: str
+    partner_name: str
+    partner_email: str = ""
+    level: str  # foundation | growth | scale
+    scenario: str = ""
+    origin_url: str
+
+@api_router.post("/growth-system-checkout")
+async def create_growth_system_checkout(request: Request, data: GrowthSystemCheckoutRequest):
+    """Crea sessione Stripe per abbonamento Growth System"""
+    plan = GROWTH_PLANS.get(data.level)
+    if not plan:
+        raise HTTPException(status_code=400, detail=f"Livello non valido. Validi: {list(GROWTH_PLANS.keys())}")
+
+    stripe_api_key = os.environ.get("STRIPE_API_KEY")
+    if not stripe_api_key:
+        # Fallback: salva richiesta e notifica Telegram
+        await db.growth_system_requests.insert_one({
+            "id": str(uuid.uuid4()),
+            "partner_id": data.partner_id,
+            "partner_name": data.partner_name,
+            "partner_email": data.partner_email,
+            "level": data.level,
+            "plan_name": plan["name"],
+            "price": plan["price"],
+            "scenario": data.scenario,
+            "status": "pending_activation",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+        try:
+            from stefania_ai_onboarding import telegram_notify
+            await telegram_notify(
+                notification_type="custom",
+                message=f"🚀 *Richiesta Growth System*\n\n{data.partner_name} ha scelto il piano *{plan['name']}* (€{plan['price']}/mese)\nScenario: {data.scenario or 'non specificato'}"
+            )
+        except Exception:
+            pass
+        return {"success": True, "checkout_url": None, "pending": True, "message": "Richiesta ricevuta — ti contatteremo entro 24h per attivare il piano."}
+
+    success_url = f"{data.origin_url}/dashboard?growth_success=1&level={data.level}"
+    cancel_url = f"{data.origin_url}/dashboard"
+
+    host_url = str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
+
+    checkout_request = CheckoutSessionRequest(
+        amount=plan["price"],
+        currency="eur",
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata={
+            "service_type": "growth_system",
+            "level": data.level,
+            "plan_name": plan["name"],
+            "partner_id": data.partner_id,
+            "partner_name": data.partner_name,
+            "partner_email": data.partner_email,
+            "scenario": data.scenario,
+        }
+    )
+
+    try:
+        session = await stripe_checkout.create_checkout_session(checkout_request)
+        await db.payment_transactions.insert_one({
+            "id": str(uuid.uuid4()),
+            "session_id": session.session_id,
+            "service_type": "growth_system",
+            "level": data.level,
+            "partner_id": data.partner_id,
+            "partner_name": data.partner_name,
+            "partner_email": data.partner_email,
+            "amount": plan["price"],
+            "currency": "eur",
+            "status": "pending",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+        return {"success": True, "checkout_url": session.url, "session_id": session.session_id}
+    except Exception as e:
+        logging.error(f"Growth system checkout error: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore checkout: {str(e)}")
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # BRANDING PREMIUM PACK CHECKOUT - €297

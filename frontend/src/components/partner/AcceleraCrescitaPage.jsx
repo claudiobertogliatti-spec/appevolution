@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, ArrowRight, Eye, Repeat, DollarSign, Compass, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, Repeat, DollarSign, Compass, Check, Tag } from "lucide-react";
 import { AvatarCheckout } from "./AvatarCheckout";
 import { ConsulenzaCheckout } from "./ConsulenzaCheckout";
 import axios from "axios";
@@ -38,11 +38,11 @@ const CATEGORIES = {
     items: [
       {
         id: "gestione_contenuti",
-        title: "Gestione Contenuti 3 Mesi",
-        problema: "Sai che dovresti pubblicare sui social, ma tra il corso e tutto il resto non trovi mai il tempo.",
-        soluzione: "Riceviamo 20 contenuti al mese pronti da pubblicare: post, caroselli e reel. Tu non devi fare nulla.",
-        beneficio: "Il tuo profilo resta attivo e visibile ogni giorno. Attiri studenti mentre ti concentri sul corso.",
-        cta: "Inizia il piano contenuti",
+        title: "Gestione Contenuti Mensile",
+        problema: "Sai che dovresti essere presente sui social ogni settimana, ma il tempo non c'è. Il risultato: profilo fermo, visibilità zero, studenti che non ti trovano.",
+        soluzione: "Ogni mese ti consegniamo 20 contenuti pronti da pubblicare: post, caroselli e reel già scritti, formattati e ottimizzati per la tua nicchia. Tu copi, incolli e pubblichi. Oppure ce lo lasci fare direttamente tu.",
+        beneficio: "Il tuo profilo è attivo 365 giorni l'anno senza che tu ci pensi. Chi ti cerca ti trova. Chi ti segue ti compra. La costanza è l'unico strumento di vendita che funziona sempre.",
+        cta: "Attiva la gestione contenuti",
         isStripe: true,
         stripeServiceId: "calendario-pro",
         price: "€297/mese",
@@ -96,21 +96,33 @@ const CATEGORIES = {
         id: "sessione_claudio",
         title: "Sessione con Claudio",
         problema: "Hai dubbi sulla strategia, non sai se stai andando nella direzione giusta e ti servono risposte chiare.",
-        soluzione: "90 minuti 1:1 con Claudio. Strategia, posizionamento, pricing: ti dice esattamente cosa fare.",
-        beneficio: "Esci dalla sessione con un piano d'azione chiaro. Settimane di indecisione risolte in 90 minuti.",
+        soluzione: "90 minuti 1:1 con Claudio. Strategia, posizionamento, pricing, lancio: ti dice esattamente cosa fare e perché.",
+        beneficio: "Esci dalla sessione con un piano d'azione preciso. Settimane di indecisione risolte in 90 minuti.",
         cta: "Prenota con Claudio",
         hasCheckout: true,
         consultantType: "claudio",
+        price: "€180 / sessione",
+        packages: [
+          { label: "1 sessione", price: 180, originalPrice: null, saving: null },
+          { label: "5 sessioni", price: 765, originalPrice: 900, saving: "–15%", perSession: 153 },
+          { label: "10 sessioni", price: 1350, originalPrice: 1800, saving: "–25%", perSession: 135 },
+        ],
       },
       {
         id: "sessione_antonella",
         title: "Sessione con Antonella",
         problema: "Vuoi migliorare le vendite, il funnel o i contenuti ma non sai da dove partire.",
-        soluzione: "90 minuti 1:1 con Antonella. Marketing operativo, copy, funnel: ti guida passo dopo passo.",
+        soluzione: "90 minuti 1:1 con Antonella. Marketing operativo, copy, funnel: ti guida passo dopo passo con azioni concrete.",
         beneficio: "Un piano d'azione su misura per le vendite. Ottimizzazione concreta, non teoria.",
         cta: "Prenota con Antonella",
         hasCheckout: true,
         consultantType: "antonella",
+        price: "€180 / sessione",
+        packages: [
+          { label: "1 sessione", price: 180, originalPrice: null, saving: null },
+          { label: "5 sessioni", price: 765, originalPrice: 900, saving: "–15%", perSession: 153 },
+          { label: "10 sessioni", price: 1350, originalPrice: 1800, saving: "–25%", perSession: 135 },
+        ],
       },
     ],
   },
@@ -122,6 +134,7 @@ const CATEGORIES = {
 
 function ItemDetailPage({ item, category, partner, onBack }) {
   const [purchasing, setPurchasing] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState(item.packages ? 0 : null);
   const partnerId = partner?.id;
   const CatIcon = category.icon;
 
@@ -179,6 +192,45 @@ function ItemDetailPage({ item, category, partner, onBack }) {
           <p className="text-base leading-relaxed" style={{ color: "#14532D" }}>{item.beneficio}</p>
         </div>
 
+        {/* Pacchetti sessioni (solo per item con packages) */}
+        {item.packages && (
+          <div className="mb-5">
+            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "#8B8680" }}>
+              <Tag className="w-3 h-3 inline mr-1" />Scegli il pacchetto
+            </p>
+            <div className="space-y-2">
+              {item.packages.map((pkg, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSelectedPackage(i)}
+                  className="w-full rounded-xl p-4 text-left transition-all"
+                  style={{
+                    background: selectedPackage === i ? `${category.color}10` : "white",
+                    border: `2px solid ${selectedPackage === i ? category.color : "#ECEDEF"}`,
+                  }}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-sm font-black" style={{ color: "#1E2128" }}>{pkg.label}</span>
+                      {pkg.perSession && (
+                        <span className="ml-2 text-xs" style={{ color: "#9CA3AF" }}>→ €{pkg.perSession}/sessione</span>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <span className="text-base font-black" style={{ color: "#1E2128" }}>€{pkg.price}</span>
+                      {pkg.originalPrice && (
+                        <span className="ml-1 text-xs line-through" style={{ color: "#9CA3AF" }}>€{pkg.originalPrice}</span>
+                      )}
+                      {pkg.saving && (
+                        <span className="ml-1 text-xs font-bold px-1.5 py-0.5 rounded" style={{ background: "#DCFCE7", color: "#166534" }}>{pkg.saving}</span>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* CTA */}
         {item.comingSoon ? (
           <div className="rounded-2xl p-5 text-center" style={{ background: "#F5F3EE", border: "1px solid #E8E4DC" }}>
@@ -199,7 +251,7 @@ function ItemDetailPage({ item, category, partner, onBack }) {
           </button>
         )}
 
-        {item.price && !item.comingSoon && (
+        {item.price && !item.comingSoon && !item.packages && (
           <p className="text-center mt-3 text-sm font-bold" style={{ color: "#5F6572" }}>{item.price}</p>
         )}
       </div>
@@ -220,7 +272,14 @@ function CategoryPage({ category, partner, onBack, onNavigate }) {
     return <AvatarCheckout partner={partner} onBack={() => setSelectedItem(null)} />;
   }
   if (selectedItem?.hasCheckout && selectedItem.consultantType) {
-    return <ConsulenzaCheckout partner={partner} onBack={() => setSelectedItem(null)} defaultConsultant={selectedItem.consultantType} />;
+    return (
+      <ConsulenzaCheckout
+        partner={partner}
+        onBack={() => setSelectedItem(null)}
+        defaultConsultant={selectedItem.consultantType}
+        packages={selectedItem.packages}
+      />
+    );
   }
 
   // Detail page
