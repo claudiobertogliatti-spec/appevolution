@@ -1189,7 +1189,7 @@ class UpsertPartnerCredentialsRequest(BaseModel):
 
 
 @api_router.post("/admin/upsert-partner-credentials")
-async def upsert_partner_credentials(request: UpsertPartnerCredentialsRequest, current_user: dict = Depends(get_current_user)):
+async def upsert_partner_credentials(request: UpsertPartnerCredentialsRequest, credentials: HTTPAuthorizationCredentials = Depends(security)):
     """
     Admin only. Crea o aggiorna le credenziali di accesso di un partner.
     - Se l'utente NON esiste: lo crea con la password indicata e collega il partner_id.
@@ -1197,7 +1197,13 @@ async def upsert_partner_credentials(request: UpsertPartnerCredentialsRequest, c
     """
     import bcrypt
 
-    if current_user.get("role") != "admin":
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token non fornito")
+    token_data = decode_token(credentials.credentials)
+    if not token_data:
+        raise HTTPException(status_code=401, detail="Token non valido")
+    caller = await db.users.find_one({"id": token_data.user_id})
+    if not caller or caller.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
 
     partner_query = _partner_id_query(request.partner_id)
