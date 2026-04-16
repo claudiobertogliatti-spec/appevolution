@@ -594,6 +594,7 @@ class StoredFile(BaseModel):
     original_name: str
     stored_name: str
     file_type: str  # video, document
+    category: str = "document"  # contratto_firmato, posizionamento, script, video, audio, document, distinta, image, email, onboarding
     partner_id: str
     status: str  # raw, processed, approved, pending, verified
     internal_url: str
@@ -3583,6 +3584,57 @@ async def update_partner_journey(partner_id: str, body: dict):
         )
 
     return {"success": True, "message": f"Dati {collection_name} aggiornati"}
+
+
+@api_router.post("/admin/partner/{partner_id}/files/register")
+async def register_partner_drive_files(partner_id: str, body: dict):
+    """
+    Registra metadati file Drive nell'app senza upload fisico.
+    Body: { "files": [ { "name": str, "url": str, "category": str,
+                         "mime_type": str, "size": int, "drive_id": str,
+                         "folder": str } ] }
+    category: document | image | audio | video
+    """
+    import uuid as _uuid
+    partner = await db.partners.find_one(_partner_id_query(partner_id))
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner non trovato")
+
+    canonical_id = str(partner.get("id", partner_id))
+    files = body.get("files", [])
+
+    if not files:
+        raise HTTPException(status_code=400, detail="Nessun file da registrare")
+
+    inserted = []
+    now = datetime.now(timezone.utc).isoformat()
+
+    for f in files:
+        category = f.get("category", "document")
+        record = {
+            "id": str(_uuid.uuid4()),
+            "file_id": f.get("drive_id", str(_uuid.uuid4())),
+            "partner_id": canonical_id,
+            "original_name": f.get("name", ""),
+            "stored_name": f.get("name", ""),
+            "file_type": category,
+            "category": category,
+            "internal_url": f.get("url", ""),
+            "drive_url": f.get("url", ""),
+            "drive_id": f.get("drive_id", ""),
+            "mime_type": f.get("mime_type", "application/octet-stream"),
+            "size": f.get("size", 0),
+            "folder": f.get("folder", ""),
+            "status": "approved",
+            "source": "drive",
+            "uploaded_at": now,
+            "registered_at": now,
+            "last_edited_by": "admin"
+        }
+        await db.files.insert_one(record)
+        inserted.append(f.get("name"))
+
+    return {"success": True, "inserted": inserted, "count": len(inserted)}
 
 
 @api_router.delete("/admin/clienti-analisi/{user_id}")
@@ -9129,6 +9181,7 @@ async def upload_file(
             original_name=result["original_name"],
             stored_name=result["stored_name"],
             file_type=result["file_type"],
+            category=category,
             partner_id=partner_id,
             status=result["status"],
             internal_url=result["internal_url"],
