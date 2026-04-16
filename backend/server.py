@@ -14983,6 +14983,106 @@ async def trigger_morning_briefing(credentials: HTTPAuthorizationCredentials = D
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# SYSTEME DAILY QUEUE — Admin endpoints
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@api_router.post("/admin/systeme-queue/load-lista-fredda")
+async def load_lista_fredda_to_queue(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """
+    Carica i contatti della lista fredda nella systeme_daily_queue.
+    One-shot: salta chi è già presente o già importato.
+    """
+    user = await verify_admin(credentials)
+    total = await db.lista_fredda.count_documents({})
+    if total == 0:
+        raise HTTPException(status_code=404, detail="lista_fredda vuota — importa prima il CSV")
+
+    inserted = 0
+    skipped = 0
+    cursor = db.lista_fredda.find({}, {"_id": 0, "email": 1, "first_name": 1, "last_name": 1, "phone": 1})
+    async for contact in cursor:
+        email = (contact.get("email") or "").strip().lower()
+        if not email or "@" not in email:
+            skipped += 1
+            continue
+        existing = await db.systeme_daily_queue.find_one({"email": email})
+        if existing:
+            skipped += 1
+            continue
+        await db.systeme_daily_queue.insert_one({
+            "email": email,
+            "first_name": contact.get("first_name", ""),
+            "last_name": contact.get("last_name", ""),
+            "phone": contact.get("phone"),
+            "source": "lista_fredda",
+            "status": "pending",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "imported_at": None,
+            "systeme_contact_id": None,
+            "error": None,
+            "batch_date": None,
+        })
+        inserted += 1
+
+    return {
+        "success": True,
+        "inserted": inserted,
+        "skipped": skipped,
+        "total_source": total,
+    }
+
+
+@api_router.get("/admin/systeme-queue/stats")
+async def systeme_queue_stats(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Statistiche coda: pending, importati, falliti, log 7 giorni"""
+    user = await verify_admin(credentials)
+    pending = await db.systeme_daily_queue.count_documents({"status": "pending"})
+    imported = await db.systeme_daily_queue.count_documents({"status": "imported"})
+    failed = await db.systeme_daily_queue.count_documents({"status": "failed"})
+
+    # Breakdown per source
+    sources_pipeline = [
+        {"$group": {"_id": {"source": "$source", "status": "$status"}, "count": {"$sum": 1}}}
+    ]
+    sources_raw = await db.systeme_daily_queue.aggregate(sources_pipeline).to_list(50)
+    by_source = {}
+    for item in sources_raw:
+        src = item["_id"]["source"]
+        status = item["_id"]["status"]
+        if src not in by_source:
+            by_source[src] = {}
+        by_source[src][status] = item["count"]
+
+    # Log ultimi 7 giorni
+    seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    logs = await db.celery_job_logs.find(
+        {"job": "daily_systeme_import", "executed_at": {"$gte": seven_days_ago}},
+        {"_id": 0, "date": 1, "stats": 1, "sources": 1, "executed_at": 1}
+    ).sort("executed_at", -1).to_list(7)
+
+    return {
+        "queue": {"pending": pending, "imported": imported, "failed": failed},
+        "by_source": by_source,
+        "daily_log": logs,
+    }
+
+
+@api_router.post("/admin/systeme-queue/trigger")
+async def trigger_daily_systeme_import(
+    daily_limit: int = 300,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Trigger manuale del task daily_systeme_import"""
+    user = await verify_admin(credentials)
+    try:
+        from celery_tasks import daily_systeme_import
+        result = daily_systeme_import.delay(daily_limit=daily_limit)
+        return {"success": True, "task_id": result.id, "message": f"Import avviato — {daily_limit} contatti max"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Errore avvio task: {e}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # AGENT TASK SYSTEM ENDPOINTS (Stefania Orchestration)
 # ═══════════════════════════════════════════════════════════════════════════════
 

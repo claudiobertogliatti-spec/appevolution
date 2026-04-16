@@ -1719,3 +1719,193 @@ def import_lista_fredda_systeme(self, tag_id: int = 1934404, batch_size: int = 5
         if self.request.retries < self.max_retries:
             raise self.retry(exc=e)
         return {"error": str(e)}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DAILY SYSTEME IMPORT — 300 contatti/giorno (google_places + lista_fredda)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@shared_task(bind=True, max_retries=1, default_retry_delay=600)
+def daily_systeme_import(self, daily_limit: int = 300):
+    """
+    Task giornaliero (09:00): importa fino a DAILY_LIMIT contatti su Systeme.io
+    dalla collection systeme_daily_queue.
+
+    Priorità di prelievo:
+      1. source=google_places (lead nuovi, intento più alto)
+      2. source=lista_fredda   (lista fredda 13k)
+
+    Per ogni contatto:
+      - Crea il contatto su Systeme (se non esiste)
+      - Assegna tag Lista_Fredda (id: 1936026) → scatta regola R1 → campagna 4 email
+      - Aggiorna status nel documento (imported / failed)
+
+    Invia riepilogo Telegram al termine.
+    """
+    try:
+        logger.info(f"[DAILY_SYSTEME] Starting daily import (limit={daily_limit})")
+
+        async def _run():
+            import httpx
+            import asyncio
+
+            client_mongo, db = get_db()
+            SYSTEME_API_KEY = os.environ.get("SYSTEME_API_KEY", "")
+            SYSTEME_BASE_URL = "https://api.systeme.io/api"
+            TAG_ID = 1936026  # Lista_Fredda
+
+            if not SYSTEME_API_KEY:
+                logger.error("[DAILY_SYSTEME] SYSTEME_API_KEY non configurata")
+                return {"error": "SYSTEME_API_KEY mancante"}
+
+            headers = {
+                "X-API-Key": SYSTEME_API_KEY,
+                "Content-Type": "application/json",
+            }
+
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+            # --- Preleva i contatti dalla coda con priorità ---
+            # Prima google_places, poi lista_fredda, max daily_limit totali
+            pipeline = [
+                {"$match": {"status": "pending"}},
+                {"$addFields": {"_priority": {
+                    "$switch": {
+                        "branches": [
+                            {"case": {"$eq": ["$source", "google_places"]}, "then": 0},
+                        ],
+                        "default": 1,
+                    }
+                }}},
+                {"$sort": {"_priority": 1, "created_at": 1}},
+                {"$limit": daily_limit},
+            ]
+            contacts = await db.systeme_daily_queue.aggregate(pipeline).to_list(length=daily_limit)
+
+            if not contacts:
+                logger.info("[DAILY_SYSTEME] Nessun contatto in coda")
+                return {"success": True, "processed": 0, "message": "Coda vuota"}
+
+            stats = {"total": len(contacts), "created": 0, "existing": 0, "tagged": 0, "failed": 0}
+            sources = {"google_places": 0, "lista_fredda": 0, "other": 0}
+
+            async with httpx.AsyncClient(timeout=20) as http:
+                for i, contact in enumerate(contacts):
+                    doc_id = contact["_id"]
+                    email = (contact.get("email") or "").strip().lower()
+
+                    if not email or "@" not in email:
+                        await db.systeme_daily_queue.update_one(
+                            {"_id": doc_id},
+                            {"$set": {"status": "failed", "error": "email non valida"}}
+                        )
+                        stats["failed"] += 1
+                        continue
+
+                    # Rate limit: pausa ogni 5 richieste
+                    if i > 0 and i % 5 == 0:
+                        await asyncio.sleep(1)
+
+                    try:
+                        contact_id = None
+
+                        # 1. Cerca contatto esistente
+                        search = await http.get(
+                            f"{SYSTEME_BASE_URL}/contacts",
+                            params={"email": email},
+                            headers=headers,
+                        )
+                        if search.status_code == 200:
+                            items = search.json().get("items", [])
+                            for item in items:
+                                if item.get("email", "").lower() == email:
+                                    contact_id = item.get("id")
+                                    stats["existing"] += 1
+                                    break
+
+                        # 2. Crea se non esiste
+                        if not contact_id:
+                            payload = {"email": email, "fields": []}
+                            if contact.get("first_name"):
+                                payload["fields"].append({"slug": "first_name", "value": contact["first_name"]})
+                            if contact.get("last_name"):
+                                payload["fields"].append({"slug": "surname", "value": contact["last_name"]})
+                            if contact.get("phone"):
+                                payload["fields"].append({"slug": "phone_number", "value": contact["phone"]})
+
+                            create_resp = await http.post(
+                                f"{SYSTEME_BASE_URL}/contacts",
+                                headers=headers,
+                                json=payload,
+                            )
+                            if create_resp.status_code in [200, 201]:
+                                contact_id = create_resp.json().get("id")
+                                stats["created"] += 1
+                            else:
+                                raise Exception(f"Create failed: {create_resp.status_code} {create_resp.text[:200]}")
+
+                        # 3. Assegna tag Lista_Fredda
+                        if contact_id:
+                            tag_resp = await http.post(
+                                f"{SYSTEME_BASE_URL}/contacts/{contact_id}/tags",
+                                headers=headers,
+                                json={"tagId": TAG_ID},
+                            )
+                            if tag_resp.status_code in [200, 201, 204]:
+                                stats["tagged"] += 1
+
+                            # Aggiorna documento
+                            src = contact.get("source", "other")
+                            sources[src] = sources.get(src, 0) + 1
+                            await db.systeme_daily_queue.update_one(
+                                {"_id": doc_id},
+                                {"$set": {
+                                    "status": "imported",
+                                    "systeme_contact_id": str(contact_id),
+                                    "imported_at": datetime.now(timezone.utc).isoformat(),
+                                    "batch_date": today,
+                                }}
+                            )
+                        else:
+                            raise Exception("contact_id non ottenuto")
+
+                    except Exception as e:
+                        stats["failed"] += 1
+                        await db.systeme_daily_queue.update_one(
+                            {"_id": doc_id},
+                            {"$set": {"status": "failed", "error": str(e)[:300]}}
+                        )
+                        logger.warning(f"[DAILY_SYSTEME] Errore su {email}: {e}")
+
+            # Log giornaliero
+            await db.celery_job_logs.insert_one({
+                "job": "daily_systeme_import",
+                "date": today,
+                "stats": stats,
+                "sources": sources,
+                "executed_at": datetime.now(timezone.utc).isoformat(),
+            })
+
+            # Pending rimasti
+            pending_left = await db.systeme_daily_queue.count_documents({"status": "pending"})
+
+            # Notifica Telegram
+            await send_telegram_notification(
+                f"📧 *Systeme Daily Import — {today}*\n\n"
+                f"✅ Importati: {stats['created'] + stats['existing']} ({stats['created']} nuovi, {stats['existing']} esistenti)\n"
+                f"🏷️ Taggati: {stats['tagged']}\n"
+                f"❌ Falliti: {stats['failed']}\n"
+                f"📊 Fonti: {sources.get('google_places', 0)} Places + {sources.get('lista_fredda', 0)} lista fredda\n"
+                f"⏳ In coda: {pending_left}"
+            )
+
+            logger.info(f"[DAILY_SYSTEME] Completato: {stats}")
+            return {"success": True, "stats": stats, "sources": sources, "pending_left": pending_left}
+
+        return run_async(_run())
+
+    except Exception as e:
+        logger.error(f"[DAILY_SYSTEME] Error: {e}")
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=e)
+        return {"error": str(e)}

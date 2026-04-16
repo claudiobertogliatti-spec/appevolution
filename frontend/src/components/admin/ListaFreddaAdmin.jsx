@@ -4,10 +4,11 @@
  */
 
 import { useState, useEffect } from "react";
-import { 
-  Users, Mail, Phone, Clock, TrendingUp, Download, Upload, 
+import {
+  Users, Mail, Phone, Clock, TrendingUp, Download, Upload,
   Search, Filter, RefreshCw, AlertCircle, CheckCircle, XCircle,
-  Eye, MoreVertical, ArrowUpRight, Flame, Snowflake, Ban
+  Eye, MoreVertical, ArrowUpRight, Flame, Snowflake, Ban,
+  Send, Play, Loader
 } from "lucide-react";
 import axios from "axios";
 
@@ -32,9 +33,68 @@ export default function ListaFreddaAdmin() {
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
 
+  // Coda Systeme
+  const [queueStats, setQueueStats] = useState(null);
+  const [queueLoading, setQueueLoading] = useState(false);
+  const [loadingQueue, setLoadingQueue] = useState(false);
+  const [triggeringImport, setTriggeringImport] = useState(false);
+  const [queueMessage, setQueueMessage] = useState(null);
+
   useEffect(() => {
     loadData();
+    loadQueueStats();
   }, [filter]);
+
+  const loadQueueStats = async () => {
+    try {
+      setQueueLoading(true);
+      const token = localStorage.getItem("access_token") || localStorage.getItem("token");
+      const res = await axios.get(`${API}/api/admin/systeme-queue/stats`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setQueueStats(res.data);
+    } catch (err) {
+      console.error("Errore stats coda:", err);
+    } finally {
+      setQueueLoading(false);
+    }
+  };
+
+  const handleLoadListaFredda = async () => {
+    if (!window.confirm("Caricare tutta la lista fredda nella coda Systeme? L'operazione salta i duplicati.")) return;
+    try {
+      setLoadingQueue(true);
+      setQueueMessage(null);
+      const token = localStorage.getItem("access_token") || localStorage.getItem("token");
+      const res = await axios.post(`${API}/api/admin/systeme-queue/load-lista-fredda`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setQueueMessage({ success: true, text: `Caricati ${res.data.inserted} contatti in coda (${res.data.skipped} già presenti)` });
+      loadQueueStats();
+    } catch (err) {
+      setQueueMessage({ success: false, text: err.response?.data?.detail || "Errore caricamento" });
+    } finally {
+      setLoadingQueue(false);
+    }
+  };
+
+  const handleTriggerImport = async () => {
+    if (!window.confirm("Avviare l'import manuale di 300 contatti su Systeme ora?")) return;
+    try {
+      setTriggeringImport(true);
+      setQueueMessage(null);
+      const token = localStorage.getItem("access_token") || localStorage.getItem("token");
+      const res = await axios.post(`${API}/api/admin/systeme-queue/trigger?daily_limit=300`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setQueueMessage({ success: true, text: "Import avviato — riceverai notifica Telegram al termine" });
+      setTimeout(loadQueueStats, 5000);
+    } catch (err) {
+      setQueueMessage({ success: false, text: err.response?.data?.detail || "Errore avvio" });
+    } finally {
+      setTriggeringImport(false);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -238,6 +298,108 @@ export default function ListaFreddaAdmin() {
           />
         </div>
       )}
+
+      {/* Coda Systeme Daily */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+              <Send className="w-4 h-4 text-blue-500" />
+              Coda Systeme — 300/giorno
+            </h2>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Import automatico ogni giorno alle 09:00 · Priorità: Google Places → Lista Fredda
+            </p>
+          </div>
+          <button
+            onClick={loadQueueStats}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <RefreshCw className={`w-4 h-4 ${queueLoading ? "animate-spin" : ""}`} />
+          </button>
+        </div>
+
+        {/* Stats coda */}
+        {queueStats ? (
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="text-center p-3 bg-yellow-50 rounded-lg">
+              <div className="text-2xl font-bold text-yellow-700">{queueStats.queue?.pending ?? "—"}</div>
+              <div className="text-xs text-yellow-600 mt-0.5">In attesa</div>
+            </div>
+            <div className="text-center p-3 bg-green-50 rounded-lg">
+              <div className="text-2xl font-bold text-green-700">{queueStats.queue?.imported ?? "—"}</div>
+              <div className="text-xs text-green-600 mt-0.5">Importati</div>
+            </div>
+            <div className="text-center p-3 bg-red-50 rounded-lg">
+              <div className="text-2xl font-bold text-red-700">{queueStats.queue?.failed ?? "—"}</div>
+              <div className="text-xs text-red-600 mt-0.5">Falliti</div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
+            <Loader className="w-4 h-4 animate-spin" /> Caricamento...
+          </div>
+        )}
+
+        {/* Breakdown per source */}
+        {queueStats?.by_source && Object.keys(queueStats.by_source).length > 0 && (
+          <div className="flex gap-4 mb-4 text-xs text-gray-500">
+            {Object.entries(queueStats.by_source).map(([src, counts]) => (
+              <span key={src} className="flex items-center gap-1">
+                <span className="font-medium text-gray-700">{src === "google_places" ? "Places" : "Lista fredda"}:</span>
+                {counts.pending ?? 0} in attesa · {counts.imported ?? 0} inviati
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Log 7gg */}
+        {queueStats?.daily_log?.length > 0 && (
+          <div className="mb-4">
+            <div className="text-xs font-medium text-gray-500 mb-2">Ultimi invii</div>
+            <div className="space-y-1">
+              {queueStats.daily_log.slice(0, 5).map((log, i) => (
+                <div key={i} className="flex items-center justify-between text-xs text-gray-600 bg-gray-50 px-3 py-1.5 rounded">
+                  <span>{log.date}</span>
+                  <span>{(log.stats?.created ?? 0) + (log.stats?.existing ?? 0)} importati · {log.stats?.failed ?? 0} falliti</span>
+                  <span className="text-gray-400">{log.sources?.google_places ?? 0} Places + {log.sources?.lista_fredda ?? 0} LF</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Messaggi feedback */}
+        {queueMessage && (
+          <div className={`flex items-center gap-2 text-sm px-3 py-2 rounded mb-3 ${
+            queueMessage.success ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+          }`}>
+            {queueMessage.success ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+            {queueMessage.text}
+            <button onClick={() => setQueueMessage(null)} className="ml-auto text-xs underline">ok</button>
+          </div>
+        )}
+
+        {/* Azioni */}
+        <div className="flex gap-3">
+          <button
+            onClick={handleLoadListaFredda}
+            disabled={loadingQueue}
+            className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-colors"
+          >
+            {loadingQueue ? <Loader className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+            Carica lista fredda in coda
+          </button>
+          <button
+            onClick={handleTriggerImport}
+            disabled={triggeringImport}
+            className="flex items-center gap-2 px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+          >
+            {triggeringImport ? <Loader className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+            Import manuale (300)
+          </button>
+        </div>
+      </div>
 
       {/* Filtri */}
       <div className="flex items-center gap-4 bg-white p-4 rounded-xl border border-gray-100">

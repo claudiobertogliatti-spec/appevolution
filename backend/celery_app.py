@@ -104,6 +104,11 @@ celery_app.conf.update(
             'task': 'morning_lead_briefing',
             'schedule': crontab(hour=7, minute=0),  # Every day at 7:00 AM CET
         },
+        'daily-systeme-import': {
+            'task': 'celery_tasks.daily_systeme_import',
+            'schedule': crontab(hour=9, minute=0),  # Every day at 9:00 AM
+            'kwargs': {'daily_limit': 300},
+        },
     },
 )
 
