@@ -300,7 +300,7 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
         </DoneForYouWrapper>
 
         {/* Video submission — visibile sempre dopo il wrapper */}
-        {!isAdmin && partnerId && (
+        {partnerId && (
           <VideoSubmissionCard partnerId={partnerId} />
         )}
       </div>
