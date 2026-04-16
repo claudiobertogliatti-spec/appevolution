@@ -160,61 +160,18 @@ export function PosizionamentoPage({ partner, onNavigate, onComplete, isAdmin })
           </div>
         )}
 
-        {/* ADMIN PANORAMIC VIEW */}
+        {/* ADMIN BADGE */}
         {isAdmin && (
-          <div className="space-y-4" data-testid="admin-panoramic-posizionamento">
-            <div className="flex items-center gap-2 mb-2 px-1">
-              <Eye className="w-4 h-4" style={{ color: "#FBBF24" }} />
-              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "#FBBF24" }}>
-                Vista Admin — Input Partner
-              </span>
-            </div>
-            {INPUT_FIELDS.map(field => {
-              const val = inputs[field.key] || "";
-              return (
-                <div key={field.key} className="bg-white rounded-xl border p-5"
-                     style={{ borderColor: val ? "#34C77B40" : "#ECEDEF" }}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm font-bold" style={{ color: "#1E2128" }}>{field.label}</span>
-                    {val ? (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "#34C77B20", color: "#2D9F6F" }}>Compilato</span>
-                    ) : (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "#FEF3C7", color: "#92400E" }}>Vuoto</span>
-                    )}
-                  </div>
-                  {val ? (
-                    <div className="p-3 rounded-lg text-sm whitespace-pre-wrap" style={{ background: "#F9FAFB", color: "#1F2937", border: "1px solid #E5E7EB" }}>{val}</div>
-                  ) : (
-                    <div className="p-3 rounded-lg text-sm italic" style={{ background: "#FFF7ED", color: "#9CA3AF", border: "1px dashed #E5E7EB" }}>
-                      Il partner non ha ancora risposto.
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-            {positioningOutput && (
-              <div className="mt-6">
-                <div className="flex items-center gap-2 mb-2 px-1">
-                  <Sparkles className="w-4 h-4" style={{ color: "#8B5CF6" }} />
-                  <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "#8B5CF6" }}>
-                    Posizionamento Generato
-                  </span>
-                </div>
-                {OUTPUT_SECTIONS.map(s => (
-                  <div key={s.key} className="bg-white rounded-xl border p-5 mb-3" style={{ borderColor: "#ECEDEF" }}>
-                    <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#9CA3AF" }}>{s.label}</div>
-                    <p className="text-sm leading-relaxed" style={{ color: "#1E2128" }}>{positioningOutput[s.key]}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-            {isCompleted && <CompletedBanner onContinue={() => onNavigate("masterclass")} />}
+          <div className="flex items-center gap-2 mb-4 px-1">
+            <Eye className="w-4 h-4" style={{ color: "#FBBF24" }} />
+            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "#FBBF24" }}>
+              Vista Admin — modifica libera
+            </span>
           </div>
         )}
 
-        {/* PARTNER VIEW */}
-        {!isAdmin && (
-          <>
+        {/* UNIFIED VIEW (admin + partner) */}
+        <>
             {isCompleted ? (
               /* COMPLETED */
               <>
@@ -323,10 +280,10 @@ export function PosizionamentoPage({ partner, onNavigate, onComplete, isAdmin })
                 {/* CTA */}
                 <button
                   onClick={handleGenerate}
-                  disabled={!allFieldsFilled || isGenerating}
+                  disabled={(!isAdmin && !allFieldsFilled) || isGenerating}
                   data-testid="generate-positioning-btn"
                   className={`w-full flex items-center justify-center gap-3 px-8 py-5 rounded-xl font-black text-lg transition-all ${
-                    allFieldsFilled && !isGenerating ? "hover:scale-[1.02]" : "opacity-50 cursor-not-allowed"
+                    (isAdmin || allFieldsFilled) && !isGenerating ? "hover:scale-[1.02]" : "opacity-50 cursor-not-allowed"
                   }`}
                   style={{ background: "#FFD24D", color: "#1E2128" }}>
                   {isGenerating ? (
@@ -336,7 +293,7 @@ export function PosizionamentoPage({ partner, onNavigate, onComplete, isAdmin })
                   )}
                 </button>
 
-                {!allFieldsFilled && (
+                {!isAdmin && !allFieldsFilled && (
                   <p className="text-center text-xs mt-3" style={{ color: "#9CA3AF" }}>
                     Compila tutti i campi (min. 10 caratteri) per generare il posizionamento
                   </p>
@@ -365,8 +322,7 @@ export function PosizionamentoPage({ partner, onNavigate, onComplete, isAdmin })
                 </div>
               </div>
             )}
-          </>
-        )}
+        </>
       </div>
     </div>
   );
