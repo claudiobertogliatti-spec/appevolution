@@ -1180,6 +1180,73 @@ async def create_partner_account(request: CreatePartnerAccountRequest):
     }
 
 
+class UpsertPartnerCredentialsRequest(BaseModel):
+    partner_id: str
+    name: str
+    email: str
+    password: str
+    phase: str = "F1"
+
+
+@api_router.post("/admin/upsert-partner-credentials")
+async def upsert_partner_credentials(request: UpsertPartnerCredentialsRequest, current_user: dict = Depends(get_current_user)):
+    """
+    Admin only. Crea o aggiorna le credenziali di accesso di un partner.
+    - Se l'utente NON esiste: lo crea con la password indicata e collega il partner_id.
+    - Se l'utente ESISTE già: aggiorna la password e collega il partner_id.
+    """
+    import bcrypt
+
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    partner_query = _partner_id_query(request.partner_id)
+    partner = await db.partners.find_one(partner_query)
+    if not partner:
+        raise HTTPException(status_code=404, detail=f"Partner {request.partner_id} non trovato")
+
+    canonical_partner_id = str(partner.get("id", request.partner_id))
+    password_hash = bcrypt.hashpw(request.password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    email_lower = request.email.lower()
+
+    existing_user = await db.users.find_one({"email": email_lower})
+
+    if existing_user:
+        await db.users.update_one(
+            {"email": email_lower},
+            {"$set": {
+                "password_hash": password_hash,
+                "partner_id": canonical_partner_id,
+                "role": "partner",
+                "is_active": True,
+            }}
+        )
+        user_id = existing_user.get("id")
+        action = "updated"
+    else:
+        user_id = str(uuid.uuid4())
+        await db.users.insert_one({
+            "id": user_id,
+            "name": request.name,
+            "email": email_lower,
+            "password_hash": password_hash,
+            "role": "partner",
+            "partner_id": canonical_partner_id,
+            "phase": request.phase,
+            "is_active": True,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        action = "created"
+
+    # Aggiorna il partner con email e user_id
+    await db.partners.update_one(
+        partner_query,
+        {"$set": {"email": email_lower, "user_id": user_id}}
+    )
+
+    return {"success": True, "action": action, "user_id": user_id, "partner_id": canonical_partner_id}
+
+
 async def send_partner_welcome_email(email: str, name: str):
     """Send welcome email to new partner using editable template
     
