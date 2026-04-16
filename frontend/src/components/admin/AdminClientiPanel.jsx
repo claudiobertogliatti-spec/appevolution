@@ -4,7 +4,7 @@ import {
   Clock, AlertTriangle, ChevronRight, Mail, Phone,
   FileText, Calendar, Target, X, Loader2, RefreshCw,
   ArrowRight, MapPin, Sparkles, Download, FileDown,
-  Edit3, Save, User, ToggleLeft, ToggleRight, MessageSquare
+  Edit3, Save, User, ToggleLeft, ToggleRight, MessageSquare, Trash2
 } from "lucide-react";
 import axios from "axios";
 import { API } from "../../utils/api-config";
@@ -281,6 +281,8 @@ export function AdminClientiPanel({ onViewAsCliente }) {
   const [dataCall, setDataCall] = useState("");
   const [stats, setStats] = useState({ totale: 0, questionario_completato: 0, call_fissata: 0, convertiti: 0 });
   const [showEditModal, setShowEditModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // cliente da eliminare
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadClienti();
@@ -488,6 +490,28 @@ export function AdminClientiPanel({ onViewAsCliente }) {
       console.error("Error marking as not suitable:", e);
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleDeleteCliente = async () => {
+    if (!deleteConfirm) return;
+    setDeleting(true);
+    try {
+      const token = localStorage.getItem("access_token") || localStorage.getItem("token");
+      const res = await fetch(`${API}/api/admin/clienti-analisi/${deleteConfirm.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setClienti(prev => prev.filter(c => c.id !== deleteConfirm.id));
+        if (selectedCliente?.id === deleteConfirm.id) setSelectedCliente(null);
+        setDeleteConfirm(null);
+        loadStats();
+      }
+    } catch (e) {
+      console.error("Errore eliminazione:", e);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -740,6 +764,14 @@ export function AdminClientiPanel({ onViewAsCliente }) {
                     Modifica
                   </button>
                   <button
+                    onClick={() => setDeleteConfirm(selectedCliente)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                    style={{ background: "#FEE2E2", color: "#DC2626" }}
+                    title="Elimina cliente"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
                     onClick={() => setSelectedCliente(null)}
                     className="p-1 hover:bg-black/5 rounded"
                   >
@@ -881,6 +913,49 @@ export function AdminClientiPanel({ onViewAsCliente }) {
           </div>
         )}
       </div>
+
+      {/* Modale conferma eliminazione cliente */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+            <div className="px-6 py-5 border-b border-red-100 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "#FEE2E2" }}>
+                <Trash2 className="w-5 h-5 text-red-500" />
+              </div>
+              <div>
+                <h3 className="font-black text-base text-[#1E2128]">Elimina Cliente</h3>
+                <p className="text-xs text-[#9CA3AF]">Operazione irreversibile</p>
+              </div>
+            </div>
+            <div className="px-6 py-5 space-y-3">
+              <p className="text-sm text-[#5F6572]">
+                Stai per eliminare <strong className="text-[#1E2128]">{deleteConfirm.nome} {deleteConfirm.cognome}</strong> ({deleteConfirm.email}) e tutti i dati collegati.
+              </p>
+              <ul className="space-y-1 text-xs text-[#9CA3AF]">
+                {["Account utente", "Questionario", "Analisi strategica", "Proposta e contratto", "Pagamenti"].map(item => (
+                  <li key={item} className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setDeleteConfirm(null)} disabled={deleting}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+                  style={{ background: "#F5F4F1", color: "#5F6572" }}>
+                  Annulla
+                </button>
+                <button onClick={handleDeleteCliente} disabled={deleting}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+                  style={{ background: "#EF4444", color: "#fff" }}>
+                  {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  {deleting ? "Eliminando..." : "Elimina"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Cliente Edit Modal */}
       {showEditModal && selectedCliente && (

@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import {
   Users, Mail, Phone, Clock, TrendingUp, Download, Upload,
   Search, Filter, RefreshCw, AlertCircle, CheckCircle, XCircle,
-  Eye, MoreVertical, ArrowUpRight, Flame, Snowflake, Ban,
+  Eye, ArrowUpRight, Flame, Snowflake, Trash2, Edit3, X, Loader2,
   Send, Play, Loader
 } from "lucide-react";
 import axios from "axios";
@@ -32,6 +32,10 @@ export default function ListaFreddaAdmin() {
   const [searchTerm, setSearchTerm] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // lead da eliminare
+  const [deleting, setDeleting] = useState(false);
+  const [editModal, setEditModal] = useState(null);   // lead da modificare
+  const [editStato, setEditStato] = useState("");
 
   // Coda Systeme
   const [queueStats, setQueueStats] = useState(null);
@@ -93,6 +97,31 @@ export default function ListaFreddaAdmin() {
       setQueueMessage({ success: false, text: err.response?.data?.detail || "Errore avvio" });
     } finally {
       setTriggeringImport(false);
+    }
+  };
+
+  const handleDeleteLead = async () => {
+    if (!deleteConfirm) return;
+    setDeleting(true);
+    try {
+      await axios.delete(`${API}/api/lista-fredda/leads/${encodeURIComponent(deleteConfirm.email)}`);
+      setLeads(prev => prev.filter(l => l.email !== deleteConfirm.email));
+      setDeleteConfirm(null);
+    } catch (e) {
+      console.error("Errore eliminazione lead:", e);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editModal) return;
+    try {
+      await axios.patch(`${API}/api/lista-fredda/leads/${encodeURIComponent(editModal.email)}`, { stato: editStato });
+      setLeads(prev => prev.map(l => l.email === editModal.email ? { ...l, stato: editStato } : l));
+      setEditModal(null);
+    } catch (e) {
+      console.error("Errore aggiornamento stato:", e);
     }
   };
 
@@ -540,9 +569,22 @@ export default function ListaFreddaAdmin() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <button className="p-1 hover:bg-gray-100 rounded">
-                        <MoreVertical className="w-4 h-4 text-gray-400" />
-                      </button>
+                      <div className="flex items-center gap-1 justify-center">
+                        <button
+                          onClick={() => { setEditModal(lead); setEditStato(lead.stato || "nuovo"); }}
+                          title="Modifica stato"
+                          className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:bg-yellow-50"
+                          style={{ color: "#C4990A" }}>
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(lead)}
+                          title="Elimina contatto"
+                          className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:bg-red-50"
+                          style={{ color: "#EF4444" }}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -551,6 +593,78 @@ export default function ListaFreddaAdmin() {
           </tbody>
         </table>
       </div>
+
+      {/* Modale elimina lead */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+            <div className="px-6 py-5 border-b border-red-100 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-red-50">
+                <Trash2 className="w-5 h-5 text-red-500" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-gray-900">Elimina Contatto</h3>
+                <p className="text-xs text-gray-400">Operazione irreversibile</p>
+              </div>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <p className="text-sm text-gray-600">
+                Elimina <strong className="text-gray-900">{deleteConfirm.first_name} {deleteConfirm.last_name}</strong> ({deleteConfirm.email}) dalla lista fredda?
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setDeleteConfirm(null)} disabled={deleting}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-gray-100 text-gray-600">
+                  Annulla
+                </button>
+                <button onClick={handleDeleteLead} disabled={deleting}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 bg-red-500 text-white disabled:opacity-50">
+                  {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  {deleting ? "Eliminando..." : "Elimina"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modale modifica stato lead */}
+      {editModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+            <div className="px-6 py-4 border-b flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-base text-gray-900">Modifica Stato</h3>
+                <p className="text-xs text-gray-400">{editModal.email}</p>
+              </div>
+              <button onClick={() => setEditModal(null)} className="p-1 hover:bg-gray-100 rounded">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wide text-gray-400 mb-2">Stato</label>
+                <select value={editStato} onChange={e => setEditStato(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none"
+                  style={{ borderColor: "#E5E2DD" }}>
+                  {Object.entries(STATI_COLORS).map(([k, v]) => (
+                    <option key={k} value={k}>{v.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setEditModal(null)}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-gray-100 text-gray-600">
+                  Annulla
+                </button>
+                <button onClick={handleSaveEdit}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-yellow-400 text-gray-900">
+                  Salva
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Info Webhook */}
       <div className="bg-blue-50 rounded-xl p-4 text-sm text-blue-700">
