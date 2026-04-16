@@ -1367,6 +1367,8 @@ async def _run_places_query(
 
             # Cerca email nel sito (campo non fornito da Places)
             email = None
+            if website:
+                email = await _scrape_email_from_website(website)
 
             # ── 3. Score offline professional ───────────────────────────────
             score = calculate_offline_professional_score(
@@ -1415,6 +1417,26 @@ async def _run_places_query(
             await db.discovery_leads.insert_one(doc)
             imported += 1
 
+            # Auto-enqueue su Systeme se abbiamo l'email
+            if email:
+                existing_queue = await db.systeme_daily_queue.find_one({"email": email})
+                if not existing_queue:
+                    await db.systeme_daily_queue.insert_one({
+                        "email": email,
+                        "first_name": name.split()[0] if name else "",
+                        "last_name": " ".join(name.split()[1:]) if name and len(name.split()) > 1 else "",
+                        "phone": phone,
+                        "source": "google_places",
+                        "lead_id": lead_id,
+                        "status": "pending",
+                        "created_at": now.isoformat(),
+                        "imported_at": None,
+                        "systeme_contact_id": None,
+                        "error": None,
+                        "batch_date": None,
+                    })
+                    logger.info(f"[PLACES] Lead {name} accodato su Systeme (email: {email})")
+
             if score >= 75:
                 hot += 1
                 await db.system_alerts.insert_one({
@@ -1435,6 +1457,64 @@ async def _run_places_query(
             continue
 
     return {"imported": imported, "skipped": skipped, "hot": hot}
+
+
+async def _scrape_email_from_website(url: str) -> Optional[str]:
+    """
+    Scrapa la homepage + pagina contatti di un sito per trovare un'email.
+    Cerca mailto: link e pattern email nel testo HTML.
+    Timeout 5s per non rallentare il flusso principale.
+    """
+    EMAIL_REGEX = re.compile(
+        r'\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b'
+    )
+    # Domini da ignorare (immagini, tracking, icone, ecc.)
+    IGNORED_DOMAINS = {
+        "sentry.io", "example.com", "wixpress.com", "squarespace.com",
+        "wordpress.com", "gmail.com", "googletagmanager.com", "schema.org",
+        "w3.org", "cloudflare.com", "instagram.com", "facebook.com",
+    }
+    CONTACT_SUFFIXES = ["/contatti", "/contact", "/chi-siamo", "/about", "/contattaci"]
+
+    urls_to_try = [url]
+    base = url.rstrip("/")
+    for suffix in CONTACT_SUFFIXES:
+        urls_to_try.append(base + suffix)
+
+    try:
+        async with httpx.AsyncClient(
+            timeout=5.0,
+            follow_redirects=True,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; EvolutionPRO/1.0)"},
+        ) as client:
+            for page_url in urls_to_try:
+                try:
+                    resp = await client.get(page_url)
+                    if resp.status_code != 200:
+                        continue
+                    text = resp.text
+
+                    # 1. Cerca mailto: nel DOM (più affidabile)
+                    mailto_matches = re.findall(r'mailto:([^\s"\'<>?]+)', text)
+                    for match in mailto_matches:
+                        email = match.strip().lower()
+                        domain = email.split("@")[-1] if "@" in email else ""
+                        if "@" in email and domain not in IGNORED_DOMAINS:
+                            return email
+
+                    # 2. Cerca pattern email nel testo
+                    all_emails = EMAIL_REGEX.findall(text)
+                    for email in all_emails:
+                        domain = email.split("@")[-1].lower()
+                        if domain not in IGNORED_DOMAINS:
+                            return email.lower()
+
+                except Exception:
+                    continue
+    except Exception:
+        pass
+
+    return None
 
 
 async def _get_place_details(client: httpx.AsyncClient, api_key: str, place_id: str) -> dict:
