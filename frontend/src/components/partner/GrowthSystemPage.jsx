@@ -50,6 +50,8 @@ const LEVELS = [
     tagline: "Facciamo funzionare il sistema",
     color: "#3B82F6",
     icon: Shield,
+    price: 297,
+    priceLabel: "€297 / mese",
     problema: "Hai costruito il funnel ma non sai leggere i numeri, non capisci dove perdi le persone e non sai cosa correggere.",
     soluzione: "Ti affianchiamo per monitorare ogni passaggio del funnel, individuare i punti deboli e correggerli uno alla volta. Nessuna azione inutile.",
     target: "Per chi ha appena lanciato e vuole far partire le prime vendite concrete.",
@@ -59,7 +61,7 @@ const LEVELS = [
       "Correzione landing, email e webinar",
       "Supporto tecnico diretto",
     ],
-    cta: "Voglio far funzionare il sistema",
+    cta: "Attiva Foundation",
   },
   {
     id: "growth",
@@ -68,16 +70,18 @@ const LEVELS = [
     tagline: "Aumentiamo le vendite",
     color: "#FFD24D",
     icon: TrendingUp,
+    price: 497,
+    priceLabel: "€497 / mese",
     problema: "Le vendite ci sono ma restano piatte. Il traffico non basta, le conversioni non salgono, e non sai come scalare senza sprecare budget.",
     soluzione: "Gestiamo insieme le ads, ottimizziamo ogni step del funnel e creiamo contenuti che portano persone pronte a comprare. Crescita misurabile.",
-    target: "Per chi vende gia ma vuole raddoppiare i risultati nei prossimi 90 giorni.",
+    target: "Per chi vende già ma vuole raddoppiare i risultati nei prossimi 90 giorni.",
     includes: [
       "Gestione e ottimizzazione ads Meta",
       "A/B test su landing e webinar",
       "Piano contenuti orientato alla vendita",
       "Report avanzato con azioni prioritarie",
     ],
-    cta: "Voglio far crescere le vendite",
+    cta: "Attiva Growth",
     popular: true,
   },
   {
@@ -87,6 +91,8 @@ const LEVELS = [
     tagline: "Espandiamo il business",
     color: "#34C77B",
     icon: Rocket,
+    price: 797,
+    priceLabel: "€797 / mese",
     problema: "Il primo prodotto funziona, ma il business dipende da un solo funnel. Vuoi diversificare le entrate e costruire un ecosistema.",
     soluzione: "Progettiamo insieme nuovi prodotti, nuovi funnel e strategie avanzate per moltiplicare le entrate senza ripartire da zero.",
     target: "Per chi ha validato il modello e vuole costruire un business a 6 cifre.",
@@ -96,7 +102,7 @@ const LEVELS = [
       "Strategie di scaling e automazione",
       "Affiancamento strategico diretto",
     ],
-    cta: "Voglio espandere il business",
+    cta: "Attiva Scale",
   },
 ];
 
@@ -219,6 +225,9 @@ function LevelCard({ level, isRecommended, isExpanded, onToggle, onSelect, savin
             <span className="text-sm font-black" style={{ color: "#1E2128" }}>{level.name}</span>
           </div>
           <p className="text-sm" style={{ color: "#5F6572" }}>{level.tagline}</p>
+          {level.priceLabel && (
+            <p className="text-xs font-black mt-0.5" style={{ color: level.color }}>{level.priceLabel}</p>
+          )}
         </div>
         <ChevronRight
           className="w-5 h-5 flex-shrink-0 transition-transform"
@@ -366,17 +375,37 @@ export function GrowthSystemPage({ partner }) {
     }
     setSaving(true);
     try {
-      const res = await fetch(`${API}/api/partner-journey/growth-level/choose`, {
+      // 1. Salva la scelta nel DB
+      await fetch(`${API}/api/partner-journey/growth-level/choose`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ partner_id: String(partnerId), scenario: selectedScenario, level: id })
       });
-      const data = await res.json();
-      if (data.success) {
+
+      // 2. Redirect a Stripe checkout
+      const checkoutRes = await fetch(`${API}/api/growth-system-checkout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          partner_id: String(partnerId),
+          partner_name: partner?.name || "",
+          partner_email: partner?.email || "",
+          level: id,
+          scenario: selectedScenario || "",
+          origin_url: window.location.origin,
+        })
+      });
+      const checkoutData = await checkoutRes.json();
+
+      if (checkoutData.checkout_url) {
+        window.location.href = checkoutData.checkout_url;
+      } else {
+        // Fallback: Stripe non configurato → mostra conferma "ti contatteremo"
         setChosenLevel(id);
       }
     } catch (e) {
-      console.warn("Errore salvataggio growth level:", e);
+      console.warn("Errore growth level checkout:", e);
+      setChosenLevel(id);
     } finally {
       setSaving(false);
     }

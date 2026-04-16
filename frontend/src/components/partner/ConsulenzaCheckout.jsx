@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { 
-  Calendar, CreditCard, Check, Sparkles, Loader2, 
+import {
+  Calendar, CreditCard, Check, Sparkles, Loader2,
   AlertCircle, ChevronRight, Shield, Clock, ArrowLeft,
-  User, Video, FileText, Target
+  User, Video, FileText, Target, Tag
 } from "lucide-react";
 import { API } from "../../utils/api-config";
 
@@ -10,17 +10,26 @@ import { API } from "../../utils/api-config";
 // CONSULENZA MARKETING 1:1 CHECKOUT
 // €147 - 90 min con Claudio o Antonella
 // ============================================
-export function ConsulenzaCheckout({ partner, onBack, defaultConsultant }) {
+export function ConsulenzaCheckout({ partner, onBack, defaultConsultant, packages }) {
+  const DEFAULT_PACKAGES = [
+    { label: "1 sessione", price: 180, originalPrice: null, saving: null },
+    { label: "5 sessioni", price: 765, originalPrice: 900, saving: "–15%", perSession: 153 },
+    { label: "10 sessioni", price: 1350, originalPrice: 1800, saving: "–25%", perSession: 135 },
+  ];
+  const pkgs = packages || DEFAULT_PACKAGES;
+
   const [selectedConsultant, setSelectedConsultant] = useState(defaultConsultant || null);
+  const [selectedPackageIdx, setSelectedPackageIdx] = useState(0);
   const [selectedDate, setSelectedDate] = useState("");
   const [projectFocus, setProjectFocus] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState(null);
   const [error, setError] = useState(null);
-  
+
   const partnerId = partner?.id || "demo";
   const partnerName = partner?.name || "Partner";
   const partnerEmail = partner?.email || "";
+  const selectedPkg = pkgs[selectedPackageIdx];
 
   const CONSULTANTS = [
     {
@@ -59,13 +68,14 @@ export function ConsulenzaCheckout({ partner, onBack, defaultConsultant }) {
         body: JSON.stringify({
           service_type: "consulenza_marketing",
           consultant_id: selectedConsultant,
-          partner_id: partnerId,
+          partner_id: String(partnerId),
           partner_name: partnerName,
           partner_email: partnerEmail,
           origin_url: window.location.origin,
           preferred_date: selectedDate,
           project_focus: projectFocus,
-          price: 147
+          price: selectedPkg.price,
+          package_label: selectedPkg.label,
         })
       });
       
@@ -236,6 +246,49 @@ export function ConsulenzaCheckout({ partner, onBack, defaultConsultant }) {
         </div>
       </div>
 
+      {/* Package Selection */}
+      <div>
+        <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
+          <Tag className="w-5 h-5" style={{ color: '#FFD24D' }} />
+          Scegli il pacchetto
+        </h3>
+        <div className="space-y-2">
+          {pkgs.map((pkg, i) => (
+            <button
+              key={i}
+              onClick={() => setSelectedPackageIdx(i)}
+              className="w-full rounded-xl p-4 text-left transition-all"
+              style={{
+                background: selectedPackageIdx === i ? '#FFF6D6' : 'white',
+                border: `2px solid ${selectedPackageIdx === i ? '#FFD24D' : '#ECEDEF'}`,
+              }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-sm font-black" style={{ color: '#1E2128' }}>{pkg.label}</span>
+                  {pkg.perSession && (
+                    <span className="ml-2 text-xs" style={{ color: '#9CA3AF' }}>→ €{pkg.perSession}/sessione</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {pkg.originalPrice && (
+                    <span className="text-xs line-through" style={{ color: '#9CA3AF' }}>€{pkg.originalPrice}</span>
+                  )}
+                  <span className="text-base font-black" style={{ color: '#1E2128' }}>€{pkg.price}</span>
+                  {pkg.saving && (
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#DCFCE7', color: '#166534' }}>{pkg.saving}</span>
+                  )}
+                  {selectedPackageIdx === i && (
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: '#FFD24D' }}>
+                      <Check className="w-3 h-3" style={{ color: '#1E2128' }} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Additional Info */}
       <div className="bg-white rounded-xl p-5" style={{ border: '1px solid #ECEDEF' }}>
         <h4 className="font-bold mb-3" style={{ color: '#1E2128' }}>
@@ -263,8 +316,11 @@ export function ConsulenzaCheckout({ partner, onBack, defaultConsultant }) {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm" style={{ color: '#9CA3AF' }}>Totale da pagare</div>
-            <div className="text-3xl font-black" style={{ color: '#1E2128' }}>€147</div>
-            <div className="text-xs" style={{ color: '#9CA3AF' }}>IVA inclusa</div>
+            <div className="text-3xl font-black" style={{ color: '#1E2128' }}>€{selectedPkg.price}</div>
+            <div className="text-xs" style={{ color: '#9CA3AF' }}>
+              {selectedPkg.label} · IVA inclusa
+              {selectedPkg.perSession && ` · €${selectedPkg.perSession}/sessione`}
+            </div>
           </div>
           
           <button
