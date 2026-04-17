@@ -893,6 +893,25 @@ INITIAL_NOTIFICATIONS = [
 # =============================================================================
 
 @app.on_event("startup")
+async def init_youtube_client_secret():
+    """Scrive client_secret.json da env var YOUTUBE_CLIENT_SECRET al startup."""
+    secret_json = os.environ.get("YOUTUBE_CLIENT_SECRET")
+    if secret_json:
+        try:
+            import json as _json
+            storage_path = Path("/app/storage")
+            storage_path.mkdir(parents=True, exist_ok=True)
+            secret_path = storage_path / "client_secret.json"
+            with open(secret_path, "w") as f:
+                f.write(secret_json)
+            # Inietta anche nel youtube_uploader in memoria
+            youtube_uploader.set_client_config(_json.loads(secret_json))
+            logging.info("[YouTube] client_secret.json inizializzato da env var")
+        except Exception as e:
+            logging.warning(f"[YouTube] Impossibile inizializzare client_secret: {e}")
+
+
+@app.on_event("startup")
 async def seed_database():
     # Seed agents
     if await db.agents.count_documents({}) == 0:
