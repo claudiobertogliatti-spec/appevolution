@@ -63,10 +63,9 @@ redis_url_env = os.environ.get('REDIS_URL', '')
 if not redis_url_env and REDIS_FALLBACK:
     os.environ['REDIS_URL'] = REDIS_FALLBACK
     logging.info("REDIS_URL non trovata, impostato fallback")
-celery_env = os.environ.get('CELERY_ENABLED', '')
-if not celery_env:
-    os.environ['CELERY_ENABLED'] = 'true'
-    logging.info("CELERY_ENABLED non trovata, impostato true")
+# Force CELERY_ENABLED=true sempre — il check Redis in celery_manager gestisce l'indisponibilità
+os.environ['CELERY_ENABLED'] = 'true'
+logging.info("CELERY_ENABLED forzato a true (Redis check in celery_manager)")
 
 # SMTP env vars — già nel .env, nessun fallback hardcoded necessario
 
@@ -15684,6 +15683,60 @@ async def api_get_celery_status():
             "beat_running": False,
             "error": str(e)
         }
+
+
+@api_router.post("/admin/partner/{partner_id}/retrigger-video")
+async def api_retrigger_video_pipeline(partner_id: str, video_type: str = "masterclass"):
+    """
+    Admin endpoint: ri-triggerare la pipeline video per un partner.
+    Utile quando il task Celery è rimasto in 'queued' senza essere processato.
+    """
+    try:
+        # Recupera il video_url dal record esistente
+        if video_type == "masterclass":
+            doc = await db.masterclass_factory.find_one({"partner_id": partner_id})
+        else:
+            doc = await db.partner_videocorso.find_one({"partner_id": partner_id})
+
+        if not doc:
+            raise HTTPException(status_code=404, detail=f"Nessun record {video_type} trovato per partner {partner_id}")
+
+        video_url = doc.get("video_raw_url")
+        if not video_url:
+            raise HTTPException(status_code=400, detail="Nessun video_raw_url trovato — il partner deve prima inviare il link video")
+
+        # Reset status a queued
+        collection = db.masterclass_factory if video_type == "masterclass" else db.partner_videocorso
+        await collection.update_one(
+            {"partner_id": partner_id},
+            {"$set": {
+                "video_pipeline_status": "queued",
+                "video_pipeline_error": None,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+
+        # Re-invio Celery task
+        from video_pipeline_task import process_partner_video
+        task = process_partner_video.delay(
+            partner_id=partner_id,
+            video_url=video_url,
+            video_type=video_type
+        )
+
+        return {
+            "success": True,
+            "message": f"Pipeline ri-triggerata per partner {partner_id}",
+            "video_url": video_url,
+            "video_type": video_type,
+            "task_id": task.id if task else None
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error retriggering video pipeline for partner {partner_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
