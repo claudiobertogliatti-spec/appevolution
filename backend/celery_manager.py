@@ -30,8 +30,8 @@ _shutdown_flag = False
 
 
 def is_celery_enabled() -> bool:
-    """Check if Celery is enabled via environment variable"""
-    return os.environ.get('CELERY_ENABLED', 'false').lower() in ('true', '1', 'yes')
+    """Always enable Celery - availability is gated by Redis check in start_celery_worker"""
+    return True
 
 
 def is_redis_available() -> bool:
