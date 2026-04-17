@@ -5,9 +5,10 @@ Pipeline automatica per video partner:
 1. Download da Google Drive / WeTransfer
 2. FFmpeg: silence removal + loudnorm EBU R128
 3. OpenAI Whisper: transcript + filler word detection (IT)
-4. FFmpeg: taglio filler words
-5. Upload YouTube unlisted
-6. Salvataggio DB + notifica Telegram admin
+4. GPT-4: smart edit — autocorrezioni + ripetizioni
+5. FFmpeg: taglio filler + smart edit segments
+6. Upload YouTube unlisted + aggiunta playlist partner
+7. Salvataggio DB + notifica Telegram admin
 """
 
 import os
@@ -200,6 +201,162 @@ def detect_filler_words(words: list) -> List[Dict]:
             merged.append(seg.copy())
 
     return merged
+
+
+def detect_smart_edit_segments(words: list, transcript: str, openai_key: str) -> List[Dict]:
+    """
+    GPT-4 analizza la trascrizione e identifica:
+    - Autocorrezioni: speaker dice 'aspetta', 'no', 'ricominciamo', riprende la frase
+    - Ripetizioni: stessa frase/concetto detto due volte di seguito
+    Ritorna lista [{start, end, reason}] da tagliare.
+    """
+    if not openai_key or not words or len(words) < 10:
+        return []
+
+    try:
+        import openai
+        client_oai = openai.OpenAI(api_key=openai_key)
+
+        # Raggruppa parole in frasi (pausa > 0.8s = nuova frase)
+        sentences = []
+        current_words = []
+        for i, w in enumerate(words):
+            current_words.append(w)
+            is_last = (i == len(words) - 1)
+            next_gap = (words[i+1].get("start", 0) - w.get("end", 0)) if not is_last else 9999
+            if next_gap > 0.8 or is_last:
+                if current_words:
+                    text = " ".join(x.get("word", "") for x in current_words).strip()
+                    sentences.append({
+                        "start": current_words[0].get("start", 0),
+                        "end": current_words[-1].get("end", 0),
+                        "text": text
+                    })
+                    current_words = []
+
+        if not sentences:
+            return []
+
+        # Formatta per GPT-4
+        numbered = "\n".join(
+            f"[{i+1}] ({s['start']:.1f}s-{s['end']:.1f}s) {s['text']}"
+            for i, s in enumerate(sentences)
+        )
+
+        resp = client_oai.chat.completions.create(
+            model="gpt-4o-mini",
+            temperature=0,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Sei un editor video professionale per contenuti in italiano. "
+                        "Analizza la trascrizione e identifica i segmenti DA TAGLIARE perché: "
+                        "1) AUTOCORREZIONE: lo speaker fa un errore, si ferma, ricomincia "
+                        "(segnali: 'aspetta', 'no', 'cioè no', 'ricominciamo', 'scusa', "
+                        "o frase troncata seguita dalla stessa frase corretta). "
+                        "2) RIPETIZIONE: stesso concetto o frase detto due volte di fila "
+                        "senza aggiungere informazioni nuove. "
+                        "NON tagliare: enfasi, riformulazioni didattiche, transizioni normali. "
+                        "Rispondi SOLO con JSON: "
+                        '{\"cuts\": [{\"seg_start\": N, \"seg_end\": N, \"reason\": \"...\"}]} '
+                        "dove N sono i numeri di riga del segmento. "
+                        "Se non ci sono tagli, rispondi con {\"cuts\": []}."
+                    )
+                },
+                {"role": "user", "content": f"Trascrizione:\n{numbered}"}
+            ],
+            max_tokens=800,
+            response_format={"type": "json_object"}
+        )
+
+        raw = resp.choices[0].message.content or "{}"
+        data = json.loads(raw)
+        cuts_raw = data.get("cuts", [])
+
+        # Converti seg_start/seg_end in timestamp reali
+        result = []
+        for cut in cuts_raw:
+            s_idx = int(cut.get("seg_start", 0)) - 1
+            e_idx = int(cut.get("seg_end", 0)) - 1
+            if 0 <= s_idx < len(sentences) and 0 <= e_idx < len(sentences):
+                result.append({
+                    "start": max(0.0, sentences[s_idx]["start"] - 0.1),
+                    "end": sentences[e_idx]["end"] + 0.1,
+                    "reason": cut.get("reason", "autocorrezione/ripetizione")
+                })
+
+        logger.info(f"[VIDEO-PIPE] Smart edit: {len(result)} tagli GPT-4")
+        return result
+
+    except Exception as e:
+        logger.warning(f"[VIDEO-PIPE] Smart edit GPT-4 error: {e}")
+        return []
+
+
+def add_to_youtube_playlist_sync(video_id: str, playlist_id: str) -> bool:
+    """Aggiunge un video a una playlist YouTube. Ritorna True se ok."""
+    try:
+        from googleapiclient.discovery import build
+        from services.secure_credentials import load_credentials, save_credentials
+        from google.auth.transport.requests import Request
+
+        creds_path = "/app/storage/youtube_credentials.pickle"
+        creds = load_credentials(creds_path)
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+                save_credentials(creds, creds_path)
+            else:
+                return False
+
+        service = build('youtube', 'v3', credentials=creds)
+        service.playlistItems().insert(
+            part="snippet",
+            body={
+                "snippet": {
+                    "playlistId": playlist_id,
+                    "resourceId": {"kind": "youtube#video", "videoId": video_id}
+                }
+            }
+        ).execute()
+        return True
+    except Exception as e:
+        logger.warning(f"[VIDEO-PIPE] Playlist insert error: {e}")
+        return False
+
+
+def create_youtube_playlist_sync(partner_name: str) -> Optional[str]:
+    """Crea una playlist YouTube unlisted per il partner. Ritorna playlist_id o None."""
+    try:
+        from googleapiclient.discovery import build
+        from services.secure_credentials import load_credentials, save_credentials
+        from google.auth.transport.requests import Request
+
+        creds_path = "/app/storage/youtube_credentials.pickle"
+        creds = load_credentials(creds_path)
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+                save_credentials(creds, creds_path)
+            else:
+                return None
+
+        service = build('youtube', 'v3', credentials=creds)
+        resp = service.playlists().insert(
+            part="snippet,status",
+            body={
+                "snippet": {
+                    "title": f"Evolution PRO — {partner_name}",
+                    "description": f"Video corsi {partner_name} — Evolution PRO"
+                },
+                "status": {"privacyStatus": "unlisted"}
+            }
+        ).execute()
+        return resp.get("id")
+    except Exception as e:
+        logger.warning(f"[VIDEO-PIPE] Create playlist error: {e}")
+        return None
 
 
 def cut_filler_segments(input_path: str, output_path: str, filler_segs: List[Dict], duration: float) -> bool:
@@ -428,7 +585,9 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
 
         # 3. Whisper transcript + filler detection
         filler_report = {"count": 0, "segments": [], "time_saved_s": 0}
+        smart_edit_report = {"count": 0, "segments": [], "time_saved_s": 0}
         transcript = ""
+        words = []
 
         if OPENAI_KEY and extract_audio_for_whisper(clean_path, audio_path):
             audio_size = Path(audio_path).stat().st_size
@@ -453,21 +612,34 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                     filler_time = sum(s["end"] - s["start"] for s in filler_segs)
                     filler_report = {
                         "count": len(filler_segs),
-                        "segments": filler_segs[:50],  # max 50 in DB
+                        "segments": filler_segs[:50],
                         "time_saved_s": round(filler_time, 1),
                         "words_found": list({s["word"] for s in filler_segs})
                     }
-
                     logger.info(f"[VIDEO-PIPE] Filler: {len(filler_segs)} ({filler_time:.1f}s)")
 
-                    if filler_segs:
+                    # 4. Smart edit GPT-4: autocorrezioni + ripetizioni
+                    await set_status("smart_editing")
+                    smart_segs = detect_smart_edit_segments(words, transcript, OPENAI_KEY)
+                    smart_time = sum(s["end"] - s["start"] for s in smart_segs)
+                    smart_edit_report = {
+                        "count": len(smart_segs),
+                        "segments": [{"start": s["start"], "end": s["end"], "reason": s["reason"]} for s in smart_segs[:30]],
+                        "time_saved_s": round(smart_time, 1)
+                    }
+                    logger.info(f"[VIDEO-PIPE] Smart edit: {len(smart_segs)} tagli ({smart_time:.1f}s)")
+
+                    # 5. Unifica tutti i tagli (filler + smart) e applica
+                    all_segs = filler_segs + smart_segs
+                    all_segs.sort(key=lambda x: x["start"])
+                    if all_segs:
                         await set_status("cutting_fillers")
-                        cut_filler_segments(clean_path, final_path, filler_segs, clean_dur)
+                        cut_filler_segments(clean_path, final_path, all_segs, clean_dur)
                     else:
                         shutil.copy(clean_path, final_path)
 
                 except Exception as e:
-                    logger.warning(f"[VIDEO-PIPE] Whisper error: {e}")
+                    logger.warning(f"[VIDEO-PIPE] Whisper/GPT error: {e}")
                     shutil.copy(clean_path, final_path)
             else:
                 logger.info(f"[VIDEO-PIPE] Audio too large ({audio_size/1e6:.1f}MB), skipping Whisper")
@@ -478,14 +650,13 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
         final_dur = get_video_duration(final_path)
         total_saved = raw_dur - final_dur
 
-        # 4. YouTube upload
+        # 6. YouTube upload
         await set_status("uploading_youtube")
         ts = datetime.now().strftime("%m/%Y")
         yt_title = f"{name} — {label.replace('_', ' ').title()} {ts}"
         youtube_url = upload_to_youtube_sync(final_path, yt_title, name)
 
         if not youtube_url:
-            # YouTube fallback: salva path locale, notifica
             await set_status("error_youtube")
             await telegram(
                 f"⚠️ <b>YouTube upload fallito</b>\n👤 {name} — {label}\n"
@@ -493,19 +664,39 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
             )
             return
 
-        # 5. Salva in DB
         youtube_id = youtube_url.split("v=")[-1]
         embed_url = f"https://www.youtube.com/embed/{youtube_id}"
         systeme_embed = f'<iframe src="{embed_url}" width="560" height="315" frameborder="0" allowfullscreen></iframe>'
 
+        # 7. Playlist per-partner
+        playlist_id = partner.get("youtube_playlist_id") if partner else None
+        playlist_url = None
+        if not playlist_id:
+            playlist_id = create_youtube_playlist_sync(name)
+            if playlist_id:
+                playlist_url = f"https://www.youtube.com/playlist?list={playlist_id}"
+                await db.partners.update_one(
+                    {"id": partner_id},
+                    {"$set": {"youtube_playlist_id": playlist_id, "youtube_playlist_url": playlist_url}}
+                )
+                logger.info(f"[VIDEO-PIPE] Nuova playlist creata: {playlist_id}")
+        else:
+            playlist_url = f"https://www.youtube.com/playlist?list={playlist_id}"
+
+        if playlist_id:
+            ok = add_to_youtube_playlist_sync(youtube_id, playlist_id)
+            logger.info(f"[VIDEO-PIPE] Aggiunto a playlist {playlist_id}: {ok}")
+
+        # 8. Salva in DB
         base_data = {
             "video_raw_url": video_url,
             "video_youtube_url": youtube_url,
             "video_youtube_id": youtube_id,
             "video_embed_url": embed_url,
             "video_systeme_embed": systeme_embed,
-            "video_transcript": transcript[:5000],  # primi 5000 chars in DB
+            "video_transcript": transcript[:5000],
             "video_filler_report": filler_report,
+            "video_smart_edit_report": smart_edit_report,
             "video_raw_duration_s": int(raw_dur),
             "video_final_duration_s": int(final_dur),
             "video_time_saved_s": int(total_saved),
@@ -531,19 +722,23 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                 }}
             )
 
-        # 6. Telegram admin
+        # 9. Telegram admin
         m, s = divmod(int(total_saved), 60)
         rdm, rds = divmod(int(raw_dur), 60)
         fdm, fds = divmod(int(final_dur), 60)
+        smart_line = f"🧠 Smart edit: {smart_edit_report['count']} tagli ({smart_edit_report['time_saved_s']}s)\n" if smart_edit_report['count'] else ""
+        playlist_line = f"📋 <a href='{playlist_url}'>Playlist partner</a>\n" if playlist_url else ""
 
         msg = (
             f"✅ <b>VIDEO PRONTO PER REVIEW</b>\n\n"
             f"👤 <b>{name}</b> — {label}\n"
             f"⏱ Originale: {rdm}:{rds:02d}  →  Pulito: {fdm}:{fds:02d}\n"
             f"✂️ Risparmiato: {m}:{s:02d} "
-            f"(silenzio: {int(silence_saved)}s + filler: {filler_report['count']})\n\n"
-            f"📺 <a href='{youtube_url}'>Guarda su YouTube (unlisted)</a>\n\n"
-            f"→ Evolution Admin → approva → copia embed Systeme"
+            f"(silenzio: {int(silence_saved)}s · filler: {filler_report['count']})\n"
+            f"{smart_line}"
+            f"\n📺 <a href='{youtube_url}'>Guarda su YouTube (unlisted)</a>\n"
+            f"{playlist_line}"
+            f"\n→ Evolution Admin → Video Review → Approva"
         )
         await telegram(msg)
         logger.info(f"[VIDEO-PIPE] DONE {name} — YouTube: {youtube_url}")

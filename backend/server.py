@@ -9155,6 +9155,116 @@ async def mark_notification_read(notification_id: str):
     )
     return {"success": True}
 
+@api_router.get("/admin/video-review")
+async def get_videos_for_review(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Lista tutti i video partner pronti per review (ready_for_review) o approvati."""
+    token_data = decode_token(credentials.credentials)
+    user = await db.users.find_one({"id": token_data.user_id})
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    # Masterclass videos
+    masterclass_docs = await db.masterclass_factory.find(
+        {"video_pipeline_status": {"$in": ["ready_for_review", "approved", "error_youtube"]}},
+        {"_id": 0}
+    ).sort("pipeline_completed_at", -1).to_list(100)
+
+    # Videocorso lessons
+    videocorso_docs = await db.partner_videocorso.find(
+        {"lessons": {"$exists": True}},
+        {"_id": 0}
+    ).to_list(200)
+
+    result = []
+
+    for doc in masterclass_docs:
+        partner = await db.partners.find_one({"id": doc["partner_id"]}, {"_id": 0, "name": 1, "youtube_playlist_id": 1, "youtube_playlist_url": 1})
+        result.append({
+            "type": "masterclass",
+            "partner_id": doc["partner_id"],
+            "partner_name": partner.get("name", doc["partner_id"]) if partner else doc["partner_id"],
+            "youtube_playlist_url": partner.get("youtube_playlist_url") if partner else None,
+            "status": doc.get("video_pipeline_status"),
+            "youtube_url": doc.get("video_youtube_url"),
+            "embed_url": doc.get("video_embed_url"),
+            "systeme_embed": doc.get("video_systeme_embed"),
+            "raw_duration_s": doc.get("video_raw_duration_s"),
+            "final_duration_s": doc.get("video_final_duration_s"),
+            "time_saved_s": doc.get("video_time_saved_s"),
+            "filler_report": doc.get("video_filler_report", {}),
+            "smart_edit_report": doc.get("video_smart_edit_report", {}),
+            "transcript": (doc.get("video_transcript") or "")[:1000],
+            "approved": doc.get("video_approved", False),
+            "completed_at": doc.get("pipeline_completed_at"),
+        })
+
+    for doc in videocorso_docs:
+        lessons = doc.get("lessons", {})
+        for lesson_id, lesson in lessons.items():
+            if lesson.get("pipeline_status") in ("ready_for_review", "approved", "error_youtube"):
+                partner = await db.partners.find_one({"id": doc["partner_id"]}, {"_id": 0, "name": 1, "youtube_playlist_url": 1})
+                result.append({
+                    "type": "videocorso",
+                    "partner_id": doc["partner_id"],
+                    "partner_name": partner.get("name", doc["partner_id"]) if partner else doc["partner_id"],
+                    "lesson_id": lesson_id,
+                    "youtube_playlist_url": partner.get("youtube_playlist_url") if partner else None,
+                    "status": lesson.get("pipeline_status"),
+                    "youtube_url": lesson.get("video_youtube_url"),
+                    "embed_url": lesson.get("video_embed_url"),
+                    "systeme_embed": lesson.get("video_systeme_embed"),
+                    "raw_duration_s": lesson.get("video_raw_duration_s"),
+                    "final_duration_s": lesson.get("video_final_duration_s"),
+                    "time_saved_s": lesson.get("video_time_saved_s"),
+                    "filler_report": lesson.get("video_filler_report", {}),
+                    "smart_edit_report": lesson.get("video_smart_edit_report", {}),
+                    "transcript": (lesson.get("video_transcript") or "")[:1000],
+                    "approved": lesson.get("video_approved", False),
+                    "completed_at": lesson.get("pipeline_completed_at"),
+                })
+
+    result.sort(key=lambda x: x.get("completed_at") or "", reverse=True)
+    return {"success": True, "videos": result, "total": len(result)}
+
+
+@api_router.post("/admin/video-review/{partner_id}/approve")
+async def approve_video_review(
+    partner_id: str,
+    body: dict = Body({}),
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Admin approva un video (masterclass o lezione videocorso)."""
+    token_data = decode_token(credentials.credentials)
+    user = await db.users.find_one({"id": token_data.user_id})
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    video_type = body.get("type", "masterclass")
+    lesson_id = body.get("lesson_id")
+    now = datetime.now(timezone.utc).isoformat()
+
+    if video_type == "masterclass":
+        await db.masterclass_factory.update_one(
+            {"partner_id": partner_id},
+            {"$set": {"video_pipeline_status": "approved", "video_approved": True, "approved_at": now}}
+        )
+    else:
+        if not lesson_id:
+            raise HTTPException(status_code=400, detail="lesson_id obbligatorio per videocorso")
+        lk = f"lessons.{lesson_id}"
+        await db.partner_videocorso.update_one(
+            {"partner_id": partner_id},
+            {"$set": {
+                f"{lk}.pipeline_status": "approved",
+                f"{lk}.video_approved": True,
+                f"{lk}.approved_at": now,
+                "updated_at": now
+            }}
+        )
+
+    return {"success": True, "partner_id": partner_id, "approved_at": now}
+
+
 @api_router.post("/notifications/mark-all-read")
 async def mark_all_notifications_read():
     """Mark all notifications as read"""
