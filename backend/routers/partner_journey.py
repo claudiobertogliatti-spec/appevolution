@@ -104,6 +104,7 @@ class StepStatusUpdate(BaseModel):
 class StepApproveRequest(BaseModel):
     partner_id: str
     step_id: str
+    force: bool = False  # admin bypass: skip stato pronto check
 
 VALID_STEP_IDS = ["posizionamento", "funnel-light", "masterclass", "videocorso", "funnel", "lancio", "webinar", "email"]
 VALID_STATUSES = ["in_lavorazione", "in_revisione", "pronto", "approvato"]
@@ -4900,13 +4901,14 @@ async def approve_step(req: StepApproveRequest):
     
     partner = await get_partner_or_404(req.partner_id)
     
-    # Verifica che lo step sia in stato "pronto"
+    # Verifica che lo step sia in stato "pronto" (skip se force=True, es. admin)
     doc = await db.step_statuses.find_one({"partner_id": str(req.partner_id)}, {"_id": 0})
     if doc and doc.get("steps", {}).get(req.step_id, {}).get("status") != "pronto":
         current = doc.get("steps", {}).get(req.step_id, {}).get("status", "sconosciuto")
         if current == "approvato":
             return {"success": True, "message": "Step già approvato"}
-        raise HTTPException(status_code=400, detail=f"Lo step non è pronto per l'approvazione (stato attuale: {current})")
+        if not req.force:
+            raise HTTPException(status_code=400, detail=f"Lo step non è pronto per l'approvazione (stato attuale: {current})")
     
     await db.step_statuses.update_one(
         {"partner_id": str(req.partner_id)},
