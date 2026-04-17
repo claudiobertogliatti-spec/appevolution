@@ -292,13 +292,13 @@ export function useDoneForYou(partnerId, stepId) {
     load();
   }, [partnerId, stepId]);
 
-  const approve = async () => {
+  const approve = async (force = false) => {
     setIsApproving(true);
     try {
       const res = await fetch(`${API}/api/partner-journey/step-status/approve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ partner_id: partnerId, step_id: stepId }),
+        body: JSON.stringify({ partner_id: partnerId, step_id: stepId, force }),
       });
       if (res.ok) {
         setStepStatus(prev => ({ ...prev, status: "approvato" }));
@@ -365,7 +365,7 @@ export function DoneForYouWrapper({
         ) : (
           <div className="flex gap-3 mt-6">
             <button
-              onClick={approve}
+              onClick={() => approve(true)}
               disabled={isApproving}
               data-testid="dfy-admin-approve-btn"
               className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all hover:opacity-90 disabled:opacity-50"
