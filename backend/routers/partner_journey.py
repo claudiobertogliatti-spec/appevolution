@@ -1158,31 +1158,6 @@ async def upload_masterclass_video(
         "video_file": stored_name
     }
 
-@router.post("/masterclass/approve-video")
-async def approve_masterclass_video(partner_id: str):
-    """Approva il video della masterclass (admin only)"""
-    partner = await get_partner_or_404(partner_id)
-    
-    await db.partner_masterclass.update_one(
-        {"partner_id": partner_id},
-        {"$set": {
-            "video_approved": True,
-            "video_status": "approved",
-            "video_approved_at": datetime.now(timezone.utc).isoformat()
-        }}
-    )
-    
-    # Aggiorna partner
-    await db.partners.update_one(
-        {"id": partner_id},
-        {"$set": {
-            "masterclass_completata": True,
-            "masterclass_completata_at": datetime.now(timezone.utc).isoformat()
-        }}
-    )
-    
-    return {"success": True, "message": "Video masterclass approvato"}
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # VIDEOCORSO ENDPOINTS
 # ═══════════════════════════════════════════════════════════════════════════════
