@@ -16187,6 +16187,9 @@ from routers.internal_partner import router as internal_partner_router, set_db a
 set_internal_partner_db(db)
 app.include_router(internal_partner_router)
 
+from routers.admin_stefania import router as admin_stefania_router, set_db as set_admin_stefania_db
+set_admin_stefania_db(db)
+app.include_router(admin_stefania_router)
 
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler
