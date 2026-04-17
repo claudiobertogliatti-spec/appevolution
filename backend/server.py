@@ -8,7 +8,7 @@ if not hasattr(bcrypt, '__about__'):
     bcrypt.__about__.__version__ = bcrypt.__version__
 # === END PATCH ===
 
-from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks, Request, Depends
+from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks, Request, Depends, Body
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
