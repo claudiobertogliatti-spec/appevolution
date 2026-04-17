@@ -106,6 +106,7 @@ import { PartnerLogin } from "./components/partner/PartnerLogin";
 import { Homepage } from "./components/Homepage";
 import { MiaAccademiaPage, MieiStudentiPage, ImpegniSettimanaPage, ReportMensilePage, PianoContinuitaBanner } from "./components/partner/PostLancioPages";
 import YouTubeHeygenHub from "./components/admin/YouTubeHeygenHub";
+import { VideoReviewPanel } from "./components/admin/VideoReviewPanel";
 import ListaFreddaAdmin from "./components/admin/ListaFreddaAdmin";
 import LeadManagerAdmin from "./components/admin/LeadManagerAdmin";
 import ServiziExtraAdmin from "./components/admin/ServiziExtraAdmin";
@@ -1233,6 +1234,7 @@ export default function App() {
             {nav==="documenti-partner"&&<PartnerDocumentsView partners={partners}/>}
             {nav==="onboarding-admin"&&<OnboardingDocumentsAdmin/>}
             {nav==="youtube-heygen"&&<YouTubeHeygenHub/>}
+            {nav==="video-review"&&<VideoReviewPanel/>}
             {nav==="calendario-admin"&&<CalendarioEditoriale partner={selectedPartner||partners[0]}/>}
             {nav==="andrea"&&(adminUser==="antonella"?<FeedVideoNuovi onOpenPipeline={()=>{setAdminUser("claudio");setNav("andrea");}}/>:<AndreaPipeline partners={partners}/>)}
             {nav==="metriche"&&<MetrichePostLancio partners={partners}/>}

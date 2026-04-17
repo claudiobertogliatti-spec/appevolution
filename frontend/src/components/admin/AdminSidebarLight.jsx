@@ -3,7 +3,7 @@ import {
   Users, Film, FileText, AlertTriangle,
   Settings, LogOut, Bot, Bell, Target, Calendar,
   Layers, Search, ShoppingBag, Snowflake, BarChart2, BarChart3,
-  Navigation, UserX, Flame, CalendarDays, AlertOctagon, Package, UserPlus
+  Navigation, UserX, Flame, CalendarDays, AlertOctagon, Package, UserPlus, CheckSquare
 } from "lucide-react";
 
 /* ─── Brand Palette ─────────────────────────────────────────────────────────
@@ -56,6 +56,7 @@ const NAV_ITEMS = [
   { id: "warmode",             label: "Campagne Ads",        icon: BarChart2 },
   { id: "calendario-admin",    label: "Calendario Editoriale",icon: Calendar },
   { id: "youtube-heygen",      label: "Video AI",            icon: Film },
+  { id: "video-review",        label: "Video Review",        icon: CheckSquare },
 
   { section: "SISTEMA" },
   { id: "agenti",              label: "Agent Hub",           icon: Bot },
