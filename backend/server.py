@@ -23,7 +23,13 @@ from typing import List, Optional, Dict, Any, Union
 import uuid
 from datetime import datetime, timezone, timedelta
 # from emergentintegrations.llm.chat import LlmChat, UserMessage
-from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
+try:
+    from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
+except ImportError:
+    StripeCheckout = None
+    CheckoutSessionResponse = None
+    CheckoutStatusResponse = None
+    CheckoutSessionRequest = None
 import httpx
 
 # Carica .env senza override per non sovrascrivere le variabili Kubernetes in produzione

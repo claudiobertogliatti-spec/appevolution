@@ -14,7 +14,11 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from marco_ai import ask_marco, marco_ai, MARCO_SYSTEM_PROMPT
 from gaia_ai import ask_gaia, gaia_ai, GAIA_SYSTEM_PROMPT
 from stefania_ai import route_message, run_daily_monitoring, stefania_ai
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+try:
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+except ImportError:
+    LlmChat = None
+    UserMessage = None
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

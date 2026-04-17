@@ -157,7 +157,10 @@ async def get_llm_chat(session_id: str = None, system_message: str = None):
     return LlmChat(api_key=api_key, session_id=session_id, system_message=system_message)
 
 # Import UserMessage for use in LLM calls
-from emergentintegrations.llm.chat import UserMessage
+try:
+    from emergentintegrations.llm.chat import UserMessage
+except ImportError:
+    UserMessage = None
 
 async def notify_telegram(message: str):
     """Helper per notifiche Telegram admin"""
