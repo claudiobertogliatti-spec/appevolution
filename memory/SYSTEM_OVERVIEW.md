@@ -24,9 +24,12 @@ L'elemento centrale è **VALENTINA**, un'orchestratrice AI che coordina altri ag
 Frontend: React 18 + TailwindCSS + Shadcn/UI
 Backend: FastAPI (Python 3.11)
 Database: MongoDB Atlas
-LLM: Claude Sonnet 4 (via Emergent LLM Key)
-Hosting: Kubernetes (Emergent Platform)
+LLM: Claude (Anthropic) — Emergent AI non esiste più, sostituito da Claude
+Hosting: Google Cloud Run (backend Emergent migrato, frontend su Cloud Run con auto-deploy da GitHub)
+Deploy: push su main → Cloud Build → Cloud Run
 ```
+
+> ⚠️ NOTA: Emergent AI è stato dismesso. Il backend è ora gestito direttamente. Non usare workaround "anti-Emergent".
 
 ### Struttura File Principali
 ```

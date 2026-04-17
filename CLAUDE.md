@@ -4,9 +4,23 @@
 
 Claude Code è autorizzato a committare e pushare su `main` senza richiedere conferma esplicita a ogni operazione. L'utente (Claudio) ha dato autorizzazione permanente per operare in modo autonomo su questo repository.
 
-## Problema ricorrente: Emergent force-push
+## ⚠️ IMPORTANTE: Emergent AI non esiste più
 
-Emergent AI fa force-push su `main` periodicamente, cancellando tutti i commit precedenti. Dopo ogni force-push bisogna riapplicare i fix critici.
+**Emergent AI è stato sostituito da Claude (questo stesso assistente).** Non perdere tempo a ragionare su "Emergent gestisce il backend" o a fare workaround per l'infrastruttura Emergent — non esiste più.
+
+Il backend è ora interamente gestibile tramite push su `main` nel repository GitHub. Il push triggerà Cloud Build e deploy su Cloud Run normalmente.
+
+## Infrastruttura backend (riferimento)
+
+- **Servizio Cloud Run backend**: `evolution-pro-backend` in `europe-west1` (project number `977860235035`)
+- **Comando deploy env var**: `gcloud run services update evolution-pro-backend --update-env-vars KEY=value --region europe-west1`
+- **`EMERGENT_LLM_KEY`**: è una chiave Anthropic Claude (`sk-ant-api03-...`), usata dal backend per le chiamate LLM. Non è Emergent — è Claude.
+- **Redis**: Upstash (`rediss://...included-tomcat-82332.upstash.io:6379`) — funzionante
+- **CELERY_ENABLED**: impostare a `true` via gcloud se il worker non parte
+
+## Problema storico (ora risolto): Emergent force-push
+
+In passato Emergent AI faceva force-push su `main` periodicamente. Questo non accade più. I fix critici sotto erano necessari dopo ogni reset Emergent.
 
 ### Fix da riapplicare dopo ogni Emergent reset
 
