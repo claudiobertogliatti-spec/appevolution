@@ -7,7 +7,11 @@ import os
 import logging
 from datetime import datetime, timezone
 from typing import Optional, Dict
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+try:
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+except ImportError:
+    LlmChat = None
+    UserMessage = None
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
