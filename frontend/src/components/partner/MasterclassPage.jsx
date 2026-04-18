@@ -533,72 +533,53 @@ function VideoUploadPhase({ scriptSections, fullScript, partnerId, onVideoApprov
   return (
     <div className="max-w-2xl mx-auto p-6">
       {/* Titolo */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-black mb-2" style={{ color: "#1E2128" }}>
+      <div className="mb-5">
+        <h1 className="text-3xl font-black mb-1" style={{ color: "#1E2128" }}>
           La tua Masterclass
         </h1>
       </div>
 
-      {/* Banner script approvato */}
-      <div className="rounded-2xl p-4 mb-6 flex items-center gap-3"
-        style={{ background: "#F0FDF4", border: "2px solid #BBF7D0" }}>
-        <CheckCircle className="w-6 h-6 flex-shrink-0" style={{ color: "#34C77B" }} />
-        <div>
-          <p className="text-sm font-black" style={{ color: "#166534" }}>Script approvato ✓</p>
-          <p className="text-xs" style={{ color: "#15803D" }}>
-            Valentina ha revisionato e approvato il tuo script. Ora tocca a te.
-          </p>
+      {/* Banner compatto script approvato */}
+      <div className="flex items-center gap-2 mb-5 px-3 py-2 rounded-lg"
+        style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
+        <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color: "#34C77B" }} />
+        <p className="text-sm font-bold" style={{ color: "#166534" }}>
+          Script approvato ✓
+          <span className="font-normal ml-1.5" style={{ color: "#15803D" }}>
+            — il team ha revisionato e approvato il tuo script
+          </span>
+        </p>
+      </div>
+
+      {/* Testo descrittivo — cosa fare ora */}
+      <div className="mb-5 p-4 rounded-xl" style={{ background: "#1E2128" }}>
+        <div className="flex items-center gap-2 mb-3">
+          <Video className="w-4 h-4" style={{ color: "#FFD24D" }} />
+          <span className="text-sm font-black text-white">Ora registra e carica la masterclass</span>
+        </div>
+        <p className="text-xs leading-relaxed mb-4" style={{ color: "rgba(255,255,255,0.65)" }}>
+          Lo script è pronto. Adesso devi registrare la tua masterclass, caricarla su Google Drive
+          e condividere il link qui nell'app. Il team Evolution PRO si occupa del resto:
+          editing, pulizia audio e upload su YouTube.
+        </p>
+        <div className="space-y-2.5">
+          {[
+            { n: "1", text: "Registra la masterclass (smartphone o camera va benissimo) seguendo lo script approvato" },
+            { n: "2", text: "Carica il file video su Google Drive → clic destro → Condividi → \"Chiunque con il link\"" },
+            { n: "3", text: "Incolla il link Drive nel campo qui sotto e invialo — pensiamo a tutto noi" },
+          ].map(({ n, text }) => (
+            <div key={n} className="flex items-start gap-2 text-xs" style={{ color: "rgba(255,255,255,0.85)" }}>
+              <span
+                className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 font-black text-[10px] mt-0.5"
+                style={{ background: "#FFD24D", color: "#1E2128" }}
+              >{n}</span>
+              <span className="leading-relaxed">{text}</span>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Step video — istruzioni */}
-      <div className="rounded-2xl overflow-hidden mb-4"
-        style={{ border: "2px solid #FFD24D60", boxShadow: "0 4px 24px #FFD24D15" }}>
-        <div className="px-5 py-4" style={{ background: "#1E2128" }}>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ background: "#FFD24D20" }}>
-              <Video className="w-5 h-5" style={{ color: "#FFD24D" }} />
-            </div>
-            <div>
-              <p className="text-sm font-black text-white">Registra e carica il video grezzo</p>
-              <p className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>
-                Prossimo step — Produzione Masterclass
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-5 space-y-4" style={{ background: "#FAFAF7" }}>
-          <p className="text-sm leading-relaxed" style={{ color: "#5F6572" }}>
-            Registra la tua masterclass seguendo lo script approvato. Non deve essere perfetto —
-            puoi usare il tuo smartphone o qualsiasi dispositivo.
-            Caricala su Google Drive o WeTransfer e incolla il link qui sotto.
-          </p>
-
-          {/* Cosa succede dopo */}
-          <div className="rounded-xl p-4" style={{ background: "#FFF8E1", border: "1px solid #FFD24D40" }}>
-            <p className="text-xs font-black mb-2" style={{ color: "#92400E" }}>
-              Cosa succede dopo che carichi il link:
-            </p>
-            <div className="space-y-2">
-              {[
-                "Il team scarica il video e si occupa di editing, pulizia audio e sottotitoli",
-                "Verrai contattato dal team per rivedere e approvare il video definitivo",
-                "Il video approvato viene inserito nella tua landing page",
-              ].map((item, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <span className="text-xs font-black flex-shrink-0 mt-0.5"
-                    style={{ color: "#F59E0B" }}>{i + 1}.</span>
-                  <p className="text-xs leading-relaxed" style={{ color: "#78350F" }}>{item}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Upload card — separata dal dark card per evitare doppio header */}
+      {/* Upload card — subito sotto il testo descrittivo */}
       <div className="mb-6">
         <VideoSubmissionCard partnerId={partnerId} onVideoApproved={onVideoApproved} />
       </div>
