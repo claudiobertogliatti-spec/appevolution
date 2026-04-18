@@ -620,6 +620,90 @@ function VideoUploadPhase({ scriptSections, fullScript, partnerId, onVideoApprov
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   FINAL VIDEO REVIEW PHASE — partner rivede il video definitivo
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function FinalVideoReviewPhase({ videoData, onContinue }) {
+  const youtubeId = videoData?.video_youtube_id;
+  const youtubeUrl = videoData?.video_youtube_url;
+  const timeSavedMin = videoData?.video_time_saved_s ? Math.round(videoData.video_time_saved_s / 60) : null;
+  const finalDurationMin = videoData?.video_final_duration_s ? Math.round(videoData.video_final_duration_s / 60) : null;
+
+  return (
+    <div className="max-w-2xl mx-auto p-6">
+      <div className="mb-5">
+        <h1 className="text-3xl font-black mb-1" style={{ color: "#1E2128" }}>La tua Masterclass</h1>
+      </div>
+
+      {/* Success banner */}
+      <div className="flex items-center gap-3 mb-5 px-4 py-3 rounded-xl"
+        style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
+        <CheckCircle className="w-5 h-5 flex-shrink-0" style={{ color: "#16A34A" }} />
+        <div>
+          <p className="text-sm font-black" style={{ color: "#166534" }}>La tua Masterclass è pronta ✓</p>
+          <p className="text-xs" style={{ color: "#15803D" }}>
+            Il team ha elaborato, editato e caricato il video su YouTube. Guardala qui sotto, poi passa al videocorso.
+          </p>
+        </div>
+      </div>
+
+      {/* YouTube embed */}
+      {youtubeId ? (
+        <div className="mb-5 rounded-2xl overflow-hidden" style={{ border: "1px solid #E5E2DD" }}>
+          <div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
+            <iframe
+              src={`https://www.youtube.com/embed/${youtubeId}`}
+              title="La tua Masterclass"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: 0 }}
+            />
+          </div>
+          {(finalDurationMin || (timeSavedMin && timeSavedMin > 0)) && (
+            <div className="px-4 py-3 flex gap-4 flex-wrap" style={{ background: "#FAFAF7", borderTop: "1px solid #E5E2DD" }}>
+              {finalDurationMin && (
+                <div className="text-xs" style={{ color: "#5F6572" }}>
+                  <span className="font-bold">Durata finale:</span> ~{finalDurationMin} min
+                </div>
+              )}
+              {timeSavedMin > 0 && (
+                <div className="text-xs font-semibold" style={{ color: "#16A34A" }}>
+                  ✂️ Rimossi {timeSavedMin} min di silenzi e filler words
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      ) : youtubeUrl ? (
+        <div className="mb-5 p-4 rounded-2xl flex items-center gap-3"
+          style={{ background: "#FFF0F0", border: "1px solid #FECACA" }}>
+          <Youtube className="w-6 h-6 flex-shrink-0" style={{ color: "#EF4444" }} />
+          <a href={youtubeUrl} target="_blank" rel="noopener noreferrer"
+            className="text-sm font-bold underline"
+            style={{ color: "#DC2626" }}>
+            Guarda la masterclass su YouTube →
+          </a>
+        </div>
+      ) : (
+        <div className="mb-5 p-4 rounded-xl text-sm" style={{ background: "#F3F4F6", color: "#6B7280" }}>
+          Il video è in fase di caricamento su YouTube — disponibile a breve.
+        </div>
+      )}
+
+      {/* Proceed CTA */}
+      <button
+        onClick={onContinue}
+        className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-base font-black transition-all"
+        style={{ background: "#1E2128", color: "#FFD24D" }}
+      >
+        <Check className="w-5 h-5" />
+        Vai al Videocorso →
+      </button>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    MASTERCLASS PAGE (main export)
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -627,12 +711,20 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
   const [scriptSections, setScriptSections] = useState(null);
   const [fullScript, setFullScript] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [videoApproved, setVideoApproved] = useState(false);
+  const [videoData, setVideoData] = useState(null);
 
   const partnerId = partner?.id;
+  const videoApproved = videoData?.pipeline_status === "approved";
 
   // Legge lo stato DFY dello script separatamente per gestire il rendering custom
   const { status: dyfStatus, isLoading: dyfLoading } = useDoneForYou(partnerId, "masterclass");
+
+  const refreshVideoData = async () => {
+    try {
+      const res = await fetch(`${API}/api/partner-journey/masterclass/video-status/${partnerId}`);
+      if (res.ok) setVideoData(await res.json());
+    } catch (e) {}
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -650,8 +742,7 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
           setFullScript(data.script);
         }
         if (videoRes.ok) {
-          const vData = await videoRes.json();
-          setVideoApproved(vData.pipeline_status === "approved");
+          setVideoData(await videoRes.json());
         }
       } catch (e) {
         console.error("Error loading masterclass:", e);
@@ -704,7 +795,7 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
           </DoneForYouWrapper>
           {/* Video status — dopo il bottone Approva script */}
           <div className="mt-6">
-            <VideoSubmissionCard partnerId={partnerId} onVideoApproved={() => setVideoApproved(true)} />
+            <VideoSubmissionCard partnerId={partnerId} onVideoApproved={refreshVideoData} />
           </div>
         </div>
       </div>
@@ -712,7 +803,6 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
   }
 
   // ── PARTNER: script approvato, video non ancora approvato ─────────────────
-  // Step dedicato: guida alla registrazione e al caricamento del video grezzo
   if (dyfStatus === "approvato" && !videoApproved) {
     return (
       <div className="min-h-full" style={{ background: "#FAFAF7" }}>
@@ -720,31 +810,20 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
           scriptSections={scriptSections}
           fullScript={fullScript}
           partnerId={partnerId}
-          onVideoApproved={() => setVideoApproved(true)}
+          onVideoApproved={refreshVideoData}
         />
       </div>
     );
   }
 
-  // ── PARTNER: script approvato + video approvato → può andare al videocorso ─
+  // ── PARTNER: script approvato + video approvato → rivedi e vai al videocorso
   if (dyfStatus === "approvato" && videoApproved) {
     return (
       <div className="min-h-full" style={{ background: "#FAFAF7" }}>
-        <div className="max-w-2xl mx-auto p-6">
-          <div className="mb-8">
-            <h1 className="text-3xl font-black mb-3" style={{ color: "#1E2128" }}>
-              La tua Masterclass
-            </h1>
-          </div>
-          <VideoSubmissionCard partnerId={partnerId} onVideoApproved={() => {}} />
-          <div className="mt-6">
-            <ApprovatoView
-              stepTitle="Masterclass"
-              nextStepLabel="Vai al Videocorso"
-              onContinue={() => onNavigate("videocorso")}
-            />
-          </div>
-        </div>
+        <FinalVideoReviewPhase
+          videoData={videoData}
+          onContinue={() => onNavigate("videocorso")}
+        />
       </div>
     );
   }
