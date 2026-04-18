@@ -9306,6 +9306,7 @@ async def admin_promote_partner(
         raise HTTPException(status_code=400, detail="user_id e partner_id obbligatori")
 
     now = datetime.now(timezone.utc).isoformat()
+    new_hash = bcrypt.hashpw("Evolution2026!".encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
     result = await db.users.update_one(
         {"id": user_id},
         {"$set": {
@@ -9315,6 +9316,7 @@ async def admin_promote_partner(
             "partnership_attiva": True,
             "partnership_attivata_at": now,
             "stato_cliente": "partner_attivo",
+            "password_hash": new_hash,
             "updated_at": now
         }}
     )
