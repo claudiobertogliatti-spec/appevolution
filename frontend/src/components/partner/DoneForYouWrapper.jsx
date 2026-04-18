@@ -233,30 +233,27 @@ function ProntoView({ stepTitle, children, onApprove, isApproving }) {
 function ApprovatoView({ stepTitle, nextStepLabel, onContinue }) {
   return (
     <div
-      className="rounded-2xl p-8 text-center"
+      className="rounded-xl px-4 py-3 flex items-center gap-3"
       data-testid="dfy-approvato"
-      style={{ background: "linear-gradient(135deg, #34C77B 0%, #2D9F6F 100%)" }}
+      style={{ background: "#F0FDF4", border: "1.5px solid #BBF7D0" }}
     >
       <div
-        className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-        style={{ background: "rgba(255,255,255,0.2)" }}
+        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+        style={{ background: "#34C77B20" }}
       >
-        <Check className="w-8 h-8 text-white" />
+        <Check className="w-4 h-4" style={{ color: "#34C77B" }} />
       </div>
-      <h2 className="text-xl font-black text-white mb-2">
-        {stepTitle || "Step"} approvato
-      </h2>
-      <p className="text-sm text-white/80 mb-6 max-w-md mx-auto">
-        Step completato. Il team procedera immediatamente con il prossimo.
+      <p className="text-sm font-black flex-1" style={{ color: "#166534" }}>
+        {stepTitle || "Step"} approvato ✓
       </p>
       {nextStepLabel && onContinue && (
         <button
           onClick={onContinue}
           data-testid="dfy-continue-btn"
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all hover:scale-105"
-          style={{ background: "white", color: "#2D9F6F" }}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:opacity-80"
+          style={{ background: "#34C77B", color: "white" }}
         >
-          {nextStepLabel} <ArrowRight className="w-5 h-5" />
+          {nextStepLabel} <ArrowRight className="w-3.5 h-3.5" />
         </button>
       )}
     </div>
@@ -334,6 +331,7 @@ export function DoneForYouWrapper({
   isAdmin,
   children,
   adminChildren,
+  afterContent,
 }) {
   const { status, content, notes, isLoading, isApproving, approve } = useDoneForYou(partnerId, stepId);
 
@@ -395,9 +393,10 @@ export function DoneForYouWrapper({
     return (
       <div>
         {children}
-        <div className="mt-6">
+        <div className="mt-4">
           <ApprovatoView stepTitle={stepTitle} nextStepLabel={nextStepLabel} onContinue={onContinue} />
         </div>
+        {afterContent && <div className="mt-6">{afterContent}</div>}
       </div>
     );
   }
