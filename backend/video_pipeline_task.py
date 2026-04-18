@@ -62,20 +62,36 @@ def extract_gdrive_file_id(url: str) -> str | None:
 
 
 def resolve_gdrive_url(url: str) -> str:
-    """Converte URL Google Drive share in URL download diretto.
-    Usa drive.usercontent.google.com (endpoint moderno, funziona senza confirm token).
-    """
+    """Converte URL Google Drive share in URL download diretto."""
     file_id = extract_gdrive_file_id(url)
     if file_id:
         return f"https://drive.usercontent.google.com/download?id={file_id}&export=download&authuser=0"
     return url
 
 
+def extract_gdrive_confirm_url(html_text: str, file_id: str) -> Optional[str]:
+    """Estrae URL di conferma dalla pagina 'virus scan warning' di Google Drive per file grandi."""
+    # Cerca uuid nel form hidden input
+    m = re.search(r'name=["\']uuid["\']\s+value=["\']([^"\']+)["\']', html_text)
+    if m:
+        uuid_val = m.group(1)
+        return f"https://drive.usercontent.google.com/download?id={file_id}&export=download&authuser=0&confirm=t&uuid={uuid_val}"
+    # Fallback: cerca confirm= nell'azione del form
+    m = re.search(r'[?&]confirm=([^&"\']+)', html_text)
+    if m:
+        confirm = m.group(1)
+        return f"https://drive.usercontent.google.com/download?id={file_id}&export=download&authuser=0&confirm={confirm}"
+    # Ultimo fallback: prova confirm=t senza uuid (funziona per alcuni file)
+    return f"https://drive.usercontent.google.com/download?id={file_id}&export=download&authuser=0&confirm=t"
+
+
 async def download_video(url: str, dest_path: str) -> int:
     """Scarica video da URL (Google Drive o qualsiasi link diretto).
+    Gestisce la pagina di conferma di Google Drive per file grandi.
     Ritorna dimensione in bytes.
     """
     download_url = resolve_gdrive_url(url)
+    file_id = extract_gdrive_file_id(url)
     logger.info(f"[VIDEO-PIPE] Download URL: {download_url[:100]}")
 
     headers = {
@@ -88,28 +104,54 @@ async def download_video(url: str, dest_path: str) -> int:
         timeout=httpx.Timeout(connect=30, read=600, write=30, pool=30),
         headers=headers,
     ) as client:
+        # Prima request — per file grandi Google Drive può restituire una pagina HTML
+        # di conferma (virus scan warning) invece del video direttamente.
         async with client.stream("GET", download_url) as response:
             response.raise_for_status()
-
-            # Controlla che sia un video e non una pagina HTML di errore
             content_type = response.headers.get("content-type", "")
-            if "text/html" in content_type:
-                # Leggi i primi byte per il messaggio d'errore
-                first_bytes = b""
-                async for chunk in response.aiter_bytes(chunk_size=4096):
-                    first_bytes += chunk
-                    if len(first_bytes) >= 4096:
+
+            if "text/html" in content_type and file_id:
+                # Leggi la pagina HTML di conferma
+                html_chunks = []
+                async for chunk in response.aiter_bytes(chunk_size=8192):
+                    html_chunks.append(chunk.decode("utf-8", errors="ignore"))
+                    if sum(len(c) for c in html_chunks) >= 65536:
                         break
+                html_text = "".join(html_chunks)
+
+                confirm_url = extract_gdrive_confirm_url(html_text, file_id)
+                logger.info(f"[VIDEO-PIPE] Pagina conferma rilevata — retry con: {confirm_url[:100]}")
+            elif "text/html" in content_type:
                 raise ValueError(
                     f"Google Drive ha restituito una pagina HTML invece del video "
                     f"(content-type: {content_type}). "
                     f"Verifica che il file sia condiviso come 'Chiunque abbia il link' "
                     f"e che il link sia diretto al file (non a una cartella)."
                 )
+            else:
+                # Download diretto — stream nel file
+                total = 0
+                with open(dest_path, "wb") as f:
+                    async for chunk in response.aiter_bytes(chunk_size=2 * 1024 * 1024):
+                        f.write(chunk)
+                        total += len(chunk)
+                return total
 
+        # Seconda request con URL di conferma (solo se la prima era HTML)
+        logger.info(f"[VIDEO-PIPE] Download con conferma in corso...")
+        async with client.stream("GET", confirm_url) as response2:
+            response2.raise_for_status()
+            ct2 = response2.headers.get("content-type", "")
+            if "text/html" in ct2:
+                raise ValueError(
+                    "Google Drive richiede autenticazione anche con URL di conferma. "
+                    "Il file potrebbe non essere condiviso come 'Chiunque abbia il link', "
+                    "oppure è in una cartella Drive privata. "
+                    "Prova a spostare il file in 'Il mio Drive' e ricondividilo."
+                )
             total = 0
             with open(dest_path, "wb") as f:
-                async for chunk in response.aiter_bytes(chunk_size=2 * 1024 * 1024):
+                async for chunk in response2.aiter_bytes(chunk_size=2 * 1024 * 1024):
                     f.write(chunk)
                     total += len(chunk)
     return total
