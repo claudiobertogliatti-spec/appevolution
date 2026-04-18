@@ -26,6 +26,8 @@ from typing import Optional, List, Dict
 import httpx
 
 from celery_app import celery_app
+from key_moments_extractor import extract_key_moments
+from remotion_client import render_partner_video
 
 logger = logging.getLogger(__name__)
 
@@ -546,6 +548,7 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
     clean_path = str(tmp_dir / "clean.mp4")
     final_path = str(tmp_dir / "final.mp4")
     audio_path = str(tmp_dir / "audio.mp3")
+    remotion_path = str(tmp_dir / "remotion.mp4")
 
     async def set_status(status: str, extra: dict = {}):
         now = datetime.now(timezone.utc).isoformat()
@@ -650,11 +653,51 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
         final_dur = get_video_duration(final_path)
         total_saved = raw_dur - final_dur
 
+        # 5b. Remotion: intro/outro brandizzato + sottotitoli + highlight + musica
+        remotion_rendered = False
+        youtube_source_path = final_path
+        if transcript and words:
+            await set_status("rendering")
+            niche = (partner.get("niche") or partner.get("partner_niche") or "") if partner else ""
+
+            # Script approvato (solo masterclass) — migliora qualità key moments
+            approved_script = None
+            if video_type == "masterclass":
+                mc_doc = await db.masterclass_factory.find_one({"partner_id": partner_id})
+                if mc_doc:
+                    approved_script = mc_doc.get("script_content") or mc_doc.get("approved_script")
+
+            key_moments = await extract_key_moments(
+                transcript=transcript,
+                words=words,
+                partner_name=name,
+                niche=niche,
+                video_duration_s=final_dur,
+                approved_script=approved_script,
+            )
+
+            rendered = await render_partner_video(
+                partner_id=partner_id,
+                local_video_path=final_path,
+                partner_name=name,
+                partner_niche=niche,
+                duration_s=final_dur,
+                words=words,
+                key_moments=key_moments,
+                output_path=remotion_path,
+            )
+            if rendered:
+                remotion_rendered = True
+                youtube_source_path = remotion_path
+                logger.info(f"[VIDEO-PIPE] Remotion render OK → {remotion_path}")
+            else:
+                logger.info("[VIDEO-PIPE] Remotion skip — upload video pulito")
+
         # 6. YouTube upload
         await set_status("uploading_youtube")
         ts = datetime.now().strftime("%m/%Y")
         yt_title = f"{name} — {label.replace('_', ' ').title()} {ts}"
-        youtube_url = upload_to_youtube_sync(final_path, yt_title, name)
+        youtube_url = upload_to_youtube_sync(youtube_source_path, yt_title, name)
 
         if not youtube_url:
             await set_status("error_youtube")
@@ -700,6 +743,7 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
             "video_raw_duration_s": int(raw_dur),
             "video_final_duration_s": int(final_dur),
             "video_time_saved_s": int(total_saved),
+            "video_remotion_rendered": remotion_rendered,
             "video_approved": False,
             "pipeline_completed_at": datetime.now(timezone.utc).isoformat(),
         }
@@ -727,6 +771,7 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
         rdm, rds = divmod(int(raw_dur), 60)
         fdm, fds = divmod(int(final_dur), 60)
         smart_line = f"🧠 Smart edit: {smart_edit_report['count']} tagli ({smart_edit_report['time_saved_s']}s)\n" if smart_edit_report['count'] else ""
+        remotion_line = "🎬 Remotion: intro+outro+sottotitoli+highlight ✅\n" if remotion_rendered else "🎬 Remotion: skip (fallback video pulito)\n"
         playlist_line = f"📋 <a href='{playlist_url}'>Playlist partner</a>\n" if playlist_url else ""
 
         msg = (
@@ -736,6 +781,7 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
             f"✂️ Risparmiato: {m}:{s:02d} "
             f"(silenzio: {int(silence_saved)}s · filler: {filler_report['count']})\n"
             f"{smart_line}"
+            f"{remotion_line}"
             f"\n📺 <a href='{youtube_url}'>Guarda su YouTube (unlisted)</a>\n"
             f"{playlist_line}"
             f"\n→ Evolution Admin → Video Review → Approva"
