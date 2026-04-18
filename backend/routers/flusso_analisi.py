@@ -29,6 +29,7 @@ import logging
 import uuid
 import io
 import re
+import bcrypt
 
 # Import Master Prompt e OpenClaw Research
 try:
@@ -1756,6 +1757,7 @@ async def attiva_partnership(user_id: str, background_tasks: BackgroundTasks):
     # ═══════════════════════════════════════════════════════════════════
     now = datetime.now(timezone.utc)
     
+    new_hash = bcrypt.hashpw("Evolution2026!".encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
     await db.users.update_one(
         {"id": user_id},
         {"$set": {
@@ -1763,7 +1765,8 @@ async def attiva_partnership(user_id: str, background_tasks: BackgroundTasks):
             "user_type": "partner",
             "partnership_attiva": True,
             "partnership_attivata_at": now.isoformat(),
-            "systeme_account_id": systeme_result.get("systeme_contact_id")
+            "systeme_account_id": systeme_result.get("systeme_contact_id"),
+            "password_hash": new_hash
         }}
     )
     
