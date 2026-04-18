@@ -1,0 +1,13 @@
+{
+  "name": "remotion-rendering-service",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@remotion/renderer": "4.0.290",
+    "@google-cloud/storage": "^7.0.0",
+    "express": "^4.18.0"
+  }
+}
