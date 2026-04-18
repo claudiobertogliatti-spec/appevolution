@@ -366,9 +366,9 @@ function VideoSubmissionCard({ partnerId, onVideoApproved }) {
             <Video className="w-5 h-5" style={{ color: "#FFD24D" }} />
           </div>
           <div>
-            <div className="text-sm font-black text-white">Invia il tuo video</div>
+            <div className="text-sm font-black text-white">Carica il link del video grezzo</div>
             <div className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>
-              Masterclass registrata → Evolution elabora e carica su YouTube
+              Il team Evolution elabora, edita e carica su YouTube
             </div>
           </div>
           {statusCfg && (
@@ -432,8 +432,12 @@ function VideoSubmissionCard({ partnerId, onVideoApproved }) {
         {/* Error */}
         {(status === "error" || status === "error_youtube") && (
           <div className="p-4 rounded-xl" style={{ background: "#FEF2F2", border: "1px solid #FECACA" }}>
-            <p className="text-sm font-bold" style={{ color: "#DC2626" }}>
-              Errore nell'elaborazione — contatta il team Evolution.
+            <p className="text-sm font-bold mb-1" style={{ color: "#DC2626" }}>
+              C'è stato un problema con il link precedente.
+            </p>
+            <p className="text-xs" style={{ color: "#991B1B" }}>
+              Prova a incollare di nuovo il link — puoi usare Google Drive, WeTransfer o Dropbox.
+              Se il problema persiste, contatta il team Evolution.
             </p>
           </div>
         )}
@@ -547,8 +551,8 @@ function VideoUploadPhase({ scriptSections, fullScript, partnerId, onVideoApprov
         </div>
       </div>
 
-      {/* Step video — prominente */}
-      <div className="rounded-2xl overflow-hidden mb-6"
+      {/* Step video — istruzioni */}
+      <div className="rounded-2xl overflow-hidden mb-4"
         style={{ border: "2px solid #FFD24D60", boxShadow: "0 4px 24px #FFD24D15" }}>
         <div className="px-5 py-4" style={{ background: "#1E2128" }}>
           <div className="flex items-center gap-3">
@@ -591,10 +595,12 @@ function VideoUploadPhase({ scriptSections, fullScript, partnerId, onVideoApprov
               ))}
             </div>
           </div>
-
-          {/* Upload card */}
-          <VideoSubmissionCard partnerId={partnerId} onVideoApproved={onVideoApproved} />
         </div>
+      </div>
+
+      {/* Upload card — separata dal dark card per evitare doppio header */}
+      <div className="mb-6">
+        <VideoSubmissionCard partnerId={partnerId} onVideoApproved={onVideoApproved} />
       </div>
 
       {/* Script di riferimento — collassabile */}
