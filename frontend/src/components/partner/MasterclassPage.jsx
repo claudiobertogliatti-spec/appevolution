@@ -5,7 +5,7 @@ import {
   Video, Link, Send, Clock, CheckCircle, AlertCircle, Youtube,
   Settings, Wand2
 } from "lucide-react";
-import { DoneForYouWrapper } from "./DoneForYouWrapper";
+import { DoneForYouWrapper, useDoneForYou, PreparazioneView, ProntoView, ApprovatoView } from "./DoneForYouWrapper";
 
 const API = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -520,6 +520,111 @@ function ScriptContent({ scriptSections, fullScript }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   VIDEO UPLOAD PHASE — schermata dedicata dopo approvazione script
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function VideoUploadPhase({ scriptSections, fullScript, partnerId, onVideoApproved }) {
+  const [showScript, setShowScript] = useState(false);
+
+  return (
+    <div className="max-w-2xl mx-auto p-6">
+      {/* Titolo */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-black mb-2" style={{ color: "#1E2128" }}>
+          La tua Masterclass
+        </h1>
+      </div>
+
+      {/* Banner script approvato */}
+      <div className="rounded-2xl p-4 mb-6 flex items-center gap-3"
+        style={{ background: "#F0FDF4", border: "2px solid #BBF7D0" }}>
+        <CheckCircle className="w-6 h-6 flex-shrink-0" style={{ color: "#34C77B" }} />
+        <div>
+          <p className="text-sm font-black" style={{ color: "#166534" }}>Script approvato ✓</p>
+          <p className="text-xs" style={{ color: "#15803D" }}>
+            Valentina ha revisionato e approvato il tuo script. Ora tocca a te.
+          </p>
+        </div>
+      </div>
+
+      {/* Step video — prominente */}
+      <div className="rounded-2xl overflow-hidden mb-6"
+        style={{ border: "2px solid #FFD24D60", boxShadow: "0 4px 24px #FFD24D15" }}>
+        <div className="px-5 py-4" style={{ background: "#1E2128" }}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{ background: "#FFD24D20" }}>
+              <Video className="w-5 h-5" style={{ color: "#FFD24D" }} />
+            </div>
+            <div>
+              <p className="text-sm font-black text-white">Registra e carica il video grezzo</p>
+              <p className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>
+                Prossimo step — Produzione Masterclass
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-5 space-y-4" style={{ background: "#FAFAF7" }}>
+          <p className="text-sm leading-relaxed" style={{ color: "#5F6572" }}>
+            Registra la tua masterclass seguendo lo script approvato. Non deve essere perfetto —
+            puoi usare il tuo smartphone o qualsiasi dispositivo.
+            Caricala su Google Drive o WeTransfer e incolla il link qui sotto.
+          </p>
+
+          {/* Cosa succede dopo */}
+          <div className="rounded-xl p-4" style={{ background: "#FFF8E1", border: "1px solid #FFD24D40" }}>
+            <p className="text-xs font-black mb-2" style={{ color: "#92400E" }}>
+              Cosa succede dopo che carichi il link:
+            </p>
+            <div className="space-y-2">
+              {[
+                "Il team scarica il video e si occupa di editing, pulizia audio e sottotitoli",
+                "Verrai contattato dal team per rivedere e approvare il video definitivo",
+                "Il video approvato viene inserito nella tua landing page",
+              ].map((item, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <span className="text-xs font-black flex-shrink-0 mt-0.5"
+                    style={{ color: "#F59E0B" }}>{i + 1}.</span>
+                  <p className="text-xs leading-relaxed" style={{ color: "#78350F" }}>{item}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Upload card */}
+          <VideoSubmissionCard partnerId={partnerId} onVideoApproved={onVideoApproved} />
+        </div>
+      </div>
+
+      {/* Script di riferimento — collassabile */}
+      <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #E5E2DD" }}>
+        <button
+          className="w-full flex items-center justify-between px-5 py-4 text-left transition-colors hover:bg-gray-50"
+          style={{ background: "white" }}
+          onClick={() => setShowScript(s => !s)}
+        >
+          <div className="flex items-center gap-3">
+            <FileText className="w-4 h-4" style={{ color: "#9CA3AF" }} />
+            <span className="text-sm font-bold" style={{ color: "#1E2128" }}>
+              Rivedi lo script approvato
+            </span>
+          </div>
+          {showScript
+            ? <ChevronUp className="w-4 h-4" style={{ color: "#9CA3AF" }} />
+            : <ChevronDown className="w-4 h-4" style={{ color: "#9CA3AF" }} />}
+        </button>
+        {showScript && (
+          <div className="p-5" style={{ background: "#FAFAF7", borderTop: "1px solid #E5E2DD" }}>
+            <ScriptContent scriptSections={scriptSections} fullScript={fullScript} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    MASTERCLASS PAGE (main export)
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -530,6 +635,9 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
   const [videoApproved, setVideoApproved] = useState(false);
 
   const partnerId = partner?.id;
+
+  // Legge lo stato DFY dello script separatamente per gestire il rendering custom
+  const { status: dyfStatus, isLoading: dyfLoading } = useDoneForYou(partnerId, "masterclass");
 
   useEffect(() => {
     const load = async () => {
@@ -564,7 +672,7 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
     setFullScript(script || null);
   };
 
-  if (isLoading) {
+  if (isLoading || dyfLoading) {
     return (
       <div className="min-h-full flex items-center justify-center" style={{ background: "#FAFAF7" }}>
         <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FFD24D" }} />
@@ -572,6 +680,78 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
     );
   }
 
+  // ── ADMIN VIEW ────────────────────────────────────────────────────────────
+  if (isAdmin) {
+    return (
+      <div className="min-h-full" style={{ background: "#FAFAF7" }}>
+        <div className="max-w-2xl mx-auto p-6">
+          <div className="mb-8" data-testid="masterclass-hero">
+            <h1 className="text-3xl font-black mb-3" style={{ color: "#1E2128" }}>
+              La tua Masterclass
+            </h1>
+            <p className="text-base leading-relaxed" style={{ color: "#5F6572" }}>
+              Il team crea lo script completo della tua masterclass basandosi sul tuo posizionamento.
+            </p>
+          </div>
+          {partnerId && (
+            <AdminMasterclassPanel partnerId={partnerId} onScriptGenerated={handleScriptGenerated} />
+          )}
+          <DoneForYouWrapper
+            partnerId={partnerId}
+            stepId="masterclass"
+            stepTitle="Script Masterclass"
+            stepIcon={Sparkles}
+            nextStepLabel={videoApproved ? "Vai al Videocorso" : undefined}
+            onContinue={videoApproved ? () => onNavigate("videocorso") : undefined}
+            isAdmin={true}
+          >
+            <ScriptContent scriptSections={scriptSections} fullScript={fullScript} />
+            <VideoSubmissionCard partnerId={partnerId} onVideoApproved={() => setVideoApproved(true)} />
+          </DoneForYouWrapper>
+        </div>
+      </div>
+    );
+  }
+
+  // ── PARTNER: script approvato, video non ancora approvato ─────────────────
+  // Step dedicato: guida alla registrazione e al caricamento del video grezzo
+  if (dyfStatus === "approvato" && !videoApproved) {
+    return (
+      <div className="min-h-full" style={{ background: "#FAFAF7" }}>
+        <VideoUploadPhase
+          scriptSections={scriptSections}
+          fullScript={fullScript}
+          partnerId={partnerId}
+          onVideoApproved={() => setVideoApproved(true)}
+        />
+      </div>
+    );
+  }
+
+  // ── PARTNER: script approvato + video approvato → può andare al videocorso ─
+  if (dyfStatus === "approvato" && videoApproved) {
+    return (
+      <div className="min-h-full" style={{ background: "#FAFAF7" }}>
+        <div className="max-w-2xl mx-auto p-6">
+          <div className="mb-8">
+            <h1 className="text-3xl font-black mb-3" style={{ color: "#1E2128" }}>
+              La tua Masterclass
+            </h1>
+          </div>
+          <VideoSubmissionCard partnerId={partnerId} onVideoApproved={() => {}} />
+          <div className="mt-6">
+            <ApprovatoView
+              stepTitle="Masterclass"
+              nextStepLabel="Vai al Videocorso"
+              onContinue={() => onNavigate("videocorso")}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── PARTNER: script in preparazione o pronto per revisione ────────────────
   return (
     <div className="min-h-full" style={{ background: "#FAFAF7" }}>
       <div className="max-w-2xl mx-auto p-6">
@@ -585,32 +765,13 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
             <strong>Non devi scrivere nulla. Rivedi lo script, registra e invia il link.</strong>
           </p>
         </div>
-
-        {/* Admin creation panel — shown only to admin, above everything */}
-        {isAdmin && partnerId && (
-          <AdminMasterclassPanel
-            partnerId={partnerId}
-            onScriptGenerated={handleScriptGenerated}
-          />
-        )}
-
         <DoneForYouWrapper
           partnerId={partnerId}
           stepId="masterclass"
-          stepTitle="Masterclass"
+          stepTitle="Script Masterclass"
           stepIcon={Sparkles}
-          nextStepLabel={videoApproved ? "Vai al Videocorso" : undefined}
-          onContinue={videoApproved ? () => onNavigate("videocorso") : undefined}
-          isAdmin={isAdmin}
         >
           <ScriptContent scriptSections={scriptSections} fullScript={fullScript} />
-          {/* Video upload card appears after script (inside wrapper) so it's visible before the green footer */}
-          {partnerId && !isAdmin && (
-            <VideoSubmissionCard
-              partnerId={partnerId}
-              onVideoApproved={() => setVideoApproved(true)}
-            />
-          )}
         </DoneForYouWrapper>
       </div>
     </div>
