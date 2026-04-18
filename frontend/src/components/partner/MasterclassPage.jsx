@@ -435,8 +435,8 @@ function VideoSubmissionCard({ partnerId }) {
           </div>
         )}
 
-        {/* Link input — show if no status or error */}
-        {(!status || status === "error" || status === "error_youtube") && (
+        {/* Link input — show if no status, error, or no real processed video (pipeline bypass scenario) */}
+        {(!status || status === "error" || status === "error_youtube" || (status === "ready_for_review" && !pipelineStatus?.video_youtube_url)) && (
           <>
             <div className="p-3 rounded-xl" style={{ background: "#F0EDE8", border: "1px solid #E5E2DD" }}>
               <p className="text-xs" style={{ color: "#6B7280" }}>
