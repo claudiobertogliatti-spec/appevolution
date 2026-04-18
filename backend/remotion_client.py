@@ -68,6 +68,7 @@ async def render_partner_video(
     music_volume: float = 0.12,
     show_subtitles: bool = True,
     show_music: bool = True,
+    music_track: str = "promo_1",
 ) -> Optional[str]:
     """
     Renderizza il video finale con Remotion.
@@ -115,6 +116,7 @@ async def render_partner_video(
         "outroCtaUrl": outro_cta_url,
         "showSubtitles": show_subtitles,
         "showMusic": show_music,
+        "musicTrack": music_track,
     }
 
     # Step 2: chiama remotion-service

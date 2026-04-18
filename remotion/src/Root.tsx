@@ -30,6 +30,7 @@ export const RemotionRoot: React.FC = () => {
         outroCtaUrl: "evolution-pro.it",
         showSubtitles: true,
         showMusic: true,
+        musicTrack: "promo_1",
       } satisfies VideoCompositionProps}
       calculateMetadata={({ props }) => ({
         durationInFrames: secsToFrames(

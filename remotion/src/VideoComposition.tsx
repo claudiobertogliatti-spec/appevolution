@@ -33,6 +33,7 @@ export const VideoComposition: React.FC<VideoCompositionProps> = ({
   outroCtaUrl = "evolution-pro.it",
   showSubtitles = true,
   showMusic = true,
+  musicTrack = "promo_1",
 }) => {
   const { fps } = useVideoConfig();
 
@@ -69,7 +70,7 @@ export const VideoComposition: React.FC<VideoCompositionProps> = ({
       {/* Musica di sottofondo con fade in/out — solo masterclass */}
       {showMusic && (
         <Audio
-          src={staticFile("music/background.mp3")}
+          src={staticFile(`music/${musicTrack}.mp3`)}
           volume={(f: number) => {
             if (f < fps * 2) return (f / (fps * 2)) * musicVolume;
             if (f > totalFrames - fps * 3)

@@ -24,6 +24,7 @@ export type VideoCompositionProps = {
   outroCtaUrl?: string;       // URL del funnel/corso
   showSubtitles?: boolean;    // default true — false per lezioni videocorso
   showMusic?: boolean;        // default true — false per lezioni videocorso
+  musicTrack?: "promo_1" | "promo_2" | "ambient_1" | "ambient_2"; // default "promo_1"
 };
 
 export const INTRO_DURATION_S = 5;
