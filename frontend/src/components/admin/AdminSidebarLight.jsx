@@ -36,7 +36,10 @@ const C = {
 
 /* ─── Nav config ─────────────────────────────────────────────────────────────
    Struttura: Stefania (pinned) → Mini Dashboard → 4 sezioni
+   Per la vista Antonella: sezione ACQUISIZIONE nascosta
    ─────────────────────────────────────────────────────────────────────────── */
+
+const ANTONELLA_HIDDEN = new Set(["ACQUISIZIONE", "clienti-analisi", "flusso-analisi", "video-review"]);
 
 const NAV_ITEMS = [
   // Sezione GIORNALIERO
@@ -425,11 +428,17 @@ export function AdminSidebarLight({
       {/* ── Nav ── */}
       <div className="flex-1 overflow-y-auto px-3 pb-2">
         <nav>
-          {NAV_ITEMS.map((item, idx) => (
-            <div key={item.section ? `s-${item.section}-${idx}` : item.id}>
-              {renderItem(item)}
-            </div>
-          ))}
+          {NAV_ITEMS
+            .filter(item => {
+              if (currentView !== "antonella") return true;
+              if (item.section) return !ANTONELLA_HIDDEN.has(item.section);
+              return !ANTONELLA_HIDDEN.has(item.id);
+            })
+            .map((item, idx) => (
+              <div key={item.section ? `s-${item.section}-${idx}` : item.id}>
+                {renderItem(item)}
+              </div>
+            ))}
         </nav>
       </div>
 
