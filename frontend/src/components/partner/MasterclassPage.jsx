@@ -701,8 +701,11 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
             isAdmin={true}
           >
             <ScriptContent scriptSections={scriptSections} fullScript={fullScript} />
-            <VideoSubmissionCard partnerId={partnerId} onVideoApproved={() => setVideoApproved(true)} />
           </DoneForYouWrapper>
+          {/* Video status — dopo il bottone Approva script */}
+          <div className="mt-6">
+            <VideoSubmissionCard partnerId={partnerId} onVideoApproved={() => setVideoApproved(true)} />
+          </div>
         </div>
       </div>
     );
