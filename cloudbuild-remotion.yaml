@@ -1,0 +1,92 @@
+steps:
+  # 1. Install Remotion npm deps
+  - name: 'node:20-slim'
+    id: install-remotion
+    dir: 'remotion'
+    entrypoint: npm
+    args: ['ci']
+
+  # 2. Bundle Remotion composition (TypeScript → webpack bundle)
+  - name: 'node:20-slim'
+    id: bundle-remotion
+    waitFor: [install-remotion]
+    dir: 'remotion'
+    entrypoint: npm
+    args: ['run', 'build']
+
+  # 3. Copia bundle nella cartella attesa dal Dockerfile (remotion-bundle/ in root)
+  - name: 'ubuntu'
+    id: copy-bundle
+    waitFor: [bundle-remotion]
+    entrypoint: bash
+    args:
+      - -c
+      - 'cp -r remotion/bundle remotion-bundle'
+
+  # 4. Build Docker image remotion-service
+  - name: 'gcr.io/cloud-builders/docker'
+    id: build-image
+    waitFor: [copy-bundle]
+    args:
+      - build
+      - --no-cache
+      - -t
+      - gcr.io/$PROJECT_ID/evolution-pro-remotion:$BUILD_ID
+      - -f
+      - remotion-service/Dockerfile
+      - .
+
+  # 5. Push immagine
+  - name: 'gcr.io/cloud-builders/docker'
+    id: push-image
+    waitFor: [build-image]
+    args:
+      - push
+      - gcr.io/$PROJECT_ID/evolution-pro-remotion:$BUILD_ID
+
+  # 6. Deploy remotion-service su Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: deploy-remotion
+    waitFor: [push-image]
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - evolution-pro-remotion
+      - --image=gcr.io/$PROJECT_ID/evolution-pro-remotion:$BUILD_ID
+      - --region=europe-west1
+      - --platform=managed
+      - --allow-unauthenticated
+      - --memory=4Gi
+      - --cpu=4
+      - --concurrency=1
+      - --timeout=900s
+      - --set-env-vars=GCS_BUCKET=gen-lang-client-0744698012_cloudbuild
+      - --revision-suffix=b$BUILD_ID
+      - --project=$PROJECT_ID
+
+  # 7. Leggi URL servizio e aggiorna env var sul backend
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: update-backend-env
+    waitFor: [deploy-remotion]
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        REMOTION_URL=$(gcloud run services describe evolution-pro-remotion \
+          --region=europe-west1 --project=$PROJECT_ID \
+          --format="value(status.url)")
+        echo "Remotion service URL: $REMOTION_URL"
+        gcloud run services update evolution-pro-backend \
+          --region=europe-west1 \
+          --project=$PROJECT_ID \
+          --update-env-vars=REMOTION_SERVICE_URL=$REMOTION_URL
+
+images:
+  - gcr.io/$PROJECT_ID/evolution-pro-remotion:$BUILD_ID
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'
+
+timeout: '3600s'
