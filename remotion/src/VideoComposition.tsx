@@ -47,13 +47,14 @@ export const VideoComposition: React.FC<VideoCompositionProps> = ({
   );
 
   // Video base con eventuali zoom annidati
+  // videoOffsetSecs=0: dentro la Sequence il frame è già relativo all'inizio del video
   const baseVideo = <OffthreadVideo src={videoUrl} />;
   const videoWithZoom = zoomMoments.reduce(
     (inner, moment) => (
       <ZoomEffect
         key={`zoom-${moment.startSec}`}
         moment={moment}
-        videoOffsetSecs={INTRO_DURATION_S}
+        videoOffsetSecs={0}
       >
         {inner}
       </ZoomEffect>
@@ -91,7 +92,7 @@ export const VideoComposition: React.FC<VideoCompositionProps> = ({
         {/* Sottotitoli sincronizzati */}
         <SubtitleTrack
           words={words}
-          videoOffsetSecs={INTRO_DURATION_S}
+          videoOffsetSecs={0}
           primaryColor={primaryColor}
         />
 
@@ -100,7 +101,7 @@ export const VideoComposition: React.FC<VideoCompositionProps> = ({
           <TextHighlight
             key={`hl-${moment.startSec}`}
             moment={moment}
-            videoOffsetSecs={INTRO_DURATION_S}
+            videoOffsetSecs={0}
             primaryColor={primaryColor}
           />
         ))}
