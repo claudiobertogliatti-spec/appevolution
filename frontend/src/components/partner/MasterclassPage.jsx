@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import {
   Check, Loader2, Eye, ChevronDown, ChevronUp, FileText, Sparkles,
-  Video, Link, Send, Clock, CheckCircle, AlertCircle, Youtube
+  Video, Link, Send, Clock, CheckCircle, AlertCircle, Youtube,
+  Settings, Wand2
 } from "lucide-react";
 import { DoneForYouWrapper } from "./DoneForYouWrapper";
 
@@ -20,6 +21,280 @@ const PIPELINE_STATUS = {
   error:           { label: "Errore pipeline", color: "#EF4444", icon: AlertCircle },
   error_youtube:   { label: "Errore YouTube upload", color: "#EF4444", icon: AlertCircle },
 };
+
+const ANSWER_FIELDS = [
+  { key: "risultato_principale", label: "Risultato principale", placeholder: "Che risultato specifico ottiene il cliente ideale? (es. €10k in 30 giorni, -5kg in 2 settimane)" },
+  { key: "problema_pubblico", label: "Problema del pubblico", placeholder: "Qual è il problema principale che ha il tuo pubblico target?" },
+  { key: "errore_comune", label: "Errore comune", placeholder: "Qual è l'errore più comune che fa la maggior parte delle persone nella tua nicchia?" },
+  { key: "metodo_semplice", label: "Il tuo metodo / sistema", placeholder: "Come si chiama il tuo metodo? Quali sono i 3 pilastri o step principali?" },
+  { key: "esempio_concreto", label: "Esempio concreto / caso studio", placeholder: "Descrivi 1-2 casi studio reali: nome, situazione iniziale, risultato con numeri, tempo" },
+  { key: "non_adatta", label: "A chi NON è adatta", placeholder: "A chi non è adatta questa masterclass? Chi NON deve partecipare?" },
+  { key: "dopo_masterclass", label: "Dopo la masterclass", placeholder: "Cosa succede dopo? Qual è il passo successivo per chi vuole andare avanti con te?" },
+];
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ADMIN MASTERCLASS PANEL — visibile solo quando isAdmin=true
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function AdminMasterclassPanel({ partnerId, onScriptGenerated }) {
+  const [answers, setAnswers] = useState({
+    risultato_principale: "",
+    problema_pubblico: "",
+    errore_comune: "",
+    metodo_semplice: "",
+    esempio_concreto: "",
+    non_adatta: "",
+    dopo_masterclass: ""
+  });
+  const [pipelineStatus, setPipelineStatus] = useState(null);
+  const [generating, setGenerating] = useState(false);
+  const [approvingVideo, setApprovingVideo] = useState(false);
+  const [settingPronto, setSettingPronto] = useState(false);
+  const [savingAnswers, setSavingAnswers] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
+  const [message, setMessage] = useState(null);
+
+  useEffect(() => {
+    if (!partnerId) return;
+    const load = async () => {
+      try {
+        const [mcRes, vRes] = await Promise.all([
+          fetch(`${API}/api/masterclass-factory/${partnerId}`),
+          fetch(`${API}/api/partner-journey/masterclass/video-status/${partnerId}`)
+        ]);
+        if (mcRes.ok) {
+          const data = await mcRes.json();
+          if (data.answers && typeof data.answers === "object") {
+            setAnswers(prev => ({ ...prev, ...data.answers }));
+          }
+        }
+        if (vRes.ok) {
+          const vData = await vRes.json();
+          setPipelineStatus(vData.pipeline_status);
+        }
+      } catch (e) {
+        console.error("AdminMasterclassPanel load error:", e);
+      } finally {
+        setLoaded(true);
+      }
+    };
+    load();
+  }, [partnerId]);
+
+  const showMessage = (text, ok = true) => {
+    setMessage({ text, ok });
+    setTimeout(() => setMessage(null), 3000);
+  };
+
+  const handleSaveAnswers = async () => {
+    setSavingAnswers(true);
+    try {
+      const res = await fetch(`${API}/api/masterclass-factory/${partnerId}/answers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers })
+      });
+      if (res.ok) showMessage("Risposte salvate");
+      else showMessage("Errore nel salvataggio", false);
+    } catch (e) {
+      showMessage("Errore di rete", false);
+    } finally {
+      setSavingAnswers(false);
+    }
+  };
+
+  const handleGenerateScript = async () => {
+    setGenerating(true);
+    try {
+      const res = await fetch(`${API}/api/masterclass-factory/${partnerId}/generate-script`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        onScriptGenerated(data.script_sections, data.script);
+        showMessage("Script generato con successo!");
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showMessage(`Errore: ${err.detail || res.status}`, false);
+      }
+    } catch (e) {
+      showMessage("Errore di rete durante la generazione", false);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleApproveVideo = async () => {
+    setApprovingVideo(true);
+    try {
+      const res = await fetch(`${API}/api/partner-journey/masterclass/approve-video?partner_id=${partnerId}`, { method: "POST" });
+      if (res.ok) {
+        setPipelineStatus("approved");
+        showMessage("Video approvato!");
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showMessage(`Errore approvazione video: ${err.detail || res.status}`, false);
+      }
+    } catch (e) {
+      showMessage("Errore di rete", false);
+    } finally {
+      setApprovingVideo(false);
+    }
+  };
+
+  const handleSetPronto = async () => {
+    setSettingPronto(true);
+    try {
+      const res = await fetch(`${API}/api/partner-journey/step-status/update`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ partner_id: partnerId, step_id: "masterclass", status: "pronto" })
+      });
+      if (res.ok) showMessage("Step segnato come Pronto — il partner può ora approvare");
+      else showMessage("Errore aggiornamento step", false);
+    } catch (e) {
+      showMessage("Errore di rete", false);
+    } finally {
+      setSettingPronto(false);
+    }
+  };
+
+  if (!loaded) return null;
+
+  return (
+    <div className="mb-6 rounded-2xl overflow-hidden" style={{ border: "2px solid #FBBF24" }}>
+      {/* Header */}
+      <div
+        className="px-5 py-3 flex items-center gap-2 cursor-pointer"
+        style={{ background: "#1E2128" }}
+        onClick={() => setExpanded(e => !e)}
+      >
+        <Settings className="w-4 h-4" style={{ color: "#FBBF24" }} />
+        <span className="text-xs font-bold uppercase tracking-wider flex-1" style={{ color: "#FBBF24" }}>
+          Admin — Crea Masterclass per questo partner
+        </span>
+        {expanded ? (
+          <ChevronUp className="w-4 h-4" style={{ color: "#FBBF24" }} />
+        ) : (
+          <ChevronDown className="w-4 h-4" style={{ color: "#FBBF24" }} />
+        )}
+      </div>
+
+      {expanded && (
+        <div className="p-5 space-y-4" style={{ background: "#FFFBEB" }}>
+
+          {/* Toast message */}
+          {message && (
+            <div
+              className="px-4 py-2.5 rounded-xl text-sm font-bold"
+              style={{
+                background: message.ok ? "#F0FDF4" : "#FEF2F2",
+                color: message.ok ? "#16A34A" : "#DC2626",
+                border: `1px solid ${message.ok ? "#BBF7D0" : "#FECACA"}`
+              }}
+            >
+              {message.text}
+            </div>
+          )}
+
+          {/* Video pipeline status + approve */}
+          {pipelineStatus && (
+            <div
+              className="p-3 rounded-xl flex items-center gap-3"
+              style={{
+                background: pipelineStatus === "approved" ? "#F0FDF4" : "#FFF7ED",
+                border: `1px solid ${pipelineStatus === "approved" ? "#BBF7D0" : "#FED7AA"}`
+              }}
+            >
+              <Video className="w-4 h-4 flex-shrink-0" style={{ color: pipelineStatus === "approved" ? "#16A34A" : "#F59E0B" }} />
+              <span className="text-sm font-bold flex-1" style={{ color: pipelineStatus === "approved" ? "#16A34A" : "#B45309" }}>
+                Video: {PIPELINE_STATUS[pipelineStatus]?.label || pipelineStatus}
+              </span>
+              {pipelineStatus === "ready_for_review" && (
+                <button
+                  onClick={handleApproveVideo}
+                  disabled={approvingVideo}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50"
+                  style={{ background: "#22C55E", color: "white" }}
+                >
+                  {approvingVideo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  Approva Video
+                </button>
+              )}
+              {pipelineStatus === "approved" && (
+                <CheckCircle className="w-5 h-5 flex-shrink-0" style={{ color: "#16A34A" }} />
+              )}
+            </div>
+          )}
+
+          {/* 7 domande per generazione script */}
+          <div>
+            <div className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: "#5F6572" }}>
+              7 Domande Strategiche per generare lo script AI
+            </div>
+            <div className="space-y-3">
+              {ANSWER_FIELDS.map(({ key, label, placeholder }) => (
+                <div key={key}>
+                  <label className="text-xs font-bold block mb-1" style={{ color: "#374151" }}>
+                    {label}
+                  </label>
+                  <textarea
+                    value={answers[key] || ""}
+                    onChange={e => setAnswers(prev => ({ ...prev, [key]: e.target.value }))}
+                    placeholder={placeholder}
+                    rows={3}
+                    className="w-full px-3 py-2 rounded-lg text-sm outline-none resize-none"
+                    style={{ background: "white", border: "1px solid #E5E7EB", color: "#1E2128" }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex flex-wrap gap-2 pt-2" style={{ borderTop: "1px solid #FDE68A" }}>
+            <button
+              onClick={handleSaveAnswers}
+              disabled={savingAnswers}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50"
+              style={{ background: "#F3F4F6", color: "#374151", border: "1px solid #E5E7EB" }}
+            >
+              {savingAnswers ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+              Salva risposte
+            </button>
+
+            <button
+              onClick={handleGenerateScript}
+              disabled={generating}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50"
+              style={{ background: "#1E2128", color: "#FFD24D" }}
+            >
+              {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+              {generating ? "Generando script..." : "Genera Script AI"}
+            </button>
+
+            <button
+              onClick={handleSetPronto}
+              disabled={settingPronto}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50"
+              style={{ background: "#3B82F6", color: "white" }}
+            >
+              {settingPronto ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+              Segna Pronto per Partner
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VIDEO SUBMISSION CARD — visibile al partner (non admin)
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 function VideoSubmissionCard({ partnerId }) {
   const [videoUrl, setVideoUrl] = useState("");
@@ -202,6 +477,10 @@ function VideoSubmissionCard({ partnerId }) {
   );
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   SCRIPT CONTENT
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 function ScriptContent({ scriptSections, fullScript }) {
   if (!scriptSections && !fullScript) {
     return (
@@ -237,6 +516,10 @@ function ScriptContent({ scriptSections, fullScript }) {
   );
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   MASTERCLASS PAGE (main export)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
   const [scriptSections, setScriptSections] = useState(null);
   const [fullScript, setFullScript] = useState(null);
@@ -265,6 +548,11 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
     load();
   }, [partnerId]);
 
+  const handleScriptGenerated = (sections, script) => {
+    setScriptSections(sections || null);
+    setFullScript(script || null);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-full flex items-center justify-center" style={{ background: "#FAFAF7" }}>
@@ -287,6 +575,14 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
           </p>
         </div>
 
+        {/* Admin creation panel — shown only to admin, above everything */}
+        {isAdmin && partnerId && (
+          <AdminMasterclassPanel
+            partnerId={partnerId}
+            onScriptGenerated={handleScriptGenerated}
+          />
+        )}
+
         <DoneForYouWrapper
           partnerId={partnerId}
           stepId="masterclass"
@@ -299,8 +595,8 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
           <ScriptContent scriptSections={scriptSections} fullScript={fullScript} />
         </DoneForYouWrapper>
 
-        {/* Video submission — visibile sempre dopo il wrapper */}
-        {partnerId && (
+        {/* Video submission card — only for partner (not admin, who has panel above) */}
+        {partnerId && !isAdmin && (
           <VideoSubmissionCard partnerId={partnerId} />
         )}
       </div>
