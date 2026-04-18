@@ -843,7 +843,7 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
 
     except Exception as e:
         logger.error(f"[VIDEO-PIPE] Error: {e}", exc_info=True)
-        await set_status("error")
+        await set_status("error", {"video_pipeline_error": str(e)[:500]})
         await telegram(f"❌ <b>Errore pipeline video</b>\n👤 {partner_id}\n🔴 {str(e)[:300]}")
         raise
 

@@ -300,6 +300,7 @@ function VideoSubmissionCard({ partnerId, onVideoApproved }) {
   const [videoUrl, setVideoUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [pipelineStatus, setPipelineStatus] = useState(null);
+  const [pipelineError, setPipelineError] = useState(null);
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
@@ -310,6 +311,7 @@ function VideoSubmissionCard({ partnerId, onVideoApproved }) {
         if (res.ok) {
           const d = await res.json();
           setPipelineStatus(d);
+          setPipelineError(d.pipeline_error || null);
           if (d.pipeline_status === "approved" && onVideoApproved) {
             onVideoApproved();
           }
@@ -435,9 +437,15 @@ function VideoSubmissionCard({ partnerId, onVideoApproved }) {
             <p className="text-sm font-bold mb-1" style={{ color: "#DC2626" }}>
               C'è stato un problema con il link precedente.
             </p>
-            <p className="text-xs" style={{ color: "#991B1B" }}>
-              Prova a incollare di nuovo il link — puoi usare Google Drive, WeTransfer o Dropbox.
-              Se il problema persiste, contatta il team Evolution.
+            {pipelineError ? (
+              <p className="text-xs mb-2" style={{ color: "#991B1B" }}>{pipelineError}</p>
+            ) : (
+              <p className="text-xs mb-2" style={{ color: "#991B1B" }}>
+                Prova a incollare di nuovo il link — puoi usare Google Drive, WeTransfer o Dropbox.
+              </p>
+            )}
+            <p className="text-xs font-bold" style={{ color: "#DC2626" }}>
+              ↓ Incolla un nuovo link qui sotto per riprovare
             </p>
           </div>
         )}
