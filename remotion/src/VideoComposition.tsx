@@ -31,6 +31,8 @@ export const VideoComposition: React.FC<VideoCompositionProps> = ({
   musicVolume = 0.12,
   outroCtaText = "Scopri il corso completo",
   outroCtaUrl = "evolution-pro.it",
+  showSubtitles = true,
+  showMusic = true,
 }) => {
   const { fps } = useVideoConfig();
 
@@ -64,17 +66,19 @@ export const VideoComposition: React.FC<VideoCompositionProps> = ({
 
   return (
     <AbsoluteFill style={{ backgroundColor: "#000" }}>
-      {/* Musica di sottofondo con fade in/out */}
-      <Audio
-        src={staticFile("music/background.mp3")}
-        volume={(f: number) => {
-          if (f < fps * 2) return (f / (fps * 2)) * musicVolume;
-          if (f > totalFrames - fps * 3)
-            return ((totalFrames - f) / (fps * 3)) * musicVolume;
-          return musicVolume;
-        }}
-        loop
-      />
+      {/* Musica di sottofondo con fade in/out — solo masterclass */}
+      {showMusic && (
+        <Audio
+          src={staticFile("music/background.mp3")}
+          volume={(f: number) => {
+            if (f < fps * 2) return (f / (fps * 2)) * musicVolume;
+            if (f > totalFrames - fps * 3)
+              return ((totalFrames - f) / (fps * 3)) * musicVolume;
+            return musicVolume;
+          }}
+          loop
+        />
+      )}
 
       {/* INTRO (5s) */}
       <Sequence from={0} durationInFrames={introFrames}>
@@ -89,12 +93,14 @@ export const VideoComposition: React.FC<VideoCompositionProps> = ({
       <Sequence from={introFrames} durationInFrames={videoFrames}>
         <AbsoluteFill>{videoWithZoom}</AbsoluteFill>
 
-        {/* Sottotitoli sincronizzati */}
-        <SubtitleTrack
-          words={words}
-          videoOffsetSecs={0}
-          primaryColor={primaryColor}
-        />
+        {/* Sottotitoli sincronizzati — solo masterclass */}
+        {showSubtitles && (
+          <SubtitleTrack
+            words={words}
+            videoOffsetSecs={0}
+            primaryColor={primaryColor}
+          />
+        )}
 
         {/* Text highlights sui key moments */}
         {highlightMoments.map((moment) => (

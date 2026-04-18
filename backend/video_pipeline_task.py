@@ -660,12 +660,20 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
             await set_status("rendering")
             niche = (partner.get("niche") or partner.get("partner_niche") or "") if partner else ""
 
-            # Script approvato (solo masterclass) — migliora qualità key moments
+            # Script approvato — migliora qualità key moments
             approved_script = None
             if video_type == "masterclass":
                 mc_doc = await db.masterclass_factory.find_one({"partner_id": partner_id})
                 if mc_doc:
                     approved_script = mc_doc.get("script_content") or mc_doc.get("approved_script")
+            elif video_type == "videocorso" and lesson_id:
+                vc_doc = await db.partner_videocorso.find_one({"partner_id": partner_id})
+                if vc_doc:
+                    lesson_data = vc_doc.get("lessons", {}).get(lesson_id, {})
+                    approved_script = lesson_data.get("script_content") or lesson_data.get("approved_script")
+
+            # videocorso: no sottotitoli, no musica
+            is_lesson = video_type == "videocorso"
 
             key_moments = await extract_key_moments(
                 transcript=transcript,
@@ -685,6 +693,8 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                 words=words,
                 key_moments=key_moments,
                 output_path=remotion_path,
+                show_subtitles=not is_lesson,
+                show_music=not is_lesson,
             )
             if rendered:
                 remotion_rendered = True
