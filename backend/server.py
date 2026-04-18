@@ -9289,6 +9289,35 @@ async def approve_video_review(
     return {"success": True, "partner_id": partner_id, "approved_at": now}
 
 
+@api_router.post("/admin/reset-password")
+async def admin_reset_password(
+    body: dict = Body({}),
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Admin: reset password per uno o tutti gli utenti."""
+    token_data = decode_token(credentials.credentials)
+    user = await db.users.find_one({"id": token_data.user_id})
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    new_password = body.get("password")
+    if not new_password:
+        raise HTTPException(status_code=400, detail="password obbligatoria")
+
+    new_hash = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+    target_email = body.get("email")
+    if target_email:
+        result = await db.users.update_one(
+            {"email": target_email},
+            {"$set": {"password_hash": new_hash}}
+        )
+        return {"success": True, "updated": result.modified_count, "target": target_email}
+    else:
+        result = await db.users.update_many({}, {"$set": {"password_hash": new_hash}})
+        return {"success": True, "updated": result.modified_count, "target": "all"}
+
+
 @api_router.post("/notifications/mark-all-read")
 async def mark_all_notifications_read():
     """Mark all notifications as read"""
