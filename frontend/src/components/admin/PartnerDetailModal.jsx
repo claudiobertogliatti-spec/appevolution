@@ -206,6 +206,14 @@ function JourneyEditor({ data, saving, saved, onSave, onDataChange }) {
   const [scriptGenMsg, setScriptGenMsg] = useState(null);
   const [mcAnswersLoaded, setMcAnswersLoaded] = useState(false);
 
+  // Masterclass video pipeline state
+  const [mcPipelineStatus, setMcPipelineStatus] = useState(null);
+  const [mcRawVideoUrl, setMcRawVideoUrl] = useState("");
+  const [submittingVideo, setSubmittingVideo] = useState(false);
+  const [approvingVideo, setApprovingVideo] = useState(false);
+  const [settingPronto, setSettingPronto] = useState(false);
+  const [videoMsg, setVideoMsg] = useState(null);
+
   const partnerId = data.partner?.id;
 
   useEffect(() => {
@@ -214,10 +222,84 @@ function JourneyEditor({ data, saving, saved, onSave, onDataChange }) {
       .then(r => r.ok ? r.json() : null)
       .then(d => {
         if (d?.answers) setMcAnswers(prev => ({ ...prev, ...d.answers }));
+        if (d?.video_pipeline_status) setMcPipelineStatus(d.video_pipeline_status);
+        if (d?.video_raw_url) setMcRawVideoUrl(d.video_raw_url);
         setMcAnswersLoaded(true);
       })
       .catch(() => setMcAnswersLoaded(true));
   }, [partnerId]);
+
+  const handleSubmitVideo = async () => {
+    if (!partnerId || !mcRawVideoUrl) return;
+    setSubmittingVideo(true);
+    setVideoMsg(null);
+    try {
+      const res = await fetch(`${API}/api/partner-journey/masterclass/submit-video-link`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ partner_id: partnerId, video_url: mcRawVideoUrl })
+      });
+      if (res.ok) {
+        setMcPipelineStatus("queued");
+        setVideoMsg({ ok: true, text: "Video in coda per la pipeline. Lo stato si aggiornerà automaticamente." });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setVideoMsg({ ok: false, text: `Errore: ${err.detail || res.status}` });
+      }
+    } catch (e) {
+      setVideoMsg({ ok: false, text: "Errore di rete" });
+    } finally {
+      setSubmittingVideo(false);
+    }
+  };
+
+  const handleApproveVideo = async () => {
+    if (!partnerId) return;
+    setApprovingVideo(true);
+    setVideoMsg(null);
+    try {
+      const token = localStorage.getItem("access_token") || localStorage.getItem("token");
+      const res = await fetch(`${API}/api/partner-journey/masterclass/approve-video?partner_id=${partnerId}`, {
+        method: "POST",
+        headers: token ? { "Authorization": `Bearer ${token}` } : {}
+      });
+      if (res.ok) {
+        setMcPipelineStatus("approved");
+        setVideoMsg({ ok: true, text: "Video approvato con successo!" });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setVideoMsg({ ok: false, text: `Errore: ${err.detail || res.status}` });
+      }
+    } catch (e) {
+      setVideoMsg({ ok: false, text: "Errore di rete" });
+    } finally {
+      setApprovingVideo(false);
+    }
+  };
+
+  const handleSetMasterclassPronto = async () => {
+    if (!partnerId) return;
+    setSettingPronto(true);
+    setVideoMsg(null);
+    try {
+      const token = localStorage.getItem("access_token") || localStorage.getItem("token");
+      const res = await fetch(`${API}/api/partner-journey/step-status/update`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { "Authorization": `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ partner_id: partnerId, step_id: "masterclass", status: "pronto" })
+      });
+      if (res.ok) {
+        setVideoMsg({ ok: true, text: "Step masterclass segnato come 'pronto' — il partner può procedere!" });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setVideoMsg({ ok: false, text: `Errore: ${err.detail || res.status}` });
+      }
+    } catch (e) {
+      setVideoMsg({ ok: false, text: "Errore di rete" });
+    } finally {
+      setSettingPronto(false);
+    }
+  };
 
   const handleGenerateMcScript = async () => {
     if (!partnerId) return;
@@ -320,6 +402,79 @@ function JourneyEditor({ data, saving, saved, onSave, onDataChange }) {
             <Youtube className="w-3.5 h-3.5" /> Guarda video
           </a>
         )}
+
+        {/* ── PIPELINE VIDEO ── */}
+        <div className="mt-3 rounded-xl overflow-hidden" style={{ border: "1px solid #E5E7EB" }}>
+          <div className="px-4 py-2.5 flex items-center gap-2 justify-between" style={{ background: "#F9FAFB" }}>
+            <div className="flex items-center gap-2">
+              <Film className="w-3.5 h-3.5" style={{ color: "#6B7280" }} />
+              <span className="text-xs font-bold uppercase tracking-wide" style={{ color: "#374151" }}>Pipeline Video Grezzo</span>
+            </div>
+            {mcPipelineStatus && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase" style={{
+                background: mcPipelineStatus === "approved" ? "#D1FAE5" : mcPipelineStatus === "ready_for_review" ? "#FEF3C7" : mcPipelineStatus === "error" ? "#FEE2E2" : "#DBEAFE",
+                color: mcPipelineStatus === "approved" ? "#065F46" : mcPipelineStatus === "ready_for_review" ? "#92400E" : mcPipelineStatus === "error" ? "#991B1B" : "#1E40AF"
+              }}>{mcPipelineStatus.replace(/_/g, " ")}</span>
+            )}
+            {!mcPipelineStatus && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#F3F4F6", color: "#9CA3AF" }}>nessun video</span>
+            )}
+          </div>
+          <div className="p-4 space-y-3" style={{ background: "#FAFAFA" }}>
+            <div>
+              <label className="text-[11px] font-bold block mb-1" style={{ color: "#5F6572" }}>URL Video Grezzo (Drive / WeTransfer)</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={mcRawVideoUrl}
+                  onChange={e => setMcRawVideoUrl(e.target.value)}
+                  placeholder="https://drive.google.com/file/d/..."
+                  className="flex-1 px-3 py-2 rounded-lg text-xs outline-none"
+                  style={{ background: "white", border: "1px solid #E5E7EB", color: "#1E2128" }}
+                />
+                <button
+                  onClick={handleSubmitVideo}
+                  disabled={submittingVideo || !mcRawVideoUrl}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-50 whitespace-nowrap"
+                  style={{ background: "#3B82F6", color: "white" }}
+                >
+                  {submittingVideo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                  {submittingVideo ? "Inviando..." : "Avvia Pipeline"}
+                </button>
+              </div>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={handleApproveVideo}
+                disabled={approvingVideo || mcPipelineStatus !== "ready_for_review"}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-50"
+                style={{ background: mcPipelineStatus === "ready_for_review" ? "#10B981" : "#E5E7EB", color: mcPipelineStatus === "ready_for_review" ? "white" : "#9CA3AF" }}
+              >
+                {approvingVideo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                {approvingVideo ? "Approvando..." : "Approva Video"}
+              </button>
+              <button
+                onClick={handleSetMasterclassPronto}
+                disabled={settingPronto || !partnerId}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-50"
+                style={{ background: "#F59E0B", color: "white" }}
+              >
+                {settingPronto ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                {settingPronto ? "Salvando..." : "Segna Pronto per Partner"}
+              </button>
+            </div>
+            {videoMsg && (
+              <div className="px-3 py-2 rounded-lg text-xs font-bold"
+                style={{
+                  background: videoMsg.ok ? "#F0FDF4" : "#FEF2F2",
+                  color: videoMsg.ok ? "#16A34A" : "#DC2626",
+                  border: `1px solid ${videoMsg.ok ? "#BBF7D0" : "#FECACA"}`
+                }}>
+                {videoMsg.text}
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* ── AI SCRIPT GENERATOR ── */}
         <div className="mt-4 rounded-xl overflow-hidden" style={{ border: "1px solid #FDE68A" }}>
