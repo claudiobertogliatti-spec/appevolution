@@ -3,7 +3,7 @@ Partner Journey Router
 Gestisce il percorso guidato del partner: Posizionamento, Masterclass, Videocorso, Funnel, Lancio
 """
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timezone
@@ -1302,11 +1302,10 @@ class VideoLinkRequest(BaseModel):
 
 
 @router.post("/masterclass/submit-video-link")
-async def submit_masterclass_video_link(req: VideoLinkRequest):
+async def submit_masterclass_video_link(req: VideoLinkRequest, background_tasks: BackgroundTasks):
     """Partner invia link Drive/WeTransfer del video masterclass grezzo"""
     await get_partner_or_404(req.partner_id)
 
-    # Aggiorna stato a "queued"
     await db.masterclass_factory.update_one(
         {"partner_id": req.partner_id},
         {"$set": {
@@ -1318,19 +1317,19 @@ async def submit_masterclass_video_link(req: VideoLinkRequest):
         upsert=True
     )
 
-    # Avvia Celery task
-    from video_pipeline_task import process_partner_video
-    process_partner_video.delay(
+    from video_pipeline_task import run_pipeline_background
+    background_tasks.add_task(
+        run_pipeline_background,
         partner_id=req.partner_id,
         video_url=req.video_url,
-        video_type="masterclass"
+        video_type="masterclass",
     )
 
     return {"success": True, "message": "Video in elaborazione. Ti notificheremo quando è pronto."}
 
 
 @router.post("/videocorso/submit-video-link")
-async def submit_videocorso_video_link(req: VideoLinkRequest):
+async def submit_videocorso_video_link(req: VideoLinkRequest, background_tasks: BackgroundTasks):
     """Partner invia link Drive/WeTransfer per una lezione del videocorso"""
     if not req.lesson_id:
         raise HTTPException(status_code=400, detail="lesson_id obbligatorio per videocorso")
@@ -1349,12 +1348,13 @@ async def submit_videocorso_video_link(req: VideoLinkRequest):
         upsert=True
     )
 
-    from video_pipeline_task import process_partner_video
-    process_partner_video.delay(
+    from video_pipeline_task import run_pipeline_background
+    background_tasks.add_task(
+        run_pipeline_background,
         partner_id=req.partner_id,
         video_url=req.video_url,
         video_type="videocorso",
-        lesson_id=req.lesson_id
+        lesson_id=req.lesson_id,
     )
 
     return {"success": True, "message": f"Lezione {req.lesson_id} in elaborazione."}

@@ -531,6 +531,24 @@ def process_partner_video(self, partner_id: str, video_url: str, video_type: str
         loop.close()
 
 
+def run_pipeline_background(partner_id: str, video_url: str, video_type: str, lesson_id: Optional[str] = None):
+    """
+    Wrapper sync per FastAPI BackgroundTasks.
+    Gira in thread pool — non blocca l'event loop principale.
+    Usato su Cloud Run dove non girano worker Celery.
+    """
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(
+            _run_pipeline(None, partner_id, video_url, video_type, lesson_id)
+        )
+    except Exception as exc:
+        logger.error(f"[VIDEO-PIPE] Background task failed: {exc}", exc_info=True)
+    finally:
+        loop.close()
+
+
 async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, lesson_id: Optional[str]):
     from motor.motor_asyncio import AsyncIOMotorClient
 
