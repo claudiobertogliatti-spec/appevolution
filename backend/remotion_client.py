@@ -66,6 +66,8 @@ async def render_partner_video(
     outro_cta_url: str = "evolution-pro.it",
     primary_color: str = "#FFD24D",
     music_volume: float = 0.12,
+    show_subtitles: bool = True,
+    show_music: bool = True,
 ) -> Optional[str]:
     """
     Renderizza il video finale con Remotion.
@@ -111,6 +113,8 @@ async def render_partner_video(
         "musicVolume": music_volume,
         "outroCtaText": outro_cta_text,
         "outroCtaUrl": outro_cta_url,
+        "showSubtitles": show_subtitles,
+        "showMusic": show_music,
     }
 
     # Step 2: chiama remotion-service
