@@ -85,13 +85,20 @@ async def download_video(url: str, dest_path: str) -> int:
 def get_video_duration(video_path: str) -> float:
     """Ritorna durata video in secondi via ffprobe"""
     cmd = [
-        "ffprobe", "-v", "quiet", "-print_format", "json",
-        "-show_format", video_path
+        "ffprobe", "-v", "quiet",
+        "-analyzeduration", "10000000",   # max 10s di analisi stream
+        "-probesize", "10000000",          # max 10MB di probe
+        "-print_format", "json",
+        "-show_entries", "format=duration",
+        video_path
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
     try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
         data = json.loads(result.stdout)
         return float(data["format"]["duration"])
+    except subprocess.TimeoutExpired:
+        logger.warning("[VIDEO-PIPE] ffprobe timeout su %s — durata non disponibile, proseguo", video_path)
+        return 0.0
     except Exception:
         return 0.0
 
@@ -596,8 +603,21 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
 
         # 1. Download
         size = await download_video(video_url, raw_path)
+        logger.info(f"[VIDEO-PIPE] Downloaded {size/1e6:.1f}MB")
+
+        # Validazione: file troppo piccolo = probabile pagina HTML di errore Drive
+        if size < 500_000:
+            raw_content_preview = Path(raw_path).read_bytes()[:200]
+            is_html = b"<html" in raw_content_preview or b"<!DOCTYPE" in raw_content_preview
+            if is_html:
+                raise ValueError(
+                    f"Il link Google Drive non è accessibile o richiede login. "
+                    f"Assicurati che il file sia condiviso come 'Chiunque abbia il link'. "
+                    f"(file scaricato: {size} bytes)"
+                )
+
         raw_dur = get_video_duration(raw_path)
-        logger.info(f"[VIDEO-PIPE] Downloaded {size/1e6:.1f}MB, {raw_dur:.0f}s")
+        logger.info(f"[VIDEO-PIPE] Durata rilevata: {raw_dur:.0f}s")
 
         # 2. FFmpeg clean
         await set_status("cleaning")
