@@ -927,17 +927,18 @@ async def approve_positioning(partner_id: str):
         {"id": partner_id},
         {"$set": {
             "posizionamento_completato": True,
-            "posizionamento_completato_at": datetime.now(timezone.utc).isoformat()
+            "posizionamento_completato_at": datetime.now(timezone.utc).isoformat(),
+            "phase": "F2",
         }}
     )
 
     await notify_telegram(
-        f"✅ POSIZIONAMENTO COMPLETATO\n\n👤 {partner.get('name')}\n📋 Posizionamento approvato dal partner"
+        f"✅ POSIZIONAMENTO COMPLETATO\n\n👤 {partner.get('name')}\n📋 Posizionamento approvato dal partner — fase avanzata a F2"
     )
 
     return {
         "success": True,
-        "message": "Posizionamento approvato! Puoi procedere alla Masterclass."
+        "message": "Posizionamento approvato! Puoi procedere al Funnel Light."
     }
 
 # ═══════════════════════════════════════════════════════════════════════════════
