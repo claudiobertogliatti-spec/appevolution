@@ -350,7 +350,7 @@ def create_youtube_playlist_sync(partner_name: str) -> Optional[str]:
             part="snippet,status",
             body={
                 "snippet": {
-                    "title": f"Evolution PRO — {partner_name}",
+                    "title": f"Evolution - {partner_name}",
                     "description": f"Video corsi {partner_name} — Evolution PRO"
                 },
                 "status": {"privacyStatus": "unlisted"}
