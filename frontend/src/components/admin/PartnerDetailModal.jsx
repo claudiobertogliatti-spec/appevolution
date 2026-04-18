@@ -4,7 +4,7 @@ import {
   Youtube, Mail, Tag, Loader2, CheckCircle, AlertCircle,
   Trash2, ExternalLink, Edit3, Upload, Film, MessageSquare,
   Calendar, AlertTriangle, Eye, Shield, Image, XCircle, Settings, Globe,
-  ChevronDown, ChevronUp, BookOpen, Video, Link2, Target, Sparkles
+  ChevronDown, ChevronUp, BookOpen, Video, Link2, Target, Sparkles, Wand2
 } from "lucide-react";
 import axios from "axios";
 import { ContractParamsModal } from "./ContractParamsModal";
@@ -180,12 +180,76 @@ function SaveBtn({ onClick, saving, saved, label = "Salva" }) {
   );
 }
 
+const MC_ANSWER_FIELDS = [
+  { key: "risultato_principale", label: "Risultato principale", placeholder: "Che risultato specifico ottiene il cliente? (es. €10k in 30 gg)" },
+  { key: "problema_pubblico", label: "Problema del pubblico", placeholder: "Qual è il problema principale del tuo pubblico?" },
+  { key: "errore_comune", label: "Errore comune", placeholder: "Qual è l'errore più comune nella tua nicchia?" },
+  { key: "metodo_semplice", label: "Il tuo metodo / sistema", placeholder: "Nome del metodo e 3 pilastri/step principali" },
+  { key: "esempio_concreto", label: "Caso studio concreto", placeholder: "Nome, situazione, risultato numerico, tempo (es. €5k in 45 gg)" },
+  { key: "non_adatta", label: "A chi NON è adatta", placeholder: "A chi non è adatta questa masterclass?" },
+  { key: "dopo_masterclass", label: "Dopo la masterclass", placeholder: "Cosa succede dopo? Qual è il next step per continuare con te?" },
+];
+
 function JourneyEditor({ data, saving, saved, onSave, onDataChange }) {
   const [pos, setPos] = useState(data.posizionamento || {});
   const [mc, setMc] = useState(data.masterclass || {});
   const [vc, setVc] = useState(data.videocorso || {});
   const [fn, setFn] = useState(data.funnel || {});
   const [partner, setPartner] = useState(data.partner || {});
+
+  // Masterclass AI generation state
+  const [mcAnswers, setMcAnswers] = useState({
+    risultato_principale: "", problema_pubblico: "", errore_comune: "",
+    metodo_semplice: "", esempio_concreto: "", non_adatta: "", dopo_masterclass: ""
+  });
+  const [generatingScript, setGeneratingScript] = useState(false);
+  const [scriptGenMsg, setScriptGenMsg] = useState(null);
+  const [mcAnswersLoaded, setMcAnswersLoaded] = useState(false);
+
+  const partnerId = data.partner?.id;
+
+  useEffect(() => {
+    if (!partnerId || mcAnswersLoaded) return;
+    fetch(`${API}/api/masterclass-factory/${partnerId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.answers) setMcAnswers(prev => ({ ...prev, ...d.answers }));
+        setMcAnswersLoaded(true);
+      })
+      .catch(() => setMcAnswersLoaded(true));
+  }, [partnerId]);
+
+  const handleGenerateMcScript = async () => {
+    if (!partnerId) return;
+    setGeneratingScript(true);
+    setScriptGenMsg(null);
+    try {
+      // Save answers first
+      await fetch(`${API}/api/masterclass-factory/${partnerId}/answers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers: mcAnswers })
+      });
+      // Generate script
+      const res = await fetch(`${API}/api/masterclass-factory/${partnerId}/generate-script`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers: mcAnswers })
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setMc(prev => ({ ...prev, script: d.script, script_sections: d.script_sections }));
+        setScriptGenMsg({ ok: true, text: "Script generato! Premi Salva Masterclass per salvarlo." });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setScriptGenMsg({ ok: false, text: `Errore: ${err.detail || res.status}` });
+      }
+    } catch (e) {
+      setScriptGenMsg({ ok: false, text: "Errore di rete durante la generazione" });
+    } finally {
+      setGeneratingScript(false);
+    }
+  };
 
   const updatePos = (path, val) => setPos(p => setNested(p, path, val));
   const updateMc = (path, val) => setMc(p => setNested(p, path, val));
@@ -256,6 +320,51 @@ function JourneyEditor({ data, saving, saved, onSave, onDataChange }) {
             <Youtube className="w-3.5 h-3.5" /> Guarda video
           </a>
         )}
+
+        {/* ── AI SCRIPT GENERATOR ── */}
+        <div className="mt-4 rounded-xl overflow-hidden" style={{ border: "1px solid #FDE68A" }}>
+          <div className="px-4 py-2.5 flex items-center gap-2" style={{ background: "#FFFBEB" }}>
+            <Wand2 className="w-3.5 h-3.5" style={{ color: "#F59E0B" }} />
+            <span className="text-xs font-bold uppercase tracking-wide" style={{ color: "#B45309" }}>
+              Genera Script AI — 7 Domande Strategiche
+            </span>
+          </div>
+          <div className="p-4 space-y-3" style={{ background: "#FEFCE8" }}>
+            {MC_ANSWER_FIELDS.map(({ key, label, placeholder }) => (
+              <div key={key}>
+                <label className="text-[11px] font-bold block mb-1" style={{ color: "#5F6572" }}>{label}</label>
+                <textarea
+                  value={mcAnswers[key] || ""}
+                  onChange={e => setMcAnswers(prev => ({ ...prev, [key]: e.target.value }))}
+                  placeholder={placeholder}
+                  rows={2}
+                  className="w-full px-3 py-2 rounded-lg text-xs outline-none resize-none"
+                  style={{ background: "white", border: "1px solid #E5E7EB", color: "#1E2128" }}
+                />
+              </div>
+            ))}
+            {scriptGenMsg && (
+              <div className="px-3 py-2 rounded-lg text-xs font-bold"
+                style={{
+                  background: scriptGenMsg.ok ? "#F0FDF4" : "#FEF2F2",
+                  color: scriptGenMsg.ok ? "#16A34A" : "#DC2626",
+                  border: `1px solid ${scriptGenMsg.ok ? "#BBF7D0" : "#FECACA"}`
+                }}>
+                {scriptGenMsg.text}
+              </div>
+            )}
+            <button
+              onClick={handleGenerateMcScript}
+              disabled={generatingScript || !partnerId}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold disabled:opacity-50"
+              style={{ background: "#1E2128", color: "#FFD24D" }}
+            >
+              {generatingScript ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+              {generatingScript ? "Generando script..." : "Genera Script AI"}
+            </button>
+          </div>
+        </div>
+
         <div className="text-xs font-bold uppercase tracking-wide mt-3 mb-2" style={{ color: "#9CA3AF" }}>Script (testo completo)</div>
         <JField label="Script masterclass" value={mc.script} onChange={v => setMc(p => ({ ...p, script: v }))} multiline placeholder="Incolla lo script completo..." />
         {mc.script_sections && mc.script_sections.length > 0 && (
