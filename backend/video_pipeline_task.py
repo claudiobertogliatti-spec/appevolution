@@ -23,6 +23,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, List, Dict
 
+import random
 import httpx
 
 from celery_app import celery_app
@@ -684,6 +685,8 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                 approved_script=approved_script,
             )
 
+            music_track = random.choice(["promo_1", "promo_2"]) if not is_lesson else "promo_1"
+
             rendered = await render_partner_video(
                 partner_id=partner_id,
                 local_video_path=final_path,
@@ -695,6 +698,7 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                 output_path=remotion_path,
                 show_subtitles=not is_lesson,
                 show_music=not is_lesson,
+                music_track=music_track,
             )
             if rendered:
                 remotion_rendered = True
