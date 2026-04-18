@@ -44,32 +44,69 @@ FILLER_WORDS_IT = {
 # HELPERS: DOWNLOAD
 # ═══════════════════════════════════════════════════════════════════
 
-def resolve_gdrive_url(url: str) -> str:
-    """Converte URL Google Drive share in URL download diretto"""
+def extract_gdrive_file_id(url: str) -> str | None:
+    """Estrae l'ID file da un URL Google Drive di qualsiasi formato"""
     # https://drive.google.com/file/d/{ID}/view
-    match = re.search(r'/file/d/([a-zA-Z0-9_-]+)', url)
-    if match:
-        file_id = match.group(1)
-        return f"https://drive.google.com/uc?export=download&id={file_id}&confirm=t"
-    # https://drive.google.com/open?id={ID}
-    match = re.search(r'[?&]id=([a-zA-Z0-9_-]+)', url)
-    if match:
-        file_id = match.group(1)
-        return f"https://drive.google.com/uc?export=download&id={file_id}&confirm=t"
+    m = re.search(r'/file/d/([a-zA-Z0-9_-]+)', url)
+    if m:
+        return m.group(1)
+    # https://drive.google.com/open?id={ID} o /uc?id={ID}
+    m = re.search(r'[?&]id=([a-zA-Z0-9_-]+)', url)
+    if m:
+        return m.group(1)
+    # https://drive.usercontent.google.com/download?id={ID}
+    m = re.search(r'[?&]id=([a-zA-Z0-9_-]+)', url)
+    if m:
+        return m.group(1)
+    return None
+
+
+def resolve_gdrive_url(url: str) -> str:
+    """Converte URL Google Drive share in URL download diretto.
+    Usa drive.usercontent.google.com (endpoint moderno, funziona senza confirm token).
+    """
+    file_id = extract_gdrive_file_id(url)
+    if file_id:
+        return f"https://drive.usercontent.google.com/download?id={file_id}&export=download&authuser=0"
     return url
 
 
 async def download_video(url: str, dest_path: str) -> int:
-    """Scarica video da URL. Ritorna dimensione in bytes."""
+    """Scarica video da URL (Google Drive o qualsiasi link diretto).
+    Ritorna dimensione in bytes.
+    """
     download_url = resolve_gdrive_url(url)
+    logger.info(f"[VIDEO-PIPE] Download URL: {download_url[:100]}")
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "*/*",
+    }
 
     async with httpx.AsyncClient(
         follow_redirects=True,
         timeout=httpx.Timeout(connect=30, read=600, write=30, pool=30),
-        headers={"User-Agent": "Mozilla/5.0 (compatible; EvolutionPRO/1.0)"}
+        headers=headers,
     ) as client:
         async with client.stream("GET", download_url) as response:
             response.raise_for_status()
+
+            # Controlla che sia un video e non una pagina HTML di errore
+            content_type = response.headers.get("content-type", "")
+            if "text/html" in content_type:
+                # Leggi i primi byte per il messaggio d'errore
+                first_bytes = b""
+                async for chunk in response.aiter_bytes(chunk_size=4096):
+                    first_bytes += chunk
+                    if len(first_bytes) >= 4096:
+                        break
+                raise ValueError(
+                    f"Google Drive ha restituito una pagina HTML invece del video "
+                    f"(content-type: {content_type}). "
+                    f"Verifica che il file sia condiviso come 'Chiunque abbia il link' "
+                    f"e che il link sia diretto al file (non a una cartella)."
+                )
+
             total = 0
             with open(dest_path, "wb") as f:
                 async for chunk in response.aiter_bytes(chunk_size=2 * 1024 * 1024):
@@ -604,17 +641,6 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
         # 1. Download
         size = await download_video(video_url, raw_path)
         logger.info(f"[VIDEO-PIPE] Downloaded {size/1e6:.1f}MB")
-
-        # Validazione: file troppo piccolo = probabile pagina HTML di errore Drive
-        if size < 500_000:
-            raw_content_preview = Path(raw_path).read_bytes()[:200]
-            is_html = b"<html" in raw_content_preview or b"<!DOCTYPE" in raw_content_preview
-            if is_html:
-                raise ValueError(
-                    f"Il link Google Drive non è accessibile o richiede login. "
-                    f"Assicurati che il file sia condiviso come 'Chiunque abbia il link'. "
-                    f"(file scaricato: {size} bytes)"
-                )
 
         raw_dur = get_video_duration(raw_path)
         logger.info(f"[VIDEO-PIPE] Durata rilevata: {raw_dur:.0f}s")
