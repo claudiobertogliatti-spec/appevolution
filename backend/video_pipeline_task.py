@@ -552,8 +552,8 @@ def run_pipeline_background(partner_id: str, video_url: str, video_type: str, le
 async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, lesson_id: Optional[str]):
     from motor.motor_asyncio import AsyncIOMotorClient
 
-    MONGO_URL = os.environ.get("MONGODB_URL", "mongodb://localhost:27017")
-    DB_NAME = os.environ.get("MONGODB_DB", "evolution_pro")
+    MONGO_URL = os.environ.get("MONGO_URL", os.environ.get("MONGODB_URL", "mongodb://localhost:27017"))
+    DB_NAME = os.environ.get("DB_NAME", os.environ.get("MONGODB_DB", "evolution_pro"))
     OPENAI_KEY = os.environ.get("OPENAI_API_KEY", "")
 
     mongo = AsyncIOMotorClient(MONGO_URL)
