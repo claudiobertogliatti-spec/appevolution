@@ -296,7 +296,7 @@ function AdminMasterclassPanel({ partnerId, onScriptGenerated }) {
    VIDEO SUBMISSION CARD — visibile al partner (non admin)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-function VideoSubmissionCard({ partnerId }) {
+function VideoSubmissionCard({ partnerId, onVideoApproved }) {
   const [videoUrl, setVideoUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [pipelineStatus, setPipelineStatus] = useState(null);
@@ -310,6 +310,9 @@ function VideoSubmissionCard({ partnerId }) {
         if (res.ok) {
           const d = await res.json();
           setPipelineStatus(d);
+          if (d.pipeline_status === "approved" && onVideoApproved) {
+            onVideoApproved();
+          }
           if (d.pipeline_status && !["ready_for_review", "approved", "error", "error_youtube"].includes(d.pipeline_status)) {
             // Sta ancora processando — ripolling ogni 15s
             setTimeout(poll, 15000);
@@ -524,6 +527,7 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
   const [scriptSections, setScriptSections] = useState(null);
   const [fullScript, setFullScript] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [videoApproved, setVideoApproved] = useState(false);
 
   const partnerId = partner?.id;
 
@@ -531,13 +535,20 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
     const load = async () => {
       if (!partnerId) { setIsLoading(false); return; }
       try {
-        const res = await axios.get(`${API}/api/masterclass-factory/${partnerId}`);
-        const data = res.data;
+        const [mcRes, videoRes] = await Promise.all([
+          axios.get(`${API}/api/masterclass-factory/${partnerId}`),
+          fetch(`${API}/api/partner-journey/masterclass/video-status/${partnerId}`)
+        ]);
+        const data = mcRes.data;
         if (data.script_sections) {
           setScriptSections(data.script_sections);
           setFullScript(data.script);
         } else if (data.script) {
           setFullScript(data.script);
+        }
+        if (videoRes.ok) {
+          const vData = await videoRes.json();
+          setVideoApproved(vData.pipeline_status === "approved");
         }
       } catch (e) {
         console.error("Error loading masterclass:", e);
@@ -588,17 +599,19 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
           stepId="masterclass"
           stepTitle="Masterclass"
           stepIcon={Sparkles}
-          nextStepLabel="Vai al Videocorso"
-          onContinue={() => onNavigate("videocorso")}
+          nextStepLabel={videoApproved ? "Vai al Videocorso" : undefined}
+          onContinue={videoApproved ? () => onNavigate("videocorso") : undefined}
           isAdmin={isAdmin}
         >
           <ScriptContent scriptSections={scriptSections} fullScript={fullScript} />
+          {/* Video upload card appears after script (inside wrapper) so it's visible before the green footer */}
+          {partnerId && !isAdmin && (
+            <VideoSubmissionCard
+              partnerId={partnerId}
+              onVideoApproved={() => setVideoApproved(true)}
+            />
+          )}
         </DoneForYouWrapper>
-
-        {/* Video submission card — only for partner (not admin, who has panel above) */}
-        {partnerId && !isAdmin && (
-          <VideoSubmissionCard partnerId={partnerId} />
-        )}
       </div>
     </div>
   );
