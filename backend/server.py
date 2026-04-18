@@ -9289,6 +9289,38 @@ async def approve_video_review(
     return {"success": True, "partner_id": partner_id, "approved_at": now}
 
 
+@api_router.post("/admin/promote-partner")
+async def admin_promote_partner(
+    body: dict = Body({}),
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Admin: promuove un utente cliente a partner, collegandolo al record partner."""
+    token_data = decode_token(credentials.credentials)
+    user = await db.users.find_one({"id": token_data.user_id})
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    user_id = body.get("user_id")
+    partner_id = body.get("partner_id")
+    if not user_id or not partner_id:
+        raise HTTPException(status_code=400, detail="user_id e partner_id obbligatori")
+
+    now = datetime.now(timezone.utc).isoformat()
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "role": "partner",
+            "partner_id": partner_id,
+            "user_type": "partner",
+            "partnership_attiva": True,
+            "partnership_attivata_at": now,
+            "stato_cliente": "partner_attivo",
+            "updated_at": now
+        }}
+    )
+    return {"success": True, "updated": result.modified_count, "user_id": user_id, "partner_id": partner_id}
+
+
 @api_router.post("/admin/reset-password")
 async def admin_reset_password(
     body: dict = Body({}),
