@@ -85,16 +85,44 @@ def extract_gdrive_confirm_url(html_text: str, file_id: str) -> Optional[str]:
     return f"https://drive.usercontent.google.com/download?id={file_id}&export=download&authuser=0&confirm=t"
 
 
-async def download_video(url: str, dest_path: str) -> int:
+async def _stream_to_file(client: httpx.AsyncClient, url: str, dest_path: str, offset: int = 0) -> int:
+    """Stream URL → file con supporto Range per resume. Ritorna bytes scritti."""
+    req_headers = {}
+    if offset > 0:
+        req_headers["Range"] = f"bytes={offset}-"
+        logger.info(f"[VIDEO-PIPE] Resume da {offset/1e6:.1f}MB")
+
+    async with client.stream("GET", url, headers=req_headers) as resp:
+        if resp.status_code == 416:  # Range Not Satisfiable — file già completo
+            return 0
+        resp.raise_for_status()
+        ct = resp.headers.get("content-type", "")
+        if "text/html" in ct:
+            raise ValueError(
+                "Google Drive richiede autenticazione — file non condiviso correttamente. "
+                "Assicurati che sia condiviso come 'Chiunque abbia il link'."
+            )
+        # 206 = range accettato → append; 200 = range ignorato → sovrascrittura
+        mode = "ab" if offset > 0 and resp.status_code == 206 else "wb"
+        written = 0
+        with open(dest_path, mode) as f:
+            async for chunk in resp.aiter_bytes(chunk_size=2 * 1024 * 1024):
+                f.write(chunk)
+                written += len(chunk)
+    return written
+
+
+async def download_video(url: str, dest_path: str, max_retries: int = 4) -> int:
     """Scarica video da URL (Google Drive o qualsiasi link diretto).
-    Gestisce la pagina di conferma di Google Drive per file grandi.
-    Ritorna dimensione in bytes.
+    Gestisce la pagina di conferma di Google Drive per file grandi e
+    riprende da dove si era fermato in caso di drop connessione (Range header).
+    Ritorna dimensione totale in bytes.
     """
     download_url = resolve_gdrive_url(url)
     file_id = extract_gdrive_file_id(url)
     logger.info(f"[VIDEO-PIPE] Download URL: {download_url[:100]}")
 
-    headers = {
+    base_headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         "Accept": "*/*",
     }
@@ -102,25 +130,24 @@ async def download_video(url: str, dest_path: str) -> int:
     async with httpx.AsyncClient(
         follow_redirects=True,
         timeout=httpx.Timeout(connect=30, read=600, write=30, pool=30),
-        headers=headers,
+        headers=base_headers,
     ) as client:
-        # Prima request — per file grandi Google Drive può restituire una pagina HTML
-        # di conferma (virus scan warning) invece del video direttamente.
+        # ── Step 1: verifica se la prima request è la pagina di conferma Drive ──
+        actual_url = download_url
         async with client.stream("GET", download_url) as response:
             response.raise_for_status()
             content_type = response.headers.get("content-type", "")
 
             if "text/html" in content_type and file_id:
-                # Leggi la pagina HTML di conferma
+                # File grande: Google mostra pagina "virus scan warning"
                 html_chunks = []
                 async for chunk in response.aiter_bytes(chunk_size=8192):
                     html_chunks.append(chunk.decode("utf-8", errors="ignore"))
                     if sum(len(c) for c in html_chunks) >= 65536:
                         break
                 html_text = "".join(html_chunks)
-
-                confirm_url = extract_gdrive_confirm_url(html_text, file_id)
-                logger.info(f"[VIDEO-PIPE] Pagina conferma rilevata — retry con: {confirm_url[:100]}")
+                actual_url = extract_gdrive_confirm_url(html_text, file_id)
+                logger.info(f"[VIDEO-PIPE] Pagina conferma rilevata — uso: {actual_url[:100]}")
             elif "text/html" in content_type:
                 raise ValueError(
                     f"Google Drive ha restituito una pagina HTML invece del video "
@@ -129,32 +156,37 @@ async def download_video(url: str, dest_path: str) -> int:
                     f"e che il link sia diretto al file (non a una cartella)."
                 )
             else:
-                # Download diretto — stream nel file
+                # Download diretto senza conferma — stream già aperto
                 total = 0
                 with open(dest_path, "wb") as f:
                     async for chunk in response.aiter_bytes(chunk_size=2 * 1024 * 1024):
                         f.write(chunk)
                         total += len(chunk)
+                logger.info(f"[VIDEO-PIPE] Download diretto completo: {total/1e6:.1f}MB")
                 return total
 
-        # Seconda request con URL di conferma (solo se la prima era HTML)
-        logger.info(f"[VIDEO-PIPE] Download con conferma in corso...")
-        async with client.stream("GET", confirm_url) as response2:
-            response2.raise_for_status()
-            ct2 = response2.headers.get("content-type", "")
-            if "text/html" in ct2:
-                raise ValueError(
-                    "Google Drive richiede autenticazione anche con URL di conferma. "
-                    "Il file potrebbe non essere condiviso come 'Chiunque abbia il link', "
-                    "oppure è in una cartella Drive privata. "
-                    "Prova a spostare il file in 'Il mio Drive' e ricondividilo."
-                )
-            total = 0
-            with open(dest_path, "wb") as f:
-                async for chunk in response2.aiter_bytes(chunk_size=2 * 1024 * 1024):
-                    f.write(chunk)
-                    total += len(chunk)
-    return total
+        # ── Step 2: download con URL confermato, retry su drop connessione ──
+        for attempt in range(max_retries):
+            offset = os.path.getsize(dest_path) if os.path.exists(dest_path) else 0
+            try:
+                written = await _stream_to_file(client, actual_url, dest_path, offset=offset)
+                total = (offset + written) if written else os.path.getsize(dest_path)
+                logger.info(f"[VIDEO-PIPE] Download completo: {total/1e6:.1f}MB")
+                return total
+            except (httpx.RemoteProtocolError, httpx.ReadError, httpx.ConnectError, OSError) as e:
+                current = os.path.getsize(dest_path) if os.path.exists(dest_path) else 0
+                if attempt < max_retries - 1:
+                    wait = 5 * (attempt + 1)
+                    logger.warning(
+                        f"[VIDEO-PIPE] Drop connessione a {current/1e6:.1f}MB "
+                        f"(tentativo {attempt+1}/{max_retries}) — retry in {wait}s: {e}"
+                    )
+                    await asyncio.sleep(wait)
+                else:
+                    raise ValueError(
+                        f"Download interrotto dopo {max_retries} tentativi "
+                        f"(scaricati {current/1e6:.0f}MB): {e}"
+                    )
 
 
 # ═══════════════════════════════════════════════════════════════════
