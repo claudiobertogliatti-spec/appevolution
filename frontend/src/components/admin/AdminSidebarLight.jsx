@@ -253,7 +253,7 @@ export function AdminSidebarLight({
           key={`s-${item.section}`}
           style={{
             padding: "22px 16px 8px",
-            fontSize: 30,
+            fontSize: 11,
             fontWeight: 900,
             letterSpacing: "0.08em",
             textTransform: "uppercase",
