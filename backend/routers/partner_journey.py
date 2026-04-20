@@ -1438,6 +1438,67 @@ async def approve_masterclass_video(partner_id: str):
     return {"success": True, "message": "Video approvato"}
 
 
+@router.post("/masterclass/reset-pipeline")
+async def reset_masterclass_pipeline(partner_id: str):
+    """Admin resetta una pipeline bloccata (stuck in downloading/cleaning/etc.)"""
+    await get_partner_or_404(partner_id)
+    await db.masterclass_factory.update_one(
+        {"partner_id": partner_id},
+        {"$set": {
+            "video_pipeline_status": None,
+            "video_pipeline_error": "Reset manuale admin",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    return {"success": True, "message": "Pipeline resettata — il partner può ricaricare il link"}
+
+
+class SetYoutubeUrlRequest(BaseModel):
+    partner_id: str
+    youtube_url: str
+    youtube_id: Optional[str] = None
+
+
+@router.post("/masterclass/set-youtube-url")
+async def set_masterclass_youtube_url(req: SetYoutubeUrlRequest):
+    """Admin imposta manualmente l'URL YouTube della masterclass (bypass pipeline automatica)"""
+    await get_partner_or_404(req.partner_id)
+
+    yt_id = req.youtube_id
+    if not yt_id and "v=" in req.youtube_url:
+        yt_id = req.youtube_url.split("v=")[-1].split("&")[0]
+    elif not yt_id and "youtu.be/" in req.youtube_url:
+        yt_id = req.youtube_url.split("youtu.be/")[-1].split("?")[0]
+
+    embed_url = f"https://www.youtube.com/embed/{yt_id}" if yt_id else ""
+    systeme_embed = f'<iframe src="{embed_url}" width="560" height="315" frameborder="0" allowfullscreen></iframe>' if yt_id else ""
+    now = datetime.now(timezone.utc).isoformat()
+
+    await db.masterclass_factory.update_one(
+        {"partner_id": req.partner_id},
+        {"$set": {
+            "video_youtube_url": req.youtube_url,
+            "video_youtube_id": yt_id,
+            "video_embed_url": embed_url,
+            "video_systeme_embed": systeme_embed,
+            "video_pipeline_status": "ready_for_review",
+            "video_approved": False,
+            "pipeline_completed_at": now,
+            "updated_at": now
+        }},
+        upsert=True
+    )
+
+    partner = await db.partners.find_one({"partner_id": req.partner_id}) or await db.partners.find_one({"id": req.partner_id})
+    await notify_telegram(
+        f"📺 <b>YouTube URL masterclass impostato manualmente</b>\n"
+        f"👤 {partner.get('name', req.partner_id) if partner else req.partner_id}\n"
+        f"🔗 {req.youtube_url}"
+    )
+
+    return {"success": True, "message": "URL YouTube impostato — pronto per approvazione admin"}
+
+
 @router.post("/videocorso/approve-video")
 async def approve_videocorso_video(partner_id: str, lesson_id: str):
     """Admin approva il video di una lezione del videocorso"""

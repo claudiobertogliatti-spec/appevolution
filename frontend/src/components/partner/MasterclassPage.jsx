@@ -684,9 +684,47 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
   const [isLoading, setIsLoading] = useState(true);
   const [videoData, setVideoData] = useState(null);
   const [approvingVideo, setApprovingVideo] = useState(false);
+  const [resettingPipeline, setResettingPipeline] = useState(false);
+  const [manualYtUrl, setManualYtUrl] = useState("");
+  const [settingYtUrl, setSettingYtUrl] = useState(false);
+  const [showManualUrl, setShowManualUrl] = useState(false);
 
   const partnerId = partner?.id;
   const videoApproved = videoData?.pipeline_status === "approved";
+
+  const handleResetPipeline = async () => {
+    setResettingPipeline(true);
+    try {
+      await fetch(`${API}/api/partner-journey/masterclass/reset-pipeline?partner_id=${partnerId}`, { method: "POST" });
+      await refreshVideoData();
+      setShowManualUrl(true);
+    } catch (e) {
+      console.error("Errore reset pipeline:", e);
+    } finally {
+      setResettingPipeline(false);
+    }
+  };
+
+  const handleSetYoutubeUrl = async () => {
+    if (!manualYtUrl.trim()) return;
+    setSettingYtUrl(true);
+    try {
+      const res = await fetch(`${API}/api/partner-journey/masterclass/set-youtube-url`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ partner_id: partnerId, youtube_url: manualYtUrl.trim() })
+      });
+      if (res.ok) {
+        await refreshVideoData();
+        setManualYtUrl("");
+        setShowManualUrl(false);
+      }
+    } catch (e) {
+      console.error("Errore set YouTube URL:", e);
+    } finally {
+      setSettingYtUrl(false);
+    }
+  };
 
   const handleApproveVideo = async () => {
     setApprovingVideo(true);
@@ -832,7 +870,7 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
               <div style={stepNumStyle(videoReadyForReview || videoApprovedFinal, scriptApproved)}>{(videoReadyForReview || videoApprovedFinal) ? "✓" : "3"}</div>
               <span className="text-sm font-black" style={{ color: "#1E2128" }}>Creazione Video</span>
             </div>
-            <div className="p-4">
+            <div className="p-4 space-y-3">
               {pStatus ? (
                 <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
                   <Video className="w-4 h-4 flex-shrink-0" style={{ color: videoInProgress ? "#3B82F6" : "#22C55E" }} />
@@ -845,6 +883,23 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
                 <p className="text-sm text-center py-6" style={{ color: "#9CA3AF" }}>
                   In attesa che il partner carichi il video greggio
                 </p>
+              )}
+              {/* Reset pipeline se stuck in elaborazione */}
+              {videoInProgress && (
+                <div className="p-3 rounded-xl" style={{ background: "#FFF7ED", border: "1px solid #FED7AA" }}>
+                  <p className="text-xs mb-2" style={{ color: "#92400E" }}>
+                    Pipeline bloccata? Resetta per permettere all'admin di inserire l'URL YouTube manualmente.
+                  </p>
+                  <button
+                    onClick={handleResetPipeline}
+                    disabled={resettingPipeline}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-50"
+                    style={{ background: "#EF4444", color: "white" }}
+                  >
+                    {resettingPipeline ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                    {resettingPipeline ? "Reset..." : "Reset Pipeline"}
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -894,9 +949,41 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
                   </button>
                 </>
               ) : (
-                <p className="text-sm text-center py-6" style={{ color: "#9CA3AF" }}>
-                  In attesa del completamento del video da parte del team
-                </p>
+                <div className="space-y-3">
+                  <p className="text-sm text-center py-4" style={{ color: "#9CA3AF" }}>
+                    In attesa del completamento del video da parte del team
+                  </p>
+                  {/* Form inserimento URL manuale (dopo reset o senza pipeline) */}
+                  {(!pStatus || showManualUrl) && (
+                    <div className="p-4 rounded-xl space-y-3" style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
+                      <p className="text-xs font-bold" style={{ color: "#374151" }}>
+                        Inserisci URL YouTube (upload manuale)
+                      </p>
+                      <p className="text-xs" style={{ color: "#6B7280" }}>
+                        Carica il video editato su YouTube (unlisted) e incolla qui l'URL.
+                      </p>
+                      <div className="flex gap-2">
+                        <input
+                          type="url"
+                          value={manualYtUrl}
+                          onChange={e => setManualYtUrl(e.target.value)}
+                          placeholder="https://www.youtube.com/watch?v=..."
+                          className="flex-1 px-3 py-2 rounded-lg text-sm outline-none"
+                          style={{ background: "white", border: "1px solid #D1D5DB", color: "#1E2128" }}
+                        />
+                        <button
+                          onClick={handleSetYoutubeUrl}
+                          disabled={!manualYtUrl.trim() || settingYtUrl}
+                          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50"
+                          style={{ background: "#1E2128", color: "#FFD24D" }}
+                        >
+                          {settingYtUrl ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                          Imposta
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
