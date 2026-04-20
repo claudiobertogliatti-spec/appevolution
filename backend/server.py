@@ -1098,8 +1098,12 @@ async def register(request: RegisterRequest):
         # Create partner record if role is partner
         if request.role == "partner":
             partner_id = str(uuid.uuid4())
+            # Recupera evolution_id dall'utente appena creato (generato in UserInDB)
+            user_doc = await db.users.find_one({"id": user["id"]})
+            evolution_id = user_doc.get("evolution_id") if user_doc else None
             new_partner = {
                 "id": partner_id,
+                "evolution_id": evolution_id,
                 "name": request.name,
                 "email": request.email,
                 "phase": "F1",
@@ -1116,7 +1120,7 @@ async def register(request: RegisterRequest):
                 }
             }
             await db.partners.insert_one(new_partner)
-            
+
             # Update user with partner_id
             await db.users.update_one(
                 {"id": user["id"]},
@@ -1177,8 +1181,10 @@ async def create_partner_account(request: CreatePartnerAccountRequest):
     
     # Crea l'utente
     user_id = str(uuid.uuid4())
+    evolution_id = "EVO-" + uuid.uuid4().hex[:8].upper()
     new_user = {
         "id": user_id,
+        "evolution_id": evolution_id,
         "name": request.name,
         "email": request.email.lower(),
         "password_hash": password_hash,
@@ -1189,13 +1195,13 @@ async def create_partner_account(request: CreatePartnerAccountRequest):
         "is_active": True,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
-    
+
     await db.users.insert_one(new_user)
-    
-    # Aggiorna il partner con l'email
+
+    # Aggiorna il partner con l'email e l'evolution_id
     await db.partners.update_one(
         {"id": request.partner_id},
-        {"$set": {"email": request.email.lower(), "user_id": user_id}}
+        {"$set": {"email": request.email.lower(), "user_id": user_id, "evolution_id": evolution_id}}
     )
     
     return {
@@ -1399,8 +1405,10 @@ async def register_cliente_analisi(request: ClienteAnalisiRegisterRequest):
     
     # Crea utente
     user_id = str(uuid.uuid4())
+    evolution_id = "EVO-" + uuid.uuid4().hex[:8].upper()
     new_user = {
         "id": user_id,
+        "evolution_id": evolution_id,
         "nome": request.nome,
         "cognome": request.cognome,
         "name": f"{request.nome} {request.cognome}",  # Per compatibilità
@@ -4194,13 +4202,26 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     
     return UserResponse(
         id=user["id"],
+        evolution_id=user.get("evolution_id"),
         email=user["email"],
-        name=user["name"],
+        name=user.get("name", ""),
         role=user["role"],
         is_active=user.get("is_active", True),
         partner_id=user.get("partner_id"),
         phase=user.get("phase"),
-        admin_type=user.get("admin_type")
+        admin_type=user.get("admin_type"),
+        user_type=user.get("user_type"),
+        nome=user.get("nome"),
+        cognome=user.get("cognome"),
+        questionario_started=user.get("questionario_started"),
+        questionario_compilato=user.get("questionario_compilato"),
+        questionario_completed=user.get("questionario_completed", user.get("questionario_compilato")),
+        intro_questionario_seen=user.get("intro_questionario_seen"),
+        pagamento_analisi=user.get("pagamento_analisi"),
+        pagamento_effettuato=user.get("pagamento_effettuato", user.get("pagamento_analisi")),
+        call_prenotata=user.get("call_prenotata"),
+        cliente_id=user.get("cliente_id"),
+        analisi_generata=user.get("analisi_generata"),
     )
 
 @api_router.post("/auth/verify")
@@ -9307,6 +9328,14 @@ async def admin_promote_partner(
 
     now = datetime.now(timezone.utc).isoformat()
     new_hash = bcrypt.hashpw("Evolution2026!".encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+    # Recupera evolution_id dell'utente (o creane uno se mancante — utenti pre-feature)
+    target_user = await db.users.find_one({"id": user_id})
+    evolution_id = target_user.get("evolution_id") if target_user else None
+    if not evolution_id:
+        import uuid as _uuid
+        evolution_id = "EVO-" + _uuid.uuid4().hex[:8].upper()
+
     result = await db.users.update_one(
         {"id": user_id},
         {"$set": {
@@ -9317,10 +9346,62 @@ async def admin_promote_partner(
             "partnership_attivata_at": now,
             "stato_cliente": "partner_attivo",
             "password_hash": new_hash,
+            "evolution_id": evolution_id,
             "updated_at": now
         }}
     )
-    return {"success": True, "updated": result.modified_count, "user_id": user_id, "partner_id": partner_id}
+    # Propaga evolution_id al documento partner
+    await db.partners.update_one(
+        {"id": partner_id},
+        {"$set": {"evolution_id": evolution_id, "user_id": user_id}}
+    )
+    return {"success": True, "updated": result.modified_count, "user_id": user_id, "partner_id": partner_id, "evolution_id": evolution_id}
+
+
+@api_router.post("/admin/backfill-evolution-ids")
+async def backfill_evolution_ids(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Admin: assegna evolution_id retroattivamente a tutti gli utenti/partner/clienti che ne sono privi."""
+    token_data = decode_token(credentials.credentials)
+    admin_user = await db.users.find_one({"id": token_data.user_id})
+    if not admin_user or admin_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    updated_users = 0
+    updated_partners = 0
+
+    # Utenti senza evolution_id
+    async for u in db.users.find({"evolution_id": {"$exists": False}}):
+        evo_id = "EVO-" + uuid.uuid4().hex[:8].upper()
+        await db.users.update_one({"id": u["id"]}, {"$set": {"evolution_id": evo_id}})
+        # Propaga al partner collegato (se esiste)
+        if u.get("partner_id"):
+            await db.partners.update_one(
+                {"id": u["partner_id"], "evolution_id": {"$exists": False}},
+                {"$set": {"evolution_id": evo_id}}
+            )
+            updated_partners += 1
+        updated_users += 1
+
+    # Partner rimasti senza evolution_id (creati senza account utente)
+    async for p in db.partners.find({"evolution_id": {"$exists": False}}):
+        evo_id = "EVO-" + uuid.uuid4().hex[:8].upper()
+        await db.partners.update_one({"id": p["id"]}, {"$set": {"evolution_id": evo_id}})
+        # Propaga all'utente collegato se esiste
+        if p.get("user_id"):
+            await db.users.update_one(
+                {"id": p["user_id"], "evolution_id": {"$exists": False}},
+                {"$set": {"evolution_id": evo_id}}
+            )
+        updated_partners += 1
+
+    return {
+        "success": True,
+        "updated_users": updated_users,
+        "updated_partners": updated_partners,
+        "message": f"Backfill completato: {updated_users} utenti, {updated_partners} partner aggiornati"
+    }
 
 
 @api_router.post("/admin/reset-password")
