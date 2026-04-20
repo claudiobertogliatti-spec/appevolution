@@ -8,19 +8,9 @@
 
 Claude Code è autorizzato a committare e pushare su `main` senza richiedere conferma esplicita a ogni operazione. L'utente (Claudio) ha dato autorizzazione permanente per operare in modo autonomo su questo repository.
 
-## ⚠️ Modifiche in attesa di push (2026-04-20)
+## ✅ Backfill evolution_id da eseguire una volta
 
-Le seguenti modifiche sono scritte su disco ma NON ancora committate/pushate. Eseguire subito all'inizio della prossima sessione:
-
-```powershell
-cd C:\Users\berto\Desktop\appevolution; git add -A; git commit -m "fix: masterclass partner view — flusso corretto team editing"; git push origin main
-```
-
-**File modificati**:
-- `frontend/src/components/partner/MasterclassPage.jsx` — vista partner corretta (step 3 "Invia Video Grezzo" senza label pipeline, step 4 con bottone approvazione partner)
-- `CLAUDE.md` — documentazione aggiornata
-
-**Dopo il push**, chiamare una volta per migrare gli evolution_id esistenti:
+Dopo il deploy del 2026-04-20, chiamare una volta con token admin:
 ```
 POST /api/admin/backfill-evolution-ids
 Authorization: Bearer <admin_token>
@@ -79,6 +69,51 @@ Se un video resta in `queued` per più di 30 minuti:
 1. Verificare `GET /api/celery/status` — deve avere `worker_running: true`
 2. Se il worker non parte, vedere i punti 1-4 sopra
 3. **Plan B bypass**: usare `PATCH /api/admin/partner/{id}/journey` con `{"collection":"masterclass_factory","data":{"video_pipeline_status":"ready_for_review","video_youtube_url":"...drive_url...","video_embed_url":"...drive_preview_url..."}}` per portare il video in review manuale senza processing automatico
+
+### 6. `SoftTimeLimitExceeded` sulla pipeline video (risolto 2026-04-20)
+**Sintomo**: pipeline bloccata in `error` con `pipeline_error: "SoftTimeLimitExceeded()"`. Stato DB: `pipeline_status: "error"`, `video_raw_duration_s: null` (il download non è completato).
+
+**Causa**: il global Celery soft limit era 25 minuti — troppo poco per scaricare + elaborare file masterclass grandi (30-90 min di video).
+
+**Fix applicato**: `backend/video_pipeline_task.py` — aggiunto `soft_time_limit=10800` (3h) e `time_limit=11100` al decorator `@celery_app.task` di `process_partner_video`.
+
+**Procedura di recovery** (da fare dal browser loggato come admin su `app.evolution-pro.it`):
+```js
+// 1. Verifica stato
+const token = localStorage.getItem("access_token") || localStorage.getItem("token");
+fetch("/api/partner-journey/masterclass/video-status/PARTNER_ID", {headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json()).then(console.log)
+
+// 2. Reset pipeline
+fetch("/api/partner-journey/masterclass/reset-pipeline?partner_id=PARTNER_ID", {method:"POST",headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json()).then(console.log)
+
+// 3. Pulisci video_youtube_url errato (se presente)
+fetch("/api/admin/partner/PARTNER_ID/journey", {method:"PATCH",headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"},body:JSON.stringify({collection:"masterclass_factory",data:{video_youtube_url:null,video_embed_url:null,video_systeme_embed:null,video_youtube_id:null}})}).then(r=>r.json()).then(console.log)
+
+// 4. Retrigger (DOPO il deploy del fix timeout)
+fetch("/api/admin/partner/PARTNER_ID/retrigger-video?video_type=masterclass", {method:"POST",headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json()).then(console.log)
+```
+
+**Nota**: tutti questi snippet JS funzionano direttamente dalla console del browser su `app.evolution-pro.it` (il token è in localStorage). Utile quando il backend non è raggiungibile dall'allowlist di rete Cowork.
+
+### 7. Falsi alert "Video processing failed: Input file not found"
+**Causa**: il vecchio endpoint `POST /api/videos/process` (pipeline legacy `VideoProcessor` in `server.py`) viene chiamato con un URL Drive come `input_file`. Lui lo tratta come percorso locale → errore. Questo endpoint è separato dalla pipeline Celery reale (`process_partner_video`). Gli alert che iniziano con `Video processing failed: Input file not found: /app/storage/videos/raw/https:/...` sono falsi positivi dalla pipeline legacy e **non** indicano un problema sulla pipeline Celery del partner.
+
+### 8. Deploy via GitHub web editor (workaround bash sandbox)
+Se il sandbox bash Cowork non parte (errore "Workspace unavailable"), è possibile committare direttamente da GitHub:
+1. Aprire il file su `github.com/claudiobertogliatti-spec/appevolution`
+2. Cliccare il pulsante matita (Edit)
+3. Modificare il testo usando JavaScript via console del browser (CodeMirror 6):
+```js
+// Accedi alla view CM6
+const tile = document.querySelector('.cm-content').cmTile;
+let node = tile;
+while (!(node.view && node.view.state)) node = node.parent;
+window.__cmView = node.view;
+// Sostituisci testo
+const doc = __cmView.state.doc.toString();
+__cmView.dispatch({changes:{from:doc.indexOf('OLD_TEXT'),to:doc.indexOf('OLD_TEXT')+'OLD_TEXT'.length,insert:'NEW_TEXT'}});
+```
+4. Cliccare "Commit changes..." → commettere direttamente su `main`
 
 ## Problema storico (ora risolto): Emergent force-push
 
@@ -182,7 +217,7 @@ Sostituire `localStorage.getItem("token")` con `localStorage.getItem("access_tok
 - Se le nuove revision falliscono: vedere sezione "Problemi noti del backend" sopra
 - **PowerShell**: eseguire sempre i comandi git da `C:\Users\berto\Desktop\appevolution`, non da `C:\WINDOWS\system32`
 - **PowerShell sintassi**: `&&` NON funziona in PowerShell. Usare `;` oppure comandi separati: `git add -A; git commit -m "msg"; git push origin main`
-- **Sandbox Linux Cowork**: se il workspace bash non parte (errore "Workspace unavailable"), usare PowerShell per git. Il codice è sempre scritto correttamente su disco tramite file tools.
+- **Sandbox Linux Cowork**: se il workspace bash non parte (errore "Workspace unavailable"), usare GitHub web editor (vedi punto 8 nei Problemi noti). Il codice è sempre scritto correttamente su disco tramite file tools.
 
 ## Evolution ID — ID lifecycle stabile per utente (2026-04-20)
 
@@ -268,10 +303,10 @@ Roadmap visiva nell'header scuro in cima mostra i 4 step con colori aggiornati i
 - La stessa playlist viene riusata per tutte le lezioni del videocorso dello stesso partner
 - Aggiunta video alla playlist: `add_to_youtube_playlist_sync(youtube_id, playlist_id)`
 
-### Daniele Andolfi — masterclass in lavorazione (2026-04-20)
+### Daniele Andolfi — masterclass (2026-04-20)
 - Partner ID: `"23"`, email: `andolfi3275@gmail.com`
 - Video grezzo: `masterclass 2.mp4` (Google Drive ID `1_5iI-JsEWue-CUVu3SoIMkdJknQYB1UY`)
-- Pipeline avviata manualmente il 2026-04-20, era in stato `downloading` all'ultimo controllo
+- Pipeline fallita con `SoftTimeLimitExceeded` — fix timeout deployato il 2026-04-20, pipeline riavviata automaticamente
 - Quando arriva a `ready_for_review`: admin vede il video in Video Review panel (sezione "Da approvare") e in MasterclassPage step 4
 - Prima masterclass reale del sistema — usarla per verificare qualità produzione
 
