@@ -1393,6 +1393,7 @@ async def get_masterclass_video_status(partner_id: str):
         "success": True,
         "pipeline_status": doc.get("video_pipeline_status"),
         "pipeline_error": doc.get("video_pipeline_error"),
+        "video_raw_url": doc.get("video_raw_url"),
         "video_youtube_url": doc.get("video_youtube_url"),
         "video_youtube_id": doc.get("video_youtube_id"),
         "video_embed_url": doc.get("video_embed_url"),
