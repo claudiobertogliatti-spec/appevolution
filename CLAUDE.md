@@ -215,12 +215,14 @@ Stato colori card: grigio (non attivo) → bordo giallo (attivo) → bordo/sfond
 `approveScript` e `isApprovingScript` vengono da `useDoneForYou(partnerId, "masterclass")` destructurato al top del componente.
 
 ### Vista Partner — sequenza unificata 4 step
-La vista partner (non admin) è una **singola pagina** con 4 card sempre visibili (non schermate separate):
+La vista partner (non admin) è una **singola pagina** con 4 card sempre visibili (non schermate separate).
 
-1. **Creazione Script** — spinner se in corso, verde quando `dyfStatus === "pronto" || "approvato"`
+**Flusso reale**: il team Evolution crea lo script e fa tutto l'editing; il partner registra il grezzo e approva il risultato.
+
+1. **Script pronto** — spinner se in corso, verde quando `dyfStatus === "pronto" || "approvato"`
 2. **Approva lo Script** — script + bottone verde "Approva lo Script" (chiama `approveScript(false)`). Si sblocca quando step 1 completato.
-3. **Carica il Video Grezzo** — istruzioni Drive + `VideoSubmissionCard` + stato pipeline. Si sblocca quando script approvato.
-4. **Verifica il Video Finale** — embed YouTube quando disponibile. Si sblocca quando team approva il video.
+3. **Invia il Video Grezzo** — istruzioni Drive + `VideoSubmissionCard`. Dopo invio: "Video ricevuto — il team sta lavorando all'editing" (nessuna label tecnica pipeline visibile al partner).
+4. **Approva il Video Definitivo** — embed YouTube + bottone verde "Approva il Video — Tutto ok!" (chiama `handleApproveVideo`). Si sblocca quando `pipeline_status === "ready_for_review"`.
 
 Roadmap visiva nell'header scuro in cima mostra i 4 step con colori aggiornati in tempo reale.
 
