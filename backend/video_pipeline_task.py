@@ -678,10 +678,13 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
     from motor.motor_asyncio import AsyncIOMotorClient
 
     MONGO_URL = os.environ.get("MONGO_URL", os.environ.get("MONGODB_URL", "mongodb://localhost:27017"))
+    # Stesso fallback di server.py: se MONGO_URL punta al cluster Emergent morto, usa MONGO_ATLAS_URL
+    if not MONGO_URL or "customer-apps" in MONGO_URL:
+        MONGO_URL = os.environ.get("MONGO_ATLAS_URL", MONGO_URL)
     DB_NAME = os.environ.get("DB_NAME", os.environ.get("MONGODB_DB", "evolution_pro"))
     OPENAI_KEY = os.environ.get("OPENAI_API_KEY", "")
 
-    mongo = AsyncIOMotorClient(MONGO_URL)
+    mongo = AsyncIOMotorClient(MONGO_URL, serverSelectionTimeoutMS=30000, connectTimeoutMS=30000)
     db = mongo[DB_NAME]
 
     job_id = uuid.uuid4().hex[:8]
