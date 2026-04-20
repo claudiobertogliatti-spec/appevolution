@@ -48,7 +48,6 @@ function AdminMasterclassPanel({ partnerId, onScriptGenerated }) {
   });
   const [pipelineStatus, setPipelineStatus] = useState(null);
   const [generating, setGenerating] = useState(false);
-  const [approvingVideo, setApprovingVideo] = useState(false);
   const [settingPronto, setSettingPronto] = useState(false);
   const [savingAnswers, setSavingAnswers] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -124,24 +123,6 @@ function AdminMasterclassPanel({ partnerId, onScriptGenerated }) {
       showMessage("Errore di rete durante la generazione", false);
     } finally {
       setGenerating(false);
-    }
-  };
-
-  const handleApproveVideo = async () => {
-    setApprovingVideo(true);
-    try {
-      const res = await fetch(`${API}/api/partner-journey/masterclass/approve-video?partner_id=${partnerId}`, { method: "POST" });
-      if (res.ok) {
-        setPipelineStatus("approved");
-        showMessage("Video approvato!");
-      } else {
-        const err = await res.json().catch(() => ({}));
-        showMessage(`Errore approvazione video: ${err.detail || res.status}`, false);
-      }
-    } catch (e) {
-      showMessage("Errore di rete", false);
-    } finally {
-      setApprovingVideo(false);
     }
   };
 
@@ -275,35 +256,6 @@ function AdminMasterclassPanel({ partnerId, onScriptGenerated }) {
               Segna Pronto per Partner
             </button>
           </div>
-
-          {/* ── APPROVA VIDEO — in fondo, visibile solo quando il team ha completato il video ── */}
-          {pipelineStatus === "ready_for_review" && (
-            <div
-              className="mt-2 pt-4 rounded-2xl p-4"
-              style={{ background: "#F0FDF4", border: "2px solid #22C55E" }}
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <CheckCircle className="w-4 h-4" style={{ color: "#16A34A" }} />
-                <span className="text-xs font-bold uppercase tracking-wide" style={{ color: "#15803D" }}>
-                  Video masterclass pronto per approvazione
-                </span>
-              </div>
-              <p className="text-xs mb-4" style={{ color: "#166534" }}>
-                Il team ha completato il video definitivo. Revisionalo e clicca Approva per sbloccare il passo successivo al partner.
-              </p>
-              <button
-                onClick={handleApproveVideo}
-                disabled={approvingVideo}
-                className="w-full flex items-center justify-center gap-3 py-3.5 rounded-xl text-sm font-black disabled:opacity-50 transition-all hover:opacity-90"
-                style={{ background: "#22C55E", color: "white" }}
-              >
-                {approvingVideo
-                  ? <Loader2 className="w-5 h-5 animate-spin" />
-                  : <CheckCircle className="w-5 h-5" />}
-                Approva il Video Masterclass
-              </button>
-            </div>
-          )}
 
         </div>
       )}
@@ -731,9 +683,26 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
   const [fullScript, setFullScript] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [videoData, setVideoData] = useState(null);
+  const [approvingVideo, setApprovingVideo] = useState(false);
 
   const partnerId = partner?.id;
   const videoApproved = videoData?.pipeline_status === "approved";
+
+  const handleApproveVideo = async () => {
+    setApprovingVideo(true);
+    try {
+      const res = await fetch(`${API}/api/partner-journey/masterclass/approve-video?partner_id=${partnerId}`, { method: "POST" });
+      if (res.ok) {
+        await refreshVideoData();
+      } else {
+        console.error("Errore approvazione video:", res.status);
+      }
+    } catch (e) {
+      console.error("Errore di rete", e);
+    } finally {
+      setApprovingVideo(false);
+    }
+  };
 
   // Legge lo stato DFY dello script separatamente per gestire il rendering custom
   const { status: dyfStatus, isLoading: dyfLoading } = useDoneForYou(partnerId, "masterclass");
@@ -787,20 +756,17 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
 
   // ── ADMIN VIEW ────────────────────────────────────────────────────────────
   if (isAdmin) {
+    const pStatus = videoData?.pipeline_status;
     return (
       <div className="min-h-full" style={{ background: "#FAFAF7" }}>
         <div className="max-w-2xl mx-auto p-6">
-          <div className="mb-8" data-testid="masterclass-hero">
-            <h1 className="text-3xl font-black mb-3" style={{ color: "#1E2128" }}>
-              La tua Masterclass
-            </h1>
-            <p className="text-base leading-relaxed" style={{ color: "#5F6572" }}>
-              Il team crea lo script completo della tua masterclass basandosi sul tuo posizionamento.
-            </p>
-          </div>
+
+          {/* 1. Pannello admin: domande + genera script + stato video */}
           {partnerId && (
             <AdminMasterclassPanel partnerId={partnerId} onScriptGenerated={handleScriptGenerated} />
           )}
+
+          {/* 2. Script generato (DFY wrapper con Approva Script) */}
           <DoneForYouWrapper
             partnerId={partnerId}
             stepId="masterclass"
@@ -812,10 +778,36 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
           >
             <ScriptContent scriptSections={scriptSections} fullScript={fullScript} />
           </DoneForYouWrapper>
-          {/* Video status — dopo il bottone Approva script */}
-          <div className="mt-6">
-            <VideoSubmissionCard partnerId={partnerId} onVideoApproved={refreshVideoData} />
-          </div>
+
+          {/* 3. Approva video — appare solo quando il team ha finito il video definitivo */}
+          {pStatus === "ready_for_review" && (
+            <div
+              className="mt-6 rounded-2xl p-5"
+              style={{ background: "#F0FDF4", border: "2px solid #22C55E" }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle className="w-5 h-5" style={{ color: "#16A34A" }} />
+                <span className="text-sm font-black uppercase tracking-wide" style={{ color: "#15803D" }}>
+                  Video Masterclass pronto per approvazione
+                </span>
+              </div>
+              <p className="text-sm mb-4" style={{ color: "#166534" }}>
+                Il team ha completato il video definitivo. Revisionalo e clicca Approva per sbloccare il passo successivo al partner.
+              </p>
+              <button
+                onClick={handleApproveVideo}
+                disabled={approvingVideo}
+                className="w-full flex items-center justify-center gap-3 py-4 rounded-xl text-sm font-black disabled:opacity-50 transition-all hover:opacity-90"
+                style={{ background: "#22C55E", color: "white" }}
+              >
+                {approvingVideo
+                  ? <Loader2 className="w-5 h-5 animate-spin" />
+                  : <CheckCircle className="w-5 h-5" />}
+                Approva il Video Masterclass
+              </button>
+            </div>
+          )}
+
         </div>
       </div>
     );
