@@ -200,7 +200,7 @@ function AdminMasterclassPanel({ partnerId, onScriptGenerated }) {
             </div>
           )}
 
-          {/* Video pipeline status + approve */}
+          {/* Video pipeline status — solo indicatore, senza pulsante approva */}
           {pipelineStatus && (
             <div
               className="p-3 rounded-xl flex items-center gap-3"
@@ -213,17 +213,6 @@ function AdminMasterclassPanel({ partnerId, onScriptGenerated }) {
               <span className="text-sm font-bold flex-1" style={{ color: pipelineStatus === "approved" ? "#16A34A" : "#B45309" }}>
                 Video: {PIPELINE_STATUS[pipelineStatus]?.label || pipelineStatus}
               </span>
-              {pipelineStatus === "ready_for_review" && (
-                <button
-                  onClick={handleApproveVideo}
-                  disabled={approvingVideo}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50"
-                  style={{ background: "#22C55E", color: "white" }}
-                >
-                  {approvingVideo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                  Approva Video
-                </button>
-              )}
               {pipelineStatus === "approved" && (
                 <CheckCircle className="w-5 h-5 flex-shrink-0" style={{ color: "#16A34A" }} />
               )}
@@ -286,6 +275,36 @@ function AdminMasterclassPanel({ partnerId, onScriptGenerated }) {
               Segna Pronto per Partner
             </button>
           </div>
+
+          {/* ── APPROVA VIDEO — in fondo, visibile solo quando il team ha completato il video ── */}
+          {pipelineStatus === "ready_for_review" && (
+            <div
+              className="mt-2 pt-4 rounded-2xl p-4"
+              style={{ background: "#F0FDF4", border: "2px solid #22C55E" }}
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <CheckCircle className="w-4 h-4" style={{ color: "#16A34A" }} />
+                <span className="text-xs font-bold uppercase tracking-wide" style={{ color: "#15803D" }}>
+                  Video masterclass pronto per approvazione
+                </span>
+              </div>
+              <p className="text-xs mb-4" style={{ color: "#166534" }}>
+                Il team ha completato il video definitivo. Revisionalo e clicca Approva per sbloccare il passo successivo al partner.
+              </p>
+              <button
+                onClick={handleApproveVideo}
+                disabled={approvingVideo}
+                className="w-full flex items-center justify-center gap-3 py-3.5 rounded-xl text-sm font-black disabled:opacity-50 transition-all hover:opacity-90"
+                style={{ background: "#22C55E", color: "white" }}
+              >
+                {approvingVideo
+                  ? <Loader2 className="w-5 h-5 animate-spin" />
+                  : <CheckCircle className="w-5 h-5" />}
+                Approva il Video Masterclass
+              </button>
+            </div>
+          )}
+
         </div>
       )}
     </div>
