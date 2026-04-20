@@ -705,7 +705,7 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
   };
 
   // Legge lo stato DFY dello script separatamente per gestire il rendering custom
-  const { status: dyfStatus, isLoading: dyfLoading } = useDoneForYou(partnerId, "masterclass");
+  const { status: dyfStatus, isLoading: dyfLoading, approve: approveScript, isApproving: isApprovingScript } = useDoneForYou(partnerId, "masterclass");
 
   const refreshVideoData = async () => {
     try {
@@ -757,110 +757,428 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
   // ── ADMIN VIEW ────────────────────────────────────────────────────────────
   if (isAdmin) {
     const pStatus = videoData?.pipeline_status;
+    const scriptApproved = dyfStatus === "approvato";
+    const hasScript = !!(fullScript || scriptSections);
+    const videoReadyForReview = pStatus === "ready_for_review";
+    const videoApprovedFinal = pStatus === "approved";
+    const videoInProgress = pStatus && !videoReadyForReview && !videoApprovedFinal;
+
+    const stepDone = (done) => done ? "#22C55E" : "#D1D5DB";
+    const stepNumStyle = (done, active) => ({
+      background: done ? "#22C55E" : active ? "#1E2128" : "#D1D5DB",
+      color: "white",
+      width: 28, height: 28, borderRadius: "50%",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      fontSize: 12, fontWeight: 900, flexShrink: 0
+    });
+
     return (
       <div className="min-h-full" style={{ background: "#FAFAF7" }}>
-        <div className="max-w-2xl mx-auto p-6">
+        <div className="max-w-2xl mx-auto p-6 space-y-4">
 
-          {/* 1. Pannello admin: domande + genera script + stato video */}
-          {partnerId && (
-            <AdminMasterclassPanel partnerId={partnerId} onScriptGenerated={handleScriptGenerated} />
-          )}
-
-          {/* 2. Script generato (DFY wrapper con Approva Script) */}
-          <DoneForYouWrapper
-            partnerId={partnerId}
-            stepId="masterclass"
-            stepTitle="Script Masterclass"
-            stepIcon={Sparkles}
-            nextStepLabel={videoApproved ? "Vai al Videocorso" : undefined}
-            onContinue={videoApproved ? () => onNavigate("videocorso") : undefined}
-            isAdmin={true}
-          >
-            <ScriptContent scriptSections={scriptSections} fullScript={fullScript} />
-          </DoneForYouWrapper>
-
-          {/* 3. Approva video — appare solo quando il team ha finito il video definitivo */}
-          {pStatus === "ready_for_review" && (
-            <div
-              className="mt-6 rounded-2xl p-5"
-              style={{ background: "#F0FDF4", border: "2px solid #22C55E" }}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle className="w-5 h-5" style={{ color: "#16A34A" }} />
-                <span className="text-sm font-black uppercase tracking-wide" style={{ color: "#15803D" }}>
-                  Video Masterclass pronto per approvazione
-                </span>
-              </div>
-              <p className="text-sm mb-4" style={{ color: "#166534" }}>
-                Il team ha completato il video definitivo. Revisionalo e clicca Approva per sbloccare il passo successivo al partner.
-              </p>
-              <button
-                onClick={handleApproveVideo}
-                disabled={approvingVideo}
-                className="w-full flex items-center justify-center gap-3 py-4 rounded-xl text-sm font-black disabled:opacity-50 transition-all hover:opacity-90"
-                style={{ background: "#22C55E", color: "white" }}
-              >
-                {approvingVideo
-                  ? <Loader2 className="w-5 h-5 animate-spin" />
-                  : <CheckCircle className="w-5 h-5" />}
-                Approva il Video Masterclass
-              </button>
+          {/* ── STEP 1: Creazione Script ── */}
+          <div className="rounded-2xl overflow-hidden" style={{ border: `1.5px solid ${stepDone(hasScript)}`, background: "white" }}>
+            <div className="px-5 py-3 flex items-center gap-3" style={{ background: hasScript ? "#F0FDF4" : "#F9FAFB", borderBottom: `1.5px solid ${stepDone(hasScript)}` }}>
+              <div style={stepNumStyle(hasScript, true)}>{hasScript ? "✓" : "1"}</div>
+              <span className="text-sm font-black" style={{ color: "#1E2128" }}>Creazione Script</span>
+              {hasScript && <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "#DCFCE7", color: "#16A34A" }}>Completato</span>}
             </div>
-          )}
+            <div className="p-4">
+              {partnerId && <AdminMasterclassPanel partnerId={partnerId} onScriptGenerated={handleScriptGenerated} />}
+            </div>
+          </div>
+
+          {/* ── STEP 2: Approvazione Script ── */}
+          <div className="rounded-2xl overflow-hidden" style={{ border: `1.5px solid ${stepDone(scriptApproved)}`, background: "white" }}>
+            <div className="px-5 py-3 flex items-center gap-3" style={{ background: scriptApproved ? "#F0FDF4" : "#F9FAFB", borderBottom: `1.5px solid ${stepDone(scriptApproved)}` }}>
+              <div style={stepNumStyle(scriptApproved, hasScript)}>{scriptApproved ? "✓" : "2"}</div>
+              <span className="text-sm font-black" style={{ color: "#1E2128" }}>Approvazione Script</span>
+              {scriptApproved && <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "#DCFCE7", color: "#16A34A" }}>Approvato</span>}
+            </div>
+            <div className="p-4">
+              {hasScript ? (
+                <>
+                  <ScriptContent scriptSections={scriptSections} fullScript={fullScript} />
+                  <div className="mt-5">
+                    {scriptApproved ? (
+                      <div className="flex items-center gap-2 p-3 rounded-xl" style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
+                        <CheckCircle className="w-4 h-4" style={{ color: "#16A34A" }} />
+                        <span className="text-sm font-bold" style={{ color: "#16A34A" }}>Script approvato — il partner può procedere</span>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => approveScript(true)}
+                        disabled={isApprovingScript}
+                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-black text-sm disabled:opacity-50 transition-all hover:opacity-90"
+                        style={{ background: "#FBBF24", color: "#1E2128" }}
+                      >
+                        {isApprovingScript ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                        Approva Script
+                      </button>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-center py-6" style={{ color: "#9CA3AF" }}>
+                  Genera prima lo script nello Step 1
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* ── STEP 3: Creazione Video ── */}
+          <div className="rounded-2xl overflow-hidden" style={{ border: `1.5px solid ${stepDone(videoReadyForReview || videoApprovedFinal)}`, background: "white" }}>
+            <div className="px-5 py-3 flex items-center gap-3" style={{ background: (videoReadyForReview || videoApprovedFinal) ? "#F0FDF4" : "#F9FAFB", borderBottom: `1.5px solid ${stepDone(videoReadyForReview || videoApprovedFinal)}` }}>
+              <div style={stepNumStyle(videoReadyForReview || videoApprovedFinal, scriptApproved)}>{(videoReadyForReview || videoApprovedFinal) ? "✓" : "3"}</div>
+              <span className="text-sm font-black" style={{ color: "#1E2128" }}>Creazione Video</span>
+            </div>
+            <div className="p-4">
+              {pStatus ? (
+                <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
+                  <Video className="w-4 h-4 flex-shrink-0" style={{ color: videoInProgress ? "#3B82F6" : "#22C55E" }} />
+                  <span className="text-sm font-bold" style={{ color: "#374151" }}>
+                    {PIPELINE_STATUS[pStatus]?.label || pStatus}
+                  </span>
+                  {videoInProgress && <Loader2 className="w-4 h-4 animate-spin ml-auto" style={{ color: "#3B82F6" }} />}
+                </div>
+              ) : (
+                <p className="text-sm text-center py-6" style={{ color: "#9CA3AF" }}>
+                  In attesa che il partner carichi il video greggio
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* ── STEP 4: Approvazione Video ── */}
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{
+              border: videoReadyForReview ? "2px solid #22C55E" : `1.5px solid ${stepDone(videoApprovedFinal)}`,
+              background: videoReadyForReview ? "#F0FDF4" : "white"
+            }}
+          >
+            <div
+              className="px-5 py-3 flex items-center gap-3"
+              style={{
+                background: videoReadyForReview ? "#DCFCE7" : videoApprovedFinal ? "#F0FDF4" : "#F9FAFB",
+                borderBottom: videoReadyForReview ? "2px solid #22C55E" : `1.5px solid ${stepDone(videoApprovedFinal)}`
+              }}
+            >
+              <div style={stepNumStyle(videoApprovedFinal, videoReadyForReview)}>{videoApprovedFinal ? "✓" : "4"}</div>
+              <span className="text-sm font-black" style={{ color: videoReadyForReview ? "#15803D" : "#1E2128" }}>Approvazione Video</span>
+              {videoReadyForReview && (
+                <span className="ml-auto text-xs font-black px-2 py-0.5 rounded-full" style={{ background: "#22C55E", color: "white" }}>
+                  Azione richiesta
+                </span>
+              )}
+            </div>
+            <div className="p-4">
+              {videoApprovedFinal ? (
+                <div className="flex items-center gap-2 p-3 rounded-xl" style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
+                  <CheckCircle className="w-4 h-4" style={{ color: "#16A34A" }} />
+                  <span className="text-sm font-bold" style={{ color: "#16A34A" }}>Video approvato — partner sbloccato al passo successivo</span>
+                </div>
+              ) : videoReadyForReview ? (
+                <>
+                  <p className="text-sm mb-4" style={{ color: "#166534" }}>
+                    Il team ha completato il video definitivo. Revisionalo e clicca Approva per sbloccare il partner.
+                  </p>
+                  <button
+                    onClick={handleApproveVideo}
+                    disabled={approvingVideo}
+                    className="w-full flex items-center justify-center gap-3 py-4 rounded-xl text-sm font-black disabled:opacity-50 transition-all hover:opacity-90"
+                    style={{ background: "#22C55E", color: "white" }}
+                  >
+                    {approvingVideo ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+                    Approva il Video Masterclass
+                  </button>
+                </>
+              ) : (
+                <p className="text-sm text-center py-6" style={{ color: "#9CA3AF" }}>
+                  In attesa del completamento del video da parte del team
+                </p>
+              )}
+            </div>
+          </div>
 
         </div>
       </div>
     );
   }
 
-  // ── PARTNER: script approvato, video non ancora approvato ─────────────────
-  if (dyfStatus === "approvato" && !videoApproved) {
-    return (
-      <div className="min-h-full" style={{ background: "#FAFAF7" }}>
-        <VideoUploadPhase
-          scriptSections={scriptSections}
-          fullScript={fullScript}
-          partnerId={partnerId}
-          onVideoApproved={refreshVideoData}
-        />
-      </div>
-    );
-  }
+  // ── PARTNER VIEW — sequenza unificata a 4 step ────────────────────────────
+  const pStatus = videoData?.pipeline_status;
+  const scriptReady = dyfStatus === "pronto" || dyfStatus === "approvato";
+  const scriptApproved = dyfStatus === "approvato";
+  const videoHasError = pStatus === "error" || pStatus === "error_youtube";
+  const videoSubmitted = !!pStatus && !videoHasError;
+  const pipelineActive = pStatus && !["ready_for_review", "approved", "error", "error_youtube"].includes(pStatus);
+  const videoReadyForPartnerView = pStatus === "ready_for_review";
+  const videoApprovedFinal = pStatus === "approved";
 
-  // ── PARTNER: script approvato + video approvato → rivedi e vai al videocorso
-  if (dyfStatus === "approvato" && videoApproved) {
-    return (
-      <div className="min-h-full" style={{ background: "#FAFAF7" }}>
-        <FinalVideoReviewPhase
-          videoData={videoData}
-          onContinue={() => onNavigate("videocorso")}
-        />
-      </div>
-    );
-  }
+  const roadmapSteps = [
+    { label: "Crea Script", done: scriptReady },
+    { label: "Approva Script", done: scriptApproved },
+    { label: "Carica Video", done: videoSubmitted },
+    { label: "Verifica & Approva", done: videoApprovedFinal },
+  ];
 
-  // ── PARTNER: script in preparazione o pronto per revisione ────────────────
+  const cardBorder = (done, active) =>
+    done ? "1.5px solid #22C55E" : active ? "2px solid #FFD24D" : "1.5px solid #E5E7EB";
+  const cardBg = (done, active) =>
+    done ? "#F0FDF4" : "white";
+  const headerBg = (done, active) =>
+    done ? "#DCFCE7" : active ? "#FFFBEB" : "#F9FAFB";
+  const headerBorder = (done, active) =>
+    done ? "1.5px solid #22C55E" : active ? "2px solid #FFD24D" : "1.5px solid #E5E7EB";
+  const numBg = (done, active) =>
+    done ? "#22C55E" : active ? "#FFD24D" : "#D1D5DB";
+  const numColor = (done, active) =>
+    done ? "white" : active ? "#1E2128" : "#9CA3AF";
+
   return (
     <div className="min-h-full" style={{ background: "#FAFAF7" }}>
-      <div className="max-w-2xl mx-auto p-6">
-        <div className="mb-8" data-testid="masterclass-hero">
-          <h1 className="text-3xl font-black mb-3" style={{ color: "#1E2128" }}>
-            La tua Masterclass
-          </h1>
-          <p className="text-base leading-relaxed" style={{ color: "#5F6572" }}>
-            Il team crea lo script completo della tua masterclass basandosi sul tuo posizionamento.
-            <br /><br />
-            <strong>Non devi scrivere nulla. Rivedi lo script, registra e invia il link.</strong>
+      <div className="max-w-2xl mx-auto p-6 space-y-4">
+
+        {/* ── INTRO + ROADMAP ── */}
+        <div className="rounded-2xl p-5" style={{ background: "#1E2128" }}>
+          <h1 className="text-2xl font-black text-white mb-1">La tua Masterclass</h1>
+          <p className="text-sm mb-4" style={{ color: "rgba(255,255,255,0.6)" }}>
+            Il team Evolution PRO costruisce la tua masterclass con te, step dopo step. Tu approvi, noi produciamo.
           </p>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {roadmapSteps.map(({ label, done }, i, arr) => (
+              <span key={i} className="flex items-center gap-1.5">
+                <span
+                  className="text-[11px] font-bold px-2.5 py-1 rounded-full"
+                  style={{
+                    background: done ? "#22C55E" : "rgba(255,255,255,0.1)",
+                    color: done ? "white" : "rgba(255,255,255,0.45)"
+                  }}
+                >
+                  {i + 1}. {label}
+                </span>
+                {i < arr.length - 1 && (
+                  <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 14 }}>›</span>
+                )}
+              </span>
+            ))}
+          </div>
         </div>
-        <DoneForYouWrapper
-          partnerId={partnerId}
-          stepId="masterclass"
-          stepTitle="Script Masterclass"
-          stepIcon={Sparkles}
-        >
-          <ScriptContent scriptSections={scriptSections} fullScript={fullScript} />
-        </DoneForYouWrapper>
+
+        {/* ── STEP 1: Creazione Script ── */}
+        {(() => {
+          const done = scriptReady;
+          const active = !scriptReady;
+          return (
+            <div className="rounded-2xl overflow-hidden" style={{ border: cardBorder(done, active), background: cardBg(done, active) }}>
+              <div className="px-5 py-3 flex items-center gap-3" style={{ background: headerBg(done, active), borderBottom: headerBorder(done, active) }}>
+                <span style={{ width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, flexShrink: 0, background: numBg(done, active), color: numColor(done, active) }}>
+                  {done ? "✓" : "1"}
+                </span>
+                <span className="text-sm font-black" style={{ color: "#1E2128" }}>Creazione Script</span>
+                <span className="ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: done ? "#DCFCE7" : "#FEF3C7", color: done ? "#16A34A" : "#B45309" }}>
+                  {done ? "Completato" : "In corso"}
+                </span>
+              </div>
+              <div className="p-4">
+                {done ? (
+                  <div className="flex items-center gap-2" style={{ color: "#16A34A" }}>
+                    <CheckCircle className="w-4 h-4" />
+                    <span className="text-sm font-bold">Lo script è pronto — il team lo ha preparato per te</span>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" style={{ color: "#FFD24D" }} />
+                    <p className="text-sm" style={{ color: "#6B7280" }}>Il team sta preparando lo script personalizzato della tua masterclass</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── STEP 2: Approva lo Script ── */}
+        {(() => {
+          const done = scriptApproved;
+          const active = scriptReady && !scriptApproved;
+          return (
+            <div className="rounded-2xl overflow-hidden" style={{ border: cardBorder(done, active), background: cardBg(done, active) }}>
+              <div className="px-5 py-3 flex items-center gap-3" style={{ background: headerBg(done, active), borderBottom: headerBorder(done, active) }}>
+                <span style={{ width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, flexShrink: 0, background: numBg(done, active), color: numColor(done, active) }}>
+                  {done ? "✓" : "2"}
+                </span>
+                <span className="text-sm font-black" style={{ color: "#1E2128" }}>Approva lo Script</span>
+                {done && <span className="ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#DCFCE7", color: "#16A34A" }}>Approvato</span>}
+                {active && <span className="ml-auto text-[11px] font-black px-2 py-0.5 rounded-full" style={{ background: "#FDE68A", color: "#92400E" }}>Azione richiesta</span>}
+              </div>
+              <div className="p-4">
+                {!scriptReady ? (
+                  <p className="text-sm text-center py-4" style={{ color: "#9CA3AF" }}>Disponibile dopo la creazione dello script</p>
+                ) : done ? (
+                  <div className="flex items-center gap-2" style={{ color: "#16A34A" }}>
+                    <CheckCircle className="w-4 h-4" />
+                    <span className="text-sm font-bold">Script approvato — puoi procedere con la registrazione</span>
+                  </div>
+                ) : (
+                  <>
+                    <ScriptContent scriptSections={scriptSections} fullScript={fullScript} />
+                    <button
+                      onClick={() => approveScript(false)}
+                      disabled={isApprovingScript}
+                      className="mt-5 w-full flex items-center justify-center gap-2 py-4 rounded-xl font-black text-sm disabled:opacity-50 transition-all hover:scale-[1.01]"
+                      style={{ background: "#34C77B", color: "white", boxShadow: "0 4px 16px #34C77B40" }}
+                    >
+                      {isApprovingScript ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+                      Approva lo Script
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── STEP 3: Carica il Video Grezzo ── */}
+        {(() => {
+          const done = videoSubmitted;
+          const active = scriptApproved && !videoSubmitted;
+          return (
+            <div className="rounded-2xl overflow-hidden" style={{ border: cardBorder(done, active), background: cardBg(done, active) }}>
+              <div className="px-5 py-3 flex items-center gap-3" style={{ background: headerBg(done, active), borderBottom: headerBorder(done, active) }}>
+                <span style={{ width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, flexShrink: 0, background: numBg(done, active), color: numColor(done, active) }}>
+                  {done ? "✓" : "3"}
+                </span>
+                <span className="text-sm font-black" style={{ color: "#1E2128" }}>Carica il Video Grezzo</span>
+                {pipelineActive && <span className="ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#DBEAFE", color: "#1D4ED8" }}>In elaborazione</span>}
+                {done && !pipelineActive && <span className="ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#DCFCE7", color: "#16A34A" }}>Ricevuto</span>}
+                {active && <span className="ml-auto text-[11px] font-black px-2 py-0.5 rounded-full" style={{ background: "#FDE68A", color: "#92400E" }}>Azione richiesta</span>}
+              </div>
+              <div className="p-4">
+                {!scriptApproved ? (
+                  <p className="text-sm text-center py-4" style={{ color: "#9CA3AF" }}>Disponibile dopo l'approvazione dello script</p>
+                ) : (
+                  <>
+                    {!videoSubmitted && (
+                      <div className="mb-4 p-4 rounded-xl space-y-2" style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
+                        <p className="text-xs font-bold mb-2" style={{ color: "#374151" }}>Come inviare il video grezzo:</p>
+                        {[
+                          "Registra la masterclass seguendo lo script approvato (smartphone o camera vanno benissimo)",
+                          "Carica il file su Google Drive → clic destro → Condividi → \"Chiunque con il link\"",
+                          "Incolla il link Drive nel campo qui sotto e clicca Invia",
+                        ].map((text, i) => (
+                          <div key={i} className="flex items-start gap-2 text-xs" style={{ color: "#6B7280" }}>
+                            <span style={{ width: 18, height: 18, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 10, fontWeight: 900, marginTop: 1, background: "#FFD24D", color: "#1E2128" }}>{i + 1}</span>
+                            <span className="leading-relaxed">{text}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <VideoSubmissionCard partnerId={partnerId} onVideoApproved={refreshVideoData} />
+                    {pipelineActive && (
+                      <div className="mt-3 flex items-center gap-3 p-3 rounded-xl" style={{ background: "#EFF6FF", border: "1px solid #BFDBFE" }}>
+                        <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" style={{ color: "#3B82F6" }} />
+                        <div>
+                          <p className="text-xs font-bold" style={{ color: "#1D4ED8" }}>{PIPELINE_STATUS[pStatus]?.label || pStatus}</p>
+                          <p className="text-xs" style={{ color: "#3B82F6" }}>Il team sta elaborando il video automaticamente — ti avviseremo quando è pronto</p>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── STEP 4: Verifica il Video Finale ── */}
+        {(() => {
+          const done = videoApprovedFinal;
+          const active = videoReadyForPartnerView;
+          return (
+            <div className="rounded-2xl overflow-hidden" style={{ border: cardBorder(done, active), background: cardBg(done, active) }}>
+              <div className="px-5 py-3 flex items-center gap-3" style={{ background: headerBg(done, active), borderBottom: headerBorder(done, active) }}>
+                <span style={{ width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, flexShrink: 0, background: numBg(done, active), color: numColor(done, active) }}>
+                  {done ? "✓" : "4"}
+                </span>
+                <span className="text-sm font-black" style={{ color: "#1E2128" }}>Verifica il Video Finale</span>
+                {done && <span className="ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#DCFCE7", color: "#16A34A" }}>Completato</span>}
+                {active && <span className="ml-auto text-[11px] font-black px-2 py-0.5 rounded-full" style={{ background: "#FDE68A", color: "#92400E" }}>Azione richiesta</span>}
+              </div>
+              <div className="p-4">
+                {done ? (
+                  <>
+                    {videoData?.video_youtube_id && (
+                      <div className="mb-4 rounded-xl overflow-hidden" style={{ border: "1px solid #E5E2DD" }}>
+                        <div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
+                          <iframe
+                            src={`https://www.youtube.com/embed/${videoData.video_youtube_id}`}
+                            title="La tua Masterclass"
+                            allowFullScreen
+                            style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: 0 }}
+                          />
+                        </div>
+                        {videoData.video_time_saved_s > 0 && (
+                          <div className="px-4 py-2 text-xs font-semibold" style={{ background: "#FAFAF7", borderTop: "1px solid #E5E2DD", color: "#16A34A" }}>
+                            ✂️ Rimossi {Math.round(videoData.video_time_saved_s / 60)} min di silenzi e filler words
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 p-3 rounded-xl mb-4" style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
+                      <CheckCircle className="w-4 h-4" style={{ color: "#16A34A" }} />
+                      <span className="text-sm font-bold" style={{ color: "#16A34A" }}>Masterclass completata — procedi con il Videocorso</span>
+                    </div>
+                    <button
+                      onClick={() => onNavigate("videocorso")}
+                      className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm transition-all hover:opacity-90"
+                      style={{ background: "#1E2128", color: "#FFD24D" }}
+                    >
+                      Vai al Videocorso →
+                    </button>
+                  </>
+                ) : active ? (
+                  <>
+                    {videoData?.video_youtube_id ? (
+                      <div className="mb-4 rounded-xl overflow-hidden" style={{ border: "1px solid #E5E2DD" }}>
+                        <div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
+                          <iframe
+                            src={`https://www.youtube.com/embed/${videoData.video_youtube_id}`}
+                            title="La tua Masterclass"
+                            allowFullScreen
+                            style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: 0 }}
+                          />
+                        </div>
+                        {videoData.video_time_saved_s > 0 && (
+                          <div className="px-4 py-2 text-xs font-semibold" style={{ background: "#FAFAF7", borderTop: "1px solid #E5E2DD", color: "#16A34A" }}>
+                            ✂️ Rimossi {Math.round(videoData.video_time_saved_s / 60)} min di silenzi e filler words
+                          </div>
+                        )}
+                      </div>
+                    ) : videoData?.video_youtube_url ? (
+                      <a href={videoData.video_youtube_url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 p-3 rounded-xl mb-4 text-sm font-bold"
+                        style={{ background: "#FFF0F0", color: "#DC2626", border: "1px solid #FECACA" }}>
+                        <Youtube className="w-4 h-4" />
+                        Guarda la masterclass su YouTube →
+                      </a>
+                    ) : null}
+                    <p className="text-xs mb-3" style={{ color: "#6B7280" }}>
+                      Il team ha elaborato ed editato il tuo video. Guardalo e, se è tutto ok, il team ti sblocca il passo successivo.
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-center py-4" style={{ color: "#9CA3AF" }}>
+                    {videoSubmitted
+                      ? "Il team sta elaborando il video — ti avviseremo quando è pronto per la revisione"
+                      : "Disponibile dopo l'invio del video grezzo"}
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
       </div>
     </div>
   );
