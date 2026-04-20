@@ -252,11 +252,23 @@ export function VideoReviewPanel() {
     ));
   };
 
-  const displayed = filter === "pending"
-    ? videos.filter(v => v.status === "ready_for_review")
-    : videos;
+  const PIPELINE_STATUSES = ["queued", "downloading", "cleaning", "transcribing", "cutting_fillers", "uploading_youtube"];
+  const PIPELINE_LABEL = {
+    queued: "In coda",
+    downloading: "Download",
+    cleaning: "Pulizia audio",
+    transcribing: "Trascrizione",
+    cutting_fillers: "Taglio filler",
+    uploading_youtube: "Upload YouTube",
+  };
 
-  const pendingCount = videos.filter(v => v.status === "ready_for_review").length;
+  const pending   = videos.filter(v => v.status === "ready_for_review");
+  const inPipeline = videos.filter(v => PIPELINE_STATUSES.includes(v.status));
+  const approved  = videos.filter(v => v.status === "approved");
+  const errors    = videos.filter(v => v.status === "error" || v.status === "error_youtube");
+
+  const displayed = filter === "pending" ? pending : videos;
+  const pendingCount = pending.length;
 
   if (loading) return (
     <div className="flex items-center justify-center py-20" style={{ background: C.bg }}>
@@ -272,13 +284,14 @@ export function VideoReviewPanel() {
           <h1 className="text-2xl font-black" style={{ color: C.text }}>Video Review</h1>
           <p className="text-sm mt-0.5" style={{ color: C.muted }}>
             {pendingCount > 0
-              ? `${pendingCount} video ${pendingCount === 1 ? "in attesa" : "in attesa"} di approvazione`
-              : "Nessun video in attesa"}
+              ? `${pendingCount} ${pendingCount === 1 ? "video" : "video"} da approvare`
+              : "Nessun video da approvare"}
+            {inPipeline.length > 0 && ` · ${inPipeline.length} in elaborazione`}
           </p>
         </div>
         <div className="flex rounded-xl overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
           {[
-            { id: "pending", label: `In attesa (${pendingCount})` },
+            { id: "pending", label: `Da approvare (${pendingCount})` },
             { id: "all", label: `Tutti (${videos.length})` }
           ].map(tab => (
             <button key={tab.id} onClick={() => setFilter(tab.id)}
@@ -293,21 +306,109 @@ export function VideoReviewPanel() {
         </div>
       </div>
 
-      {displayed.length === 0 ? (
-        <div className="text-center py-20">
-          <CheckCircle className="w-12 h-12 mx-auto mb-3" style={{ color: C.green, opacity: 0.4 }} />
-          <p className="text-base font-bold" style={{ color: C.muted }}>
-            {filter === "pending" ? "Nessun video da approvare" : "Nessun video ancora"}
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4 max-w-3xl">
-          {displayed.map((v, i) => (
-            <VideoCard key={`${v.partner_id}-${v.type}-${v.lesson_id || ""}-${i}`}
-              video={v} onApprove={handleApprove} />
-          ))}
-        </div>
-      )}
+      <div className="max-w-3xl space-y-8">
+
+        {/* IN ELABORAZIONE */}
+        {inPipeline.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Loader2 className="w-4 h-4 animate-spin" style={{ color: C.blue }} />
+              <span className="text-xs font-black uppercase tracking-wider" style={{ color: C.blue }}>
+                In elaborazione ({inPipeline.length})
+              </span>
+            </div>
+            <div className="space-y-3">
+              {inPipeline.map((v, i) => (
+                <div key={i} className="rounded-xl p-4 flex items-center gap-4"
+                  style={{ background: C.blueDim, border: `1px solid #BFDBFE` }}>
+                  <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" style={{ color: C.blue }} />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-black" style={{ color: C.text }}>{v.partner_name}</span>
+                    <span className="ml-2 text-xs" style={{ color: C.muted }}>
+                      {v.type === "masterclass" ? "Masterclass" : `Videocorso — Lezione ${v.lesson_id}`}
+                    </span>
+                    <div className="text-xs mt-0.5 font-bold" style={{ color: C.blue }}>
+                      {PIPELINE_LABEL[v.status] || v.status}
+                    </div>
+                  </div>
+                  <Clock className="w-4 h-4 flex-shrink-0" style={{ color: C.blue, opacity: 0.5 }} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* DA APPROVARE */}
+        {(filter === "pending" ? pending : pending).length > 0 && (
+          <div>
+            {filter === "all" && (
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle className="w-4 h-4" style={{ color: C.yellowDark }} />
+                <span className="text-xs font-black uppercase tracking-wider" style={{ color: C.yellowDark }}>
+                  Da approvare ({pending.length})
+                </span>
+              </div>
+            )}
+            <div className="space-y-4">
+              {(filter === "pending" ? displayed : pending).map((v, i) => (
+                <VideoCard key={`${v.partner_id}-${v.type}-${v.lesson_id || ""}-${i}`}
+                  video={v} onApprove={handleApprove} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* APPROVATI (solo in vista "tutti") */}
+        {filter === "all" && approved.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <CheckCircle className="w-4 h-4" style={{ color: C.green }} />
+              <span className="text-xs font-black uppercase tracking-wider" style={{ color: C.green }}>
+                Approvati ({approved.length})
+              </span>
+            </div>
+            <div className="space-y-4">
+              {approved.map((v, i) => (
+                <VideoCard key={`${v.partner_id}-${v.type}-${v.lesson_id || ""}-${i}`}
+                  video={v} onApprove={handleApprove} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ERRORI */}
+        {errors.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <AlertTriangle className="w-4 h-4" style={{ color: C.red }} />
+              <span className="text-xs font-black uppercase tracking-wider" style={{ color: C.red }}>
+                Errori ({errors.length})
+              </span>
+            </div>
+            <div className="space-y-4">
+              {errors.map((v, i) => (
+                <VideoCard key={`${v.partner_id}-${v.type}-${v.lesson_id || ""}-${i}`}
+                  video={v} onApprove={handleApprove} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* VUOTO */}
+        {videos.length === 0 && (
+          <div className="text-center py-20">
+            <CheckCircle className="w-12 h-12 mx-auto mb-3" style={{ color: C.green, opacity: 0.4 }} />
+            <p className="text-base font-bold" style={{ color: C.muted }}>Nessun video ancora</p>
+          </div>
+        )}
+        {filter === "pending" && pending.length === 0 && (
+          <div className="text-center py-10">
+            <CheckCircle className="w-10 h-10 mx-auto mb-3" style={{ color: C.green, opacity: 0.4 }} />
+            <p className="text-base font-bold" style={{ color: C.muted }}>Nessun video da approvare</p>
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }
