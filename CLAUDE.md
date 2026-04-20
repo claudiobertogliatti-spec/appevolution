@@ -6,7 +6,11 @@
 
 ## Autorizzazione operativa
 
-Claude Code è autorizzato a committare e pushare su `main` senza richiedere conferma esplicita a ogni operazione. L'utente (Claudio) ha dato autorizzazione permanente per operare in modo autonomo su questo repository.
+Claude è autorizzato a committare e pushare su `main` senza richiedere conferma esplicita a ogni operazione. L'utente (Claudio) ha dato autorizzazione permanente per operare in modo autonomo su questo repository.
+
+**Deploy autonomo**: Claude deve eseguire direttamente git add/commit/push usando il sandbox bash (mcp__workspace__bash). NON dare mai comandi PowerShell da eseguire manualmente a Claudio. Se il sandbox bash è temporaneamente down, usare Claude in Chrome con l'editor GitHub web (CM6). Non chiedere mai a Claudio di lanciare comandi manualmente.
+
+**Se il sandbox bash fallisce**: usare Claude in Chrome → navigare su github.com/claudiobertogliatti-spec/appevolution → aprire il file → Edit → modificare via console CM6 → commit su main.
 
 ## ✅ Backfill evolution_id da eseguire una volta
 
@@ -339,3 +343,67 @@ Vista Antonella: nasconde l'intera sezione ACQUISIZIONE (Set `ANTONELLA_HIDDEN`)
 MiniDashboard: 4 tile cliccabili (Approvazioni, Call da fissare, Alert partner, Conversione%). Auto-refresh 60s.
 Stefania pinned in cima con sfondo `#FFF9E6` e bordo `#FFD24D80`.
 Larghezza sidebar: 260px.
+
+## AdminPartnerJourneyEditor — Editor Journey Admin (2026-04-20)
+
+### Cosa fa
+Editor full-page per modificare tutti i dati journey di un singolo partner. Pensato per migrare i dati dei 23 partner in onboarding senza bloccarsi.
+
+### File
+- `frontend/src/components/admin/AdminPartnerJourneyEditor.jsx` — componente principale
+- Montato in `App.js` come `nav==="journey-editor"` (richiede `selectedPartner`)
+
+### Come aprirlo
+Dalla lista partner (nav `"partner"`) → bottone viola **"Journey"** nella colonna Azioni. Passa `selectedPartner` e naviga a `nav="journey-editor"`.
+
+### Struttura accordion — 6 step
+1. **Posizionamento** → `partner_posizionamento` (corso_titolo, corso_descrizione, avatar, target, USP)
+2. **Funnel Light** → `partner_funnel` (funnel_url, optin_url, is_published)
+3. **Masterclass** — Script + Video:
+   - Script: `dyf_status` dropdown + textarea script → `masterclass_factory`
+   - Video: `pipeline_status` dropdown (bypass manuale), YouTube URL (con embed preview + auto-estrazione ID), Drive URL → `masterclass_factory`
+4. **Videocorso** → `partner_videocorso` — editor per-lezione (title, pipeline_status, YouTube URL) + "Aggiungi lezione"
+5. **Funnel Vendita** → `partner_funnel` (vendita_url, checkout_url, thankyou_url, is_active)
+6. **Lancio** → `partners` (launch_date, launch_notes)
+
+Header: fase dropdown → salva su `partners.phase`.
+
+### API usata
+- Lettura: `GET /api/admin/partner/{partner_id}/full-data`
+- Scrittura: `PATCH /api/admin/partner/{partner_id}/journey` con `{collection, data}`
+
+## Sessione 2026-04-20 — Fix applicati e funzionalità aggiunte
+
+### Fix applicati in questa sessione
+1. **`backend/video_pipeline_task.py`** — MongoDB Atlas fallback in `_run_pipeline()` (problema #9)
+2. **`frontend/src/components/partner/MasterclassPage.jsx`** — `VideoSubmissionCard`: rimosso label tecnico pipeline e raw error MongoDB esposti al partner
+3. **`CLAUDE.md`** — aggiunto problema #9 + corretta sintassi CM6
+4. **`frontend/src/components/admin/AdminPartnerJourneyEditor.jsx`** — nuovo file (editor full-page journey admin)
+5. **`frontend/src/App.js`** — import + route `journey-editor` + bottone "Journey" in AdminPartners
+
+### Daniele Andolfi (partner ID "23") — stato pipeline masterclass
+- Video grezzo: `masterclass 2.mp4` (Drive ID `1_5iI-JsEWue-CUVu3SoIMkdJknQYB1UY`)
+- Pipeline avviata dopo fix MongoDB — era in stato `downloading` a fine sessione
+- Quando arriva a `ready_for_review`: admin vede in Video Review panel e in MasterclassPage step 4
+- Se si blocca ancora: usare Plan B bypass (PATCH journey con YouTube URL manuale + status `ready_for_review`)
+
+### CM6 editor GitHub — pattern corretto per commit via browser
+```js
+const tile = document.querySelector('.cm-content').cmTile;
+window.__cmView = tile.view;
+const doc = __cmView.state.doc.toString();
+const OLD = 'OLD_TEXT';
+const idx = doc.indexOf(OLD);
+__cmView.dispatch({changes:{from:idx, to:idx+OLD.length, insert:'NEW_TEXT'}});
+// Poi cliccare "Commit changes..." → nel dialog "Commit changes" (senza ...)
+// Il button click va fatto in 2 passi: apri dialog, poi click final button
+```
+
+### Commit via browser (quando bash sandbox è down)
+Endpoint GitHub: `tree-save` (non `update`). Token CSRF si trova in:
+```js
+const scripts = Array.from(document.querySelectorAll('script[data-target="react-app.embeddedData"]'));
+const data = JSON.parse(scripts[0].textContent);
+window.__tokens = data?.payload?.csrf_tokens; // chiave: /owner/repo/tree-save/main/path
+```
+Il flusso corretto: applica modifiche CM6 → click "Commit changes..." → click "Commit changes" nel dialog.
