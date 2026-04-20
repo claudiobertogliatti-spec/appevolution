@@ -9187,11 +9187,11 @@ async def get_videos_for_review(credentials: HTTPAuthorizationCredentials = Depe
     if not user or user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
 
-    # Masterclass videos
+    # Masterclass videos — tutti gli stati (inclusi in elaborazione)
     masterclass_docs = await db.masterclass_factory.find(
-        {"video_pipeline_status": {"$in": ["ready_for_review", "approved", "error_youtube"]}},
+        {"video_pipeline_status": {"$exists": True, "$ne": None}},
         {"_id": 0}
-    ).sort("pipeline_completed_at", -1).to_list(100)
+    ).sort("video_submitted_at", -1).to_list(200)
 
     # Videocorso lessons
     videocorso_docs = await db.partner_videocorso.find(
@@ -9225,7 +9225,7 @@ async def get_videos_for_review(credentials: HTTPAuthorizationCredentials = Depe
     for doc in videocorso_docs:
         lessons = doc.get("lessons", {})
         for lesson_id, lesson in lessons.items():
-            if lesson.get("pipeline_status") in ("ready_for_review", "approved", "error_youtube"):
+            if lesson.get("pipeline_status") and lesson.get("pipeline_status") is not None:
                 partner = await db.partners.find_one({"id": doc["partner_id"]}, {"_id": 0, "name": 1, "youtube_playlist_url": 1})
                 result.append({
                     "type": "videocorso",
