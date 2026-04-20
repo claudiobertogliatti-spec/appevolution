@@ -117,6 +117,7 @@ import PropostaPage from "./components/PropostaPage";
 import { TrackingConfigPanel } from "./components/admin/TrackingConfigPanel";
 import { initTracking, trackPageView, trackQuestionarioStarted, trackQuestionarioCompleted, trackPaymentInitiated, trackPaymentCompleted, trackContractSigned } from "./utils/tracking";
 import "./styles/design-system.css";
+import { AdminPartnerJourneyEditor } from "./components/admin/AdminPartnerJourneyEditor";
 
 // Constants and extracted components
 // API, PHASES, PHASE_LABELS, etc. imported from appConstants.js
@@ -217,7 +218,7 @@ function AdminAgents({ agents }) {
   );
 }
 
-function AdminPartners({ partners, onSelect, onViewAsPartner, onDeletePartner }) {
+function AdminPartners({ partners, onSelect, onViewAsPartner, onDeletePartner, onEditJourney }) {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   
   // Helper per badge piano continuità
@@ -261,12 +262,21 @@ function AdminPartners({ partners, onSelect, onViewAsPartner, onDeletePartner })
               <div>{p.alert?<span className="text-xs font-bold text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3"/>Alert</span>:<span className="text-xs font-bold text-green-500 flex items-center gap-1"><Check className="w-3 h-3"/>OK</span>}</div>
               <div className="flex items-center gap-2">
                 <button
+                  onClick={(e)=>{ e.stopPropagation(); onEditJourney && onEditJourney(p); }}
+                  className="px-3 py-1.5 text-xs font-bold rounded-lg transition-all"
+                  style={{ background: '#7C3AED20', color: '#7C3AED' }}
+                  title="Modifica dati journey"
+                >
+                  <Edit3 className="w-3 h-3 inline mr-1" />
+                  Journey
+                </button>
+                <button
                   onClick={(e)=>{ e.stopPropagation(); onViewAsPartner && onViewAsPartner(p); }}
                   className="px-3 py-1.5 text-xs font-bold rounded-lg transition-all hover:bg-[#3B82F6] hover:text-white"
                   style={{ background: '#3B82F620', color: '#3B82F6' }}
                 >
                   <Eye className="w-3 h-3 inline mr-1" />
-                  Visualizza
+                  Vista
                 </button>
                 <button
                   onClick={(e)=>{ e.stopPropagation(); setDeleteConfirm(p); }}
@@ -1231,7 +1241,8 @@ export default function App() {
             {nav==="lista-fredda"&&<ListaFreddaAdmin/>}
             {nav==="lead-manager"&&<LeadManagerAdmin/>}
             {nav==="servizi-admin"&&<ServiziExtraAdmin/>}
-            {nav==="partner"&&<AdminPartners partners={partners} onSelect={(p)=>{setSelectedPartner(p);setShowPartnerDetail(true);}} onViewAsPartner={(p)=>{setSelectedPartner(p);setMode("partner");setNav("dashboard");}} onDeletePartner={handleDeletePartner}/>}
+            {nav==="partner"&&<AdminPartners partners={partners} onSelect={(p)=>{setSelectedPartner(p);setShowPartnerDetail(true);}} onViewAsPartner={(p)=>{setSelectedPartner(p);setMode("partner");setNav("dashboard");}} onDeletePartner={handleDeletePartner} onEditJourney={(p)=>{setSelectedPartner(p);setNav("journey-editor");}}/> }
+            {nav==="journey-editor"&&selectedPartner&&<AdminPartnerJourneyEditor partner={selectedPartner} onBack={()=>setNav("partner")}/>}
             {nav==="documenti-partner"&&<PartnerDocumentsView partners={partners}/>}
             {nav==="onboarding-admin"&&<OnboardingDocumentsAdmin/>}
             {nav==="youtube-heygen"&&<YouTubeHeygenHub/>}
