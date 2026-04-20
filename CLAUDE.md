@@ -8,6 +8,24 @@
 
 Claude Code è autorizzato a committare e pushare su `main` senza richiedere conferma esplicita a ogni operazione. L'utente (Claudio) ha dato autorizzazione permanente per operare in modo autonomo su questo repository.
 
+## ⚠️ Modifiche in attesa di push (2026-04-20)
+
+Le seguenti modifiche sono scritte su disco ma NON ancora committate/pushate. Eseguire subito all'inizio della prossima sessione:
+
+```powershell
+cd C:\Users\berto\Desktop\appevolution; git add -A; git commit -m "fix: masterclass partner view — flusso corretto team editing"; git push origin main
+```
+
+**File modificati**:
+- `frontend/src/components/partner/MasterclassPage.jsx` — vista partner corretta (step 3 "Invia Video Grezzo" senza label pipeline, step 4 con bottone approvazione partner)
+- `CLAUDE.md` — documentazione aggiornata
+
+**Dopo il push**, chiamare una volta per migrare gli evolution_id esistenti:
+```
+POST /api/admin/backfill-evolution-ids
+Authorization: Bearer <admin_token>
+```
+
 ## ⚠️ IMPORTANTE: Emergent AI non esiste più
 
 **Emergent AI è stato sostituito da Claude (questo stesso assistente).** Non perdere tempo a ragionare su "Emergent gestisce il backend" o a fare workaround per l'infrastruttura Emergent — non esiste più.
@@ -230,12 +248,32 @@ Roadmap visiva nell'header scuro in cima mostra i 4 step con colori aggiornati i
 
 **NON usare più** `VideoUploadPhase` o `FinalVideoReviewPhase` come schermate separate — esistono nel file ma non vengono chiamate.
 
+### Flusso video — Masterclass e Videocorso (identico per entrambi)
+
+**Il partner NON fa editing.** Il flusso corretto è:
+1. Team Evolution crea lo script (admin panel)
+2. Partner approva lo script
+3. Partner registra il video grezzo → carica su Google Drive → entra in piattaforma e invia il link Drive
+4. Team Evolution scarica, edita, carica su YouTube (unlisted) sul canale Evolution PRO
+5. Partner guarda il video su YouTube e lo approva cliccando "Approva il Video — Tutto ok!"
+
+**Visibilità pipeline al partner**: mostrare SOLO "Video ricevuto — il team sta lavorando all'editing". MAI mostrare label tecniche come "Trascrizione AI", "Taglio filler words", "Upload YouTube".
+
+**Questo flusso vale identicamente per ogni lezione del Videocorso** (stesso pattern: grezzo Drive → editing team → YouTube → approvazione partner).
+
 ### YouTube Playlist
 - Creata automaticamente dalla pipeline Celery al primo video processato
 - Nome: `"Evolution PRO - {partner_name}"` (file: `backend/video_pipeline_task.py`, funzione `create_youtube_playlist_sync`)
 - ID salvato in `partner.youtube_playlist_id`, URL in `partner.youtube_playlist_url`
 - La stessa playlist viene riusata per tutte le lezioni del videocorso dello stesso partner
 - Aggiunta video alla playlist: `add_to_youtube_playlist_sync(youtube_id, playlist_id)`
+
+### Daniele Andolfi — masterclass in lavorazione (2026-04-20)
+- Partner ID: `"23"`, email: `andolfi3275@gmail.com`
+- Video grezzo: `masterclass 2.mp4` (Google Drive ID `1_5iI-JsEWue-CUVu3SoIMkdJknQYB1UY`)
+- Pipeline avviata manualmente il 2026-04-20, era in stato `downloading` all'ultimo controllo
+- Quando arriva a `ready_for_review`: admin vede il video in Video Review panel (sezione "Da approvare") e in MasterclassPage step 4
+- Prima masterclass reale del sistema — usarla per verificare qualità produzione
 
 ### AdminSidebarLight — struttura nav (2026-04-20)
 File: `frontend/src/components/admin/AdminSidebarLight.jsx`
