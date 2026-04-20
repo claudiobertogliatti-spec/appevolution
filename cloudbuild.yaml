@@ -1,0 +1,46 @@
+substitutions:
+  _SERVICE_NAME: evolution-pro-frontend-v2   # override dal trigger
+  _REGION: europe-west1
+
+steps:
+  # 1. Build image con CACHEBUST forzato
+  - name: 'gcr.io/cloud-builders/docker'
+    id: build
+    args:
+      - build
+      - --no-cache
+      - --build-arg
+      - CACHE_BUST=$BUILD_ID
+      - -t
+      - gcr.io/$PROJECT_ID/$_SERVICE_NAME:$BUILD_ID
+      - ./frontend
+
+  # 2. Push su Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: push
+    waitFor: [build]
+    args:
+      - push
+      - gcr.io/$PROJECT_ID/$_SERVICE_NAME:$BUILD_ID
+
+  # 3. Deploy su Cloud Run (SHA esatto, mai :latest)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: deploy
+    waitFor: [push]
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - $_SERVICE_NAME
+      - --image=gcr.io/$PROJECT_ID/$_SERVICE_NAME:$BUILD_ID
+      - --region=$_REGION
+      - --platform=managed
+      - --allow-unauthenticated
+      - --revision-suffix=b$BUILD_ID
+      - --project=$PROJECT_ID
+
+images:
+  - gcr.io/$PROJECT_ID/$_SERVICE_NAME:$BUILD_ID
+
+options:
+  logging: CLOUD_LOGGING_ONLY

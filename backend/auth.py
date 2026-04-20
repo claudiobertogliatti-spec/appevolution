@@ -37,6 +37,7 @@ class UserCreate(UserBase):
 
 class UserInDB(UserBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    evolution_id: str = Field(default_factory=lambda: "EVO-" + uuid.uuid4().hex[:8].upper())
     hashed_password: str
     is_active: bool = True
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -50,6 +51,7 @@ class UserInDB(UserBase):
 
 class UserResponse(BaseModel):
     id: str
+    evolution_id: Optional[str] = None
     email: str
     name: str
     role: str
@@ -236,6 +238,7 @@ class AuthService:
             expires_in=JWT_EXPIRATION_HOURS * 3600,
             user=UserResponse(
                 id=user["id"],
+                evolution_id=user.get("evolution_id"),
                 email=user["email"],
                 name=user["name"],
                 role=user["role"],

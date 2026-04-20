@@ -590,6 +590,9 @@ export function AdminClientiAnalisiPanel() {
                       <div className="font-medium text-sm" style={{ color: '#1E2128' }}>
                         {cliente.nome}
                       </div>
+                      {cliente.evolution_id && (
+                        <div className="font-mono text-[10px] text-[#818CF8] mt-0.5">{cliente.evolution_id}</div>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <div className="font-medium text-sm" style={{ color: '#1E2128' }}>

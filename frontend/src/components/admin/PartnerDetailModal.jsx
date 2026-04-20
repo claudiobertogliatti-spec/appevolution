@@ -358,6 +358,12 @@ function JourneyEditor({ data, saving, saved, onSave, onDataChange }) {
     <div className="space-y-3">
       {/* ANAGRAFICA BASE */}
       <JourneySection title="Anagrafica e Sistemi" icon={User} color="#3B82F6" defaultOpen={true}>
+        {partner.evolution_id && (
+          <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-[#6366F1]/10 border border-[#6366F1]/20">
+            <span className="text-xs text-[#9CA3AF] font-medium">ID Lifecycle:</span>
+            <span className="font-mono text-sm font-bold text-[#818CF8] tracking-widest">{partner.evolution_id}</span>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <JField label="Nome" value={partner.name} onChange={v => updatePartner("name", v)} />
           <JField label="Email" value={partner.email} onChange={v => updatePartner("email", v)} />

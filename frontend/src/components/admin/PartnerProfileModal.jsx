@@ -324,6 +324,11 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                 <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-[#FFD24D]/20 text-[#FFD24D]">
                   {partner.phase}
                 </span>
+                {partner.evolution_id && (
+                  <span className="font-mono text-xs px-2 py-0.5 rounded bg-[#6366F1]/15 text-[#818CF8] tracking-wider">
+                    {partner.evolution_id}
+                  </span>
+                )}
                 {daysRemaining !== null && (
                   <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                     daysRemaining < 30 ? "bg-red-500/20 text-red-400" : 
