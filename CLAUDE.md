@@ -163,6 +163,8 @@ Sostituire `localStorage.getItem("token")` con `localStorage.getItem("access_tok
 - Il blocco traffico su vecchie revision: usare `gcloud run services update-traffic evolution-pro-backend --to-latest --region europe-west1`
 - Se le nuove revision falliscono: vedere sezione "Problemi noti del backend" sopra
 - **PowerShell**: eseguire sempre i comandi git da `C:\Users\berto\Desktop\appevolution`, non da `C:\WINDOWS\system32`
+- **PowerShell sintassi**: `&&` NON funziona in PowerShell. Usare `;` oppure comandi separati: `git add -A; git commit -m "msg"; git push origin main`
+- **Sandbox Linux Cowork**: se il workspace bash non parte (errore "Workspace unavailable"), usare PowerShell per git. Il codice è sempre scritto correttamente su disco tramite file tools.
 
 ## Evolution ID — ID lifecycle stabile per utente (2026-04-20)
 
