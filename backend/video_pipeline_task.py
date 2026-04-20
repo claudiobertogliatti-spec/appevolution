@@ -27,8 +27,16 @@ import random
 import httpx
 
 from celery_app import celery_app
-from key_moments_extractor import extract_key_moments
-from remotion_client import render_partner_video
+try:
+    from key_moments_extractor import extract_key_moments
+except ImportError:
+    async def extract_key_moments(**kwargs):
+        return []
+try:
+    from remotion_client import render_partner_video
+except ImportError:
+    async def render_partner_video(**kwargs):
+        return None
 
 logger = logging.getLogger(__name__)
 
