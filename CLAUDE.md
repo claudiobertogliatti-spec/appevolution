@@ -98,20 +98,35 @@ fetch("/api/admin/partner/PARTNER_ID/retrigger-video?video_type=masterclass", {m
 ### 7. Falsi alert "Video processing failed: Input file not found"
 **Causa**: il vecchio endpoint `POST /api/videos/process` (pipeline legacy `VideoProcessor` in `server.py`) viene chiamato con un URL Drive come `input_file`. Lui lo tratta come percorso locale → errore. Questo endpoint è separato dalla pipeline Celery reale (`process_partner_video`). Gli alert che iniziano con `Video processing failed: Input file not found: /app/storage/videos/raw/https:/...` sono falsi positivi dalla pipeline legacy e **non** indicano un problema sulla pipeline Celery del partner.
 
+### 9. MongoDB timeout in Celery task (risolto 2026-04-20)
+**Sintomo**: pipeline video va in `error` con `pipeline_error: "ac-kblkisa-shard-00-01.4cgj8wx.mongodb.net:27017: timed out"` — avviene subito dopo `queued`, prima ancora del download.
+
+**Causa**: `video_pipeline_task.py` leggeva `MONGO_URL` senza il fallback presente in `server.py`. Se `MONGO_URL` punta al cluster Emergent morto (`customer-apps.xxx`), il task Celery va in timeout. L'API server invece ha il fallback su `MONGO_ATLAS_URL`.
+
+**Fix applicato**: in `_run_pipeline()` (~linea 680), aggiunto stesso fallback di `server.py`:
+```python
+MONGO_URL = os.environ.get("MONGO_URL", os.environ.get("MONGODB_URL", "mongodb://localhost:27017"))
+if not MONGO_URL or "customer-apps" in MONGO_URL:
+    MONGO_URL = os.environ.get("MONGO_ATLAS_URL", MONGO_URL)
+mongo = AsyncIOMotorClient(MONGO_URL, serverSelectionTimeoutMS=30000, connectTimeoutMS=30000)
+```
+**Recovery**: dopo il deploy del fix, reset pipeline + retrigger normalmente.
+
 ### 8. Deploy via GitHub web editor (workaround bash sandbox)
 Se il sandbox bash Cowork non parte (errore "Workspace unavailable"), è possibile committare direttamente da GitHub:
 1. Aprire il file su `github.com/claudiobertogliatti-spec/appevolution`
 2. Cliccare il pulsante matita (Edit)
 3. Modificare il testo usando JavaScript via console del browser (CodeMirror 6):
 ```js
-// Accedi alla view CM6
+// Accedi alla view CM6 (pattern corretto — .parent non funziona, usare .view direttamente)
 const tile = document.querySelector('.cm-content').cmTile;
-let node = tile;
-while (!(node.view && node.view.state)) node = node.parent;
-window.__cmView = node.view;
+window.__cmView = tile.view; // tile.view è direttamente la EditorView CM6
 // Sostituisci testo
 const doc = __cmView.state.doc.toString();
-__cmView.dispatch({changes:{from:doc.indexOf('OLD_TEXT'),to:doc.indexOf('OLD_TEXT')+'OLD_TEXT'.length,insert:'NEW_TEXT'}});
+const OLD = 'OLD_TEXT';
+const idx = doc.indexOf(OLD);
+__cmView.dispatch({changes:{from:idx, to:idx+OLD.length, insert:'NEW_TEXT'}});
+// Poi cliccare "Commit changes..." e nel dialog "Commit changes" (senza ...)
 ```
 4. Cliccare "Commit changes..." → commettere direttamente su `main`
 
