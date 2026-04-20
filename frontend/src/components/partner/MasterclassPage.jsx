@@ -388,33 +388,30 @@ function VideoSubmissionCard({ partnerId, onVideoApproved }) {
           </div>
         )}
 
-        {/* Processing */}
+        {/* Processing — mostra solo messaggio generico al partner, nessuna label tecnica pipeline */}
         {isProcessing && (
           <div className="p-4 rounded-xl flex items-center gap-3"
             style={{ background: "#EFF6FF", border: "1px solid #BFDBFE" }}>
             <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" style={{ color: "#3B82F6" }} />
             <div>
-              <p className="text-sm font-bold" style={{ color: "#1D4ED8" }}>{statusCfg?.label}</p>
+              <p className="text-sm font-bold" style={{ color: "#1D4ED8" }}>Video ricevuto — il team sta lavorando all'editing</p>
               <p className="text-xs" style={{ color: "#3B82F6" }}>
-                Elaborazione automatica in corso. Per un video da 30 min: ~15 minuti.
+                Ti avviseremo quando il video definitivo è pronto per la tua approvazione.
               </p>
             </div>
           </div>
         )}
 
-        {/* Error */}
+        {/* Error — messaggio generico senza dettagli tecnici */}
         {(status === "error" || status === "error_youtube") && (
           <div className="p-4 rounded-xl" style={{ background: "#FEF2F2", border: "1px solid #FECACA" }}>
             <p className="text-sm font-bold mb-1" style={{ color: "#DC2626" }}>
-              C'è stato un problema con il link precedente.
+              C'è stato un problema con il link — prova a inviarne uno nuovo.
             </p>
-            {pipelineError ? (
-              <p className="text-xs mb-2" style={{ color: "#991B1B" }}>{pipelineError}</p>
-            ) : (
-              <p className="text-xs mb-2" style={{ color: "#991B1B" }}>
-                Prova a incollare di nuovo il link — puoi usare Google Drive, WeTransfer o Dropbox.
-              </p>
-            )}
+            <p className="text-xs mb-2" style={{ color: "#991B1B" }}>
+              Assicurati che il link Drive sia condiviso con "Chiunque con il link" e riprova.
+              Puoi usare anche WeTransfer o Dropbox.
+            </p>
             <p className="text-xs font-bold" style={{ color: "#DC2626" }}>
               ↓ Incolla un nuovo link qui sotto per riprovare
             </p>
