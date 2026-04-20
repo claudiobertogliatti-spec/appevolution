@@ -1461,8 +1461,10 @@ class SetYoutubeUrlRequest(BaseModel):
 
 @router.post("/masterclass/set-youtube-url")
 async def set_masterclass_youtube_url(req: SetYoutubeUrlRequest):
-    """Admin imposta manualmente l'URL YouTube della masterclass (bypass pipeline automatica)"""
-    await get_partner_or_404(req.partner_id)
+    """Admin imposta manualmente l'URL YouTube della masterclass (bypass pipeline automatica).
+    Crea automaticamente la playlist partner su YouTube se non esiste e aggiunge il video."""
+    import asyncio
+    partner = await get_partner_or_404(req.partner_id)
 
     yt_id = req.youtube_id
     if not yt_id and "v=" in req.youtube_url:
@@ -1473,6 +1475,38 @@ async def set_masterclass_youtube_url(req: SetYoutubeUrlRequest):
     embed_url = f"https://www.youtube.com/embed/{yt_id}" if yt_id else ""
     systeme_embed = f'<iframe src="{embed_url}" width="560" height="315" frameborder="0" allowfullscreen></iframe>' if yt_id else ""
     now = datetime.now(timezone.utc).isoformat()
+    partner_name = partner.get("name", req.partner_id)
+
+    # Playlist YouTube: crea se non esiste, poi aggiungi il video
+    playlist_id = partner.get("youtube_playlist_id")
+    playlist_url = partner.get("youtube_playlist_url")
+    playlist_note = ""
+
+    if yt_id:
+        try:
+            from video_pipeline_task import create_youtube_playlist_sync, add_to_youtube_playlist_sync
+            loop = asyncio.get_event_loop()
+
+            if not playlist_id:
+                playlist_id = await loop.run_in_executor(
+                    None, create_youtube_playlist_sync, partner_name
+                )
+                if playlist_id:
+                    playlist_url = f"https://www.youtube.com/playlist?list={playlist_id}"
+                    await db.partners.update_one(
+                        {"id": req.partner_id},
+                        {"$set": {"youtube_playlist_id": playlist_id, "youtube_playlist_url": playlist_url}}
+                    )
+                    playlist_note = f"\n📋 Playlist creata: {playlist_url}"
+
+            if playlist_id:
+                ok = await loop.run_in_executor(
+                    None, add_to_youtube_playlist_sync, yt_id, playlist_id
+                )
+                if ok and not playlist_note:
+                    playlist_note = f"\n📋 Video aggiunto alla playlist partner"
+        except Exception as e:
+            logging.warning(f"[MASTERCLASS] Playlist error (non bloccante): {e}")
 
     await db.masterclass_factory.update_one(
         {"partner_id": req.partner_id},
@@ -1489,14 +1523,17 @@ async def set_masterclass_youtube_url(req: SetYoutubeUrlRequest):
         upsert=True
     )
 
-    partner = await db.partners.find_one({"partner_id": req.partner_id}) or await db.partners.find_one({"id": req.partner_id})
     await notify_telegram(
         f"📺 <b>YouTube URL masterclass impostato manualmente</b>\n"
-        f"👤 {partner.get('name', req.partner_id) if partner else req.partner_id}\n"
-        f"🔗 {req.youtube_url}"
+        f"👤 {partner_name}\n"
+        f"🔗 {req.youtube_url}{playlist_note}"
     )
 
-    return {"success": True, "message": "URL YouTube impostato — pronto per approvazione admin"}
+    return {
+        "success": True,
+        "message": "URL YouTube impostato — pronto per approvazione admin",
+        "playlist_url": playlist_url
+    }
 
 
 @router.post("/videocorso/approve-video")
