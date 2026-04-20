@@ -1311,19 +1311,32 @@ async def submit_masterclass_video_link(req: VideoLinkRequest, background_tasks:
         {"$set": {
             "video_raw_url": req.video_url,
             "video_pipeline_status": "queued",
+            "video_pipeline_error": None,
             "video_submitted_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat()
         }},
         upsert=True
     )
 
-    from video_pipeline_task import run_pipeline_background
-    background_tasks.add_task(
-        run_pipeline_background,
-        partner_id=req.partner_id,
-        video_url=req.video_url,
-        video_type="masterclass",
-    )
+    # Usa Celery (task in Redis) invece di FastAPI BackgroundTasks:
+    # i task Celery sopravvivono allo scale-down di Cloud Run perché
+    # sono persistiti nel broker Redis prima di essere eseguiti.
+    try:
+        from video_pipeline_task import process_partner_video
+        process_partner_video.delay(
+            partner_id=req.partner_id,
+            video_url=req.video_url,
+            video_type="masterclass",
+        )
+    except Exception:
+        # Fallback a BackgroundTasks se Celery non è disponibile
+        from video_pipeline_task import run_pipeline_background
+        background_tasks.add_task(
+            run_pipeline_background,
+            partner_id=req.partner_id,
+            video_url=req.video_url,
+            video_type="masterclass",
+        )
 
     return {"success": True, "message": "Video in elaborazione. Ti notificheremo quando è pronto."}
 
@@ -1348,14 +1361,23 @@ async def submit_videocorso_video_link(req: VideoLinkRequest, background_tasks: 
         upsert=True
     )
 
-    from video_pipeline_task import run_pipeline_background
-    background_tasks.add_task(
-        run_pipeline_background,
-        partner_id=req.partner_id,
-        video_url=req.video_url,
-        video_type="videocorso",
-        lesson_id=req.lesson_id,
-    )
+    try:
+        from video_pipeline_task import process_partner_video
+        process_partner_video.delay(
+            partner_id=req.partner_id,
+            video_url=req.video_url,
+            video_type="videocorso",
+            lesson_id=req.lesson_id,
+        )
+    except Exception:
+        from video_pipeline_task import run_pipeline_background
+        background_tasks.add_task(
+            run_pipeline_background,
+            partner_id=req.partner_id,
+            video_url=req.video_url,
+            video_type="videocorso",
+            lesson_id=req.lesson_id,
+        )
 
     return {"success": True, "message": f"Lezione {req.lesson_id} in elaborazione."}
 
