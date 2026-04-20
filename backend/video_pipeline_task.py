@@ -629,7 +629,14 @@ async def telegram(msg: str):
 # CELERY TASK
 # ═══════════════════════════════════════════════════════════════════
 
-@celery_app.task(name="process_partner_video", bind=True, max_retries=2, default_retry_delay=120)
+@celery_app.task(
+    name="process_partner_video",
+    bind=True,
+    max_retries=2,
+    default_retry_delay=120,
+    soft_time_limit=10800,  # 3 ore — download + FFmpeg + YouTube upload su file grandi
+    time_limit=11100,       # 3h 5min hard limit
+)
 def process_partner_video(self, partner_id: str, video_url: str, video_type: str, lesson_id: Optional[str] = None):
     """
     Pipeline completa video partner.
