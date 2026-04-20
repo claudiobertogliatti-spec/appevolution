@@ -2,10 +2,10 @@ import { useState, useEffect } from "react";
 import {
   Users, FileText, AlertTriangle,
   Settings, LogOut, Bot, Bell, Target,
-  Search, ShoppingBag, BarChart2,
+  ShoppingBag, BarChart2, BarChart3,
   CalendarDays, CheckSquare, MessageSquare,
   TrendingUp, Phone, CheckCircle, AlertCircle,
-  Flame,
+  Flame, UserPlus, UserX, Calendar, Mail,
 } from "lucide-react";
 
 const API = (typeof window !== "undefined" && window.location.hostname.includes("evolution-pro.it"))
@@ -39,33 +39,39 @@ const C = {
    Per la vista Antonella: sezione ACQUISIZIONE nascosta
    ─────────────────────────────────────────────────────────────────────────── */
 
-const ANTONELLA_HIDDEN = new Set(["ACQUISIZIONE", "clienti-analisi", "flusso-analisi", "video-review"]);
+const ANTONELLA_HIDDEN = new Set(["ACQUISIZIONE", "clienti-analisi", "flusso-analisi", "lead-manager"]);
 
 const NAV_ITEMS = [
   // Sezione GIORNALIERO
   { section: "GIORNALIERO" },
-  { id: "oggi",      label: "Oggi",               icon: CalendarDays },
-  { id: "approvals", label: "Approvazioni",        icon: CheckCircle,   badge: "approvals" },
-  { id: "notifiche", label: "Notifiche Partner",   icon: Bell },
+  { id: "oggi",      label: "Oggi",             icon: CalendarDays },
+  { id: "notifiche", label: "Notifiche Partner", icon: Bell },
 
   // Sezione ACQUISIZIONE
   { section: "ACQUISIZIONE" },
-  { id: "clienti-analisi", label: "Pipeline",            icon: Target },
-  { id: "flusso-analisi",  label: "Analisi Strategiche", icon: Search },
-  { id: "video-review",    label: "Video Review",        icon: CheckSquare },
+  { id: "clienti-analisi", label: "Pre-Call",  icon: Target },
+  { id: "flusso-analisi",  label: "Post-Call", icon: TrendingUp },
+  { id: "lead-manager",    label: "Leads",     icon: UserPlus },
 
   // Sezione PARTNER
   { section: "PARTNER" },
-  { id: "partner",          label: "Partner Attivi", icon: Users },
-  { id: "documenti-partner",label: "Documenti",      icon: FileText },
-  { id: "servizi-admin",    label: "Servizi Extra",  icon: ShoppingBag },
+  { id: "partner",          label: "Partner Attivi",      icon: Users },
+  { id: "video-review",     label: "Video Review",        icon: CheckSquare },
+  { id: "documenti-partner",label: "Documenti",           icon: FileText },
+  { id: "ex-partner",       label: "Ex Partner",          icon: UserX },
+
+  // Sezione MARKETING
+  { section: "MARKETING" },
+  { id: "warmode",         label: "Campagne Ads",          icon: BarChart2 },
+  { id: "calendario-admin",label: "Calendario Editoriale", icon: Calendar },
+  { id: "servizi-admin",   label: "Servizi Extra",         icon: ShoppingBag },
 
   // Sezione SISTEMA
   { section: "SISTEMA" },
-  { id: "warmode",       label: "Campagne Ads", icon: BarChart2 },
-  { id: "agenti",        label: "Agent Hub",    icon: Bot },
-  { id: "alert",         label: "Alert",        icon: AlertTriangle, badge: "alerts" },
-  { id: "configurazione",label: "Configurazione",icon: Settings },
+  { id: "agenti",          label: "Automazione",   icon: Bot },
+  { id: "configurazione",  label: "Configurazione", icon: Settings },
+  { id: "metriche",        label: "KPI & Metriche", icon: BarChart3 },
+  { id: "email-templates", label: "Template Email", icon: Mail },
 ];
 
 /* ─── Mini Dashboard Operativa ───────────────────────────────────────────────
