@@ -871,7 +871,8 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
               <span className="text-sm font-black" style={{ color: "#1E2128" }}>Creazione Video</span>
             </div>
             <div className="p-4 space-y-3">
-              {pStatus ? (
+              {/* Stato pipeline automatica */}
+              {pStatus && (
                 <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
                   <Video className="w-4 h-4 flex-shrink-0" style={{ color: videoInProgress ? "#3B82F6" : "#22C55E" }} />
                   <span className="text-sm font-bold" style={{ color: "#374151" }}>
@@ -879,16 +880,71 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
                   </span>
                   {videoInProgress && <Loader2 className="w-4 h-4 animate-spin ml-auto" style={{ color: "#3B82F6" }} />}
                 </div>
-              ) : (
+              )}
+
+              {/* Istruzioni team editor — visibili quando il partner ha caricato il link Drive */}
+              {videoData?.video_raw_url && !videoReadyForReview && !videoApprovedFinal && (
+                <div className="rounded-xl overflow-hidden" style={{ border: "1.5px solid #BAE6FD" }}>
+                  <div className="px-4 py-2.5 flex items-center gap-2" style={{ background: "#0EA5E920" }}>
+                    <span className="text-xs font-black uppercase tracking-wider" style={{ color: "#0369A1" }}>📋 Istruzioni Team Editor</span>
+                  </div>
+                  <div className="p-4 space-y-3" style={{ background: "#F0F9FF" }}>
+                    {/* Link Drive */}
+                    <div className="flex items-start gap-3 p-3 rounded-lg" style={{ background: "white", border: "1px solid #BAE6FD" }}>
+                      <div className="flex-1">
+                        <p className="text-xs font-bold mb-1" style={{ color: "#0369A1" }}>Video grezzo da Drive</p>
+                        <a href={videoData.video_raw_url} target="_blank" rel="noopener noreferrer"
+                          className="text-xs font-semibold underline break-all" style={{ color: "#3B82F6" }}>
+                          {videoData.video_raw_url.length > 60 ? videoData.video_raw_url.slice(0, 60) + "…" : videoData.video_raw_url}
+                        </a>
+                      </div>
+                      <a href={videoData.video_raw_url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0"
+                        style={{ background: "#3B82F6", color: "white" }}>
+                        <Link className="w-3 h-3" /> Apri
+                      </a>
+                    </div>
+                    {/* Checklist editing */}
+                    <div>
+                      <p className="text-xs font-bold mb-2" style={{ color: "#0369A1" }}>Workflow editing:</p>
+                      {[
+                        "Scarica il video grezzo dal link Drive sopra",
+                        "Edita seguendo lo script approvato nello Step 2",
+                        "Aggiungi intro/outro brandizzata Evolution PRO",
+                        "Carica il video editato su YouTube come 'Non in elenco' sul canale Evolution PRO",
+                        "Copia l'URL YouTube e incollalo nello Step 4 qui sotto",
+                      ].map((step, i) => (
+                        <div key={i} className="flex items-start gap-2 mb-1.5">
+                          <span className="flex-shrink-0 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center mt-0.5"
+                            style={{ background: "#0369A1", color: "white" }}>{i + 1}</span>
+                          <span className="text-xs leading-relaxed" style={{ color: "#374151" }}>{step}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Script summary */}
+                    {(scriptSections || fullScript) && (
+                      <div className="p-3 rounded-lg text-xs" style={{ background: "white", border: "1px solid #BAE6FD", color: "#374151" }}>
+                        <p className="font-bold mb-1" style={{ color: "#0369A1" }}>Script approvato — sezioni chiave:</p>
+                        {scriptSections
+                          ? scriptSections.map((s, i) => <p key={i} className="mb-0.5">• <strong>{s.title}</strong></p>)
+                          : <p className="line-clamp-3">{fullScript?.slice(0, 200)}…</p>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {!pStatus && !videoData?.video_raw_url && (
                 <p className="text-sm text-center py-6" style={{ color: "#9CA3AF" }}>
-                  In attesa che il partner carichi il video greggio
+                  In attesa che il partner carichi il link del video grezzo
                 </p>
               )}
-              {/* Reset pipeline se stuck in elaborazione */}
+
+              {/* Reset pipeline se stuck */}
               {videoInProgress && (
                 <div className="p-3 rounded-xl" style={{ background: "#FFF7ED", border: "1px solid #FED7AA" }}>
                   <p className="text-xs mb-2" style={{ color: "#92400E" }}>
-                    Pipeline bloccata? Resetta per permettere all'admin di inserire l'URL YouTube manualmente.
+                    Pipeline bloccata? Resetta e inserisci manualmente l'URL YouTube nello Step 4.
                   </p>
                   <button
                     onClick={handleResetPipeline}
@@ -927,63 +983,111 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
                 </span>
               )}
             </div>
-            <div className="p-4">
-              {videoApprovedFinal ? (
+            <div className="p-4 space-y-4">
+              {/* Form URL manuale — sempre visibile quando non approved/ready */}
+              {!videoApprovedFinal && (!pStatus || showManualUrl) && (
+                <div className="p-4 rounded-xl space-y-3" style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
+                  <p className="text-xs font-bold" style={{ color: "#374151" }}>
+                    Inserisci URL YouTube dopo l'upload del team
+                  </p>
+                  <p className="text-xs" style={{ color: "#6B7280" }}>
+                    Una volta che il team ha caricato il video editato su YouTube (unlisted), incolla qui l'URL. La playlist del partner viene creata automaticamente.
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={manualYtUrl}
+                      onChange={e => setManualYtUrl(e.target.value)}
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      className="flex-1 px-3 py-2 rounded-lg text-sm outline-none"
+                      style={{ background: "white", border: "1px solid #D1D5DB", color: "#1E2128" }}
+                    />
+                    <button
+                      onClick={handleSetYoutubeUrl}
+                      disabled={!manualYtUrl.trim() || settingYtUrl}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50"
+                      style={{ background: "#1E2128", color: "#FFD24D" }}
+                    >
+                      {settingYtUrl ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                      Imposta
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Anteprima YouTube + Approva */}
+              {(videoReadyForReview || videoApprovedFinal) && videoData?.video_youtube_id && (
+                <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #E5E2DD" }}>
+                  <div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
+                    <iframe
+                      src={`https://www.youtube.com/embed/${videoData.video_youtube_id}`}
+                      title="Anteprima masterclass"
+                      allowFullScreen
+                      style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: 0 }}
+                    />
+                  </div>
+                  <div className="px-3 py-2 flex items-center gap-2" style={{ background: "#FAFAF7", borderTop: "1px solid #E5E2DD" }}>
+                    <Youtube className="w-4 h-4 flex-shrink-0" style={{ color: "#EF4444" }} />
+                    <a href={videoData.video_youtube_url} target="_blank" rel="noopener noreferrer"
+                      className="text-xs font-semibold underline truncate" style={{ color: "#374151" }}>
+                      {videoData.video_youtube_url}
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Codice embed Systeme */}
+              {(videoReadyForReview || videoApprovedFinal) && videoData?.video_systeme_embed && (
+                <div className="rounded-xl overflow-hidden" style={{ border: "1.5px solid #818CF8" }}>
+                  <div className="px-4 py-2.5 flex items-center justify-between" style={{ background: "#EEF2FF" }}>
+                    <span className="text-xs font-black uppercase tracking-wider" style={{ color: "#4338CA" }}>
+                      Codice embed per Systeme
+                    </span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(videoData.video_systeme_embed);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold"
+                      style={{ background: "#4338CA", color: "white" }}
+                    >
+                      Copia codice
+                    </button>
+                  </div>
+                  <div className="p-3" style={{ background: "#1E1B4B" }}>
+                    <code className="text-[11px] break-all leading-relaxed" style={{ color: "#A5B4FC" }}>
+                      {videoData.video_systeme_embed}
+                    </code>
+                  </div>
+                  <div className="px-4 py-2 text-xs" style={{ background: "#EEF2FF", color: "#6366F1", borderTop: "1px solid #C7D2FE" }}>
+                    Incolla questo codice nella pagina Systeme del partner per incorporare il video
+                  </div>
+                </div>
+              )}
+
+              {/* Pulsante Approva */}
+              {videoReadyForReview && !videoApprovedFinal && (
+                <button
+                  onClick={handleApproveVideo}
+                  disabled={approvingVideo}
+                  className="w-full flex items-center justify-center gap-3 py-4 rounded-xl text-sm font-black disabled:opacity-50 transition-all hover:opacity-90"
+                  style={{ background: "#22C55E", color: "white" }}
+                >
+                  {approvingVideo ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+                  Approva il Video Masterclass
+                </button>
+              )}
+
+              {videoApprovedFinal && (
                 <div className="flex items-center gap-2 p-3 rounded-xl" style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
                   <CheckCircle className="w-4 h-4" style={{ color: "#16A34A" }} />
                   <span className="text-sm font-bold" style={{ color: "#16A34A" }}>Video approvato — partner sbloccato al passo successivo</span>
                 </div>
-              ) : videoReadyForReview ? (
-                <>
-                  <p className="text-sm mb-4" style={{ color: "#166534" }}>
-                    Il team ha completato il video definitivo. Revisionalo e clicca Approva per sbloccare il partner.
-                  </p>
-                  <button
-                    onClick={handleApproveVideo}
-                    disabled={approvingVideo}
-                    className="w-full flex items-center justify-center gap-3 py-4 rounded-xl text-sm font-black disabled:opacity-50 transition-all hover:opacity-90"
-                    style={{ background: "#22C55E", color: "white" }}
-                  >
-                    {approvingVideo ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
-                    Approva il Video Masterclass
-                  </button>
-                </>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-sm text-center py-4" style={{ color: "#9CA3AF" }}>
-                    In attesa del completamento del video da parte del team
-                  </p>
-                  {/* Form inserimento URL manuale (dopo reset o senza pipeline) */}
-                  {(!pStatus || showManualUrl) && (
-                    <div className="p-4 rounded-xl space-y-3" style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
-                      <p className="text-xs font-bold" style={{ color: "#374151" }}>
-                        Inserisci URL YouTube (upload manuale)
-                      </p>
-                      <p className="text-xs" style={{ color: "#6B7280" }}>
-                        Carica il video editato su YouTube (unlisted) e incolla qui l'URL.
-                      </p>
-                      <div className="flex gap-2">
-                        <input
-                          type="url"
-                          value={manualYtUrl}
-                          onChange={e => setManualYtUrl(e.target.value)}
-                          placeholder="https://www.youtube.com/watch?v=..."
-                          className="flex-1 px-3 py-2 rounded-lg text-sm outline-none"
-                          style={{ background: "white", border: "1px solid #D1D5DB", color: "#1E2128" }}
-                        />
-                        <button
-                          onClick={handleSetYoutubeUrl}
-                          disabled={!manualYtUrl.trim() || settingYtUrl}
-                          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50"
-                          style={{ background: "#1E2128", color: "#FFD24D" }}
-                        >
-                          {settingYtUrl ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                          Imposta
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
+              )}
+
+              {!videoReadyForReview && !videoApprovedFinal && pStatus && !videoInProgress && (
+                <p className="text-sm text-center py-2" style={{ color: "#9CA3AF" }}>
+                  In attesa del completamento del video
+                </p>
               )}
             </div>
           </div>
