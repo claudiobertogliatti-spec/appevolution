@@ -5236,3 +5236,128 @@ async def choose_growth_level(req: GrowthLevelRequest):
         "level": req.level,
         "chosen_at": now
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# UPLOAD VIDEO DIRETTO SU GCS (bypass Google Drive)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class VideoUploadSessionRequest(BaseModel):
+    partner_id: str
+    video_type: str = "masterclass"   # "masterclass" | "videocorso"
+    lesson_id: Optional[str] = None   # solo per videocorso
+    filename: str = "video.mp4"
+    content_type: str = "video/mp4"
+
+class VideoUploadConfirmRequest(BaseModel):
+    partner_id: str
+    video_type: str = "masterclass"
+    lesson_id: Optional[str] = None
+    gcs_path: str   # gs://bucket/path/to/file.mp4
+
+
+@router.post("/video/request-upload-session")
+async def request_video_upload_session(req: VideoUploadSessionRequest):
+    """
+    Crea una sessione GCS Resumable Upload e ritorna l'URL di upload diretto.
+    Il browser caricherà il file direttamente su GCS (max size illimitato, progress tracking nativo).
+    Non richiede signed URL: usa la sessione resumable di GCS che include l'auth nel URL stesso.
+    """
+    try:
+        from google.cloud import storage as gcs_storage
+    except ImportError:
+        raise HTTPException(status_code=500, detail="google-cloud-storage non installato")
+
+    GCS_BUCKET = os.environ.get("GCS_BUCKET", "gen-lang-client-0744698012_cloudbuild")
+    ext = "." + req.filename.rsplit(".", 1)[-1].lower() if "." in req.filename else ".mp4"
+    safe_ext = ext if ext in {".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v"} else ".mp4"
+
+    if req.video_type == "videocorso" and req.lesson_id:
+        gcs_object = f"raw_videos/{req.partner_id}/videocorso/{req.lesson_id}/{uuid.uuid4().hex}{safe_ext}"
+    else:
+        gcs_object = f"raw_videos/{req.partner_id}/masterclass/{uuid.uuid4().hex}{safe_ext}"
+
+    gcs_path = f"gs://{GCS_BUCKET}/{gcs_object}"
+
+    try:
+        client = gcs_storage.Client()
+        bucket = client.bucket(GCS_BUCKET)
+        blob = bucket.blob(gcs_object)
+
+        # Crea sessione resumable — l'URL ritornato include l'auth e può essere usato dal browser
+        upload_url = blob.create_resumable_upload_session(
+            content_type=req.content_type,
+            size=None,   # sconosciuto — il browser lo imposterà
+            origin=os.environ.get("FRONTEND_URL", "https://app.evolution-pro.it"),
+        )
+        logging.info(f"[VIDEO-UPLOAD] Sessione GCS creata per partner {req.partner_id}: {gcs_path}")
+    except Exception as e:
+        logging.error(f"[VIDEO-UPLOAD] Errore creazione sessione GCS: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore GCS: {str(e)}")
+
+    return {
+        "upload_url": upload_url,
+        "gcs_path": gcs_path,
+        "gcs_object": gcs_object,
+        "bucket": GCS_BUCKET,
+    }
+
+
+@router.post("/video/confirm-upload")
+async def confirm_video_upload(req: VideoUploadConfirmRequest, background_tasks: BackgroundTasks):
+    """
+    Il browser ha completato l'upload su GCS.
+    Questo endpoint aggiorna il DB con il path GCS e avvia la pipeline Celery.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    gcs_path = req.gcs_path
+
+    if req.video_type == "masterclass":
+        await db.masterclass_factory.update_one(
+            {"partner_id": req.partner_id},
+            {"$set": {
+                "video_raw_url": gcs_path,
+                "video_pipeline_status": "queued",
+                "video_pipeline_error": None,
+                "video_submitted_at": now,
+                "updated_at": now,
+            }},
+            upsert=True
+        )
+    elif req.video_type == "videocorso" and req.lesson_id:
+        await db.partner_videocorso.update_one(
+            {"partner_id": req.partner_id, "lessons.id": req.lesson_id},
+            {"$set": {
+                "lessons.$.video_raw_url": gcs_path,
+                "lessons.$.video_pipeline_status": "queued",
+                "lessons.$.video_pipeline_error": None,
+                "lessons.$.video_submitted_at": now,
+                "updated_at": now,
+            }}
+        )
+
+    # Avvia pipeline Celery
+    try:
+        from video_pipeline_task import process_partner_video
+        process_partner_video.delay(
+            partner_id=req.partner_id,
+            video_url=gcs_path,
+            video_type=req.video_type,
+            lesson_id=req.lesson_id,
+        )
+        logging.info(f"[VIDEO-UPLOAD] Pipeline Celery avviata per {req.partner_id} — {gcs_path}")
+    except Exception as e:
+        logging.warning(f"[VIDEO-UPLOAD] Celery fallito, uso background task: {e}")
+        try:
+            from video_pipeline_task import run_pipeline_background
+            background_tasks.add_task(
+                run_pipeline_background,
+                partner_id=req.partner_id,
+                video_url=gcs_path,
+                video_type=req.video_type,
+                lesson_id=req.lesson_id,
+            )
+        except Exception as e2:
+            logging.error(f"[VIDEO-UPLOAD] Anche background task fallito: {e2}")
+
+    return {"success": True, "message": "Video ricevuto — la pipeline è partita!", "gcs_path": gcs_path}
