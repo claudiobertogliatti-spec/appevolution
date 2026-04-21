@@ -134,7 +134,7 @@ async def download_video(url: str, dest_path: str, max_retries: int = 4) -> int:
         for attempt in range(max_retries):
             try:
                 cmd = [
-                    "gdown",
+                    "python", "-m", "gdown",
                     "--fuzzy",          # accetta qualsiasi formato URL Drive
                     "--no-cookies",     # non usare cookie session
                     "-O", dest_path,
