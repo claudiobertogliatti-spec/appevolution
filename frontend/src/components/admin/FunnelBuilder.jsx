@@ -99,6 +99,9 @@ function LandingPageTab({ partnerId }) {
   const [checks, setChecks] = useState(Array(8).fill(false));
   const [copied, setCopied] = useState(false);
   const [toast, setToast] = useState("");
+  const [systemeUrl, setSystemeUrl] = useState("");
+  const [savingSysteme, setSavingSysteme] = useState(false);
+  const [copiedPayload, setCopiedPayload] = useState(false);
 
   useEffect(() => {
     axios.get(`${API}/api/partner-journey/funnel/${partnerId}/landing-page`).then(r => {
@@ -106,6 +109,7 @@ function LandingPageTab({ partnerId }) {
       setForm(merged);
       setStato(r.data.stato);
       setHtml(r.data.html_generato || "");
+      setSystemeUrl(r.data.dati?.funnel_systeme_url || "");
     }).catch(() => {});
   }, [partnerId]);
 
@@ -171,6 +175,45 @@ function LandingPageTab({ partnerId }) {
     showToast("Stato aggiornato: Pubblicata");
   };
 
+  const saveSystemeUrl = async () => {
+    setSavingSysteme(true);
+    try {
+      const token = localStorage.getItem("access_token") || localStorage.getItem("token");
+      await axios.patch(`${API}/api/admin/partner/${partnerId}/journey`,
+        { collection: "partner_funnel", data: { funnel_systeme_url: systemeUrl } },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      showToast("URL Systeme.io salvato!");
+    } catch { showToast("Errore nel salvataggio URL"); }
+    setSavingSysteme(false);
+  };
+
+  const copySystemePayload = () => {
+    const payload = {
+      partner_id: partnerId,
+      partner_nome: form.PARTNER_NOME || "",
+      funnel_systeme_url: systemeUrl || "(da creare)",
+      optin_page_fields: {
+        0: form.HEADLINE_PRINCIPALE || "",
+        1: form.SOTTOTITOLO || "",
+        2: `© ${form.PARTNER_NOME || ""}`,
+        3: form.PARTNER_BIO || "",
+        4: `Durante la Masterclass scoprirai ${form.CORSO_NOME ? '"' + form.CORSO_NOME + '"' : "il Metodo"} per...`,
+        5: form.DOLORE_1 || "",
+        6: form.DOLORE_2 || "",
+        7: form.DOLORE_3 || "",
+        8: form.DOLORE_4 || "",
+        9: `${form.PARTNER_NOME || ""}\n\n${form.PARTNER_NICCHIA || ""}`,
+        10: `Tutti i Diritti Riservati.\n\nCopyright ${new Date().getFullYear()} © ${form.PARTNER_NOME || ""}\n\n${form.PARTNER_NICCHIA || ""}`,
+      },
+      istruzioni: "1. systeme.io/dashboard/funnels → Duplica Template Master → Rinomina\n2. Apri Modifica Pagina (Optin)\n3. Esegui script iniezione nel browser console\n4. Clicca Salvare\n5. Copia URL funnel e salva qui"
+    };
+    navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+    setCopiedPayload(true);
+    showToast("Payload copiato per Claude!");
+    setTimeout(() => setCopiedPayload(false), 3000);
+  };
+
   return (
     <div className="space-y-5" data-testid="landing-page-tab">
       {toast && <div className="fixed top-4 right-4 bg-[#1a1a2e] text-white px-4 py-2 rounded-lg text-sm font-medium z-50 shadow-lg animate-fade-in">{toast}</div>}
@@ -203,6 +246,41 @@ function LandingPageTab({ partnerId }) {
         >
           <Sparkles size={14} />
           {aiLoading ? "Generazione AI..." : "Genera con AI"}
+        </button>
+      </div>
+
+      {/* Funnel Systeme.io */}
+      <div className="bg-white rounded-xl border border-[#e8e8e8] p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h3 className="text-sm font-bold text-[#1a1a2e]">🔗 Funnel Systeme.io</h3>
+            <p className="text-xs text-gray-500 mt-0.5">Claude duplica il Template Master e inietta il copy del partner in autonomia</p>
+          </div>
+          {systemeUrl && (
+            <a href={systemeUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline font-medium">Apri funnel →</a>
+          )}
+        </div>
+        <div className="flex gap-2 mb-2">
+          <input
+            type="text"
+            value={systemeUrl}
+            onChange={e => setSystemeUrl(e.target.value)}
+            placeholder="https://evolutionpro.systeme.io/optin-..."
+            className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#e94560]"
+          />
+          <button
+            onClick={saveSystemeUrl}
+            disabled={savingSysteme}
+            className="px-3 py-2 bg-[#1a1a2e] text-white rounded-lg text-xs font-bold hover:bg-[#2d2d44] transition disabled:opacity-50"
+          >
+            {savingSysteme ? "..." : "Salva URL"}
+          </button>
+        </div>
+        <button
+          onClick={copySystemePayload}
+          className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-[#e94560] transition font-medium"
+        >
+          <Copy size={12} /> {copiedPayload ? "Copiato!" : "Copia dati per Claude (JSON)"}
         </button>
       </div>
 
