@@ -268,191 +268,179 @@ function AdminMasterclassPanel({ partnerId, onScriptGenerated }) {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function VideoSubmissionCard({ partnerId, onVideoApproved }) {
-  const [videoUrl, setVideoUrl] = useState("");
-  const [submitting, setSubmitting] = useState(false);
   const [pipelineStatus, setPipelineStatus] = useState(null);
-  const [pipelineError, setPipelineError] = useState(null);
-  const [submitted, setSubmitted] = useState(false);
+  const [uploadState, setUploadState] = useState("idle");
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
 
   useEffect(() => {
     if (!partnerId) return;
+    let cancelled = false;
     const poll = async () => {
       try {
-        const res = await fetch(`${API}/api/partner-journey/masterclass/video-status/${partnerId}`);
-        if (res.ok) {
+        const token = localStorage.getItem("access_token") || localStorage.getItem("token");
+        const res = await fetch(`${API}/api/partner-journey/masterclass/video-status/${partnerId}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+        if (res.ok && !cancelled) {
           const d = await res.json();
           setPipelineStatus(d);
-          setPipelineError(d.pipeline_error || null);
-          if (d.pipeline_status === "approved" && onVideoApproved) {
-            onVideoApproved();
-          }
-          if (d.pipeline_status && !["ready_for_review", "approved", "error", "error_youtube"].includes(d.pipeline_status)) {
-            // Sta ancora processando — ripolling ogni 15s
+          if (d.pipeline_status === "approved" && onVideoApproved) onVideoApproved();
+          if (d.pipeline_status && !["ready_for_review","approved","error","error_youtube"].includes(d.pipeline_status)) {
             setTimeout(poll, 15000);
           }
         }
-      } catch (e) {
-        console.error("Error polling video status:", e);
-      }
+      } catch (e) { console.error("Poll error:", e); }
     };
     poll();
+    return () => { cancelled = true; };
   }, [partnerId]);
 
-  const handleSubmit = async () => {
-    if (!videoUrl.trim()) return;
-    setSubmitting(true);
+  const startUpload = async (file) => {
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024 * 1024) { setUploadError("Il file supera i 20 GB."); return; }
+    setSelectedFile(file); setUploadState("requesting"); setUploadError(null); setUploadProgress(0);
     try {
-      await fetch(`${API}/api/partner-journey/masterclass/submit-video-link`, {
+      const token = localStorage.getItem("access_token") || localStorage.getItem("token");
+      const sessionRes = await fetch(`${API}/api/partner-journey/video/request-upload-session`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ partner_id: partnerId, video_url: videoUrl.trim() })
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ partner_id: partnerId, video_type: "masterclass", filename: file.name, content_type: file.type || "video/mp4" })
       });
-      setSubmitted(true);
-      setPipelineStatus({ pipeline_status: "queued" });
-      // Start polling
-      setTimeout(async () => {
-        try {
-          const res = await fetch(`${API}/api/partner-journey/masterclass/video-status/${partnerId}`);
-          if (res.ok) setPipelineStatus(await res.json());
-        } catch (e) {}
-      }, 5000);
-    } catch (e) {
-      console.error("Error submitting video:", e);
-    } finally {
-      setSubmitting(false);
-    }
+      if (!sessionRes.ok) throw new Error("Impossibile ottenere la sessione di upload. Riprova.");
+      const { upload_url, gcs_path } = await sessionRes.json();
+      setUploadState("uploading");
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.upload.addEventListener("progress", (e) => { if (e.lengthComputable) setUploadProgress(Math.round((e.loaded / e.total) * 100)); });
+        xhr.addEventListener("load", () => { if (xhr.status >= 200 && xhr.status < 300) resolve(); else reject(new Error(`Upload fallito (${xhr.status}).`)); });
+        xhr.addEventListener("error", () => reject(new Error("Errore di rete.")));
+        xhr.addEventListener("abort", () => reject(new Error("Upload interrotto.")));
+        xhr.open("PUT", upload_url);
+        xhr.setRequestHeader("Content-Type", file.type || "video/mp4");
+        xhr.send(file);
+      });
+      setUploadState("confirming");
+      const confirmRes = await fetch(`${API}/api/partner-journey/video/confirm-upload`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ partner_id: partnerId, video_type: "masterclass", gcs_path })
+      });
+      if (!confirmRes.ok) throw new Error("Conferma upload fallita.");
+      setUploadState("done"); setPipelineStatus({ pipeline_status: "queued" });
+    } catch (e) { setUploadError(e.message || "Errore upload."); setUploadState("error"); }
   };
+
+  const handleFileSelect = (e) => { const f = e.target.files?.[0]; if (f) startUpload(f); };
+  const handleDrop = (e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files?.[0]; if (f) startUpload(f); };
 
   const status = pipelineStatus?.pipeline_status;
   const statusCfg = status ? PIPELINE_STATUS[status] : null;
-  const isProcessing = status && !["ready_for_review", "approved", "error", "error_youtube", null, undefined].includes(status);
+  const isProcessing = status && !["ready_for_review","approved","error","error_youtube"].includes(status);
   const isReady = status === "ready_for_review";
   const isApproved = status === "approved";
+  const showUploader = !status || status === "error" || status === "error_youtube";
+  const isUploading = ["requesting","uploading","confirming"].includes(uploadState);
 
   return (
     <div className="mt-6 rounded-2xl overflow-hidden" style={{ border: "1px solid #E5E2DD" }}>
-      {/* Header */}
       <div className="px-5 pt-5 pb-4" style={{ background: "#1E2128" }}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ background: "#FFD24D20" }}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#FFD24D20" }}>
             <Video className="w-5 h-5" style={{ color: "#FFD24D" }} />
           </div>
           <div>
-            <div className="text-sm font-black text-white">Carica il link del video grezzo</div>
-            <div className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>
-              Il team Evolution elabora, edita e carica su YouTube
-            </div>
+            <div className="text-sm font-black text-white">Carica il video grezzo</div>
+            <div className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>Il team Evolution edita e carica su YouTube</div>
           </div>
           {statusCfg && (
             <span className="ml-auto text-[11px] font-bold px-2.5 py-1 rounded-full"
-              style={{ background: statusCfg.color + "25", color: statusCfg.color }}>
-              {statusCfg.label}
-            </span>
+              style={{ background: statusCfg.color + "25", color: statusCfg.color }}>{statusCfg.label}</span>
           )}
         </div>
       </div>
-
       <div className="p-5 space-y-4" style={{ background: "#FAFAF7" }}>
-        {/* Already approved */}
         {isApproved && pipelineStatus.video_youtube_url && (
           <div className="p-4 rounded-xl space-y-3" style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-4 h-4" style={{ color: "#16A34A" }} />
-              <span className="text-sm font-bold" style={{ color: "#15803D" }}>Video approvato dal team Evolution</span>
-            </div>
+            <div className="flex items-center gap-2"><CheckCircle className="w-4 h-4" style={{ color: "#16A34A" }} />
+              <span className="text-sm font-bold" style={{ color: "#15803D" }}>Video approvato dal team Evolution</span></div>
             <a href={pipelineStatus.video_youtube_url} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm font-semibold"
-              style={{ color: "#EF4444" }}>
-              <Youtube className="w-4 h-4" />
-              Guarda su YouTube
-            </a>
+              className="flex items-center gap-2 text-sm font-semibold" style={{ color: "#EF4444" }}>
+              <Youtube className="w-4 h-4" />Guarda su YouTube</a>
           </div>
         )}
-
-        {/* Ready for review (admin-side) — partner sees "in revisione" */}
         {isReady && (
           <div className="p-4 rounded-xl" style={{ background: "#FFF7ED", border: "1px solid #FED7AA" }}>
-            <div className="flex items-center gap-2 mb-1">
-              <Clock className="w-4 h-4" style={{ color: "#F59E0B" }} />
-              <span className="text-sm font-bold" style={{ color: "#B45309" }}>Video in revisione dal team</span>
-            </div>
-            <p className="text-xs" style={{ color: "#92400E" }}>
-              Il team sta verificando il video. Riceverai conferma a breve.
-            </p>
-            {pipelineStatus.video_time_saved_s > 0 && (
-              <p className="text-xs mt-2 font-semibold" style={{ color: "#16A34A" }}>
-                ✂️ Pipeline ha rimosso {Math.round(pipelineStatus.video_time_saved_s / 60)} min di silenzi e filler words.
-              </p>
-            )}
+            <div className="flex items-center gap-2 mb-1"><Clock className="w-4 h-4" style={{ color: "#F59E0B" }} />
+              <span className="text-sm font-bold" style={{ color: "#B45309" }}>Video in revisione dal team</span></div>
+            <p className="text-xs" style={{ color: "#92400E" }}>Il team sta verificando il video. Riceverai conferma a breve.</p>
           </div>
         )}
-
-        {/* Processing — mostra solo messaggio generico al partner, nessuna label tecnica pipeline */}
-        {isProcessing && (
-          <div className="p-4 rounded-xl flex items-center gap-3"
-            style={{ background: "#EFF6FF", border: "1px solid #BFDBFE" }}>
+        {isProcessing && uploadState !== "uploading" && (
+          <div className="p-4 rounded-xl flex items-center gap-3" style={{ background: "#EFF6FF", border: "1px solid #BFDBFE" }}>
             <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" style={{ color: "#3B82F6" }} />
-            <div>
-              <p className="text-sm font-bold" style={{ color: "#1D4ED8" }}>Video ricevuto — il team sta lavorando all'editing</p>
-              <p className="text-xs" style={{ color: "#3B82F6" }}>
-                Ti avviseremo quando il video definitivo è pronto per la tua approvazione.
-              </p>
-            </div>
+            <div><p className="text-sm font-bold" style={{ color: "#1D4ED8" }}>Video ricevuto — il team sta lavorando all’editing</p>
+              <p className="text-xs" style={{ color: "#3B82F6" }}>Ti avviseremo quando il video definitivo è pronto.</p></div>
           </div>
         )}
-
-        {/* Error — messaggio generico senza dettagli tecnici */}
-        {(status === "error" || status === "error_youtube") && (
+        {(status === "error" || status === "error_youtube") && uploadState === "idle" && (
           <div className="p-4 rounded-xl" style={{ background: "#FEF2F2", border: "1px solid #FECACA" }}>
-            <p className="text-sm font-bold mb-1" style={{ color: "#DC2626" }}>
-              C'è stato un problema con il link — prova a inviarne uno nuovo.
-            </p>
-            <p className="text-xs mb-2" style={{ color: "#991B1B" }}>
-              Assicurati che il link Drive sia condiviso con "Chiunque con il link" e riprova.
-              Puoi usare anche WeTransfer o Dropbox.
-            </p>
-            <p className="text-xs font-bold" style={{ color: "#DC2626" }}>
-              ↓ Incolla un nuovo link qui sotto per riprovare
-            </p>
+            <p className="text-sm font-bold mb-1" style={{ color: "#DC2626" }}>Si è verificato un problema durante l’elaborazione.</p>
+            <p className="text-xs" style={{ color: "#991B1B" }}>Ricarica il video usando il pulsante qui sotto.</p>
           </div>
         )}
-
-        {/* Link input — show if no status, error, or no real processed video (pipeline bypass scenario) */}
-        {(!status || status === "error" || status === "error_youtube" || (status === "ready_for_review" && !pipelineStatus?.video_youtube_url)) && (
+        {isUploading && (
+          <div className="p-4 rounded-xl space-y-3" style={{ background: "#EFF6FF", border: "1px solid #BFDBFE" }}>
+            <div className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin flex-shrink-0" style={{ color: "#3B82F6" }} />
+              <span className="text-sm font-bold" style={{ color: "#1D4ED8" }}>
+                {uploadState === "requesting" && "Preparazione upload..."}
+                {uploadState === "uploading" && `Upload in corso — ${uploadProgress}%`}
+                {uploadState === "confirming" && "Finalizzazione..."}
+              </span></div>
+            {uploadState === "uploading" && (
+              <div className="w-full rounded-full overflow-hidden" style={{ height: 8, background: "#DBEAFE" }}>
+                <div className="h-full rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%`, background: "#3B82F6" }} />
+              </div>
+            )}
+            {selectedFile && <p className="text-xs" style={{ color: "#6B7280" }}>{selectedFile.name} ({(selectedFile.size/1024/1024/1024).toFixed(2)} GB)</p>}
+            <p className="text-xs" style={{ color: "#3B82F6" }}>Non chiudere questa pagina durante l’upload.</p>
+          </div>
+        )}
+        {uploadState === "done" && (
+          <div className="p-4 rounded-xl flex items-center gap-3" style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
+            <CheckCircle className="w-5 h-5 flex-shrink-0" style={{ color: "#16A34A" }} />
+            <div><p className="text-sm font-bold" style={{ color: "#15803D" }}>Video caricato con successo!</p>
+              <p className="text-xs" style={{ color: "#166534" }}>Il team sta iniziando l’editing.</p></div>
+          </div>
+        )}
+        {uploadState === "error" && uploadError && (
+          <div className="p-4 rounded-xl" style={{ background: "#FEF2F2", border: "1px solid #FECACA" }}>
+            <p className="text-sm font-bold mb-1" style={{ color: "#DC2626" }}>{uploadError}</p>
+            <p className="text-xs" style={{ color: "#991B1B" }}>Clicca di nuovo su "Seleziona video" per riprovare.</p>
+          </div>
+        )}
+        {showUploader && !isUploading && uploadState !== "done" && (
           <>
             <div className="p-3 rounded-xl" style={{ background: "#F0EDE8", border: "1px solid #E5E2DD" }}>
-              <p className="text-xs" style={{ color: "#6B7280" }}>
-                <strong>Come inviare:</strong> Registra la masterclass → carica su Google Drive o WeTransfer → condividi il link qui sotto.
-                Il team Evolution si occuperà di tutto il resto.
-              </p>
+              <p className="text-xs" style={{ color: "#6B7280" }}><strong>Come fare:</strong> Registra la masterclass e carica il file video direttamente. MP4, MOV, MKV, AVI.</p>
             </div>
-            <div className="flex gap-2">
-              <div className="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white"
-                style={{ border: "1px solid #E5E2DD" }}>
-                <Link className="w-4 h-4 flex-shrink-0" style={{ color: "#9CA3AF" }} />
-                <input
-                  type="url"
-                  value={videoUrl}
-                  onChange={e => setVideoUrl(e.target.value)}
-                  placeholder="https://drive.google.com/... oppure we.tl/..."
-                  className="flex-1 text-sm bg-transparent outline-none"
-                  style={{ color: "#1E2128" }}
-                />
+            <label onDragOver={(e) => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)} onDrop={handleDrop}
+              className="flex flex-col items-center justify-center gap-3 w-full rounded-xl cursor-pointer transition-all"
+              style={{ padding: "32px 16px", border: `2px dashed ${dragOver ? "#FFD24D" : "#D1D5DB"}`, background: dragOver ? "#FFFBEB" : "#FFFFFF" }}>
+              <input type="file" accept="video/*,.mp4,.mov,.mkv,.avi,.m4v" className="hidden" onChange={handleFileSelect} />
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "#FFD24D20" }}>
+                <Video className="w-6 h-6" style={{ color: "#FFD24D" }} />
               </div>
-              <button
-                onClick={handleSubmit}
-                disabled={!videoUrl.trim() || submitting}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all"
-                style={{
-                  background: videoUrl.trim() && !submitting ? "#1E2128" : "#F0EDE8",
-                  color: videoUrl.trim() && !submitting ? "#FFD24D" : "#9CA3AF"
-                }}
-              >
-                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                {submitting ? "..." : "Invia"}
-              </button>
-            </div>
+              <div className="text-center">
+                <p className="text-sm font-bold" style={{ color: "#1E2128" }}>Trascina il video qui, o clicca per selezionarlo</p>
+                <p className="text-xs mt-1" style={{ color: "#9CA3AF" }}>MP4, MOV, MKV, AVI — max 20 GB</p>
+              </div>
+              <div className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold" style={{ background: "#1E2128", color: "#FFD24D" }}>
+                <Send className="w-4 h-4" />Seleziona video
+              </div>
+            </label>
           </>
         )}
       </div>
