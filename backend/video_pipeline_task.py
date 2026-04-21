@@ -128,39 +128,42 @@ async def download_video(url: str, dest_path: str, max_retries: int = 4) -> int:
     """
     file_id = extract_gdrive_file_id(url)
 
-    # ── Google Drive → gdown (più affidabile di httpx per i controlli anti-bot di Google) ──
+    # ── Google Drive → gdown Python API (gestisce auth e virus-scan page) ──
     if file_id:
-        logger.info(f"[VIDEO-PIPE] Google Drive file_id={file_id} — uso gdown")
+        logger.info(f"[VIDEO-PIPE] Google Drive file_id={file_id} — uso gdown Python API")
+        # Installa gdown a runtime se non presente nel container (layer cache)
+        try:
+            import gdown as _gdown
+        except ImportError:
+            logger.info("[VIDEO-PIPE] gdown non trovato — installo ora...")
+            subprocess.run(
+                ["pip", "install", "gdown", "--break-system-packages", "-q"],
+                check=True, timeout=120
+            )
+            import gdown as _gdown
+            logger.info("[VIDEO-PIPE] gdown installato correttamente")
+
+        loop = asyncio.get_event_loop()
         for attempt in range(max_retries):
             try:
-                cmd = [
-                    "python", "-m", "gdown",
-                    "--fuzzy",          # accetta qualsiasi formato URL Drive
-                    "--no-cookies",     # non usare cookie session
-                    "-O", dest_path,
-                    f"https://drive.google.com/file/d/{file_id}/view",
-                ]
-                result = subprocess.run(
-                    cmd, capture_output=True, text=True, timeout=3600  # 1h max
+                drive_url = f"https://drive.google.com/file/d/{file_id}/view"
+                logger.info(f"[VIDEO-PIPE] gdown download tentativo {attempt+1}: {drive_url}")
+                # gdown.download è sincrono — eseguito in executor per non bloccare l'event loop
+                result_path = await loop.run_in_executor(
+                    None,
+                    lambda: _gdown.download(url=drive_url, output=dest_path, quiet=False, fuzzy=True)
                 )
-                if result.returncode != 0:
-                    err = (result.stderr or result.stdout or "").strip()
-                    logger.warning(f"[VIDEO-PIPE] gdown tentativo {attempt+1} fallito: {err}")
-                    if attempt < max_retries - 1:
-                        await asyncio.sleep(10 * (attempt + 1))
-                        continue
-                    raise ValueError(f"gdown fallito dopo {max_retries} tentativi: {err}")
-                if not os.path.exists(dest_path) or os.path.getsize(dest_path) == 0:
+                if not result_path or not os.path.exists(dest_path) or os.path.getsize(dest_path) == 0:
                     raise ValueError("gdown completato ma file assente o vuoto")
                 size = os.path.getsize(dest_path)
                 logger.info(f"[VIDEO-PIPE] gdown completo: {size/1e6:.1f}MB")
                 return size
-            except subprocess.TimeoutExpired:
+            except Exception as e:
+                logger.warning(f"[VIDEO-PIPE] gdown tentativo {attempt+1} fallito: {e}")
                 if attempt < max_retries - 1:
-                    logger.warning(f"[VIDEO-PIPE] gdown timeout tentativo {attempt+1}, retry")
-                    await asyncio.sleep(10)
+                    await asyncio.sleep(10 * (attempt + 1))
                 else:
-                    raise ValueError("gdown timeout dopo 1 ora")
+                    raise ValueError(f"gdown fallito dopo {max_retries} tentativi: {e}")
 
     # ── Tutti gli altri URL (WeTransfer, Dropbox, link diretti) → httpx con retry ──
     download_url = url
