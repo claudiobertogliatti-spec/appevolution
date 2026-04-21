@@ -879,55 +879,22 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
                 </div>
               )}
 
-              {/* Istruzioni team editor — visibili quando il partner ha caricato il link Drive */}
-              {videoData?.video_raw_url && !videoReadyForReview && !videoApprovedFinal && (
-                <div className="rounded-xl overflow-hidden" style={{ border: "1.5px solid #BAE6FD" }}>
-                  <div className="px-4 py-2.5 flex items-center gap-2" style={{ background: "#0EA5E920" }}>
-                    <span className="text-xs font-black uppercase tracking-wider" style={{ color: "#0369A1" }}>📋 Istruzioni Team Editor</span>
+              {/* Link Drive grezzo — riferimento per l'admin */}
+              {videoData?.video_raw_url && (
+                <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "#F0F9FF", border: "1px solid #BAE6FD" }}>
+                  <Link className="w-4 h-4 flex-shrink-0" style={{ color: "#0369A1" }} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-bold mb-0.5" style={{ color: "#0369A1" }}>Video grezzo (Drive)</p>
+                    <a href={videoData.video_raw_url} target="_blank" rel="noopener noreferrer"
+                      className="text-xs underline truncate block" style={{ color: "#3B82F6" }}>
+                      {videoData.video_raw_url.length > 55 ? videoData.video_raw_url.slice(0, 55) + "…" : videoData.video_raw_url}
+                    </a>
                   </div>
-                  <div className="p-4 space-y-3" style={{ background: "#F0F9FF" }}>
-                    {/* Link Drive */}
-                    <div className="flex items-start gap-3 p-3 rounded-lg" style={{ background: "white", border: "1px solid #BAE6FD" }}>
-                      <div className="flex-1">
-                        <p className="text-xs font-bold mb-1" style={{ color: "#0369A1" }}>Video grezzo da Drive</p>
-                        <a href={videoData.video_raw_url} target="_blank" rel="noopener noreferrer"
-                          className="text-xs font-semibold underline break-all" style={{ color: "#3B82F6" }}>
-                          {videoData.video_raw_url.length > 60 ? videoData.video_raw_url.slice(0, 60) + "…" : videoData.video_raw_url}
-                        </a>
-                      </div>
-                      <a href={videoData.video_raw_url} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0"
-                        style={{ background: "#3B82F6", color: "white" }}>
-                        <Link className="w-3 h-3" /> Apri
-                      </a>
-                    </div>
-                    {/* Checklist editing */}
-                    <div>
-                      <p className="text-xs font-bold mb-2" style={{ color: "#0369A1" }}>Workflow editing:</p>
-                      {[
-                        "Scarica il video grezzo dal link Drive sopra",
-                        "Edita seguendo lo script approvato nello Step 2",
-                        "Aggiungi intro/outro brandizzata Evolution PRO",
-                        "Carica il video editato su YouTube come 'Non in elenco' sul canale Evolution PRO",
-                        "Copia l'URL YouTube e incollalo nello Step 4 qui sotto",
-                      ].map((step, i) => (
-                        <div key={i} className="flex items-start gap-2 mb-1.5">
-                          <span className="flex-shrink-0 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center mt-0.5"
-                            style={{ background: "#0369A1", color: "white" }}>{i + 1}</span>
-                          <span className="text-xs leading-relaxed" style={{ color: "#374151" }}>{step}</span>
-                        </div>
-                      ))}
-                    </div>
-                    {/* Script summary */}
-                    {(scriptSections || fullScript) && (
-                      <div className="p-3 rounded-lg text-xs" style={{ background: "white", border: "1px solid #BAE6FD", color: "#374151" }}>
-                        <p className="font-bold mb-1" style={{ color: "#0369A1" }}>Script approvato — sezioni chiave:</p>
-                        {scriptSections
-                          ? scriptSections.map((s, i) => <p key={i} className="mb-0.5">• <strong>{s.title}</strong></p>)
-                          : <p className="line-clamp-3">{fullScript?.slice(0, 200)}…</p>}
-                      </div>
-                    )}
-                  </div>
+                  <a href={videoData.video_raw_url} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold flex-shrink-0"
+                    style={{ background: "#0369A1", color: "white" }}>
+                    Apri
+                  </a>
                 </div>
               )}
 
@@ -937,16 +904,14 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
                 </p>
               )}
 
-              {/* Reset pipeline se stuck */}
+              {/* Reset pipeline — tool admin */}
               {videoInProgress && (
-                <div className="p-3 rounded-xl" style={{ background: "#FFF7ED", border: "1px solid #FED7AA" }}>
-                  <p className="text-xs mb-2" style={{ color: "#92400E" }}>
-                    Pipeline bloccata? Resetta e inserisci manualmente l'URL YouTube nello Step 4.
-                  </p>
+                <div className="flex items-center justify-between p-3 rounded-xl" style={{ background: "#FFF7ED", border: "1px solid #FED7AA" }}>
+                  <p className="text-xs" style={{ color: "#92400E" }}>Pipeline bloccata?</p>
                   <button
                     onClick={handleResetPipeline}
                     disabled={resettingPipeline}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-50"
                     style={{ background: "#EF4444", color: "white" }}
                   >
                     {resettingPipeline ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
