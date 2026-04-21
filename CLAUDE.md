@@ -457,6 +457,28 @@ link 'Apri funnel', pulsante 'Copia dati per Claude (JSON)' con optin_page_field
 ID: 6706257 | URL: evolutionpro.systeme.io/optin-f2485c57
 NON modificare il Template Master — usare sempre Duplica.
 
+### Struttura Template Master aggiornata (2026-04-21)
+Il Template Master ora include:
+- **Urgency bar in cima** con countdown (giorni/ore/minuti/secondi) — componente nativo Systeme.io, NON TipTap
+- **Footer con link legali**: Cookie Policy | Privacy Policy | Condizioni di Vendita
+
+### Mappatura indici contenteditable (post-aggiornamento)
+| Idx | Contenuto | Campo FunnelBuilder |
+|-----|-----------|---------------------|
+| 0 | Headline | HEADLINE_PRINCIPALE |
+| 1 | Sottotitolo | SOTTOTITOLO |
+| 2 | Copyright breve | © {PARTNER_NOME} |
+| 3 | Bio trainer | PARTNER_BIO |
+| 4 | Intro bullet | generato |
+| 5 | Bullet 1 | DOLORE_1 |
+| 6 | Bullet 2 | DOLORE_2 |
+| 7 | Bullet 3 | DOLORE_3 |
+| 8 | Bullet 4 | DOLORE_4 |
+| 9 | Footer info | {PARTNER_NOME} + {PARTNER_NICCHIA} + tel |
+| 10 | Copyright + link legali | Copyright ANNO © {PARTNER_NOME} + link Cookie/Privacy/Vendita |
+
+I link nel footer (Cookie Policy, Privacy Policy, Condizioni di Vendita) devono avere href reali per ogni partner.
+
 ### Daniele Andolfi — funnel TEST creato
 Funnel ID: 7114182 | Pagina Optin ID: 40213665
 URL: evolutionpro.systeme.io/optin-f2485c57-7d6c3447
