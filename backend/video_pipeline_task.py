@@ -71,6 +71,9 @@ def extract_gdrive_file_id(url: str) -> str | None:
 
 def resolve_gdrive_url(url: str) -> str:
     """Converte URL Google Drive share in URL download diretto."""
+    # GCS diretto — nessun limite, nessun blocco auth
+    if url.startswith("gs://"):
+        return await download_from_gcs(url, dest_path)
     file_id = extract_gdrive_file_id(url)
     if file_id:
         return f"https://drive.usercontent.google.com/download?id={file_id}&export=download&authuser=0"
@@ -118,6 +121,25 @@ async def _stream_to_file(client: httpx.AsyncClient, url: str, dest_path: str, o
                 f.write(chunk)
                 written += len(chunk)
     return written
+
+
+async def download_from_gcs(gcs_url: str, dest_path: str) -> int:
+    """Scarica file da GCS direttamente. gs://bucket/path"""
+    try:
+        from google.cloud import storage as gcs_storage
+    except ImportError:
+        raise RuntimeError("google-cloud-storage non installato — aggiungere al requirements.txt")
+    without_prefix = gcs_url[5:]  # rimuove "gs://"
+    bucket_name, _, blob_name = without_prefix.partition("/")
+    logger.info(f"[VIDEO-PIPE] Download GCS: bucket={bucket_name} blob={blob_name}")
+    client = gcs_storage.Client()
+    bucket = client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, lambda: blob.download_to_filename(dest_path))
+    size = os.path.getsize(dest_path)
+    logger.info(f"[VIDEO-PIPE] GCS download completo: {size/1e6:.1f}MB")
+    return size
 
 
 async def download_video(url: str, dest_path: str, max_retries: int = 4) -> int:
