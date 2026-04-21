@@ -413,12 +413,19 @@ Il flusso corretto: applica modifiche CM6 → click "Commit changes..." → clic
 ### Stack tecnico editor
 Systeme.io usa React + TipTap/ProseMirror. I contenteditable della pagina Optin sono accessibili via React fiber tree.
 
-### Workflow
-1. systeme.io/dashboard/funnels → Duplica Template Master → rinomina con nome partner
-2. Apri funnel clonato → step Optin → Modifica Pagina
-3. Esegui script iniezione nella console del browser (getTipTapEditor + setEditorText)
-4. Click Salvare — chiama POST /dashboard/editor/api/page/{ID}/save
-5. Salva URL nel campo Systeme.io del FunnelBuilder admin
+### ⚠️ DISTINZIONE FONDAMENTALE: Duplica vs Condividi
+
+- **Duplica** (⋯ menu) → clona il funnel nello STESSO account Systeme.io (evolutionpro). Utile per varianti interne. NON crea il funnel nell'account del partner.
+- **Condividi** (⋯ menu) → genera un link. Quando aperto dall'account del partner, importa il funnel in quell'account. Questo è il meccanismo corretto per i partner.
+
+### Workflow corretto per creare il funnel di un partner
+1. systeme.io/dashboard/funnels → ⋯ Template Master → **Condividi** → copia il link
+2. Login nell'account Systeme.io del partner
+3. Apri il link condivisione nel browser del partner → funnel importato automaticamente
+4. Clicca sul funnel → step Optin → Modifica Pagina
+5. Esegui script iniezione nella console del browser (getTipTapEditor + setEditorText)
+6. Click Salvare — chiama POST /dashboard/editor/api/page/{ID}/save
+7. Salva URL nel campo Systeme.io del FunnelBuilder admin
 
 ### Funzione helper (incollare nella console dell'editor Systeme.io)
 ```
@@ -454,3 +461,5 @@ NON modificare il Template Master — usare sempre Duplica.
 Funnel ID: 7114182 | Pagina Optin ID: 40213665
 URL: evolutionpro.systeme.io/optin-f2485c57-7d6c3447
 Demo completata: copy iniettato e salvato correttamente.
+⚠️ Creato con Duplica (non Condividi) — è nell'account evolutionpro, NON nell'account Systeme.io di Daniele.
+Va ricreato seguendo il workflow corretto con Condividi + account partner.
