@@ -673,6 +673,7 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
   const [manualYtUrl, setManualYtUrl] = useState("");
   const [settingYtUrl, setSettingYtUrl] = useState(false);
   const [showManualUrl, setShowManualUrl] = useState(false);
+  const [adminUploadOpen, setAdminUploadOpen] = useState(false);
 
   const partnerId = partner?.id;
   const videoApproved = videoData?.pipeline_status === "approved";
@@ -892,7 +893,50 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
                 </p>
               )}
 
-              {/* Reset pipeline — tool admin */}
+                            {!pStatus && !videoData?.video_raw_url && !adminUploadOpen && (
+                <div className="flex flex-col items-center gap-3 py-4">
+                  <p className="text-sm text-center" style={{ color: "#9CA3AF" }}>
+                    Nessun video ancora caricato dal partner.
+                  </p>
+                  <button
+                    onClick={() => setAdminUploadOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold"
+                    style={{ background: "#1E2128", color: "#FFD24D" }}
+                  >
+                    <Video className="w-4 h-4" /> Carica video direttamente
+                  </button>
+                </div>
+              )}
+              {adminUploadOpen && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-bold" style={{ color: "#374151" }}>Upload video per conto del partner</p>
+                    <button onClick={() => setAdminUploadOpen(false)} className="text-xs" style={{ color: "#9CA3AF" }}>Annulla</button>
+                  </div>
+                  <VideoSubmissionCard partnerId={partnerId} onVideoApproved={() => { setAdminUploadOpen(false); loadVideoData(); }} />
+                </div>
+              )}
+
+              {/* Admin upload — sostituisce il video grezzo */}
+              {videoData?.video_raw_url && !adminUploadOpen && (
+                <button
+                  onClick={() => setAdminUploadOpen(true)}
+                  className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg w-full justify-center"
+                  style={{ background: "#F0F9FF", border: "1px solid #BAE6FD", color: "#0369A1" }}
+                >
+                  <Video className="w-3.5 h-3.5" /> Carica nuovo video (sostituisci)
+                </button>
+              )}
+              {adminUploadOpen && videoData?.video_raw_url && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-bold" style={{ color: "#374151" }}>Carica video sostitutivo</p>
+                    <button onClick={() => setAdminUploadOpen(false)} className="text-xs" style={{ color: "#9CA3AF" }}>Annulla</button>
+                  </div>
+                  <VideoSubmissionCard partnerId={partnerId} onVideoApproved={() => { setAdminUploadOpen(false); loadVideoData(); }} />
+                </div>
+              )}
+{/* Reset pipeline — tool admin */}
               {videoInProgress && (
                 <div className="flex items-center justify-between p-3 rounded-xl" style={{ background: "#FFF7ED", border: "1px solid #FED7AA" }}>
                   <p className="text-xs" style={{ color: "#92400E" }}>Pipeline bloccata?</p>
