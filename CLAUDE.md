@@ -407,3 +407,50 @@ const data = JSON.parse(scripts[0].textContent);
 window.__tokens = data?.payload?.csrf_tokens; // chiave: /owner/repo/tree-save/main/path
 ```
 Il flusso corretto: applica modifiche CM6 → click "Commit changes..." → click "Commit changes" nel dialog.
+
+## Automazione Funnel Systeme.io (2026-04-21)
+
+### Stack tecnico editor
+Systeme.io usa React + TipTap/ProseMirror. I contenteditable della pagina Optin sono accessibili via React fiber tree.
+
+### Workflow
+1. systeme.io/dashboard/funnels → Duplica Template Master → rinomina con nome partner
+2. Apri funnel clonato → step Optin → Modifica Pagina
+3. Esegui script iniezione nella console del browser (getTipTapEditor + setEditorText)
+4. Click Salvare — chiama POST /dashboard/editor/api/page/{ID}/save
+5. Salva URL nel campo Systeme.io del FunnelBuilder admin
+
+### Funzione helper (incollare nella console dell'editor Systeme.io)
+```
+function getTipTapEditor(el) {
+  let node = el.parentElement;
+  for (let i=0;i<5;i++) {
+    const key = Object.keys(node).find(k=>k.startsWith('__reactFiber'));
+    if (key) { let f=node[key]; for(let j=0;j<30;j++) { if(f?.memoizedProps?.editor?.commands) return f.memoizedProps.editor; f=f?.return; if(!f)break; } }
+    node=node.parentElement; if(!node)break;
+  } return null;
+}
+function setEditorText(editor,text){editor.commands.focus();editor.commands.selectAll();editor.commands.insertContent(text);}
+const fields = { /* optin_page_fields dal payload JSON di FunnelBuilder */ };
+const els = Array.from(document.querySelectorAll('[contenteditable]'));
+Object.entries(fields).forEach(([i,t])=>{ const ed=getTipTapEditor(els[+i]); if(ed)setEditorText(ed,t); });
+```
+
+### Mappatura indici Optin
+0=HEADLINE_PRINCIPALE | 1=SOTTOTITOLO | 2=copyright breve | 3=PARTNER_BIO
+4=intro bullet | 5=DOLORE_1 | 6=DOLORE_2 | 7=DOLORE_3 | 8=DOLORE_4
+9=footer info | 10=copyright footer
+
+### Card FunnelBuilder aggiunta (2026-04-21)
+File: frontend/src/components/admin/FunnelBuilder.jsx
+Card 'Funnel Systeme.io' con: URL input (salva in partner_funnel.funnel_systeme_url),
+link 'Apri funnel', pulsante 'Copia dati per Claude (JSON)' con optin_page_fields mappati.
+
+### Template Master Systeme.io
+ID: 6706257 | URL: evolutionpro.systeme.io/optin-f2485c57
+NON modificare il Template Master — usare sempre Duplica.
+
+### Daniele Andolfi — funnel TEST creato
+Funnel ID: 7114182 | Pagina Optin ID: 40213665
+URL: evolutionpro.systeme.io/optin-f2485c57-7d6c3447
+Demo completata: copy iniettato e salvato correttamente.
