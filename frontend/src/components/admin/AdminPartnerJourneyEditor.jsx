@@ -248,6 +248,24 @@ export function AdminPartnerJourneyEditor({ partner, onBack }) {
     setVc(v => ({ lessons: { ...v.lessons, [newId]: { title: `Lezione ${existing.length + 1}`, video_youtube_url: "", pipeline_status: "" } } }));
   };
 
+  const deleteVcLesson = async (lessonId) => {
+    const title = vcLessons[lessonId]?.title || lessonId;
+    if (!window.confirm(`Eliminare la lezione "${title}"? L'operazione non è reversibile.`)) return;
+    const newLessons = { ...vc.lessons };
+    delete newLessons[lessonId];
+    setVc({ lessons: newLessons });
+    const token = localStorage.getItem("access_token") || localStorage.getItem("token");
+    try {
+      await fetch(`${API}/api/admin/partner/${partnerId}/journey`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ collection: "partner_videocorso", data: { lessons: newLessons } })
+      });
+    } catch (e) {
+      alert("Errore eliminazione: " + e.message);
+    }
+  };
+
   if (loading) return (
     <div className="flex items-center justify-center py-20">
       <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FFD24D" }} />
@@ -418,6 +436,14 @@ export function AdminPartnerJourneyEditor({ partner, onBack }) {
                   }}>
                   {lesson.video_pipeline_status || "non avviato"}
                 </span>
+                <button
+                  onClick={() => deleteVcLesson(lessonId)}
+                  className="flex items-center justify-center w-7 h-7 rounded-lg"
+                  style={{ background: "#FEF2F2", color: "#DC2626" }}
+                  title="Elimina lezione"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
               </div>
               <Field label="Stato pipeline">
                 <SelectInput
