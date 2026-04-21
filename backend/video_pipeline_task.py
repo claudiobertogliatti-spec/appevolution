@@ -122,13 +122,49 @@ async def _stream_to_file(client: httpx.AsyncClient, url: str, dest_path: str, o
 
 async def download_video(url: str, dest_path: str, max_retries: int = 4) -> int:
     """Scarica video da URL (Google Drive o qualsiasi link diretto).
-    Gestisce la pagina di conferma di Google Drive per file grandi e
-    riprende da dove si era fermato in caso di drop connessione (Range header).
+    Usa gdown per Google Drive (gestisce auth e virus-scan page in modo affidabile).
+    Per altri URL usa httpx con retry e Range header.
     Ritorna dimensione totale in bytes.
     """
-    download_url = resolve_gdrive_url(url)
     file_id = extract_gdrive_file_id(url)
-    logger.info(f"[VIDEO-PIPE] Download URL: {download_url[:100]}")
+
+    # ── Google Drive → gdown (più affidabile di httpx per i controlli anti-bot di Google) ──
+    if file_id:
+        logger.info(f"[VIDEO-PIPE] Google Drive file_id={file_id} — uso gdown")
+        for attempt in range(max_retries):
+            try:
+                cmd = [
+                    "gdown",
+                    "--fuzzy",          # accetta qualsiasi formato URL Drive
+                    "--no-cookies",     # non usare cookie session
+                    "-O", dest_path,
+                    f"https://drive.google.com/file/d/{file_id}/view",
+                ]
+                result = subprocess.run(
+                    cmd, capture_output=True, text=True, timeout=3600  # 1h max
+                )
+                if result.returncode != 0:
+                    err = (result.stderr or result.stdout or "").strip()
+                    logger.warning(f"[VIDEO-PIPE] gdown tentativo {attempt+1} fallito: {err}")
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(10 * (attempt + 1))
+                        continue
+                    raise ValueError(f"gdown fallito dopo {max_retries} tentativi: {err}")
+                if not os.path.exists(dest_path) or os.path.getsize(dest_path) == 0:
+                    raise ValueError("gdown completato ma file assente o vuoto")
+                size = os.path.getsize(dest_path)
+                logger.info(f"[VIDEO-PIPE] gdown completo: {size/1e6:.1f}MB")
+                return size
+            except subprocess.TimeoutExpired:
+                if attempt < max_retries - 1:
+                    logger.warning(f"[VIDEO-PIPE] gdown timeout tentativo {attempt+1}, retry")
+                    await asyncio.sleep(10)
+                else:
+                    raise ValueError("gdown timeout dopo 1 ora")
+
+    # ── Tutti gli altri URL (WeTransfer, Dropbox, link diretti) → httpx con retry ──
+    download_url = url
+    logger.info(f"[VIDEO-PIPE] Download diretto URL: {download_url[:100]}")
 
     base_headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -140,44 +176,10 @@ async def download_video(url: str, dest_path: str, max_retries: int = 4) -> int:
         timeout=httpx.Timeout(connect=30, read=600, write=30, pool=30),
         headers=base_headers,
     ) as client:
-        # ── Step 1: verifica se la prima request è la pagina di conferma Drive ──
-        actual_url = download_url
-        async with client.stream("GET", download_url) as response:
-            response.raise_for_status()
-            content_type = response.headers.get("content-type", "")
-
-            if "text/html" in content_type and file_id:
-                # File grande: Google mostra pagina "virus scan warning"
-                html_chunks = []
-                async for chunk in response.aiter_bytes(chunk_size=8192):
-                    html_chunks.append(chunk.decode("utf-8", errors="ignore"))
-                    if sum(len(c) for c in html_chunks) >= 65536:
-                        break
-                html_text = "".join(html_chunks)
-                actual_url = extract_gdrive_confirm_url(html_text, file_id)
-                logger.info(f"[VIDEO-PIPE] Pagina conferma rilevata — uso: {actual_url[:100]}")
-            elif "text/html" in content_type:
-                raise ValueError(
-                    f"Google Drive ha restituito una pagina HTML invece del video "
-                    f"(content-type: {content_type}). "
-                    f"Verifica che il file sia condiviso come 'Chiunque abbia il link' "
-                    f"e che il link sia diretto al file (non a una cartella)."
-                )
-            else:
-                # Download diretto senza conferma — stream già aperto
-                total = 0
-                with open(dest_path, "wb") as f:
-                    async for chunk in response.aiter_bytes(chunk_size=2 * 1024 * 1024):
-                        f.write(chunk)
-                        total += len(chunk)
-                logger.info(f"[VIDEO-PIPE] Download diretto completo: {total/1e6:.1f}MB")
-                return total
-
-        # ── Step 2: download con URL confermato, retry su drop connessione ──
         for attempt in range(max_retries):
             offset = os.path.getsize(dest_path) if os.path.exists(dest_path) else 0
             try:
-                written = await _stream_to_file(client, actual_url, dest_path, offset=offset)
+                written = await _stream_to_file(client, download_url, dest_path, offset=offset)
                 total = (offset + written) if written else os.path.getsize(dest_path)
                 logger.info(f"[VIDEO-PIPE] Download completo: {total/1e6:.1f}MB")
                 return total
