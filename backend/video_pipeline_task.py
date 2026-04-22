@@ -765,7 +765,8 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
 
         # 2. FFmpeg clean
         await set_status("cleaning")
-        ffmpeg_clean(raw_path, clean_path)
+        _loop = asyncio.get_event_loop()
+        await _loop.run_in_executor(None, ffmpeg_clean, raw_path, clean_path)
         clean_dur = get_video_duration(clean_path)
         silence_saved = raw_dur - clean_dur
 
@@ -775,7 +776,8 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
         transcript = ""
         words = []
 
-        if OPENAI_KEY and extract_audio_for_whisper(clean_path, audio_path):
+        _audio_ok = await asyncio.get_event_loop().run_in_executor(None, extract_audio_for_whisper, clean_path, audio_path)
+        if OPENAI_KEY and _audio_ok:
             audio_size = Path(audio_path).stat().st_size
             if audio_size < 25 * 1024 * 1024:  # Whisper limit 25MB
                 await set_status("transcribing")
@@ -987,8 +989,25 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
 
     except Exception as e:
         logger.error(f"[VIDEO-PIPE] Error: {e}", exc_info=True)
-        await set_status("error", {"video_pipeline_error": str(e)[:500]})
-        await telegram(f"❌ <b>Errore pipeline video</b>\n👤 {partner_id}\n🔴 {str(e)[:300]}")
+        try:
+            await set_status("error", {"video_pipeline_error": str(e)[:500]})
+        except Exception as e2:
+            logger.error(f"[VIDEO-PIPE] set_status(error) failed (stale connection?): {e2}")
+            try:
+                _mongo_err = AsyncIOMotorClient(MONGO_URL, serverSelectionTimeoutMS=10000, connectTimeoutMS=10000)
+                _db_err = _mongo_err[DB_NAME]
+                _now_err = datetime.utcnow()
+                await _db_err.masterclass_factory.update_one(
+                    {"partner_id": partner_id},
+                    {"$set": {"video_pipeline_status": "error", "pipeline_error": str(e)[:500], "updated_at": _now_err}},
+                    upsert=True
+                )
+            except Exception as e3:
+                logger.error(f"[VIDEO-PIPE] fallback set_status also failed: {e3}")
+        try:
+            await telegram(f"❌ <b>Errore pipeline video</b>\n👤 {partner_id}\n🔴 {str(e)[:300]}")
+        except Exception:
+            pass
         raise
 
     finally:
