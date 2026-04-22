@@ -82,8 +82,8 @@ def start_celery_worker():
         _worker_process = subprocess.Popen(
             worker_cmd,
             cwd=backend_dir,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
+            stdout=sys.stdout,
+            stderr=sys.stderr,
             env={**os.environ, 'PYTHONUNBUFFERED': '1'}
         )
         
@@ -100,8 +100,8 @@ def start_celery_worker():
         _beat_process = subprocess.Popen(
             beat_cmd,
             cwd=backend_dir,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
+            stdout=sys.stdout,
+            stderr=sys.stderr,
             env={**os.environ, 'PYTHONUNBUFFERED': '1'}
         )
         
@@ -141,8 +141,8 @@ def _monitor_workers():
                     _worker_process = subprocess.Popen(
                         worker_cmd,
                         cwd=backend_dir,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT,
+                        stdout=sys.stdout,
+                        stderr=sys.stderr,
                         env={**os.environ, 'PYTHONUNBUFFERED': '1'}
                     )
             
@@ -162,8 +162,8 @@ def _monitor_workers():
                     _beat_process = subprocess.Popen(
                         beat_cmd,
                         cwd=backend_dir,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT,
+                        stdout=sys.stdout,
+                        stderr=sys.stderr,
                         env={**os.environ, 'PYTHONUNBUFFERED': '1'}
                     )
             
