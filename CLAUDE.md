@@ -485,3 +485,55 @@ URL: evolutionpro.systeme.io/optin-f2485c57-7d6c3447
 Demo completata: copy iniettato e salvato correttamente.
 ⚠️ Creato con Duplica (non Condividi) — è nell'account evolutionpro, NON nell'account Systeme.io di Daniele.
 Va ricreato seguendo il workflow corretto con Condividi + account partner.
+
+
+## Sessione 2026-04-22 — Fix pipeline GCS + debug multi-sessione Daniele Andolfi
+
+### Problema: `await` in funzione sync `resolve_gdrive_url` (problema #11)
+**Sintomo**: `SyntaxError: 'await' outside async function (video_pipeline_task.py, line 76)` — il worker Celery crashava all'import.
+
+**Causa**: una sessione precedente aveva aggiunto via CM6 il codice GCS dentro `resolve_gdrive_url()` (che è `def`, non `async def`), mettendo `await download_from_gcs(...)` in una funzione sincrona.
+
+**Fix**: rimosso il blocco errato da `resolve_gdrive_url()`, riportandola alla forma originale (commit `eb27d65` + `da4acec` per triggerare rebuild).
+
+### Problema: URL GCS non gestito in `download_video()` (problema #12)
+**Sintomo**: pipeline va in `error` con `"Request URL has an unsupported protocol 'gs://'"`. Lo stato scende da `queued` a `error` quasi immediatamente.
+
+**Causa**: `download_from_gcs()` esisteva nel file ma non veniva mai chiamata da `download_video()`. Quando il fix del problema #11 ha rimosso il blocco errato da `resolve_gdrive_url()`, non c'era più nessun codice path per gestire URL `gs://`.
+
+**Fix** (commit `585b468`): aggiunto in cima a `download_video()`:
+```python
+# GCS diretto
+if url.startswith("gs://"):
+    return await download_from_gcs(url, dest_path)
+```
+Deve essere inserito PRIMA della riga `file_id = extract_gdrive_file_id(url)` dentro `download_video()` (non dentro `resolve_gdrive_url()`).
+
+### ⚠️ Rischio CM6: `doc.indexOf(TARGET)` trova la PRIMA occorrenza
+In `video_pipeline_task.py` ci sono DUE occorrenze di `file_id = extract_gdrive_file_id(url)`:
+- Indice ~2189 → dentro `resolve_gdrive_url()` (funzione SYNC — non mettere `await`)
+- Indice ~5724 → dentro `download_video()` (funzione ASYNC — ok per `await`)
+
+`doc.indexOf(...)` trova sempre la prima. Per targetare la seconda usare:
+```js
+const idx1 = doc.indexOf(TARGET);
+const idx2 = doc.indexOf(TARGET, idx1 + 1); // seconda occorrenza
+```
+oppure usare un contesto più ampio e unico come anchor.
+
+### Risultato finale (2026-04-22)
+Dopo il deploy della revisione `evolution-pro-backend-00223-zpm`:
+- Pipeline di Daniele Andolfi (partner ID "23") avanzata correttamente: `queued` → `downloading` → `cleaning`
+- Il GCS download ha funzionato — il video (`masterclass 2.mp4`) è stato scaricato da `gs://gen-lang-client-0744698012_cloudbuild/raw_videos/23/masterclass/ad035e094bd946cea7ac19df6eef97e2.mp4`
+- FFmpeg `cleaning` in corso al momento della chiusura sessione
+
+### Commit in questa sessione
+- `eb27d65` — rimosso await errato da resolve_gdrive_url
+- `da4acec` — trigger rebuild (commento aggiunto)
+- `585b468` — aggiunto GCS URL handling in download_video()
+
+### Recovery se pipeline si blocca dopo cleaning
+Se pipeline finisce in `error` durante `transcribing`, `cutting_fillers`, o `uploading_youtube`:
+1. `POST /api/partner-journey/masterclass/reset-pipeline?partner_id=23` — reset stato
+2. `POST /api/admin/partner/23/retrigger-video?video_type=masterclass` — retrigger
+3. Se il video ha già l'URL YouTube ma il partner deve ancora approvarlo: usare Plan B bypass (PATCH journey con `pipeline_status: "ready_for_review"` + `video_youtube_url` + `video_embed_url`)
