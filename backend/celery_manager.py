@@ -92,7 +92,9 @@ def start_celery_worker():
             sys.executable, '-m', 'celery',
             '-A', 'celery_app',
             'beat',
-            '--loglevel=info'
+            '--loglevel=info',
+            '--schedule=/tmp/celerybeat-schedule',
+            '--pidfile=/tmp/celerybeat.pid'
         ]
         
         logger.info(f"[CELERY_MANAGER] Starting beat: {' '.join(beat_cmd)}")
@@ -157,7 +159,9 @@ def _monitor_workers():
                         sys.executable, '-m', 'celery',
                         '-A', 'celery_app',
                         'beat',
-                        '--loglevel=info'
+                        '--loglevel=info',
+                        '--schedule=/tmp/celerybeat-schedule',
+                        '--pidfile=/tmp/celerybeat.pid'
                     ]
                     _beat_process = subprocess.Popen(
                         beat_cmd,
