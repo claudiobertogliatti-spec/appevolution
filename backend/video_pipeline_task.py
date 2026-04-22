@@ -990,3 +990,5 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
     finally:
         shutil.rmtree(str(tmp_dir), ignore_errors=True)
         mongo.close()
+
+# trigger rebuild
