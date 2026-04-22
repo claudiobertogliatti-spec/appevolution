@@ -145,6 +145,10 @@ async def download_video(url: str, dest_path: str, max_retries: int = 4) -> int:
     Per altri URL usa httpx con retry e Range header.
     Ritorna dimensione totale in bytes.
     """
+    # GCS diretto
+    if url.startswith("gs://"):
+        return await download_from_gcs(url, dest_path)
+
     file_id = extract_gdrive_file_id(url)
 
     # ── Google Drive → gdown Python API (gestisce auth e virus-scan page) ──
