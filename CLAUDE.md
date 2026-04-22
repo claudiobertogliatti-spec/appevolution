@@ -580,3 +580,31 @@ Se `cleaning` dura più di 40 minuti senza andare in `error` o `transcribing`:
 Con il fix `run_in_executor` (commit `d4c8d68`), un timeout subprocess propagherebbe l'eccezione correttamente e imposterebbe `error`. Il fatto che il status sia ancora `cleaning` senza errore a 21+ min significa che **silenceremove è completato con successo** entro i 900s. Il processing è probabilmente in fase loudnorm apply.
 
 **Stima completion cleaning**: ~14:44-14:55 UTC.
+
+
+## Sessione 2026-04-22 (terza continuazione) — Diagnosi timeout extract_audio + Retry 2
+
+### Causa root del fallimento al secondo tentativo (confermata)
+**Sintomo**: cleaning→downloading a 14:53:58 UTC, dopo 38 min 34 sec = 2314 secondi.
+
+**Calcolo**: 2314s corrisponde ESATTAMENTE a:
+- silenceremove: ~900s (timeout massimo)
+- loudnorm analysis: ~300s (timeout massimo)
+- loudnorm apply: ~814s (completato prima del limite)
+- **extract_audio_for_whisper: 300s timeout scattato** ← causa root
+
+`extract_audio_for_whisper` estrae l'audio per Whisper (ffmpeg -vn -acodec copy). Per un video da 13 min su Cloud Run con CPU throttling, 300s non è sufficiente. **Il fix corretto era alzarlo a 1200s** — già committato.
+
+### Retry 2 (ultimo automatico — max_retries=2)
+- Downloading a 14:53:58 UTC
+- Cleaning a ~14:54:45 UTC
+
+**Se il nuovo container (timeout fix deployato ~14:40) ha preso il task** → extract_audio avrà 1200s → cleaning completo ~15:29-15:35 → transcribing → success.
+**Se il vecchio container ha preso il task** → stesso fallimento a ~15:32, poi serve reset+retrigger manuale.
+
+### Recovery se retry 2 fallisce
+```
+POST /api/partner-journey/masterclass/reset-pipeline?partner_id=23
+POST /api/admin/partner/23/retrigger-video?video_type=masterclass
+```
+Il retrigger manuale avvierà un task fresco sul container con timeout=1200s.
