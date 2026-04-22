@@ -71,9 +71,6 @@ def extract_gdrive_file_id(url: str) -> str | None:
 
 def resolve_gdrive_url(url: str) -> str:
     """Converte URL Google Drive share in URL download diretto."""
-    # GCS diretto — nessun limite, nessun blocco auth
-    if url.startswith("gs://"):
-        return await download_from_gcs(url, dest_path)
     file_id = extract_gdrive_file_id(url)
     if file_id:
         return f"https://drive.usercontent.google.com/download?id={file_id}&export=download&authuser=0"
