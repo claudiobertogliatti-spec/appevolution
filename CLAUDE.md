@@ -537,3 +537,46 @@ Se pipeline finisce in `error` durante `transcribing`, `cutting_fillers`, o `upl
 1. `POST /api/partner-journey/masterclass/reset-pipeline?partner_id=23` — reset stato
 2. `POST /api/admin/partner/23/retrigger-video?video_type=masterclass` — retrigger
 3. Se il video ha già l'URL YouTube ma il partner deve ancora approvarlo: usare Plan B bypass (PATCH journey con `pipeline_status: "ready_for_review"` + `video_youtube_url` + `video_embed_url`)
+
+
+## Sessione 2026-04-22 (continuazione) — Pipeline Daniele Andolfi avanzata
+
+### Task stuck in `queued` dopo retrigger precedente (problema risolto)
+**Sintomo**: dopo il deploy del commit `d4c8d68` e il retrigger (task `437c536c`), la pipeline era rimasta in `queued` per ore.
+
+**Causa**: il task era stato consumato dal worker silenziosamente — il worker lo preleva da Redis, tenta di eseguirlo, ma fallisce PRIMA di chiamare `set_status("downloading")`. Il DB rimane in `queued` e il task sparisce da Redis (default `task_acks_late=False` → task rimosso da Redis al momento del pickup, non al completamento).
+
+**Recovery**: reset + retrigger fresco (task `f6d5df3b`, ore 13:53:13 UTC 2026-04-22).
+
+### Progressione pipeline confermata (2026-04-22 ~13:53 UTC)
+- `13:53:13` — retrigger eseguito (task `f6d5df3b-3a59-47fb-bff8-d373166bb80a`)
+- `13:53:24` — status `downloading` ✓ (worker ha preso il task in ~11 secondi)
+- `13:53:46` — status `cleaning` ✓ (GCS download completato in ~22 secondi)
+- `cleaning` in corso con FFmpeg nel thread executor (fix #13 funziona)
+
+**Nota**: il GCS download da `gs://gen-lang-client-0744698012_cloudbuild/...` è molto rapido (stessa infrastruttura GCP) — circa 20 secondi anche per file grandi.
+
+### Recovery se cleaning si blocca ancora
+Se `cleaning` dura più di 40 minuti senza andare in `error` o `transcribing`:
+1. Verificare che il container sia aggiornato: `GET /api/celery/status` → `worker_pid` deve essere quello del nuovo deploy
+2. Se il container è vecchio: attendere o forzare nuovo deploy con commit vuoto
+3. Se container nuovo ma ancora bloccato: usare Plan B bypass con YouTube URL manuale
+
+## Sessione 2026-04-22 (seconda continuazione) — Fix timeout subprocess + monitoraggio cleaning
+
+### Fix subprocess timeouts troppo bassi per Cloud Run lento (problema #14 — commit su main)
+**Sintomo**: su Cloud Run con CPU throttling, FFmpeg per video 13 min impiega ~15-21+ min. I timeout subprocess erano troppo bassi e rischiavano di far fallire il processing.
+
+**Fix applicato** (commit `fix: increase ffmpeg subprocess timeouts (900→3600s, 300→1200s) for slow Cloud Run CPU`):
+- `cmd_s` silenceremove: `timeout=900` → `timeout=3600` (1h)
+- `cmd_a` loudnorm analysis: `timeout=300` → `timeout=1200` (20 min)
+- `cmd_n` loudnorm apply: `timeout=900` → `timeout=3600` (1h)
+- `cmd` extract_audio_for_whisper: `timeout=300` → `timeout=1200` (20 min)
+- `cmd_c` cut_filler_segments: `timeout=300` → `timeout=1200` (20 min)
+
+**Nota**: questo fix non impatta la pipeline in corso (Cloud Build ~10 min) — vale per le prossime esecuzioni.
+
+### Osservazione: secondo tentativo (retry 1) in cleaning da 21+ min senza errore (14:37 UTC)
+Con il fix `run_in_executor` (commit `d4c8d68`), un timeout subprocess propagherebbe l'eccezione correttamente e imposterebbe `error`. Il fatto che il status sia ancora `cleaning` senza errore a 21+ min significa che **silenceremove è completato con successo** entro i 900s. Il processing è probabilmente in fase loudnorm apply.
+
+**Stima completion cleaning**: ~14:44-14:55 UTC.
