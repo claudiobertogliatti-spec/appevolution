@@ -868,22 +868,25 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
                 </div>
               )}
 
-              {/* Link Drive grezzo — riferimento per l'admin */}
+                            {/* Link video grezzo — Drive o GCS */}
               {videoData?.video_raw_url && (
                 <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "#F0F9FF", border: "1px solid #BAE6FD" }}>
                   <Link className="w-4 h-4 flex-shrink-0" style={{ color: "#0369A1" }} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-bold mb-0.5" style={{ color: "#0369A1" }}>Video grezzo (Drive)</p>
-                    <a href={videoData.video_raw_url} target="_blank" rel="noopener noreferrer"
-                      className="text-xs underline truncate block" style={{ color: "#3B82F6" }}>
+                    <p className="text-[11px] font-bold mb-0.5" style={{ color: "#0369A1" }}>
+                      {videoData.video_raw_url.startsWith("gs://") ? "Video grezzo (GCS)" : "Video grezzo (Drive)"}
+                    </p>
+                    <span className="text-xs truncate block" style={{ color: "#3B82F6" }}>
                       {videoData.video_raw_url.length > 55 ? videoData.video_raw_url.slice(0, 55) + "…" : videoData.video_raw_url}
-                    </a>
+                    </span>
                   </div>
-                  <a href={videoData.video_raw_url} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold flex-shrink-0"
-                    style={{ background: "#0369A1", color: "white" }}>
-                    Apri
-                  </a>
+                  {!videoData.video_raw_url.startsWith("gs://") && (
+                    <a href={videoData.video_raw_url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold flex-shrink-0"
+                      style={{ background: "#0369A1", color: "white" }}>
+                      Apri
+                    </a>
+                  )}
                 </div>
               )}
 
