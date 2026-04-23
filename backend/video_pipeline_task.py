@@ -698,8 +698,13 @@ async def assemblyai_transcribe(audio_path: str, api_key: str) -> dict:
         tr.raise_for_status()
         tid = tr.json()["id"]
         res = {}
-        for _ in range(180):
+        # Timeout 5 min — se AAI non risponde, usa raw video senza editing
+        import time as _t
+        _aai_deadline = _t.time() + 300
+        for _ in range(60):
             await asyncio.sleep(5)
+            if _t.time() > _aai_deadline:
+                raise TimeoutError("AAI timeout 5min — fallback raw video")
             poll = await client.get(f"{AAI_BASE}/transcript/{tid}", headers={"authorization": api_key}, timeout=30)
             res = poll.json()
             if res.get("status") == "completed": break
