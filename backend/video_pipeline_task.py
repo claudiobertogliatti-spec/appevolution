@@ -1030,7 +1030,7 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
             pass
         raise
 
-        finally:
+    finally:
         # Ferma il heartbeat loop
         try:
             _heartbeat_active = False
@@ -1041,4 +1041,6 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
         try:
             mongo.close()
         except Exception:
-            passtrigger rebuild
+            pass
+
+# trigger rebuild
