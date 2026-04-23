@@ -660,6 +660,62 @@ def upload_to_youtube_sync(video_path: str, title: str, partner_name: str) -> Op
 
 
 # ═══════════════════════════════════════════════════════════════════
+# SHOTSTACK — watermark Evolution PRO in basso-destra (solo masterclass)
+# ═══════════════════════════════════════════════════════════════════
+
+EVOLUTION_PRO_LOGO_URL = "https://storage.googleapis.com/gen-lang-client-0744698012_cloudbuild/assets/evolution-pro-logo-white.png"
+
+async def shotstack_add_watermark(video_url: str, api_key: str, duration: float, sandbox: bool = False) -> str:
+    base_url = "https://api.shotstack.io/stage" if sandbox else "https://api.shotstack.io/v1"
+    headers = {"x-api-key": api_key, "content-type": "application/json"}
+    payload = {"timeline": {"tracks": [{"clips": [{"asset": {"type": "video", "src": video_url}, "start": 0, "length": duration}]}, {"clips": [{"asset": {"type": "image", "src": EVOLUTION_PRO_LOGO_URL}, "start": 0, "length": duration, "position": "bottomRight", "offset": {"x": -0.02, "y": 0.02}, "scale": 0.15, "opacity": 0.75}]}]}, "output": {"format": "mp4", "resolution": "1080"}}
+    async with httpx.AsyncClient(timeout=30) as client:
+        r = await client.post(f"{base_url}/render", headers=headers, json=payload)
+        r.raise_for_status()
+        render_id = r.json()["response"]["id"]
+        for _ in range(180):
+            await asyncio.sleep(5)
+            poll = await client.get(f"{base_url}/render/{render_id}", headers=headers, timeout=30)
+            res = poll.json()["response"]
+            if res.get("status") == "done": return res["url"]
+            if res.get("status") == "failed": raise ValueError(f"Shotstack failed: {res.get('error')}")
+    raise TimeoutError("Shotstack timeout")
+
+
+# ═══════════════════════════════════════════════════════════════════
+# ASSEMBLYAI — Trascrizione + filler + silenzi (sostituisce FFmpeg)
+# ═══════════════════════════════════════════════════════════════════
+
+async def assemblyai_transcribe(audio_path: str, api_key: str) -> dict:
+    AAI_BASE = "https://api.assemblyai.com/v2"
+    headers = {"authorization": api_key, "content-type": "application/json"}
+    async with httpx.AsyncClient(timeout=120) as client:
+        with open(audio_path, "rb") as f:
+            audio_bytes = f.read()
+        up = await client.post(f"{AAI_BASE}/upload", headers={"authorization": api_key}, content=audio_bytes, timeout=120)
+        up.raise_for_status()
+        tr = await client.post(f"{AAI_BASE}/transcript", headers=headers, json={"audio_url": up.json()["upload_url"], "language_code": "it", "disfluencies": True, "punctuate": True, "format_text": True}, timeout=30)
+        tr.raise_for_status()
+        tid = tr.json()["id"]
+        res = {}
+        for _ in range(180):
+            await asyncio.sleep(5)
+            poll = await client.get(f"{AAI_BASE}/transcript/{tid}", headers={"authorization": api_key}, timeout=30)
+            res = poll.json()
+            if res.get("status") == "completed": break
+            if res.get("status") == "error": raise ValueError(f"AAI error: {res.get('error')}")
+    words_raw = res.get("words", [])
+    FILLERS = {"um","uh","eh","ehm","allora","tipo","cioè","quindi","insomma","praticamente","diciamo","appunto"}
+    filler_segs = [{"start":w["start"]/1000,"end":w["end"]/1000,"word":w["text"]} for w in words_raw if w.get("type")=="filler" or w["text"].lower().strip(".,!?") in FILLERS]
+    silence_segs = []
+    for i in range(len(words_raw)-1):
+        gap = (words_raw[i+1]["start"] - words_raw[i]["end"]) / 1000
+        if gap > 0.5:
+            silence_segs.append({"start":words_raw[i]["end"]/1000,"end":words_raw[i+1]["start"]/1000,"duration":gap})
+    return {"transcript": res.get("text",""), "words": [{"word":w["text"],"start":w["start"]/1000,"end":w["end"]/1000} for w in words_raw], "filler_segments": filler_segs, "silence_segments": silence_segs}
+
+
+# ═══════════════════════════════════════════════════════════════════
 # HELPERS: TELEGRAM
 # ═══════════════════════════════════════════════════════════════════
 
@@ -736,6 +792,9 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
     MONGO_URL = os.environ.get("MONGO_ATLAS_URL") or os.environ.get("MONGO_URL") or os.environ.get("MONGODB_URL", "mongodb://localhost:27017")
     DB_NAME = os.environ.get("DB_NAME", os.environ.get("MONGODB_DB", "evolution_pro"))
     OPENAI_KEY = os.environ.get("OPENAI_API_KEY", "")
+    ASSEMBLYAI_KEY = os.environ.get("ASSEMBLYAI_API_KEY", "")
+    SHOTSTACK_KEY = os.environ.get("SHOTSTACK_API_KEY", "")
+    SHOTSTACK_SANDBOX = os.environ.get("SHOTSTACK_SANDBOX_KEY", "")
 
     mongo = AsyncIOMotorClient(MONGO_URL, serverSelectionTimeoutMS=30000, connectTimeoutMS=30000)
     db = mongo[DB_NAME]
@@ -800,78 +859,48 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
         raw_dur = get_video_duration(raw_path)
         logger.info(f"[VIDEO-PIPE] Durata rilevata: {raw_dur:.0f}s")
 
-        # 2. FFmpeg clean
+        # 2. ASSEMBLYAI PIPELINE — extract audio + transcript + tagli (max 10 min)
         await set_status("cleaning")
         _loop = asyncio.get_event_loop()
-        await _loop.run_in_executor(None, ffmpeg_clean, raw_path, clean_path)
-        clean_dur = get_video_duration(clean_path)
-        silence_saved = raw_dur - clean_dur
-
-        # 3. Whisper transcript + filler detection
+        audio_ok = await _loop.run_in_executor(None, extract_audio_for_whisper, raw_path, audio_path)
         filler_report = {"count": 0, "segments": [], "time_saved_s": 0}
         smart_edit_report = {"count": 0, "segments": [], "time_saved_s": 0}
         transcript = ""
         words = []
-
-        _audio_ok = await asyncio.get_event_loop().run_in_executor(None, extract_audio_for_whisper, clean_path, audio_path)
-        if OPENAI_KEY and _audio_ok:
-            audio_size = Path(audio_path).stat().st_size
-            if audio_size < 25 * 1024 * 1024:  # Whisper limit 25MB
-                await set_status("transcribing")
-                try:
-                    import openai
-                    client_oai = openai.OpenAI(api_key=OPENAI_KEY)
-                    with open(audio_path, "rb") as af:
-                        result = client_oai.audio.transcriptions.create(
-                            model="whisper-1",
-                            file=af,
-                            response_format="verbose_json",
-                            timestamp_granularities=["word"],
-                            language="it"
-                        )
-                    transcript = result.text or ""
-                    words = [{"word": w.word, "start": w.start, "end": w.end}
-                             for w in (result.words or [])]
-                    filler_segs = detect_filler_words(words)
-
-                    filler_time = sum(s["end"] - s["start"] for s in filler_segs)
-                    filler_report = {
-                        "count": len(filler_segs),
-                        "segments": filler_segs[:50],
-                        "time_saved_s": round(filler_time, 1),
-                        "words_found": list({s["word"] for s in filler_segs})
-                    }
-                    logger.info(f"[VIDEO-PIPE] Filler: {len(filler_segs)} ({filler_time:.1f}s)")
-
-                    # 4. Smart edit GPT-4: autocorrezioni + ripetizioni
+        silence_saved = 0.0
+        if ASSEMBLYAI_KEY and audio_ok:
+            await set_status("transcribing")
+            try:
+                aai = await assemblyai_transcribe(audio_path, ASSEMBLYAI_KEY)
+                transcript = aai["transcript"]
+                words = aai["words"]
+                filler_segs = aai["filler_segments"]
+                silence_segs = [s for s in aai["silence_segments"] if s["duration"] > 1.0]
+                filler_time = sum(s["end"] - s["start"] for s in filler_segs)
+                filler_report = {"count": len(filler_segs), "segments": filler_segs[:50], "time_saved_s": round(filler_time, 1), "words_found": list({s["word"] for s in filler_segs})}
+                smart_segs = []
+                if OPENAI_KEY:
                     await set_status("smart_editing")
-                    smart_segs = detect_smart_edit_segments(words, transcript, OPENAI_KEY)
-                    smart_time = sum(s["end"] - s["start"] for s in smart_segs)
-                    smart_edit_report = {
-                        "count": len(smart_segs),
-                        "segments": [{"start": s["start"], "end": s["end"], "reason": s["reason"]} for s in smart_segs[:30]],
-                        "time_saved_s": round(smart_time, 1)
-                    }
-                    logger.info(f"[VIDEO-PIPE] Smart edit: {len(smart_segs)} tagli ({smart_time:.1f}s)")
-
-                    # 5. Unifica tutti i tagli (filler + smart) e applica
-                    all_segs = filler_segs + smart_segs
-                    all_segs.sort(key=lambda x: x["start"])
-                    if all_segs:
-                        await set_status("cutting_fillers")
-                        cut_filler_segments(clean_path, final_path, all_segs, clean_dur)
-                    else:
-                        shutil.copy(clean_path, final_path)
-
-                except Exception as e:
-                    logger.warning(f"[VIDEO-PIPE] Whisper/GPT error: {e}")
-                    shutil.copy(clean_path, final_path)
-            else:
-                logger.info(f"[VIDEO-PIPE] Audio too large ({audio_size/1e6:.1f}MB), skipping Whisper")
-                shutil.copy(clean_path, final_path)
+                    try:
+                        smart_segs = detect_smart_edit_segments(words, transcript, OPENAI_KEY)
+                        smart_time = sum(s["end"] - s["start"] for s in smart_segs)
+                        smart_edit_report = {"count": len(smart_segs), "segments": [{"start":s["start"],"end":s["end"],"reason":s["reason"]} for s in smart_segs[:30]], "time_saved_s": round(smart_time, 1)}
+                    except Exception as se:
+                        logger.warning(f"[VIDEO-PIPE] Smart edit error: {se}")
+                all_segs = filler_segs + silence_segs + smart_segs
+                all_segs.sort(key=lambda x: x["start"])
+                if all_segs:
+                    await set_status("cutting_fillers")
+                    await _loop.run_in_executor(None, cut_filler_segments, raw_path, final_path, all_segs, raw_dur)
+                else:
+                    shutil.copy(raw_path, final_path)
+                silence_saved = raw_dur - get_video_duration(final_path)
+            except Exception as e:
+                logger.warning(f"[VIDEO-PIPE] AssemblyAI error: {e} — upload video raw")
+                shutil.copy(raw_path, final_path)
         else:
-            shutil.copy(clean_path, final_path)
-
+            logger.info("[VIDEO-PIPE] AssemblyAI non config — upload video raw")
+            shutil.copy(raw_path, final_path)
         final_dur = get_video_duration(final_path)
         total_saved = raw_dur - final_dur
 
@@ -927,6 +956,28 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                 logger.info(f"[VIDEO-PIPE] Remotion render OK → {remotion_path}")
             else:
                 logger.info("[VIDEO-PIPE] Remotion skip — upload video pulito")
+
+        # 5c. Shotstack watermark Evolution PRO (solo masterclass, basso-destra)
+        if video_type == "masterclass" and SHOTSTACK_KEY:
+            try:
+                from google.cloud import storage as _gcs
+                _gcs_client = _gcs.Client()
+                _bucket = _gcs_client.bucket("gen-lang-client-0744698012_cloudbuild")
+                _blob_path = f"rendered/{partner_id}/masterclass/{uuid.uuid4().hex}.mp4"
+                _blob = _bucket.blob(_blob_path)
+                _blob.upload_from_filename(youtube_source_path, content_type="video/mp4")
+                _blob.make_public()
+                _gcs_url = _blob.public_url
+                watermarked_url = await shotstack_add_watermark(_gcs_url, SHOTSTACK_KEY, final_dur)
+                _wm_path = str(tmp_dir / "watermarked.mp4")
+                async with httpx.AsyncClient(timeout=300) as _wc:
+                    _wr = await _wc.get(watermarked_url)
+                    with open(_wm_path, "wb") as _wf:
+                        _wf.write(_wr.content)
+                youtube_source_path = _wm_path
+                logger.info(f"[SHOTSTACK] Watermark applicato ✅")
+            except Exception as _se:
+                logger.warning(f"[SHOTSTACK] Watermark error: {_se} — upload senza watermark")
 
         # 6. YouTube upload
         await set_status("uploading_youtube")
