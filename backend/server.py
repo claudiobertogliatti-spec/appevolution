@@ -16379,8 +16379,17 @@ async def start_background_services():
     except Exception as e:
         logging.warning(f"Could not initialize MongoDB views: {e}")
     
-    # Celery worker su evolution-pro-worker (Cloud Run separato) — nessun avvio locale
-    logging.info("[WORKER] Celery su servizio separato — deploy backend non uccide i task video")
+    # Start Celery worker (if enabled and Redis available)
+    try:
+        from celery_manager import start_celery_worker, get_celery_status
+        started = start_celery_worker()
+        status = get_celery_status()
+        if started:
+            logging.info(f"Celery worker started: {status}")
+        else:
+            logging.info(f"Celery worker not started (using BackgroundTasks fallback): {status}")
+    except Exception as e:
+        logging.warning(f"Could not start Celery worker: {e}")
 
 
 @app.on_event("shutdown")
@@ -16392,6 +16401,11 @@ async def shutdown_db_client():
     except:
         pass
     
-    pass  # Celery worker su servizio separato
+    # Stop Celery worker
+    try:
+        from celery_manager import stop_celery_worker
+        stop_celery_worker()
+    except:
+        pass
     
     client.close()
