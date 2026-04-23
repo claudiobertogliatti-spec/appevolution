@@ -15836,43 +15836,34 @@ async def api_get_celery_status():
 
 
 @api_router.post("/admin/partner/{partner_id}/retrigger-video")
-async def api_retrigger_video_pipeline(partner_id: str, video_type: str = "masterclass"):
-    """
-    Admin endpoint: ri-triggerare la pipeline video per un partner.
-    Utile quando il task Celery è rimasto in 'queued' senza essere processato.
-    """
+async def api_retrigger_video_pipeline(partner_id: str, video_type: str = "masterclass", lesson_id: str = None):
+    """Admin endpoint: retrigger pipeline video. Supporta masterclass, videocorso, lesson (con lesson_id)."""
     try:
-        # Recupera il video_url dal record esistente
         if video_type == "masterclass":
             doc = await db.masterclass_factory.find_one({"partner_id": partner_id})
+            if not doc: raise HTTPException(status_code=404, detail="Nessun record masterclass")
+            video_url = doc.get("video_raw_url")
+            if not video_url: raise HTTPException(status_code=400, detail="Nessun video_raw_url")
+            await db.masterclass_factory.update_one({"partner_id": partner_id}, {"$set": {"video_pipeline_status": "queued", "video_pipeline_error": None, "updated_at": datetime.now(timezone.utc).isoformat()}})
+        elif video_type == "lesson" and lesson_id:
+            doc = await db.partner_videocorso.find_one({"partner_id": partner_id})
+            if not doc: raise HTTPException(status_code=404, detail="Nessun record videocorso")
+            lesson = doc.get("lessons", {}).get(lesson_id, {})
+            video_url = lesson.get("video_raw_url") or lesson.get("drive_file_id")
+            if not video_url: raise HTTPException(status_code=400, detail=f"Nessun video_raw_url per lezione {lesson_id}")
+            if not video_url.startswith("http") and not video_url.startswith("gs://"):
+                video_url = f"https://drive.google.com/file/d/{video_url}/view"
+            lk = f"lessons.{lesson_id}"
+            await db.partner_videocorso.update_one({"partner_id": partner_id}, {"$set": {f"{lk}.pipeline_status": "queued", f"{lk}.pipeline_error": None, "updated_at": datetime.now(timezone.utc).isoformat()}})
         else:
             doc = await db.partner_videocorso.find_one({"partner_id": partner_id})
+            if not doc: raise HTTPException(status_code=404, detail="Nessun record videocorso")
+            video_url = doc.get("video_raw_url")
+            if not video_url: raise HTTPException(status_code=400, detail="Nessun video_raw_url")
+            await db.partner_videocorso.update_one({"partner_id": partner_id}, {"$set": {"video_pipeline_status": "queued", "video_pipeline_error": None, "updated_at": datetime.now(timezone.utc).isoformat()}})
 
-        if not doc:
-            raise HTTPException(status_code=404, detail=f"Nessun record {video_type} trovato per partner {partner_id}")
-
-        video_url = doc.get("video_raw_url")
-        if not video_url:
-            raise HTTPException(status_code=400, detail="Nessun video_raw_url trovato — il partner deve prima inviare il link video")
-
-        # Reset status a queued
-        collection = db.masterclass_factory if video_type == "masterclass" else db.partner_videocorso
-        await collection.update_one(
-            {"partner_id": partner_id},
-            {"$set": {
-                "video_pipeline_status": "queued",
-                "video_pipeline_error": None,
-                "updated_at": datetime.now(timezone.utc).isoformat()
-            }}
-        )
-
-        # Re-invio Celery task
         from video_pipeline_task import process_partner_video
-        task = process_partner_video.delay(
-            partner_id=partner_id,
-            video_url=video_url,
-            video_type=video_type
-        )
+        task = process_partner_video.delay(partner_id=partner_id, video_url=video_url, video_type=video_type, lesson_id=lesson_id)
 
         return {
             "success": True,
