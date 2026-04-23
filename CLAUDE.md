@@ -689,3 +689,8 @@ Il retrigger manuale avvierà un task fresco sul container con timeout=1200s.
 3. Attivare funnel Systeme.io di Daniele (bozza → attivo nel dashboard)
 4. Aggiornare telefono Daniele nei footer funnel quando disponibile
 5. Eseguire backfill evolution_id: `POST /api/admin/backfill-evolution-ids`
+
+
+<!-- trigger build: 2026-04-23T16:28:19.119Z — worker separato su evolution-pro-worker -->
+
+<!-- deploy: worker separato attivo 2026-04-23T16:39:17.810Z -->
