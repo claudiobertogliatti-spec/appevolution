@@ -668,6 +668,8 @@ async def telegram(msg: str):
 @celery_app.task(
     name="process_partner_video",
     bind=True,
+    acks_late=True,         # task rimane in Redis finché non completa — se worker muore viene re-accodato
+    reject_on_worker_lost=True,  # se worker è killato da Cloud Run deploy, riaccodare
     max_retries=2,
     default_retry_delay=120,
     soft_time_limit=10800,  # 3 ore — download + FFmpeg + YouTube upload su file grandi
@@ -755,6 +757,24 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
         logger.info(f"[VIDEO-PIPE] START {label} — {name}")
         await set_status("downloading")
         await telegram(f"⏬ <b>Pipeline video avviata</b>\n👤 {name} — {label}\nDownload in corso...")
+
+        # Heartbeat: aggiorna pipeline_heartbeat_at ogni 30s — usato da check_stuck_video_pipelines
+        # per distinguere task vivi da task morti silenziosamente (container killato da deploy)
+        _heartbeat_active = True
+        async def _heartbeat_loop():
+            while _heartbeat_active:
+                try:
+                    await asyncio.sleep(30)
+                    if not _heartbeat_active:
+                        break
+                    coll_hb = "masterclass_factory" if video_type == "masterclass" else "partner_videocorso"
+                    q_hb = {"partner_id": partner_id}
+                    if video_type == "lesson" and lesson_id:
+                        q_hb = {"partner_id": partner_id, "lesson_id": lesson_id}
+                    await db[coll_hb].update_one(q_hb, {"$set": {"pipeline_heartbeat_at": datetime.now(timezone.utc).isoformat()}})
+                except Exception:
+                    pass
+        _hb_task = asyncio.create_task(_heartbeat_loop())
 
         # 1. Download
         size = await download_video(video_url, raw_path)
@@ -1010,8 +1030,15 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
             pass
         raise
 
-    finally:
+        finally:
+        # Ferma il heartbeat loop
+        try:
+            _heartbeat_active = False
+            _hb_task.cancel()
+        except Exception:
+            pass
         shutil.rmtree(str(tmp_dir), ignore_errors=True)
-        mongo.close()
-
-# trigger rebuild
+        try:
+            mongo.close()
+        except Exception:
+            passtrigger rebuild
