@@ -264,7 +264,11 @@ def ffmpeg_clean(input_path: str, output_path: str) -> dict:
         "-af", "silenceremove=stop_periods=-1:stop_duration=0.5:stop_threshold=-45dB",
         "-c:v", "copy", tmp_silence
     ]
-    r = subprocess.run(cmd_s, capture_output=True, text=True, timeout=3600)
+    try:
+        r = subprocess.run(cmd_s, capture_output=True, text=True, timeout=180)
+    except subprocess.TimeoutExpired:
+        logger.warning("[VIDEO-PIPE] silenceremove timeout (3min) — uso file originale")
+        r = type("obj",(object,),{"returncode":1})()
     source = tmp_silence if r.returncode == 0 and Path(tmp_silence).exists() else input_path
 
     # Passo 2: loudnorm EBU R128 — analisi
@@ -273,7 +277,11 @@ def ffmpeg_clean(input_path: str, output_path: str) -> dict:
         "-af", "loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json",
         "-f", "null", "-"
     ]
-    ra = subprocess.run(cmd_a, capture_output=True, text=True, timeout=1200)
+    try:
+        ra = subprocess.run(cmd_a, capture_output=True, text=True, timeout=120)
+    except subprocess.TimeoutExpired:
+        logger.warning("[VIDEO-PIPE] loudnorm analysis timeout — salta normalizzazione")
+        ra = type("obj",(object,),{"returncode":1,"stderr":""})()
 
     # Estrai JSON da stderr
     stats = {}
@@ -304,7 +312,12 @@ def ffmpeg_clean(input_path: str, output_path: str) -> dict:
         "ffmpeg", "-y", "-i", source,
         "-af", af, "-c:v", "copy", output_path
     ]
-    rn = subprocess.run(cmd_n, capture_output=True, text=True, timeout=3600)
+    try:
+        rn = subprocess.run(cmd_n, capture_output=True, text=True, timeout=300)
+    except subprocess.TimeoutExpired:
+        logger.warning("[VIDEO-PIPE] loudnorm apply timeout — copia file senza normalizzazione")
+        shutil.copy(source, output_path)
+        rn = type("obj",(object,),{"returncode":0})()
 
     if rn.returncode != 0:
         shutil.copy(source, output_path)
@@ -327,7 +340,11 @@ def extract_audio_for_whisper(video_path: str, audio_path: str) -> bool:
         "-vn", "-ac", "1", "-ar", "16000", "-ab", "64k",
         "-f", "mp3", audio_path
     ]
-    r = subprocess.run(cmd, capture_output=True, text=True, timeout=1200)
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+    except subprocess.TimeoutExpired:
+        logger.warning("[VIDEO-PIPE] extract_audio timeout (5min) — transcript saltato")
+        return False
     return r.returncode == 0 and Path(audio_path).exists()
 
 
