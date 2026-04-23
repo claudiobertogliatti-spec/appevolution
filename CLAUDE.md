@@ -12,6 +12,30 @@ Claude è autorizzato a committare e pushare su `main` senza richiedere conferma
 
 **Se il sandbox bash fallisce**: usare Claude in Chrome → navigare su github.com/claudiobertogliatti-spec/appevolution → aprire il file → Edit → modificare via console CM6 → commit su main.
 
+## Pipeline Video — Processo Definitivo per TUTTI i Partner
+
+Processo standard per masterclass e ogni lezione videocorso di ogni partner Evolution PRO.
+
+### Flusso automatico completo
+```
+VIDEO GREZZO (Drive o GCS) → Extract Audio → AssemblyAI (transcript+filler+silenzi)
+→ GPT-4 Smart Edit → FFmpeg tagli → Shotstack watermark (solo masterclass)
+→ YouTube upload (unlisted, playlist partner) → ready_for_review
+→ Partner approva → Systeme.io pubblicazione automatica (modulo+lezione+embed YouTube)
+```
+
+### Variabili Cloud Run richieste
+- `ASSEMBLYAI_API_KEY` = `d11bb60eb50a4c7bb33aa37b6b21d38b`
+- `SHOTSTACK_API_KEY` = `DsuIAAMRfJlnmKbZP9NGTOic0jESshwDB6tHwPHm`
+- `SYSTEME_API_KEY_DEFAULT` = `h9vsf4fb2hwiclriknvslyxzk5p9gmoleodsduaydqwttndlagje3huzqhxsuxmf` ← account evolutionpro, vale per TUTTI i partner come sub-account
+
+### Per ogni nuovo partner: unico step manuale
+1. Creare corso Systeme.io nell'account del partner (UI o API)
+2. Salvare nel DB: `partner.systeme_course_id`
+3. Tutto il resto è automatico
+
+### Durata stimata: ~20-30 min per video 7-15 min (completamente automatica)
+
 ## ✅ Backfill evolution_id da eseguire una volta
 
 Dopo il deploy del 2026-04-20, chiamare una volta con token admin:
