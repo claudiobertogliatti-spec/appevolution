@@ -608,3 +608,60 @@ POST /api/partner-journey/masterclass/reset-pipeline?partner_id=23
 POST /api/admin/partner/23/retrigger-video?video_type=masterclass
 ```
 Il retrigger manuale avvierà un task fresco sul container con timeout=1200s.
+
+
+## Sessione 2026-04-23 — Funnel Systeme.io Daniele Andolfi + Fix pipeline video
+
+### Funnel Systeme.io — workflow documentato e completato per Daniele Andolfi
+
+**Funnel creato nell'account Daniele** (`daniele-andolfi.systeme.io`):
+- Funnel ID: `7121027`
+- URL Optin: `https://daniele-andolfi.systeme.io/optin-f2485c57-b026fccf`
+- Salvato in Evolution PRO: `partner_funnel.funnel_systeme_url`
+
+**4 step personalizzati** con copy estratto autonomamente dai documenti Drive:
+1. **Optin** (pageID 40268226) — headline, bio, 4 bullet points (dai "5 segnali" del calendario lancio)
+2. **Landing vendita** (pageID 40268227) — 24 campi, copy direct response con 12 moduli videocorso
+3. **Modulo d'ordine 97€** (pageID 40268228) — struttura corso, testimonianze placeholder
+4. **Pagina ringraziamento** (pageID 40268230) — 3 campi
+
+**API Systeme.io utili** (da usare nell'account loggato):
+- Lista funnel: `GET /api/dashboard/customer/funnels/list?pagination[limit]=25`
+- Step list: `GET /api/dashboard/customer/funnels/{id}/steps/list`
+- User info: `GET /api/dashboard/user/user-data`
+- Editor pagina: `https://systeme.io/dashboard/page/{pageId}/edit`
+
+**Workflow corretto per ogni nuovo partner:**
+1. Account evolutionpro → Template Master → ⋯ → **Condividi** → copia link (finestra privata)
+2. Tab loggata con account partner → incolla link → funnel importato automaticamente
+3. Recupera funnel ID: `/api/dashboard/customer/funnels/list`
+4. Per ogni step: naviga all'editor, inietta copy via script TipTap/React fiber, salva
+5. Salva URL in Evolution PRO via `PATCH /api/admin/partner/{id}/journey`
+
+### Fix strutturali pipeline video committate in questa sessione
+
+**video_pipeline_task.py** (commit diretto):
+1. `acks_late=True` + `reject_on_worker_lost=True` nel decorator — task re-accodato se worker muore
+2. **Heartbeat loop** — aggiorna `pipeline_heartbeat_at` ogni 30s; permette al check di distinguere task vivi da morti
+3. **Cancellazione heartbeat** nel `finally` block
+4. **Error handler robusto** con riconnessione MongoDB di emergenza se `set_status("error")` fallisce
+5. Tutti i timeout subprocess già presenti: silenceremove 3600s, loudnorm 1200s/3600s, extract_audio 1200s
+
+**celery_tasks.py** — `check_stuck_video_pipelines` riscritto:
+- Prima: reset dopo 45 min, nessun retrigger (pipeline valide venivano resettate prematuramente)
+- Ora: usa `pipeline_heartbeat_at` — se heartbeat > 5 min → task morto → **reset + retrigger automatico**
+- Fallback per task senza heartbeat (formato vecchio): reset dopo 240 min
+- Copre sia masterclass che ogni lezione del videocorso
+- Già presente in `beat_schedule` ogni 30 minuti
+
+### Stato pipeline Daniele Andolfi (2026-04-23)
+- Retrigger alle 07:10:57 UTC → cleaning alle 07:10:57 UTC
+- Alle 09:40 UTC: ancora in cleaning (2h 30min), nessun errore
+- Fix heartbeat non attiva su questo run (committata dopo) — pipeline monitora manualmente
+
+### Da fare
+1. ✅ Fix acks_late + heartbeat committate
+2. ✅ check_stuck_video_pipelines con auto-retrigger committato
+3. Attivare funnel Systeme.io di Daniele (bozza → attivo nel dashboard)
+4. Aggiornare telefono Daniele nei footer funnel quando disponibile
+5. Eseguire backfill evolution_id: `POST /api/admin/backfill-evolution-ids`
