@@ -486,85 +486,108 @@ def check_stuck_pipelines():
 @shared_task
 def check_stuck_video_pipelines():
     """
-    Rileva job video masterclass/videocorso bloccati in stato di processing
-    per più di 45 minuti e li resetta a None (error), permettendo al team
-    di reinserire manualmente l'URL YouTube.
+    Rileva job video bloccati usando pipeline_heartbeat_at (aggiornato ogni 30s dal task).
+    Se heartbeat > 5 min → task morto → reset + retrigger automatico.
+    Se nessun heartbeat + updated_at > 240 min → reset senza retrigger.
     Gira ogni 30 minuti via Celery Beat.
     """
     STUCK_STATES = ["downloading", "cleaning", "transcribing", "smart_editing", "cutting_fillers", "rendering", "uploading_youtube"]
-    STUCK_MINUTES = 45
+    HEARTBEAT_DEAD_MINUTES = 5
+    FALLBACK_STUCK_MINUTES = 240
 
     try:
         async def _check():
+            from video_pipeline_task import process_partner_video
             db = get_db()
-            cutoff = (datetime.now(timezone.utc) - timedelta(minutes=STUCK_MINUTES)).isoformat()
+            now = datetime.now(timezone.utc)
+            cutoff_hb = (now - timedelta(minutes=HEARTBEAT_DEAD_MINUTES)).isoformat()
+            cutoff_old = (now - timedelta(minutes=FALLBACK_STUCK_MINUTES)).isoformat()
             reset_count = 0
+            retrigger_count = 0
 
             # Masterclass
             stuck_mc = await db.masterclass_factory.find({
                 "video_pipeline_status": {"$in": STUCK_STATES},
-                "updated_at": {"$lt": cutoff}
-            }, {"partner_id": 1, "video_pipeline_status": 1}).to_list(50)
+                "$or": [
+                    {"pipeline_heartbeat_at": {"$exists": True, "$lt": cutoff_hb}},
+                    {"pipeline_heartbeat_at": {"$exists": False}, "updated_at": {"$lt": cutoff_old}},
+                ]
+            }, {"partner_id": 1, "video_pipeline_status": 1, "video_raw_url": 1, "pipeline_heartbeat_at": 1}).to_list(50)
 
-            for doc in stuck_mc:
-                pid = doc["partner_id"]
-                old_status = doc["video_pipeline_status"]
+            for doc_mc in stuck_mc:
+                pid = doc_mc["partner_id"]
+                old_status = doc_mc["video_pipeline_status"]
+                video_url = doc_mc.get("video_raw_url", "")
+                has_hb = bool(doc_mc.get("pipeline_heartbeat_at"))
+                can_retrigger = has_hb and bool(video_url)
+
                 await db.masterclass_factory.update_one(
                     {"partner_id": pid},
                     {"$set": {
-                        "video_pipeline_status": None,
-                        "video_pipeline_error": f"Pipeline bloccata in '{old_status}' per >{STUCK_MINUTES} min — reset automatico",
+                        "video_pipeline_status": "queued" if can_retrigger else "error",
+                        "video_pipeline_error": f"[Auto-recovery] bloccata in '{old_status}' — {'retrigger' if can_retrigger else 'reset manuale necessario'}",
+                        "pipeline_heartbeat_at": None,
                         "updated_at": datetime.now(timezone.utc).isoformat()
                     }}
                 )
                 reset_count += 1
                 logger.warning(f"[VIDEO-PIPE] Stuck masterclass reset: partner {pid} era in '{old_status}'")
+                if can_retrigger:
+                    try:
+                        process_partner_video.delay(partner_id=pid, video_url=video_url, video_type="masterclass")
+                        retrigger_count += 1
+                        logger.info(f"[VIDEO-PIPE] Auto-retrigger masterclass partner {pid}")
+                    except Exception as re:
+                        logger.error(f"[VIDEO-PIPE] Retrigger fallito partner {pid}: {re}")
 
-            # Videocorso (cerca lezioni stuck)
+            # Videocorso
             stuck_vc = await db.partner_videocorso.find(
-                {f"lessons": {"$exists": True}},
+                {"lessons": {"$exists": True}},
                 {"partner_id": 1, "lessons": 1}
             ).to_list(100)
 
-            for doc in stuck_vc:
-                pid = doc["partner_id"]
-                lessons = doc.get("lessons", {})
-                for lid, lesson in lessons.items():
+            for doc_vc in stuck_vc:
+                pid = doc_vc["partner_id"]
+                for lid, lesson in (doc_vc.get("lessons") or {}).items():
                     ls = lesson.get("pipeline_status")
-                    updated = lesson.get("updated_at") or doc.get("updated_at", "")
-                    if ls in STUCK_STATES and updated < cutoff:
-                        lk = f"lessons.{lid}"
-                        await db.partner_videocorso.update_one(
-                            {"partner_id": pid},
-                            {"$set": {
-                                f"{lk}.pipeline_status": None,
-                                f"{lk}.status": "error",
-                                f"{lk}.pipeline_error": f"Bloccata in '{ls}' per >{STUCK_MINUTES} min — reset automatico",
-                                "updated_at": datetime.now(timezone.utc).isoformat()
-                            }}
-                        )
-                        reset_count += 1
-                        logger.warning(f"[VIDEO-PIPE] Stuck videocorso reset: partner {pid} lezione {lid} era in '{ls}'")
+                    hb = lesson.get("pipeline_heartbeat_at", "")
+                    updated = lesson.get("updated_at") or doc_vc.get("updated_at", "")
+                    video_url_vc = lesson.get("video_raw_url", "")
+                    is_stuck = ls in STUCK_STATES and ((hb and hb < cutoff_hb) or (not hb and updated < cutoff_old))
+                    if not is_stuck:
+                        continue
+                    lk = f"lessons.{lid}"
+                    can_ret = bool(hb) and bool(video_url_vc)
+                    await db.partner_videocorso.update_one(
+                        {"partner_id": pid},
+                        {"$set": {
+                            f"{lk}.pipeline_status": "queued" if can_ret else "error",
+                            f"{lk}.pipeline_error": f"[Auto-recovery] bloccata in '{ls}'",
+                            f"{lk}.pipeline_heartbeat_at": None,
+                            "updated_at": datetime.now(timezone.utc).isoformat()
+                        }}
+                    )
+                    reset_count += 1
+                    if can_ret:
+                        try:
+                            process_partner_video.delay(partner_id=pid, video_url=video_url_vc, video_type="lesson", lesson_id=lid)
+                            retrigger_count += 1
+                        except Exception as re:
+                            logger.error(f"[VIDEO-PIPE] Retrigger lezione fallito: {re}")
 
             if reset_count > 0:
                 await send_telegram_notification(
-                    f"⚠️ <b>Video pipeline stuck reset</b>\n"
-                    f"Resettati {reset_count} job bloccati (>{STUCK_MINUTES} min).\n"
-                    f"Il team può ora inserire l'URL YouTube manualmente."
+                    f"⚠️ <b>Video pipeline auto-recovery</b>\n"
+                    f"Reset: {reset_count} | Retrigger: {retrigger_count}\n"
+                    f"Job senza URL richiedono intervento manuale."
                 )
-
-            return reset_count
+            return {"reset": reset_count, "retriggered": retrigger_count}
 
         return run_async(_check())
 
     except Exception as e:
         logger.error(f"[CELERY] Error checking stuck video pipelines: {e}")
-        return 0
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# POST-PAYMENT AUTOMATION TASKS (€67 Analisi)
-# ═══════════════════════════════════════════════════════════════════════════════
+        return {"reset": 0, "retriggered": 0}
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def send_analisi_welcome_email(self, user_id: str, cliente_id: str):
