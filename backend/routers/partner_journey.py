@@ -1261,7 +1261,34 @@ async def approve_videocorso_lesson(partner_id: str, lesson_id: str):
         }}
     )
     
-    return {"success": True, "message": f"Lezione {lesson_id} approvata"}
+    # Recupera dati lezione
+    vc_doc = await db.partner_videocorso.find_one({"partner_id": partner_id})
+    lesson = (vc_doc or {}).get("lessons", {}).get(lesson_id, {})
+    youtube_url = lesson.get("video_youtube_url", "")
+    youtube_id = lesson.get("video_youtube_id", "") or (youtube_url.split("v=")[-1] if "v=" in youtube_url else "")
+    lesson_title = lesson.get("title", f"Lezione {lesson_id}")
+
+    # Pubblica su Systeme.io se configurato
+    systeme_course_id = partner.get("systeme_course_id")
+    systeme_cookie = partner.get("systeme_session_cookie") or os.environ.get("SYSTEME_SESSION_COOKIE_DEFAULT")
+    if systeme_course_id and systeme_cookie and youtube_id:
+        try:
+            from video_pipeline_task import systeme_publish_lesson
+            parts = lesson_id.split("_")
+            mod_num = parts[0].replace("m", "") if parts else "1"
+            course_data = (vc_doc or {}).get("course_data", {})
+            moduli = course_data.get("moduli", [])
+            module_title = f"Capitolo {mod_num}"
+            for mod in moduli:
+                if str(mod.get("numero")) == mod_num:
+                    module_title = mod.get("titolo", module_title)
+                    break
+            await systeme_publish_lesson(partner_id=partner_id, lesson_title=lesson_title, lesson_description=lesson.get("description",""), youtube_url=youtube_url, youtube_id=youtube_id, module_title=module_title, course_id=int(systeme_course_id), systeme_session_cookie=systeme_cookie)
+            logging.info(f"[SYSTEME] Lezione {lesson_id} pubblicata")
+        except Exception as se:
+            logging.warning(f"[SYSTEME] Pubblicazione lezione fallita: {se}")
+
+    return {"success": True, "message": f"Lezione {lesson_id} approvata e pubblicata su Systeme.io"}
 
 @router.post("/videocorso/complete")
 async def complete_videocorso(partner_id: str):
