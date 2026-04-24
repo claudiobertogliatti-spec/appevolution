@@ -55,16 +55,18 @@ ROOT_DIR = Path(__file__).parent
 # expects /app/storage to be a writable directory (e.g. Path(...).mkdir for /app/storage/videos/raw).
 _yt_secret_src = Path("/secrets/youtube_credentials.pickle")
 _yt_local_dst = Path("/app/storage/youtube_credentials.pickle")
+print(f"[YT-BOOTSTRAP] secret_exists={_yt_secret_src.exists()} dst_pre_exists={_yt_local_dst.exists()}", flush=True)
 if _yt_secret_src.exists():
     try:
         _yt_local_dst.parent.mkdir(parents=True, exist_ok=True)
         import shutil as _shutil
         _shutil.copyfile(str(_yt_secret_src), str(_yt_local_dst))
-        logging.info(f"YouTube credentials bootstrapped from secret to {_yt_local_dst}")
+        _yt_size = _yt_local_dst.stat().st_size if _yt_local_dst.exists() else -1
+        print(f"[YT-BOOTSTRAP] copied OK size={_yt_size} bytes dst={_yt_local_dst}", flush=True)
     except Exception as _yt_err:
-        logging.warning(f"YouTube credentials bootstrap failed: {_yt_err}")
+        print(f"[YT-BOOTSTRAP] copy FAILED: {type(_yt_err).__name__}: {_yt_err}", flush=True)
 else:
-    logging.info("YouTube credentials secret not mounted at /secrets/ — skip bootstrap")
+    print(f"[YT-BOOTSTRAP] secret not mounted at /secrets/ — skip", flush=True)
 
 # MongoDB connection - Read from environment variables
 mongo_url = os.environ.get('MONGO_URL', '')
