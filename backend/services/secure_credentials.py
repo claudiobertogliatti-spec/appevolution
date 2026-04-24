@@ -30,7 +30,11 @@ def save_credentials(creds, filepath: str):
 def load_credentials(filepath: str):
     """Carica le credenziali OAuth da formato JSON sicuro. Fallback a pickle per compatibilita."""
     if not os.path.exists(filepath):
+        print(f"[SEC-CREDS] file missing: {filepath}", flush=True)
         return None
+    # Prova JSON: ANY exception (JSON parse, UnicodeDecodeError on binary pickle,
+    # KeyError) cade su pickle. Prima il bug era che UnicodeDecodeError cadeva nel
+    # bare Exception clause e ritornava None senza tentare il pickle.
     try:
         with open(filepath, 'r') as f:
             data = json.load(f)
@@ -42,18 +46,19 @@ def load_credentials(filepath: str):
             client_secret=data.get("client_secret"),
             scopes=data.get("scopes"),
         )
-    except (json.JSONDecodeError, KeyError):
-        # Fallback: file potrebbe essere in formato pickle legacy
-        import pickle
+    except Exception as json_err:
+        print(f"[SEC-CREDS] JSON parse failed ({type(json_err).__name__}: {str(json_err)[:80]}) — try pickle", flush=True)
+    # Fallback pickle
+    import pickle
+    try:
+        with open(filepath, 'rb') as f:
+            creds = pickle.load(f)
         try:
-            with open(filepath, 'rb') as f:
-                creds = pickle.load(f)
-            # Migra a JSON
             save_credentials(creds, filepath)
-            logger.info(f"Credenziali migrate da pickle a JSON: {filepath}")
-            return creds
-        except Exception as e:
-            logger.warning(f"Errore lettura credenziali (pickle fallback): {e}")
-    except Exception as e:
-        logger.warning(f"Errore lettura credenziali: {e}")
+            print(f"[SEC-CREDS] pickle loaded + migrated to JSON: {filepath}", flush=True)
+        except Exception as save_err:
+            print(f"[SEC-CREDS] pickle loaded but JSON migration failed (read-only mount?): {save_err}", flush=True)
+        return creds
+    except Exception as pickle_err:
+        print(f"[SEC-CREDS] pickle load failed ({type(pickle_err).__name__}: {str(pickle_err)[:200]})", flush=True)
     return None
