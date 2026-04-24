@@ -714,13 +714,28 @@ async def assemblyai_transcribe(audio_path: str, api_key: str) -> dict:
         # NOTE: removed "disfluencies": True — caused 400 on the default speech_model.
         # Italian fillers are still detected via the local FILLERS set below on word.text,
         # so removing the AAI-side flag only loses ~uh/um auto-tagging by the model.
-        tr = await client.post(
-            f"{AAI_BASE}/transcript",
-            headers=headers,
-            json={"audio_url": up.json()["upload_url"], "language_code": "it",
-                  "speech_model": "best", "punctuate": True, "format_text": True},
-        )
-        tr.raise_for_status()
+        # Two-step submit: try minimal body first ({audio_url, language_code}), then
+        # fall back to language_detection if AAI rejects the explicit language_code.
+        # Always log the response body on 4xx so we know WHAT AAI rejected, not just
+        # the status code (the prior bug spent two iterations guessing).
+        _aai_audio_url = up.json()["upload_url"]
+        _aai_attempts = [
+            {"audio_url": _aai_audio_url, "language_code": "it",
+             "punctuate": True, "format_text": True},
+            {"audio_url": _aai_audio_url, "language_detection": True,
+             "punctuate": True, "format_text": True},
+            {"audio_url": _aai_audio_url, "speech_model": "nano", "language_code": "it",
+             "punctuate": True, "format_text": True},
+        ]
+        tr = None
+        for _idx, _body in enumerate(_aai_attempts):
+            tr = await client.post(f"{AAI_BASE}/transcript", headers=headers, json=_body)
+            if tr.status_code < 400:
+                logger.info(f"[VIDEO-PIPE] AAI /transcript accepted body variant #{_idx+1}: keys={list(_body.keys())}")
+                break
+            logger.warning(f"[VIDEO-PIPE] AAI /transcript variant #{_idx+1} rejected ({tr.status_code}): {tr.text[:400]}")
+        if tr is None or tr.status_code >= 400:
+            raise ValueError(f"AAI /transcript rejected all {len(_aai_attempts)} body variants — last response: {tr.text[:400] if tr else 'None'}")
         tid = tr.json()["id"]
         logger.info(f"[VIDEO-PIPE] AAI transcript created tid={tid}, polling...")
         res = {}
