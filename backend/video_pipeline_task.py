@@ -687,28 +687,61 @@ async def shotstack_add_watermark(video_url: str, api_key: str, duration: float,
 # ═══════════════════════════════════════════════════════════════════
 
 async def assemblyai_transcribe(audio_path: str, api_key: str) -> dict:
+    """Transcribe audio via AssemblyAI REST API.
+
+    Hard 5-minute deadline on the whole operation (upload + create + poll).
+    Raises TimeoutError on deadline OR persistent API errors so the caller
+    falls back to raw video upload instead of blocking the pipeline forever.
+    Transient poll errors are retried within the deadline.
+    """
     AAI_BASE = "https://api.assemblyai.com/v2"
     headers = {"authorization": api_key, "content-type": "application/json"}
-    async with httpx.AsyncClient(timeout=120) as client:
+    import time as _t
+    _aai_deadline = _t.time() + 300  # hard 5 min cap on entire operation
+
+    def _check_deadline(stage: str):
+        if _t.time() > _aai_deadline:
+            raise TimeoutError(f"AAI timeout 5min during {stage} — fallback raw video")
+
+    async with httpx.AsyncClient(timeout=httpx.Timeout(connect=15, read=120, write=120, pool=30)) as client:
         with open(audio_path, "rb") as f:
             audio_bytes = f.read()
-        up = await client.post(f"{AAI_BASE}/upload", headers={"authorization": api_key}, content=audio_bytes, timeout=120)
+        logger.info(f"[VIDEO-PIPE] AAI upload: {len(audio_bytes)/1e6:.1f}MB")
+        _check_deadline("pre-upload")
+        up = await client.post(f"{AAI_BASE}/upload", headers={"authorization": api_key}, content=audio_bytes)
         up.raise_for_status()
-        tr = await client.post(f"{AAI_BASE}/transcript", headers=headers, json={"audio_url": up.json()["upload_url"], "language_code": "it", "disfluencies": True, "punctuate": True, "format_text": True}, timeout=30)
+        _check_deadline("post-upload")
+        tr = await client.post(
+            f"{AAI_BASE}/transcript",
+            headers=headers,
+            json={"audio_url": up.json()["upload_url"], "language_code": "it",
+                  "disfluencies": True, "punctuate": True, "format_text": True},
+        )
         tr.raise_for_status()
         tid = tr.json()["id"]
+        logger.info(f"[VIDEO-PIPE] AAI transcript created tid={tid}, polling...")
         res = {}
-        # Timeout 5 min — se AAI non risponde, usa raw video senza editing
-        import time as _t
-        _aai_deadline = _t.time() + 300
-        for _ in range(60):
+        consecutive_poll_errors = 0
+        while True:
+            _check_deadline("polling")
             await asyncio.sleep(5)
-            if _t.time() > _aai_deadline:
-                raise TimeoutError("AAI timeout 5min — fallback raw video")
-            poll = await client.get(f"{AAI_BASE}/transcript/{tid}", headers={"authorization": api_key}, timeout=30)
-            res = poll.json()
-            if res.get("status") == "completed": break
-            if res.get("status") == "error": raise ValueError(f"AAI error: {res.get('error')}")
+            try:
+                poll = await client.get(f"{AAI_BASE}/transcript/{tid}", headers={"authorization": api_key})
+                poll.raise_for_status()
+                res = poll.json()
+                consecutive_poll_errors = 0
+            except Exception as poll_err:
+                consecutive_poll_errors += 1
+                logger.warning(f"[VIDEO-PIPE] AAI poll error #{consecutive_poll_errors} (retrying): {poll_err}")
+                if consecutive_poll_errors >= 6:
+                    raise ValueError(f"AAI polling failed {consecutive_poll_errors}x in a row: {poll_err}")
+                continue
+            status = res.get("status")
+            if status == "completed":
+                logger.info(f"[VIDEO-PIPE] AAI transcript completed tid={tid}")
+                break
+            if status == "error":
+                raise ValueError(f"AAI error: {res.get('error')}")
     words_raw = res.get("words", [])
     FILLERS = {"um","uh","eh","ehm","allora","tipo","cioè","quindi","insomma","praticamente","diciamo","appunto"}
     filler_segs = [{"start":w["start"]/1000,"end":w["end"]/1000,"word":w["text"]} for w in words_raw if w.get("type")=="filler" or w["text"].lower().strip(".,!?") in FILLERS]
@@ -801,7 +834,13 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
     SHOTSTACK_KEY = os.environ.get("SHOTSTACK_API_KEY", "")
     SHOTSTACK_SANDBOX = os.environ.get("SHOTSTACK_SANDBOX_KEY", "")
 
-    mongo = AsyncIOMotorClient(MONGO_URL, serverSelectionTimeoutMS=30000, connectTimeoutMS=30000)
+    mongo = AsyncIOMotorClient(
+        MONGO_URL,
+        serverSelectionTimeoutMS=30000,
+        connectTimeoutMS=30000,
+        socketTimeoutMS=60000,
+        retryWrites=True,
+    )
     db = mongo[DB_NAME]
 
     job_id = uuid.uuid4().hex[:8]
@@ -840,21 +879,41 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
         await telegram(f"⏬ <b>Pipeline video avviata</b>\n👤 {name} — {label}\nDownload in corso...")
 
         # Heartbeat: aggiorna pipeline_heartbeat_at ogni 30s — usato da check_stuck_video_pipelines
-        # per distinguere task vivi da task morti silenziosamente (container killato da deploy)
+        # per distinguere task vivi da task morti silenziosamente (container killato da deploy).
+        # upsert=True: garantisce che il primo heartbeat scriva anche se set_status non
+        # ha ancora creato il doc. Errori loggati esplicitamente — niente swallow silenzioso
+        # (la causa originale del bug "transcribing + heartbeat null" era che Mongo timeout
+        # venivano persi in un except Exception: pass).
         _heartbeat_active = True
+        _hb_coll = "masterclass_factory" if video_type == "masterclass" else "partner_videocorso"
+
+        async def _write_heartbeat() -> bool:
+            try:
+                await db[_hb_coll].update_one(
+                    {"partner_id": partner_id},
+                    {"$set": {"pipeline_heartbeat_at": datetime.now(timezone.utc).isoformat()}},
+                    upsert=True,
+                )
+                return True
+            except Exception as hb_err:
+                logger.warning(f"[VIDEO-PIPE] Heartbeat write failed: {hb_err}")
+                return False
+
+        # Primo heartbeat sincrono PRIMA di qualunque operazione lunga: serve come prova
+        # che il task è vivo anche se blocca entro i primi 30s (es. su transcribing).
+        await _write_heartbeat()
+
         async def _heartbeat_loop():
             while _heartbeat_active:
                 try:
                     await asyncio.sleep(30)
                     if not _heartbeat_active:
                         break
-                    coll_hb = "masterclass_factory" if video_type == "masterclass" else "partner_videocorso"
-                    q_hb = {"partner_id": partner_id}
-                    if video_type == "lesson" and lesson_id:
-                        q_hb = {"partner_id": partner_id, "lesson_id": lesson_id}
-                    await db[coll_hb].update_one(q_hb, {"$set": {"pipeline_heartbeat_at": datetime.now(timezone.utc).isoformat()}})
-                except Exception:
-                    pass
+                    await _write_heartbeat()
+                except asyncio.CancelledError:
+                    break
+                except Exception as loop_err:
+                    logger.warning(f"[VIDEO-PIPE] Heartbeat loop error: {loop_err}")
         _hb_task = asyncio.create_task(_heartbeat_loop())
 
         # 1. Download
