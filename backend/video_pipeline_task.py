@@ -609,10 +609,24 @@ def upload_to_youtube_sync(video_path: str, title: str, partner_name: str) -> Op
         from google.auth.transport.requests import Request
 
         creds_path = "/app/storage/youtube_credentials.pickle"
+        # DIAG: confirm file presence/size before delegating to load_credentials so we can
+        # tell apart "missing file" from "load failed" (load_credentials swallows pickle errors).
+        try:
+            _f_exists = os.path.exists(creds_path)
+            _f_size = os.path.getsize(creds_path) if _f_exists else -1
+            print(f"[YT-LOAD] path={creds_path} exists={_f_exists} size={_f_size}", flush=True)
+            if _f_exists:
+                with open(creds_path, "rb") as _df:
+                    _head = _df.read(8)
+                print(f"[YT-LOAD] first8={_head!r}", flush=True)
+        except Exception as _de:
+            print(f"[YT-LOAD] diag error: {_de}", flush=True)
         creds = load_credentials(creds_path)
         if not creds:
+            print(f"[YT-LOAD] load_credentials returned None despite file present={_f_exists}", flush=True)
             logger.error("[VIDEO] YouTube: credenziali mancanti")
             return None
+        print(f"[YT-LOAD] creds loaded valid={getattr(creds,'valid','?')} expired={getattr(creds,'expired','?')} has_refresh={bool(getattr(creds,'refresh_token',None))}", flush=True)
 
         if not creds.valid:
             if creds.expired and creds.refresh_token:
@@ -669,8 +683,13 @@ async def shotstack_add_watermark(video_url: str, api_key: str, duration: float,
     base_url = "https://api.shotstack.io/stage" if sandbox else "https://api.shotstack.io/v1"
     headers = {"x-api-key": api_key, "content-type": "application/json"}
     payload = {"timeline": {"tracks": [{"clips": [{"asset": {"type": "video", "src": video_url}, "start": 0, "length": duration}]}, {"clips": [{"asset": {"type": "image", "src": EVOLUTION_PRO_LOGO_URL}, "start": 0, "length": duration, "position": "bottomRight", "offset": {"x": -0.02, "y": 0.02}, "scale": 0.15, "opacity": 0.75}]}]}, "output": {"format": "mp4", "resolution": "1080"}}
+    # DIAG: log key fingerprint + endpoint so we can tell if env var truncation or
+    # endpoint mismatch is causing the 403 (standalone curl with same key returned 201).
+    print(f"[SHOTSTACK] POST {base_url}/render key_len={len(api_key)} key_prefix={api_key[:4]} key_suffix={api_key[-4:]} sandbox={sandbox}", flush=True)
     async with httpx.AsyncClient(timeout=30) as client:
         r = await client.post(f"{base_url}/render", headers=headers, json=payload)
+        if r.status_code >= 400:
+            print(f"[SHOTSTACK] HTTP {r.status_code}: {r.text[:300]}", flush=True)
         r.raise_for_status()
         render_id = r.json()["response"]["id"]
         for _ in range(180):
