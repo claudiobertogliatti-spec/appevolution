@@ -48,6 +48,24 @@ from analisi_workflow import esegui_workflow_analisi
 
 ROOT_DIR = Path(__file__).parent
 
+# Bootstrap YouTube credentials from Secret Manager mount.
+# /secrets/youtube_credentials.pickle is mounted read-only by Cloud Run; the codebase
+# hardcodes /app/storage/youtube_credentials.pickle in 8+ places so we copy at startup
+# rather than refactor. Mounting directly at /app/storage breaks other init code that
+# expects /app/storage to be a writable directory (e.g. Path(...).mkdir for /app/storage/videos/raw).
+_yt_secret_src = Path("/secrets/youtube_credentials.pickle")
+_yt_local_dst = Path("/app/storage/youtube_credentials.pickle")
+if _yt_secret_src.exists():
+    try:
+        _yt_local_dst.parent.mkdir(parents=True, exist_ok=True)
+        import shutil as _shutil
+        _shutil.copyfile(str(_yt_secret_src), str(_yt_local_dst))
+        logging.info(f"YouTube credentials bootstrapped from secret to {_yt_local_dst}")
+    except Exception as _yt_err:
+        logging.warning(f"YouTube credentials bootstrap failed: {_yt_err}")
+else:
+    logging.info("YouTube credentials secret not mounted at /secrets/ — skip bootstrap")
+
 # MongoDB connection - Read from environment variables
 mongo_url = os.environ.get('MONGO_URL', '')
 db_name = os.environ.get('DB_NAME', 'evolution_pro')
