@@ -711,31 +711,22 @@ async def assemblyai_transcribe(audio_path: str, api_key: str) -> dict:
         up = await client.post(f"{AAI_BASE}/upload", headers={"authorization": api_key}, content=audio_bytes)
         up.raise_for_status()
         _check_deadline("post-upload")
-        # NOTE: removed "disfluencies": True — caused 400 on the default speech_model.
-        # Italian fillers are still detected via the local FILLERS set below on word.text,
-        # so removing the AAI-side flag only loses ~uh/um auto-tagging by the model.
-        # Two-step submit: try minimal body first ({audio_url, language_code}), then
-        # fall back to language_detection if AAI rejects the explicit language_code.
-        # Always log the response body on 4xx so we know WHAT AAI rejected, not just
-        # the status code (the prior bug spent two iterations guessing).
+        # AAI API change (verified by capturing the rejection body in production):
+        # the old `disfluencies: true` AND the old `speech_model: "best"` are both
+        # rejected — current valid field is `speech_models: ["universal-2" | "universal-3-pro"]`
+        # (LIST, plural). We use universal-2 (cheaper, supports Italian punctuation/format).
+        # Removed disfluencies entirely — the local FILLERS set below catches Italian fillers
+        # on word.text without needing model-side tagging.
         _aai_audio_url = up.json()["upload_url"]
-        _aai_attempts = [
-            {"audio_url": _aai_audio_url, "language_code": "it",
-             "punctuate": True, "format_text": True},
-            {"audio_url": _aai_audio_url, "language_detection": True,
-             "punctuate": True, "format_text": True},
-            {"audio_url": _aai_audio_url, "speech_model": "nano", "language_code": "it",
-             "punctuate": True, "format_text": True},
-        ]
-        tr = None
-        for _idx, _body in enumerate(_aai_attempts):
-            tr = await client.post(f"{AAI_BASE}/transcript", headers=headers, json=_body)
-            if tr.status_code < 400:
-                logger.info(f"[VIDEO-PIPE] AAI /transcript accepted body variant #{_idx+1}: keys={list(_body.keys())}")
-                break
-            logger.warning(f"[VIDEO-PIPE] AAI /transcript variant #{_idx+1} rejected ({tr.status_code}): {tr.text[:400]}")
-        if tr is None or tr.status_code >= 400:
-            raise ValueError(f"AAI /transcript rejected all {len(_aai_attempts)} body variants — last response: {tr.text[:400] if tr else 'None'}")
+        tr = await client.post(
+            f"{AAI_BASE}/transcript",
+            headers=headers,
+            json={"audio_url": _aai_audio_url, "language_code": "it",
+                  "speech_models": ["universal-2"], "punctuate": True, "format_text": True},
+        )
+        if tr.status_code >= 400:
+            logger.error(f"[VIDEO-PIPE] AAI /transcript {tr.status_code}: {tr.text[:400]}")
+            tr.raise_for_status()
         tid = tr.json()["id"]
         logger.info(f"[VIDEO-PIPE] AAI transcript created tid={tid}, polling...")
         res = {}
