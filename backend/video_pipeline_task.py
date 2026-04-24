@@ -534,18 +534,31 @@ def create_youtube_playlist_sync(partner_name: str) -> Optional[str]:
 
 
 def cut_filler_segments(input_path: str, output_path: str, filler_segs: List[Dict], duration: float) -> bool:
-    """Rimuove segmenti filler usando FFmpeg concat"""
+    """Rimuove segmenti filler usando FFmpeg concat.
+
+    Padding 200ms ai bordi di ogni taglio: il cut effettivo è (start+0.2, end-0.2)
+    invece di (start, end). Evita di troncare a metà parole vicine al silenzio/filler.
+    Se il segmento è più corto di 0.4s (padding totale), viene saltato — meglio
+    lasciare un piccolo silenzio che tagliare una sillaba.
+    """
     if not filler_segs:
         shutil.copy(input_path, output_path)
         return True
 
-    # Costruisci segmenti da TENERE
+    PADDING = 0.2
+
+    # Costruisci segmenti da TENERE — applico padding restringendo ogni cut
     keep = []
     cursor = 0.0
     for seg in sorted(filler_segs, key=lambda x: x["start"]):
-        if seg["start"] > cursor + 0.05:
-            keep.append({"start": cursor, "end": seg["start"]})
-        cursor = seg["end"]
+        cut_start = seg["start"] + PADDING
+        cut_end = seg["end"] - PADDING
+        if cut_end <= cut_start:
+            # Segmento troppo corto per essere tagliato senza rischio: lo lascio
+            continue
+        if cut_start > cursor + 0.05:
+            keep.append({"start": cursor, "end": cut_start})
+        cursor = cut_end
     if cursor < duration - 0.05:
         keep.append({"start": cursor, "end": duration})
 
@@ -674,31 +687,347 @@ def upload_to_youtube_sync(video_path: str, title: str, partner_name: str) -> Op
 
 
 # ═══════════════════════════════════════════════════════════════════
-# SHOTSTACK — watermark Evolution PRO in basso-destra (solo masterclass)
+# SHOTSTACK ENHANCE — intro DALL-E + body music+zoom+overlay + outro CTA
+# Sostituisce shotstack_add_watermark. Tutti gli helper (DALL-E, Pixabay,
+# Claude) degradano gracefully: se uno fallisce/key mancante, la render
+# Shotstack continua senza quel componente — il video viene comunque arricchito.
 # ═══════════════════════════════════════════════════════════════════
 
-EVOLUTION_PRO_LOGO_URL = "https://storage.googleapis.com/gen-lang-client-0744698012_cloudbuild/assets/evolution-pro-logo-white.png"
+GCS_RENDER_BUCKET = "gen-lang-client-0744698012_cloudbuild"
 
-async def shotstack_add_watermark(video_url: str, api_key: str, duration: float, sandbox: bool = False) -> str:
+
+def _gcs_upload_public(local_path: str, blob_subpath: str, content_type: str) -> str:
+    """Upload file locale al GCS bucket, lo rende pubblico, ritorna l'URL HTTP."""
+    from google.cloud import storage as _gcs
+    client = _gcs.Client()
+    bucket = client.bucket(GCS_RENDER_BUCKET)
+    blob = bucket.blob(blob_subpath)
+    blob.upload_from_filename(local_path, content_type=content_type)
+    blob.make_public()
+    return blob.public_url
+
+
+def _pixabay_query_for_niche(niche: str) -> str:
+    """Mappa la nicchia partner alla query Pixabay più adatta."""
+    n = (niche or "").lower()
+    if any(k in n for k in ("benessere", "olistic", "mindfulness", "meditazione", "yoga")):
+        return "peaceful meditation"
+    if any(k in n for k in ("fitness", "sport", "performance")):
+        return "uplifting motivation"
+    if any(k in n for k in ("business", "marketing", "vendita", "imprenditore")):
+        return "corporate inspiring"
+    if any(k in n for k in ("educativo", "didattico", "formazione")):
+        return "calm learning"
+    return "ambient soft"
+
+
+async def generate_intro_image(title: str, niche: str, openai_key: str, tmp_dir: Path) -> Optional[str]:
+    """Genera un'immagine intro cinematica con DALL-E 3, la carica in GCS, ritorna URL pubblico.
+    Ritorna None su qualsiasi errore — la render Shotstack continua senza intro image."""
+    if not openai_key:
+        logger.info("[ENHANCE] OPENAI_API_KEY mancante — skip DALL-E")
+        return None
+    try:
+        import openai
+        client = openai.OpenAI(api_key=openai_key)
+        prompt = (
+            f"Cinematic horizontal frame intro for an Italian online masterclass titled '{title}'. "
+            f"Topic theme: {niche}. Soft natural light, professional, modern, calming aesthetic. "
+            f"16:9 composition with empty space at the bottom for title text overlay added later. "
+            f"Photorealistic, high-end production value, NO text in image."
+        )
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            None,
+            lambda: client.images.generate(
+                model="dall-e-3", prompt=prompt, size="1792x1024",
+                n=1, quality="standard",
+            ),
+        )
+        dalle_url = result.data[0].url
+        # DALL-E URLs scadono in ~1h — scarico e ri-upload su GCS per Shotstack
+        local_img = str(tmp_dir / f"intro_{uuid.uuid4().hex}.png")
+        async with httpx.AsyncClient(timeout=60) as hc:
+            r = await hc.get(dalle_url)
+            r.raise_for_status()
+            with open(local_img, "wb") as f:
+                f.write(r.content)
+        gcs_url = await loop.run_in_executor(
+            None,
+            lambda: _gcs_upload_public(local_img, f"intros/{uuid.uuid4().hex}.png", "image/png"),
+        )
+        logger.info(f"[ENHANCE] DALL-E intro image: {gcs_url}")
+        return gcs_url
+    except Exception as e:
+        logger.warning(f"[ENHANCE] DALL-E generation failed: {e}")
+        return None
+
+
+async def search_pixabay_music(query: str) -> Optional[str]:
+    """Pixabay Music search. Ritorna URL mp3 della prima hit, o None.
+    Key letta da PIXABAY_API_KEY env var — se mancante, ritorna None silenziosamente."""
+    pixabay_key = os.environ.get("PIXABAY_API_KEY", "")
+    if not pixabay_key:
+        logger.info("[ENHANCE] PIXABAY_API_KEY non set — skip music")
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.get(
+                "https://pixabay.com/api/music/",
+                params={"key": pixabay_key, "q": query, "per_page": 5},
+            )
+            if r.status_code != 200:
+                logger.warning(f"[ENHANCE] Pixabay HTTP {r.status_code}: {r.text[:200]}")
+                return None
+            data = r.json()
+            hits = data.get("hits", [])
+            if not hits:
+                logger.info(f"[ENHANCE] Pixabay nessun risultato per '{query}'")
+                return None
+            track = hits[0]
+            url = track.get("audio") or track.get("audio_url") or track.get("url")
+            if not url:
+                logger.warning(f"[ENHANCE] Pixabay hit senza URL audio: keys={list(track.keys())[:8]}")
+                return None
+            logger.info(f"[ENHANCE] Pixabay music ({query}): {url[:80]}")
+            return url
+    except Exception as e:
+        logger.warning(f"[ENHANCE] Pixabay search failed: {e}")
+        return None
+
+
+async def extract_concepts_and_summary(transcript: str, anthropic_key: str) -> dict:
+    """Claude Sonnet 4.6: estrae 5-8 concetti chiave (con posizione approssimata 0-1)
+    + 3 punti riassunto per outro. Ritorna dict vuoto su fail (render continua senza overlay)."""
+    if not anthropic_key or not transcript:
+        return {}
+    try:
+        prompt = (
+            "Sei un editor video italiano professionale. Analizza la trascrizione di una "
+            "masterclass e produci ESATTAMENTE questo JSON (nessun altro testo, no markdown):\n"
+            "{\n"
+            '  "key_concepts": [{"text": "FRASE BREVE MAIUSCOLA", "approx_position": 0.15}, ...],\n'
+            '  "summary_points": ["punto 1", "punto 2", "punto 3"]\n'
+            "}\n\n"
+            "Regole:\n"
+            "- key_concepts: 5-8 elementi, ogni text MAX 8 parole, accattivante, MAIUSCOLO\n"
+            "- approx_position: 0.0=inizio, 1.0=fine, distribuiti uniformemente\n"
+            "- summary_points: ESATTAMENTE 3, ogni punto MAX 12 parole, takeaway pratici\n\n"
+            "Trascrizione:\n" + transcript[:6000]
+        )
+        async with httpx.AsyncClient(timeout=60) as client:
+            r = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": anthropic_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": "claude-sonnet-4-6",
+                    "max_tokens": 1500,
+                    "messages": [{"role": "user", "content": prompt}],
+                },
+            )
+            if r.status_code >= 400:
+                logger.warning(f"[ENHANCE] Anthropic HTTP {r.status_code}: {r.text[:300]}")
+                return {}
+            data = r.json()
+            text = data["content"][0]["text"].strip()
+            # Strip code-fence se Claude lo aggiunge nonostante l'istruzione
+            if text.startswith("```"):
+                text = text.split("```", 2)[1]
+                if text.startswith("json"):
+                    text = text[4:]
+                text = text.strip()
+            result = json.loads(text)
+            kc = result.get("key_concepts", [])[:8]
+            sp = result.get("summary_points", [])[:3]
+            logger.info(f"[ENHANCE] Claude estratti: concepts={len(kc)} summary_points={len(sp)}")
+            return {"key_concepts": kc, "summary_points": sp}
+    except Exception as e:
+        logger.warning(f"[ENHANCE] Claude extraction failed: {e}")
+        return {}
+
+
+async def shotstack_enhance_video(
+    video_url: str,
+    duration: float,
+    title: str,
+    niche: str,
+    cta_link: str,
+    transcript: str,
+    api_key: str,
+    openai_key: str,
+    anthropic_key: str,
+    tmp_dir: Path,
+    sandbox: bool = False,
+) -> str:
+    """Render arricchito via Shotstack:
+      - INTRO 8s: immagine DALL-E + titolo animato (no musica)
+      - BODY: video partner + musica ambient Pixabay (vol 0.15) + zoomInSlow continuo
+              + 5-8 overlay testo concetti chiave da Claude
+      - OUTRO 8s: 3 punti chiave (Claude) + CTA (no musica — fade out a duration-fine BODY)
+
+    Ritorna URL del video renderizzato. Solleva su errori non recuperabili
+    (caller fa fallback a raw upload). Helpers (DALL-E/Pixabay/Claude) degradano
+    gracefully — il render parte comunque, anche se senza intro image o overlay.
+    """
     base_url = "https://api.shotstack.io/stage" if sandbox else "https://api.shotstack.io/v1"
     headers = {"x-api-key": api_key, "content-type": "application/json"}
-    payload = {"timeline": {"tracks": [{"clips": [{"asset": {"type": "video", "src": video_url}, "start": 0, "length": duration}]}, {"clips": [{"asset": {"type": "image", "src": EVOLUTION_PRO_LOGO_URL}, "start": 0, "length": duration, "position": "bottomRight", "offset": {"x": -0.02, "y": 0.02}, "scale": 0.15, "opacity": 0.75}]}]}, "output": {"format": "mp4", "resolution": "1080"}}
-    # DIAG: log key fingerprint + endpoint so we can tell if env var truncation or
-    # endpoint mismatch is causing the 403 (standalone curl with same key returned 201).
-    print(f"[SHOTSTACK] POST {base_url}/render key_len={len(api_key)} key_prefix={api_key[:4]} key_suffix={api_key[-4:]} sandbox={sandbox}", flush=True)
+
+    INTRO_S = 8.0
+    OUTRO_S = 8.0
+    music_query = _pixabay_query_for_niche(niche)
+
+    # In parallelo: DALL-E + Pixabay + Claude — risparmia ~30s vs sequenziale
+    image_url, music_url, content = await asyncio.gather(
+        generate_intro_image(title, niche, openai_key, tmp_dir),
+        search_pixabay_music(music_query),
+        extract_concepts_and_summary(transcript, anthropic_key),
+    )
+    key_concepts = content.get("key_concepts", [])
+    summary_points = content.get("summary_points", [])
+
+    # Tracks: ordine = bottom→top (track[0] sotto, track[-1] sopra)
+    tracks = []
+
+    # Track 0: video principale (offset INTRO_S, zoom lento per "punteggiare il parlatore")
+    tracks.append({
+        "clips": [{
+            "asset": {"type": "video", "src": video_url},
+            "start": INTRO_S,
+            "length": duration,
+            "effect": "zoomInSlow",
+            "scale": 1.0,
+        }]
+    })
+
+    # Track 1: musica ambient durante BODY (vol 0.15, fade out alle fine BODY → no musica in outro)
+    if music_url:
+        tracks.append({
+            "clips": [{
+                "asset": {"type": "audio", "src": music_url, "volume": 0.15},
+                "start": INTRO_S,
+                "length": duration,
+                "transition": {"in": "fade", "out": "fade"},
+            }]
+        })
+
+    # Track 2: INTRO — immagine DALL-E + titolo
+    intro_clips = []
+    if image_url:
+        intro_clips.append({
+            "asset": {"type": "image", "src": image_url},
+            "start": 0,
+            "length": INTRO_S,
+            "fit": "cover",
+            "effect": "zoomInSlow",
+            "transition": {"out": "fade"},
+        })
+    intro_clips.append({
+        "asset": {
+            "type": "title",
+            "text": title[:80],
+            "style": "future",
+            "color": "#ffffff",
+            "size": "x-large",
+            "background": "#00000077",
+            "position": "center",
+        },
+        "start": 0.5,
+        "length": INTRO_S - 1.0,
+        "transition": {"in": "fade", "out": "fade"},
+    })
+    tracks.append({"clips": intro_clips})
+
+    # Track 3: overlay concetti chiave durante BODY
+    if key_concepts:
+        OVERLAY_DURATION = 4.0
+        body_overlays = []
+        for kc in key_concepts:
+            text = (kc.get("text") or "").strip()
+            if not text:
+                continue
+            try:
+                pos = max(0.0, min(1.0, float(kc.get("approx_position", 0.5))))
+            except (TypeError, ValueError):
+                pos = 0.5
+            # Mantengo overlay tra 2s di BODY e duration-6s per non collidere con outro
+            t_in_body = max(2.0, pos * max(0.0, duration - 6.0))
+            body_overlays.append({
+                "asset": {
+                    "type": "title",
+                    "text": text.upper()[:60],
+                    "style": "minimal",
+                    "color": "#ffffff",
+                    "size": "medium",
+                    "background": "#00000099",
+                    "position": "bottom",
+                },
+                "start": INTRO_S + t_in_body,
+                "length": OVERLAY_DURATION,
+                "transition": {"in": "fade", "out": "fade"},
+            })
+        if body_overlays:
+            tracks.append({"clips": body_overlays})
+
+    # Track 4: OUTRO — pannello nero + 3 punti + CTA
+    outro_start = INTRO_S + duration
+    outro_clips = [{
+        # Sfondo nero per coprire l'ultimo frame video
+        "asset": {"type": "html", "html": "<div style='background:#000;width:100%;height:100%'></div>"},
+        "start": outro_start,
+        "length": OUTRO_S,
+    }]
+    if summary_points or cta_link:
+        sp_html = "".join(f"<p style='margin:10px 0'>• {sp}</p>" for sp in summary_points[:3])
+        outro_html = (
+            "<div style=\"font-family:'Helvetica Neue',Arial,sans-serif;color:#ffffff;"
+            "text-align:center;padding:40px;background:#000\">"
+            "<h2 style='font-size:48px;margin-bottom:30px;letter-spacing:2px'>3 PUNTI CHIAVE</h2>"
+            f"<div style='font-size:30px;line-height:1.5'>{sp_html}</div>"
+            "<p style='font-size:34px;margin-top:50px;color:#ffd700;line-height:1.4'>"
+            f"→ Scopri il corso completo<br/>"
+            f"<span style='font-size:24px;color:#ffd700'>{cta_link}</span></p>"
+            "</div>"
+        )
+        outro_clips.append({
+            "asset": {"type": "html", "html": outro_html, "width": 1600, "height": 900},
+            "start": outro_start + 0.3,
+            "length": OUTRO_S - 0.3,
+            "transition": {"in": "fade"},
+        })
+    tracks.append({"clips": outro_clips})
+
+    payload = {
+        "timeline": {"background": "#000000", "tracks": tracks},
+        "output": {"format": "mp4", "resolution": "1080"},
+    }
+
+    print(f"[ENHANCE] Submitting Shotstack render: tracks={len(tracks)} "
+          f"intro_img={'Y' if image_url else 'N'} music={'Y' if music_url else 'N'} "
+          f"concepts={len(key_concepts)} summary_pts={len(summary_points)} "
+          f"total_dur={INTRO_S+duration+OUTRO_S:.1f}s", flush=True)
+
     async with httpx.AsyncClient(timeout=30) as client:
         r = await client.post(f"{base_url}/render", headers=headers, json=payload)
         if r.status_code >= 400:
-            print(f"[SHOTSTACK] HTTP {r.status_code}: {r.text[:300]}", flush=True)
+            print(f"[ENHANCE] Shotstack HTTP {r.status_code}: {r.text[:400]}", flush=True)
         r.raise_for_status()
         render_id = r.json()["response"]["id"]
-        for _ in range(180):
+        logger.info(f"[ENHANCE] Render queued id={render_id}, polling...")
+        for _ in range(240):  # 240 × 5s = 20 min max
             await asyncio.sleep(5)
             poll = await client.get(f"{base_url}/render/{render_id}", headers=headers, timeout=30)
             res = poll.json()["response"]
-            if res.get("status") == "done": return res["url"]
-            if res.get("status") == "failed": raise ValueError(f"Shotstack failed: {res.get('error')}")
-    raise TimeoutError("Shotstack timeout")
+            status = res.get("status")
+            if status == "done":
+                logger.info(f"[ENHANCE] Render done id={render_id}")
+                return res["url"]
+            if status == "failed":
+                raise ValueError(f"Shotstack render failed: {res.get('error')}")
+    raise TimeoutError("Shotstack render timeout (20min)")
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -861,6 +1190,7 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
     ASSEMBLYAI_KEY = os.environ.get("ASSEMBLYAI_API_KEY", "")
     SHOTSTACK_KEY = os.environ.get("SHOTSTACK_API_KEY", "")
     SHOTSTACK_SANDBOX = os.environ.get("SHOTSTACK_SANDBOX_KEY", "")
+    ANTHROPIC_KEY = os.environ.get("EMERGENT_LLM_KEY", "") or os.environ.get("ANTHROPIC_API_KEY", "")
 
     mongo = AsyncIOMotorClient(
         MONGO_URL,
@@ -967,7 +1297,9 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                 transcript = aai["transcript"]
                 words = aai["words"]
                 filler_segs = aai["filler_segments"]
-                silence_segs = [s for s in aai["silence_segments"] if s["duration"] > 1.0]
+                # Threshold alzata da 1.0s a 1.2s — taglia solo silenzi davvero lunghi,
+                # evita di rendere il parlato "scattante" tagliando pause naturali brevi.
+                silence_segs = [s for s in aai["silence_segments"] if s["duration"] > 1.2]
                 filler_time = sum(s["end"] - s["start"] for s in filler_segs)
                 filler_report = {"count": len(filler_segs), "segments": filler_segs[:50], "time_saved_s": round(filler_time, 1), "words_found": list({s["word"] for s in filler_segs})}
                 smart_segs = []
@@ -1049,27 +1381,47 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
             else:
                 logger.info("[VIDEO-PIPE] Remotion skip — upload video pulito")
 
-        # 5c. Shotstack watermark Evolution PRO (solo masterclass, basso-destra)
+        # 5c. Shotstack ENHANCE (solo masterclass): intro DALL-E + body music+zoom+overlay + outro CTA
+        # Sostituisce il vecchio watermark logo. Tutti gli helper (DALL-E, Pixabay, Claude)
+        # degradano gracefully — la render parte anche se uno fallisce. Errore Shotstack stesso
+        # → fallback al video clean senza enhance.
         if video_type == "masterclass" and SHOTSTACK_KEY:
             try:
                 from google.cloud import storage as _gcs
                 _gcs_client = _gcs.Client()
-                _bucket = _gcs_client.bucket("gen-lang-client-0744698012_cloudbuild")
+                _bucket = _gcs_client.bucket(GCS_RENDER_BUCKET)
                 _blob_path = f"rendered/{partner_id}/masterclass/{uuid.uuid4().hex}.mp4"
                 _blob = _bucket.blob(_blob_path)
                 _blob.upload_from_filename(youtube_source_path, content_type="video/mp4")
                 _blob.make_public()
                 _gcs_url = _blob.public_url
-                watermarked_url = await shotstack_add_watermark(_gcs_url, SHOTSTACK_KEY, final_dur)
-                _wm_path = str(tmp_dir / "watermarked.mp4")
-                async with httpx.AsyncClient(timeout=300) as _wc:
-                    _wr = await _wc.get(watermarked_url)
-                    with open(_wm_path, "wb") as _wf:
+
+                # Title per intro: nome partner + "Masterclass". Niche dal partner doc.
+                _enh_title = f"{name.upper()} — MASTERCLASS"
+                _enh_niche = (partner.get("niche") or partner.get("nicchia") or "") if partner else ""
+                _enh_cta = f"https://app.evolution-pro.it/partner/{partner_id}/landing"
+
+                enhanced_url = await shotstack_enhance_video(
+                    video_url=_gcs_url,
+                    duration=final_dur,
+                    title=_enh_title,
+                    niche=_enh_niche,
+                    cta_link=_enh_cta,
+                    transcript=transcript or "",
+                    api_key=SHOTSTACK_KEY,
+                    openai_key=OPENAI_KEY,
+                    anthropic_key=ANTHROPIC_KEY,
+                    tmp_dir=tmp_dir,
+                )
+                _enh_path = str(tmp_dir / "enhanced.mp4")
+                async with httpx.AsyncClient(timeout=600) as _wc:
+                    _wr = await _wc.get(enhanced_url)
+                    with open(_enh_path, "wb") as _wf:
                         _wf.write(_wr.content)
-                youtube_source_path = _wm_path
-                logger.info(f"[SHOTSTACK] Watermark applicato ✅")
+                youtube_source_path = _enh_path
+                logger.info(f"[ENHANCE] Video arricchito applicato ✅ → {_enh_path}")
             except Exception as _se:
-                logger.warning(f"[SHOTSTACK] Watermark error: {_se} — upload senza watermark")
+                logger.warning(f"[ENHANCE] Enhance error: {_se} — upload video pulito senza enhance")
 
         # 6. YouTube upload
         await set_status("uploading_youtube")
