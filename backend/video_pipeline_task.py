@@ -711,11 +711,14 @@ async def assemblyai_transcribe(audio_path: str, api_key: str) -> dict:
         up = await client.post(f"{AAI_BASE}/upload", headers={"authorization": api_key}, content=audio_bytes)
         up.raise_for_status()
         _check_deadline("post-upload")
+        # NOTE: removed "disfluencies": True — caused 400 on the default speech_model.
+        # Italian fillers are still detected via the local FILLERS set below on word.text,
+        # so removing the AAI-side flag only loses ~uh/um auto-tagging by the model.
         tr = await client.post(
             f"{AAI_BASE}/transcript",
             headers=headers,
             json={"audio_url": up.json()["upload_url"], "language_code": "it",
-                  "disfluencies": True, "punctuate": True, "format_text": True},
+                  "speech_model": "best", "punctuate": True, "format_text": True},
         )
         tr.raise_for_status()
         tid = tr.json()["id"]
