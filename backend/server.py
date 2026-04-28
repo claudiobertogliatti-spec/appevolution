@@ -9471,12 +9471,12 @@ async def admin_video_pipeline_config(
             "GOOGLE_APPLICATION_CREDENTIALS": _present("GOOGLE_APPLICATION_CREDENTIALS"),
         },
         "video_pipeline": {
-            "version": "single-pass-cuts+sub-burn-in-2026-04-28-v2",
+            "version": "clean-only-2026-04-28-v3",
             "cut_padding_s": 0.30,
-            "cut_codec": "libx264 crf 20 single-pass filter_complex select+aselect (frame-accurate, no per-segment re-encode)",
+            "cut_codec": "libx264 crf 20 single-pass filter_complex trim+atrim+concat (audio sync robusto)",
             "cut_fallback": "per-segment -c copy + concat se single-pass fallisce/timeout",
-            "subtitle_burn_in": "FFmpeg subtitles filter — funziona indipendentemente da Remotion. Genera SRT da AAI words con remap offset post-cut, burn-in con stile bianco/bordo nero/bottom.",
-            "shotstack_overlay_position": "top (per non sovrapporsi ai sub burn-in in basso)",
+            "video_enhance_enabled": _present("VIDEO_ENHANCE_ENABLED"),
+            "video_enhance_note": "Sub burn-in, Remotion intro/outro, Shotstack DALL-E/music/zoom/overlay sono opt-in via VIDEO_ENHANCE_ENABLED=true. Default disabilitato: editing creativo manuale a valle.",
         },
     }
     return cfg
