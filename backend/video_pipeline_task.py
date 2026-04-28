@@ -1374,6 +1374,10 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
     SHOTSTACK_KEY = os.environ.get("SHOTSTACK_API_KEY", "")
     SHOTSTACK_SANDBOX = os.environ.get("SHOTSTACK_SANDBOX_KEY", "")
     ANTHROPIC_KEY = os.environ.get("EMERGENT_LLM_KEY", "") or os.environ.get("ANTHROPIC_API_KEY", "")
+    # Flag opt-in per gli step "enhance" (sub burn-in, Remotion render, Shotstack
+    # intro/musica/zoom/overlay/outro). Default False: il partner riceve il video
+    # pulito (taglio + audio normalizzato) e fa l'editing creativo manualmente.
+    VIDEO_ENHANCE_ENABLED = os.environ.get("VIDEO_ENHANCE_ENABLED", "false").strip().lower() == "true"
 
     mongo = AsyncIOMotorClient(
         MONGO_URL,
@@ -1503,25 +1507,24 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                     shutil.copy(raw_path, final_path)
                 silence_saved = raw_dur - get_video_duration(final_path)
 
-                # Burn-in sottotitoli via FFmpeg dopo i tagli — funziona indipendentemente
-                # da Remotion (che oggi è off) e da Shotstack (che NON produce sub).
-                # Senza questo step, il video YouTube non avrebbe mai sottotitoli.
-                try:
-                    remapped_words = remap_words_after_cuts(words, all_segs)
-                    if remapped_words:
-                        srt_path = str(tmp_dir / "captions.srt")
-                        if write_srt_from_words(remapped_words, srt_path):
-                            subbed_path = str(tmp_dir / "final_subbed.mp4")
-                            await set_status("burning_subtitles")
-                            ok = await _loop.run_in_executor(None, burn_subtitles, final_path, srt_path, subbed_path)
-                            if ok and Path(subbed_path).exists():
-                                # Sostituisce final_path con la versione sub
-                                shutil.move(subbed_path, final_path)
-                                logger.info(f"[VIDEO-PIPE] Sottotitoli burn-in OK ({len(remapped_words)} parole)")
-                            else:
-                                logger.warning("[VIDEO-PIPE] Sub burn-in fallito, proseguo senza sottotitoli")
-                except Exception as _se:
-                    logger.warning(f"[VIDEO-PIPE] Sub burn-in error: {_se} — proseguo senza")
+                # Burn-in sottotitoli via FFmpeg — opt-in via VIDEO_ENHANCE_ENABLED.
+                # Default disabilitato per scelta del partner: editing manuale a valle.
+                if VIDEO_ENHANCE_ENABLED:
+                    try:
+                        remapped_words = remap_words_after_cuts(words, all_segs)
+                        if remapped_words:
+                            srt_path = str(tmp_dir / "captions.srt")
+                            if write_srt_from_words(remapped_words, srt_path):
+                                subbed_path = str(tmp_dir / "final_subbed.mp4")
+                                await set_status("burning_subtitles")
+                                ok = await _loop.run_in_executor(None, burn_subtitles, final_path, srt_path, subbed_path)
+                                if ok and Path(subbed_path).exists():
+                                    shutil.move(subbed_path, final_path)
+                                    logger.info(f"[VIDEO-PIPE] Sottotitoli burn-in OK ({len(remapped_words)} parole)")
+                                else:
+                                    logger.warning("[VIDEO-PIPE] Sub burn-in fallito, proseguo senza sottotitoli")
+                    except Exception as _se:
+                        logger.warning(f"[VIDEO-PIPE] Sub burn-in error: {_se} — proseguo senza")
             except Exception as e:
                 logger.warning(f"[VIDEO-PIPE] AssemblyAI error: {e} — upload video raw")
                 shutil.copy(raw_path, final_path)
@@ -1532,9 +1535,12 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
         total_saved = raw_dur - final_dur
 
         # 5b. Remotion: intro/outro brandizzato + sottotitoli + highlight + musica
+        # Opt-in via VIDEO_ENHANCE_ENABLED. Disabilitato di default: il partner
+        # vuole ricevere il video pulito (taglio + audio normalizzato) e fare
+        # intro/outro/sub/music/zoom manualmente a valle.
         remotion_rendered = False
         youtube_source_path = final_path
-        if transcript and words:
+        if VIDEO_ENHANCE_ENABLED and transcript and words:
             await set_status("rendering")
             niche = (partner.get("niche") or partner.get("partner_niche") or "") if partner else ""
 
@@ -1585,10 +1591,8 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                 logger.info("[VIDEO-PIPE] Remotion skip — upload video pulito")
 
         # 5c. Shotstack ENHANCE (solo masterclass): intro DALL-E + body music+zoom+overlay + outro CTA
-        # Sostituisce il vecchio watermark logo. Tutti gli helper (DALL-E, Pixabay, Claude)
-        # degradano gracefully — la render parte anche se uno fallisce. Errore Shotstack stesso
-        # → fallback al video clean senza enhance.
-        if video_type == "masterclass" and SHOTSTACK_KEY:
+        # Opt-in via VIDEO_ENHANCE_ENABLED. Stesso motivo del 5b: editing manuale a valle.
+        if VIDEO_ENHANCE_ENABLED and video_type == "masterclass" and SHOTSTACK_KEY:
             try:
                 from google.cloud import storage as _gcs
                 _gcs_client = _gcs.Client()
