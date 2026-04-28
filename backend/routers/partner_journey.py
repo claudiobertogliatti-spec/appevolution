@@ -1481,6 +1481,81 @@ async def reset_masterclass_pipeline(partner_id: str):
     return {"success": True, "message": "Pipeline resettata — il partner può ricaricare il link"}
 
 
+@router.post("/masterclass/reject-video")
+async def reject_masterclass_video(partner_id: str, reason: Optional[str] = None):
+    """Admin rigetta il video editato (qualità non accettabile) e ri-triggera la pipeline.
+
+    Pulisce i campi YouTube/embed cosicché la nuova esecuzione parta pulita,
+    archivia l'ID YouTube rigettato in `video_rejected_youtube_ids` per audit
+    e ri-accoda la pipeline con `video_raw_url` originale.
+
+    Risponde con il task_id Celery e l'ID YouTube vecchio (utile per cancellazione manuale
+    su YouTube se l'admin vuole rimuovere l'unlisted obsoleto).
+    """
+    partner = await get_partner_or_404(partner_id)
+
+    mc = await db.masterclass_factory.find_one({"partner_id": partner_id})
+    if not mc:
+        raise HTTPException(status_code=404, detail="Nessun record masterclass")
+    raw_url = mc.get("video_raw_url")
+    if not raw_url:
+        raise HTTPException(status_code=400, detail="Nessun video_raw_url su cui ripartire")
+
+    rejected_id = mc.get("video_youtube_id")
+    rejected_url = mc.get("video_youtube_url")
+    rejected_history = list(mc.get("video_rejected_youtube_ids") or [])
+    if rejected_id:
+        rejected_history.append({
+            "youtube_id": rejected_id,
+            "youtube_url": rejected_url,
+            "rejected_at": datetime.now(timezone.utc).isoformat(),
+            "reason": (reason or "").strip() or None,
+        })
+
+    await db.masterclass_factory.update_one(
+        {"partner_id": partner_id},
+        {"$set": {
+            "video_pipeline_status": "queued",
+            "video_pipeline_error": None,
+            "video_youtube_url": None,
+            "video_youtube_id": None,
+            "video_embed_url": None,
+            "video_systeme_embed": None,
+            "video_rejected_youtube_ids": rejected_history,
+            "video_last_reject_reason": (reason or "").strip() or None,
+            "video_last_reject_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }}
+    )
+
+    # Ri-accoda la pipeline. Import locale per evitare circular imports.
+    task_id = None
+    try:
+        from video_pipeline_task import process_partner_video
+        task = process_partner_video.delay(
+            partner_id=partner_id,
+            video_url=raw_url,
+            video_type="masterclass",
+            lesson_id=None,
+        )
+        task_id = task.id if task else None
+    except Exception as e:
+        # Se Celery è giù, manteniamo lo status "queued" — il prossimo retrigger lo prenderà
+        return {
+            "success": False,
+            "message": f"Reject applicato ma retrigger fallito: {e}",
+            "rejected_youtube_id": rejected_id,
+        }
+
+    return {
+        "success": True,
+        "message": "Video rigettato — pipeline ri-accodata. Nuovo render in arrivo.",
+        "rejected_youtube_id": rejected_id,
+        "rejected_youtube_url": rejected_url,
+        "task_id": task_id,
+    }
+
+
 class SetYoutubeUrlRequest(BaseModel):
     partner_id: str
     youtube_url: str

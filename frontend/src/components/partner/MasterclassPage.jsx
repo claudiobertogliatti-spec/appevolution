@@ -728,6 +728,42 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
     }
   };
 
+  const [rejectingVideo, setRejectingVideo] = useState(false);
+
+  const handleRejectAndRegen = async () => {
+    const reason = window.prompt(
+      "Motivo del rigetto (opzionale, per audit interno):\n\nEsempi: parole mozzate, audio sporco, intro mancante, sottotitoli errati…",
+      ""
+    );
+    if (reason === null) return; // Cancel pressed
+    const ok = window.confirm(
+      "Confermi? Verrà ri-accodata la pipeline editing con il video grezzo originale.\n\nIl video YouTube attuale sarà sostituito al termine del nuovo render (~20-30 min)."
+    );
+    if (!ok) return;
+
+    setRejectingVideo(true);
+    try {
+      const url = `${API}/api/partner-journey/masterclass/reject-video?partner_id=${partnerId}` +
+        (reason ? `&reason=${encodeURIComponent(reason)}` : "");
+      const res = await fetch(url, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
+        await refreshVideoData();
+        const msg = data.rejected_youtube_id
+          ? `Video rigettato. Nuovo render in arrivo.\n\nVideo YouTube rigettato: https://youtube.com/watch?v=${data.rejected_youtube_id}\n(eliminalo manualmente dallo Studio se vuoi).`
+          : "Video rigettato. Nuovo render in arrivo.";
+        window.alert(msg);
+      } else {
+        window.alert(`Errore rigetto: ${data.detail || data.message || res.status}`);
+      }
+    } catch (e) {
+      console.error("Errore rete reject:", e);
+      window.alert(`Errore di rete: ${e.message}`);
+    } finally {
+      setRejectingVideo(false);
+    }
+  };
+
   // Legge lo stato DFY dello script separatamente per gestire il rendering custom
   const { status: dyfStatus, isLoading: dyfLoading, approve: approveScript, isApproving: isApprovingScript } = useDoneForYou(partnerId, "masterclass");
 
@@ -1063,15 +1099,26 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
 
               {/* Pulsante Approva */}
               {videoReadyForReview && !videoApprovedFinal && (
-                <button
-                  onClick={handleApproveVideo}
-                  disabled={approvingVideo}
-                  className="w-full flex items-center justify-center gap-3 py-4 rounded-xl text-sm font-black disabled:opacity-50 transition-all hover:opacity-90"
-                  style={{ background: "#22C55E", color: "white" }}
-                >
-                  {approvingVideo ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
-                  Approva il Video Masterclass
-                </button>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={handleApproveVideo}
+                    disabled={approvingVideo || rejectingVideo}
+                    className="w-full flex items-center justify-center gap-3 py-4 rounded-xl text-sm font-black disabled:opacity-50 transition-all hover:opacity-90"
+                    style={{ background: "#22C55E", color: "white" }}
+                  >
+                    {approvingVideo ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+                    Approva il Video Masterclass
+                  </button>
+                  <button
+                    onClick={handleRejectAndRegen}
+                    disabled={approvingVideo || rejectingVideo}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black disabled:opacity-50 transition-all hover:opacity-90"
+                    style={{ background: "white", color: "#DC2626", border: "1.5px solid #DC2626" }}
+                  >
+                    {rejectingVideo ? <Loader2 className="w-4 h-4 animate-spin" /> : <span className="text-base leading-none">✗</span>}
+                    Non approvare — rifai il video
+                  </button>
+                </div>
               )}
 
               {videoApprovedFinal && (
@@ -1339,13 +1386,26 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
                     ) : null}
                     <button
                       onClick={handleApproveVideo}
-                      disabled={approvingVideo}
+                      disabled={approvingVideo || rejectingVideo}
                       className="w-full flex items-center justify-center gap-2 py-4 rounded-xl font-black text-sm disabled:opacity-50 transition-all hover:scale-[1.01]"
                       style={{ background: "#34C77B", color: "white", boxShadow: "0 4px 16px #34C77B40" }}
                     >
                       {approvingVideo ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
                       Approva il Video — Tutto ok!
                     </button>
+                    {/* Bottone admin-only: rigetta e ri-genera. Visibile solo quando un admin
+                        sta osservando la vista partner (es. per testing o intervento qualità). */}
+                    {isAdmin && (
+                      <button
+                        onClick={handleRejectAndRegen}
+                        disabled={approvingVideo || rejectingVideo}
+                        className="mt-2 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-black text-xs disabled:opacity-50 transition-all hover:opacity-90"
+                        style={{ background: "white", color: "#DC2626", border: "1.5px solid #DC2626" }}
+                      >
+                        {rejectingVideo ? <Loader2 className="w-4 h-4 animate-spin" /> : <span className="text-base leading-none">✗</span>}
+                        [Admin] Non approvare — rifai il video
+                      </button>
+                    )}
                   </>
                 ) : (
                   <p className="text-sm text-center py-4" style={{ color: "#9CA3AF" }}>
