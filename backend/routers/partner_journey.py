@@ -1432,6 +1432,11 @@ async def get_masterclass_video_status(partner_id: str):
         "video_filler_report": doc.get("video_filler_report"),
         "pipeline_completed_at": doc.get("pipeline_completed_at"),
         "video_submitted_at": doc.get("video_submitted_at"),
+        # Diagnostica Shotstack ENHANCE — popolato dalla pipeline solo in caso di errore enhance.
+        # Se popolato, il video YouTube è stato uploadato senza intro/musica/zoom/overlay/outro.
+        "video_enhance_error": doc.get("video_enhance_error"),
+        "video_enhance_failed_at": doc.get("video_enhance_failed_at"),
+        "video_enhance_ok_at": doc.get("video_enhance_ok_at"),
     }
 
 
