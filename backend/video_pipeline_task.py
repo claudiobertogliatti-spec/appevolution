@@ -699,10 +699,18 @@ def cut_filler_segments(input_path: str, output_path: str, filler_segs: List[Dic
         shutil.copy(input_path, output_path)
         return True
 
-    # Costruisci espressione select: between(t,a1,b1)+between(t,a2,b2)+...
-    expr = "+".join(f"between(t,{s['start']:.3f},{s['end']:.3f})" for s in keep)
-    vf = f"select='{expr}',setpts=N/FRAME_RATE/TB"
-    af = f"aselect='{expr}',asetpts=N/SR/TB"
+    # Pattern canonico FFmpeg per multi-range cut con AUDIO SYNC ROBUSTO:
+    # [0:v]trim=A:B,setpts=PTS-STARTPTS[v0];[0:a]atrim=A:B,asetpts=PTS-STARTPTS[a0]; ... ;
+    # [v0][a0][v1][a1]...concat=n=N:v=1:a=1[outv][outa]
+    # trim/atrim sono più robusti di select/aselect su video VFR (variable frame rate)
+    # — select/aselect causavano desync audio/video accumulato.
+    parts = []
+    for i, s in enumerate(keep):
+        parts.append(f"[0:v]trim={s['start']:.3f}:{s['end']:.3f},setpts=PTS-STARTPTS[v{i}]")
+        parts.append(f"[0:a]atrim={s['start']:.3f}:{s['end']:.3f},asetpts=PTS-STARTPTS[a{i}]")
+    streams = "".join(f"[v{i}][a{i}]" for i in range(len(keep)))
+    parts.append(f"{streams}concat=n={len(keep)}:v=1:a=1[outv][outa]")
+    filter_complex = ";".join(parts)
 
     # Timeout dinamico: 3x la durata di output per dare margine su Cloud Run lento.
     output_dur = sum(s["end"] - s["start"] for s in keep)
@@ -710,14 +718,15 @@ def cut_filler_segments(input_path: str, output_path: str, filler_segs: List[Dic
 
     cmd = [
         "ffmpeg", "-y", "-i", input_path,
-        "-vf", vf, "-af", af,
+        "-filter_complex", filter_complex,
+        "-map", "[outv]", "-map", "[outa]",
         "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
         "-pix_fmt", "yuv420p",
         "-c:a", "aac", "-b:a", "192k",
         "-movflags", "+faststart",
         output_path,
     ]
-    logger.info(f"[VIDEO-PIPE] cut single-pass: {len(keep)} keep-ranges, output ~{output_dur:.0f}s, timeout {timeout_s}s")
+    logger.info(f"[VIDEO-PIPE] cut single-pass trim+concat: {len(keep)} keep-ranges, output ~{output_dur:.0f}s, timeout {timeout_s}s")
     try:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_s)
     except subprocess.TimeoutExpired:
@@ -1614,8 +1623,31 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                         _wf.write(_wr.content)
                 youtube_source_path = _enh_path
                 logger.info(f"[ENHANCE] Video arricchito applicato ✅ → {_enh_path}")
+                # Pulisce eventuale errore enhance precedente
+                try:
+                    await db.masterclass_factory.update_one(
+                        {"partner_id": partner_id},
+                        {"$set": {"video_enhance_error": None, "video_enhance_ok_at": datetime.now(timezone.utc).isoformat()}}
+                    )
+                except Exception:
+                    pass
             except Exception as _se:
-                logger.warning(f"[ENHANCE] Enhance error: {_se} — upload video pulito senza enhance")
+                import traceback as _tb
+                _err = f"{type(_se).__name__}: {_se}"
+                _trace = _tb.format_exc()
+                logger.warning(f"[ENHANCE] Enhance error: {_err} — upload video pulito senza enhance\n{_trace}")
+                # Salva errore in DB per diagnosi (visibile via video-status endpoint)
+                try:
+                    await db.masterclass_factory.update_one(
+                        {"partner_id": partner_id},
+                        {"$set": {
+                            "video_enhance_error": _err,
+                            "video_enhance_traceback": _trace[:5000],
+                            "video_enhance_failed_at": datetime.now(timezone.utc).isoformat(),
+                        }}
+                    )
+                except Exception:
+                    pass
 
         # 6. YouTube upload
         await set_status("uploading_youtube")
