@@ -1097,6 +1097,20 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
                 </div>
               )}
 
+              {/* Sostituisci URL YouTube — admin tool per upload manuale post-editing.
+                  Visibile quando il video è in ready_for_review (anche da pipeline auto)
+                  e showManualUrl è false. Apre il form URL senza dover fare reset prima. */}
+              {videoReadyForReview && !videoApprovedFinal && !showManualUrl && (
+                <button
+                  onClick={() => setShowManualUrl(true)}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all hover:opacity-90"
+                  style={{ background: "#F0F9FF", color: "#0369A1", border: "1.5px solid #BAE6FD" }}
+                >
+                  <Video className="w-3.5 h-3.5" />
+                  [Admin] Sostituisci con URL YouTube manuale (post-editing)
+                </button>
+              )}
+
               {/* Pulsante Approva */}
               {videoReadyForReview && !videoApprovedFinal && (
                 <div className="flex flex-col gap-2">
