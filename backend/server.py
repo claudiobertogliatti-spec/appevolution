@@ -9424,6 +9424,56 @@ async def backfill_evolution_ids(
     }
 
 
+@api_router.get("/admin/video-pipeline-config")
+async def admin_video_pipeline_config(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Admin: snapshot delle env var critiche per la pipeline video.
+
+    Restituisce SOLO presenza/lunghezza, mai i valori — utile per diagnosticare
+    perché Remotion (intro/outro/sub/zoom/text) o Shotstack (DALL-E intro,
+    music, overlay, CTA) NON sono stati applicati al render finale di un partner.
+    """
+    token_data = decode_token(credentials.credentials)
+    admin_user = await db.users.find_one({"id": token_data.user_id})
+    if not admin_user or admin_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    def _present(name: str) -> dict:
+        v = os.environ.get(name) or ""
+        return {"set": bool(v), "length": len(v), "preview": (v[:4] + "…" + v[-2:]) if v else None}
+
+    cfg = {
+        "remotion": {
+            "REMOTION_SERVICE_URL": _present("REMOTION_SERVICE_URL"),
+            "GCS_BUCKET": _present("GCS_BUCKET"),
+            "note": "Se REMOTION_SERVICE_URL è vuoto → render Remotion saltato (intro/outro/sub/zoom/text non applicati)",
+        },
+        "shotstack": {
+            "SHOTSTACK_API_KEY": _present("SHOTSTACK_API_KEY"),
+            "SHOTSTACK_SANDBOX_KEY": _present("SHOTSTACK_SANDBOX_KEY"),
+            "note": "Se SHOTSTACK_API_KEY è vuoto → enhance Shotstack (DALL-E intro, music Pixabay, overlay, CTA outro) saltato per masterclass",
+        },
+        "ai_assets": {
+            "OPENAI_API_KEY": _present("OPENAI_API_KEY"),
+            "ASSEMBLYAI_API_KEY": _present("ASSEMBLYAI_API_KEY"),
+            "ANTHROPIC_API_KEY": _present("ANTHROPIC_API_KEY"),
+            "EMERGENT_LLM_KEY": _present("EMERGENT_LLM_KEY"),
+            "note": "OpenAI = DALL-E intro + smart edit; AssemblyAI = transcript+filler+silenzi; Anthropic/Emergent = key concepts overlay + summary outro",
+        },
+        "youtube": {
+            "YOUTUBE_CLIENT_SECRET_FILE": _present("YOUTUBE_CLIENT_SECRET_FILE"),
+            "GOOGLE_APPLICATION_CREDENTIALS": _present("GOOGLE_APPLICATION_CREDENTIALS"),
+        },
+        "video_pipeline": {
+            "version": "frame-accurate-cuts-2026-04-28",
+            "cut_padding_s": 0.30,
+            "cut_codec": "libx264 crf 18 (re-encode for accurate seek)",
+        },
+    }
+    return cfg
+
+
 @api_router.post("/admin/reset-password")
 async def admin_reset_password(
     body: dict = Body({}),

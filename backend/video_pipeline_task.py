@@ -534,18 +534,22 @@ def create_youtube_playlist_sync(partner_name: str) -> Optional[str]:
 
 
 def cut_filler_segments(input_path: str, output_path: str, filler_segs: List[Dict], duration: float) -> bool:
-    """Rimuove segmenti filler usando FFmpeg concat.
+    """Rimuove segmenti filler usando FFmpeg concat con tagli FRAME-ACCURATE.
 
-    Padding 200ms ai bordi di ogni taglio: il cut effettivo è (start+0.2, end-0.2)
-    invece di (start, end). Evita di troncare a metà parole vicine al silenzio/filler.
-    Se il segmento è più corto di 0.4s (padding totale), viene saltato — meglio
-    lasciare un piccolo silenzio che tagliare una sillaba.
+    Fix qualità (2026-04-28):
+    - PADDING aumentato a 0.30s per sicurezza extra contro parole mozzate.
+    - `-ss` DOPO `-i` (output seeking) invece che PRIMA → frame-accurate, non
+      più snap-pato al keyframe precedente che causava tagli da -1/-2 secondi.
+    - Re-encode H.264 CRF 18 (non `-c copy`) → ogni segmento parte da un
+      keyframe nuovo, niente desync audio/video, niente "click" nei tagli.
+    - Concat finale resta `-c copy` perché tutti i segmenti hanno gli stessi
+      codec/parametri (mux istantaneo).
     """
     if not filler_segs:
         shutil.copy(input_path, output_path)
         return True
 
-    PADDING = 0.2
+    PADDING = 0.30
 
     # Costruisci segmenti da TENERE — applico padding restringendo ogni cut
     keep = []
@@ -574,14 +578,22 @@ def cut_filler_segments(input_path: str, output_path: str, filler_segs: List[Dic
         dur = seg["end"] - seg["start"]
         cmd = [
             "ffmpeg", "-y",
-            "-ss", str(seg["start"]),
-            "-t", str(max(0.1, dur)),
             "-i", input_path,
-            "-c", "copy", seg_path
+            "-ss", f"{seg['start']:.3f}",
+            "-t", f"{max(0.1, dur):.3f}",
+            "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
+            "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-b:a", "192k",
+            "-avoid_negative_ts", "make_zero",
+            "-movflags", "+faststart",
+            seg_path,
         ]
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        # Re-encode richiede più tempo del copy: timeout per segmento più ampio.
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
         if r.returncode == 0 and Path(seg_path).exists():
             seg_files.append(seg_path)
+        else:
+            logger.warning(f"[VIDEO-PIPE] cut seg {i} fallito: rc={r.returncode} stderr={r.stderr[-300:]}")
 
     if not seg_files:
         shutil.copy(input_path, output_path)
@@ -605,6 +617,7 @@ def cut_filler_segments(input_path: str, output_path: str, filler_segs: List[Dic
             pass
 
     if r.returncode != 0:
+        logger.warning(f"[VIDEO-PIPE] concat fallito: rc={r.returncode} stderr={r.stderr[-300:]}")
         shutil.copy(input_path, output_path)
     return True
 
