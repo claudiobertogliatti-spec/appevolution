@@ -9434,7 +9434,12 @@ async def admin_video_pipeline_config(
     perché Remotion (intro/outro/sub/zoom/text) o Shotstack (DALL-E intro,
     music, overlay, CTA) NON sono stati applicati al render finale di un partner.
     """
-    token_data = decode_token(credentials.credentials)
+    # Wrappo decode_token in try/except: se il JWT è scaduto/invalido voglio
+    # rispondere 401 JSON (non 500 plain text dal Cloud Run gateway).
+    try:
+        token_data = decode_token(credentials.credentials)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Token non valido o scaduto")
     admin_user = await db.users.find_one({"id": token_data.user_id})
     if not admin_user or admin_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
@@ -9466,9 +9471,11 @@ async def admin_video_pipeline_config(
             "GOOGLE_APPLICATION_CREDENTIALS": _present("GOOGLE_APPLICATION_CREDENTIALS"),
         },
         "video_pipeline": {
-            "version": "frame-accurate-cuts-2026-04-28",
+            "version": "frame-accurate-cuts+sub-burn-in-2026-04-28",
             "cut_padding_s": 0.30,
             "cut_codec": "libx264 crf 18 (re-encode for accurate seek)",
+            "subtitle_burn_in": "FFmpeg subtitles filter — funziona indipendentemente da Remotion. Genera SRT da AAI words con remap offset post-cut, burn-in con stile bianco/bordo nero/bottom.",
+            "shotstack_overlay_position": "top (per non sovrapporsi ai sub burn-in in basso)",
         },
     }
     return cfg

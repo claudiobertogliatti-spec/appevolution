@@ -533,6 +533,133 @@ def create_youtube_playlist_sync(partner_name: str) -> Optional[str]:
         return None
 
 
+def remap_words_after_cuts(words: List[Dict], cut_segs: List[Dict]) -> List[Dict]:
+    """Rimappa i timestamp delle parole AAI dopo che `cut_segs` è stato tagliato dal video.
+
+    Per ogni parola:
+    - Se cade INTERAMENTE dentro un cut → la scarta (è stata rimossa).
+    - Altrimenti sottrae la durata totale dei cut PRECEDENTI all'inizio della parola
+      (e quelli che si sovrappongono parzialmente).
+
+    Ritorna nuova lista [{word, start, end}] con offset corretti per il video tagliato.
+    """
+    if not words:
+        return []
+    if not cut_segs:
+        return list(words)
+
+    cuts = sorted(cut_segs, key=lambda s: s["start"])
+    out = []
+    for w in words:
+        ws, we = w["start"], w["end"]
+        # Skip se la parola è interamente dentro un cut
+        skip = False
+        offset = 0.0
+        for c in cuts:
+            cs, ce = c["start"], c["end"]
+            if cs <= ws and ce >= we:
+                skip = True
+                break
+            if ce <= ws:
+                # Cut interamente prima della parola → sottrae la sua durata
+                offset += (ce - cs)
+            elif cs < ws < ce <= we:
+                # Cut termina dentro la parola → la parola viene troncata sulla sinistra,
+                # consideriamo che inizia da ce (post-cut)
+                offset += (ws - cs)  # parte mangiata
+            elif ws <= cs < we and ce > we:
+                # Cut inizia dentro la parola → parola troncata sulla destra (la teniamo
+                # comunque, prendendo come fine cs)
+                we = cs
+        if skip:
+            continue
+        new_start = max(0.0, ws - offset)
+        new_end = max(new_start + 0.05, we - offset)
+        out.append({"word": w["word"], "start": new_start, "end": new_end})
+    return out
+
+
+def _srt_ts(seconds: float) -> str:
+    h = int(seconds // 3600)
+    m = int((seconds % 3600) // 60)
+    s = seconds - h * 3600 - m * 60
+    return f"{h:02d}:{m:02d}:{int(s):02d},{int((s - int(s)) * 1000):03d}"
+
+
+def write_srt_from_words(words: List[Dict], srt_path: str, max_chars: int = 42, max_dur_s: float = 4.0) -> bool:
+    """Genera file SRT raggruppando le parole AAI in cue brevi (max ~42 char e ~4 secondi).
+
+    Crea cue al volo: aggiunge parole finché non si supera la lunghezza in caratteri,
+    o non si supera max_dur_s, o non c'è una pausa > 0.6s.
+    """
+    if not words:
+        return False
+    cues = []
+    cur = []
+    for w in words:
+        if not cur:
+            cur = [w]
+            continue
+        cur_text = " ".join(x["word"] for x in cur)
+        gap = w["start"] - cur[-1]["end"]
+        candidate_len = len(cur_text) + 1 + len(w["word"])
+        candidate_dur = w["end"] - cur[0]["start"]
+        if candidate_len > max_chars or candidate_dur > max_dur_s or gap > 0.6:
+            cues.append(cur)
+            cur = [w]
+        else:
+            cur.append(w)
+    if cur:
+        cues.append(cur)
+
+    try:
+        with open(srt_path, "w", encoding="utf-8") as f:
+            for i, cue in enumerate(cues, 1):
+                start = _srt_ts(cue[0]["start"])
+                end = _srt_ts(cue[-1]["end"])
+                text = " ".join(x["word"] for x in cue).strip()
+                f.write(f"{i}\n{start} --> {end}\n{text}\n\n")
+        return True
+    except Exception as e:
+        logger.warning(f"[VIDEO-PIPE] SRT write error: {e}")
+        return False
+
+
+def burn_subtitles(input_path: str, srt_path: str, output_path: str) -> bool:
+    """Burn-in SRT nel video con FFmpeg. Stile leggibile: bianco con bordo nero,
+    posizione bottom (margine 60px), font medium. Re-encode H.264 CRF 18.
+
+    NOTA: il filter `subtitles=` di FFmpeg richiede path con escape su Windows
+    (i due punti del drive C:/ rompono il parser). In Cloud Run (Linux) i path
+    sono già unix-style — nessun escape necessario. Manteniamo conversione safe.
+    """
+    if not Path(srt_path).exists():
+        return False
+    # Stile ASS embed: PrimaryColour bianco, OutlineColour nero, Outline 2, Bold 1
+    style = "FontName=Arial,FontSize=22,PrimaryColour=&H00FFFFFF&,OutlineColour=&H00000000&,BorderStyle=1,Outline=2,Shadow=1,Bold=1,Alignment=2,MarginV=60"
+    # Escape path per filter (i due punti su Linux non sono problema; su Windows usare /)
+    safe_srt = srt_path.replace("\\", "/").replace(":", r"\:")
+    vf = f"subtitles={safe_srt}:force_style='{style}'"
+    cmd = [
+        "ffmpeg", "-y", "-i", input_path,
+        "-vf", vf,
+        "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
+        "-pix_fmt", "yuv420p",
+        "-c:a", "copy",
+        "-movflags", "+faststart",
+        output_path,
+    ]
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
+    except subprocess.TimeoutExpired:
+        logger.warning("[VIDEO-PIPE] burn_subtitles timeout (30min) — salto burn-in")
+        return False
+    if r.returncode != 0:
+        logger.warning(f"[VIDEO-PIPE] burn_subtitles fallito: rc={r.returncode} stderr={r.stderr[-400:]}")
+        return False
+    return True
+
+
 def cut_filler_segments(input_path: str, output_path: str, filler_segs: List[Dict], duration: float) -> bool:
     """Rimuove segmenti filler usando FFmpeg concat con tagli FRAME-ACCURATE.
 
@@ -976,7 +1103,9 @@ async def shotstack_enhance_video(
                     "color": "#ffffff",
                     "size": "medium",
                     "background": "#00000099",
-                    "position": "bottom",
+                    # Posizionato in alto per non sovrapporsi ai sottotitoli burn-in
+                    # (che vengono renderizzati in basso da FFmpeg subtitles filter).
+                    "position": "top",
                 },
                 "start": INTRO_S + t_in_body,
                 "length": OVERLAY_DURATION,
@@ -1332,6 +1461,26 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                 else:
                     shutil.copy(raw_path, final_path)
                 silence_saved = raw_dur - get_video_duration(final_path)
+
+                # Burn-in sottotitoli via FFmpeg dopo i tagli — funziona indipendentemente
+                # da Remotion (che oggi è off) e da Shotstack (che NON produce sub).
+                # Senza questo step, il video YouTube non avrebbe mai sottotitoli.
+                try:
+                    remapped_words = remap_words_after_cuts(words, all_segs)
+                    if remapped_words:
+                        srt_path = str(tmp_dir / "captions.srt")
+                        if write_srt_from_words(remapped_words, srt_path):
+                            subbed_path = str(tmp_dir / "final_subbed.mp4")
+                            await set_status("burning_subtitles")
+                            ok = await _loop.run_in_executor(None, burn_subtitles, final_path, srt_path, subbed_path)
+                            if ok and Path(subbed_path).exists():
+                                # Sostituisce final_path con la versione sub
+                                shutil.move(subbed_path, final_path)
+                                logger.info(f"[VIDEO-PIPE] Sottotitoli burn-in OK ({len(remapped_words)} parole)")
+                            else:
+                                logger.warning("[VIDEO-PIPE] Sub burn-in fallito, proseguo senza sottotitoli")
+                except Exception as _se:
+                    logger.warning(f"[VIDEO-PIPE] Sub burn-in error: {_se} — proseguo senza")
             except Exception as e:
                 logger.warning(f"[VIDEO-PIPE] AssemblyAI error: {e} — upload video raw")
                 shutil.copy(raw_path, final_path)
