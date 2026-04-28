@@ -661,16 +661,19 @@ def burn_subtitles(input_path: str, srt_path: str, output_path: str) -> bool:
 
 
 def cut_filler_segments(input_path: str, output_path: str, filler_segs: List[Dict], duration: float) -> bool:
-    """Rimuove segmenti filler usando FFmpeg concat con tagli FRAME-ACCURATE.
+    """Rimuove segmenti filler usando FFmpeg `filter_complex select`+`aselect` SINGLE-PASS.
 
-    Fix qualità (2026-04-28):
-    - PADDING aumentato a 0.30s per sicurezza extra contro parole mozzate.
-    - `-ss` DOPO `-i` (output seeking) invece che PRIMA → frame-accurate, non
-      più snap-pato al keyframe precedente che causava tagli da -1/-2 secondi.
-    - Re-encode H.264 CRF 18 (non `-c copy`) → ogni segmento parte da un
-      keyframe nuovo, niente desync audio/video, niente "click" nei tagli.
-    - Concat finale resta `-c copy` perché tutti i segmenti hanno gli stessi
-      codec/parametri (mux istantaneo).
+    Fix performance (2026-04-28 v2):
+    - Approccio precedente (per-segmento + concat) re-encodava N volte e si
+      bloccava su Cloud Run quando i segmenti erano pochi ma lunghi (es. 1
+      filler in 13min → 2 segmenti da ~6min → re-encode lento timeout-out).
+    - Nuovo: 1 sola chiamata FFmpeg che `select`/`aselect` solo i frame da
+      tenere e re-encoda 1 volta. Frame-accurate per definizione (filter
+      lavora frame-by-frame, NON keyframe-aligned).
+    - PADDING 0.30s per evitare parole mozzate ai bordi.
+    - Fallback safe: se FFmpeg fallisce o va in timeout, fallback a
+      `-c copy` (vecchio comportamento, parole forse mozzate ma il render
+      non si blocca).
     """
     if not filler_segs:
         shutil.copy(input_path, output_path)
@@ -678,14 +681,13 @@ def cut_filler_segments(input_path: str, output_path: str, filler_segs: List[Dic
 
     PADDING = 0.30
 
-    # Costruisci segmenti da TENERE — applico padding restringendo ogni cut
+    # Costruisci segmenti da TENERE — applico padding restringendo ogni cut filler
     keep = []
     cursor = 0.0
     for seg in sorted(filler_segs, key=lambda x: x["start"]):
         cut_start = seg["start"] + PADDING
         cut_end = seg["end"] - PADDING
         if cut_end <= cut_start:
-            # Segmento troppo corto per essere tagliato senza rischio: lo lascio
             continue
         if cut_start > cursor + 0.05:
             keep.append({"start": cursor, "end": cut_start})
@@ -697,54 +699,84 @@ def cut_filler_segments(input_path: str, output_path: str, filler_segs: List[Dic
         shutil.copy(input_path, output_path)
         return True
 
+    # Costruisci espressione select: between(t,a1,b1)+between(t,a2,b2)+...
+    expr = "+".join(f"between(t,{s['start']:.3f},{s['end']:.3f})" for s in keep)
+    vf = f"select='{expr}',setpts=N/FRAME_RATE/TB"
+    af = f"aselect='{expr}',asetpts=N/SR/TB"
+
+    # Timeout dinamico: 3x la durata di output per dare margine su Cloud Run lento.
+    output_dur = sum(s["end"] - s["start"] for s in keep)
+    timeout_s = max(900, int(output_dur * 3))  # min 15 min, scala con la lunghezza
+
+    cmd = [
+        "ffmpeg", "-y", "-i", input_path,
+        "-vf", vf, "-af", af,
+        "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+        "-pix_fmt", "yuv420p",
+        "-c:a", "aac", "-b:a", "192k",
+        "-movflags", "+faststart",
+        output_path,
+    ]
+    logger.info(f"[VIDEO-PIPE] cut single-pass: {len(keep)} keep-ranges, output ~{output_dur:.0f}s, timeout {timeout_s}s")
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_s)
+    except subprocess.TimeoutExpired:
+        logger.warning(f"[VIDEO-PIPE] cut single-pass timeout ({timeout_s}s) — fallback a -c copy")
+        return _cut_filler_segments_copy_fallback(input_path, output_path, keep)
+
+    if r.returncode != 0 or not Path(output_path).exists() or Path(output_path).stat().st_size < 1024:
+        logger.warning(f"[VIDEO-PIPE] cut single-pass fallito rc={r.returncode}: {r.stderr[-400:]} — fallback a -c copy")
+        return _cut_filler_segments_copy_fallback(input_path, output_path, keep)
+
+    return True
+
+
+def _cut_filler_segments_copy_fallback(input_path: str, output_path: str, keep: List[Dict]) -> bool:
+    """Fallback: per-segmento `-c copy` + concat — veloce ma snap-pa al keyframe.
+    Usato quando il single-pass re-encode fallisce. Le parole possono essere
+    mozzate ai bordi, ma è meglio di non avere video.
+    """
     tmp_dir = Path(input_path).parent
     seg_files = []
-
     for i, seg in enumerate(keep):
-        seg_path = str(tmp_dir / f"seg_{i:04d}.mp4")
+        seg_path = str(tmp_dir / f"seg_fb_{i:04d}.mp4")
         dur = seg["end"] - seg["start"]
         cmd = [
             "ffmpeg", "-y",
-            "-i", input_path,
             "-ss", f"{seg['start']:.3f}",
             "-t", f"{max(0.1, dur):.3f}",
-            "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
-            "-pix_fmt", "yuv420p",
-            "-c:a", "aac", "-b:a", "192k",
-            "-avoid_negative_ts", "make_zero",
-            "-movflags", "+faststart",
-            seg_path,
+            "-i", input_path,
+            "-c", "copy", seg_path,
         ]
-        # Re-encode richiede più tempo del copy: timeout per segmento più ampio.
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        except subprocess.TimeoutExpired:
+            continue
         if r.returncode == 0 and Path(seg_path).exists():
             seg_files.append(seg_path)
-        else:
-            logger.warning(f"[VIDEO-PIPE] cut seg {i} fallito: rc={r.returncode} stderr={r.stderr[-300:]}")
 
     if not seg_files:
         shutil.copy(input_path, output_path)
         return True
 
-    concat_file = str(tmp_dir / "concat.txt")
+    concat_file = str(tmp_dir / "concat_fb.txt")
     with open(concat_file, "w") as f:
         for sp in seg_files:
             f.write(f"file '{sp}'\n")
-
-    cmd_c = [
-        "ffmpeg", "-y", "-f", "concat", "-safe", "0",
-        "-i", concat_file, "-c", "copy", output_path
-    ]
-    r = subprocess.run(cmd_c, capture_output=True, text=True, timeout=1200)
+    cmd_c = ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_file, "-c", "copy", output_path]
+    try:
+        r = subprocess.run(cmd_c, capture_output=True, text=True, timeout=600)
+    except subprocess.TimeoutExpired:
+        shutil.copy(input_path, output_path)
+        for sp in seg_files:
+            try: Path(sp).unlink()
+            except Exception: pass
+        return True
 
     for sp in seg_files:
-        try:
-            Path(sp).unlink()
-        except Exception:
-            pass
-
+        try: Path(sp).unlink()
+        except Exception: pass
     if r.returncode != 0:
-        logger.warning(f"[VIDEO-PIPE] concat fallito: rc={r.returncode} stderr={r.stderr[-300:]}")
         shutil.copy(input_path, output_path)
     return True
 
