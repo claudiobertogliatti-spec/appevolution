@@ -1039,6 +1039,9 @@ export default function App() {
         if (nav === 'calendario-lancio') return <CalendarioLancioPage partner={p} onNavigate={setPartnerDashNav} />;
         if (nav === 'webinar') return <WebinarPage partner={p} onNavigate={setPartnerDashNav} />;
         if (nav === 'growth-system') return <GrowthSystemPage partner={p} onNavigate={setPartnerDashNav} />;
+        // Configurazione operativa (raggiungibile dal funnel partner-side)
+        if (nav === 'domain-config') return <DomainConfiguration partner={p} onNavigate={setPartnerDashNav} />;
+        if (nav === 'legal-pages') return <LegalPagesGenerator partner={p} onBack={() => setPartnerDashNav('funnel')} />;
         return <PartnerDashboardSimplified partner={p} onNavigate={setPartnerDashNav} />;
       };
 
