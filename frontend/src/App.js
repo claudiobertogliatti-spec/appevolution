@@ -1426,7 +1426,7 @@ export default function App() {
             {nav==="profilo-dati"&&<DatiPersonali partner={demoPartner} onBack={()=>setNav("dashboard")}/>}
             
             {/* Generatore Pagine Legali */}
-            {nav==="legal-pages"&&<LegalPagesGenerator partner={demoPartner} onBack={()=>setNav("fase7-dominio")}/>}
+            {nav==="legal-pages"&&<LegalPagesGenerator partner={demoPartner} onBack={()=>setNav("fase7-dominio")} isAdmin={true}/>}
             
             {/* PROFILO - Brand Kit */}
             {nav==="profilo-brandkit"&&<BrandKitEditor partner={demoPartner}/>}

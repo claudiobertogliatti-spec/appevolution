@@ -1,11 +1,142 @@
 import React, { useState, useEffect } from "react";
-import { 
+import {
   ArrowLeft, FileText, Shield, Cookie, AlertTriangle, Scale,
   Loader2, Check, Download, Copy, Eye, RefreshCw, Building2,
-  Mail, Phone, Globe, User, MapPin
+  Mail, Phone, Globe, User, MapPin, Lock, Sparkles, CreditCard
 } from "lucide-react";
 
 import { API_URL, API } from '../../utils/api-config';
+
+// ============================================
+// PAYWALL — Servizio extra 149€ (legal_pages_pack)
+// Mostrato quando il partner non ha ancora acquistato il servizio.
+// Bypassabile per admin (isAdmin=true) per testing/demo.
+// ============================================
+function LegalPagesPaywall({ partner, onBack, isAdmin, onAdminBypass }) {
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleCheckout = async () => {
+    setProcessing(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API}/api/legal-pages-checkout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          service_type: "legal_pages_pack",
+          partner_id: partner?.id || "demo",
+          partner_name: partner?.name || "Partner",
+          partner_email: partner?.email || "",
+          origin_url: window.location.origin,
+          price: 149,
+        }),
+      });
+      if (!res.ok) throw new Error("Errore creazione checkout");
+      const data = await res.json();
+      if (data.checkout_url) {
+        window.location.href = data.checkout_url;
+      } else {
+        setError("Nessun link di pagamento ricevuto");
+        setProcessing(false);
+      }
+    } catch (e) {
+      setError(e.message);
+      setProcessing(false);
+    }
+  };
+
+  const includes = [
+    { icon: Shield, label: "Privacy Policy", desc: "GDPR-compliant, personalizzata sui tuoi dati business" },
+    { icon: Scale,  label: "Termini e Condizioni", desc: "Condizioni generali di vendita e utilizzo" },
+    { icon: Cookie, label: "Cookie Policy", desc: "Informativa cookie + tecnologie di tracciamento" },
+    { icon: AlertTriangle, label: "Disclaimer", desc: "Esclusione di responsabilità professionale" },
+  ];
+
+  return (
+    <div className="min-h-full" style={{ background: "#FAFAF7" }}>
+      <div className="max-w-2xl mx-auto p-6">
+        {onBack && (
+          <button onClick={onBack} className="flex items-center gap-2 text-sm font-bold mb-4 hover:opacity-80" style={{ color: "#5F6572" }}>
+            <ArrowLeft className="w-4 h-4" /> Indietro
+          </button>
+        )}
+
+        <div className="rounded-3xl overflow-hidden mb-5" style={{ background: "#1E2128", color: "white" }}>
+          <div className="p-7">
+            <div className="flex items-center gap-2 mb-3">
+              <Lock className="w-5 h-5" style={{ color: "#FFD24D" }} />
+              <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: "#FFD24D" }}>
+                Servizio extra a richiesta
+              </span>
+            </div>
+            <h1 className="text-3xl font-black mb-2">Generazione automatica Pagine Legali</h1>
+            <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.7)" }}>
+              Tutte le pagine legali del tuo funnel pronte in 1 click — Privacy, Termini & Condizioni,
+              Cookie Policy, Disclaimer — generate dall'AI sui tuoi dati business e GDPR-compliant.
+            </p>
+            <div className="mt-5 flex items-baseline gap-2">
+              <span className="text-5xl font-black" style={{ color: "#FFD24D" }}>149€</span>
+              <span className="text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>una tantum</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl border p-5 mb-5" style={{ borderColor: "#ECEDEF" }}>
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-4 h-4" style={{ color: "#FFD24D" }} />
+            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "#5F6572" }}>Cosa è incluso</span>
+          </div>
+          <div className="space-y-3">
+            {includes.map((item, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "#FFD24D15" }}>
+                  <item.icon className="w-4 h-4" style={{ color: "#92700C" }} />
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-bold" style={{ color: "#1E2128" }}>{item.label}</div>
+                  <div className="text-xs mt-0.5" style={{ color: "#5F6572" }}>{item.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {error && (
+          <div className="flex items-start gap-2 p-3 rounded-xl mb-4" style={{ background: "#FEE2E2", border: "1px solid #FECACA" }}>
+            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: "#B91C1C" }} />
+            <span className="text-xs" style={{ color: "#991B1B" }}>{error}</span>
+          </div>
+        )}
+
+        <button
+          onClick={handleCheckout}
+          disabled={processing}
+          className="w-full flex items-center justify-center gap-2 py-4 rounded-xl text-sm font-black disabled:opacity-50 transition-all hover:opacity-90"
+          style={{ background: "#FFD24D", color: "#1E2128" }}
+        >
+          {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : <CreditCard className="w-5 h-5" />}
+          Acquista a 149€ — Procedi al pagamento
+        </button>
+
+        {isAdmin && onAdminBypass && (
+          <button
+            onClick={onAdminBypass}
+            className="mt-2 w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all hover:opacity-90"
+            style={{ background: "white", color: "#0369A1", border: "1px solid #BAE6FD" }}
+          >
+            <Lock className="w-3.5 h-3.5" />
+            [Admin] Bypass paywall — accedi al generatore senza pagare
+          </button>
+        )}
+
+        <p className="text-[11px] text-center mt-4" style={{ color: "#9CA3AF" }}>
+          Pagamento sicuro tramite Stripe. Ricevi la fattura automaticamente via email.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 // Page type icons and colors
 const PAGE_TYPES = {
@@ -42,7 +173,58 @@ const PAGE_TYPES = {
 // ============================================
 // LEGAL PAGES GENERATOR
 // ============================================
-export function LegalPagesGenerator({ partner, onBack }) {
+export function LegalPagesGenerator({ partner, onBack, isAdmin }) {
+  // Paywall gate: il servizio costa 149€. Mostro il generatore solo se il
+  // partner ha pagato (verifica via /api/legal-pages-status). Admin può
+  // bypassare per testing/demo. Loading state minimo per evitare flash.
+  const [paywallChecked, setPaywallChecked] = useState(false);
+  const [paid, setPaid] = useState(false);
+  const [adminBypass, setAdminBypass] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    const checkPaid = async () => {
+      try {
+        const res = await fetch(`${API}/api/legal-pages-status/${partner?.id || "demo"}`);
+        if (!alive) return;
+        if (res.ok) {
+          const data = await res.json();
+          setPaid(!!data.paid);
+        }
+      } catch (e) {
+        // Errore di rete = considero non paid (paywall on)
+      } finally {
+        if (alive) setPaywallChecked(true);
+      }
+    };
+    checkPaid();
+    return () => { alive = false; };
+  }, [partner?.id]);
+
+  if (!paywallChecked) {
+    return (
+      <div className="min-h-full flex items-center justify-center" style={{ background: "#FAFAF7" }}>
+        <Loader2 className="w-6 h-6 animate-spin" style={{ color: "#FFD24D" }} />
+      </div>
+    );
+  }
+
+  if (!paid && !adminBypass) {
+    return (
+      <LegalPagesPaywall
+        partner={partner}
+        onBack={onBack}
+        isAdmin={isAdmin}
+        onAdminBypass={() => setAdminBypass(true)}
+      />
+    );
+  }
+
+  // Da qui in poi: il generatore vero e proprio (codice esistente)
+  return <LegalPagesGeneratorInner partner={partner} onBack={onBack} />;
+}
+
+function LegalPagesGeneratorInner({ partner, onBack }) {
   const [step, setStep] = useState(1);
   const [businessData, setBusinessData] = useState({
     business_name: partner?.name ? `${partner.name} - Corsi Online` : '',
