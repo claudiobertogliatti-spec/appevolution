@@ -15153,6 +15153,86 @@ class BrandingPaymentRequest(BaseModel):
     color_preferences: str = ""
     price: int = 297
 
+
+class LegalPagesPaymentRequest(BaseModel):
+    service_type: str = "legal_pages_pack"
+    partner_id: str
+    partner_name: str
+    partner_email: str = ""
+    origin_url: str
+    price: int = 149
+
+
+@api_router.get("/legal-pages-status/{partner_id}")
+async def get_legal_pages_payment_status(partner_id: str):
+    """Verifica se il partner ha già acquistato il servizio "Generazione Pagine Legali" (149€).
+
+    Ritorna `paid: true` se esiste una transazione `legal_pages_pack` con
+    `status` o `payment_status` = "paid"/"complete"/"completed".
+    """
+    txns = await db.payment_transactions.find(
+        {"partner_id": partner_id, "service_type": "legal_pages_pack"},
+        {"_id": 0, "status": 1, "payment_status": 1, "amount": 1, "created_at": 1, "session_id": 1}
+    ).sort("created_at", -1).to_list(20)
+    paid = any(
+        (t.get("status") in ("paid", "complete", "completed")) or
+        (t.get("payment_status") in ("paid", "complete", "completed"))
+        for t in txns
+    )
+    return {"partner_id": partner_id, "paid": paid, "transactions": txns}
+
+
+@api_router.post("/legal-pages-checkout")
+async def create_legal_pages_checkout(request: Request, data: LegalPagesPaymentRequest):
+    """Stripe checkout per il pack "Generazione automatica pagine legali" (149€).
+    Pattern identico a branding-checkout / avatar-checkout.
+    """
+    stripe_api_key = os.environ.get("STRIPE_API_KEY")
+    if not stripe_api_key:
+        raise HTTPException(status_code=500, detail="Stripe non configurato")
+
+    success_url = f"{data.origin_url}/legal-pages-payment-success?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{data.origin_url}/legal-pages-payment-cancel"
+
+    host_url = str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
+
+    checkout_request = CheckoutSessionRequest(
+        amount=data.price,
+        currency="eur",
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata={
+            "service_type": "legal_pages_pack",
+            "partner_id": data.partner_id,
+            "partner_name": data.partner_name,
+            "partner_email": data.partner_email or "",
+        }
+    )
+
+    try:
+        session = await stripe_checkout.create_checkout_session(checkout_request)
+        transaction = {
+            "id": str(uuid.uuid4()),
+            "session_id": session.session_id,
+            "service_type": "legal_pages_pack",
+            "partner_id": data.partner_id,
+            "partner_name": data.partner_name,
+            "partner_email": data.partner_email,
+            "amount": data.price,
+            "currency": "eur",
+            "status": "pending",
+            "payment_status": "initiated",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.payment_transactions.insert_one(transaction)
+        return {"success": True, "checkout_url": session.url, "session_id": session.session_id}
+    except Exception as e:
+        logging.error(f"Legal pages checkout error: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore creazione checkout: {str(e)}")
+
 @api_router.post("/branding-checkout")
 async def create_branding_checkout(request: Request, data: BrandingPaymentRequest):
     """Create Stripe checkout session for branding pack"""
