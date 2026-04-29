@@ -1368,6 +1368,91 @@ async def submit_masterclass_video_link(req: VideoLinkRequest, background_tasks:
     return {"success": True, "message": "Video in elaborazione. Ti notificheremo quando è pronto."}
 
 
+class SetLessonYoutubeUrlRequest(BaseModel):
+    partner_id: str
+    lesson_id: str
+    youtube_url: str
+    youtube_id: Optional[str] = None
+
+
+@router.post("/videocorso/set-lesson-youtube-url")
+async def set_lesson_youtube_url(req: SetLessonYoutubeUrlRequest):
+    """Admin imposta manualmente l'URL YouTube di una lezione del videocorso
+    (bypass pipeline, usato dopo editing manuale del video).
+    Aggiunge il video alla playlist partner e imposta status=ready_for_review.
+    """
+    import asyncio
+    partner = await get_partner_or_404(req.partner_id)
+
+    yt_id = req.youtube_id
+    if not yt_id and "v=" in req.youtube_url:
+        yt_id = req.youtube_url.split("v=")[-1].split("&")[0]
+    elif not yt_id and "youtu.be/" in req.youtube_url:
+        yt_id = req.youtube_url.split("youtu.be/")[-1].split("?")[0]
+
+    embed_url = f"https://www.youtube.com/embed/{yt_id}" if yt_id else ""
+    systeme_embed = f'<iframe src="{embed_url}" width="560" height="315" frameborder="0" allowfullscreen></iframe>' if yt_id else ""
+    now = datetime.now(timezone.utc).isoformat()
+
+    # Aggiungi alla playlist YouTube partner (crea se non esiste)
+    playlist_id = partner.get("youtube_playlist_id")
+    playlist_url = partner.get("youtube_playlist_url")
+    playlist_note = ""
+    if yt_id:
+        try:
+            from video_pipeline_task import create_youtube_playlist_sync, add_to_youtube_playlist_sync
+            loop = asyncio.get_event_loop()
+            if not playlist_id:
+                playlist_id = await loop.run_in_executor(
+                    None, create_youtube_playlist_sync, partner.get("name", req.partner_id)
+                )
+                if playlist_id:
+                    playlist_url = f"https://www.youtube.com/playlist?list={playlist_id}"
+                    await db.partners.update_one(
+                        {"id": req.partner_id},
+                        {"$set": {"youtube_playlist_id": playlist_id, "youtube_playlist_url": playlist_url}}
+                    )
+                    playlist_note = f"\n📋 Playlist creata: {playlist_url}"
+            if playlist_id:
+                ok = await loop.run_in_executor(None, add_to_youtube_playlist_sync, yt_id, playlist_id)
+                if ok and not playlist_note:
+                    playlist_note = "\n📋 Aggiunto a playlist partner"
+        except Exception as e:
+            logging.warning(f"[VIDEOCORSO] Playlist error (non bloccante): {e}")
+
+    # Aggiorna la singola lezione
+    lk = f"lessons.{req.lesson_id}"
+    await db.partner_videocorso.update_one(
+        {"partner_id": req.partner_id},
+        {"$set": {
+            f"{lk}.video_youtube_url": req.youtube_url,
+            f"{lk}.video_youtube_id": yt_id,
+            f"{lk}.video_embed_url": embed_url,
+            f"{lk}.video_systeme_embed": systeme_embed,
+            f"{lk}.pipeline_status": "ready_for_review",
+            f"{lk}.status": "ready_for_review",
+            f"{lk}.video_approved": False,
+            f"{lk}.pipeline_completed_at": now,
+            "updated_at": now,
+        }},
+        upsert=True
+    )
+
+    await notify_telegram(
+        f"📺 <b>YouTube URL lezione videocorso impostato manualmente</b>\n"
+        f"👤 {partner.get('name', req.partner_id)} — Lezione {req.lesson_id}\n"
+        f"🔗 {req.youtube_url}{playlist_note}"
+    )
+
+    return {
+        "success": True,
+        "message": "URL YouTube lezione impostato — pronto per approvazione",
+        "lesson_id": req.lesson_id,
+        "youtube_id": yt_id,
+        "playlist_id": playlist_id,
+    }
+
+
 @router.post("/videocorso/submit-video-link")
 async def submit_videocorso_video_link(req: VideoLinkRequest, background_tasks: BackgroundTasks):
     """Partner invia link Drive/WeTransfer per una lezione del videocorso"""
