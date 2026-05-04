@@ -252,26 +252,24 @@ def get_video_duration(video_path: str) -> float:
 
 def ffmpeg_clean(input_path: str, output_path: str) -> dict:
     """
-    Silence removal + loudnorm EBU R128.
+    Loudnorm EBU R128 only.
     Ritorna stats: duration_before, duration_after.
+
+    [Fix 2026-05-04] Rimosso il pre-pass `silenceremove` (audio-only filter)
+    che con `-c:v copy` accorciava SOLO l'audio lasciando il video alla durata
+    originale → drift cumulativo audio/video. Su contenuti con pause lunghe
+    (es. mindfulness/meditazione) la deriva era percepibile e fastidiosa.
+
+    Rationale: cut_filler_segments downstream taglia comunque ums/uhs e
+    pause-tra-parole rilevate da AssemblyAI usando trim+atrim+concat (frame
+    accurate, A/V synced). Le pause lunghe intenzionali ora sono preservate
+    — soluzione corretta per contenuti pedagogici. Loudnorm con `-c:v copy`
+    è OK perché loudnorm NON modifica la durata audio.
     """
     duration_before = get_video_duration(input_path)
-    tmp_silence = output_path.replace(".mp4", "_s.mp4")
+    source = input_path
 
-    # Passo 1: rimuovi silenzi > 0.5s
-    cmd_s = [
-        "ffmpeg", "-y", "-i", input_path,
-        "-af", "silenceremove=stop_periods=-1:stop_duration=0.5:stop_threshold=-45dB",
-        "-c:v", "copy", tmp_silence
-    ]
-    try:
-        r = subprocess.run(cmd_s, capture_output=True, text=True, timeout=180)
-    except subprocess.TimeoutExpired:
-        logger.warning("[VIDEO-PIPE] silenceremove timeout (3min) — uso file originale")
-        r = type("obj",(object,),{"returncode":1})()
-    source = tmp_silence if r.returncode == 0 and Path(tmp_silence).exists() else input_path
-
-    # Passo 2: loudnorm EBU R128 — analisi
+    # Loudnorm EBU R128 — analisi
     cmd_a = [
         "ffmpeg", "-y", "-i", source,
         "-af", "loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json",
@@ -294,7 +292,7 @@ def ffmpeg_clean(input_path: str, output_path: str) -> dict:
     except Exception:
         pass
 
-    # Passo 3: loudnorm — applica
+    # Loudnorm — applica
     if stats:
         af = (
             f"loudnorm=I=-16:TP=-1.5:LRA=11"
@@ -321,13 +319,6 @@ def ffmpeg_clean(input_path: str, output_path: str) -> dict:
 
     if rn.returncode != 0:
         shutil.copy(source, output_path)
-
-    # Cleanup tmp
-    try:
-        if Path(tmp_silence).exists():
-            Path(tmp_silence).unlink()
-    except Exception:
-        pass
 
     duration_after = get_video_duration(output_path)
     return {"duration_before": duration_before, "duration_after": duration_after}
