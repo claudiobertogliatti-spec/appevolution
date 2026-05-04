@@ -346,7 +346,7 @@ credentials.json
 *.key
 .credentials
 frontend/node_modules/.cache/default-development/68.pack
--e 
+-e
 # Environment and credential files
 .env
 .env.*
@@ -356,7 +356,7 @@ credentials.json
 *.key
 .credentials
 frontend/node_modules/.cache/default-development/79.pack
--e 
+-e
 # Environment and credential files
 .env
 .env.*
@@ -365,3 +365,9 @@ credentials.json
 *.pem
 *.key
 .credentials
+
+# Cloud Run / GCP exported config dumps (contain plaintext secrets — NEVER commit)
+worker-config-backup*.yaml
+worker-config*.yaml
+*-config-backup.yaml
+gcloud-export-*.yaml
