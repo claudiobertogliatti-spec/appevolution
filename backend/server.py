@@ -116,7 +116,10 @@ ALLOWED_ORIGINS = [
     "https://www.app.evolution-pro.it",
     "https://evolution-pro.it",
     "https://www.evolution-pro.it",
+    "https://ciak.io",
+    "https://www.ciak.io",
     "http://localhost:3000",
+    "http://localhost:5173",
     "http://localhost:8001",
 ]
 
@@ -16489,6 +16492,11 @@ app.include_router(internal_partner_router)
 from routers.admin_stefania import router as admin_stefania_router, set_db as set_admin_stefania_db
 set_admin_stefania_db(db)
 app.include_router(admin_stefania_router)
+
+# Ciak Diagnostic Router (8 domande → scoring → Matteo → report con CTA differenziata per stato)
+from routers.diagnostic import router as diagnostic_router, set_db as set_diagnostic_db
+set_diagnostic_db(db)
+app.include_router(diagnostic_router)
 
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler
