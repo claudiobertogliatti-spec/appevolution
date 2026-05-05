@@ -16498,6 +16498,16 @@ from routers.diagnostic import router as diagnostic_router, set_db as set_diagno
 set_diagnostic_db(db)
 app.include_router(diagnostic_router)
 
+# Ciak Checkout Router (Stripe checkout 67€ + webhook checkout.session.completed)
+from routers.checkout import router as ciak_checkout_router, set_db as set_ciak_checkout_db
+set_ciak_checkout_db(db)
+app.include_router(ciak_checkout_router)
+
+# Ciak Booking Router (Cal.com webhook BOOKING_CREATED / MEETING_ENDED)
+from routers.booking import router as ciak_booking_router, set_db as set_ciak_booking_db
+set_ciak_booking_db(db)
+app.include_router(ciak_booking_router)
+
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler
 
