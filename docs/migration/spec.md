@@ -206,14 +206,15 @@ LIV 4 — CHIUSURA
 
 ## 9) Open questions / decisioni rimaste
 
-| # | Open question | Quando va risolta |
-|---|---|---|
-| OQ1 | Branding visivo Ciak (logo, palette, font) | Entro T-22 (15/5) |
-| OQ2 | Stripe price unico vs separati | Entro T-15 (22/5) — al setup checkout |
-| OQ3 | DNS `api.ciak.io` (mapping Cloud Run) o subpath `ciak.io/api/*` (Vercel rewrite) | Entro T-22 (15/5) — al deploy backend |
-| OQ4 | Email provider (SendGrid vs Brevo) | Entro T-22 (15/5) — al setup automation |
-| OQ5 | Cal.com tipo evento (60' vs 90' Analisi) | Entro T-15 (22/5) |
-| OQ6 | Masterclass: registrazione live one-shot o studio multi-take | Entro T-22 (15/5) — block calendar 1 giornata registrazione |
+| # | Open question | Quando va risolta | Stato |
+|---|---|---|---|
+| ~~OQ1~~ | ~~Branding visivo Ciak (logo, palette, font)~~ | ~~Entro T-22 (15/5)~~ | ✅ **RISOLTA 2026-05-09** — vedi `docs/brand/ciak-brand-kit.md` (palette `#0F172A` / `#64748B` / `#E5E7EB` / `#FACC15`, Poppins SemiBold/Medium, logo + 4 varianti) |
+| OQ2 | Stripe price unico vs separati | Entro T-15 (22/5) — al setup checkout | aperta |
+| OQ3 | DNS `api.ciak.io` (mapping Cloud Run) o subpath `ciak.io/api/*` (Vercel rewrite) | Entro T-22 (15/5) — al deploy backend | aperta |
+| OQ4 | Email provider (SendGrid vs Brevo) | Entro T-22 (15/5) — al setup automation | aperta |
+| OQ5 | Cal.com tipo evento (60' vs 90' Analisi) | Entro T-15 (22/5) | aperta |
+| OQ6 | Masterclass: registrazione live one-shot o studio multi-take | Entro T-22 (15/5) — block calendar 1 giornata registrazione | aperta |
+| ~~OQ7~~ | ~~Asset originali brand (SVG/PNG) salvati in `docs/brand/assets/`~~ | ~~Entro T-25 (12/5)~~ | ✅ **RISOLTA 2026-05-10** — `ciak-logo-full.webp` + `ciak-icon.webp` in `docs/brand/assets/raster/` |
 
 ---
 

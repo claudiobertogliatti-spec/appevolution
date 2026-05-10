@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-label="Ciak Si Cambia Open Graph image">
+  <title>Ciak Si Cambia — OG image 1200x630</title>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#FFFFFF"/>
+
+  <!-- Subtle accent bar in alto -->
+  <rect x="0" y="0" width="1200" height="6" fill="#FACC15"/>
+
+  <!-- ICONA "C" grande, posizione centro-sinistra -->
+  <g transform="translate(120,170) scale(2.8)">
+    <g fill="none" stroke-width="9" stroke-linecap="round">
+      <path stroke="#FACC15" d="M 67.5 19.69 A 35 35 0 0 1 50 15"/>
+      <path stroke="#64748B" d="M 50 15 A 35 35 0 0 1 32.5 19.69"/>
+      <path stroke="#64748B" d="M 32.5 19.69 A 35 35 0 0 1 19.69 32.5"/>
+      <path stroke="#64748B" d="M 19.69 32.5 A 35 35 0 0 1 15 50"/>
+      <path stroke="#0F172A" d="M 15 50 A 35 35 0 0 1 23.19 72.5"/>
+      <path stroke="#0F172A" d="M 23.19 72.5 A 35 35 0 0 1 43.92 84.47"/>
+      <path stroke="#0F172A" d="M 43.92 84.47 A 35 35 0 0 1 67.5 80.31"/>
+    </g>
+    <rect x="14" y="13" width="3" height="3" fill="#0F172A"/>
+    <rect x="20" y="8" width="4" height="4" fill="#64748B"/>
+    <rect x="9" y="20" width="3" height="3" fill="#64748B"/>
+    <rect x="26" y="14" width="3" height="3" fill="#0F172A"/>
+    <rect x="6" y="11" width="2.5" height="2.5" fill="#64748B"/>
+  </g>
+
+  <!-- TESTO "iak" -->
+  <text x="450" y="370" font-family="Poppins, system-ui, sans-serif" font-weight="600" font-size="200" fill="#0F172A" letter-spacing="-4">iak</text>
+
+  <!-- "SI CAMBIA" -->
+  <line x1="500" y1="430" x2="540" y2="430" stroke="#FACC15" stroke-width="3"/>
+  <text x="555" y="438" font-family="Poppins, system-ui, sans-serif" font-weight="500" font-size="32" letter-spacing="8" fill="#0F172A">SI CAMBIA</text>
+  <line x1="780" y1="430" x2="820" y2="430" stroke="#FACC15" stroke-width="3"/>
+
+  <!-- Tagline sotto -->
+  <text x="120" y="520" font-family="Poppins, system-ui, sans-serif" font-weight="500" font-size="28" fill="#64748B">
+    Strumento diagnostico per consulenti e coach
+  </text>
+  <text x="120" y="555" font-family="Poppins, system-ui, sans-serif" font-weight="400" font-size="22" fill="#64748B">
+    8 domande, meno di 10 minuti, gratis. Non un altro corso.
+  </text>
+
+  <!-- URL footer -->
+  <text x="120" y="600" font-family="Poppins, system-ui, sans-serif" font-weight="600" font-size="22" fill="#0F172A" letter-spacing="1">
+    ciak.io
+  </text>
+</svg>
