@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Ciak Brand Kit — Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Poppins', system-ui, sans-serif; max-width: 1200px; margin: 0 auto; padding: 40px 20px; background: #f9fafb; color: #0F172A; line-height: 1.4; }
+    h1 { font-weight: 600; font-size: 32px; margin: 0 0 8px; }
+    .subtitle { color: #64748B; margin-bottom: 32px; font-size: 15px; }
+    h2 { font-weight: 600; font-size: 20px; margin-top: 48px; padding-bottom: 10px; border-bottom: 2px solid #E5E7EB; }
+    .card { background: white; border: 1px solid #E5E7EB; border-radius: 12px; padding: 32px; margin: 16px 0; display: flex; align-items: center; gap: 24px; min-height: 140px; }
+    .card.dark { background: #0F172A; }
+    .card.yellow { background: #FACC15; }
+    .card .label { flex: 0 0 220px; font-weight: 500; font-size: 13px; color: #64748B; }
+    .card.dark .label { color: #94A3B8; }
+    .card.yellow .label { color: #0F172A; }
+    .card .preview { flex: 1; display: flex; align-items: center; justify-content: center; }
+    .preview img { max-width: 100%; height: auto; }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .grid .card { flex-direction: column; align-items: center; min-height: 200px; }
+    .grid .label { flex: none; margin-bottom: 12px; text-align: center; }
+    .palette { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 16px; }
+    .swatch { border-radius: 12px; padding: 32px 16px; text-align: center; min-height: 120px; }
+    .swatch .hex { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
+    .swatch .name { font-size: 12px; opacity: 0.85; }
+    .swatch .tw { font-size: 11px; opacity: 0.7; margin-top: 2px; }
+    .note { background: #FEF9C3; border-left: 4px solid #FACC15; padding: 16px 20px; margin: 24px 0; font-size: 14px; border-radius: 0 8px 8px 0; }
+    .feedback { background: #0F172A; color: white; padding: 24px; border-radius: 12px; margin-top: 48px; }
+    .feedback h3 { margin: 0 0 12px; font-weight: 600; }
+    .feedback ul { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.6; opacity: 0.9; }
+  </style>
+</head>
+<body>
+  <h1>Ciak Si Cambia — Brand Preview</h1>
+  <p class="subtitle">Anteprima dei 10 SVG ricostruiti. Generato 2026-05-10. Path: <code>docs/brand/assets/svg/</code></p>
+
+  <div class="note">
+    <strong>Nota:</strong> questi SVG sono ricostruzioni interpretative del brand kit grafico fornito, non l'export originale del designer. Verifica fedeltà al riferimento e segnalami refinement necessari (segmenti, pixel, kerning).
+  </div>
+
+  <h2>1. Logo orizzontale — uso primario web</h2>
+  <div class="card">
+    <div class="label">ciak-logo-horizontal.svg</div>
+    <div class="preview"><img src="svg/ciak-logo-horizontal.svg" alt=""></div>
+  </div>
+
+  <h2>2. Varianti logo</h2>
+  <div class="card">
+    <div class="label">ciak-logo-compact.svg<br><span style="font-size:11px">280×110</span></div>
+    <div class="preview"><img src="svg/ciak-logo-compact.svg" alt=""></div>
+  </div>
+  <div class="card">
+    <div class="label">ciak-logo-full.svg<br><span style="font-size:11px">800×360 — pannello hero</span></div>
+    <div class="preview"><img src="svg/ciak-logo-full.svg" alt="" style="max-width:600px"></div>
+  </div>
+
+  <h2>3. Icona standalone su 4 sfondi diversi</h2>
+  <div class="grid">
+    <div class="card">
+      <div class="label">ciak-icon.svg<br>su sfondo bianco</div>
+      <div class="preview"><img src="svg/ciak-icon.svg" alt="" width="180"></div>
+    </div>
+    <div class="card dark">
+      <div class="label">ciak-icon-on-dark.svg<br>sfondo blu profondo #0F172A</div>
+      <div class="preview"><img src="svg/ciak-icon-on-dark.svg" alt="" width="180"></div>
+    </div>
+    <div class="card yellow">
+      <div class="label">ciak-icon-on-yellow.svg<br>sfondo giallo #FACC15</div>
+      <div class="preview"><img src="svg/ciak-icon-on-yellow.svg" alt="" width="180"></div>
+    </div>
+    <div class="card">
+      <div class="label">ciak-icon-mono-dark.svg<br>monocromatico (overlay foto)</div>
+      <div class="preview"><img src="svg/ciak-icon-mono-dark.svg" alt="" width="180"></div>
+    </div>
+  </div>
+
+  <h2>4. Favicon — versione semplificata per dimensioni piccole</h2>
+  <div class="card">
+    <div class="label">favicon.svg<br>renderizzato a 16, 32, 48, 64 px</div>
+    <div class="preview" style="gap:40px; align-items:center">
+      <div style="text-align:center"><img src="svg/favicon.svg" width="16" height="16" alt=""><div style="font-size:11px;color:#64748B;margin-top:6px">16</div></div>
+      <div style="text-align:center"><img src="svg/favicon.svg" width="32" height="32" alt=""><div style="font-size:11px;color:#64748B;margin-top:6px">32</div></div>
+      <div style="text-align:center"><img src="svg/favicon.svg" width="48" height="48" alt=""><div style="font-size:11px;color:#64748B;margin-top:6px">48</div></div>
+      <div style="text-align:center"><img src="svg/favicon.svg" width="64" height="64" alt=""><div style="font-size:11px;color:#64748B;margin-top:6px">64</div></div>
+      <div style="text-align:center"><img src="svg/favicon.svg" width="128" height="128" alt=""><div style="font-size:11px;color:#64748B;margin-top:6px">128</div></div>
+    </div>
+  </div>
+
+  <h2>5. Open Graph image — social preview 1200×630</h2>
+  <div class="card">
+    <div class="label">og-image.svg<br>per condivisioni FB/LinkedIn/X/WhatsApp</div>
+    <div class="preview"><img src="svg/og-image.svg" alt="" style="max-width: 700px; border:1px solid #E5E7EB"></div>
+  </div>
+
+  <h2>6. Palette colori</h2>
+  <div class="palette">
+    <div class="swatch" style="background:#0F172A; color:white">
+      <div class="hex">#0F172A</div>
+      <div class="name">Blu profondo</div>
+      <div class="tw">slate-900</div>
+    </div>
+    <div class="swatch" style="background:#64748B; color:white">
+      <div class="hex">#64748B</div>
+      <div class="name">Grigio medio</div>
+      <div class="tw">slate-500</div>
+    </div>
+    <div class="swatch" style="background:#E5E7EB; color:#0F172A; border:1px solid #cbd5e1">
+      <div class="hex">#E5E7EB</div>
+      <div class="name">Grigio chiaro</div>
+      <div class="tw">gray-200</div>
+    </div>
+    <div class="swatch" style="background:#FACC15; color:#0F172A">
+      <div class="hex">#FACC15</div>
+      <div class="name">Giallo accento</div>
+      <div class="tw">yellow-400</div>
+    </div>
+  </div>
+
+  <h2>7. Tipografia — Poppins</h2>
+  <div class="card">
+    <div class="label">Poppins SemiBold (600)<br>titoli, headline</div>
+    <div class="preview" style="justify-content:flex-start">
+      <span style="font-weight:600; font-size:42px">Aiuto consulenti e coach</span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="label">Poppins Medium (500)<br>sottotitoli</div>
+    <div class="preview" style="justify-content:flex-start">
+      <span style="font-weight:500; font-size:18px; letter-spacing:3px">— SI CAMBIA —</span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="label">Poppins Regular (400)<br>body</div>
+    <div class="preview" style="justify-content:flex-start">
+      <span style="font-weight:400; font-size:16px">Strumento diagnostico in 8 domande, meno di 10 minuti, gratis. Non un altro corso.</span>
+    </div>
+  </div>
+
+  <div class="feedback">
+    <h3>📝 Feedback richiesto</h3>
+    <ul>
+      <li>Le proporzioni del cerchio "C" sono coerenti con il riferimento?</li>
+      <li>I colori dei segmenti (giallo top-right + grigi top-left + blu bottom) sono nell'ordine giusto?</li>
+      <li>Il numero e la posizione dei pixel decorativi vanno bene?</li>
+      <li>Il kerning di "iak" e lo spacing di "SI CAMBIA" sono ok?</li>
+      <li>Le linee gialle ai lati di "SI CAMBIA" sono della giusta lunghezza?</li>
+      <li>Su sfondo scuro / giallo l'icona regge il contrasto?</li>
+      <li>Il favicon a 16×16 è ancora leggibile?</li>
+    </ul>
+  </div>
+</body>
+</html>
