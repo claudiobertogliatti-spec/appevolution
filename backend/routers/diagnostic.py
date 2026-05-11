@@ -29,6 +29,8 @@ from uuid import uuid4
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field
 
+import asyncio
+
 from services.ciak_matteo import MatteoServiceError, generate_report
 from services.ciak_scoring import calculate_scoring
 from services.ciak_state_machine import (
@@ -36,6 +38,7 @@ from services.ciak_state_machine import (
     STATE_LEAD_CREATED, STATE_REPORT_GENERATED,
     add_event, has_event, transition_to,
 )
+from services.ciak_systeme import ciak_emit_event
 
 logger = logging.getLogger(__name__)
 
@@ -209,6 +212,15 @@ async def start_diagnostic(payload: StartRequest):
 
     await db.diagnostic_sessions.insert_one(session)
 
+    # Fire-and-forget: emit tag Systeme.io (find_or_create contact + tag ciak_started).
+    # No await: la response utente non aspetta Systeme. Errori loggati ma non bloccano.
+    asyncio.create_task(ciak_emit_event(
+        email=payload.email,
+        event_name="ciak_started",
+        first_name=payload.name,
+        metadata={"lead_id": session["lead_id"], "session_token": session["session_token"]},
+    ))
+
     return StartResponse(
         session_token=session["session_token"],
         lead_id=session["lead_id"],
@@ -347,6 +359,28 @@ async def complete_diagnostic(payload: CompleteRequest):
         session,
     )
 
+    # Fire-and-forget Systeme.io tag emission per ciak_completed.
+    # Emette: ciak_completed + stato_<n> + segment_<x> + digital_level_<x> + obiettivo_<x>.
+    # Triggera automaticamente l'email automation configurata su Systeme per quei tag.
+    user_email = session.get("user_email")
+    if user_email:
+        asyncio.create_task(ciak_emit_event(
+            email=user_email,
+            event_name="ciak_completed",
+            extra_tags=[
+                f"stato_{scoring.stato_finale}",
+                report["tags"]["tag_segment"],
+                report["tags"]["tag_digital_level"],
+                report["tags"]["tag_obiettivo"],
+            ],
+            first_name=session.get("user_name"),
+            metadata={
+                "score_numerico": scoring.score_numerico,
+                "stato_finale": scoring.stato_finale,
+                "session_token": payload.session_token,
+            },
+        ))
+
     frontend_base = os.environ.get("FRONTEND_URL_PROD", "https://ciak.io")
     return CompleteResponse(
         report_url=f"{frontend_base}/report/{payload.session_token}",
@@ -416,4 +450,16 @@ async def cta_clicked(payload: CtaClickedRequest):
         {"session_token": payload.session_token},
         session,
     )
+
+    # Fire-and-forget Systeme.io tag emission per ciak_clicked_67.
+    # Segnala alta intent di acquisto: utile per retargeting + email "non ha completato l'acquisto".
+    user_email = session.get("user_email")
+    if user_email:
+        asyncio.create_task(ciak_emit_event(
+            email=user_email,
+            event_name="ciak_clicked_67",
+            first_name=session.get("user_name"),
+            metadata={"session_token": payload.session_token},
+        ))
+
     return None
