@@ -597,6 +597,12 @@
       if (e.target === this) epClosePolicy();
     });
 
-    // Avvio
-    document.addEventListener('DOMContentLoaded', epInit);
+    // Avvio — robusto sia se lo script gira inline (DOM ancora in 'loading')
+    // sia se viene iniettato a posteriori (es. ciak.io monta il widget via
+    // React useEffect, quando DOMContentLoaded è già scattato).
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', epInit);
+    } else {
+      epInit();
+    }
   </script>
