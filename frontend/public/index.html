@@ -8,10 +8,31 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@600&family=Poppins:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <title>Evolution PRO</title>
+    <script>
+      // Set title/favicon/meta dinamici in base all'host (Ciak vs Evolution PRO).
+      // Stesso bundle serve due brand: index.js seleziona App vs CiakApp.
+      (function () {
+        var host = location.hostname.toLowerCase();
+        var force = new URLSearchParams(location.search).get("ciak") === "1";
+        var isCiak = host === "ciak.io" || host === "www.ciak.io" || host.endsWith(".ciak.io") || force;
+        if (isCiak) {
+          document.title = "Ciak — Per consulenti che vogliono vendere online";
+          var link = document.querySelector("link[rel='icon']") || document.createElement("link");
+          link.rel = "icon";
+          link.type = "image/webp";
+          link.href = "/ciak/icon.webp";
+          document.head.appendChild(link);
+          var meta = document.querySelector("meta[name='description']");
+          if (meta) meta.content = "Ciak. Per consulenti e coach pronti a vendere online. Masterclass gratuita 60'.";
+          var theme = document.querySelector("meta[name='theme-color']");
+          if (theme) theme.content = "#0F172A";
+        }
+      })();
+    </script>
   </head>
   <body>
     <noscript>Devi abilitare JavaScript per usare l'app.</noscript>

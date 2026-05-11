@@ -206,4 +206,28 @@ async def calcom_webhook(request: Request):
         diagnostic,
     )
 
+    # Fire-and-forget Systeme.io tag emission per eventi Cal.com.
+    # Triggera email automation: pre-call reminder, post-call thank-you, no-show follow-up.
+    import asyncio as _asyncio
+    from services.ciak_systeme import ciak_emit_event as _ciak_emit_event
+    _user_email = diagnostic.get("user_email") or email
+    _systeme_event_map = {
+        "BOOKING_CREATED":     "ciak_call_booked",
+        "BOOKING_RESCHEDULED": "ciak_call_rescheduled",
+        "BOOKING_CANCELLED":   "ciak_call_cancelled",
+        "MEETING_ENDED":       "ciak_call_done",
+    }
+    _systeme_event = _systeme_event_map.get(trigger_event)
+    if _user_email and _systeme_event:
+        _asyncio.create_task(_ciak_emit_event(
+            email=_user_email,
+            event_name=_systeme_event,
+            first_name=diagnostic.get("user_name"),
+            metadata={
+                "booking_id": booking_id,
+                "trigger_event": trigger_event,
+                "session_token": diagnostic.get("session_token"),
+            },
+        ))
+
     return {"status": "ok", "trigger": trigger_event}
