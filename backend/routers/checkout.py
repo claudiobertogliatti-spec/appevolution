@@ -275,6 +275,23 @@ async def _handle_checkout_completed(data: dict) -> None:
         diagnostic,
     )
 
+    # Fire-and-forget Systeme.io tag emission per ciak_bought_67.
+    # Triggera automation post-acquisto: email conferma + link Cal.com per booking.
+    import asyncio as _asyncio
+    from services.ciak_systeme import ciak_emit_event as _ciak_emit_event
+    _user_email = diagnostic.get("user_email") or customer_email
+    if _user_email:
+        _asyncio.create_task(_ciak_emit_event(
+            email=_user_email,
+            event_name="ciak_bought_67",
+            first_name=diagnostic.get("user_name"),
+            metadata={
+                "stripe_session_id": data.get("id"),
+                "amount_total": data.get("amount_total"),
+                "session_token": diagnostic.get("session_token"),
+            },
+        ))
+
 
 async def _handle_charge_refunded(data: dict) -> None:
     """Refund: aggiunge event ciak_refunded ma NON cambia state corrente."""

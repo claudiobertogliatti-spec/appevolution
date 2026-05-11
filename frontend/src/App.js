@@ -52,6 +52,7 @@ import { AdminSidebarLight, ViewSwitcher } from "./components/admin/AdminSidebar
 import { ScriptBuilder } from "./components/partner/ScriptBuilder";
 import StefaniaChat from "./components/chat/StefaniaChat";
 import { LoginPage } from "./components/auth/LoginPage";
+import { ForcePasswordChange } from "./components/auth/ForcePasswordChange";
 import { WebhookDashboard } from "./components/admin/WebhookDashboard";
 import { FunnelReviewBuilder } from "./components/partner/FunnelReviewBuilder";
 import { FunnelAnalytics } from "./components/partner/FunnelAnalytics";
@@ -775,6 +776,26 @@ export default function App() {
         </>
       );
     }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GATE: Force-change password al primo login
+  // Decisione 2026-04-29 (Claudio): partner+clienti vecchi e nuovi hanno password
+  // condivisa "Evolution2026!" + must_change_password=true. Admin (Claudio +
+  // Antonella) esenti. Il modal blocca l'accesso finché non viene cambiata.
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (
+    isAuthenticated &&
+    currentUser &&
+    currentUser.must_change_password === true &&
+    currentUser.role !== "admin"
+  ) {
+    return (
+      <ForcePasswordChange
+        user={currentUser}
+        onSuccess={(updated) => setCurrentUser(updated)}
+      />
+    );
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
