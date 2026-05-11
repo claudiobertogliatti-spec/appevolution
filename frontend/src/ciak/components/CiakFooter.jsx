@@ -23,9 +23,8 @@ export function CiakFooter({ dark = true }) {
           </p>
         </div>
         <div className="text-sm">
-          <h4 className="font-semibold mb-3 text-white">Percorso</h4>
+          <h4 className="font-semibold mb-3 text-white">Servizi</h4>
           <ul className="space-y-2 opacity-80">
-            <li><Link to="/masterclass" className="hover:text-yellow-400">Masterclass gratuita</Link></li>
             <li><Link to="/analisi" className="hover:text-yellow-400">Analisi Strategica €67</Link></li>
             <li><a href="https://www.evolution-pro.it" className="hover:text-yellow-400">Partnership Evolution PRO</a></li>
           </ul>
