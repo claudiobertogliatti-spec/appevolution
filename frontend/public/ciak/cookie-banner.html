@@ -1,0 +1,602 @@
+<style>
+    /* ---- Overlay ---- */
+    #ep-cookie-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 9998;
+      backdrop-filter: blur(2px);
+    }
+
+    /* ---- Banner principale ---- */
+    #ep-cookie-banner {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border-top: 3px solid #1a1a2e;
+      box-shadow: 0 -4px 32px rgba(0,0,0,0.12);
+      z-index: 9999;
+      padding: 24px 32px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    #ep-cookie-banner .ep-banner-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      flex-wrap: wrap;
+    }
+
+    #ep-cookie-banner .ep-banner-text {
+      flex: 1;
+      min-width: 280px;
+    }
+
+    #ep-cookie-banner .ep-banner-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin: 0 0 6px 0;
+    }
+
+    #ep-cookie-banner .ep-banner-desc {
+      font-size: 13px;
+      color: #6b7280;
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    #ep-cookie-banner .ep-banner-desc a {
+      color: #1a1a2e;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    #ep-cookie-banner .ep-banner-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .ep-btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .ep-btn-accept {
+      background: #1a1a2e;
+      color: #fff;
+    }
+    .ep-btn-accept:hover { background: #2d2d4e; }
+
+    .ep-btn-necessary {
+      background: transparent;
+      color: #6b7280;
+      border: 1px solid #e5e7eb;
+    }
+    .ep-btn-necessary:hover { background: #f9fafb; }
+
+    .ep-btn-settings {
+      background: transparent;
+      color: #1a1a2e;
+      border: 1px solid #1a1a2e;
+    }
+    .ep-btn-settings:hover { background: #f5f5ff; }
+
+    /* ---- Modal preferenze ---- */
+    #ep-cookie-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    #ep-cookie-modal.active { display: flex; }
+
+    #ep-cookie-modal .ep-modal-box {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      width: 100%;
+      max-width: 520px;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 32px;
+    }
+
+    #ep-cookie-modal .ep-modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin: 0 0 8px 0;
+    }
+
+    #ep-cookie-modal .ep-modal-desc {
+      font-size: 13px;
+      color: #6b7280;
+      margin: 0 0 24px 0;
+      line-height: 1.6;
+    }
+
+    .ep-cookie-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 16px 0;
+      border-top: 1px solid #f3f4f6;
+      gap: 16px;
+    }
+
+    .ep-cookie-row-info .ep-row-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a1a2e;
+      margin: 0 0 4px 0;
+    }
+
+    .ep-cookie-row-info .ep-row-desc {
+      font-size: 12px;
+      color: #9ca3af;
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    /* Toggle switch */
+    .ep-toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .ep-toggle input { opacity: 0; width: 0; height: 0; }
+
+    .ep-toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: #e5e7eb;
+      border-radius: 24px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .ep-toggle-slider:before {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 3px;
+      top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .ep-toggle input:checked + .ep-toggle-slider { background: #1a1a2e; }
+    .ep-toggle input:checked + .ep-toggle-slider:before { transform: translateX(20px); }
+    .ep-toggle input:disabled + .ep-toggle-slider { opacity: 0.5; cursor: not-allowed; }
+
+    .ep-modal-footer {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid #f3f4f6;
+    }
+
+    /* ---- Modal policy (aperta dal link nel titolo) ---- */
+    #ep-policy-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 10001;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 24px 16px;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(3px);
+      overflow-y: auto;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    #ep-policy-modal.active { display: flex; }
+
+    #ep-policy-modal .ep-policy-box {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+      width: 100%;
+      max-width: 720px;
+      padding: 40px;
+      position: relative;
+      margin: auto;
+    }
+
+    #ep-policy-modal .ep-policy-close {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: #9ca3af;
+      cursor: pointer;
+      padding: 4px;
+      line-height: 1;
+    }
+    #ep-policy-modal .ep-policy-close:hover { color: #1a1a2e; }
+
+    #ep-policy-modal .ep-policy-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 28px;
+      border-bottom: 1px solid #f3f4f6;
+      padding-bottom: 0;
+    }
+
+    .ep-tab-btn {
+      padding: 10px 16px;
+      border: none;
+      background: none;
+      font-size: 13px;
+      font-weight: 600;
+      color: #9ca3af;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all 0.15s;
+    }
+
+    .ep-tab-btn.active {
+      color: #1a1a2e;
+      border-bottom-color: #1a1a2e;
+    }
+
+    .ep-tab-content { display: none; }
+    .ep-tab-content.active { display: block; }
+
+    .ep-policy-content h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin: 0 0 6px 0;
+    }
+
+    .ep-policy-content .ep-policy-date {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-bottom: 24px;
+      display: block;
+    }
+
+    .ep-policy-content h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin: 24px 0 8px 0;
+      padding-top: 16px;
+      border-top: 1px solid #f3f4f6;
+    }
+
+    .ep-policy-content p {
+      font-size: 13px;
+      color: #4b5563;
+      line-height: 1.7;
+      margin: 0 0 12px 0;
+    }
+
+    .ep-policy-content ul {
+      margin: 0 0 12px 0;
+      padding-left: 20px;
+    }
+
+    .ep-policy-content ul li {
+      font-size: 13px;
+      color: #4b5563;
+      line-height: 1.7;
+      margin-bottom: 4px;
+    }
+
+    .ep-policy-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin: 12px 0;
+    }
+
+    .ep-policy-table th {
+      background: #f9fafb;
+      padding: 8px 10px;
+      text-align: left;
+      font-weight: 600;
+      color: #374151;
+      border: 1px solid #e5e7eb;
+    }
+
+    .ep-policy-table td {
+      padding: 8px 10px;
+      border: 1px solid #e5e7eb;
+      color: #4b5563;
+      vertical-align: top;
+    }
+
+    /* Floating button per riaprire preferenze */
+    #ep-cookie-fab {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: #1a1a2e;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      z-index: 9990;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+      transition: all 0.15s;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    #ep-cookie-fab:hover { background: #2d2d4e; transform: translateY(-1px); }
+  </style>
+
+  <!-- OVERLAY -->
+  <div id="ep-cookie-overlay"></div>
+
+  <!-- BANNER PRINCIPALE -->
+  <div id="ep-cookie-banner">
+    <div class="ep-banner-inner">
+      <div class="ep-banner-text">
+        <p class="ep-banner-title">🍪 Questo sito utilizza i cookie</p>
+        <p class="ep-banner-desc">
+          Usiamo cookie tecnici (necessari al funzionamento) e cookie analitici anonimi (PostHog) per migliorare l'esperienza.
+          Consulta la nostra <a onclick="epOpenPolicy('cookie')">Cookie Policy</a> e l'<a onclick="epOpenPolicy('privacy')">Informativa Privacy</a>.
+        </p>
+      </div>
+      <div class="ep-banner-actions">
+        <button class="ep-btn ep-btn-necessary" onclick="epSaveConsent(false)">Solo necessari</button>
+        <button class="ep-btn ep-btn-settings" onclick="epOpenSettings()">Preferenze</button>
+        <button class="ep-btn ep-btn-accept" onclick="epSaveConsent(true)">Accetta tutti</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL PREFERENZE -->
+  <div id="ep-cookie-modal">
+    <div class="ep-modal-box">
+      <p class="ep-modal-title">Gestisci preferenze cookie</p>
+      <p class="ep-modal-desc">Scegli quali cookie accettare. I cookie tecnici sono sempre attivi perché necessari al funzionamento del sito.</p>
+
+      <div class="ep-cookie-row">
+        <div class="ep-cookie-row-info">
+          <p class="ep-row-title">Cookie tecnici</p>
+          <p class="ep-row-desc">Necessari al funzionamento del sito. Non possono essere disattivati.</p>
+        </div>
+        <label class="ep-toggle">
+          <input type="checkbox" checked disabled>
+          <span class="ep-toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="ep-cookie-row">
+        <div class="ep-cookie-row-info">
+          <p class="ep-row-title">Cookie analitici</p>
+          <p class="ep-row-desc">PostHog — analisi anonima del comportamento utente per migliorare il sito.</p>
+        </div>
+        <label class="ep-toggle">
+          <input type="checkbox" id="ep-toggle-analytics">
+          <span class="ep-toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="ep-modal-footer">
+        <button class="ep-btn ep-btn-necessary" onclick="epCloseSettings()">Annulla</button>
+        <button class="ep-btn ep-btn-accept" onclick="epSaveFromSettings()">Salva preferenze</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL POLICY (aperta dal link nel titolo/footer) -->
+  <div id="ep-policy-modal">
+    <div class="ep-policy-box">
+      <button class="ep-policy-close" onclick="epClosePolicy()">×</button>
+
+      <div class="ep-policy-tabs">
+        <button class="ep-tab-btn active" onclick="epSwitchTab('cookie')">Cookie Policy</button>
+        <button class="ep-tab-btn" onclick="epSwitchTab('privacy')">Privacy Policy</button>
+        <button class="ep-tab-btn" onclick="epSwitchTab('vendita')">Condizioni di Vendita</button>
+      </div>
+
+      <!-- TAB: Cookie Policy -->
+      <div id="ep-tab-cookie" class="ep-tab-content ep-policy-content active">
+        <h2>Cookie Policy</h2>
+        <span class="ep-policy-date">Ultimo aggiornamento: 26 marzo 2026</span>
+
+        <h3>Titolare del trattamento</h3>
+        <p>Evolution PRO LLC — 8 The Green, Ste A, Dover, DE 19901, USA<br>Email: assistenza@evolution-pro.it</p>
+
+        <h3>Cookie tecnici (sempre attivi)</h3>
+        <table class="ep-policy-table">
+          <tr><th>Cookie</th><th>Finalità</th><th>Durata</th></tr>
+          <tr><td>cf_clearance</td><td>Cloudflare — sicurezza</td><td>Sessione</td></tr>
+          <tr><td>__cf_bm</td><td>Cloudflare — traffico</td><td>30 min</td></tr>
+          <tr><td>session_token</td><td>Autenticazione</td><td>24 ore</td></tr>
+        </table>
+
+        <h3>Cookie analitici (richiedono consenso)</h3>
+        <table class="ep-policy-table">
+          <tr><th>Cookie</th><th>Fornitore</th><th>Finalità</th><th>Durata</th></tr>
+          <tr><td>ph_*</td><td>PostHog</td><td>Analisi anonima utenti</td><td>1 anno</td></tr>
+        </table>
+
+        <h3>Come gestire i cookie</h3>
+        <p>Puoi modificare le tue preferenze in qualsiasi momento cliccando su "Gestisci preferenze cookie" in fondo alla pagina, oppure tramite le impostazioni del tuo browser.</p>
+      </div>
+
+      <!-- TAB: Privacy Policy -->
+      <div id="ep-tab-privacy" class="ep-tab-content ep-policy-content">
+        <h2>Informativa Privacy</h2>
+        <span class="ep-policy-date">Ultimo aggiornamento: 26 marzo 2026 — Reg. UE 2016/679 (GDPR)</span>
+
+        <h3>Titolare del trattamento</h3>
+        <p>Evolution PRO LLC — 8 The Green, Ste A, Dover, DE 19901, USA<br>Email: assistenza@evolution-pro.it</p>
+
+        <h3>Dati raccolti e finalità</h3>
+        <ul>
+          <li><strong>Visitatori sito:</strong> IP, dati navigazione, cookie — sicurezza e analisi</li>
+          <li><strong>Clienti analisi (€67):</strong> nome, email, telefono, questionario, pagamento — erogazione servizio</li>
+          <li><strong>Partner:</strong> dati anagrafici, fiscali, firma digitale, contenuti corso — esecuzione contratto</li>
+          <li><strong>Lista marketing:</strong> nome, email — comunicazioni commerciali (consenso)</li>
+        </ul>
+
+        <h3>Principali fornitori (sub-responsabili)</h3>
+        <table class="ep-policy-table">
+          <tr><th>Fornitore</th><th>Paese</th><th>Finalità</th></tr>
+          <tr><td>Systeme.io</td><td>Francia/UE</td><td>Email marketing, CRM</td></tr>
+          <tr><td>Stripe</td><td>USA</td><td>Pagamenti</td></tr>
+          <tr><td>PostHog</td><td>USA</td><td>Analytics</td></tr>
+          <tr><td>Anthropic</td><td>USA</td><td>Analisi AI</td></tr>
+          <tr><td>Cloudflare</td><td>USA</td><td>CDN e sicurezza</td></tr>
+        </table>
+
+        <h3>I tuoi diritti (artt. 15-22 GDPR)</h3>
+        <p>Accesso, rettifica, cancellazione, limitazione, portabilità, opposizione, revoca consenso. Richieste a: assistenza@evolution-pro.it — risposta entro 30 giorni. Reclami: garante.it</p>
+      </div>
+
+      <!-- TAB: Condizioni di Vendita -->
+      <div id="ep-tab-vendita" class="ep-tab-content ep-policy-content">
+        <h2>Condizioni Generali di Vendita</h2>
+        <span class="ep-policy-date">Ultimo aggiornamento: 26 marzo 2026</span>
+
+        <h3>Venditore</h3>
+        <p>Evolution PRO LLC — 8 The Green, Ste A, Dover, DE 19901, USA<br>EIN: 30-1375330 — Email: assistenza@evolution-pro.it</p>
+
+        <h3>Servizi offerti</h3>
+        <ul>
+          <li><strong>Analisi Consulenziale</strong> — €67 IVA inclusa (prestazione precontrattuale)</li>
+          <li><strong>Partnership Evolution PRO</strong> — €2.790 IVA inclusa (una tantum)</li>
+          <li><strong>Servizi Extra</strong> — su richiesta separata</li>
+        </ul>
+
+        <h3>Diritto di recesso</h3>
+        <p>Ai sensi dell'art. 59 D.Lgs. 206/2005, il diritto di recesso è <strong>escluso</strong> per i servizi con contenuto digitale personalizzato avviati con consenso espresso del cliente prima della
+  scadenza del termine di 14 giorni.</p>
+
+        <h3>Pagamenti accettati</h3>
+        <p>Stripe (carte Visa, Mastercard, Amex), PayPal, Bonifico bancario (IBAN: LT94 3250 0974 4929 5781).</p>
+
+        <h3>Reclami e controversie</h3>
+        <p>assistenza@evolution-pro.it — risposta entro 5 giorni lavorativi.<br>
+        ODR: <a href="https://ec.europa.eu/consumers/odr" target="_blank">ec.europa.eu/consumers/odr</a><br>
+        Foro competente: Torino (Italia).</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLOATING BUTTON (visibile dopo consenso) -->
+  <button id="ep-cookie-fab" onclick="epOpenSettings()">🍪 Gestisci cookie</button>
+
+  <script>
+    const EP_CONSENT_KEY = 'ep_cookie_consent';
+    const EP_CONSENT_VERSION = '1.0';
+
+    function epGetConsent() {
+      try { return JSON.parse(localStorage.getItem(EP_CONSENT_KEY)); } catch { return null; }
+    }
+
+    function epInit() {
+      const consent = epGetConsent();
+      if (!consent || consent.version !== EP_CONSENT_VERSION) {
+        // Mostra banner
+        document.getElementById('ep-cookie-banner').style.display = 'block';
+        document.getElementById('ep-cookie-overlay').style.display = 'block';
+      } else {
+        // Consenso già dato
+        document.getElementById('ep-cookie-fab').style.display = 'block';
+        if (consent.analytics) epEnableAnalytics();
+      }
+    }
+
+    function epSaveConsent(analytics) {
+      const consent = { version: EP_CONSENT_VERSION, analytics, date: new Date().toISOString() };
+      localStorage.setItem(EP_CONSENT_KEY, JSON.stringify(consent));
+      document.getElementById('ep-cookie-banner').style.display = 'none';
+      document.getElementById('ep-cookie-overlay').style.display = 'none';
+      document.getElementById('ep-cookie-modal').classList.remove('active');
+      document.getElementById('ep-cookie-fab').style.display = 'block';
+      if (analytics) epEnableAnalytics();
+    }
+
+    function epEnableAnalytics() {
+      // PostHog opt-in
+      if (typeof posthog !== 'undefined') posthog.opt_in_capturing();
+      // Aggiungi qui altri script analitici da attivare solo con consenso
+    }
+
+    function epOpenSettings() {
+      const consent = epGetConsent();
+      if (consent) document.getElementById('ep-toggle-analytics').checked = consent.analytics;
+      document.getElementById('ep-cookie-modal').classList.add('active');
+    }
+
+    function epCloseSettings() {
+      document.getElementById('ep-cookie-modal').classList.remove('active');
+    }
+
+    function epSaveFromSettings() {
+      const analytics = document.getElementById('ep-toggle-analytics').checked;
+      epSaveConsent(analytics);
+    }
+
+    function epOpenPolicy(tab) {
+      epSwitchTab(tab || 'cookie');
+      document.getElementById('ep-policy-modal').classList.add('active');
+    }
+
+    function epClosePolicy() {
+      document.getElementById('ep-policy-modal').classList.remove('active');
+    }
+
+    function epSwitchTab(tab) {
+      document.querySelectorAll('.ep-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.ep-tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelector(`[onclick="epSwitchTab('${tab}')"]`).classList.add('active');
+      document.getElementById('ep-tab-' + tab).classList.add('active');
+    }
+
+    // Chiudi policy cliccando fuori
+    document.getElementById('ep-policy-modal').addEventListener('click', function(e) {
+      if (e.target === this) epClosePolicy();
+    });
+
+    // Avvio
+    document.addEventListener('DOMContentLoaded', epInit);
+  </script>

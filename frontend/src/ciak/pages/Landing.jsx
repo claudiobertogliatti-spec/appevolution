@@ -57,13 +57,13 @@ export function CiakLanding() {
       <section className="bg-slate-900 text-white">
         <div className="mx-auto max-w-4xl px-6 pt-20 pb-24 text-center">
           <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-4">
-            Per consulenti e coach che vogliono vendere online il proprio sapere
+            Per consulenti e coach che vogliono vendere online le proprie competenze
           </p>
           <h1 className="text-4xl md:text-6xl font-semibold leading-[1.1] mb-6">
             I 5 errori che fanno perdere<br />clienti ai consulenti.
           </h1>
           <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Una masterclass di 60 minuti, gratuita, senza fronzoli e senza tecnicismi.
+            Una masterclass di 60 minuti, gratuita, senza fronzoli o tecnicismi.
             <br />Ti spiega come capire se sei pronto a vendere online il tuo lavoro.
           </p>
 
