@@ -47,6 +47,9 @@ class UserInDB(UserBase):
     phase: Optional[str] = "F1"
     # Admin-specific fields
     admin_type: Optional[str] = None  # claudio, antonella
+    # Force password change al primo login (per default password condivisa "Evolution2026!").
+    # True per tutti partner/clienti creati o resettati con default password. Admin esenti.
+    must_change_password: bool = False
 
 
 class UserResponse(BaseModel):
@@ -59,6 +62,7 @@ class UserResponse(BaseModel):
     partner_id: Optional[str] = None
     phase: Optional[str] = None
     admin_type: Optional[str] = None
+    must_change_password: bool = False
     # Campi per cliente_analisi
     user_type: Optional[str] = None
     nome: Optional[str] = None
@@ -246,6 +250,7 @@ class AuthService:
                 partner_id=user.get("partner_id"),
                 phase=user.get("phase"),
                 admin_type=user.get("admin_type"),
+                must_change_password=bool(user.get("must_change_password", False)),
                 # Campi cliente_analisi — base
                 user_type=user.get("user_type"),
                 nome=user.get("nome"),
