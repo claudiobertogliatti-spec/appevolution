@@ -9514,6 +9514,188 @@ async def admin_reset_password(
         return {"success": True, "updated": result.modified_count, "target": "all"}
 
 
+@api_router.post("/auth/change-password")
+async def change_own_password(
+    body: dict = Body({}),
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Cambio password self-service. Richiede `current_password` + `new_password`.
+    Usato dal modal force-change al primo login per utenti con must_change_password=true,
+    ma utilizzabile sempre anche per cambio password volontario.
+
+    Sblocca `must_change_password=False` dopo il cambio.
+    """
+    try:
+        token_data = decode_token(credentials.credentials)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Token non valido o scaduto")
+
+    user = await db.users.find_one({"id": token_data.user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+
+    current_password = (body.get("current_password") or "").strip()
+    new_password = (body.get("new_password") or "").strip()
+
+    if not current_password or not new_password:
+        raise HTTPException(status_code=400, detail="current_password e new_password obbligatori")
+    if len(new_password) < 8:
+        raise HTTPException(status_code=400, detail="La nuova password deve essere almeno 8 caratteri")
+    if new_password == current_password:
+        raise HTTPException(status_code=400, detail="La nuova password deve essere diversa da quella attuale")
+
+    # Verifica current password (supporta entrambi i field name del codebase legacy)
+    stored_hash = user.get("hashed_password") or user.get("password_hash", "")
+    if not stored_hash or not bcrypt.checkpw(current_password.encode("utf-8"), stored_hash.encode("utf-8")):
+        raise HTTPException(status_code=401, detail="Password attuale errata")
+
+    new_hash = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "password_hash": new_hash,
+            "hashed_password": new_hash,
+            "must_change_password": False,
+            "password_changed_at": datetime.now(timezone.utc).isoformat(),
+        }}
+    )
+    return {"success": True, "message": "Password aggiornata"}
+
+
+@api_router.post("/admin/setup-default-passwords")
+async def admin_setup_default_passwords(
+    body: dict = Body({}),
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Admin: setup credenziali di default per partner+clienti + seed Antonella.
+
+    Decisione 2026-04-29 (Claudio): per facilitare onboarding+migrazione, tutti i
+    partner e clienti (vecchi e nuovi) hanno la stessa password iniziale.
+    Sicurezza garantita dal flag `must_change_password=True` che forza il cambio
+    al primo login.
+
+    Body opzionali:
+      - default_password (str, default "Evolution2026!"): password da settare
+      - dry_run (bool, default False): se True, non scrive, ritorna solo conteggi
+      - include_admins (bool, default False): se True resetta anche admin
+      - antonella_email (str, default antonella.rossi.ar28@gmail.com)
+      - antonella_name (str, default "Antonella Rossi")
+
+    Ritorna conteggi dettagliati per audit.
+    """
+    try:
+        token_data = decode_token(credentials.credentials)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Token non valido o scaduto")
+
+    admin_user = await db.users.find_one({"id": token_data.user_id})
+    if not admin_user or admin_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    default_password = body.get("default_password") or "Evolution2026!"
+    dry_run = bool(body.get("dry_run", False))
+    include_admins = bool(body.get("include_admins", False))
+    antonella_email = (body.get("antonella_email") or "antonella.rossi.ar28@gmail.com").strip().lower()
+    antonella_name = body.get("antonella_name") or "Antonella Rossi"
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    default_hash = bcrypt.hashpw(default_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+    # 1. Seed/update Antonella admin (esclusa da commerciale via admin_type=antonella)
+    antonella_existing = await db.users.find_one({"email": antonella_email})
+    antonella_action = None
+    if antonella_existing:
+        # Aggiorna password + assicura admin_type=antonella + must_change=True
+        if not dry_run:
+            await db.users.update_one(
+                {"email": antonella_email},
+                {"$set": {
+                    "password_hash": default_hash,
+                    "hashed_password": default_hash,
+                    "role": "admin",
+                    "admin_type": "antonella",
+                    "name": antonella_name,
+                    "is_active": True,
+                    "must_change_password": True,
+                    "password_changed_at": None,
+                    "updated_at": now_iso,
+                }}
+            )
+        antonella_action = "updated"
+    else:
+        if not dry_run:
+            antonella_doc = {
+                "id": str(uuid.uuid4()),
+                "evolution_id": "EVO-" + uuid.uuid4().hex[:8].upper(),
+                "email": antonella_email,
+                "name": antonella_name,
+                "role": "admin",
+                "admin_type": "antonella",
+                "hashed_password": default_hash,
+                "password_hash": default_hash,
+                "must_change_password": True,
+                "is_active": True,
+                "created_at": now_iso,
+                "last_login": None,
+            }
+            await db.users.insert_one(antonella_doc)
+        antonella_action = "created"
+
+    # 2. Bulk reset password per partner + clienti
+    target_roles = ["partner", "cliente"]
+    if include_admins:
+        target_roles.append("admin")
+    # Esclude Antonella e Claudio quando include_admins=True? Solo se NON include_admins.
+    # Se include_admins=True, anche loro vengono resettati (raro).
+    user_filter = {"role": {"$in": target_roles}}
+    if not include_admins:
+        # Esclude esplicitamente gli admin esistenti per sicurezza
+        user_filter["role"] = {"$in": ["partner", "cliente"]}
+
+    targets = await db.users.find(user_filter, {"_id": 0, "id": 1, "email": 1, "role": 1}).to_list(10000)
+    bulk_count = 0
+    if not dry_run and targets:
+        result = await db.users.update_many(
+            user_filter,
+            {"$set": {
+                "password_hash": default_hash,
+                "hashed_password": default_hash,
+                "must_change_password": True,
+                "password_changed_at": None,
+                "updated_at": now_iso,
+            }}
+        )
+        bulk_count = result.modified_count
+    elif dry_run:
+        bulk_count = len(targets)
+
+    by_role = {}
+    for t in targets:
+        r = t.get("role", "unknown")
+        by_role[r] = by_role.get(r, 0) + 1
+
+    return {
+        "success": True,
+        "dry_run": dry_run,
+        "default_password_used": default_password if dry_run else "***REDACTED***",
+        "antonella": {
+            "email": antonella_email,
+            "action": antonella_action,
+            "must_change_password": True,
+        },
+        "bulk_reset": {
+            "total_targets": len(targets),
+            "modified": bulk_count,
+            "by_role": by_role,
+        },
+        "note": (
+            "Tutti i target hanno must_change_password=True: al prossimo login il "
+            "frontend deve mostrare il modal force-change password. Admin Claudio "
+            "esente (a meno di include_admins=true)."
+        ),
+    }
+
+
 @api_router.post("/notifications/mark-all-read")
 async def mark_all_notifications_read():
     """Mark all notifications as read"""
