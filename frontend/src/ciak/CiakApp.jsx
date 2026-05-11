@@ -26,11 +26,17 @@ import { CiakAnalisi } from "./pages/Analisi";
 import { CiakDiagnostica } from "./pages/Diagnostica";
 import { CiakReport } from "./pages/Report";
 import { CiakNotFound } from "./pages/NotFound";
+import { CookieBanner } from "./components/CookieBanner";
 
 export default function CiakApp() {
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-white font-[Poppins,system-ui,sans-serif] text-slate-900">
+        {/* Cookie banner + legal modals identici a www.evolution-pro.it.
+            Si auto-monta al primo load: mostra banner se nessun consenso,
+            altrimenti FAB "Gestisci cookie" + funzioni globali epOpenPolicy
+            usate dal footer per Privacy/Cookie/Condizioni di Vendita. */}
+        <CookieBanner />
         <Routes>
           <Route path="/" element={<CiakLanding />} />
           <Route path="/masterclass" element={<CiakMasterclass />} />
