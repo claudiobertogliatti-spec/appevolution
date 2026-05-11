@@ -16493,6 +16493,10 @@ from routers.admin_stefania import router as admin_stefania_router, set_db as se
 set_admin_stefania_db(db)
 app.include_router(admin_stefania_router)
 
+# Ciak Systeme.io tag emission service (init DB per audit log ciak_systeme_events)
+from services.ciak_systeme import set_db as set_ciak_systeme_db
+set_ciak_systeme_db(db)
+
 # Ciak Diagnostic Router (8 domande → scoring → Matteo → report con CTA differenziata per stato)
 from routers.diagnostic import router as diagnostic_router, set_db as set_diagnostic_db
 set_diagnostic_db(db)
