@@ -18,11 +18,23 @@ export function CiakMasterclass() {
 
   useEffect(() => {
     if (unlocked && email) {
-      // best-effort: aggiorna lead state (LIV 2 unlocked)
-      fetch("/api/diagnostic/lead-capture", {
+      // Best-effort: emette ciak_optin_masterclass se l'utente atterra qui senza
+      // passare dalla landing (es. via link diretto). Idempotente lato backend:
+      // se l'email e' gia' in ciak_leads, non ri-emette il tag su Systeme.
+      const qs = new URLSearchParams(window.location.search);
+      fetch("/api/ciak/lead-capture", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, source: "ciak_masterclass_unlock" }),
+        body: JSON.stringify({
+          email,
+          source: "masterclass_gate",
+          utm_source: qs.get("utm_source"),
+          utm_medium: qs.get("utm_medium"),
+          utm_campaign: qs.get("utm_campaign"),
+          utm_term: qs.get("utm_term"),
+          utm_content: qs.get("utm_content"),
+          referrer: document.referrer || null,
+        }),
       }).catch(() => null);
     }
   }, [unlocked, email]);

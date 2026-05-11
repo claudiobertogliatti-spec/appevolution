@@ -9,7 +9,9 @@ export function CiakHeader({ variant = "default" }) {
           <img src="/ciak/logo.webp" alt="Ciak" className="h-16 md:h-20 w-auto" />
         </Link>
         <nav className="hidden md:flex items-center gap-7 text-sm font-medium">
-          <Link to="/masterclass" className={isLight ? "hover:text-yellow-400" : "hover:text-slate-600"}>Masterclass</Link>
+          {/* "Masterclass" rimossa dal nav: ridondante con la CTA hero opt-in che porta
+              alla stessa pagina. /masterclass resta come destinazione post-opt-in
+              (e fallback gate per chi atterra via link diretto). */}
           <Link to="/analisi" className={isLight ? "hover:text-yellow-400" : "hover:text-slate-600"}>Analisi €67</Link>
           <a href="https://www.evolution-pro.it" className={isLight ? "hover:text-yellow-400 opacity-70" : "hover:text-slate-600 opacity-70"}>Evolution PRO</a>
         </nav>

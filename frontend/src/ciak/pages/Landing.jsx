@@ -24,22 +24,23 @@ export function CiakLanding() {
     setSubmitting(true);
     setError(null);
     try {
-      // Salva lead in backend + redirect a masterclass
-      await fetch("/api/diagnostic/lead-capture", {
+      // Salva lead in backend (emette tag Systeme ciak_optin_masterclass) + redirect.
+      // Best-effort: errori di rete non bloccano l'UX, l'email e' gia' in localStorage.
+      const qs = new URLSearchParams(window.location.search);
+      await fetch("/api/ciak/lead-capture", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: email.trim(),
-          source: "ciak_landing",
-          tracking: {
-            utm_source: new URLSearchParams(window.location.search).get("utm_source"),
-            utm_medium: new URLSearchParams(window.location.search).get("utm_medium"),
-            utm_campaign: new URLSearchParams(window.location.search).get("utm_campaign"),
-            referrer: document.referrer || null,
-            landing_page: "/",
-          },
+          source: "landing_hero",
+          utm_source: qs.get("utm_source"),
+          utm_medium: qs.get("utm_medium"),
+          utm_campaign: qs.get("utm_campaign"),
+          utm_term: qs.get("utm_term"),
+          utm_content: qs.get("utm_content"),
+          referrer: document.referrer || null,
         }),
-      }).catch(() => null); // capture best-effort, non blocca UX
+      }).catch(() => null);
       // Salva email in localStorage per pre-fill su /masterclass
       localStorage.setItem("ciak_lead_email", email.trim());
       navigate("/masterclass");
