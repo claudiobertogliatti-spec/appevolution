@@ -16694,6 +16694,11 @@ from routers.booking import router as ciak_booking_router, set_db as set_ciak_bo
 set_ciak_booking_db(db)
 app.include_router(ciak_booking_router)
 
+# Ciak Lead Capture Router (opt-in masterclass → tag Systeme ciak_optin_masterclass)
+from routers.ciak_leads import router as ciak_leads_router, set_db as set_ciak_leads_db
+set_ciak_leads_db(db)
+app.include_router(ciak_leads_router)
+
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler
 
