@@ -69,8 +69,8 @@ export function CiakLanding() {
             richiede una direzione strategica, non solo presenza online.
           </h1>
           <p className="text-base md:text-lg text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Ciak è il percorso diagnostico che aiuta consulenti, coach e professionisti
-            a fissare la direzione strategica prima di investire in implementazione.
+            Ciak aiuta consulenti e professionisti a capire quale direzione strategica
+            dare al proprio progetto digitale prima di investire in implementazione.
           </p>
 
           <div className="max-w-md mx-auto">
@@ -107,9 +107,10 @@ export function CiakLanding() {
           </h2>
           <div className="space-y-5 text-slate-700 leading-relaxed text-base md:text-lg">
             <p>
-              Negli ultimi anni abbiamo osservato un pattern ricorrente: professionisti competenti,
-              riconosciuti nel proprio settore, che provano a portare la loro competenza online
-              e si trovano a investire tempo e denaro senza una direzione strategica chiara.
+              Negli ultimi anni abbiamo osservato la stessa situazione ripetersi continuamente:
+              professionisti competenti, riconosciuti nel proprio settore, che provano a portare
+              la loro competenza online e si trovano a investire tempo e denaro senza una direzione
+              strategica chiara.
             </p>
             <p>
               Il risultato non è quasi mai un problema di esecuzione. È un problema di struttura.
@@ -155,7 +156,8 @@ export function CiakLanding() {
               </h3>
               <p className="text-sm text-slate-600 leading-relaxed">
                 Una sessione strategica 1:1 con Claudio Bertogliatti e una Roadmap Operativa
-                personalizzata. Il momento in cui il problema diventa direzione.
+                personalizzata. Il momento in cui la situazione attuale viene letta con chiarezza
+                e trasformata in priorità operative concrete.
               </p>
             </div>
             <div className="bg-white rounded-2xl p-7 border border-gray-200">
@@ -166,8 +168,8 @@ export function CiakLanding() {
                 Partnership Evolution PRO
               </h3>
               <p className="text-sm text-slate-600 leading-relaxed">
-                Per chi, dopo il Blueprint, sceglie di implementare insieme al team Evolution la
-                strategia definita. Non è il punto di partenza: è il passo successivo per chi è pronto.
+                Non è il punto di partenza: è il passaggio successivo per chi, dopo il Blueprint,
+                decide di implementare la strategia insieme al team Evolution.
               </p>
             </div>
           </div>

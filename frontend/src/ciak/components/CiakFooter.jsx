@@ -28,8 +28,8 @@ export function CiakFooter({ dark = true }) {
         <div>
           <img src="/ciak/logo.webp" alt="Ciak" className="h-10 w-auto mb-3 brightness-0 invert" />
           <p className="text-sm leading-relaxed opacity-70">
-            Il percorso diagnostico per consulenti, coach e professionisti che vogliono fissare
-            la direzione strategica del proprio progetto digitale prima di investire in implementazione.
+            Il percorso diagnostico per consulenti, coach e professionisti che vogliono leggere
+            con più lucidità il proprio progetto digitale prima di investire in implementazione.
           </p>
         </div>
         <div className="text-sm">
