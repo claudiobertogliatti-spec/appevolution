@@ -1,0 +1,3 @@
+*.png # raw exports from Canva (kept locally for reference)
+!final/*.png
+fonts/
