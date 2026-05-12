@@ -1,9 +1,16 @@
 /**
- * Ciak.io Landing — top funnel cold
+ * Ciak.io Home `/` — Landing top-funnel.
  *
- * Obiettivo unico: portare il visitatore a guardare la Masterclass 60' gratis
- * (LIV 2 del funnel). Niente upsell aggressivo, niente "compra ora".
- * Tono: empatico, anti-coaching, parla a consulenti scarsamente digitalizzati.
+ * Copy lockato 2026-05-12. Riferimento memory/ciak_brand_copy_framework.md.
+ *
+ * Obiettivo unico: CTA verso Masterclass Gratuita (LIV 2). No upsell, no
+ * scarcity, no countdown. Tono: lucido, diretto, pragmatico — mai motivazionale.
+ *
+ * 4 schermate:
+ *  1. Hero + CTA Masterclass
+ *  2. Il problema reale
+ *  3. Tre livelli, una sola direzione (Masterclass → Ciak Blueprint → Partnership)
+ *  4. CTA finale
  */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -24,8 +31,6 @@ export function CiakLanding() {
     setSubmitting(true);
     setError(null);
     try {
-      // Salva lead in backend (emette tag Systeme ciak_optin_masterclass) + redirect.
-      // Best-effort: errori di rete non bloccano l'UX, l'email e' gia' in localStorage.
       const qs = new URLSearchParams(window.location.search);
       await fetch("/api/ciak/lead-capture", {
         method: "POST",
@@ -41,7 +46,6 @@ export function CiakLanding() {
           referrer: document.referrer || null,
         }),
       }).catch(() => null);
-      // Salva email in localStorage per pre-fill su /masterclass
       localStorage.setItem("ciak_lead_email", email.trim());
       navigate("/masterclass");
     } catch (e) {
@@ -54,18 +58,19 @@ export function CiakLanding() {
     <>
       <CiakHeader />
 
-      {/* HERO */}
+      {/* SCHERMATA 1 — HERO */}
       <section className="bg-slate-900 text-white">
         <div className="mx-auto max-w-4xl px-6 pt-20 pb-24 text-center">
           <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-4">
-            Per consulenti e coach che vogliono vendere online le proprie competenze
+            CIAK
           </p>
-          <h1 className="text-4xl md:text-6xl font-semibold leading-[1.1] mb-6">
-            I 5 errori che fanno perdere<br />clienti ai consulenti.
+          <h1 className="text-3xl md:text-5xl font-semibold leading-[1.15] mb-6">
+            Trasformare una competenza professionale in un modello digitale sostenibile
+            richiede una direzione strategica, non solo presenza online.
           </h1>
-          <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Una masterclass di 60 minuti, gratuita, senza fronzoli o tecnicismi.
-            <br />Ti spiega come capire se sei pronto a vendere online il tuo lavoro.
+          <p className="text-base md:text-lg text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed">
+            Ciak aiuta consulenti e professionisti a capire quale direzione strategica
+            dare al proprio progetto digitale prima di investire in implementazione.
           </p>
 
           <div className="max-w-md mx-auto">
@@ -83,52 +88,103 @@ export function CiakLanding() {
                 disabled={submitting}
                 className="px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 disabled:opacity-50 transition"
               >
-                {submitting ? "..." : "Guarda gratis →"}
+                {submitting ? "..." : "Accedi alla masterclass"}
               </button>
             </div>
             {error && <p className="text-yellow-400 text-sm mt-2">{error}</p>}
-            <p className="text-xs text-slate-400 mt-3 opacity-70">
-              Nessuna carta. Nessun upsell. Nessuno spam.
+            <p className="text-xs text-slate-400 mt-4 opacity-80 leading-relaxed">
+              60 minuti per capire perché molti progetti professionali non crescono come dovrebbero.
             </p>
           </div>
         </div>
       </section>
 
-      {/* COSA IMPARI */}
+      {/* SCHERMATA 2 — IL PROBLEMA REALE */}
       <section className="bg-white">
-        <div className="mx-auto max-w-5xl px-6 py-20">
-          <p className="text-center text-slate-500 text-sm font-medium uppercase tracking-widest mb-3">
-            Cosa scoprirai
-          </p>
-          <h2 className="text-3xl md:text-4xl font-semibold text-center text-slate-900 mb-12">
-            5 errori che probabilmente stai facendo<br />senza accorgertene
+        <div className="mx-auto max-w-3xl px-6 py-20">
+          <h2 className="text-2xl md:text-3xl font-semibold text-slate-900 mb-8 leading-tight">
+            Il problema reale dei professionisti online
           </h2>
-          <div className="grid md:grid-cols-2 gap-6">
-            {[
-              { n: "01", t: "Provi a vendere a chiunque", d: "Senza un target chiaro, ogni messaggio si annacqua. Spendi tempo a parlare con persone che non compreranno mai." },
-              { n: "02", t: "Hai paura di chiedere il giusto prezzo", d: "Svendi il tuo tempo per insicurezza. Risultato: lavori il triplo per guadagnare la metà." },
-              { n: "03", t: "Pensi che 'farsi conoscere' basti", d: "Notorietà senza un sistema di vendita = chiacchiere. Ti chiamano per chiedere il preventivo, poi spariscono." },
-              { n: "04", t: "Confondi competenza con offerta", d: "Sai fare il tuo lavoro. Ma il pacchetto che vendi non è chiaro nemmeno a te. Figurati al cliente." },
-              { n: "05", t: "Non hai un metodo replicabile", d: "Ogni cliente è un caso a sé. Ricominci da zero ogni volta. Impossibile scalare, impossibile delegare." },
-            ].map((item) => (
-              <div key={item.n} className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
-                <div className="text-yellow-400 font-semibold mb-2">{item.n}</div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">{item.t}</h3>
-                <p className="text-slate-600 text-sm leading-relaxed">{item.d}</p>
-              </div>
-            ))}
+          <div className="space-y-5 text-slate-700 leading-relaxed text-base md:text-lg">
+            <p>
+              Negli ultimi anni abbiamo osservato la stessa situazione ripetersi continuamente:
+              professionisti competenti, riconosciuti nel proprio settore, che provano a portare
+              la loro competenza online e si trovano a investire tempo e denaro senza una direzione
+              strategica chiara.
+            </p>
+            <p>
+              Il risultato non è quasi mai un problema di esecuzione. È un problema di struttura.
+            </p>
+            <p>
+              Si costruiscono contenuti senza un'offerta definita. Si lanciano corsi senza una validazione
+              del mercato. Si paga per traffico senza prima aver chiarito a chi parlare e perché.
+            </p>
+            <p className="text-slate-900 font-medium">
+              Ciak nasce per affrontare questo problema con lucidità — non con promesse veloci,
+              ma attraverso una lettura strategica della situazione reale.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* CTA RIPETUTA */}
-      <section className="bg-gray-50">
-        <div className="mx-auto max-w-3xl px-6 py-16 text-center">
-          <h2 className="text-2xl md:text-3xl font-semibold text-slate-900 mb-4">
-            Pronto a vederla?
+      {/* SCHERMATA 3 — TRE LIVELLI */}
+      <section className="bg-gray-50 border-t border-gray-100">
+        <div className="mx-auto max-w-5xl px-6 py-20">
+          <h2 className="text-2xl md:text-3xl font-semibold text-slate-900 mb-3 text-center leading-tight">
+            Tre livelli, una sola direzione: chiarezza
           </h2>
-          <p className="text-slate-600 mb-8 leading-relaxed">
-            La masterclass dura 60 minuti. Puoi guardarla quando vuoi, senza prenotazioni.
+          <div className="grid md:grid-cols-3 gap-6 mt-12">
+            <div className="bg-white rounded-2xl p-7 border border-gray-200">
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
+                Livello 1
+              </p>
+              <h3 className="text-lg font-semibold text-slate-900 mb-3">
+                Masterclass gratuita
+              </h3>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                60 minuti di analisi diretta sui 5 errori più comuni che impediscono di
+                trasformare una competenza in un modello digitale sostenibile. A fine masterclass,
+                un Checkpoint Strategico restituisce il tuo Stato attuale.
+              </p>
+            </div>
+            <div className="bg-white rounded-2xl p-7 border border-gray-200">
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
+                Livello 2
+              </p>
+              <h3 className="text-lg font-semibold text-slate-900 mb-3">
+                Ciak Blueprint <span className="text-slate-500 font-normal">— €67</span>
+              </h3>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Una sessione strategica 1:1 con Claudio Bertogliatti e una Roadmap Operativa
+                personalizzata. Il momento in cui la situazione attuale viene letta con chiarezza
+                e trasformata in priorità operative concrete.
+              </p>
+            </div>
+            <div className="bg-white rounded-2xl p-7 border border-gray-200">
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
+                Livello 3
+              </p>
+              <h3 className="text-lg font-semibold text-slate-900 mb-3">
+                Partnership Evolution PRO
+              </h3>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Non è il punto di partenza: è il passaggio successivo per chi, dopo il Blueprint,
+                decide di implementare la strategia insieme al team Evolution.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SCHERMATA 4 — CTA FINALE */}
+      <section className="bg-slate-900 text-white">
+        <div className="mx-auto max-w-3xl px-6 py-20 text-center">
+          <h2 className="text-2xl md:text-3xl font-semibold mb-4 leading-tight">
+            Il primo passo è la masterclass
+          </h2>
+          <p className="text-slate-300 mb-10 leading-relaxed">
+            Niente acquisti, niente impegno. 60 minuti di lucidità professionale e un Checkpoint
+            Strategico per capire da dove partire.
           </p>
           <div className="max-w-md mx-auto flex flex-col sm:flex-row gap-2">
             <input
@@ -137,14 +193,14 @@ export function CiakLanding() {
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && captureEmail()}
               placeholder="la-tua-email@esempio.it"
-              className="flex-1 px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none border border-gray-300 focus:border-slate-900"
+              className="flex-1 px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400"
             />
             <button
               onClick={captureEmail}
               disabled={submitting}
-              className="px-6 py-3 rounded-lg bg-slate-900 text-yellow-400 font-semibold hover:bg-slate-800 disabled:opacity-50 transition"
+              className="px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 disabled:opacity-50 transition"
             >
-              {submitting ? "..." : "Guarda gratis →"}
+              {submitting ? "..." : "Accedi alla masterclass"}
             </button>
           </div>
         </div>
