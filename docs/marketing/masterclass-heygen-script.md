@@ -26,13 +26,15 @@
 
 ---
 
-# TAKE 1 — Intro (3 min)
+# TAKE 1 — Intro (3 min) — ⚠️ AGGIORNATO 12/5/2026 (rigenerare in HeyGen)
 
-**HeyGen script (copia tutto dal seguente blocco):**
+> **DA RIGENERARE.** v1 diceva "Sessanta minuti" (durata reale HeyGen v1 ~26 min). Posizionamento rifocalizzato a "30 minuti dirette". Solo Take 1 va rigenerato; gli altri 16 take non menzionano la durata totale e restano validi.
+
+**HeyGen script v2 (copia tutto dal seguente blocco):**
 
 > Buongiorno. Mi chiamo Claudio Bertogliatti.
 >
-> Se sei qui, probabilmente è perché ti sei iscritto alla masterclass di Ciak. Sessanta minuti. Una sessione singola, on-demand. La puoi mettere in pausa, riprendere, riguardare quando vuoi.
+> Se sei qui, probabilmente è perché ti sei iscritto alla masterclass di Ciak. Trenta minuti, dirette, senza fluff. Una sessione singola, on-demand. La puoi mettere in pausa, riprendere, riguardare quando vuoi.
 >
 > Questa masterclass non è un corso. Non è una lezione. Non è una sequenza di tecniche da applicare lunedì mattina. È un'osservazione strutturata su una situazione che ho visto ripetersi continuamente negli ultimi anni, lavorando con consulenti, coach, e professionisti italiani che stavano provando a trasformare la propria competenza in un modello digitale.
 >
@@ -40,7 +42,7 @@
 >
 > Mancava la possibilità di leggere lucidamente la propria situazione. Capire dove erano davvero, dove stavano andando, e dove invece avrebbero dovuto fermarsi a fissare la direzione prima di muovere altri passi.
 >
-> Sessanta minuti, cinque errori, una struttura semplice. Non ti propongo soluzioni rapide perché non esistono. Non ti propongo nemmeno un metodo, perché non funziona così. Ti propongo un punto di osservazione.
+> Trenta minuti, cinque errori, una struttura semplice. Non ti propongo soluzioni rapide perché non esistono. Non ti propongo nemmeno un metodo, perché non funziona così. Ti propongo un punto di osservazione.
 >
 > Alla fine della masterclass, troverai un breve Checkpoint Strategico. Cinque domande. Due minuti. Serve a fissare dove sei oggi, sulla base di quello che avremo visto insieme. È libero, gratuito, e non richiede di iscriverti a niente.
 >
