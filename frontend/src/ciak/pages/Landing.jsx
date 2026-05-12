@@ -93,7 +93,7 @@ export function CiakLanding() {
             </div>
             {error && <p className="text-yellow-400 text-sm mt-2">{error}</p>}
             <p className="text-xs text-slate-400 mt-4 opacity-80 leading-relaxed">
-              60 minuti per capire perché molti progetti professionali non crescono come dovrebbero.
+              30 minuti per capire perché molti progetti professionali non crescono come dovrebbero.
             </p>
           </div>
         </div>
@@ -142,7 +142,7 @@ export function CiakLanding() {
                 Masterclass gratuita
               </h3>
               <p className="text-sm text-slate-600 leading-relaxed">
-                60 minuti di analisi diretta sui 5 errori più comuni che impediscono di
+                30 minuti di analisi diretta sui 5 errori più comuni che impediscono di
                 trasformare una competenza in un modello digitale sostenibile. A fine masterclass,
                 un Checkpoint Strategico restituisce il tuo Stato attuale.
               </p>
@@ -183,7 +183,7 @@ export function CiakLanding() {
             Il primo passo è la masterclass
           </h2>
           <p className="text-slate-300 mb-10 leading-relaxed">
-            Niente acquisti, niente impegno. 60 minuti di lucidità professionale e un Checkpoint
+            Niente acquisti, niente impegno. 30 minuti di lucidità professionale e un Checkpoint
             Strategico per capire da dove partire.
           </p>
           <div className="max-w-md mx-auto flex flex-col sm:flex-row gap-2">
