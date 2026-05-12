@@ -17,7 +17,7 @@ import { CheckpointStrategico } from "../components/CheckpointStrategico";
 
 // TODO: rimpiazzare con video YouTube reale della masterclass
 const MASTERCLASS_YOUTUBE_ID = "REPLACE_ME";
-const CHECKPOINT_UNLOCK_SECONDS = 35 * 60; // 35 minuti
+const CHECKPOINT_UNLOCK_SECONDS = 20 * 60; // 20 minuti (video ~26 min, lascia margine 6 min)
 
 export function CiakMasterclass() {
   const [email, setEmail] = useState(localStorage.getItem("ciak_lead_email") || "");
@@ -90,8 +90,9 @@ export function CiakMasterclass() {
               la propria competenza online non sta crescendo come dovrebbe.
             </h1>
             <p className="text-base md:text-lg text-slate-300 mb-10 leading-relaxed max-w-3xl">
-              60 minuti di analisi diretta sui 5 errori più comuni che impediscono di trasformare
-              una competenza professionale in un modello digitale sostenibile.
+              30 minuti di analisi diretta sui 5 errori più comuni che impediscono di trasformare
+              una competenza professionale in un modello digitale sostenibile. Senza fluff,
+              senza storytelling.
             </p>
 
             <div className="bg-white text-slate-900 rounded-2xl p-6 md:p-8 max-w-2xl mb-10">
