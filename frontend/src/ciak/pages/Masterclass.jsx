@@ -1,26 +1,35 @@
 /**
- * Ciak.io /masterclass — LIV 2 lead magnet zero
- * Video 60' embedded YouTube unlisted. Email gate light se non già catturata in /.
- * Dopo visualizzazione: CTA verso /analisi (€67).
+ * Ciak.io /masterclass — LIV 2 lead magnet.
+ *
+ * Copy lockato 2026-05-12. Riferimento memory/ciak_brand_copy_framework.md.
+ *
+ * 3 stati visuali della stessa pagina, attivati dal flusso utente:
+ *   STATO 1 — Pre-opt-in (cold): hero + email gate
+ *   STATO 2 — Post-opt-in: player YouTube + sticky bar che appare a 35min
+ *   STATO 3 — Post-Checkpoint: già inglobato dal componente CheckpointStrategico
+ *
+ * Sticky bar a 35:00 (non onEnded — perderemmo utenti buoni che non arrivano al 100%).
  */
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
+import { CheckpointStrategico } from "../components/CheckpointStrategico";
 
-// TODO: rimpiazzare con video YouTube reale della masterclass (sessione masterclass-spec)
+// TODO: rimpiazzare con video YouTube reale della masterclass
 const MASTERCLASS_YOUTUBE_ID = "REPLACE_ME";
+const CHECKPOINT_UNLOCK_SECONDS = 35 * 60; // 35 minuti
 
 export function CiakMasterclass() {
   const [email, setEmail] = useState(localStorage.getItem("ciak_lead_email") || "");
   const [unlocked, setUnlocked] = useState(!!localStorage.getItem("ciak_lead_email"));
   const [error, setError] = useState(null);
+  const [checkpointAvailable, setCheckpointAvailable] = useState(false);
+  const [showCheckpoint, setShowCheckpoint] = useState(false);
 
+  // Idempotent: emette ciak_optin_masterclass se l'utente atterra qui senza
+  // passare dalla landing. Il backend dedupe per email.
   useEffect(() => {
     if (unlocked && email) {
-      // Best-effort: emette ciak_optin_masterclass se l'utente atterra qui senza
-      // passare dalla landing (es. via link diretto). Idempotente lato backend:
-      // se l'email e' gia' in ciak_leads, non ri-emette il tag su Systeme.
       const qs = new URLSearchParams(window.location.search);
       fetch("/api/ciak/lead-capture", {
         method: "POST",
@@ -39,6 +48,15 @@ export function CiakMasterclass() {
     }
   }, [unlocked, email]);
 
+  // Timer fallback per sticky bar: dopo 35 min dall'unlock il Checkpoint è disponibile.
+  // (Soluzione robusta perché non dipende dagli eventi del player YouTube embedded:
+  // l'utente potrebbe mettere pausa, scrubbare, ricaricare la pagina, ecc.)
+  useEffect(() => {
+    if (!unlocked) return;
+    const t = setTimeout(() => setCheckpointAvailable(true), CHECKPOINT_UNLOCK_SECONDS * 1000);
+    return () => clearTimeout(t);
+  }, [unlocked]);
+
   const unlock = () => {
     if (!email.trim() || !email.includes("@")) {
       setError("Inserisci un'email valida");
@@ -49,30 +67,53 @@ export function CiakMasterclass() {
     setError(null);
   };
 
+  const goToCheckpoint = () => {
+    setShowCheckpoint(true);
+    setTimeout(() => {
+      document.getElementById("ep-checkpoint-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  };
+
   return (
     <>
       <CiakHeader />
 
-      <section className="bg-slate-900 text-white">
-        <div className="mx-auto max-w-4xl px-6 py-12">
-          <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-3">
-            Masterclass gratuita · 60 minuti · on demand
-          </p>
-          <h1 className="text-3xl md:text-5xl font-semibold mb-4">
-            I 5 errori che fanno perdere clienti ai consulenti.
-          </h1>
-          <p className="text-slate-300 mb-8">
-            Una lezione completa per capire se sei pronto a vendere online il tuo sapere e cosa serve davvero per
-            iniziare. Niente fronzoli, niente promesse facili.
-          </p>
+      {/* STATO 1 — PRE-OPT-IN */}
+      {!unlocked && (
+        <section className="bg-slate-900 text-white">
+          <div className="mx-auto max-w-4xl px-6 pt-16 pb-20">
+            <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-4">
+              Masterclass Gratuita
+            </p>
+            <h1 className="text-3xl md:text-5xl font-semibold leading-[1.15] mb-6">
+              Una masterclass per consulenti e professionisti che vogliono capire perché
+              la propria competenza online non sta crescendo come dovrebbe.
+            </h1>
+            <p className="text-base md:text-lg text-slate-300 mb-10 leading-relaxed max-w-3xl">
+              60 minuti di analisi diretta sui 5 errori più comuni che impediscono di trasformare
+              una competenza professionale in un modello digitale sostenibile.
+            </p>
 
-          {!unlocked ? (
-            <div className="bg-white text-slate-900 rounded-2xl p-6 md:p-8 max-w-xl">
-              <h3 className="text-xl font-semibold mb-2">Sblocca la masterclass</h3>
-              <p className="text-slate-600 text-sm mb-5">
-                Inserisci la tua email per accedere. Niente spam: ti scriviamo solo se davvero serve.
+            <div className="bg-white text-slate-900 rounded-2xl p-6 md:p-8 max-w-2xl mb-10">
+              <h2 className="text-lg font-semibold mb-5">Cosa vedrai</h2>
+              <ul className="space-y-4 text-sm md:text-base leading-relaxed">
+                <li>
+                  <strong className="text-slate-900">I 5 Errori</strong> che fermano la maggior parte dei consulenti prima ancora di iniziare.
+                </li>
+                <li>
+                  I <strong className="text-slate-900">4 livelli ricorrenti di maturità strategica</strong> che abbiamo osservato negli ultimi anni.
+                </li>
+                <li>
+                  La differenza tra <strong className="text-slate-900">costruire una vetrina online</strong> e <strong className="text-slate-900">costruire un modello digitale sostenibile</strong>.
+                </li>
+              </ul>
+            </div>
+
+            <div className="bg-white text-slate-900 rounded-2xl p-6 md:p-8 max-w-2xl">
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
+                Indirizzo email per accedere alla masterclass
               </p>
-              <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 mt-3">
                 <input
                   type="email"
                   value={email}
@@ -85,56 +126,75 @@ export function CiakMasterclass() {
                   onClick={unlock}
                   className="px-6 py-3 rounded-lg bg-slate-900 text-yellow-400 font-semibold hover:bg-slate-800 transition"
                 >
-                  Guarda gratis →
+                  Accedi alla masterclass
                 </button>
               </div>
               {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
+              <p className="text-xs text-slate-500 mt-4 leading-relaxed">
+                Riceverai immediatamente il link di accesso. Niente spam, niente upsell automatici.
+              </p>
             </div>
-          ) : (
-            <div className="bg-black rounded-2xl overflow-hidden aspect-video max-w-4xl">
-              {MASTERCLASS_YOUTUBE_ID === "REPLACE_ME" ? (
-                <div className="w-full h-full flex flex-col items-center justify-center text-center p-8 text-slate-400">
-                  <p className="text-lg font-medium mb-2">Video in caricamento</p>
-                  <p className="text-sm">La masterclass sarà disponibile entro il <strong>4 giugno 2026</strong>.</p>
-                </div>
-              ) : (
-                <iframe
-                  src={`https://www.youtube.com/embed/${MASTERCLASS_YOUTUBE_ID}?rel=0`}
-                  title="Masterclass Ciak"
-                  allowFullScreen
-                  className="w-full h-full"
-                />
-              )}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* POST-VIDEO CTA verso Analisi €67 */}
-      {unlocked && (
-        <section className="bg-white">
-          <div className="mx-auto max-w-3xl px-6 py-16 text-center">
-            <p className="text-yellow-600 text-xs font-semibold uppercase tracking-widest mb-3">
-              Hai guardato la masterclass?
-            </p>
-            <h2 className="text-2xl md:text-3xl font-semibold text-slate-900 mb-4">
-              Vuoi un'Analisi Strategica fatta su di te?
-            </h2>
-            <p className="text-slate-600 mb-8 leading-relaxed">
-              Una call di 90 minuti con Claudio + un PDF di 8-12 pagine consegnato in 72 ore. Capisci esattamente cosa fare
-              per partire bene — o se non è ancora il momento. <strong className="text-slate-900">€67 una tantum.</strong>
-            </p>
-            <Link
-              to="/analisi"
-              className="inline-block px-8 py-4 rounded-lg bg-slate-900 text-yellow-400 font-semibold hover:bg-slate-800 transition"
-            >
-              Scopri l'Analisi Strategica →
-            </Link>
-            <p className="text-xs text-slate-500 mt-4">
-              Garanzia: se entro la call decidi che non fa per te, ti rimborsiamo entro 7 giorni.
-            </p>
           </div>
         </section>
+      )}
+
+      {/* STATO 2 — VIDEO IN CORSO */}
+      {unlocked && !showCheckpoint && (
+        <>
+          <section className="bg-slate-900 text-white">
+            <div className="mx-auto max-w-5xl px-6 pt-10 pb-6">
+              <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-3">
+                Masterclass Ciak
+              </p>
+              <p className="text-slate-300 mb-6 leading-relaxed max-w-3xl">
+                Quando avrai finito di guardare, troverai un breve Checkpoint Strategico per fissare la tua posizione attuale.
+              </p>
+              <div className="bg-black rounded-2xl overflow-hidden aspect-video w-full">
+                {MASTERCLASS_YOUTUBE_ID === "REPLACE_ME" ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-center p-8 text-slate-400">
+                    <p className="text-lg font-medium mb-2">Video in caricamento</p>
+                    <p className="text-sm">La masterclass sarà disponibile entro il <strong>4 giugno 2026</strong>.</p>
+                  </div>
+                ) : (
+                  <iframe
+                    src={`https://www.youtube.com/embed/${MASTERCLASS_YOUTUBE_ID}?rel=0`}
+                    title="Masterclass Ciak"
+                    allowFullScreen
+                    className="w-full h-full"
+                  />
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* STICKY BAR — appare dopo 35 minuti */}
+          {checkpointAvailable && (
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-yellow-400 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] z-40">
+              <div className="mx-auto max-w-5xl px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <p className="text-sm md:text-base text-slate-700 leading-snug">
+                  Hai visto abbastanza per fissare la tua posizione attuale.
+                </p>
+                <button
+                  type="button"
+                  onClick={goToCheckpoint}
+                  className="flex-shrink-0 px-6 py-3 rounded-lg bg-slate-900 text-yellow-400 font-semibold hover:bg-slate-800 transition text-sm md:text-base"
+                >
+                  Vai al Checkpoint Strategico
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Spacer per non coprire contenuto con sticky bar */}
+          {checkpointAvailable && <div className="h-24" />}
+        </>
+      )}
+
+      {/* STATO 3 — CHECKPOINT STRATEGICO */}
+      {unlocked && showCheckpoint && (
+        <div id="ep-checkpoint-section">
+          <CheckpointStrategico source="masterclass" />
+        </div>
       )}
 
       <CiakFooter />

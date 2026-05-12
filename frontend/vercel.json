@@ -4,6 +4,23 @@
   "buildCommand": "npm run build",
   "outputDirectory": "build",
   "installCommand": "npm install --legacy-peer-deps",
+  "redirects": [
+    {
+      "source": "/analisi",
+      "destination": "/ciak-blueprint",
+      "permanent": true
+    },
+    {
+      "source": "/analisi/grazie",
+      "destination": "/ciak-blueprint/grazie",
+      "permanent": true
+    },
+    {
+      "source": "/analisi-strategica",
+      "destination": "/ciak-blueprint",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
