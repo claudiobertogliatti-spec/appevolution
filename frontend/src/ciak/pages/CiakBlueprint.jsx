@@ -89,7 +89,8 @@ export function CiakBlueprint() {
           <p className="text-slate-700 leading-relaxed text-base md:text-lg mb-12 max-w-3xl">
             Il Ciak Blueprint non è per chi cerca trucchi, formule o scorciatoie. È il momento di pausa
             strategica per chi sta provando a trasformare una competenza reale in un modello digitale,
-            e ha bisogno di capire — con lucidità — dove sta perdendo terreno e quale direzione conviene prendere.
+            e ha bisogno di capire — con lucidità — cosa sta rallentando la crescita del proprio progetto
+            e quale direzione conviene prendere.
           </p>
 
           <div className="grid md:grid-cols-3 gap-6">
@@ -111,10 +112,10 @@ export function CiakBlueprint() {
             </div>
             <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
               <h3 className="font-semibold text-slate-900 mb-3 leading-snug">
-                Vuoi una direzione prima di altri investimenti
+                Vuoi una direzione prima di muovere altri passi
               </h3>
               <p className="text-sm text-slate-600 leading-relaxed">
-                Prima di pagare un'agenzia, una piattaforma o un programma, vuoi capire cosa ha senso per il tuo caso specifico.
+                Prima di investire in un'agenzia, una piattaforma o un programma, vuoi capire cosa ha senso per il tuo caso specifico.
               </p>
             </div>
           </div>
@@ -172,8 +173,8 @@ export function CiakBlueprint() {
               </h3>
               <p className="text-slate-600 leading-relaxed">
                 Ricevi entro 72 ore un documento finale con la direzione consigliata e le priorità
-                operative ordinate. Non è un PDF generico: è la sintesi strategica del tuo caso,
-                pronta da usare come piano di lavoro o da condividere con chi ti supporta nell'esecuzione.
+                operative su cui concentrarti. Non è un PDF generico: è la sintesi strategica del tuo caso,
+                pensata per aiutarti a prendere decisioni più lucide sulle prossime mosse.
               </p>
             </div>
           </div>
@@ -200,8 +201,8 @@ export function CiakBlueprint() {
           </ul>
 
           <p className="text-slate-900 text-base md:text-lg leading-relaxed max-w-3xl">
-            Il Blueprint è un protocollo strategico guidato basato sul Modello a 4 Stati di prontezza
-            professionale. Restituisce una direzione, non un'esecuzione.
+            Il Blueprint è un protocollo strategico guidato basato sui 4 livelli di maturità strategica
+            osservati nel lavoro con professionisti e consulenti. Restituisce una direzione, non un'esecuzione.
           </p>
         </div>
       </section>
