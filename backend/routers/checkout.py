@@ -2,15 +2,22 @@
 Ciak — Checkout router (Stripe).
 
 Endpoint:
-  POST /api/checkout/create-session  → crea Stripe checkout session 67€
+  POST /api/checkout/create-session  → crea Stripe checkout session Ciak Blueprint 67€
   POST /api/checkout/webhook         → riceve eventi Stripe (checkout.session.completed)
 
 Differenze rispetto a routers/stripe_webhook.py:
   - Endpoint dedicato Ciak (path separato per filtrare gli eventi via Stripe dashboard
-    configurando un webhook endpoint dedicato per "ciak_analisi")
-  - Metadata tipo="ciak_analisi" per identificare il flusso
+    configurando un webhook endpoint dedicato per "ciak_blueprint")
+  - Metadata tipo="ciak_blueprint" (nuovi acquisti). Backward-compat: il filtro
+    accetta anche "ciak_analisi" (legacy) per webhook re-inviati su vecchi ordini.
+
+Naming lockato 2026-05-12: il prodotto "Analisi Strategica 60/90 min" è stato
+unificato in un singolo prodotto "Ciak Blueprint" — €67 IVA inclusa. La durata
+90 min per Stato 4 resta una scelta operativa interna, non una differenziazione
+commerciale.
 
 Riferimento:
+  - memory/ciak_brand_copy_framework.md (positioning + product naming)
   - memory/funnel_67_analisi.md (flow checkout)
   - memory/ciak_technical_spec.md (state machine)
 """
@@ -75,42 +82,39 @@ def _frontend_url() -> str:
 @router.post("/create-session", response_model=CreateSessionResponse)
 async def create_checkout_session(payload: CreateSessionRequest, request: Request):
     """
-    Crea Stripe Checkout Session per Analisi Strategica 67€.
+    Crea Stripe Checkout Session per Ciak Blueprint 67€.
 
     Se session_token fornito (utente arriva da report):
       - Linka acquisto al lead esistente
       - Trasferisce lo stato a clicked_67 (se non già)
-    Se session_token assente (cold direct dalla pagina /analisi):
+    Se session_token assente (cold direct dalla pagina /ciak-blueprint):
       - Acquisto standalone, sarà associato post-pagamento via email
+
+    NOTA naming: prodotto unico "Ciak Blueprint" (lockato 2026-05-12). Lo Stato 4
+    storicamente attivava la variante 90 min "Estesa": ora la durata maggiorata
+    resta scelta operativa interna ma il prodotto venduto è uno solo. Il campo
+    payload.stato resta nei metadata per analytics/segmentazione.
     """
     if db is None:
         raise HTTPException(503, "Database non configurato")
     _ensure_stripe_configured()
 
-    is_extended = payload.stato == 4
-    product_name = (
-        "Analisi Strategica Estesa (90 minuti)"
-        if is_extended
-        else "Analisi Strategica (60 minuti)"
-    )
+    product_name = "Ciak Blueprint"
     product_description = (
-        "Conversazione strategica estesa con Claudio e il team Evolution PRO. "
-        "Documento di sintesi entro 48h dalla call."
-        if is_extended
-        else "Conversazione strategica con Claudio e il team Evolution PRO. "
-             "Documento di sintesi entro 48h dalla call."
+        "Sessione Strategica 1:1 con Claudio Bertogliatti (60 minuti) + "
+        "Roadmap Operativa personalizzata consegnata entro 72 ore."
     )
 
     metadata: dict = {
-        "tipo": "ciak_analisi",
+        "tipo": "ciak_blueprint",
         "stato": str(payload.stato),
     }
     if payload.session_token:
         metadata["diagnostic_session_token"] = payload.session_token
 
     frontend = _frontend_url()
-    success_url = f"{frontend}/analisi/grazie?session_id={{CHECKOUT_SESSION_ID}}"
-    cancel_url = f"{frontend}/analisi?from=cancel"
+    success_url = f"{frontend}/ciak-blueprint/grazie?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{frontend}/ciak-blueprint?from=cancel"
 
     try:
         stripe_session = stripe.checkout.Session.create(
@@ -161,14 +165,68 @@ async def create_checkout_session(payload: CreateSessionRequest, request: Reques
 
 
 # ═══════════════════════════════════════════════════════════════════
+#  SESSION STATUS (per pagina /ciak-blueprint/grazie)
+# ═══════════════════════════════════════════════════════════════════
+
+@router.get("/session-status")
+async def get_session_status(session_id: str):
+    """
+    Restituisce lo stato della Stripe Checkout Session e il diagnostic_session_token
+    associato (per redirigere l'utente alle 8 Domande Ciak post-acquisto).
+
+    Usato da `/ciak-blueprint/grazie` per attivare il bottone "Inizia con le 8 Domande Ciak"
+    appena il webhook Stripe ha processato il pagamento.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    _ensure_stripe_configured()
+
+    try:
+        stripe_session = stripe.checkout.Session.retrieve(session_id)
+    except stripe.error.StripeError as e:
+        logger.warning("[CIAK_CHECKOUT] session-status retrieve failed: %s", e)
+        raise HTTPException(404, "Session not found") from e
+
+    metadata = stripe_session.metadata or {}
+    # Accetta sia ciak_blueprint che legacy ciak_analisi
+    if metadata.get("tipo") not in ("ciak_blueprint", "ciak_analisi"):
+        raise HTTPException(403, "Session is not a Ciak Blueprint checkout")
+
+    diagnostic_token = metadata.get("diagnostic_session_token")
+
+    # Se il token non è in metadata (caso cold direct senza diagnostic precedente),
+    # prova a recuperarlo dalla diagnostic_session creata dal webhook post-pagamento
+    # cercando per email customer.
+    if not diagnostic_token:
+        customer_email = stripe_session.customer_email or (
+            stripe_session.customer_details.email if stripe_session.customer_details else None
+        )
+        if customer_email:
+            diagnostic = await db.diagnostic_sessions.find_one(
+                {"user_email": customer_email},
+                sort=[("created_at", -1)],
+            )
+            if diagnostic:
+                diagnostic_token = diagnostic.get("session_token")
+
+    return {
+        "session_id": session_id,
+        "payment_status": stripe_session.payment_status,
+        "diagnostic_session_token": diagnostic_token,
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════
 #  WEBHOOK
 # ═══════════════════════════════════════════════════════════════════
 
 @router.post("/webhook", status_code=status.HTTP_200_OK)
 async def stripe_webhook(request: Request):
     """
-    Stripe webhook per Ciak.
-    Filtra solo eventi con metadata.tipo == "ciak_analisi".
+    Stripe webhook per Ciak Blueprint.
+    Filtra solo eventi con metadata.tipo in {"ciak_blueprint", "ciak_analisi"}.
+    Il valore legacy "ciak_analisi" è mantenuto per backward-compat (webhook
+    re-inviati per acquisti effettuati prima del rename 2026-05-12).
 
     Configurazione Stripe Dashboard → Developers → Webhooks:
       - Endpoint URL: https://api.evolution-pro.it/api/checkout/webhook
@@ -207,7 +265,9 @@ async def stripe_webhook(request: Request):
     )
 
     metadata = data.get("metadata", {}) or {}
-    if metadata.get("tipo") != "ciak_analisi":
+    # Accetta sia il valore nuovo "ciak_blueprint" che il legacy "ciak_analisi"
+    # (lockato 2026-05-12 — backward-compat per webhook re-inviati).
+    if metadata.get("tipo") not in ("ciak_blueprint", "ciak_analisi"):
         # Non è un evento Ciak — silenzia (gestito da altri webhook)
         return {"status": "ignored", "reason": "non-ciak"}
 
