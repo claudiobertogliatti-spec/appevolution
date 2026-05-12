@@ -1,9 +1,19 @@
 import { Link } from "react-router-dom";
 
 /**
- * Click handlers per i link legali: chiamano la funzione globale `epOpenPolicy`
- * iniettata dal CookieBanner. Se per qualsiasi motivo il banner non è ancora
- * montato, l'evento non rompe (handler diventa no-op).
+ * Footer Ciak.io — struttura lockata 2026-05-12.
+ *
+ * Footer link approvati:
+ *   Masterclass Gratuita · Ciak Blueprint · Chi è Evolution PRO · Privacy · Condizioni
+ *
+ * "Chi è Evolution PRO" è link ESTERNO a www.evolution-pro.it (target=_blank,
+ * separazione mondi Ciak/Evolution).
+ *
+ * I link legali Privacy/Cookie/Condizioni aprono la modale globale `epOpenPolicy`
+ * iniettata dal CookieBanner. Idempotente: se il banner non è ancora montato,
+ * l'handler diventa no-op.
+ *
+ * Riferimento: memory/ciak_brand_copy_framework.md (footer struttura definitiva).
  */
 function openPolicy(tab) {
   if (typeof window !== "undefined" && typeof window.epOpenPolicy === "function") {
@@ -18,19 +28,37 @@ export function CiakFooter({ dark = true }) {
         <div>
           <img src="/ciak/logo.webp" alt="Ciak" className="h-10 w-auto mb-3 brightness-0 invert" />
           <p className="text-sm leading-relaxed opacity-70">
-            Ciak è il punto di partenza per consulenti e coach che vogliono iniziare a vendere online le proprie
-            competenze senza perderci la testa.
+            Il percorso diagnostico per consulenti, coach e professionisti che vogliono leggere
+            con maggiore lucidità il proprio progetto digitale prima di investire in implementazione.
           </p>
         </div>
         <div className="text-sm">
-          <h4 className="font-semibold mb-3 text-white">Servizi</h4>
+          <h4 className="font-semibold mb-3 text-white">Percorso</h4>
           <ul className="space-y-2 opacity-80">
-            <li><Link to="/analisi" className="hover:text-yellow-400">Analisi Strategica €67</Link></li>
-            <li><a href="https://www.evolution-pro.it" className="hover:text-yellow-400">Partnership Evolution PRO</a></li>
+            <li>
+              <Link to="/masterclass" className="hover:text-yellow-400">
+                Masterclass Gratuita
+              </Link>
+            </li>
+            <li>
+              <Link to="/ciak-blueprint" className="hover:text-yellow-400">
+                Ciak Blueprint
+              </Link>
+            </li>
+            <li>
+              <a
+                href="https://www.evolution-pro.it"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-yellow-400"
+              >
+                Chi è Evolution PRO
+              </a>
+            </li>
           </ul>
         </div>
         <div className="text-sm">
-          <h4 className="font-semibold mb-3 text-white">Info</h4>
+          <h4 className="font-semibold mb-3 text-white">Informazioni legali</h4>
           <ul className="space-y-2 opacity-80">
             <li>
               <button type="button" onClick={() => openPolicy("privacy")} className="hover:text-yellow-400 text-left">
