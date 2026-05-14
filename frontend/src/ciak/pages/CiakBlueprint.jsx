@@ -21,7 +21,10 @@ export function CiakBlueprint() {
   const startCheckout = async () => {
     setSubmitting(true);
     setError(null);
-    const email = localStorage.getItem("ciak_lead_email") || "";
+    // email opzionale: se il visitatore non ha fatto opt-in la raccoglie
+    // Stripe sulla sua pagina. Inviare "" farebbe fallire la validazione
+    // EmailStr lato backend (422) → niente redirect al checkout.
+    const email = localStorage.getItem("ciak_lead_email") || null;
     try {
       const res = await fetch("/api/checkout/create-session", {
         method: "POST",
@@ -59,12 +62,13 @@ export function CiakBlueprint() {
             La chiarezza strategica per trasformare la tua competenza in un business digitale sostenibile.
           </h1>
           <p className="text-base md:text-lg text-slate-300 leading-relaxed mb-8 max-w-3xl">
-            Attraverso una sessione guidata e una roadmap operativa personalizzata, capisci cosa fare
-            nel tuo caso prima di investire in implementazione.
+            Una sessione strategica di 60 minuti, un'analisi di mercato specifica sul tuo settore
+            e una roadmap operativa personalizzata: capisci cosa fare nel tuo caso prima di
+            investire in implementazione.
           </p>
 
           <p className="text-sm text-slate-400 mb-4">
-            Sessione Strategica + Roadmap Operativa Personalizzata — €67 IVA inclusa
+            Sessione Strategica 60 min + Analisi di Mercato Specifica + Roadmap Operativa Personalizzata — €67 IVA inclusa
           </p>
           <button
             onClick={startCheckout}
@@ -129,8 +133,10 @@ export function CiakBlueprint() {
             Come si svolge
           </h2>
           <p className="text-slate-700 leading-relaxed text-base md:text-lg mb-12 max-w-3xl">
-            Il Blueprint si compone di tre fasi strutturate. Non è una call generica: è un processo
+            Il Blueprint si compone di quattro fasi strutturate. Non è una call generica: è un processo
             guidato che inizia prima della sessione e si conclude con un documento di direzione strategica.
+            L'offerta è composta da tre elementi concreti: la sessione strategica di 60 minuti,
+            un'analisi di mercato specifica sul tuo settore e una roadmap operativa personalizzata.
           </p>
 
           <div className="space-y-8">
@@ -151,7 +157,7 @@ export function CiakBlueprint() {
 
             <div className="bg-white rounded-2xl p-7 border border-gray-200">
               <p className="text-yellow-600 text-xs font-semibold uppercase tracking-widest mb-2">
-                Fase 02 — Durante la sessione (60 minuti, 1:1)
+                Fase 02 — La sessione strategica (60 minuti, 1:1)
               </p>
               <h3 className="text-xl font-semibold text-slate-900 mb-3">
                 Sessione Strategica
@@ -166,7 +172,21 @@ export function CiakBlueprint() {
 
             <div className="bg-white rounded-2xl p-7 border border-gray-200">
               <p className="text-yellow-600 text-xs font-semibold uppercase tracking-widest mb-2">
-                Fase 03 — Dopo la sessione
+                Fase 03 — L'analisi di mercato
+              </p>
+              <h3 className="text-xl font-semibold text-slate-900 mb-3">
+                Analisi di Mercato Specifica
+              </h3>
+              <p className="text-slate-600 leading-relaxed">
+                Una lettura del tuo settore e del tuo posizionamento: come si muove il mercato in cui
+                operi, dove c'è spazio reale, quali leve hanno senso per il tuo modello specifico.
+                Non un report generico, ma un'analisi tarata sul tuo caso.
+              </p>
+            </div>
+
+            <div className="bg-white rounded-2xl p-7 border border-gray-200">
+              <p className="text-yellow-600 text-xs font-semibold uppercase tracking-widest mb-2">
+                Fase 04 — Dopo la sessione
               </p>
               <h3 className="text-xl font-semibold text-slate-900 mb-3">
                 Roadmap Operativa
@@ -235,7 +255,7 @@ export function CiakBlueprint() {
               Richiedi il tuo Ciak Blueprint
             </h3>
             <p className="text-slate-300 mb-6 leading-relaxed">
-              Sessione Strategica + Roadmap Operativa Personalizzata — €67 IVA inclusa
+              Sessione Strategica 60 min + Analisi di Mercato Specifica + Roadmap Operativa Personalizzata — €67 IVA inclusa
             </p>
             <button
               onClick={startCheckout}
