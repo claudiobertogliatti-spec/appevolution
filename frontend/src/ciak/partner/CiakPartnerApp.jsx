@@ -18,6 +18,8 @@ import { F1Posizionamento } from "./phases/F1Posizionamento";
 import { F2FunnelLight } from "./phases/F2FunnelLight";
 import { F4Videocorso } from "./phases/F4Videocorso";
 import { F5Funnel } from "./phases/F5Funnel";
+import { F6Lancio } from "./phases/F6Lancio";
+import { F7Ottimizzazione } from "./phases/F7Ottimizzazione";
 import { STEPS } from "./stepConfig";
 
 // ─── Login ───────────────────────────────────────────────────────────────
@@ -120,6 +122,8 @@ function PhasePage({ partnerId }) {
   if (stepId === "funnel-light") return <F2FunnelLight partnerId={partnerId} />;
   if (stepId === "videocorso") return <F4Videocorso partnerId={partnerId} />;
   if (stepId === "funnel") return <F5Funnel partnerId={partnerId} />;
+  if (stepId === "lancio") return <F6Lancio partnerId={partnerId} />;
+  if (stepId === "ottimizzazione") return <F7Ottimizzazione partnerId={partnerId} />;
   return <PhaseStub />;
 }
 
