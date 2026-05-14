@@ -35,7 +35,7 @@ const NAV = [
   },
   {
     id: "acquisizione",
-    label: "Acquisizione",
+    label: "Acquisizione Clienti",
     pages: [
       { to: "/admin/lead-manager", label: "Lead Manager" },
       { to: "/admin/lista-fredda", label: "Lista Fredda" },
