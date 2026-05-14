@@ -25,9 +25,9 @@ import { ListaFredda } from "./pages/ListaFredda";
 import { ClientiAnalisi } from "./pages/ClientiAnalisi";
 import { Partner } from "./pages/Partner";
 import { Oggi } from "./pages/Oggi";
-import { PipelineProspect } from "./pages/PipelineProspect";
 import { StefaniaAdmin } from "./pages/StefaniaAdmin";
 import { TemplateEmail } from "./pages/TemplateEmail";
+import { PipelineKanban } from "./pages/PipelineKanban";
 
 // ─── Struttura navigazione (macro → pagine) ──────────────────────────────
 
@@ -46,13 +46,13 @@ const NAV = [
     pages: [
       { to: "/admin/lista-fredda", label: "Lista Fredda" },
       { to: "/admin/lead-manager", label: "Lead Manager" },
-      { to: "/admin/leads", label: "Pipeline Prospect" },
+      { to: "/admin/pipeline-prospect", label: "Pipeline Prospect" },
     ],
   },
   {
     id: "clienti-attivi",
     label: "Clienti Attivi",
-    pages: [{ to: "/admin/clienti-analisi", label: "Pipeline Blueprint" }],
+    pages: [{ to: "/admin/pipeline-blueprint", label: "Pipeline Blueprint" }],
   },
   {
     id: "gestione-partner",
@@ -262,27 +262,47 @@ export default function CiakAdminApp() {
           element={<AdminTransactions onAuthExpired={handleLogout} />}
         />
 
-        {/* Acquisizione Clienti — importate da Evolution */}
+        {/* Acquisizione Clienti */}
         <Route path="/admin/lead-manager" element={<LeadManager onAuthExpired={handleLogout} />} />
         <Route path="/admin/lista-fredda" element={<ListaFredda onAuthExpired={handleLogout} />} />
+        <Route
+          path="/admin/pipeline-prospect"
+          element={
+            <PipelineKanban
+              endpoint="/pipeline-prospect"
+              title="Pipeline Prospect"
+              subtitle="Funnel pre-acquisto: iscritto → checkpoint → 8 Domande → report → click €67"
+              onAuthExpired={handleLogout}
+            />
+          }
+        />
+        {/* ClientiAnalisi: pannello clienti €67 — raggiungibile via URL,
+            drill-down dal kanban Pipeline Blueprint */}
         <Route
           path="/admin/clienti-analisi"
           element={<ClientiAnalisi onAuthExpired={handleLogout} />}
         />
 
-        {/* Gestione Partner — importate da Evolution */}
+        {/* Clienti Attivi */}
+        <Route
+          path="/admin/pipeline-blueprint"
+          element={
+            <PipelineKanban
+              endpoint="/pipeline-blueprint"
+              title="Pipeline Blueprint"
+              subtitle="Post-acquisto: blueprint acquistato → call → in trattativa → contratto firmato + pagato"
+              onAuthExpired={handleLogout}
+            />
+          }
+        />
+
+        {/* Gestione Partner */}
         <Route path="/admin/partner" element={<Partner onAuthExpired={handleLogout} />} />
         <Route path="/admin/partner/:id" element={<SectionStub />} />
         <Route path="/admin/oggi" element={<Oggi onAuthExpired={handleLogout} />} />
-        {/* Quarantena / Ex Partner — sezioni nuove, stub (vedi note migrazione) */}
+        {/* Quarantena / Ex Partner — sezioni nuove, stub (richiedono campo stato backend) */}
         <Route path="/admin/quarantena-partner" element={<SectionStub />} />
         <Route path="/admin/ex-partner" element={<SectionStub />} />
-        {/* Kanban prospect Evolution — disponibile ma non in nav (sostituito da
-            Pipeline Prospect = Leads Ciak). Lasciato raggiungibile via URL. */}
-        <Route
-          path="/admin/pipeline-prospect"
-          element={<PipelineProspect onAuthExpired={handleLogout} />}
-        />
 
         {/* Strumenti — importate da Evolution (KB Matteo: stub, richiede backend) */}
         <Route path="/admin/stefania" element={<StefaniaAdmin onAuthExpired={handleLogout} />} />

@@ -355,3 +355,164 @@ async def ciak_transactions(
         "offset": offset,
         "items": page,
     }
+
+
+# ─── Pipeline kanban (da memory: ciak_technical_spec.md, state machine 10 stati) ──
+
+# Pipeline Prospect — pre-acquisto €67. Colonne in ordine di funnel.
+_PROSPECT_COLUMNS = [
+    ("iscritto", "Iscritto masterclass"),
+    ("checkpoint", "Checkpoint compilato"),
+    ("diagnostica", "8 Domande completate"),
+    ("report", "Report Matteo"),
+    ("click_67", "Click checkout €67"),
+]
+_PROSPECT_RANK = {k: i for i, (k, _) in enumerate(_PROSPECT_COLUMNS)}
+_PROSPECT_STATE_TO_STAGE = {
+    "lead_created": "iscritto",
+    "ciak_started": "iscritto",
+    "ciak_completed": "diagnostica",
+    "report_generated": "report",
+    "clicked_67": "click_67",
+}
+
+# Pipeline Blueprint — post-acquisto €67. Colonne in ordine di funnel.
+_BLUEPRINT_COLUMNS = [
+    ("acquistato", "Blueprint acquistato"),
+    ("call_prenotata", "Call prenotata"),
+    ("call_fatta", "Call fatta"),
+    ("in_trattativa", "In trattativa"),
+    ("contratto_pagato", "Contratto firmato + pagato"),
+]
+_BLUEPRINT_RANK = {k: i for i, (k, _) in enumerate(_BLUEPRINT_COLUMNS)}
+_BLUEPRINT_STATE_TO_STAGE = {
+    "purchased_67": "acquistato",
+    "call_booked": "call_prenotata",
+    "call_done": "call_fatta",
+    "partner_approved": "contratto_pagato",
+    "partner_active": "contratto_pagato",
+}
+
+
+def _columns_from_entries(entries: dict, columns_def: list) -> list:
+    """entries: email → {email, nome, stage, updated_at, session_token}.
+    Restituisce la struttura colonne per il kanban."""
+    by_stage: dict = {k: [] for k, _ in columns_def}
+    for e in entries.values():
+        st = e.get("stage")
+        if st in by_stage:
+            by_stage[st].append(e)
+    for items in by_stage.values():
+        items.sort(key=lambda x: x.get("updated_at") or "", reverse=True)
+    return [
+        {"id": k, "label": label, "count": len(by_stage[k]), "items": by_stage[k]}
+        for k, label in columns_def
+    ]
+
+
+@router.get("/pipeline-prospect")
+async def pipeline_prospect(admin=Depends(require_ciak_admin)):
+    """
+    Pipeline Prospect — funnel PRE-acquisto €67 in formato kanban.
+    Unisce ciak_leads + ciak_checkpoint_events + diagnostic_sessions per email,
+    calcola lo stadio più avanzato. Esclude chi ha già acquistato (→ Pipeline Blueprint).
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    # Email che hanno già acquistato → fuori da questa pipeline
+    purchased = set()
+    async for d in db.diagnostic_sessions.find(
+        {"current_state": {"$in": list(_PURCHASED_STATES)}}, {"user_email": 1}
+    ):
+        if d.get("user_email"):
+            purchased.add(d["user_email"])
+
+    entries: dict = {}
+
+    def _bump(email, stage, nome=None, updated_at=None, token=None):
+        if not email or email in purchased:
+            return
+        e = entries.get(email)
+        if e is None:
+            e = {"email": email, "nome": nome, "stage": stage,
+                 "updated_at": updated_at, "session_token": token}
+            entries[email] = e
+            return
+        if _PROSPECT_RANK.get(stage, -1) > _PROSPECT_RANK.get(e["stage"], -1):
+            e["stage"] = stage
+            e["updated_at"] = updated_at or e["updated_at"]
+            if token:
+                e["session_token"] = token
+        if nome and not e.get("nome"):
+            e["nome"] = nome
+
+    async for l in db.ciak_leads.find({}):
+        _bump(l.get("email"), "iscritto", l.get("nome"), l.get("created_at"))
+    async for c in db.ciak_checkpoint_events.find({}):
+        _bump(c.get("email"), "checkpoint", None, c.get("created_at"))
+    async for d in db.diagnostic_sessions.find({}):
+        stage = _PROSPECT_STATE_TO_STAGE.get(d.get("current_state"))
+        if stage:
+            _bump(d.get("user_email"), stage, d.get("user_name"),
+                  d.get("created_at"), d.get("session_token"))
+
+    columns = _columns_from_entries(entries, _PROSPECT_COLUMNS)
+    return {"columns": columns, "total": sum(c["count"] for c in columns)}
+
+
+@router.get("/pipeline-blueprint")
+async def pipeline_blueprint(admin=Depends(require_ciak_admin)):
+    """
+    Pipeline Blueprint — journey POST-acquisto €67 in formato kanban.
+    Fonte: diagnostic_sessions (state machine) + ciak_orphan_purchases.
+    Arricchimento "in trattativa" / "contratto pagato" da `proposte` (best-effort, per email).
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    # Proposte indicizzate per email (best-effort: prova più campi email)
+    proposte_by_email: dict = {}
+    async for p in db.proposte.find({}):
+        em = p.get("prospect_email") or p.get("email") or p.get("user_email")
+        if em:
+            proposte_by_email[em] = p
+
+    entries: dict = {}
+
+    def _bump(email, stage, nome=None, updated_at=None, token=None):
+        if not email:
+            return
+        e = entries.get(email)
+        if e is None:
+            entries[email] = {"email": email, "nome": nome, "stage": stage,
+                              "updated_at": updated_at, "session_token": token}
+            return
+        if _BLUEPRINT_RANK.get(stage, -1) > _BLUEPRINT_RANK.get(e["stage"], -1):
+            e["stage"] = stage
+            e["updated_at"] = updated_at or e["updated_at"]
+            if token:
+                e["session_token"] = token
+        if nome and not e.get("nome"):
+            e["nome"] = nome
+
+    async for d in db.diagnostic_sessions.find(
+        {"current_state": {"$in": list(_PURCHASED_STATES)}}
+    ):
+        stage = _BLUEPRINT_STATE_TO_STAGE.get(d.get("current_state"), "acquistato")
+        em = d.get("user_email")
+        _bump(em, stage, d.get("user_name"), d.get("created_at"), d.get("session_token"))
+        # Arricchimento da proposta collegata
+        prop = proposte_by_email.get(em) if em else None
+        if prop:
+            if prop.get("pagamento_completato"):
+                _bump(em, "contratto_pagato", None, prop.get("contratto_firmato_at"))
+            elif prop.get("stato") in ("inviata", "vista", "accettata", "contratto_firmato"):
+                _bump(em, "in_trattativa", None, prop.get("accettato_at") or prop.get("visto_at"))
+
+    # Acquisti orfani — colonna "acquistato"
+    async for o in db.ciak_orphan_purchases.find({}):
+        _bump(o.get("customer_email"), "acquistato", None, o.get("created_at"))
+
+    columns = _columns_from_entries(entries, _BLUEPRINT_COLUMNS)
+    return {"columns": columns, "total": sum(c["count"] for c in columns)}
