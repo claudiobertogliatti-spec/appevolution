@@ -1,21 +1,66 @@
 /**
  * Ciak Admin — entry point del pannello admin (ciak.io/admin).
  *
- * Montato da CiakApp.jsx su route /admin/*. Gestisce:
- *  - Auth gate: login form se nessun token valido in localStorage
- *  - Shell: sidebar Ciak (palette slate/yellow) + area contenuto
- *  - Routing interno: /admin (dashboard), /admin/leads, /admin/leads/:email, /admin/transactions
+ * Sidebar a MACRO-VOCI: la sidebar mostra solo le 4 macro; al passaggio del
+ * mouse si apre un flyout con le pagine della macro.
+ *  - Dashboard        → KPI · Leads & Pipeline · Transazioni
+ *  - Acquisizione     → Lead Manager · Lista Fredda · Clienti Analisi
+ *  - Gestione Partner → Partner · Operatività/Oggi · Pipeline Prospect
+ *  - Strumenti        → Stefania AI · KB Matteo · Template Email
  *
- * Auth: riusa il role `admin` esistente (Claudio + Antonella) via /api/auth/login.
- * Nessun nuovo role. Token in localStorage `ciak_admin_token` (isolato dal sito pubblico).
+ * Le pagine di "Dashboard" esistono già (funnel Ciak €67). Le altre macro
+ * sono stub finché non vengono importati i componenti dal back-office Evolution.
+ *
+ * Auth: role `admin` via /api/auth/login. Token in localStorage `ciak_admin_token`.
  */
 import { useState } from "react";
-import { Routes, Route, NavLink, Navigate, useNavigate } from "react-router-dom";
+import { Routes, Route, NavLink, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { getToken, getAdminUser, clearSession, login } from "./api";
 import { AdminDashboard } from "./pages/AdminDashboard";
 import { AdminLeads } from "./pages/AdminLeads";
 import { AdminLeadDetail } from "./pages/AdminLeadDetail";
 import { AdminTransactions } from "./pages/AdminTransactions";
+
+// ─── Struttura navigazione (macro → pagine) ──────────────────────────────
+
+const NAV = [
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    pages: [
+      { to: "/admin", label: "KPI", end: true },
+      { to: "/admin/leads", label: "Leads & Pipeline" },
+      { to: "/admin/transactions", label: "Transazioni" },
+    ],
+  },
+  {
+    id: "acquisizione",
+    label: "Acquisizione",
+    pages: [
+      { to: "/admin/lead-manager", label: "Lead Manager" },
+      { to: "/admin/lista-fredda", label: "Lista Fredda" },
+      { to: "/admin/clienti-analisi", label: "Clienti Analisi" },
+    ],
+  },
+  {
+    id: "gestione-partner",
+    label: "Gestione Partner",
+    pages: [
+      { to: "/admin/partner", label: "Partner" },
+      { to: "/admin/oggi", label: "Operatività / Oggi" },
+      { to: "/admin/pipeline-prospect", label: "Pipeline Prospect" },
+    ],
+  },
+  {
+    id: "strumenti",
+    label: "Strumenti",
+    pages: [
+      { to: "/admin/stefania", label: "Stefania AI" },
+      { to: "/admin/kb-matteo", label: "KB Matteo" },
+      { to: "/admin/template-email", label: "Template Email" },
+    ],
+  },
+];
 
 // ─── Login ───────────────────────────────────────────────────────────────
 
@@ -34,11 +79,8 @@ function LoginScreen({ onLogin }) {
     setError(null);
     const res = await login(email, password);
     setBusy(false);
-    if (res.ok) {
-      onLogin(res.user);
-    } else {
-      setError(res.error);
-    }
+    if (res.ok) onLogin(res.user);
+    else setError(res.error);
   };
 
   return (
@@ -79,40 +121,66 @@ function LoginScreen({ onLogin }) {
   );
 }
 
-// ─── Shell ───────────────────────────────────────────────────────────────
+// ─── Sidebar a macro-voci con flyout al hover ────────────────────────────
 
-const NAV = [
-  { to: "/admin", label: "Dashboard", end: true },
-  { to: "/admin/leads", label: "Leads & Pipeline" },
-  { to: "/admin/transactions", label: "Transazioni" },
-];
-
-function AdminShell({ user, onLogout, children }) {
+function MacroItem({ macro, currentPath }) {
+  const isActive = macro.pages.some((p) =>
+    p.end ? currentPath === p.to : currentPath.startsWith(p.to)
+  );
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <aside className="w-60 bg-slate-900 text-white flex flex-col flex-shrink-0">
-        <div className="px-6 py-5 border-b border-slate-800">
-          <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest">
-            Ciak
+    <div className="group relative">
+      {/* Macro-voce: link alla prima pagina della macro */}
+      <NavLink
+        to={macro.pages[0].to}
+        className={`block px-3 py-2.5 rounded-lg text-sm transition ${
+          isActive
+            ? "bg-slate-800 text-yellow-400 font-medium"
+            : "text-slate-300 hover:bg-slate-800/60"
+        }`}
+      >
+        {macro.label}
+      </NavLink>
+
+      {/* Flyout: appare al hover sulla macro, mostra le pagine */}
+      <div className="absolute left-full top-0 ml-1 hidden group-hover:block z-50">
+        <div className="bg-slate-800 rounded-lg shadow-xl border border-slate-700 py-2 min-w-[200px]">
+          <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+            {macro.label}
           </p>
-          <p className="text-sm text-slate-400 mt-0.5">Area Admin</p>
-        </div>
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          {NAV.map((item) => (
+          {macro.pages.map((p) => (
             <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                `block px-3 py-2 rounded-lg text-sm transition ${
-                  isActive
-                    ? "bg-slate-800 text-yellow-400 font-medium"
-                    : "text-slate-300 hover:bg-slate-800/60"
+              key={p.to}
+              to={p.to}
+              end={p.end}
+              className={({ isActive: a }) =>
+                `block px-3 py-2 text-sm transition ${
+                  a
+                    ? "text-yellow-400 font-medium bg-slate-700/50"
+                    : "text-slate-300 hover:bg-slate-700/50"
                 }`
               }
             >
-              {item.label}
+              {p.label}
             </NavLink>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdminShell({ user, onLogout, children }) {
+  const { pathname } = useLocation();
+  return (
+    <div className="min-h-screen bg-gray-50 flex">
+      <aside className="w-56 bg-slate-900 text-white flex flex-col flex-shrink-0">
+        <div className="px-6 py-5 border-b border-slate-800">
+          <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest">Ciak</p>
+          <p className="text-sm text-slate-400 mt-0.5">Area Admin</p>
+        </div>
+        <nav className="flex-1 px-3 py-4 space-y-1">
+          {NAV.map((macro) => (
+            <MacroItem key={macro.id} macro={macro} currentPath={pathname} />
           ))}
         </nav>
         <div className="px-3 py-4 border-t border-slate-800">
@@ -127,6 +195,25 @@ function AdminShell({ user, onLogout, children }) {
         </div>
       </aside>
       <main className="flex-1 overflow-auto">{children}</main>
+    </div>
+  );
+}
+
+// ─── Stub sezioni non ancora importate da Evolution ──────────────────────
+
+function SectionStub() {
+  const { pathname } = useLocation();
+  const label =
+    NAV.flatMap((m) => m.pages).find((p) => pathname.startsWith(p.to))?.label || "Sezione";
+  return (
+    <div className="p-10 max-w-xl">
+      <h1 className="text-2xl font-semibold text-slate-900 mb-2">{label}</h1>
+      <div className="bg-yellow-50 border border-yellow-300 rounded-2xl p-5">
+        <p className="text-sm text-slate-700">
+          Questa sezione sta per essere importata dal back-office Evolution PRO. La struttura
+          della sidebar è già definita — il contenuto arriva con la prossima fase di import.
+        </p>
+      </div>
     </div>
   );
 }
@@ -150,10 +237,33 @@ export default function CiakAdminApp() {
   return (
     <AdminShell user={user} onLogout={handleLogout}>
       <Routes>
+        {/* Dashboard — pagine reali (funnel Ciak €67) */}
         <Route path="/admin" element={<AdminDashboard onAuthExpired={handleLogout} />} />
         <Route path="/admin/leads" element={<AdminLeads onAuthExpired={handleLogout} />} />
-        <Route path="/admin/leads/:email" element={<AdminLeadDetail onAuthExpired={handleLogout} />} />
-        <Route path="/admin/transactions" element={<AdminTransactions onAuthExpired={handleLogout} />} />
+        <Route
+          path="/admin/leads/:email"
+          element={<AdminLeadDetail onAuthExpired={handleLogout} />}
+        />
+        <Route
+          path="/admin/transactions"
+          element={<AdminTransactions onAuthExpired={handleLogout} />}
+        />
+
+        {/* Acquisizione — stub finché non importate da Evolution */}
+        <Route path="/admin/lead-manager" element={<SectionStub />} />
+        <Route path="/admin/lista-fredda" element={<SectionStub />} />
+        <Route path="/admin/clienti-analisi" element={<SectionStub />} />
+
+        {/* Gestione Partner — stub */}
+        <Route path="/admin/partner" element={<SectionStub />} />
+        <Route path="/admin/oggi" element={<SectionStub />} />
+        <Route path="/admin/pipeline-prospect" element={<SectionStub />} />
+
+        {/* Strumenti — stub */}
+        <Route path="/admin/stefania" element={<SectionStub />} />
+        <Route path="/admin/kb-matteo" element={<SectionStub />} />
+        <Route path="/admin/template-email" element={<SectionStub />} />
+
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
     </AdminShell>
