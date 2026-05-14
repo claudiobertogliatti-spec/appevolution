@@ -43,14 +43,18 @@ export async function login(email, password) {
       return { ok: false, error: res.status === 401 ? "Email o password non corretti" : "Errore di accesso" };
     }
     const data = await res.json();
-    if (data.role !== "admin" && data.role !== "superadmin") {
+    // L'endpoint /api/auth/login (server.py) restituisce i dati utente
+    // annidati in data.user — NON piatti. (routers/auth.py ha un modello
+    // Token piatto ma è solo "prepared for migration", non usato.)
+    const u = data.user || {};
+    if (u.role !== "admin" && u.role !== "superadmin") {
       return { ok: false, error: "Questo account non ha accesso all'area admin" };
     }
     const user = {
-      user_id: data.user_id,
-      role: data.role,
-      name: data.name,
-      admin_type: data.admin_type || "claudio",
+      user_id: u.id,
+      role: u.role,
+      name: u.name,
+      admin_type: u.admin_type || "claudio",
     };
     setSession(data.access_token, user);
     return { ok: true, user };
