@@ -30,6 +30,8 @@ import { TemplateEmail } from "./pages/TemplateEmail";
 import { PipelineList } from "./pages/PipelineList";
 import { QuarantenaPartner } from "./pages/QuarantenaPartner";
 import { ExPartner } from "./pages/ExPartner";
+import { VideoReview } from "./pages/VideoReview";
+import { PartnerDocumenti } from "./pages/PartnerDocumenti";
 
 // ─── Struttura navigazione (macro → pagine) ──────────────────────────────
 
@@ -57,6 +59,8 @@ const NAV = [
     pages: [
       { to: "/admin/oggi", label: "Operatività Oggi" },
       { to: "/admin/partner", label: "Pipeline Partner" },
+      { to: "/admin/video-review", label: "Video Review" },
+      { to: "/admin/documenti-partner", label: "Documenti Partner" },
       { to: "/admin/quarantena-partner", label: "Quarantena Partner" },
       { to: "/admin/ex-partner", label: "Ex Partner" },
     ],
@@ -312,6 +316,12 @@ export default function CiakAdminApp() {
         <Route path="partner" element={<PipelinePartner onAuthExpired={handleLogout} />} />
         <Route path="partner/:id" element={<SectionStub />} />
         <Route path="oggi" element={<Oggi onAuthExpired={handleLogout} />} />
+        {/* Video Review + Documenti Partner — importate da Evolution PRO */}
+        <Route path="video-review" element={<VideoReview onAuthExpired={handleLogout} />} />
+        <Route
+          path="documenti-partner"
+          element={<PartnerDocumenti onAuthExpired={handleLogout} />}
+        />
         {/* Quarantena / Ex Partner — gestione piani rateali + stato partner */}
         <Route
           path="quarantena-partner"
