@@ -1,80 +1,91 @@
 /**
  * Checkpoint Strategico — 5 domande post-masterclass.
  *
- * Spec lockata 2026-05-12 (memory/ciak_brand_copy_framework.md).
+ * Spec lockata 2026-05-13 (memory/ciak_brand_copy_framework.md — review Claudio).
  *
- *  - 5 domande (coerente con "I 5 Errori")
- *  - Risposte de-ordinate (l'opzione a 3 punti NON è mai sempre la prima)
+ *  - 5 domande, una alla volta, con micro-bridge copy tra una e l'altra
+ *  - 4 opzioni per domanda: S1=0 / S2=1 / S3=2 / S4=3 (lo score == Stato-1)
+ *  - Opzioni de-ordinate (seed deterministico = email lead) per evitare bias posizione
  *  - Scenari comportamentali, non auto-valutazioni gerarchiche
  *  - Output = "Stato Strategico Attuale" + Stato 1-4 + 3 righe interpretazione
- *  - NO gating, NO grafici/gauge/percentuali
+ *  - NO gating, NO grafici/gauge/percentuali — tono "specchio strategico", non "test"
  *  - Frase ponte obbligatoria prima del risultato
  *  - CTA "Richiedi il tuo Ciak Blueprint" alla fine
  *
- * Naming Stati lockato:
- *  Stato 1 — Definizione
- *  Stato 2 — Strutturazione
- *  Stato 3 — Validazione
- *  Stato 4 — Evoluzione Strategica
+ * Scoring:
+ *  - Totale 0-15 → 0-3 S1 / 4-7 S2 / 8-11 S3 / 12-15 S4
+ *  - Override (più severi delle 8 Domande): Q1/Q2/Q3 = S1 → MAX Stato 2
  *
  * Backend POST /api/checkpoint/result (fire-and-forget):
- *  body { email, answers: [int,...], stato_finale, total_score, source: "masterclass" }
- *  Backend emette tag Systeme "ciak_checkpoint_stato_<n>" + audit log.
+ *  body { email, answers: [score,...], stato_finale, total_score, source }
+ *  answers = score scelti per Q1..Q5 in ORDINE FISSO (indipendente dal de-ordering).
+ *  Backend ricalcola stato + override server-side e emette tag Systeme.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
+// Ogni opzione: { text, score }. score == Stato-1 (S1=0, S2=1, S3=2, S4=3).
+// L'ordine qui è canonico (S1→S4); il de-ordering avviene a runtime.
 const QUESTIONS = [
   {
     id: 1,
-    text: "Pensando alla tua offerta professionale attuale, quale frase descrive meglio la situazione di oggi?",
+    text: "Pensando alla tua attività professionale negli ultimi 6 mesi, qual è la formulazione più vicina alla realtà?",
     options: [
-      { text: "Ho diverse versioni della mia proposta che adatto di volta in volta al cliente.", score: 1 },
-      { text: "So cosa offro, ma renderlo comprensibile online a chi non mi conosce è ancora un problema.", score: 2 },
-      { text: "Quando qualcuno mi chiede cosa faccio, ho una risposta strutturata che le persone riconoscono come servizio professionale.", score: 3 },
-      { text: "Sto ancora valutando quale forma dare a un'eventuale offerta digitale.", score: 0 },
+      { text: "Sto valutando se ha senso costruire un'offerta digitale a partire dalla mia competenza.", score: 0 },
+      { text: "Ho un'idea di offerta digitale ma non l'ho ancora strutturata.", score: 1 },
+      { text: "Ho un'offerta digitale attiva e qualche cliente, ma non sta crescendo come dovrebbe.", score: 2 },
+      { text: "Ho un'offerta digitale che funziona, sto valutando come farla evolvere in modo sostenibile.", score: 3 },
     ],
   },
   {
     id: 2,
-    text: "Pensando agli ultimi 90 giorni, dove è andata la maggior parte del tuo tempo professionale?",
+    text: "Negli ultimi 90 giorni, rispetto a questo specifico modello digitale o online che stai costruendo:",
     options: [
-      { text: "A creare contenuti, pubblicare, costruire visibilità.", score: 2 },
-      { text: "A erogare percorsi o prodotti strutturati a clienti che li hanno acquistati.", score: 3 },
-      { text: "A ragionare sulla direzione da prendere, senza una struttura ancora definita.", score: 0 },
-      { text: "A sessioni 1:1 e progetti su misura.", score: 1 },
+      { text: "Non ho ancora avuto clienti paganti.", score: 0 },
+      { text: "Ho avuto qualche cliente o richiesta, ma in modo occasionale.", score: 1 },
+      { text: "Ho già clienti paganti, ma il sistema non è ancora stabile o prevedibile.", score: 2 },
+      { text: "Il modello genera clienti in modo relativamente prevedibile.", score: 3 },
     ],
   },
   {
     id: 3,
-    text: "Negli ultimi 6 mesi, quale di queste affermazioni è più vera per il tuo lavoro online?",
+    text: "Quando guardi cosa hai costruito intorno alla tua competenza, cosa descrive meglio la situazione?",
     options: [
-      { text: "Pubblico costantemente ma non riesco a misurare cosa stia effettivamente funzionando.", score: 1 },
-      { text: "Non ho ancora attività online che producano dati misurabili.", score: 0 },
-      { text: "Ho dati concreti di vendite o contatti qualificati generati da canali digitali.", score: 3 },
-      { text: "Ho ricevuto interesse e contatti, ma non ho ancora un sistema di conversione regolare.", score: 2 },
+      { text: "Non c'è ancora una struttura, sto ancora capendo da dove iniziare.", score: 0 },
+      { text: "C'è qualcosa, ma è disordinato — pubblico, parlo, ma manca un sistema dietro.", score: 1 },
+      { text: "C'è una struttura, ma sento che alcuni colli di bottiglia stanno rallentando la crescita.", score: 2 },
+      { text: "C'è una struttura solida, mi interessa capire cosa ottimizzare per scalare in modo sostenibile.", score: 3 },
     ],
   },
   {
     id: 4,
-    text: "Se dovessi indicare la priorità più pressante per i prossimi tre mesi, quale ti rispecchia di più?",
+    text: "Pensando ai prossimi 6 mesi del tuo modello professionale:",
     options: [
-      { text: "Capire se ha senso entrare nel mondo online o restare offline.", score: 0 },
-      { text: "Strutturare per la prima volta un'offerta digitale chiara.", score: 1 },
-      { text: "Ottimizzare ciò che già funziona per produrre risultati più stabili.", score: 3 },
-      { text: "Capire perché alcune cose funzionano e altre no, prima di fare ulteriori mosse.", score: 2 },
+      { text: "Mi manca chiarezza su cosa fare prima e in che ordine.", score: 0 },
+      { text: "So più o meno cosa voglio, ma non come arrivarci in modo strutturato.", score: 1 },
+      { text: "Ho una direzione, ma vorrei validarla con uno sguardo esterno prima di accelerare.", score: 2 },
+      { text: "Ho una direzione chiara, mi serve un confronto strategico per definire le prossime priorità.", score: 3 },
     ],
   },
   {
     id: 5,
-    text: "Se domani dovessi prendere una decisione importante per la crescita del tuo progetto online, quale frase descrive meglio la tua situazione?",
+    text: "Negli ultimi 12 mesi, rispetto alla crescita della tua attività:",
     options: [
-      { text: "Mi rendo conto che è proprio questa difficoltà a portarmi qui.", score: 1 },
-      { text: "Non sono ancora in una fase in cui prendo decisioni di questo tipo.", score: 0 },
-      { text: "Avrei un'idea, ma vorrei una conferma da chi ha già visto traiettorie simili.", score: 2 },
-      { text: "Saprei esattamente dove intervenire perché ho già un sistema chiaro davanti a me.", score: 3 },
+      { text: "Sto ancora cercando di capire da dove abbia senso partire.", score: 0 },
+      { text: "Ho provato strumenti, corsi o servizi senza ottenere una direzione chiara.", score: 1 },
+      { text: "Alcune cose hanno funzionato, ma sento che manca ancora coerenza nel sistema.", score: 2 },
+      { text: "Ho già una struttura operativa e sto valutando come ottimizzarla.", score: 3 },
     ],
   },
+];
+
+// Micro-bridge copy mostrato DOPO la risposta alla domanda i (indice 0-3).
+// Tono osservativo, no energia da closer. Dopo Q5 non c'è bridge → risultato.
+const BRIDGES = [
+  "Bene. Ora guardiamo cosa sta succedendo concretamente intorno a questa direzione.",
+  "Chiaro. Spostiamo lo sguardo su cosa hai costruito finora intorno alla tua competenza.",
+  "Ricevuto. Vediamo ora dove stai puntando nei prossimi mesi.",
+  "Ultimo passaggio. Uno sguardo indietro: cosa hai già provato per arrivare fin qui.",
 ];
 
 const STATE_TEXTS = {
@@ -96,48 +107,139 @@ const STATE_TEXTS = {
   },
 };
 
+// --- Scoring ---------------------------------------------------------------
+
 function classifyStato(total) {
   if (total <= 3) return 1;
-  if (total <= 8) return 2;
-  if (total <= 12) return 3;
+  if (total <= 7) return 2;
+  if (total <= 11) return 3;
   return 4;
 }
 
+/**
+ * Override pre-acquisto: Q1/Q2/Q3 = S1 (score 0) → MAX Stato 2.
+ * answerScores = score scelti per Q1..Q5 in ordine fisso.
+ */
+function applyOverrides(statoBase, answerScores) {
+  const triggered = [0, 1, 2].some((i) => answerScores[i] === 0);
+  return triggered && statoBase > 2 ? 2 : statoBase;
+}
+
+// --- De-ordering deterministico -------------------------------------------
+
+// Hash stringa → int (per seed deterministico dall'email).
+function hashSeed(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i += 1) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+// PRNG mulberry32 — deterministico dato un seed.
+function mulberry32(seed) {
+  let a = seed;
+  return function next() {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Restituisce QUESTIONS con le opzioni mescolate in modo deterministico
+// per seed. Stesso utente → stesso ordine; utenti diversi → ordini diversi.
+function deorderQuestions(seed) {
+  const rand = mulberry32(seed);
+  return QUESTIONS.map((q, qi) => {
+    const opts = q.options.slice();
+    // Fisher-Yates con PRNG seedato, offset per domanda così ogni
+    // domanda ha un ordine indipendente.
+    for (let r = 0; r < qi + 1; r += 1) rand();
+    for (let i = opts.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(rand() * (i + 1));
+      [opts[i], opts[j]] = [opts[j], opts[i]];
+    }
+    return { ...q, options: opts };
+  });
+}
+
+// --- Componente ------------------------------------------------------------
+
 export function CheckpointStrategico({ source = "masterclass" }) {
-  const [answers, setAnswers] = useState({}); // { questionId: optionIndex }
-  const [submitted, setSubmitted] = useState(false);
+  const leadEmail = useMemo(
+    () => localStorage.getItem("ciak_lead_email") || "",
+    []
+  );
+
+  // Seed: email se disponibile, altrimenti seed stabile per la sessione.
+  const seed = useMemo(() => {
+    if (leadEmail) return hashSeed(leadEmail);
+    const key = "ciak_checkpoint_seed";
+    let s = sessionStorage.getItem(key);
+    if (!s) {
+      s = String(Math.floor(Math.random() * 4294967296));
+      sessionStorage.setItem(key, s);
+    }
+    return Number(s);
+  }, [leadEmail]);
+
+  const questions = useMemo(() => deorderQuestions(seed), [seed]);
+
+  // phase: "intro" | "question" | "bridge" | "result"
+  const [phase, setPhase] = useState("intro");
+  const [step, setStep] = useState(0); // indice domanda corrente (0-4)
+  const [answers, setAnswers] = useState({}); // { questionId: score }
   const [stato, setStato] = useState(null);
-  const [total, setTotal] = useState(0);
 
-  const allAnswered = Object.keys(answers).length === QUESTIONS.length;
+  const currentQ = questions[step];
+  const answeredCurrent = currentQ && answers[currentQ.id] !== undefined;
 
-  const onSelect = (qId, optIndex) => {
-    if (submitted) return;
-    setAnswers((prev) => ({ ...prev, [qId]: optIndex }));
+  const start = () => {
+    setPhase("question");
+    setStep(0);
   };
 
-  const onSubmit = () => {
-    if (!allAnswered) return;
-    let totalScore = 0;
-    const answerScores = [];
-    QUESTIONS.forEach((q) => {
-      const idx = answers[q.id];
-      const score = q.options[idx].score;
-      totalScore += score;
-      answerScores.push(score);
-    });
-    const finalStato = classifyStato(totalScore);
-    setTotal(totalScore);
-    setStato(finalStato);
-    setSubmitted(true);
+  const selectOption = (score) => {
+    setAnswers((prev) => ({ ...prev, [currentQ.id]: score }));
+  };
 
-    // Fire-and-forget al backend (tag Systeme + audit log)
-    const email = localStorage.getItem("ciak_lead_email") || null;
+  const goNext = () => {
+    if (!answeredCurrent) return;
+    if (step < QUESTIONS.length - 1) {
+      setPhase("bridge");
+    } else {
+      finish();
+    }
+  };
+
+  const goBack = () => {
+    if (step === 0) return;
+    setStep((s) => s - 1);
+    setPhase("question");
+  };
+
+  const continueAfterBridge = () => {
+    setStep((s) => s + 1);
+    setPhase("question");
+  };
+
+  const finish = () => {
+    // answers ordinate per Q1..Q5 (ordine fisso, indipendente dal de-ordering)
+    const answerScores = QUESTIONS.map((q) => answers[q.id] ?? 0);
+    const totalScore = answerScores.reduce((a, b) => a + b, 0);
+    const finalStato = applyOverrides(classifyStato(totalScore), answerScores);
+    setStato(finalStato);
+    setPhase("result");
+
+    // Fire-and-forget al backend (ricalcola + tag Systeme + audit log)
     fetch("/api/checkpoint/result", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        email,
+        email: leadEmail || null,
         answers: answerScores,
         stato_finale: finalStato,
         total_score: totalScore,
@@ -145,16 +247,18 @@ export function CheckpointStrategico({ source = "masterclass" }) {
       }),
     }).catch(() => null);
 
-    // Scroll all'output
     setTimeout(() => {
-      document.getElementById("ep-checkpoint-result")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document
+        .getElementById("ep-checkpoint-result")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 100);
   };
 
   return (
     <section className="bg-white">
-      <div className="mx-auto max-w-3xl px-6 py-16">
-        {!submitted ? (
+      <div className="mx-auto max-w-2xl px-6 py-16">
+        {/* INTRO */}
+        {phase === "intro" && (
           <>
             <p className="text-yellow-600 text-xs font-semibold uppercase tracking-widest mb-3">
               Checkpoint Strategico
@@ -162,63 +266,109 @@ export function CheckpointStrategico({ source = "masterclass" }) {
             <h2 className="text-2xl md:text-3xl font-semibold text-slate-900 mb-4 leading-tight">
               Fissa la tua posizione attuale.
             </h2>
-            <p className="text-slate-600 leading-relaxed mb-10">
-              Cinque domande secche per restituirti una lettura del tuo Stato Strategico Attuale.
-              Non è un quiz: è uno strumento di auto-diagnosi. Risposta libera, nessun obbligo, nessun gating.
+            <p className="text-slate-600 leading-relaxed mb-8">
+              Cinque domande secche per restituirti una lettura del tuo Stato
+              Strategico Attuale. Non è un quiz: è una lettura strategica guidata.
+              Risposta libera, nessun obbligo, nessun gating. Meno di due minuti.
             </p>
+            <button
+              type="button"
+              onClick={start}
+              className="px-8 py-4 rounded-lg bg-slate-900 text-yellow-400 font-semibold hover:bg-slate-800 transition"
+            >
+              Inizia il Checkpoint
+            </button>
+          </>
+        )}
 
-            <div className="space-y-10">
-              {QUESTIONS.map((q, qIdx) => (
-                <div key={q.id} className="border-l-2 border-gray-200 pl-5">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">
-                    Domanda {qIdx + 1} di {QUESTIONS.length}
-                  </p>
-                  <h3 className="text-base md:text-lg font-medium text-slate-900 mb-4 leading-snug">
-                    {q.text}
-                  </h3>
-                  <div className="space-y-2">
-                    {q.options.map((opt, optIdx) => {
-                      const selected = answers[q.id] === optIdx;
-                      return (
-                        <button
-                          key={optIdx}
-                          type="button"
-                          onClick={() => onSelect(q.id, optIdx)}
-                          className={`w-full text-left px-4 py-3 rounded-lg border transition text-sm md:text-base leading-snug ${
-                            selected
-                              ? "bg-slate-900 text-white border-slate-900"
-                              : "bg-white text-slate-700 border-gray-200 hover:border-slate-400"
-                          }`}
-                        >
-                          {opt.text}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+        {/* DOMANDA */}
+        {phase === "question" && currentQ && (
+          <>
+            <div className="flex items-center justify-between mb-6">
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+                Domanda {step + 1} di {QUESTIONS.length}
+              </p>
+              <div className="flex gap-1.5">
+                {QUESTIONS.map((_, i) => (
+                  <span
+                    key={i}
+                    className={`h-1.5 w-6 rounded-full ${
+                      i <= step ? "bg-slate-900" : "bg-gray-200"
+                    }`}
+                  />
+                ))}
+              </div>
             </div>
 
-            <div className="mt-12 flex flex-col items-center">
+            <h3 className="text-lg md:text-xl font-medium text-slate-900 mb-6 leading-snug">
+              {currentQ.text}
+            </h3>
+
+            <div className="space-y-2">
+              {currentQ.options.map((opt, optIdx) => {
+                const selected = answers[currentQ.id] === opt.score;
+                return (
+                  <button
+                    key={optIdx}
+                    type="button"
+                    onClick={() => selectOption(opt.score)}
+                    className={`w-full text-left px-4 py-3 rounded-lg border transition text-sm md:text-base leading-snug ${
+                      selected
+                        ? "bg-slate-900 text-white border-slate-900"
+                        : "bg-white text-slate-700 border-gray-200 hover:border-slate-400"
+                    }`}
+                  >
+                    {opt.text}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mt-8 flex items-center justify-between">
               <button
                 type="button"
-                onClick={onSubmit}
-                disabled={!allAnswered}
-                className="px-8 py-4 rounded-lg bg-slate-900 text-yellow-400 font-semibold hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                onClick={goBack}
+                disabled={step === 0}
+                className="text-sm text-slate-400 hover:text-slate-700 disabled:opacity-0 disabled:cursor-default transition"
               >
-                Vedi il tuo Stato Strategico Attuale
+                ← Indietro
               </button>
-              {!allAnswered && (
-                <p className="text-xs text-slate-400 mt-3">
-                  Completa tutte le 5 domande per procedere.
-                </p>
-              )}
+              <button
+                type="button"
+                onClick={goNext}
+                disabled={!answeredCurrent}
+                className="px-6 py-3 rounded-lg bg-slate-900 text-yellow-400 font-semibold hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              >
+                {step < QUESTIONS.length - 1
+                  ? "Continua"
+                  : "Vedi il tuo Stato Strategico"}
+              </button>
             </div>
           </>
-        ) : (
+        )}
+
+        {/* MICRO-BRIDGE */}
+        {phase === "bridge" && (
+          <div className="py-8">
+            <p className="text-lg md:text-xl text-slate-700 leading-relaxed mb-8">
+              {BRIDGES[step]}
+            </p>
+            <button
+              type="button"
+              onClick={continueAfterBridge}
+              className="px-6 py-3 rounded-lg bg-slate-900 text-yellow-400 font-semibold hover:bg-slate-800 transition"
+            >
+              Avanti
+            </button>
+          </div>
+        )}
+
+        {/* RISULTATO */}
+        {phase === "result" && stato && (
           <div id="ep-checkpoint-result">
             <p className="text-slate-500 italic text-sm md:text-base mb-6 leading-relaxed">
-              In base alle tue risposte, questo è il livello strategico che descrive meglio la tua situazione attuale.
+              In base alle tue risposte, questo è il livello strategico che
+              descrive meglio la tua situazione attuale.
             </p>
             <div className="border-l-4 border-yellow-400 pl-6 py-2 mb-8">
               <h2 className="text-2xl md:text-3xl font-semibold text-slate-900 mb-4 leading-tight">
@@ -234,16 +384,18 @@ export function CheckpointStrategico({ source = "masterclass" }) {
                 Richiedi il tuo Ciak Blueprint
               </h3>
               <p className="text-slate-300 mb-6 leading-relaxed">
-                Ricevi una direzione strategica personalizzata basata sul tuo modello professionale attuale.
+                Ricevi una direzione strategica personalizzata basata sul tuo
+                modello professionale attuale.
               </p>
               <Link
-                to={`/ciak-blueprint?from=checkpoint&stato=${stato}`}
+                to={`/ciak-blueprint?utm_source=checkpoint&utm_campaign=stato_${stato}`}
                 className="inline-block px-8 py-4 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition"
               >
                 Scopri Ciak Blueprint
               </Link>
               <p className="text-xs text-slate-400 mt-6 leading-relaxed">
-                Sessione Strategica + Roadmap Operativa Personalizzata — €67 IVA inclusa.
+                Sessione Strategica + Roadmap Operativa Personalizzata — €67 IVA
+                inclusa.
               </p>
             </div>
           </div>

@@ -5,10 +5,11 @@
  *
  * 3 stati visuali della stessa pagina, attivati dal flusso utente:
  *   STATO 1 — Pre-opt-in (cold): hero + email gate
- *   STATO 2 — Post-opt-in: player YouTube + sticky bar che appare a 35min
+ *   STATO 2 — Post-opt-in: player YouTube + sticky bar che appare a 20min
  *   STATO 3 — Post-Checkpoint: già inglobato dal componente CheckpointStrategico
  *
- * Sticky bar a 35:00 (non onEnded — perderemmo utenti buoni che non arrivano al 100%).
+ * Sticky bar a 20:00 (~67% del video ~30min; non onEnded — perderemmo utenti
+ * buoni che non arrivano al 100%).
  */
 import { useState, useEffect } from "react";
 import { CiakHeader } from "../components/CiakHeader";
@@ -48,7 +49,7 @@ export function CiakMasterclass() {
     }
   }, [unlocked, email]);
 
-  // Timer fallback per sticky bar: dopo 35 min dall'unlock il Checkpoint è disponibile.
+  // Timer fallback per sticky bar: dopo 20 min dall'unlock il Checkpoint è disponibile.
   // (Soluzione robusta perché non dipende dagli eventi del player YouTube embedded:
   // l'utente potrebbe mettere pausa, scrubbare, ricaricare la pagina, ecc.)
   useEffect(() => {
@@ -168,7 +169,7 @@ export function CiakMasterclass() {
             </div>
           </section>
 
-          {/* STICKY BAR — appare dopo 35 minuti */}
+          {/* STICKY BAR — appare dopo 20 minuti */}
           {checkpointAvailable && (
             <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-yellow-400 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] z-40">
               <div className="mx-auto max-w-5xl px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
