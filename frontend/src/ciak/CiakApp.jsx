@@ -22,6 +22,7 @@
  *  Poppins SemiBold (600) + Medium (500)
  */
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "sonner";
 import { CiakLanding } from "./pages/Landing";
 import { CiakMasterclass } from "./pages/Masterclass";
 import { CiakCheckpoint } from "./pages/Checkpoint";
@@ -29,6 +30,7 @@ import { CiakBlueprint } from "./pages/CiakBlueprint";
 import { CiakGrazie } from "./pages/Grazie";
 import { CiakDiagnostica } from "./pages/Diagnostica";
 import { CiakReport } from "./pages/Report";
+import { CiakProposta } from "./pages/Proposta";
 import { CiakNotFound } from "./pages/NotFound";
 import { CookieBanner } from "./components/CookieBanner";
 import CiakAdminApp from "./admin/CiakAdminApp";
@@ -42,6 +44,7 @@ export default function CiakApp() {
             altrimenti FAB "Gestisci cookie" + funzioni globali epOpenPolicy
             usate dal footer per Privacy/Cookie/Condizioni di Vendita. */}
         <CookieBanner />
+        <Toaster position="top-center" richColors />
         <Routes>
           <Route path="/" element={<CiakLanding />} />
           <Route path="/masterclass" element={<CiakMasterclass />} />
@@ -61,6 +64,9 @@ export default function CiakApp() {
 
           <Route path="/diagnostica/:token" element={<CiakDiagnostica />} />
           <Route path="/report/:token" element={<CiakReport />} />
+
+          {/* FASE 1 migrazione — Proposta Partnership post-call (porting da Evolution) */}
+          <Route path="/proposta/:token" element={<CiakProposta />} />
 
           {/* Alias usabili per campagne ads */}
           <Route path="/masterclass-gratis" element={<Navigate to="/masterclass" replace />} />
