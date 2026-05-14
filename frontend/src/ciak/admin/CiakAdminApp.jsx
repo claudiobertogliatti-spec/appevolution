@@ -34,14 +34,9 @@ import { ExPartner } from "./pages/ExPartner";
 // ─── Struttura navigazione (macro → pagine) ──────────────────────────────
 
 const NAV = [
-  {
-    id: "dashboard",
-    label: "Dashboard",
-    pages: [
-      { to: "/admin", label: "KPI", end: true },
-      { to: "/admin/transactions", label: "Transazioni" },
-    ],
-  },
+  // Dashboard è un link diretto (nessun flyout): la Dashboard stessa è la
+  // panoramica, e Transazioni si raggiunge dai suoi riquadri "Fatturato".
+  { id: "dashboard", label: "Dashboard", to: "/admin", end: true },
   {
     id: "acquisizione",
     label: "Acquisizione Clienti",
@@ -139,6 +134,25 @@ function LoginScreen({ onLogin }) {
 // ─── Sidebar a macro-voci con flyout al hover ────────────────────────────
 
 function MacroItem({ macro, currentPath }) {
+  // Macro "diretta" (es. Dashboard): link semplice, nessun flyout.
+  if (macro.to) {
+    return (
+      <NavLink
+        to={macro.to}
+        end={macro.end}
+        className={({ isActive }) =>
+          `block px-3 py-2.5 rounded-lg text-sm transition ${
+            isActive
+              ? "bg-slate-800 text-yellow-400 font-medium"
+              : "text-slate-300 hover:bg-slate-800/60"
+          }`
+        }
+      >
+        {macro.label}
+      </NavLink>
+    );
+  }
+
   const isActive = macro.pages.some((p) =>
     p.end ? currentPath === p.to : currentPath.startsWith(p.to)
   );
@@ -219,7 +233,7 @@ function AdminShell({ user, onLogout, children }) {
 function SectionStub() {
   const { pathname } = useLocation();
   const label =
-    NAV.flatMap((m) => m.pages).find((p) => pathname.startsWith(p.to))?.label || "Sezione";
+    NAV.flatMap((m) => m.pages || []).find((p) => pathname.startsWith(p.to))?.label || "Sezione";
   return (
     <div className="p-10 max-w-xl">
       <h1 className="text-2xl font-semibold text-slate-900 mb-2">{label}</h1>
