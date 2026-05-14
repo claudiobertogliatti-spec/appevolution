@@ -16704,6 +16704,11 @@ from routers.checkpoint import router as ciak_checkpoint_router, set_db as set_c
 set_ciak_checkpoint_db(db)
 app.include_router(ciak_checkpoint_router)
 
+# Ciak Admin Router (pannello admin ciak.io/admin — leads, transazioni, stats — role admin)
+from routers.ciak_admin import router as ciak_admin_router, set_db as set_ciak_admin_db
+set_ciak_admin_db(db)
+app.include_router(ciak_admin_router)
+
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler
 

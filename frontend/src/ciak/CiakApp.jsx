@@ -31,6 +31,7 @@ import { CiakDiagnostica } from "./pages/Diagnostica";
 import { CiakReport } from "./pages/Report";
 import { CiakNotFound } from "./pages/NotFound";
 import { CookieBanner } from "./components/CookieBanner";
+import CiakAdminApp from "./admin/CiakAdminApp";
 
 export default function CiakApp() {
   return (
@@ -63,6 +64,9 @@ export default function CiakApp() {
 
           {/* Alias usabili per campagne ads */}
           <Route path="/masterclass-gratis" element={<Navigate to="/masterclass" replace />} />
+
+          {/* Area Admin Ciak (login proprio, role admin — Claudio + Antonella) */}
+          <Route path="/admin/*" element={<CiakAdminApp />} />
 
           <Route path="*" element={<CiakNotFound />} />
         </Routes>
