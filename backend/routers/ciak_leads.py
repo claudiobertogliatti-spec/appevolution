@@ -56,6 +56,7 @@ def _utm_slug(value: str) -> str:
 
 class LeadCaptureRequest(BaseModel):
     email: EmailStr
+    nome: Optional[str] = Field(None, max_length=120)
     source: str = Field(..., min_length=1, max_length=40)
     utm_source: Optional[str] = Field(None, max_length=80)
     utm_medium: Optional[str] = Field(None, max_length=80)
@@ -88,6 +89,7 @@ async def lead_capture(payload: LeadCaptureRequest):
         logger.warning(f"[CIAK-LEADS] source non riconosciuto: {payload.source!r}")
 
     email = payload.email.lower()
+    nome = (payload.nome or "").strip() or None
     now = datetime.now(timezone.utc).isoformat()
 
     utm = {
@@ -106,6 +108,7 @@ async def lead_capture(payload: LeadCaptureRequest):
     if is_new:
         doc = {
             "email": email,
+            "nome": nome,
             "source": source,
             "sources_seen": [source],
             "utm": utm,
@@ -116,12 +119,15 @@ async def lead_capture(payload: LeadCaptureRequest):
         }
         await db.ciak_leads.insert_one(doc)
     else:
-        # Aggiorna ma preserva history: aggiunge source visto + ultimi UTM
+        # Aggiorna ma preserva history: aggiunge source visto + ultimi UTM.
+        # Il nome si aggiorna solo se fornito e non già presente (non
+        # sovrascrive un nome esistente con uno vuoto).
         update = {
             "$set": {
                 "updated_at": now,
                 **({"utm": utm} if utm else {}),
                 **({"referrer": payload.referrer} if payload.referrer else {}),
+                **({"nome": nome} if nome and not existing.get("nome") else {}),
             },
             "$addToSet": {"sources_seen": source},
         }
@@ -141,6 +147,7 @@ async def lead_capture(payload: LeadCaptureRequest):
         asyncio.create_task(ciak_emit_event(
             email=email,
             event_name="ciak_optin_masterclass",
+            first_name=nome,
             extra_tags=extra_tags,
             metadata={"source": source, "utm": utm},
         ))

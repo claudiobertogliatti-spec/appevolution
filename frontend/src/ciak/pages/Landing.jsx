@@ -19,11 +19,16 @@ import { CiakFooter } from "../components/CiakFooter";
 
 export function CiakLanding() {
   const navigate = useNavigate();
+  const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
   const captureEmail = async () => {
+    if (!nome.trim()) {
+      setError("Inserisci il tuo nome");
+      return;
+    }
     if (!email.trim() || !email.includes("@")) {
       setError("Inserisci un'email valida");
       return;
@@ -37,6 +42,7 @@ export function CiakLanding() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: email.trim(),
+          nome: nome.trim(),
           source: "landing_hero",
           utm_source: qs.get("utm_source"),
           utm_medium: qs.get("utm_medium"),
@@ -47,6 +53,7 @@ export function CiakLanding() {
         }),
       }).catch(() => null);
       localStorage.setItem("ciak_lead_email", email.trim());
+      localStorage.setItem("ciak_lead_nome", nome.trim());
       navigate("/masterclass");
     } catch (e) {
       setError("Errore di rete, riprova");
@@ -60,20 +67,25 @@ export function CiakLanding() {
 
       {/* SCHERMATA 1 — HERO */}
       <section className="bg-slate-900 text-white">
-        <div className="mx-auto max-w-4xl px-6 pt-20 pb-24 text-center">
-          <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-4">
-            CIAK
-          </p>
+        <div className="mx-auto max-w-4xl px-6 pt-20 pb-24">
           <h1 className="text-3xl md:text-5xl font-semibold leading-[1.15] mb-6">
             Trasformare una competenza professionale in un modello digitale sostenibile
             richiede una direzione strategica, non solo presenza online.
           </h1>
-          <p className="text-base md:text-lg text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="text-base md:text-lg text-slate-300 max-w-2xl mb-10 leading-relaxed">
             Ciak aiuta consulenti e professionisti a capire quale direzione strategica
             dare al proprio progetto digitale prima di investire in implementazione.
           </p>
 
-          <div className="max-w-md mx-auto">
+          <div className="max-w-md">
+            <input
+              type="text"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && captureEmail()}
+              placeholder="Il tuo nome"
+              className="w-full px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400 mb-2"
+            />
             <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="email"
@@ -94,6 +106,28 @@ export function CiakLanding() {
             {error && <p className="text-yellow-400 text-sm mt-2">{error}</p>}
             <p className="text-xs text-slate-400 mt-4 opacity-80 leading-relaxed">
               30 minuti per capire perché molti progetti professionali non crescono come dovrebbero.
+            </p>
+          </div>
+
+          {/* Cosa scoprirai nella masterclass */}
+          <div className="max-w-2xl mt-10 border-l-2 border-yellow-400 pl-5">
+            <p className="text-slate-300 leading-relaxed">
+              Nella masterclass di <strong className="text-white">30 minuti</strong> scoprirai i{" "}
+              <strong className="text-white">5 errori killer</strong> che bloccano la crescita di
+              ogni professionista — e, soprattutto, come evitarli.
+            </p>
+          </div>
+
+          {/* Come ricevi il bonus Checkpoint Strategico */}
+          <div className="max-w-2xl mt-6 bg-slate-800/60 rounded-2xl p-6">
+            <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-2">
+              Incluso — Bonus Checkpoint Strategico
+            </p>
+            <p className="text-slate-300 leading-relaxed text-sm md:text-base">
+              Al termine della masterclass si sblocca il <strong className="text-white">Checkpoint
+              Strategico</strong>: 5 domande che ti restituiscono subito il tuo Stato Strategico
+              Attuale. Compare direttamente nella pagina della masterclass mentre la guardi —
+              nessuna email aggiuntiva da inserire, nessuna attesa. È gratuito e incluso per tutti.
             </p>
           </div>
         </div>
