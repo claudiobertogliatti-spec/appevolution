@@ -34,6 +34,7 @@ import { CiakProposta } from "./pages/Proposta";
 import { CiakNotFound } from "./pages/NotFound";
 import { CookieBanner } from "./components/CookieBanner";
 import CiakAdminApp from "./admin/CiakAdminApp";
+import CiakPartnerApp from "./partner/CiakPartnerApp";
 
 export default function CiakApp() {
   return (
@@ -73,6 +74,9 @@ export default function CiakApp() {
 
           {/* Area Admin Ciak (login proprio, role admin — Claudio + Antonella) */}
           <Route path="/admin/*" element={<CiakAdminApp />} />
+
+          {/* Area Partner Ciak — Fase 2a migrazione (login proprio, role partner) */}
+          <Route path="/partner/*" element={<CiakPartnerApp />} />
 
           <Route path="*" element={<CiakNotFound />} />
         </Routes>
