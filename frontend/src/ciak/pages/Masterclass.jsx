@@ -16,9 +16,10 @@ import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
 import { CheckpointStrategico } from "../components/CheckpointStrategico";
 
-// TODO: rimpiazzare con video YouTube reale della masterclass
-const MASTERCLASS_YOUTUBE_ID = "REPLACE_ME";
-const CHECKPOINT_UNLOCK_SECONDS = 20 * 60; // 20 minuti (video ~26 min, lascia margine 6 min)
+// Masterclass Ciak definitiva — video prodotto e approvato da Claudio (14/5/2026).
+// Transcript verbatim: docs/marketing/masterclass-transcript-final.md
+const MASTERCLASS_YOUTUBE_ID = "E2XDEdJgzcQ";
+const CHECKPOINT_UNLOCK_SECONDS = 20 * 60; // 20 minuti (video ~30 min, sticky al ~67%)
 
 export function CiakMasterclass() {
   const [email, setEmail] = useState(localStorage.getItem("ciak_lead_email") || "");
