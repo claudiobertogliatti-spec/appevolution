@@ -344,9 +344,11 @@ export default function CiakPartnerApp() {
       onChangePartner={changePartner}
       onLogout={handleLogout}
     >
+      {/* NOTA: CiakPartnerApp è montato sotto `/partner/*` in CiakApp, quindi
+          i path di queste Route sono RELATIVI a /partner (niente prefisso). */}
       <Routes>
         <Route
-          path="/partner"
+          index
           element={
             status ? (
               <PartnerDashboard
@@ -364,21 +366,15 @@ export default function CiakPartnerApp() {
         />
 
         {/* Sezioni principali della sidebar */}
-        <Route path="/partner/webinar" element={<WebinarPage partnerId={partnerId} />} />
-        <Route path="/partner/mio-spazio" element={<MioSpazioPage partnerId={partnerId} />} />
-        <Route path="/partner/supporto" element={<SupportPage partnerId={partnerId} />} />
-        <Route
-          path="/partner/percorso-veloce"
-          element={<PercorsoVelocePage partnerId={partnerId} />}
-        />
-        <Route path="/partner/growth-system" element={<GrowthSystemPage partnerId={partnerId} />} />
-        <Route
-          path="/partner/accelera/:categoryId"
-          element={<AcceleraRoute partnerId={partnerId} />}
-        />
+        <Route path="webinar" element={<WebinarPage partnerId={partnerId} />} />
+        <Route path="mio-spazio" element={<MioSpazioPage partnerId={partnerId} />} />
+        <Route path="supporto" element={<SupportPage partnerId={partnerId} />} />
+        <Route path="percorso-veloce" element={<PercorsoVelocePage partnerId={partnerId} />} />
+        <Route path="growth-system" element={<GrowthSystemPage partnerId={partnerId} />} />
+        <Route path="accelera/:categoryId" element={<AcceleraRoute partnerId={partnerId} />} />
 
         {/* Le 7 fasi del journey */}
-        <Route path="/partner/:stepId" element={<PhasePage partnerId={partnerId} />} />
+        <Route path=":stepId" element={<PhasePage partnerId={partnerId} />} />
 
         <Route path="*" element={<Navigate to="/partner" replace />} />
       </Routes>
