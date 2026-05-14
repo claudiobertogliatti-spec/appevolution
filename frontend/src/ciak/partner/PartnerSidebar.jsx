@@ -1,18 +1,65 @@
 /**
  * Ciak Partner — Sidebar di navigazione (palette Ciak slate/yellow).
- * Costruita fresca per Ciak (la sidebar Evolution non era riusabile 1:1).
+ *
+ * Struttura allineata alla sidebar reale Evolution PRO:
+ *  5 voci principali (Home, Webinar, Il Mio Spazio, Risultati, Supporto Team)
+ *  + 3 sezioni collassabili (Go Live in 21gg, Accelera la crescita, Growth System).
+ * Le 7 fasi del journey si raggiungono dalla dashboard (sezione "A che punto sei").
  */
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { STEPS } from "./stepConfig";
+import {
+  Home, Video, User, TrendingUp, MessageCircle,
+  Zap, Rocket, Layers, ChevronDown, ChevronRight,
+} from "lucide-react";
 
-export function PartnerSidebar({ user, currentStep, onLogout }) {
-  const linkClass = ({ isActive }) =>
-    `block px-3 py-2 rounded-lg text-sm transition ${
-      isActive
-        ? "bg-slate-800 text-yellow-400 font-medium"
-        : "text-slate-300 hover:bg-slate-800/60"
-    }`;
+const MAIN_NAV = [
+  { to: "/partner", end: true, label: "Home", icon: Home },
+  { to: "/partner/webinar", label: "Webinar", icon: Video },
+  { to: "/partner/mio-spazio", label: "Il Mio Spazio", icon: User },
+  { to: "/partner/ottimizzazione", label: "Risultati", icon: TrendingUp },
+  { to: "/partner/supporto", label: "Supporto Team", icon: MessageCircle },
+];
 
+const ACCELERA_ITEMS = [
+  { to: "/partner/accelera/acc-visibilita", label: "Visibilità" },
+  { to: "/partner/accelera/acc-costanza", label: "Costanza" },
+  { to: "/partner/accelera/acc-monetizzazione", label: "Monetizzazione" },
+  { to: "/partner/accelera/acc-direzione", label: "Direzione" },
+];
+
+function linkClass({ isActive }) {
+  return `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition ${
+    isActive
+      ? "bg-slate-800 text-yellow-400 font-medium"
+      : "text-slate-300 hover:bg-slate-800/60"
+  }`;
+}
+
+function subLinkClass({ isActive }) {
+  return `block px-3 py-1.5 rounded-lg text-sm transition ${
+    isActive ? "bg-slate-800 text-yellow-400 font-medium" : "text-slate-400 hover:bg-slate-800/60"
+  }`;
+}
+
+function Collapsible({ icon: Icon, label, children, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-800/60 transition"
+      >
+        <Icon className="w-4 h-4 flex-shrink-0 text-yellow-400" />
+        <span className="flex-1 text-left">{label}</span>
+        {open ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+      </button>
+      {open && <div className="ml-3 mt-1 mb-1 space-y-0.5 border-l border-slate-800 pl-3">{children}</div>}
+    </div>
+  );
+}
+
+export function PartnerSidebar({ user, onLogout }) {
   return (
     <aside className="w-60 bg-slate-900 text-white flex flex-col flex-shrink-0 min-h-screen">
       <div className="px-6 py-5 border-b border-slate-800">
@@ -21,51 +68,34 @@ export function PartnerSidebar({ user, currentStep, onLogout }) {
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        <NavLink to="/partner" end className={linkClass}>
-          Dashboard
-        </NavLink>
+        {MAIN_NAV.map((item) => (
+          <NavLink key={item.to} to={item.to} end={item.end} className={linkClass}>
+            <item.icon className="w-4 h-4 flex-shrink-0" />
+            {item.label}
+          </NavLink>
+        ))}
 
-        <p className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
-          Il percorso
-        </p>
-        {STEPS.map((step) => {
-          const locked = currentStep != null && step.num > currentStep;
-          return (
-            <NavLink
-              key={step.id}
-              to={`/partner/${step.id}`}
-              className={({ isActive }) =>
-                `flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition ${
-                  isActive
-                    ? "bg-slate-800 text-yellow-400 font-medium"
-                    : locked
-                    ? "text-slate-600"
-                    : "text-slate-300 hover:bg-slate-800/60"
-                }`
-              }
-            >
-              <span
-                className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-semibold flex-shrink-0 ${
-                  currentStep != null && step.num < currentStep
-                    ? "bg-emerald-500 text-white"
-                    : currentStep === step.num
-                    ? "bg-yellow-400 text-slate-900"
-                    : "bg-slate-700 text-slate-400"
-                }`}
-              >
-                {step.num}
-              </span>
-              {step.title}
+        <div className="pt-3 mt-2 border-t border-slate-800 space-y-1">
+          <Collapsible icon={Zap} label="Go Live in 21 giorni">
+            <NavLink to="/partner/percorso-veloce" className={subLinkClass}>
+              Il percorso veloce
             </NavLink>
-          );
-        })}
+          </Collapsible>
 
-        <p className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
-          Supporto
-        </p>
-        <NavLink to="/partner/supporto" className={linkClass}>
-          Aiuto e contatti
-        </NavLink>
+          <Collapsible icon={Rocket} label="Accelera la crescita">
+            {ACCELERA_ITEMS.map((item) => (
+              <NavLink key={item.to} to={item.to} className={subLinkClass}>
+                {item.label}
+              </NavLink>
+            ))}
+          </Collapsible>
+
+          <Collapsible icon={Layers} label="Evolution Growth System">
+            <NavLink to="/partner/growth-system" className={subLinkClass}>
+              I tre livelli
+            </NavLink>
+          </Collapsible>
+        </div>
       </nav>
 
       <div className="px-3 py-4 border-t border-slate-800">
