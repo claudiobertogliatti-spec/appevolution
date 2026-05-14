@@ -222,7 +222,7 @@ function AcceleraRoute({ partnerId }) {
 
 // ─── Shell ───────────────────────────────────────────────────────────────
 
-function PartnerShell({ user, adminViewLabel, onChangePartner, onLogout, children }) {
+function PartnerShell({ user, adminViewLabel, onChangePartner, onBackToAdmin, onLogout, children }) {
   return (
     <div className="min-h-screen bg-gray-50 flex font-[Poppins,system-ui,sans-serif]">
       <PartnerSidebar user={user} onLogout={onLogout} />
@@ -232,9 +232,17 @@ function PartnerShell({ user, adminViewLabel, onChangePartner, onLogout, childre
             <span>
               <strong>Vista Admin</strong> — stai ispezionando: {adminViewLabel}
             </span>
-            <button onClick={onChangePartner} className="font-semibold underline">
-              Cambia partner
-            </button>
+            <div className="flex items-center gap-4">
+              <button onClick={onChangePartner} className="font-semibold underline">
+                Cambia partner
+              </button>
+              <button
+                onClick={onBackToAdmin}
+                className="font-semibold bg-slate-900 text-yellow-400 px-3 py-1 rounded-lg hover:bg-slate-800 transition"
+              >
+                ← Torna all'Admin
+              </button>
+            </div>
           </div>
         )}
         {children}
@@ -284,6 +292,13 @@ export default function CiakPartnerApp() {
     setStatus(null);
   };
 
+  // Torna al pannello admin: la sessione admin (ciak_admin_token) è rimasta
+  // intatta — openVista l'aveva solo copiata, non rimossa. Basta navigare.
+  const backToAdmin = () => {
+    localStorage.removeItem(VIEW_PARTNER_KEY);
+    window.location.href = "/admin/partner";
+  };
+
   // partnerId effettivo: per i partner è il proprio, per gli admin è quello selezionato
   const partnerId = admin ? viewPartner?.id : status?.partner_id;
 
@@ -327,6 +342,7 @@ export default function CiakPartnerApp() {
       user={admin ? { name: viewPartner?.name } : user}
       adminViewLabel={admin ? `${viewPartner?.name || viewPartner?.id}` : null}
       onChangePartner={changePartner}
+      onBackToAdmin={backToAdmin}
       onLogout={handleLogout}
     >
       {/* NOTA: CiakPartnerApp è montato sotto `/partner/*` in CiakApp, quindi
