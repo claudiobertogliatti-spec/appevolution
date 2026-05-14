@@ -21,6 +21,12 @@ import { F4Videocorso } from "./phases/F4Videocorso";
 import { F5Funnel } from "./phases/F5Funnel";
 import { F6Lancio } from "./phases/F6Lancio";
 import { F7Ottimizzazione } from "./phases/F7Ottimizzazione";
+import { WebinarPage } from "./sections/WebinarPage";
+import { MioSpazioPage } from "./sections/MioSpazioPage";
+import { PercorsoVelocePage } from "./sections/PercorsoVelocePage";
+import { GrowthSystemPage } from "./sections/GrowthSystemPage";
+import { AcceleraCrescitaPage } from "./sections/AcceleraCrescitaPage";
+import { StefaniaChat } from "./sections/StefaniaChat";
 import { STEPS } from "./stepConfig";
 
 // ─── Login ───────────────────────────────────────────────────────────────
@@ -129,31 +135,31 @@ function PhasePage({ partnerId }) {
   return <PhaseStub />;
 }
 
-function SupportStub() {
-  const navigate = useNavigate();
+// Pagina Supporto Team → StefaniaChat (riceve `partner`, non `partnerId`)
+function SupportPage({ partnerId }) {
   return (
-    <div className="max-w-2xl mx-auto px-5 py-10">
-      <button
-        onClick={() => navigate("/partner")}
-        className="text-sm text-slate-400 hover:text-slate-700 mb-4"
-      >
-        ← Dashboard
-      </button>
-      <h1 className="text-2xl font-semibold text-slate-900 mb-2">Aiuto e contatti</h1>
-      <p className="text-slate-600 leading-relaxed">
-        Per dubbi rapidi scrivi a Stefania. Per decisioni strategiche prenota una
-        sessione con Claudio. Il tuo coordinatore ti segue lungo tutto il percorso.
+    <div className="max-w-2xl mx-auto p-6">
+      <h1 className="text-2xl font-semibold text-slate-900 mb-1">Supporto Team</h1>
+      <p className="text-slate-500 mb-6">
+        Per dubbi rapidi scrivi a Stefania. Il tuo coordinatore ti segue lungo il percorso.
       </p>
+      <StefaniaChat partner={{ id: partnerId }} />
     </div>
   );
 }
 
+// AcceleraCrescitaPage instradata con :categoryId (acc-visibilita, acc-costanza, ...)
+function AcceleraRoute({ partnerId }) {
+  const { categoryId } = useParams();
+  return <AcceleraCrescitaPage partnerId={partnerId} categoryId={categoryId} />;
+}
+
 // ─── Shell ───────────────────────────────────────────────────────────────
 
-function PartnerShell({ user, currentStep, onLogout, children }) {
+function PartnerShell({ user, onLogout, children }) {
   return (
     <div className="min-h-screen bg-gray-50 flex font-[Poppins,system-ui,sans-serif]">
-      <PartnerSidebar user={user} currentStep={currentStep} onLogout={onLogout} />
+      <PartnerSidebar user={user} onLogout={onLogout} />
       <main className="flex-1 overflow-auto">{children}</main>
     </div>
   );
@@ -192,10 +198,10 @@ export default function CiakPartnerApp() {
     return <LoginScreen onLogin={setUser} />;
   }
 
-  const currentStep = status?.current_step ?? null;
+  const partnerId = status?.partner_id;
 
   return (
-    <PartnerShell user={user} currentStep={currentStep} onLogout={handleLogout}>
+    <PartnerShell user={user} onLogout={handleLogout}>
       <Routes>
         <Route
           path="/partner"
@@ -214,11 +220,18 @@ export default function CiakPartnerApp() {
             )
           }
         />
-        <Route path="/partner/supporto" element={<SupportStub />} />
-        <Route
-          path="/partner/:stepId"
-          element={<PhasePage partnerId={status?.partner_id} />}
-        />
+
+        {/* Sezioni principali della sidebar */}
+        <Route path="/partner/webinar" element={<WebinarPage partnerId={partnerId} />} />
+        <Route path="/partner/mio-spazio" element={<MioSpazioPage partnerId={partnerId} />} />
+        <Route path="/partner/supporto" element={<SupportPage partnerId={partnerId} />} />
+        <Route path="/partner/percorso-veloce" element={<PercorsoVelocePage partnerId={partnerId} />} />
+        <Route path="/partner/growth-system" element={<GrowthSystemPage partnerId={partnerId} />} />
+        <Route path="/partner/accelera/:categoryId" element={<AcceleraRoute partnerId={partnerId} />} />
+
+        {/* Le 7 fasi del journey (posizionamento, funnel-light, masterclass, ...) */}
+        <Route path="/partner/:stepId" element={<PhasePage partnerId={partnerId} />} />
+
         <Route path="*" element={<Navigate to="/partner" replace />} />
       </Routes>
     </PartnerShell>
