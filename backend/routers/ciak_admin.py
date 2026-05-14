@@ -68,6 +68,27 @@ _PURCHASED_STATES = {
 }
 
 
+# ─── Partners list (per la "vista admin" dell'area partner Ciak) ──────────
+
+@router.get("/partners")
+async def ciak_partners_list(admin=Depends(require_ciak_admin)):
+    """
+    Lista dei partner attivi — usata dal selettore "vista admin" dell'area
+    partner Ciak (ciak.io/partner per gli admin). Restituisce id + nome + fase.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    partners = []
+    async for p in db.partners.find({}).sort("name", 1):
+        partners.append({
+            "id": p.get("id"),
+            "name": p.get("name"),
+            "email": p.get("email"),
+            "phase": p.get("phase"),
+        })
+    return {"total": len(partners), "items": partners}
+
+
 # ─── Stats ─────────────────────────────────────────────────────────────────
 
 @router.get("/stats")

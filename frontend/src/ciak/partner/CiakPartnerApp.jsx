@@ -1,17 +1,17 @@
 /**
  * Ciak Partner — entry point dell'area partner (ciak.io/partner).
  *
- * FASE 2a migrazione Evolution → Ciak ("A con confine Ciak"). Porta il partner
- * dentro il mondo Ciak: login proprio + shell sidebar + dashboard con la vista
- * delle 7 fasi. Le pagine per-fase F1-F7 sono stub in questa fase (2a) — verranno
- * portate una alla volta nelle fasi 2b+.
+ * Due modalità d'accesso:
+ *  - role=partner  → accesso normale, vede il proprio percorso (/api/partner/me/status)
+ *  - role=admin    → "vista admin": sceglie quale partner ispezionare da un selettore
  *
- * Auth: role `partner` via /api/auth/login. Token in localStorage
- * `ciak_partner_token` (isolato). Endpoint /api/partner/me/status invariato.
+ * Token in localStorage `ciak_partner_token` (isolato). Endpoint backend invariati.
  */
 import { useEffect, useState, useCallback } from "react";
 import { Routes, Route, Navigate, useNavigate, useParams } from "react-router-dom";
-import { getToken, getPartnerUser, clearSession, login, apiGet } from "./api";
+import {
+  getToken, getPartnerUser, clearSession, login, apiGet, isAdminUser,
+} from "./api";
 import { PartnerSidebar } from "./PartnerSidebar";
 import { PartnerDashboard } from "./PartnerDashboard";
 import { F1Posizionamento } from "./phases/F1Posizionamento";
@@ -28,6 +28,8 @@ import { GrowthSystemPage } from "./sections/GrowthSystemPage";
 import { AcceleraCrescitaPage } from "./sections/AcceleraCrescitaPage";
 import { StefaniaChat } from "./sections/StefaniaChat";
 import { STEPS } from "./stepConfig";
+
+const VIEW_PARTNER_KEY = "ciak_partner_view_id";
 
 // ─── Login ───────────────────────────────────────────────────────────────
 
@@ -58,7 +60,7 @@ function LoginScreen({ onLogin }) {
         </p>
         <h1 className="text-2xl font-semibold text-white mb-2">Accedi</h1>
         <p className="text-slate-400 text-sm mb-8">
-          Usa le credenziali fornite dal team Evolution PRO.
+          Credenziali partner Evolution PRO. Gli admin accedono in vista di supervisione.
         </p>
         <div className="space-y-3">
           <input
@@ -91,7 +93,78 @@ function LoginScreen({ onLogin }) {
   );
 }
 
-// ─── Stub pagina fase (Fase 2a — sostituite dai port reali nelle fasi 2b+) ──
+// ─── Selettore partner (vista admin) ─────────────────────────────────────
+
+function PartnerPicker({ onSelect, onLogout }) {
+  const [partners, setPartners] = useState(null);
+  const [error, setError] = useState(null);
+  const [q, setQ] = useState("");
+
+  useEffect(() => {
+    apiGet("/api/admin/ciak/partners")
+      .then((d) => setPartners(d.items || []))
+      .catch((e) => setError(e.message === "AUTH_EXPIRED" ? "Sessione scaduta" : e.message));
+  }, []);
+
+  const filtered = (partners || []).filter(
+    (p) =>
+      !q ||
+      (p.name || "").toLowerCase().includes(q.toLowerCase()) ||
+      (p.email || "").toLowerCase().includes(q.toLowerCase())
+  );
+
+  return (
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center px-6">
+      <div className="w-full max-w-md">
+        <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-2">
+          Vista Admin — Area Partner
+        </p>
+        <h1 className="text-2xl font-semibold text-white mb-2">Scegli un partner da ispezionare</h1>
+        <p className="text-slate-400 text-sm mb-6">
+          Vedrai l'area partner esattamente come la vede il partner selezionato.
+        </p>
+        {error && <p className="text-yellow-400 text-sm mb-4">{error}</p>}
+        {!partners ? (
+          <p className="text-slate-500 text-sm">Caricamento partner…</p>
+        ) : (
+          <>
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Cerca per nome o email…"
+              className="w-full px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400 mb-3"
+            />
+            <div className="max-h-80 overflow-y-auto space-y-1.5">
+              {filtered.length === 0 && (
+                <p className="text-slate-500 text-sm py-4 text-center">Nessun partner trovato.</p>
+              )}
+              {filtered.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => onSelect(p)}
+                  className="w-full text-left px-4 py-3 rounded-lg bg-slate-800 hover:bg-slate-700 transition"
+                >
+                  <div className="text-sm font-medium text-white">{p.name || "—"}</div>
+                  <div className="text-xs text-slate-400">
+                    {p.email} {p.phase && `· ${p.phase}`}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+        <button
+          onClick={onLogout}
+          className="mt-6 text-sm text-slate-500 hover:text-slate-300 transition"
+        >
+          Esci
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Stub fase non ancora portata ────────────────────────────────────────
 
 function PhaseStub() {
   const { stepId } = useParams();
@@ -108,21 +181,14 @@ function PhaseStub() {
       <h1 className="text-2xl font-semibold text-slate-900 mb-2">
         {step ? `${step.num}. ${step.title}` : "Fase"}
       </h1>
-      <p className="text-slate-600 leading-relaxed mb-6">
+      <p className="text-slate-600 leading-relaxed">
         {step?.desc} {step?.whatToDoDetail}
       </p>
-      <div className="bg-yellow-50 border border-yellow-300 rounded-2xl p-5">
-        <p className="text-sm text-slate-700">
-          Questa fase sta per essere portata nel nuovo ambiente Ciak. Nel frattempo
-          il percorso resta gestito dal team — riceverai aggiornamenti dal tuo
-          coordinatore.
-        </p>
-      </div>
     </div>
   );
 }
 
-// Router per-fase: instrada allo step reale già portato, altrimenti allo stub.
+// Router per-fase: instrada allo step reale, altrimenti allo stub.
 function PhasePage({ partnerId }) {
   const { stepId } = useParams();
   if (stepId === "posizionamento") return <F1Posizionamento partnerId={partnerId} />;
@@ -156,11 +222,23 @@ function AcceleraRoute({ partnerId }) {
 
 // ─── Shell ───────────────────────────────────────────────────────────────
 
-function PartnerShell({ user, onLogout, children }) {
+function PartnerShell({ user, adminViewLabel, onChangePartner, onLogout, children }) {
   return (
     <div className="min-h-screen bg-gray-50 flex font-[Poppins,system-ui,sans-serif]">
       <PartnerSidebar user={user} onLogout={onLogout} />
-      <main className="flex-1 overflow-auto">{children}</main>
+      <main className="flex-1 overflow-auto">
+        {adminViewLabel && (
+          <div className="bg-yellow-400 text-slate-900 text-sm px-6 py-2 flex items-center justify-between">
+            <span>
+              <strong>Vista Admin</strong> — stai ispezionando: {adminViewLabel}
+            </span>
+            <button onClick={onChangePartner} className="font-semibold underline">
+              Cambia partner
+            </button>
+          </div>
+        )}
+        {children}
+      </main>
     </div>
   );
 }
@@ -171,24 +249,80 @@ export default function CiakPartnerApp() {
   const [user, setUser] = useState(() => (getToken() ? getPartnerUser() : null));
   const [status, setStatus] = useState(null);
   const [statusError, setStatusError] = useState(null);
+  // Vista admin: partner selezionato { id, name, ... }
+  const [viewPartner, setViewPartner] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(VIEW_PARTNER_KEY) || "null");
+    } catch {
+      return null;
+    }
+  });
   const navigate = useNavigate();
+
+  const admin = isAdminUser(user);
 
   const handleLogout = useCallback(() => {
     clearSession();
+    localStorage.removeItem(VIEW_PARTNER_KEY);
     setUser(null);
     setStatus(null);
+    setViewPartner(null);
     navigate("/partner");
   }, [navigate]);
 
+  const selectViewPartner = (p) => {
+    localStorage.setItem(VIEW_PARTNER_KEY, JSON.stringify(p));
+    setViewPartner(p);
+    setStatus(null);
+    setStatusError(null);
+    navigate("/partner");
+  };
+
+  const changePartner = () => {
+    localStorage.removeItem(VIEW_PARTNER_KEY);
+    setViewPartner(null);
+    setStatus(null);
+  };
+
+  // partnerId effettivo: per i partner è il proprio, per gli admin è quello selezionato
+  const partnerId = admin ? viewPartner?.id : status?.partner_id;
+
   const loadStatus = useCallback(() => {
     if (!getToken()) return;
-    apiGet("/api/partner/me/status")
-      .then(setStatus)
-      .catch((e) => {
-        if (e.message === "AUTH_EXPIRED") handleLogout();
-        else setStatusError(e.message);
-      });
-  }, [handleLogout]);
+    if (admin) {
+      if (!viewPartner?.id) return;
+      // Vista admin: niente endpoint /me — usa partner-progress per id
+      apiGet(`/api/partner-progress/${viewPartner.id}`)
+        .then((d) => {
+          const data = d?.data || d || {};
+          setStatus({
+            partner_name: viewPartner.name,
+            partner_id: viewPartner.id,
+            current_step: data.current_step ?? 1,
+            completion_percentage: data.completion ?? data.completion_percentage,
+            next_action: null,
+          });
+        })
+        .catch((e) => {
+          if (e.message === "AUTH_EXPIRED") handleLogout();
+          // Fallback: dashboard minima comunque navigabile
+          else
+            setStatus({
+              partner_name: viewPartner.name,
+              partner_id: viewPartner.id,
+              current_step: 1,
+              next_action: null,
+            });
+        });
+    } else {
+      apiGet("/api/partner/me/status")
+        .then(setStatus)
+        .catch((e) => {
+          if (e.message === "AUTH_EXPIRED") handleLogout();
+          else setStatusError(e.message);
+        });
+    }
+  }, [admin, viewPartner, handleLogout]);
 
   useEffect(() => {
     if (user) loadStatus();
@@ -198,10 +332,18 @@ export default function CiakPartnerApp() {
     return <LoginScreen onLogin={setUser} />;
   }
 
-  const partnerId = status?.partner_id;
+  // Admin senza partner selezionato → selettore
+  if (admin && !viewPartner) {
+    return <PartnerPicker onSelect={selectViewPartner} onLogout={handleLogout} />;
+  }
 
   return (
-    <PartnerShell user={user} onLogout={handleLogout}>
+    <PartnerShell
+      user={admin ? { name: viewPartner?.name } : user}
+      adminViewLabel={admin ? `${viewPartner?.name || viewPartner?.id}` : null}
+      onChangePartner={changePartner}
+      onLogout={handleLogout}
+    >
       <Routes>
         <Route
           path="/partner"
@@ -216,7 +358,7 @@ export default function CiakPartnerApp() {
                 Errore nel caricamento del percorso: {statusError}
               </div>
             ) : (
-              <div className="p-10 text-slate-400">Caricamento del tuo percorso…</div>
+              <div className="p-10 text-slate-400">Caricamento del percorso…</div>
             )
           }
         />
@@ -225,11 +367,17 @@ export default function CiakPartnerApp() {
         <Route path="/partner/webinar" element={<WebinarPage partnerId={partnerId} />} />
         <Route path="/partner/mio-spazio" element={<MioSpazioPage partnerId={partnerId} />} />
         <Route path="/partner/supporto" element={<SupportPage partnerId={partnerId} />} />
-        <Route path="/partner/percorso-veloce" element={<PercorsoVelocePage partnerId={partnerId} />} />
+        <Route
+          path="/partner/percorso-veloce"
+          element={<PercorsoVelocePage partnerId={partnerId} />}
+        />
         <Route path="/partner/growth-system" element={<GrowthSystemPage partnerId={partnerId} />} />
-        <Route path="/partner/accelera/:categoryId" element={<AcceleraRoute partnerId={partnerId} />} />
+        <Route
+          path="/partner/accelera/:categoryId"
+          element={<AcceleraRoute partnerId={partnerId} />}
+        />
 
-        {/* Le 7 fasi del journey (posizionamento, funnel-light, masterclass, ...) */}
+        {/* Le 7 fasi del journey */}
         <Route path="/partner/:stepId" element={<PhasePage partnerId={partnerId} />} />
 
         <Route path="*" element={<Navigate to="/partner" replace />} />
