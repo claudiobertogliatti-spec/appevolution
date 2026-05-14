@@ -14,6 +14,7 @@ import { Routes, Route, Navigate, useNavigate, useParams } from "react-router-do
 import { getToken, getPartnerUser, clearSession, login, apiGet } from "./api";
 import { PartnerSidebar } from "./PartnerSidebar";
 import { PartnerDashboard } from "./PartnerDashboard";
+import { F1Posizionamento } from "./phases/F1Posizionamento";
 import { STEPS } from "./stepConfig";
 
 // ─── Login ───────────────────────────────────────────────────────────────
@@ -109,6 +110,13 @@ function PhaseStub() {
   );
 }
 
+// Router per-fase: instrada allo step reale già portato, altrimenti allo stub.
+function PhasePage({ partnerId }) {
+  const { stepId } = useParams();
+  if (stepId === "posizionamento") return <F1Posizionamento partnerId={partnerId} />;
+  return <PhaseStub />;
+}
+
 function SupportStub() {
   const navigate = useNavigate();
   return (
@@ -195,7 +203,10 @@ export default function CiakPartnerApp() {
           }
         />
         <Route path="/partner/supporto" element={<SupportStub />} />
-        <Route path="/partner/:stepId" element={<PhaseStub />} />
+        <Route
+          path="/partner/:stepId"
+          element={<PhasePage partnerId={status?.partner_id} />}
+        />
         <Route path="*" element={<Navigate to="/partner" replace />} />
       </Routes>
     </PartnerShell>
