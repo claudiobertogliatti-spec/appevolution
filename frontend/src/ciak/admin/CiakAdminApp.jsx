@@ -37,7 +37,6 @@ const NAV = [
     label: "Dashboard",
     pages: [
       { to: "/admin", label: "KPI", end: true },
-      { to: "/admin/leads", label: "Leads & Pipeline" },
       { to: "/admin/transactions", label: "Transazioni" },
     ],
   },
@@ -45,18 +44,24 @@ const NAV = [
     id: "acquisizione",
     label: "Acquisizione Clienti",
     pages: [
-      { to: "/admin/lead-manager", label: "Lead Manager" },
       { to: "/admin/lista-fredda", label: "Lista Fredda" },
-      { to: "/admin/clienti-analisi", label: "Clienti Analisi" },
+      { to: "/admin/lead-manager", label: "Lead Manager" },
+      { to: "/admin/leads", label: "Pipeline Prospect" },
     ],
+  },
+  {
+    id: "clienti-attivi",
+    label: "Clienti Attivi",
+    pages: [{ to: "/admin/clienti-analisi", label: "Pipeline Blueprint" }],
   },
   {
     id: "gestione-partner",
     label: "Gestione Partner",
     pages: [
-      { to: "/admin/partner", label: "Partner" },
-      { to: "/admin/oggi", label: "Operatività / Oggi" },
-      { to: "/admin/pipeline-prospect", label: "Pipeline Prospect" },
+      { to: "/admin/oggi", label: "Operatività Oggi" },
+      { to: "/admin/partner", label: "Pipeline Partner" },
+      { to: "/admin/quarantena-partner", label: "Quarantena Partner" },
+      { to: "/admin/ex-partner", label: "Ex Partner" },
     ],
   },
   {
@@ -269,6 +274,11 @@ export default function CiakAdminApp() {
         <Route path="/admin/partner" element={<Partner onAuthExpired={handleLogout} />} />
         <Route path="/admin/partner/:id" element={<SectionStub />} />
         <Route path="/admin/oggi" element={<Oggi onAuthExpired={handleLogout} />} />
+        {/* Quarantena / Ex Partner — sezioni nuove, stub (vedi note migrazione) */}
+        <Route path="/admin/quarantena-partner" element={<SectionStub />} />
+        <Route path="/admin/ex-partner" element={<SectionStub />} />
+        {/* Kanban prospect Evolution — disponibile ma non in nav (sostituito da
+            Pipeline Prospect = Leads Ciak). Lasciato raggiungibile via URL. */}
         <Route
           path="/admin/pipeline-prospect"
           element={<PipelineProspect onAuthExpired={handleLogout} />}
