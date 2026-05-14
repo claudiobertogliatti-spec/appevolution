@@ -20,10 +20,12 @@ Riferimento: memory/ciak_brand_copy_framework.md (bridge Ciak → Partnership),
 memory/ciak_technical_spec.md (state machine, scoring).
 """
 import logging
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin/ciak", tags=["ciak-admin"])
