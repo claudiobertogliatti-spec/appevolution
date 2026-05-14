@@ -28,6 +28,8 @@ import { Oggi } from "./pages/Oggi";
 import { StefaniaAdmin } from "./pages/StefaniaAdmin";
 import { TemplateEmail } from "./pages/TemplateEmail";
 import { PipelineKanban } from "./pages/PipelineKanban";
+import { QuarantenaPartner } from "./pages/QuarantenaPartner";
+import { ExPartner } from "./pages/ExPartner";
 
 // ─── Struttura navigazione (macro → pagine) ──────────────────────────────
 
@@ -300,9 +302,12 @@ export default function CiakAdminApp() {
         <Route path="/admin/partner" element={<Partner onAuthExpired={handleLogout} />} />
         <Route path="/admin/partner/:id" element={<SectionStub />} />
         <Route path="/admin/oggi" element={<Oggi onAuthExpired={handleLogout} />} />
-        {/* Quarantena / Ex Partner — sezioni nuove, stub (richiedono campo stato backend) */}
-        <Route path="/admin/quarantena-partner" element={<SectionStub />} />
-        <Route path="/admin/ex-partner" element={<SectionStub />} />
+        {/* Quarantena / Ex Partner — gestione piani rateali + stato partner */}
+        <Route
+          path="/admin/quarantena-partner"
+          element={<QuarantenaPartner onAuthExpired={handleLogout} />}
+        />
+        <Route path="/admin/ex-partner" element={<ExPartner onAuthExpired={handleLogout} />} />
 
         {/* Strumenti — importate da Evolution (KB Matteo: stub, richiede backend) */}
         <Route path="/admin/stefania" element={<StefaniaAdmin onAuthExpired={handleLogout} />} />

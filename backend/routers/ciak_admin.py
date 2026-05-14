@@ -71,22 +71,133 @@ _PURCHASED_STATES = {
 # ─── Partners list (per la "vista admin" dell'area partner Ciak) ──────────
 
 @router.get("/partners")
-async def ciak_partners_list(admin=Depends(require_ciak_admin)):
+async def ciak_partners_list(
+    admin=Depends(require_ciak_admin),
+    stato: Optional[str] = Query(None, description="Filtra per stato: attivo | quarantena | ex"),
+    con_piano: bool = Query(False, description="Solo partner con un piano di pagamento rateale"),
+):
     """
-    Lista dei partner attivi — usata dal selettore "vista admin" dell'area
-    partner Ciak (ciak.io/partner per gli admin). Restituisce id + nome + fase.
+    Lista partner — usata dal selettore "vista admin" dell'area partner Ciak
+    e dalle pagine Quarantena/Ex Partner. Restituisce id + nome + fase + stato
+    + piano_pagamento.
+
+    `stato` (campo `partner.stato`): "attivo" (default se assente) / "quarantena"
+    (pagamenti rateali sospesi) / "ex" (partnership conclusa/risolta).
+
+    `piano_pagamento` (campo `partner.piano_pagamento`): presente solo per i
+    partner su piano rateale tracciato — tipo "mensile" (vecchio contratto) o
+    "rate_concordate" (rate concordate fuori-Klarna). Klarna e saldo unico NON
+    sono tracciati (l'importo è già incassato per intero).
     """
     if db is None:
         raise HTTPException(503, "Database non configurato")
     partners = []
     async for p in db.partners.find({}).sort("name", 1):
+        st = p.get("stato") or "attivo"
+        piano = p.get("piano_pagamento")
+        if stato and st != stato:
+            continue
+        if con_piano and not piano:
+            continue
         partners.append({
             "id": p.get("id"),
             "name": p.get("name"),
             "email": p.get("email"),
             "phase": p.get("phase"),
+            "stato": st,
+            "piano_pagamento": piano,
         })
     return {"total": len(partners), "items": partners}
+
+
+class PartnerStatoRequest(BaseModel):
+    stato: str = Field(..., description="attivo | quarantena | ex")
+
+
+@router.post("/partner/{partner_id}/stato")
+async def ciak_set_partner_stato(
+    partner_id: str,
+    payload: PartnerStatoRequest,
+    admin=Depends(require_ciak_admin),
+):
+    """
+    Cambia lo stato di un partner: attivo / quarantena (pagamenti sospesi) / ex.
+    Flag manuale gestito dall'admin (non c'è un segnale automatico dei pagamenti
+    rateali Klarna). Registra anche timestamp + chi ha fatto la modifica.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    if payload.stato not in ("attivo", "quarantena", "ex"):
+        raise HTTPException(400, "stato non valido (attivo | quarantena | ex)")
+    res = await db.partners.update_one(
+        {"id": partner_id},
+        {"$set": {
+            "stato": payload.stato,
+            "stato_updated_at": datetime.now(timezone.utc).isoformat(),
+            "stato_updated_by": getattr(admin, "email", None) or getattr(admin, "user_id", None),
+        }},
+    )
+    if res.matched_count == 0:
+        raise HTTPException(404, "Partner non trovato")
+    return {"ok": True, "partner_id": partner_id, "stato": payload.stato}
+
+
+class PianoPagamentoRequest(BaseModel):
+    # tipo: "mensile" (vecchio contratto) | "rate_concordate" (fuori-Klarna).
+    # Klarna e saldo unico NON si tracciano (importo già incassato).
+    tipo: str = Field(..., description="mensile | rate_concordate")
+    rate_totali: int = Field(..., ge=1, le=120)
+    rate_pagate: int = Field(0, ge=0, le=120)
+    importo_rata: Optional[float] = Field(None, ge=0)
+    prossima_scadenza: Optional[str] = None
+    note: Optional[str] = Field(None, max_length=1000)
+
+
+@router.post("/partner/{partner_id}/piano-pagamento")
+async def ciak_set_piano_pagamento(
+    partner_id: str,
+    payload: PianoPagamentoRequest,
+    admin=Depends(require_ciak_admin),
+):
+    """
+    Crea/aggiorna il piano di pagamento rateale di un partner (mensilità da
+    vecchio contratto o rate concordate fuori-Klarna). Dato manuale gestito
+    dall'admin — non c'è una fonte automatica per questi piani.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    if payload.tipo not in ("mensile", "rate_concordate"):
+        raise HTTPException(400, "tipo non valido (mensile | rate_concordate)")
+    if payload.rate_pagate > payload.rate_totali:
+        raise HTTPException(400, "rate_pagate non può superare rate_totali")
+    piano = {
+        "tipo": payload.tipo,
+        "rate_totali": payload.rate_totali,
+        "rate_pagate": payload.rate_pagate,
+        "importo_rata": payload.importo_rata,
+        "prossima_scadenza": payload.prossima_scadenza,
+        "note": payload.note,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    res = await db.partners.update_one(
+        {"id": partner_id}, {"$set": {"piano_pagamento": piano}}
+    )
+    if res.matched_count == 0:
+        raise HTTPException(404, "Partner non trovato")
+    return {"ok": True, "partner_id": partner_id, "piano_pagamento": piano}
+
+
+@router.delete("/partner/{partner_id}/piano-pagamento")
+async def ciak_remove_piano_pagamento(partner_id: str, admin=Depends(require_ciak_admin)):
+    """Rimuove il piano di pagamento da un partner (es. passato a saldo unico)."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    res = await db.partners.update_one(
+        {"id": partner_id}, {"$unset": {"piano_pagamento": ""}}
+    )
+    if res.matched_count == 0:
+        raise HTTPException(404, "Partner non trovato")
+    return {"ok": True, "partner_id": partner_id}
 
 
 # ─── Stats ─────────────────────────────────────────────────────────────────
