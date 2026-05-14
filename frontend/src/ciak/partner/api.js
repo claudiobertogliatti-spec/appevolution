@@ -48,10 +48,12 @@ export async function login(email, password) {
     const data = await res.json();
     // /api/auth/login restituisce i campi utente annidati in data.user
     const u = data.user || {};
-    if (u.role !== "partner") {
+    // Partner: accesso normale. Admin/superadmin: accesso in "vista admin"
+    // (possono ispezionare l'area di qualunque partner — vedi CiakPartnerApp).
+    if (u.role !== "partner" && u.role !== "admin" && u.role !== "superadmin") {
       return {
         ok: false,
-        error: "Questo accesso è riservato ai partner Evolution PRO.",
+        error: "Accesso riservato ai partner e agli admin Evolution PRO.",
       };
     }
     setSession(data.access_token, u);
@@ -59,6 +61,11 @@ export async function login(email, password) {
   } catch {
     return { ok: false, error: "Errore di rete" };
   }
+}
+
+/** True se l'utente è admin/superadmin (vista admin dell'area partner). */
+export function isAdminUser(user) {
+  return !!user && (user.role === "admin" || user.role === "superadmin");
 }
 
 /** GET autenticato. Lancia "AUTH_EXPIRED" su 401/403. */
