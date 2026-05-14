@@ -82,3 +82,26 @@ export async function apiGet(path, params = {}) {
   }
   return res.json();
 }
+
+/**
+ * Fetch autenticato GENERICO per qualunque endpoint backend (path completo
+ * `/api/...`). Usato dai componenti del back-office Evolution importati
+ * nell'admin Ciak, che chiamano endpoint fuori dal namespace /api/admin/ciak.
+ * Aggiunge l'header Authorization col token admin. Ritorna la Response grezza
+ * (il chiamante fa .json()/.blob() come serve). Lancia "AUTH_EXPIRED" su 401/403.
+ */
+export async function adminFetch(path, options = {}) {
+  const token = getToken();
+  const res = await fetch(path, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (res.status === 401 || res.status === 403) {
+    clearSession();
+    throw new Error("AUTH_EXPIRED");
+  }
+  return res;
+}
