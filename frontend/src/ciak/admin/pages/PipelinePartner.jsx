@@ -14,6 +14,7 @@
  */
 import { useEffect, useState, useCallback } from "react";
 import { apiGet, adminFetch, getToken, getAdminUser } from "../api";
+import { PartnerDetailModal } from "./PartnerDetailModal";
 
 const FASE_LABEL = {
   F1: "Posizionamento", F2: "Funnel Light", F3: "Masterclass", F4: "Videocorso",
@@ -63,6 +64,8 @@ export function PipelinePartner({ onAuthExpired }) {
   const [partners, setPartners] = useState(null);
   const [error, setError] = useState(null);
   const [statoFilter, setStatoFilter] = useState("");
+  // Partner aperto nella scheda dettaglio (modale "Centrale Operativa Partner")
+  const [detailPartner, setDetailPartner] = useState(null);
 
   const load = useCallback(() => {
     setPartners(null);
@@ -109,6 +112,7 @@ export function PipelinePartner({ onAuthExpired }) {
   };
 
   return (
+    <>
     <div className="p-8">
       <div className="flex items-start justify-between mb-1">
         <h1 className="text-2xl font-semibold text-slate-900">Pipeline Partner</h1>
@@ -153,7 +157,7 @@ export function PipelinePartner({ onAuthExpired }) {
                   <tr
                     key={p.id || p.email}
                     className="border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer"
-                    onClick={() => openVista(p)}
+                    onClick={() => setDetailPartner(p)}
                   >
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
@@ -233,5 +237,16 @@ export function PipelinePartner({ onAuthExpired }) {
         </div>
       )}
     </div>
+
+    {/* Scheda dettaglio partner — si apre cliccando sul nome nella tabella */}
+    <PartnerDetailModal
+      partner={detailPartner}
+      isOpen={!!detailPartner}
+      onClose={() => setDetailPartner(null)}
+      onUpdate={load}
+      onDelete={() => { setDetailPartner(null); load(); }}
+      onAuthExpired={onAuthExpired}
+    />
+    </>
   );
 }
