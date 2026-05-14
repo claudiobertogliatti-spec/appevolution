@@ -16,6 +16,7 @@ import { PartnerSidebar } from "./PartnerSidebar";
 import { PartnerDashboard } from "./PartnerDashboard";
 import { F1Posizionamento } from "./phases/F1Posizionamento";
 import { F2FunnelLight } from "./phases/F2FunnelLight";
+import { F4Videocorso } from "./phases/F4Videocorso";
 import { F5Funnel } from "./phases/F5Funnel";
 import { STEPS } from "./stepConfig";
 
@@ -117,6 +118,7 @@ function PhasePage({ partnerId }) {
   const { stepId } = useParams();
   if (stepId === "posizionamento") return <F1Posizionamento partnerId={partnerId} />;
   if (stepId === "funnel-light") return <F2FunnelLight partnerId={partnerId} />;
+  if (stepId === "videocorso") return <F4Videocorso partnerId={partnerId} />;
   if (stepId === "funnel") return <F5Funnel partnerId={partnerId} />;
   return <PhaseStub />;
 }
