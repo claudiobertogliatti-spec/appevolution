@@ -27,7 +27,7 @@ import { PipelinePartner } from "./pages/PipelinePartner";
 import { Oggi } from "./pages/Oggi";
 import { StefaniaAdmin } from "./pages/StefaniaAdmin";
 import { TemplateEmail } from "./pages/TemplateEmail";
-import { PipelineKanban } from "./pages/PipelineKanban";
+import { PipelineList } from "./pages/PipelineList";
 import { QuarantenaPartner } from "./pages/QuarantenaPartner";
 import { ExPartner } from "./pages/ExPartner";
 
@@ -280,7 +280,7 @@ export default function CiakAdminApp() {
         <Route
           path="pipeline-prospect"
           element={
-            <PipelineKanban
+            <PipelineList
               endpoint="/pipeline-prospect"
               title="Pipeline Prospect"
               subtitle="Funnel pre-acquisto: iscritto → checkpoint → 8 Domande → report → click €67"
@@ -299,7 +299,7 @@ export default function CiakAdminApp() {
         <Route
           path="pipeline-blueprint"
           element={
-            <PipelineKanban
+            <PipelineList
               endpoint="/pipeline-blueprint"
               title="Pipeline Blueprint"
               subtitle="Post-acquisto: blueprint acquistato → call → in trattativa → contratto firmato + pagato"
