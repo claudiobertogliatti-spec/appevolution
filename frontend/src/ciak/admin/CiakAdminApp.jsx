@@ -251,24 +251,20 @@ export default function CiakAdminApp() {
 
   return (
     <AdminShell user={user} onLogout={handleLogout}>
+      {/* NOTA: CiakAdminApp è montato sotto `/admin/*` in CiakApp, quindi i path
+          di queste Route sono RELATIVI a /admin (niente prefisso /admin/). */}
       <Routes>
         {/* Dashboard — pagine reali (funnel Ciak €67) */}
-        <Route path="/admin" element={<AdminDashboard onAuthExpired={handleLogout} />} />
-        <Route path="/admin/leads" element={<AdminLeads onAuthExpired={handleLogout} />} />
-        <Route
-          path="/admin/leads/:email"
-          element={<AdminLeadDetail onAuthExpired={handleLogout} />}
-        />
-        <Route
-          path="/admin/transactions"
-          element={<AdminTransactions onAuthExpired={handleLogout} />}
-        />
+        <Route index element={<AdminDashboard onAuthExpired={handleLogout} />} />
+        <Route path="leads" element={<AdminLeads onAuthExpired={handleLogout} />} />
+        <Route path="leads/:email" element={<AdminLeadDetail onAuthExpired={handleLogout} />} />
+        <Route path="transactions" element={<AdminTransactions onAuthExpired={handleLogout} />} />
 
         {/* Acquisizione Clienti */}
-        <Route path="/admin/lead-manager" element={<LeadManager onAuthExpired={handleLogout} />} />
-        <Route path="/admin/lista-fredda" element={<ListaFredda onAuthExpired={handleLogout} />} />
+        <Route path="lead-manager" element={<LeadManager onAuthExpired={handleLogout} />} />
+        <Route path="lista-fredda" element={<ListaFredda onAuthExpired={handleLogout} />} />
         <Route
-          path="/admin/pipeline-prospect"
+          path="pipeline-prospect"
           element={
             <PipelineKanban
               endpoint="/pipeline-prospect"
@@ -281,13 +277,13 @@ export default function CiakAdminApp() {
         {/* ClientiAnalisi: pannello clienti €67 — raggiungibile via URL,
             drill-down dal kanban Pipeline Blueprint */}
         <Route
-          path="/admin/clienti-analisi"
+          path="clienti-analisi"
           element={<ClientiAnalisi onAuthExpired={handleLogout} />}
         />
 
         {/* Clienti Attivi */}
         <Route
-          path="/admin/pipeline-blueprint"
+          path="pipeline-blueprint"
           element={
             <PipelineKanban
               endpoint="/pipeline-blueprint"
@@ -299,23 +295,20 @@ export default function CiakAdminApp() {
         />
 
         {/* Gestione Partner */}
-        <Route path="/admin/partner" element={<Partner onAuthExpired={handleLogout} />} />
-        <Route path="/admin/partner/:id" element={<SectionStub />} />
-        <Route path="/admin/oggi" element={<Oggi onAuthExpired={handleLogout} />} />
+        <Route path="partner" element={<Partner onAuthExpired={handleLogout} />} />
+        <Route path="partner/:id" element={<SectionStub />} />
+        <Route path="oggi" element={<Oggi onAuthExpired={handleLogout} />} />
         {/* Quarantena / Ex Partner — gestione piani rateali + stato partner */}
         <Route
-          path="/admin/quarantena-partner"
+          path="quarantena-partner"
           element={<QuarantenaPartner onAuthExpired={handleLogout} />}
         />
-        <Route path="/admin/ex-partner" element={<ExPartner onAuthExpired={handleLogout} />} />
+        <Route path="ex-partner" element={<ExPartner onAuthExpired={handleLogout} />} />
 
         {/* Strumenti — importate da Evolution (KB Matteo: stub, richiede backend) */}
-        <Route path="/admin/stefania" element={<StefaniaAdmin onAuthExpired={handleLogout} />} />
-        <Route path="/admin/kb-matteo" element={<SectionStub />} />
-        <Route
-          path="/admin/template-email"
-          element={<TemplateEmail onAuthExpired={handleLogout} />}
-        />
+        <Route path="stefania" element={<StefaniaAdmin onAuthExpired={handleLogout} />} />
+        <Route path="kb-matteo" element={<SectionStub />} />
+        <Route path="template-email" element={<TemplateEmail onAuthExpired={handleLogout} />} />
 
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
