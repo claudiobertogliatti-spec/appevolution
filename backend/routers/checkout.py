@@ -52,9 +52,18 @@ def set_db(database) -> None:
 
 class CreateSessionRequest(BaseModel):
     session_token: Optional[str] = None  # token diagnostic se da report
-    email: EmailStr
+    # email opzionale: se il visitatore arriva diretto su /ciak-blueprint senza
+    # aver fatto opt-in (footer, CTA Checkpoint, link diretto) non ha email in
+    # localStorage. In quel caso la raccoglie Stripe sulla sua pagina checkout.
+    email: Optional[EmailStr] = None
     name: Optional[str] = None
     stato: int = 2  # default Stato 2 (cold direct), 4 = Analisi estesa
+    # Campi accessori inviati dal frontend, ignorati lato logica ma accettati
+    # per non far fallire la validazione (pydantic ignora extra di default,
+    # esplicitati qui per chiarezza).
+    product: Optional[str] = None
+    source: Optional[str] = None
+    origin_url: Optional[str] = None
 
 
 class CreateSessionResponse(BaseModel):
@@ -102,6 +111,7 @@ async def create_checkout_session(payload: CreateSessionRequest, request: Reques
     product_name = "Ciak Blueprint"
     product_description = (
         "Sessione Strategica 1:1 con Claudio Bertogliatti (60 minuti) + "
+        "Analisi di mercato specifica sul tuo settore + "
         "Roadmap Operativa personalizzata consegnata entro 72 ore."
     )
 
@@ -116,26 +126,31 @@ async def create_checkout_session(payload: CreateSessionRequest, request: Reques
     success_url = f"{frontend}/ciak-blueprint/grazie?session_id={{CHECKOUT_SESSION_ID}}"
     cancel_url = f"{frontend}/ciak-blueprint?from=cancel"
 
-    try:
-        stripe_session = stripe.checkout.Session.create(
-            payment_method_types=["card"],
-            line_items=[{
-                "price_data": {
-                    "currency": "eur",
-                    "product_data": {
-                        "name": product_name,
-                        "description": product_description,
-                    },
-                    "unit_amount": 6700,
+    session_kwargs: dict = {
+        "payment_method_types": ["card"],
+        "line_items": [{
+            "price_data": {
+                "currency": "eur",
+                "product_data": {
+                    "name": product_name,
+                    "description": product_description,
                 },
-                "quantity": 1,
-            }],
-            mode="payment",
-            success_url=success_url,
-            cancel_url=cancel_url,
-            customer_email=payload.email,
-            metadata=metadata,
-        )
+                "unit_amount": 6700,
+            },
+            "quantity": 1,
+        }],
+        "mode": "payment",
+        "success_url": success_url,
+        "cancel_url": cancel_url,
+        "metadata": metadata,
+    }
+    # customer_email solo se disponibile: Stripe rifiuta stringa vuota e, se
+    # omesso, raccoglie l'email direttamente sulla sua pagina di checkout.
+    if payload.email:
+        session_kwargs["customer_email"] = payload.email
+
+    try:
+        stripe_session = stripe.checkout.Session.create(**session_kwargs)
     except stripe.error.StripeError as e:
         logger.error("[CIAK_CHECKOUT] Stripe error: %s", e)
         raise HTTPException(502, f"Stripe error: {e}") from e
