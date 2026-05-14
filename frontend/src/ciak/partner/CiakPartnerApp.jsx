@@ -27,7 +27,7 @@ import { PercorsoVelocePage } from "./sections/PercorsoVelocePage";
 import { GrowthSystemPage } from "./sections/GrowthSystemPage";
 import { AcceleraCrescitaPage } from "./sections/AcceleraCrescitaPage";
 import { StefaniaChat } from "./sections/StefaniaChat";
-import { STEPS } from "./stepConfig";
+import { STEPS, getStepFromPhase } from "./stepConfig";
 
 const VIEW_PARTNER_KEY = "ciak_partner_view_id";
 
@@ -291,29 +291,14 @@ export default function CiakPartnerApp() {
     if (!getToken()) return;
     if (admin) {
       if (!viewPartner?.id) return;
-      // Vista admin: niente endpoint /me — usa partner-progress per id
-      apiGet(`/api/partner-progress/${viewPartner.id}`)
-        .then((d) => {
-          const data = d?.data || d || {};
-          setStatus({
-            partner_name: viewPartner.name,
-            partner_id: viewPartner.id,
-            current_step: data.current_step ?? 1,
-            completion_percentage: data.completion ?? data.completion_percentage,
-            next_action: null,
-          });
-        })
-        .catch((e) => {
-          if (e.message === "AUTH_EXPIRED") handleLogout();
-          // Fallback: dashboard minima comunque navigabile
-          else
-            setStatus({
-              partner_name: viewPartner.name,
-              partner_id: viewPartner.id,
-              current_step: 1,
-              next_action: null,
-            });
-        });
+      // Vista admin: deriva lo stato dalla `phase` del partner — già nota dal
+      // selettore (/api/admin/ciak/partners restituisce phase). Niente API call.
+      setStatus({
+        partner_name: viewPartner.name,
+        partner_id: viewPartner.id,
+        current_step: getStepFromPhase(viewPartner.phase),
+        next_action: null,
+      });
     } else {
       apiGet("/api/partner/me/status")
         .then(setStatus)
