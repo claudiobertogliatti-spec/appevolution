@@ -106,6 +106,10 @@ async def ciak_partners_list(
             "name": p.get("name"),
             "email": p.get("email"),
             "phase": p.get("phase"),
+            "niche": p.get("niche") or p.get("nicchia"),
+            "revenue": p.get("revenue"),
+            "contract_signed": bool(p.get("contract_signed")),
+            "contract": p.get("contract"),  # data contratto (string) o struttura
             "stato": st,
             "piano_pagamento": piano,
         })
