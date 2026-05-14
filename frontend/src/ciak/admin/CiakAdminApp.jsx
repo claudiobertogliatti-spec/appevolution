@@ -20,6 +20,14 @@ import { AdminDashboard } from "./pages/AdminDashboard";
 import { AdminLeads } from "./pages/AdminLeads";
 import { AdminLeadDetail } from "./pages/AdminLeadDetail";
 import { AdminTransactions } from "./pages/AdminTransactions";
+import { LeadManager } from "./pages/LeadManager";
+import { ListaFredda } from "./pages/ListaFredda";
+import { ClientiAnalisi } from "./pages/ClientiAnalisi";
+import { Partner } from "./pages/Partner";
+import { Oggi } from "./pages/Oggi";
+import { PipelineProspect } from "./pages/PipelineProspect";
+import { StefaniaAdmin } from "./pages/StefaniaAdmin";
+import { TemplateEmail } from "./pages/TemplateEmail";
 
 // ─── Struttura navigazione (macro → pagine) ──────────────────────────────
 
@@ -249,20 +257,30 @@ export default function CiakAdminApp() {
           element={<AdminTransactions onAuthExpired={handleLogout} />}
         />
 
-        {/* Acquisizione — stub finché non importate da Evolution */}
-        <Route path="/admin/lead-manager" element={<SectionStub />} />
-        <Route path="/admin/lista-fredda" element={<SectionStub />} />
-        <Route path="/admin/clienti-analisi" element={<SectionStub />} />
+        {/* Acquisizione Clienti — importate da Evolution */}
+        <Route path="/admin/lead-manager" element={<LeadManager onAuthExpired={handleLogout} />} />
+        <Route path="/admin/lista-fredda" element={<ListaFredda onAuthExpired={handleLogout} />} />
+        <Route
+          path="/admin/clienti-analisi"
+          element={<ClientiAnalisi onAuthExpired={handleLogout} />}
+        />
 
-        {/* Gestione Partner — stub */}
-        <Route path="/admin/partner" element={<SectionStub />} />
-        <Route path="/admin/oggi" element={<SectionStub />} />
-        <Route path="/admin/pipeline-prospect" element={<SectionStub />} />
+        {/* Gestione Partner — importate da Evolution */}
+        <Route path="/admin/partner" element={<Partner onAuthExpired={handleLogout} />} />
+        <Route path="/admin/partner/:id" element={<SectionStub />} />
+        <Route path="/admin/oggi" element={<Oggi onAuthExpired={handleLogout} />} />
+        <Route
+          path="/admin/pipeline-prospect"
+          element={<PipelineProspect onAuthExpired={handleLogout} />}
+        />
 
-        {/* Strumenti — stub */}
-        <Route path="/admin/stefania" element={<SectionStub />} />
+        {/* Strumenti — importate da Evolution (KB Matteo: stub, richiede backend) */}
+        <Route path="/admin/stefania" element={<StefaniaAdmin onAuthExpired={handleLogout} />} />
         <Route path="/admin/kb-matteo" element={<SectionStub />} />
-        <Route path="/admin/template-email" element={<SectionStub />} />
+        <Route
+          path="/admin/template-email"
+          element={<TemplateEmail onAuthExpired={handleLogout} />}
+        />
 
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
