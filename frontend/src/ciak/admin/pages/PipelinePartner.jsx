@@ -12,8 +12,8 @@
  *
  * Sorgente: GET /api/admin/ciak/partners (endpoint Ciak affidabile).
  */
-import { useEffect, useState } from "react";
-import { apiGet, getToken, getAdminUser } from "../api";
+import { useEffect, useState, useCallback } from "react";
+import { apiGet, adminFetch, getToken, getAdminUser } from "../api";
 
 const FASE_LABEL = {
   F1: "Posizionamento", F2: "Funnel Light", F3: "Masterclass", F4: "Videocorso",
@@ -64,7 +64,8 @@ export function PipelinePartner({ onAuthExpired }) {
   const [error, setError] = useState(null);
   const [statoFilter, setStatoFilter] = useState("");
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setPartners(null);
     apiGet("/partners")
       .then((d) => setPartners(d.items || []))
       .catch((e) => {
@@ -72,6 +73,27 @@ export function PipelinePartner({ onAuthExpired }) {
         else setError(e.message);
       });
   }, [onAuthExpired]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const deletePartner = async (p) => {
+    if (
+      !window.confirm(
+        `Eliminare definitivamente "${p.name}"?\nVerranno rimossi il partner e il suo account utente. Operazione irreversibile.`
+      )
+    )
+      return;
+    try {
+      const res = await adminFetch(`/api/admin/ciak/partner/${p.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Errore eliminazione");
+      load();
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else window.alert("Errore nell'eliminazione del partner.");
+    }
+  };
 
   if (error) return <div className="p-8 text-slate-600">Errore: {error}</div>;
   if (!partners) return <div className="p-8 text-slate-400">Caricamento…</div>;
@@ -179,12 +201,29 @@ export function PipelinePartner({ onAuthExpired }) {
                       </span>
                     </td>
                     <td className="px-5 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => openVista(p)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-yellow-400 text-xs font-semibold hover:bg-slate-800 transition"
-                      >
-                        Vista →
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => openVista(p)}
+                          title="Apri il journey del partner"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-yellow-100 text-yellow-700 text-xs font-semibold hover:bg-yellow-200 transition"
+                        >
+                          Journey
+                        </button>
+                        <button
+                          onClick={() => openVista(p)}
+                          title="Entra nell'area del partner (vista-admin)"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-900 text-yellow-400 text-xs font-semibold hover:bg-slate-800 transition"
+                        >
+                          Vista →
+                        </button>
+                        <button
+                          onClick={() => deletePartner(p)}
+                          title="Elimina partner"
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-red-500 hover:bg-red-50 transition"
+                        >
+                          🗑
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

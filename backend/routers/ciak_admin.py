@@ -206,6 +206,32 @@ async def ciak_remove_piano_pagamento(partner_id: str, admin=Depends(require_cia
     return {"ok": True, "partner_id": partner_id}
 
 
+@router.delete("/partner/{partner_id}")
+async def ciak_delete_partner(partner_id: str, admin=Depends(require_ciak_admin)):
+    """
+    Elimina un partner: rimuove il record `partners` e l'account utente
+    collegato (se presente). Operazione irreversibile — il frontend chiede
+    conferma esplicita prima di chiamarla.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    partner = await db.partners.find_one({"id": partner_id})
+    if not partner:
+        raise HTTPException(404, "Partner non trovato")
+    user_id = partner.get("user_id")
+    pr = await db.partners.delete_one({"id": partner_id})
+    users_deleted = 0
+    if user_id:
+        ur = await db.users.delete_one({"id": user_id})
+        users_deleted = ur.deleted_count
+    return {
+        "ok": True,
+        "partner_id": partner_id,
+        "partners_deleted": pr.deleted_count,
+        "users_deleted": users_deleted,
+    }
+
+
 # ─── Stats ─────────────────────────────────────────────────────────────────
 
 @router.get("/stats")
