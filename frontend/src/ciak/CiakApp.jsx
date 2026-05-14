@@ -24,6 +24,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { CiakLanding } from "./pages/Landing";
 import { CiakMasterclass } from "./pages/Masterclass";
+import { CiakCheckpoint } from "./pages/Checkpoint";
 import { CiakBlueprint } from "./pages/CiakBlueprint";
 import { CiakGrazie } from "./pages/Grazie";
 import { CiakDiagnostica } from "./pages/Diagnostica";
@@ -43,6 +44,9 @@ export default function CiakApp() {
         <Routes>
           <Route path="/" element={<CiakLanding />} />
           <Route path="/masterclass" element={<CiakMasterclass />} />
+
+          {/* Checkpoint Strategico standalone — deep-link da email Systeme */}
+          <Route path="/checkpoint" element={<CiakCheckpoint />} />
 
           {/* LIV 3 — Ciak Blueprint (rename da /analisi 2026-05-12) */}
           <Route path="/ciak-blueprint" element={<CiakBlueprint />} />

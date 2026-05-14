@@ -12,13 +12,20 @@ masterclass). Funzioni:
 Riferimento: memory/ciak_brand_copy_framework.md (Checkpoint Strategico spec
 + delta Stati come intelligence commerciale).
 
-Spec scoring (vedi components/CheckpointStrategico.jsx):
-  - 5 domande, ognuna con 4 opzioni (score 0-3)
+Spec scoring (LOCK 13/5/2026 — vedi memory/ciak_brand_copy_framework.md):
+  - 5 domande, ognuna con 4 opzioni (S1=0 / S2=1 / S3=2 / S4=3)
+  - answers = lista degli SCORE scelti per Q1..Q5 (in ordine fisso, indipendente
+    dal de-ordering visuale frontend)
   - Totale 0-15, mapping:
-      0-3  → Stato 1 (Definizione)
-      4-8  → Stato 2 (Strutturazione)
-      9-12 → Stato 3 (Validazione)
-      13-15→ Stato 4 (Evoluzione Strategica)
+      0-3   → Stato 1 (Definizione)
+      4-7   → Stato 2 (Strutturazione)
+      8-11  → Stato 3 (Validazione)
+      12-15 → Stato 4 (Evoluzione Strategica)
+  - Override (più severi delle 8 Domande post-acquisto: il Checkpoint non deve
+    sovrastimare). Applicati DOPO lo score:
+      Q1=S1 (answers[0]==0) → MAX Stato 2
+      Q2=S1 (answers[1]==0) → MAX Stato 2
+      Q3=S1 (answers[2]==0) → MAX Stato 2
 """
 import asyncio
 import logging
@@ -26,7 +33,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from services.ciak_systeme import ciak_emit_event
 
@@ -49,6 +56,14 @@ class CheckpointResultRequest(BaseModel):
     total_score: int = Field(..., ge=0, le=15)
     source: str = Field(default="masterclass")
 
+    @field_validator("answers")
+    @classmethod
+    def _answers_in_range(cls, v: List[int]) -> List[int]:
+        # Ogni risposta è lo score di un'opzione: S1=0 / S2=1 / S3=2 / S4=3.
+        if any(s < 0 or s > 3 for s in v):
+            raise ValueError("ogni score in answers deve essere tra 0 e 3")
+        return v
+
 
 class CheckpointResultResponse(BaseModel):
     ok: bool
@@ -56,13 +71,33 @@ class CheckpointResultResponse(BaseModel):
 
 
 def _classify_stato(total: int) -> int:
+    """Stato base dal punteggio 0-15 (soglie lockate 13/5/2026)."""
     if total <= 3:
         return 1
-    if total <= 8:
+    if total <= 7:
         return 2
-    if total <= 12:
+    if total <= 11:
         return 3
     return 4
+
+
+def _apply_overrides(stato_base: int, answers: List[int]) -> tuple[int, List[str]]:
+    """
+    Override pre-acquisto: Q1/Q2/Q3 = S1 (score 0) → MAX Stato 2.
+
+    answers è la lista degli score scelti per Q1..Q5. answers[i]==0 significa
+    che per quella domanda è stata scelta l'opzione S1.
+
+    Restituisce (stato_finale, lista_override_applicati).
+    """
+    overrides: List[str] = []
+    stato = stato_base
+    for idx, label in ((0, "Q1=S1"), (1, "Q2=S1"), (2, "Q3=S1")):
+        if idx < len(answers) and answers[idx] == 0:
+            overrides.append(label)
+    if overrides and stato > 2:
+        stato = 2
+    return stato, overrides
 
 
 @router.post("/result", response_model=CheckpointResultResponse)
@@ -87,7 +122,8 @@ async def submit_checkpoint_result(payload: CheckpointResultRequest):
             "[CHECKPOINT] Score mismatch: payload.total_score=%d but sum(answers)=%d (email=%s)",
             payload.total_score, expected_total, payload.email
         )
-    server_stato = _classify_stato(expected_total)
+    stato_base = _classify_stato(expected_total)
+    server_stato, overrides = _apply_overrides(stato_base, payload.answers)
 
     # Audit log su MongoDB (best-effort, non bloccante)
     if db is not None:
@@ -97,7 +133,9 @@ async def submit_checkpoint_result(payload: CheckpointResultRequest):
                 "answers": payload.answers,
                 "total_score": expected_total,
                 "stato_client": payload.stato_finale,
+                "stato_base": stato_base,
                 "stato_server": server_stato,
+                "override_applicati": overrides,
                 "source": payload.source,
                 "created_at": datetime.now(timezone.utc),
             })
