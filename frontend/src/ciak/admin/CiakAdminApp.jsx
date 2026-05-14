@@ -23,7 +23,7 @@ import { AdminTransactions } from "./pages/AdminTransactions";
 import { LeadManager } from "./pages/LeadManager";
 import { ListaFredda } from "./pages/ListaFredda";
 import { ClientiAnalisi } from "./pages/ClientiAnalisi";
-import { Partner } from "./pages/Partner";
+import { PipelinePartner } from "./pages/PipelinePartner";
 import { Oggi } from "./pages/Oggi";
 import { StefaniaAdmin } from "./pages/StefaniaAdmin";
 import { TemplateEmail } from "./pages/TemplateEmail";
@@ -309,7 +309,7 @@ export default function CiakAdminApp() {
         />
 
         {/* Gestione Partner */}
-        <Route path="partner" element={<Partner onAuthExpired={handleLogout} />} />
+        <Route path="partner" element={<PipelinePartner onAuthExpired={handleLogout} />} />
         <Route path="partner/:id" element={<SectionStub />} />
         <Route path="oggi" element={<Oggi onAuthExpired={handleLogout} />} />
         {/* Quarantena / Ex Partner — gestione piani rateali + stato partner */}
