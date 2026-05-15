@@ -35,6 +35,7 @@ import { CiakNotFound } from "./pages/NotFound";
 import { CookieBanner } from "./components/CookieBanner";
 import CiakAdminApp from "./admin/CiakAdminApp";
 import CiakPartnerApp from "./partner/CiakPartnerApp";
+import CiakClienteApp from "./cliente/CiakClienteApp";
 
 export default function CiakApp() {
   return (
@@ -77,6 +78,12 @@ export default function CiakApp() {
 
           {/* Area Partner Ciak — Fase 2a migrazione (login proprio, role partner) */}
           <Route path="/partner/*" element={<CiakPartnerApp />} />
+
+          {/* Area Cliente Ciak — porting flusso cliente_analisi Evolution
+              (login proprio, role cliente / user_type cliente_analisi).
+              Flusso lineare: benvenuto → intro → questionario → attivazione
+              → prenota-call → analisi-in-preparazione → proposta/firma. */}
+          <Route path="/cliente/*" element={<CiakClienteApp />} />
 
           <Route path="*" element={<CiakNotFound />} />
         </Routes>
