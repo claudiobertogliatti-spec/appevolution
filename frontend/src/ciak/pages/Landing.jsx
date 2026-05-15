@@ -24,13 +24,31 @@ export function CiakLanding() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
+  // Domini palesemente non-deliverable: Systeme.io li rifiuta con 422 e il
+  // contatto non viene mai creato → nessuna sequenza email parte. Blocchiamo
+  // lato client con un messaggio chiaro.
+  const FAKE_DOMAINS = new Set([
+    "example.com", "example.it", "example.org",
+    "test.com", "test.it",
+    "mailinator.com", "yopmail.com", "guerrillamail.com",
+    "trashmail.com", "10minutemail.com", "tempmail.com",
+    "fake.com", "fakeinbox.com", "asdf.com",
+  ]);
+
   const captureEmail = async () => {
-    if (!nome.trim()) {
+    const n = nome.trim();
+    const e = email.trim().toLowerCase();
+    if (n.length < 2) {
       setError("Inserisci il tuo nome");
       return;
     }
-    if (!email.trim() || !email.includes("@")) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) {
       setError("Inserisci un'email valida");
+      return;
+    }
+    const domain = e.split("@")[1];
+    if (FAKE_DOMAINS.has(domain)) {
+      setError("Questa email non riceve messaggi. Inserisci l'indirizzo che usi davvero — il Checkpoint te lo mandiamo lì.");
       return;
     }
     setSubmitting(true);
@@ -41,8 +59,8 @@ export function CiakLanding() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: email.trim(),
-          nome: nome.trim(),
+          email: e,
+          nome: n,
           source: "landing_hero",
           utm_source: qs.get("utm_source"),
           utm_medium: qs.get("utm_medium"),
@@ -52,10 +70,14 @@ export function CiakLanding() {
           referrer: document.referrer || null,
         }),
       }).catch(() => null);
-      localStorage.setItem("ciak_lead_email", email.trim());
-      localStorage.setItem("ciak_lead_nome", nome.trim());
+      localStorage.setItem("ciak_lead_email", e);
+      localStorage.setItem("ciak_lead_name", n);
+      // Mantengo "ciak_lead_nome" per retrocompatibilità con eventuali letture
+      // legacy. Ora la chiave canonica è "ciak_lead_name" (coerente con
+      // Masterclass.jsx).
+      localStorage.setItem("ciak_lead_nome", n);
       navigate("/masterclass");
-    } catch (e) {
+    } catch (err) {
       setError("Errore di rete, riprova");
       setSubmitting(false);
     }
@@ -84,6 +106,7 @@ export function CiakLanding() {
               onChange={(e) => setNome(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && captureEmail()}
               placeholder="Il tuo nome"
+              autoComplete="given-name"
               className="w-full px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400 mb-2"
             />
             <div className="flex flex-col sm:flex-row gap-2">
@@ -92,7 +115,8 @@ export function CiakLanding() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && captureEmail()}
-                placeholder="la-tua-email@esempio.it"
+                placeholder="La tua email"
+                autoComplete="email"
                 className="flex-1 px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400"
               />
               <button
@@ -104,6 +128,16 @@ export function CiakLanding() {
               </button>
             </div>
             {error && <p className="text-yellow-400 text-sm mt-2">{error}</p>}
+
+            {/* Disclaimer dati reali — il Checkpoint arriva via email, dati finti = flusso muto */}
+            <div className="mt-4 p-3 rounded-lg bg-slate-800/60 border border-yellow-400/30">
+              <p className="text-sm text-slate-200 leading-relaxed">
+                <strong className="text-yellow-400">Inserisci nome ed email reali.</strong> Alla fine
+                della masterclass ti arriva il Checkpoint Strategico con il tuo punteggio e lo stato
+                esatto della tua attività. Con dati finti non possiamo raggiungerti.
+              </p>
+            </div>
+
             <p className="text-xs text-slate-400 mt-4 opacity-80 leading-relaxed">
               30 minuti per capire perché molti progetti professionali non crescono come dovrebbero.
             </p>
@@ -126,8 +160,9 @@ export function CiakLanding() {
             <p className="text-slate-300 leading-relaxed text-sm md:text-base">
               Al termine della masterclass si sblocca il <strong className="text-white">Checkpoint
               Strategico</strong>: 5 domande che ti restituiscono subito il tuo Stato Strategico
-              Attuale. Compare direttamente nella pagina della masterclass mentre la guardi —
-              nessuna email aggiuntiva da inserire, nessuna attesa. È gratuito e incluso per tutti.
+              Attuale. Compare direttamente nella pagina della masterclass alla fine del video —
+              ricevi poi via email il riepilogo del tuo punteggio e dello stato in cui si trova
+              la tua attività, con il passaggio successivo coerente. È gratuito e incluso per tutti.
             </p>
           </div>
         </div>
@@ -220,22 +255,38 @@ export function CiakLanding() {
             Niente acquisti, niente impegno. 30 minuti di lucidità professionale e un Checkpoint
             Strategico per capire da dove partire.
           </p>
-          <div className="max-w-md mx-auto flex flex-col sm:flex-row gap-2">
+          <div className="max-w-md mx-auto">
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && captureEmail()}
-              placeholder="la-tua-email@esempio.it"
-              className="flex-1 px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400"
+              placeholder="Il tuo nome"
+              autoComplete="given-name"
+              className="w-full px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400 mb-2"
             />
-            <button
-              onClick={captureEmail}
-              disabled={submitting}
-              className="px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 disabled:opacity-50 transition"
-            >
-              {submitting ? "..." : "Accedi alla masterclass"}
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && captureEmail()}
+                placeholder="La tua email"
+                autoComplete="email"
+                className="flex-1 px-4 py-3 rounded-lg bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-400"
+              />
+              <button
+                onClick={captureEmail}
+                disabled={submitting}
+                className="px-6 py-3 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 disabled:opacity-50 transition"
+              >
+                {submitting ? "..." : "Accedi alla masterclass"}
+              </button>
+            </div>
+            {error && <p className="text-yellow-400 text-sm mt-2">{error}</p>}
+            <p className="text-xs text-slate-400 mt-3 opacity-80 leading-relaxed">
+              Inserisci nome ed email reali — il Checkpoint Strategico ti arriva lì.
+            </p>
           </div>
         </div>
       </section>
