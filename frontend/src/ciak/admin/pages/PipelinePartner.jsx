@@ -66,6 +66,8 @@ export function PipelinePartner({ onAuthExpired }) {
   const [statoFilter, setStatoFilter] = useState("");
   // Partner aperto nella scheda dettaglio (modale "Centrale Operativa Partner")
   const [detailPartner, setDetailPartner] = useState(null);
+  // Tab iniziale della scheda: "profilo" (click sul nome) o "journey" (bottone Journey)
+  const [detailTab, setDetailTab] = useState("profilo");
 
   const load = useCallback(() => {
     setPartners(null);
@@ -157,7 +159,7 @@ export function PipelinePartner({ onAuthExpired }) {
                   <tr
                     key={p.id || p.email}
                     className="border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer"
-                    onClick={() => setDetailPartner(p)}
+                    onClick={() => { setDetailTab("profilo"); setDetailPartner(p); }}
                   >
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
@@ -207,8 +209,8 @@ export function PipelinePartner({ onAuthExpired }) {
                     <td className="px-5 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => openVista(p)}
-                          title="Apri il journey del partner"
+                          onClick={() => { setDetailTab("journey"); setDetailPartner(p); }}
+                          title="Apri la scheda partner sui Dati Journey"
                           className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-yellow-100 text-yellow-700 text-xs font-semibold hover:bg-yellow-200 transition"
                         >
                           Journey
@@ -242,6 +244,7 @@ export function PipelinePartner({ onAuthExpired }) {
     <PartnerDetailModal
       partner={detailPartner}
       isOpen={!!detailPartner}
+      initialTab={detailTab}
       onClose={() => setDetailPartner(null)}
       onUpdate={load}
       onDelete={() => { setDetailPartner(null); load(); }}
