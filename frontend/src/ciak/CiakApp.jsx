@@ -35,7 +35,12 @@ import { CiakNotFound } from "./pages/NotFound";
 import { CookieBanner } from "./components/CookieBanner";
 import CiakAdminApp from "./admin/CiakAdminApp";
 import CiakPartnerApp from "./partner/CiakPartnerApp";
-import CiakClienteApp from "./cliente/CiakClienteApp";
+// CiakClienteApp DISATTIVATO 2026-05-15 (Sprint 1 pulizia):
+// duplicava il flusso pubblico token-based di Ciak (/proposta/:token,
+// /diagnostica/:token, ecc) con login + porting Evolution. Su Ciak la
+// strategia LOCKATA (brand framework 12/5) è magic-link token-based.
+// I file in ciak/cliente/ restano nel repo per riferimento storico.
+// import CiakClienteApp from "./cliente/CiakClienteApp";
 
 export default function CiakApp() {
   return (
@@ -79,11 +84,8 @@ export default function CiakApp() {
           {/* Area Partner Ciak — Fase 2a migrazione (login proprio, role partner) */}
           <Route path="/partner/*" element={<CiakPartnerApp />} />
 
-          {/* Area Cliente Ciak — porting flusso cliente_analisi Evolution
-              (login proprio, role cliente / user_type cliente_analisi).
-              Flusso lineare: benvenuto → intro → questionario → attivazione
-              → prenota-call → analisi-in-preparazione → proposta/firma. */}
-          <Route path="/cliente/*" element={<CiakClienteApp />} />
+          {/* Area /cliente/* DISATTIVATA 2026-05-15: duplicava il flusso
+              pubblico token-based (vedi import commentato sopra). */}
 
           <Route path="*" element={<CiakNotFound />} />
         </Routes>

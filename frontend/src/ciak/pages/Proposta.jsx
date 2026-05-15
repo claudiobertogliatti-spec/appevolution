@@ -495,10 +495,10 @@ export function CiakProposta() {
             </div>
             {partnerAttivato && (
               <a
-                href="https://app.evolution-pro.it"
+                href="https://www.ciak.io/partner"
                 className="inline-block mt-6 px-8 py-3 rounded-lg bg-slate-900 text-yellow-400 font-semibold hover:bg-slate-800 transition"
               >
-                Accedi alla tua dashboard
+                Accedi alla tua area partner
               </a>
             )}
           </div>
