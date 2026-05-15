@@ -7,8 +7,10 @@
  * Example: `${API}/api/auth/login`
  */
 
-// Production domains that should use relative URLs
-const PRODUCTION_DOMAINS = ['evolution-pro.it', 'app.evolution-pro.it'];
+// Production domains that should use relative URLs.
+// ciak.io incluso: Vercel ha un rewrite /api/* → https://app.evolution-pro.it/api/*
+// quindi le chiamate relative funzionano via proxy (no CORS).
+const PRODUCTION_DOMAINS = ['evolution-pro.it', 'app.evolution-pro.it', 'ciak.io'];
 
 /**
  * Get the base API URL (WITHOUT /api suffix)
