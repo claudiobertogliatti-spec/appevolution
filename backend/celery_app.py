@@ -108,11 +108,25 @@ celery_app.conf.update(
             'task': 'morning_lead_briefing',
             'schedule': crontab(hour=7, minute=0),  # Every day at 7:00 AM CET
         },
-        'daily-systeme-import': {
-            'task': 'celery_tasks.daily_systeme_import',
-            'schedule': crontab(hour=9, minute=0),  # Every day at 9:00 AM
-            'kwargs': {'daily_limit': 300},
-        },
+        # ─────────────────────────────────────────────────────────────────
+        # `daily-systeme-import` DISATTIVATO 2026-05-15.
+        # Motivo: applicava tag generico `Lista_Fredda` indipendentemente dalla
+        # source, facendo entrare anche i lead Google Places (intento alto, mai
+        # contattati) nella campagna di riattivazione Evolution PRO — semantica
+        # sbagliata + copy non-Ciak.
+        #
+        # Riattivare DOPO aver:
+        #   1. Creato 2 campagne separate su Systeme:
+        #      - trigger `ciak_cold_outreach_places` → primo contatto (4 email)
+        #      - trigger `ciak_cold_outreach_legacy` → riattivazione (4 email)
+        #   2. Modificato daily_systeme_import per applicare tag in base a source
+        #      (vedi commit in arrivo, già pronto nel codice).
+        #   3. Verificato copy email in voice Ciak (docs/marketing/email-cold-outreach-ciak.md)
+        # 'daily-systeme-import': {
+        #     'task': 'celery_tasks.daily_systeme_import',
+        #     'schedule': crontab(hour=9, minute=0),
+        #     'kwargs': {'daily_limit': 300},
+        # },
     },
 )
 

@@ -1854,7 +1854,23 @@ def daily_systeme_import(self, daily_limit: int = 300):
             client_mongo, db = get_db()
             SYSTEME_API_KEY = os.environ.get("SYSTEME_API_KEY", "")
             SYSTEME_BASE_URL = "https://api.systeme.io/api"
-            TAG_ID = 1936026  # Lista_Fredda
+
+            # Tag DEDICATI per source (lock 15/5/2026 — vedi memory ciak migration).
+            # Risolti dinamicamente da nome → tag_id via Systeme API (find or create),
+            # così non dipendiamo da ID hardcoded.
+            #
+            # Trigger Systeme:
+            #   - ciak_cold_outreach_places → campagna 4 email PRIMO CONTATTO
+            #     (lead Google Places, mai contattato, intent alto)
+            #   - ciak_cold_outreach_legacy → campagna 4 email RIATTIVAZIONE
+            #     (lista fredda 13k Evolution, contatti vecchi)
+            #   - ciak_cold_outreach_other → fallback per source sconosciute
+            TAG_NAMES_BY_SOURCE = {
+                "google_places": "ciak_cold_outreach_places",
+                "lista_fredda":  "ciak_cold_outreach_legacy",
+            }
+            DEFAULT_TAG_NAME = "ciak_cold_outreach_other"
+            tag_id_cache: dict[str, int] = {}
 
             if not SYSTEME_API_KEY:
                 logger.error("[DAILY_SYSTEME] SYSTEME_API_KEY non configurata")
@@ -1864,6 +1880,33 @@ def daily_systeme_import(self, daily_limit: int = 300):
                 "X-API-Key": SYSTEME_API_KEY,
                 "Content-Type": "application/json",
             }
+
+            async def _resolve_tag_id(http_client, tag_name: str) -> int | None:
+                """Risolve tag_id Systeme da nome. Cache in-memory + find-or-create."""
+                tag_name = tag_name.strip().lower()
+                if tag_name in tag_id_cache:
+                    return tag_id_cache[tag_name]
+                try:
+                    r = await http_client.get(f"{SYSTEME_BASE_URL}/tags", headers=headers)
+                    if r.status_code == 200:
+                        for tag in r.json().get("items", []):
+                            if tag.get("name", "").lower() == tag_name:
+                                tid = int(tag.get("id"))
+                                tag_id_cache[tag_name] = tid
+                                return tid
+                    r = await http_client.post(
+                        f"{SYSTEME_BASE_URL}/tags",
+                        headers=headers,
+                        json={"name": tag_name},
+                    )
+                    if r.status_code in (200, 201):
+                        tid = int(r.json().get("id"))
+                        tag_id_cache[tag_name] = tid
+                        return tid
+                    logger.warning(f"[DAILY_SYSTEME] create tag '{tag_name}' failed: {r.status_code}")
+                except Exception as e:
+                    logger.warning(f"[DAILY_SYSTEME] resolve tag '{tag_name}' error: {e}")
+                return None
 
             today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
@@ -1946,24 +1989,30 @@ def daily_systeme_import(self, daily_limit: int = 300):
                             else:
                                 raise Exception(f"Create failed: {create_resp.status_code} {create_resp.text[:200]}")
 
-                        # 3. Assegna tag Lista_Fredda
+                        # 3. Assegna tag in base a source (lock 15/5/2026)
                         if contact_id:
-                            tag_resp = await http.post(
-                                f"{SYSTEME_BASE_URL}/contacts/{contact_id}/tags",
-                                headers=headers,
-                                json={"tagId": TAG_ID},
-                            )
-                            if tag_resp.status_code in [200, 201, 204]:
-                                stats["tagged"] += 1
-
-                            # Aggiorna documento
                             src = contact.get("source", "other")
+                            tag_name = TAG_NAMES_BY_SOURCE.get(src, DEFAULT_TAG_NAME)
+                            tag_id = await _resolve_tag_id(http, tag_name)
+
+                            if tag_id:
+                                tag_resp = await http.post(
+                                    f"{SYSTEME_BASE_URL}/contacts/{contact_id}/tags",
+                                    headers=headers,
+                                    json={"tagId": tag_id},
+                                )
+                                if tag_resp.status_code in [200, 201, 204]:
+                                    stats["tagged"] += 1
+                            else:
+                                logger.warning(f"[DAILY_SYSTEME] tag '{tag_name}' non risolto per {email}")
+
                             sources[src] = sources.get(src, 0) + 1
                             await db.systeme_daily_queue.update_one(
                                 {"_id": doc_id},
                                 {"$set": {
                                     "status": "imported",
                                     "systeme_contact_id": str(contact_id),
+                                    "tag_applied": tag_name,
                                     "imported_at": datetime.now(timezone.utc).isoformat(),
                                     "batch_date": today,
                                 }}
