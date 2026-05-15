@@ -625,8 +625,8 @@ function JourneyEditor({ data, saving, saved, onSave, onAuthExpired }) {
 // COMPONENTE PRINCIPALE - CENTRALE OPERATIVA PARTNER
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelete, onAuthExpired }) => {
-  const [activeTab, setActiveTab] = useState("profilo");
+export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelete, onAuthExpired, initialTab = "profilo" }) => {
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState(null);
@@ -707,9 +707,12 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
       fetchPayments();
       fetchDocuments();
       fetchVideoPipeline(partner.id);
+      // Tab di apertura: "profilo" (click sul nome) o "journey" (bottone Journey)
+      setActiveTab(initialTab);
+      if (initialTab === "journey") loadJourneyData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [partner]);
+  }, [partner, initialTab]);
 
   // Reset success message after 2 seconds
   useEffect(() => {
