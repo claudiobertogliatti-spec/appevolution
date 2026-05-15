@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
+import asyncio
 import logging
 import json
 from pathlib import Path
@@ -16699,9 +16700,12 @@ from routers.ciak_leads import router as ciak_leads_router, set_db as set_ciak_l
 set_ciak_leads_db(db)
 app.include_router(ciak_leads_router)
 
-# Ciak Checkpoint Strategico Router (5 domande post-masterclass → tag Systeme ciak_checkpoint_stato_<n>)
+# Ciak Checkpoint Strategico Router (5 domande post-masterclass → tag Systeme ciak_checkpoint_stato_<n>
+# + email diretta SMTP via services/ciak_checkpoint_email.py)
 from routers.checkpoint import router as ciak_checkpoint_router, set_db as set_ciak_checkpoint_db
+from services.ciak_checkpoint_email import set_db as set_ciak_checkpoint_email_db
 set_ciak_checkpoint_db(db)
+set_ciak_checkpoint_email_db(db)
 app.include_router(ciak_checkpoint_router)
 
 # Ciak Admin Router (pannello admin ciak.io/admin — leads, transazioni, stats — role admin)

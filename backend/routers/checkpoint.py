@@ -36,6 +36,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from services.ciak_systeme import ciak_emit_event
+from services.ciak_checkpoint_email import send_checkpoint_email_async
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/checkpoint", tags=["checkpoint"])
@@ -51,6 +52,7 @@ def set_db(database) -> None:
 
 class CheckpointResultRequest(BaseModel):
     email: Optional[EmailStr] = None
+    nome: Optional[str] = Field(None, max_length=120)
     answers: List[int] = Field(..., min_length=5, max_length=5)
     stato_finale: int = Field(..., ge=1, le=4)
     total_score: int = Field(..., ge=0, le=15)
@@ -125,11 +127,24 @@ async def submit_checkpoint_result(payload: CheckpointResultRequest):
     stato_base = _classify_stato(expected_total)
     server_stato, overrides = _apply_overrides(stato_base, payload.answers)
 
+    # Lookup nome: il frontend dovrebbe inviarlo (preso da localStorage
+    # ciak_lead_name), ma fallback su ciak_leads se per qualche motivo manca.
+    # Questo garantisce che l'email parta personalizzata anche per lead vecchi.
+    nome = (payload.nome or "").strip() or None
+    if not nome and payload.email and db is not None:
+        try:
+            lead = await db.ciak_leads.find_one({"email": payload.email.lower()}, {"nome": 1, "_id": 0})
+            if lead and lead.get("nome"):
+                nome = lead["nome"]
+        except Exception as e:
+            logger.warning("[CHECKPOINT] lead nome lookup failed: %s", e)
+
     # Audit log su MongoDB (best-effort, non bloccante)
     if db is not None:
         try:
             await db.ciak_checkpoint_events.insert_one({
                 "email": payload.email,
+                "nome": nome,
                 "answers": payload.answers,
                 "total_score": expected_total,
                 "stato_client": payload.stato_finale,
@@ -142,9 +157,19 @@ async def submit_checkpoint_result(payload: CheckpointResultRequest):
         except Exception as e:
             logger.warning("[CHECKPOINT] Audit log failed: %s", e)
 
-    # Tag Systeme.io (fire-and-forget, non blocca request)
+    # Tag Systeme.io (fire-and-forget, non blocca request).
+    # NB: il tag resta utile per segmentazione/audit/dashboard Systeme, anche
+    # se l'email del checkpoint la mandiamo direttamente noi via SMTP.
     if payload.email:
         asyncio.create_task(_emit_checkpoint_tag(payload.email, server_stato, expected_total))
+        # Email diretta SMTP (sostituisce workflow Systeme.io): parte subito,
+        # NO dipendenza da automation Systeme. Vedi services/ciak_checkpoint_email.py
+        asyncio.create_task(send_checkpoint_email_async(
+            email=payload.email,
+            nome=nome,
+            stato=server_stato,
+            score=expected_total,
+        ))
 
     return CheckpointResultResponse(ok=True, stato=server_stato)
 
