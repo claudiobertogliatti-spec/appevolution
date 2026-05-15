@@ -15,13 +15,33 @@ Riferimento testi originali: docs/marketing/email-checkpoint-templates.md
 import logging
 import os
 import smtplib
+import uuid
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-BLUEPRINT_URL = "https://www.ciak.io/ciak-blueprint"
+BLUEPRINT_URL_BASE = "https://www.ciak.io/ciak-blueprint"
+TRACKING_BASE_URL = os.environ.get("CIAK_PUBLIC_BASE_URL", "https://www.ciak.io")
+
+
+def _utm_blueprint_url(stato: int) -> str:
+    """CTA Blueprint con UTM: tracciamo click via GA/Stripe come provenienti
+    dall'email post-Checkpoint, per stato."""
+    return (
+        f"{BLUEPRINT_URL_BASE}"
+        f"?utm_source=ciak_email"
+        f"&utm_medium=email"
+        f"&utm_campaign=checkpoint_email"
+        f"&utm_content=stato_{stato}"
+    )
+
+
+def _tracking_pixel_url(token: str) -> str:
+    """URL del pixel 1x1: caricato dal client email all'apertura → endpoint
+    backend applica tag ciak_checkpoint_email_opened_stato_<n> su Systeme."""
+    return f"{TRACKING_BASE_URL}/api/checkpoint/email-opened/{token}.gif"
 
 # Iniettato da server.py via set_db()
 _db = None
@@ -161,10 +181,27 @@ Ciak. Una direzione strategica per la tua competenza professionale.
 }
 
 
-def _build_html(nome: str, stato: int) -> str:
-    """HTML semplice, monospace-safe, leggibile su tutti i client email."""
+def _build_html(nome: str, stato: int, tracking_token: Optional[str] = None) -> str:
+    """HTML semplice, monospace-safe, leggibile su tutti i client email.
+
+    Args:
+        tracking_token: se fornito, incluso pixel 1x1 in fondo per tracciare
+                        l'apertura dell'email (registra tag Systeme).
+    """
     label = STATO_LABELS[stato]
-    body_paragraphs = _html_paragraphs(BODY_TEXT[stato].format(nome=nome, url=BLUEPRINT_URL), stato)
+    cta_url = _utm_blueprint_url(stato)
+    body_paragraphs = _html_paragraphs(
+        BODY_TEXT[stato].format(nome=nome, url=cta_url), stato
+    )
+    # Pixel di tracking: caricato dal client email all'apertura. width=1
+    # height=1 invisibile. URL termina con .gif per essere recognized come
+    # immagine dai client più paranoici.
+    pixel_html = (
+        f'<img src="{_tracking_pixel_url(tracking_token)}" '
+        f'width="1" height="1" alt="" '
+        f'style="display:block;width:1px;height:1px;border:0;outline:none;">'
+    ) if tracking_token else ""
+
     return f"""<!DOCTYPE html>
 <html lang="it">
 <head>
@@ -183,7 +220,7 @@ def _build_html(nome: str, stato: int) -> str:
       {body_paragraphs}
     </div>
     <div style="text-align:center;margin:32px 0 8px;">
-      <a href="{BLUEPRINT_URL}" style="display:inline-block;background:#1a1f24;color:#ffd24d;text-decoration:none;font-weight:700;padding:14px 28px;border-radius:8px;font-size:15px;">
+      <a href="{cta_url}" style="display:inline-block;background:#1a1f24;color:#ffd24d;text-decoration:none;font-weight:700;padding:14px 28px;border-radius:8px;font-size:15px;">
         Prenota il tuo Ciak Blueprint →
       </a>
     </div>
@@ -195,6 +232,7 @@ def _build_html(nome: str, stato: int) -> str:
   <div style="text-align:center;font-size:11px;color:#9ca3af;padding:0 28px 32px;max-width:560px;margin:0 auto;">
     Hai ricevuto questa email perché hai completato il Checkpoint Strategico su ciak.io.
   </div>
+  {pixel_html}
 </body>
 </html>"""
 
@@ -231,11 +269,16 @@ def send_checkpoint_email_sync(
     email: str,
     nome: Optional[str],
     stato: int,
+    tracking_token: Optional[str] = None,
 ) -> tuple[bool, Optional[str]]:
     """Invio SMTP sincrono. Ritorna (ok, error_msg).
 
     Da chiamare in BackgroundTasks o asyncio.to_thread per non bloccare
     il response del POST /api/checkpoint/result.
+
+    Args:
+        tracking_token: se fornito, include pixel tracking nell'HTML email +
+                        UTM nel CTA Blueprint con utm_content=stato_<n>.
     """
     if stato not in STATO_LABELS:
         return False, f"stato {stato} non valido (atteso 1-4)"
@@ -250,9 +293,10 @@ def send_checkpoint_email_sync(
     # In Subject "Ciao" non torna bene, fallback su nome generico
     subject_name = nome_safe if nome_safe != "ciao" else "Ciao"
 
+    cta_url = _utm_blueprint_url(stato)
     subject = SUBJECTS[stato].format(nome=subject_name)
-    body_text = BODY_TEXT[stato].format(nome=nome_safe, url=BLUEPRINT_URL)
-    body_html = _build_html(nome_safe, stato)
+    body_text = BODY_TEXT[stato].format(nome=nome_safe, url=cta_url)
+    body_html = _build_html(nome_safe, stato, tracking_token=tracking_token)
 
     msg = MIMEMultipart("alternative")
     msg["From"] = sender
@@ -282,13 +326,25 @@ async def send_checkpoint_email_async(
 ) -> None:
     """Wrapper async (asyncio.to_thread per non bloccare event loop).
 
-    Logga il risultato in MongoDB `ciak_checkpoint_emails` per audit.
+    Pipeline completa:
+      1. Genera tracking_token per il pixel di apertura
+      2. Invia email SMTP (HTML con pixel + UTM nel CTA)
+      3. Salva audit su ciak_checkpoint_emails (token, sent, opened_at=None)
+      4. Se invio OK: applica tag Systeme ciak_checkpoint_email_sent_stato_<n>
+         così il CRM sa che l'email è partita.
+
     Fire-and-forget: non solleva eccezioni al chiamante.
     """
     import asyncio
     from datetime import datetime, timezone
+
+    # Token random per il pixel di tracking. UUID4 → univoco, non guessable.
+    tracking_token = uuid.uuid4().hex
+
     try:
-        ok, err = await asyncio.to_thread(send_checkpoint_email_sync, email, nome, stato)
+        ok, err = await asyncio.to_thread(
+            send_checkpoint_email_sync, email, nome, stato, tracking_token
+        )
     except Exception as e:
         ok, err = False, str(e)
 
@@ -301,7 +357,90 @@ async def send_checkpoint_email_async(
                 "score": score,
                 "sent": ok,
                 "error": err,
+                "tracking_token": tracking_token,
+                "opened_at": None,
                 "at": datetime.now(timezone.utc).isoformat(),
             })
         except Exception as e:
             logger.warning("[CIAK-CHECKPOINT-EMAIL] audit log failed: %s", e)
+
+    # Tag Systeme post-invio: il CRM sa che l'email è uscita verso il lead.
+    # Asincrono via asyncio.create_task (fire-and-forget, no await).
+    if ok:
+        try:
+            # Import locale per evitare ciclo (ciak_systeme importa da services)
+            from services.ciak_systeme import ciak_emit_event
+            asyncio.create_task(ciak_emit_event(
+                email=email,
+                event_name=f"ciak_checkpoint_email_sent_stato_{stato}",
+                extra_tags=["ciak_checkpoint_email_sent"],
+                first_name=nome,
+                metadata={
+                    "stato": stato,
+                    "score": score,
+                    "tracking_token": tracking_token,
+                },
+            ))
+        except Exception as e:
+            logger.warning("[CIAK-CHECKPOINT-EMAIL] systeme tag email_sent failed: %s", e)
+
+
+async def register_email_opened(tracking_token: str) -> Optional[dict]:
+    """Chiamata dall'endpoint pixel quando il client email carica l'immagine.
+
+    Trova il record in ciak_checkpoint_emails via tracking_token, segna
+    opened_at (idempotente: solo prima volta) e applica tag Systeme
+    ciak_checkpoint_email_opened_stato_<n>.
+
+    Ritorna il record (o None se token non trovato).
+    """
+    import asyncio
+    from datetime import datetime, timezone
+    if _db is None or not tracking_token:
+        return None
+
+    try:
+        # Idempotente: setta opened_at solo se è ancora None (prima apertura).
+        # Pixel può essere caricato N volte (preview client, refresh, ecc).
+        now_iso = datetime.now(timezone.utc).isoformat()
+        result = await _db.ciak_checkpoint_emails.find_one_and_update(
+            {"tracking_token": tracking_token, "opened_at": None},
+            {"$set": {"opened_at": now_iso}},
+            return_document=False,  # ritorna doc PRE-update (per sapere se era già aperto)
+        )
+        # Se result è None → token non esiste OPPURE era già aperto. In entrambi i
+        # casi: cerchiamo il doc per restituirlo, ma NON applichiamo tag (idempotente).
+        if result is None:
+            existing = await _db.ciak_checkpoint_emails.find_one(
+                {"tracking_token": tracking_token}
+            )
+            return existing  # può essere None se token sconosciuto
+
+        # Prima apertura: applica tag Systeme.
+        stato = result.get("stato")
+        email = result.get("email")
+        score = result.get("score")
+        nome = result.get("nome")
+        if email and stato:
+            try:
+                from services.ciak_systeme import ciak_emit_event
+                asyncio.create_task(ciak_emit_event(
+                    email=email,
+                    event_name=f"ciak_checkpoint_email_opened_stato_{stato}",
+                    extra_tags=["ciak_checkpoint_email_opened"],
+                    first_name=nome,
+                    metadata={
+                        "stato": stato,
+                        "score": score,
+                        "tracking_token": tracking_token,
+                        "opened_at": now_iso,
+                    },
+                ))
+            except Exception as e:
+                logger.warning("[CIAK-CHECKPOINT-EMAIL] systeme tag email_opened failed: %s", e)
+
+        logger.info("[CIAK-CHECKPOINT-EMAIL] opened token=%s stato=%s email=%s", tracking_token[:8], stato, email)
+        return result
+    except Exception as e:
+        logger.warning("[CIAK-CHECKPOINT-EMAIL] register_email_opened failed: %s", e)
+        return None

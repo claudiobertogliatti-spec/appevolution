@@ -33,10 +33,18 @@ from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import Response
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from services.ciak_systeme import ciak_emit_event
-from services.ciak_checkpoint_email import send_checkpoint_email_async
+from services.ciak_checkpoint_email import send_checkpoint_email_async, register_email_opened
+
+# GIF 1x1 trasparente (43 byte) servita come pixel di tracking apertura email.
+# Decodificata in-memory una sola volta a import-time.
+import base64 as _b64
+_TRANSPARENT_GIF_1X1 = _b64.b64decode(
+    "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/checkpoint", tags=["checkpoint"])
@@ -185,3 +193,37 @@ async def _emit_checkpoint_tag(email: str, stato: int, score: int) -> None:
         )
     except Exception as e:
         logger.warning("[CHECKPOINT] Systeme tag emission failed (email=%s): %s", email, e)
+
+
+# ─── Pixel di tracking apertura email ─────────────────────────────────
+
+@router.get("/email-opened/{token}.gif")
+async def email_opened_pixel(token: str):
+    """
+    Pixel 1x1 invisibile incluso nell'HTML delle email Checkpoint.
+    Quando il client email carica l'immagine, registriamo l'apertura:
+      - opened_at su ciak_checkpoint_emails (idempotente)
+      - tag Systeme `ciak_checkpoint_email_opened_stato_<n>`
+
+    Ritorna sempre 200 + GIF trasparente (anche se token sconosciuto: evita
+    di rompere il rendering email + non rivela validità token a scanner).
+
+    Cache-Control: no-cache per registrare ogni apertura (il client email
+    NON deve cachare il pixel, altrimenti aperture successive saltano).
+    """
+    # Fire-and-forget: register_email_opened è async, ma non vogliamo
+    # bloccare la risposta del pixel.
+    try:
+        await register_email_opened(token)
+    except Exception as e:
+        logger.warning("[CHECKPOINT-PIXEL] register failed for token=%s: %s", token[:8], e)
+
+    return Response(
+        content=_TRANSPARENT_GIF_1X1,
+        media_type="image/gif",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate, private",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
