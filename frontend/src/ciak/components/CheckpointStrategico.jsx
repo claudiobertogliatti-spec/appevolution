@@ -173,6 +173,15 @@ export function CheckpointStrategico({ source = "masterclass" }) {
     () => localStorage.getItem("ciak_lead_email") || "",
     []
   );
+  // Nome catturato al form opt-in (Landing.jsx o Masterclass.jsx).
+  // Backup legacy: "ciak_lead_nome" (chiave usata in Landing.jsx fino al 15/5).
+  const leadNome = useMemo(
+    () =>
+      localStorage.getItem("ciak_lead_name") ||
+      localStorage.getItem("ciak_lead_nome") ||
+      "",
+    []
+  );
 
   // Seed: email se disponibile, altrimenti seed stabile per la sessione.
   const seed = useMemo(() => {
@@ -234,12 +243,15 @@ export function CheckpointStrategico({ source = "masterclass" }) {
     setStato(finalStato);
     setPhase("result");
 
-    // Fire-and-forget al backend (ricalcola + tag Systeme + audit log)
+    // Fire-and-forget al backend (ricalcola + tag Systeme + email SMTP diretta + audit log).
+    // Il backend usa `nome` per personalizzare l'email del Checkpoint; fallback su
+    // ciak_leads se manca, ma inviarlo qui evita un lookup extra.
     fetch("/api/checkpoint/result", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         email: leadEmail || null,
+        nome: leadNome || null,
         answers: answerScores,
         stato_finale: finalStato,
         total_score: totalScore,
