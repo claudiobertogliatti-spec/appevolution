@@ -27,6 +27,7 @@ export function CiakMasterclass() {
   const isFastMode = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("fast") === "1";
   const unlockSeconds = isFastMode ? FAST_CHECKPOINT_SECONDS : CHECKPOINT_UNLOCK_SECONDS;
 
+  const [nome, setNome] = useState(localStorage.getItem("ciak_lead_name") || "");
   const [email, setEmail] = useState(localStorage.getItem("ciak_lead_email") || "");
   const [unlocked, setUnlocked] = useState(!!localStorage.getItem("ciak_lead_email"));
   const [error, setError] = useState(null);
@@ -43,6 +44,7 @@ export function CiakMasterclass() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
+          nome: nome || null,
           source: "masterclass_gate",
           utm_source: qs.get("utm_source"),
           utm_medium: qs.get("utm_medium"),
@@ -53,7 +55,7 @@ export function CiakMasterclass() {
         }),
       }).catch(() => null);
     }
-  }, [unlocked, email]);
+  }, [unlocked, email, nome]);
 
   // Apertura automatica del Checkpoint a FINE VIDEO (YouTube IFrame API).
   // L'API emette `onStateChange` con data=0 (ENDED) quando il video finisce →
@@ -122,12 +124,39 @@ export function CiakMasterclass() {
     };
   }, [unlocked, showCheckpoint]);
 
+  // Domini palesemente non-deliverable: Systeme.io li rifiuta con 422 e il
+  // contatto non viene mai creato → nessuna sequenza email parte → tutto il
+  // flusso post-checkpoint è muto. Blocchiamo lato client con un messaggio
+  // chiaro invece di lasciare l'utente in errore silenzioso.
+  const FAKE_DOMAINS = new Set([
+    "example.com", "example.it", "example.org",
+    "test.com", "test.it",
+    "mailinator.com", "yopmail.com", "guerrillamail.com",
+    "trashmail.com", "10minutemail.com", "tempmail.com",
+    "fake.com", "fakeinbox.com", "asdf.com",
+  ]);
+
   const unlock = () => {
-    if (!email.trim() || !email.includes("@")) {
+    const n = nome.trim();
+    const e = email.trim().toLowerCase();
+    if (n.length < 2) {
+      setError("Inserisci il tuo nome");
+      return;
+    }
+    // Email rudimental check (formato + @ + dot dopo)
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) {
       setError("Inserisci un'email valida");
       return;
     }
-    localStorage.setItem("ciak_lead_email", email.trim());
+    const domain = e.split("@")[1];
+    if (FAKE_DOMAINS.has(domain)) {
+      setError("Questa email non riceve messaggi. Inserisci l'indirizzo che usi davvero — il Checkpoint te lo mandiamo lì.");
+      return;
+    }
+    localStorage.setItem("ciak_lead_name", n);
+    localStorage.setItem("ciak_lead_email", e);
+    setNome(n);
+    setEmail(e);
     setUnlocked(true);
     setError(null);
   };
@@ -177,27 +206,51 @@ export function CiakMasterclass() {
 
             <div className="bg-white text-slate-900 rounded-2xl p-6 md:p-8 max-w-2xl">
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
-                Indirizzo email per accedere alla masterclass
+                Accedi alla masterclass
               </p>
-              <div className="flex flex-col sm:flex-row gap-2 mt-3">
+
+              {/* Disclaimer prominente — perché servono nome + email vera */}
+              <div className="mt-3 mb-4 p-3 rounded-lg bg-yellow-50 border border-yellow-200">
+                <p className="text-sm text-slate-800 leading-relaxed">
+                  <strong className="text-slate-900">Inserisci nome ed email reali.</strong> Alla fine della
+                  masterclass ti arriva via email il <strong>Checkpoint Strategico</strong> con il tuo punteggio
+                  e lo stato esatto in cui si trova la tua attività. Con dati finti non possiamo raggiungerti
+                  e il risultato resta a metà.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2">
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="text"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && unlock()}
-                  placeholder="la-tua-email@esempio.it"
-                  className="flex-1 px-4 py-3 rounded-lg bg-gray-50 border border-gray-300 text-slate-900 placeholder-slate-400 outline-none focus:border-slate-900"
+                  placeholder="Il tuo nome"
+                  autoComplete="given-name"
+                  className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-300 text-slate-900 placeholder-slate-400 outline-none focus:border-slate-900"
                 />
-                <button
-                  onClick={unlock}
-                  className="px-6 py-3 rounded-lg bg-slate-900 text-yellow-400 font-semibold hover:bg-slate-800 transition"
-                >
-                  Accedi alla masterclass
-                </button>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && unlock()}
+                    placeholder="La tua email"
+                    autoComplete="email"
+                    className="flex-1 px-4 py-3 rounded-lg bg-gray-50 border border-gray-300 text-slate-900 placeholder-slate-400 outline-none focus:border-slate-900"
+                  />
+                  <button
+                    onClick={unlock}
+                    className="px-6 py-3 rounded-lg bg-slate-900 text-yellow-400 font-semibold hover:bg-slate-800 transition"
+                  >
+                    Accedi
+                  </button>
+                </div>
               </div>
               {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
               <p className="text-xs text-slate-500 mt-4 leading-relaxed">
-                Riceverai immediatamente il link di accesso. Niente spam, niente upsell automatici.
+                Niente spam, niente upsell automatici. Solo il Checkpoint e qualche nota di follow-up
+                pertinente. Puoi disiscriverti in qualsiasi momento.
               </p>
             </div>
           </div>
