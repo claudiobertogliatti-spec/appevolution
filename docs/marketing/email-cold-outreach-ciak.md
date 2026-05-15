@@ -339,9 +339,9 @@ Per ogni campagna:
 2. Trigger: "Quando un tag è aggiunto" →
    - Campagna A: `ciak_cold_outreach_places`
    - Campagna B: `ciak_cold_outreach_legacy`
-3. Aggiungi 4 step "Invia email" con i delay:
-   - A: T+0, T+3 gg, T+7 gg, T+14 gg
-   - B: T+0, T+5 gg, T+12 gg, T+21 gg
+3. Aggiungi gli step "Invia email" con i delay:
+   - **Campagna A** (4 email): T+0 / T+3 gg / T+7 gg / T+14 gg
+   - **Campagna B** (5 email): T+0 / T+4 gg / T+9 gg / T+16 gg / T+25 gg
 4. Per ogni step, copia oggetto + body dal file
 5. Mittente: Claudio Bertogliatti / claudio@ciak.io
 6. Aggiungi un **exit condition** prima di ogni email:
@@ -353,13 +353,29 @@ Per ogni campagna:
 
 ## Riattivare il job `daily-systeme-import`
 
+**Daily limit lockato: 500 contatti/giorno** (15/5/2026 — scelta Claudio
+"restare calmi" sulla lista 13k per preservare reputazione mittente Google).
+
 Dopo aver attivato entrambe le campagne A e B su Systeme:
 
 1. `backend/celery_app.py` → de-commentare le righe `'daily-systeme-import': ...`
+   (kwarg `daily_limit: 500` già impostato)
 2. Redeploy worker Celery (`gcloud run deploy evolution-pro-worker ...`)
 3. Il giorno successivo alle 09:00 il job riprende, con i nuovi tag separati
 4. Verifica logs: dovresti vedere `tag_applied: ciak_cold_outreach_places` (o legacy)
    nei documenti `systeme_daily_queue`
+
+### Esaurimento lista a 500/giorno
+
+| Source | Stima totale | Giorni a esaurire | Note |
+|--------|-------------|--------------------|------|
+| `lista_fredda` legacy 13k | ~13.000 | ~26 giorni lavorativi | Campagna B 5 email × 13k = 65k email totali in ~7 settimane |
+| `google_places` ongoing | continuo (scraping) | mai, finché lo scraper gira | Campagna A 4 email × N/giorno |
+
+Con `daily_limit: 500` la priorità nel job è google_places PRIMA, poi
+lista_fredda. Se Google Places produce 200/giorno di lead nuovi, restano
+300 slot per lista_fredda → ~43 giorni per esaurire tutti i 13k. Tempi
+realistici, niente picchi anomali per Google.
 
 ---
 

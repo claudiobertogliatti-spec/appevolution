@@ -122,10 +122,12 @@ celery_app.conf.update(
         #   2. Modificato daily_systeme_import per applicare tag in base a source
         #      (vedi commit in arrivo, già pronto nel codice).
         #   3. Verificato copy email in voice Ciak (docs/marketing/email-cold-outreach-ciak.md)
+        # Daily limit lockato a 500 (15/5/2026, scelta Claudio "restare calmi"
+        # sulla lista 13k per non bruciare reputazione mittente Google).
         # 'daily-systeme-import': {
         #     'task': 'celery_tasks.daily_systeme_import',
         #     'schedule': crontab(hour=9, minute=0),
-        #     'kwargs': {'daily_limit': 300},
+        #     'kwargs': {'daily_limit': 500},
         # },
     },
 )
