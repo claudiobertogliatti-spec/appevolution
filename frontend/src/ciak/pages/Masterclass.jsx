@@ -55,14 +55,72 @@ export function CiakMasterclass() {
     }
   }, [unlocked, email]);
 
-  // Timer fallback per sticky bar: dopo 20 min dall'unlock il Checkpoint è disponibile.
-  // (Soluzione robusta perché non dipende dagli eventi del player YouTube embedded:
-  // l'utente potrebbe mettere pausa, scrubbare, ricaricare la pagina, ecc.)
+  // Apertura automatica del Checkpoint a FINE VIDEO (YouTube IFrame API).
+  // L'API emette `onStateChange` con data=0 (ENDED) quando il video finisce →
+  // mostriamo direttamente la sezione Checkpoint (senza richiedere click).
+  //
+  // Timer fallback: se l'utente non arriva a ENDED (pausa, chiusura tab, ecc.)
+  // dopo `unlockSeconds` (20 min default, 5s con ?fast=1) rendiamo comunque
+  // disponibile la sticky bar come fallback manuale. Doppia rete.
   useEffect(() => {
     if (!unlocked) return;
     const t = setTimeout(() => setCheckpointAvailable(true), unlockSeconds * 1000);
     return () => clearTimeout(t);
   }, [unlocked, unlockSeconds]);
+
+  // Auto-show on video ended via YouTube IFrame API.
+  useEffect(() => {
+    if (!unlocked || showCheckpoint) return;
+    if (MASTERCLASS_YOUTUBE_ID === "REPLACE_ME") return;
+
+    let player = null;
+    let cancelled = false;
+
+    const onEnded = () => {
+      setCheckpointAvailable(true);
+      setShowCheckpoint(true);
+      setTimeout(() => {
+        document.getElementById("ep-checkpoint-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+    };
+
+    const initPlayer = () => {
+      if (cancelled || !window.YT || !window.YT.Player) return;
+      // L'iframe deve esistere nel DOM con id="yt-masterclass" (vedi src sotto).
+      player = new window.YT.Player("yt-masterclass", {
+        events: {
+          onStateChange: (e) => {
+            // state === 0 → ENDED
+            if (e.data === 0) onEnded();
+          },
+        },
+      });
+    };
+
+    if (window.YT && window.YT.Player) {
+      // API già caricata (es. navigation client-side a /masterclass dopo first load).
+      initPlayer();
+    } else {
+      // Carica IFrame API una sola volta. window.onYouTubeIframeAPIReady è un
+      // callback globale ufficiale dell'API.
+      if (!document.getElementById("yt-iframe-api")) {
+        const tag = document.createElement("script");
+        tag.id = "yt-iframe-api";
+        tag.src = "https://www.youtube.com/iframe_api";
+        document.body.appendChild(tag);
+      }
+      const prev = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => {
+        if (typeof prev === "function") prev();
+        initPlayer();
+      };
+    }
+
+    return () => {
+      cancelled = true;
+      try { if (player && player.destroy) player.destroy(); } catch (_) { /* noop */ }
+    };
+  }, [unlocked, showCheckpoint]);
 
   const unlock = () => {
     if (!email.trim() || !email.includes("@")) {
@@ -165,8 +223,10 @@ export function CiakMasterclass() {
                   </div>
                 ) : (
                   <iframe
-                    src={`https://www.youtube.com/embed/${MASTERCLASS_YOUTUBE_ID}?rel=0`}
+                    id="yt-masterclass"
+                    src={`https://www.youtube.com/embed/${MASTERCLASS_YOUTUBE_ID}?rel=0&enablejsapi=1&origin=${encodeURIComponent(typeof window !== "undefined" ? window.location.origin : "")}`}
                     title="Masterclass Ciak"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                     className="w-full h-full"
                   />
@@ -175,7 +235,9 @@ export function CiakMasterclass() {
             </div>
           </section>
 
-          {/* STICKY BAR — appare dopo 20 minuti */}
+          {/* STICKY BAR — fallback se il video non arriva a ENDED (chiusa tab,
+              scrubbing, ecc.). Quando il video finisce normalmente il Checkpoint
+              si apre da solo. */}
           {checkpointAvailable && (
             <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-yellow-400 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] z-40">
               <div className="mx-auto max-w-5xl px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
