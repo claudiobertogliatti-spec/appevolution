@@ -41,18 +41,13 @@ export function getCorrectPage(user) {
   // Questionario completato → attivazione analisi (pagamento €67)
   if (user.questionario_completed || user.questionario_compilato) return `${CLIENT_BASE}/attivazione-analisi`;
 
-  // Questionario aperto o intro vista → completa questionario
-  const introSeen =
-    user.questionario_started ||
-    user.intro_questionario_seen ||
-    (typeof localStorage !== "undefined" && localStorage.getItem("intro_questionario_seen"));
-  if (introSeen) return `${CLIENT_BASE}/questionario`;
-
-  // Benvenuto visto (localStorage) → intro questionario
-  if (typeof localStorage !== "undefined" && localStorage.getItem("benvenuto_seen")) {
-    return `${CLIENT_BASE}/intro-questionario`;
+  // Questionario aperto o intro vista (flag dal backend) → completa questionario
+  if (user.questionario_started || user.intro_questionario_seen) {
+    return `${CLIENT_BASE}/questionario`;
   }
 
+  // localStorage SOLO come hint UX per saltare benvenuto/intro entro la stessa
+  // sessione di registrazione. Non guida redirect dopo un login da fresh user.
   // Default → benvenuto (primo accesso post-registrazione)
   return `${CLIENT_BASE}/benvenuto`;
 }
