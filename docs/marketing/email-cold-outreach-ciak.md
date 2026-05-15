@@ -141,94 +141,164 @@ Claudio
 ## CAMPAGNA B — Cold Outreach Legacy (lista fredda 13k)
 
 **Trigger Systeme**: tag `ciak_cold_outreach_legacy` aggiunto al contatto
-**Sequenza**: 4 email, cadenza T+0 / T+5 / T+12 / T+21 giorni
-**Target**: contatti vecchi della lista fredda Evolution PRO 13k. Probabile
-che siano già stati contattati in passato. Tono: trasparente sul fatto che
-qualcosa è cambiato.
+**Sequenza**: 5 email, cadenza T+0 / T+4 / T+9 / T+16 / T+25 giorni
+**Target**: contatti vecchi della lista fredda Evolution PRO 13k. Già
+contattati in passato. Tono trasparente, narrative dell'utente (lock
+15/5/2026, basata sulle 4 email originali Claudio).
 
-### Email B1 — T+0
+**Obiettivo unico**: farli atterrare su `/masterclass`. Niente Blueprint
+diretto in queste 5 email — la masterclass è il filtro qualificante che
+poi propone Checkpoint + Blueprint a chi arriva fino in fondo.
 
-**Oggetto**: `{{ first_name }}, una cosa è cambiata.`
+**Anti-spam Google checklist applicata**:
+- Niente €/numeri specifici nei subject (numeri solo nel body come prova)
+- 1 solo link CTA per email
+- Tono asciutto, niente CAPS, niente emoji
+- Mittente identificabile + Reply-To attivo
+- Disiscrizione visibile (auto-aggiunta da Systeme)
+- Frequenza media: 5 email in 25 giorni = sotto soglia bot detection
+- Body 150-280 parole (sweet spot deliverability)
+
+### Email B1 — T+0 (Reintroduzione)
+
+**Oggetto**: `{{ first_name }}, hai lasciato i tuoi dati qualche tempo fa.`
 
 ```
 Ciao {{ contact.first_name | default:'' }},
 
-ti scrivo dopo un po' di silenzio. Una cosa è cambiata da quando ci eravamo
-incrociati l'ultima volta.
+un po' di tempo fa hai lasciato i tuoi contatti, probabilmente attraverso
+una campagna o un contenuto di Evolution PRO.
 
-Il progetto Evolution PRO esiste ancora — è il sistema di partnership con
-cui lavoro con chi vuole costruire la propria offerta digitale insieme al
-mio team. Quella parte resta.
+Non ti ho scritto subito. Lo faccio adesso perché quello che facciamo è
+cambiato, e quello che posso lasciarti oggi è molto più concreto di allora.
+
+Evolution PRO esiste ancora. Resta il sistema di partnership con cui lavoro
+1-a-1 con consulenti, coach, formatori, naturopati che vogliono costruire
+un modello digitale partendo dalla propria competenza professionale.
 
 Quello che è nuovo è il punto di partenza: Ciak. Una direzione strategica
-gratuita per chi vuole capire prima di acquistare qualcosa.
+gratuita per chi vuole prima capire dove si trova, e solo dopo decidere se
+investire.
 
-Niente upsell automatici. Niente "scopri il segreto". Una masterclass di
-30 minuti che ti dice esattamente cosa NON fare quando vuoi trasformare
-una competenza in un modello digitale, e perché.
+Nei prossimi giorni ti mando qualcosa di specifico. Niente upsell
+automatici, niente "scopri il segreto". Solo materiale concreto.
+
+Se nel frattempo vuoi farti un'idea, c'è una masterclass gratuita di 30
+minuti che spiega i 5 errori più comuni che osservo da 7 anni:
 
 → {{ Masterclass: https://www.ciak.io/masterclass?utm_source=systeme_email&utm_medium=email&utm_campaign=cold_legacy_b1 }}
 
-Se non interessa, ignora. Niente follow-up aggressivi.
+Se non ti interessa, ignora pure. Niente follow-up aggressivi.
 
 Claudio
 ```
 
-### Email B2 — T+5 giorni
+### Email B2 — T+4 giorni (Il problema)
 
-**Oggetto**: `{{ first_name }}, perché Ciak (e perché ora).`
+**Oggetto**: `{{ first_name }}, perché i professionisti bravi non scalano.`
 
 ```
 Ciao {{ contact.first_name | default:'' }},
 
-ti rispondo a una domanda che mi farei al tuo posto: perché un nuovo brand
-adesso, dopo Evolution PRO.
+c'è un pattern che osservo da 7 anni in chi lavora con la propria
+competenza professionale.
 
-Negli ultimi 7 anni ho visto un pattern che si ripete. Le persone che
-vengono da me sono già brave nel proprio mestiere. Hanno clienti reali,
-risultati reali. Ma quando provano a strutturare un modello digitale,
-saltano sempre lo stesso passaggio: definire la direzione PRIMA di
-investire in implementazione.
+Lavorano tanto. Ottengono risultati. I clienti sono soddisfatti.
 
-E si trovano a comprare strumenti che non servono al loro stato attuale.
-Funnel da Stato 4 quando sono in Stato 2. Ads da Stato 3 quando sono in
-Stato 1. Energia dispersa, soldi bruciati.
+Eppure i mesi sono irregolari, il passaparola non basta, e l'idea di
+"scalare" sembra impossibile senza lavorare il doppio.
 
-Ciak nasce per occupare quello spazio: il "prima". 30 minuti di
-masterclass + 5 di Checkpoint per capire dove sei davvero — senza vendere
-niente.
+E attenzione: il problema non è la competenza. La competenza c'è quasi
+sempre — altrimenti i clienti non tornerebbero.
+
+Il problema è che nessuno ha mai insegnato a queste persone come
+trasformare quello che sanno fare in un sistema che acquisisce clienti
+in modo prevedibile, vende online, e continua a funzionare anche quando
+non sono davanti a uno schermo.
+
+È esattamente il punto su cui lavoriamo con Ciak. E la prima cosa che
+serve non è uno strumento — è una direzione strategica chiara.
+
+Nella masterclass di 30 minuti ti racconto i 5 errori che bloccano questa
+trasformazione, e perché si ripetono sempre uguali:
 
 → {{ Masterclass: https://www.ciak.io/masterclass?utm_source=systeme_email&utm_medium=email&utm_campaign=cold_legacy_b2 }}
 
-Se ti interessa solo Evolution PRO, esiste ancora — ma il passaggio
-naturale per arrivarci adesso è Ciak prima.
+Domani ti mostro un caso concreto.
 
 Claudio
 ```
 
-### Email B3 — T+12 giorni
+### Email B3 — T+9 giorni (Caso studio Giulia)
 
-**Oggetto**: `{{ first_name }}, 5 domande, 5 minuti, niente da comprare.`
+**Oggetto**: `{{ first_name }}, cosa è successo a Giulia in 4 mesi.`
 
 ```
 Ciao {{ contact.first_name | default:'' }},
 
-se 30 minuti di masterclass sono troppi, c'è una versione corta del valore
-che vorrei lasciarti: il Checkpoint Strategico.
+ieri ti accennavo a un caso concreto. Eccolo.
 
-5 domande. Ti collocano in uno dei 4 stati di maturità strategica e ti
-dicono cosa ha senso fare PRIMA — e cosa NON fare ancora.
+Giulia è una life coach con anni di esperienza. Quando è arrivata da me
+non aveva una presenza online strutturata. Nessun funnel, nessun prodotto
+digitale. Solo competenza vera e voglia di smettere di dipendere dal
+passaparola.
 
-Lo trovi alla fine della masterclass, ma puoi anche andare dritto lì:
+In 4 mesi, seguendo il metodo che insegno nella masterclass, ha costruito
+il suo posizionamento, lanciato la sua prima offerta online, e chiuso i
+primi clienti paganti.
 
-→ {{ Vai al Checkpoint: https://www.ciak.io/masterclass?utm_source=systeme_email&utm_medium=email&utm_campaign=cold_legacy_b3 }}
+Oggi i numeri di Giulia stanno crescendo in modo stabile, e sta lavorando
+sull'ottimizzazione del sistema invece che sulla sopravvivenza mensile.
 
-Niente acquisti dopo. Solo chiarezza sulla tua situazione attuale.
+Non è stata fortuna. Non era una persona particolarmente "fortunata", né
+con un network preesistente.
+
+È stato metodo. Specificamente: avere chiara la direzione strategica
+prima di investire energia in implementazione.
+
+Quel metodo lo spiego nella masterclass — gratis, 30 minuti, senza che
+serva acquistare nulla per capire se fa per te:
+
+→ {{ Masterclass: https://www.ciak.io/masterclass?utm_source=systeme_email&utm_medium=email&utm_campaign=cold_legacy_b3 }}
 
 Claudio
 ```
 
-### Email B4 — T+21 giorni (ultimo tentativo)
+### Email B4 — T+16 giorni (Anteprima contenuto)
+
+**Oggetto**: `{{ first_name }}, cosa c'è dentro i 30 minuti.`
+
+```
+Ciao {{ contact.first_name | default:'' }},
+
+ti scrivo per essere preciso su cosa contiene la masterclass — così
+decidi se vale 30 minuti del tuo tempo o no.
+
+Sono 3 cose, in 3 blocchi:
+
+1. I 5 errori che fermano la maggior parte dei professionisti prima
+   ancora di iniziare. Errori concreti, non concetti generici. Esempi: il
+   "lancio prima di posizionarsi", il "funnel da Stato 4 quando sei in
+   Stato 2", il "delegare prima di capire cosa".
+
+2. I 4 livelli di maturità strategica che vedo ricorrere negli ultimi
+   anni. Definizione, Strutturazione, Validazione, Evoluzione. In quale
+   stato sei tu — e perché ogni stato ha priorità diverse.
+
+3. La differenza tra costruire una vetrina online (visibilità) e
+   costruire un modello digitale sostenibile (sistema). Sembra una
+   sfumatura: in realtà è il passaggio che separa chi guadagna a sprazzi
+   da chi costruisce qualcosa che dura.
+
+Niente vendite forzate dentro. Alla fine c'è un Checkpoint Strategico di
+5 domande che ti dice in quale stato ti trovi — anche quello gratis.
+
+→ {{ Masterclass: https://www.ciak.io/masterclass?utm_source=systeme_email&utm_medium=email&utm_campaign=cold_legacy_b4 }}
+
+Claudio
+```
+
+### Email B5 — T+25 giorni (Chiusura)
 
 **Oggetto**: `{{ first_name }}, chiudo qui la conversazione.`
 
@@ -238,15 +308,22 @@ Ciao {{ contact.first_name | default:'' }},
 questa è l'ultima email automatica della sequenza. Dopo esci dalla lista
 attiva — non ti scrivo più finché non sei tu a cercarmi.
 
-Se in queste tre settimane non hai trovato il momento di guardare la
-masterclass, va bene così. Significa che il momento non è quello.
+Cinque email in tre settimane è il massimo che mi permetto di chiedere.
+Sotto questo numero perdo persone che avrebbero risposto. Sopra divento
+quello che non voglio essere.
 
-Ti lascio il link al volo, per quando vorrai:
+Se in questo tempo non hai trovato il momento di guardare la masterclass,
+va bene così. Significa che il momento non è ora. Senza problema.
 
-→ {{ Masterclass + Checkpoint: https://www.ciak.io/masterclass?utm_source=systeme_email&utm_medium=email&utm_campaign=cold_legacy_b4 }}
+Se invece vorrai capire dove sei davvero con la tua competenza online, il
+punto di accesso resta lo stesso: 30 minuti, gratis, senza acquisti
+necessari per concludere il valore.
 
-E se preferisci uscire del tutto, c'è il link di disiscrizione in fondo.
-Nessun problema.
+→ {{ Masterclass: https://www.ciak.io/masterclass?utm_source=systeme_email&utm_medium=email&utm_campaign=cold_legacy_b5 }}
+
+Se invece preferisci uscire del tutto dalla lista, c'è il link di
+disiscrizione qui sotto. Niente di personale — è il modo in cui voglio
+gestire i miei contatti.
 
 A presto,
 Claudio
