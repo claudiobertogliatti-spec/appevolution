@@ -16660,9 +16660,16 @@ set_funnel_builder_db(db)
 app.include_router(funnel_builder_router)
 
 # Proposta Router (Pagina pubblica proposta + firma + pagamento)
-from routers.proposta import router as proposta_router, set_db as set_proposta_db
+from routers.proposta import (
+    router as proposta_router,
+    set_db as set_proposta_db,
+    partnership_pixel_router,
+)
+from services.ciak_partnership_email import set_db as set_ciak_partnership_email_db
 set_proposta_db(db)
+set_ciak_partnership_email_db(db)
 app.include_router(proposta_router)
+app.include_router(partnership_pixel_router)
 
 from routers.partner_guided import router as partner_guided_router, set_db as set_partner_guided_db
 set_partner_guided_db(db)

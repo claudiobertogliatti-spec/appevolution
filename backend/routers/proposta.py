@@ -4,6 +4,7 @@ Gestione pagina proposta pubblica con token,
 firma contratto inline, pagamento Stripe/bonifico, upload documenti.
 """
 
+import asyncio
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File
 from pydantic import BaseModel
 from typing import Optional, List
@@ -14,6 +15,12 @@ import uuid
 import secrets
 import logging
 import httpx
+
+from services.ciak_partnership_email import (
+    send_contratto_firmato_async,
+    send_partnership_benvenuto_async,
+    send_documenti_ricevuti_async,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -210,8 +217,9 @@ async def firma_contratto_proposta(token: str, request: Request):
                 }}
             )
 
-    # Genera PDF + invia email (riusa logica da contract.py)
+    # Genera PDF + invia email transactional Ciak al cliente
     pdf_url = None
+    pdf_bytes_for_email = None
     try:
         from routers.contract import generate_contract_pdf, send_contract_email
         partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})
@@ -219,9 +227,39 @@ async def firma_contratto_proposta(token: str, request: Request):
             partner = await db.users.find_one({"id": partner_id}, {"_id": 0})
         if partner:
             pdf_url = await generate_contract_pdf(partner, contract_data)
+            # send_contract_email: Telegram admin + tag Systeme contratto_firmato
             await send_contract_email(partner, pdf_url)
+            # Best-effort: scarica i bytes del PDF per allegarli all'email cliente
+            if pdf_url:
+                try:
+                    if pdf_url.startswith("http"):
+                        async with httpx.AsyncClient(timeout=15) as h:
+                            r = await h.get(pdf_url)
+                            if r.status_code == 200:
+                                pdf_bytes_for_email = r.content
+                    elif pdf_url.startswith("/"):
+                        # path locale tipo /app/storage/contracts/... oppure /api/static/...
+                        import os as _os
+                        candidate = pdf_url
+                        if pdf_url.startswith("/api/static/"):
+                            candidate = _os.path.join("/app", pdf_url.lstrip("/"))
+                        if _os.path.exists(candidate):
+                            with open(candidate, "rb") as fh:
+                                pdf_bytes_for_email = fh.read()
+                except Exception as e:
+                    logger.warning(f"[PROPOSTA] PDF bytes fetch failed: {e}")
     except Exception as e:
         logger.error(f"[PROPOSTA] Errore PDF/email post-firma: {e}")
+
+    # Email Ciak al cliente con PDF allegato (fire-and-forget)
+    cliente_email = proposta.get("prospect_email")
+    cliente_nome = (proposta.get("prospect_nome") or "").split()[0] if proposta.get("prospect_nome") else ""
+    if cliente_email:
+        asyncio.create_task(send_contratto_firmato_async(
+            email=cliente_email,
+            nome=cliente_nome,
+            pdf_bytes=pdf_bytes_for_email,
+        ))
 
     await _notify_telegram(f"Contratto FIRMATO da {proposta.get('prospect_nome', '?')} (via proposta)")
 
@@ -354,6 +392,61 @@ async def upload_distinta(token: str, file: UploadFile = File(...)):
 # ─────────────────────────────────────────────────
 # PUBBLICA: Upload documenti identita
 # ─────────────────────────────────────────────────
+# ─────────────────────────────────────────────────
+# Helper: attiva partner + invia email benvenuto con credenziali
+# ─────────────────────────────────────────────────
+async def _activate_partner_account_and_notify(
+    partner_id: str,
+    prospect_email: str,
+    prospect_nome: str,
+) -> None:
+    """
+    Auto-attivazione account partner Ciak post-pagamento:
+      1. Se utente non ha password (cliente che ha solo acquistato Blueprint
+         tramite checkout senza account loggato), ne genera una temporanea
+         e imposta must_change_password=true.
+      2. Invia email Ciak \"Benvenuto in Partnership\" con credenziali.
+      3. Fire-and-forget — non blocca la response del POST.
+
+    Pattern coerente con la sessione 11/5 (default password +
+    must_change_password al primo login). Vedi memory/session_2026_05_11.
+    """
+    import bcrypt
+    if not partner_id or not prospect_email:
+        return
+
+    cliente_nome = (prospect_nome or "").split()[0] if prospect_nome else ""
+
+    user = await db.users.find_one({"id": partner_id}, {"_id": 0})
+    password_to_send: Optional[str] = None
+
+    if user and not user.get("password_hash"):
+        # Utente senza password: genero credenziali temporanee.
+        plain = f"Ciak{secrets.token_urlsafe(6)[:8]}!"
+        hashed = bcrypt.hashpw(plain.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+        await db.users.update_one(
+            {"id": partner_id},
+            {"$set": {
+                "password_hash": hashed,
+                "must_change_password": True,
+                "password_auto_generated_at": datetime.now(timezone.utc).isoformat(),
+            }},
+        )
+        password_to_send = plain
+        logger.info("[PROPOSTA] Generata password partner per %s", prospect_email)
+    elif user and user.get("must_change_password"):
+        # Già forzato cambio password ma non ancora cambiata: invio reminder
+        # senza esporre la password (non l'abbiamo, è hashed).
+        password_to_send = None
+
+    # Email Ciak Benvenuto Partnership (con o senza credenziali)
+    asyncio.create_task(send_partnership_benvenuto_async(
+        email=prospect_email,
+        nome=cliente_nome,
+        password=password_to_send,
+    ))
+
+
 @router.post("/{token}/upload-documenti")
 async def upload_documenti(token: str, files: List[UploadFile] = File(...)):
     proposta = await db.proposte.find_one({"token": token}, {"_id": 0})
@@ -378,6 +471,16 @@ async def upload_documenti(token: str, files: List[UploadFile] = File(...)):
 
         await db.proposte.update_one({"token": token}, {"$set": {"documenti_identita_url": urls}})
         await _notify_telegram(f"{proposta.get('prospect_nome', '')} ha caricato i documenti identita")
+
+        # Email Ciak "Documenti ricevuti — si parte" al cliente
+        cliente_email = proposta.get("prospect_email")
+        cliente_nome = (proposta.get("prospect_nome") or "").split()[0] if proposta.get("prospect_nome") else ""
+        if cliente_email:
+            asyncio.create_task(send_documenti_ricevuti_async(
+                email=cliente_email,
+                nome=cliente_nome,
+            ))
+
         return {"success": True, "urls": urls}
     except Exception as e:
         logger.error(f"[PROPOSTA] Upload documenti error: {e}")
@@ -440,6 +543,10 @@ async def conferma_bonifico(token: str):
 
     await _add_systeme_tag(prospect_email, "contratto_firmato")
     await _add_systeme_tag(prospect_email, "onboarding_avviato")
+
+    # Auto-attivazione account partner + email Benvenuto Ciak con credenziali
+    await _activate_partner_account_and_notify(partner_id, prospect_email, prospect_nome)
+
     await _notify_telegram(
         f"✅ Bonifico confermato — {prospect_nome} è ora PARTNER\n"
         f"📧 {prospect_email}\n"
@@ -544,7 +651,10 @@ async def conferma_stripe(token: str, body: ConfermaStripeRequest):
     await _add_systeme_tag(prospect_email, "partner_attivo")
     await _add_systeme_tag(prospect_email, "pagamento_2790")
 
-    # 6) Notifica Telegram
+    # 6) Auto-attivazione account partner + email Benvenuto Ciak con credenziali
+    await _activate_partner_account_and_notify(partner_id, prospect_email, prospect_nome)
+
+    # 7) Notifica Telegram
     await _notify_telegram(
         f"Pagamento Stripe confermato — {prospect_nome} è ora PARTNER\n"
         f"{prospect_email}\nOnboarding avviato"
@@ -567,6 +677,41 @@ async def conferma_stripe(token: str, body: ConfermaStripeRequest):
 async def lista_proposte():
     proposte = await db.proposte.find({}, {"_id": 0}).sort("creato_at", -1).to_list(100)
     return {"items": proposte, "count": len(proposte)}
+
+
+# ─────────────────────────────────────────────────
+# PIXEL TRACKING email partnership (apertura email)
+# ─────────────────────────────────────────────────
+from fastapi.responses import Response as FastAPIResponse
+import base64 as _b64_partnership
+_PIXEL_GIF_1X1 = _b64_partnership.b64decode(
+    "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+)
+
+# Router separato montato sotto /api/partnership (per non conflittare col prefix
+# /api/proposta principale).
+from fastapi import APIRouter as _APIRouter
+partnership_pixel_router = _APIRouter(prefix="/api/partnership", tags=["partnership-email"])
+
+@partnership_pixel_router.get("/email-opened/{token}.gif")
+async def partnership_email_opened_pixel(token: str):
+    """Pixel 1x1 invisibile per email transactional Partnership (firma/benvenuto/documenti).
+    Registra opened_at idempotente + emette tag Systeme."""
+    try:
+        from services.ciak_partnership_email import register_partnership_email_opened
+        await register_partnership_email_opened(token)
+    except Exception as e:
+        logger.warning("[PARTNERSHIP-PIXEL] register failed for token=%s: %s", token[:8], e)
+
+    return FastAPIResponse(
+        content=_PIXEL_GIF_1X1,
+        media_type="image/gif",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate, private",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
 
 
 # ─────────────────────────────────────────────────
