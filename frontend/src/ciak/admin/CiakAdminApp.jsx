@@ -32,6 +32,11 @@ import { QuarantenaPartner } from "./pages/QuarantenaPartner";
 import { ExPartner } from "./pages/ExPartner";
 import { VideoReview } from "./pages/VideoReview";
 import { PartnerDocumenti } from "./pages/PartnerDocumenti";
+import { StefaniaWarMode } from "./pages/StefaniaWarMode";
+import { CalendarioEditoriale } from "./pages/CalendarioEditoriale";
+import { ServiziExtraAdmin } from "./pages/ServiziExtraAdmin";
+import { AgentDashboard } from "./pages/AgentDashboard";
+import { MetrichePostLancio } from "./pages/MetrichePostLancio";
 
 // ─── Struttura navigazione (macro → pagine) ──────────────────────────────
 
@@ -66,10 +71,21 @@ const NAV = [
     ],
   },
   {
+    id: "marketing",
+    label: "Marketing",
+    pages: [
+      { to: "/admin/campagne-ads", label: "Campagne Ads" },
+      { to: "/admin/calendario-editoriale", label: "Calendario Editoriale" },
+      { to: "/admin/servizi-extra", label: "Servizi Extra" },
+    ],
+  },
+  {
     id: "strumenti",
     label: "Strumenti",
     pages: [
       { to: "/admin/stefania", label: "Stefania AI" },
+      { to: "/admin/automazione", label: "Automazione" },
+      { to: "/admin/metriche", label: "KPI & Metriche" },
       { to: "/admin/kb-matteo", label: "KB Matteo" },
       { to: "/admin/template-email", label: "Template Email" },
     ],
@@ -329,8 +345,18 @@ export default function CiakAdminApp() {
         />
         <Route path="ex-partner" element={<ExPartner onAuthExpired={handleLogout} />} />
 
+        {/* Marketing — importate da Evolution PRO */}
+        <Route path="campagne-ads" element={<StefaniaWarMode onAuthExpired={handleLogout} />} />
+        <Route
+          path="calendario-editoriale"
+          element={<CalendarioEditoriale onAuthExpired={handleLogout} />}
+        />
+        <Route path="servizi-extra" element={<ServiziExtraAdmin onAuthExpired={handleLogout} />} />
+
         {/* Strumenti — importate da Evolution (KB Matteo: stub, richiede backend) */}
         <Route path="stefania" element={<StefaniaAdmin onAuthExpired={handleLogout} />} />
+        <Route path="automazione" element={<AgentDashboard onAuthExpired={handleLogout} />} />
+        <Route path="metriche" element={<MetrichePostLancio onAuthExpired={handleLogout} />} />
         <Route path="kb-matteo" element={<SectionStub />} />
         <Route path="template-email" element={<TemplateEmail onAuthExpired={handleLogout} />} />
 
