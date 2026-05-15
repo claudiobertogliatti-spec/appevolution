@@ -93,14 +93,18 @@ function LoginScreen({ onLogin }) {
 function FlowGuard({ user, children }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const fullPath = `${CLIENT_BASE}${location.pathname}`.replace(/\/$/, "") || CLIENT_BASE;
+  // Dentro <Routes> nested, location.pathname ritorna il path completo
+  // (es. "/cliente/benvenuto"), non quello relativo al match parent.
+  const fullPath = location.pathname.replace(/\/$/, "") || "/";
 
   useEffect(() => {
     if (!user) return;
     if (isSpecialPath(fullPath)) return;
     const correct = getCorrectPage(user);
+    // navigate() con path assoluto (con "/") va al root del BrowserRouter,
+    // non al parent /cliente/* — quindi passiamo SEMPRE il path completo.
     if (correct && fullPath !== correct) {
-      navigate(correct.replace(CLIENT_BASE, "") || "/", { replace: true });
+      navigate(correct, { replace: true });
     }
   }, [user, fullPath, navigate]);
 
