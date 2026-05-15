@@ -20,8 +20,13 @@ import { CheckpointStrategico } from "../components/CheckpointStrategico";
 // Transcript verbatim: docs/marketing/masterclass-transcript-final.md
 const MASTERCLASS_YOUTUBE_ID = "E2XDEdJgzcQ";
 const CHECKPOINT_UNLOCK_SECONDS = 20 * 60; // 20 minuti (video ~30 min, sticky al ~67%)
+// Dev override: ?fast=1 nello URL → timer abbassato a 5s per testing.
+const FAST_CHECKPOINT_SECONDS = 5;
 
 export function CiakMasterclass() {
+  const isFastMode = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("fast") === "1";
+  const unlockSeconds = isFastMode ? FAST_CHECKPOINT_SECONDS : CHECKPOINT_UNLOCK_SECONDS;
+
   const [email, setEmail] = useState(localStorage.getItem("ciak_lead_email") || "");
   const [unlocked, setUnlocked] = useState(!!localStorage.getItem("ciak_lead_email"));
   const [error, setError] = useState(null);
@@ -55,9 +60,9 @@ export function CiakMasterclass() {
   // l'utente potrebbe mettere pausa, scrubbare, ricaricare la pagina, ecc.)
   useEffect(() => {
     if (!unlocked) return;
-    const t = setTimeout(() => setCheckpointAvailable(true), CHECKPOINT_UNLOCK_SECONDS * 1000);
+    const t = setTimeout(() => setCheckpointAvailable(true), unlockSeconds * 1000);
     return () => clearTimeout(t);
-  }, [unlocked]);
+  }, [unlocked, unlockSeconds]);
 
   const unlock = () => {
     if (!email.trim() || !email.includes("@")) {
