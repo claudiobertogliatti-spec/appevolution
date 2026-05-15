@@ -128,7 +128,7 @@ export function CiakDiagnostica() {
             <h2 className="text-2xl font-semibold mb-3">Si è verificato un errore</h2>
             <p className="text-slate-300 text-sm mb-6">{error}</p>
             <p className="text-slate-400 text-xs">
-              Se il problema persiste, scrivici a <a className="text-yellow-400 underline" href="mailto:supporto@evolution-pro.it">supporto@evolution-pro.it</a>
+              Se il problema persiste, scrivici a <a className="text-yellow-400 underline" href="mailto:assistenza@evolution-pro.it">assistenza@evolution-pro.it</a>
             </p>
           </div>
         </div>
