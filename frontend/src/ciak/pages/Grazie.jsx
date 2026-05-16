@@ -19,6 +19,15 @@ export function CiakGrazie() {
   const [params] = useSearchParams();
   const sessionId = params.get("session_id");
   const [diagnosticToken, setDiagnosticToken] = useState(null);
+  const [calcomUrl, setCalcomUrl] = useState("");
+
+  // Carica config pubblica (cal.com booking url, settato da admin in /admin/configurazione)
+  useEffect(() => {
+    fetch("/api/admin/ciak/public-config")
+      .then(r => r.json())
+      .then(d => setCalcomUrl(d.calcom_booking_url || ""))
+      .catch(() => {}); // silent: il fallback testuale resta valido
+  }, []);
 
   // Best-effort: chiede al backend il token della Diagnostica 8 Domande Ciak
   // associato a questo checkout. Se non disponibile entro 2 tentativi (race
@@ -82,9 +91,23 @@ export function CiakGrazie() {
                 02 — Prenoti la sessione strategica
               </p>
               <p className="text-slate-600 leading-relaxed">
-                Una volta completate le domande, ricevi un link per fissare la call con Claudio
-                nel calendario disponibile.
+                Una volta completate le domande, fissa la call con Claudio nel
+                calendario disponibile.
               </p>
+              {calcomUrl ? (
+                <a
+                  href={calcomUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block mt-3 px-4 py-2 rounded-lg bg-slate-900 text-yellow-400 text-sm font-semibold hover:bg-slate-800 transition"
+                >
+                  Apri il calendario →
+                </a>
+              ) : (
+                <p className="mt-3 text-xs text-slate-400 italic">
+                  Calendario in arrivo — riceverai il link via email entro pochi minuti.
+                </p>
+              )}
             </div>
             <div className="border-l-2 border-gray-200 pl-6">
               <p className="text-yellow-600 text-xs font-semibold uppercase tracking-widest mb-2">
