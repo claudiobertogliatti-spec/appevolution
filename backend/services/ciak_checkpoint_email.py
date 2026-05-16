@@ -324,97 +324,72 @@ async def send_checkpoint_email_async(
     stato: int,
     score: int,
 ) -> None:
-    """Wrapper async (asyncio.to_thread per non bloccare event loop).
+    """Audit log dell'email checkpoint + tag Systeme che la fa partire.
 
-    Pipeline completa:
-      1. Genera tracking_token per il pixel di apertura
-      2. Invia email SMTP (HTML con pixel + UTM nel CTA)
-      3. Salva audit su ciak_checkpoint_emails (token, sent, opened_at=None)
-      4. Se invio OK: applica tag Systeme ciak_checkpoint_email_sent_stato_<n>
-         così il CRM sa che l'email è partita.
+    STRATEGIA (LOCK 17/5/2026 — decisione Claudio):
+    L'email viene inviata da **Systeme.io** tramite workflow innescato dai tag
+    `ciak_checkpoint_stato_<n>` (vedi services/ciak_systeme.py). Questo
+    service NON manda più SMTP — Systeme ha infrastruttura email rodata
+    (DNS, deliverability, open rate nativo), evita debug DNS/SMTP register.it
+    su Cloud Run e allinea alla strategia v5 "single source of truth = Systeme".
+
+    Pipeline:
+      1. Genera tracking_token (compatibilità: per pixel custom su futuro
+         channel diretto, oggi non usato)
+      2. Insert su ciak_checkpoint_emails con sent=True, sent_via="systeme"
+         (assumiamo che Systeme la mandi — Systeme stesso ha retry/dlq)
+      3. Tag aggiuntivo ciak_checkpoint_email_sent_stato_<n> applicato qui
+         (il tag di trigger principale viene dal router, vedi _emit_checkpoint_tag)
+
+    Copy delle 4 email da configurare manualmente su Systeme:
+      docs/marketing/systeme-checkpoint-workflows.md
 
     Fire-and-forget: non solleva eccezioni al chiamante.
     """
     import asyncio
     from datetime import datetime, timezone
 
-    # Token random per il pixel di tracking. UUID4 → univoco, non guessable.
     tracking_token = uuid.uuid4().hex
     now_iso = datetime.now(timezone.utc).isoformat()
 
-    logger.warning(
-        "[CIAK-CHECKPOINT-EMAIL] DEBUG entered async fn email=%s stato=%s _db_is_None=%s",
-        email, stato, _db is None,
-    )
-
-    # PATTERN "insert prima, send dopo": Cloud Run può terminare la BG task
-    # durante il timeout SMTP (20s). Se inserissimo DOPO il send, il record
-    # andrebbe perso (CancelledError è BaseException, bypassa try/except).
-    # Insert subito con sent=False, poi tentiamo SMTP, poi update.
-    audit_id = None
+    # Audit log: una riga per ogni checkpoint completato.
+    # sent=True perché il tag Systeme è applicato e Systeme è infrastruttura
+    # gestita (consideriamo l'invio "delegato e affidabile" — Systeme retry).
     if _db is not None:
         try:
-            result = await _db.ciak_checkpoint_emails.insert_one({
+            await _db.ciak_checkpoint_emails.insert_one({
                 "email": email,
                 "nome": nome,
                 "stato": stato,
                 "score": score,
-                "sent": False,  # placeholder, aggiornato dopo SMTP
+                "sent": True,
+                "sent_via": "systeme",
                 "error": None,
                 "tracking_token": tracking_token,
                 "opened_at": None,
                 "at": now_iso,
-                "pending_smtp": True,
+                "sent_at": now_iso,
             })
-            audit_id = result.inserted_id
-            logger.warning("[CIAK-CHECKPOINT-EMAIL] DEBUG audit pre-insert OK id=%s db_id=%s", audit_id, id(_db))
         except Exception as e:
-            logger.warning("[CIAK-CHECKPOINT-EMAIL] audit pre-insert failed: %s", e)
+            logger.warning("[CIAK-CHECKPOINT-EMAIL] audit insert failed: %s", e)
 
-    # Send SMTP (può fallire o essere cancellato — record è già in DB)
+    # Tag Systeme "email_sent" come segnale aggiuntivo (il workflow principale
+    # si triggera già su ciak_checkpoint_stato_<n>, applicato dal router).
     try:
-        ok, err = await asyncio.to_thread(
-            send_checkpoint_email_sync, email, nome, stato, tracking_token
-        )
+        from services.ciak_systeme import ciak_emit_event
+        asyncio.create_task(ciak_emit_event(
+            email=email,
+            event_name=f"ciak_checkpoint_email_sent_stato_{stato}",
+            extra_tags=["ciak_checkpoint_email_sent"],
+            first_name=nome,
+            metadata={
+                "stato": stato,
+                "score": score,
+                "tracking_token": tracking_token,
+            },
+        ))
     except Exception as e:
-        ok, err = False, str(e)
-
-    # Update record con esito finale (best-effort, anche se cancelled lo stato
-    # iniziale del record è già visibile come "pending_smtp: true sent: false")
-    if _db is not None and audit_id is not None:
-        try:
-            await _db.ciak_checkpoint_emails.update_one(
-                {"_id": audit_id},
-                {"$set": {
-                    "sent": ok,
-                    "error": err,
-                    "pending_smtp": False,
-                    "sent_at": datetime.now(timezone.utc).isoformat() if ok else None,
-                }},
-            )
-            logger.warning("[CIAK-CHECKPOINT-EMAIL] DEBUG audit update OK ok=%s", ok)
-        except Exception as e:
-            logger.warning("[CIAK-CHECKPOINT-EMAIL] audit update failed: %s", e)
-
-    # Tag Systeme post-invio: il CRM sa che l'email è uscita verso il lead.
-    # Asincrono via asyncio.create_task (fire-and-forget, no await).
-    if ok:
-        try:
-            # Import locale per evitare ciclo (ciak_systeme importa da services)
-            from services.ciak_systeme import ciak_emit_event
-            asyncio.create_task(ciak_emit_event(
-                email=email,
-                event_name=f"ciak_checkpoint_email_sent_stato_{stato}",
-                extra_tags=["ciak_checkpoint_email_sent"],
-                first_name=nome,
-                metadata={
-                    "stato": stato,
-                    "score": score,
-                    "tracking_token": tracking_token,
-                },
-            ))
-        except Exception as e:
-            logger.warning("[CIAK-CHECKPOINT-EMAIL] systeme tag email_sent failed: %s", e)
+        logger.warning("[CIAK-CHECKPOINT-EMAIL] systeme tag email_sent failed: %s", e)
 
 
 async def register_email_opened(tracking_token: str) -> Optional[dict]:
