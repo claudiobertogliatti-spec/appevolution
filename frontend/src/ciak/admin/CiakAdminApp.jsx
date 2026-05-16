@@ -37,6 +37,8 @@ import { CalendarioEditoriale } from "./pages/CalendarioEditoriale";
 import { ServiziExtraAdmin } from "./pages/ServiziExtraAdmin";
 import { AgentDashboard } from "./pages/AgentDashboard";
 import { MetrichePostLancio } from "./pages/MetrichePostLancio";
+import { MatteoKBEditor } from "./pages/MatteoKBEditor";
+import { MasterclassAnalytics } from "./pages/MasterclassAnalytics";
 
 // ─── Struttura navigazione (macro → pagine) ──────────────────────────────
 
@@ -51,6 +53,7 @@ const NAV = [
       { to: "/admin/lista-fredda", label: "Lista Fredda" },
       { to: "/admin/lead-manager", label: "Lead Manager" },
       { to: "/admin/pipeline-prospect", label: "Pipeline Prospect" },
+      { to: "/admin/masterclass-analytics", label: "Masterclass Analytics" },
     ],
   },
   {
@@ -357,7 +360,11 @@ export default function CiakAdminApp() {
         <Route path="stefania" element={<StefaniaAdmin onAuthExpired={handleLogout} />} />
         <Route path="automazione" element={<AgentDashboard onAuthExpired={handleLogout} />} />
         <Route path="metriche" element={<MetrichePostLancio onAuthExpired={handleLogout} />} />
-        <Route path="kb-matteo" element={<SectionStub />} />
+        <Route path="kb-matteo" element={<MatteoKBEditor onAuthExpired={handleLogout} />} />
+        <Route
+          path="masterclass-analytics"
+          element={<MasterclassAnalytics onAuthExpired={handleLogout} />}
+        />
         <Route path="template-email" element={<TemplateEmail onAuthExpired={handleLogout} />} />
 
         <Route path="*" element={<Navigate to="/admin" replace />} />

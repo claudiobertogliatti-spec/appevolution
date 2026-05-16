@@ -659,3 +659,247 @@ async def pipeline_blueprint(admin=Depends(require_ciak_admin)):
 
     columns = _columns_from_entries(entries, _BLUEPRINT_COLUMNS)
     return {"columns": columns, "total": sum(c["count"] for c in columns)}
+
+
+# ─── Transactions Partnership €2.790 ──────────────────────────────────────
+
+@router.get("/transactions-partnership")
+async def ciak_transactions_partnership(
+    admin=Depends(require_ciak_admin),
+    limit: int = Query(200, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+):
+    """
+    Acquisti Partnership Evolution €2.790. Sorgente: proposte con
+    pagamento_completato=True. Amount = contract_params.corrispettivo
+    (default 2790.0 se non override).
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    items = []
+    async for p in db.proposte.find(
+        {"pagamento_completato": True}
+    ).sort("pagamento_completato_at", -1):
+        contract_params = p.get("contract_params", {}) or {}
+        amount = float(contract_params.get("corrispettivo", 2790.0))
+        items.append({
+            "email": p.get("prospect_email"),
+            "nome": p.get("prospect_nome"),
+            "amount_euro": amount,
+            "metodo": p.get("pagamento_metodo"),
+            "at": p.get("pagamento_completato_at"),
+            "partner_id": p.get("partner_id"),
+            "stripe_session_id": p.get("stripe_session_id_conferma"),
+            "token": p.get("token"),
+            "contratto_firmato_at": p.get("contratto_firmato_at"),
+        })
+
+    total = len(items)
+    page = items[offset:offset + limit]
+    total_incassato_euro = sum(i["amount_euro"] for i in items)
+
+    return {
+        "total": total,
+        "total_incassato_euro": total_incassato_euro,
+        "limit": limit,
+        "offset": offset,
+        "items": page,
+    }
+
+
+# ─── Masterclass Analytics ─────────────────────────────────────────────────
+
+@router.get("/masterclass-analytics")
+async def ciak_masterclass_analytics(admin=Depends(require_ciak_admin)):
+    """
+    Vista analitica del funnel masterclass:
+      - Funnel: opt-in → checkpoint → 8 domande → click €67 → acquisto
+      - Distribuzione 4 stati (checkpoint + diagnostic)
+      - Email checkpoint: sent / opened / open_rate per stato
+      - Sorgenti opt-in (UTM source / source)
+      - Trend ultimi 30 giorni
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    # ── Funnel cumulativo ──────────────────────────────────────────────
+    opt_in = await db.ciak_leads.count_documents({})
+    checkpoint_done = await db.ciak_checkpoint_events.count_documents({})
+    diagnostic_started = await db.diagnostic_sessions.count_documents({})
+    diagnostic_completed = await db.diagnostic_sessions.count_documents(
+        {"current_state": {"$nin": ["lead_created", "ciak_started"]}}
+    )
+    clicked_67 = await db.diagnostic_sessions.count_documents(
+        {"events.event": "clicked_67"}
+    )
+    purchased = await db.diagnostic_sessions.count_documents(
+        {"current_state": {"$in": list(_PURCHASED_STATES)}}
+    )
+
+    # ── Distribuzione 4 stati (Checkpoint pre-acquisto) ────────────────
+    checkpoint_per_stato = {"1": 0, "2": 0, "3": 0, "4": 0}
+    async for row in db.ciak_checkpoint_events.aggregate([
+        {"$match": {"stato_server": {"$ne": None}}},
+        {"$group": {"_id": "$stato_server", "n": {"$sum": 1}}},
+    ]):
+        key = str(row["_id"])
+        if key in checkpoint_per_stato:
+            checkpoint_per_stato[key] = row["n"]
+
+    # ── Distribuzione 4 stati (8 Domande post-acquisto) ────────────────
+    diagnostic_per_stato = {"1": 0, "2": 0, "3": 0, "4": 0}
+    async for row in db.diagnostic_sessions.aggregate([
+        {"$match": {"scoring.stato_finale": {"$ne": None}}},
+        {"$group": {"_id": "$scoring.stato_finale", "n": {"$sum": 1}}},
+    ]):
+        key = str(row["_id"])
+        if key in diagnostic_per_stato:
+            diagnostic_per_stato[key] = row["n"]
+
+    # ── Email checkpoint: sent vs opened per stato ─────────────────────
+    email_per_stato = {
+        "1": {"sent": 0, "opened": 0},
+        "2": {"sent": 0, "opened": 0},
+        "3": {"sent": 0, "opened": 0},
+        "4": {"sent": 0, "opened": 0},
+    }
+    async for row in db.ciak_checkpoint_emails.aggregate([
+        {"$group": {
+            "_id": "$stato",
+            "sent": {"$sum": {"$cond": [{"$ifNull": ["$sent_at", False]}, 1, 0]}},
+            "opened": {"$sum": {"$cond": [{"$ifNull": ["$opened_at", False]}, 1, 0]}},
+        }},
+    ]):
+        key = str(row["_id"])
+        if key in email_per_stato:
+            email_per_stato[key] = {"sent": row["sent"], "opened": row["opened"]}
+    # open rate
+    for k, v in email_per_stato.items():
+        v["open_rate_pct"] = round((v["opened"] / v["sent"]) * 100) if v["sent"] else 0
+
+    # ── Sorgenti opt-in (source + utm_source) ──────────────────────────
+    sources = {}
+    async for row in db.ciak_leads.aggregate([
+        {"$group": {
+            "_id": {"$ifNull": ["$source", "unknown"]},
+            "n": {"$sum": 1},
+        }},
+        {"$sort": {"n": -1}},
+    ]):
+        sources[row["_id"] or "unknown"] = row["n"]
+
+    utm_sources = {}
+    async for row in db.ciak_leads.aggregate([
+        {"$group": {
+            "_id": {"$ifNull": ["$utm.source", "(direct)"]},
+            "n": {"$sum": 1},
+        }},
+        {"$sort": {"n": -1}},
+        {"$limit": 10},
+    ]):
+        utm_sources[row["_id"] or "(direct)"] = row["n"]
+
+    # ── Trend ultimi 30gg (opt-in per giorno) ──────────────────────────
+    from datetime import timedelta
+    since = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    trend_optin = {}
+    async for row in db.ciak_leads.aggregate([
+        {"$match": {"created_at": {"$gte": since}}},
+        {"$project": {"day": {"$substr": ["$created_at", 0, 10]}}},
+        {"$group": {"_id": "$day", "n": {"$sum": 1}}},
+        {"$sort": {"_id": 1}},
+    ]):
+        trend_optin[row["_id"]] = row["n"]
+
+    # ── Conversion rates ───────────────────────────────────────────────
+    def _pct(curr, prev):
+        return round((curr / prev) * 100, 1) if prev else 0
+
+    return {
+        "funnel": {
+            "opt_in": opt_in,
+            "checkpoint_done": checkpoint_done,
+            "diagnostic_started": diagnostic_started,
+            "diagnostic_completed": diagnostic_completed,
+            "clicked_67": clicked_67,
+            "purchased_67": purchased,
+        },
+        "conversion_pct": {
+            "optin_to_checkpoint": _pct(checkpoint_done, opt_in),
+            "checkpoint_to_diagnostic": _pct(diagnostic_started, checkpoint_done),
+            "diagnostic_to_purchase": _pct(purchased, diagnostic_completed),
+            "optin_to_purchase": _pct(purchased, opt_in),
+        },
+        "checkpoint_per_stato": checkpoint_per_stato,
+        "diagnostic_per_stato": diagnostic_per_stato,
+        "email_per_stato": email_per_stato,
+        "sources": sources,
+        "utm_sources": utm_sources,
+        "trend_optin_30d": trend_optin,
+    }
+
+
+# ─── KB Matteo — system prompt editor ──────────────────────────────────────
+
+class MatteoPromptCreate(BaseModel):
+    label: str = Field(..., min_length=1, max_length=200)
+    content: str = Field(..., min_length=100)
+    parent_id: Optional[str] = None
+    activate: bool = True
+
+
+@router.get("/matteo-prompt")
+async def get_matteo_prompt(admin=Depends(require_ciak_admin)):
+    """
+    Ritorna prompt attivo + lista versioni storiche. Se nessuna versione in DB,
+    `active` è None (l'inferenza userà il fallback hardcoded `_SYSTEM_PROMPT`).
+    """
+    from services import ciak_matteo_prompt_store
+    from services.ciak_matteo import _SYSTEM_PROMPT as HARDCODED_PROMPT  # noqa
+
+    active = await ciak_matteo_prompt_store.get_active_prompt()
+    versions = await ciak_matteo_prompt_store.list_versions(limit=50)
+
+    return {
+        "active": active,
+        "fallback_hardcoded": {
+            "label": "v1.4 hardcoded (fallback)",
+            "content": HARDCODED_PROMPT,
+            "is_fallback": True,
+        },
+        "versions": versions,
+    }
+
+
+@router.post("/matteo-prompt")
+async def create_matteo_prompt(
+    body: MatteoPromptCreate,
+    admin=Depends(require_ciak_admin),
+):
+    """Crea nuova versione. Se activate=True (default), diventa attiva."""
+    from services import ciak_matteo_prompt_store
+
+    author_email = getattr(admin, "email", None) or getattr(admin, "sub", "unknown")
+
+    new = await ciak_matteo_prompt_store.create_version(
+        content=body.content,
+        label=body.label,
+        author_email=author_email,
+        parent_id=body.parent_id,
+        activate=body.activate,
+    )
+    return {"success": True, "version": new}
+
+
+@router.post("/matteo-prompt/{version_id}/activate")
+async def activate_matteo_prompt(
+    version_id: str,
+    admin=Depends(require_ciak_admin),
+):
+    """Rollback: riattiva una versione storica."""
+    from services import ciak_matteo_prompt_store
+    activated = await ciak_matteo_prompt_store.activate_version(version_id)
+    if not activated:
+        raise HTTPException(404, "Versione non trovata")
+    return {"success": True, "active": activated}

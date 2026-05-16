@@ -336,7 +336,7 @@ async def complete_diagnostic(payload: CompleteRequest):
     # 3. Invoca Matteo
     user_payload = _build_user_payload_for_matteo(session, scoring)
     try:
-        report = generate_report(
+        report = await generate_report(
             user_payload=user_payload,
             user_name=session.get("user_name"),
         )
