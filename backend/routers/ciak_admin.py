@@ -968,6 +968,65 @@ async def set_site_config(
     return {"success": True, "key": key, "value": body.value.strip()}
 
 
+# ─── Partner setup pending (magic link recovery per admin) ────────────────
+
+@router.get("/partner-setup-pending")
+async def partner_setup_pending(
+    admin=Depends(require_ciak_admin),
+    include_consumed: bool = Query(False, description="Includi anche partner che hanno già completato setup"),
+):
+    """
+    Lista partner che hanno ricevuto un magic link di setup ma non l'hanno
+    ancora consumato (o tutti, se include_consumed=true).
+
+    Use case: se Systeme non manda l'email per qualunque motivo (workflow non
+    attivo, contatto sconosciuto, deliverability), Claudio recupera il magic
+    link da qui e lo copincolla manualmente al partner via WhatsApp o altro.
+
+    Solo partner attivi (role=partner). Token censurato in mid (xxxxxx) per
+    sicurezza visuale, ma l'URL completo è restituito copiabile.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+
+    query: dict = {"role": "partner", "partner_setup_token": {"$exists": True, "$ne": None}}
+    if not include_consumed:
+        query["partner_setup_consumed_at"] = None
+
+    items = []
+    async for u in db.users.find(query, {
+        "_id": 0, "id": 1, "email": 1, "name": 1,
+        "partner_setup_token": 1,
+        "partner_setup_expires_at": 1,
+        "partner_setup_created_at": 1,
+        "partner_setup_consumed_at": 1,
+    }).sort("partner_setup_created_at", -1).limit(100):
+        token = u.get("partner_setup_token") or ""
+        # Censura visuale del token: xxxxxx, ma URL completo nei dati
+        token_preview = f"{token[:6]}…{token[-4:]}" if len(token) > 12 else "***"
+        items.append({
+            "partner_id": u.get("id"),
+            "email": u.get("email"),
+            "nome": u.get("name"),
+            "token_preview": token_preview,
+            "setup_url": f"https://www.ciak.io/partner/setup-password?token={token}" if token else None,
+            "created_at": u.get("partner_setup_created_at"),
+            "expires_at": u.get("partner_setup_expires_at"),
+            "consumed_at": u.get("partner_setup_consumed_at"),
+            "status": "consumed" if u.get("partner_setup_consumed_at") else "pending",
+        })
+
+    # Conta pending vs consumed per stat top
+    pending_count = sum(1 for i in items if i["status"] == "pending")
+
+    return {
+        "total": len(items),
+        "pending": pending_count,
+        "consumed": len(items) - pending_count,
+        "items": items,
+    }
+
+
 # Endpoint PUBBLICO per il frontend (no auth — solo letture pubbliche selezionate)
 @router.get("/public-config", include_in_schema=False)
 async def get_public_config():

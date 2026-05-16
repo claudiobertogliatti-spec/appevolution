@@ -31,6 +31,7 @@ import { CiakGrazie } from "./pages/Grazie";
 import { CiakDiagnostica } from "./pages/Diagnostica";
 import { CiakReport } from "./pages/Report";
 import { CiakProposta } from "./pages/Proposta";
+import { PartnerSetupPassword } from "./pages/PartnerSetupPassword";
 import { CiakNotFound } from "./pages/NotFound";
 import { CookieBanner } from "./components/CookieBanner";
 import CiakAdminApp from "./admin/CiakAdminApp";
@@ -80,6 +81,10 @@ export default function CiakApp() {
 
           {/* Area Admin Ciak (login proprio, role admin — Claudio + Antonella) */}
           <Route path="/admin/*" element={<CiakAdminApp />} />
+
+          {/* Setup password partner (magic link post-pagamento, NO auth required).
+              Deve venire PRIMA del catch-all /partner/* per matchare prima. */}
+          <Route path="/partner/setup-password" element={<PartnerSetupPassword />} />
 
           {/* Area Partner Ciak — Fase 2a migrazione (login proprio, role partner) */}
           <Route path="/partner/*" element={<CiakPartnerApp />} />

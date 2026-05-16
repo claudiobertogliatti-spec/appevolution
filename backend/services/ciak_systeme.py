@@ -188,3 +188,49 @@ async def ciak_emit_event(
         return True
     logger.warning(f"[CIAK-SYSTEME] {email} event '{event_name}' — ALL tags failed: {failed}")
     return False
+
+
+async def ciak_set_contact_fields(
+    email: str,
+    fields: dict,
+    first_name: Optional[str] = None,
+) -> bool:
+    """Scrive uno o più custom field sul contatto Systeme.
+
+    `fields` è un dict {slug: value}. Esempio:
+        await ciak_set_contact_fields(email, {"partner_setup_url": "https://..."})
+
+    Crea il contatto se non esiste. Usato per propagare dati dinamici al
+    template delle email Systeme (es. magic link non template-friendly).
+
+    NOTA: il custom field con quel slug deve esistere lato Systeme dashboard
+    (Contacts → Custom fields → Add). Se non esiste, Systeme ignora il valore
+    silenziosamente (no errore HTTP).
+
+    Ritorna True se la PATCH ha risposto 200/204.
+    """
+    if not SYSTEME_API_KEY or not email or not fields:
+        return False
+
+    contact_id = await ciak_ensure_contact(email, first_name=first_name)
+    if not contact_id:
+        return False
+
+    payload = {
+        "fields": [{"slug": slug, "value": value} for slug, value in fields.items()],
+    }
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.patch(
+                f"{SYSTEME_BASE_URL}/contacts/{contact_id}",
+                headers={**_headers(), "Content-Type": "application/merge-patch+json"},
+                json=payload,
+            )
+        if r.status_code in (200, 204):
+            logger.info(f"[CIAK-SYSTEME] {email} fields updated: {list(fields.keys())}")
+            return True
+        logger.warning(f"[CIAK-SYSTEME] {email} PATCH fields failed: {r.status_code} {r.text[:200]}")
+        return False
+    except Exception as e:
+        logger.warning(f"[CIAK-SYSTEME] {email} PATCH fields error: {e}")
+        return False

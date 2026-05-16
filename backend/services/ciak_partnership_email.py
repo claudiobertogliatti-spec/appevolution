@@ -385,15 +385,69 @@ def send_documenti_ricevuti_sync(
 
 # ─── Async wrappers (fire-and-forget) ─────────────────────────────────
 
+async def _audit_pre_insert(kind: str, email: str, nome: Optional[str], token: str, extra: Optional[dict] = None) -> Optional:
+    """
+    Insert audit log PRIMA del send SMTP. Pattern uniforme per tutte le
+    partnership email — garantisce che il record esista anche se Cloud Run
+    cancella la BG task durante il timeout SMTP (CancelledError = BaseException,
+    bypassa try/except classico). Stesso fix applicato a ciak_checkpoint_email.
+
+    Ritorna l'_id del documento inserito (o None se DB non disponibile).
+    """
+    from datetime import datetime, timezone
+    if _db is None:
+        return None
+    doc = {
+        "email": email, "nome": nome,
+        "kind": kind,
+        "sent": False,         # placeholder, aggiornato dopo SMTP
+        "error": None,
+        "tracking_token": token,
+        "opened_at": None,
+        "at": datetime.now(timezone.utc).isoformat(),
+        "pending_smtp": True,
+    }
+    if extra:
+        doc.update(extra)
+    try:
+        result = await _db.ciak_partnership_emails.insert_one(doc)
+        return result.inserted_id
+    except Exception as e:
+        logger.warning("[CIAK-PARTNERSHIP-EMAIL] audit pre-insert failed (%s): %s", kind, e)
+        return None
+
+
+async def _audit_post_update(audit_id, ok: bool, err: Optional[str]) -> None:
+    """Update audit record DOPO il tentativo SMTP. Best-effort."""
+    from datetime import datetime, timezone
+    if _db is None or audit_id is None:
+        return
+    try:
+        await _db.ciak_partnership_emails.update_one(
+            {"_id": audit_id},
+            {"$set": {
+                "sent": ok,
+                "error": err,
+                "pending_smtp": False,
+                "sent_at": datetime.now(timezone.utc).isoformat() if ok else None,
+            }},
+        )
+    except Exception as e:
+        logger.warning("[CIAK-PARTNERSHIP-EMAIL] audit post-update failed: %s", e)
+
+
 async def send_contratto_firmato_async(
     email: str,
     nome: Optional[str],
     pdf_bytes: Optional[bytes] = None,
 ) -> None:
-    """Wrapper async: invio + audit log + tag Systeme."""
+    """Wrapper async: insert audit PRIMA, send SMTP dopo, update audit con esito.
+    Pattern resiliente a CancelledError di Cloud Run (vedi ciak_checkpoint_email)."""
     import asyncio
-    from datetime import datetime, timezone
     token = uuid.uuid4().hex
+
+    audit_id = await _audit_pre_insert("contratto_firmato", email, nome, token)
+
     try:
         ok, err = await asyncio.to_thread(
             send_contratto_firmato_sync, email, nome, pdf_bytes, "Contratto_Partnership_Ciak.pdf", token
@@ -401,17 +455,7 @@ async def send_contratto_firmato_async(
     except Exception as e:
         ok, err = False, str(e)
 
-    if _db is not None:
-        try:
-            await _db.ciak_partnership_emails.insert_one({
-                "email": email, "nome": nome,
-                "kind": "contratto_firmato",
-                "sent": ok, "error": err,
-                "tracking_token": token, "opened_at": None,
-                "at": datetime.now(timezone.utc).isoformat(),
-            })
-        except Exception as e:
-            logger.warning("[CIAK-PARTNERSHIP-EMAIL] audit log failed: %s", e)
+    await _audit_post_update(audit_id, ok, err)
 
     if ok:
         try:
@@ -432,9 +476,17 @@ async def send_partnership_benvenuto_async(
     nome: Optional[str],
     password: Optional[str] = None,
 ) -> None:
+    """LEGACY: dal 17/5 il benvenuto partner usa il magic link via Systeme.io
+    (vedi routers/proposta.py _activate_partner_account_and_notify). Questa
+    funzione resta nel modulo per resend manuale via admin se necessario."""
     import asyncio
-    from datetime import datetime, timezone
     token = uuid.uuid4().hex
+
+    audit_id = await _audit_pre_insert(
+        "benvenuto", email, nome, token,
+        extra={"password_inviata": bool(password)},
+    )
+
     try:
         ok, err = await asyncio.to_thread(
             send_partnership_benvenuto_sync, email, nome, password, token
@@ -442,18 +494,7 @@ async def send_partnership_benvenuto_async(
     except Exception as e:
         ok, err = False, str(e)
 
-    if _db is not None:
-        try:
-            await _db.ciak_partnership_emails.insert_one({
-                "email": email, "nome": nome,
-                "kind": "benvenuto",
-                "password_inviata": bool(password),
-                "sent": ok, "error": err,
-                "tracking_token": token, "opened_at": None,
-                "at": datetime.now(timezone.utc).isoformat(),
-            })
-        except Exception as e:
-            logger.warning("[CIAK-PARTNERSHIP-EMAIL] audit log failed: %s", e)
+    await _audit_post_update(audit_id, ok, err)
 
     if ok:
         try:
@@ -474,8 +515,10 @@ async def send_documenti_ricevuti_async(
     nome: Optional[str],
 ) -> None:
     import asyncio
-    from datetime import datetime, timezone
     token = uuid.uuid4().hex
+
+    audit_id = await _audit_pre_insert("documenti_ricevuti", email, nome, token)
+
     try:
         ok, err = await asyncio.to_thread(
             send_documenti_ricevuti_sync, email, nome, token
@@ -483,17 +526,7 @@ async def send_documenti_ricevuti_async(
     except Exception as e:
         ok, err = False, str(e)
 
-    if _db is not None:
-        try:
-            await _db.ciak_partnership_emails.insert_one({
-                "email": email, "nome": nome,
-                "kind": "documenti_ricevuti",
-                "sent": ok, "error": err,
-                "tracking_token": token, "opened_at": None,
-                "at": datetime.now(timezone.utc).isoformat(),
-            })
-        except Exception as e:
-            logger.warning("[CIAK-PARTNERSHIP-EMAIL] audit log failed: %s", e)
+    await _audit_post_update(audit_id, ok, err)
 
     if ok:
         try:
