@@ -39,6 +39,7 @@ import { AgentDashboard } from "./pages/AgentDashboard";
 import { MetrichePostLancio } from "./pages/MetrichePostLancio";
 import { MatteoKBEditor } from "./pages/MatteoKBEditor";
 import { MasterclassAnalytics } from "./pages/MasterclassAnalytics";
+import { SiteConfig } from "./pages/SiteConfig";
 
 // ─── Struttura navigazione (macro → pagine) ──────────────────────────────
 
@@ -91,6 +92,7 @@ const NAV = [
       { to: "/admin/metriche", label: "KPI & Metriche" },
       { to: "/admin/kb-matteo", label: "KB Matteo" },
       { to: "/admin/template-email", label: "Template Email" },
+      { to: "/admin/configurazione", label: "Configurazione" },
     ],
   },
 ];
@@ -366,6 +368,7 @@ export default function CiakAdminApp() {
           element={<MasterclassAnalytics onAuthExpired={handleLogout} />}
         />
         <Route path="template-email" element={<TemplateEmail onAuthExpired={handleLogout} />} />
+        <Route path="configurazione" element={<SiteConfig onAuthExpired={handleLogout} />} />
 
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>

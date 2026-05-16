@@ -905,3 +905,77 @@ async def activate_matteo_prompt(
     if not activated:
         raise HTTPException(404, "Versione non trovata")
     return {"success": True, "active": activated}
+
+
+# ─── Site config (Cal.com booking URL, ecc.) ───────────────────────────────
+# Collection ciak_site_config: 1 doc per chiave (key, value, updated_at, updated_by)
+
+class SiteConfigUpdate(BaseModel):
+    value: str = Field(..., max_length=2000)
+
+
+SITE_CONFIG_KEYS = {
+    "calcom_booking_url": "URL Cal.com booking Ciak Blueprint (60 min). Es: https://cal.com/claudio-bertogliatti/ciak-blueprint-60",
+    "calcom_booking_url_stato4": "URL Cal.com booking Ciak Blueprint esteso (90 min, solo Stato 4). Opzionale, fallback su calcom_booking_url se vuoto.",
+}
+
+
+@router.get("/site-config")
+async def get_site_config(admin=Depends(require_ciak_admin)):
+    """Ritorna tutte le chiavi di config configurabili + valori attuali."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    items = {}
+    async for doc in db.ciak_site_config.find({}):
+        items[doc["key"]] = {
+            "value": doc.get("value", ""),
+            "updated_at": doc.get("updated_at"),
+            "updated_by": doc.get("updated_by"),
+        }
+    # Restituisci tutte le chiavi note, anche se non ancora settate
+    result = {}
+    for key, descr in SITE_CONFIG_KEYS.items():
+        result[key] = {
+            "description": descr,
+            "value": items.get(key, {}).get("value", ""),
+            "updated_at": items.get(key, {}).get("updated_at"),
+            "updated_by": items.get(key, {}).get("updated_by"),
+        }
+    return result
+
+
+@router.put("/site-config/{key}")
+async def set_site_config(
+    key: str,
+    body: SiteConfigUpdate,
+    admin=Depends(require_ciak_admin),
+):
+    """Upsert valore per una chiave di config."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    if key not in SITE_CONFIG_KEYS:
+        raise HTTPException(400, f"Chiave sconosciuta. Note: {list(SITE_CONFIG_KEYS.keys())}")
+    author = getattr(admin, "email", None) or getattr(admin, "sub", "unknown")
+    await db.ciak_site_config.update_one(
+        {"key": key},
+        {"$set": {
+            "value": body.value.strip(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "updated_by": author,
+        }},
+        upsert=True,
+    )
+    return {"success": True, "key": key, "value": body.value.strip()}
+
+
+# Endpoint PUBBLICO per il frontend (no auth — solo letture pubbliche selezionate)
+@router.get("/public-config", include_in_schema=False)
+async def get_public_config():
+    """Subset PUBBLICO delle config (no admin auth richiesto). Restituisce
+    solo chiavi sicure da esporre nel frontend."""
+    if db is None:
+        return {"calcom_booking_url": "", "calcom_booking_url_stato4": ""}
+    result = {"calcom_booking_url": "", "calcom_booking_url_stato4": ""}
+    async for doc in db.ciak_site_config.find({"key": {"$in": list(result.keys())}}):
+        result[doc["key"]] = doc.get("value", "")
+    return result

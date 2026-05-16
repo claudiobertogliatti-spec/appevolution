@@ -83,6 +83,28 @@ export async function apiGet(path, params = {}) {
   return res.json();
 }
 
+/** PUT JSON autenticato su /api/admin/ciak/*. Idem semantica di apiGet. */
+export async function apiPut(path, body = {}) {
+  const token = getToken();
+  const res = await fetch(`/api/admin/ciak${path}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+  if (res.status === 401 || res.status === 403) {
+    clearSession();
+    throw new Error("AUTH_EXPIRED");
+  }
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Errore ${res.status}${text ? `: ${text.slice(0, 200)}` : ""}`);
+  }
+  return res.json();
+}
+
 /** POST JSON autenticato su /api/admin/ciak/*. Idem semantica di apiGet. */
 export async function apiPost(path, body = {}) {
   const token = getToken();
