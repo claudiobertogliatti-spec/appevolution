@@ -348,9 +348,13 @@ async def send_checkpoint_email_async(
     except Exception as e:
         ok, err = False, str(e)
 
+    logger.info(
+        "[CIAK-CHECKPOINT-EMAIL] post-send debug: _db_is_None=%s ok=%s err=%s",
+        _db is None, ok, err,
+    )
     if _db is not None:
         try:
-            await _db.ciak_checkpoint_emails.insert_one({
+            result = await _db.ciak_checkpoint_emails.insert_one({
                 "email": email,
                 "nome": nome,
                 "stato": stato,
@@ -361,8 +365,14 @@ async def send_checkpoint_email_async(
                 "opened_at": None,
                 "at": datetime.now(timezone.utc).isoformat(),
             })
-        except Exception as e:
-            logger.warning("[CIAK-CHECKPOINT-EMAIL] audit log failed: %s", e)
+            logger.info(
+                "[CIAK-CHECKPOINT-EMAIL] audit insert OK id=%s",
+                result.inserted_id,
+            )
+        except BaseException as e:
+            # Cattura anche CancelledError di Cloud Run
+            logger.warning("[CIAK-CHECKPOINT-EMAIL] audit log failed: %s: %s", type(e).__name__, e)
+            raise  # re-raise se è CancelledError
 
     # Tag Systeme post-invio: il CRM sa che l'email è uscita verso il lead.
     # Asincrono via asyncio.create_task (fire-and-forget, no await).
