@@ -32,7 +32,7 @@ import logging
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -111,7 +111,10 @@ def _apply_overrides(stato_base: int, answers: List[int]) -> tuple[int, List[str
 
 
 @router.post("/result", response_model=CheckpointResultResponse)
-async def submit_checkpoint_result(payload: CheckpointResultRequest):
+async def submit_checkpoint_result(
+    payload: CheckpointResultRequest,
+    background_tasks: BackgroundTasks,
+):
     """
     Riceve il risultato del Checkpoint Strategico dal frontend.
 
@@ -165,19 +168,25 @@ async def submit_checkpoint_result(payload: CheckpointResultRequest):
         except Exception as e:
             logger.warning("[CHECKPOINT] Audit log failed: %s", e)
 
-    # Tag Systeme.io (fire-and-forget, non blocca request).
-    # NB: il tag resta utile per segmentazione/audit/dashboard Systeme, anche
-    # se l'email del checkpoint la mandiamo direttamente noi via SMTP.
+    # Tag Systeme.io + email SMTP via BackgroundTasks (NON asyncio.create_task):
+    # su Cloud Run la worker viene riciclata subito dopo la response e le task
+    # asyncio orfane vengono cancellate prima di completare. Con BackgroundTasks
+    # FastAPI tiene viva la worker finché il task non finisce.
+    # NB: il tag Systeme resta utile per segmentazione/audit/dashboard Systeme,
+    # anche se l'email del checkpoint la mandiamo direttamente noi via SMTP.
     if payload.email:
-        asyncio.create_task(_emit_checkpoint_tag(payload.email, server_stato, expected_total))
-        # Email diretta SMTP (sostituisce workflow Systeme.io): parte subito,
-        # NO dipendenza da automation Systeme. Vedi services/ciak_checkpoint_email.py
-        asyncio.create_task(send_checkpoint_email_async(
+        background_tasks.add_task(
+            _emit_checkpoint_tag, payload.email, server_stato, expected_total
+        )
+        # Email diretta SMTP (sostituisce workflow Systeme.io). Anche se SMTP
+        # fallisce l'audit log su ciak_checkpoint_emails viene scritto.
+        background_tasks.add_task(
+            send_checkpoint_email_async,
             email=payload.email,
             nome=nome,
             stato=server_stato,
             score=expected_total,
-        ))
+        )
 
     return CheckpointResultResponse(ok=True, stato=server_stato)
 
