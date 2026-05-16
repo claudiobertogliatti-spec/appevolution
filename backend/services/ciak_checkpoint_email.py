@@ -342,6 +342,11 @@ async def send_checkpoint_email_async(
     tracking_token = uuid.uuid4().hex
     now_iso = datetime.now(timezone.utc).isoformat()
 
+    logger.warning(
+        "[CIAK-CHECKPOINT-EMAIL] DEBUG entered async fn email=%s stato=%s _db_is_None=%s",
+        email, stato, _db is None,
+    )
+
     # PATTERN "insert prima, send dopo": Cloud Run può terminare la BG task
     # durante il timeout SMTP (20s). Se inserissimo DOPO il send, il record
     # andrebbe perso (CancelledError è BaseException, bypassa try/except).
@@ -362,7 +367,7 @@ async def send_checkpoint_email_async(
                 "pending_smtp": True,
             })
             audit_id = result.inserted_id
-            logger.info("[CIAK-CHECKPOINT-EMAIL] audit pre-insert OK id=%s", audit_id)
+            logger.warning("[CIAK-CHECKPOINT-EMAIL] DEBUG audit pre-insert OK id=%s db_id=%s", audit_id, id(_db))
         except Exception as e:
             logger.warning("[CIAK-CHECKPOINT-EMAIL] audit pre-insert failed: %s", e)
 
@@ -387,7 +392,7 @@ async def send_checkpoint_email_async(
                     "sent_at": datetime.now(timezone.utc).isoformat() if ok else None,
                 }},
             )
-            logger.info("[CIAK-CHECKPOINT-EMAIL] audit update OK ok=%s", ok)
+            logger.warning("[CIAK-CHECKPOINT-EMAIL] DEBUG audit update OK ok=%s", ok)
         except Exception as e:
             logger.warning("[CIAK-CHECKPOINT-EMAIL] audit update failed: %s", e)
 
