@@ -764,10 +764,12 @@ async def ciak_masterclass_analytics(admin=Depends(require_ciak_admin)):
         "3": {"sent": 0, "opened": 0},
         "4": {"sent": 0, "opened": 0},
     }
+    # Documento ciak_checkpoint_emails: {tracking_token, sent: bool, opened_at: null|iso, stato, ...}
+    # NB: il campo è "sent" (bool), non "sent_at". Tracking apertura: opened_at != null.
     async for row in db.ciak_checkpoint_emails.aggregate([
         {"$group": {
             "_id": "$stato",
-            "sent": {"$sum": {"$cond": [{"$ifNull": ["$sent_at", False]}, 1, 0]}},
+            "sent": {"$sum": {"$cond": [{"$eq": ["$sent", True]}, 1, 0]}},
             "opened": {"$sum": {"$cond": [{"$ifNull": ["$opened_at", False]}, 1, 0]}},
         }},
     ]):
