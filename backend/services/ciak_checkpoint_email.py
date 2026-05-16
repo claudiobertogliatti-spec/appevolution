@@ -340,18 +340,13 @@ async def send_checkpoint_email_async(
 
     # Token random per il pixel di tracking. UUID4 → univoco, non guessable.
     tracking_token = uuid.uuid4().hex
+    now_iso = datetime.now(timezone.utc).isoformat()
 
-    try:
-        ok, err = await asyncio.to_thread(
-            send_checkpoint_email_sync, email, nome, stato, tracking_token
-        )
-    except Exception as e:
-        ok, err = False, str(e)
-
-    logger.info(
-        "[CIAK-CHECKPOINT-EMAIL] post-send debug: _db_is_None=%s ok=%s err=%s",
-        _db is None, ok, err,
-    )
+    # PATTERN "insert prima, send dopo": Cloud Run può terminare la BG task
+    # durante il timeout SMTP (20s). Se inserissimo DOPO il send, il record
+    # andrebbe perso (CancelledError è BaseException, bypassa try/except).
+    # Insert subito con sent=False, poi tentiamo SMTP, poi update.
+    audit_id = None
     if _db is not None:
         try:
             result = await _db.ciak_checkpoint_emails.insert_one({
@@ -359,20 +354,42 @@ async def send_checkpoint_email_async(
                 "nome": nome,
                 "stato": stato,
                 "score": score,
-                "sent": ok,
-                "error": err,
+                "sent": False,  # placeholder, aggiornato dopo SMTP
+                "error": None,
                 "tracking_token": tracking_token,
                 "opened_at": None,
-                "at": datetime.now(timezone.utc).isoformat(),
+                "at": now_iso,
+                "pending_smtp": True,
             })
-            logger.info(
-                "[CIAK-CHECKPOINT-EMAIL] audit insert OK id=%s",
-                result.inserted_id,
+            audit_id = result.inserted_id
+            logger.info("[CIAK-CHECKPOINT-EMAIL] audit pre-insert OK id=%s", audit_id)
+        except Exception as e:
+            logger.warning("[CIAK-CHECKPOINT-EMAIL] audit pre-insert failed: %s", e)
+
+    # Send SMTP (può fallire o essere cancellato — record è già in DB)
+    try:
+        ok, err = await asyncio.to_thread(
+            send_checkpoint_email_sync, email, nome, stato, tracking_token
+        )
+    except Exception as e:
+        ok, err = False, str(e)
+
+    # Update record con esito finale (best-effort, anche se cancelled lo stato
+    # iniziale del record è già visibile come "pending_smtp: true sent: false")
+    if _db is not None and audit_id is not None:
+        try:
+            await _db.ciak_checkpoint_emails.update_one(
+                {"_id": audit_id},
+                {"$set": {
+                    "sent": ok,
+                    "error": err,
+                    "pending_smtp": False,
+                    "sent_at": datetime.now(timezone.utc).isoformat() if ok else None,
+                }},
             )
-        except BaseException as e:
-            # Cattura anche CancelledError di Cloud Run
-            logger.warning("[CIAK-CHECKPOINT-EMAIL] audit log failed: %s: %s", type(e).__name__, e)
-            raise  # re-raise se è CancelledError
+            logger.info("[CIAK-CHECKPOINT-EMAIL] audit update OK ok=%s", ok)
+        except Exception as e:
+            logger.warning("[CIAK-CHECKPOINT-EMAIL] audit update failed: %s", e)
 
     # Tag Systeme post-invio: il CRM sa che l'email è uscita verso il lead.
     # Asincrono via asyncio.create_task (fire-and-forget, no await).
