@@ -40,6 +40,7 @@ import { MetrichePostLancio } from "./pages/MetrichePostLancio";
 import { MatteoKBEditor } from "./pages/MatteoKBEditor";
 import { MasterclassAnalytics } from "./pages/MasterclassAnalytics";
 import { SiteConfig } from "./pages/SiteConfig";
+import { PartnerSetupPending } from "./pages/PartnerSetupPending";
 
 // ─── Struttura navigazione (macro → pagine) ──────────────────────────────
 
@@ -72,6 +73,7 @@ const NAV = [
       { to: "/admin/documenti-partner", label: "Documenti Partner" },
       { to: "/admin/quarantena-partner", label: "Quarantena Partner" },
       { to: "/admin/ex-partner", label: "Ex Partner" },
+      { to: "/admin/partner-setup-pending", label: "Setup Password Pending" },
     ],
   },
   {
@@ -349,6 +351,10 @@ export default function CiakAdminApp() {
           element={<QuarantenaPartner onAuthExpired={handleLogout} />}
         />
         <Route path="ex-partner" element={<ExPartner onAuthExpired={handleLogout} />} />
+        <Route
+          path="partner-setup-pending"
+          element={<PartnerSetupPending onAuthExpired={handleLogout} />}
+        />
 
         {/* Marketing — importate da Evolution PRO */}
         <Route path="campagne-ads" element={<StefaniaWarMode onAuthExpired={handleLogout} />} />

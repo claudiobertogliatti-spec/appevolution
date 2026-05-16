@@ -16722,6 +16722,11 @@ set_ciak_admin_db(db)
 set_ciak_matteo_prompt_store_db(db)
 app.include_router(ciak_admin_router)
 
+# Ciak Partner Setup Router (magic link post-pagamento Partnership €2.790)
+from routers.partner_setup import router as partner_setup_router, set_db as set_partner_setup_db
+set_partner_setup_db(db)
+app.include_router(partner_setup_router)
+
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler
 

@@ -5,7 +5,7 @@ firma contratto inline, pagamento Stripe/bonifico, upload documenti.
 """
 
 import asyncio
-from fastapi import APIRouter, HTTPException, Request, UploadFile, File
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, UploadFile, File
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, timezone, timedelta
@@ -16,6 +16,7 @@ import secrets
 import logging
 import httpx
 
+from services.ciak_systeme import ciak_emit_event, ciak_set_contact_fields
 from services.ciak_partnership_email import (
     send_contratto_firmato_async,
     send_partnership_benvenuto_async,
@@ -180,7 +181,7 @@ async def accetta_proposta(token: str):
 # PUBBLICA: Registra firma contratto dalla proposta
 # ─────────────────────────────────────────────────
 @router.post("/{token}/firma-contratto")
-async def firma_contratto_proposta(token: str, request: Request):
+async def firma_contratto_proposta(token: str, request: Request, background_tasks: BackgroundTasks):
     """Salva firma contratto dalla pagina proposta."""
     proposta = await db.proposte.find_one({"token": token}, {"_id": 0})
     if not proposta:
@@ -255,11 +256,15 @@ async def firma_contratto_proposta(token: str, request: Request):
     cliente_email = proposta.get("prospect_email")
     cliente_nome = (proposta.get("prospect_nome") or "").split()[0] if proposta.get("prospect_nome") else ""
     if cliente_email:
-        asyncio.create_task(send_contratto_firmato_async(
+        # BackgroundTasks invece di asyncio.create_task: Cloud Run aspetta che
+        # la BG task completi prima di riciclare la worker. Senza, CancelledError
+        # (BaseException) cancella il send + insert audit (vedi memory 17/5).
+        background_tasks.add_task(
+            send_contratto_firmato_async,
             email=cliente_email,
             nome=cliente_nome,
             pdf_bytes=pdf_bytes_for_email,
-        ))
+        )
 
     await _notify_telegram(f"Contratto FIRMATO da {proposta.get('prospect_nome', '?')} (via proposta)")
 
@@ -401,54 +406,133 @@ async def _activate_partner_account_and_notify(
     prospect_nome: str,
 ) -> None:
     """
-    Auto-attivazione account partner Ciak post-pagamento:
-      1. Se utente non ha password (cliente che ha solo acquistato Blueprint
-         tramite checkout senza account loggato), ne genera una temporanea
-         e imposta must_change_password=true.
-      2. Invia email Ciak \"Benvenuto in Partnership\" con credenziali.
-      3. Fire-and-forget — non blocca la response del POST.
+    Auto-attivazione account partner Ciak post-pagamento.
 
-    Pattern coerente con la sessione 11/5 (default password +
-    must_change_password al primo login). Vedi memory/session_2026_05_11.
+    PATTERN MAGIC LINK (LOCK 17/5/2026):
+    Invece di generare una password e mandarla via SMTP (fragile su Cloud Run,
+    DNS register.it fallisce), generiamo un magic token con scadenza 7 giorni
+    e lo propaghiamo al partner via Systeme.io workflow.
+
+      1. Genera magic_token (uuid hex) + scadenza 7gg. Salva su users.
+      2. Costruisce setup_url = https://www.ciak.io/partner/setup-password?token=<uuid>
+      3. Scrive custom field Systeme `partner_setup_url` con quel URL
+      4. Applica tag Systeme `partner_setup_pending` → workflow Systeme manda
+         l'email con il link cliccabile (interpolazione {{contact.partner_setup_url}})
+      5. Anche se Systeme è down, l'admin vede il magic link copiabile nel
+         dashboard Ciak (endpoint /admin/ciak/partner-setup-pending).
+
+    Sicurezza:
+      - Token usato monouso (consumed_at)
+      - Scadenza 7gg, dopo serve reset manuale admin
+      - Niente password in chiaro mai (no email, no DB)
+      - Bcrypt hash solo dopo che il partner ha scelto la sua password
+
+    Fire-and-forget — non blocca la response del POST.
     """
-    import bcrypt
     if not partner_id or not prospect_email:
         return
 
     cliente_nome = (prospect_nome or "").split()[0] if prospect_nome else ""
 
     user = await db.users.find_one({"id": partner_id}, {"_id": 0})
-    password_to_send: Optional[str] = None
+    if not user:
+        logger.warning("[PROPOSTA] _activate_partner: user %s non trovato", partner_id)
+        return
 
-    if user and not user.get("password_hash"):
-        # Utente senza password: genero credenziali temporanee.
-        plain = f"Ciak{secrets.token_urlsafe(6)[:8]}!"
-        hashed = bcrypt.hashpw(plain.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-        await db.users.update_one(
-            {"id": partner_id},
-            {"$set": {
-                "password_hash": hashed,
-                "must_change_password": True,
-                "password_auto_generated_at": datetime.now(timezone.utc).isoformat(),
-            }},
-        )
-        password_to_send = plain
-        logger.info("[PROPOSTA] Generata password partner per %s", prospect_email)
-    elif user and user.get("must_change_password"):
-        # Già forzato cambio password ma non ancora cambiata: invio reminder
-        # senza esporre la password (non l'abbiamo, è hashed).
-        password_to_send = None
+    # Se l'utente ha già password ATTIVA (non auto-generated e non in setup pending),
+    # non rigeneriamo il magic link — è un upgrade da cliente esistente che sa
+    # già come accedere.
+    has_real_password = (
+        user.get("password_hash")
+        and not user.get("partner_setup_token")
+        and not user.get("must_change_password")
+    )
 
-    # Email Ciak Benvenuto Partnership (con o senza credenziali)
-    asyncio.create_task(send_partnership_benvenuto_async(
+    if has_real_password:
+        logger.info("[PROPOSTA] Partner %s ha già password — skip magic link", prospect_email)
+        # Comunque applichiamo il tag così Systeme può mandare benvenuto generico
+        asyncio.create_task(ciak_emit_event(
+            email=prospect_email,
+            event_name="partner_attivo_existing_user",
+            first_name=cliente_nome,
+        ))
+        return
+
+    # Genera magic token (32 char hex), scadenza 7gg
+    setup_token = uuid.uuid4().hex
+    expires_at = (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
+    setup_url = f"https://www.ciak.io/partner/setup-password?token={setup_token}"
+
+    await db.users.update_one(
+        {"id": partner_id},
+        {"$set": {
+            "partner_setup_token": setup_token,
+            "partner_setup_expires_at": expires_at,
+            "partner_setup_created_at": datetime.now(timezone.utc).isoformat(),
+            "partner_setup_consumed_at": None,
+            # Rimuovi eventuali password legacy auto-generated (forziamo nuovo setup)
+            "password_hash": None,
+            "must_change_password": False,
+        },
+        "$unset": {"password_auto_generated_at": ""}},
+    )
+    logger.info(
+        "[PROPOSTA] Magic link partner setup creato per %s (token=%s..., expires=%s)",
+        prospect_email, setup_token[:8], expires_at,
+    )
+
+    # Scrive custom field Systeme + applica tag (entrambi async, non bloccanti)
+    asyncio.create_task(_propagate_partner_setup_to_systeme(
         email=prospect_email,
         nome=cliente_nome,
-        password=password_to_send,
+        setup_url=setup_url,
+        expires_at=expires_at,
     ))
 
 
+async def _propagate_partner_setup_to_systeme(
+    email: str,
+    nome: str,
+    setup_url: str,
+    expires_at: str,
+) -> None:
+    """Scrive custom field + applica tag Systeme per triggerare il workflow
+    email "Benvenuto Partnership Ciak — Imposta la tua password".
+
+    Step:
+      1. PATCH contact: custom field partner_setup_url = setup_url
+         (richiede che il custom field esista su Systeme dashboard)
+      2. Apply tag partner_setup_pending → workflow Systeme parte
+    """
+    # 1. Custom field (best-effort: se il field non esiste su Systeme, ignorato silenziosamente)
+    try:
+        await ciak_set_contact_fields(
+            email=email,
+            fields={"partner_setup_url": setup_url},
+            first_name=nome,
+        )
+    except Exception as e:
+        logger.warning("[PROPOSTA] Systeme custom field set failed for %s: %s", email, e)
+
+    # 2. Tag trigger workflow (anche se custom field fallisce, l'admin può
+    #    recuperare il link dal dashboard Ciak)
+    try:
+        await ciak_emit_event(
+            email=email,
+            event_name="partner_setup_pending",
+            extra_tags=["ciak_partner_attivo"],
+            first_name=nome,
+            metadata={
+                "setup_url": setup_url,
+                "expires_at": expires_at,
+            },
+        )
+    except Exception as e:
+        logger.warning("[PROPOSTA] Systeme tag emit failed for %s: %s", email, e)
+
+
 @router.post("/{token}/upload-documenti")
-async def upload_documenti(token: str, files: List[UploadFile] = File(...)):
+async def upload_documenti(token: str, background_tasks: BackgroundTasks, files: List[UploadFile] = File(...)):
     proposta = await db.proposte.find_one({"token": token}, {"_id": 0})
     if not proposta:
         raise HTTPException(404, "Proposta non trovata")
@@ -476,10 +560,11 @@ async def upload_documenti(token: str, files: List[UploadFile] = File(...)):
         cliente_email = proposta.get("prospect_email")
         cliente_nome = (proposta.get("prospect_nome") or "").split()[0] if proposta.get("prospect_nome") else ""
         if cliente_email:
-            asyncio.create_task(send_documenti_ricevuti_async(
+            background_tasks.add_task(
+                send_documenti_ricevuti_async,
                 email=cliente_email,
                 nome=cliente_nome,
-            ))
+            )
 
         return {"success": True, "urls": urls}
     except Exception as e:
