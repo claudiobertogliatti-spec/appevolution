@@ -129,7 +129,22 @@ def _get_client() -> anthropic.Anthropic:
     return anthropic.Anthropic(api_key=api_key)
 
 
-def generate_report(
+async def _resolve_system_prompt() -> str:
+    """
+    Prompt attivo dallo store admin (KB Matteo editor); fallback hardcoded
+    se nessuna versione attiva o store non disponibile.
+    """
+    try:
+        from services import ciak_matteo_prompt_store
+        content = await ciak_matteo_prompt_store.get_active_content()
+        if content:
+            return content
+    except Exception as e:
+        logger.warning("[MATTEO] prompt store unavailable, using hardcoded: %s", e)
+    return _SYSTEM_PROMPT
+
+
+async def generate_report(
     user_payload: dict,
     user_name: Optional[str] = None,
 ) -> dict:
@@ -152,6 +167,7 @@ def generate_report(
         MatteoServiceError: rate limit, API down, JSON malformato, output non valido.
     """
     client = _get_client()
+    system_prompt = await _resolve_system_prompt()
 
     # Aggiungi user_name al payload se fornito
     payload_for_matteo = dict(user_payload)
@@ -170,7 +186,7 @@ def generate_report(
             system=[
                 {
                     "type": "text",
-                    "text": _SYSTEM_PROMPT,
+                    "text": system_prompt,
                     "cache_control": {"type": "ephemeral"},
                 }
             ],
