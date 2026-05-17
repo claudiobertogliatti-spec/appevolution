@@ -76,13 +76,9 @@ export default function PartnerOperativo({ partnerId }) {
     <div className="min-h-screen bg-slate-50 font-[Poppins,system-ui,sans-serif] text-slate-900">
       <div className="max-w-5xl mx-auto px-4 py-6">
         <ProgressBar
+          macroPhases={state.macro_phases}
           steps={state.steps}
           currentStepId={stepToShow?.step_id}
-          onStepClick={(stepId) => {
-            const s = state.steps.find((x) => x.step_id === stepId);
-            if (s && s.status === "done") setViewingStepId(stepId);
-            if (stepId === current?.step_id) setViewingStepId(null);
-          }}
         />
 
         {!allDone && stepToShow && (
