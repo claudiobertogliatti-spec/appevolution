@@ -88,3 +88,30 @@ class TestOperativoComplete:
             json={"data": {}},
         )
         assert r.status_code == 404
+
+
+class TestOperativoSaveDraft:
+    """Test POST /api/partner-journey/operativo/save-draft/{partner_id}/{step_id}"""
+
+    def test_save_draft_merges_data_without_advancing(self):
+        """Save draft accumula data ma NON cambia status (resta in_progress)."""
+        fresh_pid = f"test-{uuid.uuid4().hex[:8]}"
+        requests.get(f"{BASE_URL}/api/partner-journey/operativo/state/{fresh_pid}")
+
+        # Salva 2 bozze parziali
+        r1 = requests.post(
+            f"{BASE_URL}/api/partner-journey/operativo/save-draft/{fresh_pid}/01-contratto",
+            json={"data": {"contract_url": "https://test.com/c.pdf"}},
+        )
+        assert r1.status_code == 200, r1.text
+        requests.post(
+            f"{BASE_URL}/api/partner-journey/operativo/save-draft/{fresh_pid}/01-contratto",
+            json={"data": {"receipt_url": "https://test.com/r.pdf"}},
+        )
+
+        # Verifica merge + status non cambiato
+        state = requests.get(f"{BASE_URL}/api/partner-journey/operativo/state/{fresh_pid}").json()
+        step1 = next(s for s in state["steps"] if s["step_id"] == "01-contratto")
+        assert step1["status"] == "in_progress"
+        assert step1["data"]["contract_url"] == "https://test.com/c.pdf"
+        assert step1["data"]["receipt_url"] == "https://test.com/r.pdf"
