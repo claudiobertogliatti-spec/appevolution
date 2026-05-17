@@ -5661,3 +5661,23 @@ async def complete_operativo_step(partner_id: str, step_id: str, body: _Operativ
         "completed_step": step_id,
         "next_step": next_step,
     }
+
+
+@router.post("/operativo/save-draft/{partner_id}/{step_id}")
+async def save_draft_operativo_step(partner_id: str, step_id: str, body: _OperativoCompleteBody):
+    """Salva bozza dati step in_progress. Merge col data esistente.
+    NON cambia lo status (resta in_progress). Usato per autosave debounced dal frontend."""
+    now = datetime.utcnow()
+    current = await db.partner_journey_steps.find_one(
+        {"partner_id": partner_id, "step_id": step_id}
+    )
+    if not current:
+        raise HTTPException(404, f"Step {step_id} non trovato per partner {partner_id}")
+
+    merged_data = {**current.get("data", {}), **(body.data or {})}
+
+    await db.partner_journey_steps.update_one(
+        {"partner_id": partner_id, "step_id": step_id},
+        {"$set": {"data": merged_data, "updated_at": now}},
+    )
+    return {"success": True, "saved_keys": list((body.data or {}).keys())}
