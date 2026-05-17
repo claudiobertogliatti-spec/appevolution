@@ -28,6 +28,7 @@ import { GrowthSystemPage } from "./sections/GrowthSystemPage";
 import { AcceleraCrescitaPage } from "./sections/AcceleraCrescitaPage";
 import { StefaniaChat } from "./sections/StefaniaChat";
 import { STEPS, getStepFromPhase } from "./stepConfig";
+import PartnerOperativo from "./operativo/PartnerOperativo";
 
 const VIEW_PARTNER_KEY = "ciak_partner_view_id";
 
@@ -365,6 +366,11 @@ export default function CiakPartnerApp() {
             )
           }
         />
+
+        {/* Operativo Stefania — nuovo flow concierge (sub-progetto A).
+            Per ora accessibile a /partner/operativo come preview.
+            Diventerà la home default dopo migrazione + smoke. */}
+        <Route path="operativo" element={<PartnerOperativo partnerId={partnerId} />} />
 
         {/* Sezioni principali della sidebar */}
         <Route path="webinar" element={<WebinarPage partnerId={partnerId} />} />
