@@ -216,12 +216,15 @@ Ogni step è autonomo: tutta la logica di quel passaggio (upload, form, generazi
 5. Step 13 chiuso → al prossimo login il partner vede schermata celebrativa per 1 sessione, poi `OperativoContinuo.jsx` placeholder.
 6. Vecchia `PartnerDashboard.jsx` accessibile da menu hamburger come "Strumenti avanzati" — non più home default.
 
-## 10. Open question (da chiudere prima dell'implementazione)
+## 10. Decisioni locked (17/5/2026)
 
-1. **Skip / re-do step**: il partner può saltare uno step o tornare indietro per modificare? Proposta: può **modificare** step già done (es. cambiare logo) cliccando lo step nella progress bar, ma non saltare step non ancora aperti. Approvi?
-2. **Multi-device**: se il partner inizia upload su desktop e continua su mobile, l'autosave deve funzionare cross-device. Proposta: salvataggio cloud (Cloudinary per file, MongoDB per form data) ad ogni `onSaveDraft`. Implicito ma esplicito qui.
-3. **Inviti a partner esistenti già a metà journey**: i 26 partner attivi hanno già `partners.phase` valorizzata (F3/F4/F5). Al deploy: migrazione che seed `partner_journey_steps` mappando da `phase` → step più probabile. Proposta: per partner già lanciati (F5+) → seed con step 1-13 tutti done, atterra direttamente su `OperativoContinuo.jsx`. Per partner in F1-F4 → seed con step 1..N done, step N+1 in_progress. Approvi?
-4. **Stefania può negare avanzamento?** Es. partner ha caricato un PDF illeggibile invece del contratto firmato. Proposta v1: no validation automatica — Antonella in backoffice vede gli upload e può "riaprire" lo step se serve. Validation AI è feature futura.
+1. **Skip / re-do step**: il partner **può modificare** step già done cliccando lo step nella progress bar (es. cambiare logo). **Non può saltare** step non ancora aperti — il percorso resta lineare. Implementazione: ogni step done è cliccabile sulla progress bar, apre lo stesso componente con i `data` correnti pre-popolati. Save → resta nello stato done. Per ri-aprire un altro step interrotto, partner naviga manualmente avanti.
+2. **Multi-device autosave**: salvataggio cloud (Cloudinary per file, MongoDB per form data) ad ogni `onSaveDraft` debounced 1s. Il `data` blob nel record `partner_journey_steps` è la single source of truth per la bozza. Apertura su nuovo device → ripristina da quello senza prompt.
+3. **Migrazione 26 partner esistenti**: script one-shot al deploy che legge `partners.phase` per ogni partner attivo e seeda `partner_journey_steps`:
+   - Partner in F5+ (già lanciati): tutti 13 step seedati con `status: done`, `journey_current_step = "completato"`. Al login atterra su `OperativoContinuo.jsx`.
+   - Partner in F1-F4: step 1..N seedati `done`, step N+1 `in_progress`, resto `pending`. Mapping F→N: F1→2, F2→4, F3→6, F4→8 (conservativo, partner può sempre riaprire step già done se ha buchi).
+   - Script in `backend/scripts/seed_partner_journey_v1.py`, idempotente (re-run safe via check su esistenza record).
+4. **Stefania NON valida**: nessuna validation automatica in v1. Gli upload sono accettati così come sono. Antonella in admin backoffice vede gli output di ogni step e può "riaprire" uno step per richiesta correzione (endpoint admin `POST /api/admin/partner/{id}/journey/{step_id}/reopen` + notifica al partner via email + banner in-app). Validation AI è feature futura, fuori scope di A.
 
 ## 11. Sub-progetti dipendenti
 
