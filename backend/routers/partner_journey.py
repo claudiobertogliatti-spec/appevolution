@@ -5560,7 +5560,7 @@ async def confirm_video_upload(req: VideoUploadConfirmRequest, background_tasks:
 # Vedi spec: docs/superpowers/specs/2026-05-17-operativo-stefania-design.md
 # ════════════════════════════════════════════════════════════════════
 from services.journey_seed import seed_partner_journey
-from models.partner_journey_step import JOURNEY_STEPS_DEFINITION
+from models.partner_journey_step import JOURNEY_STEPS_DEFINITION, MACRO_PHASES_DEFINITION
 
 
 @router.get("/operativo/state/{partner_id}")
@@ -5579,21 +5579,48 @@ async def get_operativo_state(partner_id: str):
     ).sort("step_number", 1)
     steps = await steps_cursor.to_list(length=20)
 
-    # Arricchisci ogni step con la label da JOURNEY_STEPS_DEFINITION
-    label_by_step_id = {d["step_id"]: d["label"] for d in JOURNEY_STEPS_DEFINITION}
+    # Arricchisci ogni step con label + macro_phase da JOURNEY_STEPS_DEFINITION
+    enrichment = {d["step_id"]: {"label": d["label"], "macro_phase": d["macro_phase"]} for d in JOURNEY_STEPS_DEFINITION}
     for s in steps:
-        s["label"] = label_by_step_id.get(s["step_id"], s["step_id"])
+        meta = enrichment.get(s["step_id"], {})
+        s["label"] = meta.get("label", s["step_id"])
+        s["macro_phase"] = meta.get("macro_phase", "attivazione")
 
     current_step = next((s for s in steps if s["status"] == "in_progress"), None)
     if not current_step:
         # Tutti done -> partner ha completato il journey
         current_step = steps[-1] if steps else None
 
+    # Calcola progresso per macro-fase
+    macro_phases_status = []
+    for mp in MACRO_PHASES_DEFINITION:
+        mp_steps = [s for s in steps if s["step_id"] in mp["step_ids"]]
+        done_count = sum(1 for s in mp_steps if s["status"] == "done")
+        in_progress = any(s["status"] == "in_progress" for s in mp_steps)
+        total = len(mp_steps)
+        if done_count == total and total > 0:
+            mp_status = "done"
+        elif in_progress or done_count > 0:
+            mp_status = "in_progress"
+        else:
+            mp_status = "pending"
+        macro_phases_status.append({
+            "id": mp["id"],
+            "label": mp["label"],
+            "tagline": mp["tagline"],
+            "icon": mp["icon"],
+            "status": mp_status,
+            "step_ids": mp["step_ids"],
+            "completed_count": done_count,
+            "total_count": total,
+        })
+
     return {
         "success": True,
         "partner_id": partner_id,
         "steps": steps,
         "current_step": current_step,
+        "macro_phases": macro_phases_status,
         "total_steps": len(steps),
         "completed_count": sum(1 for s in steps if s["status"] == "done"),
     }

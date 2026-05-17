@@ -1,44 +1,76 @@
 import React from "react";
 
 /**
- * Progress bar Operativo Stefania.
- * 13 dot orizzontali. Done = blu profondo (cliccabile per riaprire),
- * Now = giallo con alone, Next = grigio chiaro.
+ * Progress bar Operativo a 5 macro-fasi (non più 13 dot piatti).
+ * Mostra: 5 segmenti orizzontali con icona + label + mini-progress per macro-fase.
+ * Più sotto: micro-progress dello step corrente nella macro-fase.
+ *
+ * Stati segmento:
+ * - done: blu profondo pieno
+ * - in_progress: giallo con alone
+ * - pending: grigio chiaro
  */
-export default function ProgressBar({ steps, currentStepId, onStepClick }) {
-  if (!steps || steps.length === 0) return null;
-  const currentStep = steps.find((s) => s.step_id === currentStepId);
+export default function ProgressBar({ macroPhases, currentStepId, steps }) {
+  if (!macroPhases || macroPhases.length === 0) return null;
+
+  const currentStep = steps?.find((s) => s.step_id === currentStepId);
+  const currentMacroId = currentStep?.macro_phase;
+  const currentMacro = macroPhases.find((mp) => mp.id === currentMacroId);
+
+  // Numero step della macro-fase corrente (es. step 4 = 2 of 2 in Fondamenta)
+  const stepIndexInMacro = currentMacro
+    ? currentMacro.step_ids.indexOf(currentStepId) + 1
+    : 0;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-md px-4 py-3 flex items-center gap-2">
-      {steps.map((s, idx) => {
-        const isDone = s.status === "done";
-        const isNow = s.step_id === currentStepId;
-        const isClickable = isDone;
-        let dotClass = "w-2.5 h-2.5 rounded-full bg-gray-200 flex-shrink-0";
-        if (isNow) dotClass = "w-3 h-3 rounded-full bg-yellow-400 flex-shrink-0";
-        else if (isDone) dotClass = "w-2.5 h-2.5 rounded-full bg-slate-900 flex-shrink-0";
+    <div className="bg-white border border-gray-200 rounded-md p-4">
+      <div className="flex items-stretch gap-2">
+        {macroPhases.map((mp) => {
+          const isCurrent = mp.id === currentMacroId;
+          const isDone = mp.status === "done";
+          const isPending = mp.status === "pending";
 
-        return (
-          <React.Fragment key={s.step_id}>
-            <button
-              type="button"
-              disabled={!isClickable}
-              onClick={() => isClickable && onStepClick && onStepClick(s.step_id)}
-              className={`flex items-center ${isClickable ? "cursor-pointer hover:opacity-70" : "cursor-default"} ${isNow ? "shadow-[0_0_0_4px_rgba(250,204,21,0.25)] rounded-full" : ""}`}
-              title={`${s.step_number}. ${s.label} — ${s.status}`}
+          let segBg = "bg-gray-100 text-slate-400";
+          let segBorder = "border-transparent";
+          if (isDone) {
+            segBg = "bg-slate-900 text-white";
+          } else if (isCurrent) {
+            segBg = "bg-yellow-400 text-slate-900";
+            segBorder = "border-yellow-300";
+          }
+
+          return (
+            <div
+              key={mp.id}
+              className={`flex-1 rounded-md px-3 py-2 border-2 ${segBg} ${segBorder} transition`}
+              title={`${mp.label} — ${mp.completed_count}/${mp.total_count}`}
             >
-              <span className={dotClass}></span>
-            </button>
-            {idx < steps.length - 1 && (
-              <span className="flex-1 h-0.5 bg-gray-200 min-w-[6px]"></span>
-            )}
-          </React.Fragment>
-        );
-      })}
-      <span className="ml-auto text-xs text-slate-500 font-medium whitespace-nowrap">
-        Step {currentStep ? currentStep.step_number : "—"}/{steps.length}
-      </span>
+              <div className="flex items-center gap-2">
+                <span className="text-base">{mp.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <div className={`text-xs font-semibold truncate ${isPending ? "text-slate-400" : ""}`}>
+                    {mp.label}
+                  </div>
+                  <div className={`text-[10px] font-medium ${isCurrent ? "text-slate-900/70" : isDone ? "text-white/70" : "text-slate-400"}`}>
+                    {mp.completed_count}/{mp.total_count}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {currentMacro && currentStep && (
+        <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2 text-xs">
+          <span className="text-slate-500 font-medium">
+            {currentMacro.label}: passo {stepIndexInMacro} di {currentMacro.total_count}
+          </span>
+          <span className="text-slate-300">·</span>
+          <span className="text-slate-900 font-semibold">{currentStep.label}</span>
+          <span className="text-slate-400 italic ml-auto">{currentMacro.tagline}</span>
+        </div>
+      )}
     </div>
   );
 }
