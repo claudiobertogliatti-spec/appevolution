@@ -231,6 +231,7 @@ class ChatMessage(BaseModel):
     partner_phase: Optional[str] = None
     partner_niche: Optional[str] = None
     context: Optional[Dict[str, Any]] = None
+    target_agent: Optional[str] = None  # STEFANIA / ANDREA / MARCO / GAIA / VALENTINA — swap del system prompt
 
 class EscalationRequest(BaseModel):
     partner_id: str
@@ -269,7 +270,22 @@ async def stefania_chat(data: ChatMessage):
         if extra.get("script_context"):
             context_str += f"\nContenuto script attuale: {extra['script_context'][:500]}"
 
-    system_prompt = STEFANIA_SYSTEM_PROMPT.replace("{context}", context_str)
+    # Selezione system prompt: se target_agent passato, usa quello (sub-progetto A
+    # AgentDrawer manda target_agent per step per cambiare voce/persona).
+    base_prompt = STEFANIA_SYSTEM_PROMPT
+    if data.target_agent and data.target_agent.upper() != "STEFANIA":
+        try:
+            from agent_prompts import get_agent_prompt
+            base_prompt = get_agent_prompt(data.target_agent)
+        except Exception as e:
+            logger.warning(f"[stefania_chat] target_agent={data.target_agent} non risolto: {e} — fallback STEFANIA")
+
+    # Sostituisci placeholder context. Alcuni prompt non hanno {context} —
+    # in quel caso appendiamo manualmente per non perdere lo stato journey.
+    if "{context}" in base_prompt:
+        system_prompt = base_prompt.replace("{context}", context_str)
+    else:
+        system_prompt = f"{base_prompt}\n\n---\n\nCONTESTO PARTNER ATTUALE:\n{context_str}"
 
     # Carica storico (ultimi 16 messaggi)
     history: List[Dict] = []
