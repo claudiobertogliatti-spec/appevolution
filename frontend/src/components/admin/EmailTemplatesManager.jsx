@@ -108,7 +108,7 @@ function SimpleRichEditor({ value, onChange, placeholder }) {
         <div className="w-px h-6 bg-gray-300 mx-1"></div>
         <button
           type="button"
-          onClick={() => wrapSelection('<h2 style="color: #1E2128; margin: 0;">', '</h2>')}
+          onClick={() => wrapSelection('<h2 style="color: #0F172A; margin: 0;">', '</h2>')}
           className="p-2 hover:bg-gray-200 rounded transition-all"
           title="Titolo"
         >

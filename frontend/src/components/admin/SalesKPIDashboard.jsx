@@ -60,7 +60,7 @@ export function SalesKPIDashboard() {
               💰
             </div>
             <div>
-              <h1 className="text-xl font-bold" style={{ color: '#1E2128' }}>
+              <h1 className="text-xl font-bold" style={{ color: '#0F172A' }}>
                 Sales KPI Dashboard
               </h1>
               <p className="text-sm" style={{ color: '#9CA3AF' }}>
@@ -73,7 +73,7 @@ export function SalesKPIDashboard() {
             onClick={loadData}
             disabled={isRefreshing}
             className="px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-all hover:opacity-90 disabled:opacity-50"
-            style={{ background: '#1E2128', color: 'white' }}
+            style={{ background: '#0F172A', color: 'white' }}
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             Aggiorna
@@ -143,7 +143,7 @@ export function SalesKPIDashboard() {
       <div className="grid grid-cols-2 gap-6">
         {/* Product Breakdown */}
         <div className="bg-white rounded-2xl p-6 shadow-sm">
-          <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
+          <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#0F172A' }}>
             <ShoppingCart className="w-5 h-5" style={{ color: '#F59E0B' }} />
             Breakdown Prodotti
           </h2>
@@ -154,7 +154,7 @@ export function SalesKPIDashboard() {
                 <div key={idx} className="flex items-center justify-between p-3 rounded-xl"
                      style={{ background: '#FAFAF7' }}>
                   <div>
-                    <div className="font-bold text-sm" style={{ color: '#1E2128' }}>
+                    <div className="font-bold text-sm" style={{ color: '#0F172A' }}>
                       {product.product}
                     </div>
                     <div className="text-xs" style={{ color: '#9CA3AF' }}>
@@ -179,7 +179,7 @@ export function SalesKPIDashboard() {
 
         {/* Recent Sales */}
         <div className="bg-white rounded-2xl p-6 shadow-sm">
-          <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
+          <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#0F172A' }}>
             <Zap className="w-5 h-5" style={{ color: '#F59E0B' }} />
             Vendite Recenti
           </h2>
@@ -190,7 +190,7 @@ export function SalesKPIDashboard() {
                 <div key={idx} className="flex items-center justify-between p-3 rounded-xl"
                      style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
                   <div className="flex-1 min-w-0">
-                    <div className="font-bold text-sm truncate" style={{ color: '#1E2128' }}>
+                    <div className="font-bold text-sm truncate" style={{ color: '#0F172A' }}>
                       {sale.partner_email}
                     </div>
                     <div className="text-xs truncate" style={{ color: '#9CA3AF' }}>
@@ -278,7 +278,7 @@ function PeriodCard({ title, orders, revenue, icon }) {
       
       <div className="flex items-end justify-between">
         <div>
-          <div className="text-3xl font-black" style={{ color: '#1E2128' }}>
+          <div className="text-3xl font-black" style={{ color: '#0F172A' }}>
             {orders}
           </div>
           <div className="text-xs" style={{ color: '#9CA3AF' }}>ordini</div>

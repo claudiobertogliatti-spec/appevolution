@@ -16,7 +16,7 @@ const C = {
   red: "#EF476F",
   orange: "#E8652B",
   teal: "#2D9F6F",
-  text: "#1E2128",
+  text: "#0F172A",
   textMuted: "#5F6572",
   textDim: "#9CA3AF",
 };

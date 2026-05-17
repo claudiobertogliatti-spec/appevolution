@@ -112,7 +112,7 @@ function LessonRow({ lessonId, modulo, lezione, lessonState, partnerId, isAdmin,
           {number}
         </span>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold mb-1" style={{ color: "#1E2128" }}>{lezione.titolo}</div>
+          <div className="text-sm font-bold mb-1" style={{ color: "#0F172A" }}>{lezione.titolo}</div>
           <div className="flex flex-wrap items-center gap-2">
             <StatusPill status={status} />
             {lessonState?.video_final_duration_s && (
@@ -142,13 +142,13 @@ function LessonRow({ lessonId, modulo, lezione, lessonState, partnerId, isAdmin,
               onChange={(e) => setDriveUrl(e.target.value)}
               placeholder="Incolla link Google Drive del video grezzo…"
               className="flex-1 px-3 py-2 rounded-lg text-sm outline-none"
-              style={{ background: "#FAFAF7", border: "1px solid #E5E7EB", color: "#1E2128" }}
+              style={{ background: "#FAFAF7", border: "1px solid #E5E7EB", color: "#0F172A" }}
             />
             <button
               onClick={submitDrive}
               disabled={!driveUrl.trim() || submitting}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-50 transition-all hover:opacity-90"
-              style={{ background: "#1E2128", color: "#FFD24D" }}
+              style={{ background: "#0F172A", color: "#FFD24D" }}
             >
               {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
               Invia
@@ -279,11 +279,11 @@ function ModuleCard({ modulo, idx, isExpanded, onToggle, lessonsStatus, partnerI
       <button onClick={onToggle}
         className="w-full flex items-center gap-3 p-5 text-left hover:bg-gray-50 transition-all">
         <span className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black flex-shrink-0"
-          style={{ background: allComplete ? "#22C55E" : "#FFD24D", color: allComplete ? "white" : "#1E2128" }}>
+          style={{ background: allComplete ? "#22C55E" : "#FFD24D", color: allComplete ? "white" : "#0F172A" }}>
           {allComplete ? <Check className="w-4 h-4" /> : (modulo.numero || idx + 1)}
         </span>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold" style={{ color: "#1E2128" }}>{modulo.titolo}</div>
+          <div className="text-sm font-bold" style={{ color: "#0F172A" }}>{modulo.titolo}</div>
           {modulo.obiettivo && (
             <div className="text-xs mt-0.5" style={{ color: "#5F6572" }}>{modulo.obiettivo}</div>
           )}
@@ -393,7 +393,7 @@ export function VideocorsoPage({ partner, onNavigate, onComplete, isAdmin }) {
       <div className="max-w-2xl mx-auto p-6">
         {/* HERO */}
         <div className="mb-6" data-testid="videocorso-hero">
-          <h1 className="text-3xl font-black mb-3" style={{ color: "#1E2128" }}>
+          <h1 className="text-3xl font-black mb-3" style={{ color: "#0F172A" }}>
             Il tuo Videocorso
           </h1>
           <p className="text-base leading-relaxed" style={{ color: "#5F6572" }}>
@@ -404,7 +404,7 @@ export function VideocorsoPage({ partner, onNavigate, onComplete, isAdmin }) {
 
         {/* PROGRESS HEADER */}
         {courseData && (
-          <div className="rounded-2xl p-5 mb-5" style={{ background: "#1E2128" }}>
+          <div className="rounded-2xl p-5 mb-5" style={{ background: "#0F172A" }}>
             <div className="flex items-center justify-between mb-3">
               <div>
                 <div className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: "#FFD24D" }}>
@@ -500,7 +500,7 @@ export function VideocorsoPage({ partner, onNavigate, onComplete, isAdmin }) {
               <button
                 onClick={() => onNavigate("funnel")}
                 className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm transition-all hover:opacity-90 mt-3"
-                style={{ background: "#1E2128", color: "#FFD24D" }}
+                style={{ background: "#0F172A", color: "#FFD24D" }}
               >
                 Vai al Funnel <ArrowRight className="w-4 h-4" />
               </button>

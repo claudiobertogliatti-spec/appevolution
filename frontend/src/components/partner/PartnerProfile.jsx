@@ -79,11 +79,11 @@ export function PartnerProfile({ partner, onUpdate }) {
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-lg"
-               style={{ background: "#FFD24D", color: "#1E2128" }}>
+               style={{ background: "#FFD24D", color: "#0F172A" }}>
             {partnerName[0]?.toUpperCase()}
           </div>
           <div>
-            <h1 className="text-2xl font-black" style={{ color: "#1E2128" }}>Il Mio Profilo</h1>
+            <h1 className="text-2xl font-black" style={{ color: "#0F172A" }}>Il Mio Profilo</h1>
             <p className="text-sm" style={{ color: "#9CA3AF" }}>Gestisci le tue informazioni personali</p>
           </div>
         </div>
@@ -110,7 +110,7 @@ export function PartnerProfile({ partner, onUpdate }) {
             <div className="flex items-center gap-3">
               <Calendar className={`w-5 h-5 ${daysRemaining && daysRemaining < 30 ? 'text-orange-600' : 'text-green-600'}`} />
               <div>
-                <p className="font-medium" style={{ color: "#1E2128" }}>Scadenza Contratto</p>
+                <p className="font-medium" style={{ color: "#0F172A" }}>Scadenza Contratto</p>
                 <p className="text-sm text-gray-500">
                   {new Date(contractEnd).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </p>
@@ -132,16 +132,16 @@ export function PartnerProfile({ partner, onUpdate }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-6" style={{ borderBottom: "1px solid #ECEDEF" }}>
             <div>
               <label className="block text-sm font-medium text-gray-500 mb-1">Nome</label>
-              <p className="font-bold text-lg" style={{ color: "#1E2128" }}>{partnerName}</p>
+              <p className="font-bold text-lg" style={{ color: "#0F172A" }}>{partnerName}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-500 mb-1">Email</label>
-              <p className="font-medium" style={{ color: "#1E2128" }}>{partner?.email || "-"}</p>
+              <p className="font-medium" style={{ color: "#0F172A" }}>{partner?.email || "-"}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-500 mb-1">Fase Attuale</label>
               <span className="inline-block px-3 py-1 rounded-full text-sm font-bold" 
-                    style={{ background: "#FFD24D", color: "#1E2128" }}>
+                    style={{ background: "#FFD24D", color: "#0F172A" }}>
                 {partner?.phase || partner?.fase || "F1"}
               </span>
             </div>
@@ -149,7 +149,7 @@ export function PartnerProfile({ partner, onUpdate }) {
           
           {/* Nicchia */}
           <div>
-            <label className="block text-sm font-medium mb-2 flex items-center gap-2" style={{ color: "#1E2128" }}>
+            <label className="block text-sm font-medium mb-2 flex items-center gap-2" style={{ color: "#0F172A" }}>
               <Tag className="w-4 h-4" />
               La Mia Nicchia
             </label>
@@ -165,7 +165,7 @@ export function PartnerProfile({ partner, onUpdate }) {
           
           {/* Bio */}
           <div>
-            <label className="block text-sm font-medium mb-2 flex items-center gap-2" style={{ color: "#1E2128" }}>
+            <label className="block text-sm font-medium mb-2 flex items-center gap-2" style={{ color: "#0F172A" }}>
               <Edit3 className="w-4 h-4" />
               La Mia Bio
             </label>
@@ -181,7 +181,7 @@ export function PartnerProfile({ partner, onUpdate }) {
           
           {/* Social Links */}
           <div>
-            <label className="block text-sm font-medium mb-3" style={{ color: "#1E2128" }}>
+            <label className="block text-sm font-medium mb-3" style={{ color: "#0F172A" }}>
               I Miei Social
             </label>
             <div className="space-y-3">
@@ -230,7 +230,7 @@ export function PartnerProfile({ partner, onUpdate }) {
               onClick={handleSave}
               disabled={saving}
               className="w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all hover:opacity-90"
-              style={{ background: "#FFD24D", color: "#1E2128" }}
+              style={{ background: "#FFD24D", color: "#0F172A" }}
               data-testid="save-profile-btn"
             >
               {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}

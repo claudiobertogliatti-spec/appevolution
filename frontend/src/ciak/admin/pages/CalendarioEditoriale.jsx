@@ -97,7 +97,7 @@ export function CalendarioEditoriale({ partner }) {
                 W{week.week}
               </div>
               <div className="flex-1">
-                <div className="text-sm font-extrabold text-[#1E2128]">{week.title}</div>
+                <div className="text-sm font-extrabold text-[#0F172A]">{week.title}</div>
                 <div className="text-xs text-[#9CA3AF] mt-0.5">{week.content.length} contenuti pianificati</div>
               </div>
               <div className="flex gap-2">

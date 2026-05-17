@@ -242,10 +242,10 @@ export function AttivazionePartnership({ user, onLogout }) {
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#FFD24D' }}>
-              <span className="text-lg font-black" style={{ color: '#1E2128' }}>E</span>
+              <span className="text-lg font-black" style={{ color: '#0F172A' }}>E</span>
             </div>
             <div>
-              <span className="font-black text-lg" style={{ color: '#1E2128' }}>
+              <span className="font-black text-lg" style={{ color: '#0F172A' }}>
                 EVOLUTION <span style={{ color: '#FFD24D' }}>PRO</span>
               </span>
             </div>
@@ -265,7 +265,7 @@ export function AttivazionePartnership({ user, onLogout }) {
         
         {/* Titolo */}
         <div className="text-center mb-10">
-          <h1 className="text-3xl font-black mb-4" style={{ color: '#1E2128' }}>
+          <h1 className="text-3xl font-black mb-4" style={{ color: '#0F172A' }}>
             Attivazione del tuo progetto
           </h1>
           <p className="text-lg max-w-2xl mx-auto" style={{ color: '#5F6572' }}>
@@ -297,7 +297,7 @@ export function AttivazionePartnership({ user, onLogout }) {
                 )}
                 <span 
                   className={`font-medium ${step.completed ? '' : currentStep === step.id ? '' : 'opacity-50'}`}
-                  style={{ color: step.completed ? '#166534' : '#1E2128' }}
+                  style={{ color: step.completed ? '#166534' : '#0F172A' }}
                 >
                   {step.label}
                 </span>
@@ -329,7 +329,7 @@ export function AttivazionePartnership({ user, onLogout }) {
               )}
             </div>
             <div className="flex-1">
-              <h3 className="font-bold mb-1" style={{ color: '#1E2128' }}>
+              <h3 className="font-bold mb-1" style={{ color: '#0F172A' }}>
                 Step 1: La tua Analisi Strategica
               </h3>
               <p className="text-sm mb-4" style={{ color: '#5F6572' }}>
@@ -340,7 +340,7 @@ export function AttivazionePartnership({ user, onLogout }) {
                   onClick={handleVisualizzaAnalisi}
                   disabled={loading}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all hover:opacity-90 disabled:opacity-50"
-                  style={{ background: '#FFD24D', color: '#1E2128' }}
+                  style={{ background: '#FFD24D', color: '#0F172A' }}
                 >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
                   Visualizza Analisi
@@ -381,7 +381,7 @@ export function AttivazionePartnership({ user, onLogout }) {
               )}
             </div>
             <div className="flex-1">
-              <h3 className="font-bold mb-1" style={{ color: '#1E2128' }}>
+              <h3 className="font-bold mb-1" style={{ color: '#0F172A' }}>
                 Step 2: Sintesi della Partnership
               </h3>
               <p className="text-sm mb-4" style={{ color: '#5F6572' }}>
@@ -425,7 +425,7 @@ export function AttivazionePartnership({ user, onLogout }) {
                   onClick={handleConfermaPartnership}
                   disabled={loading}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all hover:opacity-90 disabled:opacity-50"
-                  style={{ background: '#FFD24D', color: '#1E2128' }}
+                  style={{ background: '#FFD24D', color: '#0F172A' }}
                 >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                   Confermo di aver letto e compreso
@@ -455,7 +455,7 @@ export function AttivazionePartnership({ user, onLogout }) {
               )}
             </div>
             <div className="flex-1">
-              <h3 className="font-bold mb-1" style={{ color: '#1E2128' }}>
+              <h3 className="font-bold mb-1" style={{ color: '#0F172A' }}>
                 Step 3: Firma contratto
               </h3>
               <p className="text-sm mb-4" style={{ color: '#5F6572' }}>
@@ -525,7 +525,7 @@ export function AttivazionePartnership({ user, onLogout }) {
               )}
             </div>
             <div className="flex-1">
-              <h3 className="font-bold mb-1" style={{ color: '#1E2128' }}>
+              <h3 className="font-bold mb-1" style={{ color: '#0F172A' }}>
                 Step 4: Documenti personali
               </h3>
               <p className="text-sm mb-4" style={{ color: '#5F6572' }}>
@@ -616,7 +616,7 @@ export function AttivazionePartnership({ user, onLogout }) {
               )}
             </div>
             <div className="flex-1">
-              <h3 className="font-bold mb-1" style={{ color: '#1E2128' }}>
+              <h3 className="font-bold mb-1" style={{ color: '#0F172A' }}>
                 Step 5: Pagamento attivazione
               </h3>
               <p className="text-sm mb-4" style={{ color: '#5F6572' }}>
@@ -638,7 +638,7 @@ export function AttivazionePartnership({ user, onLogout }) {
                     <div className="flex items-center gap-3">
                       <CreditCard className="w-5 h-5" style={{ color: '#6366F1' }} />
                       <div>
-                        <div className="font-medium" style={{ color: '#1E2128' }}>Pagamento Stripe</div>
+                        <div className="font-medium" style={{ color: '#0F172A' }}>Pagamento Stripe</div>
                         <div className="text-xs" style={{ color: '#5F6572' }}>Carta di credito/debito - Attivazione immediata</div>
                       </div>
                     </div>
@@ -657,7 +657,7 @@ export function AttivazionePartnership({ user, onLogout }) {
                     <div className="flex items-center gap-3">
                       <Building className="w-5 h-5" style={{ color: '#059669' }} />
                       <div>
-                        <div className="font-medium" style={{ color: '#1E2128' }}>Pagamento Bonifico</div>
+                        <div className="font-medium" style={{ color: '#0F172A' }}>Pagamento Bonifico</div>
                         <div className="text-xs" style={{ color: '#5F6572' }}>Bonifico bancario - Attivazione in 24-48h</div>
                       </div>
                     </div>
@@ -750,7 +750,7 @@ export function AttivazionePartnership({ user, onLogout }) {
       {showAnalisiModal && (
         <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-8 overflow-y-auto" style={{ background: 'rgba(0,0,0,0.6)' }}>
           <div className="relative w-full max-w-3xl rounded-2xl mb-8" style={{ background: '#FFFFFF' }}>
-            <div className="sticky top-0 z-10 flex items-center justify-between p-6 rounded-t-2xl" style={{ background: '#1E2128' }}>
+            <div className="sticky top-0 z-10 flex items-center justify-between p-6 rounded-t-2xl" style={{ background: '#0F172A' }}>
               <h2 className="text-xl font-bold" style={{ color: '#FFFFFF' }}>
                 La tua Analisi Strategica
               </h2>
@@ -764,7 +764,7 @@ export function AttivazionePartnership({ user, onLogout }) {
             <div className="p-6">
               <div 
                 className="prose prose-sm max-w-none whitespace-pre-wrap font-mono text-sm p-4 rounded-xl"
-                style={{ background: '#FAFAF7', color: '#1E2128' }}
+                style={{ background: '#FAFAF7', color: '#0F172A' }}
               >
                 {analisiTesto || 'Caricamento analisi...'}
               </div>

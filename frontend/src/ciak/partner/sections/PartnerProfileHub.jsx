@@ -38,7 +38,7 @@ export function PartnerProfileHub({ partner }) {
     logo: partner?.brandKit?.logo || null,
     primaryColor: partner?.brandKit?.primaryColor || "#2C5F8A",
     accentColor: partner?.brandKit?.accentColor || "#FFD24D",
-    textColor: partner?.brandKit?.textColor || "#1E2128",
+    textColor: partner?.brandKit?.textColor || "#0F172A",
     bgColor: partner?.brandKit?.bgColor || "#FAFAF7",
     fontPrimary: partner?.brandKit?.fontPrimary || "Nunito Bold",
     fontSecondary: partner?.brandKit?.fontSecondary || "Nunito Regular",

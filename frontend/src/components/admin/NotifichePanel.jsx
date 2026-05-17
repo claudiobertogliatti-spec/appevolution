@@ -159,7 +159,7 @@ export function NotifichePanel({ partnerId, partnerNome }) {
           <Bell className="w-5 h-5" style={{ color: "#FFD24D" }} />
         </div>
         <div className="flex-1">
-          <h3 className="text-sm font-black" style={{ color: "#1E2128" }}>
+          <h3 className="text-sm font-black" style={{ color: "#0F172A" }}>
             Notifiche Partner
           </h3>
           <p className="text-xs" style={{ color: "#9CA3AF" }}>
@@ -204,7 +204,7 @@ export function NotifichePanel({ partnerId, partnerNome }) {
             <select value={stepId} onChange={(e) => setStepId(e.target.value)}
               data-testid="notifica-step-select"
               className="w-full p-2.5 rounded-xl text-sm font-bold"
-              style={{ background: "#FAFAF7", border: "1px solid #ECEDEF", color: "#1E2128" }}>
+              style={{ background: "#FAFAF7", border: "1px solid #ECEDEF", color: "#0F172A" }}>
               {STEP_OPTIONS.map(s => (
                 <option key={s.id} value={s.id}>{s.label}</option>
               ))}
@@ -225,7 +225,7 @@ export function NotifichePanel({ partnerId, partnerNome }) {
               placeholder={tipo === "azione_richiesta" ? "Es: rispondere al questionario" : "Es: Il tuo funnel e online!"}
               data-testid="notifica-messaggio-input"
               className="w-full p-2.5 rounded-xl text-sm"
-              style={{ background: "#FAFAF7", border: "1px solid #ECEDEF", color: "#1E2128" }}
+              style={{ background: "#FAFAF7", border: "1px solid #ECEDEF", color: "#0F172A" }}
             />
           </div>
         )}
@@ -235,7 +235,7 @@ export function NotifichePanel({ partnerId, partnerNome }) {
           <div className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: "#0369A1" }}>
             Anteprima messaggio
           </div>
-          <p className="text-xs" style={{ color: "#1E2128" }}>
+          <p className="text-xs" style={{ color: "#0F172A" }}>
             {tipo === "step_pronto" && (
               <>Il tuo <strong>{STEP_OPTIONS.find(s => s.id === stepId)?.label}</strong> e pronto. Accedi alla dashboard per rivederlo e approvarlo.</>
             )}

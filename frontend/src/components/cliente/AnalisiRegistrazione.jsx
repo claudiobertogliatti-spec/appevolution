@@ -56,7 +56,7 @@ export function AnalisiRegistrazione({ onComplete, onBack }) {
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: '#FEF9E7', border: '1px solid #FFD24D' }}>
             <User className="w-8 h-8 text-[#FFD24D]" />
           </div>
-          <h1 className="text-2xl font-bold text-[#1E2128] mb-2">Crea il tuo Account</h1>
+          <h1 className="text-2xl font-bold text-[#0F172A] mb-2">Crea il tuo Account</h1>
           <p className="text-sm text-[#9CA3AF]">Per procedere con l'Analisi Strategica</p>
         </div>
 
@@ -64,13 +64,13 @@ export function AnalisiRegistrazione({ onComplete, onBack }) {
         <form onSubmit={handleSubmit} className="space-y-4 p-6 rounded-2xl" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[#1E2128] mb-1">Nome</label>
+              <label className="block text-sm font-medium text-[#0F172A] mb-1">Nome</label>
               <input type="text" name="nome" value={formData.nome} onChange={handleChange} placeholder="Mario"
                 className="w-full p-3 rounded-xl text-sm focus:outline-none" 
                 style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }} data-testid="input-nome" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#1E2128] mb-1">Cognome</label>
+              <label className="block text-sm font-medium text-[#0F172A] mb-1">Cognome</label>
               <input type="text" name="cognome" value={formData.cognome} onChange={handleChange} placeholder="Rossi"
                 className="w-full p-3 rounded-xl text-sm focus:outline-none" 
                 style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }} data-testid="input-cognome" />
@@ -78,7 +78,7 @@ export function AnalisiRegistrazione({ onComplete, onBack }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#1E2128] mb-1">Email</label>
+            <label className="block text-sm font-medium text-[#0F172A] mb-1">Email</label>
             <div className="relative">
               <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="mario@email.com"
                 className="w-full p-3 pl-11 rounded-xl text-sm focus:outline-none" 
@@ -88,14 +88,14 @@ export function AnalisiRegistrazione({ onComplete, onBack }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#1E2128] mb-1">Telefono</label>
+            <label className="block text-sm font-medium text-[#0F172A] mb-1">Telefono</label>
             <input type="tel" name="telefono" value={formData.telefono} onChange={handleChange} placeholder="+39 333 1234567"
               className="w-full p-3 rounded-xl text-sm focus:outline-none" 
               style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }} data-testid="input-telefono" />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#1E2128] mb-1">Password</label>
+            <label className="block text-sm font-medium text-[#0F172A] mb-1">Password</label>
             <div className="relative">
               <input type={showPassword ? "text" : "password"} name="password" value={formData.password} onChange={handleChange} placeholder="Minimo 6 caratteri"
                 className="w-full p-3 pl-11 pr-11 rounded-xl text-sm focus:outline-none" 
@@ -108,7 +108,7 @@ export function AnalisiRegistrazione({ onComplete, onBack }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#1E2128] mb-1">Conferma Password</label>
+            <label className="block text-sm font-medium text-[#0F172A] mb-1">Conferma Password</label>
             <div className="relative">
               <input type={showPassword ? "text" : "password"} name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="Ripeti la password"
                 className="w-full p-3 pl-11 rounded-xl text-sm focus:outline-none" 

@@ -1006,15 +1006,15 @@ async def send_analisi_email(to_email: str, nome: str, cognome: str, docx_url: s
     
     html_content = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #FAFAF7; padding: 20px;">
-        <div style="background: #1E2128; padding: 20px; border-radius: 12px 12px 0 0; text-align: center;">
+        <div style="background: #0F172A; padding: 20px; border-radius: 12px 12px 0 0; text-align: center;">
             <h1 style="color: #F5C518; margin: 0; font-size: 24px;">Evolution<span style="color: white;">PRO</span></h1>
         </div>
         
         <div style="background: white; padding: 30px; border-radius: 0 0 12px 12px; border: 1px solid #ECEDEF;">
-            <h2 style="color: #1E2128; margin-bottom: 10px;">Ciao {nome}! 👋</h2>
+            <h2 style="color: #0F172A; margin-bottom: 10px;">Ciao {nome}! 👋</h2>
             
             <p style="color: #5F6572; line-height: 1.6;">
-                La tua <strong style="color: #1E2128;">Analisi Strategica Personalizzata</strong> è stata completata e revisionata dal nostro team.
+                La tua <strong style="color: #0F172A;">Analisi Strategica Personalizzata</strong> è stata completata e revisionata dal nostro team.
             </p>
             
             <p style="color: #5F6572; line-height: 1.6;">
@@ -1023,19 +1023,19 @@ async def send_analisi_email(to_email: str, nome: str, cognome: str, docx_url: s
             </p>
             
             <div style="background: #FEF9E7; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #F5C518;">
-                <h3 style="color: #1E2128; margin: 0 0 10px 0;">📄 Scarica la tua Analisi</h3>
-                <a href="{full_docx_url}" style="display: inline-block; background: #F5C518; color: #1E2128; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+                <h3 style="color: #0F172A; margin: 0 0 10px 0;">📄 Scarica la tua Analisi</h3>
+                <a href="{full_docx_url}" style="display: inline-block; background: #F5C518; color: #0F172A; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
                     Scarica DOCX
                 </a>
             </div>
             
             <p style="color: #5F6572; line-height: 1.6;">
-                <strong style="color: #1E2128;">Il prossimo passo:</strong> fissare una videocall strategica di 60 minuti con Claudio 
+                <strong style="color: #0F172A;">Il prossimo passo:</strong> fissare una videocall strategica di 60 minuti con Claudio 
                 per commentare insieme l'analisi e valutare se avviare la partnership.
             </p>
             
             <div style="background: #8B5CF620; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #8B5CF6;">
-                <h3 style="color: #1E2128; margin: 0 0 10px 0;">📅 Prenota la tua Call</h3>
+                <h3 style="color: #0F172A; margin: 0 0 10px 0;">📅 Prenota la tua Call</h3>
                 <a href="{calendar_link}" style="display: inline-block; background: #8B5CF6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
                     Aggiungi al Calendario
                 </a>

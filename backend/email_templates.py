@@ -18,7 +18,7 @@ DEFAULT_TEMPLATES = {
 <html>
 <body style="font-family: Arial, sans-serif; line-height: 1.8; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
     <div style="background: linear-gradient(135deg, #F2C418 0%, #FADA5E 100%); padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
-        <h1 style="color: #1E2128; margin: 0; font-size: 24px;">Benvenuto in Evolution PRO!</h1>
+        <h1 style="color: #0F172A; margin: 0; font-size: 24px;">Benvenuto in Evolution PRO!</h1>
     </div>
     
     <div style="padding: 30px; background: #fff; border: 1px solid #eee; border-top: none;">
@@ -27,20 +27,20 @@ DEFAULT_TEMPLATES = {
         <p>Hai ora accesso a <strong>due strumenti</strong> che lavorano insieme per costruire la tua Accademia Digitale:</p>
         
         <div style="background: #FAFAF7; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #F2C418;">
-            <h3 style="color: #1E2128; margin-top: 0;">📱 App Evolution PRO</h3>
+            <h3 style="color: #0F172A; margin-top: 0;">📱 App Evolution PRO</h3>
             <p style="margin-bottom: 0;">È il tuo <strong>pannello di controllo</strong>. Qui trovi il tuo percorso, i materiali, il supporto del team e monitori i tuoi progressi.</p>
             <p style="margin-top: 10px; margin-bottom: 0;"><strong>Accedi con:</strong> {{email}} e la password che hai scelto</p>
             <p style="margin-top: 10px;"><a href="https://app.evolution-pro.it" style="color: #F2C418; font-weight: bold;">→ Accedi all'App</a></p>
         </div>
         
         <div style="background: #FFF8E7; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #FF9800;">
-            <h3 style="color: #1E2128; margin-top: 0;">🎓 Systeme.io</h3>
+            <h3 style="color: #0F172A; margin-top: 0;">🎓 Systeme.io</h3>
             <p style="margin-bottom: 0;">È la piattaforma dove costruiamo il tuo funnel, le tue email automatiche e la tua area corsi. Il team Evolution lavora qui per te.</p>
             <p style="margin-top: 10px; margin-bottom: 0;"><strong>Riceverai a breve</strong> un invito separato da Systeme per attivare il tuo account.</p>
         </div>
         
         <div style="background: #E8F5E9; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #4CAF50;">
-            <h3 style="color: #1E2128; margin-top: 0;">✅ Non devi fare nulla ora</h3>
+            <h3 style="color: #0F172A; margin-top: 0;">✅ Non devi fare nulla ora</h3>
             <p style="margin-bottom: 0;">Il nostro team configurerà tutto per te. Ti avviseremo a ogni step del percorso.</p>
         </div>
         
@@ -49,7 +49,7 @@ DEFAULT_TEMPLATES = {
         </p>
     </div>
     
-    <div style="background: #1E2128; padding: 20px; text-align: center; color: #999; font-size: 12px; border-radius: 0 0 12px 12px;">
+    <div style="background: #0F172A; padding: 20px; text-align: center; color: #999; font-size: 12px; border-radius: 0 0 12px 12px;">
         <p style="margin: 0;">© 2026 Evolution PRO - Tutti i diritti riservati</p>
         <p style="margin: 5px 0 0 0; color: #F2C418;">Claudio Bertogliatti & Team</p>
     </div>
@@ -76,13 +76,13 @@ DEFAULT_TEMPLATES = {
         <p>Grazie per aver acquistato l'Analisi Strategica! Il nostro team di AI sta elaborando il tuo profilo personalizzato.</p>
         
         <div style="background: #F3F4F6; padding: 20px; border-radius: 12px; margin: 20px 0;">
-            <h3 style="color: #1E2128; margin-top: 0;">🎁 Il tuo Bonus</h3>
+            <h3 style="color: #0F172A; margin-top: 0;">🎁 Il tuo Bonus</h3>
             <p>Come ringraziamento, hai accesso al nostro mini-corso gratuito "I 5 Pilastri dell'Accademia Digitale".</p>
             <p><a href="{{bonus_link}}" style="color: #667eea; font-weight: bold;">→ Accedi al Bonus</a></p>
         </div>
         
         <div style="background: #FFF8DC; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #F2C418;">
-            <h3 style="color: #1E2128; margin-top: 0;">📞 Prenota la tua Videocall</h3>
+            <h3 style="color: #0F172A; margin-top: 0;">📞 Prenota la tua Videocall</h3>
             <p>Tra 48 ore potrai prenotare una videocall strategica con il nostro team per discutere la tua analisi.</p>
             <p style="color: #666; font-size: 14px;">Il link sarà attivo dal {{booking_available_date}}.</p>
         </div>
@@ -92,7 +92,7 @@ DEFAULT_TEMPLATES = {
         </p>
     </div>
     
-    <div style="background: #1E2128; padding: 20px; text-align: center; color: #999; font-size: 12px; border-radius: 0 0 12px 12px;">
+    <div style="background: #0F172A; padding: 20px; text-align: center; color: #999; font-size: 12px; border-radius: 0 0 12px 12px;">
         <p style="margin: 0;">© 2026 Evolution PRO</p>
     </div>
 </body>
@@ -118,7 +118,7 @@ DEFAULT_TEMPLATES = {
         <p>La tua <strong>Analisi Strategica</strong> è pronta da 48 ore ma non hai ancora prenotato la videocall per discuterla insieme.</p>
         
         <div style="background: #FFF3E0; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #FF9800;">
-            <h3 style="color: #1E2128; margin-top: 0;">📞 Prenota Ora</h3>
+            <h3 style="color: #0F172A; margin-top: 0;">📞 Prenota Ora</h3>
             <p>Non perdere l'opportunità di ricevere feedback personalizzato sul tuo progetto!</p>
             <p><a href="{{booking_link}}" style="display: inline-block; background: #FF9800; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">→ Prenota la Videocall</a></p>
         </div>
@@ -128,7 +128,7 @@ DEFAULT_TEMPLATES = {
         </p>
     </div>
     
-    <div style="background: #1E2128; padding: 20px; text-align: center; color: #999; font-size: 12px; border-radius: 0 0 12px 12px;">
+    <div style="background: #0F172A; padding: 20px; text-align: center; color: #999; font-size: 12px; border-radius: 0 0 12px 12px;">
         <p style="margin: 0;">© 2026 Evolution PRO</p>
     </div>
 </body>
@@ -201,7 +201,7 @@ DEFAULT_TEMPLATES = {
         <p>Oggi voglio raccontarti la storia di <strong>Marco</strong>, un business coach che 18 mesi fa era esattamente dove sei tu ora.</p>
         
         <div style="background: #FFF8E7; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #FF9800;">
-            <h3 style="color: #1E2128; margin-top: 0;">📊 I numeri di Marco (prima vs dopo)</h3>
+            <h3 style="color: #0F172A; margin-top: 0;">📊 I numeri di Marco (prima vs dopo)</h3>
             <p><strong>PRIMA:</strong> Consulenze 1:1, €3.000-5.000/mese, nessuna prevedibilità</p>
             <p><strong>DOPO 90 GIORNI:</strong> Videocorso + Funnel automatizzato, €47.000 dal lancio</p>
             <p style="margin-bottom: 0;"><strong>OGGI:</strong> €15.000/mese ricorrenti con 3-4 ore di lavoro al giorno</p>
@@ -273,7 +273,7 @@ DEFAULT_TEMPLATES = {
         <p>È un investimento minimo per capire se e quanto puoi guadagnare dalla tua expertise.</p>
         
         <div style="text-align: center; margin: 30px 0;">
-            <a href="{{link_checkout}}" style="display: inline-block; background: #F2C418; color: #1E2128; padding: 16px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 18px;">
+            <a href="{{link_checkout}}" style="display: inline-block; background: #F2C418; color: #0F172A; padding: 16px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 18px;">
                 → Ottieni la tua Analisi Strategica
             </a>
         </div>

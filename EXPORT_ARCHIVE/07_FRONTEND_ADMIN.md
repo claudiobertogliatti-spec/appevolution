@@ -181,7 +181,7 @@ export function AdminClientiPanel() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#1E2128]">Gestione Clienti</h1>
+          <h1 className="text-2xl font-bold text-[#0F172A]">Gestione Clienti</h1>
           <p className="text-sm text-[#9CA3AF]">Analisi Strategiche acquistate</p>
         </div>
         <button 
@@ -208,7 +208,7 @@ export function AdminClientiPanel() {
                 <stat.icon className="w-5 h-5" style={{ color: stat.color }} />
               </div>
               <div>
-                <div className="text-2xl font-bold text-[#1E2128]">{stat.value}</div>
+                <div className="text-2xl font-bold text-[#0F172A]">{stat.value}</div>
                 <div className="text-xs text-[#9CA3AF]">{stat.label}</div>
               </div>
             </div>
@@ -263,7 +263,7 @@ export function AdminClientiPanel() {
           ) : filteredClienti.length === 0 ? (
             <div className="bg-white rounded-2xl border border-[#ECEDEF] p-12 text-center">
               <Users className="w-12 h-12 text-[#9CA3AF] mx-auto mb-4" />
-              <p className="font-semibold text-[#1E2128]">Nessun cliente trovato</p>
+              <p className="font-semibold text-[#0F172A]">Nessun cliente trovato</p>
               <p className="text-sm text-[#9CA3AF]">I clienti appariranno qui dopo l'acquisto dell'Analisi</p>
             </div>
           ) : (
@@ -290,7 +290,7 @@ export function AdminClientiPanel() {
                       {/* Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-[#1E2128]">
+                          <span className="font-bold text-[#0F172A]">
                             {cliente.nome} {cliente.cognome}
                           </span>
                           {cliente.has_paid && (
@@ -335,7 +335,7 @@ export function AdminClientiPanel() {
                     </span>
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-[#1E2128]">
+                    <h3 className="text-lg font-bold text-[#0F172A]">
                       {selectedCliente.nome} {selectedCliente.cognome}
                     </h3>
                     <p className="text-sm text-[#9CA3AF]">
@@ -365,7 +365,7 @@ export function AdminClientiPanel() {
                   </div>
                   <div className="flex items-center gap-3 text-sm">
                     <Phone className="w-4 h-4 text-[#9CA3AF]" />
-                    <span className="text-[#1E2128]">{selectedCliente.telefono}</span>
+                    <span className="text-[#0F172A]">{selectedCliente.telefono}</span>
                   </div>
                 </div>
               </div>
@@ -437,7 +437,7 @@ export function AdminClientiPanel() {
                         <div className="text-xs font-bold text-[#9CA3AF] mb-1">
                           {QUESTION_LABELS[key] || key}
                         </div>
-                        <div className="text-sm text-[#1E2128]">{value}</div>
+                        <div className="text-sm text-[#0F172A]">{value}</div>
                       </div>
                     ))}
                   </div>
@@ -475,7 +475,7 @@ export function AdminClientiPanel() {
             {/* Modal Header */}
             <div className="p-6 border-b border-[#ECEDEF] flex items-center justify-between bg-gradient-to-r from-[#F5C518]/10 to-transparent">
               <div>
-                <h2 className="text-xl font-bold text-[#1E2128]">
+                <h2 className="text-xl font-bold text-[#0F172A]">
                   Analisi Strategica - {selectedCliente?.nome} {selectedCliente?.cognome}
                 </h2>
                 <p className="text-sm text-[#9CA3AF]">Documento generato con AI</p>
@@ -512,13 +512,13 @@ export function AdminClientiPanel() {
                 {analysis.split('\n').map((line, i) => {
                   // Handle headers
                   if (line.startsWith('# ')) {
-                    return <h1 key={i} className="text-2xl font-bold text-[#1E2128] mt-6 mb-4">{line.slice(2)}</h1>;
+                    return <h1 key={i} className="text-2xl font-bold text-[#0F172A] mt-6 mb-4">{line.slice(2)}</h1>;
                   }
                   if (line.startsWith('## ')) {
-                    return <h2 key={i} className="text-xl font-bold text-[#1E2128] mt-6 mb-3 border-b border-[#ECEDEF] pb-2">{line.slice(3)}</h2>;
+                    return <h2 key={i} className="text-xl font-bold text-[#0F172A] mt-6 mb-3 border-b border-[#ECEDEF] pb-2">{line.slice(3)}</h2>;
                   }
                   if (line.startsWith('### ')) {
-                    return <h3 key={i} className="text-lg font-bold text-[#1E2128] mt-4 mb-2">{line.slice(4)}</h3>;
+                    return <h3 key={i} className="text-lg font-bold text-[#0F172A] mt-4 mb-2">{line.slice(4)}</h3>;
                   }
                   // Handle bold
                   if (line.includes('**')) {
@@ -526,7 +526,7 @@ export function AdminClientiPanel() {
                     return (
                       <p key={i} className="text-[#5F6572] mb-2">
                         {parts.map((part, j) => 
-                          j % 2 === 1 ? <strong key={j} className="text-[#1E2128]">{part}</strong> : part
+                          j % 2 === 1 ? <strong key={j} className="text-[#0F172A]">{part}</strong> : part
                         )}
                       </p>
                     );
@@ -636,7 +636,7 @@ export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminU
         <div className="flex items-center gap-2.5">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
                style={{ background: '#F2C418' }}>
-            <span className="text-lg font-black text-[#1E2128]">E</span>
+            <span className="text-lg font-black text-[#0F172A]">E</span>
           </div>
           <div>
             <div className="font-black text-base" style={{ color: '#2D3239' }}>
@@ -652,7 +652,7 @@ export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminU
         <div className="flex rounded-lg p-1" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
           <button 
             className="flex-1 py-1.5 text-xs font-bold rounded-md transition-all"
-            style={{ background: '#F2C418', color: '#1E2128', boxShadow: '0 4px 20px rgba(242,196,24,0.25)' }}
+            style={{ background: '#F2C418', color: '#0F172A', boxShadow: '0 4px 20px rgba(242,196,24,0.25)' }}
           >
             Admin
           </button>
@@ -675,7 +675,7 @@ export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminU
               adminUser === "claudio" ? '' : ''
             }`}
             style={{ 
-              background: adminUser === "claudio" ? '#1E2128' : 'transparent',
+              background: adminUser === "claudio" ? '#0F172A' : 'transparent',
               color: adminUser === "claudio" ? '#F2C418' : '#9CA3AF'
             }}
           >
@@ -716,13 +716,13 @@ export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminU
                 style={{ 
                   background: isActive ? '#FFF3C4' : 'transparent',
                   borderLeft: isActive ? '3px solid #F2C418' : '3px solid transparent',
-                  color: isActive ? '#1E2128' : '#3B4049'
+                  color: isActive ? '#0F172A' : '#3B4049'
                 }}
               >
                 <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
                      style={{ 
                        background: isActive ? '#F2C418' : '#FFF8DC',
-                       color: isActive ? '#1E2128' : '#C4990A'
+                       color: isActive ? '#0F172A' : '#C4990A'
                      }}>
                   <item.icon className="w-3.5 h-3.5" />
                 </div>
@@ -745,7 +745,7 @@ export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminU
               className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all"
               style={{ 
                 background: isToolNav ? '#FFF8DC' : 'transparent',
-                color: isToolNav ? '#1E2128' : '#8D929C'
+                color: isToolNav ? '#0F172A' : '#8D929C'
               }}
             >
               <Settings className="w-4 h-4" />
@@ -764,7 +764,7 @@ export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminU
                       className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-all"
                       style={{ 
                         background: isActive ? '#FFF8DC' : 'transparent',
-                        color: isActive ? '#1E2128' : '#8D929C'
+                        color: isActive ? '#0F172A' : '#8D929C'
                       }}
                     >
                       <item.icon className="w-3.5 h-3.5" />
@@ -805,12 +805,12 @@ export function AdminSidebarLight({ currentNav, onNavigate, adminUser, setAdminU
           <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold"
                style={{ 
                  background: adminUser === "antonella" ? '#7B68AE' : '#F2C418',
-                 color: adminUser === "antonella" ? 'white' : '#1E2128'
+                 color: adminUser === "antonella" ? 'white' : '#0F172A'
                }}>
             {currentUser?.name?.split(" ").map(n => n[0]).join("") || "CB"}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-bold truncate" style={{ color: '#1E2128' }}>
+            <div className="text-xs font-bold truncate" style={{ color: '#0F172A' }}>
               {currentUser?.name || (adminUser === "antonella" ? "Antonella Rossi" : "Claudio Bertogliatti")}
             </div>
             <div className="text-[10px]" style={{ color: '#9CA3AF' }}>

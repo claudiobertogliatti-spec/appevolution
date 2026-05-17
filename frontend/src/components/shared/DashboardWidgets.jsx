@@ -41,7 +41,7 @@ export function PhaseProgressBar({ currentPhase }) {
                    style={{ 
                      background: i < idx ? '#FFD24D' : 'white',
                      borderColor: i <= idx ? '#FFD24D' : '#ECEDEF',
-                     color: i < idx ? '#1E2128' : i === idx ? '#FFD24D' : '#9CA3AF',
+                     color: i < idx ? '#0F172A' : i === idx ? '#FFD24D' : '#9CA3AF',
                      boxShadow: i === idx ? '0 0 10px rgba(242,196,24,0.35)' : 'none'
                    }}>
                 {i<idx?<Check className="w-3 h-3"/>:p.replace("F","")}
@@ -62,7 +62,7 @@ export function KPICard({ label, value, delta, deltaType, icon: Icon, accent }) 
         <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#9CA3AF' }}>{label}</span>
         {Icon && <Icon className="w-4 h-4" style={{ color: '#D1D5DB' }} />}
       </div>
-      <div className="font-mono text-3xl font-bold mb-1" style={{ color: '#1E2128' }}>{value}</div>
+      <div className="font-mono text-3xl font-bold mb-1" style={{ color: '#0F172A' }}>{value}</div>
       {delta && <div className={`text-xs font-bold ${deltaType==="up"?"text-[#10B981]":deltaType==="warn"?"text-[#F59E0B]":"text-[#EF4444]"}`}>{delta}</div>}
     </div>
   );
@@ -79,7 +79,7 @@ export function AgentCard({ agent }) {
         <span className="font-mono text-xs font-bold" style={{ color: '#9CA3AF' }}>{agent.id}</span>
         <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{background:`${sc[agent.status]||"#9CA3AF"}15`,color:sc[agent.status]||"#9CA3AF"}}>{agent.status}</span>
       </div>
-      <div className="text-sm font-bold mb-0.5" style={{ color: '#1E2128' }}>{agent.role}</div>
+      <div className="text-sm font-bold mb-0.5" style={{ color: '#0F172A' }}>{agent.role}</div>
       <div className="text-[10px] font-semibold mb-3" style={{ color: '#9CA3AF' }}>{agent.category}</div>
       <div className="flex justify-between text-[10px] font-bold mb-1" style={{ color: '#9CA3AF' }}><span>Budget</span><span className="font-mono" style={{color}}>${agent.budget}/$100</span></div>
       <div className="h-1 rounded-full overflow-hidden" style={{ background: '#ECEDEF' }}><div className="h-full rounded-full transition-all" style={{width:`${pct}%`,background:color}} /></div>

@@ -171,7 +171,7 @@ function ItemDetailPage({ item, category, partner, onBack }) {
             style={{ background: `${category.color}15` }}>
             <CatIcon className="w-6 h-6" style={{ color: category.color }} />
           </div>
-          <h1 className="text-2xl font-black" style={{ color: "#1E2128" }}>{item.title}</h1>
+          <h1 className="text-2xl font-black" style={{ color: "#0F172A" }}>{item.title}</h1>
         </div>
 
         {/* Problema */}
@@ -183,7 +183,7 @@ function ItemDetailPage({ item, category, partner, onBack }) {
         {/* Soluzione */}
         <div className="rounded-2xl p-6 mb-4" style={{ background: `${category.color}10`, border: `1px solid ${category.color}25` }}>
           <div className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: category.color }}>La soluzione</div>
-          <p className="text-base leading-relaxed" style={{ color: "#1E2128" }}>{item.soluzione}</p>
+          <p className="text-base leading-relaxed" style={{ color: "#0F172A" }}>{item.soluzione}</p>
         </div>
 
         {/* Beneficio */}
@@ -210,13 +210,13 @@ function ItemDetailPage({ item, category, partner, onBack }) {
                   }}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-sm font-black" style={{ color: "#1E2128" }}>{pkg.label}</span>
+                      <span className="text-sm font-black" style={{ color: "#0F172A" }}>{pkg.label}</span>
                       {pkg.perSession && (
                         <span className="ml-2 text-xs" style={{ color: "#9CA3AF" }}>→ €{pkg.perSession}/sessione</span>
                       )}
                     </div>
                     <div className="text-right">
-                      <span className="text-base font-black" style={{ color: "#1E2128" }}>€{pkg.price}</span>
+                      <span className="text-base font-black" style={{ color: "#0F172A" }}>€{pkg.price}</span>
                       {pkg.originalPrice && (
                         <span className="ml-1 text-xs line-through" style={{ color: "#9CA3AF" }}>€{pkg.originalPrice}</span>
                       )}
@@ -298,7 +298,7 @@ function CategoryPage({ category, partner, onBack, onNavigate }) {
         </button>
 
         {/* Header */}
-        <div className="rounded-2xl p-6 mb-6" style={{ background: "#1E2128" }}>
+        <div className="rounded-2xl p-6 mb-6" style={{ background: "#0F172A" }}>
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center"
               style={{ background: `${category.color}30` }}>
@@ -321,7 +321,7 @@ function CategoryPage({ category, partner, onBack, onNavigate }) {
               className="w-full bg-white rounded-2xl p-5 text-left transition-all hover:shadow-md hover:scale-[1.01]"
               style={{ border: "1px solid #ECEDEF" }}>
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-base font-black" style={{ color: "#1E2128" }}>{item.title}</h3>
+                <h3 className="text-base font-black" style={{ color: "#0F172A" }}>{item.title}</h3>
                 {item.comingSoon ? (
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: "#F5F3EE", color: "#8B8680" }}>
                     In arrivo
@@ -368,7 +368,7 @@ export function AcceleraCrescitaPage({ partner, categoryId, onNavigate }) {
       <div className="max-w-xl mx-auto p-6">
         {/* Hero */}
         <div className="mb-8" data-testid="accelera-hero">
-          <h1 className="text-3xl font-black mb-2" style={{ color: "#1E2128" }}>
+          <h1 className="text-3xl font-black mb-2" style={{ color: "#0F172A" }}>
             Accelera la crescita
           </h1>
           <p className="text-base leading-relaxed" style={{ color: "#5F6572" }}>
@@ -397,7 +397,7 @@ export function AcceleraCrescitaPage({ partner, categoryId, onNavigate }) {
                     <CatIcon className="w-6 h-6" style={{ color: cat.color }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-base font-black mb-0.5" style={{ color: "#1E2128" }}>{cat.title}</h3>
+                    <h3 className="text-base font-black mb-0.5" style={{ color: "#0F172A" }}>{cat.title}</h3>
                     <p className="text-sm" style={{ color: "#5F6572" }}>{cat.tagline}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"

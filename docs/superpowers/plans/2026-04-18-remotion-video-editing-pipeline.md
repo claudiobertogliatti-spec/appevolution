@@ -168,7 +168,7 @@ export const Intro: React.FC<IntroProps> = ({ partnerName, partnerNiche, primary
   return (
     <AbsoluteFill
       style={{
-        backgroundColor: "#1E2128",
+        backgroundColor: "#0F172A",
         justifyContent: "center",
         alignItems: "center",
         opacity,
@@ -274,7 +274,7 @@ export const Outro: React.FC<OutroProps> = ({ partnerName, ctaText, ctaUrl, prim
   return (
     <AbsoluteFill
       style={{
-        backgroundColor: "#1E2128",
+        backgroundColor: "#0F172A",
         justifyContent: "center",
         alignItems: "center",
         opacity: fadeIn,
@@ -299,7 +299,7 @@ export const Outro: React.FC<OutroProps> = ({ partnerName, ctaText, ctaUrl, prim
           style={{
             display: "inline-block",
             backgroundColor: primaryColor,
-            color: "#1E2128",
+            color: "#0F172A",
             fontFamily: "sans-serif",
             fontSize: 28,
             fontWeight: 900,
@@ -490,7 +490,7 @@ export const TextHighlight: React.FC<TextHighlightProps> = ({
         style={{
           marginTop: 60,
           backgroundColor: primaryColor,
-          color: "#1E2128",
+          color: "#0F172A",
           fontFamily: "sans-serif",
           fontSize: 42,
           fontWeight: 900,

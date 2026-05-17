@@ -205,10 +205,10 @@ export function AnalisiStrategicaApp() {
         <header className="border-b" style={{ borderColor: '#ECEDEF', background: '#FFFFFF' }}>
           <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
-              <span className="text-lg font-black text-[#1E2128]">E</span>
+              <span className="text-lg font-black text-[#0F172A]">E</span>
             </div>
             <div>
-              <div className="font-black text-base text-[#1E2128]">Evolution<span style={{ color: '#F5C518' }}>PRO</span></div>
+              <div className="font-black text-base text-[#0F172A]">Evolution<span style={{ color: '#F5C518' }}>PRO</span></div>
               <div className="text-[10px] font-medium text-[#9CA3AF]">Analisi Strategica</div>
             </div>
           </div>
@@ -224,7 +224,7 @@ export function AnalisiStrategicaApp() {
                 Solo 4 progetti al mese
               </div>
               
-              <h1 className="text-3xl md:text-4xl font-black text-[#1E2128] leading-tight mb-4">
+              <h1 className="text-3xl md:text-4xl font-black text-[#0F172A] leading-tight mb-4">
                 Verifica se il tuo Progetto è pronto per diventare un'{" "}
                 <span style={{ color: '#F5C518' }}>Accademia Digitale</span>
               </h1>
@@ -241,7 +241,7 @@ export function AnalisiStrategicaApp() {
                   { icon: Video, text: "Videocall personalizzata entro 48h" },
                   { icon: Gift, text: "7 Bonus formativi inclusi" }
                 ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-3 text-sm text-[#1E2128]">
+                  <div key={i} className="flex items-center gap-3 text-sm text-[#0F172A]">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#FEF9E7' }}>
                       <item.icon className="w-4 h-4 text-[#F5C518]" />
                     </div>
@@ -328,11 +328,11 @@ export function AnalisiStrategicaApp() {
           <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
-                <span className="text-lg font-black text-[#1E2128]">E</span>
+                <span className="text-lg font-black text-[#0F172A]">E</span>
               </div>
-              <span className="font-black text-[#1E2128]">Evolution<span style={{ color: '#F5C518' }}>PRO</span></span>
+              <span className="font-black text-[#0F172A]">Evolution<span style={{ color: '#F5C518' }}>PRO</span></span>
             </div>
-            <button onClick={handleLogout} className="text-sm text-[#9CA3AF] hover:text-[#1E2128] flex items-center gap-1">
+            <button onClick={handleLogout} className="text-sm text-[#9CA3AF] hover:text-[#0F172A] flex items-center gap-1">
               <LogOut className="w-4 h-4" />Esci
             </button>
           </div>
@@ -342,7 +342,7 @@ export function AnalisiStrategicaApp() {
           <div className="w-16 h-16 rounded-full mx-auto mb-6 flex items-center justify-center" style={{ background: '#FEF9E7' }}>
             <CreditCard className="w-8 h-8 text-[#F5C518]" />
           </div>
-          <h1 className="text-xl font-bold text-[#1E2128] mb-2">Completa il pagamento</h1>
+          <h1 className="text-xl font-bold text-[#0F172A] mb-2">Completa il pagamento</h1>
           <p className="text-sm text-[#5F6572] mb-6">
             Ciao {user?.nome}, per accedere al questionario devi completare il pagamento di €67.
           </p>
@@ -382,13 +382,13 @@ export function AnalisiStrategicaApp() {
           <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
-                <span className="text-lg font-black text-[#1E2128]">E</span>
+                <span className="text-lg font-black text-[#0F172A]">E</span>
               </div>
-              <span className="font-black text-[#1E2128]">Evolution<span style={{ color: '#F5C518' }}>PRO</span></span>
+              <span className="font-black text-[#0F172A]">Evolution<span style={{ color: '#F5C518' }}>PRO</span></span>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-sm text-[#9CA3AF]">Ciao, <span className="text-[#1E2128] font-semibold">{user.nome}</span></span>
-              <button onClick={handleLogout} className="text-sm text-[#9CA3AF] hover:text-[#1E2128]"><LogOut className="w-4 h-4" /></button>
+              <span className="text-sm text-[#9CA3AF]">Ciao, <span className="text-[#0F172A] font-semibold">{user.nome}</span></span>
+              <button onClick={handleLogout} className="text-sm text-[#9CA3AF] hover:text-[#0F172A]"><LogOut className="w-4 h-4" /></button>
             </div>
           </div>
         </header>
@@ -397,12 +397,12 @@ export function AnalisiStrategicaApp() {
           <div className="w-20 h-20 rounded-full mx-auto mb-6 flex items-center justify-center" style={{ background: '#D1FAE5' }}>
             <CheckCircle className="w-10 h-10 text-[#059669]" />
           </div>
-          <h1 className="text-2xl font-bold text-[#1E2128] mb-4">Questionario completato!</h1>
+          <h1 className="text-2xl font-bold text-[#0F172A] mb-4">Questionario completato!</h1>
           <p className="text-[#5F6572] mb-8">
             Grazie {user.nome}! Riceverai un'email con il link per prenotare la tua <strong>videocall di Analisi Strategica</strong> entro 48 ore.
           </p>
           <div className="p-6 rounded-xl text-left" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-            <h3 className="font-bold text-[#1E2128] mb-3">Cosa succede ora:</h3>
+            <h3 className="font-bold text-[#0F172A] mb-3">Cosa succede ora:</h3>
             <ul className="space-y-2 text-sm text-[#5F6572]">
               <li className="flex items-start gap-2"><CheckCircle className="w-4 h-4 text-[#059669] mt-0.5" />Analizziamo le tue risposte</li>
               <li className="flex items-start gap-2"><CheckCircle className="w-4 h-4 text-[#059669] mt-0.5" />Ti contattiamo per fissare la videocall</li>
@@ -427,13 +427,13 @@ export function AnalisiStrategicaApp() {
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
-              <span className="text-lg font-black text-[#1E2128]">E</span>
+              <span className="text-lg font-black text-[#0F172A]">E</span>
             </div>
-            <span className="font-black text-[#1E2128]">Evolution<span style={{ color: '#F5C518' }}>PRO</span></span>
+            <span className="font-black text-[#0F172A]">Evolution<span style={{ color: '#F5C518' }}>PRO</span></span>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-[#9CA3AF]">Ciao, <span className="text-[#1E2128] font-semibold">{user?.nome}</span></span>
-            <button onClick={handleLogout} className="text-sm text-[#9CA3AF] hover:text-[#1E2128]"><LogOut className="w-4 h-4" /></button>
+            <span className="text-sm text-[#9CA3AF]">Ciao, <span className="text-[#0F172A] font-semibold">{user?.nome}</span></span>
+            <button onClick={handleLogout} className="text-sm text-[#9CA3AF] hover:text-[#0F172A]"><LogOut className="w-4 h-4" /></button>
           </div>
         </div>
       </header>
@@ -441,7 +441,7 @@ export function AnalisiStrategicaApp() {
       <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Welcome Section */}
         <div className="p-6 rounded-2xl mb-8" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-          <h1 className="text-xl font-bold text-[#1E2128] mb-2">Completa il Questionario</h1>
+          <h1 className="text-xl font-bold text-[#0F172A] mb-2">Completa il Questionario</h1>
           <p className="text-sm text-[#5F6572]">
             Rispondi a queste domande per permetterci di preparare la tua Analisi Strategica personalizzata.
           </p>
@@ -464,7 +464,7 @@ export function AnalisiStrategicaApp() {
             <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: '#FEF9E7' }}>
               <question.icon className="w-6 h-6 text-[#F5C518]" />
             </div>
-            <h2 className="text-lg font-bold text-[#1E2128] flex-1">{question.question}</h2>
+            <h2 className="text-lg font-bold text-[#0F172A] flex-1">{question.question}</h2>
           </div>
 
           {question.type === "textarea" && (
@@ -573,10 +573,10 @@ export function AnalisiStrategicaLanding({ onStartAnalisi }) {
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
-              <span className="text-lg font-black text-[#1E2128]">E</span>
+              <span className="text-lg font-black text-[#0F172A]">E</span>
             </div>
             <div>
-              <div className="font-black text-base text-[#1E2128]">
+              <div className="font-black text-base text-[#0F172A]">
                 Evolution<span style={{ color: '#F5C518' }}>PRO</span>
               </div>
               <div className="text-[10px] font-medium text-[#9CA3AF]">Analisi Strategica</div>
@@ -600,7 +600,7 @@ export function AnalisiStrategicaLanding({ onStartAnalisi }) {
             Solo 4 progetti al mese
           </div>
           
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-[#1E2128] leading-tight mb-6">
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-[#0F172A] leading-tight mb-6">
             Verifica se il tuo Progetto è pronto per diventare un'{" "}
             <span style={{ color: '#F5C518' }}>Accademia Digitale</span> che vende
           </h1>
@@ -629,7 +629,7 @@ export function AnalisiStrategicaLanding({ onStartAnalisi }) {
       {/* Problem Section */}
       <section className="py-12" style={{ background: '#FFFFFF' }}>
         <div className="max-w-4xl mx-auto px-6">
-          <h2 className="text-xl md:text-2xl font-bold text-[#1E2128] text-center mb-8">
+          <h2 className="text-xl md:text-2xl font-bold text-[#0F172A] text-center mb-8">
             Se in questo momento...
           </h2>
           
@@ -662,7 +662,7 @@ export function AnalisiStrategicaLanding({ onStartAnalisi }) {
               <span className="text-3xl font-black text-black">CB</span>
             </div>
             <div>
-              <h3 className="text-xl font-bold text-[#1E2128] mb-2">Sono Claudio Bertogliatti</h3>
+              <h3 className="text-xl font-bold text-[#0F172A] mb-2">Sono Claudio Bertogliatti</h3>
               <p className="text-sm text-[#5F6572] leading-relaxed">
                 Founder di Evolution PRO, Creatore del Metodo E.V.O. ed esperto in Marketing a risposta diretta da +20 anni.
                 Non vendo semplici corsi: aiuto coach, formatori e professionisti a costruire asset che generano vendite nel tempo.
@@ -675,7 +675,7 @@ export function AnalisiStrategicaLanding({ onStartAnalisi }) {
       {/* What We Do */}
       <section className="py-12" style={{ background: '#FFFFFF' }}>
         <div className="max-w-4xl mx-auto px-6">
-          <h2 className="text-xl md:text-2xl font-bold text-[#1E2128] text-center mb-8">
+          <h2 className="text-xl md:text-2xl font-bold text-[#0F172A] text-center mb-8">
             Cosa facciamo per te
           </h2>
           
@@ -689,7 +689,7 @@ export function AnalisiStrategicaLanding({ onStartAnalisi }) {
                 <div className="w-14 h-14 rounded-xl mx-auto mb-4 flex items-center justify-center" style={{ background: `${item.color}15` }}>
                   <item.icon className="w-7 h-7" style={{ color: item.color }} />
                 </div>
-                <h3 className="font-bold text-[#1E2128] mb-2">{item.title}</h3>
+                <h3 className="font-bold text-[#0F172A] mb-2">{item.title}</h3>
                 <p className="text-sm text-[#5F6572]">{item.desc}</p>
               </div>
             ))}
@@ -700,7 +700,7 @@ export function AnalisiStrategicaLanding({ onStartAnalisi }) {
       {/* Analysis Details */}
       <section className="py-12">
         <div className="max-w-4xl mx-auto px-6">
-          <h2 className="text-xl md:text-2xl font-bold text-[#1E2128] text-center mb-2">
+          <h2 className="text-xl md:text-2xl font-bold text-[#0F172A] text-center mb-2">
             Il primo passo: Analisi Strategica
           </h2>
           <p className="text-center text-sm text-[#9CA3AF] mb-8">
@@ -711,7 +711,7 @@ export function AnalisiStrategicaLanding({ onStartAnalisi }) {
             {["Analisi profilo e posizionamento", "Valutazione reale del mercato", "Scelta dell'asset più sensato", "Tempistiche e prossimi passi"].map((item, i) => (
               <div key={i} className="p-4 rounded-xl flex items-center gap-3" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
                 <CheckCircle className="w-5 h-5 text-[#10B981] flex-shrink-0" />
-                <p className="text-sm text-[#1E2128]">{item}</p>
+                <p className="text-sm text-[#0F172A]">{item}</p>
               </div>
             ))}
           </div>
@@ -738,7 +738,7 @@ export function AnalisiStrategicaLanding({ onStartAnalisi }) {
       <section className="py-8" style={{ background: '#FFFFFF' }}>
         <div className="max-w-4xl mx-auto px-6">
           <div className="p-6 rounded-2xl" style={{ background: '#FEF9E7', border: '1px solid #F5C518' }}>
-            <p className="text-center text-[#1E2128]">
+            <p className="text-center text-[#0F172A]">
               Negli ultimi mesi <span className="font-bold" style={{ color: '#C4990A' }}>oltre il 30%</span> dei progetti analizzati non è stato ammesso alla Partnership.
             </p>
           </div>
@@ -749,11 +749,11 @@ export function AnalisiStrategicaLanding({ onStartAnalisi }) {
       <section className="py-12" id="pricing">
         <div className="max-w-md mx-auto px-6">
           <div className="p-8 rounded-2xl text-center relative overflow-hidden" style={{ background: '#FFFFFF', border: '2px solid #F5C518' }}>
-            <div className="absolute top-0 right-0 px-4 py-1 rounded-bl-xl text-xs font-bold" style={{ background: '#F5C518', color: '#1E2128' }}>
+            <div className="absolute top-0 right-0 px-4 py-1 rounded-bl-xl text-xs font-bold" style={{ background: '#F5C518', color: '#0F172A' }}>
               SCONTO 55%
             </div>
             
-            <h3 className="text-lg font-bold text-[#1E2128] mb-1">Analisi Strategica Personalizzata</h3>
+            <h3 className="text-lg font-bold text-[#0F172A] mb-1">Analisi Strategica Personalizzata</h3>
             <p className="text-sm text-[#9CA3AF] mb-6">+ 7 Bonus formativi inclusi</p>
             
             <div className="flex items-center justify-center gap-3 mb-6">
@@ -786,7 +786,7 @@ export function AnalisiStrategicaLanding({ onStartAnalisi }) {
               <Gift className="w-4 h-4" />
               GRATIS — Inclusi nell'Analisi
             </div>
-            <h2 className="text-xl md:text-2xl font-bold text-[#1E2128]">7 Bonus Formativi</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-[#0F172A]">7 Bonus Formativi</h2>
           </div>
           
           <div className="grid md:grid-cols-2 gap-3">
@@ -797,7 +797,7 @@ export function AnalisiStrategicaLanding({ onStartAnalisi }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-bold text-[#9CA3AF]">BONUS #{bonus.id}</p>
-                  <p className="text-sm font-semibold text-[#1E2128] truncate">{bonus.title}</p>
+                  <p className="text-sm font-semibold text-[#0F172A] truncate">{bonus.title}</p>
                 </div>
                 <span className="text-[10px] font-bold px-2 py-1 rounded" style={{ background: '#D1FAE5', color: '#059669' }}>GRATIS</span>
               </div>
@@ -809,7 +809,7 @@ export function AnalisiStrategicaLanding({ onStartAnalisi }) {
       {/* For Who */}
       <section className="py-12">
         <div className="max-w-4xl mx-auto px-6">
-          <h2 className="text-xl font-bold text-[#1E2128] text-center mb-8">Per chi è questa Valutazione</h2>
+          <h2 className="text-xl font-bold text-[#0F172A] text-center mb-8">Per chi è questa Valutazione</h2>
           
           <div className="grid md:grid-cols-2 gap-6">
             <div className="p-6 rounded-2xl" style={{ background: '#D1FAE5', border: '1px solid #A7F3D0' }}>
@@ -842,7 +842,7 @@ export function AnalisiStrategicaLanding({ onStartAnalisi }) {
       {/* Final CTA */}
       <section className="py-12" style={{ background: '#FEF9E7' }}>
         <div className="max-w-2xl mx-auto px-6 text-center">
-          <p className="text-lg md:text-xl font-bold text-[#1E2128] mb-6">
+          <p className="text-lg md:text-xl font-bold text-[#0F172A] mb-6">
             IL VERO RISCHIO NON È SPENDERE €67<br />
             <span style={{ color: '#C4990A' }}>MA CONTINUARE SENZA DIREZIONE</span>
           </p>
@@ -932,7 +932,7 @@ export function AnalisiRegistrazione({ onComplete, onBack }) {
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: '#FEF9E7', border: '1px solid #F5C518' }}>
             <User className="w-8 h-8 text-[#F5C518]" />
           </div>
-          <h1 className="text-2xl font-bold text-[#1E2128] mb-2">Crea il tuo Account</h1>
+          <h1 className="text-2xl font-bold text-[#0F172A] mb-2">Crea il tuo Account</h1>
           <p className="text-sm text-[#9CA3AF]">Per procedere con l'Analisi Strategica</p>
         </div>
 
@@ -940,13 +940,13 @@ export function AnalisiRegistrazione({ onComplete, onBack }) {
         <form onSubmit={handleSubmit} className="space-y-4 p-6 rounded-2xl" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[#1E2128] mb-1">Nome</label>
+              <label className="block text-sm font-medium text-[#0F172A] mb-1">Nome</label>
               <input type="text" name="nome" value={formData.nome} onChange={handleChange} placeholder="Mario"
                 className="w-full p-3 rounded-xl text-sm focus:outline-none" 
                 style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }} data-testid="input-nome" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#1E2128] mb-1">Cognome</label>
+              <label className="block text-sm font-medium text-[#0F172A] mb-1">Cognome</label>
               <input type="text" name="cognome" value={formData.cognome} onChange={handleChange} placeholder="Rossi"
                 className="w-full p-3 rounded-xl text-sm focus:outline-none" 
                 style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }} data-testid="input-cognome" />
@@ -954,7 +954,7 @@ export function AnalisiRegistrazione({ onComplete, onBack }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#1E2128] mb-1">Email</label>
+            <label className="block text-sm font-medium text-[#0F172A] mb-1">Email</label>
             <div className="relative">
               <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="mario@email.com"
                 className="w-full p-3 pl-11 rounded-xl text-sm focus:outline-none" 
@@ -964,14 +964,14 @@ export function AnalisiRegistrazione({ onComplete, onBack }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#1E2128] mb-1">Telefono</label>
+            <label className="block text-sm font-medium text-[#0F172A] mb-1">Telefono</label>
             <input type="tel" name="telefono" value={formData.telefono} onChange={handleChange} placeholder="+39 333 1234567"
               className="w-full p-3 rounded-xl text-sm focus:outline-none" 
               style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }} data-testid="input-telefono" />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#1E2128] mb-1">Password</label>
+            <label className="block text-sm font-medium text-[#0F172A] mb-1">Password</label>
             <div className="relative">
               <input type={showPassword ? "text" : "password"} name="password" value={formData.password} onChange={handleChange} placeholder="Minimo 6 caratteri"
                 className="w-full p-3 pl-11 pr-11 rounded-xl text-sm focus:outline-none" 
@@ -984,7 +984,7 @@ export function AnalisiRegistrazione({ onComplete, onBack }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#1E2128] mb-1">Conferma Password</label>
+            <label className="block text-sm font-medium text-[#0F172A] mb-1">Conferma Password</label>
             <div className="relative">
               <input type={showPassword ? "text" : "password"} name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="Ripeti la password"
                 className="w-full p-3 pl-11 rounded-xl text-sm focus:outline-none" 
@@ -1078,7 +1078,7 @@ export function AnalisiQuestionario({ userData, onComplete, onBack, isProcessing
             <question.icon className="w-7 h-7 text-[#F5C518]" />
           </div>
 
-          <h2 className="text-xl md:text-2xl font-bold text-[#1E2128] mb-6">{question.question}</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-[#0F172A] mb-6">{question.question}</h2>
 
           <div className="mb-8">
             {question.type === "textarea" && (
@@ -1101,7 +1101,7 @@ export function AnalisiQuestionario({ userData, onComplete, onBack, isProcessing
                       style={{ borderColor: currentAnswer === option ? '#F5C518' : '#9CA3AF', background: currentAnswer === option ? '#F5C518' : 'transparent' }}>
                       {currentAnswer === option && <Check className="w-3 h-3 text-black" />}
                     </div>
-                    <span className="text-sm text-[#1E2128]">{option}</span>
+                    <span className="text-sm text-[#0F172A]">{option}</span>
                   </button>
                 ))}
               </div>
@@ -1125,7 +1125,7 @@ export function AnalisiQuestionario({ userData, onComplete, onBack, isProcessing
           </div>
 
           <div className="flex justify-between">
-            <button onClick={handlePrev} className="px-6 py-3 rounded-xl font-semibold text-[#5F6572] hover:text-[#1E2128] transition-colors flex items-center gap-2">
+            <button onClick={handlePrev} className="px-6 py-3 rounded-xl font-semibold text-[#5F6572] hover:text-[#0F172A] transition-colors flex items-center gap-2">
               <ArrowLeft className="w-4 h-4" />Indietro
             </button>
 

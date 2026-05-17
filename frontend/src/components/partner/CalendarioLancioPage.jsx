@@ -107,7 +107,7 @@ function EmailCard({ email, index }) {
             <CopyButton text={subject} label="Copia oggetto" />
           </div>
           <div className="p-3 rounded-xl text-sm font-semibold"
-            style={{ background: "#FAFAF7", border: "1px solid #F0EDE8", color: "#1E2128" }}>
+            style={{ background: "#FAFAF7", border: "1px solid #F0EDE8", color: "#0F172A" }}>
             {subject || <span style={{ color: "#D1D5DB", fontStyle: "italic" }}>Nessun oggetto generato</span>}
           </div>
         </div>
@@ -139,7 +139,7 @@ function EmailFollowupContent({ emails, planGenerated }) {
           <Mail className="w-7 h-7" style={{ color: "#F59E0B" }} />
         </div>
         <div>
-          <p className="text-sm font-semibold" style={{ color: "#1E2128" }}>
+          <p className="text-sm font-semibold" style={{ color: "#0F172A" }}>
             Sequenza email non ancora generata
           </p>
           <p className="text-xs mt-1" style={{ color: "#9CA3AF" }}>
@@ -191,7 +191,7 @@ function CalendarContent({ calendarData }) {
                   <Icon className="w-5 h-5" style={{ color: sett.color }} />
                 </div>
                 <div>
-                  <div className="text-sm font-black" style={{ color: "#1E2128" }}>
+                  <div className="text-sm font-black" style={{ color: "#0F172A" }}>
                     Settimana {sett.id}: {sett.nome}
                   </div>
                   <div className="text-xs" style={{ color: "#9CA3AF" }}>{sett.obiettivo}</div>
@@ -210,7 +210,7 @@ function CalendarContent({ calendarData }) {
                         {formato === "video" ? <Video className="w-3.5 h-3.5" style={{ color: sett.color }} />
                           : <FileText className="w-3.5 h-3.5" style={{ color: sett.color }} />}
                       </div>
-                      <span className="text-sm flex-1" style={{ color: "#1E2128" }}>{titolo}</span>
+                      <span className="text-sm flex-1" style={{ color: "#0F172A" }}>{titolo}</span>
                       {formato && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full"
                           style={{ background: sett.color + "15", color: sett.color }}>
@@ -286,7 +286,7 @@ export function CalendarioLancioPage({ partner, onNavigate, isAdmin }) {
               <Sparkles className="w-6 h-6" style={{ color: "#FFD24D" }} />
             </div>
             <div>
-              <h1 className="text-2xl font-black" style={{ color: "#1E2128" }}>
+              <h1 className="text-2xl font-black" style={{ color: "#0F172A" }}>
                 Piano di Lancio
               </h1>
               <p className="text-sm" style={{ color: "#9CA3AF" }}>
@@ -308,7 +308,7 @@ export function CalendarioLancioPage({ partner, onNavigate, isAdmin }) {
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all"
                 style={{
                   background: active ? "#FFFFFF" : "transparent",
-                  color: active ? "#1E2128" : "#9CA3AF",
+                  color: active ? "#0F172A" : "#9CA3AF",
                   boxShadow: active ? "0 1px 4px rgba(0,0,0,0.08)" : "none"
                 }}
               >

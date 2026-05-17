@@ -107,7 +107,7 @@ export function PartnerFileManager({ partner }) {
       {totalFiles===0&&(
         <div className="bg-white border border-[#ECEDEF] rounded-xl p-8 text-center">
           <FolderOpen className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3"/>
-          <h3 className="font-bold text-[#1E2128] mb-1">Nessun file caricato</h3>
+          <h3 className="font-bold text-[#0F172A] mb-1">Nessun file caricato</h3>
           <p className="text-sm text-[#9CA3AF]">Carica video o documenti usando i pulsanti sopra</p>
         </div>
       )}

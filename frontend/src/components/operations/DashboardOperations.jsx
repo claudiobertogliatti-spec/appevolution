@@ -13,7 +13,7 @@ const API = (typeof window !== "undefined" && window.location.hostname.includes(
 const FASE_COLORS = {
   F1: { bg: "#9CA3AF", text: "#FFFFFF", label: "F1 - Posizionamento" },
   F2: { bg: "#3B82F6", text: "#FFFFFF", label: "F2 - Masterclass" },
-  F3: { bg: "#FFD24D", text: "#1E2128", label: "F3 - Videocorso" },
+  F3: { bg: "#FFD24D", text: "#0F172A", label: "F3 - Videocorso" },
   F4: { bg: "#F97316", text: "#FFFFFF", label: "F4 - Funnel" },
   F5: { bg: "#22C55E", text: "#FFFFFF", label: "F5 - Lancio" }
 };
@@ -39,12 +39,12 @@ function OperationsSidebar({ activeSection, onNavigate }) {
   ];
 
   return (
-    <div className="w-64 h-screen fixed left-0 top-0 flex flex-col" style={{ background: "#1E2128" }}>
+    <div className="w-64 h-screen fixed left-0 top-0 flex flex-col" style={{ background: "#0F172A" }}>
       {/* Logo */}
       <div className="p-6 border-b border-white/10">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#FFD24D" }}>
-            <span className="text-lg font-black" style={{ color: "#1E2128" }}>E</span>
+            <span className="text-lg font-black" style={{ color: "#0F172A" }}>E</span>
           </div>
           <div>
             <div className="font-bold text-white text-sm">Evolution PRO</div>
@@ -189,7 +189,7 @@ function PartnerSection() {
             >
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h3 className="font-bold" style={{ color: "#1E2128" }}>
+                  <h3 className="font-bold" style={{ color: "#0F172A" }}>
                     {partner.nome} {partner.cognome}
                   </h3>
                   <p className="text-sm" style={{ color: "#5F6572" }}>
@@ -243,7 +243,7 @@ function PartnerSection() {
       {selectedPartner && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}>
           <div className="w-full max-w-2xl rounded-2xl max-h-[90vh] overflow-y-auto" style={{ background: "#FFFFFF" }}>
-            <div className="sticky top-0 flex items-center justify-between p-6" style={{ background: "#1E2128" }}>
+            <div className="sticky top-0 flex items-center justify-between p-6" style={{ background: "#0F172A" }}>
               <div>
                 <h2 className="text-xl font-bold text-white">
                   {selectedPartner.nome} {selectedPartner.cognome}
@@ -263,7 +263,7 @@ function PartnerSection() {
             <div className="p-6 space-y-6">
               {/* Riepilogo Fasi */}
               <div>
-                <h3 className="font-bold mb-3" style={{ color: "#1E2128" }}>Percorso</h3>
+                <h3 className="font-bold mb-3" style={{ color: "#0F172A" }}>Percorso</h3>
                 <div className="flex gap-2">
                   {["F1", "F2", "F3", "F4", "F5"].map((f) => {
                     const fConfig = FASE_COLORS[f];
@@ -286,7 +286,7 @@ function PartnerSection() {
 
               {/* Note Interne */}
               <div>
-                <h3 className="font-bold mb-3" style={{ color: "#1E2128" }}>Note Interne</h3>
+                <h3 className="font-bold mb-3" style={{ color: "#0F172A" }}>Note Interne</h3>
                 <textarea
                   value={noteText}
                   onChange={(e) => setNoteText(e.target.value)}
@@ -299,7 +299,7 @@ function PartnerSection() {
                   onClick={saveNote}
                   disabled={savingNote}
                   className="mt-3 flex items-center gap-2 px-4 py-2 rounded-lg font-medium"
-                  style={{ background: "#FFD24D", color: "#1E2128" }}
+                  style={{ background: "#FFD24D", color: "#0F172A" }}
                 >
                   {savingNote ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   Salva Note
@@ -498,7 +498,7 @@ function ContenutiSection() {
                   contenuti.documenti.map((doc, idx) => (
                     <div key={idx} className="p-4 rounded-xl" style={{ background: "#FAFAF7" }}>
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium" style={{ color: "#1E2128" }}>{doc.titolo}</h4>
+                        <h4 className="font-medium" style={{ color: "#0F172A" }}>{doc.titolo}</h4>
                         <span className="text-xs" style={{ color: "#9CA3AF" }}>{doc.created_at}</span>
                       </div>
                       <button className="text-sm font-medium" style={{ color: "#3B82F6" }}>
@@ -529,7 +529,7 @@ function ContenutiSection() {
                             onClick={() => addCommento(doc.tipo)}
                             disabled={addingCommento}
                             className="px-3 py-2 rounded-lg"
-                            style={{ background: "#FFD24D", color: "#1E2128" }}
+                            style={{ background: "#FFD24D", color: "#0F172A" }}
                           >
                             <MessageSquare className="w-4 h-4" />
                           </button>
@@ -580,7 +580,7 @@ function ContenutiSection() {
                                 <button
                                   onClick={() => updateCalendarStatus(item.giorno, "approvato")}
                                   className="text-xs font-medium px-3 py-1 rounded-lg"
-                                  style={{ background: "#FFD24D", color: "#1E2128" }}
+                                  style={{ background: "#FFD24D", color: "#0F172A" }}
                                 >
                                   Approva
                                 </button>
@@ -605,11 +605,11 @@ function ContenutiSection() {
                 ) : (
                   contenuti.videos.map((video, idx) => (
                     <div key={idx} className="flex items-center gap-4 p-4 rounded-xl" style={{ background: "#FAFAF7" }}>
-                      <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: "#1E2128" }}>
+                      <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: "#0F172A" }}>
                         <Video className="w-6 h-6 text-white" />
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-medium" style={{ color: "#1E2128" }}>{video.titolo}</h4>
+                        <h4 className="font-medium" style={{ color: "#0F172A" }}>{video.titolo}</h4>
                         <p className="text-xs" style={{ color: "#9CA3AF" }}>
                           Caricato: {video.data_upload} {video.durata && `• ${video.durata}`}
                         </p>
@@ -785,7 +785,7 @@ function CampagneSection() {
           <button
             onClick={openNewCampagna}
             className="flex items-center gap-2 px-4 py-3 rounded-xl font-medium"
-            style={{ background: "#FFD24D", color: "#1E2128" }}
+            style={{ background: "#FFD24D", color: "#0F172A" }}
           >
             <Plus className="w-5 h-5" />
             Nuova Campagna
@@ -833,7 +833,7 @@ function CampagneSection() {
                         >
                           {c.piattaforma}
                         </span>
-                        <h3 className="font-bold" style={{ color: "#1E2128" }}>{c.nome_campagna}</h3>
+                        <h3 className="font-bold" style={{ color: "#0F172A" }}>{c.nome_campagna}</h3>
                         <span
                           className="px-2 py-1 rounded-full text-xs font-medium"
                           style={{ background: `${statoColor}20`, color: statoColor }}
@@ -860,15 +860,15 @@ function CampagneSection() {
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
                       <div className="text-center p-3 rounded-lg" style={{ background: "#FAFAF7" }}>
                         <div className="text-xs mb-1" style={{ color: "#9CA3AF" }}>Budget/giorno</div>
-                        <div className="font-bold" style={{ color: "#1E2128" }}>€{c.budget_giornaliero}</div>
+                        <div className="font-bold" style={{ color: "#0F172A" }}>€{c.budget_giornaliero}</div>
                       </div>
                       <div className="text-center p-3 rounded-lg" style={{ background: "#FAFAF7" }}>
                         <div className="text-xs mb-1" style={{ color: "#9CA3AF" }}>Budget totale</div>
-                        <div className="font-bold" style={{ color: "#1E2128" }}>€{c.budget_totale}</div>
+                        <div className="font-bold" style={{ color: "#0F172A" }}>€{c.budget_totale}</div>
                       </div>
                       <div className="text-center p-3 rounded-lg" style={{ background: "#FAFAF7" }}>
                         <div className="text-xs mb-1" style={{ color: "#9CA3AF" }}>Impression</div>
-                        <div className="font-bold" style={{ color: "#1E2128" }}>{c.risultati?.impression || 0}</div>
+                        <div className="font-bold" style={{ color: "#0F172A" }}>{c.risultati?.impression || 0}</div>
                       </div>
                       <div className="text-center p-3 rounded-lg" style={{ background: "#FAFAF7" }}>
                         <div className="text-xs mb-1" style={{ color: "#9CA3AF" }}>Lead</div>
@@ -876,7 +876,7 @@ function CampagneSection() {
                       </div>
                       <div className="text-center p-3 rounded-lg" style={{ background: "#FAFAF7" }}>
                         <div className="text-xs mb-1" style={{ color: "#9CA3AF" }}>CPL</div>
-                        <div className="font-bold" style={{ color: "#1E2128" }}>€{c.risultati?.costo_per_lead || 0}</div>
+                        <div className="font-bold" style={{ color: "#0F172A" }}>€{c.risultati?.costo_per_lead || 0}</div>
                       </div>
                     </div>
 
@@ -891,7 +891,7 @@ function CampagneSection() {
 
           {/* Aggregati */}
           {aggregati && (
-            <div className="rounded-xl p-6" style={{ background: "#1E2128" }}>
+            <div className="rounded-xl p-6" style={{ background: "#0F172A" }}>
               <h3 className="font-bold text-white mb-4">Riepilogo Partner</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center">
@@ -920,7 +920,7 @@ function CampagneSection() {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}>
           <div className="w-full max-w-lg rounded-2xl max-h-[90vh] overflow-y-auto" style={{ background: "#FFFFFF" }}>
-            <div className="sticky top-0 flex items-center justify-between p-6" style={{ background: "#1E2128" }}>
+            <div className="sticky top-0 flex items-center justify-between p-6" style={{ background: "#0F172A" }}>
               <h2 className="text-xl font-bold text-white">
                 {editingCampagna ? "Modifica Campagna" : "Nuova Campagna"}
               </h2>
@@ -1018,7 +1018,7 @@ function CampagneSection() {
 
               {editingCampagna && (
                 <div className="p-4 rounded-xl" style={{ background: "#FAFAF7" }}>
-                  <h4 className="font-medium mb-3" style={{ color: "#1E2128" }}>Risultati</h4>
+                  <h4 className="font-medium mb-3" style={{ color: "#0F172A" }}>Risultati</h4>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs" style={{ color: "#9CA3AF" }}>Impression</label>
@@ -1093,7 +1093,7 @@ function CampagneSection() {
                 onClick={saveCampagna}
                 disabled={saving || !formData.nome_campagna}
                 className="w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold disabled:opacity-50"
-                style={{ background: "#FFD24D", color: "#1E2128" }}
+                style={{ background: "#FFD24D", color: "#0F172A" }}
               >
                 {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                 {editingCampagna ? "Salva Modifiche" : "Crea Campagna"}
@@ -1145,7 +1145,7 @@ export function DashboardOperations({ user, onLogout }) {
         <div className="sticky top-0 z-40 px-8 py-6" style={{ background: "#FFFFFF", borderBottom: "1px solid #ECEDEF" }}>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold" style={{ color: "#1E2128" }}>
+              <h1 className="text-2xl font-bold" style={{ color: "#0F172A" }}>
                 Ciao Antonella 👋
               </h1>
               <p className="text-sm capitalize" style={{ color: "#5F6572" }}>{oggi}</p>
@@ -1304,7 +1304,7 @@ function LeadDiscoverySection() {
               <Zap className="w-5 h-5" style={{ color: "#22C55E" }} />
             </div>
             <div>
-              <div className="text-2xl font-bold" style={{ color: "#1E2128" }}>{stats?.today?.discovered || 0}</div>
+              <div className="text-2xl font-bold" style={{ color: "#0F172A" }}>{stats?.today?.discovered || 0}</div>
               <div className="text-xs" style={{ color: "#9CA3AF" }}>Scoperti oggi</div>
             </div>
           </div>
@@ -1316,7 +1316,7 @@ function LeadDiscoverySection() {
               <Inbox className="w-5 h-5" style={{ color: "#3B82F6" }} />
             </div>
             <div>
-              <div className="text-2xl font-bold" style={{ color: "#1E2128" }}>{stats?.pending_actions?.messages_to_review || 0}</div>
+              <div className="text-2xl font-bold" style={{ color: "#0F172A" }}>{stats?.pending_actions?.messages_to_review || 0}</div>
               <div className="text-xs" style={{ color: "#9CA3AF" }}>Da approvare</div>
             </div>
           </div>
@@ -1328,7 +1328,7 @@ function LeadDiscoverySection() {
               <Send className="w-5 h-5" style={{ color: "#FFD24D" }} />
             </div>
             <div>
-              <div className="text-2xl font-bold" style={{ color: "#1E2128" }}>{stats?.today?.messages_sent || 0}</div>
+              <div className="text-2xl font-bold" style={{ color: "#0F172A" }}>{stats?.today?.messages_sent || 0}</div>
               <div className="text-xs" style={{ color: "#9CA3AF" }}>Inviati oggi</div>
             </div>
           </div>
@@ -1340,7 +1340,7 @@ function LeadDiscoverySection() {
               <ThumbsUp className="w-5 h-5" style={{ color: "#10B981" }} />
             </div>
             <div>
-              <div className="text-2xl font-bold" style={{ color: "#1E2128" }}>{stats?.today?.positive_responses || 0}</div>
+              <div className="text-2xl font-bold" style={{ color: "#0F172A" }}>{stats?.today?.positive_responses || 0}</div>
               <div className="text-xs" style={{ color: "#9CA3AF" }}>Risposte positive</div>
             </div>
           </div>
@@ -1358,7 +1358,7 @@ function LeadDiscoverySection() {
             <button
               key={f.id}
               onClick={() => setFilter(f.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === f.id ? "bg-[#1E2128] text-white" : "bg-[#ECEDEF] text-[#5F6572] hover:bg-[#E5E7EB]"}`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === f.id ? "bg-[#0F172A] text-white" : "bg-[#ECEDEF] text-[#5F6572] hover:bg-[#E5E7EB]"}`}
             >
               {f.label}
             </button>
@@ -1399,11 +1399,11 @@ function LeadDiscoverySection() {
               <tr key={lead.id} className="border-t hover:bg-[#FAFAF7] cursor-pointer" style={{ borderColor: "#ECEDEF" }} onClick={() => setSelectedLead(lead)}>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style={{ background: "#1E2128" }}>
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style={{ background: "#0F172A" }}>
                       {lead.display_name?.charAt(0) || "?"}
                     </div>
                     <div>
-                      <div className="font-medium text-sm" style={{ color: "#1E2128" }}>{lead.display_name}</div>
+                      <div className="font-medium text-sm" style={{ color: "#0F172A" }}>{lead.display_name}</div>
                       <div className="text-xs" style={{ color: "#9CA3AF" }}>@{lead.platform_username}</div>
                     </div>
                   </div>
@@ -1466,11 +1466,11 @@ function LeadDiscoverySection() {
             <div className="p-6 border-b" style={{ borderColor: "#ECEDEF" }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold" style={{ background: "#1E2128" }}>
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold" style={{ background: "#0F172A" }}>
                     {selectedLead.display_name?.charAt(0)}
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold" style={{ color: "#1E2128" }}>{selectedLead.display_name}</h2>
+                    <h2 className="text-xl font-bold" style={{ color: "#0F172A" }}>{selectedLead.display_name}</h2>
                     <p className="text-sm" style={{ color: "#9CA3AF" }}>@{selectedLead.platform_username} · {selectedLead.source}</p>
                   </div>
                 </div>
@@ -1487,7 +1487,7 @@ function LeadDiscoverySection() {
                   {selectedLead.score_total || 0}
                 </div>
                 <div>
-                  <div className="text-sm font-bold" style={{ color: "#1E2128" }}>Score Totale</div>
+                  <div className="text-sm font-bold" style={{ color: "#0F172A" }}>Score Totale</div>
                   <div className="text-xs" style={{ color: "#9CA3AF" }}>
                     Audience: {selectedLead.score_breakdown?.audience_size || 0} | 
                     Engagement: {selectedLead.score_breakdown?.engagement_rate || 0} |
@@ -1500,7 +1500,7 @@ function LeadDiscoverySection() {
               {selectedLead.bio && (
                 <div>
                   <label className="text-xs font-bold" style={{ color: "#5F6572" }}>BIO</label>
-                  <p className="text-sm mt-1" style={{ color: "#1E2128" }}>{selectedLead.bio}</p>
+                  <p className="text-sm mt-1" style={{ color: "#0F172A" }}>{selectedLead.bio}</p>
                 </div>
               )}
 
@@ -1509,7 +1509,7 @@ function LeadDiscoverySection() {
                 <div>
                   <label className="text-xs font-bold" style={{ color: "#5F6572" }}>MESSAGGIO OUTREACH</label>
                   <div className="mt-2 p-4 rounded-xl" style={{ background: "#F0FDF4", border: "1px solid #22C55E30" }}>
-                    <p className="text-sm whitespace-pre-wrap" style={{ color: "#1E2128" }}>{selectedLead.outreach_message}</p>
+                    <p className="text-sm whitespace-pre-wrap" style={{ color: "#0F172A" }}>{selectedLead.outreach_message}</p>
                   </div>
                   <div className="flex items-center gap-2 mt-2">
                     <span className="px-2 py-1 rounded text-xs" style={{ background: "#E5E7EB", color: "#374151" }}>

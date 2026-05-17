@@ -141,7 +141,7 @@ export function PosizionamentoPage({ partner, onNavigate, onComplete, isAdmin })
 
         {/* HERO */}
         <div className="mb-8" data-testid="posizionamento-hero">
-          <h1 className="text-3xl font-black mb-3" style={{ color: "#1E2128" }}>
+          <h1 className="text-3xl font-black mb-3" style={{ color: "#0F172A" }}>
             Costruiamo il tuo Posizionamento
           </h1>
           <p className="text-base leading-relaxed" style={{ color: "#5F6572" }}>
@@ -177,15 +177,15 @@ export function PosizionamentoPage({ partner, onNavigate, onComplete, isAdmin })
               <>
                 {positioningOutput && (
                   <div className="mb-6">
-                    <h2 className="text-xl font-black mb-4" style={{ color: "#1E2128" }}>Il tuo posizionamento</h2>
+                    <h2 className="text-xl font-black mb-4" style={{ color: "#0F172A" }}>Il tuo posizionamento</h2>
                     {OUTPUT_SECTIONS.filter(s => s.key !== "posizionamento_finale").map(s => (
                       <div key={s.key} className="bg-white rounded-xl border p-5 mb-3" style={{ borderColor: "#ECEDEF" }}>
                         <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#9CA3AF" }}>{s.label}</div>
-                        <p className="text-sm leading-relaxed" style={{ color: "#1E2128" }}>{positioningOutput[s.key]}</p>
+                        <p className="text-sm leading-relaxed" style={{ color: "#0F172A" }}>{positioningOutput[s.key]}</p>
                       </div>
                     ))}
                     {positioningOutput.posizionamento_finale && (
-                      <div className="rounded-xl p-5 mt-4" style={{ background: "#1E2128" }}>
+                      <div className="rounded-xl p-5 mt-4" style={{ background: "#0F172A" }}>
                         <div className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "#FFD24D" }}>Posizionamento finale</div>
                         <p className="text-lg font-black leading-relaxed text-white">{positioningOutput.posizionamento_finale}</p>
                       </div>
@@ -201,21 +201,21 @@ export function PosizionamentoPage({ partner, onNavigate, onComplete, isAdmin })
                   <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "#34C77B20" }}>
                     <Check className="w-5 h-5" style={{ color: "#34C77B" }} />
                   </div>
-                  <h2 className="text-xl font-black" style={{ color: "#1E2128" }}>Il tuo posizionamento è pronto</h2>
+                  <h2 className="text-xl font-black" style={{ color: "#0F172A" }}>Il tuo posizionamento è pronto</h2>
                 </div>
 
                 {OUTPUT_SECTIONS.filter(s => s.key !== "posizionamento_finale").map(s => (
                   <div key={s.key} className="bg-white rounded-xl border p-5 mb-3" data-testid={`output-${s.key}`}
                        style={{ borderColor: "#ECEDEF" }}>
                     <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#9CA3AF" }}>{s.label}</div>
-                    <p className="text-sm leading-relaxed" style={{ color: "#1E2128" }}>{positioningOutput[s.key]}</p>
+                    <p className="text-sm leading-relaxed" style={{ color: "#0F172A" }}>{positioningOutput[s.key]}</p>
                   </div>
                 ))}
 
                 {/* KEY PHRASE - highlighted */}
                 {positioningOutput.posizionamento_finale && (
                   <div className="rounded-xl p-6 mt-4 mb-6 relative" data-testid="posizionamento-finale-phrase"
-                       style={{ background: "#1E2128" }}>
+                       style={{ background: "#0F172A" }}>
                     <div className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "#FFD24D" }}>
                       Posizionamento finale
                     </div>
@@ -249,7 +249,7 @@ export function PosizionamentoPage({ partner, onNavigate, onComplete, isAdmin })
             ) : (
               /* INPUT SECTION */
               <div data-testid="posizionamento-input-section">
-                <h2 className="text-lg font-black mb-4" style={{ color: "#1E2128" }}>
+                <h2 className="text-lg font-black mb-4" style={{ color: "#0F172A" }}>
                   Rispondi a queste domande
                 </h2>
 
@@ -259,10 +259,10 @@ export function PosizionamentoPage({ partner, onNavigate, onComplete, isAdmin })
                       <label className="flex items-start gap-3 mb-3">
                         <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5"
                               style={{ background: inputs[field.key]?.length >= 10 ? "#34C77B" : "#FFD24D",
-                                       color: inputs[field.key]?.length >= 10 ? "white" : "#1E2128" }}>
+                                       color: inputs[field.key]?.length >= 10 ? "white" : "#0F172A" }}>
                           {inputs[field.key]?.length >= 10 ? <Check className="w-3.5 h-3.5" /> : idx + 1}
                         </span>
-                        <span className="text-sm font-bold" style={{ color: "#1E2128" }}>{field.label}</span>
+                        <span className="text-sm font-bold" style={{ color: "#0F172A" }}>{field.label}</span>
                       </label>
                       <textarea
                         value={inputs[field.key] || ""}
@@ -271,7 +271,7 @@ export function PosizionamentoPage({ partner, onNavigate, onComplete, isAdmin })
                         rows={3}
                         data-testid={`input-${field.key}`}
                         className="w-full p-4 rounded-xl border resize-none text-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#FFD24D] focus:border-transparent"
-                        style={{ background: "#FAFAF7", borderColor: "#ECEDEF", color: "#1E2128" }}
+                        style={{ background: "#FAFAF7", borderColor: "#ECEDEF", color: "#0F172A" }}
                       />
                     </div>
                   ))}
@@ -285,7 +285,7 @@ export function PosizionamentoPage({ partner, onNavigate, onComplete, isAdmin })
                   className={`w-full flex items-center justify-center gap-3 px-8 py-5 rounded-xl font-black text-lg transition-all ${
                     (isAdmin || allFieldsFilled) && !isGenerating ? "hover:scale-[1.02]" : "opacity-50 cursor-not-allowed"
                   }`}
-                  style={{ background: "#FFD24D", color: "#1E2128" }}>
+                  style={{ background: "#FFD24D", color: "#0F172A" }}>
                   {isGenerating ? (
                     <><Loader2 className="w-6 h-6 animate-spin" /> Generazione in corso...</>
                   ) : (

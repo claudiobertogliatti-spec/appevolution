@@ -158,7 +158,7 @@ export function PartnerFilesPage({ partner }) {
           <FolderOpen className="w-4 h-4" />
           I Miei File
         </div>
-        <h1 className="text-2xl font-bold text-[#1E2128] mb-2">
+        <h1 className="text-2xl font-bold text-[#0F172A] mb-2">
           Tutti i tuoi <span style={{ color: '#FFD24D' }}>Materiali</span>
         </h1>
         <p className="text-sm text-[#9CA3AF] max-w-lg mx-auto">
@@ -168,7 +168,7 @@ export function PartnerFilesPage({ partner }) {
 
       {/* Upload Section */}
       <div className="bg-white rounded-2xl border border-[#ECEDEF] p-6">
-        <h3 className="font-bold text-[#1E2128] mb-4 flex items-center gap-2">
+        <h3 className="font-bold text-[#0F172A] mb-4 flex items-center gap-2">
           <Upload className="w-5 h-5 text-[#FFD24D]"/>
           Carica nuovi file
         </h3>
@@ -184,7 +184,7 @@ export function PartnerFilesPage({ partner }) {
                  input.click();
                }}>
             <FileVideo className="w-6 h-6 text-red-500 mx-auto mb-2"/>
-            <div className="font-bold text-xs text-[#1E2128]">Video</div>
+            <div className="font-bold text-xs text-[#0F172A]">Video</div>
             <div className="text-[10px] text-[#9CA3AF]">MP4, MOV, AVI...</div>
           </div>
           
@@ -193,7 +193,7 @@ export function PartnerFilesPage({ partner }) {
                onClick={() => docInputRef.current?.click()}>
             <input ref={docInputRef} type="file" accept=".pdf,.docx,.doc,.xlsx" onChange={(e) => handleDocUpload(e, "document")} className="hidden"/>
             <FileText className="w-6 h-6 text-blue-500 mx-auto mb-2"/>
-            <div className="font-bold text-xs text-[#1E2128]">Documenti PDF</div>
+            <div className="font-bold text-xs text-[#0F172A]">Documenti PDF</div>
             <div className="text-[10px] text-[#9CA3AF]">PDF, DOCX, XLSX</div>
           </div>
           
@@ -207,7 +207,7 @@ export function PartnerFilesPage({ partner }) {
                  input.click();
                }}>
             <FileAudio className="w-6 h-6 text-purple-500 mx-auto mb-2"/>
-            <div className="font-bold text-xs text-[#1E2128]">Audio</div>
+            <div className="font-bold text-xs text-[#0F172A]">Audio</div>
             <div className="text-[10px] text-[#9CA3AF]">MP3, WAV</div>
           </div>
           
@@ -221,7 +221,7 @@ export function PartnerFilesPage({ partner }) {
                  input.click();
                }}>
             <Image className="w-6 h-6 text-pink-500 mx-auto mb-2"/>
-            <div className="font-bold text-xs text-[#1E2128]">Immagini</div>
+            <div className="font-bold text-xs text-[#0F172A]">Immagini</div>
             <div className="text-[10px] text-[#9CA3AF]">JPG, PNG</div>
           </div>
         </div>
@@ -275,7 +275,7 @@ export function PartnerFilesPage({ partner }) {
         <div className="bg-white rounded-2xl border border-[#ECEDEF] overflow-hidden">
           <div className="px-6 py-4 border-b border-[#ECEDEF] flex items-center gap-2">
             <FolderOpen className="w-5 h-5 text-[#FFD24D]"/>
-            <span className="font-bold text-[#1E2128]">
+            <span className="font-bold text-[#0F172A]">
               {activeCategory === "all" ? "Tutti i File" : FILE_CATEGORIES[activeCategory]?.label}
             </span>
             <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full bg-[#FEF9E7] text-[#C4990A]">
@@ -293,7 +293,7 @@ export function PartnerFilesPage({ partner }) {
                     <Icon className="w-5 h-5" style={{ color: config.color }}/>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm text-[#1E2128] truncate">
+                    <div className="font-semibold text-sm text-[#0F172A] truncate">
                       {f.original_name || f.filename || f.document_type?.replace(/_/g, ' ')}
                     </div>
                     <div className="text-xs text-[#9CA3AF]">
@@ -333,7 +333,7 @@ export function PartnerFilesPage({ partner }) {
       {allFiles.length === 0 && (
         <div className="bg-white rounded-2xl border border-[#ECEDEF] p-12 text-center">
           <FolderOpen className="w-16 h-16 text-[#9CA3AF] mx-auto mb-4"/>
-          <h3 className="font-bold text-lg text-[#1E2128] mb-2">Nessun file caricato</h3>
+          <h3 className="font-bold text-lg text-[#0F172A] mb-2">Nessun file caricato</h3>
           <p className="text-sm text-[#9CA3AF] mb-4">
             Qui appariranno tutti i tuoi file: script, posizionamento, video, documenti e distinte di pagamento.
           </p>

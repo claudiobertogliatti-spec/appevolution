@@ -115,7 +115,7 @@ function DistributionCard({ dist, onUpdateStatus }) {
           <SIcon className="w-5 h-5" style={{ color: status.color }} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-black truncate" style={{ color: "#1E2128" }}>{dist.partner_name}</p>
+          <p className="text-sm font-black truncate" style={{ color: "#0F172A" }}>{dist.partner_name}</p>
           <p className="text-xs" style={{ color: "#9CA3AF" }}>{dist.template_name}</p>
         </div>
         <span className="text-[10px] font-bold px-2.5 py-1 rounded-full flex-shrink-0"
@@ -186,7 +186,7 @@ function DistributionCard({ dist, onUpdateStatus }) {
                       style={{
                         background: (dist.systeme_subdomain && !dist.live_url) ? "#F0FDF4" : "#FAFAF7",
                         border: `1px solid ${(dist.systeme_subdomain && !dist.live_url) ? "#BBF7D0" : "#ECEDEF"}`,
-                        color: "#1E2128"
+                        color: "#0F172A"
                       }}
                       data-testid="live-url-input"
                     />
@@ -199,14 +199,14 @@ function DistributionCard({ dist, onUpdateStatus }) {
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Note (opzionale)"
                   className="w-full px-4 py-2.5 rounded-xl text-sm"
-                  style={{ background: "#FAFAF7", border: "1px solid #ECEDEF", color: "#1E2128" }}
+                  style={{ background: "#FAFAF7", border: "1px solid #ECEDEF", color: "#0F172A" }}
                 />
 
                 <button
                   onClick={handleAdvance}
                   disabled={updating || ((dist.status === "personalizzato" || dist.status === "live") && !liveUrl)}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-black text-sm transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
-                  style={{ background: nextInfo?.color || "#1E2128", color: "white" }}
+                  style={{ background: nextInfo?.color || "#0F172A", color: "white" }}
                   data-testid="advance-status-btn"
                 >
                   {updating ? (
@@ -267,7 +267,7 @@ function AssignPanel({ templates, partners, onAssign, isAssigning }) {
           <Package className="w-5 h-5" style={{ color: "#FFD24D" }} />
         </div>
         <div>
-          <h2 className="text-base font-black" style={{ color: "#1E2128" }}>Assegna funnel</h2>
+          <h2 className="text-base font-black" style={{ color: "#0F172A" }}>Assegna funnel</h2>
           <p className="text-xs" style={{ color: "#9CA3AF" }}>Scegli partner e template da distribuire</p>
         </div>
       </div>
@@ -277,7 +277,7 @@ function AssignPanel({ templates, partners, onAssign, isAssigning }) {
           value={selectedPartner}
           onChange={(e) => setSelectedPartner(e.target.value)}
           className="w-full px-4 py-3 rounded-xl text-sm"
-          style={{ background: "#FAFAF7", border: "1px solid #ECEDEF", color: "#1E2128" }}
+          style={{ background: "#FAFAF7", border: "1px solid #ECEDEF", color: "#0F172A" }}
           data-testid="select-partner"
         >
           <option value="">Seleziona partner...</option>
@@ -290,7 +290,7 @@ function AssignPanel({ templates, partners, onAssign, isAssigning }) {
           value={selectedTemplate}
           onChange={(e) => setSelectedTemplate(e.target.value)}
           className="w-full px-4 py-3 rounded-xl text-sm"
-          style={{ background: "#FAFAF7", border: "1px solid #ECEDEF", color: "#1E2128" }}
+          style={{ background: "#FAFAF7", border: "1px solid #ECEDEF", color: "#0F172A" }}
           data-testid="select-template"
         >
           <option value="">Seleziona template...</option>
@@ -305,14 +305,14 @@ function AssignPanel({ templates, partners, onAssign, isAssigning }) {
           onChange={(e) => setAssignNotes(e.target.value)}
           placeholder="Note (opzionale)"
           className="w-full px-4 py-2.5 rounded-xl text-sm"
-          style={{ background: "#FAFAF7", border: "1px solid #ECEDEF", color: "#1E2128" }}
+          style={{ background: "#FAFAF7", border: "1px solid #ECEDEF", color: "#0F172A" }}
         />
 
         <button
           onClick={handleSubmit}
           disabled={!selectedPartner || !selectedTemplate || isAssigning}
           className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-black text-sm transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
-          style={{ background: "#FFD24D", color: "#1E2128" }}
+          style={{ background: "#FFD24D", color: "#0F172A" }}
           data-testid="assign-btn"
         >
           {isAssigning ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Package className="w-4 h-4" /> Assegna funnel</>}
@@ -395,7 +395,7 @@ export function FunnelDistribution() {
 
         {/* HERO */}
         <div className="mb-6" data-testid="funnel-distribution-hero">
-          <h1 className="text-3xl font-black mb-1" style={{ color: "#1E2128" }}>Distribuzione Funnel</h1>
+          <h1 className="text-3xl font-black mb-1" style={{ color: "#0F172A" }}>Distribuzione Funnel</h1>
           <p className="text-sm" style={{ color: "#9CA3AF" }}>
             Importa, personalizza e consegna funnel ai partner tramite Systeme.io
           </p>
@@ -412,7 +412,7 @@ export function FunnelDistribution() {
             <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#9CA3AF" }}>Consegnati</p>
           </div>
           <div className="bg-white rounded-2xl p-4 text-center" style={{ border: "1px solid #ECEDEF" }}>
-            <p className="text-2xl font-black" style={{ color: "#1E2128" }}>{templates.length}</p>
+            <p className="text-2xl font-black" style={{ color: "#0F172A" }}>{templates.length}</p>
             <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#9CA3AF" }}>Template</p>
           </div>
         </div>
@@ -448,13 +448,13 @@ export function FunnelDistribution() {
               {filter === "pending" ? (
                 <>
                   <Package className="w-10 h-10 mx-auto mb-3" style={{ color: "#9CA3AF" }} />
-                  <p className="text-sm font-bold" style={{ color: "#1E2128" }}>Nessun funnel in lavorazione</p>
+                  <p className="text-sm font-bold" style={{ color: "#0F172A" }}>Nessun funnel in lavorazione</p>
                   <p className="text-xs mt-1" style={{ color: "#9CA3AF" }}>Assegna un template a un partner per iniziare</p>
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="w-10 h-10 mx-auto mb-3" style={{ color: "#34C77B" }} />
-                  <p className="text-sm font-bold" style={{ color: "#1E2128" }}>Nessun funnel consegnato</p>
+                  <p className="text-sm font-bold" style={{ color: "#0F172A" }}>Nessun funnel consegnato</p>
                 </>
               )}
             </div>

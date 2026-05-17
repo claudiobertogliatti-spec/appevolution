@@ -123,7 +123,7 @@ function DocumentCard({ docType, config, docData, partnerId, onRefresh }) {
               <Icon className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-[#1E2128]">{config.label}</h3>
+              <h3 className="font-bold text-sm text-[#0F172A]">{config.label}</h3>
               <p className="text-xs text-[#9CA3AF]">
                 {config.formats.map(f => f.toUpperCase()).join(", ")} — max 10MB
               </p>
@@ -145,7 +145,7 @@ function DocumentCard({ docType, config, docData, partnerId, onRefresh }) {
             <div className="flex items-center gap-3">
               <FileText className="w-8 h-8 text-[#FFD24D]" />
               <div>
-                <div className="font-semibold text-sm text-[#1E2128] truncate max-w-[220px]">
+                <div className="font-semibold text-sm text-[#0F172A] truncate max-w-[220px]">
                   {docData.original_name || "Documento"}
                 </div>
                 <div className="text-xs text-[#9CA3AF]">
@@ -282,7 +282,7 @@ export function OnboardingDocuments({ partner, onComplete }) {
       <div className="bg-white rounded-xl border border-[#ECEDEF] p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-xl font-bold text-[#1E2128]">Documenti di Onboarding</h2>
+            <h2 className="text-xl font-bold text-[#0F172A]">Documenti di Onboarding</h2>
             <p className="text-sm text-[#9CA3AF] mt-1">
               Carica i documenti richiesti per completare la registrazione
             </p>
@@ -346,7 +346,7 @@ export function OnboardingDocuments({ partner, onComplete }) {
             onClick={handleSubmitReview}
             disabled={submitting}
             className="inline-flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-bold transition-all hover:scale-105 disabled:opacity-50"
-            style={{ background: '#FFD24D', color: '#1E2128' }}
+            style={{ background: '#FFD24D', color: '#0F172A' }}
             data-testid="btn-submit-review"
           >
             {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
@@ -356,7 +356,7 @@ export function OnboardingDocuments({ partner, onComplete }) {
       )}
 
       {/* Help */}
-      <div className="bg-[#1E2128] rounded-xl p-5 text-white">
+      <div className="bg-[#0F172A] rounded-xl p-5 text-white">
         <h3 className="font-bold text-[#FFD24D] mb-2">Hai bisogno di aiuto?</h3>
         <p className="text-sm text-white/80 mb-3">
           Se hai dubbi sui documenti da caricare o problemi tecnici, contatta il supporto.

@@ -43,7 +43,7 @@ function StatCard({ icon: Icon, value, label, color, trend }) {
           </span>
         )}
       </div>
-      <div className="text-2xl font-black" style={{ color: '#1E2128' }}>{value}</div>
+      <div className="text-2xl font-black" style={{ color: '#0F172A' }}>{value}</div>
       <div className="text-xs" style={{ color: '#9CA3AF' }}>{label}</div>
     </div>
   );
@@ -62,7 +62,7 @@ function WebhookLogItem({ log }) {
       
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <span className="font-bold text-sm" style={{ color: '#1E2128' }}>{config.label}</span>
+          <span className="font-bold text-sm" style={{ color: '#0F172A' }}>{config.label}</span>
           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
             log.processed 
               ? 'bg-green-100 text-green-600' 
@@ -126,7 +126,7 @@ export function WebhookDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-extrabold flex items-center gap-2" style={{ color: '#1E2128' }}>
+          <h1 className="text-xl font-extrabold flex items-center gap-2" style={{ color: '#0F172A' }}>
             <Webhook className="w-6 h-6" style={{ color: '#FFD24D' }} />
             Webhooks Systeme.io
           </h1>
@@ -138,7 +138,7 @@ export function WebhookDashboard() {
           onClick={loadData}
           disabled={loading}
           className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all hover:scale-105"
-          style={{ background: '#FFD24D', color: '#1E2128' }}
+          style={{ background: '#FFD24D', color: '#0F172A' }}
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           Aggiorna
@@ -152,14 +152,14 @@ export function WebhookDashboard() {
             <div className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: '#C4990A' }}>
               URL Webhook da configurare su Systeme.io
             </div>
-            <code className="text-sm font-mono" style={{ color: '#1E2128' }}>
+            <code className="text-sm font-mono" style={{ color: '#0F172A' }}>
               {webhookUrl}
             </code>
           </div>
           <button 
             onClick={() => navigator.clipboard.writeText(webhookUrl)}
             className="px-3 py-1.5 rounded-lg text-xs font-bold"
-            style={{ background: '#FFD24D', color: '#1E2128' }}
+            style={{ background: '#FFD24D', color: '#0F172A' }}
           >
             Copia
           </button>
@@ -198,7 +198,7 @@ export function WebhookDashboard() {
       <div className="rounded-xl border overflow-hidden" style={{ background: 'white', borderColor: '#ECEDEF' }}>
           {/* Filter */}
           <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: '#ECEDEF' }}>
-            <span className="text-sm font-bold" style={{ color: '#1E2128' }}>
+            <span className="text-sm font-bold" style={{ color: '#0F172A' }}>
               {filteredLogs.length} eventi
             </span>
             <div className="relative">
@@ -242,33 +242,33 @@ export function WebhookDashboard() {
 
       {/* Quick Actions */}
       <div className="rounded-xl p-5 border" style={{ background: '#FAFAF7', borderColor: '#ECEDEF' }}>
-        <h3 className="font-bold mb-3" style={{ color: '#1E2128' }}>Automazioni Attive</h3>
+        <h3 className="font-bold mb-3" style={{ color: '#0F172A' }}>Automazioni Attive</h3>
         <div className="grid grid-cols-2 gap-3">
           <div className="flex items-center gap-3 p-3 rounded-lg border" style={{ background: 'white', borderColor: '#ECEDEF' }}>
             <CheckCircle className="w-5 h-5 text-green-500" />
             <div>
-              <div className="text-sm font-bold" style={{ color: '#1E2128' }}>Auto-Onboarding</div>
+              <div className="text-sm font-bold" style={{ color: '#0F172A' }}>Auto-Onboarding</div>
               <div className="text-xs" style={{ color: '#9CA3AF' }}>Crea partner su nuova vendita</div>
             </div>
           </div>
           <div className="flex items-center gap-3 p-3 rounded-lg border" style={{ background: 'white', borderColor: '#ECEDEF' }}>
             <CheckCircle className="w-5 h-5 text-green-500" />
             <div>
-              <div className="text-sm font-bold" style={{ color: '#1E2128' }}>Sync Systeme.io</div>
+              <div className="text-sm font-bold" style={{ color: '#0F172A' }}>Sync Systeme.io</div>
               <div className="text-xs" style={{ color: '#9CA3AF' }}>Dati in tempo reale</div>
             </div>
           </div>
           <div className="flex items-center gap-3 p-3 rounded-lg border" style={{ background: 'white', borderColor: '#ECEDEF' }}>
             <CheckCircle className="w-5 h-5 text-green-500" />
             <div>
-              <div className="text-sm font-bold" style={{ color: '#1E2128' }}>Auto-Progressione Fasi</div>
+              <div className="text-sm font-bold" style={{ color: '#0F172A' }}>Auto-Progressione Fasi</div>
               <div className="text-xs" style={{ color: '#9CA3AF' }}>Avanza fase con tag</div>
             </div>
           </div>
           <div className="flex items-center gap-3 p-3 rounded-lg border" style={{ background: 'white', borderColor: '#ECEDEF' }}>
             <CheckCircle className="w-5 h-5 text-green-500" />
             <div>
-              <div className="text-sm font-bold" style={{ color: '#1E2128' }}>Sync Clienti</div>
+              <div className="text-sm font-bold" style={{ color: '#0F172A' }}>Sync Clienti</div>
               <div className="text-xs" style={{ color: '#9CA3AF' }}>Aggiorna stats partner</div>
             </div>
           </div>

@@ -83,13 +83,13 @@ export function AnalisiStrategicaLanding({ onRegisterSuccess }) {
           <div className="lg:pr-8">
             {/* Logo */}
             <div className="mb-8">
-              <span className="text-2xl font-black" style={{ color: '#1E2128' }}>
+              <span className="text-2xl font-black" style={{ color: '#0F172A' }}>
                 EVOLUTION <span style={{ color: '#FFD24D' }}>PRO</span>
               </span>
             </div>
 
             {/* Headline */}
-            <h1 className="text-4xl lg:text-5xl font-black leading-tight mb-6" style={{ color: '#1E2128' }}>
+            <h1 className="text-4xl lg:text-5xl font-black leading-tight mb-6" style={{ color: '#0F172A' }}>
               Scopri se la tua competenza può diventare un'
               <span style={{ color: '#FFD24D' }}>Accademia Digitale</span> che vende davvero
             </h1>
@@ -104,13 +104,13 @@ export function AnalisiStrategicaLanding({ onRegisterSuccess }) {
               {benefits.map((benefit, idx) => (
                 <div key={idx} className="flex items-start gap-3">
                   <CheckCircle className="w-6 h-6 flex-shrink-0 mt-0.5" style={{ color: '#10B981' }} />
-                  <span className="text-lg" style={{ color: '#1E2128' }}>{benefit}</span>
+                  <span className="text-lg" style={{ color: '#0F172A' }}>{benefit}</span>
                 </div>
               ))}
             </div>
 
             {/* Price Badge */}
-            <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full" style={{ background: '#1E2128' }}>
+            <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full" style={{ background: '#0F172A' }}>
               <span className="text-white">Investimento:</span>
               <span className="text-2xl font-black" style={{ color: '#FFD24D' }}>€67</span>
               <span className="text-white/60 text-sm">una tantum</span>
@@ -120,7 +120,7 @@ export function AnalisiStrategicaLanding({ onRegisterSuccess }) {
           {/* DESTRA - Form Registrazione */}
           <div className="lg:pl-8">
             <div className="rounded-2xl p-8 shadow-xl" style={{ background: '#FFFFFF', border: '2px solid #ECEDEF' }}>
-              <h2 className="text-2xl font-bold mb-2" style={{ color: '#1E2128' }}>
+              <h2 className="text-2xl font-bold mb-2" style={{ color: '#0F172A' }}>
                 Crea il tuo account Evolution PRO
               </h2>
               <p className="text-sm mb-6" style={{ color: '#5F6572' }}>
@@ -130,7 +130,7 @@ export function AnalisiStrategicaLanding({ onRegisterSuccess }) {
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Nome */}
                 <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: '#1E2128' }}>Nome</label>
+                  <label className="block text-sm font-medium mb-1" style={{ color: '#0F172A' }}>Nome</label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: '#9CA3AF' }} />
                     <input
@@ -147,7 +147,7 @@ export function AnalisiStrategicaLanding({ onRegisterSuccess }) {
 
                 {/* Cognome */}
                 <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: '#1E2128' }}>Cognome</label>
+                  <label className="block text-sm font-medium mb-1" style={{ color: '#0F172A' }}>Cognome</label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: '#9CA3AF' }} />
                     <input
@@ -164,7 +164,7 @@ export function AnalisiStrategicaLanding({ onRegisterSuccess }) {
 
                 {/* Telefono */}
                 <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: '#1E2128' }}>Telefono</label>
+                  <label className="block text-sm font-medium mb-1" style={{ color: '#0F172A' }}>Telefono</label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: '#9CA3AF' }} />
                     <input
@@ -181,7 +181,7 @@ export function AnalisiStrategicaLanding({ onRegisterSuccess }) {
 
                 {/* Email */}
                 <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: '#1E2128' }}>Email</label>
+                  <label className="block text-sm font-medium mb-1" style={{ color: '#0F172A' }}>Email</label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: '#9CA3AF' }} />
                     <input
@@ -198,7 +198,7 @@ export function AnalisiStrategicaLanding({ onRegisterSuccess }) {
 
                 {/* Password */}
                 <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: '#1E2128' }}>Password</label>
+                  <label className="block text-sm font-medium mb-1" style={{ color: '#0F172A' }}>Password</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: '#9CA3AF' }} />
                     <input
@@ -236,7 +236,7 @@ export function AnalisiStrategicaLanding({ onRegisterSuccess }) {
                   type="submit"
                   disabled={!isFormValid() || loading}
                   className="w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
-                  style={{ background: '#FFD24D', color: '#1E2128' }}
+                  style={{ background: '#FFD24D', color: '#0F172A' }}
                   data-testid="register-btn"
                 >
                   {loading ? (

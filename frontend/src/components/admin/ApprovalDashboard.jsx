@@ -189,7 +189,7 @@ const ApprovalDashboard = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: '#1E2128' }}>Approvazioni</h1>
+          <h1 className="text-2xl font-bold" style={{ color: '#0F172A' }}>Approvazioni</h1>
           <p className="text-sm" style={{ color: '#9CA3AF' }}>Revisiona e approva gli output degli agenti AI</p>
         </div>
         <button 
@@ -228,7 +228,7 @@ const ApprovalDashboard = () => {
                 </div>
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="font-bold text-sm" style={{ color: '#1E2128' }}>
+                  <div className="font-bold text-sm" style={{ color: '#0F172A' }}>
                     {b.prospect_nome || 'Nome non disponibile'}
                   </div>
                   <div className="text-xs" style={{ color: '#6B7280' }}>{b.prospect_email}</div>
@@ -274,7 +274,7 @@ const ApprovalDashboard = () => {
             <Clock className="w-5 h-5" />
             <span className="text-sm font-medium">In Attesa</span>
           </div>
-          <span className="text-3xl font-bold" style={{ color: '#1E2128' }}>{stats.pending}</span>
+          <span className="text-3xl font-bold" style={{ color: '#0F172A' }}>{stats.pending}</span>
         </div>
         
         <div className="bg-white rounded-xl p-4 shadow-sm" style={{ border: '1px solid #ECEDEF', borderTop: '3px solid #10B981' }}>
@@ -282,7 +282,7 @@ const ApprovalDashboard = () => {
             <CheckCircle className="w-5 h-5" />
             <span className="text-sm font-medium">Approvati Oggi</span>
           </div>
-          <span className="text-3xl font-bold" style={{ color: '#1E2128' }}>{stats.approved_today}</span>
+          <span className="text-3xl font-bold" style={{ color: '#0F172A' }}>{stats.approved_today}</span>
         </div>
         
         <div className="bg-white rounded-xl p-4 shadow-sm" style={{ border: '1px solid #ECEDEF', borderTop: '3px solid #EF4444' }}>
@@ -290,7 +290,7 @@ const ApprovalDashboard = () => {
             <XCircle className="w-5 h-5" />
             <span className="text-sm font-medium">Rifiutati Oggi</span>
           </div>
-          <span className="text-3xl font-bold" style={{ color: '#1E2128' }}>{stats.rejected_today}</span>
+          <span className="text-3xl font-bold" style={{ color: '#0F172A' }}>{stats.rejected_today}</span>
         </div>
         
         <div className="bg-white rounded-xl p-4 shadow-sm" style={{ border: '1px solid #ECEDEF', borderTop: stats.stale_over_4h > 0 ? '3px solid #EF4444' : '3px solid #FFD24D' }}>
@@ -298,7 +298,7 @@ const ApprovalDashboard = () => {
             <AlertTriangle className="w-5 h-5" />
             <span className="text-sm font-medium">&gt;4h Attesa</span>
           </div>
-          <span className="text-3xl font-bold" style={{ color: '#1E2128' }}>{stats.stale_over_4h}</span>
+          <span className="text-3xl font-bold" style={{ color: '#0F172A' }}>{stats.stale_over_4h}</span>
         </div>
       </div>
 
@@ -307,7 +307,7 @@ const ApprovalDashboard = () => {
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5" style={{ color: '#8B5CF6' }} />
-            <h2 className="text-lg font-bold" style={{ color: '#1E2128' }}>Analisi Strategiche da Revisionare</h2>
+            <h2 className="text-lg font-bold" style={{ color: '#0F172A' }}>Analisi Strategiche da Revisionare</h2>
             <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: '#8B5CF620', color: '#8B5CF6' }}>
               {analisiDaRevisionare.length}
             </span>
@@ -330,7 +330,7 @@ const ApprovalDashboard = () => {
                         </span>
                       </div>
                       <div>
-                        <h3 className="font-bold" style={{ color: '#1E2128' }}>
+                        <h3 className="font-bold" style={{ color: '#0F172A' }}>
                           {cliente.nome} {cliente.cognome}
                         </h3>
                         <p className="text-xs" style={{ color: '#9CA3AF' }}>{cliente.email}</p>
@@ -348,7 +348,7 @@ const ApprovalDashboard = () => {
                     {cliente.testo_ai?.COMPETENZA_ARRICCHITA && (
                       <div className="mt-3 p-3 rounded-lg" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
                         <p className="text-xs font-medium mb-1" style={{ color: '#5F6572' }}>Competenza (AI):</p>
-                        <p className="text-sm" style={{ color: '#1E2128' }}>
+                        <p className="text-sm" style={{ color: '#0F172A' }}>
                           {cliente.testo_ai.COMPETENZA_ARRICCHITA.substring(0, 200)}...
                         </p>
                       </div>
@@ -389,7 +389,7 @@ const ApprovalDashboard = () => {
           value={reviewerName}
           onChange={(e) => setReviewerName(e.target.value)}
           className="rounded-lg px-3 py-2 text-sm font-medium focus:outline-none"
-          style={{ background: '#FAFAF7', border: '1px solid #ECEDEF', color: '#1E2128' }}
+          style={{ background: '#FAFAF7', border: '1px solid #ECEDEF', color: '#0F172A' }}
         >
           <option value="Antonella">Antonella</option>
           <option value="Claudio">Claudio</option>
@@ -400,7 +400,7 @@ const ApprovalDashboard = () => {
       {tasks.length === 0 ? (
         <div className="bg-white rounded-xl p-12 text-center shadow-sm" style={{ border: '1px solid #ECEDEF' }}>
           <CheckCircle className="w-16 h-16 mx-auto mb-4" style={{ color: '#10B981' }} />
-          <h3 className="text-xl font-bold mb-2" style={{ color: '#1E2128' }}>Tutto approvato!</h3>
+          <h3 className="text-xl font-bold mb-2" style={{ color: '#0F172A' }}>Tutto approvato!</h3>
           <p style={{ color: '#9CA3AF' }}>Non ci sono task in attesa di revisione.</p>
         </div>
       ) : (
@@ -435,7 +435,7 @@ const ApprovalDashboard = () => {
                         )}
                       </div>
                       
-                      <h3 className="font-medium" style={{ color: '#1E2128' }}>{task.title}</h3>
+                      <h3 className="font-medium" style={{ color: '#0F172A' }}>{task.title}</h3>
                       
                       <div className="flex items-center gap-4 mt-1 text-xs" style={{ color: '#9CA3AF' }}>
                         <span>Creato: {formatTimeAgo(task.created_at)}</span>
@@ -501,7 +501,7 @@ const ApprovalDashboard = () => {
                       }}
                       placeholder="Es: Il blocco 3 è troppo generico, aggiungi un esempio concreto..."
                       className="w-full rounded-lg p-3 text-sm focus:outline-none focus:ring-2"
-                      style={{ background: 'white', border: '1px solid #ECEDEF', color: '#1E2128' }}
+                      style={{ background: 'white', border: '1px solid #ECEDEF', color: '#0F172A' }}
                       rows={3}
                     />
                   </div>

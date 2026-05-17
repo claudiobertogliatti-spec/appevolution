@@ -91,7 +91,7 @@ function StatCard({ icon: Icon, label, value, trend, color }) {
           <Icon className="w-5 h-5" />
         </div>
         <div className="flex-1">
-          <div className="text-2xl font-black" style={{ color: '#1E2128' }}>{value}</div>
+          <div className="text-2xl font-black" style={{ color: '#0F172A' }}>{value}</div>
           <div className="text-xs" style={{ color: '#9CA3AF' }}>{label}</div>
         </div>
         {trend && (
@@ -118,11 +118,11 @@ function PartnerRow({ partner, onOpenProject, onOverrideData, onUnlockFunnel, on
       <td className="py-3 px-4">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
-               style={{ background: '#FFD24D', color: '#1E2128' }}>
+               style={{ background: '#FFD24D', color: '#0F172A' }}>
             {partner.name?.split(" ").map(n => n[0]).join("") || "?"}
           </div>
           <div>
-            <div className="font-medium text-sm" style={{ color: '#1E2128' }}>{partner.name}</div>
+            <div className="font-medium text-sm" style={{ color: '#0F172A' }}>{partner.name}</div>
             <div className="text-xs" style={{ color: '#9CA3AF' }}>{partner.niche || "—"}</div>
           </div>
         </div>
@@ -135,7 +135,7 @@ function PartnerRow({ partner, onOpenProject, onOverrideData, onUnlockFunnel, on
       
       {/* Fase */}
       <td className="py-3 px-4">
-        <span className="text-sm font-medium" style={{ color: '#1E2128' }}>
+        <span className="text-sm font-medium" style={{ color: '#0F172A' }}>
           {PHASE_LABELS[partner.phase] || "—"}
         </span>
       </td>
@@ -208,7 +208,7 @@ function PartnerRow({ partner, onOpenProject, onOverrideData, onUnlockFunnel, on
             <button
               onClick={() => onOpenProject(partner)}
               className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg transition-all hover:scale-105"
-              style={{ background: '#FFD24D', color: '#1E2128' }}
+              style={{ background: '#FFD24D', color: '#0F172A' }}
               data-testid={`btn-open-partner-${partner.id}`}
             >
               <Eye className="w-3.5 h-3.5" />
@@ -377,7 +377,7 @@ function ClientAnalisiRow({ client }) {
   return (
     <tr className="border-b border-[#ECEDEF] hover:bg-[#FAFAF7] transition-all">
       <td className="py-3 px-4">
-        <div className="font-medium text-sm" style={{ color: '#1E2128' }}>
+        <div className="font-medium text-sm" style={{ color: '#0F172A' }}>
           {client.nome} {client.cognome}
         </div>
       </td>
@@ -638,7 +638,7 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-black" style={{ color: '#1E2128' }}>
+            <h1 className="text-2xl font-black" style={{ color: '#0F172A' }}>
               Dashboard Evolution PRO
             </h1>
             <p className="text-sm" style={{ color: '#5F6572' }}>
@@ -687,7 +687,7 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
         <div className="bg-white rounded-xl border border-[#ECEDEF] p-5 mb-6">
           <div className="flex items-center gap-3 mb-4">
             <BarChart3 className="w-5 h-5" style={{ color: '#FFD24D' }} />
-            <span className="font-bold" style={{ color: '#1E2128' }}>Statistiche Conversione</span>
+            <span className="font-bold" style={{ color: '#0F172A' }}>Statistiche Conversione</span>
           </div>
           <div className="grid grid-cols-3 gap-6">
             <div className="text-center">
@@ -710,7 +710,7 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
           <div className="bg-white rounded-xl border border-[#ECEDEF] p-5 mb-6">
             <div className="flex items-center gap-2 mb-4">
               <AlertTriangle className="w-5 h-5" style={{ color: '#F59E0B' }} />
-              <span className="font-bold" style={{ color: '#1E2128' }}>Alert: Partner inattivi</span>
+              <span className="font-bold" style={{ color: '#0F172A' }}>Alert: Partner inattivi</span>
               <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: '#F59E0B' }}>
                 {blockedPartners.length}
               </span>
@@ -728,7 +728,7 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
           <button
             onClick={() => setActiveTab("partners")}
             className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-              activeTab === "partners" ? 'bg-[#FFD24D] text-[#1E2128]' : 'bg-white text-[#5F6572] hover:bg-[#FAFAF7]'
+              activeTab === "partners" ? 'bg-[#FFD24D] text-[#0F172A]' : 'bg-white text-[#5F6572] hover:bg-[#FAFAF7]'
             }`}
           >
             Pipeline Partner
@@ -736,7 +736,7 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
           <button
             onClick={() => setActiveTab("analisi")}
             className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-              activeTab === "analisi" ? 'bg-[#FFD24D] text-[#1E2128]' : 'bg-white text-[#5F6572] hover:bg-[#FAFAF7]'
+              activeTab === "analisi" ? 'bg-[#FFD24D] text-[#0F172A]' : 'bg-white text-[#5F6572] hover:bg-[#FAFAF7]'
             }`}
           >
             Clienti Analisi (€67)
@@ -767,7 +767,7 @@ export function AdminDashboardPro({ onOpenPartnerProject }) {
                       onClick={() => setFilterStatus(status)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                         filterStatus === status 
-                          ? 'bg-[#FFD24D] text-[#1E2128]' 
+                          ? 'bg-[#FFD24D] text-[#0F172A]' 
                           : 'bg-[#FAFAF7] text-[#5F6572] hover:bg-[#ECEDEF]'
                       }`}
                     >

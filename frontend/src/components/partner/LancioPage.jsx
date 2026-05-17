@@ -45,7 +45,7 @@ function FunnelSteps({ activeTab }) {
   const activeIdx = steps.findIndex((s) => s.id === activeTab);
 
   return (
-    <div className="flex items-center gap-1 mb-5 p-3 rounded-xl overflow-x-auto" style={{ background: "#1E2128" }} data-testid="funnel-steps">
+    <div className="flex items-center gap-1 mb-5 p-3 rounded-xl overflow-x-auto" style={{ background: "#0F172A" }} data-testid="funnel-steps">
       {steps.map((step, i) => {
         const active = step.id === activeTab;
         const StepIcon = step.icon;
@@ -75,7 +75,7 @@ function LandingView({ data }) {
     <div className="space-y-3" data-testid="landing-view">
       {/* Preview card */}
       <div className="rounded-2xl overflow-hidden" style={{ border: "2px solid #ECEDEF" }}>
-        <div className="p-6 text-center" style={{ background: "#1E2128" }}>
+        <div className="p-6 text-center" style={{ background: "#0F172A" }}>
           <h2 className="text-lg font-black text-white mb-1">{data.headline}</h2>
           <p className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>{data.sub_headline}</p>
         </div>
@@ -89,14 +89,14 @@ function LandingView({ data }) {
               {(data.benefici || []).map((b, i) => (
                 <div key={i} className="flex items-start gap-2">
                   <Check className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "#34C77B" }} />
-                  <span className="text-sm" style={{ color: "#1E2128" }}>{b}</span>
+                  <span className="text-sm" style={{ color: "#0F172A" }}>{b}</span>
                 </div>
               ))}
             </div>
           </div>
           <div className="pt-2 text-center">
             <div className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-black text-sm"
-              style={{ background: "#FFD24D", color: "#1E2128" }}>
+              style={{ background: "#FFD24D", color: "#0F172A" }}>
               {data.cta_iscrizione}
             </div>
           </div>
@@ -119,7 +119,7 @@ function WebinarView({ data }) {
     <div className="space-y-3" data-testid="webinar-view">
       <div className="bg-white rounded-xl border p-5" style={{ borderColor: "#ECEDEF" }}>
         <div className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: "#9CA3AF" }}>Titolo Webinar</div>
-        <h3 className="text-lg font-black mb-3" style={{ color: "#1E2128" }}>{data.titolo}</h3>
+        <h3 className="text-lg font-black mb-3" style={{ color: "#0F172A" }}>{data.titolo}</h3>
         <div className="flex gap-3 flex-wrap">
           <Tag icon={Clock} label={data.durata || "60-90 min"} />
           <Tag icon={Target} label="Vendita corso" />
@@ -131,7 +131,7 @@ function WebinarView({ data }) {
       <div className="bg-white rounded-xl border overflow-hidden" style={{ borderColor: "#ECEDEF" }}>
         <div className="p-4 flex items-center gap-2" style={{ borderBottom: "1px solid #ECEDEF" }}>
           <Play className="w-4 h-4" style={{ color: "#FFD24D" }} />
-          <span className="text-sm font-bold" style={{ color: "#1E2128" }}>Scaletta ({(data.scaletta || []).length} fasi)</span>
+          <span className="text-sm font-bold" style={{ color: "#0F172A" }}>Scaletta ({(data.scaletta || []).length} fasi)</span>
         </div>
         <div className="divide-y" style={{ borderColor: "#F5F3EE" }}>
           {(data.scaletta || []).map((s, i) => (
@@ -140,7 +140,7 @@ function WebinarView({ data }) {
                 style={{ background: "#FFD24D30", color: "#C4990A" }}>{i + 1}</span>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "#1E212810", color: "#5F6572" }}>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "#0F172A10", color: "#5F6572" }}>
                     {s.momento}
                   </span>
                 </div>
@@ -155,7 +155,7 @@ function WebinarView({ data }) {
       {/* CTA vendita */}
       <div className="rounded-xl p-4" style={{ background: "#FFD24D20", border: "1px solid #FFD24D40" }}>
         <div className="text-[10px] font-bold uppercase mb-1" style={{ color: "#92400E" }}>CTA Vendita</div>
-        <p className="text-sm font-bold" style={{ color: "#1E2128" }}>{data.cta_vendita}</p>
+        <p className="text-sm font-bold" style={{ color: "#0F172A" }}>{data.cta_vendita}</p>
       </div>
 
       {/* Obiezioni */}
@@ -165,7 +165,7 @@ function WebinarView({ data }) {
             className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-all">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" style={{ color: "#F59E0B" }} />
-              <span className="text-sm font-bold" style={{ color: "#1E2128" }}>
+              <span className="text-sm font-bold" style={{ color: "#0F172A" }}>
                 Obiezioni e risposte ({(data.obiezioni_comuni || []).length})
               </span>
             </div>
@@ -178,11 +178,11 @@ function WebinarView({ data }) {
                 <div key={i} className="rounded-lg overflow-hidden" style={{ border: "1px solid #ECEDEF" }}>
                   <div className="p-3" style={{ background: "#FEF3C7" }}>
                     <span className="text-[10px] font-bold uppercase" style={{ color: "#92400E" }}>Obiezione</span>
-                    <p className="text-sm" style={{ color: "#1E2128" }}>{o.obiezione}</p>
+                    <p className="text-sm" style={{ color: "#0F172A" }}>{o.obiezione}</p>
                   </div>
                   <div className="p-3" style={{ background: "#DCFCE7" }}>
                     <span className="text-[10px] font-bold uppercase" style={{ color: "#166534" }}>Risposta</span>
-                    <p className="text-sm" style={{ color: "#1E2128" }}>{o.risposta}</p>
+                    <p className="text-sm" style={{ color: "#0F172A" }}>{o.risposta}</p>
                   </div>
                 </div>
               ))}
@@ -203,7 +203,7 @@ function OffertaView({ data }) {
     <div className="space-y-3" data-testid="offerta-view">
       {/* Pricing card */}
       <div className="rounded-2xl overflow-hidden" style={{ border: "2px solid #FFD24D" }}>
-        <div className="p-5 text-center" style={{ background: "#1E2128" }}>
+        <div className="p-5 text-center" style={{ background: "#0F172A" }}>
           <h3 className="text-lg font-black text-white mb-1">{data.nome_prodotto}</h3>
           <div className="flex items-center justify-center gap-3">
             <span className="text-sm line-through" style={{ color: "rgba(255,255,255,0.4)" }}>{data.prezzo_pieno}</span>
@@ -224,7 +224,7 @@ function OffertaView({ data }) {
                 <Gift className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "#FFD24D" }} />
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold" style={{ color: "#1E2128" }}>{b.nome}</span>
+                    <span className="text-sm font-bold" style={{ color: "#0F172A" }}>{b.nome}</span>
                     <span className="text-xs font-bold" style={{ color: "#C4990A" }}>{b.valore}</span>
                   </div>
                   <p className="text-xs mt-0.5" style={{ color: "#5F6572" }}>{b.descrizione}</p>
@@ -290,7 +290,7 @@ function FollowUpView({ data }) {
                   </span>
                   <span className="text-[10px] font-bold uppercase" style={{ color: "#9CA3AF" }}>{email.tipo?.replace("_", " ")}</span>
                 </div>
-                <p className="text-sm font-bold truncate" style={{ color: "#1E2128" }}>{email.subject}</p>
+                <p className="text-sm font-bold truncate" style={{ color: "#0F172A" }}>{email.subject}</p>
               </div>
               {expanded.includes(i) ? <ChevronDown className="w-4 h-4 flex-shrink-0" style={{ color: "#9CA3AF" }} />
                 : <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: "#9CA3AF" }} />}
@@ -327,7 +327,7 @@ function CalendarioView({ data }) {
         {weeks.map((w, i) => (
           <button key={i} onClick={() => setWeekFilter(i)} data-testid={`week-filter-${i}`}
             className="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all"
-            style={{ background: weekFilter === i ? "#1E2128" : "white", color: weekFilter === i ? "#FFD24D" : "#5F6572", border: weekFilter === i ? "none" : "1px solid #ECEDEF" }}>
+            style={{ background: weekFilter === i ? "#0F172A" : "white", color: weekFilter === i ? "#FFD24D" : "#5F6572", border: weekFilter === i ? "none" : "1px solid #ECEDEF" }}>
             {w.label}
           </button>
         ))}
@@ -343,12 +343,12 @@ function CalendarioView({ data }) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                  <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold" style={{ background: "#1E212810", color: "#1E2128" }}>
+                  <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold" style={{ background: "#0F172A10", color: "#0F172A" }}>
                     <TipoIcon className="w-3 h-3" /> {day.tipo}
                   </span>
                   <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold" style={{ background: obj.bg, color: obj.text }}>{obj.label}</span>
                 </div>
-                <p className="text-sm font-bold" style={{ color: "#1E2128" }}>{day.titolo}</p>
+                <p className="text-sm font-bold" style={{ color: "#0F172A" }}>{day.titolo}</p>
                 <p className="text-xs mt-0.5" style={{ color: "#9CA3AF" }}>{day.cta}</p>
               </div>
             </div>
@@ -383,7 +383,7 @@ function ContenutiView({ data }) {
         {subTabs.map((t) => (
           <button key={t.id} onClick={() => { setSubTab(t.id); setExpanded([0]); }} data-testid={`content-tab-${t.id}`}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all"
-            style={{ background: subTab === t.id ? "#1E2128" : "white", color: subTab === t.id ? "#FFD24D" : "#5F6572", border: subTab === t.id ? "none" : "1px solid #ECEDEF" }}>
+            style={{ background: subTab === t.id ? "#0F172A" : "white", color: subTab === t.id ? "#FFD24D" : "#5F6572", border: subTab === t.id ? "none" : "1px solid #ECEDEF" }}>
             <t.icon className="w-3.5 h-3.5" /> {t.label} ({t.count})
           </button>
         ))}
@@ -393,7 +393,7 @@ function ContenutiView({ data }) {
           <div key={idx} className="bg-white rounded-xl border overflow-hidden" style={{ borderColor: "#ECEDEF" }}>
             <button onClick={() => toggle(idx)} className="w-full flex items-center gap-3 p-3 text-left hover:bg-gray-50 transition-all">
               <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0" style={{ background: "#FFD24D30", color: "#C4990A" }}>{idx + 1}</span>
-              <span className="flex-1 text-sm font-bold" style={{ color: "#1E2128" }}>{item.titolo}</span>
+              <span className="flex-1 text-sm font-bold" style={{ color: "#0F172A" }}>{item.titolo}</span>
               {expanded.includes(idx) ? <ChevronDown className="w-4 h-4" style={{ color: "#9CA3AF" }} /> : <ChevronRight className="w-4 h-4" style={{ color: "#9CA3AF" }} />}
             </button>
             {expanded.includes(idx) && (
@@ -405,7 +405,7 @@ function ContenutiView({ data }) {
                     <div className="text-[10px] font-bold uppercase mb-1" style={{ color: "#8B8680" }}>Slide</div>
                     {item.slide.map((s, si) => (
                       <div key={si} className="flex items-start gap-2 rounded-lg p-2" style={{ background: "#F5F3EE" }}>
-                        <span className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black flex-shrink-0 mt-0.5" style={{ background: "#1E212815", color: "#5F6572" }}>{si + 1}</span>
+                        <span className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black flex-shrink-0 mt-0.5" style={{ background: "#0F172A15", color: "#5F6572" }}>{si + 1}</span>
                         <p className="text-sm" style={{ color: "#374151" }}>{s}</p>
                       </div>
                     ))}
@@ -437,7 +437,7 @@ function AdsView({ data }) {
         {[{ id: "overview", label: "Panoramica" }, { id: "creativita", label: `Creatività (${(data.creativita || []).length})` }, { id: "copy", label: `Copy (${(data.copy_ads || []).length})` }].map((t) => (
           <button key={t.id} onClick={() => setSection(t.id)}
             className="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all"
-            style={{ background: section === t.id ? "#1E2128" : "white", color: section === t.id ? "#FFD24D" : "#5F6572", border: section === t.id ? "none" : "1px solid #ECEDEF" }}>
+            style={{ background: section === t.id ? "#0F172A" : "white", color: section === t.id ? "#FFD24D" : "#5F6572", border: section === t.id ? "none" : "1px solid #ECEDEF" }}>
             {t.label}
           </button>
         ))}
@@ -452,7 +452,7 @@ function AdsView({ data }) {
                 <row.icon className="w-3.5 h-3.5" style={{ color: "#FFD24D" }} />
                 <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#9CA3AF" }}>{row.label}</span>
               </div>
-              <p className="text-sm" style={{ color: "#1E2128" }}>{row.value}</p>
+              <p className="text-sm" style={{ color: "#0F172A" }}>{row.value}</p>
             </div>
           ))}
         </div>
@@ -461,18 +461,18 @@ function AdsView({ data }) {
         <div key={i} className="bg-white rounded-xl border p-4 space-y-2" style={{ borderColor: "#ECEDEF" }}>
           <div className="flex items-center gap-2">
             <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black" style={{ background: "#FFD24D30", color: "#C4990A" }}>{i + 1}</span>
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "#1E212810", color: "#5F6572" }}>{c.tipo}</span>
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "#0F172A10", color: "#5F6572" }}>{c.tipo}</span>
           </div>
-          <p className="text-sm font-bold" style={{ color: "#1E2128" }}>{c.headline}</p>
+          <p className="text-sm font-bold" style={{ color: "#0F172A" }}>{c.headline}</p>
           <MiniSection label="Testo primario" bg="#F5F3EE" color="#8B8680">{c.testo_primario}</MiniSection>
         </div>
       ))}
       {section === "copy" && (data.copy_ads || []).map((c, i) => (
         <div key={i} className="bg-white rounded-xl border p-4 space-y-2" style={{ borderColor: "#ECEDEF" }}>
           <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "#8B5CF620", color: "#8B5CF6" }}>{c.angolo}</span>
-          <p className="text-sm font-bold" style={{ color: "#1E2128" }}>{c.headline}</p>
+          <p className="text-sm font-bold" style={{ color: "#0F172A" }}>{c.headline}</p>
           <MiniSection label="Testo" bg="#F5F3EE" color="#8B8680">{c.testo_primario}</MiniSection>
-          <span className="inline-flex px-3 py-1 rounded-full text-xs font-bold" style={{ background: "#FFD24D", color: "#1E2128" }}>{c.cta_button}</span>
+          <span className="inline-flex px-3 py-1 rounded-full text-xs font-bold" style={{ background: "#FFD24D", color: "#0F172A" }}>{c.cta_button}</span>
         </div>
       ))}
     </div>
@@ -486,7 +486,7 @@ function Section({ label, color, box, children }) {
   return (
     <div className={box ? "rounded-xl p-4" : ""} style={box ? { background: `${color}10`, border: `1px solid ${color}25` } : {}}>
       <div className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color }}>{label}</div>
-      <p className="text-sm leading-relaxed" style={{ color: "#1E2128" }}>{children}</p>
+      <p className="text-sm leading-relaxed" style={{ color: "#0F172A" }}>{children}</p>
     </div>
   );
 }
@@ -500,7 +500,7 @@ function MiniSection({ label, bg, color, children }) {
 }
 function Tag({ icon: Icon, label }) {
   return (
-    <span className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold" style={{ background: "#1E212810", color: "#5F6572" }}>
+    <span className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold" style={{ background: "#0F172A10", color: "#5F6572" }}>
       <Icon className="w-3 h-3" /> {label}
     </span>
   );
@@ -548,7 +548,7 @@ function LancioContent({ planData, activeTab, setActiveTab }) {
         {TABS.map((tab) => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)} data-testid={`lancio-tab-${tab.id}`}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all"
-            style={{ background: activeTab === tab.id ? "#1E2128" : "white", color: activeTab === tab.id ? "#FFD24D" : "#5F6572", border: activeTab === tab.id ? "none" : "1px solid #ECEDEF" }}>
+            style={{ background: activeTab === tab.id ? "#0F172A" : "white", color: activeTab === tab.id ? "#FFD24D" : "#5F6572", border: activeTab === tab.id ? "none" : "1px solid #ECEDEF" }}>
             <tab.icon className="w-3 h-3" /> {tab.label}
           </button>
         ))}
@@ -586,7 +586,7 @@ export function LancioPage({ partner, onNavigate, onLaunchComplete, isAdmin }) {
     <div className="min-h-full" style={{ background: "#FAFAF7" }}>
       <div className="max-w-2xl mx-auto p-6">
         <div className="mb-6" data-testid="lancio-hero">
-          <h1 className="text-3xl font-black mb-2" style={{ color: "#1E2128" }}>Il tuo Lancio</h1>
+          <h1 className="text-3xl font-black mb-2" style={{ color: "#0F172A" }}>Il tuo Lancio</h1>
           <p className="text-base leading-relaxed" style={{ color: "#5F6572" }}>
             Il team prepara il piano di vendita completo per te.
             <br /><strong>Non devi costruire nulla. Rivedi e approva.</strong>

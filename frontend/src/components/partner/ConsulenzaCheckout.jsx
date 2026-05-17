@@ -109,7 +109,7 @@ export function ConsulenzaCheckout({ partner, onBack, defaultConsultant, package
                  style={{ background: '#10B981' }}>
               <Check className="w-10 h-10 text-white" />
             </div>
-            <h2 className="text-2xl font-black mb-2" style={{ color: '#1E2128' }}>
+            <h2 className="text-2xl font-black mb-2" style={{ color: '#0F172A' }}>
               Richiesta Inviata! 🎉
             </h2>
             <p className="text-sm mb-6" style={{ color: '#5F6572' }}>
@@ -124,7 +124,7 @@ export function ConsulenzaCheckout({ partner, onBack, defaultConsultant, package
             <button
               onClick={onBack}
               className="px-6 py-3 rounded-xl font-bold"
-              style={{ background: '#FFD24D', color: '#1E2128' }}
+              style={{ background: '#FFD24D', color: '#0F172A' }}
             >
               Torna ai Servizi
             </button>
@@ -144,7 +144,7 @@ export function ConsulenzaCheckout({ partner, onBack, defaultConsultant, package
           </button>
         )}
         <div>
-          <h1 className="text-2xl font-black flex items-center gap-2" style={{ color: '#1E2128' }}>
+          <h1 className="text-2xl font-black flex items-center gap-2" style={{ color: '#0F172A' }}>
             📈 Consulenza Marketing 1:1
           </h1>
           <p className="text-sm" style={{ color: '#9CA3AF' }}>
@@ -166,9 +166,9 @@ export function ConsulenzaCheckout({ partner, onBack, defaultConsultant, package
                     style={{ background: '#FFD24D15', color: '#C4990A' }}>
                 SESSIONE PREMIUM
               </span>
-              <span className="text-2xl font-black" style={{ color: '#1E2128' }}>€147</span>
+              <span className="text-2xl font-black" style={{ color: '#0F172A' }}>€147</span>
             </div>
-            <h2 className="text-xl font-bold mb-2" style={{ color: '#1E2128' }}>
+            <h2 className="text-xl font-bold mb-2" style={{ color: '#0F172A' }}>
               Strategia su Misura per il Tuo Business
             </h2>
             <p className="text-sm mb-4" style={{ color: '#5F6572' }}>
@@ -194,7 +194,7 @@ export function ConsulenzaCheckout({ partner, onBack, defaultConsultant, package
 
       {/* Consultant Selection */}
       <div>
-        <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
+        <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#0F172A' }}>
           <User className="w-5 h-5" style={{ color: '#FFD24D' }} />
           Scegli il Tuo Consulente
         </h3>
@@ -214,17 +214,17 @@ export function ConsulenzaCheckout({ partner, onBack, defaultConsultant, package
                 <div className="flex items-start gap-4">
                   <div 
                     className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold flex-shrink-0"
-                    style={{ background: consultant.color, color: consultant.id === 'claudio' ? '#1E2128' : 'white' }}
+                    style={{ background: consultant.color, color: consultant.id === 'claudio' ? '#0F172A' : 'white' }}
                   >
                     {consultant.avatar}
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-1">
-                      <h4 className="font-bold" style={{ color: '#1E2128' }}>{consultant.name}</h4>
+                      <h4 className="font-bold" style={{ color: '#0F172A' }}>{consultant.name}</h4>
                       {isSelected && (
                         <div className="w-5 h-5 rounded-full flex items-center justify-center"
                              style={{ background: '#FFD24D' }}>
-                          <Check className="w-3 h-3" style={{ color: '#1E2128' }} />
+                          <Check className="w-3 h-3" style={{ color: '#0F172A' }} />
                         </div>
                       )}
                     </div>
@@ -248,7 +248,7 @@ export function ConsulenzaCheckout({ partner, onBack, defaultConsultant, package
 
       {/* Package Selection */}
       <div>
-        <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
+        <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#0F172A' }}>
           <Tag className="w-5 h-5" style={{ color: '#FFD24D' }} />
           Scegli il pacchetto
         </h3>
@@ -264,7 +264,7 @@ export function ConsulenzaCheckout({ partner, onBack, defaultConsultant, package
               }}>
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-sm font-black" style={{ color: '#1E2128' }}>{pkg.label}</span>
+                  <span className="text-sm font-black" style={{ color: '#0F172A' }}>{pkg.label}</span>
                   {pkg.perSession && (
                     <span className="ml-2 text-xs" style={{ color: '#9CA3AF' }}>→ €{pkg.perSession}/sessione</span>
                   )}
@@ -273,13 +273,13 @@ export function ConsulenzaCheckout({ partner, onBack, defaultConsultant, package
                   {pkg.originalPrice && (
                     <span className="text-xs line-through" style={{ color: '#9CA3AF' }}>€{pkg.originalPrice}</span>
                   )}
-                  <span className="text-base font-black" style={{ color: '#1E2128' }}>€{pkg.price}</span>
+                  <span className="text-base font-black" style={{ color: '#0F172A' }}>€{pkg.price}</span>
                   {pkg.saving && (
                     <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#DCFCE7', color: '#166534' }}>{pkg.saving}</span>
                   )}
                   {selectedPackageIdx === i && (
                     <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: '#FFD24D' }}>
-                      <Check className="w-3 h-3" style={{ color: '#1E2128' }} />
+                      <Check className="w-3 h-3" style={{ color: '#0F172A' }} />
                     </div>
                   )}
                 </div>
@@ -291,7 +291,7 @@ export function ConsulenzaCheckout({ partner, onBack, defaultConsultant, package
 
       {/* Additional Info */}
       <div className="bg-white rounded-xl p-5" style={{ border: '1px solid #ECEDEF' }}>
-        <h4 className="font-bold mb-3" style={{ color: '#1E2128' }}>
+        <h4 className="font-bold mb-3" style={{ color: '#0F172A' }}>
           📝 Su cosa vorresti focalizzarti? (opzionale)
         </h4>
         <textarea
@@ -316,7 +316,7 @@ export function ConsulenzaCheckout({ partner, onBack, defaultConsultant, package
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm" style={{ color: '#9CA3AF' }}>Totale da pagare</div>
-            <div className="text-3xl font-black" style={{ color: '#1E2128' }}>€{selectedPkg.price}</div>
+            <div className="text-3xl font-black" style={{ color: '#0F172A' }}>€{selectedPkg.price}</div>
             <div className="text-xs" style={{ color: '#9CA3AF' }}>
               {selectedPkg.label} · IVA inclusa
               {selectedPkg.perSession && ` · €${selectedPkg.perSession}/sessione`}
@@ -327,7 +327,7 @@ export function ConsulenzaCheckout({ partner, onBack, defaultConsultant, package
             onClick={handleCheckout}
             disabled={!selectedConsultant || isProcessing}
             className="px-8 py-4 rounded-xl font-bold text-lg flex items-center gap-3 transition-all hover:opacity-90 disabled:opacity-50"
-            style={{ background: '#FFD24D', color: '#1E2128' }}
+            style={{ background: '#FFD24D', color: '#0F172A' }}
             data-testid="consulenza-checkout-btn"
           >
             {isProcessing ? (

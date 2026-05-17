@@ -161,7 +161,7 @@ export function DomainConfiguration({ partner, isAdmin = false, onNavigate }) {
             <Globe className="w-7 h-7" style={{ color: '#3B82F6' }} />
           </div>
           <div>
-            <h2 className="text-xl font-bold" style={{ color: '#1E2128' }}>
+            <h2 className="text-xl font-bold" style={{ color: '#0F172A' }}>
               Configurazione Dominio
             </h2>
             <p className="text-sm" style={{ color: '#9CA3AF' }}>
@@ -192,7 +192,7 @@ export function DomainConfiguration({ partner, isAdmin = false, onNavigate }) {
       {/* No domain yet - Submit form */}
       {!domainRequest && (
         <div className="bg-white rounded-2xl p-6 shadow-sm">
-          <h3 className="font-bold mb-4" style={{ color: '#1E2128' }}>
+          <h3 className="font-bold mb-4" style={{ color: '#0F172A' }}>
             🌐 Inserisci il tuo dominio
           </h3>
           <p className="text-sm mb-4" style={{ color: '#5F6572' }}>
@@ -237,7 +237,7 @@ export function DomainConfiguration({ partner, isAdmin = false, onNavigate }) {
         <div className="bg-white rounded-2xl p-6 shadow-sm">
           <div className="text-center py-6">
             <Clock className="w-12 h-12 mx-auto mb-4" style={{ color: '#F59E0B' }} />
-            <h3 className="font-bold text-lg mb-2" style={{ color: '#1E2128' }}>
+            <h3 className="font-bold text-lg mb-2" style={{ color: '#0F172A' }}>
               Richiesta in elaborazione
             </h3>
             <p className="text-sm" style={{ color: '#5F6572' }}>
@@ -251,7 +251,7 @@ export function DomainConfiguration({ partner, isAdmin = false, onNavigate }) {
       {/* DNS Parameters Ready - Show to partner */}
       {domainRequest?.status === 'configuring' && domainRequest?.dns_params && (
         <div className="bg-white rounded-2xl p-6 shadow-sm">
-          <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
+          <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: '#0F172A' }}>
             <AlertTriangle className="w-5 h-5" style={{ color: '#F59E0B' }} />
             Configura il DNS
           </h3>
@@ -265,14 +265,14 @@ export function DomainConfiguration({ partner, isAdmin = false, onNavigate }) {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <div className="text-xs font-bold mb-1" style={{ color: '#9CA3AF' }}>TIPO RECORD</div>
-                  <div className="font-mono font-bold" style={{ color: '#1E2128' }}>
+                  <div className="font-mono font-bold" style={{ color: '#0F172A' }}>
                     {domainRequest.dns_params.record_type}
                   </div>
                 </div>
                 <div>
                   <div className="text-xs font-bold mb-1" style={{ color: '#9CA3AF' }}>HOST / NAME</div>
                   <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold" style={{ color: '#1E2128' }}>
+                    <span className="font-mono font-bold" style={{ color: '#0F172A' }}>
                       {domainRequest.dns_params.host}
                     </span>
                     <button 
@@ -286,7 +286,7 @@ export function DomainConfiguration({ partner, isAdmin = false, onNavigate }) {
                 <div>
                   <div className="text-xs font-bold mb-1" style={{ color: '#9CA3AF' }}>VALORE / TARGET</div>
                   <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-sm break-all" style={{ color: '#1E2128' }}>
+                    <span className="font-mono font-bold text-sm break-all" style={{ color: '#0F172A' }}>
                       {domainRequest.dns_params.value}
                     </span>
                     <button 
@@ -299,7 +299,7 @@ export function DomainConfiguration({ partner, isAdmin = false, onNavigate }) {
                 </div>
                 <div>
                   <div className="text-xs font-bold mb-1" style={{ color: '#9CA3AF' }}>TTL</div>
-                  <div className="font-mono font-bold" style={{ color: '#1E2128' }}>
+                  <div className="font-mono font-bold" style={{ color: '#0F172A' }}>
                     {domainRequest.dns_params.ttl || '3600'}
                   </div>
                 </div>
@@ -310,7 +310,7 @@ export function DomainConfiguration({ partner, isAdmin = false, onNavigate }) {
             {domainRequest.dns_params.notes && (
               <div className="p-4 rounded-xl" style={{ background: '#DBEAFE' }}>
                 <div className="text-xs font-bold mb-1" style={{ color: '#3B82F6' }}>📝 NOTE</div>
-                <p className="text-sm" style={{ color: '#1E2128' }}>{domainRequest.dns_params.notes}</p>
+                <p className="text-sm" style={{ color: '#0F172A' }}>{domainRequest.dns_params.notes}</p>
               </div>
             )}
 
@@ -485,7 +485,7 @@ export function DomainConfiguration({ partner, isAdmin = false, onNavigate }) {
               <FileText className="w-7 h-7" style={{ color: '#7B68AE' }} />
             </div>
             <div className="flex-1">
-              <h2 className="text-xl font-bold" style={{ color: '#1E2128' }}>
+              <h2 className="text-xl font-bold" style={{ color: '#0F172A' }}>
                 Pagine Legali
               </h2>
               <p className="text-sm" style={{ color: '#9CA3AF' }}>

@@ -383,7 +383,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                 </button>
               </>
             )}
-            <button onClick={onClose} className="ml-2 text-[#9CA3AF] hover:text-[#1E2128] transition-colors">
+            <button onClick={onClose} className="ml-2 text-[#9CA3AF] hover:text-[#0F172A] transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -773,7 +773,7 @@ Revenue Generato: €${partner.revenue?.toLocaleString() || 0}
                             console.error("Failed to save piano:", e);
                           }
                         }}
-                        className="flex-1 py-2 px-4 bg-[#FFD24D] text-[#1E2128] rounded-lg text-sm font-bold"
+                        className="flex-1 py-2 px-4 bg-[#FFD24D] text-[#0F172A] rounded-lg text-sm font-bold"
                       >
                         Salva Piano
                       </button>

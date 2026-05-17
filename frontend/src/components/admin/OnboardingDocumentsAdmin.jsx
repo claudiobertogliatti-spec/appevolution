@@ -58,7 +58,7 @@ function DocumentCard({ doc, onVerify, onReject, isProcessing }) {
               <FileText className="w-5 h-5 text-[#FFD24D]" />
             </div>
             <div>
-              <h3 className="font-bold text-[#1E2128]">
+              <h3 className="font-bold text-[#0F172A]">
                 {DOC_TYPE_LABELS[doc.document_type] || doc.document_type}
               </h3>
               <p className="text-xs text-[#9CA3AF]">{doc.original_name}</p>
@@ -132,7 +132,7 @@ function DocumentCard({ doc, onVerify, onReject, isProcessing }) {
       {showRejectModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowRejectModal(false)}>
           <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
-            <h3 className="font-bold text-lg text-[#1E2128] mb-2">Rifiuta Documento</h3>
+            <h3 className="font-bold text-lg text-[#0F172A] mb-2">Rifiuta Documento</h3>
             <p className="text-sm text-[#9CA3AF] mb-4">
               Indica il motivo del rifiuto. Il partner riceverà una notifica.
             </p>
@@ -260,7 +260,7 @@ export function OnboardingDocumentsAdmin() {
               📋
             </div>
             <div>
-              <h1 className="text-xl font-bold text-[#1E2128]">Documenti Onboarding</h1>
+              <h1 className="text-xl font-bold text-[#0F172A]">Documenti Onboarding</h1>
               <p className="text-sm text-[#9CA3AF]">Gestisci i documenti caricati dai partner</p>
             </div>
           </div>
@@ -269,7 +269,7 @@ export function OnboardingDocumentsAdmin() {
             onClick={loadDocuments}
             disabled={loading}
             className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-colors"
-            style={{ background: '#FFD24D', color: '#1E2128' }}
+            style={{ background: '#FFD24D', color: '#0F172A' }}
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Aggiorna
@@ -315,7 +315,7 @@ export function OnboardingDocumentsAdmin() {
             onClick={() => setFilter(tab.id)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
               filter === tab.id 
-                ? "bg-[#FFD24D] text-[#1E2128]" 
+                ? "bg-[#FFD24D] text-[#0F172A]" 
                 : "text-[#5F6572] hover:bg-[#FAFAF7]"
             }`}
           >
@@ -337,7 +337,7 @@ export function OnboardingDocumentsAdmin() {
       ) : filteredDocs.length === 0 ? (
         <div className="bg-white rounded-2xl border border-[#ECEDEF] p-12 text-center">
           <FileCheck className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-          <h3 className="font-bold text-[#1E2128] mb-1">Nessun documento</h3>
+          <h3 className="font-bold text-[#0F172A] mb-1">Nessun documento</h3>
           <p className="text-sm text-[#9CA3AF]">
             {filter === "uploaded" 
               ? "Non ci sono documenti in attesa di verifica"
@@ -363,7 +363,7 @@ export function OnboardingDocumentsAdmin() {
       )}
       
       {/* Help Section */}
-      <div className="bg-[#1E2128] rounded-xl p-5 text-white">
+      <div className="bg-[#0F172A] rounded-xl p-5 text-white">
         <h3 className="font-bold text-[#FFD24D] mb-2">Guida alla Verifica</h3>
         <div className="space-y-2 text-sm text-white/80">
           <p>• <strong>Contratto Firmato:</strong> Verifica che il PDF sia firmato in tutte le pagine richieste</p>

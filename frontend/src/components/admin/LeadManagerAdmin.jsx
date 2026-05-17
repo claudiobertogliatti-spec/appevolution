@@ -154,17 +154,17 @@ function DiscoveryEditModal({ lead, onClose, onSaved }) {
       <label className="block text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: "#9CA3AF" }}>{label}</label>
       {options ? (
         <select value={form[k]} onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))}
-          className="w-full px-3 py-2 rounded-lg text-sm border" style={{ borderColor: "#E5E2DD", color: "#1E2128" }}>
+          className="w-full px-3 py-2 rounded-lg text-sm border" style={{ borderColor: "#E5E2DD", color: "#0F172A" }}>
           {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       ) : multiline ? (
         <textarea value={form[k]} onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))}
           rows={3} className="w-full px-3 py-2 rounded-lg text-sm border resize-y"
-          style={{ borderColor: "#E5E2DD", color: "#1E2128" }} />
+          style={{ borderColor: "#E5E2DD", color: "#0F172A" }} />
       ) : (
         <input type={type} value={form[k]} onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))}
           className="w-full px-3 py-2 rounded-lg text-sm border"
-          style={{ borderColor: "#E5E2DD", color: "#1E2128" }} />
+          style={{ borderColor: "#E5E2DD", color: "#0F172A" }} />
       )}
     </div>
   );
@@ -172,7 +172,7 @@ function DiscoveryEditModal({ lead, onClose, onSaved }) {
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.75)" }} onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-5" style={{ background: "#1E2128" }}>
+        <div className="flex items-center justify-between p-5" style={{ background: "#0F172A" }}>
           <div>
             <div className="font-black text-white">{lead.display_name || lead.platform_username}</div>
             <div className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>{lead.source} · {lead.id}</div>
@@ -222,7 +222,7 @@ function DiscoveryEditModal({ lead, onClose, onSaved }) {
             <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">Annulla</button>
             <button onClick={save} disabled={saving}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold"
-              style={{ background: "#FFD24D", color: "#1E2128" }}>
+              style={{ background: "#FFD24D", color: "#0F172A" }}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               Salva
             </button>
@@ -274,7 +274,7 @@ function FreddaEditModal({ lead, onClose, onSaved }) {
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.75)" }} onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-5" style={{ background: "#1E2128" }}>
+        <div className="flex items-center justify-between p-5" style={{ background: "#0F172A" }}>
           <div>
             <div className="font-black text-white">{lead.first_name} {lead.last_name}</div>
             <div className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>{lead.email}</div>
@@ -287,7 +287,7 @@ function FreddaEditModal({ lead, onClose, onSaved }) {
               <div key={k}>
                 <label className="block text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: "#9CA3AF" }}>{label}</label>
                 <input type="text" value={form[k]} onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg text-sm border" style={{ borderColor: "#E5E2DD", color: "#1E2128" }} />
+                  className="w-full px-3 py-2 rounded-lg text-sm border" style={{ borderColor: "#E5E2DD", color: "#0F172A" }} />
               </div>
             ))}
             <div>
@@ -302,7 +302,7 @@ function FreddaEditModal({ lead, onClose, onSaved }) {
             {[["Risposta ricevuta", "risposta_ricevuta"], ["Entrato in funnel", "entrato_in_funnel"]].map(([label, k]) => (
               <div key={k} className="flex items-center justify-between p-3 rounded-xl"
                 style={{ background: form[k] ? "#F0FDF4" : "#FAFAF7", border: `1px solid ${form[k] ? "#BBF7D0" : "#F0EDE8"}` }}>
-                <span className="text-sm" style={{ color: "#1E2128" }}>{label}</span>
+                <span className="text-sm" style={{ color: "#0F172A" }}>{label}</span>
                 <button onClick={() => setForm(p => ({ ...p, [k]: !p[k] }))}
                   className="w-10 h-5 rounded-full relative transition-colors"
                   style={{ background: form[k] ? "#22C55E" : "#D1D5DB" }}>
@@ -316,7 +316,7 @@ function FreddaEditModal({ lead, onClose, onSaved }) {
             <label className="block text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: "#9CA3AF" }}>Note admin</label>
             <textarea value={form.note_admin} onChange={e => setForm(p => ({ ...p, note_admin: e.target.value }))}
               rows={3} className="w-full px-3 py-2 rounded-lg text-sm border resize-y"
-              style={{ borderColor: "#E5E2DD", color: "#1E2128" }} />
+              style={{ borderColor: "#E5E2DD", color: "#0F172A" }} />
           </div>
         </div>
         <div className="p-4 border-t flex items-center justify-between" style={{ borderColor: "#F0EDE8", background: "#FAFAF7" }}>
@@ -325,7 +325,7 @@ function FreddaEditModal({ lead, onClose, onSaved }) {
             <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">Annulla</button>
             <button onClick={save} disabled={saving}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold"
-              style={{ background: "#FFD24D", color: "#1E2128" }}>
+              style={{ background: "#FFD24D", color: "#0F172A" }}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               Salva
             </button>
@@ -412,7 +412,7 @@ function ImportModal({ type, onClose, onImported }) {
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.75)" }} onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-5" style={{ background: "#1E2128" }}>
+        <div className="flex items-center justify-between p-5" style={{ background: "#0F172A" }}>
           <div>
             <div className="font-black text-white">Importa Lead</div>
             <div className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>
@@ -446,7 +446,7 @@ function ImportModal({ type, onClose, onImported }) {
                 className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors hover:bg-gray-50"
                 style={{ borderColor: csvFile ? "#22C55E" : "#E5E2DD" }}>
                 <Upload className="w-8 h-8 mx-auto mb-2" style={{ color: csvFile ? "#22C55E" : "#9CA3AF" }} />
-                <p className="text-sm font-medium" style={{ color: "#1E2128" }}>
+                <p className="text-sm font-medium" style={{ color: "#0F172A" }}>
                   {csvFile ? csvFile.name : "Clicca o trascina il file CSV"}
                 </p>
                 <p className="text-xs mt-1" style={{ color: "#9CA3AF" }}>Solo file .csv</p>
@@ -462,7 +462,7 @@ function ImportModal({ type, onClose, onImported }) {
               )}
               <button onClick={handleCsvUpload} disabled={!csvFile || uploading}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all"
-                style={{ background: csvFile && !uploading ? "#1E2128" : "#F0EDE8", color: csvFile && !uploading ? "#FFD24D" : "#9CA3AF" }}>
+                style={{ background: csvFile && !uploading ? "#0F172A" : "#F0EDE8", color: csvFile && !uploading ? "#FFD24D" : "#9CA3AF" }}>
                 {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
                 {uploading ? "Importazione..." : "Importa CSV"}
               </button>
@@ -477,7 +477,7 @@ function ImportModal({ type, onClose, onImported }) {
                     <div key={k}>
                       <label className="block text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: "#9CA3AF" }}>{label}</label>
                       <input type="text" value={form[k]} onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))}
-                        className="w-full px-3 py-2 rounded-lg text-sm border" style={{ borderColor: "#E5E2DD", color: "#1E2128" }} />
+                        className="w-full px-3 py-2 rounded-lg text-sm border" style={{ borderColor: "#E5E2DD", color: "#0F172A" }} />
                     </div>
                   ))}
                   <div className="col-span-2">
@@ -490,7 +490,7 @@ function ImportModal({ type, onClose, onImported }) {
                   <div className="col-span-2">
                     <label className="block text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: "#9CA3AF" }}>Bio / Note</label>
                     <textarea value={form.bio} onChange={e => setForm(p => ({ ...p, bio: e.target.value }))}
-                      rows={2} className="w-full px-3 py-2 rounded-lg text-sm border resize-y" style={{ borderColor: "#E5E2DD", color: "#1E2128" }} />
+                      rows={2} className="w-full px-3 py-2 rounded-lg text-sm border resize-y" style={{ borderColor: "#E5E2DD", color: "#0F172A" }} />
                   </div>
                 </div>
               ) : (
@@ -499,7 +499,7 @@ function ImportModal({ type, onClose, onImported }) {
                     <div key={k}>
                       <label className="block text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: "#9CA3AF" }}>{label}</label>
                       <input type="text" value={form[k]} onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))}
-                        className="w-full px-3 py-2 rounded-lg text-sm border" style={{ borderColor: "#E5E2DD", color: "#1E2128" }} />
+                        className="w-full px-3 py-2 rounded-lg text-sm border" style={{ borderColor: "#E5E2DD", color: "#0F172A" }} />
                     </div>
                   ))}
                 </div>
@@ -507,7 +507,7 @@ function ImportModal({ type, onClose, onImported }) {
               {manualError && <p className="text-sm text-red-600">{manualError}</p>}
               <button onClick={handleManualSave} disabled={manualSaving || !form.email}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm"
-                style={{ background: !form.email || manualSaving ? "#F0EDE8" : "#1E2128", color: !form.email || manualSaving ? "#9CA3AF" : "#FFD24D" }}>
+                style={{ background: !form.email || manualSaving ? "#F0EDE8" : "#0F172A", color: !form.email || manualSaving ? "#9CA3AF" : "#FFD24D" }}>
                 {manualSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserPlus className="w-5 h-5" />}
                 Aggiungi lead
               </button>
@@ -629,7 +629,7 @@ function PlacesSearchModal({ onClose, onImported }) {
           <div className="flex items-center justify-between p-3 rounded-xl"
             style={{ background: form.only_without_website ? "#F0FDF4" : "#FAFAF7", border: `1px solid ${form.only_without_website ? "#BBF7D0" : "#F0EDE8"}` }}>
             <div>
-              <div className="text-sm font-semibold" style={{ color: "#1E2128" }}>Solo senza sito web</div>
+              <div className="text-sm font-semibold" style={{ color: "#0F172A" }}>Solo senza sito web</div>
               <div className="text-[11px]" style={{ color: "#9CA3AF" }}>Filtra solo chi non ha un sito → segnale offline forte</div>
             </div>
             <button onClick={() => setForm(p => ({ ...p, only_without_website: !p.only_without_website }))}
@@ -781,7 +781,7 @@ export default function LeadManagerAdmin() {
           {[["discovery", "Discovery Lead", Users], ["fredda", "Lista Fredda", Snowflake]].map(([id, label, Icon]) => (
             <button key={id} onClick={() => { setActiveTab(id); setPage(0); setFilterStatus(""); setFilterSource(""); setLeads([]); }}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
-              style={{ background: activeTab === id ? "#FFFFFF" : "transparent", color: activeTab === id ? "#1E2128" : "#9CA3AF", boxShadow: activeTab === id ? "0 1px 4px rgba(0,0,0,0.08)" : "none" }}>
+              style={{ background: activeTab === id ? "#FFFFFF" : "transparent", color: activeTab === id ? "#0F172A" : "#9CA3AF", boxShadow: activeTab === id ? "0 1px 4px rgba(0,0,0,0.08)" : "none" }}>
               <Icon className="w-4 h-4" />
               {label}
               <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full"
@@ -797,7 +797,7 @@ export default function LeadManagerAdmin() {
           <input type="text" value={search} onChange={e => setSearch(e.target.value)}
             onKeyDown={e => e.key === "Enter" && load()}
             placeholder="Cerca per nome, email, nicchia..."
-            className="flex-1 text-sm bg-transparent outline-none" style={{ color: "#1E2128" }} />
+            className="flex-1 text-sm bg-transparent outline-none" style={{ color: "#0F172A" }} />
         </div>
 
         {/* Filtri */}
@@ -840,7 +840,7 @@ export default function LeadManagerAdmin() {
 
         <button onClick={() => setShowImport(true)}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all"
-          style={{ background: "#1E2128", color: "#FFD24D" }}>
+          style={{ background: "#0F172A", color: "#FFD24D" }}>
           <Plus className="w-4 h-4" />
           Importa
         </button>
@@ -870,7 +870,7 @@ export default function LeadManagerAdmin() {
               {leads.map((lead, i) => (
                 <tr key={lead.id || i} className="hover:bg-white transition-colors border-b" style={{ borderColor: "#F5F3F0" }}>
                   <td className="px-4 py-3">
-                    <div className="font-semibold" style={{ color: "#1E2128" }}>{lead.display_name || "—"}</div>
+                    <div className="font-semibold" style={{ color: "#0F172A" }}>{lead.display_name || "—"}</div>
                     {lead.source === "google_places" ? (
                       <div className="text-[11px] mt-0.5" style={{ color: "#9CA3AF" }}>
                         {lead.business_address?.split(",").slice(0,2).join(",")}
@@ -886,7 +886,7 @@ export default function LeadManagerAdmin() {
                     {lead.source === "google_places" ? (
                       <div>
                         {lead.business_phone && (
-                          <div className="text-xs flex items-center gap-1" style={{ color: "#1E2128" }}>
+                          <div className="text-xs flex items-center gap-1" style={{ color: "#0F172A" }}>
                             <Phone className="w-3 h-3" style={{ color: "#0F9D58" }} />
                             {lead.business_phone}
                           </div>
@@ -956,7 +956,7 @@ export default function LeadManagerAdmin() {
             <tbody>
               {leads.map((lead, i) => (
                 <tr key={lead.id || lead.email || i} className="hover:bg-white transition-colors border-b" style={{ borderColor: "#F5F3F0" }}>
-                  <td className="px-4 py-3 font-semibold" style={{ color: "#1E2128" }}>
+                  <td className="px-4 py-3 font-semibold" style={{ color: "#0F172A" }}>
                     {lead.first_name} {lead.last_name}
                   </td>
                   <td className="px-4 py-3 text-xs" style={{ color: "#6B7280" }}>{lead.email}</td>

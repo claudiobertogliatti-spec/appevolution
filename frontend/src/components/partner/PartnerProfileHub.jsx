@@ -42,7 +42,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
     logo: partner?.brandKit?.logo || null,
     primaryColor: partner?.brandKit?.primaryColor || "#2C5F8A",
     accentColor: partner?.brandKit?.accentColor || "#FFD24D",
-    textColor: partner?.brandKit?.textColor || "#1E2128",
+    textColor: partner?.brandKit?.textColor || "#0F172A",
     bgColor: partner?.brandKit?.bgColor || "#FAFAF7",
     fontPrimary: partner?.brandKit?.fontPrimary || "Nunito Bold",
     fontSecondary: partner?.brandKit?.fontSecondary || "Nunito Regular",
@@ -179,7 +179,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
             <button onClick={cancelEdit} className="px-3 py-1 rounded-lg text-xs font-bold" style={{ background: '#ECEDEF', color: '#5F6572' }}>✕</button>
           </div>
         ) : (
-          <div className={`text-sm ${!value ? 'italic' : 'font-medium'}`} style={{ color: value ? '#1E2128' : '#9CA3AF' }}>
+          <div className={`text-sm ${!value ? 'italic' : 'font-medium'}`} style={{ color: value ? '#0F172A' : '#9CA3AF' }}>
             {value || placeholder || "Non inserito"}
           </div>
         )}
@@ -221,7 +221,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
       
       {/* Page Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-black flex items-center gap-2" style={{ color: '#1E2128' }}>
+        <h1 className="text-2xl font-black flex items-center gap-2" style={{ color: '#0F172A' }}>
           👤 Profilo Partner Hub
         </h1>
         <p className="text-sm" style={{ color: '#9CA3AF' }}>Il cervello del tuo percorso</p>
@@ -234,7 +234,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
           👨‍💼
         </div>
         <div className="flex-1">
-          <h2 className="text-xl font-black" style={{ color: '#1E2128' }}>{profileData.name}</h2>
+          <h2 className="text-xl font-black" style={{ color: '#0F172A' }}>{profileData.name}</h2>
           <p className="text-sm" style={{ color: '#5F6572' }}>
             Coach · Specializzato in {profileData.whoYouAre || "crescita business"}
           </p>
@@ -272,7 +272,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
               activeTab === tab.id ? 'text-white' : ''
             }`}
             style={{ 
-              background: activeTab === tab.id ? '#1E2128' : '#ECEDEF',
+              background: activeTab === tab.id ? '#0F172A' : '#ECEDEF',
               color: activeTab === tab.id ? 'white' : '#5F6572'
             }}
           >
@@ -289,7 +289,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
         <div className="space-y-6">
           {/* Flow Diagram */}
           <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
+            <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: '#0F172A' }}>
               🗺️ Il tuo percorso end-to-end
             </h3>
             <div className="flex items-center gap-2 overflow-x-auto pb-2">
@@ -304,7 +304,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
                          ringColor: step.status === 'current' ? '#F59E0B' : 'transparent'
                        }}>
                     <span className="text-2xl mb-1">{step.icon}</span>
-                    <span className="text-xs font-bold" style={{ color: '#1E2128' }}>{step.name}</span>
+                    <span className="text-xs font-bold" style={{ color: '#0F172A' }}>{step.name}</span>
                     <span className="text-[10px] mt-1" style={{ 
                       color: step.status === 'done' ? '#34C77B' : 
                              step.status === 'current' ? '#F59E0B' : '#9CA3AF'
@@ -325,7 +325,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
 
           {/* Module Progress */}
           <div>
-            <h3 className="font-bold mb-4" style={{ color: '#1E2128' }}>📊 Stato dei Moduli</h3>
+            <h3 className="font-bold mb-4" style={{ color: '#0F172A' }}>📊 Stato dei Moduli</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
                 { name: "Posizionamento", icon: "🎯", desc: "Chi sei, cosa fai, per chi", progress: moduleProgress.positioning, sections: "4 di 4 sezioni" },
@@ -343,7 +343,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
                   <div className="flex items-center gap-3 mb-3">
                     <span className="text-2xl">{mod.icon}</span>
                     <div>
-                      <div className="font-bold text-sm" style={{ color: '#1E2128' }}>{mod.name}</div>
+                      <div className="font-bold text-sm" style={{ color: '#0F172A' }}>{mod.name}</div>
                       <div className="text-xs" style={{ color: '#9CA3AF' }}>{mod.desc}</div>
                     </div>
                   </div>
@@ -365,7 +365,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
 
           {/* Recent Activity */}
           <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <h3 className="font-bold mb-4" style={{ color: '#1E2128' }}>🕐 Attività recente</h3>
+            <h3 className="font-bold mb-4" style={{ color: '#0F172A' }}>🕐 Attività recente</h3>
             <div className="space-y-3">
               {recentActivity.map((item, i) => (
                 <div key={i} className="flex items-center gap-4 py-2 border-b" style={{ borderColor: '#F5F4F1' }}>
@@ -389,7 +389,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
         <div className="space-y-6">
           <div className="bg-white rounded-2xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold flex items-center gap-2" style={{ color: '#1E2128' }}>
+              <h3 className="font-bold flex items-center gap-2" style={{ color: '#0F172A' }}>
                 👤 Dati Personali
               </h3>
               <span className="text-xs font-bold px-3 py-1 rounded-full bg-green-100 text-green-600">✓ Completo</span>
@@ -401,7 +401,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
             <EditableRow label="Bio breve" field="bio" value={profileData.bio} placeholder="Descrivi chi sei in 2 righe..." />
             <div className="flex items-center gap-4 py-3">
               <div className="w-32 flex-shrink-0 text-xs font-bold" style={{ color: '#9CA3AF' }}>Foto profilo</div>
-              <div className="flex-1 text-sm" style={{ color: profileData.photo ? '#1E2128' : '#9CA3AF' }}>
+              <div className="flex-1 text-sm" style={{ color: profileData.photo ? '#0F172A' : '#9CA3AF' }}>
                 {profileData.photo ? (
                   <span>📸 {profileData.photo} <span className="text-green-600 font-bold text-xs">· Caricata</span></span>
                 ) : (
@@ -416,7 +416,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
 
           <div className="bg-white rounded-2xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold flex items-center gap-2" style={{ color: '#1E2128' }}>
+              <h3 className="font-bold flex items-center gap-2" style={{ color: '#0F172A' }}>
                 🔗 Link e Social
               </h3>
               <span className="text-xs font-bold px-3 py-1 rounded-full bg-yellow-100 text-yellow-600">⚠️ Parziale</span>
@@ -434,7 +434,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
         <div className="space-y-6">
           <div className="bg-white rounded-2xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold" style={{ color: '#1E2128' }}>🎯 Il tuo Posizionamento</h3>
+              <h3 className="font-bold" style={{ color: '#0F172A' }}>🎯 Il tuo Posizionamento</h3>
               <span className="text-xs font-bold px-3 py-1 rounded-full bg-green-100 text-green-600">✓ Completo</span>
             </div>
             <EditableRow label="Chi sei" field="whoYouAre" value={profileData.whoYouAre} placeholder="Coach per..." />
@@ -447,7 +447,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
 
           <div className="bg-white rounded-2xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold" style={{ color: '#1E2128' }}>🎁 La tua Offerta</h3>
+              <h3 className="font-bold" style={{ color: '#0F172A' }}>🎁 La tua Offerta</h3>
               <span className="text-xs font-bold px-3 py-1 rounded-full bg-green-100 text-green-600">✓ Completo</span>
             </div>
             <EditableRow label="Nome offerta" field="offerName" value={profileData.offerName} placeholder="Programma Acceleratore..." />
@@ -463,13 +463,13 @@ export function PartnerProfileHub({ partner, onNavigate }) {
         <div className="space-y-6">
           <div className="bg-white rounded-2xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold" style={{ color: '#1E2128' }}>🎨 Brand Kit</h3>
+              <h3 className="font-bold" style={{ color: '#0F172A' }}>🎨 Brand Kit</h3>
               <span className="text-xs font-bold px-3 py-1 rounded-full bg-green-100 text-green-600">✓ Completo</span>
             </div>
             
             <div className="flex items-center gap-4 py-3 border-b" style={{ borderColor: '#F5F4F1' }}>
               <div className="w-32 flex-shrink-0 text-xs font-bold" style={{ color: '#9CA3AF' }}>Logo</div>
-              <div className="flex-1 text-sm" style={{ color: profileData.logo ? '#1E2128' : '#9CA3AF' }}>
+              <div className="flex-1 text-sm" style={{ color: profileData.logo ? '#0F172A' : '#9CA3AF' }}>
                 {profileData.logo ? (
                   <span>📎 {profileData.logo} <span className="text-green-600 font-bold text-xs">· Caricato</span></span>
                 ) : (
@@ -495,7 +495,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
             <div className="flex items-center gap-4 py-3 border-b" style={{ borderColor: '#F5F4F1' }}>
               <div className="w-32 flex-shrink-0 text-xs font-bold" style={{ color: '#9CA3AF' }}>Font</div>
               <div className="flex-1 flex gap-4">
-                <span className="text-sm font-bold" style={{ color: '#1E2128' }}>{profileData.fontPrimary}</span>
+                <span className="text-sm font-bold" style={{ color: '#0F172A' }}>{profileData.fontPrimary}</span>
                 <span className="text-sm" style={{ color: '#5F6572' }}>{profileData.fontSecondary}</span>
               </div>
             </div>
@@ -506,7 +506,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
 
           <div className="bg-white rounded-2xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold" style={{ color: '#1E2128' }}>📸 Media caricati</h3>
+              <h3 className="font-bold" style={{ color: '#0F172A' }}>📸 Media caricati</h3>
               <span className="text-xs font-bold px-3 py-1 rounded-full bg-yellow-100 text-yellow-600">⚠️ 3 di 5</span>
             </div>
             {[
@@ -518,7 +518,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
             ].map((item, i) => (
               <div key={i} className="flex items-center gap-4 py-2 border-b" style={{ borderColor: '#F5F4F1' }}>
                 <div className="w-32 text-xs font-bold" style={{ color: '#9CA3AF' }}>{item.label}</div>
-                <div className="flex-1 text-sm" style={{ color: item.ok ? '#1E2128' : '#EF4444' }}>
+                <div className="flex-1 text-sm" style={{ color: item.ok ? '#0F172A' : '#EF4444' }}>
                   {item.ok ? `✅ ${item.value}` : `❌ Non caricato${item.critical ? ' — necessario per Avatar AI' : ''}`}
                 </div>
               </div>
@@ -537,7 +537,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
                 🧑‍💻
               </div>
               <div>
-                <h3 className="font-bold text-lg" style={{ color: '#1E2128' }}>Cosa vede Andrea quando lavora per te</h3>
+                <h3 className="font-bold text-lg" style={{ color: '#0F172A' }}>Cosa vede Andrea quando lavora per te</h3>
                 <p className="text-sm" style={{ color: '#5F6572' }}>Questi sono i dati che Andrea usa per creare funnel, email, pagine e contenuti</p>
               </div>
             </div>
@@ -559,7 +559,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
               ].map((item, i) => (
                 <div key={i} className={`p-3 rounded-xl ${item.missing ? 'bg-red-50 border border-red-200' : 'bg-white'}`}>
                   <div className="text-[10px] font-bold mb-1" style={{ color: '#9CA3AF' }}>{item.label}</div>
-                  <div className="text-sm font-bold flex items-center gap-2" style={{ color: item.missing ? '#EF4444' : '#1E2128' }}>
+                  <div className="text-sm font-bold flex items-center gap-2" style={{ color: item.missing ? '#EF4444' : '#0F172A' }}>
                     {item.isColor && <span className="w-4 h-4 rounded" style={{ background: item.value }} />}
                     {item.isColor ? item.value : item.value}
                   </div>
@@ -571,7 +571,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
 
           {/* How Andrea Uses Data */}
           <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <h3 className="font-bold mb-4" style={{ color: '#1E2128' }}>⚡ Come Andrea usa questi dati</h3>
+            <h3 className="font-bold mb-4" style={{ color: '#0F172A' }}>⚡ Come Andrea usa questi dati</h3>
             <div className="space-y-4">
               {[
                 { icon: "🚀", title: "Funnel → Opt-in page", data: "Nome, Nicchia, Pitch, Foto hero, Logo, Colori, Tono", color: "#EAFAF1" },
@@ -584,7 +584,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
                     {item.icon}
                   </div>
                   <div>
-                    <div className="font-bold text-sm" style={{ color: '#1E2128' }}>{item.title}</div>
+                    <div className="font-bold text-sm" style={{ color: '#0F172A' }}>{item.title}</div>
                     <div className="text-xs" style={{ color: '#5F6572' }}>
                       Andrea usa: <strong>{item.data}</strong>
                       {item.warning && <span className="text-red-500 font-bold ml-2">⚠️ Campione voce mancante</span>}
@@ -597,7 +597,7 @@ export function PartnerProfileHub({ partner, onNavigate }) {
 
           {/* Missing Data Alerts */}
           <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <h3 className="font-bold mb-4" style={{ color: '#1E2128' }}>⚠️ Dati mancanti — Andrea non può procedere</h3>
+            <h3 className="font-bold mb-4" style={{ color: '#0F172A' }}>⚠️ Dati mancanti — Andrea non può procedere</h3>
             <div className="space-y-3">
               {!profileData.voiceSample && (
                 <div className="p-4 rounded-xl flex items-center gap-4" style={{ background: '#FEE2E2', border: '1px solid #FECACA' }}>

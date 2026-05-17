@@ -162,7 +162,7 @@ export function AvatarCheckout({ partner, onBack }) {
                      style={{ background: '#10B981' }}>
                   <Check className="w-10 h-10 text-white" />
                 </div>
-                <h2 className="text-2xl font-black mb-2" style={{ color: '#1E2128' }}>
+                <h2 className="text-2xl font-black mb-2" style={{ color: '#0F172A' }}>
                   Pagamento Completato! 🎉
                 </h2>
               </>
@@ -170,7 +170,7 @@ export function AvatarCheckout({ partner, onBack }) {
             {paymentStatus.status === 'processing' && (
               <>
                 <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" style={{ color: '#F59E0B' }} />
-                <h2 className="text-xl font-bold mb-2" style={{ color: '#1E2128' }}>
+                <h2 className="text-xl font-bold mb-2" style={{ color: '#0F172A' }}>
                   Verifica in corso...
                 </h2>
               </>
@@ -180,7 +180,7 @@ export function AvatarCheckout({ partner, onBack }) {
                 <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center bg-red-500">
                   <AlertCircle className="w-10 h-10 text-white" />
                 </div>
-                <h2 className="text-xl font-bold mb-2" style={{ color: '#1E2128' }}>
+                <h2 className="text-xl font-bold mb-2" style={{ color: '#0F172A' }}>
                   Problema con il pagamento
                 </h2>
               </>
@@ -205,7 +205,7 @@ export function AvatarCheckout({ partner, onBack }) {
                 window.history.replaceState({}, '', window.location.pathname);
               }}
               className="px-6 py-3 rounded-xl font-bold"
-              style={{ background: '#FFD24D', color: '#1E2128' }}
+              style={{ background: '#FFD24D', color: '#0F172A' }}
             >
               {paymentStatus.status === 'success' ? 'Torna alla Dashboard' : 'Riprova'}
             </button>
@@ -225,7 +225,7 @@ export function AvatarCheckout({ partner, onBack }) {
           </button>
         )}
         <div>
-          <h1 className="text-2xl font-black flex items-center gap-2" style={{ color: '#1E2128' }}>
+          <h1 className="text-2xl font-black flex items-center gap-2" style={{ color: '#0F172A' }}>
             🎬 Avatar PRO — Servizio Delega
           </h1>
           <p className="text-sm" style={{ color: '#9CA3AF' }}>
@@ -238,8 +238,8 @@ export function AvatarCheckout({ partner, onBack }) {
       <div className="bg-white rounded-3xl overflow-hidden" style={{ border: '1px solid #ECEDEF' }}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
           {/* Video Demo */}
-          <div className="relative bg-gradient-to-br from-[#1E2128] to-[#2D3038] p-6 flex items-center justify-center min-h-[300px]">
-            <div className="absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold bg-[#FFD24D] text-[#1E2128]">
+          <div className="relative bg-gradient-to-br from-[#0F172A] to-[#2D3038] p-6 flex items-center justify-center min-h-[300px]">
+            <div className="absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold bg-[#FFD24D] text-[#0F172A]">
               ESEMPIO AVATAR
             </div>
             <div className="w-full max-w-md">
@@ -271,7 +271,7 @@ export function AvatarCheckout({ partner, onBack }) {
               SERVIZIO PREMIUM
             </div>
             
-            <h2 className="text-2xl font-black mb-4" style={{ color: '#1E2128' }}>
+            <h2 className="text-2xl font-black mb-4" style={{ color: '#0F172A' }}>
               Il Tuo Clone Digitale che Insegna per Te
             </h2>
             
@@ -287,7 +287,7 @@ export function AvatarCheckout({ partner, onBack }) {
                   <Check className="w-4 h-4" style={{ color: '#10B981' }} />
                 </div>
                 <div>
-                  <div className="font-bold text-sm" style={{ color: '#1E2128' }}>Qualità Cinematografica</div>
+                  <div className="font-bold text-sm" style={{ color: '#0F172A' }}>Qualità Cinematografica</div>
                   <div className="text-xs" style={{ color: '#9CA3AF' }}>Risoluzione 1080p HD</div>
                 </div>
               </div>
@@ -296,7 +296,7 @@ export function AvatarCheckout({ partner, onBack }) {
                   <Check className="w-4 h-4" style={{ color: '#10B981' }} />
                 </div>
                 <div>
-                  <div className="font-bold text-sm" style={{ color: '#1E2128' }}>Espressioni Naturali</div>
+                  <div className="font-bold text-sm" style={{ color: '#0F172A' }}>Espressioni Naturali</div>
                   <div className="text-xs" style={{ color: '#9CA3AF' }}>Sorrisi e gesti realistici</div>
                 </div>
               </div>
@@ -305,7 +305,7 @@ export function AvatarCheckout({ partner, onBack }) {
                   <Check className="w-4 h-4" style={{ color: '#10B981' }} />
                 </div>
                 <div>
-                  <div className="font-bold text-sm" style={{ color: '#1E2128' }}>Script Ottimizzato</div>
+                  <div className="font-bold text-sm" style={{ color: '#0F172A' }}>Script Ottimizzato</div>
                   <div className="text-xs" style={{ color: '#9CA3AF' }}>Copy persuasivo incluso</div>
                 </div>
               </div>
@@ -314,7 +314,7 @@ export function AvatarCheckout({ partner, onBack }) {
                   <Check className="w-4 h-4" style={{ color: '#10B981' }} />
                 </div>
                 <div>
-                  <div className="font-bold text-sm" style={{ color: '#1E2128' }}>Consegna Rapida</div>
+                  <div className="font-bold text-sm" style={{ color: '#0F172A' }}>Consegna Rapida</div>
                   <div className="text-xs" style={{ color: '#9CA3AF' }}>48-72h per lezione</div>
                 </div>
               </div>
@@ -333,7 +333,7 @@ export function AvatarCheckout({ partner, onBack }) {
 
       {/* Section Title */}
       <div className="text-center">
-        <h3 className="text-xl font-bold" style={{ color: '#1E2128' }}>Scegli il Pacchetto</h3>
+        <h3 className="text-xl font-bold" style={{ color: '#0F172A' }}>Scegli il Pacchetto</h3>
         <p className="text-sm" style={{ color: '#9CA3AF' }}>Più lezioni acquisti, più risparmi</p>
       </div>
 
@@ -370,16 +370,16 @@ export function AvatarCheckout({ partner, onBack }) {
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                   isSelected ? 'bg-[#FFD24D]' : 'bg-[#FFF8DC]'
                 }`}>
-                  <Package className="w-6 h-6" style={{ color: isSelected ? '#1E2128' : '#C4990A' }} />
+                  <Package className="w-6 h-6" style={{ color: isSelected ? '#0F172A' : '#C4990A' }} />
                 </div>
                 <div className="text-right">
-                  <div className="text-3xl font-black" style={{ color: '#1E2128' }}>
+                  <div className="text-3xl font-black" style={{ color: '#0F172A' }}>
                     €{pkg.price}
                   </div>
                 </div>
               </div>
               
-              <h3 className="font-bold text-lg mb-2" style={{ color: '#1E2128' }}>
+              <h3 className="font-bold text-lg mb-2" style={{ color: '#0F172A' }}>
                 {pkg.name}
               </h3>
               <p className="text-sm mb-4" style={{ color: '#5F6572' }}>
@@ -398,7 +398,7 @@ export function AvatarCheckout({ partner, onBack }) {
               {isSelected && (
                 <div className="absolute top-4 right-4 w-6 h-6 rounded-full flex items-center justify-center"
                      style={{ background: '#FFD24D' }}>
-                  <Check className="w-4 h-4" style={{ color: '#1E2128' }} />
+                  <Check className="w-4 h-4" style={{ color: '#0F172A' }} />
                 </div>
               )}
             </div>
@@ -409,7 +409,7 @@ export function AvatarCheckout({ partner, onBack }) {
       {/* Lesson Details Input */}
       {selectedPackage && (
         <div className="bg-white rounded-2xl p-6 shadow-sm">
-          <h3 className="font-bold mb-3" style={{ color: '#1E2128' }}>
+          <h3 className="font-bold mb-3" style={{ color: '#0F172A' }}>
             📝 Dettagli Lezione (opzionale)
           </h3>
           <textarea
@@ -437,7 +437,7 @@ export function AvatarCheckout({ partner, onBack }) {
             {selectedPackage && packages[selectedPackage] && (
               <>
                 <div className="text-sm" style={{ color: '#9CA3AF' }}>Totale da pagare</div>
-                <div className="text-3xl font-black" style={{ color: '#1E2128' }}>
+                <div className="text-3xl font-black" style={{ color: '#0F172A' }}>
                   €{packages[selectedPackage].price}
                 </div>
               </>
@@ -448,7 +448,7 @@ export function AvatarCheckout({ partner, onBack }) {
             onClick={handleCheckout}
             disabled={!selectedPackage || isProcessing}
             className="px-8 py-4 rounded-xl font-bold text-lg flex items-center gap-3 transition-all hover:opacity-90 disabled:opacity-50"
-            style={{ background: '#FFD24D', color: '#1E2128' }}
+            style={{ background: '#FFD24D', color: '#0F172A' }}
           >
             {isProcessing ? (
               <>

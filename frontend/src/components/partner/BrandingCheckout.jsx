@@ -94,7 +94,7 @@ export function BrandingCheckout({ partner, onBack }) {
                  style={{ background: '#10B981' }}>
               <Check className="w-10 h-10 text-white" />
             </div>
-            <h2 className="text-2xl font-black mb-2" style={{ color: '#1E2128' }}>
+            <h2 className="text-2xl font-black mb-2" style={{ color: '#0F172A' }}>
               Ordine Confermato! 🎨
             </h2>
             <p className="text-sm mb-6" style={{ color: '#5F6572' }}>
@@ -110,7 +110,7 @@ export function BrandingCheckout({ partner, onBack }) {
             <button
               onClick={onBack}
               className="px-6 py-3 rounded-xl font-bold"
-              style={{ background: '#FFD24D', color: '#1E2128' }}
+              style={{ background: '#FFD24D', color: '#0F172A' }}
             >
               Torna ai Servizi
             </button>
@@ -130,7 +130,7 @@ export function BrandingCheckout({ partner, onBack }) {
           </button>
         )}
         <div>
-          <h1 className="text-2xl font-black flex items-center gap-2" style={{ color: '#1E2128' }}>
+          <h1 className="text-2xl font-black flex items-center gap-2" style={{ color: '#0F172A' }}>
             🎨 Branding Premium Pack
           </h1>
           <p className="text-sm" style={{ color: '#9CA3AF' }}>
@@ -160,7 +160,7 @@ export function BrandingCheckout({ partner, onBack }) {
         </div>
         
         <div className="p-6">
-          <h3 className="font-bold mb-4" style={{ color: '#1E2128' }}>Cosa Riceverai:</h3>
+          <h3 className="font-bold mb-4" style={{ color: '#0F172A' }}>Cosa Riceverai:</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {DELIVERABLES.map((item, idx) => (
               <div key={idx} className="flex items-start gap-3 p-3 rounded-lg" style={{ background: '#FAFAF7' }}>
@@ -169,7 +169,7 @@ export function BrandingCheckout({ partner, onBack }) {
                   <item.icon className="w-5 h-5" style={{ color: '#7B68AE' }} />
                 </div>
                 <div>
-                  <div className="font-bold text-sm" style={{ color: '#1E2128' }}>{item.title}</div>
+                  <div className="font-bold text-sm" style={{ color: '#0F172A' }}>{item.title}</div>
                   <div className="text-xs" style={{ color: '#9CA3AF' }}>{item.desc}</div>
                 </div>
               </div>
@@ -180,7 +180,7 @@ export function BrandingCheckout({ partner, onBack }) {
 
       {/* Brand Info Form */}
       <div className="bg-white rounded-xl p-6" style={{ border: '1px solid #ECEDEF' }}>
-        <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
+        <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: '#0F172A' }}>
           <Sparkles className="w-5 h-5" style={{ color: '#FFD24D' }} />
           Parlaci del Tuo Brand
         </h3>
@@ -188,7 +188,7 @@ export function BrandingCheckout({ partner, onBack }) {
         <div className="space-y-4">
           {/* Brand Name */}
           <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: '#1E2128' }}>
+            <label className="block text-sm font-medium mb-2" style={{ color: '#0F172A' }}>
               Nome del Brand *
             </label>
             <input
@@ -203,7 +203,7 @@ export function BrandingCheckout({ partner, onBack }) {
           
           {/* Brand Description */}
           <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: '#1E2128' }}>
+            <label className="block text-sm font-medium mb-2" style={{ color: '#0F172A' }}>
               Descrivi il tuo business (opzionale)
             </label>
             <textarea
@@ -217,7 +217,7 @@ export function BrandingCheckout({ partner, onBack }) {
           
           {/* Style Selection */}
           <div>
-            <label className="block text-sm font-medium mb-3" style={{ color: '#1E2128' }}>
+            <label className="block text-sm font-medium mb-3" style={{ color: '#0F172A' }}>
               Quale stile preferisci?
             </label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -236,7 +236,7 @@ export function BrandingCheckout({ partner, onBack }) {
                     }}
                   >
                     <span className="text-2xl block mb-1">{style.icon}</span>
-                    <span className="text-xs font-medium" style={{ color: '#1E2128' }}>
+                    <span className="text-xs font-medium" style={{ color: '#0F172A' }}>
                       {style.label}
                     </span>
                   </button>
@@ -247,7 +247,7 @@ export function BrandingCheckout({ partner, onBack }) {
           
           {/* Color Preferences */}
           <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: '#1E2128' }}>
+            <label className="block text-sm font-medium mb-2" style={{ color: '#0F172A' }}>
               Preferenze colori (opzionale)
             </label>
             <input
@@ -275,7 +275,7 @@ export function BrandingCheckout({ partner, onBack }) {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm" style={{ color: '#9CA3AF' }}>Totale da pagare</div>
-            <div className="text-3xl font-black" style={{ color: '#1E2128' }}>€297</div>
+            <div className="text-3xl font-black" style={{ color: '#0F172A' }}>€297</div>
             <div className="text-xs" style={{ color: '#9CA3AF' }}>IVA inclusa</div>
           </div>
           

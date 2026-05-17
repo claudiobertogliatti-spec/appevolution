@@ -122,7 +122,7 @@ export function PartnerFiles({ partner }) {
             <FolderOpen className="w-7 h-7 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-black" style={{ color: "#1E2128" }}>I Miei File</h1>
+            <h1 className="text-2xl font-black" style={{ color: "#0F172A" }}>I Miei File</h1>
             <p className="text-sm" style={{ color: "#9CA3AF" }}>Documenti, video e materiali del tuo progetto</p>
           </div>
         </div>
@@ -169,12 +169,12 @@ export function PartnerFiles({ partner }) {
           {uploading ? (
             <div>
               <Loader2 className="w-12 h-12 mx-auto mb-3 animate-spin" style={{ color: "#FFD24D" }} />
-              <p className="font-medium" style={{ color: "#1E2128" }}>Caricamento in corso...</p>
+              <p className="font-medium" style={{ color: "#0F172A" }}>Caricamento in corso...</p>
             </div>
           ) : (
             <>
               <CloudUpload className="w-12 h-12 mx-auto mb-3" style={{ color: dragActive ? "#FFD24D" : "#9CA3AF" }} />
-              <p className="font-bold mb-1" style={{ color: "#1E2128" }}>Carica Materiale</p>
+              <p className="font-bold mb-1" style={{ color: "#0F172A" }}>Carica Materiale</p>
               <p className="text-sm text-gray-500 mb-3">
                 Trascina qui i tuoi file o clicca per selezionarli
               </p>
@@ -193,7 +193,7 @@ export function PartnerFiles({ partner }) {
         {/* YouTube Videocourse */}
         {youtubePlaylistId && (
           <div className="mb-8">
-            <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: "#1E2128" }}>
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: "#0F172A" }}>
               <Film className="w-5 h-5 text-red-600" />
               Il Mio Videocorso
             </h2>
@@ -225,7 +225,7 @@ export function PartnerFiles({ partner }) {
             {/* Raw Materials */}
             {rawDocs.length > 0 && (
               <div>
-                <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: "#1E2128" }}>
+                <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: "#0F172A" }}>
                   <Upload className="w-5 h-5 text-orange-500" />
                   Materiali Caricati
                   <span className="px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full text-xs font-bold">
@@ -243,7 +243,7 @@ export function PartnerFiles({ partner }) {
             {/* PDFs */}
             {pdfDocs.length > 0 && (
               <div>
-                <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: "#1E2128" }}>
+                <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: "#0F172A" }}>
                   <FileText className="w-5 h-5 text-red-500" />
                   Documenti PDF
                 </h2>
@@ -258,7 +258,7 @@ export function PartnerFiles({ partner }) {
             {/* Other Files */}
             {otherDocs.length > 0 && (
               <div>
-                <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: "#1E2128" }}>
+                <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: "#0F172A" }}>
                   <FolderOpen className="w-5 h-5 text-gray-500" />
                   Altri File
                 </h2>
@@ -299,7 +299,7 @@ function DocumentCard({ doc, getFileIcon, isRaw }) {
           {getFileIcon(doc)}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-medium truncate" style={{ color: "#1E2128" }}>
+          <p className="font-medium truncate" style={{ color: "#0F172A" }}>
             {doc.name || doc.filename || "Documento"}
           </p>
           <div className="flex items-center gap-2 mt-1">
@@ -320,7 +320,7 @@ function DocumentCard({ doc, getFileIcon, isRaw }) {
           target="_blank"
           rel="noopener noreferrer"
           className="mt-3 w-full py-2 rounded-lg text-sm font-medium text-center block transition-colors"
-          style={{ background: "#FAFAF7", color: "#1E2128" }}
+          style={{ background: "#FAFAF7", color: "#0F172A" }}
         >
           Visualizza
         </a>

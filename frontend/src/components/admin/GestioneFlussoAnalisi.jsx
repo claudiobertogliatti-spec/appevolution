@@ -235,7 +235,7 @@ export function GestioneFlussoAnalisi() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: '#1E2128' }}>
+          <h1 className="text-2xl font-bold" style={{ color: '#0F172A' }}>
             Gestione Flusso Analisi
           </h1>
           <p className="text-sm" style={{ color: '#5F6572' }}>
@@ -245,7 +245,7 @@ export function GestioneFlussoAnalisi() {
         <button
           onClick={loadClienti}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          style={{ background: '#FFD24D', color: '#1E2128' }}
+          style={{ background: '#FFD24D', color: '#0F172A' }}
           data-testid="refresh-flusso-btn"
         >
           <RefreshCw className="w-4 h-4" />
@@ -259,7 +259,7 @@ export function GestioneFlussoAnalisi() {
           onClick={() => setFilterStatus("all")}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filterStatus === "all" ? "ring-2 ring-offset-1" : ""}`}
           style={{ 
-            background: filterStatus === "all" ? "#1E2128" : "#FFFFFF",
+            background: filterStatus === "all" ? "#0F172A" : "#FFFFFF",
             color: filterStatus === "all" ? "#FFFFFF" : "#5F6572",
             border: "1px solid #ECEDEF"
           }}
@@ -343,7 +343,7 @@ export function GestioneFlussoAnalisi() {
                     data-testid={`flusso-row-${cliente.id}`}
                   >
                     <td className="px-4 py-3">
-                      <div className="font-medium text-sm" style={{ color: '#1E2128' }}>
+                      <div className="font-medium text-sm" style={{ color: '#0F172A' }}>
                         {cliente.nome} {cliente.cognome}
                       </div>
                     </td>
@@ -370,7 +370,7 @@ export function GestioneFlussoAnalisi() {
                           loadAnalisi(cliente.id);
                         }}
                         className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:opacity-80"
-                        style={{ background: '#FFD24D', color: '#1E2128' }}
+                        style={{ background: '#FFD24D', color: '#0F172A' }}
                         data-testid={`btn-gestisci-${cliente.id}`}
                       >
                         <Briefcase className="w-3 h-3" />

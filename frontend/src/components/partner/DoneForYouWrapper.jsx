@@ -67,7 +67,7 @@ function SlaBadge({ stepId }) {
   return (
     <span
       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
-      style={{ background: "#1E212810", color: "#1E2128", border: "1px solid #1E212815" }}
+      style={{ background: "#0F172A10", color: "#0F172A", border: "1px solid #0F172A15" }}
       data-testid={`sla-badge-${stepId}`}
     >
       <Timer className="w-3.5 h-3.5" />
@@ -113,7 +113,7 @@ function PreparazioneView({ status, stepTitle, stepId, stepIcon: StepIcon, notes
         <SlaBadge stepId={stepId} />
       </div>
 
-      <h2 className="text-xl font-black mb-3" style={{ color: "#1E2128" }}>
+      <h2 className="text-xl font-black mb-3" style={{ color: "#0F172A" }}>
         {stepTitle || "Step in preparazione"}
       </h2>
 
@@ -123,7 +123,7 @@ function PreparazioneView({ status, stepTitle, stepId, stepIcon: StepIcon, notes
       </p>
 
       {/* Done-for-you core message with SLA */}
-      <div className="rounded-2xl p-5 mb-6" style={{ background: "#1E2128" }}>
+      <div className="rounded-2xl p-5 mb-6" style={{ background: "#0F172A" }}>
         <div className="flex items-center justify-center gap-2 mb-3">
           <Shield className="w-5 h-5" style={{ color: "#FFD24D" }} />
           <span className="text-xs font-black uppercase tracking-widest" style={{ color: "#FFD24D" }}>
@@ -172,7 +172,7 @@ function PreparazioneView({ status, stepTitle, stepId, stepIcon: StepIcon, notes
           className="mt-5 rounded-xl p-4 text-left text-xs"
           style={{ background: "#FAFAF7", border: "1px solid #ECEDEF", color: "#5F6572" }}
         >
-          <span className="font-bold" style={{ color: "#1E2128" }}>Nota dal team: </span>
+          <span className="font-bold" style={{ color: "#0F172A" }}>Nota dal team: </span>
           {notes}
         </div>
       )}
@@ -367,7 +367,7 @@ export function DoneForYouWrapper({
               disabled={isApproving}
               data-testid="dfy-admin-approve-btn"
               className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all hover:opacity-90 disabled:opacity-50"
-              style={{ background: "#FBBF24", color: "#1E2128", border: "1.5px solid #F59E0B" }}
+              style={{ background: "#FBBF24", color: "#0F172A", border: "1.5px solid #F59E0B" }}
             >
               {isApproving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
               {isApproving ? "Approvazione..." : "Approva (Admin)"}

@@ -51,7 +51,7 @@ export const TextHighlight: React.FC<TextHighlightProps> = ({
         style={{
           marginTop: 60,
           backgroundColor: primaryColor,
-          color: "#1E2128",
+          color: "#0F172A",
           fontFamily: "sans-serif",
           fontSize: 42,
           fontWeight: 900,

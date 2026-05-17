@@ -36,7 +36,7 @@ function StatCard({ icon: Icon, label, value, color, trend }) {
         </div>
         <div>
           <p className="text-xs font-medium" style={{ color: '#9CA3AF' }}>{label}</p>
-          <p className="text-xl font-black" style={{ color: '#1E2128' }}>{value}</p>
+          <p className="text-xl font-black" style={{ color: '#0F172A' }}>{value}</p>
         </div>
         {trend && (
           <span className="ml-auto text-xs font-bold px-2 py-1 rounded-full"
@@ -71,7 +71,7 @@ function LeadRow({ lead, onStatusChange, onViewDetails }) {
                style={{ background: '#FFD24D30', color: '#FFD24D' }}>
             {lead.name?.charAt(0)?.toUpperCase() || '?'}
           </div>
-          <span className="font-medium text-sm" style={{ color: '#1E2128' }}>
+          <span className="font-medium text-sm" style={{ color: '#0F172A' }}>
             {lead.name || 'N/D'}
           </span>
         </div>
@@ -146,7 +146,7 @@ function LeadDetailModal({ lead, onClose, onSaveNote }) {
       <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b border-[#ECEDEF]">
           <div className="flex items-center justify-between">
-            <h2 className="font-bold text-lg" style={{ color: '#1E2128' }}>Dettaglio Lead</h2>
+            <h2 className="font-bold text-lg" style={{ color: '#0F172A' }}>Dettaglio Lead</h2>
             <button onClick={onClose} className="p-2 rounded-lg hover:bg-[#ECEDEF]">
               <X className="w-5 h-5" style={{ color: '#5F6572' }} />
             </button>
@@ -158,7 +158,7 @@ function LeadDetailModal({ lead, onClose, onSaveNote }) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-bold" style={{ color: '#9CA3AF' }}>Nome</label>
-              <p className="font-medium" style={{ color: '#1E2128' }}>{lead.name || 'N/D'}</p>
+              <p className="font-medium" style={{ color: '#0F172A' }}>{lead.name || 'N/D'}</p>
             </div>
             <div>
               <label className="text-xs font-bold" style={{ color: '#9CA3AF' }}>Status</label>
@@ -196,13 +196,13 @@ function LeadDetailModal({ lead, onClose, onSaveNote }) {
               placeholder="Aggiungi note sul lead..."
               rows={4}
               className="w-full px-4 py-3 rounded-xl text-sm resize-none"
-              style={{ background: '#FAFAF7', border: '1px solid #ECEDEF', color: '#1E2128' }}
+              style={{ background: '#FAFAF7', border: '1px solid #ECEDEF', color: '#0F172A' }}
             />
             <button
               onClick={handleSaveNote}
               disabled={isSaving}
               className="mt-2 px-4 py-2 rounded-lg text-xs font-bold transition-all"
-              style={{ background: '#1E2128', color: 'white' }}
+              style={{ background: '#0F172A', color: 'white' }}
             >
               {isSaving ? <RefreshCw className="w-3 h-3 inline animate-spin mr-1" /> : null}
               Salva nota
@@ -352,7 +352,7 @@ export function LeadPage({ partner }) {
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-black" style={{ color: '#1E2128' }}>
+              <h1 className="text-2xl font-black" style={{ color: '#0F172A' }}>
                 I tuoi Lead
               </h1>
               <p className="text-sm mt-1" style={{ color: '#5F6572' }}>
@@ -413,7 +413,7 @@ export function LeadPage({ partner }) {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Cerca per nome, email, telefono..."
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm"
-                  style={{ background: '#FAFAF7', border: '1px solid #ECEDEF', color: '#1E2128' }}
+                  style={{ background: '#FAFAF7', border: '1px solid #ECEDEF', color: '#0F172A' }}
                   data-testid="lead-search-input"
                 />
               </div>
@@ -481,7 +481,7 @@ export function LeadPage({ partner }) {
           {filteredLeads.length === 0 ? (
             <div className="p-12 text-center">
               <Users className="w-12 h-12 mx-auto mb-4" style={{ color: '#E5E7EB' }} />
-              <h3 className="font-bold mb-2" style={{ color: '#1E2128' }}>Nessun lead trovato</h3>
+              <h3 className="font-bold mb-2" style={{ color: '#0F172A' }}>Nessun lead trovato</h3>
               <p className="text-sm" style={{ color: '#9CA3AF' }}>
                 {leads.length === 0 
                   ? "I lead generati dal tuo funnel appariranno qui"

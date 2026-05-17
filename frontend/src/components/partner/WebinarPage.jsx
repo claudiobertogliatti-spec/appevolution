@@ -35,7 +35,7 @@ function WebinarContent({ webinarData }) {
   return (
     <div className="space-y-5" data-testid="webinar-content">
       {/* Titolo e promessa */}
-      <div className="rounded-2xl p-5" style={{ background: "#1E2128" }}>
+      <div className="rounded-2xl p-5" style={{ background: "#0F172A" }}>
         <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: "#FFD24D" }}>
           Il tuo Webinar
         </div>
@@ -53,7 +53,7 @@ function WebinarContent({ webinarData }) {
       <div className="bg-white rounded-2xl border p-5" style={{ borderColor: "#ECEDEF" }}>
         <div className="flex items-center gap-2 mb-4">
           <FileText className="w-5 h-5" style={{ color: "#FFD24D" }} />
-          <span className="font-bold text-sm" style={{ color: "#1E2128" }}>Struttura del Webinar</span>
+          <span className="font-bold text-sm" style={{ color: "#0F172A" }}>Struttura del Webinar</span>
           <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "#FAFAF7", color: "#9CA3AF" }}>45 min</span>
         </div>
         <div className="space-y-3">
@@ -72,7 +72,7 @@ function WebinarContent({ webinarData }) {
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold px-2 py-0.5 rounded"
                       style={{ background: "#FAFAF7", color: "#9CA3AF" }}>{blocco.id}</span>
-                    <span className="font-bold text-sm" style={{ color: "#1E2128" }}>{blocco.titolo}</span>
+                    <span className="font-bold text-sm" style={{ color: "#0F172A" }}>{blocco.titolo}</span>
                     <span className="text-xs ml-auto" style={{ color: "#9CA3AF" }}>{blocco.durata}</span>
                   </div>
                   <p className="text-xs mt-1" style={{ color: "#5F6572" }}>
@@ -92,7 +92,7 @@ function WebinarContent({ webinarData }) {
             style={{ background: "#3B82F620" }}>
             <Video className="w-6 h-6" style={{ color: "#3B82F6" }} />
           </div>
-          <p className="text-sm font-bold mb-1" style={{ color: "#1E2128" }}>Registra il video</p>
+          <p className="text-sm font-bold mb-1" style={{ color: "#0F172A" }}>Registra il video</p>
           <p className="text-xs" style={{ color: "#9CA3AF" }}>
             Il team ti guida nella registrazione del webinar
           </p>
@@ -106,7 +106,7 @@ function WebinarContent({ webinarData }) {
             style={{ background: "#8B5CF620" }}>
             <User className="w-6 h-6" style={{ color: "#8B5CF6" }} />
           </div>
-          <p className="text-sm font-bold mb-1" style={{ color: "#1E2128" }}>Usa Avatar AI</p>
+          <p className="text-sm font-bold mb-1" style={{ color: "#0F172A" }}>Usa Avatar AI</p>
           <p className="text-xs" style={{ color: "#9CA3AF" }}>
             In alternativa, possiamo creare il video con il tuo avatar
           </p>
@@ -121,18 +121,18 @@ function WebinarContent({ webinarData }) {
       <div className="bg-white rounded-2xl border p-5" style={{ borderColor: "#ECEDEF" }}>
         <div className="flex items-center gap-2 mb-4">
           <Calendar className="w-5 h-5" style={{ color: "#FFD24D" }} />
-          <span className="font-bold text-sm" style={{ color: "#1E2128" }}>Pianificazione</span>
+          <span className="font-bold text-sm" style={{ color: "#0F172A" }}>Pianificazione</span>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="rounded-xl p-4" style={{ background: "#FAFAF7" }}>
             <div className="text-xs font-bold mb-1" style={{ color: "#9CA3AF" }}>Data</div>
-            <div className="text-sm font-bold" style={{ color: "#1E2128" }}>
+            <div className="text-sm font-bold" style={{ color: "#0F172A" }}>
               {webinarData.data_webinar || "Da definire dal team"}
             </div>
           </div>
           <div className="rounded-xl p-4" style={{ background: "#FAFAF7" }}>
             <div className="text-xs font-bold mb-1" style={{ color: "#9CA3AF" }}>Orario</div>
-            <div className="text-sm font-bold" style={{ color: "#1E2128" }}>
+            <div className="text-sm font-bold" style={{ color: "#0F172A" }}>
               {webinarData.ora_webinar || "Da definire dal team"}
             </div>
           </div>
@@ -143,7 +143,7 @@ function WebinarContent({ webinarData }) {
       <div className="bg-white rounded-2xl border p-5" style={{ borderColor: "#ECEDEF" }}>
         <div className="flex items-center gap-2 mb-4">
           <Link className="w-5 h-5" style={{ color: "#FFD24D" }} />
-          <span className="font-bold text-sm" style={{ color: "#1E2128" }}>I tuoi link</span>
+          <span className="font-bold text-sm" style={{ color: "#0F172A" }}>I tuoi link</span>
         </div>
         <div className="space-y-3">
           <LinkRow
@@ -252,7 +252,7 @@ export function WebinarPage({ partner, onNavigate, isAdmin }) {
               <Video className="w-6 h-6" style={{ color: "#8B5CF6" }} />
             </div>
             <div>
-              <h1 className="text-2xl font-black" style={{ color: "#1E2128" }}>
+              <h1 className="text-2xl font-black" style={{ color: "#0F172A" }}>
                 Il tuo Webinar
               </h1>
               <p className="text-sm" style={{ color: "#9CA3AF" }}>

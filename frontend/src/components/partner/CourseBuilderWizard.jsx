@@ -20,7 +20,7 @@ function CourseContent({ outline }) {
   return (
     <div className="space-y-4" data-testid="course-outline">
       {outline.titolo && (
-        <div className="rounded-2xl p-5" style={{ background: "#1E2128" }}>
+        <div className="rounded-2xl p-5" style={{ background: "#0F172A" }}>
           <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: "#FFD24D" }}>
             Il tuo Corso
           </div>
@@ -46,11 +46,11 @@ function ModuleCard({ modulo, idx }) {
       <button onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50 transition-all">
         <span className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black flex-shrink-0"
-          style={{ background: "#FFD24D", color: "#1E2128" }}>
+          style={{ background: "#FFD24D", color: "#0F172A" }}>
           {idx + 1}
         </span>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold" style={{ color: "#1E2128" }}>{modulo.titolo}</div>
+          <div className="text-sm font-bold" style={{ color: "#0F172A" }}>{modulo.titolo}</div>
           {modulo.obiettivo && <div className="text-xs" style={{ color: "#9CA3AF" }}>{modulo.obiettivo}</div>}
         </div>
         <span className="text-xs font-bold" style={{ color: "#9CA3AF" }}>
@@ -64,7 +64,7 @@ function ModuleCard({ modulo, idx }) {
             <div key={li} className="flex items-center gap-2 p-3 rounded-xl"
               style={{ background: "#FAFAF7", border: "1px solid #F0EDE8" }}>
               <FileText className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "#3B82F6" }} />
-              <span className="text-sm flex-1" style={{ color: "#1E2128" }}>
+              <span className="text-sm flex-1" style={{ color: "#0F172A" }}>
                 {typeof lez === "string" ? lez : lez.titolo}
               </span>
             </div>
@@ -112,7 +112,7 @@ export function CourseBuilderWizard({ partnerId, positioningData, onComplete }) 
               <GraduationCap className="w-6 h-6" style={{ color: "#8B5CF6" }} />
             </div>
             <div>
-              <h1 className="text-2xl font-black" style={{ color: "#1E2128" }}>
+              <h1 className="text-2xl font-black" style={{ color: "#0F172A" }}>
                 Struttura del Corso
               </h1>
               <p className="text-sm" style={{ color: "#9CA3AF" }}>

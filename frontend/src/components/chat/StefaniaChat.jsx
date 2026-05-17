@@ -49,7 +49,7 @@ function Message({ msg, isLast }) {
                 ? "bg-green-500/20 border border-green-500/30 text-green-700 rounded-bl-md"
                 : isEscalation
                   ? "bg-orange-500/20 border border-orange-500/30 text-orange-700 rounded-bl-md"
-                  : "bg-white text-[#1E2128] rounded-bl-md border border-[#ECEDEF]"
+                  : "bg-white text-[#0F172A] rounded-bl-md border border-[#ECEDEF]"
           }`}
         >
           {isAction && (
@@ -266,7 +266,7 @@ export function StefaniaChat({ partner, onBack, isAdmin = false }) {
         </div>
         
         <div className="flex-1">
-          <h2 className="font-bold text-[#1E2128]">STEFANIA</h2>
+          <h2 className="font-bold text-[#0F172A]">STEFANIA</h2>
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
             <span className="text-xs text-[#9CA3AF]">Online • Coordinatrice AI Evolution PRO</span>
@@ -342,7 +342,7 @@ export function StefaniaChat({ partner, onBack, isAdmin = false }) {
             }}
             placeholder="Scrivi un messaggio..."
             rows={1}
-            className="w-full bg-white border border-[#ECEDEF] rounded-2xl px-4 py-2.5 text-sm text-[#1E2128] resize-none focus:border-[#8B5CF6] outline-none transition-colors max-h-32 placeholder:text-[#9CA3AF]"
+            className="w-full bg-white border border-[#ECEDEF] rounded-2xl px-4 py-2.5 text-sm text-[#0F172A] resize-none focus:border-[#8B5CF6] outline-none transition-colors max-h-32 placeholder:text-[#9CA3AF]"
             style={{ minHeight: "42px" }}
           />
         </div>

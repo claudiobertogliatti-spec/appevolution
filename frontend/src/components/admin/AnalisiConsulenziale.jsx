@@ -60,7 +60,7 @@ function BloccoScriptCall({ blocco, isExpanded, onToggle }) {
             {blocco.numero}
           </span>
           <div>
-            <h4 className="font-bold text-sm" style={{ color: '#1E2128' }}>{blocco.titolo}</h4>
+            <h4 className="font-bold text-sm" style={{ color: '#0F172A' }}>{blocco.titolo}</h4>
             <p className="text-xs" style={{ color: '#9CA3AF' }}>{blocco.obiettivo}</p>
           </div>
         </div>
@@ -76,12 +76,12 @@ function BloccoScriptCall({ blocco, isExpanded, onToggle }) {
           
           {/* SCRIPT ESATTO - Priorità alta, evidenziato */}
           {blocco.script_esatto && (
-            <div className="p-4 rounded-lg border-l-4" style={{ background: '#1E212810', borderColor: '#FFD24D' }}>
+            <div className="p-4 rounded-lg border-l-4" style={{ background: '#0F172A10', borderColor: '#FFD24D' }}>
               <label className="text-xs font-bold flex items-center gap-2" style={{ color: '#FFD24D' }}>
                 <MessageSquare className="w-4 h-4" />
                 SCRIPT ESATTO (leggi testualmente)
               </label>
-              <p className="text-sm mt-2 italic" style={{ color: '#1E2128', lineHeight: '1.6' }}>
+              <p className="text-sm mt-2 italic" style={{ color: '#0F172A', lineHeight: '1.6' }}>
                 "{blocco.script_esatto}"
               </p>
             </div>
@@ -91,7 +91,7 @@ function BloccoScriptCall({ blocco, isExpanded, onToggle }) {
           {blocco.contenuto && !blocco.script_esatto && (
             <div>
               <label className="text-xs font-bold" style={{ color: '#5F6572' }}>CONTENUTO</label>
-              <p className="text-sm mt-1" style={{ color: '#1E2128' }}>{blocco.contenuto}</p>
+              <p className="text-sm mt-1" style={{ color: '#0F172A' }}>{blocco.contenuto}</p>
             </div>
           )}
           
@@ -108,7 +108,7 @@ function BloccoScriptCall({ blocco, isExpanded, onToggle }) {
               <label className="text-xs font-bold" style={{ color: '#3B82F6' }}>🎯 DOMANDE SPIN</label>
               <ul className="mt-1 space-y-1">
                 {blocco.domande_spin.map((d, i) => (
-                  <li key={i} className="text-sm flex items-start gap-2" style={{ color: '#1E2128' }}>
+                  <li key={i} className="text-sm flex items-start gap-2" style={{ color: '#0F172A' }}>
                     <span style={{ color: '#3B82F6' }}>→</span> {d}
                   </li>
                 ))}
@@ -122,7 +122,7 @@ function BloccoScriptCall({ blocco, isExpanded, onToggle }) {
               <label className="text-xs font-bold" style={{ color: '#5F6572' }}>DOMANDE DA FARE</label>
               <ul className="mt-1 space-y-1">
                 {blocco.domande.map((d, i) => (
-                  <li key={i} className="text-sm flex items-start gap-2" style={{ color: '#1E2128' }}>
+                  <li key={i} className="text-sm flex items-start gap-2" style={{ color: '#0F172A' }}>
                     <span style={{ color: '#FFD24D' }}>•</span> {d}
                   </li>
                 ))}
@@ -156,9 +156,9 @@ function BloccoScriptCall({ blocco, isExpanded, onToggle }) {
           
           {/* Domanda killer */}
           {blocco.domanda_killer && (
-            <div className="p-3 rounded-lg border" style={{ background: '#1E212808', borderColor: '#1E2128' }}>
-              <label className="text-xs font-bold" style={{ color: '#1E2128' }}>⚡ DOMANDA KILLER</label>
-              <p className="text-sm mt-1 font-medium" style={{ color: '#1E2128' }}>"{blocco.domanda_killer}"</p>
+            <div className="p-3 rounded-lg border" style={{ background: '#0F172A08', borderColor: '#0F172A' }}>
+              <label className="text-xs font-bold" style={{ color: '#0F172A' }}>⚡ DOMANDA KILLER</label>
+              <p className="text-sm mt-1 font-medium" style={{ color: '#0F172A' }}>"{blocco.domanda_killer}"</p>
             </div>
           )}
           
@@ -180,7 +180,7 @@ function BloccoScriptCall({ blocco, isExpanded, onToggle }) {
               <label className="text-xs font-bold" style={{ color: '#5F6572' }}>📋 ELEMENTI DA INCLUDERE</label>
               <ul className="mt-1 space-y-1">
                 {blocco.elementi_specifici.map((e, i) => (
-                  <li key={i} className="text-sm" style={{ color: '#1E2128' }}>• {e}</li>
+                  <li key={i} className="text-sm" style={{ color: '#0F172A' }}>• {e}</li>
                 ))}
               </ul>
             </div>
@@ -245,7 +245,7 @@ function BloccoScriptCall({ blocco, isExpanded, onToggle }) {
               <label className="text-xs font-bold" style={{ color: '#5F6572' }}>PUNTI CHIAVE</label>
               <ul className="mt-1 space-y-1">
                 {blocco.punti_chiave.map((p, i) => (
-                  <li key={i} className="text-sm" style={{ color: '#1E2128' }}>✓ {p}</li>
+                  <li key={i} className="text-sm" style={{ color: '#0F172A' }}>✓ {p}</li>
                 ))}
               </ul>
             </div>
@@ -376,7 +376,7 @@ function SezioneEditor({ sezione, dati, onSave, isSaving }) {
   return (
     <div className="border rounded-xl p-4 mb-4" style={{ borderColor: '#ECEDEF' }}>
       <div className="flex items-center justify-between mb-3">
-        <h4 className="font-bold" style={{ color: '#1E2128' }}>{titolo}</h4>
+        <h4 className="font-bold" style={{ color: '#0F172A' }}>{titolo}</h4>
         <button
           onClick={() => setIsEditing(!isEditing)}
           className="p-2 rounded-lg hover:bg-[#ECEDEF] transition-colors"
@@ -392,7 +392,7 @@ function SezioneEditor({ sezione, dati, onSave, isSaving }) {
             onChange={(e) => setContenuto(e.target.value)}
             rows={4}
             className="w-full px-3 py-2 rounded-lg text-sm"
-            style={{ background: '#FAFAF7', border: '1px solid #ECEDEF', color: '#1E2128' }}
+            style={{ background: '#FAFAF7', border: '1px solid #ECEDEF', color: '#0F172A' }}
           />
           <div className="flex justify-end gap-2 mt-2">
             <button
@@ -430,7 +430,7 @@ function SezioneEditor({ sezione, dati, onSave, isSaving }) {
       
       {typeof dati === 'object' && dati?.punteggio && (
         <div className="mt-3 p-3 rounded-lg" style={{ background: '#FAFAF7' }}>
-          <p className="text-sm font-bold" style={{ color: '#1E2128' }}>
+          <p className="text-sm font-bold" style={{ color: '#0F172A' }}>
             Punteggio: {dati.punteggio}/10
           </p>
           {dati.raccomandazione && (
@@ -627,7 +627,7 @@ export function AnalisiConsulenziale({ clienteId, onClose }) {
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
         <div className="bg-white rounded-2xl p-8 text-center">
           <AlertCircle className="w-12 h-12 mx-auto mb-4" style={{ color: '#EF4444' }} />
-          <p className="font-bold" style={{ color: '#1E2128' }}>Cliente non trovato</p>
+          <p className="font-bold" style={{ color: '#0F172A' }}>Cliente non trovato</p>
           <button onClick={onClose} className="mt-4 px-4 py-2 rounded-lg" style={{ background: '#F3F4F6' }}>
             Chiudi
           </button>
@@ -649,7 +649,7 @@ export function AnalisiConsulenziale({ clienteId, onClose }) {
                 {data.cliente?.nome?.charAt(0) || '?'}
               </div>
               <div>
-                <h2 className="font-bold text-lg" style={{ color: '#1E2128' }}>
+                <h2 className="font-bold text-lg" style={{ color: '#0F172A' }}>
                   {data.cliente?.nome} {data.cliente?.cognome}
                 </h2>
                 <p className="text-sm" style={{ color: '#9CA3AF' }}>{data.cliente?.email}</p>
@@ -738,7 +738,7 @@ export function AnalisiConsulenziale({ clienteId, onClose }) {
                   style={{ borderColor: data.has_analisi_preliminare ? '#22C55E' : '#ECEDEF' }}
                 >
                   <Sparkles className="w-6 h-6 mb-2" style={{ color: data.has_analisi_preliminare ? '#22C55E' : '#FFD24D' }} />
-                  <h4 className="font-bold text-sm" style={{ color: '#1E2128' }}>
+                  <h4 className="font-bold text-sm" style={{ color: '#0F172A' }}>
                     {data.has_analisi_preliminare ? '✓ Analisi Preliminare Generata' : '1. Genera Analisi Preliminare'}
                   </h4>
                   <p className="text-xs mt-1" style={{ color: '#9CA3AF' }}>
@@ -754,7 +754,7 @@ export function AnalisiConsulenziale({ clienteId, onClose }) {
                   style={{ borderColor: data.has_script_call ? '#22C55E' : '#ECEDEF' }}
                 >
                   <Phone className="w-6 h-6 mb-2" style={{ color: data.has_script_call ? '#22C55E' : '#3B82F6' }} />
-                  <h4 className="font-bold text-sm" style={{ color: '#1E2128' }}>
+                  <h4 className="font-bold text-sm" style={{ color: '#0F172A' }}>
                     {data.has_script_call ? '✓ Script Call Generato' : '2. Genera Script Call'}
                   </h4>
                   <p className="text-xs mt-1" style={{ color: '#9CA3AF' }}>
@@ -766,7 +766,7 @@ export function AnalisiConsulenziale({ clienteId, onClose }) {
               {/* Sezione Note Call + Genera Finale */}
               {data.has_script_call && data.stato_analisi !== 'analisi_consegnata' && (
                 <div className="p-4 rounded-xl" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
-                  <h4 className="font-bold text-sm mb-3" style={{ color: '#1E2128' }}>
+                  <h4 className="font-bold text-sm mb-3" style={{ color: '#0F172A' }}>
                     <MessageSquare className="w-4 h-4 inline mr-2" />
                     Note dalla Call Strategica
                   </h4>
@@ -776,7 +776,7 @@ export function AnalisiConsulenziale({ clienteId, onClose }) {
                     placeholder="Inserisci qui le note dalla call con il cliente (opzionale ma consigliato)..."
                     rows={3}
                     className="w-full px-3 py-2 rounded-lg text-sm mb-3"
-                    style={{ background: 'white', border: '1px solid #ECEDEF', color: '#1E2128' }}
+                    style={{ background: 'white', border: '1px solid #ECEDEF', color: '#0F172A' }}
                   />
                   <button
                     onClick={handleGeneraFinale}
@@ -829,7 +829,7 @@ export function AnalisiConsulenziale({ clienteId, onClose }) {
                   
                   {/* Profilo Sintetico */}
                   <div className="p-4 rounded-xl" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
-                    <h4 className="font-bold text-sm mb-2" style={{ color: '#1E2128' }}>Profilo Sintetico</h4>
+                    <h4 className="font-bold text-sm mb-2" style={{ color: '#0F172A' }}>Profilo Sintetico</h4>
                     <p className="text-sm" style={{ color: '#5F6572' }}>
                       {data.analisi_preliminare?.profilo_sintetico}
                     </p>
@@ -857,7 +857,7 @@ export function AnalisiConsulenziale({ clienteId, onClose }) {
                   
                   {/* Domande Call */}
                   <div className="p-4 rounded-xl" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
-                    <h4 className="font-bold text-sm mb-2" style={{ color: '#1E2128' }}>
+                    <h4 className="font-bold text-sm mb-2" style={{ color: '#0F172A' }}>
                       Domande da Fare in Call
                     </h4>
                     <ul className="space-y-2">
@@ -885,7 +885,7 @@ export function AnalisiConsulenziale({ clienteId, onClose }) {
               ) : (
                 <div className="text-center py-12">
                   <FileText className="w-12 h-12 mx-auto mb-4" style={{ color: '#E5E7EB' }} />
-                  <p className="font-bold" style={{ color: '#1E2128' }}>Analisi Preliminare non ancora generata</p>
+                  <p className="font-bold" style={{ color: '#0F172A' }}>Analisi Preliminare non ancora generata</p>
                   <p className="text-sm mt-1" style={{ color: '#9CA3AF' }}>
                     Vai su Overview e clicca "Genera Analisi Preliminare"
                   </p>
@@ -902,7 +902,7 @@ export function AnalisiConsulenziale({ clienteId, onClose }) {
                   {/* Header Script */}
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h3 className="font-bold text-lg" style={{ color: '#1E2128' }}>
+                      <h3 className="font-bold text-lg" style={{ color: '#0F172A' }}>
                         {data.script_call?.titolo_script}
                       </h3>
                       <div className="flex items-center gap-4 mt-1">
@@ -919,7 +919,7 @@ export function AnalisiConsulenziale({ clienteId, onClose }) {
                     <button
                       onClick={handleDownloadScriptPdf}
                       className="px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2"
-                      style={{ background: '#1E2128', color: 'white' }}
+                      style={{ background: '#0F172A', color: 'white' }}
                     >
                       <Download className="w-4 h-4" />
                       Scarica PDF
@@ -983,7 +983,7 @@ export function AnalisiConsulenziale({ clienteId, onClose }) {
               ) : (
                 <div className="text-center py-12">
                   <Phone className="w-12 h-12 mx-auto mb-4" style={{ color: '#E5E7EB' }} />
-                  <p className="font-bold" style={{ color: '#1E2128' }}>Script Call non ancora generato</p>
+                  <p className="font-bold" style={{ color: '#0F172A' }}>Script Call non ancora generato</p>
                   <p className="text-sm mt-1" style={{ color: '#9CA3AF' }}>
                     Prima genera l'Analisi Preliminare, poi lo Script Call
                   </p>
@@ -1000,7 +1000,7 @@ export function AnalisiConsulenziale({ clienteId, onClose }) {
                   {/* Header */}
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h3 className="font-bold text-lg" style={{ color: '#1E2128' }}>
+                      <h3 className="font-bold text-lg" style={{ color: '#0F172A' }}>
                         Analisi Strategica Finale
                       </h3>
                       <p className="text-sm" style={{ color: '#9CA3AF' }}>
@@ -1022,7 +1022,7 @@ export function AnalisiConsulenziale({ clienteId, onClose }) {
                   </div>
                   
                   {/* Copertina Preview */}
-                  <div className="p-6 rounded-xl mb-6 text-center" style={{ background: '#1E2128', color: 'white' }}>
+                  <div className="p-6 rounded-xl mb-6 text-center" style={{ background: '#0F172A', color: 'white' }}>
                     <h2 className="text-2xl font-black">{data.analisi_finale?.copertina?.titolo}</h2>
                     <p className="text-sm mt-2 opacity-80">{data.analisi_finale?.copertina?.sottotitolo}</p>
                     <p className="text-xs mt-4 opacity-60">{data.analisi_finale?.copertina?.data}</p>
@@ -1058,7 +1058,7 @@ export function AnalisiConsulenziale({ clienteId, onClose }) {
               ) : (
                 <div className="text-center py-12">
                   <FileCheck className="w-12 h-12 mx-auto mb-4" style={{ color: '#E5E7EB' }} />
-                  <p className="font-bold" style={{ color: '#1E2128' }}>Analisi Finale non ancora generata</p>
+                  <p className="font-bold" style={{ color: '#0F172A' }}>Analisi Finale non ancora generata</p>
                   <p className="text-sm mt-1" style={{ color: '#9CA3AF' }}>
                     Prima fai la call col cliente, poi genera l'Analisi Finale
                   </p>

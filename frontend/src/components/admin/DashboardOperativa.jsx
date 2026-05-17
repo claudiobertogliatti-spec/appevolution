@@ -30,7 +30,7 @@ const EXEC = {
 
 function SummaryCards({ summary }) {
   const cards = [
-    { label: "Totale Partner", value: summary.total, color: "#1E2128", icon: Users },
+    { label: "Totale Partner", value: summary.total, color: "#0F172A", icon: Users },
     { label: "In linea", value: summary.in_linea, color: "#34C77B", icon: CheckCircle2 },
     { label: "Rallentati", value: summary.rallentati, color: "#F59E0B", icon: Clock },
     { label: "Bloccati", value: summary.bloccati, color: "#EF4444", icon: XCircle },
@@ -77,7 +77,7 @@ function FilterBar({ filter, onFilter }) {
           onClick={() => onFilter(f.id)}
           className="px-4 py-2 rounded-xl text-sm font-bold transition-all"
           style={{
-            background: filter === f.id ? (f.color || "#1E2128") : "white",
+            background: filter === f.id ? (f.color || "#0F172A") : "white",
             color: filter === f.id ? "white" : "#5F6572",
             border: filter === f.id ? "none" : "1px solid #ECEDEF",
           }}
@@ -127,7 +127,7 @@ function PartnerRow({ partner, onViewPartner }) {
         {/* Name + niche */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <p className="text-sm font-black truncate" style={{ color: "#1E2128" }}>{partner.name}</p>
+            <p className="text-sm font-black truncate" style={{ color: "#0F172A" }}>{partner.name}</p>
             {partner.percorso_veloce?.active && (
               <span className="flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full"
                 style={{ background: "#FEF2F2", color: "#EF4444" }}>
@@ -149,7 +149,7 @@ function PartnerRow({ partner, onViewPartner }) {
 
         {/* Days in step */}
         <div className="text-center flex-shrink-0" style={{ minWidth: 70 }}>
-          <p className="text-sm font-black" style={{ color: partner.days_in_step > 14 ? "#EF4444" : partner.days_in_step > 7 ? "#F59E0B" : "#1E2128" }}>
+          <p className="text-sm font-black" style={{ color: partner.days_in_step > 14 ? "#EF4444" : partner.days_in_step > 7 ? "#F59E0B" : "#0F172A" }}>
             {daysLabel}
           </p>
           <p className="text-[10px]" style={{ color: "#9CA3AF" }}>nello step</p>
@@ -188,12 +188,12 @@ function PartnerRow({ partner, onViewPartner }) {
               <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: "#9CA3AF" }}>
                 Blocco attuale
               </p>
-              <p className="text-sm" style={{ color: "#1E2128" }}>{partner.current_block}</p>
+              <p className="text-sm" style={{ color: "#0F172A" }}>{partner.current_block}</p>
             </div>
           </div>
 
           {/* Suggested action */}
-          <div className="rounded-xl p-3" style={{ background: "#1E2128" }}>
+          <div className="rounded-xl p-3" style={{ background: "#0F172A" }}>
             <p className="text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "rgba(255,255,255,0.4)" }}>
               Azione consigliata
             </p>
@@ -217,7 +217,7 @@ function PartnerRow({ partner, onViewPartner }) {
             data-testid={`view-partner-${partner.id}`}
             onClick={(e) => { e.stopPropagation(); onViewPartner(partner); }}
             className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg transition-all hover:scale-[1.02]"
-            style={{ background: "#FFD24D", color: "#1E2128" }}
+            style={{ background: "#FFD24D", color: "#0F172A" }}
           >
             Apri scheda partner <ArrowRight className="w-3.5 h-3.5" />
           </button>
@@ -272,7 +272,7 @@ export function DashboardOperativa({ onViewPartner }) {
 
         {/* HERO */}
         <div className="mb-6" data-testid="operativa-hero">
-          <h1 className="text-3xl font-black mb-1" style={{ color: "#1E2128" }}>Dashboard Operativa</h1>
+          <h1 className="text-3xl font-black mb-1" style={{ color: "#0F172A" }}>Dashboard Operativa</h1>
           <p className="text-sm" style={{ color: "#9CA3AF" }}>
             Chi e a rischio. Dove intervenire. Cosa fare subito.
           </p>
@@ -289,7 +289,7 @@ export function DashboardOperativa({ onViewPartner }) {
           {filtered.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-2xl" style={{ border: "1px solid #ECEDEF" }}>
               <CheckCircle2 className="w-12 h-12 mx-auto mb-3" style={{ color: "#34C77B" }} />
-              <p className="text-base font-bold" style={{ color: "#1E2128" }}>Nessun partner in questa categoria</p>
+              <p className="text-base font-bold" style={{ color: "#0F172A" }}>Nessun partner in questa categoria</p>
               <p className="text-sm mt-1" style={{ color: "#9CA3AF" }}>Tutto sotto controllo</p>
             </div>
           ) : (

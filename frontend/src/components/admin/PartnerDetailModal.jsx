@@ -128,7 +128,7 @@ function JourneySection({ title, icon: Icon, color = "#FFD24D", children, defaul
           style={{ background: color + "20" }}>
           <Icon className="w-4 h-4" style={{ color }} />
         </div>
-        <span className="font-bold text-sm flex-1" style={{ color: "#1E2128" }}>{title}</span>
+        <span className="font-bold text-sm flex-1" style={{ color: "#0F172A" }}>{title}</span>
         {open ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
       </button>
       {open && <div className="p-5 pt-0 space-y-4">{children}</div>}
@@ -149,7 +149,7 @@ function JField({ label, value, onChange, multiline = false, placeholder = "" })
           placeholder={placeholder}
           rows={4}
           className="w-full px-3 py-2.5 rounded-lg text-sm resize-y"
-          style={{ border: "1px solid #E5E2DD", color: "#1E2128", background: "#FFFFFF" }}
+          style={{ border: "1px solid #E5E2DD", color: "#0F172A", background: "#FFFFFF" }}
         />
       ) : (
         <input
@@ -158,7 +158,7 @@ function JField({ label, value, onChange, multiline = false, placeholder = "" })
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
           className="w-full px-3 py-2.5 rounded-lg text-sm"
-          style={{ border: "1px solid #E5E2DD", color: "#1E2128", background: "#FFFFFF" }}
+          style={{ border: "1px solid #E5E2DD", color: "#0F172A", background: "#FFFFFF" }}
         />
       )}
     </div>
@@ -170,7 +170,7 @@ function SaveBtn({ onClick, saving, saved, label = "Salva" }) {
     <button onClick={onClick} disabled={saving}
       className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all mt-2"
       style={{
-        background: saved ? "#F0FDF4" : "#1E2128",
+        background: saved ? "#F0FDF4" : "#0F172A",
         color: saved ? "#16A34A" : "#FFD24D",
         border: `1px solid ${saved ? "#BBF7D0" : "transparent"}`
       }}>
@@ -436,7 +436,7 @@ function JourneyEditor({ data, saving, saved, onSave, onDataChange }) {
                   onChange={e => setMcRawVideoUrl(e.target.value)}
                   placeholder="https://drive.google.com/file/d/..."
                   className="flex-1 px-3 py-2 rounded-lg text-xs outline-none"
-                  style={{ background: "white", border: "1px solid #E5E7EB", color: "#1E2128" }}
+                  style={{ background: "white", border: "1px solid #E5E7EB", color: "#0F172A" }}
                 />
                 <button
                   onClick={handleSubmitVideo}
@@ -500,7 +500,7 @@ function JourneyEditor({ data, saving, saved, onSave, onDataChange }) {
                   placeholder={placeholder}
                   rows={2}
                   className="w-full px-3 py-2 rounded-lg text-xs outline-none resize-none"
-                  style={{ background: "white", border: "1px solid #E5E7EB", color: "#1E2128" }}
+                  style={{ background: "white", border: "1px solid #E5E7EB", color: "#0F172A" }}
                 />
               </div>
             ))}
@@ -518,7 +518,7 @@ function JourneyEditor({ data, saving, saved, onSave, onDataChange }) {
               onClick={handleGenerateMcScript}
               disabled={generatingScript || !partnerId}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold disabled:opacity-50"
-              style={{ background: "#1E2128", color: "#FFD24D" }}
+              style={{ background: "#0F172A", color: "#FFD24D" }}
             >
               {generatingScript ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
               {generatingScript ? "Generando script..." : "Genera Script AI"}
@@ -601,7 +601,7 @@ function JourneyEditor({ data, saving, saved, onSave, onDataChange }) {
       {/* VIDEO MASTERCLASS INFO (da pipeline) */}
       {mc.video_systeme_embed && (
         <JourneySection title="Embed Sisteme (masterclass)" icon={Video} color="#EF4444">
-          <div className="text-xs font-mono p-3 rounded-lg overflow-x-auto" style={{ background: "#1E2128", color: "#FFD24D" }}>
+          <div className="text-xs font-mono p-3 rounded-lg overflow-x-auto" style={{ background: "#0F172A", color: "#FFD24D" }}>
             {mc.video_systeme_embed}
           </div>
         </JourneySection>
@@ -1040,11 +1040,11 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
           data-testid="partner-detail-modal"
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-6" style={{ background: "linear-gradient(135deg, #1E2128 0%, #2D3038 100%)" }}>
+          <div className="flex items-center justify-between p-6" style={{ background: "linear-gradient(135deg, #0F172A 0%, #2D3038 100%)" }}>
             <div className="flex items-center gap-4">
               <div 
                 className="w-14 h-14 rounded-xl flex items-center justify-center text-xl font-bold shadow-lg"
-                style={{ backgroundColor: "#FFD24D", color: "#1E2128" }}
+                style={{ backgroundColor: "#FFD24D", color: "#0F172A" }}
               >
                 {partnerName[0]?.toUpperCase()}
               </div>
@@ -1052,7 +1052,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                 <h2 className="text-xl font-black text-white">{partnerName}</h2>
                 <div className="flex items-center gap-3 mt-1">
                   <span className="text-sm text-gray-400">{partner.email}</span>
-                  <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: "#FFD24D", color: "#1E2128" }}>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: "#FFD24D", color: "#0F172A" }}>
                     {formData.phase}
                   </span>
                 </div>
@@ -1466,7 +1466,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                     onClick={handleSaveProfile}
                     disabled={saving}
                     className="flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all hover:opacity-90"
-                    style={{ backgroundColor: "#FFD24D", color: "#1E2128" }}
+                    style={{ backgroundColor: "#FFD24D", color: "#0F172A" }}
                     data-testid="save-profile-btn"
                   >
                     {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
@@ -1490,7 +1490,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
               <div className="space-y-6" data-testid="tab-content-documenti">
                 {/* Onboarding Documents Verification */}
                 <div>
-                  <h3 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: "#1E2128" }}>
+                  <h3 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: "#0F172A" }}>
                     <Shield className="w-5 h-5 text-amber-600" />
                     Documenti Onboarding
                     {onboardingDocs?.documents_status && (
@@ -1540,7 +1540,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                                    <FileText className="w-4 h-4" />}
                                 </div>
                                 <div>
-                                  <div className="text-sm font-semibold text-[#1E2128]">
+                                  <div className="text-sm font-semibold text-[#0F172A]">
                                     {cfg.label}
                                     {cfg.required && <span className="text-[10px] text-red-500 ml-1">*</span>}
                                   </div>
@@ -1611,7 +1611,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                 {/* YouTube Player (existing) */}
                 {formData.youtube_playlist_id && (
                   <div className="mb-6">
-                    <h3 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: "#1E2128" }}>
+                    <h3 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: "#0F172A" }}>
                       <Film className="w-5 h-5 text-red-600" />
                       Videocorso Partner
                     </h3>
@@ -1633,7 +1633,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                 {/* VIDEO PIPELINE REVIEW */}
                 {videoPipeline?.pipeline_status && (
                   <div className="mt-6 rounded-xl overflow-hidden" style={{ border: "1px solid #E5E2DD" }}>
-                    <div className="px-5 py-4 flex items-center justify-between" style={{ background: "#1E2128" }}>
+                    <div className="px-5 py-4 flex items-center justify-between" style={{ background: "#0F172A" }}>
                       <div className="flex items-center gap-3">
                         <Film className="w-5 h-5" style={{ color: "#FFD24D" }} />
                         <span className="font-bold text-white text-sm">Video Masterclass — Pipeline</span>
@@ -1656,13 +1656,13 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                       {videoPipeline.video_time_saved_s > 0 && (
                         <div className="grid grid-cols-3 gap-3">
                           <div className="text-center p-3 bg-white rounded-xl" style={{ border: "1px solid #F0EDE8" }}>
-                            <div className="text-lg font-black" style={{ color: "#1E2128" }}>
+                            <div className="text-lg font-black" style={{ color: "#0F172A" }}>
                               {Math.floor(videoPipeline.video_raw_duration_s / 60)}:{String(videoPipeline.video_raw_duration_s % 60).padStart(2, "0")}
                             </div>
                             <div className="text-[11px]" style={{ color: "#9CA3AF" }}>Originale</div>
                           </div>
                           <div className="text-center p-3 bg-white rounded-xl" style={{ border: "1px solid #F0EDE8" }}>
-                            <div className="text-lg font-black" style={{ color: "#1E2128" }}>
+                            <div className="text-lg font-black" style={{ color: "#0F172A" }}>
                               {Math.floor(videoPipeline.video_final_duration_s / 60)}:{String(videoPipeline.video_final_duration_s % 60).padStart(2, "0")}
                             </div>
                             <div className="text-[11px]" style={{ color: "#9CA3AF" }}>Dopo cleaning</div>
@@ -1723,7 +1723,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                         {videoPipeline.pipeline_status === "ready_for_review" && (
                           <button onClick={handleApproveVideo} disabled={approvingVideo}
                             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all"
-                            style={{ background: "#FFD24D", color: "#1E2128" }}>
+                            style={{ background: "#FFD24D", color: "#0F172A" }}>
                             {approvingVideo ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                             Approva Video
                           </button>
@@ -1742,7 +1742,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
 
                 {/* Revision Notes Section (existing) */}
                 <div className="mt-6 p-4 rounded-xl" style={{ background: "#FFF8DC", border: "1px solid #FFD24D50" }}>
-                  <h4 className="font-bold mb-3 flex items-center gap-2" style={{ color: "#1E2128" }}>
+                  <h4 className="font-bold mb-3 flex items-center gap-2" style={{ color: "#0F172A" }}>
                     <MessageSquare className="w-5 h-5" style={{ color: "#C4990A" }} />
                     Note Revisione Video (Solo Admin)
                   </h4>
@@ -1758,7 +1758,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                     onClick={handleSaveRevisionNotes}
                     disabled={savingNotes}
                     className="mt-3 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-all"
-                    style={{ backgroundColor: "#FFD24D", color: "#1E2128" }}
+                    style={{ backgroundColor: "#FFD24D", color: "#0F172A" }}
                   >
                     {savingNotes ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     Salva Note
@@ -1851,7 +1851,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                 
                 {/* Add Payment Form */}
                 <div className="p-5 bg-gray-50 rounded-xl">
-                  <h4 className="font-bold mb-4 flex items-center gap-2" style={{ color: "#1E2128" }}>
+                  <h4 className="font-bold mb-4 flex items-center gap-2" style={{ color: "#0F172A" }}>
                     <Plus className="w-5 h-5" />
                     Aggiungi Pagamento
                   </h4>
@@ -1891,7 +1891,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                     onClick={handleAddPayment}
                     disabled={saving || !newPayment.description || !newPayment.amount}
                     className="mt-4 px-6 py-2 rounded-lg font-bold flex items-center gap-2 transition-all disabled:opacity-50"
-                    style={{ backgroundColor: "#FFD24D", color: "#1E2128" }}
+                    style={{ backgroundColor: "#FFD24D", color: "#0F172A" }}
                     data-testid="add-payment-btn"
                   >
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
@@ -1901,7 +1901,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                 
                 {/* Totals */}
                 {payments.length > 0 && (
-                  <div className="p-5 rounded-xl text-white" style={{ background: "linear-gradient(135deg, #1E2128 0%, #2D3038 100%)" }}>
+                  <div className="p-5 rounded-xl text-white" style={{ background: "linear-gradient(135deg, #0F172A 0%, #2D3038 100%)" }}>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <span className="text-gray-400 text-sm">Totale Pagato</span>

@@ -150,7 +150,7 @@ function AdminMasterclassPanel({ partnerId, onScriptGenerated }) {
       {/* Header */}
       <div
         className="px-5 py-3 flex items-center gap-2 cursor-pointer"
-        style={{ background: "#1E2128" }}
+        style={{ background: "#0F172A" }}
         onClick={() => setExpanded(e => !e)}
       >
         <Settings className="w-4 h-4" style={{ color: "#FBBF24" }} />
@@ -217,7 +217,7 @@ function AdminMasterclassPanel({ partnerId, onScriptGenerated }) {
                     placeholder={placeholder}
                     rows={3}
                     className="w-full px-3 py-2 rounded-lg text-sm outline-none resize-none"
-                    style={{ background: "white", border: "1px solid #E5E7EB", color: "#1E2128" }}
+                    style={{ background: "white", border: "1px solid #E5E7EB", color: "#0F172A" }}
                   />
                 </div>
               ))}
@@ -240,7 +240,7 @@ function AdminMasterclassPanel({ partnerId, onScriptGenerated }) {
               onClick={handleGenerateScript}
               disabled={generating}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50"
-              style={{ background: "#1E2128", color: "#FFD24D" }}
+              style={{ background: "#0F172A", color: "#FFD24D" }}
             >
               {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
               {generating ? "Generando script..." : "Genera Script AI"}
@@ -346,7 +346,7 @@ function VideoSubmissionCard({ partnerId, onVideoApproved }) {
 
   return (
     <div className="mt-6 rounded-2xl overflow-hidden" style={{ border: "1px solid #E5E2DD" }}>
-      <div className="px-5 pt-5 pb-4" style={{ background: "#1E2128" }}>
+      <div className="px-5 pt-5 pb-4" style={{ background: "#0F172A" }}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#FFD24D20" }}>
             <Video className="w-5 h-5" style={{ color: "#FFD24D" }} />
@@ -434,10 +434,10 @@ function VideoSubmissionCard({ partnerId, onVideoApproved }) {
                 <Video className="w-6 h-6" style={{ color: "#FFD24D" }} />
               </div>
               <div className="text-center">
-                <p className="text-sm font-bold" style={{ color: "#1E2128" }}>Trascina il video qui, o clicca per selezionarlo</p>
+                <p className="text-sm font-bold" style={{ color: "#0F172A" }}>Trascina il video qui, o clicca per selezionarlo</p>
                 <p className="text-xs mt-1" style={{ color: "#9CA3AF" }}>MP4, MOV, MKV, AVI — max 20 GB</p>
               </div>
-              <div className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold" style={{ background: "#1E2128", color: "#FFD24D" }}>
+              <div className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold" style={{ background: "#0F172A", color: "#FFD24D" }}>
                 <Send className="w-4 h-4" />Seleziona video
               </div>
             </label>
@@ -467,7 +467,7 @@ function ScriptContent({ scriptSections, fullScript }) {
         <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "#34C77B20" }}>
           <Check className="w-5 h-5" style={{ color: "#34C77B" }} />
         </div>
-        <h2 className="text-lg font-black" style={{ color: "#1E2128" }}>Lo script della tua Masterclass</h2>
+        <h2 className="text-lg font-black" style={{ color: "#0F172A" }}>Lo script della tua Masterclass</h2>
       </div>
 
       {scriptSections ? scriptSections.map((s, idx) => (
@@ -476,11 +476,11 @@ function ScriptContent({ scriptSections, fullScript }) {
           <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#9CA3AF" }}>
             {idx + 1}. {s.title}
           </div>
-          <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "#1E2128" }}>{s.content}</p>
+          <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "#0F172A" }}>{s.content}</p>
         </div>
       )) : fullScript && (
         <div className="bg-white rounded-xl border p-5 mb-3" style={{ borderColor: "#ECEDEF" }}>
-          <pre className="text-sm whitespace-pre-wrap font-sans leading-relaxed" style={{ color: "#1E2128" }}>{fullScript}</pre>
+          <pre className="text-sm whitespace-pre-wrap font-sans leading-relaxed" style={{ color: "#0F172A" }}>{fullScript}</pre>
         </div>
       )}
     </div>
@@ -498,7 +498,7 @@ function VideoUploadPhase({ scriptSections, fullScript, partnerId, onVideoApprov
     <div className="max-w-2xl mx-auto p-6">
       {/* Titolo */}
       <div className="mb-5">
-        <h1 className="text-3xl font-black mb-1" style={{ color: "#1E2128" }}>
+        <h1 className="text-3xl font-black mb-1" style={{ color: "#0F172A" }}>
           La tua Masterclass
         </h1>
       </div>
@@ -516,7 +516,7 @@ function VideoUploadPhase({ scriptSections, fullScript, partnerId, onVideoApprov
       </div>
 
       {/* Testo descrittivo — cosa fare ora */}
-      <div className="mb-5 p-4 rounded-xl" style={{ background: "#1E2128" }}>
+      <div className="mb-5 p-4 rounded-xl" style={{ background: "#0F172A" }}>
         <div className="flex items-center gap-2 mb-3">
           <Video className="w-4 h-4" style={{ color: "#FFD24D" }} />
           <span className="text-sm font-black text-white">Ora registra e carica la masterclass</span>
@@ -535,7 +535,7 @@ function VideoUploadPhase({ scriptSections, fullScript, partnerId, onVideoApprov
             <div key={n} className="flex items-start gap-2 text-xs" style={{ color: "rgba(255,255,255,0.85)" }}>
               <span
                 className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 font-black text-[10px] mt-0.5"
-                style={{ background: "#FFD24D", color: "#1E2128" }}
+                style={{ background: "#FFD24D", color: "#0F172A" }}
               >{n}</span>
               <span className="leading-relaxed">{text}</span>
             </div>
@@ -557,7 +557,7 @@ function VideoUploadPhase({ scriptSections, fullScript, partnerId, onVideoApprov
         >
           <div className="flex items-center gap-3">
             <FileText className="w-4 h-4" style={{ color: "#9CA3AF" }} />
-            <span className="text-sm font-bold" style={{ color: "#1E2128" }}>
+            <span className="text-sm font-bold" style={{ color: "#0F172A" }}>
               Rivedi lo script approvato
             </span>
           </div>
@@ -588,7 +588,7 @@ function FinalVideoReviewPhase({ videoData, onContinue }) {
   return (
     <div className="max-w-2xl mx-auto p-6">
       <div className="mb-5">
-        <h1 className="text-3xl font-black mb-1" style={{ color: "#1E2128" }}>La tua Masterclass</h1>
+        <h1 className="text-3xl font-black mb-1" style={{ color: "#0F172A" }}>La tua Masterclass</h1>
       </div>
 
       {/* Success banner */}
@@ -650,7 +650,7 @@ function FinalVideoReviewPhase({ videoData, onContinue }) {
       <button
         onClick={onContinue}
         className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-base font-black transition-all"
-        style={{ background: "#1E2128", color: "#FFD24D" }}
+        style={{ background: "#0F172A", color: "#FFD24D" }}
       >
         <Check className="w-5 h-5" />
         Vai al Videocorso →
@@ -825,7 +825,7 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
 
     const stepDone = (done) => done ? "#22C55E" : "#D1D5DB";
     const stepNumStyle = (done, active) => ({
-      background: done ? "#22C55E" : active ? "#1E2128" : "#D1D5DB",
+      background: done ? "#22C55E" : active ? "#0F172A" : "#D1D5DB",
       color: "white",
       width: 28, height: 28, borderRadius: "50%",
       display: "flex", alignItems: "center", justifyContent: "center",
@@ -840,7 +840,7 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
           <div className="rounded-2xl overflow-hidden" style={{ border: `1.5px solid ${stepDone(hasScript)}`, background: "white" }}>
             <div className="px-5 py-3 flex items-center gap-3" style={{ background: hasScript ? "#F0FDF4" : "#F9FAFB", borderBottom: `1.5px solid ${stepDone(hasScript)}` }}>
               <div style={stepNumStyle(hasScript, true)}>{hasScript ? "✓" : "1"}</div>
-              <span className="text-sm font-black" style={{ color: "#1E2128" }}>Creazione Script</span>
+              <span className="text-sm font-black" style={{ color: "#0F172A" }}>Creazione Script</span>
               {hasScript && <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "#DCFCE7", color: "#16A34A" }}>Completato</span>}
             </div>
             <div className="p-4">
@@ -852,7 +852,7 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
           <div className="rounded-2xl overflow-hidden" style={{ border: `1.5px solid ${stepDone(scriptApproved)}`, background: "white" }}>
             <div className="px-5 py-3 flex items-center gap-3" style={{ background: scriptApproved ? "#F0FDF4" : "#F9FAFB", borderBottom: `1.5px solid ${stepDone(scriptApproved)}` }}>
               <div style={stepNumStyle(scriptApproved, hasScript)}>{scriptApproved ? "✓" : "2"}</div>
-              <span className="text-sm font-black" style={{ color: "#1E2128" }}>Approvazione Script</span>
+              <span className="text-sm font-black" style={{ color: "#0F172A" }}>Approvazione Script</span>
               {scriptApproved && <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "#DCFCE7", color: "#16A34A" }}>Approvato</span>}
             </div>
             <div className="p-4">
@@ -870,7 +870,7 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
                         onClick={() => approveScript(true)}
                         disabled={isApprovingScript}
                         className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-black text-sm disabled:opacity-50 transition-all hover:opacity-90"
-                        style={{ background: "#FBBF24", color: "#1E2128" }}
+                        style={{ background: "#FBBF24", color: "#0F172A" }}
                       >
                         {isApprovingScript ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                         Approva Script
@@ -890,7 +890,7 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
           <div className="rounded-2xl overflow-hidden" style={{ border: `1.5px solid ${stepDone(videoReadyForReview || videoApprovedFinal)}`, background: "white" }}>
             <div className="px-5 py-3 flex items-center gap-3" style={{ background: (videoReadyForReview || videoApprovedFinal) ? "#F0FDF4" : "#F9FAFB", borderBottom: `1.5px solid ${stepDone(videoReadyForReview || videoApprovedFinal)}` }}>
               <div style={stepNumStyle(videoReadyForReview || videoApprovedFinal, scriptApproved)}>{(videoReadyForReview || videoApprovedFinal) ? "✓" : "3"}</div>
-              <span className="text-sm font-black" style={{ color: "#1E2128" }}>Creazione Video</span>
+              <span className="text-sm font-black" style={{ color: "#0F172A" }}>Creazione Video</span>
             </div>
             <div className="p-4 space-y-3">
               {/* Stato pipeline automatica */}
@@ -940,7 +940,7 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
                   <button
                     onClick={() => setAdminUploadOpen(true)}
                     className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold"
-                    style={{ background: "#1E2128", color: "#FFD24D" }}
+                    style={{ background: "#0F172A", color: "#FFD24D" }}
                   >
                     <Video className="w-4 h-4" /> Carica video direttamente
                   </button>
@@ -1009,7 +1009,7 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
               }}
             >
               <div style={stepNumStyle(videoApprovedFinal, videoReadyForReview)}>{videoApprovedFinal ? "✓" : "4"}</div>
-              <span className="text-sm font-black" style={{ color: videoReadyForReview ? "#15803D" : "#1E2128" }}>Approvazione Video</span>
+              <span className="text-sm font-black" style={{ color: videoReadyForReview ? "#15803D" : "#0F172A" }}>Approvazione Video</span>
               {videoReadyForReview && (
                 <span className="ml-auto text-xs font-black px-2 py-0.5 rounded-full" style={{ background: "#22C55E", color: "white" }}>
                   Azione richiesta
@@ -1033,13 +1033,13 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
                       onChange={e => setManualYtUrl(e.target.value)}
                       placeholder="https://www.youtube.com/watch?v=..."
                       className="flex-1 px-3 py-2 rounded-lg text-sm outline-none"
-                      style={{ background: "white", border: "1px solid #D1D5DB", color: "#1E2128" }}
+                      style={{ background: "white", border: "1px solid #D1D5DB", color: "#0F172A" }}
                     />
                     <button
                       onClick={handleSetYoutubeUrl}
                       disabled={!manualYtUrl.trim() || settingYtUrl}
                       className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50"
-                      style={{ background: "#1E2128", color: "#FFD24D" }}
+                      style={{ background: "#0F172A", color: "#FFD24D" }}
                     >
                       {settingYtUrl ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                       Imposta
@@ -1183,14 +1183,14 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
   const numBg = (done, active) =>
     done ? "#22C55E" : active ? "#FFD24D" : "#D1D5DB";
   const numColor = (done, active) =>
-    done ? "white" : active ? "#1E2128" : "#9CA3AF";
+    done ? "white" : active ? "#0F172A" : "#9CA3AF";
 
   return (
     <div className="min-h-full" style={{ background: "#FAFAF7" }}>
       <div className="max-w-2xl mx-auto p-6 space-y-4">
 
         {/* ── INTRO + ROADMAP ── */}
-        <div className="rounded-2xl p-5" style={{ background: "#1E2128" }}>
+        <div className="rounded-2xl p-5" style={{ background: "#0F172A" }}>
           <h1 className="text-2xl font-black text-white mb-1">La tua Masterclass</h1>
           <p className="text-sm mb-4" style={{ color: "rgba(255,255,255,0.6)" }}>
             Il team Evolution PRO crea lo script, edita il video e lo pubblica. Tu registri il video grezzo e approvi il risultato finale.
@@ -1225,7 +1225,7 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
                 <span style={{ width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, flexShrink: 0, background: numBg(done, active), color: numColor(done, active) }}>
                   {done ? "✓" : "1"}
                 </span>
-                <span className="text-sm font-black" style={{ color: "#1E2128" }}>Creazione Script</span>
+                <span className="text-sm font-black" style={{ color: "#0F172A" }}>Creazione Script</span>
                 <span className="ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: done ? "#DCFCE7" : "#FEF3C7", color: done ? "#16A34A" : "#B45309" }}>
                   {done ? "Completato" : "In corso"}
                 </span>
@@ -1257,7 +1257,7 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
                 <span style={{ width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, flexShrink: 0, background: numBg(done, active), color: numColor(done, active) }}>
                   {done ? "✓" : "2"}
                 </span>
-                <span className="text-sm font-black" style={{ color: "#1E2128" }}>Approva lo Script</span>
+                <span className="text-sm font-black" style={{ color: "#0F172A" }}>Approva lo Script</span>
                 {done && <span className="ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#DCFCE7", color: "#16A34A" }}>Approvato</span>}
                 {active && <span className="ml-auto text-[11px] font-black px-2 py-0.5 rounded-full" style={{ background: "#FDE68A", color: "#92400E" }}>Azione richiesta</span>}
               </div>
@@ -1299,7 +1299,7 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
                 <span style={{ width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, flexShrink: 0, background: numBg(done, active), color: numColor(done, active) }}>
                   {done ? "✓" : "3"}
                 </span>
-                <span className="text-sm font-black" style={{ color: "#1E2128" }}>Invia il Video Grezzo</span>
+                <span className="text-sm font-black" style={{ color: "#0F172A" }}>Invia il Video Grezzo</span>
                 {inLavorazione && <span className="ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#DBEAFE", color: "#1D4ED8" }}>Il team sta lavorando</span>}
                 {done && !inLavorazione && <span className="ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#DCFCE7", color: "#16A34A" }}>Ricevuto</span>}
                 {active && <span className="ml-auto text-[11px] font-black px-2 py-0.5 rounded-full" style={{ background: "#FDE68A", color: "#92400E" }}>Azione richiesta</span>}
@@ -1325,7 +1325,7 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
                         "Incolla il link Drive qui sotto e clicca Invia — il team Evolution si occuperà dell'editing",
                       ].map((text, i) => (
                         <div key={i} className="flex items-start gap-2 text-xs" style={{ color: "#6B7280" }}>
-                          <span style={{ width: 18, height: 18, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 10, fontWeight: 900, marginTop: 1, background: "#FFD24D", color: "#1E2128" }}>{i + 1}</span>
+                          <span style={{ width: 18, height: 18, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 10, fontWeight: 900, marginTop: 1, background: "#FFD24D", color: "#0F172A" }}>{i + 1}</span>
                           <span className="leading-relaxed">{text}</span>
                         </div>
                       ))}
@@ -1351,7 +1351,7 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
                 <span style={{ width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, flexShrink: 0, background: numBg(done, active), color: numColor(done, active) }}>
                   {done ? "✓" : "4"}
                 </span>
-                <span className="text-sm font-black" style={{ color: "#1E2128" }}>Approva il Video Definitivo</span>
+                <span className="text-sm font-black" style={{ color: "#0F172A" }}>Approva il Video Definitivo</span>
                 {done && <span className="ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#DCFCE7", color: "#16A34A" }}>Approvato</span>}
                 {active && <span className="ml-auto text-[11px] font-black px-2 py-0.5 rounded-full" style={{ background: "#FDE68A", color: "#92400E" }}>Azione richiesta</span>}
               </div>
@@ -1373,7 +1373,7 @@ export function MasterclassPage({ partner, onNavigate, onComplete, isAdmin }) {
                     <button
                       onClick={() => onNavigate("videocorso")}
                       className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm transition-all hover:opacity-90"
-                      style={{ background: "#1E2128", color: "#FFD24D" }}
+                      style={{ background: "#0F172A", color: "#FFD24D" }}
                     >
                       Vai al Videocorso →
                     </button>

@@ -145,10 +145,10 @@ function AdminOverview({ stats, agents, partners, alerts, onNavigate }) {
         <div className="px-5 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#FFD24D' }}>
-              <FileText className="w-5 h-5" style={{ color: '#1E2128' }} />
+              <FileText className="w-5 h-5" style={{ color: '#0F172A' }} />
             </div>
             <div>
-              <div className="font-bold" style={{ color: '#1E2128' }}>Clienti Analisi Strategica</div>
+              <div className="font-bold" style={{ color: '#0F172A' }}>Clienti Analisi Strategica</div>
               <div className="text-xs" style={{ color: '#5F6572' }}>Visualizza clienti registrati, questionari e pagamenti</div>
             </div>
           </div>
@@ -164,7 +164,7 @@ function AdminOverview({ stats, agents, partners, alerts, onNavigate }) {
               <FileText className="w-5 h-5" style={{ color: '#FFFFFF' }} />
             </div>
             <div>
-              <div className="font-bold" style={{ color: '#1E2128' }}>Gestione Flusso Analisi</div>
+              <div className="font-bold" style={{ color: '#0F172A' }}>Gestione Flusso Analisi</div>
               <div className="text-xs" style={{ color: '#5F6572' }}>Nuovo flusso: Bozza → Conferma → Call → Decisione</div>
             </div>
           </div>
@@ -180,7 +180,7 @@ function AdminOverview({ stats, agents, partners, alerts, onNavigate }) {
       )}
       <div className="rounded-xl overflow-hidden" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
         <div className="px-5 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid #ECEDEF' }}>
-          <span className="font-bold text-sm" style={{ color: '#1E2128' }}>Pipeline Partner</span>
+          <span className="font-bold text-sm" style={{ color: '#0F172A' }}>Pipeline Partner</span>
           <button onClick={()=>onNavigate("partner")} className="text-xs font-bold hover:opacity-80 transition-opacity" style={{ color: '#FFD24D' }}>Vedi tutti →</button>
         </div>
         <div className="divide-y" style={{ borderColor: '#ECEDEF' }}>
@@ -190,8 +190,8 @@ function AdminOverview({ stats, agents, partners, alerts, onNavigate }) {
           {(partners||[]).slice(0,5).map(p=>(
             <div key={p.id} className="grid grid-cols-4 items-center px-5 py-3 cursor-pointer transition-colors hover:bg-[#FAFAF7]" onClick={()=>onNavigate("partner")}>
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: '#FFD24D', color: '#1E2128' }}>{p.name.split(" ").map(n=>n[0]).join("")}</div>
-                <div><div className="text-sm font-bold" style={{ color: '#1E2128' }}>{p.name}</div><div className="text-xs" style={{ color: '#9CA3AF' }}>{p.niche}</div></div>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: '#FFD24D', color: '#0F172A' }}>{p.name.split(" ").map(n=>n[0]).join("")}</div>
+                <div><div className="text-sm font-bold" style={{ color: '#0F172A' }}>{p.name}</div><div className="text-xs" style={{ color: '#9CA3AF' }}>{p.niche}</div></div>
               </div>
               <div><span className="font-mono text-xs font-bold px-2 py-1 rounded" style={{ background: '#FFF3C4', color: '#C4990A' }}>{p.phase}</span></div>
               <div className="font-mono text-sm" style={{ color: '#5F6572' }}>{p.revenue>0?`€${p.revenue.toLocaleString()}`:"—"}</div>
@@ -253,8 +253,8 @@ function AdminPartners({ partners, onSelect, onViewAsPartner, onDeletePartner, o
           {(partners||[]).map(p=>(
             <div key={p.id} className="grid grid-cols-7 items-center px-5 py-3 transition-colors hover:bg-[#FAFAF7]">
               <div className="flex items-center gap-3 cursor-pointer" onClick={()=>onSelect(p)}>
-                <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: '#FFD24D', color: '#1E2128' }}>{p.name.split(" ").map(n=>n[0]).join("")}</div>
-                <div><div className="text-sm font-bold" style={{ color: '#1E2128' }}>{p.name}</div><div className="text-xs" style={{ color: '#9CA3AF' }}>{p.niche}</div></div>
+                <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: '#FFD24D', color: '#0F172A' }}>{p.name.split(" ").map(n=>n[0]).join("")}</div>
+                <div><div className="text-sm font-bold" style={{ color: '#0F172A' }}>{p.name}</div><div className="text-xs" style={{ color: '#9CA3AF' }}>{p.niche}</div></div>
               </div>
               <div><span className="font-mono text-xs font-bold px-2 py-1 rounded" style={{ background: '#FFF3C4', color: '#C4990A' }}>{p.phase}</span></div>
               <div className="font-mono text-sm" style={{ color: '#5F6572' }}>{p.revenue>0?`€${p.revenue.toLocaleString()}`:"—"}</div>
@@ -335,12 +335,12 @@ function AdminPartners({ partners, onSelect, onViewAsPartner, onDeletePartner, o
 }
 
 function AdminAlerts({ alerts, onDismiss }) {
-  if(!alerts.length) return <div className="rounded-xl p-16 text-center" style={{ background: 'white', border: '1px solid #ECEDEF' }}><CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-3"/><div className="font-bold" style={{ color: '#1E2128' }}>Nessun alert — tutto OK</div></div>;
+  if(!alerts.length) return <div className="rounded-xl p-16 text-center" style={{ background: 'white', border: '1px solid #ECEDEF' }}><CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-3"/><div className="font-bold" style={{ color: '#0F172A' }}>Nessun alert — tutto OK</div></div>;
   return (
     <div className="space-y-3">{alerts.map(a=>(
       <div key={a.id} className="rounded-xl p-4 flex items-start gap-4" style={{ background: 'white', border: '1px solid #ECEDEF', borderLeft: `4px solid ${a.type==="BLOCCO"?"#EF4444":"#F59E0B"}` }}>
         <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: a.type==="BLOCCO"?"#FDECEF":"#FFF8DC" }}>{a.type==="BLOCCO"?"🚫":"⚠️"}</div>
-        <div className="flex-1"><div className="flex items-center gap-2 mb-1"><span className="font-mono text-xs font-bold" style={{ color: '#9CA3AF' }}>{a.agent}</span><span className="text-[9px] font-bold px-2 py-0.5 rounded" style={{ background: a.type==="BLOCCO"?"#FDECEF":"#FFF8DC", color: a.type==="BLOCCO"?"#EF4444":"#F59E0B" }}>{a.type}</span></div><div className="text-sm font-bold mb-1" style={{ color: '#1E2128' }}>{a.msg}</div><div className="text-xs" style={{ color: '#9CA3AF' }}>{a.partner} · {a.time}</div></div>
+        <div className="flex-1"><div className="flex items-center gap-2 mb-1"><span className="font-mono text-xs font-bold" style={{ color: '#9CA3AF' }}>{a.agent}</span><span className="text-[9px] font-bold px-2 py-0.5 rounded" style={{ background: a.type==="BLOCCO"?"#FDECEF":"#FFF8DC", color: a.type==="BLOCCO"?"#EF4444":"#F59E0B" }}>{a.type}</span></div><div className="text-sm font-bold mb-1" style={{ color: '#0F172A' }}>{a.msg}</div><div className="text-xs" style={{ color: '#9CA3AF' }}>{a.partner} · {a.time}</div></div>
         <button onClick={()=>onDismiss(a.id)} className="transition-colors text-lg leading-none hover:text-red-500" style={{ color: '#9CA3AF' }}>✕</button>
       </div>
     ))}</div>
@@ -505,7 +505,7 @@ function AndreaPipeline({ partners }) {
         <div className="flex gap-2 flex-wrap mb-4">{(partners||[]).map(p=><button key={p.id} onClick={()=>setSel(p)} className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${sel?.id===p.id?"bg-[#FFD24D] text-black":"bg-[#FAFAF7] border border-[#ECEDEF] text-[#9CA3AF] hover:border-[#FFD24D]/30"}`}>{p.name}</button>)}</div>
         {sel&&<div onClick={()=>ref.current?.click()} className="border-2 border-dashed border-[#ECEDEF] rounded-xl p-8 text-center hover:border-[#FFD24D]/30 cursor-pointer transition-colors"><input ref={ref} type="file" accept="video/*" onChange={handleUpload} className="hidden"/>{uploading||processing?<div className="flex flex-col items-center"><Loader2 className="w-8 h-8 text-[#FFD24D] animate-spin mb-3"/><div className="font-bold text-sm">{uploading?"Caricamento...":"Processing FFmpeg..."}</div></div>:<><Upload className="w-8 h-8 text-[#9CA3AF] mx-auto mb-3"/><div className="font-bold text-sm">Carica video per {sel.name}</div><div className="text-xs text-[#9CA3AF] mt-1">MP4, MOV, AVI — Max 500MB</div></>}</div>}
       </div>
-      <div className="flex items-center justify-between mb-3"><span className="text-xs font-bold text-[#9CA3AF] uppercase tracking-wider flex items-center gap-2"><FileVideo className="w-4 h-4"/>Coda ({jobs.length})</span><button onClick={loadJobs} className="text-[#9CA3AF] hover:text-[#1E2128] transition-colors"><RefreshCw className="w-4 h-4"/></button></div>
+      <div className="flex items-center justify-between mb-3"><span className="text-xs font-bold text-[#9CA3AF] uppercase tracking-wider flex items-center gap-2"><FileVideo className="w-4 h-4"/>Coda ({jobs.length})</span><button onClick={loadJobs} className="text-[#9CA3AF] hover:text-[#0F172A] transition-colors"><RefreshCw className="w-4 h-4"/></button></div>
       {!jobs.length?<div className="bg-white border border-[#ECEDEF] rounded-xl p-10 text-center"><Film className="w-8 h-8 text-[#9CA3AF] mx-auto mb-3"/><div className="font-bold text-sm">Nessun video in coda</div></div>:jobs.map(job=>(
         <div key={job.id} className="bg-white border border-[#ECEDEF] rounded-xl p-4 mb-3">
           <div className="flex items-center gap-3">
@@ -1067,7 +1067,7 @@ export default function App() {
       };
 
       return (
-        <div className="flex h-screen overflow-hidden" style={{ background: '#FAFAF7', color: '#1E2128' }}>
+        <div className="flex h-screen overflow-hidden" style={{ background: '#FAFAF7', color: '#0F172A' }}>
           <Toaster position="top-center" richColors />
 
           {/* Sidebar */}
@@ -1130,7 +1130,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#FAFAF7', color: '#1E2128' }}>
+    <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#FAFAF7', color: '#0F172A' }}>
       {mode === "admin" && !nav.startsWith("cp-") && (
         <ViewSwitcher
           currentView={adminUser === "antonella" ? "antonella" : "admin"}
@@ -1174,7 +1174,7 @@ export default function App() {
         {/* Topbar - Light theme */}
         <div className="border-b px-5 flex items-center justify-between flex-shrink-0" 
              style={{ height: 56, background: 'white', borderColor: '#ECEDEF' }}>
-          <h1 className="text-base font-extrabold flex items-center gap-2" style={{ color: '#1E2128' }}>
+          <h1 className="text-base font-extrabold flex items-center gap-2" style={{ color: '#0F172A' }}>
             {mode === "admin" && (
               <span className="text-[10px] font-bold px-2 py-1 rounded-full"
                     style={{ background: adminUser === "antonella" ? '#F0ECFA' : '#FFF3C4', 
@@ -1189,7 +1189,7 @@ export default function App() {
             {mode === "admin" && nav === "partner" && (
               <button onClick={() => setShowNP(true)} 
                       className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors hover:opacity-90"
-                      style={{ background: '#FFD24D', color: '#1E2128' }}>
+                      style={{ background: '#FFD24D', color: '#0F172A' }}>
                 <UserPlus className="w-3.5 h-3.5"/>Nuovo Partner
               </button>
             )}
@@ -1289,7 +1289,7 @@ export default function App() {
             {nav==="compliance"&&<ComplianceDashboard/>}
             {nav==="email-templates"&&<EmailTemplatesManager/>}
             {nav==="configurazione"&&<div className="space-y-4">
-              <h2 className="text-lg font-bold" style={{color:'#1E2128'}}>Configurazione</h2>
+              <h2 className="text-lg font-bold" style={{color:'#0F172A'}}>Configurazione</h2>
               <div className="grid grid-cols-3 gap-4">
                 {[
                   {id:"email-templates",label:"Email Templates",desc:"Gestisci i template email",icon:"📧"},
@@ -1299,22 +1299,22 @@ export default function App() {
                 ].map(c=>(
                   <button key={c.id} onClick={()=>setNav(c.id)} className="rounded-xl p-5 text-left hover:shadow-md" style={{background:'white',border:'1px solid #ECEDEF',transition:'all 0.15s ease'}}>
                     <div className="text-2xl mb-2">{c.icon}</div>
-                    <div className="font-bold text-sm" style={{color:'#1E2128'}}>{c.label}</div>
+                    <div className="font-bold text-sm" style={{color:'#0F172A'}}>{c.label}</div>
                     <div className="text-xs mt-0.5" style={{color:'#9CA3AF'}}>{c.desc}</div>
                   </button>
                 ))}
               </div>
             </div>}
             {nav==="ex-partner"&&<div className="space-y-4">
-              <h2 className="text-lg font-bold" style={{color:'#1E2128'}}>Ex Partner</h2>
+              <h2 className="text-lg font-bold" style={{color:'#0F172A'}}>Ex Partner</h2>
               <div className="rounded-xl p-12 text-center" style={{background:'white',border:'1px solid #ECEDEF'}}>
                 <Users className="w-10 h-10 mx-auto mb-3" style={{color:'#9CA3AF'}}/>
-                <div className="font-bold" style={{color:'#1E2128'}}>Nessun ex partner</div>
+                <div className="font-bold" style={{color:'#0F172A'}}>Nessun ex partner</div>
                 <p className="text-sm mt-1" style={{color:'#9CA3AF'}}>Quando un partner termina il percorso, apparirà qui</p>
               </div>
             </div>}
             {nav==="guided-system"&&<div className="space-y-4">
-              <h2 className="text-lg font-bold" style={{color:'#1E2128'}}>Guided System</h2>
+              <h2 className="text-lg font-bold" style={{color:'#0F172A'}}>Guided System</h2>
               <p className="text-sm" style={{color:'#9CA3AF'}}>Percorsi guidati per i partner — Stefania Engine</p>
               <div className="rounded-xl p-6" style={{background:'#FEF9E7',border:'1px solid #FFD24D30'}}>
                 <div className="font-bold text-sm mb-2" style={{color:'#C4990A'}}>Sistema Attivo</div>

@@ -8,7 +8,7 @@ import { API } from "../../utils/api-config";
 
 const C = {
   bg: "#FAFAF7", surface: "#FFFFFF", border: "#ECEDEF",
-  text: "#1E2128", muted: "#5F6572", dim: "#9CA3AF",
+  text: "#0F172A", muted: "#5F6572", dim: "#9CA3AF",
   yellow: "#FFD24D", yellowDark: "#D4A017",
   green: "#34C77B", greenDim: "#F0FDF4",
   red: "#EF4444", redDim: "#FEE2E2",

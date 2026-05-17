@@ -472,7 +472,7 @@ export function ProspectPipeline({ onOpenCliente }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-black" style={{ color: "#1E2128" }}>Prospect & Pipeline</h1>
+          <h1 className="text-xl font-black" style={{ color: "#0F172A" }}>Prospect & Pipeline</h1>
           <p className="text-sm" style={{ color: "#9CA3AF" }}>
             {clienti.length} prospect totali — tutti gli step del funnel
           </p>
@@ -512,7 +512,7 @@ export function ProspectPipeline({ onOpenCliente }) {
             onChange={e => setSearch(e.target.value)}
             placeholder="Cerca per nome o email..."
             className="w-full pl-9 pr-3 py-2 text-sm rounded-lg outline-none"
-            style={{ border: "1px solid #ECEDEF", background: "#FAFAF7", color: "#1E2128" }}
+            style={{ border: "1px solid #ECEDEF", background: "#FAFAF7", color: "#0F172A" }}
           />
         </div>
         <div className="flex gap-1.5 flex-wrap">
@@ -522,7 +522,7 @@ export function ProspectPipeline({ onOpenCliente }) {
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
                     style={{
                       background: filter === f.id ? "#FFD24D" : "#F5F4F1",
-                      color: filter === f.id ? "#1E2128" : "#5F6572"
+                      color: filter === f.id ? "#0F172A" : "#5F6572"
                     }}>
               {f.label}
             </button>
@@ -582,7 +582,7 @@ export function ProspectPipeline({ onOpenCliente }) {
                         {(c.nome?.[0] || "?").toUpperCase()}{(c.cognome?.[0] || "").toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <div className="font-semibold truncate" style={{ color: "#1E2128" }}>
+                        <div className="font-semibold truncate" style={{ color: "#0F172A" }}>
                           {c.nome} {c.cognome}
                         </div>
                         <div className="text-xs truncate" style={{ color: "#9CA3AF" }}>{c.email}</div>
@@ -702,14 +702,14 @@ export function ProspectPipeline({ onOpenCliente }) {
                   <Trash2 className="w-5 h-5" style={{ color: "#EF4444" }} />
                 </div>
                 <div>
-                  <h3 className="font-black text-base" style={{ color: "#1E2128" }}>Elimina Prospect</h3>
+                  <h3 className="font-black text-base" style={{ color: "#0F172A" }}>Elimina Prospect</h3>
                   <p className="text-xs" style={{ color: "#9CA3AF" }}>Operazione irreversibile</p>
                 </div>
               </div>
             </div>
             <div className="px-6 py-5 space-y-4">
               <p className="text-sm" style={{ color: "#5F6572" }}>
-                Stai per eliminare <strong style={{ color: "#1E2128" }}>{deleteModal.nome} {deleteModal.cognome}</strong>
+                Stai per eliminare <strong style={{ color: "#0F172A" }}>{deleteModal.nome} {deleteModal.cognome}</strong>
                 {" "}({deleteModal.email}) e tutti i suoi dati:
               </p>
               <ul className="space-y-1 text-xs" style={{ color: "#9CA3AF" }}>

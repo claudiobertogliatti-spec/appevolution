@@ -319,7 +319,7 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName, partnerI
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-2xl">🎁</span>
-                <h2 className="text-lg font-black" style={{ color: '#1E2128' }}>Prova Gratuita Avatar</h2>
+                <h2 className="text-lg font-black" style={{ color: '#0F172A' }}>Prova Gratuita Avatar</h2>
               </div>
               <p className="text-sm" style={{ color: '#9CA3AF' }}>
                 Andrea creerà un sample di 30 secondi per te!
@@ -362,7 +362,7 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName, partnerI
             <div className="space-y-4">
               <div className="text-center">
                 <span className="text-5xl block mb-3">📸</span>
-                <h3 className="font-bold text-lg mb-1" style={{ color: '#1E2128' }}>Carica una tua foto</h3>
+                <h3 className="font-bold text-lg mb-1" style={{ color: '#0F172A' }}>Carica una tua foto</h3>
                 <p className="text-sm" style={{ color: '#9CA3AF' }}>
                   Andrea userà questa foto per creare il tuo avatar digitale
                 </p>
@@ -445,7 +445,7 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName, partnerI
             <div className="space-y-4">
               <div className="text-center">
                 <span className="text-5xl block mb-3">🎙️</span>
-                <h3 className="font-bold text-lg mb-1" style={{ color: '#1E2128' }}>Registra la tua voce</h3>
+                <h3 className="font-bold text-lg mb-1" style={{ color: '#0F172A' }}>Registra la tua voce</h3>
                 <p className="text-sm" style={{ color: '#9CA3AF' }}>
                   Andrea clonerà la tua voce per l'avatar
                 </p>
@@ -577,7 +577,7 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName, partnerI
                   
                   {isGenerating ? (
                     <>
-                      <h3 className="font-bold text-lg mb-2" style={{ color: '#1E2128' }}>
+                      <h3 className="font-bold text-lg mb-2" style={{ color: '#0F172A' }}>
                         Andrea sta creando il tuo Avatar...
                       </h3>
                       <p className="text-sm mb-4" style={{ color: '#9CA3AF' }}>
@@ -600,7 +600,7 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName, partnerI
                     </>
                   ) : (
                     <>
-                      <h3 className="font-bold text-lg mb-2" style={{ color: '#1E2128' }}>
+                      <h3 className="font-bold text-lg mb-2" style={{ color: '#0F172A' }}>
                         Tutto pronto!
                       </h3>
                       <p className="text-sm mb-6" style={{ color: '#9CA3AF' }}>
@@ -621,7 +621,7 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName, partnerI
                 <div className="text-center">
                   <div className="mb-6">
                     <span className="text-6xl block mb-3">🎉</span>
-                    <h3 className="font-bold text-xl mb-2" style={{ color: '#1E2128' }}>
+                    <h3 className="font-bold text-xl mb-2" style={{ color: '#0F172A' }}>
                       Andrea ha creato il tuo Avatar!
                     </h3>
                     <p className="text-sm" style={{ color: '#9CA3AF' }}>
@@ -632,7 +632,7 @@ function AvatarFreeTrialModal({ show, onClose, onComplete, partnerName, partnerI
                   {/* Video Preview (Mock) */}
                   <div 
                     className="relative rounded-xl overflow-hidden mb-6 mx-auto"
-                    style={{ maxWidth: '320px', aspectRatio: '16/9', background: '#1E2128' }}
+                    style={{ maxWidth: '320px', aspectRatio: '16/9', background: '#0F172A' }}
                   >
                     {photoPreview && (
                       <img 
@@ -703,7 +703,7 @@ function AndreaIntro({ message }) {
         <span className="absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white" style={{ background: '#34C77B' }} />
       </div>
       <div className="flex-1">
-        <div className="font-bold text-sm mb-1" style={{ color: '#1E2128' }}>Andrea · Il tuo tutor AI</div>
+        <div className="font-bold text-sm mb-1" style={{ color: '#0F172A' }}>Andrea · Il tuo tutor AI</div>
         <div className="text-sm leading-relaxed" style={{ color: '#5F6572' }} dangerouslySetInnerHTML={{ __html: message }} />
       </div>
     </div>
@@ -809,7 +809,7 @@ function ProductionModeSelector({ onSelect, selectedLessons = [], totalLessons =
           </div>
           
           <div className="text-4xl mb-3">🎬</div>
-          <h3 className="text-lg font-black mb-1" style={{ color: '#1E2128' }}>Registra in Autonomia</h3>
+          <h3 className="text-lg font-black mb-1" style={{ color: '#0F172A' }}>Registra in Autonomia</h3>
           <p className="text-sm mb-4" style={{ color: '#5F6572' }}>
             Tu registri il video grezzo, Andrea si occupa di editing e post-produzione.
           </p>
@@ -839,7 +839,7 @@ function ProductionModeSelector({ onSelect, selectedLessons = [], totalLessons =
       <div className="rounded-xl p-5" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h4 className="font-bold text-sm" style={{ color: '#1E2128' }}>Seleziona le lezioni da delegare</h4>
+            <h4 className="font-bold text-sm" style={{ color: '#0F172A' }}>Seleziona le lezioni da delegare</h4>
             <p className="text-xs" style={{ color: '#9CA3AF' }}>Puoi scegliere quali video creare con Avatar e quali registrare tu</p>
           </div>
           <button 
@@ -877,7 +877,7 @@ function ProductionModeSelector({ onSelect, selectedLessons = [], totalLessons =
                   {isSelected ? '✓' : lesson.id}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-bold truncate" style={{ color: '#1E2128' }}>{lesson.title}</div>
+                  <div className="text-xs font-bold truncate" style={{ color: '#0F172A' }}>{lesson.title}</div>
                   <div className="text-[10px]" style={{ color: '#9CA3AF' }}>{lesson.duration}</div>
                 </div>
                 {isSelected && (
@@ -924,7 +924,7 @@ function ProductionModeSelector({ onSelect, selectedLessons = [], totalLessons =
           className="w-full py-4 rounded-xl font-bold text-sm transition-all hover:scale-[1.01]"
           style={{ 
             background: 'linear-gradient(135deg, #FFD24D, #FADA5E)',
-            color: '#1E2128',
+            color: '#0F172A',
             boxShadow: '0 4px 20px rgba(242, 196, 24, 0.3)'
           }}
         >
@@ -968,11 +968,11 @@ function MasterclassTab({ partnerName, approvedSections, setApprovedSections }) 
       <div className="rounded-xl overflow-hidden" style={{ background: 'white', border: openSection === 1 ? '2px solid #FFD24D' : '2px solid #ECEDEF' }}>
         <div className="flex items-center gap-3 p-4 cursor-pointer" onClick={() => setOpenSection(openSection === 1 ? null : 1)}>
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-               style={{ background: approvedSections.includes(1) ? '#34C77B' : '#FFD24D', color: approvedSections.includes(1) ? 'white' : '#1E2128' }}>
+               style={{ background: approvedSections.includes(1) ? '#34C77B' : '#FFD24D', color: approvedSections.includes(1) ? 'white' : '#0F172A' }}>
             {approvedSections.includes(1) ? '✓' : '1'}
           </div>
           <div className="flex-1">
-            <div className="font-bold text-sm" style={{ color: '#1E2128' }}>Scaletta Masterclass</div>
+            <div className="font-bold text-sm" style={{ color: '#0F172A' }}>Scaletta Masterclass</div>
             <div className="text-xs" style={{ color: '#9CA3AF' }}>Struttura in 5 blocchi · ~45 min totali</div>
           </div>
           <span className="text-xs font-bold px-3 py-1 rounded-full"
@@ -990,7 +990,7 @@ function MasterclassTab({ partnerName, approvedSections, setApprovedSections }) 
               <div className="space-y-2 mb-4">
                 <div className="flex gap-2 p-3 rounded-lg" style={{ background: 'white' }}>
                   <span className="text-xs font-bold min-w-[60px]" style={{ color: '#9CA3AF' }}>Titolo</span>
-                  <span className="text-sm font-bold" style={{ color: '#1E2128' }}>Come trovare i tuoi primi 10 clienti di coaching</span>
+                  <span className="text-sm font-bold" style={{ color: '#0F172A' }}>Come trovare i tuoi primi 10 clienti di coaching</span>
                 </div>
                 <div className="flex gap-2 p-3 rounded-lg" style={{ background: 'white' }}>
                   <span className="text-xs font-bold min-w-[60px]" style={{ color: '#9CA3AF' }}>Durata</span>
@@ -1009,7 +1009,7 @@ function MasterclassTab({ partnerName, approvedSections, setApprovedSections }) 
                   <div className="flex gap-2">
                     <span className="text-xs font-bold min-w-[70px]" style={{ color: '#9CA3AF' }}>Blocco {block.id}</span>
                     <div>
-                      <div className="text-sm font-bold" style={{ color: '#1E2128' }}>{block.title} <span style={{ color: '#9CA3AF', fontWeight: 400 }}>({block.duration})</span></div>
+                      <div className="text-sm font-bold" style={{ color: '#0F172A' }}>{block.title} <span style={{ color: '#9CA3AF', fontWeight: 400 }}>({block.duration})</span></div>
                       <div className="text-xs" style={{ color: '#5F6572' }}>{block.desc}</div>
                     </div>
                   </div>
@@ -1044,11 +1044,11 @@ function MasterclassTab({ partnerName, approvedSections, setApprovedSections }) 
       <div className="rounded-xl overflow-hidden" style={{ background: 'white', border: openSection === 2 ? '2px solid #FFD24D' : '2px solid #ECEDEF' }}>
         <div className="flex items-center gap-3 p-4 cursor-pointer" onClick={() => setOpenSection(openSection === 2 ? null : 2)}>
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-               style={{ background: approvedSections.includes(2) ? '#34C77B' : '#FFD24D', color: approvedSections.includes(2) ? 'white' : '#1E2128' }}>
+               style={{ background: approvedSections.includes(2) ? '#34C77B' : '#FFD24D', color: approvedSections.includes(2) ? 'white' : '#0F172A' }}>
             {approvedSections.includes(2) ? '✓' : '2'}
           </div>
           <div className="flex-1">
-            <div className="font-bold text-sm" style={{ color: '#1E2128' }}>Setup Registrazione</div>
+            <div className="font-bold text-sm" style={{ color: '#0F172A' }}>Setup Registrazione</div>
             <div className="text-xs" style={{ color: '#9CA3AF' }}>Consigli di Andrea per registrare al meglio</div>
           </div>
           <span className="text-xs font-bold px-3 py-1 rounded-full"
@@ -1106,8 +1106,8 @@ function MasterclassTab({ partnerName, approvedSections, setApprovedSections }) 
       >
         <span className="text-3xl">🎬</span>
         <div className="flex-1">
-          <div className="font-bold" style={{ color: '#1E2128' }}>Pronto per registrare!</div>
-          <div className="text-sm" style={{ color: allApproved ? '#1E2128' : '#9CA3AF' }}>
+          <div className="font-bold" style={{ color: '#0F172A' }}>Pronto per registrare!</div>
+          <div className="text-sm" style={{ color: allApproved ? '#0F172A' : '#9CA3AF' }}>
             {allApproved ? 'Vai alla sezione Produzione Video per registrare' : 'Approva scaletta e setup per iniziare'}
           </div>
         </div>
@@ -1162,7 +1162,7 @@ function VideocorsoTab({ partnerName, productionMode, recordedLessons, setRecord
         <div className="flex-1">
           <div className="flex items-center justify-between mb-1">
             <span className="text-sm font-bold" style={{ color: '#5F6572' }}>Lezioni completate</span>
-            <span className="text-sm font-bold" style={{ color: '#1E2128' }}>{completedCount} di {VIDEOCORSO_LESSONS.length}</span>
+            <span className="text-sm font-bold" style={{ color: '#0F172A' }}>{completedCount} di {VIDEOCORSO_LESSONS.length}</span>
           </div>
           <div className="h-2 rounded-full overflow-hidden" style={{ background: '#ECEDEF' }}>
             <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #FFD24D, #34C77B)' }} />
@@ -1196,13 +1196,13 @@ function VideocorsoTab({ partnerName, productionMode, recordedLessons, setRecord
                 className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
                 style={{ 
                   background: isCompleted ? '#34C77B' : isAvatarLesson ? '#7B68AE' : isCurrent ? '#FFD24D' : '#ECEDEF',
-                  color: isCompleted || isAvatarLesson ? 'white' : isCurrent ? '#1E2128' : '#9CA3AF'
+                  color: isCompleted || isAvatarLesson ? 'white' : isCurrent ? '#0F172A' : '#9CA3AF'
                 }}
               >
                 {isCompleted ? '✓' : isLocked ? <Lock className="w-3 h-3" /> : isAvatarLesson ? '🤖' : lesson.id}
               </div>
               <div className="flex-1">
-                <div className="font-bold text-sm flex items-center gap-2" style={{ color: '#1E2128' }}>
+                <div className="font-bold text-sm flex items-center gap-2" style={{ color: '#0F172A' }}>
                   {lesson.title}
                   {isAvatarLesson && !isCompleted && (
                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: '#7B68AE20', color: '#7B68AE' }}>AVATAR</span>
@@ -1274,7 +1274,7 @@ function VideocorsoTab({ partnerName, productionMode, recordedLessons, setRecord
                     <div className="space-y-2 mb-4">
                       <div className="flex gap-2 p-3 rounded-lg" style={{ background: '#FAFAF7' }}>
                         <span className="text-xs font-bold min-w-[90px]" style={{ color: '#9CA3AF' }}>Durata</span>
-                        <span className="text-sm font-bold" style={{ color: '#1E2128' }}>{lesson.duration}</span>
+                        <span className="text-sm font-bold" style={{ color: '#0F172A' }}>{lesson.duration}</span>
                       </div>
                       {lesson.inquadratura && (
                         <div className="flex gap-2 p-3 rounded-lg" style={{ background: '#FAFAF7' }}>
@@ -1353,13 +1353,13 @@ function VideocorsoTab({ partnerName, productionMode, recordedLessons, setRecord
       >
         <span className="text-3xl">🎬</span>
         <div className="flex-1">
-          <div className="font-bold" style={{ color: '#1E2128' }}>Pubblica il Videocorso</div>
-          <div className="text-sm" style={{ color: completedCount === VIDEOCORSO_LESSONS.length ? '#1E2128' : '#9CA3AF' }}>
+          <div className="font-bold" style={{ color: '#0F172A' }}>Pubblica il Videocorso</div>
+          <div className="text-sm" style={{ color: completedCount === VIDEOCORSO_LESSONS.length ? '#0F172A' : '#9CA3AF' }}>
             {completedCount === VIDEOCORSO_LESSONS.length ? 'Tutte le lezioni pronte! Pronto per pubblicare' : `Completa tutte le ${VIDEOCORSO_LESSONS.length} lezioni per pubblicare`}
           </div>
         </div>
         {completedCount === VIDEOCORSO_LESSONS.length && (
-          <button className="px-6 py-3 rounded-xl font-bold text-sm" style={{ background: '#1E2128', color: '#FFD24D' }}>
+          <button className="px-6 py-3 rounded-xl font-bold text-sm" style={{ background: '#0F172A', color: '#FFD24D' }}>
             Pubblica 🚀
           </button>
         )}
@@ -1396,7 +1396,7 @@ export function MasterclassVideocorso({ partner, onBack }) {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex-1">
-            <h1 className="text-xl font-extrabold" style={{ color: '#1E2128' }}>
+            <h1 className="text-xl font-extrabold" style={{ color: '#0F172A' }}>
               🎓 Masterclass & 🎬 Videocorso
             </h1>
           </div>
@@ -1410,7 +1410,7 @@ export function MasterclassVideocorso({ partner, onBack }) {
             className={`flex-1 py-3 rounded-lg font-bold text-sm transition-all`}
             style={{ 
               background: activeTab === "masterclass" ? 'white' : 'transparent',
-              color: activeTab === "masterclass" ? '#1E2128' : '#9CA3AF',
+              color: activeTab === "masterclass" ? '#0F172A' : '#9CA3AF',
               boxShadow: activeTab === "masterclass" ? '0 2px 8px rgba(0,0,0,0.08)' : 'none'
             }}
           >
@@ -1421,7 +1421,7 @@ export function MasterclassVideocorso({ partner, onBack }) {
             className={`flex-1 py-3 rounded-lg font-bold text-sm transition-all`}
             style={{ 
               background: activeTab === "videocorso" ? 'white' : 'transparent',
-              color: activeTab === "videocorso" ? '#1E2128' : '#9CA3AF',
+              color: activeTab === "videocorso" ? '#0F172A' : '#9CA3AF',
               boxShadow: activeTab === "videocorso" ? '0 2px 8px rgba(0,0,0,0.08)' : 'none'
             }}
           >

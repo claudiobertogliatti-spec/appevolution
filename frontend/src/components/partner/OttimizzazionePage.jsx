@@ -74,7 +74,7 @@ function BloccoStato({ kpi }) {
           <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: s.color }}>
             Come sta andando la tua accademia
           </p>
-          <p className="text-lg font-black" style={{ color: "#1E2128" }}>{s.label}</p>
+          <p className="text-lg font-black" style={{ color: "#0F172A" }}>{s.label}</p>
           <p className="text-sm mt-0.5" style={{ color: "#5F6572" }}>{s.sub}</p>
         </div>
       </div>
@@ -132,7 +132,7 @@ function KpiGrid({ kpi }) {
                 </div>
                 <TrendBadge trend={trend} />
               </div>
-              <div className="text-3xl font-black" style={{ color: "#1E2128" }}>{d.fmt(val)}</div>
+              <div className="text-3xl font-black" style={{ color: "#0F172A" }}>{d.fmt(val)}</div>
             </div>
           );
         })}
@@ -186,7 +186,7 @@ function DiagnosiAutomatica({ kpi }) {
           <AlertTriangle className="w-5 h-5" style={{ color: "#EF4444" }} />
         </div>
         <div>
-          <h2 className="text-base font-black" style={{ color: "#1E2128" }}>Diagnosi</h2>
+          <h2 className="text-base font-black" style={{ color: "#0F172A" }}>Diagnosi</h2>
           <p className="text-xs" style={{ color: "#9CA3AF" }}>Cosa non funziona e perche</p>
         </div>
       </div>
@@ -204,7 +204,7 @@ function DiagnosiAutomatica({ kpi }) {
                 <DIcon className="w-4 h-4" style={{ color: st.iconColor }} />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-black mb-0.5" style={{ color: "#1E2128" }}>{item.label}</p>
+                <p className="text-sm font-black mb-0.5" style={{ color: "#0F172A" }}>{item.label}</p>
                 <p className="text-sm" style={{ color: "#5F6572" }}>{item.desc}</p>
               </div>
             </div>
@@ -241,7 +241,7 @@ function ProssimaAzione({ kpi }) {
 
   return (
     <div className="mb-6" data-testid="prossima-azione">
-      <div className="rounded-2xl overflow-hidden" style={{ background: "#1E2128" }}>
+      <div className="rounded-2xl overflow-hidden" style={{ background: "#0F172A" }}>
         <div className="p-5">
           <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: "rgba(255,255,255,0.4)" }}>
             Prossima azione
@@ -258,7 +258,7 @@ function ProssimaAzione({ kpi }) {
           </div>
           <div className="mt-4 flex">
             <span className="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-lg"
-              style={{ background: action.color, color: action.color === "#F59E0B" ? "#1E2128" : "white" }}>
+              style={{ background: action.color, color: action.color === "#F59E0B" ? "#0F172A" : "white" }}>
               Fallo adesso <ArrowRight className="w-3.5 h-3.5" />
             </span>
           </div>
@@ -321,7 +321,7 @@ function ProssimoLivello({ kpi, onNavigate }) {
           <LIcon className="w-5 h-5" style={{ color: level.color }} />
         </div>
         <div>
-          <h2 className="text-base font-black" style={{ color: "#1E2128" }}>Prossimo livello consigliato</h2>
+          <h2 className="text-base font-black" style={{ color: "#0F172A" }}>Prossimo livello consigliato</h2>
           <p className="text-xs" style={{ color: "#9CA3AF" }}>Basato sulla tua situazione attuale</p>
         </div>
       </div>
@@ -343,7 +343,7 @@ function ProssimoLivello({ kpi, onNavigate }) {
               <LIcon className="w-5 h-5" style={{ color: level.color }} />
             </div>
             <div>
-              <p className="text-lg font-black" style={{ color: "#1E2128" }}>{level.name}</p>
+              <p className="text-lg font-black" style={{ color: "#0F172A" }}>{level.name}</p>
               <p className="text-sm" style={{ color: "#5F6572" }}>{level.tagline}</p>
             </div>
           </div>
@@ -363,7 +363,7 @@ function ProssimoLivello({ kpi, onNavigate }) {
             className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-black text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
             style={{
               background: level.color,
-              color: levelId === "growth" ? "#1E2128" : "white",
+              color: levelId === "growth" ? "#0F172A" : "white",
               boxShadow: `0 4px 16px ${level.color}40`,
             }}
           >
@@ -415,7 +415,7 @@ function GuidaLancio({ onNavigate }) {
           <Rocket className="w-5 h-5" style={{ color: "#FFD24D" }} />
         </div>
         <div>
-          <h2 className="text-base font-black" style={{ color: "#1E2128" }}>Guida al lancio</h2>
+          <h2 className="text-base font-black" style={{ color: "#0F172A" }}>Guida al lancio</h2>
           <p className="text-xs" style={{ color: "#9CA3AF" }}>Le prime 3 mosse per portare i numeri da zero</p>
         </div>
       </div>
@@ -435,7 +435,7 @@ function GuidaLancio({ onNavigate }) {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <SIcon className="w-4 h-4 flex-shrink-0" style={{ color: step.color }} />
-                    <p className="text-sm font-black" style={{ color: "#1E2128" }}>{step.title}</p>
+                    <p className="text-sm font-black" style={{ color: "#0F172A" }}>{step.title}</p>
                   </div>
                   <p className="text-sm leading-relaxed" style={{ color: "#5F6572" }}>{step.desc}</p>
                   {step.action && (
@@ -547,7 +547,7 @@ export function OttimizzazionePage({ partner, onNavigate, isAdmin }) {
 
         {/* HERO */}
         <div className="mb-6" data-testid="risultati-hero">
-          <h1 className="text-3xl font-black mb-1" style={{ color: "#1E2128" }}>Risultati</h1>
+          <h1 className="text-3xl font-black mb-1" style={{ color: "#0F172A" }}>Risultati</h1>
           <p className="text-sm" style={{ color: "#9CA3AF" }}>
             Cosa sta succedendo. Cosa fare. Dove intervenire.
           </p>

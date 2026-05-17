@@ -225,11 +225,11 @@ function ArticleCard({ article, isOpen, onToggle }) {
         className="w-full flex items-center gap-3 p-4 text-left"
       >
         <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-             style={{ background: isOpen ? '#FFD24D' : '#FEF9E7', color: isOpen ? '#1E2128' : '#C4990A' }}>
+             style={{ background: isOpen ? '#FFD24D' : '#FEF9E7', color: isOpen ? '#0F172A' : '#C4990A' }}>
           <span className="font-bold text-sm">{article.num}</span>
         </div>
         <div className="flex-1 min-w-0">
-          <div className="font-bold text-[#1E2128]">{article.title}</div>
+          <div className="font-bold text-[#0F172A]">{article.title}</div>
           <div className="text-xs text-[#9CA3AF]">{article.subtitle}</div>
         </div>
         <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
@@ -285,7 +285,7 @@ export function ContrattoPartnership({ partner, onBack }) {
   return (
     <div className="min-h-screen" style={{ background: '#FAFAF7' }}>
       {/* Header */}
-      <div className="sticky top-0 z-10 px-6 py-4" style={{ background: '#1E2128' }}>
+      <div className="sticky top-0 z-10 px-6 py-4" style={{ background: '#0F172A' }}>
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button onClick={onBack} className="p-2 rounded-lg hover:bg-white/10 transition-colors">
@@ -300,7 +300,7 @@ export function ContrattoPartnership({ partner, onBack }) {
             </div>
           </div>
           <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold"
-                  style={{ background: '#FFD24D', color: '#1E2128' }}>
+                  style={{ background: '#FFD24D', color: '#0F172A' }}>
             <Download className="w-4 h-4" />
             Scarica PDF
           </button>
@@ -329,15 +329,15 @@ export function ContrattoPartnership({ partner, onBack }) {
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="p-4 rounded-xl" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
             <div className="text-xs text-[#9CA3AF] mb-1">Partner</div>
-            <div className="font-bold text-[#1E2128]">{partnerName}</div>
+            <div className="font-bold text-[#0F172A]">{partnerName}</div>
           </div>
           <div className="p-4 rounded-xl" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
             <div className="text-xs text-[#9CA3AF] mb-1">Data Firma</div>
-            <div className="font-bold text-[#1E2128]">{contractDate}</div>
+            <div className="font-bold text-[#0F172A]">{contractDate}</div>
           </div>
           <div className="p-4 rounded-xl" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
             <div className="text-xs text-[#9CA3AF] mb-1">Durata</div>
-            <div className="font-bold text-[#1E2128]">12 mesi</div>
+            <div className="font-bold text-[#0F172A]">12 mesi</div>
           </div>
         </div>
 

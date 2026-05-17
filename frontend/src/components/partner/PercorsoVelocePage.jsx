@@ -31,7 +31,7 @@ function CountdownHero({ currentDay }) {
 
   return (
     <div className="rounded-2xl overflow-hidden mb-6" data-testid="countdown-hero"
-      style={{ background: completed ? "#34C77B" : "#1E2128" }}>
+      style={{ background: completed ? "#34C77B" : "#0F172A" }}>
       <div className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -80,7 +80,7 @@ function PhaseStepper({ currentDay, currentPhase }) {
           <Calendar className="w-5 h-5" style={{ color: "#FFD24D" }} />
         </div>
         <div>
-          <h2 className="text-base font-black" style={{ color: "#1E2128" }}>Le 5 fasi</h2>
+          <h2 className="text-base font-black" style={{ color: "#0F172A" }}>Le 5 fasi</h2>
           <p className="text-xs" style={{ color: "#9CA3AF" }}>Dove sei nel percorso</p>
         </div>
       </div>
@@ -111,7 +111,7 @@ function PhaseStepper({ currentDay, currentPhase }) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-black" style={{ color: isCompleted ? "#166534" : "#1E2128" }}>
+                  <p className="text-sm font-black" style={{ color: isCompleted ? "#166534" : "#0F172A" }}>
                     {phase.name}
                   </p>
                   {isCurrent && (
@@ -156,7 +156,7 @@ function DailyChecklist({ currentDay, tasks, checklist, onToggle }) {
             <Clock className="w-5 h-5" style={{ color: phaseColor }} />
           </div>
           <div>
-            <h2 className="text-base font-black" style={{ color: "#1E2128" }}>
+            <h2 className="text-base font-black" style={{ color: "#0F172A" }}>
               Oggi — Giorno {currentDay}
             </h2>
             <p className="text-xs" style={{ color: "#9CA3AF" }}>
@@ -164,7 +164,7 @@ function DailyChecklist({ currentDay, tasks, checklist, onToggle }) {
             </p>
           </div>
         </div>
-        <span className="text-xl font-black" style={{ color: allDone ? "#34C77B" : "#1E2128" }}>
+        <span className="text-xl font-black" style={{ color: allDone ? "#34C77B" : "#0F172A" }}>
           {completed}/{total}
         </span>
       </div>
@@ -189,7 +189,7 @@ function DailyChecklist({ currentDay, tasks, checklist, onToggle }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold" style={{
-                      color: isDone ? "#166534" : "#1E2128",
+                      color: isDone ? "#166534" : "#0F172A",
                       textDecoration: isDone ? "line-through" : "none",
                       opacity: isDone ? 0.7 : 1,
                     }}>{task.label}</p>
@@ -218,7 +218,7 @@ function ActivationScreen({ onActivate, isActivating }) {
             style={{ background: "#FFD24D20" }}>
             <Zap className="w-10 h-10" style={{ color: "#FFD24D" }} />
           </div>
-          <h1 className="text-3xl font-black mb-3" style={{ color: "#1E2128" }}>
+          <h1 className="text-3xl font-black mb-3" style={{ color: "#0F172A" }}>
             Go Live in 21 giorni
           </h1>
           <p className="text-base leading-relaxed" style={{ color: "#5F6572" }}>
@@ -242,7 +242,7 @@ function ActivationScreen({ onActivate, isActivating }) {
                     <PIcon className="w-4 h-4" style={{ color: phase.color }} />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-bold" style={{ color: "#1E2128" }}>{phase.name}</p>
+                    <p className="text-sm font-bold" style={{ color: "#0F172A" }}>{phase.name}</p>
                     <p className="text-xs" style={{ color: "#9CA3AF" }}>
                       Giorno {phase.dayStart}–{phase.dayEnd}
                     </p>
@@ -253,7 +253,7 @@ function ActivationScreen({ onActivate, isActivating }) {
           </div>
         </div>
 
-        <div className="rounded-2xl p-5 mb-6" style={{ background: "#1E2128" }}>
+        <div className="rounded-2xl p-5 mb-6" style={{ background: "#0F172A" }}>
           <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.7)" }}>
             <strong className="text-white">Tra 21 giorni avrai:</strong>
           </p>
@@ -272,7 +272,7 @@ function ActivationScreen({ onActivate, isActivating }) {
           onClick={onActivate}
           disabled={isActivating}
           className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-black text-base transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
-          style={{ background: "#FFD24D", color: "#1E2128", boxShadow: "0 4px 16px #FFD24D40" }}>
+          style={{ background: "#FFD24D", color: "#0F172A", boxShadow: "0 4px 16px #FFD24D40" }}>
           {isActivating ? (
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (

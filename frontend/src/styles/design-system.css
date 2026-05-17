@@ -9,7 +9,7 @@
   --brand-yellow-glow: rgba(242, 196, 24, 0.25);
   
   /* Brand Dark (for text/accents) */
-  --brand-dark: #1E2128;
+  --brand-dark: #0F172A;
   --brand-charcoal: #2D3239;
   
   /* Sidebar Colors */
@@ -35,7 +35,7 @@
   --color-red-light: #FDECEF;
   
   /* Text Colors */
-  --text-primary: #1E2128;
+  --text-primary: #0F172A;
   --text-secondary: #5F6572;
   --text-muted: #9CA3AF;
   --text-sidebar: #3B4049;

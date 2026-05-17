@@ -434,7 +434,7 @@ export function SystemeIODashboard({ partnerId, partnerName }) {
         </h3>
         <div className="grid grid-cols-5 gap-4">
           <div className="text-center p-4 bg-[#FAFAF7] rounded-lg">
-            <div className="font-mono text-2xl font-bold text-[#1E2128]">{stats?.piano_continuita?.partner_attivi || 0}</div>
+            <div className="font-mono text-2xl font-bold text-[#0F172A]">{stats?.piano_continuita?.partner_attivi || 0}</div>
             <div className="text-xs text-[#9CA3AF] mt-1">Partner con piano attivo</div>
           </div>
           <div className="text-center p-4 bg-[#FAFAF7] rounded-lg">

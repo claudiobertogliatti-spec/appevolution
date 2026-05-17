@@ -344,7 +344,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
             <ArrowLeft className="w-5 h-5" style={{ color: '#5F6572' }} />
           </button>
           <div>
-            <h1 className="text-2xl font-black" style={{ color: '#1E2128' }}>
+            <h1 className="text-2xl font-black" style={{ color: '#0F172A' }}>
               🎬 Video Editor di Andrea
             </h1>
             <p className="text-sm" style={{ color: '#9CA3AF' }}>
@@ -359,7 +359,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-8 text-center max-w-md mx-4">
             <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" style={{ color: '#7B68AE' }} />
-            <h3 className="text-lg font-bold mb-2" style={{ color: '#1E2128' }}>
+            <h3 className="text-lg font-bold mb-2" style={{ color: '#0F172A' }}>
               {processingStatus}
             </h3>
             <p className="text-sm" style={{ color: '#9CA3AF' }}>
@@ -380,7 +380,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
                      style={{ background: '#FFD24D20' }}>
                   <Upload className="w-10 h-10" style={{ color: '#FFD24D' }} />
                 </div>
-                <h2 className="text-xl font-bold mb-2" style={{ color: '#1E2128' }}>
+                <h2 className="text-xl font-bold mb-2" style={{ color: '#0F172A' }}>
                   Carica il tuo video
                 </h2>
                 <p className="text-sm mb-6" style={{ color: '#9CA3AF' }}>
@@ -429,14 +429,14 @@ export function VideoEditorAndrea({ partner, onBack }) {
                       className="w-20 h-20 rounded-full flex items-center justify-center transition-all hover:scale-110"
                       style={{ background: 'rgba(255,255,255,0.9)' }}
                     >
-                      <Play className="w-8 h-8 ml-1" style={{ color: '#1E2128' }} />
+                      <Play className="w-8 h-8 ml-1" style={{ color: '#0F172A' }} />
                     </button>
                   </div>
                 )}
               </div>
               
               {/* Controls */}
-              <div className="p-4" style={{ background: '#1E2128' }}>
+              <div className="p-4" style={{ background: '#0F172A' }}>
                 {/* Progress bar */}
                 <div className="relative h-2 rounded-full mb-4 cursor-pointer"
                      style={{ background: '#3B4049' }}
@@ -484,25 +484,25 @@ export function VideoEditorAndrea({ partner, onBack }) {
                      style={{ borderColor: '#ECEDEF' }}>
                   <div>
                     <div className="text-xs" style={{ color: '#9CA3AF' }}>Durata</div>
-                    <div className="font-bold" style={{ color: '#1E2128' }}>
+                    <div className="font-bold" style={{ color: '#0F172A' }}>
                       {formatTime(videoInfo.duration)}
                     </div>
                   </div>
                   <div>
                     <div className="text-xs" style={{ color: '#9CA3AF' }}>Risoluzione</div>
-                    <div className="font-bold" style={{ color: '#1E2128' }}>
+                    <div className="font-bold" style={{ color: '#0F172A' }}>
                       {videoInfo.width}x{videoInfo.height}
                     </div>
                   </div>
                   <div>
                     <div className="text-xs" style={{ color: '#9CA3AF' }}>FPS</div>
-                    <div className="font-bold" style={{ color: '#1E2128' }}>
+                    <div className="font-bold" style={{ color: '#0F172A' }}>
                       {Math.round(videoInfo.fps)}
                     </div>
                   </div>
                   <div>
                     <div className="text-xs" style={{ color: '#9CA3AF' }}>Dimensione</div>
-                    <div className="font-bold" style={{ color: '#1E2128' }}>
+                    <div className="font-bold" style={{ color: '#0F172A' }}>
                       {(videoInfo.size_bytes / 1024 / 1024).toFixed(1)} MB
                     </div>
                   </div>
@@ -518,7 +518,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
               <div className="bg-white rounded-xl p-5 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
                   <Scissors className="w-5 h-5" style={{ color: '#7B68AE' }} />
-                  <h3 className="font-bold" style={{ color: '#1E2128' }}>Taglia Video</h3>
+                  <h3 className="font-bold" style={{ color: '#0F172A' }}>Taglia Video</h3>
                 </div>
                 <p className="text-xs mb-4" style={{ color: '#9CA3AF' }}>
                   Estrai un segmento specifico del video
@@ -568,7 +568,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
               <div className="bg-white rounded-xl p-5 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
                   <Trash2 className="w-5 h-5" style={{ color: '#EF4444' }} />
-                  <h3 className="font-bold" style={{ color: '#1E2128' }}>Rimuovi Segmento</h3>
+                  <h3 className="font-bold" style={{ color: '#0F172A' }}>Rimuovi Segmento</h3>
                 </div>
                 <p className="text-xs mb-4" style={{ color: '#9CA3AF' }}>
                   Elimina una parte indesiderata del video
@@ -618,7 +618,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
               <div className="bg-white rounded-xl p-5 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
                   <MessageSquare className="w-5 h-5" style={{ color: '#34C77B' }} />
-                  <h3 className="font-bold" style={{ color: '#1E2128' }}>Sottotitoli Auto</h3>
+                  <h3 className="font-bold" style={{ color: '#0F172A' }}>Sottotitoli Auto</h3>
                 </div>
                 <p className="text-xs mb-4" style={{ color: '#9CA3AF' }}>
                   Andrea trascrive l'audio e genera i sottotitoli
@@ -673,7 +673,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
               <div className="bg-white rounded-xl p-5 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
                   <Film className="w-5 h-5" style={{ color: '#FFD24D' }} />
-                  <h3 className="font-bold" style={{ color: '#1E2128' }}>Intro & Outro</h3>
+                  <h3 className="font-bold" style={{ color: '#0F172A' }}>Intro & Outro</h3>
                 </div>
                 <p className="text-xs mb-4" style={{ color: '#9CA3AF' }}>
                   Aggiungi automaticamente intro e outro brandizzati
@@ -683,7 +683,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
                   onClick={handleAddBranding}
                   disabled={isProcessing}
                   className="w-full py-3 rounded-lg font-bold text-sm text-white transition-all hover:opacity-90"
-                  style={{ background: '#FFD24D', color: '#1E2128' }}
+                  style={{ background: '#FFD24D', color: '#0F172A' }}
                 >
                   Aggiungi Branding
                 </button>
@@ -693,7 +693,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
               <div className="bg-white rounded-xl p-5 shadow-sm md:col-span-2">
                 <div className="flex items-center gap-2 mb-4">
                   <Type className="w-5 h-5" style={{ color: '#3B82F6' }} />
-                  <h3 className="font-bold" style={{ color: '#1E2128' }}>Aggiungi Testo</h3>
+                  <h3 className="font-bold" style={{ color: '#0F172A' }}>Aggiungi Testo</h3>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -774,7 +774,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
                 <span className="text-2xl">🎬</span>
               </div>
               <div>
-                <h3 className="font-bold" style={{ color: '#1E2128' }}>Andrea</h3>
+                <h3 className="font-bold" style={{ color: '#0F172A' }}>Andrea</h3>
                 <p className="text-xs" style={{ color: '#9CA3AF' }}>Il tuo video editor AI</p>
               </div>
             </div>
@@ -788,7 +788,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
 
           {/* Exported Files */}
           <div className="bg-white rounded-xl p-5 shadow-sm">
-            <h3 className="font-bold mb-4" style={{ color: '#1E2128' }}>
+            <h3 className="font-bold mb-4" style={{ color: '#0F172A' }}>
               📁 File Esportati
             </h3>
             
@@ -809,7 +809,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
                        className="p-3 rounded-lg flex items-center justify-between"
                        style={{ background: '#FAFAF7' }}>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold truncate" style={{ color: '#1E2128' }}>
+                      <p className="text-sm font-bold truncate" style={{ color: '#0F172A' }}>
                         {video.name}
                       </p>
                       <p className="text-xs" style={{ color: '#9CA3AF' }}>
@@ -833,7 +833,7 @@ export function VideoEditorAndrea({ partner, onBack }) {
           {/* Transcription Preview */}
           {subtitles?.text && (
             <div className="bg-white rounded-xl p-5 shadow-sm">
-              <h3 className="font-bold mb-3" style={{ color: '#1E2128' }}>
+              <h3 className="font-bold mb-3" style={{ color: '#0F172A' }}>
                 📝 Trascrizione
               </h3>
               <div className="max-h-64 overflow-y-auto">
