@@ -89,10 +89,10 @@ export function Homepage() {
           {/* Logo */}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#FFD24D' }}>
-              <span className="text-lg font-black" style={{ color: '#1E2128' }}>E</span>
+              <span className="text-lg font-black" style={{ color: '#0F172A' }}>E</span>
             </div>
             <div>
-              <span className="font-black text-lg" style={{ color: '#1E2128' }}>
+              <span className="font-black text-lg" style={{ color: '#0F172A' }}>
                 EVOLUTION <span style={{ color: '#FFD24D' }}>PRO</span>
               </span>
             </div>
@@ -116,7 +116,7 @@ export function Homepage() {
           {/* Title - Centered */}
           <h1 
             className="text-3xl md:text-4xl lg:text-5xl font-black leading-tight mb-12 text-center" 
-            style={{ color: '#1E2128' }}
+            style={{ color: '#0F172A' }}
           >
             Scopri se la tua competenza può diventare una{' '}
             <span style={{ color: '#FFD24D' }}>Accademia Digitale</span>{' '}
@@ -158,7 +158,7 @@ export function Homepage() {
                     className="flex items-center gap-3"
                   >
                     <CheckCircle className="w-5 h-5 flex-shrink-0" style={{ color: '#FFD24D' }} />
-                    <span style={{ color: '#1E2128' }}>{benefit}</span>
+                    <span style={{ color: '#0F172A' }}>{benefit}</span>
                   </div>
                 ))}
               </div>
@@ -167,7 +167,7 @@ export function Homepage() {
               <button
                 onClick={() => setShowRegisterModal(true)}
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-bold text-lg transition-all hover:opacity-90 hover:scale-105"
-                style={{ background: '#FFD24D', color: '#1E2128' }}
+                style={{ background: '#FFD24D', color: '#0F172A' }}
                 data-testid="cta-analisi-strategica"
               >
                 Richiedi l'Analisi Strategica
@@ -203,9 +203,9 @@ export function Homepage() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex items-center justify-center gap-2 mb-2">
             <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: '#FFD24D' }}>
-              <span className="text-xs font-black" style={{ color: '#1E2128' }}>E</span>
+              <span className="text-xs font-black" style={{ color: '#0F172A' }}>E</span>
             </div>
-            <span className="font-bold text-sm" style={{ color: '#1E2128' }}>
+            <span className="font-bold text-sm" style={{ color: '#0F172A' }}>
               EVOLUTION <span style={{ color: '#FFD24D' }}>PRO</span>
             </span>
           </div>
@@ -242,7 +242,7 @@ export function Homepage() {
             </button>
 
             {/* Title */}
-            <h2 className="text-2xl font-bold mb-6 text-center" style={{ color: '#1E2128' }}>
+            <h2 className="text-2xl font-bold mb-6 text-center" style={{ color: '#0F172A' }}>
               Crea il tuo account Evolution PRO
             </h2>
 
@@ -250,7 +250,7 @@ export function Homepage() {
             <form onSubmit={handleRegister} className="space-y-4">
               {/* Nome */}
               <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: '#1E2128' }}>Nome</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: '#0F172A' }}>Nome</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: '#9CA3AF' }} />
                   <input
@@ -268,7 +268,7 @@ export function Homepage() {
 
               {/* Cognome */}
               <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: '#1E2128' }}>Cognome</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: '#0F172A' }}>Cognome</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: '#9CA3AF' }} />
                   <input
@@ -286,7 +286,7 @@ export function Homepage() {
 
               {/* Telefono */}
               <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: '#1E2128' }}>Telefono</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: '#0F172A' }}>Telefono</label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: '#9CA3AF' }} />
                   <input
@@ -304,7 +304,7 @@ export function Homepage() {
 
               {/* Email */}
               <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: '#1E2128' }}>Email</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: '#0F172A' }}>Email</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: '#9CA3AF' }} />
                   <input
@@ -322,7 +322,7 @@ export function Homepage() {
 
               {/* Password */}
               <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: '#1E2128' }}>Password</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: '#0F172A' }}>Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: '#9CA3AF' }} />
                   <input
@@ -362,7 +362,7 @@ export function Homepage() {
                 type="submit"
                 disabled={registerLoading}
                 className="w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 hover:opacity-90"
-                style={{ background: '#FFD24D', color: '#1E2128' }}
+                style={{ background: '#FFD24D', color: '#0F172A' }}
                 data-testid="register-submit"
               >
                 {registerLoading ? (
@@ -418,15 +418,15 @@ export function Homepage() {
             {/* Logo */}
             <div className="flex items-center justify-center gap-2 mb-6">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#FFD24D' }}>
-                <span className="text-lg font-black" style={{ color: '#1E2128' }}>E</span>
+                <span className="text-lg font-black" style={{ color: '#0F172A' }}>E</span>
               </div>
-              <span className="font-black text-lg" style={{ color: '#1E2128' }}>
+              <span className="font-black text-lg" style={{ color: '#0F172A' }}>
                 EVOLUTION <span style={{ color: '#FFD24D' }}>PRO</span>
               </span>
             </div>
 
             {/* Title */}
-            <h2 className="text-xl font-bold mb-2 text-center" style={{ color: '#1E2128' }}>
+            <h2 className="text-xl font-bold mb-2 text-center" style={{ color: '#0F172A' }}>
               Accedi
             </h2>
             <p className="text-sm text-center mb-6" style={{ color: '#5F6572' }}>
@@ -437,7 +437,7 @@ export function Homepage() {
             <form onSubmit={handleLogin} className="space-y-4">
               {/* Email */}
               <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: '#1E2128' }}>Email</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: '#0F172A' }}>Email</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: '#9CA3AF' }} />
                   <input
@@ -455,7 +455,7 @@ export function Homepage() {
 
               {/* Password */}
               <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: '#1E2128' }}>Password</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: '#0F172A' }}>Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: '#9CA3AF' }} />
                   <input
@@ -494,7 +494,7 @@ export function Homepage() {
                 type="submit"
                 disabled={loginLoading}
                 className="w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 hover:opacity-90"
-                style={{ background: '#FFD24D', color: '#1E2128' }}
+                style={{ background: '#FFD24D', color: '#0F172A' }}
                 data-testid="login-submit"
               >
                 {loginLoading ? (

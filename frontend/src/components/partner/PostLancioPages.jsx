@@ -39,7 +39,7 @@ export function MiaAccademiaPage({ partner }) {
   return (
     <div className="p-6 space-y-6" style={{ background: '#FAFAF7', minHeight: '100vh' }}>
       <div>
-        <h1 className="text-2xl font-bold" style={{ color: '#1E2128' }}>La mia Accademia</h1>
+        <h1 className="text-2xl font-bold" style={{ color: '#0F172A' }}>La mia Accademia</h1>
         <p className="text-sm" style={{ color: '#9CA3AF' }}>Gestione e crescita della tua accademia attiva</p>
       </div>
 
@@ -66,7 +66,7 @@ export function MiaAccademiaPage({ partner }) {
             <Users className="w-5 h-5" />
             <span className="text-sm font-medium">Studenti Totali</span>
           </div>
-          <span className="text-3xl font-bold" style={{ color: '#1E2128' }}>
+          <span className="text-3xl font-bold" style={{ color: '#0F172A' }}>
             {partner?.total_students || 0}
           </span>
         </div>
@@ -76,7 +76,7 @@ export function MiaAccademiaPage({ partner }) {
             <TrendingUp className="w-5 h-5" />
             <span className="text-sm font-medium">Fatturato Mese</span>
           </div>
-          <span className="text-3xl font-bold" style={{ color: '#1E2128' }}>
+          <span className="text-3xl font-bold" style={{ color: '#0F172A' }}>
             €{pianoContinuita?.mrr?.toLocaleString() || 0}
           </span>
         </div>
@@ -86,7 +86,7 @@ export function MiaAccademiaPage({ partner }) {
             <Calendar className="w-5 h-5" />
             <span className="text-sm font-medium">Prossimo Rinnovo</span>
           </div>
-          <span className="text-lg font-bold" style={{ color: '#1E2128' }}>
+          <span className="text-lg font-bold" style={{ color: '#0F172A' }}>
             {pianoContinuita?.data_rinnovo 
               ? new Date(pianoContinuita.data_rinnovo).toLocaleDateString("it-IT")
               : "—"}
@@ -96,7 +96,7 @@ export function MiaAccademiaPage({ partner }) {
 
       {/* Piano Continuità Badge */}
       <div className="bg-white rounded-xl p-5 shadow-sm" style={{ border: '1px solid #ECEDEF' }}>
-        <h3 className="text-lg font-bold mb-4" style={{ color: '#1E2128' }}>Piano Continuità</h3>
+        <h3 className="text-lg font-bold mb-4" style={{ color: '#0F172A' }}>Piano Continuità</h3>
         {pianoContinuita?.piano_attivo ? (
           <div className="flex items-center gap-4">
             <div className="px-4 py-2 rounded-full text-sm font-bold bg-green-50 text-green-600 border border-green-200">
@@ -152,12 +152,12 @@ export function MieiStudentiPage({ partner }) {
     <div className="p-6 space-y-6" style={{ background: '#FAFAF7', minHeight: '100vh' }}>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: '#1E2128' }}>I miei Studenti</h1>
+          <h1 className="text-2xl font-bold" style={{ color: '#0F172A' }}>I miei Studenti</h1>
           <p className="text-sm" style={{ color: '#9CA3AF' }}>Monitoraggio studenti iscritti e progressi</p>
         </div>
         <button 
           className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm"
-          style={{ background: '#FFD24D', color: '#1E2128' }}
+          style={{ background: '#FFD24D', color: '#0F172A' }}
         >
           <RefreshCw className="w-4 h-4" />
           Aggiorna
@@ -167,7 +167,7 @@ export function MieiStudentiPage({ partner }) {
       {students.length === 0 ? (
         <div className="bg-white rounded-xl p-12 text-center shadow-sm" style={{ border: '1px solid #ECEDEF' }}>
           <Users className="w-16 h-16 mx-auto mb-4" style={{ color: '#ECEDEF' }} />
-          <h3 className="text-xl font-bold mb-2" style={{ color: '#1E2128' }}>
+          <h3 className="text-xl font-bold mb-2" style={{ color: '#0F172A' }}>
             Nessuno studente ancora
           </h3>
           <p style={{ color: '#9CA3AF' }}>
@@ -188,7 +188,7 @@ export function MieiStudentiPage({ partner }) {
             <tbody>
               {students.map((student, i) => (
                 <tr key={i} style={{ borderBottom: '1px solid #ECEDEF' }}>
-                  <td className="px-4 py-3 font-medium" style={{ color: '#1E2128' }}>{student.name}</td>
+                  <td className="px-4 py-3 font-medium" style={{ color: '#0F172A' }}>{student.name}</td>
                   <td className="px-4 py-3 text-sm" style={{ color: '#5F6572' }}>
                     {new Date(student.enrolled_at).toLocaleDateString("it-IT")}
                   </td>
@@ -203,7 +203,7 @@ export function MieiStudentiPage({ partner }) {
                           style={{ width: `${student.progress || 0}%`, background: '#FFD24D' }}
                         />
                       </div>
-                      <span className="text-sm font-bold" style={{ color: '#1E2128' }}>{student.progress || 0}%</span>
+                      <span className="text-sm font-bold" style={{ color: '#0F172A' }}>{student.progress || 0}%</span>
                     </div>
                   </td>
                 </tr>
@@ -274,12 +274,12 @@ export function ImpegniSettimanaPage({ partner }) {
     <div className="p-6 space-y-6" style={{ background: '#FAFAF7', minHeight: '100vh' }}>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: '#1E2128' }}>Impegni Settimana</h1>
+          <h1 className="text-2xl font-bold" style={{ color: '#0F172A' }}>Impegni Settimana</h1>
           <p className="text-sm" style={{ color: '#9CA3AF' }}>Piano settimanale e obiettivi operativi</p>
         </div>
         <button 
           className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm"
-          style={{ background: '#FFD24D', color: '#1E2128' }}
+          style={{ background: '#FFD24D', color: '#0F172A' }}
         >
           <Plus className="w-4 h-4" />
           Aggiungi Impegno
@@ -295,7 +295,7 @@ export function ImpegniSettimanaPage({ partner }) {
           >
             {getStatusIcon(impegno.status)}
             <div className="flex-1">
-              <p className="font-medium" style={{ color: '#1E2128' }}>{impegno.task}</p>
+              <p className="font-medium" style={{ color: '#0F172A' }}>{impegno.task}</p>
               <p className="text-xs" style={{ color: '#9CA3AF' }}>
                 Scadenza: {new Date(impegno.due).toLocaleDateString("it-IT")}
               </p>
@@ -357,14 +357,14 @@ export function ReportMensilePage({ partner }) {
   return (
     <div className="p-6 space-y-6" style={{ background: '#FAFAF7', minHeight: '100vh' }}>
       <div>
-        <h1 className="text-2xl font-bold" style={{ color: '#1E2128' }}>Report Mensile</h1>
+        <h1 className="text-2xl font-bold" style={{ color: '#0F172A' }}>Report Mensile</h1>
         <p className="text-sm" style={{ color: '#9CA3AF' }}>Report mensile fatturato, studenti, azioni</p>
       </div>
 
       {!report ? (
         <div className="bg-white rounded-xl p-12 text-center shadow-sm" style={{ border: '1px solid #ECEDEF' }}>
           <BarChart3 className="w-16 h-16 mx-auto mb-4" style={{ color: '#ECEDEF' }} />
-          <h3 className="text-xl font-bold mb-2" style={{ color: '#1E2128' }}>
+          <h3 className="text-xl font-bold mb-2" style={{ color: '#0F172A' }}>
             Nessun report disponibile
           </h3>
           <p style={{ color: '#9CA3AF' }}>
@@ -436,7 +436,7 @@ export function PianoContinuitaBanner({ partner, onTalkToStefania }) {
           <button
             onClick={onTalkToStefania}
             className="px-4 py-2 rounded-lg font-bold text-sm"
-            style={{ background: '#1E2128', color: '#FFD24D' }}
+            style={{ background: '#0F172A', color: '#FFD24D' }}
           >
             Parla con Stefania →
           </button>

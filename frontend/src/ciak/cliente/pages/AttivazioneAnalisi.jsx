@@ -63,10 +63,10 @@ export function AttivazioneAnalisi({ user, onLogout }) {
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#FFD24D" }}>
-              <span className="text-lg font-black" style={{ color: "#1E2128" }}>E</span>
+              <span className="text-lg font-black" style={{ color: "#0F172A" }}>E</span>
             </div>
             <div>
-              <span className="font-black text-lg" style={{ color: "#1E2128" }}>
+              <span className="font-black text-lg" style={{ color: "#0F172A" }}>
                 EVOLUTION <span style={{ color: "#FFD24D" }}>PRO</span>
               </span>
             </div>
@@ -97,14 +97,14 @@ export function AttivazioneAnalisi({ user, onLogout }) {
                     className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${step.status === "pending" ? "opacity-40" : ""}`}
                     style={{
                       background: step.status === "completed" ? "#22C55E" : step.status === "active" ? "#FFD24D" : "#ECEDEF",
-                      color: step.status === "pending" ? "#9CA3AF" : "#1E2128",
+                      color: step.status === "pending" ? "#9CA3AF" : "#0F172A",
                     }}
                   >
                     {step.status === "completed" ? <CheckCircle className="w-5 h-5" /> : step.id}
                   </div>
                   <span
                     className={`mt-2 text-sm font-medium ${step.status === "pending" ? "opacity-40" : ""}`}
-                    style={{ color: step.status === "pending" ? "#9CA3AF" : "#1E2128" }}
+                    style={{ color: step.status === "pending" ? "#9CA3AF" : "#0F172A" }}
                   >
                     {step.label}
                   </span>
@@ -122,17 +122,17 @@ export function AttivazioneAnalisi({ user, onLogout }) {
             <CheckCircle className="w-4 h-4" />
             Questionario completato
           </div>
-          <h1 className="text-3xl font-black mb-4" style={{ color: "#1E2128" }}>
+          <h1 className="text-3xl font-black mb-4" style={{ color: "#0F172A" }}>
             Perfetto, abbiamo ricevuto il tuo progetto.
           </h1>
           <div className="text-lg" style={{ color: "#5F6572" }}>
             <p className="mb-2">Abbiamo analizzato le informazioni che hai inserito nel questionario.</p>
-            <p>Il prossimo passo è preparare la tua <strong style={{ color: "#1E2128" }}>Analisi Strategica personalizzata</strong>.</p>
+            <p>Il prossimo passo è preparare la tua <strong style={{ color: "#0F172A" }}>Analisi Strategica personalizzata</strong>.</p>
           </div>
         </div>
 
         <div className="rounded-2xl p-6 mb-8" style={{ background: "#FFFFFF", border: "1px solid #ECEDEF" }}>
-          <h2 className="text-lg font-bold mb-4" style={{ color: "#1E2128" }}>
+          <h2 className="text-lg font-bold mb-4" style={{ color: "#0F172A" }}>
             Cosa riceverai con la tua Analisi Strategica
           </h2>
           <div className="grid sm:grid-cols-2 gap-3">
@@ -162,7 +162,7 @@ export function AttivazioneAnalisi({ user, onLogout }) {
           </p>
         </div>
 
-        <div className="rounded-2xl overflow-hidden mb-8" style={{ background: "#1E2128" }}>
+        <div className="rounded-2xl overflow-hidden mb-8" style={{ background: "#0F172A" }}>
           <div className="p-6 text-center">
             <h2 className="text-lg font-bold mb-4" style={{ color: "#FFFFFF" }}>
               Attiva la tua Analisi Strategica

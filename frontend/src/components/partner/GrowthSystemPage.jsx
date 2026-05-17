@@ -129,7 +129,7 @@ function DiagnosticBlock({ selected, onSelect }) {
           <Target className="w-5 h-5" style={{ color: "#FFD24D" }} />
         </div>
         <div>
-          <h2 className="text-base font-black" style={{ color: "#1E2128" }}>Dove sei oggi?</h2>
+          <h2 className="text-base font-black" style={{ color: "#0F172A" }}>Dove sei oggi?</h2>
           <p className="text-xs" style={{ color: "#9CA3AF" }}>Scegli la situazione che ti rappresenta</p>
         </div>
       </div>
@@ -159,7 +159,7 @@ function DiagnosticBlock({ selected, onSelect }) {
                   {s.emoji}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-black mb-0.5" style={{ color: "#1E2128" }}>{s.title}</p>
+                  <p className="text-sm font-black mb-0.5" style={{ color: "#0F172A" }}>{s.title}</p>
                   <p className="text-xs leading-relaxed" style={{ color: "#5F6572" }}>{s.desc}</p>
                 </div>
                 {active && (
@@ -192,7 +192,7 @@ function LevelCard({ level, isRecommended, isExpanded, onToggle, onSelect, savin
       {/* Popular badge */}
       {level.popular && (
         <div className="absolute top-0 right-4 px-3 py-1 rounded-b-lg text-[10px] font-black uppercase tracking-widest"
-          style={{ background: level.color, color: "#1E2128" }}>
+          style={{ background: level.color, color: "#0F172A" }}>
           Consigliato
         </div>
       )}
@@ -222,7 +222,7 @@ function LevelCard({ level, isRecommended, isExpanded, onToggle, onSelect, savin
               style={{ background: `${level.color}15`, color: level.color }}>
               Livello {level.num}
             </span>
-            <span className="text-sm font-black" style={{ color: "#1E2128" }}>{level.name}</span>
+            <span className="text-sm font-black" style={{ color: "#0F172A" }}>{level.name}</span>
           </div>
           <p className="text-sm" style={{ color: "#5F6572" }}>{level.tagline}</p>
           {level.priceLabel && (
@@ -264,7 +264,7 @@ function LevelCard({ level, isRecommended, isExpanded, onToggle, onSelect, savin
                   style={{ background: `${level.color}20` }}>
                   <Check className="w-3.5 h-3.5" style={{ color: level.color }} />
                 </div>
-                <span className="text-sm font-bold" style={{ color: "#1E2128" }}>{item}</span>
+                <span className="text-sm font-bold" style={{ color: "#0F172A" }}>{item}</span>
               </div>
             ))}
           </div>
@@ -277,7 +277,7 @@ function LevelCard({ level, isRecommended, isExpanded, onToggle, onSelect, savin
             className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-black text-sm transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
             style={{
               background: level.color,
-              color: level.id === "growth" ? "#1E2128" : "white",
+              color: level.id === "growth" ? "#0F172A" : "white",
               boxShadow: `0 4px 16px ${level.color}40`,
             }}
           >
@@ -292,7 +292,7 @@ function LevelCard({ level, isRecommended, isExpanded, onToggle, onSelect, savin
 function RealityBlock() {
   return (
     <div className="mt-8 mb-6" data-testid="blocco-realta">
-      <div className="rounded-2xl overflow-hidden" style={{ background: "#1E2128" }}>
+      <div className="rounded-2xl overflow-hidden" style={{ background: "#0F172A" }}>
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#EF444420" }}>
@@ -417,7 +417,7 @@ export function GrowthSystemPage({ partner }) {
 
         {/* HERO */}
         <div className="mb-8" data-testid="growth-hero">
-          <h1 className="text-3xl font-black mb-3" style={{ color: "#1E2128" }}>
+          <h1 className="text-3xl font-black mb-3" style={{ color: "#0F172A" }}>
             Evolution Growth System
           </h1>
           <p className="text-base leading-relaxed" style={{ color: "#5F6572" }}>
@@ -425,7 +425,7 @@ export function GrowthSystemPage({ partner }) {
             <br />
             Ora il punto non e mantenerla.
             <br />
-            <strong style={{ color: "#1E2128" }}>Il punto e farla crescere.</strong>
+            <strong style={{ color: "#0F172A" }}>Il punto e farla crescere.</strong>
           </p>
         </div>
 
@@ -439,7 +439,7 @@ export function GrowthSystemPage({ partner }) {
               <BarChart3 className="w-5 h-5" style={{ color: "#34C77B" }} />
             </div>
             <div>
-              <h2 className="text-base font-black" style={{ color: "#1E2128" }}>
+              <h2 className="text-base font-black" style={{ color: "#0F172A" }}>
                 {selectedScenario ? "Il tuo percorso consigliato" : "Scegli il tuo livello di crescita"}
               </h2>
               <p className="text-xs" style={{ color: "#9CA3AF" }}>

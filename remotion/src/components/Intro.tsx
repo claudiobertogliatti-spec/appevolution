@@ -28,7 +28,7 @@ export const Intro: React.FC<IntroProps> = ({ partnerName, partnerNiche, primary
   return (
     <AbsoluteFill
       style={{
-        backgroundColor: "#1E2128",
+        backgroundColor: "#0F172A",
         justifyContent: "center",
         alignItems: "center",
         opacity,

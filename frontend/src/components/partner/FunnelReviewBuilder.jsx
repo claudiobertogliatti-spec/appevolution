@@ -100,7 +100,7 @@ function AndreaIntro({ message }) {
         <span className="absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white" style={{ background: '#34C77B' }} />
       </div>
       <div className="flex-1">
-        <div className="font-bold text-sm mb-1" style={{ color: '#1E2128' }}>Andrea · Il tuo tutor AI</div>
+        <div className="font-bold text-sm mb-1" style={{ color: '#0F172A' }}>Andrea · Il tuo tutor AI</div>
         <div className="text-sm leading-relaxed" style={{ color: '#5F6572' }} dangerouslySetInnerHTML={{ __html: message }} />
       </div>
     </div>
@@ -131,7 +131,7 @@ function StatusBar({ sections, approvedIds }) {
           </div>
         );
       })}
-      <div className="ml-auto text-sm font-bold" style={{ color: '#1E2128' }}>
+      <div className="ml-auto text-sm font-bold" style={{ color: '#0F172A' }}>
         <span style={{ color: '#34C77B' }}>{approvedIds.length}</span> di {sections.length} approvati
       </div>
     </div>
@@ -141,7 +141,7 @@ function StatusBar({ sections, approvedIds }) {
 function FunnelFlowPreview({ sections, approvedIds, currentSection }) {
   return (
     <div className="rounded-xl p-5 mb-6" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
-      <div className="text-sm font-bold mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
+      <div className="text-sm font-bold mb-4 flex items-center gap-2" style={{ color: '#0F172A' }}>
         👁️ Il tuo Funnel · Struttura Stefania
       </div>
       <div className="flex items-center justify-between gap-2 overflow-x-auto pb-2">
@@ -159,7 +159,7 @@ function FunnelFlowPreview({ sections, approvedIds, currentSection }) {
                 }}
               >
                 <div className="text-2xl mb-1">{s.icon}</div>
-                <div className="text-xs font-bold" style={{ color: '#1E2128' }}>{s.title.split('·')[0].trim()}</div>
+                <div className="text-xs font-bold" style={{ color: '#0F172A' }}>{s.title.split('·')[0].trim()}</div>
                 <div className="text-[10px]" style={{ color: '#9CA3AF' }}>{s.subtitle.split('·')[0]?.trim() || ''}</div>
                 <div className="text-[10px] font-bold mt-1" style={{ color: isApproved ? '#34C77B' : '#C4990A' }}>
                   {isApproved ? '✓ Approvato' : 'Da approvare'}
@@ -196,13 +196,13 @@ function SectionCard({ section, isApproved, isOpen, onToggle, onApprove, onReque
           className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
           style={{ 
             background: isApproved ? '#34C77B' : '#FFD24D',
-            color: isApproved ? 'white' : '#1E2128'
+            color: isApproved ? 'white' : '#0F172A'
           }}
         >
           {isApproved ? '✓' : section.id}
         </div>
         <div className="flex-1">
-          <div className="font-bold text-sm" style={{ color: '#1E2128' }}>{section.title}</div>
+          <div className="font-bold text-sm" style={{ color: '#0F172A' }}>{section.title}</div>
           <div className="text-xs" style={{ color: '#9CA3AF' }}>{section.subtitle}</div>
         </div>
         <button className="text-xs font-bold px-3 py-1.5 rounded-lg" style={{ background: '#FFF8DC', color: '#C4990A' }}>
@@ -234,7 +234,7 @@ function SectionCard({ section, isApproved, isOpen, onToggle, onApprove, onReque
                 <div className="space-y-2 mb-4">
                   <div className="flex gap-2 p-3 rounded-lg" style={{ background: 'white' }}>
                     <span className="text-xs font-bold min-w-[80px]" style={{ color: '#9CA3AF' }}>Headline</span>
-                    <span className="text-sm font-bold" style={{ color: '#1E2128' }}>{content.headline}</span>
+                    <span className="text-sm font-bold" style={{ color: '#0F172A' }}>{content.headline}</span>
                   </div>
                   <div className="flex gap-2 p-3 rounded-lg" style={{ background: 'white' }}>
                     <span className="text-xs font-bold min-w-[80px]" style={{ color: '#9CA3AF' }}>Sottotitolo</span>
@@ -257,7 +257,7 @@ function SectionCard({ section, isApproved, isOpen, onToggle, onApprove, onReque
                     <input className="w-full p-3 rounded-lg text-sm" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }} placeholder="Il tuo nome" disabled />
                     <input className="w-full p-3 rounded-lg text-sm" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }} placeholder="La tua email" disabled />
                     <input className="w-full p-3 rounded-lg text-sm" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }} placeholder="Il tuo numero WhatsApp" disabled />
-                    <button className="w-full p-3 rounded-lg text-sm font-bold" style={{ background: '#FFD24D', color: '#1E2128' }} disabled>
+                    <button className="w-full p-3 rounded-lg text-sm font-bold" style={{ background: '#FFD24D', color: '#0F172A' }} disabled>
                       {content.cta}
                     </button>
                   </div>
@@ -270,7 +270,7 @@ function SectionCard({ section, isApproved, isOpen, onToggle, onApprove, onReque
                   </div>
                   <div className="flex gap-2 p-3 rounded-lg" style={{ background: 'white' }}>
                     <span className="text-xs font-bold min-w-[80px]" style={{ color: '#9CA3AF' }}>CTA button</span>
-                    <span className="text-sm font-bold" style={{ color: '#1E2128' }}>{content.cta}</span>
+                    <span className="text-sm font-bold" style={{ color: '#0F172A' }}>{content.cta}</span>
                   </div>
                   <div className="flex gap-2 p-3 rounded-lg" style={{ background: 'white' }}>
                     <span className="text-xs font-bold min-w-[80px]" style={{ color: '#9CA3AF' }}>Dopo invio</span>
@@ -286,7 +286,7 @@ function SectionCard({ section, isApproved, isOpen, onToggle, onApprove, onReque
                 <div className="space-y-2 mb-4">
                   <div className="flex gap-2 p-3 rounded-lg" style={{ background: 'white' }}>
                     <span className="text-xs font-bold min-w-[80px]" style={{ color: '#9CA3AF' }}>Titolo</span>
-                    <span className="text-sm font-bold" style={{ color: '#1E2128' }}>{content.titolo}</span>
+                    <span className="text-sm font-bold" style={{ color: '#0F172A' }}>{content.titolo}</span>
                   </div>
                   <div className="flex gap-2 p-3 rounded-lg" style={{ background: 'white' }}>
                     <span className="text-xs font-bold min-w-[80px]" style={{ color: '#9CA3AF' }}>Video</span>
@@ -317,11 +317,11 @@ function SectionCard({ section, isApproved, isOpen, onToggle, onApprove, onReque
                 <div className="space-y-2 mb-4">
                   <div className="flex gap-2 p-3 rounded-lg" style={{ background: 'white' }}>
                     <span className="text-xs font-bold min-w-[80px]" style={{ color: '#9CA3AF' }}>Offerta</span>
-                    <span className="text-sm font-bold" style={{ color: '#1E2128' }}>{content.offerta}</span>
+                    <span className="text-sm font-bold" style={{ color: '#0F172A' }}>{content.offerta}</span>
                   </div>
                   <div className="flex gap-2 p-3 rounded-lg items-center" style={{ background: 'white' }}>
                     <span className="text-xs font-bold min-w-[80px]" style={{ color: '#9CA3AF' }}>Prezzo</span>
-                    <span className="text-lg font-black" style={{ color: '#1E2128' }}>{content.prezzo}</span>
+                    <span className="text-lg font-black" style={{ color: '#0F172A' }}>{content.prezzo}</span>
                     <span className="text-sm line-through" style={{ color: '#9CA3AF' }}>{content.prezzoOriginale}</span>
                     <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#EAFAF1', color: '#34C77B' }}>{content.sconto}</span>
                   </div>
@@ -349,7 +349,7 @@ function SectionCard({ section, isApproved, isOpen, onToggle, onApprove, onReque
                     <div key={i} className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'white' }}>
                       <span className="text-xs font-bold px-2 py-1 rounded" style={{ background: '#FFF8DC', color: '#C4990A' }}>{email.timing}</span>
                       <div className="flex-1">
-                        <div className="text-sm font-bold" style={{ color: '#1E2128' }}>{email.subject}</div>
+                        <div className="text-sm font-bold" style={{ color: '#0F172A' }}>{email.subject}</div>
                         <div className="text-xs" style={{ color: '#9CA3AF' }}>{email.desc}</div>
                       </div>
                       <span className="text-xs font-bold" style={{ color: '#34C77B' }}>✓ Pronta</span>
@@ -365,7 +365,7 @@ function SectionCard({ section, isApproved, isOpen, onToggle, onApprove, onReque
                 <div className="space-y-2 mb-4">
                   <div className="flex gap-2 p-3 rounded-lg" style={{ background: 'white' }}>
                     <span className="text-xs font-bold min-w-[80px]" style={{ color: '#9CA3AF' }}>Headline</span>
-                    <span className="text-sm font-bold" style={{ color: '#1E2128' }}>{content.headline}</span>
+                    <span className="text-sm font-bold" style={{ color: '#0F172A' }}>{content.headline}</span>
                   </div>
                   <div className="flex gap-2 p-3 rounded-lg" style={{ background: 'white' }}>
                     <span className="text-xs font-bold min-w-[80px]" style={{ color: '#9CA3AF' }}>Messaggio</span>
@@ -391,7 +391,7 @@ function SectionCard({ section, isApproved, isOpen, onToggle, onApprove, onReque
                   </div>
                   <div className="flex gap-2 p-3 rounded-lg" style={{ background: 'white' }}>
                     <span className="text-xs font-bold min-w-[80px]" style={{ color: '#9CA3AF' }}>CTA</span>
-                    <span className="text-sm font-bold" style={{ color: '#1E2128' }}>{content.cta}</span>
+                    <span className="text-sm font-bold" style={{ color: '#0F172A' }}>{content.cta}</span>
                   </div>
                   <div className="flex gap-2 p-3 rounded-lg" style={{ background: 'white' }}>
                     <span className="text-xs font-bold min-w-[80px]" style={{ color: '#9CA3AF' }}>WhatsApp</span>
@@ -428,14 +428,14 @@ function SectionCard({ section, isApproved, isOpen, onToggle, onApprove, onReque
                   value={chatMessage}
                   onChange={(e) => setChatMessage(e.target.value)}
                   className="flex-1 p-3 rounded-xl text-sm resize-none"
-                  style={{ background: 'white', border: '1px solid #ECEDEF', color: '#1E2128' }}
+                  style={{ background: 'white', border: '1px solid #ECEDEF', color: '#0F172A' }}
                   placeholder="Es: 'Togli il campo WhatsApp' oppure 'Cambia il titolo con...'"
                   rows={2}
                 />
                 <button 
                   onClick={onSendChat}
                   className="px-4 rounded-xl font-bold text-sm"
-                  style={{ background: '#1E2128', color: '#FFD24D' }}
+                  style={{ background: '#0F172A', color: '#FFD24D' }}
                 >
                   Invia →
                 </button>
@@ -517,7 +517,7 @@ export function FunnelReviewBuilder({ partner, onBack }) {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex-1">
-            <h1 className="text-xl font-extrabold flex items-center gap-2" style={{ color: '#1E2128' }}>
+            <h1 className="text-xl font-extrabold flex items-center gap-2" style={{ color: '#0F172A' }}>
               🚀 Il tuo Funnel
             </h1>
           </div>
@@ -560,10 +560,10 @@ export function FunnelReviewBuilder({ partner, onBack }) {
         >
           <span className="text-3xl">{isExporting ? '⏳' : '🚀'}</span>
           <div className="flex-1">
-            <div className="font-bold" style={{ color: '#1E2128' }}>
+            <div className="font-bold" style={{ color: '#0F172A' }}>
               {isExporting ? 'Generazione in corso...' : 'Esporta per Systeme.io'}
             </div>
-            <div className="text-sm" style={{ color: allApproved ? '#1E2128' : '#9CA3AF' }}>
+            <div className="text-sm" style={{ color: allApproved ? '#0F172A' : '#9CA3AF' }}>
               {allApproved 
                 ? (isExporting ? 'Preparazione documento...' : 'Genera il documento con tutto il copy pronto')
                 : 'Approva tutte le sezioni per esportare'}
@@ -573,7 +573,7 @@ export function FunnelReviewBuilder({ partner, onBack }) {
             disabled={!allApproved || isExporting}
             className="px-6 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-2"
             style={{ 
-              background: allApproved ? '#1E2128' : '#9CA3AF',
+              background: allApproved ? '#0F172A' : '#9CA3AF',
               color: allApproved ? '#FFD24D' : 'white'
             }}
           >
@@ -591,14 +591,14 @@ export function FunnelReviewBuilder({ partner, onBack }) {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="rounded-2xl p-8 text-center max-w-lg w-full" style={{ background: 'white' }}>
             <span className="text-6xl block mb-4">📄</span>
-            <h2 className="text-2xl font-black mb-2" style={{ color: '#1E2128' }}>Export Completato!</h2>
+            <h2 className="text-2xl font-black mb-2" style={{ color: '#0F172A' }}>Export Completato!</h2>
             <p className="mb-6" style={{ color: '#5F6572' }}>
               Il documento con tutto il copy del funnel è pronto. Stefania può ora copiare i contenuti in Systeme.io.
             </p>
             
             <div className="p-4 rounded-xl mb-6" style={{ background: '#FAFAF7' }}>
               <div className="text-xs font-bold mb-2" style={{ color: '#9CA3AF' }}>File generato:</div>
-              <div className="text-sm font-bold" style={{ color: '#1E2128' }}>{exportResult.filename}</div>
+              <div className="text-sm font-bold" style={{ color: '#0F172A' }}>{exportResult.filename}</div>
               <div className="text-xs mt-1" style={{ color: '#34C77B' }}>
                 ✓ {exportResult.sections_exported} sezioni esportate
               </div>
@@ -618,7 +618,7 @@ export function FunnelReviewBuilder({ partner, onBack }) {
                 href={`${API}/api/funnel/export/download/${exportResult.filename}`}
                 download
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-sm transition-all hover:scale-105"
-                style={{ background: '#FFD24D', color: '#1E2128' }}
+                style={{ background: '#FFD24D', color: '#0F172A' }}
               >
                 <Download className="w-4 h-4" /> Scarica HTML
               </a>

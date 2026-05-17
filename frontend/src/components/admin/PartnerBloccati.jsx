@@ -35,7 +35,7 @@ export function PartnerBloccati({ onNavigate, onViewPartner }) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 rounded-lg bg-[#FFD24D] animate-pulse flex items-center justify-center">
-          <span className="text-sm font-black text-[#1E2128]">E</span>
+          <span className="text-sm font-black text-[#0F172A]">E</span>
         </div>
       </div>
     );
@@ -48,7 +48,7 @@ export function PartnerBloccati({ onNavigate, onViewPartner }) {
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-bold" style={{ color: "#1E2128" }}>{p.name}</span>
+          <span className="text-sm font-bold" style={{ color: "#0F172A" }}>{p.name}</span>
           <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: "#FFF6D6", color: "#D4A017" }}>{p.phase}</span>
         </div>
         <div className="text-xs" style={{ color: "#9CA3AF" }}>{p.niche || "—"}</div>
@@ -90,15 +90,15 @@ export function PartnerBloccati({ onNavigate, onViewPartner }) {
       <div className="grid grid-cols-3 gap-4">
         <div className="rounded-xl p-4" style={{ background: conAlert.length > 0 ? "#FEE2E2" : "white", border: `1px solid ${conAlert.length > 0 ? "#EF444430" : "#ECEDEF"}` }}>
           <div className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: "#9CA3AF" }}>Con Alert</div>
-          <div className="font-mono text-2xl font-bold" style={{ color: conAlert.length > 0 ? "#EF4444" : "#1E2128" }}>{conAlert.length}</div>
+          <div className="font-mono text-2xl font-bold" style={{ color: conAlert.length > 0 ? "#EF4444" : "#0F172A" }}>{conAlert.length}</div>
         </div>
         <div className="rounded-xl p-4" style={{ background: inattivi.length > 0 ? "#FFF7ED" : "white", border: `1px solid ${inattivi.length > 0 ? "#F59E0B30" : "#ECEDEF"}` }}>
           <div className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: "#9CA3AF" }}>Inattivi +5gg</div>
-          <div className="font-mono text-2xl font-bold" style={{ color: inattivi.length > 0 ? "#D97706" : "#1E2128" }}>{inattivi.length}</div>
+          <div className="font-mono text-2xl font-bold" style={{ color: inattivi.length > 0 ? "#D97706" : "#0F172A" }}>{inattivi.length}</div>
         </div>
         <div className="rounded-xl p-4" style={{ background: "white", border: "1px solid #ECEDEF" }}>
           <div className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: "#9CA3AF" }}>In Onboarding</div>
-          <div className="font-mono text-2xl font-bold" style={{ color: "#1E2128" }}>{inOnboarding.length}</div>
+          <div className="font-mono text-2xl font-bold" style={{ color: "#0F172A" }}>{inOnboarding.length}</div>
         </div>
       </div>
 
@@ -106,12 +106,12 @@ export function PartnerBloccati({ onNavigate, onViewPartner }) {
       {bloccati.length === 0 ? (
         <div className="rounded-xl p-16 text-center" style={{ background: "white", border: "1px solid #ECEDEF" }}>
           <CheckCircle className="w-10 h-10 mx-auto mb-3" style={{ color: "#10B981" }} />
-          <div className="font-bold" style={{ color: "#1E2128" }}>Nessun partner bloccato</div>
+          <div className="font-bold" style={{ color: "#0F172A" }}>Nessun partner bloccato</div>
           <p className="text-sm mt-1" style={{ color: "#9CA3AF" }}>Tutti stanno procedendo regolarmente</p>
         </div>
       ) : (
         <div className="rounded-xl overflow-hidden" style={{ background: "white", border: "1px solid #ECEDEF" }}>
-          <div className="px-5 py-3 font-bold text-sm" style={{ color: "#1E2128", borderBottom: "1px solid #ECEDEF" }}>
+          <div className="px-5 py-3 font-bold text-sm" style={{ color: "#0F172A", borderBottom: "1px solid #ECEDEF" }}>
             {bloccati.length} Partner Bloccati
           </div>
           {bloccati.map(p => renderPartnerRow(p))}

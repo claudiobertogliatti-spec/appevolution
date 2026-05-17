@@ -460,7 +460,7 @@ export function AdminClientiAnalisiPanel() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: '#1E2128' }}>
+          <h1 className="text-2xl font-bold" style={{ color: '#0F172A' }}>
             Clienti Analisi
           </h1>
           <p className="text-sm" style={{ color: '#5F6572' }}>
@@ -470,7 +470,7 @@ export function AdminClientiAnalisiPanel() {
         <button
           onClick={loadClienti}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          style={{ background: '#FFD24D', color: '#1E2128' }}
+          style={{ background: '#FFD24D', color: '#0F172A' }}
           data-testid="refresh-btn"
         >
           <RefreshCw className="w-4 h-4" />
@@ -481,7 +481,7 @@ export function AdminClientiAnalisiPanel() {
       {/* Stats */}
       <div className="grid grid-cols-6 gap-3 mb-6">
         <div className="rounded-xl p-4" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-          <div className="text-2xl font-bold" style={{ color: '#1E2128' }}>{stats.totale || 0}</div>
+          <div className="text-2xl font-bold" style={{ color: '#0F172A' }}>{stats.totale || 0}</div>
           <div className="text-xs" style={{ color: '#5F6572' }}>Totale</div>
         </div>
         <div className="rounded-xl p-4" style={{ background: '#3B82F615', border: '1px solid #3B82F630' }}>
@@ -534,7 +534,7 @@ export function AdminClientiAnalisiPanel() {
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive ? 'ring-2 ring-offset-1' : ''}`}
               style={{ 
                 background: isActive ? '#FFD24D' : '#FFFFFF', 
-                color: isActive ? '#1E2128' : '#5F6572',
+                color: isActive ? '#0F172A' : '#5F6572',
                 border: '1px solid #ECEDEF',
                 ringColor: '#FFD24D'
               }}
@@ -587,7 +587,7 @@ export function AdminClientiAnalisiPanel() {
                     data-testid={`cliente-row-${cliente.id}`}
                   >
                     <td className="px-4 py-3">
-                      <div className="font-medium text-sm" style={{ color: '#1E2128' }}>
+                      <div className="font-medium text-sm" style={{ color: '#0F172A' }}>
                         {cliente.nome}
                       </div>
                       {cliente.evolution_id && (
@@ -595,7 +595,7 @@ export function AdminClientiAnalisiPanel() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="font-medium text-sm" style={{ color: '#1E2128' }}>
+                      <div className="font-medium text-sm" style={{ color: '#0F172A' }}>
                         {cliente.cognome}
                       </div>
                     </td>
@@ -652,7 +652,7 @@ export function AdminClientiAnalisiPanel() {
                             setSelectedCliente(cliente);
                           }}
                           className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:opacity-80"
-                          style={{ background: '#FFD24D', color: '#1E2128' }}
+                          style={{ background: '#FFD24D', color: '#0F172A' }}
                           data-testid={`btn-dettagli-${cliente.id}`}
                         >
                           <Eye className="w-3 h-3" />

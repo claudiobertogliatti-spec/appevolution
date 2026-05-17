@@ -11,7 +11,7 @@ import { API } from "../../utils/api-config";
 /* ─── palette ───────────────────────────────────────────────────────────── */
 const C = {
   yellow: "#FFD24D",
-  dark: "#1E2128",
+  dark: "#0F172A",
   soft: "#5F6572",
   muted: "#9CA3AF",
   bg: "#FAFAF7",

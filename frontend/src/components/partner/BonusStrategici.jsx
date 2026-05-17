@@ -730,7 +730,7 @@ function ChapterContent({ bonus, chapterId }) {
               <div className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: bonus.color }}>
                 Punto chiave
               </div>
-              <p className="text-sm font-medium leading-relaxed" style={{ color: "#1E2128" }}>
+              <p className="text-sm font-medium leading-relaxed" style={{ color: "#0F172A" }}>
                 {content.insight}
               </p>
             </div>
@@ -776,7 +776,7 @@ function ChecklistContent({ items, bonusColor }) {
     <div className="space-y-4 mb-6">
       <div className="bg-white rounded-xl border border-[#ECEDEF] p-6">
         <div className="flex items-center justify-between mb-5">
-          <h3 className="font-bold text-[#1E2128]">Checklist di completamento</h3>
+          <h3 className="font-bold text-[#0F172A]">Checklist di completamento</h3>
           <span className="text-sm font-bold" style={{ color: bonusColor }}>
             {doneCount}/{items.length}
           </span>
@@ -853,14 +853,14 @@ function BonusCard({ bonus, isCompleted, onOpen }) {
               Sbloccato
             </span>
           </div>
-          <h3 className="font-bold text-[#1E2128] group-hover:text-[#FFD24D] transition-colors">
+          <h3 className="font-bold text-[#0F172A] group-hover:text-[#FFD24D] transition-colors">
             {bonus.title}
           </h3>
           <p className="text-sm text-[#9CA3AF]">{bonus.subtitle}</p>
           <p className="text-xs mt-1.5 leading-relaxed" style={{ color: "#6B7280" }}>{bonus.summary}</p>
         </div>
         <div className="w-8 h-8 rounded-lg bg-[#FAFAF7] flex items-center justify-center group-hover:bg-[#FFD24D] transition-colors flex-shrink-0">
-          <ChevronRight className="w-4 h-4 text-[#9CA3AF] group-hover:text-[#1E2128]" />
+          <ChevronRight className="w-4 h-4 text-[#9CA3AF] group-hover:text-[#0F172A]" />
         </div>
       </div>
     </div>
@@ -908,7 +908,7 @@ function BonusReader({ bonus, onBack, onComplete, completedChapters, setComplete
             >
               {bonus.id}
             </div>
-            <h3 className="font-bold text-sm text-[#1E2128] leading-tight">{bonus.title}</h3>
+            <h3 className="font-bold text-sm text-[#0F172A] leading-tight">{bonus.title}</h3>
           </div>
 
           <div className="space-y-1">
@@ -923,10 +923,10 @@ function BonusReader({ bonus, onBack, onComplete, completedChapters, setComplete
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-sm transition-all ${
                     isActive ? "font-semibold" : "text-[#5F6572] hover:bg-[#FAFAF7]"
                   }`}
-                  style={isActive ? { background: bonus.color, color: "#1E2128" } : {}}
+                  style={isActive ? { background: bonus.color, color: "#0F172A" } : {}}
                 >
                   {isComplete
-                    ? <Check className={`w-4 h-4 ${isActive ? "text-[#1E2128]" : "text-green-500"}`} />
+                    ? <Check className={`w-4 h-4 ${isActive ? "text-[#0F172A]" : "text-green-500"}`} />
                     : <Icon className="w-4 h-4" />
                   }
                   <span className="truncate">{chapter.title}</span>
@@ -938,7 +938,7 @@ function BonusReader({ bonus, onBack, onComplete, completedChapters, setComplete
           <div className="mt-6 p-3 rounded-lg bg-[#FAFAF7]">
             <div className="flex items-center justify-between text-xs mb-2">
               <span className="text-[#5F6572]">Progresso</span>
-              <span className="font-bold text-[#1E2128]">{completedChapters.length}/{bonus.chapters.length}</span>
+              <span className="font-bold text-[#0F172A]">{completedChapters.length}/{bonus.chapters.length}</span>
             </div>
             <div className="h-2 bg-[#ECEDEF] rounded-full overflow-hidden">
               <div
@@ -959,7 +959,7 @@ function BonusReader({ bonus, onBack, onComplete, completedChapters, setComplete
               bonus.chapters.find(c => c.id === activeChapter)?.icon || BookOpen,
               { className: "w-6 h-6", style: { color: bonus.color } }
             )}
-            <h1 className="text-2xl font-bold text-[#1E2128]">
+            <h1 className="text-2xl font-bold text-[#0F172A]">
               {bonus.chapters.find(c => c.id === activeChapter)?.title}
             </h1>
           </div>
@@ -987,7 +987,7 @@ function BonusReader({ bonus, onBack, onComplete, completedChapters, setComplete
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all"
               style={{
                 background: completedChapters.includes(activeChapter) ? "#E5E7EB" : bonus.color,
-                color: completedChapters.includes(activeChapter) ? "#5F6572" : "#1E2128",
+                color: completedChapters.includes(activeChapter) ? "#5F6572" : "#0F172A",
               }}
             >
               {completedChapters.includes(activeChapter) ? (
@@ -1067,7 +1067,7 @@ export function BonusStrategici({ partner }) {
           <Gift className="w-4 h-4" />
           Contenuti Esclusivi
         </div>
-        <h1 className="text-2xl font-bold text-[#1E2128] mb-2">
+        <h1 className="text-2xl font-bold text-[#0F172A] mb-2">
           I Tuoi <span style={{ color: "#FFD24D" }}>7 Bonus Strategici</span>
         </h1>
         <p className="text-sm text-[#9CA3AF] max-w-lg mx-auto">
@@ -1080,7 +1080,7 @@ export function BonusStrategici({ partner }) {
       <div className="bg-white rounded-2xl border border-[#ECEDEF] p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="font-bold text-[#1E2128]">Il Tuo Progresso</h3>
+            <h3 className="font-bold text-[#0F172A]">Il Tuo Progresso</h3>
             <p className="text-sm text-[#9CA3AF]">{completedCount} di {totalCount} bonus completati</p>
           </div>
           <div className="text-3xl font-bold" style={{ color: "#FFD24D" }}>{progressPercent}%</div>
@@ -1114,7 +1114,7 @@ export function BonusStrategici({ partner }) {
       </div>
 
       {/* Footer */}
-      <div className="bg-[#1E2128] rounded-xl p-5 text-white mt-8">
+      <div className="bg-[#0F172A] rounded-xl p-5 text-white mt-8">
         <h3 className="font-bold text-[#FFD24D] mb-2">Come usare questi bonus</h3>
         <p className="text-sm text-white/80">
           Leggili in ordine — ogni bonus costruisce sulle basi del precedente.

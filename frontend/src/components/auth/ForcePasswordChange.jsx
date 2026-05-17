@@ -62,7 +62,7 @@ export function ForcePasswordChange({ user, onSuccess }) {
           <div className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: "#FFD24D" }}>
             Sicurezza
           </div>
-          <h2 className="text-2xl font-black mb-2" style={{ color: "#1E2128" }}>
+          <h2 className="text-2xl font-black mb-2" style={{ color: "#0F172A" }}>
             Imposta la tua password
           </h2>
           <p className="text-sm leading-relaxed" style={{ color: "#5F6572" }}>
@@ -140,7 +140,7 @@ export function ForcePasswordChange({ user, onSuccess }) {
             type="submit"
             disabled={submitting}
             className="w-full py-3.5 rounded-xl font-black text-sm transition-all hover:opacity-90 disabled:opacity-50"
-            style={{ background: "#1E2128", color: "#FFD24D" }}
+            style={{ background: "#0F172A", color: "#FFD24D" }}
           >
             {submitting ? "Aggiornamento..." : "Imposta nuova password e prosegui →"}
           </button>

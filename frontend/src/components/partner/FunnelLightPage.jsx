@@ -30,7 +30,7 @@ function SectionPreview({ section, content, isGenerated }) {
             <SIcon className="w-4.5 h-4.5" style={{ color: section.color }} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-black" style={{ color: "#1E2128" }}>{section.label}</p>
+            <p className="text-sm font-black" style={{ color: "#0F172A" }}>{section.label}</p>
             <p className="text-xs" style={{ color: "#9CA3AF" }}>{section.desc}</p>
           </div>
           {isGenerated && (
@@ -132,7 +132,7 @@ export function FunnelLightPage({ partner, onNavigate, onComplete, isAdmin }) {
               <Zap className="w-6 h-6" style={{ color: "#FFD24D" }} />
             </div>
             <div>
-              <h1 className="text-2xl font-black" style={{ color: "#1E2128" }}>
+              <h1 className="text-2xl font-black" style={{ color: "#0F172A" }}>
                 Il tuo primo funnel
               </h1>
               <p className="text-sm" style={{ color: "#9CA3AF" }}>

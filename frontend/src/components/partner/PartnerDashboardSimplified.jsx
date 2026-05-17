@@ -60,8 +60,8 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat, is
         </section>
 
         {/* ═══════════ BLOCCO SLA — IL TUO PERCORSO IN 21 GIORNI ═══════════ */}
-        <section data-testid="sla-21-giorni" className="rounded-2xl overflow-hidden" style={{ border: '1px solid #1E212815' }}>
-          <div className="px-6 py-5" style={{ background: '#1E2128' }}>
+        <section data-testid="sla-21-giorni" className="rounded-2xl overflow-hidden" style={{ border: '1px solid #0F172A15' }}>
+          <div className="px-6 py-5" style={{ background: '#0F172A' }}>
             <div className="flex items-center gap-3 mb-2">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(242,196,24,0.15)' }}>
                 <Shield className="w-5 h-5" style={{ color: '#FFD24D' }} />
@@ -85,7 +85,7 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat, is
               <div key={i} className="rounded-xl p-3 text-center" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
                 <div className="flex items-center justify-center gap-1 mb-1">
                   <Clock className="w-3.5 h-3.5" style={{ color: '#FFD24D' }} />
-                  <span className="text-sm font-black" style={{ color: '#1E2128' }}>{item.sla}</span>
+                  <span className="text-sm font-black" style={{ color: '#0F172A' }}>{item.sla}</span>
                 </div>
                 <p className="text-[11px] font-bold" style={{ color: '#5F6572' }}>{item.label}</p>
                 <p className="text-[10px]" style={{ color: '#9CA3AF' }}>Step {item.step}</p>

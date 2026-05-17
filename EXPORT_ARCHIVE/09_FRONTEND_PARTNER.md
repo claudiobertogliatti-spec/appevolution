@@ -83,7 +83,7 @@ function WelcomeBanner({ partnerName, currentStep, totalSteps }) {
     <div className="rounded-2xl p-5 flex items-center gap-4" style={{ background: '#FFF8DC', border: '1px solid #F2C41833' }}>
       <div className="text-4xl">👋</div>
       <div className="flex-1">
-        <div className="text-lg font-bold" style={{ color: '#1E2128' }}>
+        <div className="text-lg font-bold" style={{ color: '#0F172A' }}>
           {getGreeting()} {partnerName}!
         </div>
         <div className="text-sm" style={{ color: '#5F6572' }}>
@@ -102,7 +102,7 @@ function EventBanner({ event, onRemindMe }) {
         <div className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: '#3B82F6' }}>
           Prossimo evento live
         </div>
-        <div className="font-bold" style={{ color: '#1E2128' }}>{event.title}</div>
+        <div className="font-bold" style={{ color: '#0F172A' }}>{event.title}</div>
         <div className="text-sm" style={{ color: '#5F6572' }}>
           {event.date} · {event.time} · con {event.host}
         </div>
@@ -160,7 +160,7 @@ function StepItem({ step, isCompleted, isCurrent, isLocked }) {
         <span className="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
               style={{ 
                 background: isCompleted ? '#34C77B' : isCurrent ? '#F2C418' : '#ECEDEF',
-                color: isCompleted ? 'white' : isCurrent ? '#1E2128' : '#9CA3AF'
+                color: isCompleted ? 'white' : isCurrent ? '#0F172A' : '#9CA3AF'
               }}>
           {isCompleted ? <span className="text-xs">✓</span> : 
            isLocked ? <span className="text-xs">🔒</span> : 
@@ -168,7 +168,7 @@ function StepItem({ step, isCompleted, isCurrent, isLocked }) {
         </span>
         <span className="text-sm"
               style={{ 
-                color: isCompleted ? '#2D9F6F' : isCurrent ? '#1E2128' : '#9CA3AF',
+                color: isCompleted ? '#2D9F6F' : isCurrent ? '#0F172A' : '#9CA3AF',
                 fontWeight: isCurrent ? 600 : 400
               }}>
           {step.title}
@@ -196,7 +196,7 @@ function ResourceCard({ emoji, title, description, onClick, disabled = false }) 
         {emoji}
       </div>
       <div className="flex-1">
-        <h3 className={`font-bold transition-colors ${disabled ? '' : 'group-hover:text-[#C4990A]'}`} style={{ color: disabled ? '#9CA3AF' : '#1E2128' }}>{title}</h3>
+        <h3 className={`font-bold transition-colors ${disabled ? '' : 'group-hover:text-[#C4990A]'}`} style={{ color: disabled ? '#9CA3AF' : '#0F172A' }}>{title}</h3>
         <p className="text-sm" style={{ color: '#5F6572' }}>{description}</p>
       </div>
       {disabled && (
@@ -221,7 +221,7 @@ function BadgeCard({ badge, isEarned, earnedDate }) {
       <div className="text-3xl mb-2" style={{ filter: isEarned ? 'none' : 'grayscale(1)' }}>
         {badge.emoji}
       </div>
-      <div className="font-bold text-sm" style={{ color: '#1E2128' }}>{badge.name}</div>
+      <div className="font-bold text-sm" style={{ color: '#0F172A' }}>{badge.name}</div>
       <div className="text-xs" style={{ color: '#9CA3AF' }}>{badge.desc}</div>
       {isEarned && earnedDate && (
         <div className="text-xs font-bold mt-2" style={{ color: '#34C77B' }}>
@@ -237,7 +237,7 @@ function StatCard({ emoji, value, label }) {
     <div className="rounded-xl border p-4 text-center transition-all hover:shadow-md"
          style={{ background: 'white', borderColor: '#ECEDEF' }}>
       <div className="text-2xl mb-1">{emoji}</div>
-      <div className="text-xl font-black" style={{ color: '#1E2128' }}>{value}</div>
+      <div className="text-xl font-black" style={{ color: '#0F172A' }}>{value}</div>
       <div className="text-xs" style={{ color: '#5F6572' }}>{label}</div>
     </div>
   );
@@ -254,7 +254,7 @@ function CelebrationModal({ show, step, onClose }) {
         onClick={e => e.stopPropagation()}
       >
         <span className="text-6xl block mb-4">🎉</span>
-        <h2 className="text-2xl font-black mb-2" style={{ color: '#1E2128' }}>Ottimo lavoro!</h2>
+        <h2 className="text-2xl font-black mb-2" style={{ color: '#0F172A' }}>Ottimo lavoro!</h2>
         <p className="mb-6" style={{ color: '#5F6572' }}>
           Hai completato il passo {step} di 8.<br/>
           {step < 4 ? "Continua così!" : step < 6 ? "Sei a metà strada!" : "Ci sei quasi!"}
@@ -262,7 +262,7 @@ function CelebrationModal({ show, step, onClose }) {
         <button 
           onClick={onClose}
           className="px-6 py-3 rounded-xl font-bold transition-all hover:scale-105"
-          style={{ background: 'linear-gradient(135deg, #F2C418, #FADA5E)', color: '#1E2128' }}
+          style={{ background: 'linear-gradient(135deg, #F2C418, #FADA5E)', color: '#0F172A' }}
         >
           Avanti! →
         </button>
@@ -278,12 +278,12 @@ function VideoModal({ show, title, onClose }) {
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="rounded-2xl overflow-hidden max-w-2xl w-full" style={{ background: 'white' }} onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: '#ECEDEF' }}>
-          <span className="font-bold" style={{ color: '#1E2128' }}>{title || "Come funziona"}</span>
+          <span className="font-bold" style={{ color: '#0F172A' }}>{title || "Come funziona"}</span>
           <button onClick={onClose} style={{ color: '#9CA3AF' }}>
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="aspect-video flex items-center justify-center" style={{ background: '#1E2128' }}>
+        <div className="aspect-video flex items-center justify-center" style={{ background: '#0F172A' }}>
           <div className="text-center text-white/50">
             <Play className="w-16 h-16 mx-auto mb-3 opacity-50" />
             <p>Video tutorial in arrivo</p>
@@ -297,7 +297,7 @@ function VideoModal({ show, title, onClose }) {
 function SectionHeading({ title, onHelp, helpText }) {
   return (
     <div className="flex items-center justify-between mb-4">
-      <h2 className="text-lg font-black" style={{ color: '#1E2128' }}>{title}</h2>
+      <h2 className="text-lg font-black" style={{ color: '#0F172A' }}>{title}</h2>
       {onHelp && <HelpButton text={helpText || "Come si usano?"} onClick={onHelp} />}
     </div>
   );
@@ -352,7 +352,7 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) 
         
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div className="text-xl font-black" style={{ color: '#1E2128' }}>Il tuo percorso</div>
+          <div className="text-xl font-black" style={{ color: '#0F172A' }}>Il tuo percorso</div>
           <div className="text-sm font-medium px-3 py-1.5 rounded-lg" style={{ background: '#ECEDEF', color: '#5F6572' }}>
             {new Date().toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" })}
           </div>
@@ -363,11 +363,11 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) 
           <div className="p-5">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-black"
-                   style={{ background: '#F2C418', color: '#1E2128' }}>
+                   style={{ background: '#F2C418', color: '#0F172A' }}>
                 {partner?.name?.split(" ").map(n => n[0]).join("") || "P"}
               </div>
               <div className="flex-1">
-                <div className="font-bold text-lg" style={{ color: '#1E2128' }}>
+                <div className="font-bold text-lg" style={{ color: '#0F172A' }}>
                   {partner?.name || "Partner"}
                 </div>
                 <div className="text-sm" style={{ color: '#9CA3AF' }}>
@@ -436,15 +436,15 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) 
           
           <div className="relative z-10">
             <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold mb-4"
-                 style={{ background: 'rgba(255,255,255,0.3)', color: '#1E2128' }}>
+                 style={{ background: 'rgba(255,255,255,0.3)', color: '#0F172A' }}>
               📍 Cosa fare ora
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black mb-3" style={{ color: '#1E2128' }}>{currentTask.title}</h1>
+            <h1 className="text-2xl sm:text-3xl font-black mb-3" style={{ color: '#0F172A' }}>{currentTask.title}</h1>
             <p className="mb-6 max-w-md text-sm sm:text-base" style={{ color: 'rgba(30,33,40,0.7)' }}>{currentTask.desc}</p>
             <button 
               onClick={handleTaskAction}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold hover:scale-105 transition-all"
-              style={{ background: '#1E2128', color: '#F2C418', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}
+              style={{ background: '#0F172A', color: '#F2C418', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}
             >
               {currentTask.cta}
               <ArrowRight className="w-5 h-5" />
@@ -458,7 +458,7 @@ export function PartnerDashboardSimplified({ partner, onNavigate, onOpenChat }) 
             <span className="text-sm font-semibold" style={{ color: '#5F6572' }}>Il tuo percorso</span>
             <div className="flex items-center gap-3">
               <HelpButton text="Serve aiuto?" onClick={() => openVideoHelp("Come funziona il percorso")} />
-              <span className="text-sm font-bold" style={{ color: '#1E2128' }}>{completedSteps} di {JOURNEY_STEPS.length} completati</span>
+              <span className="text-sm font-bold" style={{ color: '#0F172A' }}>{completedSteps} di {JOURNEY_STEPS.length} completati</span>
             </div>
           </div>
           
@@ -707,7 +707,7 @@ export function PartnerFilesPage({ partner }) {
           <FolderOpen className="w-4 h-4" />
           I Miei File
         </div>
-        <h1 className="text-2xl font-bold text-[#1E2128] mb-2">
+        <h1 className="text-2xl font-bold text-[#0F172A] mb-2">
           Tutti i tuoi <span style={{ color: '#F5C518' }}>Materiali</span>
         </h1>
         <p className="text-sm text-[#9CA3AF] max-w-lg mx-auto">
@@ -717,7 +717,7 @@ export function PartnerFilesPage({ partner }) {
 
       {/* Upload Section */}
       <div className="bg-white rounded-2xl border border-[#ECEDEF] p-6">
-        <h3 className="font-bold text-[#1E2128] mb-4 flex items-center gap-2">
+        <h3 className="font-bold text-[#0F172A] mb-4 flex items-center gap-2">
           <Upload className="w-5 h-5 text-[#F5C518]"/>
           Carica nuovi file
         </h3>
@@ -733,7 +733,7 @@ export function PartnerFilesPage({ partner }) {
                  input.click();
                }}>
             <FileVideo className="w-6 h-6 text-red-500 mx-auto mb-2"/>
-            <div className="font-bold text-xs text-[#1E2128]">Video</div>
+            <div className="font-bold text-xs text-[#0F172A]">Video</div>
             <div className="text-[10px] text-[#9CA3AF]">MP4, MOV, AVI...</div>
           </div>
           
@@ -742,7 +742,7 @@ export function PartnerFilesPage({ partner }) {
                onClick={() => docInputRef.current?.click()}>
             <input ref={docInputRef} type="file" accept=".pdf,.docx,.doc,.xlsx" onChange={(e) => handleDocUpload(e, "document")} className="hidden"/>
             <FileText className="w-6 h-6 text-blue-500 mx-auto mb-2"/>
-            <div className="font-bold text-xs text-[#1E2128]">Documenti PDF</div>
+            <div className="font-bold text-xs text-[#0F172A]">Documenti PDF</div>
             <div className="text-[10px] text-[#9CA3AF]">PDF, DOCX, XLSX</div>
           </div>
           
@@ -756,7 +756,7 @@ export function PartnerFilesPage({ partner }) {
                  input.click();
                }}>
             <FileAudio className="w-6 h-6 text-purple-500 mx-auto mb-2"/>
-            <div className="font-bold text-xs text-[#1E2128]">Audio</div>
+            <div className="font-bold text-xs text-[#0F172A]">Audio</div>
             <div className="text-[10px] text-[#9CA3AF]">MP3, WAV</div>
           </div>
           
@@ -770,7 +770,7 @@ export function PartnerFilesPage({ partner }) {
                  input.click();
                }}>
             <Image className="w-6 h-6 text-pink-500 mx-auto mb-2"/>
-            <div className="font-bold text-xs text-[#1E2128]">Immagini</div>
+            <div className="font-bold text-xs text-[#0F172A]">Immagini</div>
             <div className="text-[10px] text-[#9CA3AF]">JPG, PNG</div>
           </div>
         </div>
@@ -824,7 +824,7 @@ export function PartnerFilesPage({ partner }) {
         <div className="bg-white rounded-2xl border border-[#ECEDEF] overflow-hidden">
           <div className="px-6 py-4 border-b border-[#ECEDEF] flex items-center gap-2">
             <FolderOpen className="w-5 h-5 text-[#F5C518]"/>
-            <span className="font-bold text-[#1E2128]">
+            <span className="font-bold text-[#0F172A]">
               {activeCategory === "all" ? "Tutti i File" : FILE_CATEGORIES[activeCategory]?.label}
             </span>
             <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full bg-[#FEF9E7] text-[#C4990A]">
@@ -842,7 +842,7 @@ export function PartnerFilesPage({ partner }) {
                     <Icon className="w-5 h-5" style={{ color: config.color }}/>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm text-[#1E2128] truncate">
+                    <div className="font-semibold text-sm text-[#0F172A] truncate">
                       {f.original_name || f.filename || f.document_type?.replace(/_/g, ' ')}
                     </div>
                     <div className="text-xs text-[#9CA3AF]">
@@ -882,7 +882,7 @@ export function PartnerFilesPage({ partner }) {
       {allFiles.length === 0 && (
         <div className="bg-white rounded-2xl border border-[#ECEDEF] p-12 text-center">
           <FolderOpen className="w-16 h-16 text-[#9CA3AF] mx-auto mb-4"/>
-          <h3 className="font-bold text-lg text-[#1E2128] mb-2">Nessun file caricato</h3>
+          <h3 className="font-bold text-lg text-[#0F172A] mb-2">Nessun file caricato</h3>
           <p className="text-sm text-[#9CA3AF] mb-4">
             Qui appariranno tutti i tuoi file: script, posizionamento, video, documenti e distinte di pagamento.
           </p>

@@ -230,7 +230,7 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
   return (
     <div className="min-h-screen" style={{ background: "#FAFAF7" }}>
       {/* Header */}
-      <div className="sticky top-0 z-50" style={{ background: "#1E2128" }}>
+      <div className="sticky top-0 z-50" style={{ background: "#0F172A" }}>
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
@@ -264,7 +264,7 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
         {/* Progress Bar */}
         <div className="mb-8 p-6 rounded-2xl" style={{ background: "#FFFFFF", border: "1px solid #ECEDEF" }}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold" style={{ color: "#1E2128" }}>Il tuo percorso verso la Partnership</h3>
+            <h3 className="font-bold" style={{ color: "#0F172A" }}>Il tuo percorso verso la Partnership</h3>
             <span className="text-sm" style={{ color: "#5F6572" }}>
               {data?.contratto_firmato && data?.pagamento_completato ? "Pronto per l'attivazione!" : "Completa tutti i passaggi"}
             </span>
@@ -419,7 +419,7 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                           
                           {/* Esito */}
                           <div className="p-4 rounded-lg mb-4" style={{ background: "rgba(255,255,255,0.7)" }}>
-                            <div className="font-bold mb-2" style={{ color: "#1E2128" }}>{sezione.esito}</div>
+                            <div className="font-bold mb-2" style={{ color: "#0F172A" }}>{sezione.esito}</div>
                             <p className="text-sm" style={{ color: "#5F6572" }}>{sezione.motivazione}</p>
                           </div>
                           
@@ -460,7 +460,7 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                         <h4 className="font-bold mb-2" style={{ color: "#8B5CF6" }}>
                           {sezione.titolo || key}
                         </h4>
-                        <p className="text-sm leading-relaxed" style={{ color: "#1E2128" }}>
+                        <p className="text-sm leading-relaxed" style={{ color: "#0F172A" }}>
                           {sezione.contenuto}
                         </p>
                         {sezione.lista && (
@@ -547,7 +547,7 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
               <div className="space-y-5">
 
                 {/* HERO — problema → soluzione */}
-                <div className="rounded-2xl p-7" style={{ background: "#1E2128" }}>
+                <div className="rounded-2xl p-7" style={{ background: "#0F172A" }}>
                   <div
                     className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest mb-4"
                     style={{ background: "#FFD24D20", color: "#FFD24D" }}
@@ -565,7 +565,7 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
 
                 {/* COSA SUCCEDE NEI PRIMI 90 GIORNI */}
                 <div className="rounded-2xl p-6" style={{ background: "#FFFFFF", border: "1px solid #ECEDEF" }}>
-                  <h3 className="font-black mb-5" style={{ color: "#1E2128", fontSize: 16 }}>
+                  <h3 className="font-black mb-5" style={{ color: "#0F172A", fontSize: 16 }}>
                     Cosa succede dal giorno 1
                   </h3>
                   <div className="space-y-3">
@@ -587,7 +587,7 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                             <span className="text-xs font-black px-2 py-0.5 rounded-full" style={{ background: `${step.color}20`, color: step.color }}>
                               {step.giorni}
                             </span>
-                            <span className="font-bold text-sm" style={{ color: "#1E2128" }}>{step.titolo}</span>
+                            <span className="font-bold text-sm" style={{ color: "#0F172A" }}>{step.titolo}</span>
                           </div>
                           <p className="text-xs leading-relaxed" style={{ color: "#5F6572" }}>{step.desc}</p>
                         </div>
@@ -598,7 +598,7 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
 
                 {/* COSA INCLUDE */}
                 <div className="rounded-2xl p-6" style={{ background: "#FFFFFF", border: "1px solid #ECEDEF" }}>
-                  <h3 className="font-black mb-4" style={{ color: "#1E2128", fontSize: 16 }}>
+                  <h3 className="font-black mb-4" style={{ color: "#0F172A", fontSize: 16 }}>
                     Tutto incluso nella partnership
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -629,10 +629,10 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                       className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
                       style={{ background: "#FFD24D" }}
                     >
-                      <Shield className="w-6 h-6" style={{ color: "#1E2128" }} />
+                      <Shield className="w-6 h-6" style={{ color: "#0F172A" }} />
                     </div>
                     <div>
-                      <h3 className="font-black mb-1" style={{ color: "#1E2128", fontSize: 16 }}>
+                      <h3 className="font-black mb-1" style={{ color: "#0F172A", fontSize: 16 }}>
                         Garanzia Evolution PRO
                       </h3>
                       <p className="text-sm leading-relaxed" style={{ color: "#78590A" }}>
@@ -660,7 +660,7 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
 
                 {/* PREZZO + CTA */}
                 <div className="rounded-2xl overflow-hidden" style={{ border: "2px solid #FFD24D" }}>
-                  <div className="p-6 text-center" style={{ background: "#1E2128" }}>
+                  <div className="p-6 text-center" style={{ background: "#0F172A" }}>
                     <p className="text-sm font-bold uppercase tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.5)" }}>
                       Investimento Partnership
                     </p>
@@ -676,7 +676,7 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                     <button
                       onClick={() => setActiveSection("contratto")}
                       className="w-full py-4 rounded-xl font-black text-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
-                      style={{ background: "#FFD24D", color: "#1E2128", boxShadow: "0 4px 20px rgba(245,197,24,0.35)" }}
+                      style={{ background: "#FFD24D", color: "#0F172A", boxShadow: "0 4px 20px rgba(245,197,24,0.35)" }}
                       data-testid="btn-procedi-contratto"
                     >
                       Attiva la Partnership <ArrowRight className="inline w-5 h-5 ml-2" />
@@ -765,7 +765,7 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                       <div key={doc.tipo} className="p-4 rounded-xl" style={{ background: uploaded ? "#F0FDF4" : "#FAFAF7" }}>
                         <div className="flex items-center justify-between">
                           <div>
-                            <h4 className="font-medium" style={{ color: "#1E2128" }}>{doc.label}</h4>
+                            <h4 className="font-medium" style={{ color: "#0F172A" }}>{doc.label}</h4>
                             <p className="text-xs" style={{ color: "#5F6572" }}>{doc.desc}</p>
                             {uploaded && (
                               <p className="text-xs mt-1" style={{ color: "#22C55E" }}>
@@ -839,7 +839,7 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                           onClick={handleAttivaPartnership}
                           disabled={activatingPartnership}
                           className="px-8 py-4 rounded-xl font-black text-lg transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
-                          style={{ background: "#FFD24D", color: "#1E2128", boxShadow: "0 4px 20px rgba(245,197,24,0.35)" }}
+                          style={{ background: "#FFD24D", color: "#0F172A", boxShadow: "0 4px 20px rgba(245,197,24,0.35)" }}
                           data-testid="btn-attiva-partnership"
                         >
                           {activatingPartnership ? (
@@ -865,7 +865,7 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                           onClick={handlePagamentoStripe}
                           disabled={creatingPayment || !data?.contratto_firmato}
                           className="w-full py-4 rounded-xl font-black text-lg transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                          style={{ background: "#FFD24D", color: "#1E2128", boxShadow: "0 4px 20px rgba(245,197,24,0.35)" }}
+                          style={{ background: "#FFD24D", color: "#0F172A", boxShadow: "0 4px 20px rgba(245,197,24,0.35)" }}
                           data-testid="btn-paga-stripe"
                         >
                           {creatingPayment ? (
@@ -885,7 +885,7 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                       <div className="p-6 rounded-xl" style={{ background: "#FAFAF7", border: "1px solid #ECEDEF" }}>
                         <div className="flex items-center gap-3 mb-4">
                           <Landmark className="w-6 h-6" style={{ color: "#5F6572" }} />
-                          <h4 className="font-bold" style={{ color: "#1E2128" }}>Bonifico Bancario</h4>
+                          <h4 className="font-bold" style={{ color: "#0F172A" }}>Bonifico Bancario</h4>
                         </div>
                         <p className="text-sm mb-4" style={{ color: "#5F6572" }}>
                           Effettua il bonifico e carica la ricevuta. L'attivazione avverrà dopo verifica.
@@ -894,12 +894,12 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                         <div className="space-y-3 mb-4">
                           <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: "#FFFFFF" }}>
                             <span className="text-sm" style={{ color: "#5F6572" }}>Intestatario:</span>
-                            <span className="text-sm font-medium" style={{ color: "#1E2128" }}>{IBAN_INFO.intestatario}</span>
+                            <span className="text-sm font-medium" style={{ color: "#0F172A" }}>{IBAN_INFO.intestatario}</span>
                           </div>
                           <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: "#FFFFFF" }}>
                             <span className="text-sm" style={{ color: "#5F6572" }}>IBAN:</span>
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-mono font-medium" style={{ color: "#1E2128" }}>{IBAN_INFO.iban}</span>
+                              <span className="text-sm font-mono font-medium" style={{ color: "#0F172A" }}>{IBAN_INFO.iban}</span>
                               <button
                                 onClick={handleCopyIban}
                                 className="p-1 rounded hover:bg-gray-100 transition-colors"
@@ -910,15 +910,15 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
                           </div>
                           <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: "#FFFFFF" }}>
                             <span className="text-sm" style={{ color: "#5F6572" }}>Banca:</span>
-                            <span className="text-sm font-medium" style={{ color: "#1E2128" }}>{IBAN_INFO.banca}</span>
+                            <span className="text-sm font-medium" style={{ color: "#0F172A" }}>{IBAN_INFO.banca}</span>
                           </div>
                           <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: "#FFFFFF" }}>
                             <span className="text-sm" style={{ color: "#5F6572" }}>BIC/SWIFT:</span>
-                            <span className="text-sm font-medium" style={{ color: "#1E2128" }}>{IBAN_INFO.bic}</span>
+                            <span className="text-sm font-medium" style={{ color: "#0F172A" }}>{IBAN_INFO.bic}</span>
                           </div>
                           <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: "#FFFFFF" }}>
                             <span className="text-sm" style={{ color: "#5F6572" }}>Causale:</span>
-                            <span className="text-sm font-medium" style={{ color: "#1E2128" }}>Partnership Evolution PRO - {data?.cliente?.nome} {data?.cliente?.cognome}</span>
+                            <span className="text-sm font-medium" style={{ color: "#0F172A" }}>Partnership Evolution PRO - {data?.cliente?.nome} {data?.cliente?.cognome}</span>
                           </div>
                         </div>
                         
@@ -961,7 +961,7 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
           <div className="space-y-6">
             {/* Checklist */}
             <div className="rounded-2xl p-6" style={{ background: "#FFFFFF", border: "1px solid #ECEDEF" }}>
-              <h3 className="font-bold mb-4" style={{ color: "#1E2128" }}>Checklist Attivazione</h3>
+              <h3 className="font-bold mb-4" style={{ color: "#0F172A" }}>Checklist Attivazione</h3>
               <div className="space-y-3">
                 {[
                   { label: "Analisi Strategica visualizzata", done: true },
@@ -991,7 +991,7 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
             {data?.can_activate && !data?.pagamento_completato && (
               <div className="rounded-2xl p-6" style={{ background: "linear-gradient(135deg, #FFF8DC, #FEF3C7)", border: "2px solid #FFD24D" }}>
                 <Sparkles className="w-8 h-8 mb-3" style={{ color: "#C4990A" }} />
-                <h3 className="font-bold mb-2" style={{ color: "#1E2128" }}>Quasi fatto!</h3>
+                <h3 className="font-bold mb-2" style={{ color: "#0F172A" }}>Quasi fatto!</h3>
                 <p className="text-sm mb-4" style={{ color: "#5F6572" }}>
                   Completa il pagamento per attivare la tua Partnership Evolution PRO.
                 </p>
@@ -1007,7 +1007,7 @@ export function DecisionePartnershipPage({ user, onLogout, demoData }) {
 
             {/* Supporto */}
             <div className="rounded-2xl p-6" style={{ background: "#FAFAF7", border: "1px solid #ECEDEF" }}>
-              <h3 className="font-bold mb-2" style={{ color: "#1E2128" }}>Hai domande?</h3>
+              <h3 className="font-bold mb-2" style={{ color: "#0F172A" }}>Hai domande?</h3>
               <p className="text-sm mb-4" style={{ color: "#5F6572" }}>
                 Scrivi a Claudio per qualsiasi dubbio sulla partnership.
               </p>

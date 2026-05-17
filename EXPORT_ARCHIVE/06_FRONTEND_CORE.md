@@ -157,7 +157,7 @@ function PhaseProgressBar({ currentPhase }) {
                    style={{ 
                      background: i < idx ? '#F2C418' : 'white',
                      borderColor: i <= idx ? '#F2C418' : '#ECEDEF',
-                     color: i < idx ? '#1E2128' : i === idx ? '#F2C418' : '#9CA3AF',
+                     color: i < idx ? '#0F172A' : i === idx ? '#F2C418' : '#9CA3AF',
                      boxShadow: i === idx ? '0 0 10px rgba(242,196,24,0.35)' : 'none'
                    }}>
                 {i<idx?<Check className="w-3 h-3"/>:p.replace("F","")}
@@ -179,7 +179,7 @@ function KPICard({ label, value, delta, deltaType, icon: Icon, accent }) {
         <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#9CA3AF' }}>{label}</span>
         {Icon && <Icon className="w-4 h-4" style={{ color: '#D1D5DB' }} />}
       </div>
-      <div className="font-mono text-3xl font-bold mb-1" style={{ color: '#1E2128' }}>{value}</div>
+      <div className="font-mono text-3xl font-bold mb-1" style={{ color: '#0F172A' }}>{value}</div>
       {delta && <div className={`text-xs font-bold ${deltaType==="up"?"text-[#10B981]":deltaType==="warn"?"text-[#F59E0B]":"text-[#EF4444]"}`}>{delta}</div>}
     </div>
   );
@@ -197,7 +197,7 @@ function AgentCard({ agent }) {
         <span className="font-mono text-xs font-bold" style={{ color: '#9CA3AF' }}>{agent.id}</span>
         <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{background:`${sc[agent.status]||"#9CA3AF"}15`,color:sc[agent.status]||"#9CA3AF"}}>{agent.status}</span>
       </div>
-      <div className="text-sm font-bold mb-0.5" style={{ color: '#1E2128' }}>{agent.role}</div>
+      <div className="text-sm font-bold mb-0.5" style={{ color: '#0F172A' }}>{agent.role}</div>
       <div className="text-[10px] font-semibold mb-3" style={{ color: '#9CA3AF' }}>{agent.category}</div>
       <div className="flex justify-between text-[10px] font-bold mb-1" style={{ color: '#9CA3AF' }}><span>Budget</span><span className="font-mono" style={{color}}>${agent.budget}/$100</span></div>
       <div className="h-1 rounded-full overflow-hidden" style={{ background: '#ECEDEF' }}><div className="h-full rounded-full transition-all" style={{width:`${pct}%`,background:color}} /></div>
@@ -226,7 +226,7 @@ function AdminOverview({ stats, agents, partners, alerts, onNavigate }) {
       )}
       <div className="rounded-xl overflow-hidden" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
         <div className="px-5 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid #ECEDEF' }}>
-          <span className="font-bold text-sm" style={{ color: '#1E2128' }}>Pipeline Partner</span>
+          <span className="font-bold text-sm" style={{ color: '#0F172A' }}>Pipeline Partner</span>
           <button onClick={()=>onNavigate("partner")} className="text-xs font-bold hover:opacity-80 transition-opacity" style={{ color: '#F2C418' }}>Vedi tutti →</button>
         </div>
         <div className="divide-y" style={{ borderColor: '#ECEDEF' }}>
@@ -236,8 +236,8 @@ function AdminOverview({ stats, agents, partners, alerts, onNavigate }) {
           {(partners||[]).slice(0,5).map(p=>(
             <div key={p.id} className="grid grid-cols-4 items-center px-5 py-3 cursor-pointer transition-colors hover:bg-[#FAFAF7]" onClick={()=>onNavigate("partner")}>
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: '#F2C418', color: '#1E2128' }}>{p.name.split(" ").map(n=>n[0]).join("")}</div>
-                <div><div className="text-sm font-bold" style={{ color: '#1E2128' }}>{p.name}</div><div className="text-xs" style={{ color: '#9CA3AF' }}>{p.niche}</div></div>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: '#F2C418', color: '#0F172A' }}>{p.name.split(" ").map(n=>n[0]).join("")}</div>
+                <div><div className="text-sm font-bold" style={{ color: '#0F172A' }}>{p.name}</div><div className="text-xs" style={{ color: '#9CA3AF' }}>{p.niche}</div></div>
               </div>
               <div><span className="font-mono text-xs font-bold px-2 py-1 rounded" style={{ background: '#FFF3C4', color: '#C4990A' }}>{p.phase}</span></div>
               <div className="font-mono text-sm" style={{ color: '#5F6572' }}>{p.revenue>0?`€${p.revenue.toLocaleString()}`:"—"}</div>
@@ -275,8 +275,8 @@ function AdminPartners({ partners, onSelect }) {
         {(partners||[]).map(p=>(
           <div key={p.id} className="grid grid-cols-5 items-center px-5 py-3 cursor-pointer transition-colors hover:bg-[#FAFAF7]" onClick={()=>onSelect(p)}>
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: '#F2C418', color: '#1E2128' }}>{p.name.split(" ").map(n=>n[0]).join("")}</div>
-              <div><div className="text-sm font-bold" style={{ color: '#1E2128' }}>{p.name}</div><div className="text-xs" style={{ color: '#9CA3AF' }}>{p.niche}</div></div>
+              <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: '#F2C418', color: '#0F172A' }}>{p.name.split(" ").map(n=>n[0]).join("")}</div>
+              <div><div className="text-sm font-bold" style={{ color: '#0F172A' }}>{p.name}</div><div className="text-xs" style={{ color: '#9CA3AF' }}>{p.niche}</div></div>
             </div>
             <div><span className="font-mono text-xs font-bold px-2 py-1 rounded" style={{ background: '#FFF3C4', color: '#C4990A' }}>{p.phase}</span></div>
             <div className="font-mono text-sm" style={{ color: '#5F6572' }}>{p.revenue>0?`€${p.revenue.toLocaleString()}`:"—"}</div>
@@ -290,12 +290,12 @@ function AdminPartners({ partners, onSelect }) {
 }
 
 function AdminAlerts({ alerts, onDismiss }) {
-  if(!alerts.length) return <div className="rounded-xl p-16 text-center" style={{ background: 'white', border: '1px solid #ECEDEF' }}><CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-3"/><div className="font-bold" style={{ color: '#1E2128' }}>Nessun alert — tutto OK</div></div>;
+  if(!alerts.length) return <div className="rounded-xl p-16 text-center" style={{ background: 'white', border: '1px solid #ECEDEF' }}><CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-3"/><div className="font-bold" style={{ color: '#0F172A' }}>Nessun alert — tutto OK</div></div>;
   return (
     <div className="space-y-3">{alerts.map(a=>(
       <div key={a.id} className="rounded-xl p-4 flex items-start gap-4" style={{ background: 'white', border: '1px solid #ECEDEF', borderLeft: `4px solid ${a.type==="BLOCCO"?"#EF4444":"#F59E0B"}` }}>
         <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: a.type==="BLOCCO"?"#FDECEF":"#FFF8DC" }}>{a.type==="BLOCCO"?"🚫":"⚠️"}</div>
-        <div className="flex-1"><div className="flex items-center gap-2 mb-1"><span className="font-mono text-xs font-bold" style={{ color: '#9CA3AF' }}>{a.agent}</span><span className="text-[9px] font-bold px-2 py-0.5 rounded" style={{ background: a.type==="BLOCCO"?"#FDECEF":"#FFF8DC", color: a.type==="BLOCCO"?"#EF4444":"#F59E0B" }}>{a.type}</span></div><div className="text-sm font-bold mb-1" style={{ color: '#1E2128' }}>{a.msg}</div><div className="text-xs" style={{ color: '#9CA3AF' }}>{a.partner} · {a.time}</div></div>
+        <div className="flex-1"><div className="flex items-center gap-2 mb-1"><span className="font-mono text-xs font-bold" style={{ color: '#9CA3AF' }}>{a.agent}</span><span className="text-[9px] font-bold px-2 py-0.5 rounded" style={{ background: a.type==="BLOCCO"?"#FDECEF":"#FFF8DC", color: a.type==="BLOCCO"?"#EF4444":"#F59E0B" }}>{a.type}</span></div><div className="text-sm font-bold mb-1" style={{ color: '#0F172A' }}>{a.msg}</div><div className="text-xs" style={{ color: '#9CA3AF' }}>{a.partner} · {a.time}</div></div>
         <button onClick={()=>onDismiss(a.id)} className="transition-colors text-lg leading-none hover:text-red-500" style={{ color: '#9CA3AF' }}>✕</button>
       </div>
     ))}</div>
@@ -359,7 +359,7 @@ function AndreaPipeline({ partners }) {
         <div className="flex gap-2 flex-wrap mb-4">{(partners||[]).map(p=><button key={p.id} onClick={()=>setSel(p)} className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${sel?.id===p.id?"bg-[#F5C518] text-black":"bg-[#FAFAF7] border border-[#ECEDEF] text-[#9CA3AF] hover:border-[#F5C518]/30"}`}>{p.name}</button>)}</div>
         {sel&&<div onClick={()=>ref.current?.click()} className="border-2 border-dashed border-[#ECEDEF] rounded-xl p-8 text-center hover:border-[#F5C518]/30 cursor-pointer transition-colors"><input ref={ref} type="file" accept="video/*" onChange={handleUpload} className="hidden"/>{uploading||processing?<div className="flex flex-col items-center"><Loader2 className="w-8 h-8 text-[#F5C518] animate-spin mb-3"/><div className="font-bold text-sm">{uploading?"Caricamento...":"Processing FFmpeg..."}</div></div>:<><Upload className="w-8 h-8 text-[#9CA3AF] mx-auto mb-3"/><div className="font-bold text-sm">Carica video per {sel.name}</div><div className="text-xs text-[#9CA3AF] mt-1">MP4, MOV, AVI — Max 500MB</div></>}</div>}
       </div>
-      <div className="flex items-center justify-between mb-3"><span className="text-xs font-bold text-[#9CA3AF] uppercase tracking-wider flex items-center gap-2"><FileVideo className="w-4 h-4"/>Coda ({jobs.length})</span><button onClick={loadJobs} className="text-[#9CA3AF] hover:text-[#1E2128] transition-colors"><RefreshCw className="w-4 h-4"/></button></div>
+      <div className="flex items-center justify-between mb-3"><span className="text-xs font-bold text-[#9CA3AF] uppercase tracking-wider flex items-center gap-2"><FileVideo className="w-4 h-4"/>Coda ({jobs.length})</span><button onClick={loadJobs} className="text-[#9CA3AF] hover:text-[#0F172A] transition-colors"><RefreshCw className="w-4 h-4"/></button></div>
       {!jobs.length?<div className="bg-white border border-[#ECEDEF] rounded-xl p-10 text-center"><Film className="w-8 h-8 text-[#9CA3AF] mx-auto mb-3"/><div className="font-bold text-sm">Nessun video in coda</div></div>:jobs.map(job=>(
         <div key={job.id} className="bg-white border border-[#ECEDEF] rounded-xl p-4 mb-3">
           <div className="flex items-center gap-3">
@@ -483,7 +483,7 @@ function PartnerFileManager({ partner }) {
       {totalFiles===0&&(
         <div className="bg-white border border-[#ECEDEF] rounded-xl p-8 text-center">
           <FolderOpen className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3"/>
-          <h3 className="font-bold text-[#1E2128] mb-1">Nessun file caricato</h3>
+          <h3 className="font-bold text-[#0F172A] mb-1">Nessun file caricato</h3>
           <p className="text-sm text-[#9CA3AF]">Carica video o documenti usando i pulsanti sopra</p>
         </div>
       )}
@@ -520,12 +520,12 @@ function PartnerCourse({ partner, modules }) {
                   style={{ background: '#F2C41820', color: '#C4990A' }}>
               <PlayCircle className="w-3 h-3" /> START
             </span>
-            <h2 className="text-xl font-bold" style={{ color: '#1E2128' }}>Benvenuto nel Percorso Evolution PRO</h2>
+            <h2 className="text-xl font-bold" style={{ color: '#0F172A' }}>Benvenuto nel Percorso Evolution PRO</h2>
             <p className="text-sm" style={{ color: '#9CA3AF' }}>Guarda questo video prima di iniziare</p>
           </div>
           
           <div className="rounded-2xl overflow-hidden shadow-xl" style={{ border: '1px solid #ECEDEF' }}>
-            <div className="relative" style={{ aspectRatio: '16/9', background: 'linear-gradient(135deg, #1E2128 0%, #2D3038 100%)' }}>
+            <div className="relative" style={{ aspectRatio: '16/9', background: 'linear-gradient(135deg, #0F172A 0%, #2D3038 100%)' }}>
               {!welcomeVideoPlaying ? (
                 <div 
                   className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer group"
@@ -565,11 +565,11 @@ function PartnerCourse({ partner, modules }) {
       <div className="bg-white rounded-2xl border border-[#ECEDEF] overflow-hidden">
         <div className="p-5 border-b border-[#ECEDEF]" style={{ background: '#FAFAF7' }}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#1E2128' }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#0F172A' }}>
               <Users className="w-5 h-5" style={{ color: '#F5C518' }} />
             </div>
             <div>
-              <h2 className="text-lg font-bold" style={{ color: '#1E2128' }}>Il Tuo Team Evolution</h2>
+              <h2 className="text-lg font-bold" style={{ color: '#0F172A' }}>Il Tuo Team Evolution</h2>
               <p className="text-xs" style={{ color: '#9CA3AF' }}>8 agenti AI + supervisione umana di Claudio e Antonella</p>
             </div>
           </div>
@@ -588,7 +588,7 @@ function PartnerCourse({ partner, modules }) {
                 >
                   {agent.emoji}
                 </div>
-                <div className="font-bold text-sm" style={{ color: '#1E2128' }}>{agent.name}</div>
+                <div className="font-bold text-sm" style={{ color: '#0F172A' }}>{agent.name}</div>
                 <div className="text-[10px] font-medium mb-1" style={{ color: agent.color }}>{agent.role}</div>
                 <div className="text-[10px]" style={{ color: '#9CA3AF' }}>{agent.desc}</div>
               </div>
@@ -620,7 +620,7 @@ function PartnerCourse({ partner, modules }) {
                 <div className={`text-lg font-black ${isDone?"text-green-500":unlocked?"text-[#C4990A]":"text-gray-400"}`}>
                   {isDone?"✓":`M${m.num}`}
                 </div>
-                <div className="text-[10px] font-medium truncate" style={{ color: isDone?"#22C55E":unlocked?"#1E2128":"#9CA3AF" }}>
+                <div className="text-[10px] font-medium truncate" style={{ color: isDone?"#22C55E":unlocked?"#0F172A":"#9CA3AF" }}>
                   {m.title.split(" ").slice(0,2).join(" ")}
                 </div>
               </div>
@@ -854,7 +854,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: '#FAFAF7', color: '#1E2128' }}>
+    <div className="flex h-screen overflow-hidden" style={{ background: '#FAFAF7', color: '#0F172A' }}>
 
       {/* SIDEBAR - Light Theme for both modes */}
       {mode === "partner" ? (
@@ -885,7 +885,7 @@ export default function App() {
         {/* Topbar - Light theme */}
         <div className="border-b px-5 flex items-center justify-between flex-shrink-0" 
              style={{ height: 56, background: 'white', borderColor: '#ECEDEF' }}>
-          <h1 className="text-base font-extrabold flex items-center gap-2" style={{ color: '#1E2128' }}>
+          <h1 className="text-base font-extrabold flex items-center gap-2" style={{ color: '#0F172A' }}>
             {mode === "admin" && (
               <span className="text-[10px] font-bold px-2 py-1 rounded-full"
                     style={{ background: adminUser === "antonella" ? '#F0ECFA' : '#FFF3C4', 
@@ -900,7 +900,7 @@ export default function App() {
             {mode === "admin" && nav === "partner" && (
               <button onClick={() => setShowNP(true)} 
                       className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors hover:opacity-90"
-                      style={{ background: '#F2C418', color: '#1E2128' }}>
+                      style={{ background: '#F2C418', color: '#0F172A' }}>
                 <UserPlus className="w-3.5 h-3.5"/>Nuovo Partner
               </button>
             )}

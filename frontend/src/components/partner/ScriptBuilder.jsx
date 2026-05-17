@@ -79,7 +79,7 @@ export function ScriptBuilder({ partner, onBack, onComplete }) {
   return (
     <div className="min-h-screen" style={{ background: '#FAFAF7' }}>
       {/* Header */}
-      <div className="sticky top-0 z-10 px-6 py-4" style={{ background: '#1E2128' }}>
+      <div className="sticky top-0 z-10 px-6 py-4" style={{ background: '#0F172A' }}>
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button onClick={onBack} className="p-2 rounded-lg hover:bg-white/10 transition-colors">
@@ -114,7 +114,7 @@ export function ScriptBuilder({ partner, onBack, onComplete }) {
             </div>
           </div>
           <div className="flex-1">
-            <div className="font-bold text-sm mb-1" style={{ color: '#1E2128' }}>Stefania · Copywriter AI</div>
+            <div className="font-bold text-sm mb-1" style={{ color: '#0F172A' }}>Stefania · Copywriter AI</div>
             <div className="text-sm leading-relaxed" style={{ color: '#5F6572' }}>
               Ciao {partnerName}! 📝 In questa fase costruirai gli <strong>script per la Masterclass</strong> e le <strong>descrizioni dei moduli</strong> del corso. 
               Scrivi cosa dirai in ogni blocco - non deve essere perfetto, poi lo raffineremo insieme!
@@ -129,7 +129,7 @@ export function ScriptBuilder({ partner, onBack, onComplete }) {
             className="flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all"
             style={{ 
               background: activeTab === "masterclass" ? '#FFD24D' : 'white',
-              color: activeTab === "masterclass" ? '#1E2128' : '#5F6572',
+              color: activeTab === "masterclass" ? '#0F172A' : '#5F6572',
               border: activeTab === "masterclass" ? 'none' : '2px solid #ECEDEF'
             }}
           >
@@ -141,7 +141,7 @@ export function ScriptBuilder({ partner, onBack, onComplete }) {
             className="flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all"
             style={{ 
               background: activeTab === "moduli" ? '#FFD24D' : 'white',
-              color: activeTab === "moduli" ? '#1E2128' : '#5F6572',
+              color: activeTab === "moduli" ? '#0F172A' : '#5F6572',
               border: activeTab === "moduli" ? 'none' : '2px solid #ECEDEF'
             }}
           >
@@ -157,7 +157,7 @@ export function ScriptBuilder({ partner, onBack, onComplete }) {
             <div className="p-4 rounded-xl" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
               <div className="flex justify-between text-sm mb-2">
                 <span style={{ color: '#5F6572' }}>Script Masterclass</span>
-                <span className="font-bold" style={{ color: '#1E2128' }}>{approvedBlocks.length}/{MASTERCLASS_BLOCKS.length} blocchi</span>
+                <span className="font-bold" style={{ color: '#0F172A' }}>{approvedBlocks.length}/{MASTERCLASS_BLOCKS.length} blocchi</span>
               </div>
               <div className="h-2 rounded-full" style={{ background: '#ECEDEF' }}>
                 <div 
@@ -186,13 +186,13 @@ export function ScriptBuilder({ partner, onBack, onComplete }) {
                     className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
                     style={{ 
                       background: approvedBlocks.includes(block.id) ? '#34C77B' : '#FFD24D', 
-                      color: approvedBlocks.includes(block.id) ? 'white' : '#1E2128' 
+                      color: approvedBlocks.includes(block.id) ? 'white' : '#0F172A' 
                     }}
                   >
                     {approvedBlocks.includes(block.id) ? <Check className="w-5 h-5" /> : block.id}
                   </div>
                   <div className="flex-1">
-                    <div className="font-bold text-sm" style={{ color: '#1E2128' }}>{block.title}</div>
+                    <div className="font-bold text-sm" style={{ color: '#0F172A' }}>{block.title}</div>
                     <div className="text-xs" style={{ color: '#9CA3AF' }}>{block.duration} · {block.desc}</div>
                   </div>
                   <span 
@@ -232,7 +232,7 @@ export function ScriptBuilder({ partner, onBack, onComplete }) {
                           onChange={(e) => setTempText(e.target.value)}
                           placeholder={`Scrivi qui lo script per "${block.title}"...\n\nEsempio:\n"Ciao! Sono [Nome] e oggi voglio parlarti di..."`}
                           className="w-full h-48 p-4 rounded-xl text-sm resize-none"
-                          style={{ background: '#FAFAF7', border: '2px solid #FFD24D', color: '#1E2128' }}
+                          style={{ background: '#FAFAF7', border: '2px solid #FFD24D', color: '#0F172A' }}
                           autoFocus
                         />
                         <div className="flex gap-2">
@@ -304,7 +304,7 @@ export function ScriptBuilder({ partner, onBack, onComplete }) {
             <div className="p-4 rounded-xl" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
               <div className="flex justify-between text-sm mb-2">
                 <span style={{ color: '#5F6572' }}>Descrizioni Moduli</span>
-                <span className="font-bold" style={{ color: '#1E2128' }}>{approvedModules.length}/{COURSE_MODULES.length} moduli</span>
+                <span className="font-bold" style={{ color: '#0F172A' }}>{approvedModules.length}/{COURSE_MODULES.length} moduli</span>
               </div>
               <div className="h-2 rounded-full" style={{ background: '#ECEDEF' }}>
                 <div 
@@ -338,7 +338,7 @@ export function ScriptBuilder({ partner, onBack, onComplete }) {
                     {approvedModules.includes(mod.id) ? <Check className="w-5 h-5" /> : mod.id}
                   </div>
                   <div className="flex-1">
-                    <div className="font-bold text-sm" style={{ color: '#1E2128' }}>{mod.title}</div>
+                    <div className="font-bold text-sm" style={{ color: '#0F172A' }}>{mod.title}</div>
                     <div className="text-xs" style={{ color: '#9CA3AF' }}>{mod.lessons} lezioni</div>
                   </div>
                   <span 
@@ -359,7 +359,7 @@ export function ScriptBuilder({ partner, onBack, onComplete }) {
                       onChange={(e) => setTempText(e.target.value)}
                       placeholder={`Descrivi cosa impareranno in "${mod.title}"...\n\nEsempio: "In questo modulo scoprirai le basi fondamentali per..."`}
                       className="w-full h-32 p-4 rounded-xl text-sm resize-none"
-                      style={{ background: '#FAFAF7', border: '2px solid #7B68AE', color: '#1E2128' }}
+                      style={{ background: '#FAFAF7', border: '2px solid #7B68AE', color: '#0F172A' }}
                       autoFocus
                     />
                     <div className="flex gap-2">

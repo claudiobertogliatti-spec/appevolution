@@ -43,7 +43,7 @@ export function PrioritaPipeline({ onNavigate, onViewPartner }) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 rounded-lg bg-[#FFD24D] animate-pulse flex items-center justify-center">
-          <span className="text-sm font-black text-[#1E2128]">E</span>
+          <span className="text-sm font-black text-[#0F172A]">E</span>
         </div>
       </div>
     );
@@ -66,7 +66,7 @@ export function PrioritaPipeline({ onNavigate, onViewPartner }) {
           <div className="px-5 py-3 flex items-center justify-between" style={{ borderBottom: "1px solid #FFD24D30" }}>
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4" style={{ color: "#D97706" }} />
-              <span className="font-bold text-sm" style={{ color: "#1E2128" }}>
+              <span className="font-bold text-sm" style={{ color: "#0F172A" }}>
                 {approvals.length} Approvazioni in Attesa
               </span>
             </div>
@@ -80,7 +80,7 @@ export function PrioritaPipeline({ onNavigate, onViewPartner }) {
                 {(a.partner_name || a.nome || "?").split(" ").map(n => n[0]).join("")}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium truncate" style={{ color: "#1E2128" }}>{a.partner_name || a.nome || "Partner"}</div>
+                <div className="text-sm font-medium truncate" style={{ color: "#0F172A" }}>{a.partner_name || a.nome || "Partner"}</div>
                 <div className="text-xs" style={{ color: "#9CA3AF" }}>{a.tipo || a.type || "Approvazione"}</div>
               </div>
               <ChevronRight className="w-4 h-4" style={{ color: "#9CA3AF" }} />
@@ -92,7 +92,7 @@ export function PrioritaPipeline({ onNavigate, onViewPartner }) {
       {/* Priority Partners */}
       <div className="rounded-xl overflow-hidden" style={{ background: "white", border: "1px solid #ECEDEF" }}>
         <div className="px-5 py-3 flex items-center justify-between" style={{ borderBottom: "1px solid #ECEDEF" }}>
-          <span className="font-bold text-sm" style={{ color: "#1E2128" }}>
+          <span className="font-bold text-sm" style={{ color: "#0F172A" }}>
             Partner Prioritari ({priorityPartners.length})
           </span>
           <button onClick={() => onNavigate("partner")} className="text-xs font-bold" style={{ color: "#FFD24D" }}>
@@ -102,7 +102,7 @@ export function PrioritaPipeline({ onNavigate, onViewPartner }) {
         {priorityPartners.length === 0 ? (
           <div className="p-12 text-center">
             <CheckCircle className="w-10 h-10 mx-auto mb-3" style={{ color: "#10B981" }} />
-            <div className="font-bold" style={{ color: "#1E2128" }}>Nessuna priorità urgente</div>
+            <div className="font-bold" style={{ color: "#0F172A" }}>Nessuna priorità urgente</div>
             <p className="text-sm mt-1" style={{ color: "#9CA3AF" }}>Tutti i partner stanno procedendo regolarmente</p>
           </div>
         ) : (
@@ -113,7 +113,7 @@ export function PrioritaPipeline({ onNavigate, onViewPartner }) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold" style={{ color: "#1E2128" }}>{p.name}</span>
+                  <span className="text-sm font-bold" style={{ color: "#0F172A" }}>{p.name}</span>
                   <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: "#FFF6D6", color: "#D4A017" }}>{p.phase}</span>
                 </div>
                 <div className="text-xs" style={{ color: "#9CA3AF" }}>{p.niche}</div>

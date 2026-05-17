@@ -41,10 +41,10 @@ export function SbloccaAnalisi({ user, onPaymentSuccess, onLogout }) {
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#FFD24D' }}>
-              <span className="text-lg font-black" style={{ color: '#1E2128' }}>E</span>
+              <span className="text-lg font-black" style={{ color: '#0F172A' }}>E</span>
             </div>
             <div>
-              <span className="font-black text-lg" style={{ color: '#1E2128' }}>
+              <span className="font-black text-lg" style={{ color: '#0F172A' }}>
                 EVOLUTION <span style={{ color: '#FFD24D' }}>PRO</span>
               </span>
             </div>
@@ -81,7 +81,7 @@ export function SbloccaAnalisi({ user, onPaymentSuccess, onLogout }) {
         {/* Main Card */}
         <div className="rounded-2xl overflow-hidden" style={{ background: '#FFFFFF', border: '2px solid #FFD24D' }}>
           {/* Header */}
-          <div className="p-8 text-center" style={{ background: 'linear-gradient(135deg, #1E2128 0%, #2D3038 100%)' }}>
+          <div className="p-8 text-center" style={{ background: 'linear-gradient(135deg, #0F172A 0%, #2D3038 100%)' }}>
             <h1 className="text-3xl font-black mb-2" style={{ color: '#FFFFFF' }}>
               Sblocca la tua <span style={{ color: '#FFD24D' }}>Analisi Strategica</span>
             </h1>
@@ -93,7 +93,7 @@ export function SbloccaAnalisi({ user, onPaymentSuccess, onLogout }) {
           {/* Content */}
           <div className="p-8">
             {/* What's included */}
-            <h2 className="text-lg font-bold mb-4" style={{ color: '#1E2128' }}>
+            <h2 className="text-lg font-bold mb-4" style={{ color: '#0F172A' }}>
               Cosa analizzeremo:
             </h2>
             
@@ -103,7 +103,7 @@ export function SbloccaAnalisi({ user, onPaymentSuccess, onLogout }) {
                   <FileText className="w-5 h-5" style={{ color: '#C4990A' }} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm" style={{ color: '#1E2128' }}>Posizionamento</h3>
+                  <h3 className="font-bold text-sm" style={{ color: '#0F172A' }}>Posizionamento</h3>
                   <p className="text-xs" style={{ color: '#5F6572' }}>Analisi della tua unicità nel mercato</p>
                 </div>
               </div>
@@ -113,7 +113,7 @@ export function SbloccaAnalisi({ user, onPaymentSuccess, onLogout }) {
                   <Shield className="w-5 h-5" style={{ color: '#3B82F6' }} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm" style={{ color: '#1E2128' }}>Mercato</h3>
+                  <h3 className="font-bold text-sm" style={{ color: '#0F172A' }}>Mercato</h3>
                   <p className="text-xs" style={{ color: '#5F6572' }}>Valutazione domanda e concorrenza</p>
                 </div>
               </div>
@@ -123,7 +123,7 @@ export function SbloccaAnalisi({ user, onPaymentSuccess, onLogout }) {
                   <CheckCircle className="w-5 h-5" style={{ color: '#10B981' }} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm" style={{ color: '#1E2128' }}>Fattibilità</h3>
+                  <h3 className="font-bold text-sm" style={{ color: '#0F172A' }}>Fattibilità</h3>
                   <p className="text-xs" style={{ color: '#5F6572' }}>Diagnosi realistica del progetto</p>
                 </div>
               </div>
@@ -133,7 +133,7 @@ export function SbloccaAnalisi({ user, onPaymentSuccess, onLogout }) {
                   <Video className="w-5 h-5" style={{ color: '#8B5CF6' }} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm" style={{ color: '#1E2128' }}>Struttura Accademia</h3>
+                  <h3 className="font-bold text-sm" style={{ color: '#0F172A' }}>Struttura Accademia</h3>
                   <p className="text-xs" style={{ color: '#5F6572' }}>Blueprint del tuo percorso formativo</p>
                 </div>
               </div>
@@ -155,7 +155,7 @@ export function SbloccaAnalisi({ user, onPaymentSuccess, onLogout }) {
             </div>
 
             {/* Price */}
-            <div className="flex items-center justify-between p-5 rounded-xl mb-6" style={{ background: '#1E2128' }}>
+            <div className="flex items-center justify-between p-5 rounded-xl mb-6" style={{ background: '#0F172A' }}>
               <span className="font-medium" style={{ color: '#FFFFFF' }}>Investimento</span>
               <div className="text-right">
                 <span className="text-3xl font-black" style={{ color: '#FFD24D' }}>€67</span>

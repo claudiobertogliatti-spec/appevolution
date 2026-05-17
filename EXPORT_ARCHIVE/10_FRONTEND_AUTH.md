@@ -38,10 +38,10 @@ export function LoginPage({ onLogin }) {
       <header className="border-b" style={{ borderColor: '#ECEDEF', background: '#FFFFFF' }}>
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-2.5">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#F5C518' }}>
-            <span className="text-lg font-black text-[#1E2128]">E</span>
+            <span className="text-lg font-black text-[#0F172A]">E</span>
           </div>
           <div>
-            <div className="font-black text-base text-[#1E2128]">Evolution<span style={{ color: '#F5C518' }}>PRO</span></div>
+            <div className="font-black text-base text-[#0F172A]">Evolution<span style={{ color: '#F5C518' }}>PRO</span></div>
             <div className="text-[10px] font-medium text-[#9CA3AF]">Operating System</div>
           </div>
         </div>
@@ -57,7 +57,7 @@ export function LoginPage({ onLogin }) {
               Solo 4 progetti al mese
             </div>
             
-            <h1 className="text-3xl md:text-4xl font-black text-[#1E2128] leading-tight mb-4">
+            <h1 className="text-3xl md:text-4xl font-black text-[#0F172A] leading-tight mb-4">
               Trasforma le tue competenze in un'{" "}
               <span style={{ color: '#F5C518' }}>Accademia Digitale</span>
             </h1>
@@ -74,7 +74,7 @@ export function LoginPage({ onLogin }) {
                 { icon: Video, text: "Produzione video professionale" },
                 { icon: Gift, text: "Risorse e bonus esclusivi" }
               ].map((item, i) => (
-                <div key={i} className="flex items-center gap-3 text-sm text-[#1E2128]">
+                <div key={i} className="flex items-center gap-3 text-sm text-[#0F172A]">
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#FEF9E7' }}>
                     <item.icon className="w-4 h-4 text-[#F5C518]" />
                   </div>
@@ -94,13 +94,13 @@ export function LoginPage({ onLogin }) {
 
           {/* Right: Login Form */}
           <div className="p-6 rounded-2xl" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-            <h2 className="text-xl font-bold text-[#1E2128] mb-1">Bentornato!</h2>
+            <h2 className="text-xl font-bold text-[#0F172A] mb-1">Bentornato!</h2>
             <p className="text-sm text-[#9CA3AF] mb-6">Accedi al tuo account Evolution PRO</p>
 
             <form onSubmit={handleSubmit} className="space-y-4" data-testid="login-form">
               {/* Email */}
               <div>
-                <label className="block text-sm font-medium text-[#1E2128] mb-1">Email</label>
+                <label className="block text-sm font-medium text-[#0F172A] mb-1">Email</label>
                 <div className="relative">
                   <input
                     type="email"
@@ -118,7 +118,7 @@ export function LoginPage({ onLogin }) {
 
               {/* Password */}
               <div>
-                <label className="block text-sm font-medium text-[#1E2128] mb-1">Password</label>
+                <label className="block text-sm font-medium text-[#0F172A] mb-1">Password</label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}

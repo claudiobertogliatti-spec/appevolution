@@ -172,7 +172,7 @@ export function ServiziExtra({ partner, onSelectService }) {
               <Sparkles className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-black" style={{ color: '#1E2128' }}>Servizi Extra</h1>
+              <h1 className="text-2xl font-black" style={{ color: '#0F172A' }}>Servizi Extra</h1>
               <p className="text-sm" style={{ color: '#9CA3AF' }}>Potenzia il tuo business con i servizi premium</p>
             </div>
           </div>
@@ -187,7 +187,7 @@ export function ServiziExtra({ partner, onSelectService }) {
             <span className="absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white" style={{ background: '#34C77B' }} />
           </div>
           <div className="flex-1">
-            <div className="font-bold text-sm mb-1" style={{ color: '#1E2128' }}>Andrea · Il tuo tutor AI</div>
+            <div className="font-bold text-sm mb-1" style={{ color: '#0F172A' }}>Andrea · Il tuo tutor AI</div>
             <div className="text-sm leading-relaxed" style={{ color: '#5F6572' }}>
               Ciao <strong>{partnerName}</strong>! 👋 In questa sezione trovi tutti i <strong>servizi extra</strong> per accelerare il tuo percorso. 
               Scegli tra <strong>Avatar PRO</strong>, <strong>consulenze 1:1</strong> o il <strong>Branding Pack</strong>!
@@ -199,7 +199,7 @@ export function ServiziExtra({ partner, onSelectService }) {
             SERVIZI ATTIVI
             ═══════════════════════════════════════════════════════════════════════ */}
         <div className="mb-8">
-          <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
+          <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#0F172A' }}>
             <Zap className="w-5 h-5" style={{ color: '#FFD24D' }} />
             Servizi Disponibili
           </h2>
@@ -235,10 +235,10 @@ export function ServiziExtra({ partner, onSelectService }) {
                   {service.hasVideo ? (
                     // Layout con video (Avatar PRO)
                     <div className="grid grid-cols-1 lg:grid-cols-5 gap-0">
-                      <div className="lg:col-span-2 relative bg-gradient-to-br from-[#1E2128] to-[#2D3038] p-4 flex items-center justify-center min-h-[180px]">
+                      <div className="lg:col-span-2 relative bg-gradient-to-br from-[#0F172A] to-[#2D3038] p-4 flex items-center justify-center min-h-[180px]">
                         {service.badge && (
                           <div className="absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-bold"
-                               style={{ background: service.color, color: '#1E2128' }}>
+                               style={{ background: service.color, color: '#0F172A' }}>
                             {service.badge}
                           </div>
                         )}
@@ -252,7 +252,7 @@ export function ServiziExtra({ partner, onSelectService }) {
                             </video>
                             <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/10 transition-all">
                               <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
-                                <Play className="w-4 h-4 ml-0.5" style={{ color: '#1E2128' }} />
+                                <Play className="w-4 h-4 ml-0.5" style={{ color: '#0F172A' }} />
                               </div>
                             </div>
                           </div>
@@ -289,7 +289,7 @@ export function ServiziExtra({ partner, onSelectService }) {
         {/* I Tuoi Calendari - Solo se hai servizi attivi */}
         {calendari.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#0F172A' }}>
               <Calendar className="w-5 h-5" style={{ color: '#FFD24D' }} />
               I Tuoi Calendari
               <button onClick={loadMieiServizi} className="ml-auto text-sm text-gray-400 hover:text-gray-600">
@@ -330,7 +330,7 @@ export function ServiziExtra({ partner, onSelectService }) {
 
         {/* What to expect */}
         <div className="rounded-xl p-6" style={{ background: 'white', border: '1px solid #ECEDEF' }}>
-          <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: '#1E2128' }}>
+          <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: '#0F172A' }}>
             <Star className="w-5 h-5" style={{ color: '#FFD24D' }} />
             Perché scegliere i nostri servizi
           </h3>
@@ -374,7 +374,7 @@ function ServiceContent({ service, isActive, isPurchasing, onBuy }) {
               {service.badge}
             </span>
           )}
-          <h3 className="text-lg font-black mb-1" style={{ color: '#1E2128' }}>
+          <h3 className="text-lg font-black mb-1" style={{ color: '#0F172A' }}>
             {!service.hasVideo && service.icon} {service.title}
           </h3>
           <p className="text-sm" style={{ color: '#5F6572' }}>
@@ -382,7 +382,7 @@ function ServiceContent({ service, isActive, isPurchasing, onBuy }) {
           </p>
         </div>
         <div className="text-right flex-shrink-0 ml-4">
-          <div className="text-xl font-black" style={{ color: '#1E2128' }}>{service.price}</div>
+          <div className="text-xl font-black" style={{ color: '#0F172A' }}>{service.price}</div>
           <div className="text-xs" style={{ color: '#9CA3AF' }}>{service.priceLabel}</div>
         </div>
       </div>
@@ -414,7 +414,7 @@ function ServiceContent({ service, isActive, isPurchasing, onBuy }) {
           }}
           disabled={isPurchasing}
           className="w-full lg:w-auto px-5 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-50"
-          style={{ background: service.color, color: service.id === 'calendario-pro' ? '#1E2128' : 'white' }}
+          style={{ background: service.color, color: service.id === 'calendario-pro' ? '#0F172A' : 'white' }}
           data-testid={`${service.id}-cta`}
         >
           {isPurchasing ? (

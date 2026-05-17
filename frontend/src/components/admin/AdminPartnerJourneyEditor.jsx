@@ -60,7 +60,7 @@ function Section({ num, title, done, children, defaultOpen = false }) {
           fontWeight: 900, flexShrink: 0,
           background: done ? "#22C55E" : "#D1D5DB", color: done ? "white" : "#6B7280"
         }}>{done ? "✓" : num}</span>
-        <span className="text-sm font-black" style={{ color: "#1E2128" }}>{title}</span>
+        <span className="text-sm font-black" style={{ color: "#0F172A" }}>{title}</span>
         <span className="ml-auto">{open
           ? <ChevronDown className="w-4 h-4" style={{ color: "#9CA3AF" }} />
           : <ChevronRight className="w-4 h-4" style={{ color: "#9CA3AF" }} />}
@@ -85,7 +85,7 @@ function Field({ label, hint, children }) {
 
 function TextInput({ value, onChange, placeholder, multiline, rows = 4 }) {
   const cls = "w-full px-3 py-2 text-sm rounded-xl outline-none transition-all";
-  const style = { border: "1.5px solid #E5E7EB", color: "#1E2128", background: "white" };
+  const style = { border: "1.5px solid #E5E7EB", color: "#0F172A", background: "white" };
   if (multiline) return (
     <textarea className={cls} style={{ ...style, resize: "vertical" }} rows={rows}
       value={value || ""} onChange={e => onChange(e.target.value)} placeholder={placeholder} />
@@ -97,7 +97,7 @@ function TextInput({ value, onChange, placeholder, multiline, rows = 4 }) {
 function SelectInput({ value, onChange, options }) {
   return (
     <select className="w-full px-3 py-2 text-sm rounded-xl outline-none"
-      style={{ border: "1.5px solid #E5E7EB", color: "#1E2128", background: "white" }}
+      style={{ border: "1.5px solid #E5E7EB", color: "#0F172A", background: "white" }}
       value={value || ""} onChange={e => onChange(e.target.value)}>
       {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
@@ -137,7 +137,7 @@ function SaveButton({ onSave, saving, saved, label = "Salva" }) {
   return (
     <button onClick={onSave} disabled={saving}
       className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
-      style={{ background: saved ? "#22C55E" : "#1E2128", color: saved ? "white" : "#FFD24D" }}>
+      style={{ background: saved ? "#22C55E" : "#0F172A", color: saved ? "white" : "#FFD24D" }}>
       {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <CheckCircle className="w-4 h-4" /> : <Save className="w-4 h-4" />}
       {saving ? "Salvataggio..." : saved ? "Salvato!" : label}
     </button>
@@ -286,7 +286,7 @@ export function AdminPartnerJourneyEditor({ partner, onBack }) {
     <div className="max-w-2xl mx-auto p-4 space-y-4">
 
       {/* Header */}
-      <div className="rounded-2xl p-5" style={{ background: "#1E2128" }}>
+      <div className="rounded-2xl p-5" style={{ background: "#0F172A" }}>
         <div className="flex items-center gap-3 mb-4">
           {onBack && (
             <button onClick={onBack} className="text-xs px-3 py-1.5 rounded-lg font-bold"
@@ -309,7 +309,7 @@ export function AdminPartnerJourneyEditor({ partner, onBack }) {
                 value={phase}
                 onChange={e => setPhase(e.target.value)}
                 className="text-sm rounded-lg px-2 py-1 font-bold"
-                style={{ background: "#FFD24D", color: "#1E2128", border: "none" }}
+                style={{ background: "#FFD24D", color: "#0F172A", border: "none" }}
               >
                 {PHASE_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
@@ -404,7 +404,7 @@ export function AdminPartnerJourneyEditor({ partner, onBack }) {
           </p>
           <button onClick={addVcLesson}
             className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg"
-            style={{ background: "#1E2128", color: "#FFD24D" }}>
+            style={{ background: "#0F172A", color: "#FFD24D" }}>
             <Plus className="w-3.5 h-3.5" /> Aggiungi lezione
           </button>
         </div>
@@ -420,7 +420,7 @@ export function AdminPartnerJourneyEditor({ partner, onBack }) {
                 <div>
                   <input
                     className="text-sm font-black bg-transparent outline-none"
-                    style={{ color: "#1E2128" }}
+                    style={{ color: "#0F172A" }}
                     value={lesson.title || lessonId}
                     onChange={e => setVc(v => ({
                       lessons: { ...v.lessons, [lessonId]: { ...lesson, title: e.target.value } }
@@ -498,7 +498,7 @@ export function AdminPartnerJourneyEditor({ partner, onBack }) {
         <Field label="Data lancio prevista">
           <input type="date"
             className="w-full px-3 py-2 text-sm rounded-xl outline-none"
-            style={{ border: "1.5px solid #E5E7EB", color: "#1E2128" }}
+            style={{ border: "1.5px solid #E5E7EB", color: "#0F172A" }}
             value={lancio.launch_date || ""}
             onChange={e => setLancio(l => ({ ...l, launch_date: e.target.value }))} />
         </Field>

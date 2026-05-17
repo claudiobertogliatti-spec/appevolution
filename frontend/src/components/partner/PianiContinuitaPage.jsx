@@ -87,7 +87,7 @@ function PlanCard({ plan, onSelect, isLoading }) {
       {plan.popular && (
         <div 
           className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold"
-          style={{ background: plan.color, color: '#1E2128' }}
+          style={{ background: plan.color, color: '#0F172A' }}
         >
           PIÙ POPOLARE
         </div>
@@ -102,7 +102,7 @@ function PlanCard({ plan, onSelect, isLoading }) {
           <Icon className="w-7 h-7" />
         </div>
         
-        <h3 className="text-xl font-black mb-1" style={{ color: '#1E2128' }}>
+        <h3 className="text-xl font-black mb-1" style={{ color: '#0F172A' }}>
           {plan.name}
         </h3>
         <p className="text-sm" style={{ color: '#5F6572' }}>
@@ -113,7 +113,7 @@ function PlanCard({ plan, onSelect, isLoading }) {
       {/* Price */}
       <div className="text-center mb-6">
         <div className="flex items-baseline justify-center gap-1">
-          <span className="text-4xl font-black" style={{ color: '#1E2128' }}>
+          <span className="text-4xl font-black" style={{ color: '#0F172A' }}>
             €{plan.price}
           </span>
           <span className="text-sm" style={{ color: '#9CA3AF' }}>
@@ -154,8 +154,8 @@ function PlanCard({ plan, onSelect, isLoading }) {
         disabled={isLoading}
         className="w-full py-4 rounded-xl font-bold text-sm transition-all hover:opacity-90 flex items-center justify-center gap-2 disabled:opacity-50"
         style={{ 
-          background: plan.popular ? plan.color : '#1E2128',
-          color: plan.popular ? '#1E2128' : 'white'
+          background: plan.popular ? plan.color : '#0F172A',
+          color: plan.popular ? '#0F172A' : 'white'
         }}
         data-testid={`select-plan-${plan.id}`}
       >
@@ -215,7 +215,7 @@ export function PianiContinuitaPage({ partner, onNavigate }) {
         <div 
           className="absolute inset-0"
           style={{ 
-            background: 'linear-gradient(135deg, #1E2128 0%, #2D3239 100%)'
+            background: 'linear-gradient(135deg, #0F172A 0%, #2D3239 100%)'
           }}
         />
         <div className="absolute inset-0 opacity-10">
@@ -299,7 +299,7 @@ export function PianiContinuitaPage({ partner, onNavigate }) {
               >
                 <Crown className="w-8 h-8" />
               </div>
-              <h3 className="text-xl font-black mb-2" style={{ color: '#1E2128' }}>
+              <h3 className="text-xl font-black mb-2" style={{ color: '#0F172A' }}>
                 Conferma attivazione
               </h3>
               <p className="text-sm" style={{ color: '#5F6572' }}>

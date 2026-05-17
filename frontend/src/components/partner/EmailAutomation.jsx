@@ -43,7 +43,7 @@ function EmailContent({ automations, sequences, expandedSequence, setExpandedSeq
                   {a.is_active ? <Play className="w-4 h-4" style={{ color: "#34C77B" }} /> : <Pause className="w-4 h-4" style={{ color: "#EF4444" }} />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-bold truncate" style={{ color: "#1E2128" }}>{a.name}</div>
+                  <div className="text-sm font-bold truncate" style={{ color: "#0F172A" }}>{a.name}</div>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-xs" style={{ color: "#9CA3AF" }}>
                       {TRIGGER_LABELS[a.trigger] || a.trigger}
@@ -85,7 +85,7 @@ function EmailContent({ automations, sequences, expandedSequence, setExpandedSeq
                     <Send className="w-4 h-4" style={{ color: "#3B82F6" }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-bold" style={{ color: "#1E2128" }}>{seq.name}</div>
+                    <div className="text-sm font-bold" style={{ color: "#0F172A" }}>{seq.name}</div>
                     <div className="text-xs" style={{ color: "#9CA3AF" }}>
                       {seq.emails?.length || 0} email nella sequenza
                     </div>
@@ -107,7 +107,7 @@ function EmailContent({ automations, sequences, expandedSequence, setExpandedSeq
                             </span>
                           )}
                         </div>
-                        <div className="text-sm font-bold" style={{ color: "#1E2128" }}>
+                        <div className="text-sm font-bold" style={{ color: "#0F172A" }}>
                           {email.subject}
                         </div>
                         {email.body && (
@@ -178,7 +178,7 @@ export function EmailAutomation({ partner, isAdmin }) {
               <Mail className="w-6 h-6" style={{ color: "#db2778" }} />
             </div>
             <div>
-              <h1 className="text-2xl font-black" style={{ color: "#1E2128" }}>
+              <h1 className="text-2xl font-black" style={{ color: "#0F172A" }}>
                 Automazione Email
               </h1>
               <p className="text-sm" style={{ color: "#9CA3AF" }}>

@@ -63,13 +63,13 @@ export function PartnerLogin({ onLogin }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: '#1E2128' }}>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: '#0F172A' }}>
       <div className="w-full max-w-md px-6">
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: '#FFD24D' }}>
-              <span className="text-2xl font-black" style={{ color: '#1E2128' }}>E</span>
+              <span className="text-2xl font-black" style={{ color: '#0F172A' }}>E</span>
             </div>
             <div className="text-left">
               <span className="text-2xl font-black" style={{ color: '#FFFFFF' }}>
@@ -84,7 +84,7 @@ export function PartnerLogin({ onLogin }) {
 
         {/* Login Card */}
         <div className="rounded-2xl p-8" style={{ background: '#FFFFFF' }}>
-          <h1 className="text-2xl font-bold text-center mb-2" style={{ color: '#1E2128' }}>
+          <h1 className="text-2xl font-bold text-center mb-2" style={{ color: '#0F172A' }}>
             Accedi al tuo account
           </h1>
           <p className="text-center mb-8" style={{ color: '#5F6572' }}>
@@ -94,7 +94,7 @@ export function PartnerLogin({ onLogin }) {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: '#1E2128' }}>
+              <label className="block text-sm font-medium mb-1" style={{ color: '#0F172A' }}>
                 Email
               </label>
               <div className="relative">
@@ -113,7 +113,7 @@ export function PartnerLogin({ onLogin }) {
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: '#1E2128' }}>
+              <label className="block text-sm font-medium mb-1" style={{ color: '#0F172A' }}>
                 Password
               </label>
               <div className="relative">
@@ -153,7 +153,7 @@ export function PartnerLogin({ onLogin }) {
               type="submit"
               disabled={loading}
               className="w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 hover:opacity-90"
-              style={{ background: '#FFD24D', color: '#1E2128' }}
+              style={{ background: '#FFD24D', color: '#0F172A' }}
               data-testid="partner-login-btn"
             >
               {loading ? (

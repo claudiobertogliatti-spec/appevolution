@@ -118,7 +118,7 @@ export function TeamEvolution({ isAdmin = false }) {
     <div className="p-6 space-y-8" style={{ background: '#FFFFFF', minHeight: '100vh' }} data-testid="team-evolution">
       {/* Page Header */}
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-black mb-2" style={{ color: '#1E2128' }}>
+        <h1 className="text-3xl font-black mb-2" style={{ color: '#0F172A' }}>
           Il Tuo Team Evolution
         </h1>
         <p className="text-sm" style={{ color: '#9CA3AF' }}>
@@ -130,7 +130,7 @@ export function TeamEvolution({ isAdmin = false }) {
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-6">
           <div className="flex-1 h-px" style={{ background: '#ECEDEF' }}></div>
-          <h2 className="text-lg font-bold px-4" style={{ color: '#1E2128' }}>
+          <h2 className="text-lg font-bold px-4" style={{ color: '#0F172A' }}>
             Supervisione Umana
           </h2>
           <div className="flex-1 h-px" style={{ background: '#ECEDEF' }}></div>
@@ -157,7 +157,7 @@ export function TeamEvolution({ isAdmin = false }) {
                   <User className="w-8 h-8" style={{ color: '#C4990A' }} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg" style={{ color: '#1E2128' }}>{human.name}</h3>
+                  <h3 className="font-bold text-lg" style={{ color: '#0F172A' }}>{human.name}</h3>
                   <div className="text-sm font-medium mb-2" style={{ color: '#FFD24D' }}>{human.role}</div>
                   <p className="text-sm" style={{ color: '#5F6572' }}>{human.desc}</p>
                 </div>
@@ -171,7 +171,7 @@ export function TeamEvolution({ isAdmin = false }) {
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-6">
           <div className="flex-1 h-px" style={{ background: '#ECEDEF' }}></div>
-          <h2 className="text-lg font-bold px-4" style={{ color: '#1E2128' }}>
+          <h2 className="text-lg font-bold px-4" style={{ color: '#0F172A' }}>
             Sistema Centrale
           </h2>
           <div className="flex-1 h-px" style={{ background: '#ECEDEF' }}></div>
@@ -179,7 +179,7 @@ export function TeamEvolution({ isAdmin = false }) {
 
         <div 
           className="rounded-2xl p-6"
-          style={{ background: 'linear-gradient(135deg, #1E2128 0%, #2D3038 100%)', border: '1px solid #3D4048' }}
+          style={{ background: 'linear-gradient(135deg, #0F172A 0%, #2D3038 100%)', border: '1px solid #3D4048' }}
         >
           <div className="flex items-start gap-4 mb-4">
             <div 
@@ -222,7 +222,7 @@ export function TeamEvolution({ isAdmin = false }) {
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-6">
           <div className="flex-1 h-px" style={{ background: '#ECEDEF' }}></div>
-          <h2 className="text-lg font-bold px-4" style={{ color: '#1E2128' }}>
+          <h2 className="text-lg font-bold px-4" style={{ color: '#0F172A' }}>
             6 Agenti Specializzati
           </h2>
           <div className="flex-1 h-px" style={{ background: '#ECEDEF' }}></div>
@@ -250,7 +250,7 @@ export function TeamEvolution({ isAdmin = false }) {
                     {agent.emoji}
                   </div>
                   <div>
-                    <h3 className="font-bold" style={{ color: '#1E2128' }}>{agent.name}</h3>
+                    <h3 className="font-bold" style={{ color: '#0F172A' }}>{agent.name}</h3>
                     <div className="text-xs font-medium" style={{ color: agent.color }}>{agent.role}</div>
                   </div>
                 </div>
@@ -284,7 +284,7 @@ export function TeamEvolution({ isAdmin = false }) {
         className="rounded-2xl p-6 text-center"
         style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}
       >
-        <h3 className="font-bold text-lg mb-2" style={{ color: '#1E2128' }}>
+        <h3 className="font-bold text-lg mb-2" style={{ color: '#0F172A' }}>
           Come funziona il flusso
         </h3>
         <p className="text-sm mb-6" style={{ color: '#5F6572' }}>
@@ -293,7 +293,7 @@ export function TeamEvolution({ isAdmin = false }) {
 
         {/* Flow Visual */}
         <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
-          <div className="px-4 py-2 rounded-xl font-bold text-sm" style={{ background: '#FFD24D20', color: '#1E2128' }}>
+          <div className="px-4 py-2 rounded-xl font-bold text-sm" style={{ background: '#FFD24D20', color: '#0F172A' }}>
             🧑 Tu (Partner)
           </div>
           <ArrowRight className="w-5 h-5" style={{ color: '#9CA3AF' }} />
@@ -301,7 +301,7 @@ export function TeamEvolution({ isAdmin = false }) {
             ⚡ Stefania coordina
           </div>
           <ArrowRight className="w-5 h-5" style={{ color: '#9CA3AF' }} />
-          <div className="px-4 py-2 rounded-xl font-bold text-sm" style={{ background: '#1E212810', color: '#1E2128' }}>
+          <div className="px-4 py-2 rounded-xl font-bold text-sm" style={{ background: '#0F172A10', color: '#0F172A' }}>
             🤖 Agenti eseguono
           </div>
           <ArrowRight className="w-5 h-5" style={{ color: '#9CA3AF' }} />

@@ -93,7 +93,7 @@ ${answers.bonus || "Non definito"}
       <div className="max-w-2xl mx-auto animate-slide-in" data-testid="wizard-generating">
         <div className="bg-white border border-[#ECEDEF] rounded-xl p-12 text-center">
           <div className="text-6xl mb-4 animate-pulse">🎯</div>
-          <div className="text-lg font-extrabold text-[#1E2128] mb-2">
+          <div className="text-lg font-extrabold text-[#0F172A] mb-2">
             Generazione Canvas Posizionamento...
           </div>
           <div className="text-sm text-[#5F6572]">
@@ -115,7 +115,7 @@ ${answers.bonus || "Non definito"}
                 <Target className="w-5 h-5 text-black" />
               </div>
               <div>
-                <div className="text-sm font-extrabold text-[#1E2128]">Canvas Posizionamento Completato</div>
+                <div className="text-sm font-extrabold text-[#0F172A]">Canvas Posizionamento Completato</div>
                 <div className="text-xs text-[#5F6572]">Pronto per essere utilizzato nel tuo corso</div>
               </div>
             </div>
@@ -207,7 +207,7 @@ ${answers.bonus || "Non definito"}
             <div className="w-10 h-10 rounded-lg bg-[#FFD24D] flex items-center justify-center font-mono text-sm font-bold text-black flex-shrink-0">
               {currentStep + 1}
             </div>
-            <div className="text-lg font-extrabold text-[#1E2128] leading-snug">
+            <div className="text-lg font-extrabold text-[#0F172A] leading-snug">
               {question.question}
             </div>
           </div>
@@ -229,7 +229,7 @@ ${answers.bonus || "Non definito"}
             value={answers[question.id] || ""}
             onChange={(e) => setAnswers(prev => ({ ...prev, [question.id]: e.target.value }))}
             placeholder={question.placeholder}
-            className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-4 text-sm font-semibold text-[#1E2128] placeholder:text-[#9CA3AF] outline-none transition-colors focus:border-[#FFD24D] resize-none min-h-[160px] leading-relaxed"
+            className="w-full bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl px-4 py-4 text-sm font-semibold text-[#0F172A] placeholder:text-[#9CA3AF] outline-none transition-colors focus:border-[#FFD24D] resize-none min-h-[160px] leading-relaxed"
           />
         </div>
 

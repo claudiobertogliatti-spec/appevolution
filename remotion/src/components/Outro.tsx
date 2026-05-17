@@ -29,7 +29,7 @@ export const Outro: React.FC<OutroProps> = ({ partnerName, ctaText, ctaUrl, prim
   return (
     <AbsoluteFill
       style={{
-        backgroundColor: "#1E2128",
+        backgroundColor: "#0F172A",
         justifyContent: "center",
         alignItems: "center",
         opacity: fadeIn,
@@ -55,7 +55,7 @@ export const Outro: React.FC<OutroProps> = ({ partnerName, ctaText, ctaUrl, prim
           style={{
             display: "inline-block",
             backgroundColor: primaryColor,
-            color: "#1E2128",
+            color: "#0F172A",
             fontFamily: "sans-serif",
             fontSize: 28,
             fontWeight: 900,

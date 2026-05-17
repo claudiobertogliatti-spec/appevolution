@@ -35,7 +35,7 @@
   "should_main_agent_self_test": true,
   "context_for_next_testing_agent": "Light theme is now fully applied across the app. CSS variables in App.css were updated from dark (#0B0E14) to light (#FAFAF7) theme. Course Builder AI is working with real Claude API responses.",
   "fixes_applied": {
-    "App.css": "Changed --evo-bg from #0B0E14 (dark) to #FAFAF7 (light), --evo-surface from #1a2332 to #FFFFFF, --evo-text from #F8FAFC to #1E2128, --evo-text-muted from #94A3B8 to #9CA3AF, --evo-border from rgba(255,255,255,0.1) to #ECEDEF. Also updated scrollbar and glass effect colors."
+    "App.css": "Changed --evo-bg from #0B0E14 (dark) to #FAFAF7 (light), --evo-surface from #1a2332 to #FFFFFF, --evo-text from #F8FAFC to #0F172A, --evo-text-muted from #94A3B8 to #9CA3AF, --evo-border from rgba(255,255,255,0.1) to #ECEDEF. Also updated scrollbar and glass effect colors."
   },
   "verified_features": {
     "light_theme_login": "WORKING - white background",

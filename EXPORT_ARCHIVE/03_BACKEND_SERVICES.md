@@ -19,7 +19,7 @@ import re
 
 # Brand colors
 BRAND_YELLOW = colors.HexColor("#F5C518")
-BRAND_DARK = colors.HexColor("#1E2128")
+BRAND_DARK = colors.HexColor("#0F172A")
 BRAND_GRAY = colors.HexColor("#5F6572")
 BRAND_LIGHT_BG = colors.HexColor("#FAFAF7")
 

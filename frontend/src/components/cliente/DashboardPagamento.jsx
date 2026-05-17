@@ -79,7 +79,7 @@ export function DashboardPagamento({ user, onPaymentSuccess }) {
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#FAFAF7' }}>
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" style={{ color: '#FFD24D' }} />
-          <p className="text-lg" style={{ color: '#1E2128' }}>Verifica pagamento in corso...</p>
+          <p className="text-lg" style={{ color: '#0F172A' }}>Verifica pagamento in corso...</p>
         </div>
       </div>
     );
@@ -91,14 +91,14 @@ export function DashboardPagamento({ user, onPaymentSuccess }) {
         
         {/* Header */}
         <div className="text-center mb-12">
-          <span className="text-xl font-black" style={{ color: '#1E2128' }}>
+          <span className="text-xl font-black" style={{ color: '#0F172A' }}>
             EVOLUTION <span style={{ color: '#FFD24D' }}>PRO</span>
           </span>
         </div>
 
         {/* Welcome */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-black mb-2" style={{ color: '#1E2128' }}>
+          <h1 className="text-3xl font-black mb-2" style={{ color: '#0F172A' }}>
             Completa la tua Analisi Strategica
           </h1>
           <p className="text-lg" style={{ color: '#5F6572' }}>
@@ -110,11 +110,11 @@ export function DashboardPagamento({ user, onPaymentSuccess }) {
         <div className="rounded-2xl p-8 mb-8" style={{ background: '#FFFFFF', border: '2px solid #ECEDEF' }}>
           <div className="flex items-start gap-6">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: '#FFD24D' }}>
-              <FileText className="w-8 h-8" style={{ color: '#1E2128' }} />
+              <FileText className="w-8 h-8" style={{ color: '#0F172A' }} />
             </div>
             
             <div className="flex-1">
-              <h2 className="text-2xl font-bold mb-2" style={{ color: '#1E2128' }}>
+              <h2 className="text-2xl font-bold mb-2" style={{ color: '#0F172A' }}>
                 Analisi Strategica Evolution PRO
               </h2>
               <p className="mb-4" style={{ color: '#5F6572' }}>
@@ -125,26 +125,26 @@ export function DashboardPagamento({ user, onPaymentSuccess }) {
               <div className="space-y-3 mb-6">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-5 h-5" style={{ color: '#10B981' }} />
-                  <span style={{ color: '#1E2128' }}>Documento di Analisi Strategica personalizzato</span>
+                  <span style={{ color: '#0F172A' }}>Documento di Analisi Strategica personalizzato</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-5 h-5" style={{ color: '#10B981' }} />
-                  <span style={{ color: '#1E2128' }}>Valutazione fattibilità del progetto</span>
+                  <span style={{ color: '#0F172A' }}>Valutazione fattibilità del progetto</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Video className="w-5 h-5" style={{ color: '#10B981' }} />
-                  <span style={{ color: '#1E2128' }}>Videocall strategica con Claudio</span>
+                  <span style={{ color: '#0F172A' }}>Videocall strategica con Claudio</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-5 h-5" style={{ color: '#10B981' }} />
-                  <span style={{ color: '#1E2128' }}>Prenotazione call entro 48h</span>
+                  <span style={{ color: '#0F172A' }}>Prenotazione call entro 48h</span>
                 </div>
               </div>
 
               {/* Price */}
               <div className="flex items-center justify-between p-4 rounded-xl mb-6" style={{ background: '#FAFAF7', border: '1px solid #ECEDEF' }}>
                 <span className="font-medium" style={{ color: '#5F6572' }}>Investimento</span>
-                <span className="text-3xl font-black" style={{ color: '#1E2128' }}>€67</span>
+                <span className="text-3xl font-black" style={{ color: '#0F172A' }}>€67</span>
               </div>
 
               {/* Error */}
@@ -159,7 +159,7 @@ export function DashboardPagamento({ user, onPaymentSuccess }) {
                 onClick={handleProceedToPayment}
                 disabled={loading}
                 className="w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 hover:opacity-90"
-                style={{ background: '#FFD24D', color: '#1E2128' }}
+                style={{ background: '#FFD24D', color: '#0F172A' }}
                 data-testid="proceed-payment-btn"
               >
                 {loading ? (

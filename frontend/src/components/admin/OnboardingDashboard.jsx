@@ -84,7 +84,7 @@ export function OnboardingDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black flex items-center gap-2" style={{ color: '#1E2128' }}>
+          <h1 className="text-2xl font-black flex items-center gap-2" style={{ color: '#0F172A' }}>
             <UserPlus className="w-6 h-6" style={{ color: '#FFD24D' }} />
             Onboarding Partner
           </h1>
@@ -151,7 +151,7 @@ export function OnboardingDashboard() {
                   {partner.name?.split(" ").map(n => n[0]).join("") || "?"}
                 </div>
                 <div className="flex-1">
-                  <div className="font-bold" style={{ color: '#1E2128' }}>{partner.name}</div>
+                  <div className="font-bold" style={{ color: '#0F172A' }}>{partner.name}</div>
                   <div className="text-sm" style={{ color: '#9CA3AF' }}>{partner.email}</div>
                 </div>
                 <span className="px-3 py-1 rounded-full text-xs font-bold"
@@ -161,7 +161,7 @@ export function OnboardingDashboard() {
                 <button 
                   onClick={() => setShowSystemeModal({ partner, action: 'create' })}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all hover:opacity-90"
-                  style={{ background: '#FFD24D', color: '#1E2128' }}
+                  style={{ background: '#FFD24D', color: '#0F172A' }}
                 >
                   <Settings className="w-4 h-4" />
                   Segna Creato
@@ -177,7 +177,7 @@ export function OnboardingDashboard() {
                   {partner.name?.split(" ").map(n => n[0]).join("") || "?"}
                 </div>
                 <div className="flex-1">
-                  <div className="font-bold" style={{ color: '#1E2128' }}>{partner.name}</div>
+                  <div className="font-bold" style={{ color: '#0F172A' }}>{partner.name}</div>
                   <div className="text-sm" style={{ color: '#9CA3AF' }}>
                     {partner.email} · Systeme: {partner.onboarding_status?.systeme_email || "N/A"}
                   </div>
@@ -208,7 +208,7 @@ export function OnboardingDashboard() {
       {/* All Partners Table */}
       <div className="bg-white rounded-2xl border border-[#ECEDEF] overflow-hidden">
         <div className="p-4 border-b border-[#ECEDEF]">
-          <h2 className="font-bold" style={{ color: '#1E2128' }}>Tutti i Partner ({partners.length})</h2>
+          <h2 className="font-bold" style={{ color: '#0F172A' }}>Tutti i Partner ({partners.length})</h2>
         </div>
         
         <div className="overflow-x-auto">
@@ -247,7 +247,7 @@ export function OnboardingDashboard() {
                           {partner.name?.split(" ").map(n => n[0]).join("") || "?"}
                         </div>
                         <div>
-                          <div className="font-bold text-sm" style={{ color: '#1E2128' }}>{partner.name}</div>
+                          <div className="font-bold text-sm" style={{ color: '#0F172A' }}>{partner.name}</div>
                           <div className="text-xs" style={{ color: '#9CA3AF' }}>{partner.email}</div>
                         </div>
                       </div>
@@ -285,7 +285,7 @@ export function OnboardingDashboard() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }}>
           <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl">
             <div className="p-4 flex items-center justify-between border-b border-[#ECEDEF]">
-              <div className="font-bold" style={{ color: '#1E2128' }}>
+              <div className="font-bold" style={{ color: '#0F172A' }}>
                 {showSystemeModal.action === 'create' ? 'Account Systeme.io Creato' : 'Invia Credenziali Systeme.io'}
               </div>
               <button onClick={() => setShowSystemeModal(null)} className="p-1 rounded-lg hover:bg-[#FAFAF7]">
@@ -296,7 +296,7 @@ export function OnboardingDashboard() {
             <div className="p-6 space-y-4">
               <div>
                 <div className="text-sm font-bold mb-1" style={{ color: '#5F6572' }}>Partner</div>
-                <div className="font-bold text-lg" style={{ color: '#1E2128' }}>{showSystemeModal.partner.name}</div>
+                <div className="font-bold text-lg" style={{ color: '#0F172A' }}>{showSystemeModal.partner.name}</div>
                 <div className="text-sm" style={{ color: '#9CA3AF' }}>{showSystemeModal.partner.email}</div>
               </div>
               
@@ -338,7 +338,7 @@ export function OnboardingDashboard() {
                 }}
                 disabled={sendingEmail}
                 className="w-full py-3 rounded-xl font-bold transition-all hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
-                style={{ background: showSystemeModal.action === 'create' ? '#FFD24D' : '#8B5CF6', color: showSystemeModal.action === 'create' ? '#1E2128' : 'white' }}
+                style={{ background: showSystemeModal.action === 'create' ? '#FFD24D' : '#8B5CF6', color: showSystemeModal.action === 'create' ? '#0F172A' : 'white' }}
               >
                 {sendingEmail ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -378,7 +378,7 @@ function StatCard({ icon: Icon, label, value, color, highlight = false }) {
           <Icon className="w-5 h-5" style={{ color }} />
         </div>
         <div>
-          <div className="text-2xl font-black" style={{ color: '#1E2128' }}>{value}</div>
+          <div className="text-2xl font-black" style={{ color: '#0F172A' }}>{value}</div>
           <div className="text-xs font-medium" style={{ color: '#9CA3AF' }}>{label}</div>
         </div>
       </div>

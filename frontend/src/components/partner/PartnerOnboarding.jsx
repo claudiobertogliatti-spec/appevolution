@@ -54,7 +54,7 @@ const PartnerOnboarding = ({ partnerId, partnerNome, onComplete }) => {
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-[#1E2128] mb-2">
+        <h1 className="text-2xl font-bold text-[#0F172A] mb-2">
           Benvenuto/a {partnerNome}! 👋
         </h1>
         <p className="text-[#5F6572]">
@@ -72,7 +72,7 @@ const PartnerOnboarding = ({ partnerId, partnerNome, onComplete }) => {
                   stepCorrente > step.num
                     ? "bg-[#10B981] text-white"
                     : stepCorrente === step.num
-                    ? "bg-[#FFD24D] text-[#1E2128]"
+                    ? "bg-[#FFD24D] text-[#0F172A]"
                     : "bg-[#ECEDEF] text-[#9CA3AF]"
                 }`}
               >
@@ -82,7 +82,7 @@ const PartnerOnboarding = ({ partnerId, partnerNome, onComplete }) => {
                   <step.icon className="w-5 h-5" />
                 )}
               </div>
-              <span className={`text-xs mt-2 ${stepCorrente >= step.num ? "text-[#1E2128] font-medium" : "text-[#9CA3AF]"}`}>
+              <span className={`text-xs mt-2 ${stepCorrente >= step.num ? "text-[#0F172A] font-medium" : "text-[#9CA3AF]"}`}>
                 {step.label}
               </span>
             </div>
@@ -114,7 +114,7 @@ const PartnerOnboarding = ({ partnerId, partnerNome, onComplete }) => {
       {onboarding?.completato && (
         <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
           <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-[#1E2128] mb-2">Onboarding Completato!</h2>
+          <h2 className="text-xl font-bold text-[#0F172A] mb-2">Onboarding Completato!</h2>
           <p className="text-[#5F6572]">Il tuo account è attivo. Puoi iniziare il percorso.</p>
         </div>
       )}
@@ -123,7 +123,7 @@ const PartnerOnboarding = ({ partnerId, partnerNome, onComplete }) => {
       {stepCorrente === 5 && onboarding?.distinta?.url && !onboarding?.completato && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
           <Clock className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-[#1E2128] mb-2">Documentazione in revisione</h2>
+          <h2 className="text-xl font-bold text-[#0F172A] mb-2">Documentazione in revisione</h2>
           <p className="text-[#5F6572]">
             Stiamo verificando i tuoi documenti. Riceverai una email entro 24-48 ore quando il tuo account sarà attivo.
           </p>
@@ -180,7 +180,7 @@ const Step1Profilo = ({ partnerId, onComplete }) => {
 
   return (
     <div className="bg-white rounded-xl p-6" style={{ border: "1px solid #ECEDEF" }}>
-      <h2 className="text-lg font-bold text-[#1E2128] mb-4 flex items-center gap-2">
+      <h2 className="text-lg font-bold text-[#0F172A] mb-4 flex items-center gap-2">
         <User className="w-5 h-5 text-[#FFD24D]" />
         Completa il tuo profilo
       </h2>
@@ -222,7 +222,7 @@ const Step1Profilo = ({ partnerId, onComplete }) => {
           type="submit"
           disabled={!isValid || loading}
           className="w-full py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-          style={{ background: "#FFD24D", color: "#1E2128" }}
+          style={{ background: "#FFD24D", color: "#0F172A" }}
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronRight className="w-4 h-4" />}
           Salva e continua
@@ -270,7 +270,7 @@ const Step2Contratto = ({ partnerId, onboarding, onComplete }) => {
 
   return (
     <div className="bg-white rounded-xl p-6" style={{ border: "1px solid #ECEDEF" }}>
-      <h2 className="text-lg font-bold text-[#1E2128] mb-4 flex items-center gap-2">
+      <h2 className="text-lg font-bold text-[#0F172A] mb-4 flex items-center gap-2">
         <FileText className="w-5 h-5 text-[#FFD24D]" />
         Scarica e firma il contratto
       </h2>
@@ -282,35 +282,35 @@ const Step2Contratto = ({ partnerId, onboarding, onComplete }) => {
       )}
 
       <div className="bg-[#FEF9E7] rounded-xl p-4 mb-4" style={{ border: "1px solid #FFD24D" }}>
-        <p className="text-sm text-[#1E2128] mb-3">
+        <p className="text-sm text-[#0F172A] mb-3">
           Il tuo contratto è pronto e già compilato con i tuoi dati.
         </p>
         <button
           onClick={handleDownload}
           className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all"
-          style={{ background: "#FFD24D", color: "#1E2128" }}
+          style={{ background: "#FFD24D", color: "#0F172A" }}
         >
           <Download className="w-4 h-4" /> Scarica il Contratto
         </button>
       </div>
 
       <div className="mb-4">
-        <h3 className="font-bold text-sm text-[#1E2128] mb-2">Istruzioni:</h3>
+        <h3 className="font-bold text-sm text-[#0F172A] mb-2">Istruzioni:</h3>
         <ol className="space-y-2 text-sm text-[#5F6572]">
           <li className="flex items-start gap-2">
-            <span className="w-6 h-6 rounded-full bg-[#FFD24D] text-[#1E2128] flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
+            <span className="w-6 h-6 rounded-full bg-[#FFD24D] text-[#0F172A] flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
             Stampa il documento
           </li>
           <li className="flex items-start gap-2">
-            <span className="w-6 h-6 rounded-full bg-[#FFD24D] text-[#1E2128] flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
+            <span className="w-6 h-6 rounded-full bg-[#FFD24D] text-[#0F172A] flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
             Firmalo in fondo (firma + approvazione clausole)
           </li>
           <li className="flex items-start gap-2">
-            <span className="w-6 h-6 rounded-full bg-[#FFD24D] text-[#1E2128] flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
+            <span className="w-6 h-6 rounded-full bg-[#FFD24D] text-[#0F172A] flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
             Scansiona o fotografa tutte le pagine
           </li>
           <li className="flex items-start gap-2">
-            <span className="w-6 h-6 rounded-full bg-[#FFD24D] text-[#1E2128] flex items-center justify-center text-xs font-bold flex-shrink-0">4</span>
+            <span className="w-6 h-6 rounded-full bg-[#FFD24D] text-[#0F172A] flex items-center justify-center text-xs font-bold flex-shrink-0">4</span>
             Carica il file qui sotto
           </li>
         </ol>
@@ -378,7 +378,7 @@ const Step3Pagamento = ({ partnerId, onboarding, onComplete }) => {
 
   return (
     <div className="bg-white rounded-xl p-6" style={{ border: "1px solid #ECEDEF" }}>
-      <h2 className="text-lg font-bold text-[#1E2128] mb-4 flex items-center gap-2">
+      <h2 className="text-lg font-bold text-[#0F172A] mb-4 flex items-center gap-2">
         <CreditCard className="w-5 h-5 text-[#FFD24D]" />
         Effettua il pagamento di €2.790
       </h2>
@@ -393,7 +393,7 @@ const Step3Pagamento = ({ partnerId, onboarding, onComplete }) => {
             key={t.id}
             onClick={() => setTab(t.id)}
             className={`flex-1 py-2 px-4 rounded-lg font-medium text-sm transition-all ${
-              tab === t.id ? "bg-[#FFD24D] text-[#1E2128]" : "bg-[#FAFAF7] text-[#5F6572]"
+              tab === t.id ? "bg-[#FFD24D] text-[#0F172A]" : "bg-[#FAFAF7] text-[#5F6572]"
             }`}
           >
             {t.label}
@@ -488,7 +488,7 @@ const Step4Documenti = ({ partnerId, onComplete }) => {
 
   return (
     <div className="bg-white rounded-xl p-6" style={{ border: "1px solid #ECEDEF" }}>
-      <h2 className="text-lg font-bold text-[#1E2128] mb-4 flex items-center gap-2">
+      <h2 className="text-lg font-bold text-[#0F172A] mb-4 flex items-center gap-2">
         <Shield className="w-5 h-5 text-[#FFD24D]" />
         Carica i documenti d'identità
       </h2>
@@ -525,7 +525,7 @@ const Step4Documenti = ({ partnerId, onComplete }) => {
         onClick={handleUpload}
         disabled={!allUploaded || uploading}
         className="w-full py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-        style={{ background: "#FFD24D", color: "#1E2128" }}
+        style={{ background: "#FFD24D", color: "#0F172A" }}
       >
         {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronRight className="w-4 h-4" />}
         Continua
@@ -568,7 +568,7 @@ const Step5Distinta = ({ partnerId, onboarding, onComplete }) => {
 
   return (
     <div className="bg-white rounded-xl p-6" style={{ border: "1px solid #ECEDEF" }}>
-      <h2 className="text-lg font-bold text-[#1E2128] mb-4 flex items-center gap-2">
+      <h2 className="text-lg font-bold text-[#0F172A] mb-4 flex items-center gap-2">
         <Upload className="w-5 h-5 text-[#FFD24D]" />
         Carica la distinta di pagamento
       </h2>
@@ -635,7 +635,7 @@ const InfoRow = ({ label, value, copyable, onCopy, copied, highlight }) => (
   <div className="flex items-center justify-between">
     <span className="text-xs text-[#5F6572]">{label}</span>
     <div className="flex items-center gap-2">
-      <span className={`text-sm font-medium ${highlight ? "text-[#FFD24D]" : "text-[#1E2128]"}`}>{value}</span>
+      <span className={`text-sm font-medium ${highlight ? "text-[#FFD24D]" : "text-[#0F172A]"}`}>{value}</span>
       {copyable && (
         <button onClick={onCopy} className="p-1 hover:bg-[#ECEDEF] rounded">
           {copied ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-[#9CA3AF]" />}

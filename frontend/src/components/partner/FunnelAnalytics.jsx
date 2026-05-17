@@ -96,7 +96,7 @@ export function FunnelAnalytics({ partner }) {
               📊
             </div>
             <div>
-              <h2 className="text-xl font-bold" style={{ color: '#1E2128' }}>
+              <h2 className="text-xl font-bold" style={{ color: '#0F172A' }}>
                 Funnel Analytics
               </h2>
               <p className="text-sm" style={{ color: '#9CA3AF' }}>
@@ -115,7 +115,7 @@ export function FunnelAnalytics({ partner }) {
               onClick={() => loadStats(true)}
               disabled={isRefreshing}
               className="px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all hover:opacity-90 disabled:opacity-50"
-              style={{ background: '#FFD24D', color: '#1E2128' }}
+              style={{ background: '#FFD24D', color: '#0F172A' }}
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               Aggiorna
@@ -140,7 +140,7 @@ export function FunnelAnalytics({ partner }) {
             </div>
             <button 
               className="px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2"
-              style={{ background: '#1E2128', color: 'white' }}
+              style={{ background: '#0F172A', color: 'white' }}
             >
               <Link2 className="w-4 h-4" />
               Connetti
@@ -169,7 +169,7 @@ export function FunnelAnalytics({ partner }) {
               </div>
             </div>
             
-            <div className="text-lg font-bold mb-1" style={{ color: '#1E2128' }}>
+            <div className="text-lg font-bold mb-1" style={{ color: '#0F172A' }}>
               {metric.label}
             </div>
             <div className="text-sm flex items-center gap-1" style={{ color: '#9CA3AF' }}>
@@ -188,7 +188,7 @@ export function FunnelAnalytics({ partner }) {
               <div className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: '#9CA3AF' }}>
                 OGGI
               </div>
-              <div className="text-xl font-black" style={{ color: '#1E2128' }}>
+              <div className="text-xl font-black" style={{ color: '#0F172A' }}>
                 +{stats?.new_contacts_today || 0} <span className="text-sm font-normal" style={{ color: '#9CA3AF' }}>iscritti</span>
               </div>
             </div>
@@ -197,7 +197,7 @@ export function FunnelAnalytics({ partner }) {
               <div className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: '#9CA3AF' }}>
                 SETTIMANA
               </div>
-              <div className="text-xl font-black" style={{ color: '#1E2128' }}>
+              <div className="text-xl font-black" style={{ color: '#0F172A' }}>
                 +{stats?.new_contacts_week || 0} <span className="text-sm font-normal" style={{ color: '#9CA3AF' }}>iscritti</span>
               </div>
             </div>
@@ -206,7 +206,7 @@ export function FunnelAnalytics({ partner }) {
               <div className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: '#9CA3AF' }}>
                 MESE
               </div>
-              <div className="text-xl font-black" style={{ color: '#1E2128' }}>
+              <div className="text-xl font-black" style={{ color: '#0F172A' }}>
                 +{stats?.new_contacts_month || 0} <span className="text-sm font-normal" style={{ color: '#9CA3AF' }}>iscritti</span>
               </div>
             </div>
@@ -226,7 +226,7 @@ export function FunnelAnalytics({ partner }) {
       {/* Tag Distribution (if available) */}
       {stats?.contacts_by_tag && Object.keys(stats.contacts_by_tag).length > 0 && (
         <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <h3 className="text-sm font-bold mb-4" style={{ color: '#1E2128' }}>
+          <h3 className="text-sm font-bold mb-4" style={{ color: '#0F172A' }}>
             Distribuzione per Tag
           </h3>
           <div className="flex flex-wrap gap-2">
@@ -236,7 +236,7 @@ export function FunnelAnalytics({ partner }) {
                 className="px-3 py-1.5 rounded-full text-xs font-bold"
                 style={{ background: '#FAFAF7', color: '#5F6572' }}
               >
-                {tag}: <span style={{ color: '#1E2128' }}>{count}</span>
+                {tag}: <span style={{ color: '#0F172A' }}>{count}</span>
               </span>
             ))}
           </div>

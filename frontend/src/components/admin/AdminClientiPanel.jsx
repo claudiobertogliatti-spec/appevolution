@@ -77,10 +77,10 @@ function ClienteEditModal({ cliente, onClose, onSaved }) {
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.75)" }} onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between p-5" style={{ background: "#1E2128" }}>
+        <div className="flex items-center justify-between p-5" style={{ background: "#0F172A" }}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm"
-              style={{ background: "#FFD24D", color: "#1E2128" }}>
+              style={{ background: "#FFD24D", color: "#0F172A" }}>
               {cliente.nome?.[0]}{cliente.cognome?.[0]}
             </div>
             <div>
@@ -117,7 +117,7 @@ function ClienteEditModal({ cliente, onClose, onSaved }) {
                     <input type="text" value={form[key] || ""}
                       onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
                       className="w-full px-3 py-2.5 rounded-lg text-sm border outline-none focus:ring-2 focus:ring-yellow-400"
-                      style={{ borderColor: "#E5E2DD", color: "#1E2128" }} />
+                      style={{ borderColor: "#E5E2DD", color: "#0F172A" }} />
                   </div>
                 ))}
               </div>
@@ -138,7 +138,7 @@ function ClienteEditModal({ cliente, onClose, onSaved }) {
                     onChange={e => setForm(p => ({ ...p, questionario: { ...p.questionario, [key]: e.target.value } }))}
                     rows={3}
                     className="w-full px-3 py-2.5 rounded-lg text-sm border outline-none focus:ring-2 focus:ring-yellow-400 resize-y"
-                    style={{ borderColor: "#E5E2DD", color: "#1E2128" }}
+                    style={{ borderColor: "#E5E2DD", color: "#0F172A" }}
                   />
                 </div>
               ))}
@@ -173,7 +173,7 @@ function ClienteEditModal({ cliente, onClose, onSaved }) {
               ].map(([key, label]) => (
                 <div key={key} className="flex items-center justify-between p-3 rounded-xl"
                   style={{ background: form[key] ? "#F0FDF4" : "#FAFAF7", border: `1px solid ${form[key] ? "#BBF7D0" : "#F0EDE8"}` }}>
-                  <span className="text-sm font-medium" style={{ color: "#1E2128" }}>{label}</span>
+                  <span className="text-sm font-medium" style={{ color: "#0F172A" }}>{label}</span>
                   <button onClick={() => setForm(p => ({ ...p, [key]: !p[key] }))}
                     className="w-12 h-6 rounded-full relative transition-colors"
                     style={{ background: form[key] ? "#22C55E" : "#D1D5DB" }}>
@@ -190,7 +190,7 @@ function ClienteEditModal({ cliente, onClose, onSaved }) {
                   onChange={e => setForm(p => ({ ...p, note_admin: e.target.value }))}
                   rows={4} placeholder="Note interne su questo cliente..."
                   className="w-full px-3 py-2.5 rounded-lg text-sm border outline-none resize-y"
-                  style={{ borderColor: "#E5E2DD", color: "#1E2128" }} />
+                  style={{ borderColor: "#E5E2DD", color: "#0F172A" }} />
               </div>
             </div>
           )}
@@ -207,7 +207,7 @@ function ClienteEditModal({ cliente, onClose, onSaved }) {
             </button>
             <button onClick={handleSave} disabled={saving}
               className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all"
-              style={{ background: "#FFD24D", color: "#1E2128" }}>
+              style={{ background: "#FFD24D", color: "#0F172A" }}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               {saving ? "Salvataggio..." : "Salva modifiche"}
             </button>
@@ -546,7 +546,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#1E2128]">Gestione Clienti</h1>
+          <h1 className="text-2xl font-bold text-[#0F172A]">Gestione Clienti</h1>
           <p className="text-sm text-[#9CA3AF]">Analisi Strategiche acquistate</p>
         </div>
         <button 
@@ -573,7 +573,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
                 <stat.icon className="w-5 h-5" style={{ color: stat.color }} />
               </div>
               <div>
-                <div className="text-2xl font-bold text-[#1E2128]">{stat.value}</div>
+                <div className="text-2xl font-bold text-[#0F172A]">{stat.value}</div>
                 <div className="text-xs text-[#9CA3AF]">{stat.label}</div>
               </div>
             </div>
@@ -627,7 +627,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
           ) : filteredClienti.length === 0 ? (
             <div className="bg-white rounded-2xl border border-[#ECEDEF] p-12 text-center">
               <Users className="w-12 h-12 text-[#9CA3AF] mx-auto mb-4" />
-              <p className="font-semibold text-[#1E2128]">Nessun cliente trovato</p>
+              <p className="font-semibold text-[#0F172A]">Nessun cliente trovato</p>
               <p className="text-sm text-[#9CA3AF]">I clienti appariranno qui dopo l'acquisto dell'Analisi</p>
             </div>
           ) : (
@@ -657,7 +657,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
                       {/* Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-[#1E2128]">
+                          <span className="font-bold text-[#0F172A]">
                             {cliente.nome} {cliente.cognome}
                           </span>
                           {cliente.has_paid && (
@@ -745,7 +745,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
                     </span>
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-[#1E2128]">
+                    <h3 className="text-lg font-bold text-[#0F172A]">
                       {selectedCliente.nome} {selectedCliente.cognome}
                     </h3>
                     <p className="text-sm text-[#9CA3AF]">
@@ -757,7 +757,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
                   <button
                     onClick={() => setShowEditModal(true)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                    style={{ background: "#FFD24D", color: "#1E2128" }}
+                    style={{ background: "#FFD24D", color: "#0F172A" }}
                     title="Modifica dati cliente"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
@@ -794,7 +794,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
                   </div>
                   <div className="flex items-center gap-3 text-sm">
                     <Phone className="w-4 h-4 text-[#9CA3AF]" />
-                    <span className="text-[#1E2128]">{selectedCliente.telefono}</span>
+                    <span className="text-[#0F172A]">{selectedCliente.telefono}</span>
                   </div>
                 </div>
               </div>
@@ -866,7 +866,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
                         <div className="text-xs font-bold text-[#9CA3AF] mb-1">
                           {QUESTION_LABELS[key] || key}
                         </div>
-                        <div className="text-sm text-[#1E2128]">{value}</div>
+                        <div className="text-sm text-[#0F172A]">{value}</div>
                       </div>
                     ))}
                   </div>
@@ -923,13 +923,13 @@ export function AdminClientiPanel({ onViewAsCliente }) {
                 <Trash2 className="w-5 h-5 text-red-500" />
               </div>
               <div>
-                <h3 className="font-black text-base text-[#1E2128]">Elimina Cliente</h3>
+                <h3 className="font-black text-base text-[#0F172A]">Elimina Cliente</h3>
                 <p className="text-xs text-[#9CA3AF]">Operazione irreversibile</p>
               </div>
             </div>
             <div className="px-6 py-5 space-y-3">
               <p className="text-sm text-[#5F6572]">
-                Stai per eliminare <strong className="text-[#1E2128]">{deleteConfirm.nome} {deleteConfirm.cognome}</strong> ({deleteConfirm.email}) e tutti i dati collegati.
+                Stai per eliminare <strong className="text-[#0F172A]">{deleteConfirm.nome} {deleteConfirm.cognome}</strong> ({deleteConfirm.email}) e tutti i dati collegati.
               </p>
               <ul className="space-y-1 text-xs text-[#9CA3AF]">
                 {["Account utente", "Questionario", "Analisi strategica", "Proposta e contratto", "Pagamenti"].map(item => (
@@ -977,7 +977,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
             {/* Modal Header */}
             <div className="p-6 border-b border-[#ECEDEF] flex items-center justify-between bg-gradient-to-r from-[#FFD24D]/10 to-transparent">
               <div>
-                <h2 className="text-xl font-bold text-[#1E2128]">
+                <h2 className="text-xl font-bold text-[#0F172A]">
                   Analisi Strategica - {selectedCliente?.nome} {selectedCliente?.cognome}
                 </h2>
                 <p className="text-sm text-[#9CA3AF]">Documento generato con AI</p>
@@ -1014,13 +1014,13 @@ export function AdminClientiPanel({ onViewAsCliente }) {
                 {analysis.split('\n').map((line, i) => {
                   // Handle headers
                   if (line.startsWith('# ')) {
-                    return <h1 key={i} className="text-2xl font-bold text-[#1E2128] mt-6 mb-4">{line.slice(2)}</h1>;
+                    return <h1 key={i} className="text-2xl font-bold text-[#0F172A] mt-6 mb-4">{line.slice(2)}</h1>;
                   }
                   if (line.startsWith('## ')) {
-                    return <h2 key={i} className="text-xl font-bold text-[#1E2128] mt-6 mb-3 border-b border-[#ECEDEF] pb-2">{line.slice(3)}</h2>;
+                    return <h2 key={i} className="text-xl font-bold text-[#0F172A] mt-6 mb-3 border-b border-[#ECEDEF] pb-2">{line.slice(3)}</h2>;
                   }
                   if (line.startsWith('### ')) {
-                    return <h3 key={i} className="text-lg font-bold text-[#1E2128] mt-4 mb-2">{line.slice(4)}</h3>;
+                    return <h3 key={i} className="text-lg font-bold text-[#0F172A] mt-4 mb-2">{line.slice(4)}</h3>;
                   }
                   // Handle bold
                   if (line.includes('**')) {
@@ -1028,7 +1028,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
                     return (
                       <p key={i} className="text-[#5F6572] mb-2">
                         {parts.map((part, j) => 
-                          j % 2 === 1 ? <strong key={j} className="text-[#1E2128]">{part}</strong> : part
+                          j % 2 === 1 ? <strong key={j} className="text-[#0F172A]">{part}</strong> : part
                         )}
                       </p>
                     );
@@ -1080,7 +1080,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
             {/* Header */}
             <div className="p-6 border-b border-[#ECEDEF] flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-[#1E2128]">Risposte Questionario</h2>
+                <h2 className="text-xl font-bold text-[#0F172A]">Risposte Questionario</h2>
                 <p className="text-sm text-[#9CA3AF]">{selectedCliente.nome} {selectedCliente.cognome}</p>
               </div>
               <button onClick={() => setShowQuestionarioModal(false)} className="p-2 hover:bg-[#FAFAF7] rounded-lg">
@@ -1101,7 +1101,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
                         </div>
                       )}
                       <div className="text-xs font-bold text-[#9CA3AF] mb-1">{label}</div>
-                      <div className="text-sm text-[#1E2128]">{selectedCliente.questionario.risposte[key] || "—"}</div>
+                      <div className="text-sm text-[#0F172A]">{selectedCliente.questionario.risposte[key] || "—"}</div>
                     </div>
                   ))}
                 </div>
@@ -1114,7 +1114,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
 
               {/* Note Claudio */}
               <div className="mt-6 pt-6 border-t border-[#ECEDEF]">
-                <label className="block text-sm font-bold text-[#1E2128] mb-2">Note interne di Claudio</label>
+                <label className="block text-sm font-bold text-[#0F172A] mb-2">Note interne di Claudio</label>
                 <textarea
                   value={notesClaudio || selectedCliente.call?.note_claudio || ""}
                   onChange={(e) => setNotesClaudio(e.target.value)}
@@ -1125,7 +1125,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
                 <button
                   onClick={saveNotesClaudio}
                   disabled={updating}
-                  className="mt-2 px-4 py-2 rounded-lg bg-[#1E2128] text-white text-sm font-bold hover:bg-black transition-colors"
+                  className="mt-2 px-4 py-2 rounded-lg bg-[#0F172A] text-white text-sm font-bold hover:bg-black transition-colors"
                 >
                   Salva note
                 </button>
@@ -1143,7 +1143,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
               </button>
               <button
                 onClick={() => { setShowQuestionarioModal(false); setShowFissaCallModal(true); }}
-                className="flex-1 py-2.5 rounded-xl bg-[#FFD24D] text-[#1E2128] font-bold text-sm hover:bg-[#e0b115] transition-colors"
+                className="flex-1 py-2.5 rounded-xl bg-[#FFD24D] text-[#0F172A] font-bold text-sm hover:bg-[#e0b115] transition-colors"
               >
                 📅 Fissa Call
               </button>
@@ -1165,14 +1165,14 @@ export function AdminClientiPanel({ onViewAsCliente }) {
           <div className="bg-white rounded-2xl w-full max-w-md">
             {/* Header */}
             <div className="p-6 border-b border-[#ECEDEF]">
-              <h2 className="text-xl font-bold text-[#1E2128]">Fissa Call</h2>
+              <h2 className="text-xl font-bold text-[#0F172A]">Fissa Call</h2>
               <p className="text-sm text-[#9CA3AF]">Con {selectedCliente.nome} {selectedCliente.cognome}</p>
             </div>
 
             {/* Content */}
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-bold text-[#1E2128] mb-2">Data e ora</label>
+                <label className="block text-sm font-bold text-[#0F172A] mb-2">Data e ora</label>
                 <input
                   type="datetime-local"
                   value={dataCall}
@@ -1181,7 +1181,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-[#1E2128] mb-2">Note (opzionale)</label>
+                <label className="block text-sm font-bold text-[#0F172A] mb-2">Note (opzionale)</label>
                 <textarea
                   value={notesClaudio}
                   onChange={(e) => setNotesClaudio(e.target.value)}
@@ -1203,7 +1203,7 @@ export function AdminClientiPanel({ onViewAsCliente }) {
               <button
                 onClick={fissaCall}
                 disabled={!dataCall || updating}
-                className="flex-1 py-2.5 rounded-xl bg-[#FFD24D] text-[#1E2128] font-bold text-sm hover:bg-[#e0b115] transition-colors disabled:opacity-50"
+                className="flex-1 py-2.5 rounded-xl bg-[#FFD24D] text-[#0F172A] font-bold text-sm hover:bg-[#e0b115] transition-colors disabled:opacity-50"
               >
                 {updating ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Conferma Call"}
               </button>

@@ -3966,7 +3966,7 @@ async def scarica_analisi_pdf(user_id: str):
         fontSize=24,
         spaceAfter=30,
         alignment=TA_CENTER,
-        textColor=colors.HexColor('#1E2128')
+        textColor=colors.HexColor('#0F172A')
     ))
     styles.add(ParagraphStyle(
         name='CustomHeading',
@@ -4067,7 +4067,7 @@ async def send_systeme_instructions_email(partner_id: str, systeme_email: str = 
     html_content = f"""
     <html>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
-        <div style="background: linear-gradient(135deg, #1E2128 0%, #2D3038 100%); padding: 30px; text-align: center;">
+        <div style="background: linear-gradient(135deg, #0F172A 0%, #2D3038 100%); padding: 30px; text-align: center;">
             <h1 style="color: #F2C418; margin: 0;">Piattaforma Systeme.io</h1>
         </div>
         
@@ -4077,14 +4077,14 @@ async def send_systeme_instructions_email(partner_id: str, systeme_email: str = 
             <p>Il tuo account sulla piattaforma <strong>Systeme.io</strong> è stato creato. Ecco le tue credenziali:</p>
             
             <div style="background: #FAFAF7; padding: 20px; border-radius: 12px; margin: 20px 0;">
-                <h3 style="color: #1E2128; margin-top: 0;">🔐 Credenziali Systeme.io</h3>
+                <h3 style="color: #0F172A; margin-top: 0;">🔐 Credenziali Systeme.io</h3>
                 <p><strong>URL:</strong> <a href="https://systeme.io/dashboard" style="color: #F2C418;">https://systeme.io/dashboard</a></p>
                 <p><strong>Email:</strong> {systeme_email or email}</p>
                 <p><strong>Password:</strong> {systeme_password or "[Ti verrà comunicata separatamente]"}</p>
             </div>
             
             <div style="background: #FFF8DC; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #F2C418;">
-                <h3 style="color: #1E2128; margin-top: 0;">📖 Cosa è Systeme.io?</h3>
+                <h3 style="color: #0F172A; margin-top: 0;">📖 Cosa è Systeme.io?</h3>
                 <p>Systeme.io è la piattaforma dove:</p>
                 <ul style="margin: 0; padding-left: 20px;">
                     <li>Pubblicherai il tuo <strong>videocorso</strong></li>
@@ -4095,7 +4095,7 @@ async def send_systeme_instructions_email(partner_id: str, systeme_email: str = 
             </div>
             
             <div style="background: #E8F5E9; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #4CAF50;">
-                <h3 style="color: #1E2128; margin-top: 0;">✅ Prossimi Passi</h3>
+                <h3 style="color: #0F172A; margin-top: 0;">✅ Prossimi Passi</h3>
                 <ol style="margin: 0; padding-left: 20px;">
                     <li>Accedi a Systeme.io con le credenziali sopra</li>
                     <li>Esplora la dashboard (non modificare nulla per ora)</li>
@@ -4657,7 +4657,7 @@ async def get_partner_hub(partner_id: str):
         "logo": None,
         "primaryColor": "#2C5F8A",
         "accentColor": "#F2C418",
-        "textColor": "#1E2128",
+        "textColor": "#0F172A",
         "bgColor": "#FAFAF7",
         "fontPrimary": "Nunito Bold",
         "fontSecondary": "Nunito Regular",
@@ -5401,7 +5401,7 @@ async def get_partner_contract_pdf(partner_id: str):
         'CustomTitle',
         parent=styles['Title'],
         fontSize=24,
-        textColor=HexColor('#1E2128'),
+        textColor=HexColor('#0F172A'),
         spaceAfter=12,
         alignment=TA_CENTER
     )
@@ -5422,7 +5422,7 @@ async def get_partner_contract_pdf(partner_id: str):
         'ArticleTitle',
         parent=styles['Heading2'],
         fontSize=14,
-        textColor=HexColor('#1E2128'),
+        textColor=HexColor('#0F172A'),
         spaceBefore=16,
         spaceAfter=8,
         leftIndent=0

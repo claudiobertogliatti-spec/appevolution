@@ -168,7 +168,7 @@ export function AgentDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black flex items-center gap-3" style={{ color: '#1E2128' }}>
+          <h1 className="text-2xl font-black flex items-center gap-3" style={{ color: '#0F172A' }}>
             <Bot className="w-8 h-8" />
             Agent Hub
           </h1>
@@ -181,7 +181,7 @@ export function AgentDashboard() {
           onClick={() => { loadData(true); loadDiscoveryLeads(); }}
           disabled={isRefreshing}
           className="px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all hover:opacity-90"
-          style={{ background: '#FFD24D', color: '#1E2128' }}
+          style={{ background: '#FFD24D', color: '#0F172A' }}
         >
           <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           Aggiorna
@@ -198,7 +198,7 @@ export function AgentDashboard() {
               : "hover:bg-gray-100"
           }`}
           style={{ 
-            color: activeTab === "leads" ? '#1E2128' : '#9CA3AF',
+            color: activeTab === "leads" ? '#0F172A' : '#9CA3AF',
             borderBottom: activeTab === "leads" ? '3px solid #FFD24D' : 'none'
           }}
         >
@@ -213,7 +213,7 @@ export function AgentDashboard() {
               : "hover:bg-gray-100"
           }`}
           style={{ 
-            color: activeTab === "agents" ? '#1E2128' : '#9CA3AF',
+            color: activeTab === "agents" ? '#0F172A' : '#9CA3AF',
             borderBottom: activeTab === "agents" ? '3px solid #FFD24D' : 'none'
           }}
         >
@@ -230,7 +230,7 @@ export function AgentDashboard() {
           <div className="p-5 border-b" style={{ borderColor: '#E5E7EB' }}>
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="font-bold text-lg flex items-center gap-2" style={{ color: '#1E2128' }}>
+                <h2 className="font-bold text-lg flex items-center gap-2" style={{ color: '#0F172A' }}>
                   <Target className="w-5 h-5 text-orange-500" />
                   Discovery Leads - Manager Coach
                 </h2>
@@ -396,7 +396,7 @@ export function AgentDashboard() {
                             <div>
                               <div 
                                 className="font-bold text-sm hover:underline"
-                                style={{ color: '#1E2128' }}
+                                style={{ color: '#0F172A' }}
                               >
                                 {lead.display_name}
                               </div>
@@ -462,7 +462,7 @@ export function AgentDashboard() {
                               className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-wait"
                               style={{ 
                                 background: lead.website_analysis && !lead.website_analysis.error ? '#EAFAF1' : '#FFD24D',
-                                color: lead.website_analysis && !lead.website_analysis.error ? '#10B981' : '#1E2128'
+                                color: lead.website_analysis && !lead.website_analysis.error ? '#10B981' : '#0F172A'
                               }}
                               data-testid={`analyze-btn-${lead.id}`}
                             >
@@ -513,7 +513,7 @@ export function AgentDashboard() {
       {summary && (
         <div className="bg-white rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-bold text-lg" style={{ color: '#1E2128' }}>
+            <h2 className="font-bold text-lg" style={{ color: '#0F172A' }}>
               📊 Business Summary
             </h2>
             <div className="flex items-center gap-2">
@@ -524,7 +524,7 @@ export function AgentDashboard() {
           
           <div className="grid grid-cols-3 gap-4">
             <div className="p-4 rounded-xl" style={{ background: '#FAFAF7' }}>
-              <div className="text-3xl font-black" style={{ color: '#1E2128' }}>
+              <div className="text-3xl font-black" style={{ color: '#0F172A' }}>
                 {summary.summary?.total_partners || 0}
               </div>
               <div className="text-xs" style={{ color: '#9CA3AF' }}>Partner Attivi</div>
@@ -536,7 +536,7 @@ export function AgentDashboard() {
               <div className="text-xs" style={{ color: '#10B981' }}>MRR Mensile</div>
             </div>
             <div className="p-4 rounded-xl" style={{ background: '#FFF8DC' }}>
-              <div className="text-3xl font-black" style={{ color: '#1E2128' }}>
+              <div className="text-3xl font-black" style={{ color: '#0F172A' }}>
                 €{summary.summary?.avg_ltv || "2.580"}
               </div>
               <div className="text-xs" style={{ color: '#9CA3AF' }}>LTV Medio</div>
@@ -551,7 +551,7 @@ export function AgentDashboard() {
           {/* Alerts */}
           {summary.alerts?.length > 0 && (
             <div className="bg-white rounded-2xl p-5 shadow-sm">
-              <h3 className="font-bold mb-3 flex items-center gap-2" style={{ color: '#1E2128' }}>
+              <h3 className="font-bold mb-3 flex items-center gap-2" style={{ color: '#0F172A' }}>
                 <AlertTriangle className="w-5 h-5 text-orange-500" />
                 Alert Attivi
               </h3>
@@ -569,7 +569,7 @@ export function AgentDashboard() {
           {/* Opportunities */}
           {summary.opportunities?.length > 0 && (
             <div className="bg-white rounded-2xl p-5 shadow-sm">
-              <h3 className="font-bold mb-3 flex items-center gap-2" style={{ color: '#1E2128' }}>
+              <h3 className="font-bold mb-3 flex items-center gap-2" style={{ color: '#0F172A' }}>
                 <TrendingUp className="w-5 h-5 text-green-500" />
                 Opportunità
               </h3>
@@ -590,7 +590,7 @@ export function AgentDashboard() {
 
       {/* Agent Grid */}
       <div>
-        <h2 className="font-bold text-lg mb-4" style={{ color: '#1E2128' }}>
+        <h2 className="font-bold text-lg mb-4" style={{ color: '#0F172A' }}>
           🤖 Team Agenti ({agents.length})
         </h2>
         
@@ -615,7 +615,7 @@ export function AgentDashboard() {
                       {config.emoji}
                     </div>
                     <div>
-                      <div className="font-bold" style={{ color: '#1E2128' }}>{agent.id}</div>
+                      <div className="font-bold" style={{ color: '#0F172A' }}>{agent.id}</div>
                       <div className="text-xs" style={{ color: '#9CA3AF' }}>{agent.info?.name}</div>
                     </div>
                   </div>
@@ -673,7 +673,7 @@ export function AgentDashboard() {
                     {AGENT_CONFIG[selectedAgent.id]?.emoji}
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold" style={{ color: '#1E2128' }}>
+                    <h3 className="text-xl font-bold" style={{ color: '#0F172A' }}>
                       {selectedAgent.id}
                     </h3>
                     <p className="text-sm" style={{ color: '#9CA3AF' }}>
@@ -703,7 +703,7 @@ export function AgentDashboard() {
               {/* Metrics */}
               {selectedAgent.metrics && (
                 <div>
-                  <h4 className="font-bold mb-3" style={{ color: '#1E2128' }}>Metriche</h4>
+                  <h4 className="font-bold mb-3" style={{ color: '#0F172A' }}>Metriche</h4>
                   <div className="space-y-2">
                     {Object.entries(selectedAgent.metrics).map(([key, value]) => (
                       <div key={key} className="flex items-center justify-between p-3 rounded-lg"
@@ -711,7 +711,7 @@ export function AgentDashboard() {
                         <span className="text-sm" style={{ color: '#5F6572' }}>
                           {key.replace(/_/g, ' ').toUpperCase()}
                         </span>
-                        <span className="font-bold" style={{ color: '#1E2128' }}>
+                        <span className="font-bold" style={{ color: '#0F172A' }}>
                           {typeof value === 'number' ? value.toLocaleString() : value}
                         </span>
                       </div>
@@ -732,7 +732,7 @@ export function AgentDashboard() {
                       });
                   }}
                   className="w-full py-3 rounded-xl font-bold text-white"
-                  style={{ background: AGENT_CONFIG[selectedAgent.id]?.color || '#1E2128' }}
+                  style={{ background: AGENT_CONFIG[selectedAgent.id]?.color || '#0F172A' }}
                 >
                   {selectedAgent.status === 'ACTIVE' ? '✓ Agente Attivo' : 'Attiva Agente'}
                 </button>
@@ -766,7 +766,7 @@ export function AgentDashboard() {
                   {selectedLead.score_total >= 70 ? '⭐' : '👤'}
                 </div>
                 <div>
-                  <h2 className="text-xl font-black" style={{ color: '#1E2128' }}>
+                  <h2 className="text-xl font-black" style={{ color: '#0F172A' }}>
                     {selectedLead.display_name}
                   </h2>
                   <div className="flex items-center gap-2 mt-1">
@@ -806,7 +806,7 @@ export function AgentDashboard() {
               {/* Bio */}
               <div>
                 <h3 className="text-xs font-bold uppercase mb-2" style={{ color: '#9CA3AF' }}>Bio</h3>
-                <p className="text-sm leading-relaxed" style={{ color: '#1E2128' }}>
+                <p className="text-sm leading-relaxed" style={{ color: '#0F172A' }}>
                   {selectedLead.bio || 'Nessuna bio disponibile'}
                 </p>
               </div>
@@ -816,7 +816,7 @@ export function AgentDashboard() {
                 <h3 className="text-xs font-bold uppercase mb-2" style={{ color: '#9CA3AF' }}>Focus / Nicchia</h3>
                 <span 
                   className="inline-block px-3 py-1.5 rounded-lg text-sm font-medium"
-                  style={{ background: '#F3F4F6', color: '#1E2128' }}
+                  style={{ background: '#F3F4F6', color: '#0F172A' }}
                 >
                   {selectedLead.niche_detected?.replace(/_/g, ' ') || 'Non rilevato'}
                 </span>
@@ -852,7 +852,7 @@ export function AgentDashboard() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:opacity-80 transition-opacity"
-                      style={{ background: '#F3F4F6', color: '#1E2128' }}
+                      style={{ background: '#F3F4F6', color: '#0F172A' }}
                     >
                       <Globe className="w-4 h-4" />
                       Sito Web
@@ -867,19 +867,19 @@ export function AgentDashboard() {
                 <h3 className="text-xs font-bold uppercase mb-3" style={{ color: '#9CA3AF' }}>Statistiche</h3>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="p-3 rounded-xl text-center" style={{ background: '#FAFAF7' }}>
-                    <div className="text-lg font-black" style={{ color: '#1E2128' }}>
+                    <div className="text-lg font-black" style={{ color: '#0F172A' }}>
                       {selectedLead.followers_count?.toLocaleString() || '—'}
                     </div>
                     <div className="text-xs" style={{ color: '#9CA3AF' }}>Followers</div>
                   </div>
                   <div className="p-3 rounded-xl text-center" style={{ background: '#FAFAF7' }}>
-                    <div className="text-lg font-black" style={{ color: '#1E2128' }}>
+                    <div className="text-lg font-black" style={{ color: '#0F172A' }}>
                       {selectedLead.target_fit_level || '—'}
                     </div>
                     <div className="text-xs" style={{ color: '#9CA3AF' }}>Target Fit</div>
                   </div>
                   <div className="p-3 rounded-xl text-center" style={{ background: '#FAFAF7' }}>
-                    <div className="text-lg font-black" style={{ color: '#1E2128' }}>
+                    <div className="text-lg font-black" style={{ color: '#0F172A' }}>
                       {selectedLead.status || '—'}
                     </div>
                     <div className="text-xs" style={{ color: '#9CA3AF' }}>Status</div>
@@ -938,7 +938,7 @@ export function AgentDashboard() {
                   onClick={() => { handleAnalyzeLead(selectedLead.id); }}
                   disabled={analyzingLead === selectedLead.id}
                   className="flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
-                  style={{ background: '#FFD24D', color: '#1E2128' }}
+                  style={{ background: '#FFD24D', color: '#0F172A' }}
                 >
                   {analyzingLead === selectedLead.id ? (
                     <>
@@ -995,7 +995,7 @@ export function AgentDashboard() {
                 <Trash2 className="w-6 h-6" style={{ color: '#DC2626' }} />
               </div>
               <div>
-                <h2 className="text-lg font-black" style={{ color: '#1E2128' }}>
+                <h2 className="text-lg font-black" style={{ color: '#0F172A' }}>
                   Conferma Eliminazione
                 </h2>
                 <p className="text-sm" style={{ color: '#6B7280' }}>
@@ -1008,10 +1008,10 @@ export function AgentDashboard() {
               className="p-4 rounded-xl mb-6"
               style={{ background: '#F9FAFB', border: '1px solid #E5E7EB' }}
             >
-              <p className="text-sm" style={{ color: '#1E2128' }}>
+              <p className="text-sm" style={{ color: '#0F172A' }}>
                 Stai per eliminare il lead:
               </p>
-              <p className="font-bold text-base mt-1" style={{ color: '#1E2128' }}>
+              <p className="font-bold text-base mt-1" style={{ color: '#0F172A' }}>
                 {confirmDeleteLead.display_name}
               </p>
               <p className="text-xs mt-1" style={{ color: '#9CA3AF' }}>

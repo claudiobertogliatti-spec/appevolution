@@ -66,10 +66,10 @@ export function AnalisiInPreparazione({ user, onLogout }) {
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#FFD24D" }}>
-              <span className="text-lg font-black" style={{ color: "#1E2128" }}>E</span>
+              <span className="text-lg font-black" style={{ color: "#0F172A" }}>E</span>
             </div>
             <div>
-              <span className="font-black text-lg" style={{ color: "#1E2128" }}>
+              <span className="font-black text-lg" style={{ color: "#0F172A" }}>
                 EVOLUTION <span style={{ color: "#FFD24D" }}>PRO</span>
               </span>
             </div>
@@ -101,14 +101,14 @@ export function AnalisiInPreparazione({ user, onLogout }) {
                     className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${step.status === "pending" ? "opacity-40" : ""}`}
                     style={{
                       background: step.status === "completed" ? "#22C55E" : step.status === "active" ? "#FFD24D" : "#ECEDEF",
-                      color: step.status === "pending" ? "#9CA3AF" : "#1E2128",
+                      color: step.status === "pending" ? "#9CA3AF" : "#0F172A",
                     }}
                   >
                     {step.status === "completed" ? <CheckCircle className="w-5 h-5" /> : step.id}
                   </div>
                   <span
                     className={`mt-2 text-sm font-medium text-center ${step.status === "pending" ? "opacity-40" : ""}`}
-                    style={{ color: step.status === "pending" ? "#9CA3AF" : "#1E2128" }}
+                    style={{ color: step.status === "pending" ? "#9CA3AF" : "#0F172A" }}
                   >
                     {step.label}
                   </span>
@@ -132,12 +132,12 @@ export function AnalisiInPreparazione({ user, onLogout }) {
             <CheckCircle className="w-4 h-4" />
             Pagamento completato
           </div>
-          <h1 className="text-3xl font-black mb-4" style={{ color: "#1E2128" }} data-testid="page-title">
+          <h1 className="text-3xl font-black mb-4" style={{ color: "#0F172A" }} data-testid="page-title">
             Analisi Strategica attivata con successo
           </h1>
           <div className="text-lg max-w-2xl mx-auto" style={{ color: "#5F6572" }}>
             <p className="mb-2">Grazie per aver attivato la tua Analisi Strategica.</p>
-            <p>Il team Evolution PRO sta analizzando le informazioni che hai inserito nel questionario per preparare il tuo <strong style={{ color: "#1E2128" }}>report strategico</strong>.</p>
+            <p>Il team Evolution PRO sta analizzando le informazioni che hai inserito nel questionario per preparare il tuo <strong style={{ color: "#0F172A" }}>report strategico</strong>.</p>
           </div>
         </div>
 
@@ -146,7 +146,7 @@ export function AnalisiInPreparazione({ user, onLogout }) {
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#FFD24D15" }}>
               <ClipboardList className="w-5 h-5" style={{ color: "#C4990A" }} />
             </div>
-            <h2 className="text-lg font-bold" style={{ color: "#1E2128" }}>
+            <h2 className="text-lg font-bold" style={{ color: "#0F172A" }}>
               Cosa succede adesso
             </h2>
           </div>
@@ -174,7 +174,7 @@ export function AnalisiInPreparazione({ user, onLogout }) {
               <Calendar className="w-6 h-6" style={{ color: "#C4990A" }} />
             </div>
             <div className="flex-1">
-              <h3 className="font-bold mb-1" style={{ color: "#1E2128" }}>
+              <h3 className="font-bold mb-1" style={{ color: "#0F172A" }}>
                 Prenota la tua call strategica
               </h3>
               <p className="text-sm mb-4" style={{ color: "#5F6572" }}>
@@ -183,7 +183,7 @@ export function AnalisiInPreparazione({ user, onLogout }) {
               <button
                 onClick={() => window.open("https://calendar.app.google/SzqmVraMNxYvF9CF7", "_blank")}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all hover:opacity-90 hover:scale-105"
-                style={{ background: "#FFD24D", color: "#1E2128" }}
+                style={{ background: "#FFD24D", color: "#0F172A" }}
                 data-testid="prenota-call-btn"
               >
                 Prenota la tua call strategica
@@ -199,13 +199,13 @@ export function AnalisiInPreparazione({ user, onLogout }) {
               <Video className="w-5 h-5" style={{ color: "#C4990A" }} />
             </div>
             <div>
-              <h2 className="text-lg font-bold" style={{ color: "#1E2128" }}>
+              <h2 className="text-lg font-bold" style={{ color: "#0F172A" }}>
                 Un messaggio di benvenuto
               </h2>
             </div>
           </div>
 
-          <div className="rounded-2xl overflow-hidden" style={{ background: "#1E2128" }}>
+          <div className="rounded-2xl overflow-hidden" style={{ background: "#0F172A" }}>
             <div className="relative" style={{ aspectRatio: "16/9" }}>
               {!videoPlaying ? (
                 <div
@@ -224,7 +224,7 @@ export function AnalisiInPreparazione({ user, onLogout }) {
                   </div>
                   <div className="relative z-10 text-center">
                     <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform shadow-2xl" style={{ background: "#FFD24D" }}>
-                      <PlayCircle className="w-10 h-10" style={{ color: "#1E2128" }} />
+                      <PlayCircle className="w-10 h-10" style={{ color: "#0F172A" }} />
                     </div>
                     <span className="text-white font-bold text-lg">Guarda il video</span>
                   </div>
@@ -251,11 +251,11 @@ export function AnalisiInPreparazione({ user, onLogout }) {
 
         <div className="mb-8">
           <div className="text-center mb-6">
-            <h2 className="text-xl font-bold mb-2" style={{ color: "#1E2128" }}>
+            <h2 className="text-xl font-bold mb-2" style={{ color: "#0F172A" }}>
               Nel frattempo puoi iniziare da qui
             </h2>
             <p className="text-sm" style={{ color: "#5F6572" }}>
-              Mini corso gratuito: <strong style={{ color: "#1E2128" }}>Come creare un videocorso che vende davvero.</strong>
+              Mini corso gratuito: <strong style={{ color: "#0F172A" }}>Come creare un videocorso che vende davvero.</strong>
             </p>
           </div>
 
@@ -263,10 +263,10 @@ export function AnalisiInPreparazione({ user, onLogout }) {
             <div className="p-5" style={{ background: "#FAFAF7", borderBottom: "1px solid #ECEDEF" }}>
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: "#FFD24D" }}>
-                  <BookOpen className="w-6 h-6" style={{ color: "#1E2128" }} />
+                  <BookOpen className="w-6 h-6" style={{ color: "#0F172A" }} />
                 </div>
                 <div>
-                  <h3 className="font-bold" style={{ color: "#1E2128" }}>
+                  <h3 className="font-bold" style={{ color: "#0F172A" }}>
                     7 Moduli Gratuiti
                   </h3>
                   <p className="text-sm" style={{ color: "#5F6572" }}>
@@ -290,7 +290,7 @@ export function AnalisiInPreparazione({ user, onLogout }) {
                       className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors"
                       style={{
                         background: selectedModule === modulo.id ? "#FFD24D" : "#FFF8DC",
-                        color: selectedModule === modulo.id ? "#1E2128" : "#C4990A",
+                        color: selectedModule === modulo.id ? "#0F172A" : "#C4990A",
                       }}
                     >
                       <IconComponent className="w-5 h-5" />
@@ -300,7 +300,7 @@ export function AnalisiInPreparazione({ user, onLogout }) {
                         <span className="text-xs font-bold px-2 py-0.5 rounded" style={{ background: "#ECEDEF", color: "#5F6572" }}>
                           {modulo.id}
                         </span>
-                        <h4 className="font-medium text-sm group-hover:text-[#C4990A] transition-colors" style={{ color: "#1E2128" }}>
+                        <h4 className="font-medium text-sm group-hover:text-[#C4990A] transition-colors" style={{ color: "#0F172A" }}>
                           {modulo.titolo}
                         </h4>
                       </div>
@@ -316,10 +316,10 @@ export function AnalisiInPreparazione({ user, onLogout }) {
           </div>
         </div>
 
-        <div className="rounded-2xl p-6" style={{ background: "#1E2128" }}>
+        <div className="rounded-2xl p-6" style={{ background: "#0F172A" }}>
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#FFD24D" }}>
-              <Calendar className="w-5 h-5" style={{ color: "#1E2128" }} />
+              <Calendar className="w-5 h-5" style={{ color: "#0F172A" }} />
             </div>
             <h2 className="text-lg font-bold" style={{ color: "#FFFFFF" }}>
               Come prepararti alla call strategica

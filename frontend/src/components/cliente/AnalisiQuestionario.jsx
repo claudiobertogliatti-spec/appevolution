@@ -52,7 +52,7 @@ export function AnalisiQuestionario({ userData, onComplete, onBack, isProcessing
             <question.icon className="w-7 h-7 text-[#FFD24D]" />
           </div>
 
-          <h2 className="text-xl md:text-2xl font-bold text-[#1E2128] mb-6">{question.question}</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-[#0F172A] mb-6">{question.question}</h2>
 
           <div className="mb-8">
             {question.type === "textarea" && (
@@ -75,7 +75,7 @@ export function AnalisiQuestionario({ userData, onComplete, onBack, isProcessing
                       style={{ borderColor: currentAnswer === option ? '#FFD24D' : '#9CA3AF', background: currentAnswer === option ? '#FFD24D' : 'transparent' }}>
                       {currentAnswer === option && <Check className="w-3 h-3 text-black" />}
                     </div>
-                    <span className="text-sm text-[#1E2128]">{option}</span>
+                    <span className="text-sm text-[#0F172A]">{option}</span>
                   </button>
                 ))}
               </div>
@@ -99,7 +99,7 @@ export function AnalisiQuestionario({ userData, onComplete, onBack, isProcessing
           </div>
 
           <div className="flex justify-between">
-            <button onClick={handlePrev} className="px-6 py-3 rounded-xl font-semibold text-[#5F6572] hover:text-[#1E2128] transition-colors flex items-center gap-2">
+            <button onClick={handlePrev} className="px-6 py-3 rounded-xl font-semibold text-[#5F6572] hover:text-[#0F172A] transition-colors flex items-center gap-2">
               <ArrowLeft className="w-4 h-4" />Indietro
             </button>
 

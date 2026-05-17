@@ -62,7 +62,7 @@ function LegalPagesPaywall({ partner, onBack, isAdmin, onAdminBypass }) {
           </button>
         )}
 
-        <div className="rounded-3xl overflow-hidden mb-5" style={{ background: "#1E2128", color: "white" }}>
+        <div className="rounded-3xl overflow-hidden mb-5" style={{ background: "#0F172A", color: "white" }}>
           <div className="p-7">
             <div className="flex items-center gap-2 mb-3">
               <Lock className="w-5 h-5" style={{ color: "#FFD24D" }} />
@@ -94,7 +94,7 @@ function LegalPagesPaywall({ partner, onBack, isAdmin, onAdminBypass }) {
                   <item.icon className="w-4 h-4" style={{ color: "#92700C" }} />
                 </div>
                 <div className="flex-1">
-                  <div className="text-sm font-bold" style={{ color: "#1E2128" }}>{item.label}</div>
+                  <div className="text-sm font-bold" style={{ color: "#0F172A" }}>{item.label}</div>
                   <div className="text-xs mt-0.5" style={{ color: "#5F6572" }}>{item.desc}</div>
                 </div>
               </div>
@@ -113,7 +113,7 @@ function LegalPagesPaywall({ partner, onBack, isAdmin, onAdminBypass }) {
           onClick={handleCheckout}
           disabled={processing}
           className="w-full flex items-center justify-center gap-2 py-4 rounded-xl text-sm font-black disabled:opacity-50 transition-all hover:opacity-90"
-          style={{ background: "#FFD24D", color: "#1E2128" }}
+          style={{ background: "#FFD24D", color: "#0F172A" }}
         >
           {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : <CreditCard className="w-5 h-5" />}
           Acquista a 149€ — Procedi al pagamento
@@ -345,7 +345,7 @@ function LegalPagesGeneratorInner({ partner, onBack }) {
             <ArrowLeft className="w-5 h-5" style={{ color: '#5F6572' }} />
           </button>
           <div>
-            <h1 className="text-2xl font-black" style={{ color: '#1E2128' }}>
+            <h1 className="text-2xl font-black" style={{ color: '#0F172A' }}>
               📄 Generatore Pagine Legali
             </h1>
             <p className="text-sm" style={{ color: '#9CA3AF' }}>
@@ -432,7 +432,7 @@ function LegalPagesGeneratorInner({ partner, onBack }) {
                    style={{ background: '#7B68AE20' }}>
                 <Building2 className="w-8 h-8" style={{ color: '#7B68AE' }} />
               </div>
-              <h2 className="text-xl font-bold" style={{ color: '#1E2128' }}>
+              <h2 className="text-xl font-bold" style={{ color: '#0F172A' }}>
                 Dati della tua Attività
               </h2>
               <p className="text-sm mt-2" style={{ color: '#9CA3AF' }}>
@@ -627,7 +627,7 @@ function LegalPagesGeneratorInner({ partner, onBack }) {
                    style={{ background: '#FFD24D20' }}>
                 <FileText className="w-8 h-8" style={{ color: '#FFD24D' }} />
               </div>
-              <h2 className="text-xl font-bold" style={{ color: '#1E2128' }}>
+              <h2 className="text-xl font-bold" style={{ color: '#0F172A' }}>
                 Seleziona le Pagine da Generare
               </h2>
               <p className="text-sm mt-2" style={{ color: '#9CA3AF' }}>
@@ -659,7 +659,7 @@ function LegalPagesGeneratorInner({ partner, onBack }) {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
-                          <h3 className="font-bold" style={{ color: '#1E2128' }}>
+                          <h3 className="font-bold" style={{ color: '#0F172A' }}>
                             {config.label}
                           </h3>
                           <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
@@ -730,7 +730,7 @@ function LegalPagesGeneratorInner({ partner, onBack }) {
               <div className="mt-6 p-4 rounded-xl" style={{ background: '#FAFAF7' }}>
                 <div className="flex items-center gap-3 mb-3">
                   <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#7B68AE' }} />
-                  <span className="font-bold" style={{ color: '#1E2128' }}>
+                  <span className="font-bold" style={{ color: '#0F172A' }}>
                     Andrea sta generando i documenti...
                   </span>
                 </div>
@@ -770,7 +770,7 @@ function LegalPagesGeneratorInner({ partner, onBack }) {
                      style={{ background: '#EAFAF1' }}>
                   <Check className="w-8 h-8" style={{ color: '#34C77B' }} />
                 </div>
-                <h2 className="text-xl font-bold" style={{ color: '#1E2128' }}>
+                <h2 className="text-xl font-bold" style={{ color: '#0F172A' }}>
                   Documenti Generati con Successo!
                 </h2>
                 <p className="text-sm mt-2" style={{ color: '#9CA3AF' }}>
@@ -791,7 +791,7 @@ function LegalPagesGeneratorInner({ partner, onBack }) {
                           <Icon className="w-5 h-5" style={{ color: config.color }} />
                         </div>
                         <div>
-                          <h3 className="font-bold" style={{ color: '#1E2128' }}>
+                          <h3 className="font-bold" style={{ color: '#0F172A' }}>
                             {config.label}
                           </h3>
                           <p className="text-xs" style={{ color: '#9CA3AF' }}>
@@ -854,7 +854,7 @@ function LegalPagesGeneratorInner({ partner, onBack }) {
 
             {/* Instructions */}
             <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h3 className="font-bold mb-4" style={{ color: '#1E2128' }}>
+              <h3 className="font-bold mb-4" style={{ color: '#0F172A' }}>
                 📋 Come usare questi documenti
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -904,7 +904,7 @@ function LegalPagesGeneratorInner({ partner, onBack }) {
                onClick={(e) => e.stopPropagation()}>
             <div className="p-4 border-b flex items-center justify-between"
                  style={{ borderColor: '#ECEDEF' }}>
-              <h3 className="font-bold" style={{ color: '#1E2128' }}>
+              <h3 className="font-bold" style={{ color: '#0F172A' }}>
                 {PAGE_TYPES[previewPage]?.label}
               </h3>
               <button 

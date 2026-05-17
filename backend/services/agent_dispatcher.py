@@ -44,7 +44,7 @@ AGENT_PROFILES: dict[str, dict] = {
         "name": "Claudio",
         "role": "Supervisione e call strategiche",
         "description": "Interviene nei momenti decisionali e nella direzione del progetto.",
-        "color": "#1E2128",
+        "color": "#0F172A",
         "emoji": "👤",
     },
     "ANTONELLA": {

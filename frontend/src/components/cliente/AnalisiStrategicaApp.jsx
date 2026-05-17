@@ -202,10 +202,10 @@ export function AnalisiStrategicaApp() {
         <header className="border-b" style={{ borderColor: '#ECEDEF', background: '#FFFFFF' }}>
           <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#FFD24D' }}>
-              <span className="text-lg font-black text-[#1E2128]">E</span>
+              <span className="text-lg font-black text-[#0F172A]">E</span>
             </div>
             <div>
-              <div className="font-black text-base text-[#1E2128]">Evolution<span style={{ color: '#FFD24D' }}>PRO</span></div>
+              <div className="font-black text-base text-[#0F172A]">Evolution<span style={{ color: '#FFD24D' }}>PRO</span></div>
               <div className="text-[10px] font-medium text-[#9CA3AF]">Analisi Strategica</div>
             </div>
           </div>
@@ -221,7 +221,7 @@ export function AnalisiStrategicaApp() {
                 Solo 4 progetti al mese
               </div>
               
-              <h1 className="text-3xl md:text-4xl font-black text-[#1E2128] leading-tight mb-4">
+              <h1 className="text-3xl md:text-4xl font-black text-[#0F172A] leading-tight mb-4">
                 Verifica se il tuo Progetto è pronto per diventare un'{" "}
                 <span style={{ color: '#FFD24D' }}>Accademia Digitale</span>
               </h1>
@@ -238,7 +238,7 @@ export function AnalisiStrategicaApp() {
                   { icon: Video, text: "Videocall personalizzata entro 48h" },
                   { icon: Gift, text: "7 Bonus formativi inclusi" }
                 ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-3 text-sm text-[#1E2128]">
+                  <div key={i} className="flex items-center gap-3 text-sm text-[#0F172A]">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#FEF9E7' }}>
                       <item.icon className="w-4 h-4 text-[#FFD24D]" />
                     </div>
@@ -325,11 +325,11 @@ export function AnalisiStrategicaApp() {
           <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#FFD24D' }}>
-                <span className="text-lg font-black text-[#1E2128]">E</span>
+                <span className="text-lg font-black text-[#0F172A]">E</span>
               </div>
-              <span className="font-black text-[#1E2128]">Evolution<span style={{ color: '#FFD24D' }}>PRO</span></span>
+              <span className="font-black text-[#0F172A]">Evolution<span style={{ color: '#FFD24D' }}>PRO</span></span>
             </div>
-            <button onClick={handleLogout} className="text-sm text-[#9CA3AF] hover:text-[#1E2128] flex items-center gap-1">
+            <button onClick={handleLogout} className="text-sm text-[#9CA3AF] hover:text-[#0F172A] flex items-center gap-1">
               <LogOut className="w-4 h-4" />Esci
             </button>
           </div>
@@ -339,7 +339,7 @@ export function AnalisiStrategicaApp() {
           <div className="w-16 h-16 rounded-full mx-auto mb-6 flex items-center justify-center" style={{ background: '#FEF9E7' }}>
             <CreditCard className="w-8 h-8 text-[#FFD24D]" />
           </div>
-          <h1 className="text-xl font-bold text-[#1E2128] mb-2">Completa il pagamento</h1>
+          <h1 className="text-xl font-bold text-[#0F172A] mb-2">Completa il pagamento</h1>
           <p className="text-sm text-[#5F6572] mb-6">
             Ciao {user?.nome}, per accedere al questionario devi completare il pagamento di €67.
           </p>
@@ -404,13 +404,13 @@ export function AnalisiStrategicaApp() {
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#FFD24D' }}>
-              <span className="text-lg font-black text-[#1E2128]">E</span>
+              <span className="text-lg font-black text-[#0F172A]">E</span>
             </div>
-            <span className="font-black text-[#1E2128]">Evolution<span style={{ color: '#FFD24D' }}>PRO</span></span>
+            <span className="font-black text-[#0F172A]">Evolution<span style={{ color: '#FFD24D' }}>PRO</span></span>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-[#9CA3AF]">Ciao, <span className="text-[#1E2128] font-semibold">{user?.nome}</span></span>
-            <button onClick={handleLogout} className="text-sm text-[#9CA3AF] hover:text-[#1E2128]"><LogOut className="w-4 h-4" /></button>
+            <span className="text-sm text-[#9CA3AF]">Ciao, <span className="text-[#0F172A] font-semibold">{user?.nome}</span></span>
+            <button onClick={handleLogout} className="text-sm text-[#9CA3AF] hover:text-[#0F172A]"><LogOut className="w-4 h-4" /></button>
           </div>
         </div>
       </header>
@@ -418,7 +418,7 @@ export function AnalisiStrategicaApp() {
       <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Welcome Section */}
         <div className="p-6 rounded-2xl mb-8" style={{ background: '#FFFFFF', border: '1px solid #ECEDEF' }}>
-          <h1 className="text-xl font-bold text-[#1E2128] mb-2">Completa il Questionario</h1>
+          <h1 className="text-xl font-bold text-[#0F172A] mb-2">Completa il Questionario</h1>
           <p className="text-sm text-[#5F6572]">
             Rispondi a queste domande per permetterci di preparare la tua Analisi Strategica personalizzata.
           </p>
@@ -441,7 +441,7 @@ export function AnalisiStrategicaApp() {
             <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: '#FEF9E7' }}>
               <question.icon className="w-6 h-6 text-[#FFD24D]" />
             </div>
-            <h2 className="text-lg font-bold text-[#1E2128] flex-1">{question.question}</h2>
+            <h2 className="text-lg font-bold text-[#0F172A] flex-1">{question.question}</h2>
           </div>
 
           {question.type === "textarea" && (

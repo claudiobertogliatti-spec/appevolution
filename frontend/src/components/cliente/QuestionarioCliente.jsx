@@ -164,10 +164,10 @@ export function QuestionarioCliente({ user, onComplete, onLogout }) {
         <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#FFD24D' }}>
-              <span className="text-lg font-black" style={{ color: '#1E2128' }}>E</span>
+              <span className="text-lg font-black" style={{ color: '#0F172A' }}>E</span>
             </div>
             <div>
-              <span className="font-black text-lg" style={{ color: '#1E2128' }}>
+              <span className="font-black text-lg" style={{ color: '#0F172A' }}>
                 EVOLUTION <span style={{ color: '#FFD24D' }}>PRO</span>
               </span>
             </div>
@@ -201,14 +201,14 @@ export function QuestionarioCliente({ user, onComplete, onLogout }) {
                     }`}
                     style={{ 
                       background: step.active ? '#FFD24D' : '#ECEDEF',
-                      color: step.active ? '#1E2128' : '#9CA3AF'
+                      color: step.active ? '#0F172A' : '#9CA3AF'
                     }}
                   >
                     {step.id}
                   </div>
                   <span 
                     className={`mt-2 text-sm font-medium ${step.active ? '' : 'opacity-40'}`}
-                    style={{ color: step.active ? '#1E2128' : '#9CA3AF' }}
+                    style={{ color: step.active ? '#0F172A' : '#9CA3AF' }}
                   >
                     {step.label}
                   </span>
@@ -226,7 +226,7 @@ export function QuestionarioCliente({ user, onComplete, onLogout }) {
 
         {/* SEZIONE 2 — INTRODUZIONE */}
         <div className="text-center mb-10">
-          <h1 className="text-3xl font-black mb-4" style={{ color: '#1E2128' }}>
+          <h1 className="text-3xl font-black mb-4" style={{ color: '#0F172A' }}>
             Raccontaci il tuo progetto
           </h1>
           <p className="text-lg" style={{ color: '#5F6572' }}>
@@ -259,7 +259,7 @@ export function QuestionarioCliente({ user, onComplete, onLogout }) {
               </div>
 
               {/* Testo domanda */}
-              <h3 className="text-lg font-bold mb-2" style={{ color: '#1E2128' }}>
+              <h3 className="text-lg font-bold mb-2" style={{ color: '#0F172A' }}>
                 {domanda.domanda}
               </h3>
 
@@ -324,7 +324,7 @@ export function QuestionarioCliente({ user, onComplete, onLogout }) {
             onClick={handleSubmit}
             disabled={loading}
             className="inline-flex items-center gap-3 px-10 py-4 rounded-xl font-black text-lg uppercase tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 hover:scale-105"
-            style={{ background: '#FFD24D', color: '#1E2128' }}
+            style={{ background: '#FFD24D', color: '#0F172A' }}
             data-testid="submit-questionario-btn"
           >
             {loading ? (

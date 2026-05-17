@@ -41,7 +41,7 @@ function ConfermaHero({ payments }) {
             <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: "#92400E" }}>
               Pagamento in attesa
             </p>
-            <p className="text-lg font-black" style={{ color: "#1E2128" }}>Partnership non ancora attiva</p>
+            <p className="text-lg font-black" style={{ color: "#0F172A" }}>Partnership non ancora attiva</p>
             <p className="text-sm mt-1" style={{ color: "#5F6572" }}>
               Non risulta ancora un pagamento confermato. Se hai già pagato, contatta il team tramite la chat.
             </p>
@@ -53,7 +53,7 @@ function ConfermaHero({ payments }) {
 
   return (
     <div className="rounded-2xl overflow-hidden mb-6" data-testid="conferma-hero"
-      style={{ background: "#1E2128" }}>
+      style={{ background: "#0F172A" }}>
       <div className="p-6">
         {/* Badge */}
         <div className="flex items-center gap-2 mb-4">
@@ -133,7 +133,7 @@ function CosaSuccedeAdesso({ onNavigate }) {
           <Rocket className="w-5 h-5" style={{ color: "#FFD24D" }} />
         </div>
         <div>
-          <h2 className="text-base font-black" style={{ color: "#1E2128" }}>Cosa succede adesso</h2>
+          <h2 className="text-base font-black" style={{ color: "#0F172A" }}>Cosa succede adesso</h2>
           <p className="text-xs" style={{ color: "#9CA3AF" }}>I prossimi passi della tua partnership</p>
         </div>
       </div>
@@ -151,7 +151,7 @@ function CosaSuccedeAdesso({ onNavigate }) {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <p className="text-sm font-black" style={{ color: "#1E2128" }}>{step.title}</p>
+                    <p className="text-sm font-black" style={{ color: "#0F172A" }}>{step.title}</p>
                     {step.done && (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                         style={{ background: "#DCFCE7", color: "#166534" }}>
@@ -194,7 +194,7 @@ function ContrattoBlocco({ partner }) {
           <FileText className="w-4 h-4" style={{ color: "#3B82F6" }} />
         </div>
         <div>
-          <p className="text-sm font-black" style={{ color: "#1E2128" }}>Contratto di partnership</p>
+          <p className="text-sm font-black" style={{ color: "#0F172A" }}>Contratto di partnership</p>
           <p className="text-xs" style={{ color: "#9CA3AF" }}>Documento firmato e archivato</p>
         </div>
       </div>
@@ -247,7 +247,7 @@ function StoricoTransazioni({ payments }) {
       >
         <div className="flex items-center gap-2">
           <Receipt className="w-4 h-4" style={{ color: "#9CA3AF" }} />
-          <span className="text-sm font-bold" style={{ color: "#1E2128" }}>Storico transazioni</span>
+          <span className="text-sm font-bold" style={{ color: "#0F172A" }}>Storico transazioni</span>
           <span className="text-xs font-bold px-2 py-0.5 rounded-full"
             style={{ background: "#F5F3EE", color: "#9CA3AF" }}>
             {payments.length}
@@ -274,14 +274,14 @@ function StoricoTransazioni({ payments }) {
                   }
                 </div>
                 <div>
-                  <p className="text-sm font-bold" style={{ color: "#1E2128" }}>
+                  <p className="text-sm font-bold" style={{ color: "#0F172A" }}>
                     {p.description || "Pagamento partnership"}
                   </p>
                   <p className="text-xs" style={{ color: "#9CA3AF" }}>{fmtDate(p.date)}</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm font-black" style={{ color: "#1E2128" }}>{fmtEur(p.amount)}</p>
+                <p className="text-sm font-black" style={{ color: "#0F172A" }}>{fmtEur(p.amount)}</p>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                   style={{
                     background: p.status === "paid" ? "#DCFCE7" : "#FFFBEB",
@@ -331,7 +331,7 @@ export function PartnerPayments({ partner, onNavigate }) {
 
         {/* HERO */}
         <div className="mb-6" data-testid="payments-hero">
-          <h1 className="text-3xl font-black mb-1" style={{ color: "#1E2128" }}>Pagamenti</h1>
+          <h1 className="text-3xl font-black mb-1" style={{ color: "#0F172A" }}>Pagamenti</h1>
           <p className="text-sm" style={{ color: "#9CA3AF" }}>
             Stato della tua partnership e prossimi passi.
           </p>
@@ -352,7 +352,7 @@ export function PartnerPayments({ partner, onNavigate }) {
         {/* CTA PERCORSO */}
         {hasPaid && (
           <div className="rounded-2xl overflow-hidden" data-testid="cta-percorso"
-            style={{ background: "#1E2128" }}>
+            style={{ background: "#0F172A" }}>
             <div className="p-5">
               <p className="text-[10px] font-bold uppercase tracking-widest mb-3"
                 style={{ color: "rgba(255,255,255,0.4)" }}>
@@ -365,7 +365,7 @@ export function PartnerPayments({ partner, onNavigate }) {
               <button
                 onClick={() => onNavigate && onNavigate("percorso")}
                 className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-black transition-all hover:scale-[1.02] active:scale-[0.98]"
-                style={{ background: "#FFD24D", color: "#1E2128" }}
+                style={{ background: "#FFD24D", color: "#0F172A" }}
               >
                 <Rocket className="w-4 h-4" />
                 Vai al Percorso <ArrowRight className="w-4 h-4" />
