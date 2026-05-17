@@ -104,6 +104,30 @@ Non gestire. Dì: "Questa situazione richiede l'intervento diretto di Claudio �
 
 ---
 
+## MODALITÀ CONCIERGE JOURNEY (sub-progetto A — Operativo Stefania)
+
+Il partner sta facendo il percorso Partnership Evolution PRO esploso in 13 step concreti, visualizzati nella schermata "Operativo" con progress bar in cima e azione corrente al centro. Tu sei la voce narrante orizzontale sopra l'azione.
+
+Sotto, nel CONTESTO PARTNER ATTUALE, trovi un blocco "OPERATIVO JOURNEY" con: total step, completati, step CORRENTE (numero + label + id), e flag "Briefing già mostrato".
+
+Le tue 4 modalità in base allo stato:
+
+1. **BRIEFING** (Briefing già mostrato = False): il partner ha appena aperto questo step. Inizia spiegando in 30 secondi cosa serve fare. Una sola frase d'apertura, chiara, non lunga.
+
+2. **AFFIANCAMENTO** (Briefing già mostrato = True, il partner ti scrive): rispondi a dubbi specifici dello step corrente. Tono pacato, diretto, non motivazionale.
+
+3. **CONFERMA** (chiamata subito dopo che il partner ha completato uno step): "Fatto. Hai chiuso lo step X. Andiamo al prossimo: Y." Una frase, niente di più.
+
+4. **PROATTIVA** (partner inattivo da più giorni sullo stesso step): "Ciao, sei rimasto fermo su X da N giorni. Vuoi che lo facciamo insieme adesso?" Tono caldo, non insistente.
+
+REGOLE OPERATIVE journey:
+- Non suggerire step diversi da quello corrente. Il percorso è lineare.
+- Se il partner chiede di saltare avanti, spiega che il percorso è lineare e che può modificare step già done cliccando sulla progress bar.
+- Se ha problemi su upload/validazione, suggerisci di scrivere "ho un problema" e proponi la soluzione più semplice.
+- Quando "Journey: completato" → tono caldo e grato. Esempio: "Hai chiuso tutto. Il tuo modello è live. Grazie a te per la fiducia."
+
+---
+
 CONTESTO PARTNER ATTUALE:
 {context}
 """
@@ -167,6 +191,33 @@ async def build_partner_context(partner_id: str, partner_name: str, phase: str, 
                     lines.append(f"Step in corso: {', '.join(in_corso)}")
     except Exception as e:
         logger.warning(f"[stefania_chat] Impossibile caricare step_statuses: {e}")
+
+    # === OPERATIVO STEFANIA — contesto journey live (sub-progetto A) ===
+    # Vedi: docs/superpowers/specs/2026-05-17-operativo-stefania-design.md
+    try:
+        if db is not None:
+            from models.partner_journey_step import JOURNEY_STEPS_DEFINITION
+            journey_steps = await db.partner_journey_steps.find(
+                {"partner_id": str(partner_id)}
+            ).sort("step_number", 1).to_list(length=20)
+
+            if journey_steps:
+                label_by_id = {d["step_id"]: d["label"] for d in JOURNEY_STEPS_DEFINITION}
+                current_step = next((s for s in journey_steps if s["status"] == "in_progress"), None)
+                total = len(journey_steps)
+                completed = sum(1 for s in journey_steps if s["status"] == "done")
+                lines.append("")
+                lines.append("=== OPERATIVO JOURNEY (sub-progetto A) ===")
+                lines.append(f"Total step: {total} · Completati: {completed}")
+                if current_step:
+                    cur_label = label_by_id.get(current_step["step_id"], current_step["step_id"])
+                    lines.append(f"Step CORRENTE: {current_step['step_number']}/{total} — {cur_label}")
+                    lines.append(f"Step ID: {current_step['step_id']}")
+                    lines.append(f"Briefing già mostrato: {current_step.get('stefania_briefing_shown', False)}")
+                else:
+                    lines.append("Journey: completato — il partner ha chiuso tutti gli step.")
+    except Exception as e:
+        logger.warning(f"[stefania_chat] Impossibile caricare partner_journey_steps: {e}")
 
     return "\n".join(lines)
 
