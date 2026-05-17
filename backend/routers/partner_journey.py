@@ -5560,7 +5560,7 @@ async def confirm_video_upload(req: VideoUploadConfirmRequest, background_tasks:
 # Vedi spec: docs/superpowers/specs/2026-05-17-operativo-stefania-design.md
 # ════════════════════════════════════════════════════════════════════
 from services.journey_seed import seed_partner_journey
-from models.partner_journey_step import JOURNEY_STEPS_DEFINITION, MACRO_PHASES_DEFINITION
+from models.partner_journey_step import JOURNEY_STEPS_DEFINITION, MACRO_PHASES_DEFINITION, AVVIO_STEP_IDS
 
 
 @router.get("/operativo/state/{partner_id}")
@@ -5591,14 +5591,31 @@ async def get_operativo_state(partner_id: str):
         # Tutti done -> partner ha completato il journey
         current_step = steps[-1] if steps else None
 
+    # Stato "Avvio" (step 1-2 pre-percorso, non in macro-fasi)
+    avvio_steps = [s for s in steps if s["step_id"] in AVVIO_STEP_IDS]
+    avvio_done = sum(1 for s in avvio_steps if s["status"] == "done")
+    avvio_total = len(avvio_steps)
+    avvio_status = "done" if avvio_done == avvio_total and avvio_total > 0 else (
+        "in_progress" if any(s["status"] == "in_progress" for s in avvio_steps) else "pending"
+    )
+
     # Calcola progresso per macro-fase
+    # NOTE: "ottimizzazione-servizio" non ha step_ids (è post-lancio).
+    # Status: pending finché ultimo step (13-lancio) non è done, poi in_progress.
+    lancio_done = any(s["step_id"] == "13-lancio" and s["status"] == "done" for s in steps)
+
     macro_phases_status = []
     for mp in MACRO_PHASES_DEFINITION:
         mp_steps = [s for s in steps if s["step_id"] in mp["step_ids"]]
         done_count = sum(1 for s in mp_steps if s["status"] == "done")
         in_progress = any(s["status"] == "in_progress" for s in mp_steps)
         total = len(mp_steps)
-        if done_count == total and total > 0:
+
+        if mp["id"] == "ottimizzazione-servizio":
+            mp_status = "in_progress" if lancio_done else "pending"
+            done_count = 0
+            total = 0
+        elif done_count == total and total > 0:
             mp_status = "done"
         elif in_progress or done_count > 0:
             mp_status = "in_progress"
@@ -5620,6 +5637,12 @@ async def get_operativo_state(partner_id: str):
         "partner_id": partner_id,
         "steps": steps,
         "current_step": current_step,
+        "avvio": {
+            "status": avvio_status,
+            "completed_count": avvio_done,
+            "total_count": avvio_total,
+            "step_ids": AVVIO_STEP_IDS,
+        },
         "macro_phases": macro_phases_status,
         "total_steps": len(steps),
         "completed_count": sum(1 for s in steps if s["status"] == "done"),

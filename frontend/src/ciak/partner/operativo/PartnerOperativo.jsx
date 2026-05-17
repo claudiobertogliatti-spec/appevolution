@@ -79,6 +79,7 @@ export default function PartnerOperativo({ partnerId }) {
           macroPhases={state.macro_phases}
           steps={state.steps}
           currentStepId={stepToShow?.step_id}
+          avvio={state.avvio}
         />
 
         {!allDone && stepToShow && (
