@@ -1,8 +1,8 @@
 import React, { lazy, Suspense, useState } from "react";
 import { useJourneyState } from "./hooks/useJourneyState";
 import ProgressBar from "./ProgressBar";
-import StefaniaVoiceNarrante from "./StefaniaVoiceNarrante";
-import StefaniaDrawer from "./StefaniaDrawer";
+import AgentVoiceNarrante from "./AgentVoiceNarrante";
+import AgentDrawer from "./AgentDrawer";
 
 // Step components lazy-loaded — implementati in Phase 4
 const STEP_COMPONENTS = {
@@ -86,7 +86,7 @@ export default function PartnerOperativo({ partnerId }) {
         />
 
         {!allDone && stepToShow && (
-          <StefaniaVoiceNarrante
+          <AgentVoiceNarrante
             currentStepId={stepToShow.step_id}
             stepLabel={stepToShow.label}
             stepNumber={stepToShow.step_number}
@@ -123,7 +123,7 @@ export default function PartnerOperativo({ partnerId }) {
         </div>
       </div>
 
-      <StefaniaDrawer
+      <AgentDrawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         partnerId={partnerId}

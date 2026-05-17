@@ -1,4 +1,5 @@
 import React from "react";
+import { getAgentForStep } from "./agents";
 
 const DEFAULT_BRIEFING = {
   "01-contratto":            "Iniziamo. Carica contratto firmato + distinta di pagamento. Te li archiviamo noi.",
@@ -17,27 +18,35 @@ const DEFAULT_BRIEFING = {
 };
 
 /**
- * Banda orizzontale Stefania come voce narrante.
- * In cima all'azione corrente, con avatar + messaggio + CTA "Chiedi" che apre il drawer chat.
+ * Banda orizzontale dell'agente attivo per lo step.
+ * Avatar + nome + briefing + CTA "Chiedi a {Nome} →" che apre il drawer chat.
  */
-export default function StefaniaVoiceNarrante({ currentStepId, stepLabel, stepNumber, totalSteps, onAsk }) {
+export default function AgentVoiceNarrante({ currentStepId, stepLabel, stepNumber, totalSteps, onAsk }) {
+  const agent = getAgentForStep(currentStepId);
   const message = DEFAULT_BRIEFING[currentStepId] || `Siamo allo step ${stepNumber || "?"}: ${stepLabel || ""}.`;
 
   return (
     <div className="bg-white border border-gray-200 rounded-md p-3 flex items-center gap-3 mt-3">
-      <div className="w-9 h-9 rounded-full bg-slate-900 text-yellow-400 flex items-center justify-center font-semibold flex-shrink-0">
-        S
-      </div>
+      <img
+        src={agent.avatar}
+        alt={agent.name}
+        className="w-11 h-11 rounded-full flex-shrink-0 bg-slate-900"
+      />
       <div className="flex-1 text-sm text-slate-900 leading-relaxed">
-        <strong className="font-semibold">Step {stepNumber || "?"}/{totalSteps || 13}: {stepLabel || "..."}.</strong>{" "}
-        {message}
+        <div className="text-xs text-slate-500 font-medium mb-0.5">
+          {agent.name} · {agent.role}
+        </div>
+        <div>
+          <strong className="font-semibold">Step {stepNumber || "?"}/{totalSteps || 13}: {stepLabel || "..."}.</strong>{" "}
+          {message}
+        </div>
       </div>
       <button
         type="button"
         onClick={onAsk}
-        className="text-xs font-semibold text-slate-900 bg-yellow-400 hover:bg-yellow-500 px-3 py-2 rounded transition flex-shrink-0"
+        className="text-xs font-semibold text-slate-900 bg-yellow-400 hover:bg-yellow-500 px-3 py-2 rounded transition flex-shrink-0 whitespace-nowrap"
       >
-        Chiedi →
+        Chiedi a {agent.name} →
       </button>
     </div>
   );
