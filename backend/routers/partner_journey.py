@@ -5597,3 +5597,67 @@ async def get_operativo_state(partner_id: str):
         "total_steps": len(steps),
         "completed_count": sum(1 for s in steps if s["status"] == "done"),
     }
+
+
+class _OperativoCompleteBody(BaseModel):
+    data: dict = {}
+
+
+@router.post("/operativo/complete/{partner_id}/{step_id}")
+async def complete_operativo_step(partner_id: str, step_id: str, body: _OperativoCompleteBody):
+    """Marca lo step done + avanza il prossimo a in_progress.
+    Merge del payload `data` con quello esistente (autosave drafts non si perdono).
+    """
+    now = datetime.utcnow()
+
+    current = await db.partner_journey_steps.find_one(
+        {"partner_id": partner_id, "step_id": step_id}
+    )
+    if not current:
+        raise HTTPException(404, f"Step {step_id} non trovato per partner {partner_id}")
+
+    merged_data = {**current.get("data", {}), **(body.data or {})}
+
+    await db.partner_journey_steps.update_one(
+        {"partner_id": partner_id, "step_id": step_id},
+        {"$set": {
+            "status": "done",
+            "completed_at": now,
+            "data": merged_data,
+            "updated_at": now,
+        }},
+    )
+
+    # Trova il prossimo step pending in ordine e marcalo in_progress
+    next_step = await db.partner_journey_steps.find_one(
+        {"partner_id": partner_id, "status": "pending"},
+        sort=[("step_number", 1)],
+    )
+
+    if next_step:
+        await db.partner_journey_steps.update_one(
+            {"_id": next_step["_id"]},
+            {"$set": {
+                "status": "in_progress",
+                "started_at": now,
+                "updated_at": now,
+            }},
+        )
+        await db.partners.update_one(
+            {"id": partner_id},
+            {"$set": {"journey_current_step": next_step["step_id"]}},
+        )
+        next_step["status"] = "in_progress"
+        next_step.pop("_id", None)
+    else:
+        # Tutti completati
+        await db.partners.update_one(
+            {"id": partner_id},
+            {"$set": {"journey_current_step": "completato"}},
+        )
+
+    return {
+        "success": True,
+        "completed_step": step_id,
+        "next_step": next_step,
+    }

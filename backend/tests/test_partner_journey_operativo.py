@@ -37,3 +37,54 @@ class TestOperativoState:
         assert "steps" in data
         assert "current_step" in data
         assert len(data["steps"]) == 13
+
+
+class TestOperativoComplete:
+    """Test POST /api/partner-journey/operativo/complete/{partner_id}/{step_id}"""
+
+    def test_complete_advances_to_next_step(self):
+        """Completa step 1 -> step 2 diventa in_progress, step 1 done con data merged."""
+        fresh_pid = f"test-{uuid.uuid4().hex[:8]}"
+        requests.get(f"{BASE_URL}/api/partner-journey/operativo/state/{fresh_pid}")
+
+        r = requests.post(
+            f"{BASE_URL}/api/partner-journey/operativo/complete/{fresh_pid}/01-contratto",
+            json={"data": {"contract_url": "https://test.com/c.pdf", "receipt_url": "https://test.com/r.pdf"}},
+        )
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["success"] is True
+        assert body["next_step"]["step_id"] == "02-discovery-video"
+        assert body["next_step"]["status"] == "in_progress"
+
+        state = requests.get(f"{BASE_URL}/api/partner-journey/operativo/state/{fresh_pid}").json()
+        step1 = next(s for s in state["steps"] if s["step_id"] == "01-contratto")
+        step2 = next(s for s in state["steps"] if s["step_id"] == "02-discovery-video")
+        assert step1["status"] == "done"
+        assert step1["data"]["contract_url"] == "https://test.com/c.pdf"
+        assert step2["status"] == "in_progress"
+
+    def test_complete_last_step_marks_journey_complete(self):
+        """Completa step 13 -> tutti done, completed_count=13."""
+        from models.partner_journey_step import JOURNEY_STEPS_DEFINITION
+        fresh_pid = f"test-{uuid.uuid4().hex[:8]}"
+        requests.get(f"{BASE_URL}/api/partner-journey/operativo/state/{fresh_pid}")
+
+        for d in JOURNEY_STEPS_DEFINITION:
+            requests.post(
+                f"{BASE_URL}/api/partner-journey/operativo/complete/{fresh_pid}/{d['step_id']}",
+                json={"data": {}},
+            )
+
+        state = requests.get(f"{BASE_URL}/api/partner-journey/operativo/state/{fresh_pid}").json()
+        assert state["completed_count"] == 13
+        assert all(s["status"] == "done" for s in state["steps"])
+
+    def test_complete_unknown_step_returns_404(self):
+        fresh_pid = f"test-{uuid.uuid4().hex[:8]}"
+        requests.get(f"{BASE_URL}/api/partner-journey/operativo/state/{fresh_pid}")
+        r = requests.post(
+            f"{BASE_URL}/api/partner-journey/operativo/complete/{fresh_pid}/99-nonexistent",
+            json={"data": {}},
+        )
+        assert r.status_code == 404
