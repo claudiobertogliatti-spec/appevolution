@@ -5553,3 +5553,47 @@ async def confirm_video_upload(req: VideoUploadConfirmRequest, background_tasks:
             logging.error(f"[VIDEO-UPLOAD] Anche background task fallito: {e2}")
 
     return {"success": True, "message": "Video ricevuto — la pipeline è partita!", "gcs_path": gcs_path}
+
+
+# ════════════════════════════════════════════════════════════════════
+# OPERATIVO STEFANIA — Sub-progetto A
+# Vedi spec: docs/superpowers/specs/2026-05-17-operativo-stefania-design.md
+# ════════════════════════════════════════════════════════════════════
+from services.journey_seed import seed_partner_journey
+from models.partner_journey_step import JOURNEY_STEPS_DEFINITION
+
+
+@router.get("/operativo/state/{partner_id}")
+async def get_operativo_state(partner_id: str):
+    """Ritorna stato completo journey del partner.
+    Se è la prima visita (no step in DB), seeda automaticamente i 13 step
+    con step 1 in_progress.
+    """
+    existing = await db.partner_journey_steps.count_documents({"partner_id": partner_id})
+    if existing == 0:
+        await seed_partner_journey(db, partner_id, start_step_number=1)
+
+    steps_cursor = db.partner_journey_steps.find(
+        {"partner_id": partner_id},
+        {"_id": 0},
+    ).sort("step_number", 1)
+    steps = await steps_cursor.to_list(length=20)
+
+    # Arricchisci ogni step con la label da JOURNEY_STEPS_DEFINITION
+    label_by_step_id = {d["step_id"]: d["label"] for d in JOURNEY_STEPS_DEFINITION}
+    for s in steps:
+        s["label"] = label_by_step_id.get(s["step_id"], s["step_id"])
+
+    current_step = next((s for s in steps if s["status"] == "in_progress"), None)
+    if not current_step:
+        # Tutti done -> partner ha completato il journey
+        current_step = steps[-1] if steps else None
+
+    return {
+        "success": True,
+        "partner_id": partner_id,
+        "steps": steps,
+        "current_step": current_step,
+        "total_steps": len(steps),
+        "completed_count": sum(1 for s in steps if s["status"] == "done"),
+    }
