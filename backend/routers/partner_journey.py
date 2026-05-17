@@ -5681,3 +5681,58 @@ async def save_draft_operativo_step(partner_id: str, step_id: str, body: _Operat
         {"$set": {"data": merged_data, "updated_at": now}},
     )
     return {"success": True, "saved_keys": list((body.data or {}).keys())}
+
+
+@router.get("/operativo/stefania-context/{partner_id}")
+async def get_stefania_context(partner_id: str):
+    """Ritorna contesto strutturato per Stefania su questo partner.
+    Usato sia dal frontend (per mostrare il briefing) sia dal backend
+    in _build_context() del router stefania_chat."""
+    from datetime import timedelta, timezone as _tz
+
+    steps_cursor = db.partner_journey_steps.find(
+        {"partner_id": partner_id},
+        {"_id": 0},
+    ).sort("step_number", 1)
+    steps = await steps_cursor.to_list(length=20)
+
+    if not steps:
+        return {
+            "success": True,
+            "current_step": None,
+            "total_steps": 0,
+            "completed_count": 0,
+            "stefania_mode": "briefing",
+        }
+
+    label_by_step_id = {d["step_id"]: d["label"] for d in JOURNEY_STEPS_DEFINITION}
+    for s in steps:
+        s["label"] = label_by_step_id.get(s["step_id"], s["step_id"])
+
+    current = next((s for s in steps if s["status"] == "in_progress"), None)
+
+    # Determina la modalità: briefing se appena aperto, proattiva se inattivo >3gg,
+    # affiancamento di default.
+    stefania_mode = "briefing"
+    if current:
+        if not current.get("stefania_briefing_shown"):
+            stefania_mode = "briefing"
+        elif current.get("started_at"):
+            started = current["started_at"]
+            if isinstance(started, str):
+                started = datetime.fromisoformat(started.replace("Z", "+00:00"))
+            now_dt = datetime.now(_tz.utc) if started.tzinfo else datetime.utcnow()
+            if (now_dt - started) > timedelta(days=3):
+                stefania_mode = "proattiva"
+            else:
+                stefania_mode = "affiancamento"
+        else:
+            stefania_mode = "affiancamento"
+
+    return {
+        "success": True,
+        "current_step": current,
+        "total_steps": len(steps),
+        "completed_count": sum(1 for s in steps if s["status"] == "done"),
+        "stefania_mode": stefania_mode,
+    }

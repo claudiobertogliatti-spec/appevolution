@@ -115,3 +115,31 @@ class TestOperativoSaveDraft:
         assert step1["status"] == "in_progress"
         assert step1["data"]["contract_url"] == "https://test.com/c.pdf"
         assert step1["data"]["receipt_url"] == "https://test.com/r.pdf"
+
+
+class TestOperativoStefaniaContext:
+    """Test GET /api/partner-journey/operativo/stefania-context/{partner_id}"""
+
+    def test_returns_current_step_context_for_new_partner(self):
+        fresh_pid = f"test-{uuid.uuid4().hex[:8]}"
+        requests.get(f"{BASE_URL}/api/partner-journey/operativo/state/{fresh_pid}")
+
+        r = requests.get(f"{BASE_URL}/api/partner-journey/operativo/stefania-context/{fresh_pid}")
+        assert r.status_code == 200, r.text
+        ctx = r.json()
+        assert ctx["success"] is True
+        assert ctx["current_step"]["step_id"] == "01-contratto"
+        assert ctx["current_step"]["step_number"] == 1
+        assert ctx["current_step"]["label"] == "Contratto + distinta"
+        assert ctx["total_steps"] == 13
+        assert ctx["completed_count"] == 0
+        assert ctx["stefania_mode"] in ("briefing", "affiancamento", "proattiva")
+
+    def test_returns_empty_context_for_partner_without_steps(self):
+        nonexistent_pid = f"never-seeded-{uuid.uuid4().hex[:8]}"
+        r = requests.get(f"{BASE_URL}/api/partner-journey/operativo/stefania-context/{nonexistent_pid}")
+        assert r.status_code == 200
+        ctx = r.json()
+        assert ctx["success"] is True
+        assert ctx["current_step"] is None
+        assert ctx["total_steps"] == 0
