@@ -5736,3 +5736,47 @@ async def get_stefania_context(partner_id: str):
         "completed_count": sum(1 for s in steps if s["status"] == "done"),
         "stefania_mode": stefania_mode,
     }
+
+
+@router.post("/operativo/upload/{partner_id}")
+async def upload_operativo_file(partner_id: str, file: UploadFile = File(...)):
+    """Upload generico per gli step components Operativo (logo, foto, video, PDF).
+    Ritorna URL Cloudinary. Fallback locale se Cloudinary non configurato."""
+    content = await file.read()
+    MAX_SIZE = 200 * 1024 * 1024  # 200 MB (video grezzi possono essere grandi)
+    if len(content) > MAX_SIZE:
+        raise HTTPException(400, f"File troppo grande (max {MAX_SIZE // (1024*1024)} MB)")
+
+    ext = (file.filename or "file").rsplit(".", 1)[-1].lower() if "." in (file.filename or "") else "bin"
+    is_video = ext in ("mp4", "mov", "avi", "webm", "mkv")
+    is_pdf = ext == "pdf"
+    resource_type = "video" if is_video else ("raw" if is_pdf else "image")
+
+    try:
+        from cloudinary_service import upload_file_direct, is_cloudinary_configured
+        if is_cloudinary_configured():
+            result = await upload_file_direct(
+                file_data=content,
+                filename=file.filename or f"upload.{ext}",
+                resource_type=resource_type,
+                folder=f"evolution-pro/operativo/{partner_id}",
+            )
+            if result.get("success"):
+                url = result.get("secure_url") or result.get("url", "")
+                return {"success": True, "url": url, "resource_type": resource_type}
+    except Exception as e:
+        logging.warning(f"[OPERATIVO-UPLOAD] Cloudinary failed: {e}")
+
+    # Fallback locale (per dev)
+    try:
+        import aiofiles
+        from pathlib import Path
+        base_dir = Path(os.environ.get("DOCUMENTI_DIR", "/tmp/operativo")) / partner_id
+        base_dir.mkdir(parents=True, exist_ok=True)
+        safe_name = "".join(c for c in (file.filename or f"upload.{ext}") if c.isalnum() or c in ".-_")
+        path = base_dir / f"{uuid.uuid4().hex[:8]}_{safe_name}"
+        async with aiofiles.open(str(path), "wb") as f:
+            await f.write(content)
+        return {"success": True, "url": f"/static/operativo/{partner_id}/{path.name}", "resource_type": resource_type, "fallback": "local"}
+    except Exception as e:
+        raise HTTPException(500, f"Upload fallito: {e}")
