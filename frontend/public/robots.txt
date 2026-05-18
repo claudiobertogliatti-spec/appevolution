@@ -1,0 +1,120 @@
+# Evolution PRO — www.evolution-pro.it
+# Aggiornato: 2026-05-18
+
+# ════════════════════════════════════════════════════════════════════
+# CRAWLER TRADIZIONALI (Search Engines)
+# ════════════════════════════════════════════════════════════════════
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin
+Disallow: /dashboard-partner
+Disallow: /dashboard/
+Disallow: /partner-login
+Disallow: /benvenuto
+Disallow: /questionario
+Disallow: /attivazione-analisi
+Disallow: /prenota-call
+Disallow: /analisi-in-preparazione
+Disallow: /proposta/
+Disallow: /cliente/
+
+# ════════════════════════════════════════════════════════════════════
+# AI CRAWLER — INDICIZZAZIONE ESPLICITAMENTE CONSENTITA
+# Evolution PRO vuole apparire nelle risposte AI (ChatGPT, Claude,
+# Perplexity, Gemini, Copilot). Allow esplicito + nessun Disallow
+# sulle pagine pubbliche.
+# ════════════════════════════════════════════════════════════════════
+
+# OpenAI — ChatGPT / GPT crawling
+User-agent: GPTBot
+Allow: /
+Disallow: /api/
+Disallow: /admin
+Disallow: /dashboard-partner
+Disallow: /dashboard/
+Disallow: /partner-login
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+# Anthropic — Claude
+User-agent: ClaudeBot
+Allow: /
+Disallow: /api/
+Disallow: /admin
+Disallow: /dashboard-partner
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+# Perplexity
+User-agent: PerplexityBot
+Allow: /
+Disallow: /api/
+Disallow: /admin
+
+User-agent: Perplexity-User
+Allow: /
+
+# Google — AI Overviews / Gemini (separato da Googlebot tradizionale)
+User-agent: Google-Extended
+Allow: /
+Disallow: /api/
+Disallow: /admin
+Disallow: /dashboard-partner
+
+# Apple — Apple Intelligence
+User-agent: Applebot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+# Common Crawl (alimenta training set di molti LLM)
+User-agent: CCBot
+Allow: /
+Disallow: /api/
+Disallow: /admin
+
+# ByteDance / TikTok AI
+User-agent: Bytespider
+Allow: /
+
+# Microsoft — Bing / Copilot
+User-agent: bingbot
+Allow: /
+Disallow: /api/
+Disallow: /admin
+
+User-agent: msnbot
+Allow: /
+
+# Meta AI
+User-agent: FacebookBot
+Allow: /
+
+User-agent: Meta-ExternalAgent
+Allow: /
+
+User-agent: Meta-ExternalFetcher
+Allow: /
+
+# DuckDuckGo
+User-agent: DuckDuckBot
+Allow: /
+
+# ════════════════════════════════════════════════════════════════════
+# SITEMAP + LLMS.TXT
+# ════════════════════════════════════════════════════════════════════
+Sitemap: https://www.evolution-pro.it/sitemap.xml
+
+# AI-search optimization manifest (proposta llmstxt.org)
+# Riferimento esplicito così i crawler AI lo trovano subito
+# https://www.evolution-pro.it/llms.txt
