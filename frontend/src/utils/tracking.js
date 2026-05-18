@@ -38,6 +38,11 @@ function loadMetaPixel(pixelId) {
   if (metaLoaded || !pixelId) return;
   metaLoaded = true;
 
+  // Su evolution-pro.it il Pixel è già inizializzato staticamente in
+  // public/index.html (così è visibile anche a crawler/no-JS e parte subito
+  // al page load). In quel caso non re-inizializzare per evitare PageView duplicati.
+  if (window.fbq && window.fbq.loaded) return;
+
   /* eslint-disable */
   !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
   n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
