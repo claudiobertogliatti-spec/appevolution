@@ -5852,15 +5852,20 @@ async def get_pending_onboarding_documents():
 # ROUTES - KPI TRACKING (GA4 + Meta Pixel)
 # =============================================================================
 
+# Default Pixel Meta — Evolution PRO (cablato 2026-05-18).
+# Fallback se il documento `app_settings.tracking` non esiste ancora in Mongo,
+# così il Pixel parte anche prima del seed iniziale dell'admin.
+EVOLUTION_PRO_META_PIXEL_DEFAULT = "1382427760577453"
+
 @api_router.get("/tracking/config")
 async def get_tracking_config():
     """Restituisce la configurazione di tracking (GA4 + Meta Pixel) pubblica."""
     config = await db.app_settings.find_one({"key": "tracking"}, {"_id": 0})
     if not config:
-        return {"ga4_id": "", "meta_pixel_id": ""}
+        return {"ga4_id": "", "meta_pixel_id": EVOLUTION_PRO_META_PIXEL_DEFAULT}
     return {
         "ga4_id": config.get("ga4_id", ""),
-        "meta_pixel_id": config.get("meta_pixel_id", "")
+        "meta_pixel_id": config.get("meta_pixel_id") or EVOLUTION_PRO_META_PIXEL_DEFAULT
     }
 
 @api_router.get("/admin/tracking/config")
@@ -5894,6 +5899,116 @@ async def update_tracking_config(body: TrackingConfigUpdate):
         upsert=True
     )
     return {"success": True, "message": "Tracking configurato"}
+
+
+# =============================================================================
+# META CONVERSIONS API (CAPI) — server-side event forwarding
+# Bypassa iOS17/AdBlock e aumenta event match rate dal ~60% al ~90%.
+# Richiede CAPI_ACCESS_TOKEN in env (Business Manager → Events Manager →
+# Conversions API → Generate Access Token).
+# =============================================================================
+
+import hashlib
+import time
+
+def _capi_hash(value: Optional[str]) -> Optional[str]:
+    """SHA-256 lowercase trim — formato richiesto da Meta per PII."""
+    if not value:
+        return None
+    return hashlib.sha256(value.strip().lower().encode("utf-8")).hexdigest()
+
+class CapiEventRequest(BaseModel):
+    event_name: str  # PageView, Lead, Purchase, CompleteRegistration, InitiateCheckout, Subscribe, ViewContent
+    event_id: Optional[str] = None  # Per dedup con il Pixel client-side (stesso ID = stesso evento)
+    event_source_url: Optional[str] = None  # URL della pagina dove è scattato l'evento
+    email: Optional[str] = None  # Verrà hashata SHA-256
+    phone: Optional[str] = None  # Verrà hashata SHA-256 (formato E.164 senza +)
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    external_id: Optional[str] = None  # user_id interno (verrà hashato)
+    value: Optional[float] = None
+    currency: Optional[str] = "EUR"
+    content_name: Optional[str] = None
+    content_ids: Optional[List[str]] = None
+    fbp: Optional[str] = None  # _fbp cookie dal client (browser ID)
+    fbc: Optional[str] = None  # _fbc cookie dal client (click ID)
+
+@api_router.post("/tracking/capi/event")
+async def send_capi_event(body: CapiEventRequest, request: Request):
+    """Invia un evento server-side alla Conversions API di Meta."""
+    pixel_id = EVOLUTION_PRO_META_PIXEL_DEFAULT
+    access_token = os.environ.get("META_CAPI_ACCESS_TOKEN", "").strip()
+    if not access_token:
+        # Token non configurato — fail silently (non bloccare il flusso utente)
+        return {"success": False, "skipped": True, "reason": "META_CAPI_ACCESS_TOKEN non configurato"}
+
+    # Client IP + User-Agent (utili per matching server-side)
+    client_ip = request.client.host if request.client else None
+    fwd = request.headers.get("x-forwarded-for")
+    if fwd:
+        client_ip = fwd.split(",")[0].strip()
+    user_agent = request.headers.get("user-agent", "")
+
+    user_data: Dict[str, Any] = {}
+    if body.email:
+        user_data["em"] = [_capi_hash(body.email)]
+    if body.phone:
+        # Rimuovi spazi/+/(/) prima dell'hash — Meta richiede solo digits
+        phone_digits = "".join(c for c in body.phone if c.isdigit())
+        user_data["ph"] = [_capi_hash(phone_digits)]
+    if body.first_name:
+        user_data["fn"] = [_capi_hash(body.first_name)]
+    if body.last_name:
+        user_data["ln"] = [_capi_hash(body.last_name)]
+    if body.external_id:
+        user_data["external_id"] = [_capi_hash(body.external_id)]
+    if client_ip:
+        user_data["client_ip_address"] = client_ip
+    if user_agent:
+        user_data["client_user_agent"] = user_agent
+    if body.fbp:
+        user_data["fbp"] = body.fbp
+    if body.fbc:
+        user_data["fbc"] = body.fbc
+
+    custom_data: Dict[str, Any] = {}
+    if body.value is not None:
+        custom_data["value"] = body.value
+        custom_data["currency"] = body.currency or "EUR"
+    if body.content_name:
+        custom_data["content_name"] = body.content_name
+    if body.content_ids:
+        custom_data["content_ids"] = body.content_ids
+
+    event_payload: Dict[str, Any] = {
+        "event_name": body.event_name,
+        "event_time": int(time.time()),
+        "action_source": "website",
+        "user_data": user_data,
+    }
+    if body.event_id:
+        event_payload["event_id"] = body.event_id  # dedup con Pixel client-side
+    if body.event_source_url:
+        event_payload["event_source_url"] = body.event_source_url
+    if custom_data:
+        event_payload["custom_data"] = custom_data
+
+    graph_url = f"https://graph.facebook.com/v18.0/{pixel_id}/events"
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                graph_url,
+                params={"access_token": access_token},
+                json={"data": [event_payload]},
+            )
+            data = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {"raw": resp.text}
+            if resp.status_code >= 400:
+                logger.warning(f"[CAPI] {body.event_name} fallito {resp.status_code}: {data}")
+                return {"success": False, "status": resp.status_code, "response": data}
+            return {"success": True, "events_received": data.get("events_received"), "fbtrace_id": data.get("fbtrace_id")}
+    except Exception as e:
+        logger.exception(f"[CAPI] errore invio evento {body.event_name}")
+        return {"success": False, "error": str(e)}
 
 
 # ROUTES - ALERTS
