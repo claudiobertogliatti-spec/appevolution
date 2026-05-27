@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#FFD24D" />
 
+    <!-- BRAND_META_START — questo intero blocco viene sostituito a build-time
+         da scripts/postbuild-ciak.js con scripts/ciak-meta.html per generare
+         build/index.ciak.html (servito da Vercel su host = ciak.io). -->
+    <!--BRAND_META_START-->
     <!-- ════════════════ SEO PRIMARY ════════════════ -->
     <title>Evolution PRO — Trasforma la tua competenza in un'Accademia Digitale | Claudio Bertogliatti</title>
     <meta name="description" content="Evolution PRO è il sistema con cui Claudio Bertogliatti aiuta professionisti, consulenti ed esperti a trasformare la propria competenza in un'accademia digitale sostenibile. 22 anni di vendita, €6M generati, 26 partner attivi. Richiedi l'Analisi Strategica selettiva." />
@@ -191,30 +195,33 @@
       ]
     }
     </script>
+    <!--BRAND_META_END-->
 
-    <!-- ════════════════ HOST DETECTION — Ciak vs Evolution PRO ════════════════
-         Stesso bundle serve due brand: index.js seleziona App vs CiakApp.
-         Se host = ciak.io sovrascrive a runtime title/icon/description/theme
-         (i crawler AI e Google vedranno comunque i meta statici sopra, perché
-         non eseguono JS; questo script è solo per browser reali).
+    <!-- ════════════════ HOST DETECTION FALLBACK (dev/preview) ════════════════
+         In produzione, Vercel serve build/index.ciak.html (con meta Ciak
+         server-side) quando host = ciak.io / www.ciak.io — vedi vercel.json
+         rewrites. I crawler social (FB, LinkedIn, WhatsApp, Twitter) leggono
+         quei meta direttamente, senza JS.
+
+         Questo script è SOLO un fallback per: localhost?ciak=1, preview
+         vercel.app, custom domain non mappato. Non influisce sui crawler.
     ════════════════════════════════════════════════════════════════════════ -->
     <script>
       (function () {
         var host = location.hostname.toLowerCase();
         var force = new URLSearchParams(location.search).get("ciak") === "1";
         var isCiak = host === "ciak.io" || host === "www.ciak.io" || host.endsWith(".ciak.io") || force;
-        if (isCiak) {
-          document.title = "Ciak — Per consulenti che vogliono vendere online";
-          var link = document.querySelector("link[rel='icon']") || document.createElement("link");
-          link.rel = "icon";
-          link.type = "image/webp";
-          link.href = "/ciak/icon.webp";
-          document.head.appendChild(link);
-          var meta = document.querySelector("meta[name='description']");
-          if (meta) meta.content = "Ciak. Per consulenti e coach pronti a vendere online. Masterclass gratuita 60'.";
-          var theme = document.querySelector("meta[name='theme-color']");
-          if (theme) theme.content = "#0F172A";
-        }
+        if (!isCiak) return;
+        document.title = "Ciak — Masterclass gratuita per consulenti e coach";
+        var meta = document.querySelector("meta[name='description']");
+        if (meta) meta.content = "Masterclass gratuita on-demand 30 minuti per consulenti e coach: i 5 errori più comuni che fanno perdere clienti — e come risolverli. Guardala quando vuoi su ciak.io.";
+        var theme = document.querySelector("meta[name='theme-color']");
+        if (theme) theme.content = "#0F172A";
+        var link = document.querySelector("link[rel='icon']") || document.createElement("link");
+        link.rel = "icon";
+        link.type = "image/webp";
+        link.href = "/ciak/icon.webp";
+        document.head.appendChild(link);
       })();
     </script>
   </head>
