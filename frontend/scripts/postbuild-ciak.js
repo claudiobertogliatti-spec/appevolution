@@ -18,8 +18,10 @@ const indexHtmlPath = path.join(buildDir, "index.html");
 const ciakMetaPath = path.join(__dirname, "ciak-meta.html");
 const outPath = path.join(buildDir, "index.ciak.html");
 
+// Marker con `!` iniziale per sopravvivere a html-minifier-terser di
+// CRA production (ignoreCustomComments default: [/^!/, /^\s*#/]).
 const MARKER_RE =
-  /<!--BRAND_META_START-->[\s\S]*?<!--BRAND_META_END-->/;
+  /<!--!\s*BRAND_META_START\s*-->[\s\S]*?<!--!\s*BRAND_META_END\s*-->/;
 
 function fail(msg) {
   console.error("postbuild-ciak: " + msg);
