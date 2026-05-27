@@ -27,18 +27,13 @@
       "destination": "https://app.evolution-pro.it/api/$1"
     },
     {
-      "source": "/",
+      "source": "/((?!api/|static/|ciak/|images/|agents/|favicon|apple-touch-icon|site\\.webmanifest|og-|robots|sitemap|llms|index\\.).*)?",
       "has": [{ "type": "host", "value": "(www\\.)?ciak\\.io" }],
       "destination": "/index.ciak.html"
     },
     {
-      "source": "/((?!api/|static/|ciak/|images/|agents/|favicon|apple-touch-icon|site\\.webmanifest|og-|robots|sitemap|llms).*)",
-      "has": [{ "type": "host", "value": "(www\\.)?ciak\\.io" }],
-      "destination": "/index.ciak.html"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "source": "/((?!api/|static/|ciak/|images/|agents/|favicon|apple-touch-icon|site\\.webmanifest|og-|robots|sitemap|llms|index\\.).*)?",
+      "destination": "/index.evolution.html"
     }
   ],
   "headers": [
@@ -61,7 +56,7 @@
       ]
     },
     {
-      "source": "/index.html",
+      "source": "/index.evolution.html",
       "headers": [
         { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
       ]

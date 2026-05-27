@@ -15,6 +15,7 @@ const path = require("path");
 
 const buildDir = path.join(__dirname, "..", "build");
 const indexHtmlPath = path.join(buildDir, "index.html");
+const evolutionHtmlPath = path.join(buildDir, "index.evolution.html");
 const ciakMetaPath = path.join(__dirname, "ciak-meta.html");
 const outPath = path.join(buildDir, "index.ciak.html");
 
@@ -51,3 +52,11 @@ fs.writeFileSync(outPath, ciakHtml, "utf8");
 
 const sizeKb = (fs.statSync(outPath).size / 1024).toFixed(1);
 console.log("✓ Generated build/index.ciak.html (" + sizeKb + " KB)");
+
+// Rinomina index.html → index.evolution.html così Vercel non lo serve
+// come directory-index auto-resolve scavalcando i rewrites host-aware.
+// Tutti i path SPA (ciak.io e app.evolution-pro.it) vengono mappati
+// esplicitamente dai rewrites in vercel.json.
+fs.renameSync(indexHtmlPath, evolutionHtmlPath);
+const sizeEvo = (fs.statSync(evolutionHtmlPath).size / 1024).toFixed(1);
+console.log("✓ Renamed build/index.html → build/index.evolution.html (" + sizeEvo + " KB)");
