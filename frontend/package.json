@@ -59,7 +59,7 @@
   },
   "scripts": {
     "start": "craco start",
-    "build": "craco build",
+    "build": "craco build && node scripts/postbuild-ciak.js",
     "test": "craco test"
   },
   "browserslist": {
