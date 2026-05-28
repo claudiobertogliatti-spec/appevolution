@@ -235,5 +235,53 @@ async def genera_script_call(responses: dict, analisi_definitiva: dict, stato: i
     return _call_claude(_PROMPT_SCRIPT_CALL, user_message)
 
 
-async def genera_e_salva(session_token: str) -> dict:
-    raise NotImplementedError  # implementato in Task 6
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+async def genera_e_salva(session_token: str, force: bool = False) -> dict:
+    """
+    Orchestratore: carica la diagnostic_session, esegue la pipeline a 4 step,
+    salva in ciak_analisi. Idempotente (non rigenera se esiste, salvo force=True).
+    Degrada se la ricerca web fallisce (analisi senza dati web).
+    """
+    if db is None:
+        raise CiakAnalisiError("Database non configurato")
+
+    existing = await db.ciak_analisi.find_one({"session_token": session_token})
+    if existing and not force:
+        return {"already_exists": True, "stato": existing.get("stato")}
+
+    session = await db.diagnostic_sessions.find_one({"session_token": session_token})
+    if not session:
+        raise CiakAnalisiError(f"diagnostic_session non trovata: {session_token}")
+
+    responses = session.get("responses", {})
+    stato = (session.get("scoring") or {}).get("stato_finale", 2)
+
+    # Step 1 — research brief (degrada se fallisce)
+    try:
+        research = await genera_research_brief(responses)
+    except CiakAnalisiError as e:
+        logger.warning("[CIAK_ANALISI] research fallita, degrado: %s", e)
+        research = {"note_data_gap": "ricerca web non disponibile", "competitor": [], "settore": responses.get("q1_competenza", "")}
+
+    # Step 2-4
+    definitiva = await genera_analisi_definitiva(responses, research)
+    bozza = await genera_bozza(definitiva)
+    script = await genera_script_call(responses, definitiva, stato)
+
+    doc = {
+        "session_token": session_token,
+        "email": session.get("user_email"),
+        "stato": "da_validare",
+        "research_data": research,
+        "analisi_definitiva": definitiva,
+        "bozza": bozza,
+        "script_call": script,
+        "stato_cliente": stato,
+        "generated_at": _now_iso(),
+        "errori": [],
+    }
+    await db.ciak_analisi.replace_one({"session_token": session_token}, doc, upsert=True)
+    return {"already_exists": False, "stato": "da_validare", "session_token": session_token}
