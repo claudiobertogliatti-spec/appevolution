@@ -12,7 +12,7 @@
  *  LIV 4  Partnership Evolution PRO €2.790   → www.evolution-pro.it (esterno)
  *
  * Post-acquisto Ciak Blueprint:
- *  8 Domande Ciak → /diagnostica/[token] → /report/[token] (output Matteo)
+ *  8 Domande Ciak → /diagnostica → /report/[token] (output Matteo) → CTA €67
  *
  * Rename 2026-05-12: /analisi → /ciak-blueprint con redirect 301 lato Vercel
  * (vercel.json) + Navigate fallback per route legacy.
@@ -70,6 +70,10 @@ export default function CiakApp() {
           <Route path="/analisi/grazie" element={<Navigate to={`/ciak-blueprint/grazie${window.location.search}`} replace />} />
           <Route path="/analisi-strategica" element={<Navigate to="/ciak-blueprint" replace />} />
 
+          {/* 8 Domande Ciak — lead magnet PRE-pagamento (no token: la sessione
+              la crea /api/diagnostic/start). Vecchia route con :token mantenuta
+              come alias per link legacy già diffusi. */}
+          <Route path="/diagnostica" element={<CiakDiagnostica />} />
           <Route path="/diagnostica/:token" element={<CiakDiagnostica />} />
           <Route path="/report/:token" element={<CiakReport />} />
 
