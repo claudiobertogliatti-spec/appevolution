@@ -118,3 +118,12 @@ async def test_genera_e_salva_idempotente(monkeypatch):
     # idempotenza: seconda chiamata non rigenera
     res2 = await ciak_analisi.genera_e_salva("tok1")
     assert res2["already_exists"] is True
+
+
+def test_router_exists():
+    from routers import ciak_analisi_admin
+    assert hasattr(ciak_analisi_admin, "router")
+    assert hasattr(ciak_analisi_admin, "set_db")
+    paths = {r.path for r in ciak_analisi_admin.router.routes}
+    assert "/api/admin/ciak/analisi/genera/{session_token}" in paths
+    assert "/api/admin/ciak/analisi/{session_token}" in paths

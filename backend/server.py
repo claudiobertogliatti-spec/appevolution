@@ -16807,6 +16807,10 @@ from routers.diagnostic import router as diagnostic_router, set_db as set_diagno
 set_diagnostic_db(db)
 app.include_router(diagnostic_router)
 
+from routers.ciak_analisi_admin import router as ciak_analisi_admin_router, set_db as set_ciak_analisi_admin_db
+set_ciak_analisi_admin_db(db)
+app.include_router(ciak_analisi_admin_router)
+
 # Ciak Checkout Router (Stripe checkout 67€ + webhook checkout.session.completed)
 from routers.checkout import router as ciak_checkout_router, set_db as set_ciak_checkout_db
 set_ciak_checkout_db(db)
