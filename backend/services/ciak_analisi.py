@@ -129,5 +129,40 @@ def _get_client() -> anthropic.Anthropic:
     return anthropic.Anthropic(api_key=api_key)
 
 
+def _last_text_block(content) -> str:
+    """Con web search la response ha blocchi misti (tool_use, tool_result, text).
+    La risposta finale del modello è l'ULTIMO blocco di tipo 'text'."""
+    texts = [b.text for b in content if getattr(b, "type", None) == "text" and getattr(b, "text", None)]
+    if not texts:
+        raise CiakAnalisiError("Nessun blocco text nella risposta Anthropic")
+    return texts[-1].strip()
+
+
+def _extract_json(text: str) -> str:
+    """Estrai JSON da output (gestisce code fence e testo attorno)."""
+    if "```json" in text:
+        start = text.find("```json") + len("```json")
+        end = text.find("```", start)
+        if end != -1:
+            return text[start:end].strip()
+    if "```" in text:
+        start = text.find("```") + 3
+        end = text.find("```", start)
+        if end != -1:
+            return text[start:end].strip()
+    start = text.find("{")
+    if start == -1:
+        return text
+    depth = 0
+    for i in range(start, len(text)):
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start:i + 1]
+    return text[start:]
+
+
 async def genera_e_salva(session_token: str) -> dict:
     raise NotImplementedError  # implementato in Task 6
