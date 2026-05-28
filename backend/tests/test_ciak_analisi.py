@@ -52,3 +52,19 @@ async def test_genera_research_brief_parsa_json(monkeypatch):
     brief = await ciak_analisi.genera_research_brief({"q1_competenza": "shiatsu", "q6_problema": "dolore cronico", "q5_target": "No"})
     assert brief["settore"] == "shiatsu"
     assert brief["fascia_prezzo_mercato"] == "€500-€1200"
+
+
+@pytest.mark.asyncio
+async def test_genera_definitiva_struttura(monkeypatch):
+    from services import ciak_analisi
+    fake = {
+        "titolo": "Analisi — Mario",
+        "capitoli": {"punto_di_partenza": "a", "dove_sei_adesso": "b", "il_tuo_mercato": "c",
+                     "la_tua_accademia": "d", "la_roadmap": "e", "prossimo_passo": "f"},
+        "accademia": {"nome_percorso": "X", "promessa": "Y", "moduli": [], "pricing_suggerito": "€997"},
+        "roadmap": [{"fase": "F1", "durata": "2sett", "attivita": "z"}],
+    }
+    monkeypatch.setattr(ciak_analisi, "_call_claude", lambda *a, **k: fake)
+    res = await ciak_analisi.genera_analisi_definitiva({"q1_competenza": "shiatsu"}, {"settore": "shiatsu"})
+    assert set(res["capitoli"].keys()) == {"punto_di_partenza", "dove_sei_adesso", "il_tuo_mercato", "la_tua_accademia", "la_roadmap", "prossimo_passo"}
+    assert res["accademia"]["pricing_suggerito"] == "€997"

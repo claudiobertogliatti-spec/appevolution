@@ -201,5 +201,21 @@ async def genera_research_brief(responses: dict) -> dict:
     return _call_claude(_PROMPT_RESEARCH, user_message, use_web_search=True)
 
 
+_CAPITOLI_ATTESI = {"punto_di_partenza", "dove_sei_adesso", "il_tuo_mercato", "la_tua_accademia", "la_roadmap", "prossimo_passo"}
+
+
+async def genera_analisi_definitiva(responses: dict, research_brief: dict) -> dict:
+    """Step 2: 6 capitoli arco narrativo, integra il research brief."""
+    user_message = (
+        "Genera l'analisi definitiva.\n\n8 RISPOSTE:\n"
+        f"{json.dumps(responses, ensure_ascii=False, indent=2)}\n\n"
+        f"RESEARCH BRIEF:\n{json.dumps(research_brief, ensure_ascii=False, indent=2)}"
+    )
+    data = _call_claude(_PROMPT_DEFINITIVA, user_message, max_tokens=6000)
+    if "capitoli" not in data or set(data["capitoli"].keys()) != _CAPITOLI_ATTESI:
+        raise CiakAnalisiError(f"Capitoli mancanti/errati: {list(data.get('capitoli', {}).keys())}")
+    return data
+
+
 async def genera_e_salva(session_token: str) -> dict:
     raise NotImplementedError  # implementato in Task 6
