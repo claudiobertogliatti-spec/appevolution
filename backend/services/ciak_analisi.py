@@ -129,79 +129,123 @@ def _get_client() -> anthropic.Anthropic:
     return anthropic.Anthropic(api_key=api_key)
 
 
-def _last_text_block(content) -> str:
-    """Con web search la response ha blocchi misti (tool_use, tool_result, text).
-    La risposta finale del modello è l'ULTIMO blocco di tipo 'text'."""
-    texts = [b.text for b in content if getattr(b, "type", None) == "text" and getattr(b, "text", None)]
-    if not texts:
-        raise CiakAnalisiError("Nessun blocco text nella risposta Anthropic")
-    return texts[-1].strip()
-
-
-def _extract_json(text: str) -> str:
-    """Estrai JSON da output (gestisce code fence e testo attorno)."""
-    if "```json" in text:
-        start = text.find("```json") + len("```json")
-        end = text.find("```", start)
-        if end != -1:
-            return text[start:end].strip()
-    if "```" in text:
-        start = text.find("```") + 3
-        end = text.find("```", start)
-        if end != -1:
-            return text[start:end].strip()
-    start = text.find("{")
-    if start == -1:
-        return text
-    depth = 0
-    for i in range(start, len(text)):
-        if text[i] == "{":
-            depth += 1
-        elif text[i] == "}":
-            depth -= 1
-            if depth == 0:
-                return text[start:i + 1]
-    return text[start:]
-
-
 _WEB_SEARCH_TOOL = {"type": "web_search_20250305", "name": "web_search", "max_uses": 5}
 
 
-def _call_claude(system_prompt: str, user_message: str, use_web_search: bool = False, max_tokens: int = None) -> dict:
-    """Chiamata sincrona ad Anthropic. Ritorna dict JSON parsato dall'output."""
+def _call_claude_structured(system_prompt: str, user_message: str, schema: dict, tool_name: str, max_tokens: int = None) -> dict:
+    """Output strutturato garantito via Anthropic tool use. Ritorna il dict (block.input)."""
     client = _get_client()
-    kwargs = {
-        "model": _MODEL,
-        "max_tokens": max_tokens or _MAX_TOKENS,
-        "system": [{"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}],
-        "messages": [{"role": "user", "content": user_message}],
-    }
-    if use_web_search:
-        kwargs["tools"] = [_WEB_SEARCH_TOOL]
+    tool = {"name": tool_name, "description": "Restituisci il risultato strutturato secondo lo schema.", "input_schema": schema}
     try:
-        response = client.messages.create(**kwargs)
+        response = client.messages.create(
+            model=_MODEL,
+            max_tokens=max_tokens or _MAX_TOKENS,
+            system=[{"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}],
+            messages=[{"role": "user", "content": user_message}],
+            tools=[tool],
+            tool_choice={"type": "tool", "name": tool_name},
+        )
     except anthropic.APIError as e:
         raise CiakAnalisiError(f"Anthropic API error: {e}") from e
-    raw = _last_text_block(response.content)
+    for block in response.content:
+        if getattr(block, "type", None) == "tool_use" and getattr(block, "name", None) == tool_name:
+            return block.input
+    raise CiakAnalisiError(f"Nessun output strutturato (tool_use) per {tool_name}")
+
+
+def _web_search_text(system_prompt: str, user_message: str, max_tokens: int = None) -> str:
+    """Chiamata con web search → concatena TUTTO il testo dei blocchi (ricerca grezza)."""
+    client = _get_client()
     try:
-        return json.loads(_extract_json(raw))
-    except json.JSONDecodeError as e:
-        logger.error("[CIAK_ANALISI] JSON malformato: %s\nRaw: %s", e, raw[:500])
-        raise CiakAnalisiError(f"JSON malformato dall'output: {e}") from e
+        response = client.messages.create(
+            model=_MODEL,
+            max_tokens=max_tokens or _MAX_TOKENS,
+            system=[{"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}],
+            messages=[{"role": "user", "content": user_message}],
+            tools=[_WEB_SEARCH_TOOL],
+        )
+    except anthropic.APIError as e:
+        raise CiakAnalisiError(f"Anthropic API error (web search): {e}") from e
+    texts = [b.text for b in response.content if getattr(b, "type", None) == "text" and getattr(b, "text", None)]
+    if not texts:
+        raise CiakAnalisiError("Nessun testo dalla ricerca web")
+    return "\n".join(texts).strip()
+
+
+# ── JSON schemas per structured output ──────────────────────────────
+_CAP_KEYS = ["punto_di_partenza", "dove_sei_adesso", "il_tuo_mercato", "la_tua_accademia", "la_roadmap", "prossimo_passo"]
+
+_SCHEMA_RESEARCH = {
+    "type": "object",
+    "properties": {
+        "settore": {"type": "string"},
+        "dimensione_trend": {"type": "string"},
+        "competitor": {"type": "array", "items": {"type": "object", "properties": {
+            "nome": {"type": "string"}, "posizionamento": {"type": "string"}, "prezzo_stimato": {"type": "string"}}}},
+        "fascia_prezzo_mercato": {"type": "string"},
+        "spazi_non_presidiati": {"type": "array", "items": {"type": "string"}},
+        "fonti": {"type": "array", "items": {"type": "string"}},
+        "note_data_gap": {"type": "string"},
+    },
+    "required": ["settore", "dimensione_trend", "fascia_prezzo_mercato"],
+}
+
+_SCHEMA_DEFINITIVA = {
+    "type": "object",
+    "properties": {
+        "titolo": {"type": "string"},
+        "capitoli": {"type": "object", "properties": {k: {"type": "string"} for k in _CAP_KEYS}, "required": _CAP_KEYS},
+        "accademia": {"type": "object", "properties": {
+            "nome_percorso": {"type": "string"}, "promessa": {"type": "string"},
+            "moduli": {"type": "array", "items": {"type": "object", "properties": {
+                "nome": {"type": "string"}, "descrizione": {"type": "string"}}}},
+            "pricing_suggerito": {"type": "string"}}},
+        "roadmap": {"type": "array", "items": {"type": "object", "properties": {
+            "fase": {"type": "string"}, "durata": {"type": "string"}, "attivita": {"type": "string"}}}},
+    },
+    "required": ["titolo", "capitoli", "accademia", "roadmap"],
+}
+
+_SCHEMA_BOZZA = {
+    "type": "object",
+    "properties": {
+        "intro": {"type": "string"},
+        "bullet_per_capitolo": {"type": "object", "properties": {k: {"type": "array", "items": {"type": "string"}} for k in _CAP_KEYS}},
+        "chiusura": {"type": "string"},
+    },
+    "required": ["intro", "bullet_per_capitolo", "chiusura"],
+}
+
+_SCHEMA_SCRIPT = {
+    "type": "object",
+    "properties": {
+        "agganci": {"type": "array", "items": {"type": "string"}},
+        "momenti_illuminanti": {"type": "array", "items": {"type": "string"}},
+        "obiezioni": {"type": "array", "items": {"type": "object", "properties": {
+            "obiezione": {"type": "string"}, "risposta": {"type": "string"}}}},
+        "ponte_partnership": {"type": "string"},
+        "domande_chiusura": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["agganci", "momenti_illuminanti", "ponte_partnership"],
+}
+
+
+_CAPITOLI_ATTESI = {"punto_di_partenza", "dove_sei_adesso", "il_tuo_mercato", "la_tua_accademia", "la_roadmap", "prossimo_passo"}
 
 
 async def genera_research_brief(responses: dict) -> dict:
-    """Step 1: ricerca web sul settore del cliente."""
-    user_message = (
-        "Produci il research brief per questo professionista.\n"
+    """Step 1: ricerca web (testo grezzo) → strutturazione tool use."""
+    search_user = (
+        "Cerca sul web dati reali per questo professionista e riporta cosa trovi.\n"
         f"Competenza: {responses.get('q1_competenza')}\n"
         f"Problema che risolve: {responses.get('q6_problema')}\n"
         f"Target: {responses.get('q5_target')}"
     )
-    return _call_claude(_PROMPT_RESEARCH, user_message, use_web_search=True)
-
-
-_CAPITOLI_ATTESI = {"punto_di_partenza", "dove_sei_adesso", "il_tuo_mercato", "la_tua_accademia", "la_roadmap", "prossimo_passo"}
+    raw = _web_search_text(_PROMPT_RESEARCH, search_user)
+    struct_user = (
+        "Struttura nel formato richiesto questi risultati di ricerca di mercato.\n\n" + raw
+    )
+    return _call_claude_structured(_PROMPT_RESEARCH, struct_user, _SCHEMA_RESEARCH, "research_brief")
 
 
 async def genera_analisi_definitiva(responses: dict, research_brief: dict) -> dict:
@@ -211,7 +255,7 @@ async def genera_analisi_definitiva(responses: dict, research_brief: dict) -> di
         f"{json.dumps(responses, ensure_ascii=False, indent=2)}\n\n"
         f"RESEARCH BRIEF:\n{json.dumps(research_brief, ensure_ascii=False, indent=2)}"
     )
-    data = _call_claude(_PROMPT_DEFINITIVA, user_message, max_tokens=6000)
+    data = _call_claude_structured(_PROMPT_DEFINITIVA, user_message, _SCHEMA_DEFINITIVA, "analisi_definitiva", max_tokens=8000)
     if "capitoli" not in data or set(data["capitoli"].keys()) != _CAPITOLI_ATTESI:
         raise CiakAnalisiError(f"Capitoli mancanti/errati: {list(data.get('capitoli', {}).keys())}")
     return data
@@ -223,7 +267,7 @@ async def genera_bozza(analisi_definitiva: dict) -> dict:
         "Genera la bozza teaser da questa analisi definitiva.\n\n"
         f"{json.dumps(analisi_definitiva, ensure_ascii=False, indent=2)}"
     )
-    return _call_claude(_PROMPT_BOZZA, user_message)
+    return _call_claude_structured(_PROMPT_BOZZA, user_message, _SCHEMA_BOZZA, "bozza_teaser")
 
 
 async def genera_script_call(responses: dict, analisi_definitiva: dict, stato: int) -> dict:
@@ -232,7 +276,7 @@ async def genera_script_call(responses: dict, analisi_definitiva: dict, stato: i
         f"Stato cliente: {stato}\n\n8 RISPOSTE:\n{json.dumps(responses, ensure_ascii=False)}\n\n"
         f"ANALISI:\n{json.dumps(analisi_definitiva, ensure_ascii=False)}"
     )
-    return _call_claude(_PROMPT_SCRIPT_CALL, user_message)
+    return _call_claude_structured(_PROMPT_SCRIPT_CALL, user_message, _SCHEMA_SCRIPT, "script_call")
 
 
 def _now_iso() -> str:
