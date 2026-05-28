@@ -164,5 +164,42 @@ def _extract_json(text: str) -> str:
     return text[start:]
 
 
+_WEB_SEARCH_TOOL = {"type": "web_search_20250305", "name": "web_search", "max_uses": 5}
+
+
+def _call_claude(system_prompt: str, user_message: str, use_web_search: bool = False, max_tokens: int = None) -> dict:
+    """Chiamata sincrona ad Anthropic. Ritorna dict JSON parsato dall'output."""
+    client = _get_client()
+    kwargs = {
+        "model": _MODEL,
+        "max_tokens": max_tokens or _MAX_TOKENS,
+        "system": [{"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}],
+        "messages": [{"role": "user", "content": user_message}],
+    }
+    if use_web_search:
+        kwargs["tools"] = [_WEB_SEARCH_TOOL]
+    try:
+        response = client.messages.create(**kwargs)
+    except anthropic.APIError as e:
+        raise CiakAnalisiError(f"Anthropic API error: {e}") from e
+    raw = _last_text_block(response.content)
+    try:
+        return json.loads(_extract_json(raw))
+    except json.JSONDecodeError as e:
+        logger.error("[CIAK_ANALISI] JSON malformato: %s\nRaw: %s", e, raw[:500])
+        raise CiakAnalisiError(f"JSON malformato dall'output: {e}") from e
+
+
+async def genera_research_brief(responses: dict) -> dict:
+    """Step 1: ricerca web sul settore del cliente."""
+    user_message = (
+        "Produci il research brief per questo professionista.\n"
+        f"Competenza: {responses.get('q1_competenza')}\n"
+        f"Problema che risolve: {responses.get('q6_problema')}\n"
+        f"Target: {responses.get('q5_target')}"
+    )
+    return _call_claude(_PROMPT_RESEARCH, user_message, use_web_search=True)
+
+
 async def genera_e_salva(session_token: str) -> dict:
     raise NotImplementedError  # implementato in Task 6
