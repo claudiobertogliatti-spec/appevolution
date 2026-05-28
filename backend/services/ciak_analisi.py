@@ -217,5 +217,23 @@ async def genera_analisi_definitiva(responses: dict, research_brief: dict) -> di
     return data
 
 
+async def genera_bozza(analisi_definitiva: dict) -> dict:
+    """Step 3: teaser bullet derivato dalla definitiva (coerenza garantita)."""
+    user_message = (
+        "Genera la bozza teaser da questa analisi definitiva.\n\n"
+        f"{json.dumps(analisi_definitiva, ensure_ascii=False, indent=2)}"
+    )
+    return _call_claude(_PROMPT_BOZZA, user_message)
+
+
+async def genera_script_call(responses: dict, analisi_definitiva: dict, stato: int) -> dict:
+    """Step 4: canovaccio vendita per Claudio."""
+    user_message = (
+        f"Stato cliente: {stato}\n\n8 RISPOSTE:\n{json.dumps(responses, ensure_ascii=False)}\n\n"
+        f"ANALISI:\n{json.dumps(analisi_definitiva, ensure_ascii=False)}"
+    )
+    return _call_claude(_PROMPT_SCRIPT_CALL, user_message)
+
+
 async def genera_e_salva(session_token: str) -> dict:
     raise NotImplementedError  # implementato in Task 6
