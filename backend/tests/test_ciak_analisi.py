@@ -28,3 +28,27 @@ def test_extract_text_from_blocks():
     assert _extract_json('ecco:\n```json\n{"x": 2}\n```') == '{"x": 2}'
     # JSON nudo
     assert _extract_json('prefix {"y": 3} suffix') == '{"y": 3}'
+
+
+@pytest.mark.asyncio
+async def test_genera_research_brief_parsa_json(monkeypatch):
+    from services import ciak_analisi
+
+    class FakeBlock:
+        type = "text"
+        text = '{"settore":"shiatsu","competitor":[],"fascia_prezzo_mercato":"€500-€1200","spazi_non_presidiati":[],"fonti":[],"dimensione_trend":"x","note_data_gap":""}'
+
+    class FakeResp:
+        content = [FakeBlock()]
+
+    class FakeClient:
+        def __init__(self): self.messages = self
+        def create(self, **kw):
+            # verifica che il web search tool sia passato
+            assert any(t.get("type") == "web_search_20250305" for t in kw.get("tools", []))
+            return FakeResp()
+
+    monkeypatch.setattr(ciak_analisi, "_get_client", lambda: FakeClient())
+    brief = await ciak_analisi.genera_research_brief({"q1_competenza": "shiatsu", "q6_problema": "dolore cronico", "q5_target": "No"})
+    assert brief["settore"] == "shiatsu"
+    assert brief["fascia_prezzo_mercato"] == "€500-€1200"
