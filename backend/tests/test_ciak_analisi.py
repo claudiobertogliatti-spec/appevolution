@@ -68,3 +68,14 @@ async def test_genera_definitiva_struttura(monkeypatch):
     res = await ciak_analisi.genera_analisi_definitiva({"q1_competenza": "shiatsu"}, {"settore": "shiatsu"})
     assert set(res["capitoli"].keys()) == {"punto_di_partenza", "dove_sei_adesso", "il_tuo_mercato", "la_tua_accademia", "la_roadmap", "prossimo_passo"}
     assert res["accademia"]["pricing_suggerito"] == "€997"
+
+
+@pytest.mark.asyncio
+async def test_bozza_e_script(monkeypatch):
+    from services import ciak_analisi
+    monkeypatch.setattr(ciak_analisi, "_call_claude", lambda *a, **k: {"ok": True})
+    definitiva = {"capitoli": {}, "accademia": {}, "roadmap": []}
+    bozza = await ciak_analisi.genera_bozza(definitiva)
+    script = await ciak_analisi.genera_script_call({"q1_competenza": "x"}, definitiva, stato=3)
+    assert bozza == {"ok": True}
+    assert script == {"ok": True}
