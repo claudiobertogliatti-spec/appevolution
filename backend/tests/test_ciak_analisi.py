@@ -2,6 +2,10 @@ import pytest
 from services import ciak_analisi
 
 
+async def _async(v):
+    return v
+
+
 def test_module_exposes_api():
     assert hasattr(ciak_analisi, "CiakAnalisiError")
     assert hasattr(ciak_analisi, "genera_e_salva")
@@ -79,3 +83,38 @@ async def test_bozza_e_script(monkeypatch):
     script = await ciak_analisi.genera_script_call({"q1_competenza": "x"}, definitiva, stato=3)
     assert bozza == {"ok": True}
     assert script == {"ok": True}
+
+
+@pytest.mark.asyncio
+async def test_genera_e_salva_idempotente(monkeypatch):
+    from services import ciak_analisi
+
+    store = {}
+
+    class FakeColl:
+        async def find_one(self, q): return store.get(q["session_token"])
+        async def replace_one(self, q, doc, upsert=False): store[q["session_token"]] = doc
+
+    class FakeDiag:
+        @staticmethod
+        async def find_one(q):
+            return {"session_token": "tok1", "user_email": "a@b.it",
+                    "responses": {"q1_competenza": "shiatsu", "q5_target": "No", "q6_problema": "dolore"},
+                    "scoring": {"stato_finale": 3}}
+
+    class FakeDB:
+        ciak_analisi = FakeColl()
+        diagnostic_sessions = FakeDiag()
+
+    ciak_analisi.set_db(FakeDB())
+    monkeypatch.setattr(ciak_analisi, "genera_research_brief", lambda r: _async({"settore": "shiatsu"}))
+    monkeypatch.setattr(ciak_analisi, "genera_analisi_definitiva", lambda r, b: _async({"capitoli": {}}))
+    monkeypatch.setattr(ciak_analisi, "genera_bozza", lambda d: _async({"intro": "x"}))
+    monkeypatch.setattr(ciak_analisi, "genera_script_call", lambda r, d, stato: _async({"agganci": []}))
+
+    res1 = await ciak_analisi.genera_e_salva("tok1")
+    assert res1["stato"] == "da_validare"
+    assert store["tok1"]["analisi_definitiva"] == {"capitoli": {}}
+    # idempotenza: seconda chiamata non rigenera
+    res2 = await ciak_analisi.genera_e_salva("tok1")
+    assert res2["already_exists"] is True
