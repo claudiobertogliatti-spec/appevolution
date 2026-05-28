@@ -57,6 +57,9 @@ def _utm_slug(value: str) -> str:
 class LeadCaptureRequest(BaseModel):
     email: EmailStr
     nome: Optional[str] = Field(None, max_length=120)
+    # Telefono: opzionale lato server (i form Landing non lo raccolgono), ma
+    # obbligatorio lato client nel gate masterclass (validazione frontend).
+    telefono: Optional[str] = Field(None, max_length=40)
     source: str = Field(..., min_length=1, max_length=40)
     utm_source: Optional[str] = Field(None, max_length=80)
     utm_medium: Optional[str] = Field(None, max_length=80)
@@ -90,6 +93,7 @@ async def lead_capture(payload: LeadCaptureRequest):
 
     email = payload.email.lower()
     nome = (payload.nome or "").strip() or None
+    telefono = (payload.telefono or "").strip() or None
     now = datetime.now(timezone.utc).isoformat()
 
     utm = {
@@ -109,6 +113,7 @@ async def lead_capture(payload: LeadCaptureRequest):
         doc = {
             "email": email,
             "nome": nome,
+            "telefono": telefono,
             "source": source,
             "sources_seen": [source],
             "utm": utm,
@@ -128,6 +133,7 @@ async def lead_capture(payload: LeadCaptureRequest):
                 **({"utm": utm} if utm else {}),
                 **({"referrer": payload.referrer} if payload.referrer else {}),
                 **({"nome": nome} if nome and not existing.get("nome") else {}),
+                **({"telefono": telefono} if telefono and not existing.get("telefono") else {}),
             },
             "$addToSet": {"sources_seen": source},
         }
@@ -149,7 +155,7 @@ async def lead_capture(payload: LeadCaptureRequest):
             event_name="ciak_optin_masterclass",
             first_name=nome,
             extra_tags=extra_tags,
-            metadata={"source": source, "utm": utm},
+            metadata={"source": source, "utm": utm, "telefono": telefono},
         ))
 
     return LeadCaptureResponse(ok=True, is_new=is_new)

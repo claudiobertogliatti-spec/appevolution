@@ -168,7 +168,15 @@ function deorderQuestions(seed) {
 
 // --- Componente ------------------------------------------------------------
 
-export function CheckpointStrategico({ source = "masterclass" }) {
+/**
+ * Props:
+ *  - source: tag sorgente per il backend (default "masterclass")
+ *  - gateMode: se true, il componente è usato come gate PRE-masterclass:
+ *      mostra un "Salta" sempre, e al termine delle 5 domande NON mostra il
+ *      risultato/CTA €67 ma chiama onDone({stato}) per sbloccare il video.
+ *  - onDone: callback chiamata a fine domande o a skip (gateMode only).
+ */
+export function CheckpointStrategico({ source = "masterclass", gateMode = false, onDone = null }) {
   const leadEmail = useMemo(
     () => localStorage.getItem("ciak_lead_email") || "",
     []
@@ -240,8 +248,6 @@ export function CheckpointStrategico({ source = "masterclass" }) {
     const answerScores = QUESTIONS.map((q) => answers[q.id] ?? 0);
     const totalScore = answerScores.reduce((a, b) => a + b, 0);
     const finalStato = applyOverrides(classifyStato(totalScore), answerScores);
-    setStato(finalStato);
-    setPhase("result");
 
     // Fire-and-forget al backend (ricalcola + tag Systeme + email SMTP diretta + audit log).
     // Il backend usa `nome` per personalizzare l'email del Checkpoint; fallback su
@@ -259,11 +265,25 @@ export function CheckpointStrategico({ source = "masterclass" }) {
       }),
     }).catch(() => null);
 
+    // Gate mode: niente schermata risultato/CTA €67 (siamo PRIMA del video).
+    // Sblocca la masterclass via callback.
+    if (gateMode && onDone) {
+      onDone({ stato: finalStato, completed: true });
+      return;
+    }
+
+    setStato(finalStato);
+    setPhase("result");
     setTimeout(() => {
       document
         .getElementById("ep-checkpoint-result")
         ?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 100);
+  };
+
+  // Gate mode: l'utente salta le 5 domande e va dritto al video.
+  const handleSkip = () => {
+    if (onDone) onDone({ skipped: true });
   };
 
   return (
@@ -276,20 +296,31 @@ export function CheckpointStrategico({ source = "masterclass" }) {
               Checkpoint Strategico
             </p>
             <h2 className="text-2xl md:text-3xl font-semibold text-slate-900 mb-4 leading-tight">
-              Fissa la tua posizione attuale.
+              {gateMode ? "Prima di iniziare, fissa la tua posizione." : "Fissa la tua posizione attuale."}
             </h2>
             <p className="text-slate-600 leading-relaxed mb-8">
-              Cinque domande secche per restituirti una lettura del tuo Stato
-              Strategico Attuale. Non è un quiz: è una lettura strategica guidata.
-              Risposta libera, nessun obbligo, nessun gating. Meno di due minuti.
+              {gateMode
+                ? "Cinque domande secche (meno di due minuti) per inquadrare il tuo Stato Strategico Attuale prima di guardare la masterclass. Puoi anche saltarle e andare dritto al video."
+                : "Cinque domande secche per restituirti una lettura del tuo Stato Strategico Attuale. Non è un quiz: è una lettura strategica guidata. Risposta libera, nessun obbligo, nessun gating. Meno di due minuti."}
             </p>
-            <button
-              type="button"
-              onClick={start}
-              className="px-8 py-4 rounded-lg bg-slate-900 text-yellow-400 font-semibold hover:bg-slate-800 transition"
-            >
-              Inizia il Checkpoint
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={start}
+                className="px-8 py-4 rounded-lg bg-slate-900 text-yellow-400 font-semibold hover:bg-slate-800 transition"
+              >
+                {gateMode ? "Rispondo (2 min)" : "Inizia il Checkpoint"}
+              </button>
+              {gateMode && (
+                <button
+                  type="button"
+                  onClick={handleSkip}
+                  className="px-8 py-4 rounded-lg border border-gray-300 text-slate-600 font-medium hover:border-slate-400 hover:text-slate-900 transition"
+                >
+                  Salta e guarda la masterclass →
+                </button>
+              )}
+            </div>
           </>
         )}
 
@@ -353,9 +384,23 @@ export function CheckpointStrategico({ source = "masterclass" }) {
               >
                 {step < QUESTIONS.length - 1
                   ? "Continua"
-                  : "Vedi il tuo Stato Strategico"}
+                  : gateMode
+                    ? "Vai alla masterclass →"
+                    : "Vedi il tuo Stato Strategico"}
               </button>
             </div>
+
+            {gateMode && (
+              <div className="mt-6 text-center">
+                <button
+                  type="button"
+                  onClick={handleSkip}
+                  className="text-xs text-slate-400 hover:text-slate-600 underline transition"
+                >
+                  Salta e guarda la masterclass
+                </button>
+              </div>
+            )}
           </>
         )}
 

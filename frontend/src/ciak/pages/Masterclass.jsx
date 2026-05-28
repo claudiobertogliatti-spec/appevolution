@@ -1,110 +1,124 @@
 /**
  * Ciak.io /masterclass — LIV 2 lead magnet.
  *
- * Copy lockato 2026-05-12. Riferimento memory/ciak_brand_copy_framework.md.
+ * Flusso (riordinato 2026-05-27 con Claudio):
+ *   STATO 1 — GATE FORM: nome + email + telefono OBBLIGATORI per sbloccare
+ *   STATO 2 — CHECKPOINT 5 domande SKIPPABILE (statistiche su chi accede)
+ *   STATO 3 — VIDEO masterclass (YouTube)
+ *   STATO 4 — POST-VIDEO: CTA "Scopri da dove partire" → 8 Domande (/diagnostica)
  *
- * 3 stati visuali della stessa pagina, attivati dal flusso utente:
- *   STATO 1 — Pre-opt-in (cold): hero + email gate
- *   STATO 2 — Post-opt-in: player YouTube + sticky bar che appare a 20min
- *   STATO 3 — Post-Checkpoint: già inglobato dal componente CheckpointStrategico
+ * Le 8 Domande Ciak (lead magnet approfondito che classifica → CTA €67) sono
+ * ora DOPO la masterclass, non più dopo il pagamento.
  *
- * Sticky bar a 20:00 (~67% del video ~30min; non onEnded — perderemmo utenti
- * buoni che non arrivano al 100%).
+ * Copy hero lockato 2026-05-12. Riferimento memory/ciak_brand_copy_framework.md.
  */
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
 import { CheckpointStrategico } from "../components/CheckpointStrategico";
 
 // Masterclass Ciak definitiva — video prodotto e approvato da Claudio (14/5/2026).
-// Transcript verbatim: docs/marketing/masterclass-transcript-final.md
 const MASTERCLASS_YOUTUBE_ID = "E2XDEdJgzcQ";
-const CHECKPOINT_UNLOCK_SECONDS = 20 * 60; // 20 minuti (video ~30 min, sticky al ~67%)
-// Dev override: ?fast=1 nello URL → timer abbassato a 5s per testing.
-const FAST_CHECKPOINT_SECONDS = 5;
+const CTA_UNLOCK_SECONDS = 20 * 60; // 20 min (video ~30 min, CTA al ~67%)
+const FAST_CTA_SECONDS = 5; // ?fast=1 per testing
+
+// Domini palesemente non-deliverable: Systeme.io li rifiuta con 422.
+const FAKE_DOMAINS = new Set([
+  "example.com", "example.it", "example.org",
+  "test.com", "test.it",
+  "mailinator.com", "yopmail.com", "guerrillamail.com",
+  "trashmail.com", "10minutemail.com", "tempmail.com",
+  "fake.com", "fakeinbox.com", "asdf.com",
+]);
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function hasGate() {
+  try {
+    return (
+      !!localStorage.getItem("ciak_lead_email") &&
+      !!localStorage.getItem("ciak_lead_phone")
+    );
+  } catch {
+    return false;
+  }
+}
 
 export function CiakMasterclass() {
-  const isFastMode = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("fast") === "1";
-  const unlockSeconds = isFastMode ? FAST_CHECKPOINT_SECONDS : CHECKPOINT_UNLOCK_SECONDS;
+  const isFastMode =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("fast") === "1";
+  const unlockSeconds = isFastMode ? FAST_CTA_SECONDS : CTA_UNLOCK_SECONDS;
 
   const [nome, setNome] = useState(localStorage.getItem("ciak_lead_name") || "");
   const [email, setEmail] = useState(localStorage.getItem("ciak_lead_email") || "");
-  const [unlocked, setUnlocked] = useState(!!localStorage.getItem("ciak_lead_email"));
+  const [telefono, setTelefono] = useState(localStorage.getItem("ciak_lead_phone") || "");
   const [error, setError] = useState(null);
-  const [checkpointAvailable, setCheckpointAvailable] = useState(false);
-  const [showCheckpoint, setShowCheckpoint] = useState(false);
 
-  // Idempotent: emette ciak_optin_masterclass se l'utente atterra qui senza
-  // passare dalla landing. Il backend dedupe per email.
-  useEffect(() => {
-    if (unlocked && email) {
-      const qs = new URLSearchParams(window.location.search);
-      fetch("/api/ciak/lead-capture", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          nome: nome || null,
-          source: "masterclass_gate",
-          utm_source: qs.get("utm_source"),
-          utm_medium: qs.get("utm_medium"),
-          utm_campaign: qs.get("utm_campaign"),
-          utm_term: qs.get("utm_term"),
-          utm_content: qs.get("utm_content"),
-          referrer: document.referrer || null,
-        }),
-      }).catch(() => null);
-    }
-  }, [unlocked, email, nome]);
+  // phase: "form" | "checkpoint" | "video"
+  const [phase, setPhase] = useState(hasGate() ? "video" : "form");
+  // CTA 8 domande disponibile (a fine video o timer fallback)
+  const [ctaAvailable, setCtaAvailable] = useState(false);
 
-  // Apertura automatica del Checkpoint a FINE VIDEO (YouTube IFrame API).
-  // L'API emette `onStateChange` con data=0 (ENDED) quando il video finisce →
-  // mostriamo direttamente la sezione Checkpoint (senza richiedere click).
-  //
-  // Timer fallback: se l'utente non arriva a ENDED (pausa, chiusura tab, ecc.)
-  // dopo `unlockSeconds` (20 min default, 5s con ?fast=1) rendiamo comunque
-  // disponibile la sticky bar come fallback manuale. Doppia rete.
+  // Idempotent lead-capture quando il gate è completo (email+telefono).
   useEffect(() => {
-    if (!unlocked) return;
-    const t = setTimeout(() => setCheckpointAvailable(true), unlockSeconds * 1000);
+    if (phase !== "video" || !email) return;
+    const qs = new URLSearchParams(window.location.search);
+    fetch("/api/ciak/lead-capture", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        nome: nome || null,
+        telefono: telefono || null,
+        source: "masterclass_gate",
+        utm_source: qs.get("utm_source"),
+        utm_medium: qs.get("utm_medium"),
+        utm_campaign: qs.get("utm_campaign"),
+        utm_term: qs.get("utm_term"),
+        utm_content: qs.get("utm_content"),
+        referrer: document.referrer || null,
+      }),
+    }).catch(() => null);
+  }, [phase, email, nome, telefono]);
+
+  // Timer fallback per CTA 8 domande (se l'utente non arriva a ENDED).
+  useEffect(() => {
+    if (phase !== "video") return;
+    const t = setTimeout(() => setCtaAvailable(true), unlockSeconds * 1000);
     return () => clearTimeout(t);
-  }, [unlocked, unlockSeconds]);
+  }, [phase, unlockSeconds]);
 
-  // Auto-show on video ended via YouTube IFrame API.
+  // Auto-mostra CTA 8 domande a fine video (YouTube IFrame API).
   useEffect(() => {
-    if (!unlocked || showCheckpoint) return;
+    if (phase !== "video") return;
     if (MASTERCLASS_YOUTUBE_ID === "REPLACE_ME") return;
 
     let player = null;
     let cancelled = false;
 
     const onEnded = () => {
-      setCheckpointAvailable(true);
-      setShowCheckpoint(true);
+      setCtaAvailable(true);
       setTimeout(() => {
-        document.getElementById("ep-checkpoint-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        document.getElementById("ep-cta-8domande")?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 50);
     };
 
     const initPlayer = () => {
       if (cancelled || !window.YT || !window.YT.Player) return;
-      // L'iframe deve esistere nel DOM con id="yt-masterclass" (vedi src sotto).
       player = new window.YT.Player("yt-masterclass", {
         events: {
           onStateChange: (e) => {
-            // state === 0 → ENDED
-            if (e.data === 0) onEnded();
+            if (e.data === 0) onEnded(); // 0 = ENDED
           },
         },
       });
     };
 
     if (window.YT && window.YT.Player) {
-      // API già caricata (es. navigation client-side a /masterclass dopo first load).
       initPlayer();
     } else {
-      // Carica IFrame API una sola volta. window.onYouTubeIframeAPIReady è un
-      // callback globale ufficiale dell'API.
       if (!document.getElementById("yt-iframe-api")) {
         const tag = document.createElement("script");
         tag.id = "yt-iframe-api";
@@ -122,49 +136,50 @@ export function CiakMasterclass() {
       cancelled = true;
       try { if (player && player.destroy) player.destroy(); } catch (_) { /* noop */ }
     };
-  }, [unlocked, showCheckpoint]);
+  }, [phase]);
 
-  // Domini palesemente non-deliverable: Systeme.io li rifiuta con 422 e il
-  // contatto non viene mai creato → nessuna sequenza email parte → tutto il
-  // flusso post-checkpoint è muto. Blocchiamo lato client con un messaggio
-  // chiaro invece di lasciare l'utente in errore silenzioso.
-  const FAKE_DOMAINS = new Set([
-    "example.com", "example.it", "example.org",
-    "test.com", "test.it",
-    "mailinator.com", "yopmail.com", "guerrillamail.com",
-    "trashmail.com", "10minutemail.com", "tempmail.com",
-    "fake.com", "fakeinbox.com", "asdf.com",
-  ]);
-
-  const unlock = () => {
+  const submitGate = () => {
     const n = nome.trim();
     const e = email.trim().toLowerCase();
+    const tel = telefono.trim();
+
     if (n.length < 2) {
       setError("Inserisci il tuo nome");
       return;
     }
-    // Email rudimental check (formato + @ + dot dopo)
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) {
+    if (!EMAIL_RE.test(e)) {
       setError("Inserisci un'email valida");
       return;
     }
-    const domain = e.split("@")[1];
-    if (FAKE_DOMAINS.has(domain)) {
+    if (FAKE_DOMAINS.has(e.split("@")[1])) {
       setError("Questa email non riceve messaggi. Inserisci l'indirizzo che usi davvero — il Checkpoint te lo mandiamo lì.");
       return;
     }
-    localStorage.setItem("ciak_lead_name", n);
-    localStorage.setItem("ciak_lead_email", e);
+    // Telefono: almeno 6 cifre (accetta +, spazi, trattini, parentesi)
+    const digits = tel.replace(/[^\d]/g, "");
+    if (digits.length < 6) {
+      setError("Inserisci un numero di telefono valido");
+      return;
+    }
+
+    try {
+      localStorage.setItem("ciak_lead_name", n);
+      localStorage.setItem("ciak_lead_email", e);
+      localStorage.setItem("ciak_lead_phone", tel);
+    } catch { /* ignore */ }
+
     setNome(n);
     setEmail(e);
-    setUnlocked(true);
+    setTelefono(tel);
     setError(null);
+    setPhase("checkpoint");
   };
 
-  const goToCheckpoint = () => {
-    setShowCheckpoint(true);
+  // Checkpoint completato o saltato → sblocca il video
+  const onCheckpointDone = () => {
+    setPhase("video");
     setTimeout(() => {
-      document.getElementById("ep-checkpoint-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }, 50);
   };
 
@@ -172,8 +187,8 @@ export function CiakMasterclass() {
     <>
       <CiakHeader />
 
-      {/* STATO 1 — PRE-OPT-IN */}
-      {!unlocked && (
+      {/* STATO 1 — GATE FORM */}
+      {phase === "form" && (
         <section className="bg-slate-900 text-white">
           <div className="mx-auto max-w-4xl px-6 pt-16 pb-20">
             <p className="text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-4">
@@ -209,13 +224,11 @@ export function CiakMasterclass() {
                 Accedi alla masterclass
               </p>
 
-              {/* Disclaimer prominente — perché servono nome + email vera */}
               <div className="mt-3 mb-4 p-3 rounded-lg bg-yellow-50 border border-yellow-200">
                 <p className="text-sm text-slate-800 leading-relaxed">
-                  <strong className="text-slate-900">Inserisci nome ed email reali.</strong> Alla fine della
-                  masterclass ti arriva via email il <strong>Checkpoint Strategico</strong> con il tuo punteggio
-                  e lo stato esatto in cui si trova la tua attività. Con dati finti non possiamo raggiungerti
-                  e il risultato resta a metà.
+                  <strong className="text-slate-900">Inserisci dati reali.</strong> Subito dopo ti
+                  proponiamo un breve Checkpoint Strategico (puoi anche saltarlo) e poi accedi
+                  alla masterclass. Con dati finti non possiamo raggiungerti e il follow-up resta a metà.
                 </p>
               </div>
 
@@ -224,28 +237,35 @@ export function CiakMasterclass() {
                   type="text"
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && unlock()}
+                  onKeyDown={(e) => e.key === "Enter" && submitGate()}
                   placeholder="Il tuo nome"
                   autoComplete="given-name"
                   className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-300 text-slate-900 placeholder-slate-400 outline-none focus:border-slate-900"
                 />
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && unlock()}
-                    placeholder="La tua email"
-                    autoComplete="email"
-                    className="flex-1 px-4 py-3 rounded-lg bg-gray-50 border border-gray-300 text-slate-900 placeholder-slate-400 outline-none focus:border-slate-900"
-                  />
-                  <button
-                    onClick={unlock}
-                    className="px-6 py-3 rounded-lg bg-slate-900 text-yellow-400 font-semibold hover:bg-slate-800 transition"
-                  >
-                    Accedi
-                  </button>
-                </div>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && submitGate()}
+                  placeholder="La tua email"
+                  autoComplete="email"
+                  className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-300 text-slate-900 placeholder-slate-400 outline-none focus:border-slate-900"
+                />
+                <input
+                  type="tel"
+                  value={telefono}
+                  onChange={(e) => setTelefono(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && submitGate()}
+                  placeholder="Il tuo telefono"
+                  autoComplete="tel"
+                  className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-300 text-slate-900 placeholder-slate-400 outline-none focus:border-slate-900"
+                />
+                <button
+                  onClick={submitGate}
+                  className="mt-1 px-6 py-3 rounded-lg bg-slate-900 text-yellow-400 font-semibold hover:bg-slate-800 transition"
+                >
+                  Accedi alla masterclass
+                </button>
               </div>
               {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
               <p className="text-xs text-slate-500 mt-4 leading-relaxed">
@@ -257,8 +277,15 @@ export function CiakMasterclass() {
         </section>
       )}
 
-      {/* STATO 2 — VIDEO IN CORSO */}
-      {unlocked && !showCheckpoint && (
+      {/* STATO 2 — CHECKPOINT GATE (skippabile) */}
+      {phase === "checkpoint" && (
+        <div className="bg-slate-900 pt-8">
+          <CheckpointStrategico source="masterclass_gate" gateMode onDone={onCheckpointDone} />
+        </div>
+      )}
+
+      {/* STATO 3 — VIDEO + STATO 4 — CTA 8 DOMANDE */}
+      {phase === "video" && (
         <>
           <section className="bg-slate-900 text-white">
             <div className="mx-auto max-w-5xl px-6 pt-10 pb-6">
@@ -266,7 +293,8 @@ export function CiakMasterclass() {
                 Masterclass Ciak
               </p>
               <p className="text-slate-300 mb-6 leading-relaxed max-w-3xl">
-                Quando avrai finito di guardare, troverai un breve Checkpoint Strategico per fissare la tua posizione attuale.
+                Quando avrai finito di guardare, ti proponiamo le 8 Domande Ciak per capire
+                da dove partire concretamente.
               </p>
               <div className="bg-black rounded-2xl overflow-hidden aspect-video w-full">
                 {MASTERCLASS_YOUTUBE_ID === "REPLACE_ME" ? (
@@ -288,36 +316,49 @@ export function CiakMasterclass() {
             </div>
           </section>
 
-          {/* STICKY BAR — fallback se il video non arriva a ENDED (chiusa tab,
-              scrubbing, ecc.). Quando il video finisce normalmente il Checkpoint
-              si apre da solo. */}
-          {checkpointAvailable && (
+          {/* CTA 8 DOMANDE — appare a fine video o dopo il timer fallback */}
+          {ctaAvailable && (
+            <section id="ep-cta-8domande" className="bg-white">
+              <div className="mx-auto max-w-3xl px-6 py-16 text-center">
+                <p className="text-yellow-600 text-xs font-semibold uppercase tracking-widest mb-3">
+                  Prossimo passo
+                </p>
+                <h2 className="text-2xl md:text-3xl font-semibold text-slate-900 mb-4 leading-tight">
+                  Scopri da dove partire
+                </h2>
+                <p className="text-slate-600 leading-relaxed mb-8 max-w-xl mx-auto">
+                  Rispondi alle 8 Domande Ciak (2-3 minuti). Ti restituiamo una lettura precisa
+                  del tuo stato e il prossimo passo concreto per la tua attività.
+                </p>
+                <Link
+                  to="/diagnostica"
+                  className="inline-block px-8 py-4 rounded-lg bg-slate-900 text-yellow-400 font-semibold hover:bg-slate-800 transition"
+                >
+                  Inizia le 8 Domande Ciak →
+                </Link>
+              </div>
+            </section>
+          )}
+
+          {/* Sticky bar fallback */}
+          {ctaAvailable && (
             <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-yellow-400 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] z-40">
               <div className="mx-auto max-w-5xl px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <p className="text-sm md:text-base text-slate-700 leading-snug">
-                  Hai visto abbastanza per fissare la tua posizione attuale.
+                  Hai visto abbastanza per capire da dove partire.
                 </p>
-                <button
-                  type="button"
-                  onClick={goToCheckpoint}
+                <Link
+                  to="/diagnostica"
                   className="flex-shrink-0 px-6 py-3 rounded-lg bg-slate-900 text-yellow-400 font-semibold hover:bg-slate-800 transition text-sm md:text-base"
                 >
-                  Vai al Checkpoint Strategico
-                </button>
+                  Vai alle 8 Domande Ciak →
+                </Link>
               </div>
             </div>
           )}
 
-          {/* Spacer per non coprire contenuto con sticky bar */}
-          {checkpointAvailable && <div className="h-24" />}
+          {ctaAvailable && <div className="h-24" />}
         </>
-      )}
-
-      {/* STATO 3 — CHECKPOINT STRATEGICO */}
-      {unlocked && showCheckpoint && (
-        <div id="ep-checkpoint-section">
-          <CheckpointStrategico source="masterclass" />
-        </div>
       )}
 
       <CiakFooter />
