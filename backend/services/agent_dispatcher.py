@@ -7,15 +7,22 @@ Stefania coordinates internally but is NEVER exposed to the partner as their ass
 
 from typing import Literal
 
-AgentName = Literal["VALENTINA", "ANDREA", "GAIA", "MARCO", "CLAUDIO", "ANTONELLA"]
+AgentName = Literal["VALENTINA", "ANDREA", "GAIA", "MARCO", "STEFANIA", "MATTEO", "CLAUDIO", "ANTONELLA"]
 
 # ── Canonical agent descriptions (shown to partner) ──────────────────────────
 
 AGENT_PROFILES: dict[str, dict] = {
+    "STEFANIA": {
+        "name": "Stefania",
+        "role": "Coordinatrice del tuo percorso",
+        "description": "Ti accompagna lungo tutto il percorso, una cosa alla volta, e ti mette in contatto con lo specialista giusto per ogni fase.",
+        "color": "#FACC15",
+        "emoji": "🟡",
+    },
     "VALENTINA": {
         "name": "Valentina",
         "role": "Strategia e onboarding",
-        "description": "Ti guida nelle prime fasi e ti aiuta a impostare correttamente le basi del tuo progetto.",
+        "description": "Ti guida nella fase Esamina: dati, brand e posizionamento, le basi del tuo progetto.",
         "color": "#F2C418",
         "emoji": "🟡",
     },
@@ -38,6 +45,13 @@ AGENT_PROFILES: dict[str, dict] = {
         "role": "Accountability settimanale",
         "description": "Ti aiuta a mantenere continuità, ordine e avanzamento durante tutto il processo.",
         "color": "#8B5CF6",
+        "emoji": "🟡",
+    },
+    "MATTEO": {
+        "name": "Matteo",
+        "role": "Analisi & report",
+        "description": "Analizza il tuo punto di partenza e i dati del percorso per restituirti report e indicazioni concrete.",
+        "color": "#0EA5E9",
         "emoji": "🟡",
     },
     "CLAUDIO": {

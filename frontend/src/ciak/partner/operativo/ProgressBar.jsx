@@ -1,13 +1,13 @@
 import React from "react";
 
 /**
- * Progress bar Operativo a 5 macro-fasi del brand Evolution:
- *  Posizionamento → Creazione accademia → Costruzione funnel → Lancio → Ottimizzazione servizio
+ * Progress bar Operativo sulle 3 fasi del Metodo EVO:
+ *  Esamina → Valida → Ottimizza
  *
- * Step 1-2 (contratto + discovery) sono "Avvio" silenzioso fuori dalla bar
- * (mostrati come chip "Avvio ✓ completato" quando done).
+ * Tutti gli step concreti confluiscono in una delle 3 fasi. Il param `avvio`
+ * è deprecato (contratto/discovery sono dentro Esamina) e viene ignorato.
  */
-export default function ProgressBar({ macroPhases, steps, currentStepId, avvio }) {
+export default function ProgressBar({ macroPhases, steps, currentStepId }) {
   if (!macroPhases || macroPhases.length === 0) return null;
 
   const currentStep = steps?.find((s) => s.step_id === currentStepId);
@@ -20,35 +20,9 @@ export default function ProgressBar({ macroPhases, steps, currentStepId, avvio }
     stepIndexInMacro = currentMacro.step_ids.indexOf(currentStepId) + 1;
   }
 
-  const inAvvio = currentMacroId === "avvio";
-
   return (
     <div className="bg-white border border-gray-200 rounded-md p-4">
-      {/* Avvio chip — sempre visibile, stato breve */}
-      {avvio && (
-        <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-100">
-          <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full ${
-            avvio.status === "done"
-              ? "bg-green-50 text-green-700"
-              : inAvvio
-              ? "bg-yellow-100 text-slate-900"
-              : "bg-slate-100 text-slate-500"
-          }`}>
-            <span>{avvio.status === "done" ? "✓" : inAvvio ? "→" : "○"}</span>
-            <span>Avvio {avvio.completed_count}/{avvio.total_count}</span>
-          </span>
-          {inAvvio && currentStep && (
-            <span className="text-xs text-slate-500">
-              <span className="font-semibold text-slate-900">{currentStep.label}</span>
-            </span>
-          )}
-          {avvio.status === "done" && !inAvvio && (
-            <span className="text-xs text-slate-400 italic">contratto + discovery completati</span>
-          )}
-        </div>
-      )}
-
-      {/* 5 macro-fasi del brand Evolution */}
+      {/* 3 fasi del Metodo EVO */}
       <div className="flex items-stretch gap-2">
         {macroPhases.map((mp) => {
           const isCurrent = mp.id === currentMacroId;
@@ -90,8 +64,8 @@ export default function ProgressBar({ macroPhases, steps, currentStepId, avvio }
         })}
       </div>
 
-      {/* Riga contesto: macro corrente + passo + step label + tagline */}
-      {currentMacro && currentStep && !inAvvio && (
+      {/* Riga contesto: fase corrente + passo + step label + tagline */}
+      {currentMacro && currentStep && (
         <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2 text-xs flex-wrap">
           <span className="text-slate-500 font-medium">
             {currentMacro.label}

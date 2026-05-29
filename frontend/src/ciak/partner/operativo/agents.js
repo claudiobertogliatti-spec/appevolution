@@ -61,6 +61,7 @@ export const AGENTS = {
 export const STEP_TO_AGENT = {
   "01-contratto":            "STEFANIA",
   "02-discovery-video":      "STEFANIA",
+  "burocrazia":              "VALENTINA",
   "03-brand-kit":            "VALENTINA",
   "04-posizionamento":       "VALENTINA",
   "05-script-masterclass":   "ANDREA",
