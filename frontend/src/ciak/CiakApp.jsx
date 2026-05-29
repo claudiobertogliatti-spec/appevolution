@@ -30,6 +30,7 @@ import { CiakBlueprint } from "./pages/CiakBlueprint";
 import { CiakGrazie } from "./pages/Grazie";
 import { CiakDiagnostica } from "./pages/Diagnostica";
 import { CiakReport } from "./pages/Report";
+import { CiakAnalisi } from "./pages/Analisi";
 import { CiakProposta } from "./pages/Proposta";
 import { PartnerSetupPassword } from "./pages/PartnerSetupPassword";
 import { CiakNotFound } from "./pages/NotFound";
@@ -76,6 +77,7 @@ export default function CiakApp() {
           <Route path="/diagnostica" element={<CiakDiagnostica />} />
           <Route path="/diagnostica/:token" element={<CiakDiagnostica />} />
           <Route path="/report/:token" element={<CiakReport />} />
+          <Route path="/analisi/:token" element={<CiakAnalisi />} />
 
           {/* FASE 1 migrazione — Proposta Partnership post-call (porting da Evolution) */}
           <Route path="/proposta/:token" element={<CiakProposta />} />
