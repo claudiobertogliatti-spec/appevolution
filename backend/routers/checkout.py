@@ -367,6 +367,15 @@ async def _handle_checkout_completed(data: dict) -> None:
             },
         ))
 
+        # Plan B: genera + invia la bozza analisi in background (idempotente, non blocca il webhook).
+        from services import ciak_analisi_delivery
+        ciak_analisi_delivery.set_db(db)
+        _asyncio.create_task(ciak_analisi_delivery.processa_acquisto(
+            session_token=diagnostic.get("session_token"),
+            email=_user_email,
+            nome=diagnostic.get("user_name"),
+        ))
+
 
 async def _handle_charge_refunded(data: dict) -> None:
     """Refund: aggiunge event ciak_refunded ma NON cambia state corrente."""
