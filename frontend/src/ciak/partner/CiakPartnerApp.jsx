@@ -355,7 +355,7 @@ export default function CiakPartnerApp() {
           index
           element={
             partnerId ? (
-              <PartnerOperativo partnerId={partnerId} />
+              <PartnerOperativo partnerId={partnerId} partnerName={status?.partner_name} />
             ) : statusError ? (
               <div className="p-10 text-slate-600">
                 Errore nel caricamento del percorso: {statusError}
@@ -382,7 +382,7 @@ export default function CiakPartnerApp() {
         />
 
         {/* Alias esplicito /partner/operativo (bookmark legacy → stessa home). */}
-        <Route path="operativo" element={<PartnerOperativo partnerId={partnerId} />} />
+        <Route path="operativo" element={<PartnerOperativo partnerId={partnerId} partnerName={status?.partner_name} />} />
 
         {/* Sezioni principali della sidebar */}
         <Route path="webinar" element={<WebinarPage partnerId={partnerId} />} />

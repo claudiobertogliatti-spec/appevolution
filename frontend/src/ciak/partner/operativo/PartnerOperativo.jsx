@@ -1,13 +1,14 @@
 import React, { lazy, Suspense, useState } from "react";
 import { useJourneyState } from "./hooks/useJourneyState";
 import ProgressBar from "./ProgressBar";
-import AgentVoiceNarrante from "./AgentVoiceNarrante";
+import PhaseAgentHeader from "./PhaseAgentHeader";
 import AgentDrawer from "./AgentDrawer";
 
 // Step components lazy-loaded — implementati in Phase 4
 const STEP_COMPONENTS = {
   "01-contratto":            lazy(() => import("./steps/Step01Contratto")),
   "02-discovery-video":      lazy(() => import("./steps/Step02DiscoveryVideo")),
+  "burocrazia":              lazy(() => import("./steps/StepBurocrazia")),
   "03-brand-kit":            lazy(() => import("./steps/Step03BrandKit")),
   "04-posizionamento":       lazy(() => import("./steps/Step04Posizionamento")),
   "05-script-masterclass":   lazy(() => import("./steps/Step05ScriptMasterclass")),
@@ -29,7 +30,7 @@ const OperativoContinuo = lazy(() => import("./steps/OperativoContinuo"));
  * Layout: progress bar + Stefania voce narrante + componente step dinamico.
  * Drawer chat si apre al click "Chiedi →".
  */
-export default function PartnerOperativo({ partnerId }) {
+export default function PartnerOperativo({ partnerId, partnerName }) {
   const { state, loading, error, completeStep, saveDraft, refresh } = useJourneyState(partnerId);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [viewingStepId, setViewingStepId] = useState(null); // se !== null: partner sta modificando step già done
@@ -79,15 +80,12 @@ export default function PartnerOperativo({ partnerId }) {
           macroPhases={state.macro_phases}
           steps={state.steps}
           currentStepId={stepToShow?.step_id}
-          avvio={state.avvio}
         />
 
-        {!allDone && stepToShow && (
-          <AgentVoiceNarrante
-            currentStepId={stepToShow.step_id}
-            stepLabel={stepToShow.label}
-            stepNumber={stepToShow.step_number}
-            totalSteps={state.total_steps}
+        {!allDone && stepToShow && stepToShow.step_id !== "02-discovery-video" && (
+          <PhaseAgentHeader
+            macroPhaseId={stepToShow.macro_phase}
+            partnerName={partnerName}
             onAsk={() => setDrawerOpen(true)}
           />
         )}
@@ -98,6 +96,7 @@ export default function PartnerOperativo({ partnerId }) {
               <StepComponent
                 step={stepToShow}
                 partnerId={partnerId}
+                partnerName={partnerName}
                 onSaveDraft={(d) => stepToShow && saveDraft(stepToShow.step_id, d)}
                 onComplete={async (d) => {
                   if (!stepToShow) return;

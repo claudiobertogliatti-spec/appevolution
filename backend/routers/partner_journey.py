@@ -5578,8 +5578,9 @@ async def get_operativo_state(partner_id: str):
         # qui ci arrivano solo i legacy senza step.
         partner_doc = await db.partners.find_one({"id": partner_id}, {"_id": 0, "phase": 1})
         phase = (partner_doc or {}).get("phase") or "F1"
-        _PHASE_START = {"F1": 2, "F2": 4, "F3": 6, "F4": 8}
-        start_step = 14 if phase >= "F5" else _PHASE_START.get(phase, 1)
+        # Numeri aggiornati al nuovo modello a 14 step (burocrazia inserita al n.3).
+        _PHASE_START = {"F1": 2, "F2": 5, "F3": 7, "F4": 9}
+        start_step = 15 if phase >= "F5" else _PHASE_START.get(phase, 1)
         await seed_partner_journey(db, partner_id, start_step_number=start_step)
         if phase >= "F5":
             await db.partners.update_one(
@@ -5625,7 +5626,7 @@ async def get_operativo_state(partner_id: str):
         in_progress = any(s["status"] == "in_progress" for s in mp_steps)
         total = len(mp_steps)
 
-        if mp["id"] == "ottimizzazione-servizio":
+        if mp["id"] == "ottimizza":
             mp_status = "in_progress" if lancio_done else "pending"
             done_count = 0
             total = 0
@@ -5640,6 +5641,7 @@ async def get_operativo_state(partner_id: str):
             "label": mp["label"],
             "tagline": mp["tagline"],
             "icon": mp["icon"],
+            "agent": mp.get("agent"),
             "status": mp_status,
             "step_ids": mp["step_ids"],
             "completed_count": done_count,
@@ -5667,6 +5669,51 @@ class _OperativoCompleteBody(BaseModel):
     data: dict = {}
 
 
+# Step che producono un documento/asset che l'admin deve approvare.
+_DOC_APPROVAL_STEPS = {"04-posizionamento", "03-brand-kit"}
+
+
+async def _notify_admin_partner_activity(
+    partner_id: str,
+    msg: str,
+    *,
+    alert_type: str = "CONSEGNA",
+    requires_approval: bool = False,
+):
+    """Notifica l'admin di un'attività del partner (consegna materiali, variazioni,
+    step completati). Due canali, entrambi già esistenti:
+      - alert in-app (collezione `alerts`) → pagina admin "Oggi"/Notifiche
+      - ping Telegram admin (`notify_telegram`)
+    Best-effort: non blocca mai il flusso del partner.
+    """
+    try:
+        partner = await db.partners.find_one(
+            {"id": partner_id}, {"_id": 0, "name": 1, "email": 1}
+        )
+        nome = (partner or {}).get("name") or f"Partner {partner_id}"
+        now = datetime.utcnow()
+        alert = {
+            "id": uuid.uuid4().hex,
+            "agent": "STEFANIA",
+            "type": alert_type,  # CONSEGNA = attività partner (pallino giallo in UI)
+            "msg": f"{nome} {msg}" + (" — da approvare" if requires_approval else ""),
+            "time": now.strftime("%d/%m %H:%M"),
+            "partner": nome,
+            "partner_id": partner_id,
+            "kind": "partner_activity",
+            "requires_approval": requires_approval,
+            "resolved": False,
+            "created_at": now.isoformat(),
+            "link": f"/admin/partner?id={partner_id}",
+        }
+        await db.alerts.insert_one(alert)
+        await notify_telegram(
+            f"📥 {nome} {msg}" + (" (da approvare)" if requires_approval else "")
+        )
+    except Exception as e:
+        logging.warning(f"[OPERATIVO] notifica admin fallita per {partner_id}: {e}")
+
+
 @router.post("/operativo/complete/{partner_id}/{step_id}")
 async def complete_operativo_step(partner_id: str, step_id: str, body: _OperativoCompleteBody):
     """Marca lo step done + avanza il prossimo a in_progress.
@@ -5690,6 +5737,33 @@ async def complete_operativo_step(partner_id: str, step_id: str, body: _Operativ
             "data": merged_data,
             "updated_at": now,
         }},
+    )
+
+    # Step "burocrazia": rispecchia i dati anagrafici/fiscali sul record partner
+    # così l'admin li vede nella scheda partner (no documento da approvare).
+    if step_id == "burocrazia" and merged_data:
+        _BUROCRAZIA_FIELDS = {
+            "nome", "cognome", "email", "telefono", "data_nascita", "luogo_nascita",
+            "indirizzo", "cap", "comune", "provincia", "paese",
+            "codice_fiscale", "partita_iva", "ragione_sociale", "pec", "iban",
+            "codice_sdi", "regime_forfettario",
+            "sito_web", "blog", "instagram", "linkedin", "youtube", "facebook", "tiktok", "altri_link",
+        }
+        mirror = {f"dati_burocrazia.{k}": v for k, v in merged_data.items() if k in _BUROCRAZIA_FIELDS}
+        if mirror:
+            mirror["dati_burocrazia_updated_at"] = now
+            await db.partners.update_one({"id": partner_id}, {"$set": mirror})
+
+    # Notifica admin: il partner ha completato uno step / consegnato materiali / fatto una variazione.
+    _was_done = current.get("status") == "done"
+    _label = next((d["label"] for d in JOURNEY_STEPS_DEFINITION if d["step_id"] == step_id), step_id)
+    if step_id == "burocrazia":
+        _msg = "ha aggiornato i suoi dati" if _was_done else "ha confermato e completato i suoi dati"
+    else:
+        _verb = "ha aggiornato" if _was_done else "ha completato"
+        _msg = f"{_verb}: {_label}"
+    await _notify_admin_partner_activity(
+        partner_id, _msg, requires_approval=step_id in _DOC_APPROVAL_STEPS
     )
 
     # Trova il prossimo step pending in ordine e marcalo in_progress
@@ -5827,6 +5901,7 @@ async def upload_operativo_file(partner_id: str, file: UploadFile = File(...)):
             )
             if result.get("success"):
                 url = result.get("secure_url") or result.get("url", "")
+                await _notify_admin_partner_activity(partner_id, f"ha caricato un materiale ({file.filename})")
                 return {"success": True, "url": url, "resource_type": resource_type}
     except Exception as e:
         logging.warning(f"[OPERATIVO-UPLOAD] Cloudinary failed: {e}")
@@ -5841,6 +5916,7 @@ async def upload_operativo_file(partner_id: str, file: UploadFile = File(...)):
         path = base_dir / f"{uuid.uuid4().hex[:8]}_{safe_name}"
         async with aiofiles.open(str(path), "wb") as f:
             await f.write(content)
+        await _notify_admin_partner_activity(partner_id, f"ha caricato un materiale ({file.filename})")
         return {"success": True, "url": f"/static/operativo/{partner_id}/{path.name}", "resource_type": resource_type, "fallback": "local"}
     except Exception as e:
         raise HTTPException(500, f"Upload fallito: {e}")
