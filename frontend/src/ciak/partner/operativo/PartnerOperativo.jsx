@@ -2,6 +2,7 @@ import React, { lazy, Suspense, useState } from "react";
 import { useJourneyState } from "./hooks/useJourneyState";
 import ProgressBar from "./ProgressBar";
 import PhaseAgentHeader from "./PhaseAgentHeader";
+import GoLive21Banner from "./GoLive21Banner";
 import AgentDrawer from "./AgentDrawer";
 
 // Step components lazy-loaded — implementati in Phase 4
@@ -76,6 +77,16 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
   return (
     <div className="min-h-screen bg-slate-50 font-[Poppins,system-ui,sans-serif] text-slate-900">
       <div className="max-w-5xl mx-auto px-4 py-6">
+        {!allDone && (
+          <GoLive21Banner
+            startDate={
+              (state.steps?.find((s) => s.step_id === "01-contratto") || {}).completed_at ||
+              (state.steps?.find((s) => s.step_id === "01-contratto") || {}).started_at ||
+              null
+            }
+          />
+        )}
+
         <ProgressBar
           macroPhases={state.macro_phases}
           steps={state.steps}

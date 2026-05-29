@@ -9,16 +9,15 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
-  Home, Video, User, TrendingUp, MessageCircle,
-  Zap, Rocket, Layers, ChevronDown, ChevronRight,
+  Home, Video, LayoutGrid,
+  Rocket, Layers, ChevronDown, ChevronRight,
 } from "lucide-react";
 
 const MAIN_NAV = [
   { to: "/partner", end: true, label: "Home", icon: Home },
+  { to: "/partner/workspace", label: "Workspace", icon: LayoutGrid },
+  // Webinar: temporaneo qui — andrà nella fase Ottimizza (post-lancio) quando la costruiamo.
   { to: "/partner/webinar", label: "Webinar", icon: Video },
-  { to: "/partner/mio-spazio", label: "Il Mio Spazio", icon: User },
-  { to: "/partner/ottimizzazione", label: "Risultati", icon: TrendingUp },
-  { to: "/partner/supporto", label: "Supporto Team", icon: MessageCircle },
 ];
 
 const ACCELERA_ITEMS = [
@@ -76,12 +75,9 @@ export function PartnerSidebar({ user, onLogout }) {
         ))}
 
         <div className="pt-3 mt-2 border-t border-slate-800 space-y-1">
-          <Collapsible icon={Zap} label="Go Live in 21 giorni">
-            <NavLink to="/partner/percorso-veloce" className={subLinkClass}>
-              Il percorso veloce
-            </NavLink>
-          </Collapsible>
-
+          <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+            Evolution One
+          </p>
           <Collapsible icon={Rocket} label="Accelera la crescita">
             {ACCELERA_ITEMS.map((item) => (
               <NavLink key={item.to} to={item.to} className={subLinkClass}>
