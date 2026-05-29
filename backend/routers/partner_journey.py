@@ -5571,7 +5571,21 @@ async def get_operativo_state(partner_id: str):
     """
     existing = await db.partner_journey_steps.count_documents({"partner_id": partner_id})
     if existing == 0:
-        await seed_partner_journey(db, partner_id, start_step_number=1)
+        # Seed phase-aware: un partner ESISTENTE (F1-F7) che entra per la prima
+        # volta NON va resettato allo step 1 (contratto). Deriviamo lo start step
+        # dalla fase legacy (stessa mappa della migrazione one-shot). I partner
+        # nuovi che pagano vengono già seedati alla conferma (proposta.py), quindi
+        # qui ci arrivano solo i legacy senza step.
+        partner_doc = await db.partners.find_one({"id": partner_id}, {"_id": 0, "phase": 1})
+        phase = (partner_doc or {}).get("phase") or "F1"
+        _PHASE_START = {"F1": 2, "F2": 4, "F3": 6, "F4": 8}
+        start_step = 14 if phase >= "F5" else _PHASE_START.get(phase, 1)
+        await seed_partner_journey(db, partner_id, start_step_number=start_step)
+        if phase >= "F5":
+            await db.partners.update_one(
+                {"id": partner_id},
+                {"$set": {"journey_current_step": "completato"}},
+            )
 
     steps_cursor = db.partner_journey_steps.find(
         {"partner_id": partner_id},

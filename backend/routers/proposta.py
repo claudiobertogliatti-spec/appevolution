@@ -198,7 +198,7 @@ async def firma_contratto_proposta(token: str, request: Request, background_task
         "clausole_vessatorie_approved": body.get("clausole_vessatorie_approved", False)
     }
 
-    # Aggiorna proposta
+    # Aggiorna proposta (pdf_url persistito più sotto, dopo la generazione)
     await db.proposte.update_one({"token": token}, {"$set": {
         "contratto_firmato_at": now.isoformat(),
         "stato": "contratto_firmato"
@@ -264,6 +264,13 @@ async def firma_contratto_proposta(token: str, request: Request, background_task
             email=cliente_email,
             nome=cliente_nome,
             pdf_bytes=pdf_bytes_for_email,
+        )
+
+    # Persisti il pdf_url sulla proposta così il flusso Operativo può linkare
+    # il contratto firmato nello Step 1 senza richiedere un nuovo upload.
+    if pdf_url:
+        await db.proposte.update_one(
+            {"token": token}, {"$set": {"contratto_pdf_url": pdf_url}}
         )
 
     await _notify_telegram(f"Contratto FIRMATO da {proposta.get('prospect_nome', '?')} (via proposta)")
@@ -531,6 +538,78 @@ async def _propagate_partner_setup_to_systeme(
         logger.warning("[PROPOSTA] Systeme tag emit failed for %s: %s", email, e)
 
 
+async def _seed_operativo_journey_from_funnel(
+    partner_id: str,
+    contract_signed_at=None,
+    contract_pdf_url=None,
+    payment_metodo=None,
+    payment_at=None,
+) -> None:
+    """Seeda i 13 step del flusso Operativo alla conferma pagamento.
+
+    Lo Step 1 ("Contratto + distinta") è GIÀ assolto dal funnel pubblico —
+    firma digitale + pagamento Stripe/bonifico — quindi lo pre-completiamo con
+    i dati del funnel e portiamo il primo step azionabile a 02-discovery-video.
+    Evita l'intoppo di chiedere al partner di ri-caricare contratto e distinta
+    che ha appena firmato e pagato.
+
+    Idempotente: sicuro su re-run (la conferma può arrivare più volte) e non
+    regredisce un partner che ha già avanzato oltre lo step 2.
+    """
+    if not partner_id:
+        return
+    try:
+        from services.journey_seed import seed_partner_journey
+
+        # 1. Assicura i 13 step. start_step_number=2 → step 1 done, step 2 in_progress.
+        #    Se i record esistevano già (es. GET pigro pre-pagamento), non li tocca:
+        #    ci pensano gli step 2/3 sotto a normalizzare lo stato.
+        await seed_partner_journey(db, partner_id, start_step_number=2)
+
+        now = datetime.now(timezone.utc)
+        set_fields = {
+            "status": "done",
+            "completed_at": now,
+            "started_at": now,
+            "updated_at": now,
+        }
+        step1_data = {
+            "source": "funnel",
+            "contract_signed_at": contract_signed_at,
+            "contract_pdf_url": contract_pdf_url,
+            "payment_metodo": payment_metodo,
+            "payment_at": payment_at,
+        }
+        for k, v in step1_data.items():
+            if v is not None:
+                set_fields[f"data.{k}"] = v
+
+        # 2. Forza 01-contratto = done coi dati del funnel (anche se un GET pigro
+        #    lo aveva seedato a in_progress prima del pagamento).
+        await db.partner_journey_steps.update_one(
+            {"partner_id": partner_id, "step_id": "01-contratto"},
+            {"$set": set_fields},
+        )
+
+        # 3. Se nessuno step è in_progress (caso lazy-seed pre-pagamento), porta
+        #    02-discovery-video a in_progress. Non tocca chi è già più avanti.
+        in_progress = await db.partner_journey_steps.find_one(
+            {"partner_id": partner_id, "status": "in_progress"}
+        )
+        if not in_progress:
+            await db.partner_journey_steps.update_one(
+                {"partner_id": partner_id, "step_id": "02-discovery-video"},
+                {"$set": {"status": "in_progress", "started_at": now, "updated_at": now}},
+            )
+            await db.partners.update_one(
+                {"id": partner_id},
+                {"$set": {"journey_current_step": "02-discovery-video"}},
+            )
+        logger.info("[PROPOSTA] Journey Operativo seedato per partner %s (step 1 pre-completo)", partner_id)
+    except Exception as e:
+        logger.error("[PROPOSTA] seed journey Operativo fallito per %s: %s", partner_id, e)
+
+
 @router.post("/{token}/upload-documenti")
 async def upload_documenti(token: str, background_tasks: BackgroundTasks, files: List[UploadFile] = File(...)):
     proposta = await db.proposte.find_one({"token": token}, {"_id": 0})
@@ -631,6 +710,15 @@ async def conferma_bonifico(token: str):
 
     # Auto-attivazione account partner + email Benvenuto Ciak con credenziali
     await _activate_partner_account_and_notify(partner_id, prospect_email, prospect_nome)
+
+    # Seed flusso Operativo: step 1 pre-completo, partner parte dal Discovery video
+    await _seed_operativo_journey_from_funnel(
+        partner_id,
+        contract_signed_at=proposta.get("contratto_firmato_at"),
+        contract_pdf_url=proposta.get("contratto_pdf_url"),
+        payment_metodo="bonifico",
+        payment_at=now,
+    )
 
     await _notify_telegram(
         f"✅ Bonifico confermato — {prospect_nome} è ora PARTNER\n"
@@ -738,6 +826,15 @@ async def conferma_stripe(token: str, body: ConfermaStripeRequest):
 
     # 6) Auto-attivazione account partner + email Benvenuto Ciak con credenziali
     await _activate_partner_account_and_notify(partner_id, prospect_email, prospect_nome)
+
+    # 6b) Seed flusso Operativo: step 1 pre-completo, partner parte dal Discovery video
+    await _seed_operativo_journey_from_funnel(
+        partner_id,
+        contract_signed_at=proposta.get("contratto_firmato_at"),
+        contract_pdf_url=proposta.get("contratto_pdf_url"),
+        payment_metodo="stripe",
+        payment_at=now,
+    )
 
     # 7) Notifica Telegram
     await _notify_telegram(

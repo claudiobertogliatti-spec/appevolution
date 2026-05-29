@@ -349,14 +349,13 @@ export default function CiakPartnerApp() {
       {/* NOTA: CiakPartnerApp è montato sotto `/partner/*` in CiakApp, quindi
           i path di queste Route sono RELATIVI a /partner (niente prefisso). */}
       <Routes>
+        {/* Home partner = flusso Operativo Stefania (spec 17/5 §6/§9).
+            Serve `status` solo per risolvere partnerId (non-admin). */}
         <Route
           index
           element={
-            status ? (
-              <PartnerDashboard
-                status={status}
-                onNavigate={(id) => navigate(`/partner/${id}`)}
-              />
+            partnerId ? (
+              <PartnerOperativo partnerId={partnerId} />
             ) : statusError ? (
               <div className="p-10 text-slate-600">
                 Errore nel caricamento del percorso: {statusError}
@@ -367,9 +366,22 @@ export default function CiakPartnerApp() {
           }
         />
 
-        {/* Operativo Stefania — nuovo flow concierge (sub-progetto A).
-            Per ora accessibile a /partner/operativo come preview.
-            Diventerà la home default dopo migrazione + smoke. */}
+        {/* Vecchia dashboard F1-F7 — "Strumenti avanzati", non più home default. */}
+        <Route
+          path="avanzata"
+          element={
+            status ? (
+              <PartnerDashboard
+                status={status}
+                onNavigate={(id) => navigate(`/partner/${id}`)}
+              />
+            ) : (
+              <div className="p-10 text-slate-400">Caricamento…</div>
+            )
+          }
+        />
+
+        {/* Alias esplicito /partner/operativo (bookmark legacy → stessa home). */}
         <Route path="operativo" element={<PartnerOperativo partnerId={partnerId} />} />
 
         {/* Sezioni principali della sidebar */}

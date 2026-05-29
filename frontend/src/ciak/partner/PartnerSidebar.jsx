@@ -99,6 +99,12 @@ export function PartnerSidebar({ user, onLogout }) {
       </nav>
 
       <div className="px-3 py-4 border-t border-slate-800">
+        <NavLink
+          to="/partner/avanzata"
+          className="block px-3 py-1.5 mb-2 rounded-lg text-xs text-slate-500 hover:text-slate-300 hover:bg-slate-800/60 transition"
+        >
+          Strumenti avanzati
+        </NavLink>
         <p className="px-3 text-sm text-slate-300">{user?.name}</p>
         <p className="px-3 text-xs text-slate-500 mb-2">Partner Evolution PRO</p>
         <button
