@@ -428,8 +428,11 @@ export function CiakProposta() {
                 <h3 className="font-semibold text-slate-900 mb-4">Coordinate bancarie</h3>
                 <div className="space-y-1 text-sm">
                   <Row label="Beneficiario" value={bonifico.beneficiario} />
+                  {bonifico.indirizzo_beneficiario && <Row label="Indirizzo" value={bonifico.indirizzo_beneficiario} />}
                   <Row label="Banca" value={bonifico.banca} />
+                  {bonifico.paese_banca && <Row label="Paese banca" value={bonifico.paese_banca} />}
                   <Row label="IBAN" value={bonifico.iban} mono />
+                  {bonifico.bic && <Row label="BIC/SWIFT" value={bonifico.bic} mono />}
                   <Row label="Causale" value={bonifico.causale} />
                   <Row label="Importo" value={corrisFormat} />
                 </div>

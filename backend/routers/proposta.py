@@ -359,7 +359,10 @@ async def scelta_bonifico(token: str):
     }})
     return {"success": True, "iban": "LT94 3250 0974 4929 5781",
             "beneficiario": "Evolution PRO LLC",
+            "indirizzo_beneficiario": "8 The Green, Suite A, Dover, DE 19901 — USA",
             "banca": "Revolut Bank UAB",
+            "paese_banca": "Lituania",
+            "bic": "REVOLT21",
             "causale": f"Partnership Evolution PRO - {proposta.get('prospect_nome', '')}"}
 
 
