@@ -193,11 +193,11 @@ async def contract_chat(body: ContractChatRequest):
     Usa Claude Haiku per risposte veloci e concise.
     """
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        import anthropic
 
-        EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
+        api_key = os.environ.get('ANTHROPIC_API_KEY', '')
 
-        if not EMERGENT_LLM_KEY:
+        if not api_key:
             return {"reply": "Il servizio di supporto non è al momento disponibile. Per domande sul contratto scrivi a assistenza@evolution-pro.it"}
 
         contract_text = render_contract_text(await _get_partner_params(body.partner_id))
@@ -238,11 +238,7 @@ Il contratto ha durata determinata (12 mesi) senza recesso ordinario (Art. 7.1).
 ━━━ TESTO CONTRATTO ━━━
 {contract_text[:10000]}"""
 
-        # Session ID unico per partner (mantiene contesto conversazione)
-        session_id = f"contract_chat_{body.partner_id}"
-
         # Costruisce il messaggio con la storia recente nel testo
-        # (LlmChat gestisce la sessione internamente via session_id)
         full_message = body.message
         if body.conversation_history:
             history_text = "\n".join([
@@ -251,15 +247,18 @@ Il contratto ha durata determinata (12 mesi) senza recesso ordinario (Art. 7.1).
             ])
             full_message = f"[Contesto conversazione precedente]\n{history_text}\n\n[Nuova domanda]\n{body.message}"
 
-        llm = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=session_id,
-            system_message=system_prompt
-        ).with_model("anthropic", "claude-haiku-4-5-20251001")
+        client = anthropic.Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=400,
+            system=system_prompt,
+            messages=[{"role": "user", "content": full_message}],
+        )
+        reply = "".join(
+            b.text for b in response.content if getattr(b, "type", None) == "text"
+        ).strip()
 
-        response = await llm.send_message(UserMessage(text=full_message))
-
-        return {"reply": response}
+        return {"reply": reply or "Mi dispiace, non ho una risposta pronta. Scrivi a assistenza@evolution-pro.it"}
 
     except Exception as e:
         logger.error(f"[CONTRACT CHAT] Error: {e}")
