@@ -16,6 +16,9 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Chromium per playwright (render PDF analisi). --with-deps installa le librerie di sistema.
+RUN python -m playwright install --with-deps chromium
+
 # Copia tutto il backend
 COPY . .
 
