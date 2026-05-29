@@ -41,6 +41,7 @@ import { MatteoKBEditor } from "./pages/MatteoKBEditor";
 import { MasterclassAnalytics } from "./pages/MasterclassAnalytics";
 import { SiteConfig } from "./pages/SiteConfig";
 import { PartnerSetupPending } from "./pages/PartnerSetupPending";
+import { AnalisiDaValidare } from "./pages/AnalisiDaValidare";
 
 // ─── Struttura navigazione (macro → pagine) ──────────────────────────────
 
@@ -61,7 +62,10 @@ const NAV = [
   {
     id: "clienti-attivi",
     label: "Clienti Attivi",
-    pages: [{ to: "/admin/pipeline-blueprint", label: "Pipeline Blueprint" }],
+    pages: [
+      { to: "/admin/pipeline-blueprint", label: "Pipeline Blueprint" },
+      { to: "/admin/analisi-da-validare", label: "Analisi da validare" },
+    ],
   },
   {
     id: "gestione-partner",
@@ -333,6 +337,10 @@ export default function CiakAdminApp() {
               onAuthExpired={handleLogout}
             />
           }
+        />
+        <Route
+          path="analisi-da-validare"
+          element={<AnalisiDaValidare onAuthExpired={handleLogout} />}
         />
 
         {/* Gestione Partner */}
