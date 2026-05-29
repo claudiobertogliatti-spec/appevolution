@@ -109,3 +109,10 @@ async def test_resolve_prompt_store_then_fallback(monkeypatch):
 
     assert await ciak_analisi._resolve_prompt("bozza") == "PROMPT_OVERRIDE"
     assert await ciak_analisi._resolve_prompt("definitiva") == ciak_analisi._PROMPT_DEFINITIVA
+
+
+def test_router_prompt_paths():
+    from routers import ciak_analisi_admin
+    paths = {r.path for r in ciak_analisi_admin.router.routes}
+    assert "/api/admin/ciak/analisi/prompt/{key}" in paths
+    assert "/api/admin/ciak/analisi/prompt/{key}/{version_id}/activate" in paths
