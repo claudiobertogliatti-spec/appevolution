@@ -11,8 +11,10 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from pydantic import BaseModel
 
 from services import ciak_analisi
+from services import ciak_analisi_prompt_store
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin/ciak/analisi", tags=["ciak-analisi-admin"])
@@ -25,6 +27,7 @@ def set_db(database) -> None:
     global db
     db = database
     ciak_analisi.set_db(database)
+    ciak_analisi_prompt_store.set_db(database)
 
 
 async def require_ciak_admin(credentials: HTTPAuthorizationCredentials = Depends(security)):
@@ -56,3 +59,50 @@ async def get_analisi(session_token: str, admin=Depends(require_ciak_admin)):
     if not doc:
         raise HTTPException(404, "Analisi non trovata")
     return doc
+
+
+# ─── Prompt-store admin endpoints ────────────────────────────────────────────
+
+class AnalisiPromptCreate(BaseModel):
+    label: str
+    content: str
+    parent_id: str | None = None
+    activate: bool = True
+
+
+@router.get("/prompt/{key}")
+async def get_prompt(key: str, admin=Depends(require_ciak_admin)):
+    if key not in ciak_analisi_prompt_store.VALID_KEYS:
+        raise HTTPException(400, f"key non valida: {key}")
+    from services import ciak_analisi
+    active = await ciak_analisi_prompt_store.get_active_prompt(key)
+    versions = await ciak_analisi_prompt_store.list_versions(key)
+    for v in versions:
+        v.pop("_id", None)
+    if active:
+        active.pop("_id", None)
+    return {
+        "key": key,
+        "active": active,
+        "fallback_hardcoded": ciak_analisi._PROMPT_FALLBACK[key],
+        "versions": versions,
+    }
+
+
+@router.post("/prompt/{key}")
+async def create_prompt(key: str, body: AnalisiPromptCreate, admin=Depends(require_ciak_admin)):
+    if key not in ciak_analisi_prompt_store.VALID_KEYS:
+        raise HTTPException(400, f"key non valida: {key}")
+    return await ciak_analisi_prompt_store.create_version(
+        key=key, content=body.content, label=body.label,
+        author_email=getattr(admin, "email", "admin"),
+        parent_id=body.parent_id, activate=body.activate,
+    )
+
+
+@router.post("/prompt/{key}/{version_id}/activate")
+async def activate_prompt(key: str, version_id: str, admin=Depends(require_ciak_admin)):
+    res = await ciak_analisi_prompt_store.activate_version(version_id)
+    if not res:
+        raise HTTPException(404, "Versione non trovata")
+    return res
