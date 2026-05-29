@@ -95,3 +95,17 @@ def test_router_exists():
     paths = {r.path for r in ciak_analisi_admin.router.routes}
     assert "/api/admin/ciak/analisi/genera/{session_token}" in paths
     assert "/api/admin/ciak/analisi/{session_token}" in paths
+
+
+@pytest.mark.asyncio
+async def test_resolve_prompt_store_then_fallback(monkeypatch):
+    from services import ciak_analisi
+
+    async def fake_get_active_content(key):
+        return "PROMPT_OVERRIDE" if key == "bozza" else None
+
+    import services.ciak_analisi_prompt_store as store
+    monkeypatch.setattr(store, "get_active_content", fake_get_active_content)
+
+    assert await ciak_analisi._resolve_prompt("bozza") == "PROMPT_OVERRIDE"
+    assert await ciak_analisi._resolve_prompt("definitiva") == ciak_analisi._PROMPT_DEFINITIVA
