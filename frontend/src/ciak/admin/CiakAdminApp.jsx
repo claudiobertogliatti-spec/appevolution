@@ -38,6 +38,7 @@ import { ServiziExtraAdmin } from "./pages/ServiziExtraAdmin";
 import { AgentDashboard } from "./pages/AgentDashboard";
 import { MetrichePostLancio } from "./pages/MetrichePostLancio";
 import { MatteoKBEditor } from "./pages/MatteoKBEditor";
+import { AnalisiPromptEditor } from "./pages/AnalisiPromptEditor";
 import { MasterclassAnalytics } from "./pages/MasterclassAnalytics";
 import { SiteConfig } from "./pages/SiteConfig";
 import { PartnerSetupPending } from "./pages/PartnerSetupPending";
@@ -97,6 +98,7 @@ const NAV = [
       { to: "/admin/automazione", label: "Automazione" },
       { to: "/admin/metriche", label: "KPI & Metriche" },
       { to: "/admin/kb-matteo", label: "KB Matteo" },
+      { to: "/admin/analisi-prompt", label: "Prompt Analisi" },
       { to: "/admin/template-email", label: "Template Email" },
       { to: "/admin/configurazione", label: "Configurazione" },
     ],
@@ -377,6 +379,7 @@ export default function CiakAdminApp() {
         <Route path="automazione" element={<AgentDashboard onAuthExpired={handleLogout} />} />
         <Route path="metriche" element={<MetrichePostLancio onAuthExpired={handleLogout} />} />
         <Route path="kb-matteo" element={<MatteoKBEditor onAuthExpired={handleLogout} />} />
+        <Route path="analisi-prompt" element={<AnalisiPromptEditor onAuthExpired={handleLogout} />} />
         <Route
           path="masterclass-analytics"
           element={<MasterclassAnalytics onAuthExpired={handleLogout} />}
