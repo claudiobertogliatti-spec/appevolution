@@ -1,0 +1,26 @@
+.an-root{--navy:#0F172A;--yellow:#FACC15;--slate-50:#F8FAFC;--slate-200:#E2E8F0;--slate-400:#94A3B8;--slate-600:#475569;
+  font-family:'Poppins',system-ui,sans-serif;color:var(--navy);background:#fff;max-width:900px;margin:0 auto;}
+.an-cover{padding:80px 56px 60px;text-align:center;position:relative;overflow:hidden;}
+.an-cover .an-logo{font-size:12px;font-weight:700;letter-spacing:2px;color:var(--slate-400);text-transform:uppercase;margin-bottom:32px;}
+.an-cover h1{font-size:42px;font-weight:700;line-height:1.12;}
+.an-pill{background:var(--yellow);padding:2px 16px;border-radius:30px;}
+.an-cover .an-sub{font-size:17px;font-weight:600;margin-top:18px;color:var(--navy);}
+.an-page{padding:20px 56px 64px;}
+.an-section{margin-bottom:44px;}
+.an-num{font-size:12px;font-weight:700;color:var(--yellow);letter-spacing:1px;display:block;margin-bottom:6px;}
+.an-section h2{font-size:24px;font-weight:600;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid var(--slate-50);}
+.an-section p{color:var(--slate-600);font-size:15px;margin-bottom:14px;line-height:1.7;white-space:pre-wrap;}
+.an-section strong{color:var(--navy);}
+.an-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0;}
+.an-card{border:1px solid var(--slate-200);border-radius:12px;padding:18px;}
+.an-card h4{font-size:15px;color:var(--navy);margin-bottom:6px;}
+.an-card p{font-size:13px;margin:0;}
+.an-roadmap-item{display:flex;gap:18px;align-items:center;background:var(--slate-50);padding:14px 18px;border-radius:10px;margin-bottom:10px;}
+.an-roadmap-fase{min-width:90px;font-weight:700;font-size:12px;color:var(--navy);text-transform:uppercase;}
+.an-price-pill{background:var(--navy);color:#fff;padding:10px 22px;border-radius:50px;display:inline-block;font-weight:500;margin-top:12px;}
+.an-price-pill b{color:var(--yellow);}
+.an-cta{background:var(--navy);color:#fff;border-radius:16px;padding:34px;margin-top:30px;}
+.an-cta h3{font-size:20px;margin-bottom:10px;}
+.an-cta p{color:#cbd5e1;}
+.an-footer{margin-top:50px;padding-top:24px;border-top:1px solid var(--slate-200);color:var(--slate-400);font-size:12px;text-align:center;}
+@media(max-width:640px){.an-cards{grid-template-columns:1fr;}.an-cover,.an-page{padding-left:24px;padding-right:24px;}.an-cover h1{font-size:32px;}}
