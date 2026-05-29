@@ -130,5 +130,9 @@ async def processa_acquisto(session_token: str, email: str, nome: Optional[str])
     else:
         logger.error("[CIAK_DELIVERY] email bozza ko per %s: %s", dest, err)
         update["bozza_errore"] = err
-    await db.ciak_analisi.update_one({"session_token": session_token}, {"$set": update})
+    try:
+        await db.ciak_analisi.update_one({"session_token": session_token}, {"$set": update})
+    except Exception as e:
+        logger.error("[CIAK_DELIVERY] persistenza stato fallita per %s: %s", session_token, e)
+        return {"sent": ok, "pdf_url": pdf_url, "error": err, "persist_error": str(e)}
     return {"sent": ok, "pdf_url": pdf_url, "error": err}
