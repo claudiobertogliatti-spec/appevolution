@@ -116,3 +116,12 @@ def test_router_prompt_paths():
     paths = {r.path for r in ciak_analisi_admin.router.routes}
     assert "/api/admin/ciak/analisi/prompt/{key}" in paths
     assert "/api/admin/ciak/analisi/prompt/{key}/{version_id}/activate" in paths
+
+
+def test_router_admin_validation_paths():
+    from routers import ciak_analisi_admin
+    paths = {r.path for r in ciak_analisi_admin.router.routes}
+    assert "/api/admin/ciak/analisi/coda" in paths
+    assert "/api/admin/ciak/analisi/{session_token}/valida-invia" in paths
+    methods = {(r.path, m) for r in ciak_analisi_admin.router.routes for m in getattr(r, "methods", [])}
+    assert ("/api/admin/ciak/analisi/{session_token}", "PUT") in methods
