@@ -122,6 +122,26 @@ OUTPUT: SOLO JSON valido:
 }"""
 
 
+_PROMPT_FALLBACK = {
+    "research": _PROMPT_RESEARCH,
+    "definitiva": _PROMPT_DEFINITIVA,
+    "bozza": _PROMPT_BOZZA,
+    "script_call": _PROMPT_SCRIPT_CALL,
+}
+
+
+async def _resolve_prompt(key: str) -> str:
+    """Prompt attivo dallo store admin; fallback hardcoded se assente/non disponibile."""
+    try:
+        from services import ciak_analisi_prompt_store
+        content = await ciak_analisi_prompt_store.get_active_content(key)
+        if content:
+            return content
+    except Exception as e:
+        logger.warning("[CIAK_ANALISI] prompt store ko per %s, fallback hardcoded: %s", key, e)
+    return _PROMPT_FALLBACK[key]
+
+
 def _get_client() -> anthropic.Anthropic:
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
@@ -235,27 +255,29 @@ _CAPITOLI_ATTESI = {"punto_di_partenza", "dove_sei_adesso", "il_tuo_mercato", "l
 
 async def genera_research_brief(responses: dict) -> dict:
     """Step 1: ricerca web (testo grezzo) → strutturazione tool use."""
+    prompt = await _resolve_prompt("research")
     search_user = (
         "Cerca sul web dati reali per questo professionista e riporta cosa trovi.\n"
         f"Competenza: {responses.get('q1_competenza')}\n"
         f"Problema che risolve: {responses.get('q6_problema')}\n"
         f"Target: {responses.get('q5_target')}"
     )
-    raw = _web_search_text(_PROMPT_RESEARCH, search_user)
+    raw = _web_search_text(prompt, search_user)
     struct_user = (
         "Struttura nel formato richiesto questi risultati di ricerca di mercato.\n\n" + raw
     )
-    return _call_claude_structured(_PROMPT_RESEARCH, struct_user, _SCHEMA_RESEARCH, "research_brief")
+    return _call_claude_structured(prompt, struct_user, _SCHEMA_RESEARCH, "research_brief")
 
 
 async def genera_analisi_definitiva(responses: dict, research_brief: dict) -> dict:
     """Step 2: 6 capitoli arco narrativo, integra il research brief."""
+    prompt = await _resolve_prompt("definitiva")
     user_message = (
         "Genera l'analisi definitiva.\n\n8 RISPOSTE:\n"
         f"{json.dumps(responses, ensure_ascii=False, indent=2)}\n\n"
         f"RESEARCH BRIEF:\n{json.dumps(research_brief, ensure_ascii=False, indent=2)}"
     )
-    data = _call_claude_structured(_PROMPT_DEFINITIVA, user_message, _SCHEMA_DEFINITIVA, "analisi_definitiva", max_tokens=8000)
+    data = _call_claude_structured(prompt, user_message, _SCHEMA_DEFINITIVA, "analisi_definitiva", max_tokens=8000)
     if "capitoli" not in data or set(data["capitoli"].keys()) != _CAPITOLI_ATTESI:
         raise CiakAnalisiError(f"Capitoli mancanti/errati: {list(data.get('capitoli', {}).keys())}")
     return data
@@ -263,20 +285,22 @@ async def genera_analisi_definitiva(responses: dict, research_brief: dict) -> di
 
 async def genera_bozza(analisi_definitiva: dict) -> dict:
     """Step 3: teaser bullet derivato dalla definitiva (coerenza garantita)."""
+    prompt = await _resolve_prompt("bozza")
     user_message = (
         "Genera la bozza teaser da questa analisi definitiva.\n\n"
         f"{json.dumps(analisi_definitiva, ensure_ascii=False, indent=2)}"
     )
-    return _call_claude_structured(_PROMPT_BOZZA, user_message, _SCHEMA_BOZZA, "bozza_teaser")
+    return _call_claude_structured(prompt, user_message, _SCHEMA_BOZZA, "bozza_teaser")
 
 
 async def genera_script_call(responses: dict, analisi_definitiva: dict, stato: int) -> dict:
     """Step 4: canovaccio vendita per Claudio."""
+    prompt = await _resolve_prompt("script_call")
     user_message = (
         f"Stato cliente: {stato}\n\n8 RISPOSTE:\n{json.dumps(responses, ensure_ascii=False)}\n\n"
         f"ANALISI:\n{json.dumps(analisi_definitiva, ensure_ascii=False)}"
     )
-    return _call_claude_structured(_PROMPT_SCRIPT_CALL, user_message, _SCHEMA_SCRIPT, "script_call")
+    return _call_claude_structured(prompt, user_message, _SCHEMA_SCRIPT, "script_call")
 
 
 def _now_iso() -> str:
