@@ -23,6 +23,7 @@ import { F6Lancio } from "./phases/F6Lancio";
 import { F7Ottimizzazione } from "./phases/F7Ottimizzazione";
 import { WebinarPage } from "./sections/WebinarPage";
 import { MioSpazioPage } from "./sections/MioSpazioPage";
+import { WorkspacePage } from "./sections/WorkspacePage";
 import { PercorsoVelocePage } from "./sections/PercorsoVelocePage";
 import { GrowthSystemPage } from "./sections/GrowthSystemPage";
 import { AcceleraCrescitaPage } from "./sections/AcceleraCrescitaPage";
@@ -221,6 +222,12 @@ function AcceleraRoute({ partnerId }) {
   return <AcceleraCrescitaPage partnerId={partnerId} categoryId={categoryId} />;
 }
 
+// Workspace con tab da URL (/partner/workspace/:tab)
+function WorkspaceRoute({ partnerId }) {
+  const { tab } = useParams();
+  return <WorkspacePage partnerId={partnerId} initialTab={tab} />;
+}
+
 // ─── Shell ───────────────────────────────────────────────────────────────
 
 function PartnerShell({ user, adminViewLabel, onChangePartner, onBackToAdmin, onLogout, children }) {
@@ -385,6 +392,8 @@ export default function CiakPartnerApp() {
         <Route path="operativo" element={<PartnerOperativo partnerId={partnerId} partnerName={status?.partner_name} />} />
 
         {/* Sezioni principali della sidebar */}
+        <Route path="workspace" element={<WorkspacePage partnerId={partnerId} />} />
+        <Route path="workspace/:tab" element={<WorkspaceRoute partnerId={partnerId} />} />
         <Route path="webinar" element={<WebinarPage partnerId={partnerId} />} />
         <Route path="mio-spazio" element={<MioSpazioPage partnerId={partnerId} />} />
         <Route path="supporto" element={<SupportPage partnerId={partnerId} />} />
