@@ -8,6 +8,8 @@ chiamate LLM billabili (Anthropic + web search) ed è raggiungibile via il
 rewrite pubblico Vercel /api/*.
 """
 import logging
+import os
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -48,6 +50,21 @@ async def genera(session_token: str, force: bool = False, admin=Depends(require_
         return await ciak_analisi.genera_e_salva(session_token, force=force)
     except ciak_analisi.CiakAnalisiError as e:
         raise HTTPException(503, f"Generazione fallita: {e}")
+
+
+class DefinitivaUpdate(BaseModel):
+    analisi_definitiva: dict
+    script_call: dict | None = None
+
+
+@router.get("/coda")
+async def coda_da_validare(admin=Depends(require_ciak_admin)):
+    """Analisi paganti in attesa di validazione (stato da_validare)."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    cur = db.ciak_analisi.find({"stato": "da_validare"}, {"_id": 0}).sort("generated_at", 1)
+    items = await cur.to_list(200)
+    return {"items": items, "count": len(items)}
 
 
 @router.get("/{session_token}")
@@ -106,3 +123,59 @@ async def activate_prompt(key: str, version_id: str, admin=Depends(require_ciak_
     if not res:
         raise HTTPException(404, "Versione non trovata")
     return res
+
+
+@router.put("/{session_token}")
+async def salva_definitiva(session_token: str, body: DefinitivaUpdate,
+                           admin=Depends(require_ciak_admin)):
+    """Salva gli edit di Claudio sui 6 capitoli (e opzionalmente lo script call)."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    update = {"analisi_definitiva": body.analisi_definitiva,
+              "edited_at": datetime.now(timezone.utc).isoformat()}
+    if body.script_call is not None:
+        update["script_call"] = body.script_call
+    res = await db.ciak_analisi.update_one({"session_token": session_token}, {"$set": update})
+    if res.matched_count == 0:
+        raise HTTPException(404, "Analisi non trovata")
+    return {"success": True}
+
+
+@router.post("/{session_token}/valida-invia")
+async def valida_e_invia(session_token: str, admin=Depends(require_ciak_admin)):
+    """Sblocca la definitiva (stato inviata), invia il link al cliente, emette evento Systeme."""
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    doc = await db.ciak_analisi.find_one({"session_token": session_token})
+    if not doc:
+        raise HTTPException(404, "Analisi non trovata")
+
+    await db.ciak_analisi.update_one(
+        {"session_token": session_token},
+        {"$set": {"stato": "inviata", "inviata_at": datetime.now(timezone.utc).isoformat()}},
+    )
+
+    base = os.environ.get("CIAK_BASE_URL", "https://ciak.io")
+    link = f"{base}/analisi/{session_token}"
+    email = doc.get("email")
+    nome = doc.get("nome") or (email.split("@")[0] if email else "")
+
+    from services.ciak_analisi_delivery import _send_email_link
+    ok, err = _send_email_link(
+        to=email, nome=nome,
+        subject="La tua analisi strategica Ciak è pronta",
+        link=link,
+    ) if email else (False, "email mancante")
+
+    try:
+        import asyncio
+        from services.ciak_systeme import ciak_emit_event
+        if email:
+            asyncio.create_task(ciak_emit_event(
+                email=email, event_name="ciak_analisi_pronta",
+                first_name=nome, metadata={"analisi_url": link},
+            ))
+    except Exception as e:
+        logger.warning("[CIAK_ANALISI] emit Systeme ko: %s", e)
+
+    return {"success": True, "link": link, "email_sent": ok, "email_error": err}

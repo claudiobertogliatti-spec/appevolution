@@ -86,6 +86,29 @@ def _email_body(nome: str, link: Optional[str]) -> str:
     )
 
 
+def _send_email_link(*, to: str, nome: str, subject: str, link: str) -> tuple[bool, Optional[str]]:
+    """Email transazionale SMTP con un link (no allegato). Ritorna (ok, err)."""
+    host = os.environ.get("SMTP_HOST", "smtp.register.it")
+    port = int(os.environ.get("SMTP_PORT", "587"))
+    user = os.environ.get("SMTP_USER", "")
+    pwd = os.environ.get("SMTP_PASSWORD", "")
+    sender = os.environ.get("SMTP_FROM", f"Claudio Bertogliatti <{user}>")
+    if not user or not pwd:
+        return False, "SMTP non configurato"
+    primo = (nome or "").split()[0] if nome else "ciao"
+    body = (f"Ciao {primo},\n\nla tua analisi strategica completa è pronta. "
+            f"Puoi consultarla qui:\n{link}\n\nA presto,\nClaudio\nEvolution PRO")
+    try:
+        msg = MIMEMultipart()
+        msg["From"] = sender; msg["To"] = to; msg["Subject"] = subject
+        msg.attach(MIMEText(body, "plain", "utf-8"))
+        with smtplib.SMTP(host, port, timeout=25) as server:
+            server.starttls(); server.login(user, pwd); server.send_message(msg)
+        return True, None
+    except Exception as e:
+        return False, str(e)
+
+
 async def processa_acquisto(session_token: str, email: str, nome: Optional[str]) -> dict:
     """
     Background post-€67: genera (idempotente) + invia bozza PDF una sola volta.
