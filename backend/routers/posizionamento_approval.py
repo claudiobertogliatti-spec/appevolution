@@ -91,6 +91,36 @@ async def _current_file(partner_id: str) -> Optional[dict]:
     )
 
 
+async def _compute_prefill_from_ciak(partner_id: str) -> dict:
+    """Calcola pre-fill da diagnostic_sessions (Ciak gate) per Step04.
+
+    Mappa Q1 Ciak (competenza_raw) → 'nicchia'
+    Mappa Q6 Ciak (problema_raw) → 'promessa' (con frase fatta)
+    Solo testi liberi — gli enum di Q4/Q5 producono UX awkward.
+    Se partner senza email o senza diagnostic_session → ritorna {}.
+    """
+    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0, "email": 1})
+    if not partner or not partner.get("email"):
+        return {}
+    session = await db.diagnostic_sessions.find_one(
+        {"email": partner["email"]},
+        {"_id": 0, "answers": 1, "competenza_raw": 1, "problema_raw": 1},
+        sort=[("created_at", -1)],
+    )
+    if not session:
+        return {}
+    competenza = (session.get("competenza_raw") or
+                  (session.get("answers") or {}).get("competenza", "")).strip()
+    problema = (session.get("problema_raw") or
+                (session.get("answers") or {}).get("problema", "")).strip()
+    out = {}
+    if competenza:
+        out["nicchia"] = competenza
+    if problema:
+        out["promessa"] = f"Aiuto le persone a risolvere questo problema: {problema}."
+    return out
+
+
 @router.post("/finalize")
 async def finalize_posizionamento(body: FinalizeBody) -> dict:
     partner = await _get_partner_or_404(body.partner_id)
@@ -227,6 +257,16 @@ async def get_document_metadata(partner_id: str) -> Optional[dict]:
         "rejection_note": f.get("rejection_note"),
         "uploaded_at": f.get("uploaded_at"),
     }
+
+
+@router.get("/prefill/{partner_id}")
+async def get_prefill(partner_id: str) -> dict:
+    """Ritorna pre-fill suggerito per Step04 dalle risposte Ciak gate.
+
+    Il frontend chiama questo SOLO se step.data.answers è vuoto.
+    Ritorna {nicchia?, promessa?} — solo i campi con dati Ciak disponibili.
+    """
+    return await _compute_prefill_from_ciak(partner_id)
 
 
 # ─── ADMIN: queue + approve + reject ────────────────────────────────────────────
