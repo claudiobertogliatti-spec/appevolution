@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
@@ -60,7 +61,8 @@ def _now_utc() -> datetime:
 
 def _filename_for(partner_id: str) -> str:
     ts = _now_utc().strftime("%Y%m%d-%H%M%S")
-    return f"posizionamento-{partner_id}-{ts}.pdf"
+    safe_pid = re.sub(r"[^A-Za-z0-9_-]", "_", partner_id)[:64]
+    return f"posizionamento-{safe_pid}-{ts}.pdf"
 
 
 async def _get_partner_or_404(partner_id: str) -> dict:
