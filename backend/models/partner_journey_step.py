@@ -28,6 +28,12 @@ class PartnerJourneyStep(BaseModel):
     stefania_briefing_shown: bool = False
     stefania_proactive_sent_at: Optional[datetime] = None
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+    # Approval bridge (solo per step in _DOC_APPROVAL_STEPS).
+    # Default None = step non richiede approvazione admin.
+    approval_status: Optional[str] = None  # None | "pending_review" | "approved" | "rejected"
+    approval_file_id: Optional[str] = None
+    approval_note: Optional[str] = None
+    approval_resolved_at: Optional[datetime] = None
 
 
 # Macro-fasi = le 3 fasi del Metodo EVO (Esamina — Valida — Ottimizza), le stesse
