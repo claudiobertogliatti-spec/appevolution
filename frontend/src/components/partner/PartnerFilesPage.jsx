@@ -86,6 +86,7 @@ export function PartnerFilesPage({ partner }) {
   const [files, setFiles] = useState({});
   const [uploading, setUploading] = useState(false);
   const [activeCategory, setActiveCategory] = useState("all");
+  const [noteModal, setNoteModal] = useState({ open: false, note: "", name: "" });
   const docInputRef = useRef(null);
 
   useEffect(() => {
@@ -303,15 +304,27 @@ export function PartnerFilesPage({ partner }) {
                   </div>
                   {f.status && (
                     <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
-                      f.status === "verified" || f.status === "approved" 
-                        ? "bg-green-100 text-green-600" 
-                        : f.status === "rejected" 
-                        ? "bg-red-100 text-red-600" 
+                      f.status === "approved" || f.status === "verified"
+                        ? "bg-green-100 text-green-600"
+                        : f.status === "rejected"
+                        ? "bg-red-100 text-red-600"
+                        : f.status === "under_review"
+                        ? "bg-yellow-100 text-yellow-700"
                         : "bg-yellow-100 text-yellow-600"
                     }`}>
-                      {f.status === "verified" || f.status === "approved" ? "✓ Verificato" : 
-                       f.status === "rejected" ? "✗ Rifiutato" : "In attesa"}
+                      {f.status === "approved" || f.status === "verified" ? "✓ Approvato" :
+                       f.status === "rejected" ? "✗ Da rivedere" :
+                       f.status === "under_review" ? "⏳ In revisione" :
+                       "In attesa"}
                     </span>
+                  )}
+                  {f.status === "rejected" && f.rejection_note && (
+                    <button
+                      onClick={() => setNoteModal({ open: true, note: f.rejection_note, name: f.original_name })}
+                      className="ml-2 text-xs underline text-red-600 hover:text-red-800"
+                    >
+                      Apri nota del team
+                    </button>
                   )}
                   {f.internal_url && (
                     <button 
@@ -356,6 +369,30 @@ export function PartnerFilesPage({ partner }) {
           </div>
         </div>
       </div>
+
+      {noteModal.open && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+             onClick={() => setNoteModal({ open: false, note: "", name: "" })}>
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl"
+               onClick={(e) => e.stopPropagation()}>
+            <div className="font-bold text-[#0F172A] mb-2">Nota del team</div>
+            <div className="text-xs text-[#9CA3AF] mb-4">{noteModal.name}</div>
+            <p className="text-sm text-[#0F172A] whitespace-pre-wrap leading-relaxed mb-6">
+              {noteModal.note}
+            </p>
+            <div className="text-xs text-[#5F6572] mb-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+              💡 Quando vuoi, torna allo step Posizionamento, aggiorna le risposte
+              e ricaricalo. Trovi anche un messaggio nella chat di Valentina.
+            </div>
+            <button
+              onClick={() => setNoteModal({ open: false, note: "", name: "" })}
+              className="w-full bg-[#FFD24D] hover:bg-yellow-400 text-black font-bold py-2.5 rounded-lg"
+            >
+              Chiudi
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
