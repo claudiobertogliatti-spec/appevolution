@@ -73,6 +73,16 @@ export default function ProgressBar({ macroPhases, steps, currentStepId }) {
           </span>
           <span className="text-slate-300">·</span>
           <span className="text-slate-900 font-semibold">{currentStep.label}</span>
+          {currentStep.approval_status === "pending_review" && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
+              In revisione
+            </span>
+          )}
+          {currentStep.approval_status === "rejected" && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+              Da rivedere
+            </span>
+          )}
           <span className="text-slate-400 italic ml-auto">{currentMacro.tagline}</span>
         </div>
       )}
