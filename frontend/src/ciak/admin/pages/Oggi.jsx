@@ -10,6 +10,7 @@ import {
   CheckCircle, DollarSign, ChevronRight,
 } from "lucide-react";
 import { adminFetch } from "../api";
+import ApprovazioniMaterialiPanel from "../components/ApprovazioniMaterialiPanel";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -150,6 +151,8 @@ export function Oggi({ onAuthExpired }) {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showApprovPanel, setShowApprovPanel] = useState(false);
+  const [materialiPending, setMaterialiPending] = useState(0);
 
   const go = (key) => {
     const route = NAV_ROUTES[key];
@@ -298,6 +301,22 @@ export function Oggi({ onAuthExpired }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Pre-carica il count materiali partner in attesa (bundle 7 — coda
+  // `/api/admin/approvazioni/queue` aggregata su file partner pending).
+  // Caricato separato dalle altre stats per non bloccare il render principale.
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await adminFetch("/api/admin/approvazioni/queue");
+        if (!r.ok) return;
+        const d = await r.json();
+        setMaterialiPending(d.total || 0);
+      } catch {
+        /* silenzioso: fallback a 0 già impostato */
+      }
+    })();
+  }, []);
+
   if (loading || !data) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -340,13 +359,15 @@ export function Oggi({ onAuthExpired }) {
         <Block title="Azioni prioritarie" accent>
           <div className="space-y-3">
             <ActionCard
-              count={approv?.total || 0}
+              count={(approv?.total || 0) + materialiPending}
               label="Approvazioni in attesa"
               sublabel={`${approv?.analisi_da_approvare || 0} analisi · ${
                 approv?.bonifici_in_attesa || 0
-              } bonifici`}
-              urgency={(approv?.total || 0) > 0 ? "high" : "ok"}
-              onClick={() => go("approvals")}
+              } bonifici · ${materialiPending} materiali`}
+              urgency={
+                (approv?.total || 0) + materialiPending > 0 ? "high" : "ok"
+              }
+              onClick={() => setShowApprovPanel(true)}
             />
             <ActionCard
               count={callDaFissare}
@@ -546,6 +567,12 @@ export function Oggi({ onAuthExpired }) {
           </Block>
         )}
       </div>
+
+      <ApprovazioniMaterialiPanel
+        open={showApprovPanel}
+        onClose={() => setShowApprovPanel(false)}
+        onChange={(n) => setMaterialiPending(n)}
+      />
     </div>
   );
 }
