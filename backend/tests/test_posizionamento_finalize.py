@@ -101,3 +101,59 @@ class TestGetDocumentEndpoint:
             assert "file_id" in body
             assert "status" in body
             assert body["status"] in ("under_review", "approved", "rejected")
+
+
+# ─── ADMIN ENDPOINTS ────────────────────────────────────────────────────────────
+
+
+class TestAdminQueue:
+    def test_queue_returns_list(self):
+        r = requests.get(f"{BASE_URL}/api/admin/approvazioni/queue")
+        assert r.status_code == 200
+        body = r.json()
+        assert "total" in body
+        assert "items" in body
+        assert isinstance(body["items"], list)
+        # Se ci sono item, verifica forma
+        if body["items"]:
+            it = body["items"][0]
+            assert "file_id" in it
+            assert "partner_name" in it
+            assert "category_label" in it
+            assert "step_label" in it
+            assert "age_human" in it
+
+    def test_queue_filter_by_category(self):
+        r = requests.get(f"{BASE_URL}/api/admin/approvazioni/queue?category=posizionamento")
+        assert r.status_code == 200
+        body = r.json()
+        for it in body.get("items", []):
+            assert it["category"] == "posizionamento"
+
+
+class TestAdminApprove:
+    def test_approve_unknown_returns_409(self):
+        # File inesistente → filtro non matcha → 409
+        r = requests.post(
+            f"{BASE_URL}/api/admin/approvazioni/no-such-file/approve",
+            headers={"X-Admin-Email": "admin@test"},
+        )
+        assert r.status_code == 409
+
+
+class TestAdminReject:
+    def test_reject_requires_note_min_length(self):
+        r = requests.post(
+            f"{BASE_URL}/api/admin/approvazioni/any-file/reject",
+            json={"note": "short"},
+            headers={"X-Admin-Email": "admin@test"},
+        )
+        assert r.status_code == 422  # Pydantic validation min_length=10
+
+    def test_reject_unknown_returns_409(self):
+        r = requests.post(
+            f"{BASE_URL}/api/admin/approvazioni/no-such-file/reject",
+            json={"note": "Nota di rifiuto valida di test"},
+            headers={"X-Admin-Email": "admin@test"},
+        )
+        assert r.status_code == 409
