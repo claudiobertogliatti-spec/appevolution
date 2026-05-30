@@ -374,27 +374,50 @@ async def admin_reject(file_id: str, body: RejectBody, request: Request) -> dict
         {"$set": {"resolved": True, "resolved_at": now.isoformat()}},
     )
 
-    # Posta messaggio bot in chat Valentina
+    # Posta messaggio bot nella chat agente del partner (riusa la collezione
+    # stefania_conversations — single source of truth per le chat agente,
+    # vedi routers/stefania_chat.py:325-346).
     chat_msg = (
         "Il team ha lasciato delle note sul tuo Documento di Posizionamento.\n\n"
         f"{note}\n\n"
         "Quando vuoi, torna allo step Posizionamento, aggiorna le risposte "
         "e ricaricalo. Resto qui se hai dubbi."
     )
-    await db.agent_chats.insert_one({
-        "id": uuid.uuid4().hex,
-        "partner_id": f["partner_id"],
-        "agent": "VALENTINA",
-        "role": "assistant",
-        "kind": "rejection_note",
-        "content": chat_msg,
-        "created_at": now.isoformat(),
-    })
+    now_iso = now.isoformat()
+    partner = await db.partners.find_one(
+        {"id": f["partner_id"]}, {"_id": 0, "name": 1, "telegram_chat_id": 1}
+    ) or {}
+    try:
+        await db.stefania_conversations.update_one(
+            {"partner_id": str(f["partner_id"])},
+            {
+                "$set": {
+                    "partner_id": str(f["partner_id"]),
+                    "partner_name": partner.get("name", "Partner"),
+                    "updated_at": now_iso,
+                },
+                "$push": {
+                    "messages": {
+                        "role": "assistant",
+                        "content": chat_msg,
+                        "ts": now_iso,
+                        "kind": "rejection_note",
+                        "agent": "VALENTINA",
+                    }
+                },
+            },
+            upsert=True,
+        )
+    except Exception as e:
+        logger.warning(f"[POSIZIONAMENTO] Failed to post chat note: {e}")
 
     # Telegram al partner se ha chat_id (best-effort)
-    partner = await db.partners.find_one(
-        {"id": f["partner_id"]}, {"_id": 0, "telegram_chat_id": 1, "name": 1}
-    ) or {}
+    # Carica i campi mancanti se non già presenti dal lookup precedente
+    if "telegram_chat_id" not in partner:
+        tg_lookup = await db.partners.find_one(
+            {"id": f["partner_id"]}, {"_id": 0, "telegram_chat_id": 1, "name": 1}
+        ) or {}
+        partner = {**partner, **tg_lookup}
     tg_id = partner.get("telegram_chat_id")
     if tg_id:
         try:
