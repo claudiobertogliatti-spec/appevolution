@@ -39,6 +39,23 @@ db = _client[db_name]
 
 STEP_ID = "04-posizionamento"
 
+# Le 12 chiavi del wizard Posizionamento con min_char di validazione.
+# Vedi spec docs/superpowers/specs/2026-05-30-wizard-posizionamento-12-domande-design.md
+POSIZIONAMENTO_REQUIRED_KEYS_MIN_CHAR = {
+    "nicchia": 30,
+    "momento_di_vita": 25,
+    "livello_consapevolezza": 25,
+    "promessa": 40,
+    "trasformazione_90gg": 50,
+    "prezzo_e_formato": 30,
+    "metodo_nome": 5,
+    "metodo_step": 80,
+    "prova_sociale_concreta": 50,
+    "origin_story": 80,
+    "contrarian_view": 50,
+    "differenza_riconoscibile": 40,
+}
+
 
 async def _complete_journey_step(partner_id: str, step_id: str, data: dict) -> None:
     """Chiama internamente la stessa logica di complete_operativo_step:
@@ -127,8 +144,15 @@ async def finalize_posizionamento(body: FinalizeBody) -> dict:
     step = await _get_step_or_400(body.partner_id)
 
     answers = (step.get("data") or {}).get("answers") or {}
-    if not answers or not any((answers.get(k) or "").strip() for k in answers):
-        raise HTTPException(400, "Nessuna risposta al wizard Posizionamento trovata")
+    missing = [
+        k for k, min_chars in POSIZIONAMENTO_REQUIRED_KEYS_MIN_CHAR.items()
+        if len((answers.get(k) or "").strip()) < min_chars
+    ]
+    if missing:
+        raise HTTPException(
+            400,
+            f"Risposte mancanti o troppo brevi: {', '.join(missing)}",
+        )
 
     # Idempotenza
     existing = await _current_file(body.partner_id)

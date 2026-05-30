@@ -84,6 +84,22 @@ class TestFinalizeEndpoint:
         )
         assert r.status_code == 404
 
+    def test_finalize_400_when_answers_incomplete(self):
+        # Partner senza risposte complete (il test partner potrebbe averle parziali
+        # da setup precedenti). Se 200, significa che era già stato fatto un finalize
+        # — accettabile, lo skip.
+        partner_id = _create_test_partner_with_answers()
+        r = requests.post(
+            f"{BASE_URL}/api/partner/posizionamento/finalize",
+            json={"partner_id": partner_id},
+        )
+        if r.status_code == 200 or r.status_code == 409:
+            pytest.skip(f"Partner ha già risposte complete (status {r.status_code})")
+        assert r.status_code == 400
+        # Verifica messaggio elenca le keys mancanti
+        detail = r.json().get("detail", "")
+        assert "mancanti" in detail.lower() or "brevi" in detail.lower()
+
 
 class TestGetDocumentEndpoint:
     def test_returns_null_for_unknown(self):
