@@ -16849,6 +16849,14 @@ from routers.partner_setup import router as partner_setup_router, set_db as set_
 set_partner_setup_db(db)
 app.include_router(partner_setup_router)
 
+# Posizionamento Approval Router (finalize partner-side + admin queue/approve/reject)
+from routers.posizionamento_approval import (
+    router as posizionamento_approval_router,
+    admin_router as posizionamento_approval_admin_router,
+)
+app.include_router(posizionamento_approval_router)
+app.include_router(posizionamento_approval_admin_router)
+
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler
 
