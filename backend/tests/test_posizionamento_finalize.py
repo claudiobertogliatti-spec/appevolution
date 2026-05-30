@@ -60,6 +60,14 @@ class TestFinalizeEndpoint:
             f"{BASE_URL}/api/partner/posizionamento/finalize",
             json={"partner_id": partner_id},
         )
+        if r1.status_code == 409:
+            # Già approvato: GET /document deve ritornare il file approved
+            d = requests.get(f"{BASE_URL}/api/partner/posizionamento/document/{partner_id}")
+            assert d.status_code == 200
+            body = d.json()
+            assert body is not None
+            assert body["status"] == "approved"
+            return
         if r1.status_code != 200:
             pytest.skip(f"Setup state non valido: {r1.status_code} {r1.text}")
         r2 = requests.post(
