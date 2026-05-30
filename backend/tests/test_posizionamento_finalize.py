@@ -157,3 +157,21 @@ class TestAdminReject:
             headers={"X-Admin-Email": "admin@test"},
         )
         assert r.status_code == 409
+
+
+class TestPrefillEndpoint:
+    def test_prefill_unknown_partner_returns_empty(self):
+        r = requests.get(f"{BASE_URL}/api/partner/posizionamento/prefill/no-one-{uuid.uuid4().hex[:8]}")
+        assert r.status_code == 200
+        assert r.json() == {}
+
+    def test_prefill_returns_dict(self):
+        # Per il partner di test deploy-check-evo: potrebbe avere o non avere
+        # una diagnostic_session associata. Verifichiamo solo la shape.
+        r = requests.get(f"{BASE_URL}/api/partner/posizionamento/prefill/deploy-check-evo")
+        assert r.status_code == 200
+        body = r.json()
+        assert isinstance(body, dict)
+        # Le keys ammesse sono solo nicchia e/o promessa
+        for k in body.keys():
+            assert k in ("nicchia", "promessa"), f"unexpected key: {k}"
