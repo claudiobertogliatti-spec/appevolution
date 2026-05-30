@@ -20,9 +20,9 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from services.posizionamento_pdf_renderer import genera_posizionamento_pdf
 from services.posizionamento_storage import upload_posizionamento_pdf
@@ -227,3 +227,192 @@ async def get_document_metadata(partner_id: str) -> Optional[dict]:
         "rejection_note": f.get("rejection_note"),
         "uploaded_at": f.get("uploaded_at"),
     }
+
+
+# ─── ADMIN: queue + approve + reject ────────────────────────────────────────────
+
+CATEGORY_LABELS = {
+    "posizionamento": "Documento di Posizionamento",
+    "brand-kit": "Brand Kit",
+}
+
+STEP_LABELS = {
+    "04-posizionamento": "Posizionamento",
+    "03-brand-kit": "Brand Kit",
+}
+
+
+class RejectBody(BaseModel):
+    note: str = Field(..., min_length=10, max_length=2000)
+
+
+def _age_human(iso_ts: str) -> str:
+    try:
+        when = datetime.fromisoformat(iso_ts.replace("Z", "+00:00"))
+        delta = _now_utc() - when
+        secs = int(delta.total_seconds())
+        if secs < 3600:
+            return f"{max(1, secs // 60)} min fa"
+        if secs < 86400:
+            return f"{secs // 3600} h fa"
+        return f"{secs // 86400} g fa"
+    except Exception:
+        return "—"
+
+
+def _admin_email(headers) -> str:
+    # Pattern degli altri endpoint admin di questo repo: header X-Admin-Email con
+    # fallback. Sostituire con dipendenza auth quando il middleware admin sarà disponibile.
+    return headers.get("X-Admin-Email", "admin@evolution-pro")
+
+
+@admin_router.get("/queue")
+async def queue_pending(category: str = "all") -> dict:
+    q: dict = {"status": "under_review", "superseded": {"$ne": True}}
+    if category != "all":
+        q["category"] = category
+
+    cursor = db.files.find(q, {"_id": 0}).sort("uploaded_at", 1)
+    files = await cursor.to_list(200)
+
+    items = []
+    for f in files:
+        partner = await db.partners.find_one(
+            {"id": f["partner_id"]}, {"_id": 0, "name": 1, "email": 1}
+        ) or {}
+        items.append({
+            "file_id": f["file_id"],
+            "partner_id": f["partner_id"],
+            "partner_name": partner.get("name", "—"),
+            "partner_email": partner.get("email", ""),
+            "category": f.get("category"),
+            "category_label": CATEGORY_LABELS.get(f.get("category", ""), f.get("category", "")),
+            "step_ref": f.get("step_ref"),
+            "step_label": STEP_LABELS.get(f.get("step_ref", ""), f.get("step_ref", "")),
+            "internal_url": f.get("internal_url", ""),
+            "uploaded_at": f.get("uploaded_at"),
+            "age_human": _age_human(f.get("uploaded_at", "")),
+        })
+
+    return {"total": len(items), "items": items}
+
+
+@admin_router.post("/{file_id}/approve")
+async def admin_approve(file_id: str, request: Request) -> dict:
+    admin = _admin_email(request.headers)
+    now = _now_utc()
+
+    res = await db.files.update_one(
+        {"file_id": file_id, "status": "under_review"},
+        {"$set": {
+            "status": "approved",
+            "approved_by": admin,
+            "approved_at": now.isoformat(),
+        }},
+    )
+    if res.matched_count == 0:
+        raise HTTPException(409, "Già processato")
+
+    f = await db.files.find_one({"file_id": file_id}, {"_id": 0})
+    if not f:
+        raise HTTPException(404, "File non trovato")
+
+    await db.partner_journey_steps.update_one(
+        {"partner_id": f["partner_id"], "step_id": f["step_ref"]},
+        {"$set": {
+            "approval_status": "approved",
+            "approval_resolved_at": now,
+            "updated_at": now,
+        }},
+    )
+
+    await db.alerts.update_many(
+        {"file_id": file_id, "resolved": False},
+        {"$set": {"resolved": True, "resolved_at": now.isoformat()}},
+    )
+
+    return {"success": True, "status": "approved"}
+
+
+@admin_router.post("/{file_id}/reject")
+async def admin_reject(file_id: str, body: RejectBody, request: Request) -> dict:
+    admin = _admin_email(request.headers)
+    now = _now_utc()
+    note = body.note.strip()
+
+    res = await db.files.update_one(
+        {"file_id": file_id, "status": "under_review"},
+        {"$set": {
+            "status": "rejected",
+            "rejection_note": note,
+            "rejected_at": now.isoformat(),
+        }},
+    )
+    if res.matched_count == 0:
+        raise HTTPException(409, "Già processato")
+
+    f = await db.files.find_one({"file_id": file_id}, {"_id": 0})
+    if not f:
+        raise HTTPException(404, "File non trovato")
+
+    # Riapri lo step
+    await db.partner_journey_steps.update_one(
+        {"partner_id": f["partner_id"], "step_id": f["step_ref"]},
+        {"$set": {
+            "status": "in_progress",
+            "completed_at": None,
+            "approval_status": "rejected",
+            "approval_note": note,
+            "approval_resolved_at": now,
+            "updated_at": now,
+        }},
+    )
+
+    # Risolvi alert collegati
+    await db.alerts.update_many(
+        {"file_id": file_id, "resolved": False},
+        {"$set": {"resolved": True, "resolved_at": now.isoformat()}},
+    )
+
+    # Posta messaggio bot in chat Valentina
+    chat_msg = (
+        "Il team ha lasciato delle note sul tuo Documento di Posizionamento.\n\n"
+        f"{note}\n\n"
+        "Quando vuoi, torna allo step Posizionamento, aggiorna le risposte "
+        "e ricaricalo. Resto qui se hai dubbi."
+    )
+    await db.agent_chats.insert_one({
+        "id": uuid.uuid4().hex,
+        "partner_id": f["partner_id"],
+        "agent": "VALENTINA",
+        "role": "assistant",
+        "kind": "rejection_note",
+        "content": chat_msg,
+        "created_at": now.isoformat(),
+    })
+
+    # Telegram al partner se ha chat_id (best-effort)
+    partner = await db.partners.find_one(
+        {"id": f["partner_id"]}, {"_id": 0, "telegram_chat_id": 1, "name": 1}
+    ) or {}
+    tg_id = partner.get("telegram_chat_id")
+    if tg_id:
+        try:
+            import httpx
+            tg_token = os.environ.get("TELEGRAM_BOT_TOKEN")
+            if tg_token:
+                async with httpx.AsyncClient(timeout=5) as http:
+                    await http.post(
+                        f"https://api.telegram.org/bot{tg_token}/sendMessage",
+                        json={
+                            "chat_id": tg_id,
+                            "text": (
+                                "📋 Il team ha lasciato note sul tuo Posizionamento. "
+                                "Apri Ciak per leggerle nella chat di Valentina."
+                            ),
+                        },
+                    )
+        except Exception as e:
+            logger.warning(f"[POSIZIONAMENTO] Telegram partner notify failed: {e}")
+
+    return {"success": True, "status": "rejected"}
