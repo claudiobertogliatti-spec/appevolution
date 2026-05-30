@@ -43,7 +43,8 @@ STEP_ID = "04-posizionamento"
 async def _complete_journey_step(partner_id: str, step_id: str, data: dict) -> None:
     """Chiama internamente la stessa logica di complete_operativo_step:
     mark step done, notifica admin requires_approval, advance prossimo.
-    Wrapper per isolare l'import circolare e per facilitare patching nei test."""
+    Import lazy per evitare hard-coupling fra router al load time
+    (e per facilitare patching nei test futuri)."""
     from routers.partner_journey import (
         complete_operativo_step as _impl,
         _OperativoCompleteBody,
@@ -191,12 +192,20 @@ async def finalize_posizionamento(body: FinalizeBody) -> dict:
         logger.exception(f"[POSIZIONAMENTO] complete_operativo_step failed: {e}")
         # Non blocchiamo: file creato, admin lo vedrà comunque nella coda
 
-    # Arricchisci l'alert appena creato col file_id (per deep-link Apri PDF dalla coda)
-    await db.alerts.update_one(
+    # Arricchisci l'alert appena creato col file_id (per deep-link Apri PDF dalla coda).
+    # Cerca il più recente non ancora arricchito; protegge contro vecchi alert pending
+    # rimasti non resolved da run precedenti.
+    latest_alert = await db.alerts.find_one(
         {"partner_id": body.partner_id, "kind": "partner_activity",
          "requires_approval": True, "resolved": False, "file_id": {"$exists": False}},
-        {"$set": {"file_id": file_id}},
+        {"_id": 0, "id": 1},
+        sort=[("created_at", -1)],
     )
+    if latest_alert:
+        await db.alerts.update_one(
+            {"id": latest_alert["id"]},
+            {"$set": {"file_id": file_id}},
+        )
 
     return {
         "file_id": file_id,
