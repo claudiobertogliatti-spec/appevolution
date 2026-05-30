@@ -1,5 +1,6 @@
 """Render PDF del Documento di Posizionamento del partner.
 
+12 domande in 4 sezioni (vedi spec wizard-posizionamento-12-domande-design.md).
 Layout brand Ciak (navy #0F172A + giallo #FACC15, Poppins).
 Riusa html_to_pdf condiviso (backend/services/ciak_pdf.py)
 che gira su playwright/chromium già installato nel container.
@@ -13,15 +14,43 @@ from .ciak_pdf import html_to_pdf
 logger = logging.getLogger(__name__)
 
 
-SECTIONS = [
-    ("nicchia",          "01", "Nicchia"),
-    ("promessa",         "02", "Promessa"),
-    ("cliente_tipo",     "03", "Cliente tipo"),
-    ("problema_chiave",  "04", "Problema chiave"),
-    ("trasformazione",   "05", "Trasformazione in 90gg"),
-    ("differenza",       "06", "Differenza nel mercato"),
-    ("metodo_proprio",   "07", "Metodo proprio"),
-    ("prova_sociale",    "08", "Prova sociale"),
+SECTIONS_GROUPED = [
+    {
+        "header": "A chi parli",
+        "subtitle": "L'ICP scolpito — chi, dove ti cerca, quanto sa.",
+        "items": [
+            ("nicchia",                "01", "Nicchia precisa"),
+            ("momento_di_vita",        "02", "Momento di vita / carriera"),
+            ("livello_consapevolezza", "03", "Livello di consapevolezza"),
+        ],
+    },
+    {
+        "header": "Cosa vendi",
+        "subtitle": "Promessa, trasformazione, prezzo, formato.",
+        "items": [
+            ("promessa",            "04", "Promessa in 1 frase"),
+            ("trasformazione_90gg", "05", "Trasformazione in 90 giorni"),
+            ("prezzo_e_formato",    "06", "Prezzo e formato"),
+        ],
+    },
+    {
+        "header": "Il tuo metodo",
+        "subtitle": "Il modo riconoscibile in cui produci risultati.",
+        "items": [
+            ("metodo_nome",            "07", "Nome metodo"),
+            ("metodo_step",            "08", "Step del metodo"),
+            ("prova_sociale_concreta", "09", "Prova sociale concreta"),
+        ],
+    },
+    {
+        "header": "Perché tu",
+        "subtitle": "La voce che ti rende difficile da copiare.",
+        "items": [
+            ("origin_story",            "10", "Origin story"),
+            ("contrarian_view",         "11", "Punto di vista contrarian"),
+            ("differenza_riconoscibile","12", "Come ti descriverebbero"),
+        ],
+    },
 ]
 
 
@@ -38,9 +67,13 @@ body{font-family:'Poppins',sans-serif;color:var(--navy);line-height:1.6;backgrou
 .cover .sub{color:var(--navy);font-size:18px;font-weight:600;margin-top:22px;}
 .cover .who{color:var(--slate-600);font-size:14px;margin-top:8px;}
 .page{padding:30px 60px 60px;}
-.section{margin-bottom:24px;page-break-inside:avoid;}
+.group{margin-bottom:36px;page-break-inside:avoid;}
+.group-header{margin-bottom:14px;border-bottom:2px solid var(--yellow);padding-bottom:8px;}
+.group-header h2{font-size:22px;font-weight:700;color:var(--navy);}
+.group-header .subtitle{font-size:13px;color:var(--slate-400);margin-top:2px;font-weight:400;}
+.section{margin-bottom:20px;page-break-inside:avoid;}
 .section-num{font-size:11px;font-weight:700;color:var(--yellow);letter-spacing:1px;display:block;margin-bottom:4px;}
-.section h2{font-size:18px;font-weight:600;margin-bottom:8px;}
+.section h3{font-size:16px;font-weight:600;margin-bottom:6px;}
 .section p{color:var(--slate-600);font-size:14px;white-space:pre-wrap;}
 .footer{margin-top:40px;padding-top:24px;border-top:1px solid var(--slate-200);color:var(--slate-400);font-size:12px;text-align:center;}
 """
@@ -51,16 +84,26 @@ def _esc(s: Any) -> str:
 
 
 def render_posizionamento_html(answers: dict, nome: str) -> str:
-    """Costruisce l'HTML del Documento di Posizionamento dalle 8 risposte."""
-    sezioni_html = []
-    for key, num, label in SECTIONS:
-        value = _esc(answers.get(key, "")).strip()
-        if not value:
-            value = "<em style='color:var(--slate-400)'>Non compilato</em>"
-        sezioni_html.append(
-            f'<section class="section"><span class="section-num">{num}</span>'
-            f'<h2>{_esc(label)}</h2><p>{value}</p></section>'
+    """Costruisce l'HTML del Documento di Posizionamento dalle 12 risposte in 4 sezioni."""
+    groups_html = []
+    for group in SECTIONS_GROUPED:
+        items_html = []
+        for key, num, label in group["items"]:
+            value = _esc(answers.get(key, "")).strip()
+            if not value:
+                value = "<em style='color:var(--slate-400)'>Non compilato</em>"
+            items_html.append(
+                f'<section class="section"><span class="section-num">{num}</span>'
+                f'<h3>{_esc(label)}</h3><p>{value}</p></section>'
+            )
+        groups_html.append(
+            f'<div class="group">'
+            f'  <div class="group-header"><h2>{_esc(group["header"])}</h2>'
+            f'    <div class="subtitle">{_esc(group["subtitle"])}</div></div>'
+            f'  {"".join(items_html)}'
+            f'</div>'
         )
+
     return f"""<!doctype html><html lang="it"><head><meta charset="utf-8"><style>{_CSS}</style></head>
 <body><div class="container">
 <header class="cover">
@@ -70,7 +113,7 @@ def render_posizionamento_html(answers: dict, nome: str) -> str:
   <div class="who">Preparato per {_esc(nome)}</div>
 </header>
 <div class="page">
-  {''.join(sezioni_html)}
+  {''.join(groups_html)}
   <div class="footer">Documento generato dal Metodo EVO™ · Evolution PRO LLC · ciak.io</div>
 </div></div></body></html>"""
 
