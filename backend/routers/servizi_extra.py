@@ -29,6 +29,18 @@ stripe.api_key = os.environ.get('STRIPE_API_KEY')
 STRIPE_PRICE_CALENDARIO_PRO = os.environ.get('STRIPE_PRICE_CALENDARIO_PRO', 'price_1TEpHJKjIoAIM4LD1sTFrvz0')
 STRIPE_PRICE_CALENDARIO_STARTER = os.environ.get('STRIPE_PRICE_CALENDARIO_STARTER', 'price_1TEpHJKjIoAIM4LD8002kZ5h')
 
+# Evolution One — Servizi Extra (nuovi)
+STRIPE_PRICE_GESTIONE_CAMPAGNE = os.environ.get('STRIPE_PRICE_GESTIONE_CAMPAGNE', 'price_TODO_gestione_campagne')
+STRIPE_PRICE_BOOSTER_CHECKOUT = os.environ.get('STRIPE_PRICE_BOOSTER_CHECKOUT', 'price_TODO_booster_checkout')
+STRIPE_PRICE_UPSELL_POST_ACQUISTO = os.environ.get('STRIPE_PRICE_UPSELL_POST_ACQUISTO', 'price_TODO_upsell_post_acquisto')
+STRIPE_PRICE_OFFERTA_DI_RECUPERO = os.environ.get('STRIPE_PRICE_OFFERTA_DI_RECUPERO', 'price_TODO_offerta_di_recupero')
+STRIPE_PRICE_LIVE_PROMO_3 = os.environ.get('STRIPE_PRICE_LIVE_PROMO_3', 'price_TODO_live_promo_3')
+STRIPE_PRICE_LIVE_PROMO_6 = os.environ.get('STRIPE_PRICE_LIVE_PROMO_6', 'price_TODO_live_promo_6')
+STRIPE_PRICE_LIVE_PROMO_12 = os.environ.get('STRIPE_PRICE_LIVE_PROMO_12', 'price_TODO_live_promo_12')
+STRIPE_PRICE_EBOOK_CORSO = os.environ.get('STRIPE_PRICE_EBOOK_CORSO', 'price_TODO_ebook_corso')
+STRIPE_PRICE_AUDIOBOOK = os.environ.get('STRIPE_PRICE_AUDIOBOOK', 'price_TODO_audiobook')
+STRIPE_PRICE_AUDIOLEZIONI = os.environ.get('STRIPE_PRICE_AUDIOLEZIONI', 'price_TODO_audiolezioni')
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # DATA MODELS
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -93,7 +105,158 @@ SERVIZI_CATALOGO = [
         "tipo": "una_tantum",
         "stripe_price_id": STRIPE_PRICE_CALENDARIO_STARTER,
         "attivo": True
-    }
+    },
+    {
+        "id": "gestione-campagne",
+        "nome": "Gestione Campagne",
+        "descrizione": "Gestione mensile delle tue campagne Meta e Google. Budget partner separato.",
+        "features": [
+            "Setup pixel + tracking Meta/Google",
+            "Creatività e copy gestiti dal team",
+            "Ottimizzazione settimanale",
+            "Report mensile dettagliato",
+            "Budget partner pagato direttamente alle piattaforme",
+        ],
+        "prezzo": 348,
+        "tipo": "abbonamento_mensile",
+        "stripe_price_id": STRIPE_PRICE_GESTIONE_CAMPAGNE,
+        "attivo": True,
+    },
+    {
+        "id": "booster-checkout",
+        "nome": "Booster Checkout",
+        "descrizione": "Order bump aggiunto al checkout del corso per aumentare il valore medio per cliente.",
+        "features": [
+            "Offerta complementare progettata su misura",
+            "Copy persuasivo incluso",
+            "Integrazione con il tuo checkout Systeme/Stripe",
+            "Setup completo + test conversione",
+        ],
+        "prezzo": 197,
+        "tipo": "una_tantum",
+        "stripe_price_id": STRIPE_PRICE_BOOSTER_CHECKOUT,
+        "attivo": True,
+    },
+    {
+        "id": "upsell-post-acquisto",
+        "nome": "Upsell Post-Acquisto",
+        "descrizione": "Pagina upsell one-click subito dopo l'acquisto del corso.",
+        "features": [
+            "Pagina upsell progettata sulla tua offerta",
+            "Pagamento one-click sulla stessa carta",
+            "Integrazione checkout esistente",
+            "Copy + setup completo",
+        ],
+        "prezzo": 297,
+        "tipo": "una_tantum",
+        "stripe_price_id": STRIPE_PRICE_UPSELL_POST_ACQUISTO,
+        "attivo": True,
+    },
+    {
+        "id": "offerta-di-recupero",
+        "nome": "Offerta di Recupero",
+        "descrizione": "Downsell mostrato a chi rifiuta l'upsell: versione più leggera dell'offerta.",
+        "features": [
+            "Offerta a prezzo ridotto",
+            "Copy di recupero",
+            "Integrazione su pagina downsell dedicata",
+            "Setup completo",
+        ],
+        "prezzo": 197,
+        "tipo": "una_tantum",
+        "stripe_price_id": STRIPE_PRICE_OFFERTA_DI_RECUPERO,
+        "attivo": True,
+    },
+    {
+        "id": "live-promo-3",
+        "nome": "Live Promo — 3 eventi",
+        "descrizione": "3 webinar live promo con script di vendita, landing iscrizione, sequenza email e regia.",
+        "features": [
+            "3 eventi live (uno al mese)",
+            "Script di vendita scritto su misura",
+            "Landing iscrizione + sequenza email",
+            "Regia live + follow-up post-evento",
+        ],
+        "prezzo": 1490,
+        "tipo": "una_tantum",
+        "stripe_price_id": STRIPE_PRICE_LIVE_PROMO_3,
+        "attivo": True,
+    },
+    {
+        "id": "live-promo-6",
+        "nome": "Live Promo — 6 eventi",
+        "descrizione": "6 webinar live promo (–16% sul singolo evento).",
+        "features": [
+            "6 eventi live distribuiti su 6 mesi",
+            "Script di vendita ricalibrato per evento",
+            "Landing + sequenza email + regia",
+            "Follow-up post-evento incluso",
+        ],
+        "prezzo": 2490,
+        "tipo": "una_tantum",
+        "stripe_price_id": STRIPE_PRICE_LIVE_PROMO_6,
+        "attivo": True,
+    },
+    {
+        "id": "live-promo-12",
+        "nome": "Live Promo — 12 eventi",
+        "descrizione": "12 webinar live promo su 12 mesi (–33% sul singolo evento).",
+        "features": [
+            "12 eventi live (uno al mese per un anno)",
+            "Script di vendita per ogni evento",
+            "Landing + sequenza email + regia",
+            "Follow-up + report performance",
+        ],
+        "prezzo": 3990,
+        "tipo": "una_tantum",
+        "stripe_price_id": STRIPE_PRICE_LIVE_PROMO_12,
+        "attivo": True,
+    },
+    {
+        "id": "ebook-corso",
+        "nome": "Ebook del Corso",
+        "descrizione": "Versione ebook del tuo videocorso: formattazione, copertina, distribuzione.",
+        "features": [
+            "Trasposizione testuale completa del corso",
+            "Impaginazione professionale",
+            "Copertina grafica inclusa",
+            "File PDF + EPUB pronto alla distribuzione",
+        ],
+        "prezzo": 497,
+        "tipo": "una_tantum",
+        "stripe_price_id": STRIPE_PRICE_EBOOK_CORSO,
+        "attivo": True,
+    },
+    {
+        "id": "audiobook",
+        "nome": "Audiobook",
+        "descrizione": "Versione audio professionale del tuo corso, fruibile ovunque.",
+        "features": [
+            "Registrazione audio professionale",
+            "Editing e mastering",
+            "Capitoli + metadata",
+            "File MP3 pronto alla distribuzione",
+        ],
+        "prezzo": 697,
+        "tipo": "una_tantum",
+        "stripe_price_id": STRIPE_PRICE_AUDIOBOOK,
+        "attivo": True,
+    },
+    {
+        "id": "audiolezioni",
+        "nome": "Audiolezioni",
+        "descrizione": "Estrazione audio episodica dalle lezioni del corso.",
+        "features": [
+            "Estrazione audio da ogni lezione",
+            "Editing leggero + intro/outro",
+            "Tagging episodi",
+            "Set MP3 pronto alla distribuzione",
+        ],
+        "prezzo": 397,
+        "tipo": "una_tantum",
+        "stripe_price_id": STRIPE_PRICE_AUDIOLEZIONI,
+        "attivo": True,
+    },
 ]
 
 
