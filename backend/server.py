@@ -16857,6 +16857,11 @@ from routers.posizionamento_approval import (
 app.include_router(posizionamento_approval_router)
 app.include_router(posizionamento_approval_admin_router)
 
+# Brand Kit Approval Router (partner-side finalize; admin queue/approve/reject sono
+# condivisi col Posizionamento e già category-agnostic).
+from routers.brand_kit_approval import router as brand_kit_approval_router
+app.include_router(brand_kit_approval_router)
+
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler
 
