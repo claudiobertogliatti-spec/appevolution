@@ -441,11 +441,14 @@ async def admin_reject(file_id: str, body: RejectBody, request: Request) -> dict
     # Posta messaggio bot nella chat agente del partner (riusa la collezione
     # stefania_conversations — single source of truth per le chat agente,
     # vedi routers/stefania_chat.py:325-346).
+    # Labels parametrizzate per categoria (admin queue è category-agnostic).
+    category_label = CATEGORY_LABELS.get(f.get("category", ""), "documento")
+    step_label = STEP_LABELS.get(f.get("step_ref", ""), "step")
     chat_msg = (
-        "Il team ha lasciato delle note sul tuo Documento di Posizionamento.\n\n"
+        f"Il team ha lasciato delle note sul tuo {category_label}.\n\n"
         f"{note}\n\n"
-        "Quando vuoi, torna allo step Posizionamento, aggiorna le risposte "
-        "e ricaricalo. Resto qui se hai dubbi."
+        f"Quando vuoi, torna allo step {step_label}, aggiornalo e re-invialo. "
+        "Resto qui se hai dubbi."
     )
     now_iso = now.isoformat()
     partner = await db.partners.find_one(
@@ -494,7 +497,7 @@ async def admin_reject(file_id: str, body: RejectBody, request: Request) -> dict
                         json={
                             "chat_id": tg_id,
                             "text": (
-                                "📋 Il team ha lasciato note sul tuo Posizionamento. "
+                                f"📋 Il team ha lasciato note sul tuo {step_label}. "
                                 "Apri Ciak per leggerle nella chat di Valentina."
                             ),
                         },
