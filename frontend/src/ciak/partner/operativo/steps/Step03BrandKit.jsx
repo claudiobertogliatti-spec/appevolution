@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import StepBase from "./StepBase";
-
-const API = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || "";
+import { API } from "../../../../utils/api-config";
 
 async function uploadFile(file, partnerId) {
   const fd = new FormData();
@@ -15,67 +15,194 @@ async function uploadFile(file, partnerId) {
 }
 
 const DEFAULT_COLORS = ["#0F172A", "#FACC15", "#E5E7EB"];
+const TONE_MIN = 40;
+const PAROLE_CHIAVE_SLOTS = 5;
+const PAROLE_CHIAVE_MIN = 3;
+const PAROLE_EVITARE_SLOTS = 3;
+const HEX_RE = /^#[0-9a-f]{6}$/i;
 
 export default function Step03BrandKit({ step, partnerId, onComplete, onSaveDraft }) {
-  const [logo, setLogo] = useState(step?.data?.logo_url || "");
-  const [foto, setFoto] = useState(step?.data?.foto_url || "");
-  const [colors, setColors] = useState(step?.data?.colors || DEFAULT_COLORS);
+  const initial = step?.data || {};
+
+  const [logo, setLogo] = useState(initial.logo_url || "");
+  const [foto, setFoto] = useState(initial.foto_url || "");
+  const [colors, setColors] = useState(initial.colors || DEFAULT_COLORS);
+  const [tone, setTone] = useState(initial.tone_of_voice || "");
+  const [paroleChiave, setParoleChiave] = useState(() => {
+    const src = initial.parole_chiave || [];
+    return Array.from({ length: PAROLE_CHIAVE_SLOTS }, (_, i) => src[i] || "");
+  });
+  const [paroleEvitare, setParoleEvitare] = useState(() => {
+    const src = initial.parole_evitare || [];
+    return Array.from({ length: PAROLE_EVITARE_SLOTS }, (_, i) => src[i] || "");
+  });
+
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const [doc, setDoc] = useState(null);
+  const [done, setDone] = useState(
+    step?.approval_status === "pending_review" || step?.approval_status === "approved"
+  );
+
+  useEffect(() => {
+    if (!partnerId) return;
+    axios
+      .get(`${API}/api/partner/brand-kit/document/${partnerId}`)
+      .then((r) => setDoc(r.data || null))
+      .catch(() => {});
+  }, [partnerId]);
+
+  const update = (patch) => {
+    if (onSaveDraft) onSaveDraft(patch);
+  };
 
   const updateColor = (i, v) => {
     const next = [...colors];
     next[i] = v;
     setColors(next);
-    onSaveDraft({ colors: next });
+    update({ colors: next });
   };
 
-  const handle = async (kind, file) => {
+  const updateParola = (list, setList, key, i, v) => {
+    const next = [...list];
+    next[i] = v;
+    setList(next);
+    update({ [key]: next });
+  };
+
+  const handleUpload = async (kind, file) => {
     if (!file) return;
     setBusy(true);
-    setErr(null);
+    setError(null);
     try {
       const url = await uploadFile(file, partnerId);
       if (kind === "logo") {
         setLogo(url);
-        onSaveDraft({ logo_url: url });
+        update({ logo_url: url });
       } else {
         setFoto(url);
-        onSaveDraft({ foto_url: url });
+        update({ foto_url: url });
       }
     } catch (e) {
-      setErr(String(e));
+      setError(String(e));
     } finally {
       setBusy(false);
     }
   };
 
-  const validColors = colors.every((c) => /^#[0-9a-f]{6}$/i.test(c));
-  const canComplete = logo && foto && validColors && !busy;
+  const validColors = colors.length === 3 && colors.every((c) => HEX_RE.test(c));
+  const paroleChiaveFilled = paroleChiave.filter((p) => (p || "").trim()).length;
+  const toneOk = tone.trim().length >= TONE_MIN;
+  const canComplete =
+    logo &&
+    foto &&
+    validColors &&
+    toneOk &&
+    paroleChiaveFilled >= PAROLE_CHIAVE_MIN &&
+    !busy &&
+    !submitting;
+
+  const finalize = async () => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const payload = {
+        logo_url: logo,
+        foto_url: foto,
+        colors,
+        tone_of_voice: tone,
+        parole_chiave: paroleChiave.filter((p) => (p || "").trim()),
+        parole_evitare: paroleEvitare.filter((p) => (p || "").trim()),
+      };
+      if (onSaveDraft) await onSaveDraft(payload);
+      const res = await axios.post(`${API}/api/partner/brand-kit/finalize`, {
+        partner_id: partnerId,
+      });
+      setDone(true);
+      setDoc({
+        file_id: res.data.file_id,
+        internal_url: res.data.internal_url,
+        status: res.data.status,
+        rejection_note: null,
+      });
+      if (onComplete) onComplete({ ...payload, approval_status: res.data.approval_status });
+    } catch (e) {
+      if (e?.response?.status === 409) {
+        setError(e.response.data?.detail || "Brand kit già approvato dal team.");
+      } else if (e?.response?.status === 400) {
+        setError(e.response.data?.detail || "Brand kit incompleto.");
+      } else {
+        setError("Errore tecnico durante la generazione del brand kit. Riprova tra qualche minuto.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (done) {
+    return (
+      <StepBase
+        eyebrow="Step 3 — Brand kit"
+        title="Brand kit inviato al team"
+        ctaDisabled={true}
+        onCta={() => {}}
+        secondaryNote=""
+      >
+        <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+          <div className="font-semibold text-slate-900 mb-1">✓ Brand kit generato</div>
+          <p className="text-sm text-slate-600">
+            Il team lo sta revisionando — di solito entro 24h.
+            Nel frattempo puoi proseguire con lo step successivo.
+            Lo trovi anche in <strong>I Miei File</strong>.
+          </p>
+        </div>
+      </StepBase>
+    );
+  }
 
   return (
     <StepBase
       eyebrow="Step 3 — Brand kit"
-      title="Logo + 1 foto + 3 colori"
+      title="Logo, foto, colori e la tua voce"
+      ctaLabel={submitting ? "Sto generando il brand kit..." : "Genera Brand Kit"}
       ctaDisabled={!canComplete}
-      onCta={() => onComplete({ logo_url: logo, foto_url: foto, colors })}
-      secondaryNote="Servono per costruire il funnel coerente col tuo brand."
+      onCta={finalize}
+      secondaryNote="Il team userà questi asset per costruire un funnel coerente col tuo brand."
     >
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+      {doc?.status === "rejected" && doc?.rejection_note && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4">
+          <div className="font-semibold text-red-900 mb-1">Note dal team</div>
+          <div className="whitespace-pre-wrap text-sm text-red-800">{doc.rejection_note}</div>
+          <div className="text-xs text-red-700 mt-2">
+            Aggiorna le risposte e rigenera quando sei pronto.
+          </div>
+        </div>
+      )}
+
+      {/* IDENTITA' VISIVA */}
+      <SectionHeader title="Identità visiva" subtitle="Logo, foto, colori." />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
         <UploadSlot
           label="Logo (PNG/SVG con sfondo trasparente)"
           accept="image/*,.svg"
           url={logo}
-          onPick={(f) => handle("logo", f)}
+          onPick={(f) => handleUpload("logo", f)}
         />
         <UploadSlot
           label="Foto personale"
           accept="image/*"
           url={foto}
-          onPick={(f) => handle("foto", f)}
+          onPick={(f) => handleUpload("foto", f)}
         />
       </div>
-      <div>
+
+      <div className="mb-7">
         <div className="text-sm font-medium text-slate-900 mb-2">Colori brand (3)</div>
         <div className="flex flex-wrap gap-3">
           {colors.map((c, i) => (
@@ -96,15 +223,119 @@ export default function Step03BrandKit({ step, partnerId, onComplete, onSaveDraf
           ))}
         </div>
       </div>
+
+      {/* VOCE */}
+      <SectionHeader
+        title="La tua voce"
+        subtitle="Come parli e quali parole ti rendono riconoscibile."
+      />
+
+      <div className="mb-5">
+        <label className="block text-sm font-semibold text-slate-900 mb-1">
+          Tone of voice — come parla il tuo brand?
+        </label>
+        <p className="text-xs text-slate-500 mb-1.5 leading-relaxed">
+          Es: "Diretto e caldo. Parlo come un amico esperto, mai cattedratico. Uso esempi
+          concreti, evito il gergo da consulente."
+        </p>
+        <textarea
+          value={tone}
+          rows={3}
+          disabled={submitting}
+          onChange={(e) => {
+            setTone(e.target.value);
+            update({ tone_of_voice: e.target.value });
+          }}
+          className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 resize-y disabled:bg-gray-50"
+          placeholder="Scrivi 1-2 frasi che descrivano come parla il tuo brand…"
+        />
+        <CharCounter value={tone} min={TONE_MIN} />
+      </div>
+
+      <div className="mb-5">
+        <label className="block text-sm font-semibold text-slate-900 mb-1">
+          Parole chiave del tuo brand (almeno {PAROLE_CHIAVE_MIN})
+        </label>
+        <p className="text-xs text-slate-500 mb-1.5 leading-relaxed">
+          Le parole che vuoi sentire sempre nei tuoi contenuti.
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+          {paroleChiave.map((p, i) => (
+            <input
+              key={i}
+              type="text"
+              value={p}
+              disabled={submitting}
+              onChange={(e) =>
+                updateParola(paroleChiave, setParoleChiave, "parole_chiave", i, e.target.value)
+              }
+              className="border border-gray-200 rounded-md px-2 py-2 text-sm focus:outline-none focus:border-yellow-400 disabled:bg-gray-50"
+              placeholder={`Parola ${i + 1}`}
+            />
+          ))}
+        </div>
+        <div className="text-xs mt-1">
+          <span className={paroleChiaveFilled >= PAROLE_CHIAVE_MIN ? "text-green-600" : "text-amber-600"}>
+            {paroleChiaveFilled}/{PAROLE_CHIAVE_SLOTS} compilate · min {PAROLE_CHIAVE_MIN}
+          </span>
+        </div>
+      </div>
+
+      <div className="mb-3">
+        <label className="block text-sm font-semibold text-slate-900 mb-1">
+          Parole da evitare (opzionale)
+        </label>
+        <p className="text-xs text-slate-500 mb-1.5 leading-relaxed">
+          Quelle che tradiscono il tuo brand. Lascia vuoto se non ne hai.
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          {paroleEvitare.map((p, i) => (
+            <input
+              key={i}
+              type="text"
+              value={p}
+              disabled={submitting}
+              onChange={(e) =>
+                updateParola(paroleEvitare, setParoleEvitare, "parole_evitare", i, e.target.value)
+              }
+              className="border border-gray-200 rounded-md px-2 py-2 text-sm focus:outline-none focus:border-yellow-400 disabled:bg-gray-50"
+              placeholder={`Da evitare ${i + 1}`}
+            />
+          ))}
+        </div>
+      </div>
+
       {busy && <p className="text-xs text-slate-500 mt-3">Upload in corso...</p>}
-      {err && <p className="text-red-600 text-sm mt-3">{err}</p>}
     </StepBase>
+  );
+}
+
+function SectionHeader({ title, subtitle }) {
+  return (
+    <div className="mb-4 pb-2 border-b border-slate-100">
+      <h3 className="text-lg font-bold text-slate-900">{title}</h3>
+      <p className="text-xs text-slate-500 mt-1 italic">{subtitle}</p>
+    </div>
+  );
+}
+
+function CharCounter({ value, min }) {
+  const len = (value || "").trim().length;
+  const ok = len >= min;
+  return (
+    <div className={`text-xs mt-1 ${ok ? "text-green-600" : "text-amber-600"}`}>
+      {len}/{min} min
+    </div>
   );
 }
 
 function UploadSlot({ label, accept, url, onPick }) {
   return (
-    <label className={`block border-2 border-dashed rounded-md p-6 text-center cursor-pointer transition ${url ? "bg-green-50 border-green-500" : "bg-slate-50 border-slate-400 hover:border-yellow-400"}`}>
+    <label
+      className={`block border-2 border-dashed rounded-md p-6 text-center cursor-pointer transition ${
+        url ? "bg-green-50 border-green-500" : "bg-slate-50 border-slate-400 hover:border-yellow-400"
+      }`}
+    >
       <input type="file" accept={accept} className="hidden" onChange={(e) => onPick(e.target.files?.[0])} />
       <div className="text-sm font-medium text-slate-900">{label}</div>
       {url ? (
