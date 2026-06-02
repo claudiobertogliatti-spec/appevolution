@@ -2,12 +2,19 @@
 Motore di generazione output dal questionario cliente.
 Genera: scoring deterministico, analisi strategica (AI), script call (AI), PDF.
 Struttura analisi a 11 sezioni come da procedura.
+
+AI nativa Anthropic (niente più Emergent): chiamata sincrona in thread + parsing JSON,
+con fallback deterministico così l'analisi/PDF non si bloccano mai.
 """
+import asyncio
+import json
 import os
 import logging
 from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
+
+_MODEL = os.environ.get("ANALISI_MODEL", "claude-sonnet-4-6")
 
 # ─── SCORING DETERMINISTICO ──────────────────────────────────────────────────
 
@@ -147,54 +154,51 @@ Rispondi SOLO in JSON valido, senza markdown.
 }}"""
 
 
+def _strip_json(text: str) -> str:
+    """Ripulisce eventuali recinti markdown attorno al JSON."""
+    text = (text or "").strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+    return text
+
+
+def _call_anthropic_json(prompt: str) -> dict:
+    """Chiamata sincrona Anthropic: ritorna il JSON parsato. Solleva in caso di errore."""
+    import anthropic
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise RuntimeError("ANTHROPIC_API_KEY non configurata")
+
+    client = anthropic.Anthropic(api_key=api_key)
+    resp = client.messages.create(
+        model=_MODEL,
+        max_tokens=2000,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    text = "".join(
+        block.text for block in resp.content if getattr(block, "type", None) == "text"
+    )
+    return json.loads(_strip_json(text))
+
+
 async def genera_analisi_ai(quiz: dict, scoring: dict) -> dict:
-    """Genera analisi strategica usando Claude via Emergent."""
+    """Genera analisi strategica usando Claude (Anthropic nativo)."""
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
-
-        emergent_key = os.environ.get("EMERGENT_LLM_KEY", "")
-        if not emergent_key:
-            logger.warning("EMERGENT_LLM_KEY non configurata, uso fallback deterministico")
-            return _analisi_fallback(quiz, scoring)
-
-        llm = LlmChat(api_key=emergent_key)
-        llm.with_model("anthropic", "claude-haiku-4-5-20251001")
-        resp = await llm.send_message(
-            UserMessage(content=_build_analisi_prompt(quiz, scoring))
+        return await asyncio.to_thread(
+            _call_anthropic_json, _build_analisi_prompt(quiz, scoring)
         )
-
-        import json
-        text = resp.choices[0]["message"]["content"].strip() if resp.choices else ""
-        if text.startswith("```"):
-            text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
-        return json.loads(text)
-
     except Exception as e:
         logger.error(f"Errore generazione AI analisi: {e}")
         return _analisi_fallback(quiz, scoring)
 
 
 async def genera_script_call_ai(quiz: dict, scoring: dict, analisi: dict) -> dict:
-    """Genera script call usando Claude via Emergent."""
+    """Genera script call usando Claude (Anthropic nativo)."""
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
-
-        emergent_key = os.environ.get("EMERGENT_LLM_KEY", "")
-        if not emergent_key:
-            return _script_fallback(quiz, scoring)
-
-        llm = LlmChat(api_key=emergent_key)
-        llm.with_model("anthropic", "claude-haiku-4-5-20251001")
-        resp = await llm.send_message(
-            UserMessage(content=_build_script_prompt(quiz, scoring, analisi))
+        return await asyncio.to_thread(
+            _call_anthropic_json, _build_script_prompt(quiz, scoring, analisi)
         )
-
-        import json
-        text = resp.choices[0]["message"]["content"].strip() if resp.choices else ""
-        if text.startswith("```"):
-            text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
-        return json.loads(text)
-
     except Exception as e:
         logger.error(f"Errore generazione AI script: {e}")
         return _script_fallback(quiz, scoring)
