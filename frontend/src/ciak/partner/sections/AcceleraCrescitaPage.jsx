@@ -11,7 +11,7 @@
  */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Eye, Repeat, DollarSign, Compass, Tag } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, Repeat, TrendingUp, Radio, Layers, Compass, Tag } from "lucide-react";
 import { AvatarCheckout } from "./AvatarCheckout";
 import { ConsulenzaCheckout } from "./ConsulenzaCheckout";
 
@@ -20,12 +20,12 @@ import { ConsulenzaCheckout } from "./ConsulenzaCheckout";
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const CATEGORIES = {
-  visibilita: {
+  "visibilita": {
     id: "visibilita",
     icon: Eye,
     tone: "slate",
     title: "Visibilità",
-    tagline: "Fatti vedere senza metterci la faccia ogni giorno",
+    tagline: "Fatti vedere — anche quando non sei davanti alla camera",
     items: [
       {
         id: "avatar_pro",
@@ -39,9 +39,23 @@ const CATEGORIES = {
         cta: "Attiva il tuo Avatar",
         hasCheckout: true,
       },
+      {
+        id: "gestione_campagne",
+        title: "Gestione Campagne",
+        problema:
+          "Pubblichi contenuti e fai organico, ma il traffico non basta a riempire il funnel. Le ads ti spaventano: budget bruciato, metriche confuse.",
+        soluzione:
+          "Gestiamo noi le tue campagne Meta e Google. Setup pixel, creatività, copy, ottimizzazione settimanale, report mensile. Il budget delle ads lo paghi direttamente alle piattaforme.",
+        beneficio:
+          "Traffico in target tutti i mesi senza imparare la piattaforma e senza perdere weekend interi a ottimizzare.",
+        cta: "Attiva la Gestione Campagne",
+        isStripe: true,
+        stripeServiceId: "gestione-campagne",
+        price: "€348/mese (–30% sul listino) + 10% sulle vendite generate",
+      },
     ],
   },
-  costanza: {
+  "costanza": {
     id: "costanza",
     icon: Repeat,
     tone: "yellow",
@@ -49,31 +63,109 @@ const CATEGORIES = {
     tagline: "Pubblica ogni giorno senza pensarci",
     items: [
       {
-        id: "gestione_contenuti",
-        title: "Gestione Contenuti Mensile",
+        id: "calendario_pro",
+        title: "Calendario PRO",
         problema:
           "Sai che dovresti essere presente sui social ogni settimana, ma il tempo non c'è. Il risultato: profilo fermo, visibilità bassa, studenti che non ti trovano.",
         soluzione:
           "Ogni mese ti consegniamo 20 contenuti pronti da pubblicare: post, caroselli e reel già scritti, formattati e ottimizzati per la tua nicchia. Tu copi, incolli e pubblichi. Oppure ce lo lasci fare direttamente tu.",
         beneficio:
           "Il tuo profilo è attivo 365 giorni l'anno senza che tu ci pensi. Chi ti cerca ti trova. La costanza è uno degli strumenti di vendita più efficaci.",
-        cta: "Attiva la gestione contenuti",
+        cta: "Attiva il Calendario PRO",
         isStripe: true,
         stripeServiceId: "calendario-pro",
         price: "€297/mese",
       },
     ],
   },
-  monetizzazione: {
-    id: "monetizzazione",
-    icon: DollarSign,
+  "spinta-vendite": {
+    id: "spinta-vendite",
+    icon: TrendingUp,
     tone: "emerald",
-    title: "Monetizzazione",
-    tagline: "Trasforma le tue conoscenze in più formati di guadagno",
+    title: "Spinta Vendite",
+    tagline: "Ogni vendita vale di più",
     items: [
       {
-        id: "ebook",
-        title: "Ebook",
+        id: "booster_checkout",
+        title: "Booster Checkout",
+        problema:
+          "Quando un cliente sta per comprare il corso, sei a un click dal massimo dell'attenzione. Lì oggi non c'è niente: prendi i soldi del corso e basta.",
+        soluzione:
+          "Aggiungiamo un'offerta complementare nella pagina di checkout. Un click, prezzo basso, valore alto. Lui spende €17–€47 in più, tu raddoppi il margine sulla vendita.",
+        beneficio:
+          "Stesso traffico, stessa pagina, +25–40% di valore medio per cliente. Senza nuovi costi.",
+        cta: "Attiva il Booster Checkout",
+        isStripe: true,
+        stripeServiceId: "booster-checkout",
+        price: "€197 una tantum",
+      },
+      {
+        id: "upsell_post_acquisto",
+        title: "Upsell Post-Acquisto",
+        problema:
+          "Dopo l'acquisto il cliente è caldo. Oggi finisce sulla thank-you e se ne va. Stai lasciando soldi sul tavolo.",
+        soluzione:
+          "Una pagina post-checkout con un'offerta one-click che si addebita sulla stessa carta. Niente nuovo checkout, niente attrito.",
+        beneficio:
+          "Tassi di accettazione 15–30%. Su 100 clienti, fino a 20 portano a casa una seconda vendita senza fatica.",
+        cta: "Attiva l'Upsell",
+        isStripe: true,
+        stripeServiceId: "upsell-post-acquisto",
+        price: "€297 una tantum",
+      },
+      {
+        id: "offerta_di_recupero",
+        title: "Offerta di Recupero",
+        problema:
+          "Chi rifiuta l'upsell oggi se ne va. Hai perso l'occasione una seconda volta.",
+        soluzione:
+          "Una versione più leggera dell'offerta a un terzo del prezzo. Per chi voleva ma non era pronto al prezzo pieno.",
+        beneficio:
+          "Recuperi il 5–10% di chi avresti perso. Soldi in più senza traffico in più.",
+        cta: "Attiva l'Offerta di Recupero",
+        isStripe: true,
+        stripeServiceId: "offerta-di-recupero",
+        price: "€197 una tantum",
+      },
+    ],
+  },
+  "eventi-vendita": {
+    id: "eventi-vendita",
+    icon: Radio,
+    tone: "rose",
+    title: "Eventi Vendita",
+    tagline: "Trasforma un'ora live in un mese di vendite",
+    items: [
+      {
+        id: "live_promo",
+        title: "Live Promo",
+        problema:
+          "Un evento live converte come niente. Ma costruirlo da zero ti costa una settimana di stress. E il copy del pitch è la cosa più difficile da scrivere.",
+        soluzione:
+          "Organizziamo noi il webinar live promo. Tu fai il talk, noi facciamo il resto: landing iscrizione, sequenza email pre-live, regia diretta, follow-up, script di vendita scritto su misura della tua offerta.",
+        beneficio:
+          "Un live al mese trasforma traffico tiepido in clienti. Senza che tu costruisca nulla da zero.",
+        cta: "Pianifica i tuoi Live Promo",
+        hasCheckout: true,
+        livePromoTiers: true,
+        packages: [
+          { label: "3 Live", price: 1490, originalPrice: null, saving: null, perEvent: 497, stripeServiceId: "live-promo-3" },
+          { label: "6 Live", price: 2490, originalPrice: 2982, saving: "–16%", perEvent: 415, stripeServiceId: "live-promo-6" },
+          { label: "12 Live", price: 3990, originalPrice: 5964, saving: "–33%", perEvent: 333, stripeServiceId: "live-promo-12" },
+        ],
+      },
+    ],
+  },
+  "prodotti-digitali": {
+    id: "prodotti-digitali",
+    icon: Layers,
+    tone: "indigo",
+    title: "Prodotti Digitali",
+    tagline: "Stesso contenuto, più formati, più ricavi",
+    items: [
+      {
+        id: "ebook_corso",
+        title: "Ebook del Corso",
         problema:
           "Hai un videocorso ma non tutti vogliono guardare video. Stai perdendo chi preferisce leggere.",
         soluzione:
@@ -81,7 +173,9 @@ const CATEGORIES = {
         beneficio:
           "Un nuovo prodotto da vendere a chi preferisce leggere. Un ulteriore punto di ingresso nel tuo funnel.",
         cta: "Crea il tuo Ebook",
-        comingSoon: true,
+        isStripe: true,
+        stripeServiceId: "ebook-corso",
+        price: "€497 una tantum",
       },
       {
         id: "audiobook",
@@ -90,9 +184,12 @@ const CATEGORIES = {
           "Il tuo pubblico è impegnato e non ha tempo di sedersi a leggere o guardare video.",
         soluzione:
           "Creiamo la versione audio del tuo corso, ascoltabile ovunque: in auto, in palestra, camminando.",
-        beneficio: "Raggiungi chi consuma contenuti in movimento. Un formato comodo da fruire.",
+        beneficio:
+          "Raggiungi chi consuma contenuti in movimento. Un formato comodo da fruire.",
         cta: "Crea il tuo Audiobook",
-        comingSoon: true,
+        isStripe: true,
+        stripeServiceId: "audiobook",
+        price: "€697 una tantum",
       },
       {
         id: "audiolezioni",
@@ -104,11 +201,13 @@ const CATEGORIES = {
         beneficio:
           "I tuoi studenti completano il corso anche quando sono fuori casa. Più completamento significa più risultati.",
         cta: "Attiva le Audiolezioni",
-        comingSoon: true,
+        isStripe: true,
+        stripeServiceId: "audiolezioni",
+        price: "€397 una tantum",
       },
     ],
   },
-  direzione: {
+  "direzione": {
     id: "direzione",
     icon: Compass,
     tone: "blue",
@@ -116,8 +215,8 @@ const CATEGORIES = {
     tagline: "Una guida esperta quando ne hai bisogno",
     items: [
       {
-        id: "sessione_claudio",
-        title: "Sessione con Claudio",
+        id: "strategia_claudio",
+        title: "Strategia con Claudio",
         problema:
           "Hai dubbi sulla strategia, non sai se stai andando nella direzione giusta e ti servono risposte chiare.",
         soluzione:
@@ -135,8 +234,8 @@ const CATEGORIES = {
         ],
       },
       {
-        id: "sessione_antonella",
-        title: "Sessione con Antonella",
+        id: "marketing_antonella",
+        title: "Marketing con Antonella",
         problema:
           "Vuoi migliorare le vendite, il funnel o i contenuti ma non sai da dove partire.",
         soluzione:
