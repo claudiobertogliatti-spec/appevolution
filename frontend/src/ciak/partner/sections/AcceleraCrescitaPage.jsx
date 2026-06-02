@@ -202,6 +202,28 @@ const TONE = {
     cardBorder: "border-blue-200",
     btn: "bg-blue-500 hover:bg-blue-600",
   },
+  rose: {
+    iconBg: "bg-rose-100",
+    iconText: "text-rose-600",
+    softBg: "bg-rose-50",
+    softBorder: "border-rose-200",
+    accentText: "text-rose-700",
+    label: "text-rose-700",
+    labelBg: "bg-rose-100",
+    cardBorder: "border-rose-200",
+    btn: "bg-rose-500 hover:bg-rose-600",
+  },
+  indigo: {
+    iconBg: "bg-indigo-100",
+    iconText: "text-indigo-600",
+    softBg: "bg-indigo-50",
+    softBorder: "border-indigo-200",
+    accentText: "text-indigo-700",
+    label: "text-indigo-700",
+    labelBg: "bg-indigo-100",
+    cardBorder: "border-indigo-200",
+    btn: "bg-indigo-500 hover:bg-indigo-600",
+  },
 };
 
 /* ═══════════════════════════════════════════════════════════════════════════
