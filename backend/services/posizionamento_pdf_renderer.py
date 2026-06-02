@@ -51,6 +51,15 @@ SECTIONS_GROUPED = [
             ("differenza_riconoscibile","12", "Come ti descriverebbero"),
         ],
     },
+    {
+        "header": "Contro chi giochi",
+        "subtitle": "Il posizionamento competitivo — metodo De Veglia.",
+        "items": [
+            ("concorrenti_principali", "13", "Concorrenti principali"),
+            ("mercato_affollato",      "14", "Promessa affollata del settore"),
+            ("spazio_specialista",     "15", "Il tuo spazio da specialista"),
+        ],
+    },
 ]
 
 
@@ -76,6 +85,15 @@ body{font-family:'Poppins',sans-serif;color:var(--navy);line-height:1.6;backgrou
 .section h3{font-size:16px;font-weight:600;margin-bottom:6px;}
 .section p{color:var(--slate-600);font-size:14px;white-space:pre-wrap;}
 .footer{margin-top:40px;padding-top:24px;border-top:1px solid var(--slate-200);color:var(--slate-400);font-size:12px;text-align:center;}
+.stmt{margin:0 60px 36px;border:2px solid var(--navy);border-radius:14px;overflow:hidden;page-break-inside:avoid;}
+.stmt .h{background:var(--navy);color:#fff;padding:10px 20px;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;}
+.stmt .h span{color:var(--yellow);}
+.stmt .b{padding:20px;font-size:18px;line-height:1.55;color:var(--navy);font-weight:500;}
+.stmt .slots{padding:0 20px 18px;}
+.stmt .slot{display:flex;gap:12px;font-size:13px;line-height:1.45;padding:5px 0;border-top:1px solid var(--slate-200);}
+.stmt .slot .k{flex:0 0 150px;font-weight:700;color:var(--slate-400);text-transform:uppercase;letter-spacing:.04em;font-size:10.5px;padding-top:2px;}
+.stmt .slot .v{color:var(--slate-600);}
+.stmt .note{padding:0 20px 18px;font-size:11.5px;color:var(--slate-400);}
 """
 
 
@@ -83,8 +101,40 @@ def _esc(s: Any) -> str:
     return _html.escape(str(s or ""))
 
 
-def render_posizionamento_html(answers: dict, nome: str) -> str:
-    """Costruisce l'HTML del Documento di Posizionamento dalle 12 risposte in 4 sezioni."""
+_STMT_SLOTS = [
+    ("brand", "Brand / nome"),
+    ("categoria", "Categoria"),
+    ("idea_differenziante", "Idea differenziante"),
+    ("a_differenza_di", "A differenza di"),
+    ("vantaggio_cliente", "Vantaggio cliente"),
+]
+
+
+def _render_statement_block(statement: dict | None) -> str:
+    """Blocco Brand Positioning Statement (metodo De Veglia) in cima al documento."""
+    if not statement or not (statement.get("frase") or "").strip():
+        return ""
+    slots_html = "".join(
+        f'<div class="slot"><div class="k">{_esc(label)}</div>'
+        f'<div class="v">{_esc(statement.get(key, "")).strip()}</div></div>'
+        for key, label in _STMT_SLOTS
+        if (statement.get(key) or "").strip()
+    )
+    return (
+        '<div class="stmt">'
+        '  <div class="h">Brand Positioning Statement · <span>metodo De Veglia</span></div>'
+        f'  <div class="b">{_esc(statement["frase"]).strip()}</div>'
+        f'  <div class="slots">{slots_html}</div>'
+        '  <div class="note">Generato dalle tue risposte e rifinito con Valentina. Sempre modificabile.</div>'
+        '</div>'
+    )
+
+
+def render_posizionamento_html(answers: dict, nome: str, statement: dict | None = None) -> str:
+    """Costruisce l'HTML del Documento di Posizionamento dalle 15 risposte in 5 sezioni.
+
+    Se `statement` è valorizzato, stampa il Brand Positioning Statement in cima.
+    """
     groups_html = []
     for group in SECTIONS_GROUPED:
         items_html = []
@@ -112,12 +162,13 @@ def render_posizionamento_html(answers: dict, nome: str) -> str:
   <div class="sub">Fondamento Esamina · Fase 1</div>
   <div class="who">Preparato per {_esc(nome)}</div>
 </header>
+{_render_statement_block(statement)}
 <div class="page">
   {''.join(groups_html)}
   <div class="footer">Documento generato dal Metodo EVO™ · Evolution PRO LLC · ciak.io</div>
 </div></div></body></html>"""
 
 
-async def genera_posizionamento_pdf(answers: dict, nome: str) -> bytes:
+async def genera_posizionamento_pdf(answers: dict, nome: str, statement: dict | None = None) -> bytes:
     """HTML → PDF bytes via playwright/chromium (riuso shared helper)."""
-    return await html_to_pdf(render_posizionamento_html(answers, nome))
+    return await html_to_pdf(render_posizionamento_html(answers, nome, statement))

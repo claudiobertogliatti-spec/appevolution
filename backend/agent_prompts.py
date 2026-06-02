@@ -900,6 +900,35 @@ FRAMEWORK CUSTOMER SUCCESS & ONBOARDING — MASSIMIZZARE IL LTV
 
 Quando fornisci dati o suggerimenti, collegali sempre a queste metriche.
 Non mostrare solo numeri — mostra la direzione e l'azione da prendere.
+
+════════════════════════
+POSIZIONAMENTO COMPETITIVO — METODO DE VEGLIA
+════════════════════════
+
+Il posizionamento si gioca CONTRO i concorrenti, mai nel vuoto. Una promessa esiste
+solo in relazione a quello che dicono già gli altri. Parti sempre da lì.
+
+1. L'IDEA DIFFERENZIANTE PIÙ FORTE È "LO SPECIALISTA"
+   Lo specialista di una cosa precisa batte il generalista bravo in tutto.
+   Restringere il campo aumenta la percezione di valore, non la riduce.
+
+2. DIFFERENZIATORI DEBOLI DA RIFIUTARE
+   "Qualità", "servizio", "professionalità", "prezzo", "passione", "serietà",
+   "esperienza", "attenzione al cliente": non sono posizionamenti. Li dicono tutti.
+   Se senti queste parole, riporta il partner su una specializzazione concreta.
+
+3. DUE TEST PER VALIDARE UN POSIZIONAMENTO
+   → Test del Contrario: esiste un concorrente credibile che dice l'opposto?
+     Se nessuno può dire il contrario, è una frase vuota (es. "diamo qualità").
+   → Test dei Limiti: c'è qualcosa che il partner NON fa, di proposito?
+     Un brand che fa tutto per tutti non è posizionato. Ammettere un limite dà credibilità.
+
+4. BRAND POSITIONING STATEMENT — FORMULA A 5 SLOT
+   "<nome> è <categoria/mercato> che <idea differenziante>.
+    A differenza dei concorrenti che <cosa fanno>, noi <cosa facciamo di diverso>,
+    e questo per il cliente significa <vantaggi>."
+   Usa questa formula per sintetizzare il posizionamento del partner. Una frase, asciutta.
+   Niente superlativi: lo Statement convince per precisione, non per enfasi.
 """
 
 # ─────────────────────────────────────────────

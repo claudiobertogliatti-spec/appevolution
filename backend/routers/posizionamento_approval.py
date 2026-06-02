@@ -25,6 +25,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field
 
 from services.posizionamento_pdf_renderer import genera_posizionamento_pdf
+from services.posizionamento_statement import build_brand_positioning_statement
 from services.posizionamento_storage import upload_posizionamento_pdf
 
 logger = logging.getLogger(__name__)
@@ -39,7 +40,9 @@ db = _client[db_name]
 
 STEP_ID = "04-posizionamento"
 
-# Le 12 chiavi del wizard Posizionamento con min_char di validazione.
+# Le 15 chiavi del wizard Posizionamento con min_char di validazione.
+# Le ultime 3 (sezione "Contro chi giochi") alimentano il Brand Positioning
+# Statement con il metodo De Veglia.
 # Vedi spec docs/superpowers/specs/2026-05-30-wizard-posizionamento-12-domande-design.md
 POSIZIONAMENTO_REQUIRED_KEYS_MIN_CHAR = {
     "nicchia": 30,
@@ -54,6 +57,9 @@ POSIZIONAMENTO_REQUIRED_KEYS_MIN_CHAR = {
     "origin_story": 80,
     "contrarian_view": 50,
     "differenza_riconoscibile": 40,
+    "concorrenti_principali": 30,
+    "mercato_affollato": 40,
+    "spazio_specialista": 40,
 }
 
 
@@ -171,9 +177,13 @@ async def finalize_posizionamento(body: FinalizeBody) -> dict:
             )
         # status rejected → procedi, vecchio file viene marcato superseded sotto
 
+    # Sintesi Brand Positioning Statement (De Veglia) — best-effort, non blocca:
+    # build_* ricade da solo sul fallback deterministico e non solleva mai.
+    statement = await build_brand_positioning_statement(answers)
+
     # Render PDF (se fallisce, NO side effects)
     try:
-        pdf_bytes = await genera_posizionamento_pdf(answers, partner.get("name", "Partner"))
+        pdf_bytes = await genera_posizionamento_pdf(answers, partner.get("name", "Partner"), statement)
     except Exception as e:
         logger.exception(f"[POSIZIONAMENTO] PDF render failed for {body.partner_id}: {e}")
         try:
