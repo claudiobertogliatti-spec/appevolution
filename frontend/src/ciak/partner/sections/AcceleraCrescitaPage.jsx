@@ -10,7 +10,7 @@
  *  POST /api/servizi-extra/:stripeServiceId/acquista  → { checkout_url }
  *  (+ /api/avatar-checkout e /api/consulenza-checkout via i componenti checkout)
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Eye, Repeat, TrendingUp, Radio, Layers, Compass, Tag } from "lucide-react";
 import { AvatarCheckout } from "./AvatarCheckout";
@@ -590,6 +590,13 @@ export function AcceleraCrescitaPage({ partnerId, categoryId }) {
   const [selectedCategory, setSelectedCategory] = useState(
     categoryId ? CATEGORIES[categoryId.replace("acc-", "")] : null
   );
+
+  // Risincronizza la categoria quando cambia la voce nella sidebar: il route
+  // `accelera/:categoryId` NON rimonta tra una voce e l'altra (cambia solo il
+  // param), quindi senza questo effetto resterebbe ferma sulla prima aperta.
+  useEffect(() => {
+    setSelectedCategory(categoryId ? CATEGORIES[categoryId.replace("acc-", "")] : null);
+  }, [categoryId]);
 
   if (selectedCategory) {
     return (
