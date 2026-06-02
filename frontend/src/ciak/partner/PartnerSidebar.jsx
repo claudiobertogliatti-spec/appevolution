@@ -23,7 +23,9 @@ const MAIN_NAV = [
 const ACCELERA_ITEMS = [
   { to: "/partner/accelera/acc-visibilita", label: "Visibilità" },
   { to: "/partner/accelera/acc-costanza", label: "Costanza" },
-  { to: "/partner/accelera/acc-monetizzazione", label: "Monetizzazione" },
+  { to: "/partner/accelera/acc-spinta-vendite", label: "Spinta Vendite" },
+  { to: "/partner/accelera/acc-eventi-vendita", label: "Eventi Vendita" },
+  { to: "/partner/accelera/acc-prodotti-digitali", label: "Prodotti Digitali" },
   { to: "/partner/accelera/acc-direzione", label: "Direzione" },
 ];
 
