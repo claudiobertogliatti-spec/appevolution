@@ -939,6 +939,20 @@ offerta). La vendita onesta nasce dal posizionamento già definito, non dai truc
 Scarsità, sconti e bonus solo se reali. Mai manipolare: se il cliente non è in target,
 è un no onesto.
 
+PRIMA DELLA CALL — A CHE PUNTO È LA PERSONA (5 LIVELLI DI CONSAPEVOLEZZA):
+La stessa offerta va aperta in modo diverso a seconda di quanto il cliente già sa.
+Chiedi al partner di capire il livello prima di parlare, non dopo.
+1. Inconsapevole — non sa di avere il problema. Apri facendogli vedere il problema,
+   non l'offerta. Se parti dalla soluzione lo perdi.
+2. Consapevole del problema — sente il dolore, non conosce le strade. Dai un nome
+   chiaro al problema: si fida di chi lo descrive meglio di come lo vive lui.
+3. Consapevole della soluzione — sa che esistono soluzioni, valuta. Mostra perché
+   la tua strada è diversa (qui entra il posizionamento da specialista).
+4. Consapevole del prodotto — conosce te, confronta te con gli altri. Porta prove
+   concrete e casi simili al suo, non promesse.
+5. Pronto — vuole solo l'ultimo motivo per decidere. Rendi facile il sì: un primo
+   passo concreto, condizioni chiare, nessuna frizione inutile.
+
 LE 6 FASI DELLA CONVERSAZIONE (in ordine):
 1. Connecting — sintonia vera. Una domanda sincera, poi ascolto.
 2. Engagement — fai parlare il cliente del suo problema, non del prodotto.
@@ -948,20 +962,36 @@ LE 6 FASI DELLA CONVERSAZIONE (in ordine):
 6. Committing — porta a una decisione chiara, sì o no, con un primo passo concreto.
 
 LE 3 OBIEZIONI DA PREVEDERE (disinnescale prima che arrivino):
-→ Meccanismo ("il metodo non funziona per me") → prova concreta + caso simile.
-→ Interna ("non ne sono capace io") → il sistema riduce la dipendenza dal talento.
-→ Esterna ("non ho tempo / soldi / permesso") → mostra il costo dell'inazione, non pressione.
+Quasi ogni "no" è una di queste tre. Falle emergere tu durante la call, prima che
+diventino un muro a fine conversazione.
+→ Sul metodo ("il sistema non funziona / non funziona per il mio caso").
+   Risposta: prova concreta + un caso simile al suo. Non difenderti, mostra.
+→ Su di sé ("non ne sono capace io, agli altri riesce").
+   Risposta: il valore del sistema è proprio ridurre la dipendenza dal talento.
+   Sposta il peso dalla persona al metodo: "non serve essere bravi, serve seguire i passi".
+→ Sull'esterno ("non ho tempo / soldi / non dipende da me").
+   Risposta: mostra il costo di restare fermi, non fare pressione. Se il vincolo è reale
+   (budget davvero assente, decisione di un altro), è un no onesto: non forzare.
 
-LO SCHELETRO IN 12 PUNTI (checklist della call):
-1. Apri con rapport sincero. 2. Inquadra l'obiettivo della call.
-3. Situazione attuale. 4. Situazione desiderata. 5. Il divario tra le due.
-6. Costo di restare fermi. 7. Mostra il COSA, non il COME (sei l'esperto, non regali il how-to).
-8. Presenta l'offerta come percorso, non come prodotto. 9. Dichiara il prezzo con calma.
-10. Disinnesca le 3 obiezioni. 11. Scarsità o bonus solo se reali.
-12. Chiedi la decisione e fissa il primo passo concreto.
+LO SCHELETRO DELLA CALL (checklist in ordine):
+1. Apri con rapport sincero, non con un copione.
+2. Inquadra l'obiettivo della call: perché siete qui, quanto dura.
+3. Situazione attuale — dove si trova oggi.
+4. Situazione desiderata — dove vuole arrivare.
+5. Il divario tra le due — è qui che nasce il bisogno.
+6. Costo di restare fermi — cosa perde se non cambia nulla.
+7. Mostra il COSA, non il COME: sei l'esperto, descrivi il risultato e il percorso,
+   non regali il how-to operativo (quello è dentro l'offerta).
+8. Presenta l'offerta come percorso verso il risultato, non come prodotto da listino.
+9. Dichiara il prezzo con calma, senza scusarti e senza riempire il silenzio.
+10. Disinnesca le 3 obiezioni (vedi sopra), idealmente prima che le sollevi lui.
+11. Scarsità, sconto o bonus SOLO se reali. Una scarsità inventata si sente e brucia fiducia.
+12. Chiedi la decisione in modo chiaro — sì o no — e fissa il primo passo concreto.
 
-APPLICATION A PSICOLOGIA INVERSA: chi si candida si qualifica per lavorare col partner,
-non il contrario. Posiziona il partner come selettivo, non bisognoso. Niente fretta finta.
+PSICOLOGIA INVERSA (postura, non trucco): chi si candida si qualifica per lavorare
+col partner, non il contrario. Posiziona il partner come selettivo, non bisognoso.
+Niente fretta finta, niente "ultimi posti" se non è vero. La calma vende più dell'ansia:
+chi non ha bisogno di chiudere a tutti i costi è chi chiude di più.
 """
 
 # ─────────────────────────────────────────────
