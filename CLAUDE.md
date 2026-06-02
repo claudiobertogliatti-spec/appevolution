@@ -12,6 +12,25 @@ Claude è autorizzato a committare e pushare su `main` senza richiedere conferma
 
 **Se il sandbox bash fallisce**: usare Claude in Chrome → navigare su github.com/claudiobertogliatti-spec/appevolution → aprire il file → Edit → modificare via console CM6 → commit su main.
 
+## Direzioni strategiche prodotto (Ciak) — leggere prima di lavorare su posizionamento/agenti/funnel
+
+**Fonte di verità completa**: `docs/strategy/ulama-adattamento-ciak.md` (backlog di 20 voci + analisi di 6 corsi). Consultarlo prima di toccare il percorso Partner (F1–F7), gli agenti (Valentina, Andrea, Gaia, Marco, Matteo, Stefania), il wizard `Step04Posizionamento`, il motore Blueprint (`ciak_matteo*`), o i renderer documenti posizionamento.
+
+**Contesto**: abbiamo analizzato 6 corsi esterni per arricchire il percorso Ciak. Ciak è una piattaforma Done-for-You che costruisce e lancia il corso/offerta di consulenti-coach; gli altri corsi insegnano manualmente la stessa macchina. Si adottano i **framework**, non il linguaggio.
+
+**Regola di brand voice (non negoziabile)**: tono diretto, italiano semplice, anti-fuffa, frasi brevi. Vietato il registro guru/coach-speak (vedi tabella termini vietati in `backend/services/ciak_matteo.py`). Marco De Veglia (BrandFacile) è già allineato e si importa senza filtri; Ulama e Freddi vanno filtrati dal registro motivazionale/spirituale.
+
+**Mappa per origine**: posizionamento = **De Veglia/BrandFacile** (core) · strategia high-ticket = Ulama + Freddi · contenuti/organico = Baleni/Cavina · esecuzione sullo stack = Corsi Systeme.io · ads/scaling = Lead a Catinelle.
+
+**Priorità di implementazione (dal backlog)**:
+1. **Script di vendita** unico per Marco: Ulama (6 fasi: Connecting→Engagement→Transition→Presenting→Obiezioni→Committing) + Freddi (script telefonico 12 punti + application "psicologia inversa").
+2. **KB offerta/prezzo** per Valentina/Marco: 4 tipologie offerta (Ulama) + value ladder BASE/10x/100x (Freddi/Giannini) + 10 errori sul prezzo.
+3. **Motore di posizionamento di Valentina (De Veglia)**: Brandshot competitor-oriented · idea differenziante "Specialista" + Test del Contrario + Test dei Limiti come quality gate · output come **Brand Positioning Statement** (template a 5 slot: *"<nome> è <categoria> che <idea differenziante>. A differenza dei concorrenti che <X>, noi <Y>, e per il cliente significa <vantaggi>"*) nel documento generato dopo `Step04Posizionamento`.
+4. Framework 3 obiezioni (Meccanismo/Interna/Esterna) + 5 livelli di consapevolezza (Schwartz) → Valentina + scoring Matteo.
+5. Altri innesti: prompt-pack scaricabili per agente (Baleni), traccia video faceless + repurposing (Andrea), sistema short-form + calendario editoriale template (Cavina), DM automation comment-to-DM (Gaia), SLO auto-liquidante (Gaia/Marco), loop recensione→regalo per testimonianze (F7), SOP native Systeme.io (Gaia/team), runbook ads + KPI campagne per `MetrichePostLancio` (Lead a Catinelle).
+
+**Vincolo**: NON modificare il system prompt di Matteo (`ciak_matteo.py` / prompt store) senza via libera esplicito di Claudio.
+
 ## Pipeline Video — Processo Definitivo per TUTTI i Partner
 
 Processo standard per masterclass e ogni lezione videocorso di ogni partner Evolution PRO.
