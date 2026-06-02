@@ -4,6 +4,7 @@ import ProgressBar from "./ProgressBar";
 import PhaseAgentHeader from "./PhaseAgentHeader";
 import GoLive21Banner from "./GoLive21Banner";
 import AgentDrawer from "./AgentDrawer";
+import JourneyMap from "./JourneyMap";
 
 // Step components lazy-loaded — implementati in Phase 4
 const STEP_COMPONENTS = {
@@ -65,6 +66,10 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
     ? state.steps.find((s) => s.step_id === viewingStepId)
     : current;
 
+  // Vista-mappa di default: il partner vede tutte le fasi a card.
+  // Apre un singolo step solo quando clicca una card (viewingStepId).
+  const inMap = !justCompleted && !allDone && !viewingStepId;
+
   let StepComponent = null;
   if (justCompleted) {
     StepComponent = FinaleCelebrativa;
@@ -87,47 +92,71 @@ export default function PartnerOperativo({ partnerId, partnerName }) {
           />
         )}
 
-        <ProgressBar
-          macroPhases={state.macro_phases}
-          steps={state.steps}
-          currentStepId={stepToShow?.step_id}
-        />
+        {inMap ? (
+          <div className="mt-4">
+            <JourneyMap
+              state={state}
+              partnerName={partnerName}
+              onOpenStep={(id) => {
+                setViewingStepId(id);
+                if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+            />
+          </div>
+        ) : (
+          <>
+            {!allDone && (
+              <button
+                onClick={() => setViewingStepId(null)}
+                className="mt-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-slate-500 hover:text-slate-900 transition"
+              >
+                ← Torna al percorso
+              </button>
+            )}
 
-        {!allDone && stepToShow && stepToShow.step_id !== "02-discovery-video" && (
-          <PhaseAgentHeader
-            macroPhaseId={stepToShow.macro_phase}
-            partnerName={partnerName}
-            onAsk={() => setDrawerOpen(true)}
-          />
-        )}
+            <ProgressBar
+              macroPhases={state.macro_phases}
+              steps={state.steps}
+              currentStepId={stepToShow?.step_id}
+            />
 
-        <div className="mt-4">
-          {StepComponent ? (
-            <Suspense fallback={<div className="text-slate-500 p-8 text-center">Carico step...</div>}>
-              <StepComponent
-                step={stepToShow}
-                partnerId={partnerId}
+            {!allDone && stepToShow && stepToShow.step_id !== "02-discovery-video" && (
+              <PhaseAgentHeader
+                macroPhaseId={stepToShow.macro_phase}
                 partnerName={partnerName}
-                onSaveDraft={(d) => stepToShow && saveDraft(stepToShow.step_id, d)}
-                onComplete={async (d) => {
-                  if (!stepToShow) return;
-                  await completeStep(stepToShow.step_id, d);
-                  setViewingStepId(null);
-                }}
-                onDismissCelebrazione={() => {
-                  if (typeof window !== "undefined") {
-                    sessionStorage.setItem(`celebrazione-vista-${partnerId}`, "1");
-                  }
-                  refresh();
-                }}
+                onAsk={() => setDrawerOpen(true)}
               />
-            </Suspense>
-          ) : (
-            <div className="bg-white border border-gray-200 rounded-md p-8 text-slate-500 text-center">
-              Step "{stepToShow?.step_id}" non ancora implementato.
+            )}
+
+            <div className="mt-4">
+              {StepComponent ? (
+                <Suspense fallback={<div className="text-slate-500 p-8 text-center">Carico step...</div>}>
+                  <StepComponent
+                    step={stepToShow}
+                    partnerId={partnerId}
+                    partnerName={partnerName}
+                    onSaveDraft={(d) => stepToShow && saveDraft(stepToShow.step_id, d)}
+                    onComplete={async (d) => {
+                      if (!stepToShow) return;
+                      await completeStep(stepToShow.step_id, d);
+                      setViewingStepId(null);
+                    }}
+                    onDismissCelebrazione={() => {
+                      if (typeof window !== "undefined") {
+                        sessionStorage.setItem(`celebrazione-vista-${partnerId}`, "1");
+                      }
+                      refresh();
+                    }}
+                  />
+                </Suspense>
+              ) : (
+                <div className="bg-white border border-gray-200 rounded-md p-8 text-slate-500 text-center">
+                  Step "{stepToShow?.step_id}" non ancora implementato.
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
 
       <AgentDrawer
