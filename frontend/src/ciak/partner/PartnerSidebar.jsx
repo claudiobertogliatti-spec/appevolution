@@ -1,23 +1,22 @@
 /**
  * Ciak Partner — Sidebar di navigazione (palette Ciak slate/yellow).
  *
- * Struttura allineata alla sidebar reale Evolution PRO:
- *  5 voci principali (Home, Webinar, Il Mio Spazio, Risultati, Supporto Team)
- *  + 3 sezioni collassabili (Go Live in 21gg, Accelera la crescita, Growth System).
- * Le 7 fasi del journey si raggiungono dalla dashboard (sezione "A che punto sei").
+ * Struttura:
+ *  voci principali (Home, Workspace)
+ *  + sezioni Evolution One collassabili (Accelera la crescita, Growth System).
+ * Il webinar NON è qui: è dentro il processo di costruzione (fase Valida, step Prezzo + webinar).
+ * Le fasi del journey si raggiungono dalla dashboard (sezione "A che punto sei").
  */
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
-  Home, Video, LayoutGrid,
+  Home, LayoutGrid,
   Rocket, Layers, ChevronDown, ChevronRight,
 } from "lucide-react";
 
 const MAIN_NAV = [
   { to: "/partner", end: true, label: "Home", icon: Home },
   { to: "/partner/workspace", label: "Workspace", icon: LayoutGrid },
-  // Webinar: temporaneo qui — andrà nella fase Ottimizza (post-lancio) quando la costruiamo.
-  { to: "/partner/webinar", label: "Webinar", icon: Video },
 ];
 
 const ACCELERA_ITEMS = [
