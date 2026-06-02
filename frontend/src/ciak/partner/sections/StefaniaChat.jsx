@@ -5,7 +5,7 @@
  * (non è una pagina standalone): riceve partner + contesto del blocco attivo.
  *
  * Endpoint backend invariato:
- *  POST /api/stefania/chat  → { response }
+ *  POST /api/stefania/chat  → { reply, agent, responsible_agent }
  */
 import { useState, useEffect, useRef } from "react";
 import { Send, Sparkles, User, RefreshCw } from "lucide-react";
@@ -51,15 +51,17 @@ export function StefaniaChat({ partner, currentBlock, scriptContext, onScriptUpd
           session_id: sessionId,
           message: input,
           partner_id: partner?.id,
-          partner_name: partner?.name,
+          user_name: partner?.name,
           partner_niche: partner?.niche,
-          current_block: currentBlock,
-          script_context: scriptContext,
+          context: {
+            current_block: currentBlock,
+            script_context: scriptContext,
+          },
         }),
       });
       if (!res.ok) throw new Error("chat");
       const data = await res.json();
-      setMessages((prev) => [...prev, { role: "assistant", content: data.response }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
     } catch (e) {
       setMessages((prev) => [
         ...prev,

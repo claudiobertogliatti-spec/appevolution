@@ -46,8 +46,9 @@ export default function AgentDrawer({ open, onClose, partnerId, currentStep }) {
           target_agent: agent.id,
         }),
       });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const data = await r.json();
-      const reply = data.response || data.message || data.assistant_message || "...";
+      const reply = data.reply || "Non sono riuscita a rispondere, riprova tra un attimo.";
       setMessages((m) => [...m, { role: "assistant", content: reply }]);
     } catch (e) {
       setMessages((m) => [...m, { role: "assistant", content: `Errore: ${String(e)}` }]);
