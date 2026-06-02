@@ -2,8 +2,9 @@
  * Ciak Partner — Accelera la crescita.
  * Porting di components/partner/AcceleraCrescitaPage.jsx. Re-skin palette Ciak.
  *
- * Hub a 4 pilastri (visibilità / costanza / monetizzazione / direzione) con
- * pagine di dettaglio per ogni strumento e checkout Stripe dedicati.
+ * Hub a 6 pilastri (visibilità / costanza / spinta-vendite / eventi-vendita /
+ * prodotti-digitali / direzione) con pagine di dettaglio per ogni strumento e
+ * checkout Stripe dedicati.
  *
  * Endpoint backend invariato:
  *  POST /api/servizi-extra/:stripeServiceId/acquista  → { checkout_url }
@@ -428,6 +429,11 @@ function ItemDetailPage({ item, category, partner, onBack }) {
                       {pkg.perSession && (
                         <span className="ml-2 text-xs text-slate-400">
                           → €{pkg.perSession}/sessione
+                        </span>
+                      )}
+                      {pkg.perEvent && (
+                        <span className="ml-2 text-xs text-slate-400">
+                          → €{pkg.perEvent}/live
                         </span>
                       )}
                     </div>
