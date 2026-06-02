@@ -281,6 +281,14 @@ const GROWTH_LEVELS = {
   scale: { name: "Scale", tagline: "Espandiamo il business", icon: Rocket, motivation: "I numeri sono solidi. È il momento di diversificare con nuovi prodotti e funnel avanzati.", cta: "Scopri Scale" },
 };
 
+// Pagine abbonamento Systeme (collegate allo Stripe di Claudio) — DA COMPILARE quando i
+// prodotti continuità sono creati su Systeme. Vuoto = il CTA porta al supporto, non a un link rotto.
+const SYSTEME_TIER_LINKS = {
+  foundation: "",
+  growth: "",
+  scale: "",
+};
+
 function getRecommendedLevel(kpi) {
   if (!kpi) return "foundation";
   const { visite = 0, contatti = 0, vendite = 0, conversione = 0 } = kpi;
@@ -291,8 +299,10 @@ function getRecommendedLevel(kpi) {
 }
 
 function ProssimoLivello({ kpi, onNavigate }) {
-  const level = GROWTH_LEVELS[getRecommendedLevel(kpi)];
+  const levelId = getRecommendedLevel(kpi);
+  const level = GROWTH_LEVELS[levelId];
   const LIcon = level.icon;
+  const tierLink = SYSTEME_TIER_LINKS[levelId];
   return (
     <div className="mb-6">
       <div className="flex items-center gap-3 mb-4">
@@ -323,12 +333,23 @@ function ProssimoLivello({ kpi, onNavigate }) {
           </p>
           <p className="text-sm leading-relaxed text-slate-600">{level.motivation}</p>
         </div>
-        <button
-          onClick={() => onNavigate("supporto")}
-          className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-sm bg-slate-900 text-yellow-400 hover:bg-slate-800 transition"
-        >
-          {level.cta} <ArrowRight className="w-4 h-4" />
-        </button>
+        {tierLink ? (
+          <a
+            href={tierLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-sm bg-slate-900 text-yellow-400 hover:bg-slate-800 transition"
+          >
+            {level.cta} <ArrowRight className="w-4 h-4" />
+          </a>
+        ) : (
+          <button
+            onClick={() => onNavigate("supporto")}
+            className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-sm bg-slate-900 text-yellow-400 hover:bg-slate-800 transition"
+          >
+            {level.cta} <ArrowRight className="w-4 h-4" />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -377,6 +398,48 @@ function TrendBlock({ kpi }) {
   );
 }
 
+function AcademyMetrics({ academy }) {
+  if (!academy) return null;
+  const cells = [
+    { label: "Valore per cliente", icon: DollarSign, block: academy.ltv,
+      fmt: (v) => `€${Number(v).toLocaleString("it-IT")}` },
+    { label: "Completamento corso", icon: CheckCircle2, block: academy.completion,
+      fmt: (v) => `${v}%` },
+    { label: "Abbandono (churn)", icon: TrendingDown, block: academy.churn,
+      fmt: (v) => `${v}%` },
+  ];
+  return (
+    <div className="mb-6">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-3">
+        La salute dell'accademia
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {cells.map(({ label, icon: Icon, block, fmt }) => {
+          const ok = block && block.disponibile;
+          return (
+            <div key={label} className="bg-white rounded-2xl border border-gray-200 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Icon className={`w-4 h-4 ${ok ? "text-yellow-600" : "text-slate-300"}`} />
+                <span className="text-[11px] font-medium text-slate-500">{label}</span>
+              </div>
+              {ok ? (
+                <p className="text-2xl font-semibold text-slate-900">{fmt(block.valore)}</p>
+              ) : (
+                <>
+                  <p className="text-sm font-medium text-slate-300">In arrivo</p>
+                  {block?.motivo && (
+                    <p className="text-[11px] text-slate-400 leading-snug mt-1">{block.motivo}</p>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 const EMPTY_KPI = {
   visite: 0, visite_trend: 0, contatti: 0, contatti_trend: 0,
   vendite: 0, vendite_trend: 0, conversione: 0, conversione_trend: 0,
@@ -386,6 +449,7 @@ export function F7Ottimizzazione({ partnerId }) {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [kpiData, setKpiData] = useState(null);
+  const [academy, setAcademy] = useState(null);
 
   const onNavigate = (target) => {
     if (target === "funnel") navigate("/partner/funnel");
@@ -404,6 +468,7 @@ export function F7Ottimizzazione({ partnerId }) {
         if (res.ok) {
           const data = await res.json();
           setKpiData(data.kpi || EMPTY_KPI);
+          setAcademy(data.academy || null);
         } else {
           setKpiData(EMPTY_KPI);
         }
@@ -454,6 +519,7 @@ export function F7Ottimizzazione({ partnerId }) {
           <DiagnosiAutomatica kpi={kpiData} />
         )}
         {!isZeroState && <ProssimaAzione kpi={kpiData} />}
+        {!isZeroState && <AcademyMetrics academy={academy} />}
         <ProssimoLivello kpi={kpiData} onNavigate={onNavigate} />
         {!isZeroState && <TrendBlock kpi={kpiData} />}
       </div>

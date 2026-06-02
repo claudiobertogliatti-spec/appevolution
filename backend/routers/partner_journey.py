@@ -2916,6 +2916,18 @@ class CreaCasoStudioRequest(BaseModel):
     partner_id: str
 
 
+class GeneraCasoStudioRequest(BaseModel):
+    """Risultato grezzo di UNO studente (da Survey Systeme o inserito a mano dal team)."""
+    partner_id: str
+    nome: Optional[str] = None
+    prima: Optional[str] = None
+    dopo: Optional[str] = None
+    citazione: Optional[str] = None
+    tempo: Optional[str] = None
+    prova: Optional[str] = None
+    prova_visiva_url: Optional[str] = None  # ripiego: Systeme non fa upload file
+
+
 class SalvaProtocolloRequest(BaseModel):
     partner_id: str
     settimana: str
@@ -2985,23 +2997,39 @@ async def get_ottimizzazione(partner_id: str):
     ]
     
     azioni = ottimizzazione.get("azioni", default_actions) if ottimizzazione else default_actions
-    
+
+    kpi = {
+        "visite": kpi_data.get("visite_raw", kpi_data.get("lead_generati", 0)),
+        "visite_trend": 0,
+        "contatti": kpi_data.get("lead_generati", 0),
+        "contatti_trend": 0,
+        "vendite": kpi_data.get("vendite_mese", 0),
+        "vendite_trend": 0,
+        "conversione": kpi_data.get("conversione_funnel", 0),
+        "conversione_trend": 0,
+        "fonte": kpi_data.get("fonte", "nessuna"),
+        "aggiornato_at": kpi_data.get("aggiornato_at"),
+    }
+
+    # Motore Marco: ritmo + accountability (UNA prossima azione + giorni di inattivita).
+    from services.marco_accountability import compute_ritmo
+    ritmo = compute_ritmo(ottimizzazione, kpi, riferimento_attivazione=data_pagamento)
+
+    # Metriche Dati academy-side (LTV derivato; completion/churn flaggate non disponibili).
+    from services.academy_metrics import compute_academy_metrics
+    academy = compute_academy_metrics(kpi_data)
+
     return {
         "success": True,
         "partner_id": partner_id,
         "partner_name": partner.get("name"),
-        "kpi": {
-            "visite": kpi_data.get("visite_raw", kpi_data.get("lead_generati", 0)),
-            "visite_trend": 0,
-            "contatti": kpi_data.get("lead_generati", 0),
-            "contatti_trend": 0,
-            "vendite": kpi_data.get("vendite_mese", 0),
-            "vendite_trend": 0,
-            "conversione": kpi_data.get("conversione_funnel", 0),
-            "conversione_trend": 0,
-            "fonte": kpi_data.get("fonte", "nessuna"),
-            "aggiornato_at": kpi_data.get("aggiornato_at"),
-        },
+        "kpi": kpi,
+        "prossima_azione": ritmo["prossima_azione"],
+        "giorni_da_ultima_azione": ritmo["giorni_da_ultima_azione"],
+        "nudge_level": ritmo["nudge_level"],
+        "pubblica_con_costanza": ritmo["pubblica_con_costanza"],
+        "iscritti_webinar": ritmo["iscritti_webinar"],
+        "academy": academy,
         "ultimo_report": ottimizzazione.get("ultimo_report") if ottimizzazione else None,
         "azioni": azioni,
         "protocollo_settimana": ottimizzazione.get("protocollo_settimana") if ottimizzazione else None,
@@ -3225,20 +3253,30 @@ Rispondi SOLO con il JSON, senza altro testo."""
 async def salva_azioni(request: SalvaAzioniRequest):
     """Salva lo stato delle azioni consigliate"""
     await get_partner_or_404(request.partner_id)
-    
+
     azioni_dict = [a.dict() for a in request.azioni]
-    
+    _done = {"completed", "done", "fatto"}
+    nuovo_completate = sum(1 for a in azioni_dict if str(a.get("status", "")).lower() in _done)
+
+    prev = await db.partner_ottimizzazione.find_one(
+        {"partner_id": request.partner_id}, {"_id": 0, "azioni": 1}
+    )
+    prev_completate = sum(
+        1 for a in (prev or {}).get("azioni", []) if str(a.get("status", "")).lower() in _done
+    )
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    set_fields = {"azioni": azioni_dict, "azioni_updated_at": now_iso}
+    # Marco: timbra l'ultima azione completata solo quando ne viene chiusa una NUOVA.
+    if nuovo_completate > prev_completate:
+        set_fields["ultima_azione_completata_at"] = now_iso
+
     await db.partner_ottimizzazione.update_one(
         {"partner_id": request.partner_id},
-        {
-            "$set": {
-                "azioni": azioni_dict,
-                "azioni_updated_at": datetime.now(timezone.utc).isoformat()
-            }
-        },
+        {"$set": set_fields},
         upsert=True
     )
-    
+
     return {"success": True, "message": "Azioni salvate"}
 
 
@@ -3337,13 +3375,65 @@ async def crea_caso_studio(request: CreaCasoStudioRequest):
 async def get_caso_studio(caso_studio_id: str):
     """Recupera i dettagli di un caso studio"""
     caso = await db.casi_studio.find_one({"id": caso_studio_id}, {"_id": 0})
-    
+
     if not caso:
         raise HTTPException(status_code=404, detail="Caso studio non trovato")
-    
+
     return {
         "success": True,
         "caso_studio": caso
+    }
+
+
+@router.post("/ottimizzazione/caso-studio/genera")
+async def genera_caso_studio(request: GeneraCasoStudioRequest):
+    """Case-study engine: impacchetta il risultato di UNO studente in voce Ciak.
+
+    Input = risultato grezzo (raccolto via Survey Systeme o inserito dal team). Output =
+    caso studio strutturato (headline/prima/dopo/racconto/citazione/prova/cta) salvato come
+    bozza, pronto per webinar/contenuti/pagina vendite. Non blocca mai (fallback deterministico).
+    """
+    partner = await get_partner_or_404(request.partner_id)
+
+    posizionamento = await db.partner_posizionamento.find_one(
+        {"partner_id": request.partner_id}, {"_id": 0}
+    )
+    partner_ctx = {
+        "name": partner.get("name"),
+        "niche": partner.get("niche"),
+        "metodo": (posizionamento or {}).get("step_4_metodo"),
+        "trasformazione": (posizionamento or {}).get("step_3_trasformazione"),
+    }
+    risultato = {
+        "nome": request.nome,
+        "prima": request.prima,
+        "dopo": request.dopo,
+        "citazione": request.citazione,
+        "tempo": request.tempo,
+        "prova": request.prova,
+    }
+
+    from services.case_study_engine import build_case_study
+    pacchetto = await build_case_study(partner_ctx, risultato)
+
+    caso_studio_id = str(uuid.uuid4())
+    caso_studio = {
+        "id": caso_studio_id,
+        "partner_id": request.partner_id,
+        "partner_name": partner.get("name"),
+        "niche": partner.get("niche"),
+        "tipo": "studente",
+        "input_risultato": {**risultato, "prova_visiva_url": request.prova_visiva_url},
+        "pacchetto": pacchetto,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "status": "draft",
+    }
+    await db.casi_studio.insert_one(caso_studio)
+
+    return {
+        "success": True,
+        "caso_studio_id": caso_studio_id,
+        "pacchetto": pacchetto,
     }
 
 
