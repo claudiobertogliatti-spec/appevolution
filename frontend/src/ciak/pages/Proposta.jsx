@@ -29,13 +29,13 @@ import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
 
 const FASI = [
-  { num: 1, titolo: "Posizionamento", desc: "L'identità di brand e la nicchia" },
-  { num: 2, titolo: "Masterclass", desc: "Il primo strumento di acquisizione" },
-  { num: 3, titolo: "Videocorso", desc: "Il prodotto principale che scala" },
-  { num: 4, titolo: "Funnel", desc: "Il sistema che porta clienti in modo strutturato" },
-  { num: 5, titolo: "Lancio", desc: "La campagna che genera i primi ricavi" },
-  { num: 6, titolo: "Ottimizzazione", desc: "I numeri che migliorano ad ogni ciclo" },
-  { num: 7, titolo: "Continuità", desc: "Il piano che mantiene il sistema attivo" },
+  { num: 1, titolo: "Posizionamento", desc: "La tua identità di autorità: chi sei, per chi, e perché sei il riferimento" },
+  { num: 2, titolo: "Masterclass", desc: "Il contenuto che dimostra la tua competenza e attira il pubblico giusto" },
+  { num: 3, titolo: "Videocorso", desc: "Il prodotto che trasforma la tua competenza in un asset che vende" },
+  { num: 4, titolo: "Funnel", desc: "L'ecosistema che porta le persone dal primo contatto alla vendita" },
+  { num: 5, titolo: "Lancio", desc: "La campagna che genera i primi ricavi e ti rende visibile sul mercato" },
+  { num: 6, titolo: "Ottimizzazione", desc: "I numeri che migliorano ad ogni ciclo: vendite e posizionamento insieme" },
+  { num: 7, titolo: "Continuità", desc: "Il piano che mantiene attivo l'ecosistema e consolida la tua autorità" },
 ];
 
 const TEAM = [
@@ -230,12 +230,17 @@ export function CiakProposta() {
             Partnership Evolution PRO
           </p>
           <h1 className="text-3xl md:text-5xl font-semibold leading-[1.15] mb-6">
-            Dopo la sessione strategica, questa è la proposta per implementare la direzione.
+            Dopo la sessione strategica, questa è la proposta per costruire l'ecosistema che ti rende il riferimento del tuo mercato.
           </h1>
           <p className="text-base md:text-lg text-slate-300 leading-relaxed max-w-3xl">
             La Partnership è il passaggio in cui il team Evolution costruisce con te — fase per
-            fase — il sistema che trasforma la tua competenza in un modello digitale sostenibile.
-            Non un corso da seguire da solo: un percorso strutturato con un team dedicato.
+            fase — l'ecosistema di marketing che trasforma la tua competenza in autorevolezza
+            riconosciuta e in vendite costanti.
+            Non un corso da seguire da solo: un percorso strutturato, con un team dedicato, che ti
+            porta a possedere la tua posizione sul mercato.
+          </p>
+          <p className="mt-6 text-base md:text-lg font-medium text-yellow-400">
+            Online in 21 giorni. Il riferimento del tuo mercato in 12 mesi.
           </p>
         </div>
       </section>
@@ -302,9 +307,12 @@ export function CiakProposta() {
       {/* IL PERCORSO — 7 FASI */}
       <section className="bg-white">
         <div className="mx-auto max-w-4xl px-6 py-16">
-          <h2 className="text-2xl md:text-3xl font-semibold text-slate-900 mb-10 leading-tight">
+          <h2 className="text-2xl md:text-3xl font-semibold text-slate-900 mb-2 leading-tight">
             Il percorso — 7 fasi
           </h2>
+          <p className="text-slate-500 mb-10">
+            Dalla tua identità di autorità fino a un ecosistema di marketing che vende e ti posiziona sul mercato.
+          </p>
           <div className="relative">
             <div className="absolute left-[18px] top-2 bottom-2 w-0.5 bg-gray-200" />
             {FASI.map((f) => (
@@ -354,7 +362,7 @@ export function CiakProposta() {
               <p className="text-slate-400 text-sm mb-6">IVA inclusa</p>
               <div className="text-left space-y-3">
                 {[
-                  "Tutte e 7 le fasi del percorso",
+                  "Tutte e 7 le fasi: dal posizionamento all'ecosistema che vende",
                   "Supporto diretto del team completo",
                   "Accesso alla piattaforma Evolution PRO",
                   "Strumenti AI inclusi",
