@@ -19,10 +19,12 @@
  *  POST /api/proposta/:token/accetta | /firma-contratto | /pagamento-stripe
  *       /conferma-stripe | /scelta-bonifico | /upload-distinta | /upload-documenti
  *  GET  /api/contract/text/:partner_id
+ *  POST /api/contract/chat (assistente contrattuale floating, Haiku 4.5)
  */
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
+import { MessageCircle, Send, Loader2 } from "lucide-react";
 import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
 
@@ -508,12 +510,175 @@ export function CiakProposta() {
         </section>
       )}
 
+      {step !== "conferma" && proposta?.partner_id && (
+        <ContractChat partnerId={proposta.partner_id} />
+      )}
+
       <CiakFooter />
     </>
   );
 }
 
 /* ── Sub-componenti ─────────────────────────────────────────────── */
+
+/**
+ * Floating chatbot di assistenza contrattuale per il flusso pre-pagamento.
+ * Backend: POST /api/contract/chat (Claude Haiku 4.5, FAQ pre-cablate su
+ * LLC americana, Revolut, reverse charge, rimborso, esclusiva, €2.790+10%).
+ * Endpoint pubblico, non richiede auth — usa partner_id dalla proposta.
+ */
+function ContractChat({ partnerId }) {
+  const [open, setOpen] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const endRef = useRef(null);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, open]);
+
+  const send = async (textOverride) => {
+    const text = (textOverride ?? input).trim();
+    if (!text || loading) return;
+    setInput("");
+    setMessages((m) => [...m, { role: "user", content: text }]);
+    setLoading(true);
+    try {
+      const r = await fetch(`/api/contract/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          partner_id: partnerId,
+          message: text,
+          conversation_history: messages.slice(-6),
+        }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      setMessages((m) => [
+        ...m,
+        {
+          role: "assistant",
+          content:
+            data.reply ||
+            "Non sono riuscita a rispondere. Scrivi a assistenza@evolution-pro.it",
+        },
+      ]);
+    } catch {
+      setMessages((m) => [
+        ...m,
+        {
+          role: "assistant",
+          content:
+            "Errore di connessione. Riprova tra qualche secondo o scrivi a assistenza@evolution-pro.it",
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const faqSuggestions = [
+    "Cos'è una LLC americana?",
+    "Perché il pagamento va su Revolut?",
+    "Cosa significa reverse charge?",
+    "Posso avere un rimborso?",
+    "In cosa consiste l'esclusiva?",
+    "Pago €2.790 E il 10%?",
+  ];
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-yellow-400 text-slate-900 shadow-2xl z-50 flex items-center justify-center hover:scale-110 transition-transform"
+        aria-label="Apri assistente contrattuale"
+      >
+        <MessageCircle className="w-6 h-6" />
+      </button>
+    );
+  }
+
+  return (
+    <div className="fixed bottom-6 right-6 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden z-50 flex flex-col" style={{ maxHeight: "70vh" }}>
+      <div className="bg-slate-900 text-white px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <MessageCircle className="w-4 h-4 text-yellow-400" />
+          <span className="text-sm font-semibold">Assistente Contrattuale</span>
+        </div>
+        <button
+          onClick={() => setOpen(false)}
+          className="text-white/70 hover:text-white text-xl leading-none"
+          aria-label="Chiudi"
+        >
+          ×
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-gray-50 min-h-[240px]">
+        {messages.length === 0 && (
+          <div className="py-2">
+            <p className="text-xs text-center text-slate-500 mb-3">
+              Domande frequenti — clicca per la risposta:
+            </p>
+            <div className="flex flex-col gap-1.5">
+              {faqSuggestions.map((q) => (
+                <button
+                  key={q}
+                  onClick={() => send(q)}
+                  className="text-left text-xs px-3 py-2 rounded-lg bg-white border border-gray-200 text-slate-700 hover:border-yellow-400 transition"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {messages.map((m, i) => (
+          <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+            <div
+              className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${
+                m.role === "user"
+                  ? "bg-yellow-400 text-slate-900"
+                  : "bg-white text-slate-800 border border-gray-200"
+              }`}
+            >
+              {m.content}
+            </div>
+          </div>
+        ))}
+        {loading && (
+          <div className="flex justify-start">
+            <div className="rounded-xl px-3 py-2 text-sm bg-white border border-gray-200 text-slate-500">
+              <Loader2 className="w-4 h-4 animate-spin inline mr-1" /> Sto pensando…
+            </div>
+          </div>
+        )}
+        <div ref={endRef} />
+      </div>
+
+      <div className="p-2 flex gap-2 border-t border-gray-200">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && send()}
+          placeholder="Scrivi una domanda…"
+          className="flex-1 rounded-lg px-3 py-2 text-sm border border-gray-200 bg-gray-50 focus:outline-none focus:border-yellow-400"
+          disabled={loading}
+        />
+        <button
+          onClick={() => send()}
+          disabled={!input.trim() || loading}
+          className="w-9 h-9 rounded-lg bg-yellow-400 text-slate-900 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+          aria-label="Invia"
+        >
+          <Send className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function ProgressBar({ step }) {
   const steps = ["proposta", "contratto", "pagamento", "documenti", "conferma"];
