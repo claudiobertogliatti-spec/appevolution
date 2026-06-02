@@ -16,16 +16,19 @@ from pathlib import Path
 from dotenv import load_dotenv
 import stripe
 
-# Carica .env.test (sk_test_*)
-env_test = Path(__file__).resolve().parent.parent / ".env.test"
-load_dotenv(env_test, override=True)
+# Carica .env.test (sk_test_*) — a meno che STRIPE_API_KEY sia già nell'ambiente
+# (caso d'uso: per creare i Live, esportare STRIPE_API_KEY=sk_live_... prima di runnare)
+if not os.environ.get("STRIPE_API_KEY"):
+    env_test = Path(__file__).resolve().parent.parent / ".env.test"
+    load_dotenv(env_test, override=False)
 
 api_key = os.environ.get("STRIPE_API_KEY", "")
-if not api_key.startswith("sk_test_"):
-    print(f"ERRORE: STRIPE_API_KEY non è sk_test_* (è {api_key[:10]}...). Aborto.", file=sys.stderr)
+if not (api_key.startswith("sk_test_") or api_key.startswith("sk_live_")):
+    print(f"ERRORE: STRIPE_API_KEY non valida (è {api_key[:10]}...). Aborto.", file=sys.stderr)
     sys.exit(1)
 
 stripe.api_key = api_key
+MODE = "live" if api_key.startswith("sk_live_") else "test"
 
 # (env_var_name, product_name, lookup_key, unit_amount_eur_cents, recurring_interval | None, description)
 SERVICES = [
@@ -74,9 +77,10 @@ def get_or_create(env_var, product_name, lookup_key, amount_cents, recurring, de
 
 
 def main():
-    print(f"[stripe-test-mode] account: {stripe.Account.retrieve().id}")
+    print(f"[stripe-{MODE}-mode] account: {stripe.Account.retrieve().id}")
     print()
-    print("# Aggiungi queste righe a backend/.env.test :")
+    target = ".env.test" if MODE == "test" else "Cloud Run env vars (prod)"
+    print(f"# Aggiungi queste righe a {target} :")
     print()
     for env_var, name, lookup, amount, recurring, desc in SERVICES:
         price_id, status = get_or_create(env_var, name, lookup, amount, recurring, desc)
