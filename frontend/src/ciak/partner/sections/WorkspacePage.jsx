@@ -1,31 +1,33 @@
 /**
  * Ciak Partner — Workspace.
  *
- * Consolida in un'unica area tabbed le utility trasversali del partner:
- *  - Profilo        → PartnerProfileHub
- *  - I Miei File    → PartnerFilesPage
+ * Spazio del partner allineato al Metodo EVO. Quattro sezioni top-level:
+ *  - Identità       → PartnerProfileHub (section="identity")
+ *  - Brand Kit      → PartnerProfileHub (section="brand")
+ *  - Posizionamento → PartnerProfileHub (section="positioning")
  *  - Risultati      → F7Ottimizzazione (KPI / ottimizzazione)
- *  - Supporto Team  → StefaniaChat
+ *  - I Miei File    → PartnerFilesPage (upload / archivio file del percorso)
  *
- * Sostituisce le 3 voci separate (Il Mio Spazio / Risultati / Supporto Team)
- * nella sidebar. Le vecchie rotte restano raggiungibili.
+ * Il Supporto Team (chat Stefania) NON è qui: vive come ultima voce della
+ * sidebar nera (PartnerSidebar → /partner/supporto), perché è trasversale a
+ * tutto il percorso, non una sezione del workspace.
  */
 import { useState } from "react";
-import { User, FolderOpen, TrendingUp, MessageCircle } from "lucide-react";
+import { User, Palette, Target, TrendingUp, FolderOpen } from "lucide-react";
 import { PartnerProfileHub } from "./PartnerProfileHub";
 import { PartnerFilesPage } from "./PartnerFilesPage";
-import { StefaniaChat } from "./StefaniaChat";
 import { F7Ottimizzazione } from "../phases/F7Ottimizzazione";
 
 const TABS = [
-  { id: "profilo", label: "Profilo", Icon: User },
-  { id: "file", label: "I Miei File", Icon: FolderOpen },
+  { id: "identity", label: "Identità", Icon: User },
+  { id: "brand", label: "Brand Kit", Icon: Palette },
+  { id: "positioning", label: "Posizionamento", Icon: Target },
   { id: "risultati", label: "Risultati", Icon: TrendingUp },
-  { id: "supporto", label: "Supporto Team", Icon: MessageCircle },
+  { id: "file", label: "I Miei File", Icon: FolderOpen },
 ];
 
-export function WorkspacePage({ partnerId, initialTab = "profilo" }) {
-  const [tab, setTab] = useState(TABS.some((t) => t.id === initialTab) ? initialTab : "profilo");
+export function WorkspacePage({ partnerId, initialTab = "identity" }) {
+  const [tab, setTab] = useState(TABS.some((t) => t.id === initialTab) ? initialTab : "identity");
   const partner = { id: partnerId };
 
   return (
@@ -33,7 +35,7 @@ export function WorkspacePage({ partnerId, initialTab = "profilo" }) {
       <div className="max-w-4xl mx-auto px-6 py-8">
         <h1 className="text-2xl font-semibold mb-1 text-slate-900">Workspace</h1>
         <p className="text-sm text-slate-500 mb-6">
-          Il tuo spazio: profilo, file, risultati e supporto del team.
+          Il tuo spazio: identità, brand kit, posizionamento, risultati e i tuoi file.
         </p>
 
         {/* Tab pills */}
@@ -55,18 +57,11 @@ export function WorkspacePage({ partnerId, initialTab = "profilo" }) {
         </div>
 
         {/* Content */}
-        {tab === "profilo" && <PartnerProfileHub partner={partner} />}
-        {tab === "file" && <PartnerFilesPage partner={partner} />}
+        {tab === "identity" && <PartnerProfileHub partner={partner} section="identity" />}
+        {tab === "brand" && <PartnerProfileHub partner={partner} section="brand" />}
+        {tab === "positioning" && <PartnerProfileHub partner={partner} section="positioning" />}
         {tab === "risultati" && <F7Ottimizzazione partnerId={partnerId} />}
-        {tab === "supporto" && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-slate-900 mb-1">Supporto Team</h2>
-            <p className="text-slate-500 text-sm mb-4">
-              Per dubbi rapidi scrivi a Stefania. Il tuo coordinatore ti segue lungo il percorso.
-            </p>
-            <StefaniaChat partner={partner} />
-          </div>
-        )}
+        {tab === "file" && <PartnerFilesPage partner={partner} />}
       </div>
     </div>
   );
