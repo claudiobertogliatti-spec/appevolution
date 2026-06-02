@@ -219,6 +219,11 @@ function SupportPage({ partnerId }) {
 // AcceleraCrescitaPage instradata con :categoryId (acc-visibilita, acc-costanza, ...)
 function AcceleraRoute({ partnerId }) {
   const { categoryId } = useParams();
+  // Redirect legacy: la categoria Monetizzazione è stata splittata in 3 (Spinta/Eventi/Prodotti).
+  // I bookmark esistenti atterrano su "Spinta Vendite" (la prima del trio).
+  if (categoryId === "acc-monetizzazione") {
+    return <Navigate to="/partner/accelera/acc-spinta-vendite" replace />;
+  }
   return <AcceleraCrescitaPage partnerId={partnerId} categoryId={categoryId} />;
 }
 
