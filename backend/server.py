@@ -7219,59 +7219,10 @@ Se dopo 2-3 tentativi il partner non riesce a produrre contenuto sufficientement
 
 Rispondi in italiano, in modo diretto e operativo. Non fare complimenti vuoti - dai feedback costruttivo e actionable."""
 
-@api_router.post("/stefania/chat")
-async def chat_with_stefania(request: StefaniaChatRequest):
-    """Chat with STEFANIA - Copy & Marketing tutor for Masterclass creation"""
-    try:
-        session_id = f"stefania_{request.session_id}"
-        
-        # Get chat history
-        history = await db.chat_messages.find(
-            {"session_id": session_id}, 
-            {"_id": 0}
-        ).sort("timestamp", 1).to_list(50)
-        
-        # Build STEFANIA chat
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=session_id,
-            system_message=build_stefania_system_prompt(
-                request.partner_name,
-                request.partner_niche,
-                request.current_block,
-                request.script_context
-            )
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-        
-        # Add history
-        for msg in history:
-            if msg["role"] == "user":
-                await chat.send_message(UserMessage(text=msg["content"]))
-        
-        # Save user message
-        user_msg = ChatMessage(
-            session_id=session_id,
-            role="user",
-            content=request.message
-        )
-        await db.chat_messages.insert_one(user_msg.model_dump())
-        
-        # Get response
-        response = await chat.send_message(UserMessage(text=request.message))
-        
-        # Save assistant response
-        assistant_msg = ChatMessage(
-            session_id=session_id,
-            role="assistant",
-            content=response
-        )
-        await db.chat_messages.insert_one(assistant_msg.model_dump())
-        
-        return {"response": response, "timestamp": assistant_msg.timestamp, "tutor": "STEFANIA"}
-        
-    except Exception as e:
-        logging.error(f"Stefania chat error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+# NOTE: la vecchia route inline `/stefania/chat` qui basata su LlmChat
+# (emergentintegrations) e' stata rimossa. Il handler vivo e' in
+# routers/stefania_chat.py (Anthropic SDK nativo, ritorna {reply, agent,
+# responsible_agent}). E' registrato a fondo file via app.include_router.
 
 @api_router.post("/stefania/review-script")
 async def stefania_review_script(request: ScriptReviewRequest):
