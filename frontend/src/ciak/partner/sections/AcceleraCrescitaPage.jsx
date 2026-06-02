@@ -337,10 +337,15 @@ function ItemDetailPage({ item, category, partner, onBack }) {
   const tone = TONE[category.tone];
 
   const handleStripeAcquisto = async () => {
-    if (!item.isStripe || !item.stripeServiceId) return;
+    // Determina lo stripe service ID effettivo (singolo o per-pacchetto come Live Promo)
+    let serviceId = item.stripeServiceId;
+    if (item.livePromoTiers && item.packages && selectedPackage !== null) {
+      serviceId = item.packages[selectedPackage]?.stripeServiceId;
+    }
+    if (!serviceId) return;
     try {
       setPurchasing(true);
-      const res = await fetch(`/api/servizi-extra/${item.stripeServiceId}/acquista`, {
+      const res = await fetch(`/api/servizi-extra/${serviceId}/acquista`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ partner_id: partnerId }),
@@ -456,7 +461,7 @@ function ItemDetailPage({ item, category, partner, onBack }) {
           </div>
         ) : (
           <button
-            onClick={item.isStripe ? handleStripeAcquisto : onBack}
+            onClick={(item.isStripe || item.livePromoTiers) ? handleStripeAcquisto : onBack}
             disabled={purchasing}
             className={`w-full flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-semibold text-base text-white transition hover:scale-[1.02] disabled:opacity-50 ${tone.btn}`}
           >
