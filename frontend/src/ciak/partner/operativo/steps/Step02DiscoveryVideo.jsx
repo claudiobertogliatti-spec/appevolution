@@ -52,8 +52,11 @@ export default function Step02DiscoveryVideo({ onComplete, partnerName }) {
           <ul className="space-y-1.5">
             <li>🎯 <strong className="text-slate-900">Esamina</strong> — chiariamo chi sei, a chi parli e qual è la tua promessa</li>
             <li>🚀 <strong className="text-slate-900">Valida</strong> — costruiamo accademia e funnel per andare online</li>
-            <li>📈 <strong className="text-slate-900">Ottimizza</strong> — miglioriamo su dati reali, non su supposizioni</li>
+            <li>📈 <strong className="text-slate-900">Ottimizza</strong> — cresci sui dati e costruisci la tua autorevolezza, fino a diventare il riferimento del tuo mercato</li>
           </ul>
+          <p className="text-xs text-slate-600 mt-3 pt-3 border-t border-gray-200">
+            I 21 giorni ti portano online. I mesi successivi ti rendono il riferimento del tuo mercato.
+          </p>
         </div>
 
         <p>

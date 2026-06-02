@@ -20,7 +20,7 @@ export const PHASE_CONFIG = {
     bullets: [
       "Mettiamo in ordine i tuoi dati (anagrafici, fiscali, contatti)",
       "Definiamo il tuo brand kit: logo, foto, colori",
-      "Mettiamo a fuoco il posizionamento: nicchia, target, promessa",
+      "Mettiamo a fuoco il tuo posizionamento di autorità: nicchia, target, promessa",
     ],
   },
   valida: {
@@ -40,11 +40,11 @@ export const PHASE_CONFIG = {
     label: "Ottimizza",
     agentId: "MARCO",
     intro:
-      "Sono Marco. Da qui in poi miglioriamo su dati reali: leggiamo i numeri del lancio e ottimizziamo ciò che funziona per farti crescere.",
+      "Sono Marco. Sei online: la prima parte è fatta. Da qui non miglioriamo solo i numeri — costruiamo la tua autorevolezza e la tua community, fino a renderti il riferimento del tuo mercato. È il lavoro dei prossimi mesi.",
     bullets: [
-      "Leggiamo i KPI del lancio",
-      "Ottimizziamo il funnel su dati veri",
-      "Definiamo i prossimi passi di crescita",
+      "Leggiamo i KPI del lancio e ottimizziamo ciò che converte",
+      "Costruiamo la tua autorevolezza: prove, framework, presenza costante",
+      "Attiviamo la community: è ciò che fa restare le persone",
     ],
   },
 };
