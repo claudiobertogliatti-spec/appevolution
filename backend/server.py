@@ -16813,6 +16813,10 @@ app.include_router(posizionamento_approval_admin_router)
 from routers.brand_kit_approval import router as brand_kit_approval_router
 app.include_router(brand_kit_approval_router)
 
+# Curriculum Outline Router (Step06 — bozza AI della scaletta corso, agente Andrea).
+from routers.curriculum_outline import router as curriculum_outline_router
+app.include_router(curriculum_outline_router)
+
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler
 

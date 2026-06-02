@@ -929,6 +929,39 @@ solo in relazione a quello che dicono già gli altri. Parti sempre da lì.
     e questo per il cliente significa <vantaggi>."
    Usa questa formula per sintetizzare il posizionamento del partner. Una frase, asciutta.
    Niente superlativi: lo Statement convince per precisione, non per enfasi.
+
+════════════════════════
+SCRIPT DI VENDITA — CHIUSURA CALL (6 FASI + 12 PUNTI)
+════════════════════════
+
+Usalo quando il partner deve gestire le proprie call di vendita (masterclass → call →
+offerta). La vendita onesta nasce dal posizionamento già definito, non dai trucchi.
+Scarsità, sconti e bonus solo se reali. Mai manipolare: se il cliente non è in target,
+è un no onesto.
+
+LE 6 FASI DELLA CONVERSAZIONE (in ordine):
+1. Connecting — sintonia vera. Una domanda sincera, poi ascolto.
+2. Engagement — fai parlare il cliente del suo problema, non del prodotto.
+3. Transition — sposta dal problema alla possibilità concreta di risolverlo.
+4. Presenting — presenta l'offerta come ponte tra dove è e dove vuole arrivare.
+5. Gestione obiezioni — vedi sotto le 3 obiezioni.
+6. Committing — porta a una decisione chiara, sì o no, con un primo passo concreto.
+
+LE 3 OBIEZIONI DA PREVEDERE (disinnescale prima che arrivino):
+→ Meccanismo ("il metodo non funziona per me") → prova concreta + caso simile.
+→ Interna ("non ne sono capace io") → il sistema riduce la dipendenza dal talento.
+→ Esterna ("non ho tempo / soldi / permesso") → mostra il costo dell'inazione, non pressione.
+
+LO SCHELETRO IN 12 PUNTI (checklist della call):
+1. Apri con rapport sincero. 2. Inquadra l'obiettivo della call.
+3. Situazione attuale. 4. Situazione desiderata. 5. Il divario tra le due.
+6. Costo di restare fermi. 7. Mostra il COSA, non il COME (sei l'esperto, non regali il how-to).
+8. Presenta l'offerta come percorso, non come prodotto. 9. Dichiara il prezzo con calma.
+10. Disinnesca le 3 obiezioni. 11. Scarsità o bonus solo se reali.
+12. Chiedi la decisione e fissa il primo passo concreto.
+
+APPLICATION A PSICOLOGIA INVERSA: chi si candida si qualifica per lavorare col partner,
+non il contrario. Posiziona il partner come selettivo, non bisognoso. Niente fretta finta.
 """
 
 # ─────────────────────────────────────────────
