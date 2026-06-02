@@ -16825,6 +16825,10 @@ app.include_router(editorial_calendar_router)
 from routers.webinar_strategy import router as webinar_strategy_router
 app.include_router(webinar_strategy_router)
 
+# Quarterly Calendar Router (Ottimizza — calendario editoriale di regime 90gg, agente Andrea/Marco).
+from routers.quarterly_calendar import router as quarterly_calendar_router
+app.include_router(quarterly_calendar_router)
+
 # Masterclass Script Router (Step05 — script masterclass on-demand 30min, agente Andrea).
 from routers.masterclass_script import router as masterclass_script_router
 app.include_router(masterclass_script_router)
