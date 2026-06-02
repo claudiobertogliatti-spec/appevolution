@@ -16817,6 +16817,18 @@ app.include_router(brand_kit_approval_router)
 from routers.curriculum_outline import router as curriculum_outline_router
 app.include_router(curriculum_outline_router)
 
+# Editorial Calendar Router (Step11 — calendario editoriale 30gg lancio, agente Andrea).
+from routers.editorial_calendar import router as editorial_calendar_router
+app.include_router(editorial_calendar_router)
+
+# Webinar Strategy Router (Step12 — script webinar live + prezzo promo, agente Andrea).
+from routers.webinar_strategy import router as webinar_strategy_router
+app.include_router(webinar_strategy_router)
+
+# Masterclass Script Router (Step05 — script masterclass on-demand 30min, agente Andrea).
+from routers.masterclass_script import router as masterclass_script_router
+app.include_router(masterclass_script_router)
+
 # Start scheduler for automated jobs
 from scheduler import start_scheduler, stop_scheduler
 
