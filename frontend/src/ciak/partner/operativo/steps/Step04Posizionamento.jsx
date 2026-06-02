@@ -119,6 +119,43 @@ const SECTIONS = [
       },
     ],
   },
+  {
+    header: "Contro chi giochi",
+    items: [
+      {
+        key: "concorrenti_principali",
+        label: "Chi sono i tuoi 2-3 concorrenti principali?",
+        hint: "Nomi veri, oppure il tipo (\"le agenzie di funnel\", \"i coach generalisti\"). Servono per capire dove c'è spazio libero.",
+        example:
+          "Le agenzie che fanno funnel a pacchetto, e i coach di business generalisti che parlano a tutti.",
+        minChar: 30,
+      },
+      {
+        key: "mercato_affollato",
+        label: "Cosa promettono praticamente tutti, uguale, nel tuo settore?",
+        hint: "La frase che ripetono in tanti. È il territorio affollato da NON occupare: lì non ti distingui.",
+        example:
+          "Tutti promettono \"più clienti con i funnel\" e \"strategie su misura\". È diventato rumore di fondo.",
+        minChar: 40,
+      },
+      {
+        key: "spazio_specialista",
+        label: "Qual è la cosa che fai TU e loro no? (il tuo spazio da specialista)",
+        hint: "Una cosa precisa che ti rende lo specialista di qualcosa. Non \"più qualità\": una specializzazione netta.",
+        example:
+          "Io lavoro solo coi consulenti finanziari e parto dal posizionamento prima del funnel: è il contrario di quello che fanno le agenzie.",
+        minChar: 40,
+        gate: true,
+      },
+    ],
+  },
+];
+
+// Parole-spia di un differenziatore debole: fanno scattare il nudge gentile sulla
+// domanda "spazio da specialista" (metodo De Veglia). Non bloccano l'avanzamento.
+const WEAK_DIFFERENTIATORS = [
+  "qualit", "servizio", "professional", "prezz", "passione",
+  "serio", "esperien", "affidabil", "attenzione al cliente", "migliore",
 ];
 
 // Lista piatta con metadati di sezione per la navigazione una-domanda-per-schermata
@@ -175,6 +212,8 @@ export default function Step04Posizionamento({ step, partnerId, onComplete, onSa
   const value = answers[q.key] || "";
   const len = value.trim().length;
   const curOk = len >= q.minChar;
+  const showNudge =
+    q.gate && len > 0 && WEAK_DIFFERENTIATORS.some((w) => value.toLowerCase().includes(w));
   const isLast = cur === TOTAL - 1;
   const canComplete = FLAT.every((it) => (answers[it.key] || "").trim().length >= it.minChar);
 
@@ -321,6 +360,17 @@ export default function Step04Posizionamento({ step, partnerId, onComplete, onSa
         <div className={`mt-3 text-[15px] font-semibold flex items-center gap-2 min-h-[24px] ${validClass}`}>
           {validText}
         </div>
+
+        {showNudge && (
+          <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-[13.5px] leading-relaxed text-amber-800">
+            <b className="text-amber-900">Occhio:</b> "qualità", "servizio", "professionalità" e
+            "prezzo" non sono un posizionamento — li dicono <b>tutti</b>. Funziona se sei lo{" "}
+            <b>specialista</b> di qualcosa di preciso.
+            <br />
+            Test veloce: <b>esiste un concorrente che dice l'opposto?</b> Se no, è una frase vuota.
+            E c'è qualcosa che <b>tu NON fai</b> di proposito? Ammettere un limite ti rende credibile.
+          </div>
+        )}
       </div>
 
       {error && (
