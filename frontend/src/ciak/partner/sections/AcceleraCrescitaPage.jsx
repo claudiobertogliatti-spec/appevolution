@@ -268,6 +268,7 @@ const TONE = {
     labelBg: "bg-slate-100",
     cardBorder: "border-slate-200",
     btn: "bg-slate-700 hover:bg-slate-800",
+    thumb: "bg-gradient-to-br from-slate-100 to-slate-50 text-slate-500",
   },
   yellow: {
     iconBg: "bg-yellow-100",
@@ -279,6 +280,7 @@ const TONE = {
     labelBg: "bg-yellow-100",
     cardBorder: "border-yellow-200",
     btn: "bg-yellow-500 hover:bg-yellow-600",
+    thumb: "bg-gradient-to-br from-yellow-100 to-yellow-50 text-yellow-600",
   },
   emerald: {
     iconBg: "bg-emerald-100",
@@ -290,6 +292,7 @@ const TONE = {
     labelBg: "bg-emerald-100",
     cardBorder: "border-emerald-200",
     btn: "bg-emerald-500 hover:bg-emerald-600",
+    thumb: "bg-gradient-to-br from-emerald-100 to-emerald-50 text-emerald-600",
   },
   blue: {
     iconBg: "bg-blue-100",
@@ -301,6 +304,7 @@ const TONE = {
     labelBg: "bg-blue-100",
     cardBorder: "border-blue-200",
     btn: "bg-blue-500 hover:bg-blue-600",
+    thumb: "bg-gradient-to-br from-blue-100 to-blue-50 text-blue-600",
   },
   rose: {
     iconBg: "bg-rose-100",
@@ -312,6 +316,7 @@ const TONE = {
     labelBg: "bg-rose-100",
     cardBorder: "border-rose-200",
     btn: "bg-rose-500 hover:bg-rose-600",
+    thumb: "bg-gradient-to-br from-rose-100 to-rose-50 text-rose-600",
   },
   indigo: {
     iconBg: "bg-indigo-100",
@@ -323,6 +328,7 @@ const TONE = {
     labelBg: "bg-indigo-100",
     cardBorder: "border-indigo-200",
     btn: "bg-indigo-500 hover:bg-indigo-600",
+    thumb: "bg-gradient-to-br from-indigo-100 to-indigo-50 text-indigo-600",
   },
 };
 
@@ -597,7 +603,7 @@ export function AcceleraCrescitaPage({ partnerId, categoryId }) {
 
   return (
     <div className="min-h-full bg-gray-50">
-      <div className="max-w-xl mx-auto p-6">
+      <div className="max-w-5xl mx-auto p-6">
         <button
           onClick={() => navigate("/partner")}
           className="text-sm text-slate-400 hover:text-slate-700 mb-4"
@@ -606,17 +612,16 @@ export function AcceleraCrescitaPage({ partnerId, categoryId }) {
         </button>
 
         {/* Hero */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-semibold mb-2 text-slate-900">Accelera la crescita</h1>
-          <p className="text-base leading-relaxed text-slate-600">
+        <div className="bg-slate-900 text-white rounded-2xl p-6 mb-7">
+          <h1 className="text-2xl font-bold tracking-tight">Accelera la crescita</h1>
+          <p className="text-[13.5px] text-slate-300 mt-1 leading-relaxed">
             Strumenti pensati per farti ottenere risultati più velocemente.
-            <br />
-            Ogni strumento è collegato al tuo obiettivo: vendere il tuo corso.
+            Ognuno è collegato al tuo obiettivo: <b className="text-yellow-400 font-semibold">vendere il tuo corso</b>.
           </p>
         </div>
 
-        {/* Category cards */}
-        <div className="space-y-3">
+        {/* Category cards — griglia a finestre */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {Object.values(CATEGORIES).map((cat) => {
             const CatIcon = cat.icon;
             const tone = TONE[cat.tone];
@@ -626,30 +631,24 @@ export function AcceleraCrescitaPage({ partnerId, categoryId }) {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat)}
-                className={`w-full bg-white rounded-2xl p-5 text-left transition hover:shadow-md hover:scale-[1.01] border-2 ${tone.cardBorder}`}
+                className="bg-white rounded-2xl overflow-hidden flex flex-col text-left shadow-sm border border-gray-200 transition hover:shadow-lg hover:-translate-y-0.5"
               >
-                <div className="flex items-center gap-4">
-                  <div
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${tone.iconBg}`}
-                  >
-                    <CatIcon className={`w-6 h-6 ${tone.iconText}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-base font-semibold mb-0.5 text-slate-900">{cat.title}</h3>
-                    <p className="text-sm text-slate-600">{cat.tagline}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span
-                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${tone.labelBg} ${tone.label}`}
-                      >
-                        {availableCount === totalCount
-                          ? `${totalCount} strument${totalCount > 1 ? "i" : "o"}`
-                          : `${availableCount} disponibil${
-                              availableCount > 1 ? "i" : "e"
-                            } · ${totalCount - availableCount} in arrivo`}
-                      </span>
-                    </div>
-                  </div>
-                  <ArrowRight className={`w-5 h-5 flex-shrink-0 ${tone.iconText}`} />
+                <div className="flex items-center justify-between px-3.5 pt-3">
+                  <span className={`text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full ${tone.labelBg} ${tone.label}`}>
+                    {availableCount === totalCount
+                      ? `${totalCount} strument${totalCount > 1 ? "i" : "o"}`
+                      : `${availableCount} disponibil${availableCount > 1 ? "i" : "e"} · ${totalCount - availableCount} in arrivo`}
+                  </span>
+                </div>
+                <div className={`h-20 mx-3.5 mt-3 rounded-xl flex items-center justify-center ${tone.thumb}`}>
+                  <CatIcon className="w-9 h-9" />
+                </div>
+                <div className="px-3.5 pt-3 pb-3.5 flex-1 flex flex-col">
+                  <h3 className="text-[15px] font-bold leading-tight text-slate-900">{cat.title}</h3>
+                  <p className="text-[12.5px] text-slate-500 leading-snug mt-1.5 flex-1">{cat.tagline}</p>
+                  <span className={`mt-3 inline-flex items-center gap-1 text-[13px] font-semibold ${tone.accentText}`}>
+                    Scopri <ArrowRight className="w-3.5 h-3.5" />
+                  </span>
                 </div>
               </button>
             );
