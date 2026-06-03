@@ -55,13 +55,30 @@ const NAV = [
   {
     id: "gestione-clienti",
     label: "Gestione Clienti",
-    pages: [
-      { to: "/admin/lista-fredda", label: "Lista Fredda" },
-      { to: "/admin/lead-manager", label: "Lead Manager" },
-      { to: "/admin/pipeline-prospect", label: "Pipeline Prospect" },
-      { to: "/admin/masterclass-analytics", label: "Masterclass Analytics" },
-      { to: "/admin/pipeline-blueprint", label: "Pipeline Blueprint" },
-      { to: "/admin/analisi-da-validare", label: "Analisi da validare" },
+    // 3 sotto-gruppi nel ciclo di vita cliente (LOCK 3/6). Acquisizione = zona
+    // Systeme (Ciak smista/misura); Qualifica = specchio read-only dei tag
+    // Systeme; Conversione = zona Ciak operativa (Stripe/contratto/AI). Il
+    // confine è il checkout €67.
+    groups: [
+      {
+        label: "Acquisizione",
+        pages: [
+          { to: "/admin/lead-manager", label: "Lead Manager" },
+          { to: "/admin/lista-fredda", label: "Lista Fredda" },
+          { to: "/admin/masterclass-analytics", label: "Masterclass Analytics" },
+        ],
+      },
+      {
+        label: "Qualifica",
+        pages: [{ to: "/admin/pipeline-prospect", label: "Pipeline Prospect" }],
+      },
+      {
+        label: "Conversione",
+        pages: [
+          { to: "/admin/pipeline-blueprint", label: "Pipeline Blueprint" },
+          { to: "/admin/analisi-da-validare", label: "Analisi da validare" },
+        ],
+      },
     ],
   },
   {
@@ -164,6 +181,24 @@ function LoginScreen({ onLogin }) {
 
 // ─── Sidebar a macro-voci con flyout al hover ────────────────────────────
 
+function FlyoutLink({ page }) {
+  return (
+    <NavLink
+      to={page.to}
+      end={page.end}
+      className={({ isActive }) =>
+        `block px-3 py-2 text-sm transition ${
+          isActive
+            ? "text-yellow-400 font-medium bg-slate-700/50"
+            : "text-slate-300 hover:bg-slate-700/50"
+        }`
+      }
+    >
+      {page.label}
+    </NavLink>
+  );
+}
+
 function MacroItem({ macro, currentPath }) {
   // Macro "diretta" (es. Dashboard): link semplice, nessun flyout.
   if (macro.to) {
@@ -184,14 +219,16 @@ function MacroItem({ macro, currentPath }) {
     );
   }
 
-  const isActive = macro.pages.some((p) =>
+  // Una macro può avere pagine flat (`pages`) oppure sotto-gruppi (`groups`).
+  const allPages = macro.groups ? macro.groups.flatMap((g) => g.pages) : macro.pages;
+  const isActive = allPages.some((p) =>
     p.end ? currentPath === p.to : currentPath.startsWith(p.to)
   );
   return (
     <div className="group relative">
       {/* Macro-voce: link alla prima pagina della macro */}
       <NavLink
-        to={macro.pages[0].to}
+        to={allPages[0].to}
         className={`block px-3 py-2.5 rounded-lg text-sm transition ${
           isActive
             ? "bg-slate-800 text-yellow-400 font-medium"
@@ -207,22 +244,21 @@ function MacroItem({ macro, currentPath }) {
           <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
             {macro.label}
           </p>
-          {macro.pages.map((p) => (
-            <NavLink
-              key={p.to}
-              to={p.to}
-              end={p.end}
-              className={({ isActive: a }) =>
-                `block px-3 py-2 text-sm transition ${
-                  a
-                    ? "text-yellow-400 font-medium bg-slate-700/50"
-                    : "text-slate-300 hover:bg-slate-700/50"
-                }`
-              }
-            >
-              {p.label}
-            </NavLink>
-          ))}
+          {macro.groups
+            ? macro.groups.map((g, gi) => (
+                <div
+                  key={g.label}
+                  className={gi > 0 ? "mt-1 pt-1 border-t border-slate-700/60" : ""}
+                >
+                  <p className="px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-slate-500/80">
+                    {g.label}
+                  </p>
+                  {g.pages.map((p) => (
+                    <FlyoutLink key={p.to} page={p} />
+                  ))}
+                </div>
+              ))
+            : macro.pages.map((p) => <FlyoutLink key={p.to} page={p} />)}
         </div>
       </div>
     </div>
@@ -263,8 +299,10 @@ function AdminShell({ user, onLogout, children }) {
 
 function SectionStub() {
   const { pathname } = useLocation();
-  const label =
-    NAV.flatMap((m) => m.pages || []).find((p) => pathname.startsWith(p.to))?.label || "Sezione";
+  const allPages = NAV.flatMap((m) =>
+    m.groups ? m.groups.flatMap((g) => g.pages) : m.pages || []
+  );
+  const label = allPages.find((p) => pathname.startsWith(p.to))?.label || "Sezione";
   return (
     <div className="p-10 max-w-xl">
       <h1 className="text-2xl font-semibold text-slate-900 mb-2">{label}</h1>
