@@ -870,6 +870,11 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
       if (res.ok) {
         setJourneySaved(prev => ({ ...prev, [section]: true }));
         setTimeout(() => setJourneySaved(prev => ({ ...prev, [section]: false })), 2500);
+        // Allinea i dati anagrafici a livello modale così l'header (nome/email)
+        // riflette subito il salvataggio, senza dover riaprire la scheda.
+        if (collection === "partners") {
+          setJourneyData(prev => prev ? { ...prev, partner: { ...prev.partner, ...data } } : prev);
+        }
       }
     } catch (e) {
       authErr(e);
@@ -1176,7 +1181,12 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
 
   if (!isOpen || !partner) return null;
 
-  const partnerName = partner.name || partner.nome || `${partner.nome || ""} ${partner.cognome || ""}`.trim() || "Partner";
+  // L'header dev'essere allineato ai dati freschi del journey (full-data da
+  // db.partners), non allo snapshot della lista che non si aggiorna dopo una
+  // modifica: senza questo, l'email salvata in Dati Journey e quella mostrata
+  // nell'intestazione divergono pur essendo lo stesso campo.
+  const headerPartner = journeyData?.partner ? { ...partner, ...journeyData.partner } : partner;
+  const partnerName = headerPartner.name || headerPartner.nome || `${headerPartner.nome || ""} ${headerPartner.cognome || ""}`.trim() || "Partner";
 
   const tabs = [
     { id: "profilo", label: "Profilo", icon: User },
@@ -1209,7 +1219,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
               <div>
                 <h2 className="text-xl font-black text-white">{partnerName}</h2>
                 <div className="flex items-center gap-3 mt-1">
-                  <span className="text-sm text-gray-400">{partner.email}</span>
+                  <span className="text-sm text-gray-400">{headerPartner.email}</span>
                   <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: "#FFD24D", color: "#0F172A" }}>
                     {attoEvo(formData.phase) || "—"}
                   </span>
