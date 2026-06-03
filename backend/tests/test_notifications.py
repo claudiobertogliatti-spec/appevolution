@@ -3,7 +3,6 @@ Test Notifications System - Evolution PRO
 Tests for partner notification endpoints:
 - POST /api/partner-journey/notifiche/invia (step_pronto, azione_richiesta, sistema_attivo)
 - GET /api/partner-journey/notifiche/{partner_id} (notification history)
-- POST /api/partner-journey/step-status/update (automatic trigger on status=pronto)
 - Anti-spam 24h deduplication
 """
 
@@ -160,73 +159,6 @@ class TestNotificationEndpoints:
             print(f"Verified {len(notifications)} notifications are sorted correctly")
 
 
-class TestStepStatusTrigger:
-    """Test automatic notification trigger when step status changes to 'pronto'"""
-    
-    def test_step_status_update_triggers_notification(self):
-        """Test POST /api/partner-journey/step-status/update with status=pronto triggers notification"""
-        # Use email step which is less likely to have been tested
-        step_id = "email"
-        
-        response = requests.post(
-            f"{BASE_URL}/api/partner-journey/step-status/update",
-            json={
-                "partner_id": TEST_PARTNER_ID,
-                "step_id": step_id,
-                "status": "pronto",
-                "notes": "Test: step pronto for notification trigger"
-            }
-        )
-        
-        print(f"step_status_update response: {response.status_code} - {response.text[:200]}")
-        
-        assert response.status_code == 200
-        
-        data = response.json()
-        assert data.get("success") == True
-        assert data.get("step_id") == step_id
-        assert data.get("status") == "pronto"
-        
-        # Verify notification was logged
-        time.sleep(1)  # Wait for async notification to complete
-        
-        history_response = requests.get(
-            f"{BASE_URL}/api/partner-journey/notifiche/{TEST_PARTNER_ID}"
-        )
-        
-        assert history_response.status_code == 200
-        notifications = history_response.json().get("notifications", [])
-        
-        # Check if a step_pronto notification for this step exists
-        found = any(
-            n.get("event_type") == "step_pronto" and n.get("step_id") == step_id
-            for n in notifications
-        )
-        print(f"Found step_pronto notification for {step_id}: {found}")
-    
-    def test_step_status_update_in_lavorazione_triggers_notification(self):
-        """Test POST /api/partner-journey/step-status/update with status=in_lavorazione triggers notification"""
-        step_id = "webinar"
-        
-        response = requests.post(
-            f"{BASE_URL}/api/partner-journey/step-status/update",
-            json={
-                "partner_id": TEST_PARTNER_ID,
-                "step_id": step_id,
-                "status": "in_lavorazione",
-                "notes": "Test: step in_lavorazione for notification trigger"
-            }
-        )
-        
-        print(f"step_status_update in_lavorazione response: {response.status_code} - {response.text[:200]}")
-        
-        assert response.status_code == 200
-        
-        data = response.json()
-        assert data.get("success") == True
-        assert data.get("status") == "in_lavorazione"
-
-
 class TestAntiSpam:
     """Test anti-spam 24h deduplication"""
     
@@ -348,39 +280,6 @@ class TestPartnerValidation:
         # Should return 200 with empty list (no notifications for non-existent partner)
         # or 404 if partner validation is strict
         assert response.status_code in [200, 404]
-
-
-class TestAllStepOptions:
-    """Test all step options work correctly"""
-    
-    @pytest.mark.parametrize("step_id", [
-        "posizionamento",
-        "funnel-light",
-        "masterclass",
-        "videocorso",
-        "funnel",
-        "lancio",
-        "webinar",
-        "email"
-    ])
-    def test_step_status_update_valid_steps(self, step_id):
-        """Test that all valid step IDs are accepted"""
-        response = requests.post(
-            f"{BASE_URL}/api/partner-journey/step-status/update",
-            json={
-                "partner_id": TEST_PARTNER_ID,
-                "step_id": step_id,
-                "status": "in_revisione",
-                "notes": f"Test: {step_id} in_revisione"
-            }
-        )
-        
-        print(f"Step {step_id} update response: {response.status_code}")
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert data.get("success") == True
-        assert data.get("step_id") == step_id
 
 
 if __name__ == "__main__":

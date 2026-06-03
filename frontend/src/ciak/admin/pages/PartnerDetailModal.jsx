@@ -296,13 +296,13 @@ function JourneyEditor({ data, saving, saved, onSave, onAuthExpired }) {
     setSettingPronto(true);
     setVideoMsg(null);
     try {
-      const res = await adminFetch(`/api/partner-journey/step-status/update`, {
+      const res = await adminFetch(`/api/partner-journey/operativo/admin/set-status/${partnerId}/07-registra-masterclass`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ partner_id: partnerId, step_id: "masterclass", status: "pronto" })
+        body: JSON.stringify({ status: "done" })
       });
       if (res.ok) {
-        setVideoMsg({ ok: true, text: "Step masterclass segnato come 'pronto' — il partner può procedere!" });
+        setVideoMsg({ ok: true, text: "Step masterclass segnato come completato — il partner può procedere!" });
       } else {
         const err = await res.json().catch(() => ({}));
         setVideoMsg({ ok: false, text: `Errore: ${err.detail || res.status}` });
@@ -383,13 +383,12 @@ function JourneyEditor({ data, saving, saved, onSave, onAuthExpired }) {
           <JField label="Nicchia" value={partner.nicchia || partner.niche} onChange={v => updatePartner("nicchia", v)} />
           <JField label="Subdomain Systeme" value={partner.systeme_subdomain} onChange={v => updatePartner("systeme_subdomain", v)} placeholder="es. mariorossi" />
           <JField label="YouTube Playlist ID" value={partner.youtube_playlist_id} onChange={v => updatePartner("youtube_playlist_id", v)} />
-          <JField label="Fase tecnica (F1–F7)" value={partner.phase || partner.fase} onChange={v => updatePartner("phase", v)} placeholder="F1, F2, ... — il viaggio si gestisce in Percorso EVO" />
         </div>
+        <p className="text-[11px] text-[#9CA3AF] mt-2">Il percorso del partner si gestisce nella sezione <span className="font-semibold text-[#818CF8]">Percorso EVO</span> in fondo a questa scheda.</p>
         <SaveBtn onClick={() => onSave("partner", "partners", {
           name: partner.name, email: partner.email, nicchia: partner.nicchia,
           systeme_subdomain: partner.systeme_subdomain,
-          youtube_playlist_id: partner.youtube_playlist_id,
-          phase: partner.phase
+          youtube_playlist_id: partner.youtube_playlist_id
         })} saving={saving.partner} saved={saved.partner} />
       </JourneySection>
 
@@ -891,7 +890,6 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
         body: JSON.stringify({
           nicchia: formData.nicchia,
           youtube_playlist_id: formData.youtube_playlist_id,
-          phase: formData.phase,
           bio: formData.bio,
           social_instagram: formData.social_instagram,
           social_linkedin: formData.social_linkedin,

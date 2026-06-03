@@ -13,22 +13,12 @@ import {
   getToken, getPartnerUser, clearSession, login, apiGet, isAdminUser,
 } from "./api";
 import { PartnerSidebar } from "./PartnerSidebar";
-import { PartnerDashboard } from "./PartnerDashboard";
-import { F1Posizionamento } from "./phases/F1Posizionamento";
-import { F2FunnelLight } from "./phases/F2FunnelLight";
-import { F3Masterclass } from "./phases/F3Masterclass";
-import { F4Videocorso } from "./phases/F4Videocorso";
-import { F5Funnel } from "./phases/F5Funnel";
-import { F6Lancio } from "./phases/F6Lancio";
-import { F7Ottimizzazione } from "./phases/F7Ottimizzazione";
-import { WebinarPage } from "./sections/WebinarPage";
 import { MioSpazioPage } from "./sections/MioSpazioPage";
 import { WorkspacePage } from "./sections/WorkspacePage";
 import { PercorsoVelocePage } from "./sections/PercorsoVelocePage";
 import { GrowthSystemPage } from "./sections/GrowthSystemPage";
 import { AcceleraCrescitaPage } from "./sections/AcceleraCrescitaPage";
 import { StefaniaChat } from "./sections/StefaniaChat";
-import { STEPS, getStepFromPhase } from "./stepConfig";
 import PartnerOperativo from "./operativo/PartnerOperativo";
 
 const VIEW_PARTNER_KEY = "ciak_partner_view_id";
@@ -166,43 +156,6 @@ function PartnerPicker({ onSelect, onLogout }) {
   );
 }
 
-// ─── Stub fase non ancora portata ────────────────────────────────────────
-
-function PhaseStub() {
-  const { stepId } = useParams();
-  const step = STEPS.find((s) => s.id === stepId);
-  const navigate = useNavigate();
-  return (
-    <div className="max-w-2xl mx-auto px-5 py-10">
-      <button
-        onClick={() => navigate("/partner")}
-        className="text-sm text-slate-400 hover:text-slate-700 mb-4"
-      >
-        ← Dashboard
-      </button>
-      <h1 className="text-2xl font-semibold text-slate-900 mb-2">
-        {step ? `${step.num}. ${step.title}` : "Fase"}
-      </h1>
-      <p className="text-slate-600 leading-relaxed">
-        {step?.desc} {step?.whatToDoDetail}
-      </p>
-    </div>
-  );
-}
-
-// Router per-fase: instrada allo step reale, altrimenti allo stub.
-function PhasePage({ partnerId }) {
-  const { stepId } = useParams();
-  if (stepId === "posizionamento") return <F1Posizionamento partnerId={partnerId} />;
-  if (stepId === "funnel-light") return <F2FunnelLight partnerId={partnerId} />;
-  if (stepId === "masterclass") return <F3Masterclass partnerId={partnerId} />;
-  if (stepId === "videocorso") return <F4Videocorso partnerId={partnerId} />;
-  if (stepId === "funnel") return <F5Funnel partnerId={partnerId} />;
-  if (stepId === "lancio") return <F6Lancio partnerId={partnerId} />;
-  if (stepId === "ottimizzazione") return <F7Ottimizzazione partnerId={partnerId} />;
-  return <PhaseStub />;
-}
-
 // Pagina Supporto Team → StefaniaChat (riceve `partner`, non `partnerId`)
 function SupportPage({ partnerId }) {
   return (
@@ -319,13 +272,11 @@ export default function CiakPartnerApp() {
     if (!getToken()) return;
     if (admin) {
       if (!viewPartner?.id) return;
-      // Vista admin: deriva lo stato dalla `phase` del partner — già nota dal
-      // selettore (/api/admin/ciak/partners restituisce phase). Niente API call.
+      // Vista admin: serve solo a risolvere partnerId/nome. Lo stato reale del
+      // percorso lo carica PartnerOperativo dal sistema canonico (/operativo/state).
       setStatus({
         partner_name: viewPartner.name,
         partner_id: viewPartner.id,
-        current_step: getStepFromPhase(viewPartner.phase),
-        next_action: null,
       });
     } else {
       apiGet("/api/partner/me/status")
@@ -378,36 +329,17 @@ export default function CiakPartnerApp() {
           }
         />
 
-        {/* Vecchia dashboard F1-F7 — "Strumenti avanzati", non più home default. */}
-        <Route
-          path="avanzata"
-          element={
-            status ? (
-              <PartnerDashboard
-                status={status}
-                onNavigate={(id) => navigate(`/partner/${id}`)}
-              />
-            ) : (
-              <div className="p-10 text-slate-400">Caricamento…</div>
-            )
-          }
-        />
-
         {/* Alias esplicito /partner/operativo (bookmark legacy → stessa home). */}
         <Route path="operativo" element={<PartnerOperativo partnerId={partnerId} partnerName={status?.partner_name} />} />
 
         {/* Sezioni principali della sidebar */}
         <Route path="workspace" element={<WorkspacePage partnerId={partnerId} />} />
         <Route path="workspace/:tab" element={<WorkspaceRoute partnerId={partnerId} />} />
-        <Route path="webinar" element={<WebinarPage partnerId={partnerId} />} />
         <Route path="mio-spazio" element={<MioSpazioPage partnerId={partnerId} />} />
         <Route path="supporto" element={<SupportPage partnerId={partnerId} />} />
         <Route path="percorso-veloce" element={<PercorsoVelocePage partnerId={partnerId} />} />
         <Route path="growth-system" element={<GrowthSystemPage partnerId={partnerId} />} />
         <Route path="accelera/:categoryId" element={<AcceleraRoute partnerId={partnerId} />} />
-
-        {/* Le 7 fasi del journey */}
-        <Route path=":stepId" element={<PhasePage partnerId={partnerId} />} />
 
         <Route path="*" element={<Navigate to="/partner" replace />} />
       </Routes>

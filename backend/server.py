@@ -16653,11 +16653,6 @@ from routers.flusso_analisi import router as flusso_analisi_router, set_db as se
 set_flusso_analisi_db(db)
 app.include_router(flusso_analisi_router)
 
-# Include partner progress router (Admin micro-step tracking)
-from routers.partner_progress import router as partner_progress_router, set_db as set_partner_progress_db
-set_partner_progress_db(db)
-app.include_router(partner_progress_router)
-
 from routers.materials import router as materials_router
 app.include_router(materials_router)
 
