@@ -15,16 +15,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { apiGet, adminFetch, getToken, getAdminUser } from "../api";
 import { PartnerDetailModal } from "./PartnerDetailModal";
-
-// Macro-fase EVO (Esamina / Valida / Ottimizza) derivata dalla fase legacy del
-// partner. Canonico (vedi backend JOURNEY_STEPS_DEFINITION): F1-F2 = Esamina,
-// F3-F7 = Valida, oltre (F8/F9/LIVE o journey completato) = Ottimizza.
-function macroFaseLabel(phase) {
-  if (!phase) return null;
-  if (phase === "F1" || phase === "F2") return "Esamina";
-  if (["F3", "F4", "F5", "F6", "F7"].includes(phase)) return "Valida";
-  return "Ottimizza";
-}
+import { attoEvo } from "../evo";
 
 const STATO_BADGE = {
   attivo: "bg-emerald-100 text-emerald-700",
@@ -183,7 +174,7 @@ export function PipelinePartner({ onAuthExpired }) {
                     </td>
                     <td className="px-5 py-3">
                       <span className="text-xs font-medium px-2 py-0.5 rounded bg-gray-100 text-slate-600">
-                        {macroFaseLabel(p.phase) || "—"}
+                        {attoEvo(p.phase) || "—"}
                       </span>
                       {p.phase && (
                         <div className="text-[10px] text-slate-400 mt-0.5">

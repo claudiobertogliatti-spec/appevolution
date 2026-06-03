@@ -11,6 +11,7 @@
  */
 import { useEffect, useState, useCallback } from "react";
 import { apiGet, adminFetch } from "../api";
+import { attoEvo } from "../evo";
 
 export function ExPartner({ onAuthExpired }) {
   const [partners, setPartners] = useState(null);
@@ -76,7 +77,10 @@ export function ExPartner({ onAuthExpired }) {
                     <div className="font-medium text-slate-900">{p.name || "—"}</div>
                     <div className="text-slate-500 text-xs">{p.email}</div>
                   </td>
-                  <td className="px-5 py-3 text-slate-600 text-xs">{p.phase || "—"}</td>
+                  <td className="px-5 py-3 text-slate-600 text-xs">
+                    {attoEvo(p.phase) || "—"}
+                    {p.phase && <span className="text-slate-400 ml-1.5">({p.phase})</span>}
+                  </td>
                   <td className="px-5 py-3 text-right">
                     <button
                       onClick={() => riattiva(p.id)}

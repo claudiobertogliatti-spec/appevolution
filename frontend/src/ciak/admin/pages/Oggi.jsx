@@ -27,11 +27,9 @@ function pct(num, den) {
 
 // Mappa le destinazioni di navigazione del vecchio onNavigate a route Ciak
 const NAV_ROUTES = {
-  approvals: "/admin/approvazioni",
   "clienti-analisi": "/admin/clienti-analisi",
   "partner-bloccati": "/admin/partner",
-  agenti: "/admin/agenti",
-  alert: "/admin/alert",
+  agenti: "/admin/automazione",
 };
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -535,11 +533,7 @@ export function Oggi({ onAuthExpired }) {
 
         {/* ── 7. ALERT (compatto) ── */}
         {alerts.length > 0 && (
-          <Block
-            title="Alert"
-            action={`Vedi tutti (${alerts.length})`}
-            onAction={() => go("alert")}
-          >
+          <Block title="Alert">
             <div className="space-y-1">
               {alerts.slice(0, 3).map((a, i) => (
                 <div
