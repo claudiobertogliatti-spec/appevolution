@@ -24,7 +24,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://app.evolution-pro.it/api/$1"
+      "destination": "https://evolution-pro-backend-dc2gzjsmdq-ew.a.run.app/api/$1"
     },
     {
       "source": "/((?!api/|static/|ciak/|images/|agents/|favicon|apple-touch-icon|site\\.webmanifest|og-|robots|sitemap|llms|index\\.).*)?",
