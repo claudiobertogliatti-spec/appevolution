@@ -262,6 +262,35 @@ async def ciak_delete_partner(partner_id: str, admin=Depends(require_ciak_admin)
     }
 
 
+@router.delete("/lead")
+async def ciak_delete_lead(
+    email: str = Query(..., description="Email del lead da eliminare"),
+    admin=Depends(require_ciak_admin),
+):
+    """
+    Elimina un lead Ciak a cascata: record `ciak_leads` + tutte le
+    `diagnostic_sessions` (8 Domande) + tutti i `ciak_checkpoint_events`
+    per quell'email. Operazione irreversibile — il frontend chiede conferma
+    esplicita. Stesse collezioni della vista dettaglio (GET /lead).
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    email = email.strip().lower()
+    leads_r = await db.ciak_leads.delete_many({"email": email})
+    diag_r = await db.diagnostic_sessions.delete_many({"user_email": email})
+    chk_r = await db.ciak_checkpoint_events.delete_many({"email": email})
+    total = leads_r.deleted_count + diag_r.deleted_count + chk_r.deleted_count
+    if total == 0:
+        raise HTTPException(404, "Lead non trovato")
+    return {
+        "ok": True,
+        "email": email,
+        "ciak_leads_deleted": leads_r.deleted_count,
+        "diagnostic_sessions_deleted": diag_r.deleted_count,
+        "ciak_checkpoint_events_deleted": chk_r.deleted_count,
+    }
+
+
 # ─── Stats ─────────────────────────────────────────────────────────────────
 
 @router.get("/stats")
