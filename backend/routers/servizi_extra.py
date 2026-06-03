@@ -697,41 +697,50 @@ async def get_admin_stats():
     if db is None:
         raise HTTPException(status_code=500, detail="Database non inizializzato")
     
-    # Conta servizi attivi
-    attivi_pro = await db.partner_servizi.count_documents({"servizio_id": "calendario-pro", "stato": "attivo"})
-    attivi_starter = await db.partner_servizi.count_documents({"servizio_id": "calendario-starter", "stato": "attivo"})
-    
-    # Calcola revenue
-    revenue_pro = attivi_pro * 297
-    revenue_starter_docs = await db.partner_servizi.count_documents({"servizio_id": "calendario-starter"})
-    revenue_starter = revenue_starter_docs * 97
-    
+    # Conta attivi/totali e revenue per OGNI servizio del catalogo.
+    per_servizio = {}
+    revenue_ricorrente = 0
+    revenue_totale = 0
+    for s in SERVIZI_CATALOGO:
+        sid = s["id"]
+        attivi = await db.partner_servizi.count_documents({"servizio_id": sid, "stato": "attivo"})
+        totali = await db.partner_servizi.count_documents({"servizio_id": sid})
+        if s["tipo"] == "abbonamento_mensile":
+            rev = attivi * s["prezzo"]          # ricorrente: solo abbonamenti attivi
+            revenue_ricorrente += rev
+        else:
+            rev = totali * s["prezzo"]          # una tantum: tutti gli acquisti
+        revenue_totale += rev
+        per_servizio[sid] = {"attivi": attivi, "totali": totali, "revenue": rev, "tipo": s["tipo"]}
+
+    totale_attivi = sum(v["attivi"] for v in per_servizio.values())
+
     # Ultimi acquisti
     ultimi = await db.partner_servizi.find(
         {},
         {"_id": 0}
     ).sort("created_at", -1).limit(10).to_list(10)
-    
+
     # Aggiungi nome partner
     for u in ultimi:
         partner = await db.partners.find_one({"id": u.get("partner_id")})
         u["partner_nome"] = partner.get("name") if partner else "N/A"
-    
+
     return {
+        # Chiavi legacy mantenute per i KPI in alto (retrocompatibilità).
         "servizi_attivi": {
-            "calendario_pro": attivi_pro,
-            "pacchetto_starter": attivi_starter,
-            "totale": attivi_pro + attivi_starter
+            "calendario_pro": per_servizio.get("calendario-pro", {}).get("attivi", 0),
+            "pacchetto_starter": per_servizio.get("calendario-starter", {}).get("attivi", 0),
+            "totale": totale_attivi
         },
         "revenue_mensile": {
-            "calendario_pro": revenue_pro,
-            "totale_ricorrente": revenue_pro
+            "totale_ricorrente": revenue_ricorrente
         },
         "revenue_totale": {
-            "calendario_pro": revenue_pro,
-            "pacchetto_starter": revenue_starter,
-            "totale": revenue_pro + revenue_starter
+            "totale": revenue_totale
         },
+        # Conteggi per ogni servizio del catalogo (usati dalle card catalogo).
+        "per_servizio": per_servizio,
         "ultimi_acquisti": ultimi
     }
 

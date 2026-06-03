@@ -1,161 +1,298 @@
 /**
- * Ciak Admin — Calendario Editoriale (importata fedelmente da Evolution PRO).
+ * Ciak Admin — Calendario Editoriale (vista oversight per-partner).
  *
- * Piano contenuti pre-lancio a 30 giorni, suddiviso in 4 settimane espandibili
- * (Awareness, Autorità, Lead Gen, Conversione). Dati statici da data/constants.
+ * Allineata al modello di REGIME: il calendario trimestrale (90 giorni = 3 cicli
+ * mensili, 15gg vendita corso + 15gg riempimento webinar) della fase Ottimizza.
+ * Sostituisce il vecchio piano statico pre-lancio a 30 giorni (CALENDARIO_30GG):
+ * non era più allineato alla strategia (21gg costruisci → Mese 1 organico → regime
+ * trimestrale) e non era collegato ai dati reali del partner.
  *
- * Sorgente Evolution: components/partner/CalendarioEditoriale.jsx
- * Nessuna chiamata API: usa solo i dati statici CALENDARIO_30GG.
+ * Legge la STESSA fonte di verità del partner (card Ottimizza "Calendario 90 giorni"):
+ *   GET  /api/partner-journey/calendario-trimestrale/{id}  -> { calendar, generated_at }
+ *   POST /api/partner-journey/calendario-trimestrale/{id}  -> genera/rigenera (400 se manca il Posizionamento)
+ * Le chiamate passano per adminFetch (token admin). Partner da GET /api/admin/ciak/partners.
  */
-import { useState } from "react";
-import { Calendar, Video, Instagram, FileText, ChevronRight, ChevronDown } from "lucide-react";
-import { CALENDARIO_30GG, S } from "../../../data/constants";
+import { useCallback, useEffect, useState } from "react";
+import {
+  CalendarDays, Loader2, Sparkles, Megaphone, Radio, ShoppingCart,
+  ArrowRight, Users, RefreshCw, ExternalLink,
+} from "lucide-react";
+import { adminFetch, getToken, getAdminUser } from "../api";
 
-export function CalendarioEditoriale({ partner }) {
-  const [expandedWeek, setExpandedWeek] = useState(0);
+const PJ = "/api/partner-journey";
 
-  const getTypeConfig = (type) => {
-    switch (type) {
-      case "video":
-        return { icon: "🎬", bg: "bg-red-500/10", border: "border-red-500/30", color: "text-red-400" };
-      case "instagram":
-        return { icon: "📸", bg: "bg-pink-500/10", border: "border-pink-500/30", color: "text-pink-400" };
-      case "tiktok":
-        return { icon: "🎵", bg: "bg-purple-500/10", border: "border-purple-500/30", color: "text-purple-400" };
-      case "blog":
-        return { icon: "📝", bg: "bg-blue-500/10", border: "border-blue-500/30", color: "text-blue-400" };
-      default:
-        return { icon: "📄", bg: "bg-[#FAFAF7]", border: "border-[#ECEDEF]", color: "text-[#5F6572]" };
+const FORMATO_ICON = { reel: Radio, carosello: Sparkles, post: Megaphone, webinar: Radio };
+
+function initials(name) {
+  return (name || "?").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+}
+
+/** Entra nell'area partner (vista-admin) sulla card Calendario trimestrale. */
+function goToPartner(partner) {
+  const token = getToken();
+  const user = getAdminUser();
+  if (token) localStorage.setItem("ciak_partner_token", token);
+  if (user) localStorage.setItem("ciak_partner_user", JSON.stringify(user));
+  localStorage.setItem(
+    "ciak_partner_view_id",
+    JSON.stringify({ id: partner.id, name: partner.name, email: partner.email, phase: partner.phase })
+  );
+  window.location.href = "/partner";
+}
+
+function Giorno({ g }) {
+  const isWebinar = (g.formato || "").toLowerCase().includes("webinar");
+  const isCarrello =
+    (g.tema || "").toLowerCase().includes("carrello") || (g.tema || "").toLowerCase().includes("chiusura");
+  const Icon = isWebinar ? Radio : isCarrello ? ShoppingCart : FORMATO_ICON[(g.formato || "").toLowerCase()] || Megaphone;
+  return (
+    <div className={`rounded-xl p-3 border ${isWebinar ? "border-yellow-300 bg-yellow-50" : "border-gray-100 bg-white"}`}>
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-[11px] font-bold text-slate-400 w-9 flex-shrink-0">G{g.giorno}</span>
+        <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${isWebinar ? "text-yellow-600" : "text-slate-400"}`} />
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{g.formato}</span>
+      </div>
+      <p className="text-[13px] font-medium text-slate-800 leading-snug">{g.tema}</p>
+      {g.come_farlo && <p className="text-[12px] text-slate-500 leading-snug mt-0.5">{g.come_farlo}</p>}
+      {g.cta && (
+        <p className="text-[11px] font-semibold text-yellow-700 mt-1.5 inline-flex items-center gap-1">
+          <ArrowRight className="w-3 h-3" /> {g.cta}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function Blocco({ b }) {
+  return (
+    <div className="mb-4">
+      <div className="flex items-baseline justify-between mb-2">
+        <p className="text-[13px] font-semibold text-slate-900">{b.fase}</p>
+        <p className="text-[11px] text-slate-400">{b.obiettivo}</p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {(b.giorni || []).map((g, i) => (
+          <Giorno key={i} g={g} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Mese({ m }) {
+  return (
+    <div className="bg-slate-50 rounded-2xl p-4 border border-gray-200">
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-3">Mese {m.mese}</p>
+      {(m.blocchi || []).map((b, i) => (
+        <Blocco key={i} b={b} />
+      ))}
+    </div>
+  );
+}
+
+function CalendarioPartner({ partner }) {
+  const [calendar, setCalendar] = useState(null);
+  const [generatedAt, setGeneratedAt] = useState(null);
+  const [loading, setLoading] = useState(true); // caricamento iniziale
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await adminFetch(`${PJ}/calendario-trimestrale/${partner.id}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setCalendar(data.calendar || null);
+      setGeneratedAt(data.generated_at || null);
+    } catch (e) {
+      setError("Errore nel caricamento del calendario.");
+    } finally {
+      setLoading(false);
+    }
+  }, [partner.id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const genera = async () => {
+    setGenerating(true);
+    setError(null);
+    try {
+      const res = await adminFetch(`${PJ}/calendario-trimestrale/${partner.id}`, { method: "POST" });
+      if (res.status === 400) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.detail || "Il partner deve prima completare il Posizionamento.");
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setCalendar(data.calendar || null);
+      setGeneratedAt(data.generated_at || null);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setGenerating(false);
     }
   };
 
+  if (loading) {
+    return (
+      <div className="bg-white rounded-2xl border border-gray-200 p-10 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+      </div>
+    );
+  }
+
   return (
-    <div className="animate-slide-in space-y-6" data-testid="calendario-editoriale">
-      {/* Hero */}
-      <div className="bg-gradient-to-br from-[#1a2332] to-[#2c3e55] rounded-xl p-6 relative overflow-hidden">
-        <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-[#FFD24D]/10" />
-        <div className="relative">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-xl bg-[#FFD24D] flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-black" />
-            </div>
-            <div>
-              <h2 className="text-xl font-extrabold text-white">Calendario Editoriale 30 Giorni</h2>
-              <p className="text-sm text-white/70">Piano contenuti pre-lancio strutturato</p>
-            </div>
-          </div>
-          <div className="flex gap-4 mt-4">
-            {[
-              { icon: "🎬", label: "YouTube", count: 4 },
-              { icon: "📸", label: "Instagram", count: 4 },
-              { icon: "🎵", label: "TikTok", count: 4 },
-              { icon: "📝", label: "Blog/Email", count: 4 },
-            ].map(p => (
-              <div key={p.label} className="bg-white/10 rounded-lg px-4 py-2 flex items-center gap-2">
-                <span className="text-lg">{p.icon}</span>
-                <span className="text-xs font-bold text-white/80">{p.label}</span>
-                <span className="font-mono text-sm font-bold text-[#FFD24D]">{p.count}</span>
-              </div>
-            ))}
-          </div>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900">
+            Calendario trimestrale — {partner.name}
+          </h2>
+          <p className="text-sm text-slate-500">
+            90 giorni di regime: ogni mese due settimane di vendita corso + due di riempimento webinar (live a fine mese).
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => goToPartner(partner)}
+            className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-slate-700 hover:bg-gray-200 transition"
+          >
+            Apri area partner <ExternalLink className="w-3.5 h-3.5" />
+          </button>
+          {calendar && (
+            <button
+              onClick={genera}
+              disabled={generating}
+              className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-900 text-yellow-400 hover:bg-slate-800 transition disabled:opacity-50"
+            >
+              {generating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              Rigenera
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="flex gap-3 flex-wrap">
-        {[
-          { type: "video", label: "YouTube" },
-          { type: "instagram", label: "Instagram" },
-          { type: "tiktok", label: "TikTok" },
-          { type: "blog", label: "Blog/Email" },
-        ].map(l => {
-          const config = getTypeConfig(l.type);
-          return (
-            <div key={l.type} className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${config.bg} border ${config.border}`}>
-              <span>{config.icon}</span>
-              <span className={`text-xs font-bold ${config.color}`}>{l.label}</span>
-            </div>
-          );
-        })}
+      {error && (
+        <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{error}</div>
+      )}
+
+      {generating && !calendar && (
+        <div className="bg-white rounded-2xl border border-gray-200 p-10 flex flex-col items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-yellow-500 mb-3" />
+          <p className="text-[13px] text-slate-500">Sto costruendo i 90 giorni sul corso del partner…</p>
+        </div>
+      )}
+
+      {!calendar && !generating && (
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 text-center">
+          <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center mx-auto mb-3">
+            <CalendarDays className="w-6 h-6 text-yellow-400" />
+          </div>
+          <p className="text-[15px] font-semibold text-slate-900 mb-1">Piano non ancora generato</p>
+          <p className="text-[13px] text-slate-500 leading-relaxed mb-4 max-w-md mx-auto">
+            Questo partner non ha ancora un calendario trimestrale. Si costruisce dal Posizionamento e
+            dall'outline del corso. Puoi generarlo tu, oppure lo farà lui dalla fase Ottimizza.
+          </p>
+          <button
+            onClick={genera}
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm bg-slate-900 text-yellow-400 hover:bg-slate-800 transition"
+          >
+            Genera il piano <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {calendar && (
+        <div className="space-y-4">
+          <p className="text-[11px] text-slate-400">
+            {calendar.source === "ai" ? "Generato sul corso del partner" : "Piano di base"} · 3 mesi
+            {generatedAt && ` · aggiornato il ${new Date(generatedAt).toLocaleDateString("it-IT")}`}
+          </p>
+          {(calendar.months || []).map((m, i) => (
+            <Mese key={i} m={m} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function CalendarioEditoriale({ onAuthExpired }) {
+  const [partners, setPartners] = useState(null);
+  const [selected, setSelected] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await adminFetch(`/api/admin/ciak/partners`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        setPartners(data.items || []);
+      } catch (e) {
+        if (e.message === "AUTH_EXPIRED") { onAuthExpired?.(); return; }
+        setError(e.message);
+      }
+    };
+    load();
+  }, [onAuthExpired]);
+
+  return (
+    <div className="p-8 space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-slate-900 flex items-center gap-2">
+          <CalendarDays className="w-6 h-6 text-yellow-500" /> Calendario Editoriale
+        </h1>
+        <p className="text-slate-500 mt-1">
+          Il calendario di regime (90 giorni) di ogni partner nella fase Ottimizza. Seleziona un partner
+          per vedere il suo piano e, se serve, generarlo o rigenerarlo.
+        </p>
       </div>
 
-      {/* Weeks */}
-      <div className="space-y-3">
-        {CALENDARIO_30GG.map((week, wi) => (
-          <div
-            key={wi}
-            className="bg-white border border-[#ECEDEF] rounded-xl overflow-hidden"
-          >
-            {/* Week Header */}
-            <div
-              onClick={() => setExpandedWeek(expandedWeek === wi ? -1 : wi)}
-              className="p-4 flex items-center gap-3 cursor-pointer hover:bg-[#FAFAF7] transition-colors"
-            >
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-mono text-sm font-bold
-                ${wi <= 1 ? 'bg-[#FFD24D] text-black' : 'bg-[#ECEDEF] text-[#5F6572]'}`}
-              >
-                W{week.week}
-              </div>
-              <div className="flex-1">
-                <div className="text-sm font-extrabold text-[#0F172A]">{week.title}</div>
-                <div className="text-xs text-[#9CA3AF] mt-0.5">{week.content.length} contenuti pianificati</div>
-              </div>
-              <div className="flex gap-2">
-                {week.content.map((c, ci) => {
-                  const config = getTypeConfig(c.type);
-                  return (
-                    <span key={ci} className={`w-6 h-6 rounded flex items-center justify-center text-xs ${config.bg}`}>
-                      {config.icon}
-                    </span>
-                  );
-                })}
-              </div>
-              {expandedWeek === wi ? (
-                <ChevronDown className="w-5 h-5 text-[#9CA3AF]" />
-              ) : (
-                <ChevronRight className="w-5 h-5 text-[#9CA3AF]" />
-              )}
-            </div>
+      {error && <div className="text-sm text-red-600">Errore: {error}</div>}
+      {!partners && !error && <div className="text-slate-400">Caricamento partner…</div>}
 
-            {/* Week Content */}
-            {expandedWeek === wi && (
-              <div className="border-t border-[#ECEDEF]">
-                {week.content.map((c, ci) => {
-                  const config = getTypeConfig(c.type);
-                  return (
-                    <div
-                      key={ci}
-                      className="flex items-center gap-4 px-4 py-3 border-b border-[#ECEDEF] last:border-0 hover:bg-[#FAFAF7] transition-colors"
-                    >
-                      <div className="w-12 text-xs font-bold text-[#9CA3AF] font-mono">{c.day}</div>
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${config.bg} border ${config.border}`}>
-                        {config.icon}
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-sm font-bold text-[#5F6572]">{c.title}</div>
-                        <div className={`text-xs font-semibold mt-0.5 ${config.color}`}>{c.platform}</div>
-                      </div>
-                      <button className="text-xs font-bold text-[#9CA3AF] hover:text-[#FFD24D] transition-colors">
-                        Modifica
-                      </button>
-                    </div>
-                  );
-                })}
+      {partners && (
+        <>
+          <div className="bg-white border border-gray-200 rounded-xl p-4">
+            <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+              <Users className="w-4 h-4" /> Seleziona partner
+            </label>
+            {partners.length === 0 ? (
+              <p className="text-sm text-slate-400">Nessun partner disponibile.</p>
+            ) : (
+              <div className="flex gap-2 flex-wrap">
+                {partners.map((p) => (
+                  <button
+                    key={p.id || p.email}
+                    onClick={() => setSelected(p)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
+                      selected?.id === p.id
+                        ? "bg-slate-900 text-yellow-400"
+                        : "bg-gray-50 border border-gray-200 text-slate-700 hover:border-slate-400"
+                    }`}
+                  >
+                    <span className="w-6 h-6 rounded-full bg-slate-900 text-yellow-400 flex items-center justify-center text-[10px] font-semibold flex-shrink-0">
+                      {initials(p.name)}
+                    </span>
+                    {p.name || p.email}
+                  </button>
+                ))}
               </div>
             )}
           </div>
-        ))}
-      </div>
 
-      {/* Tips */}
-      <div className="bg-[#FFFBEA]/10 border border-[#FFD24D]/30 rounded-xl p-4">
-        <div className="text-xs font-extrabold text-[#FFD24D] mb-2">💡 SUGGERIMENTO</div>
-        <div className="text-sm text-[#5F6572] leading-relaxed">
-          Questo calendario è una traccia. Personalizzalo in base alla tua nicchia e al tuo stile.
-          L'importante è mantenere la <span className="text-[#FFD24D] font-bold">costanza</span>:
-          meglio 3 contenuti/settimana fatti bene che 7 fatti di fretta.
-        </div>
-      </div>
+          {selected ? (
+            <CalendarioPartner key={selected.id} partner={selected} />
+          ) : (
+            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-10 text-center text-slate-400">
+              Seleziona un partner per vedere il suo calendario trimestrale.
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
