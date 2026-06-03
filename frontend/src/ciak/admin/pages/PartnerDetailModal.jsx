@@ -1384,7 +1384,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                   <p className="text-xs text-gray-500 mb-3">
                     Inserisci i dati reali che vedi su Systeme. Il partner li vedrà nella dashboard di ottimizzazione.
                     {formData.systeme_subdomain && (
-                      <span> · Pixel tracking: <code className="bg-white px-1 rounded text-xs">https://app.evolution-pro.it/api/p/{partner?.id}/v</code></span>
+                      <span> · Pixel tracking: <code className="bg-white px-1 rounded text-xs">https://ciak.io/api/p/{partner?.id}/v</code></span>
                     )}
                   </p>
                   <div className="grid grid-cols-2 gap-3">

@@ -380,7 +380,7 @@ async def get_onboarding(partner_id: str):
         onb = partner.get("onboarding", {})
         
         # URL base per costruire link completi
-        base = os.environ.get("REACT_APP_BACKEND_URL", "https://app.evolution-pro.it")
+        base = os.environ.get("REACT_APP_BACKEND_URL", "https://ciak.io")
         def full_url(u):
             return f"{base}/api{u}" if u else None
         

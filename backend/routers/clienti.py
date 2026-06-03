@@ -1017,7 +1017,7 @@ async def send_analisi_email(to_email: str, nome: str, cognome: str, docx_url: s
     import os
     
     # Get API URL from environment
-    api_url = os.environ.get("REACT_APP_BACKEND_URL", "https://app.evolution-pro.it")
+    api_url = os.environ.get("REACT_APP_BACKEND_URL", "https://ciak.io")
     full_docx_url = f"{api_url}/api{docx_url}" if docx_url else ""
     
     # Email content

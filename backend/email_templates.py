@@ -30,7 +30,7 @@ DEFAULT_TEMPLATES = {
             <h3 style="color: #0F172A; margin-top: 0;">📱 App Evolution PRO</h3>
             <p style="margin-bottom: 0;">È il tuo <strong>pannello di controllo</strong>. Qui trovi il tuo percorso, i materiali, il supporto del team e monitori i tuoi progressi.</p>
             <p style="margin-top: 10px; margin-bottom: 0;"><strong>Accedi con:</strong> {{email}} e la password che hai scelto</p>
-            <p style="margin-top: 10px;"><a href="https://app.evolution-pro.it" style="color: #F2C418; font-weight: bold;">→ Accedi all'App</a></p>
+            <p style="margin-top: 10px;"><a href="https://ciak.io" style="color: #F2C418; font-weight: bold;">→ Accedi all'App</a></p>
         </div>
         
         <div style="background: #FFF8E7; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #FF9800;">
