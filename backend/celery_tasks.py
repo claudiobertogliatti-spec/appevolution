@@ -941,7 +941,7 @@ def send_lead_sequence_email(self, lead_id: str, step: int, email: str, nome: st
                 niche = lead.get("niche_detected") or "business"
                 
                 # Prepare template variables
-                unsubscribe_link = f"https://app.evolution-pro.it/unsubscribe?lead={lead_id}"
+                unsubscribe_link = f"https://ciak.io/unsubscribe?lead={lead_id}"
                 
                 template_vars = {
                     "nome": nome,
