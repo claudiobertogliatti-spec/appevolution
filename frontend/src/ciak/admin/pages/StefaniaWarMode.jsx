@@ -12,20 +12,26 @@
  * organic-first, gli ads multi-canale arrivano dopo. Si reintroducono quando
  * esiste il backend reale dietro.
  *
- * Sorgenti: /api/stefania/war-mode/*. Chiamate via adminFetch (token admin Ciak).
+ * Skin allineata al resto dell'admin Ciak: slate-900 + yellow-400/500, neutri gray,
+ * font di sistema (no font-mono). Sorgenti: /api/stefania/war-mode/*. Chiamate via
+ * adminFetch (token admin Ciak).
  */
 import { useState, useEffect } from "react";
 import {
-  Zap, Target, AlertTriangle, DollarSign, Users, Copy, RefreshCw,
+  Target, AlertTriangle, DollarSign, Users, Copy, RefreshCw,
   Loader2, Link2, Sparkles, BarChart3, Facebook, Video,
 } from "lucide-react";
 import { adminFetch } from "../api";
 
 const HOOK_TYPES = [
-  { id: "pain", label: "Angolo del Dolore", icon: "😤", color: "text-red-500", desc: "Colpisci il punto dolente" },
-  { id: "secret", label: "Angolo del Segreto", icon: "🤫", color: "text-purple-500", desc: "Curiosity gap irresistibile" },
-  { id: "result", label: "Angolo del Risultato", icon: "📈", color: "text-green-600", desc: "Social proof con numeri" },
+  { id: "pain", label: "Angolo del Dolore", icon: "😤", color: "text-red-600", desc: "Colpisci il punto dolente" },
+  { id: "secret", label: "Angolo del Segreto", icon: "🤫", color: "text-purple-600", desc: "Curiosity gap irresistibile" },
+  { id: "result", label: "Angolo del Risultato", icon: "📈", color: "text-emerald-600", desc: "Social proof con numeri" },
 ];
+
+function initials(name) {
+  return (name || "?").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+}
 
 export function StefaniaWarMode({ partners: partnersProp, onAuthExpired }) {
   const [partners, setPartners] = useState(partnersProp || []);
@@ -162,68 +168,76 @@ export function StefaniaWarMode({ partners: partnersProp, onAuthExpired }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-yellow-500 animate-spin" />
       </div>
     );
   }
 
-  return (
-    <div className="space-y-6 animate-slide-in" data-testid="stefania-war-mode">
-      {/* Header */}
-      <div className="bg-gradient-to-br from-red-900/30 to-orange-900/30 border border-red-500/30 rounded-xl p-5">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
-            <Zap className="w-7 h-7 text-[#0F172A] animate-pulse" />
-          </div>
-          <div className="flex-1">
-            <h2 className="text-xl font-extrabold text-[#0F172A] flex items-center gap-2">
-              Campagne Ads Partner
-              <span className="text-xs bg-[#FFD24D] text-[#0F172A] px-2 py-0.5 rounded-full">ADS</span>
-            </h2>
-            <p className="text-sm text-[#5F6572]">
-              Meta Ads per i partner in fase Ottimizza — tier Growth e Scale di Evolution One
-            </p>
-          </div>
-          <button onClick={loadData} className="p-2 text-[#9CA3AF] hover:text-[#0F172A]">
-            <RefreshCw className="w-5 h-5" />
-          </button>
-        </div>
+  const KPI_CARDS = dashboard ? [
+    { icon: Target, chip: "bg-yellow-100 text-yellow-600", label: "Campagne", value: dashboard.overview.total_campaigns },
+    { icon: DollarSign, chip: "bg-slate-100 text-slate-600", label: "Spesa", value: `€${dashboard.overview.total_spend.toFixed(0)}` },
+    { icon: Users, chip: "bg-emerald-100 text-emerald-600", label: "Lead", value: dashboard.overview.total_leads },
+    { icon: BarChart3, chip: "bg-blue-100 text-blue-600", label: "CPL Medio", value: `€${dashboard.overview.avg_cpl.toFixed(2)}` },
+    { icon: Facebook, chip: "bg-blue-100 text-blue-600", label: "Meta CPL", value: `€${dashboard.platform_comparison?.meta?.cpl?.toFixed(2) || "0.00"}` },
+  ] : [];
 
-        {/* Tabs */}
-        <div className="flex gap-2 mt-4">
-          {[
-            { id: "overview", label: "Overview", icon: BarChart3 },
-            { id: "meta", label: "Meta Ads", icon: Facebook },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                activeTab === tab.id
-                  ? "bg-[#FFD24D] text-[#0F172A]"
-                  : "bg-[#FAFAF7] text-[#9CA3AF] hover:text-[#5F6572]"
-              }`}
-            >
-              <tab.icon className="w-4 h-4" /> {tab.label}
-            </button>
-          ))}
+  return (
+    <div className="p-8 space-y-6" data-testid="stefania-war-mode">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900 flex items-center gap-2">
+            <Target className="w-6 h-6 text-yellow-500" /> Campagne Ads
+          </h1>
+          <p className="text-slate-500 mt-1">
+            Meta Ads per i partner in fase Ottimizza — tier Growth e Scale di Evolution One.
+          </p>
         </div>
+        <button
+          onClick={loadData}
+          className="flex items-center gap-2 px-4 py-2 text-sm text-slate-600 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+        >
+          <RefreshCw className="w-4 h-4" /> Aggiorna
+        </button>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2">
+        {[
+          { id: "overview", label: "Overview", icon: BarChart3 },
+          { id: "meta", label: "Meta Ads", icon: Facebook },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition ${
+              activeTab === tab.id
+                ? "bg-slate-900 text-yellow-400"
+                : "bg-gray-50 border border-gray-200 text-slate-500 hover:border-slate-400"
+            }`}
+          >
+            <tab.icon className="w-4 h-4" /> {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Alerts Banner */}
       {alerts.length > 0 && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-red-400" />
-            <span className="font-bold text-red-400">{alerts.length} Alert Attivi</span>
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-amber-600" />
+            <span className="font-semibold text-amber-700">{alerts.length} alert attivi</span>
           </div>
           {alerts.slice(0, 2).map((alert) => (
-            <div key={alert.id} className="mt-3 flex items-center justify-between bg-white rounded-lg p-3">
-              <div>
-                <span className="text-sm font-bold text-[#0F172A]">{alert.message}</span>
-                <p className="text-xs text-[#5F6572] mt-1">{alert.suggested_action}</p>
+            <div key={alert.id} className="mt-3 flex items-center justify-between bg-white border border-amber-100 rounded-lg p-3">
+              <div className="min-w-0">
+                <span className="text-sm font-semibold text-slate-900">{alert.message}</span>
+                <p className="text-xs text-slate-500 mt-1">{alert.suggested_action}</p>
               </div>
-              <button onClick={() => resolveAlert(alert.id)} className="px-3 py-1 text-xs font-bold bg-[#ECEDEF] rounded hover:bg-white/20">
+              <button
+                onClick={() => resolveAlert(alert.id)}
+                className="px-3 py-1.5 text-xs font-semibold bg-gray-100 text-slate-700 rounded-lg hover:bg-gray-200 transition flex-shrink-0 ml-3"
+              >
                 Risolvi
               </button>
             </div>
@@ -232,94 +246,74 @@ export function StefaniaWarMode({ partners: partnersProp, onAuthExpired }) {
       )}
 
       {/* Partner Selector */}
-      <div className="bg-white border border-[#ECEDEF] rounded-xl p-4">
-        <label className="text-xs font-bold text-[#9CA3AF] uppercase mb-3 block">Seleziona Partner</label>
-        <div className="flex gap-2 flex-wrap">
-          {partners.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setSelectedPartner(p)}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
-                selectedPartner?.id === p.id
-                  ? "bg-gradient-to-r from-red-500 to-orange-500 text-[#0F172A]"
-                  : "bg-[#FAFAF7] border border-[#ECEDEF] text-[#5F6572] hover:border-red-500/30"
-              }`}
-            >
-              <div className="w-6 h-6 rounded-full bg-[#FFD24D] flex items-center justify-center text-[10px] font-bold text-black">
-                {p.name?.split(" ").map((n) => n[0]).join("")}
-              </div>
-              {p.name}
-            </button>
-          ))}
-        </div>
+      <div className="bg-white border border-gray-200 rounded-xl p-4">
+        <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+          <Users className="w-4 h-4" /> Seleziona partner
+        </label>
+        {partners.length === 0 ? (
+          <p className="text-sm text-slate-400">Nessun partner disponibile.</p>
+        ) : (
+          <div className="flex gap-2 flex-wrap">
+            {partners.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setSelectedPartner(p)}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
+                  selectedPartner?.id === p.id
+                    ? "bg-slate-900 text-yellow-400"
+                    : "bg-gray-50 border border-gray-200 text-slate-700 hover:border-slate-400"
+                }`}
+              >
+                <span className="w-6 h-6 rounded-full bg-slate-900 text-yellow-400 flex items-center justify-center text-[10px] font-semibold flex-shrink-0">
+                  {initials(p.name)}
+                </span>
+                {p.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Overview Tab */}
       {activeTab === "overview" && dashboard && (
         <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="bg-white border border-[#ECEDEF] rounded-xl p-4 border-t-4 border-t-red-500">
-              <div className="flex items-center gap-2 mb-2">
-                <Target className="w-4 h-4 text-red-400" />
-                <span className="text-[10px] font-bold text-[#9CA3AF] uppercase">Campagne</span>
+            {KPI_CARDS.map((kpi) => (
+              <div key={kpi.label} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${kpi.chip}`}>
+                    <kpi.icon className="w-4 h-4" />
+                  </div>
+                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">{kpi.label}</span>
+                </div>
+                <div className="text-2xl font-bold text-slate-900">{kpi.value}</div>
               </div>
-              <div className="font-mono text-2xl font-bold text-[#0F172A]">{dashboard.overview.total_campaigns}</div>
-            </div>
-            <div className="bg-white border border-[#ECEDEF] rounded-xl p-4 border-t-4 border-t-orange-500">
-              <div className="flex items-center gap-2 mb-2">
-                <DollarSign className="w-4 h-4 text-orange-400" />
-                <span className="text-[10px] font-bold text-[#9CA3AF] uppercase">Spesa</span>
-              </div>
-              <div className="font-mono text-2xl font-bold text-[#0F172A]">€{dashboard.overview.total_spend.toFixed(0)}</div>
-            </div>
-            <div className="bg-white border border-[#ECEDEF] rounded-xl p-4 border-t-4 border-t-green-500">
-              <div className="flex items-center gap-2 mb-2">
-                <Users className="w-4 h-4 text-green-400" />
-                <span className="text-[10px] font-bold text-[#9CA3AF] uppercase">Lead</span>
-              </div>
-              <div className="font-mono text-2xl font-bold text-[#0F172A]">{dashboard.overview.total_leads}</div>
-            </div>
-            <div className="bg-white border border-[#ECEDEF] rounded-xl p-4 border-t-4 border-t-blue-500">
-              <div className="flex items-center gap-2 mb-2">
-                <BarChart3 className="w-4 h-4 text-blue-400" />
-                <span className="text-[10px] font-bold text-[#9CA3AF] uppercase">CPL Medio</span>
-              </div>
-              <div className="font-mono text-2xl font-bold text-[#0F172A]">€{dashboard.overview.avg_cpl.toFixed(2)}</div>
-            </div>
-            <div className="bg-white border border-[#ECEDEF] rounded-xl p-4 border-t-4 border-t-blue-400">
-              <div className="flex items-center gap-2 mb-2">
-                <Facebook className="w-4 h-4 text-blue-400" />
-                <span className="text-[10px] font-bold text-[#9CA3AF] uppercase">Meta CPL</span>
-              </div>
-              <div className="font-mono text-2xl font-bold text-blue-400">
-                €{dashboard.platform_comparison?.meta?.cpl?.toFixed(2) || "0.00"}
-              </div>
-            </div>
+            ))}
           </div>
 
           {/* Meta Card */}
-          <div className="bg-gradient-to-br from-blue-900/20 to-blue-800/10 border border-blue-500/30 rounded-xl p-5">
+          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center">
-                <Facebook className="w-5 h-5 text-[#0F172A]" />
+              <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                <Facebook className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <h3 className="font-extrabold text-[#0F172A]">Meta Ads</h3>
-                <p className="text-xs text-[#9CA3AF]">Visceral · Emotional · Broad Targeting</p>
+                <h3 className="font-bold text-slate-900">Meta Ads</h3>
+                <p className="text-xs text-slate-400">Visceral · Emotional · Broad Targeting</p>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <div className="text-[10px] text-[#9CA3AF]">Spend</div>
-                <div className="font-mono font-bold text-[#0F172A]">€{dashboard.by_platform?.meta?.spend?.toFixed(0) || 0}</div>
+                <div className="text-[10px] text-slate-400 uppercase tracking-wide">Spend</div>
+                <div className="font-bold text-slate-900">€{dashboard.by_platform?.meta?.spend?.toFixed(0) || 0}</div>
               </div>
               <div>
-                <div className="text-[10px] text-[#9CA3AF]">Leads</div>
-                <div className="font-mono font-bold text-[#0F172A]">{dashboard.by_platform?.meta?.leads || 0}</div>
+                <div className="text-[10px] text-slate-400 uppercase tracking-wide">Leads</div>
+                <div className="font-bold text-slate-900">{dashboard.by_platform?.meta?.leads || 0}</div>
               </div>
               <div>
-                <div className="text-[10px] text-[#9CA3AF]">ROAS</div>
-                <div className="font-mono font-bold text-green-400">{dashboard.platform_comparison?.meta?.roas?.toFixed(2) || "0.00"}x</div>
+                <div className="text-[10px] text-slate-400 uppercase tracking-wide">ROAS</div>
+                <div className="font-bold text-emerald-600">{dashboard.platform_comparison?.meta?.roas?.toFixed(2) || "0.00"}x</div>
               </div>
             </div>
           </div>
@@ -329,21 +323,21 @@ export function StefaniaWarMode({ partners: partnersProp, onAuthExpired }) {
       {/* Meta Tab - Hook Gallery */}
       {activeTab === "meta" && (
         <div className="space-y-6">
-          <div className="bg-gradient-to-br from-blue-900/20 to-blue-800/10 border border-blue-500/30 rounded-xl p-5">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+            <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center">
-                  <Facebook className="w-6 h-6 text-[#0F172A]" />
+                <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+                  <Facebook className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-extrabold text-[#0F172A]">Meta Ads — Hook Gallery</h3>
-                  <p className="text-sm text-[#5F6572]">3 varianti per i primi 5 secondi del video</p>
+                  <h3 className="text-lg font-bold text-slate-900">Meta Ads — Hook Gallery</h3>
+                  <p className="text-sm text-slate-500">3 varianti per i primi 5 secondi del video</p>
                 </div>
               </div>
               <button
                 onClick={generateHookGallery}
                 disabled={!selectedPartner || generatingHooks}
-                className="flex items-center gap-2 bg-blue-500 text-[#0F172A] rounded-xl px-5 py-2 font-bold text-sm hover:bg-blue-600 disabled:opacity-50"
+                className="flex items-center gap-2 bg-slate-900 text-yellow-400 rounded-lg px-5 py-2 font-semibold text-sm hover:bg-slate-800 transition disabled:opacity-50"
               >
                 {generatingHooks ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                 Genera Hook Gallery
@@ -351,26 +345,26 @@ export function StefaniaWarMode({ partners: partnersProp, onAuthExpired }) {
             </div>
 
             {!selectedPartner && (
-              <div className="text-center py-8 text-[#9CA3AF]">Seleziona un partner per generare gli hook</div>
+              <div className="text-center py-8 text-slate-400">Seleziona un partner per generare gli hook.</div>
             )}
 
             {hookGallery && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                 {HOOK_TYPES.map((hookType) => (
-                  <div key={hookType.id} className="bg-white border border-[#ECEDEF] rounded-xl p-4">
+                  <div key={hookType.id} className="bg-gray-50 border border-gray-200 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-3">
                       <span className="text-2xl">{hookType.icon}</span>
                       <div>
-                        <span className={`font-bold text-sm ${hookType.color}`}>{hookType.label}</span>
-                        <p className="text-[10px] text-[#9CA3AF]">{hookType.desc}</p>
+                        <span className={`font-semibold text-sm ${hookType.color}`}>{hookType.label}</span>
+                        <p className="text-[10px] text-slate-400">{hookType.desc}</p>
                       </div>
                     </div>
-                    <div className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg p-3 min-h-[100px]">
-                      <p className="text-sm text-[#5F6572] leading-relaxed">{hookGallery[hookType.id] || "Non generato"}</p>
+                    <div className="bg-white border border-gray-200 rounded-lg p-3 min-h-[100px]">
+                      <p className="text-sm text-slate-600 leading-relaxed">{hookGallery[hookType.id] || "Non generato"}</p>
                     </div>
                     <button
                       onClick={() => copyToClipboard(hookGallery[hookType.id] || "")}
-                      className="mt-2 w-full flex items-center justify-center gap-2 text-xs text-[#9CA3AF] hover:text-[#0F172A] py-2"
+                      className="mt-2 w-full flex items-center justify-center gap-2 text-xs text-slate-400 hover:text-slate-900 py-2 transition"
                     >
                       <Copy className="w-3 h-3" /> Copia
                     </button>
@@ -380,25 +374,26 @@ export function StefaniaWarMode({ partners: partnersProp, onAuthExpired }) {
             )}
 
             {hookGallery?.targeting_note && (
-              <div className="mt-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
-                <span className="text-xs font-bold text-yellow-600">📍 Targeting Note: </span>
-                <span className="text-xs text-[#5F6572]">{hookGallery.targeting_note}</span>
+              <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <span className="text-xs font-semibold text-yellow-700">📍 Targeting Note: </span>
+                <span className="text-xs text-slate-600">{hookGallery.targeting_note}</span>
               </div>
             )}
           </div>
 
-          {/* Video Request for ANDREA */}
+          {/* Richiesta video ad Andrea */}
           {hookGallery && (
-            <div className="bg-white border border-pink-500/30 rounded-xl p-4">
-              <div className="flex items-center gap-3">
-                <Video className="w-5 h-5 text-pink-400" />
-                <div className="flex-1">
-                  <span className="font-bold text-sm text-[#0F172A]">Richiedi Video ad ANDREA</span>
-                  <p className="text-xs text-[#9CA3AF]">Invia questi 3 hook ad Andrea per la produzione dei video-ads</p>
+            <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="w-9 h-9 rounded-full bg-slate-900 text-yellow-400 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                  A
                 </div>
-                <button className="px-4 py-2 bg-pink-500 text-[#0F172A] rounded-lg text-sm font-bold hover:bg-pink-600">
-                  Crea Task Video
-                </button>
+                <div className="flex-1 min-w-0">
+                  <span className="font-semibold text-sm text-slate-900 flex items-center gap-1.5">
+                    <Video className="w-4 h-4 text-slate-400" /> Passa i 3 hook ad Andrea
+                  </span>
+                  <p className="text-xs text-slate-400 mt-0.5">Copia gli hook qui sopra e inviali ad Andrea per la produzione dei video-ads.</p>
+                </div>
               </div>
             </div>
           )}
@@ -407,25 +402,25 @@ export function StefaniaWarMode({ partners: partnersProp, onAuthExpired }) {
 
       {/* UTM Generator (visibile con partner selezionato) */}
       {selectedPartner && (
-        <div className="bg-white border border-[#ECEDEF] rounded-xl p-5">
-          <h3 className="text-sm font-extrabold text-[#0F172A] uppercase tracking-wider mb-4 flex items-center gap-2">
-            <Link2 className="w-4 h-4 text-green-500" /> Tracking Automatizzato (UTM)
+        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+          <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <Link2 className="w-4 h-4 text-yellow-500" /> Tracking automatizzato (UTM)
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <input
               type="text"
-              placeholder="URL Destinazione (Systeme.io)"
+              placeholder="URL destinazione (Systeme.io)"
               value={destinationUrl}
               onChange={(e) => setDestinationUrl(e.target.value)}
-              className="md:col-span-2 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#0F172A] placeholder:text-[#9CA3AF]"
+              className="md:col-span-2 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
             />
             <input
               type="text"
-              placeholder="Nome Campagna"
+              placeholder="Nome campagna"
               value={campaignName}
               onChange={(e) => setCampaignName(e.target.value)}
-              className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-4 py-2 text-sm text-[#0F172A] placeholder:text-[#9CA3AF]"
+              className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
             />
           </div>
 
@@ -433,23 +428,26 @@ export function StefaniaWarMode({ partners: partnersProp, onAuthExpired }) {
             <button
               onClick={generateUtmLink}
               disabled={!destinationUrl || !campaignName}
-              className="flex items-center gap-2 bg-blue-500 text-[#0F172A] rounded-lg px-4 py-2 text-sm font-bold hover:bg-blue-600 disabled:opacity-50"
+              className="flex items-center gap-2 bg-slate-900 text-yellow-400 rounded-lg px-4 py-2 text-sm font-semibold hover:bg-slate-800 transition disabled:opacity-50"
             >
               <Facebook className="w-4 h-4" /> Genera UTM Meta
             </button>
           </div>
 
           {generatedUtm && (
-            <div className="mt-3 bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+            <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
               <div className="flex items-center gap-2">
                 <input
                   type="text"
                   value={generatedUtm.tracked_url}
                   readOnly
-                  className="flex-1 bg-[#FAFAF7] border border-[#ECEDEF] rounded-lg px-3 py-2 text-xs text-[#0F172A] font-mono"
+                  className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs text-slate-700"
                 />
-                <button onClick={() => copyToClipboard(generatedUtm.tracked_url)} className="p-2 bg-green-500 rounded-lg">
-                  <Copy className="w-4 h-4 text-[#0F172A]" />
+                <button
+                  onClick={() => copyToClipboard(generatedUtm.tracked_url)}
+                  className="p-2 bg-slate-900 rounded-lg hover:bg-slate-800 transition flex-shrink-0"
+                >
+                  <Copy className="w-4 h-4 text-yellow-400" />
                 </button>
               </div>
             </div>
