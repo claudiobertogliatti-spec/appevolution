@@ -37,12 +37,10 @@ import { CiakNotFound } from "./pages/NotFound";
 import { CookieBanner } from "./components/CookieBanner";
 import CiakAdminApp from "./admin/CiakAdminApp";
 import CiakPartnerApp from "./partner/CiakPartnerApp";
-// CiakClienteApp DISATTIVATO 2026-05-15 (Sprint 1 pulizia):
-// duplicava il flusso pubblico token-based di Ciak (/proposta/:token,
-// /diagnostica/:token, ecc) con login + porting Evolution. Su Ciak la
-// strategia LOCKATA (brand framework 12/5) è magic-link token-based.
-// I file in ciak/cliente/ restano nel repo per riferimento storico.
-// import CiakClienteApp from "./cliente/CiakClienteApp";
+// CiakClienteApp rimosso 2026-06-03 (consolidamento EVO/Ciak): duplicava il
+// flusso pubblico token-based di Ciak (/proposta/:token, /diagnostica/:token)
+// con login + porting Evolution. Su Ciak la strategia LOCKATA è magic-link
+// token-based; la cartella ciak/cliente/ è stata cancellata perché dead code.
 
 export default function CiakApp() {
   return (

@@ -144,17 +144,6 @@ PHASE_DESCRIPTIONS = {
     "F7": "Scaling e continuità — stai crescendo e consolidando. L'agente è ANTONELLA.",
 }
 
-STEP_LABELS = {
-    "posizionamento":  "Posizionamento (documento di nicchia e avatar)",
-    "funnel-light":    "Funnel Light (prima struttura del funnel)",
-    "masterclass":     "Masterclass (video di vendita)",
-    "videocorso":      "Videocorso (produzione lezioni)",
-    "funnel":          "Funnel completo (Systeme.io + Stripe)",
-    "lancio":          "Lancio (campagne e go-live)",
-    "email":           "Email marketing (sequenze di follow-up)",
-    "webinar":         "Webinar (evento live opzionale)",
-}
-
 # ─── Context Builder ──────────────────────────────────────────────────────────
 
 async def build_partner_context(partner_id: str, partner_name: str, phase: str, niche: str) -> str:
@@ -163,34 +152,6 @@ async def build_partner_context(partner_id: str, partner_name: str, phase: str, 
     lines.append(f"Fase attuale: {phase} — {PHASE_DESCRIPTIONS.get(phase, 'Fase non specificata')}")
     if niche:
         lines.append(f"Nicchia / settore: {niche}")
-
-    # Step statuses dal DB
-    try:
-        if db is not None:
-            doc = await db.step_statuses.find_one(
-                {"partner_id": str(partner_id)}, {"_id": 0, "steps": 1}
-            )
-            if doc and doc.get("steps"):
-                steps = doc["steps"]
-                completati = []
-                in_corso = []
-                da_fare = []
-                for step_id, step_data in steps.items():
-                    label = STEP_LABELS.get(step_id, step_id)
-                    status = step_data.get("status", "in_lavorazione") if isinstance(step_data, dict) else "in_lavorazione"
-                    if status == "approvato":
-                        completati.append(label)
-                    elif status in ("in_lavorazione", "in_revisione", "pronto"):
-                        in_corso.append(f"{label} [{status}]")
-                    else:
-                        da_fare.append(label)
-
-                if completati:
-                    lines.append(f"Step completati: {', '.join(completati)}")
-                if in_corso:
-                    lines.append(f"Step in corso: {', '.join(in_corso)}")
-    except Exception as e:
-        logger.warning(f"[stefania_chat] Impossibile caricare step_statuses: {e}")
 
     # === OPERATIVO STEFANIA — contesto journey live (sub-progetto A) ===
     # Vedi: docs/superpowers/specs/2026-05-17-operativo-stefania-design.md
@@ -209,6 +170,12 @@ async def build_partner_context(partner_id: str, partner_name: str, phase: str, 
                 lines.append("")
                 lines.append("=== OPERATIVO JOURNEY (sub-progetto A) ===")
                 lines.append(f"Total step: {total} · Completati: {completed}")
+                completati_labels = [
+                    label_by_id.get(s["step_id"], s["step_id"])
+                    for s in journey_steps if s["status"] == "done"
+                ]
+                if completati_labels:
+                    lines.append(f"Step completati: {', '.join(completati_labels)}")
                 if current_step:
                     cur_label = label_by_id.get(current_step["step_id"], current_step["step_id"])
                     lines.append(f"Step CORRENTE: {current_step['step_number']}/{total} — {cur_label}")

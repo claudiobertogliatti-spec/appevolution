@@ -162,23 +162,22 @@ async def build_live_context() -> str:
         except Exception:
             pass
 
-        # Step statuses bloccati
+        # Step in lavorazione (sistema canonico partner_journey_steps)
         try:
-            step_docs = await db.step_statuses.find(
-                {},
-                {"_id": 0, "partner_id": 1, "steps": 1}
-            ).to_list(100)
+            from models.partner_journey_step import JOURNEY_STEPS_DEFINITION
+            label_by_id = {d["step_id"]: d["label"] for d in JOURNEY_STEPS_DEFINITION}
+            journey_docs = await db.partner_journey_steps.find(
+                {"status": {"$in": ["in_progress", "blocked"]}},
+                {"_id": 0, "partner_id": 1, "step_id": 1, "status": 1}
+            ).to_list(200)
             blocchi = []
-            for doc in step_docs:
+            for doc in journey_docs:
                 pid = doc.get("partner_id", "")
-                # trova partner name
                 pname = next((p.get("name","?") for p in all_partners if str(p.get("id","")) == str(pid)), pid)
-                steps = doc.get("steps", {})
-                for step_id, step_data in steps.items():
-                    if isinstance(step_data, dict) and step_data.get("status") in ("in_lavorazione", "in_revisione"):
-                        blocchi.append(f"{pname}/{step_id}:{step_data['status']}")
+                label = label_by_id.get(doc.get("step_id",""), doc.get("step_id",""))
+                blocchi.append(f"{pname}/{label}:{doc.get('status')}")
             if blocchi:
-                lines.append(f"STEP IN LAVORAZIONE/REVISIONE: {', '.join(blocchi[:15])}")
+                lines.append(f"STEP IN LAVORAZIONE/BLOCCATI: {', '.join(blocchi[:15])}")
         except Exception:
             pass
 
