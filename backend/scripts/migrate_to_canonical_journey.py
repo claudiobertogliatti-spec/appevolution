@@ -124,7 +124,7 @@ async def main():
                 await db.partner_journey_steps.delete_many({"partner_id": partner_id})
             existing = 0
             reseeded += 1
-            print(f"  ~ reset {partner_id} ({p.get('name','?')}) — journey ricreato (phase={phase}, start={start})")
+            print(f"  ~ reset {partner_id} ({p.get('name','?')}) - journey ricreato (phase={phase}, start={start})")
 
         if existing < _TOTAL_STEPS:
             if apply:
@@ -143,16 +143,16 @@ async def main():
     # --- Rimozione dati legacy ---
     ss_count = await db.step_statuses.count_documents({})
     pd_count = await db.partners.count_documents({"progress_details": {"$exists": True}})
-    print(f"\nLegacy da rimuovere: step_statuses={ss_count} doc · partners.progress_details={pd_count}")
+    print(f"\nLegacy da rimuovere: step_statuses={ss_count} doc | partners.progress_details={pd_count}")
     if apply:
         if ss_count:
             await db.step_statuses.drop()
-            print("  drop collection step_statuses ✓")
+            print("  drop collection step_statuses OK")
         if pd_count:
             await db.partners.update_many({}, {"$unset": {"progress_details": ""}})
-            print("  unset partners.progress_details ✓")
+            print("  unset partners.progress_details OK")
 
-    print(f"\n[{mode}] Done. seedati={seeded} · reseedati={reseeded} · phase riproiettate={projected}")
+    print(f"\n[{mode}] Done. seedati={seeded} | reseedati={reseeded} | phase riproiettate={projected}")
     if not apply:
         print("Nessuna scrittura eseguita. Rilancia con --apply (e --reset-journey se vuoi sanare i journey esistenti).")
     client.close()
