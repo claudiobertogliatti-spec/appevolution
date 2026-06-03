@@ -17,7 +17,7 @@ const TEMPLATE_VARIABLES = [
   { key: "link_prenotazione", label: "Link Prenotazione", example: "https://calendly.com/..." },
   { key: "booking_link", label: "Booking Link", example: "https://calendly.com/..." },
   { key: "booking_available_date", label: "Data Disponibilità", example: "26 marzo 2026" },
-  { key: "bonus_link", label: "Link Bonus", example: "https://app.evolution-pro.it/bonus" },
+  { key: "bonus_link", label: "Link Bonus", example: "https://ciak.io/bonus" },
 ];
 
 // Simple Rich Text Editor component

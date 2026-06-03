@@ -126,7 +126,7 @@ export function SiteConfig({ onAuthExpired }) {
           <li>Crea Event Type: 60 min, titolo "Ciak Blueprint — Sessione strategica", disponibilità prossimi 14 giorni</li>
           <li>(Opzionale Stato 4) Crea secondo Event Type: 90 min, "Ciak Blueprint esteso"</li>
           <li>Copia gli URL booking sopra e clicca Salva</li>
-          <li>Settings → Webhooks → New webhook: URL <code className="bg-white px-1 rounded">https://app.evolution-pro.it/api/booking/webhook</code>, eventi BOOKING_CREATED / RESCHEDULED / CANCELLED / MEETING_ENDED</li>
+          <li>Settings → Webhooks → New webhook: URL <code className="bg-white px-1 rounded">https://evolution-pro-backend-dc2gzjsmdq-ew.a.run.app/api/booking/webhook</code>, eventi BOOKING_CREATED / RESCHEDULED / CANCELLED / MEETING_ENDED</li>
         </ol>
       </div>
     </div>

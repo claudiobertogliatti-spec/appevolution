@@ -15863,7 +15863,7 @@ async def notify_telegram_endpoint(request: TelegramNotifyRequest):
 async def track_partner_visit(partner_id: str, request: Request):
     """
     Pixel di tracking visite per le landing page dei partner su Systeme.
-    Embed come: <img src="https://app.evolution-pro.it/api/p/{partner_id}/v" style="display:none">
+    Embed come: <img src="https://ciak.io/api/p/{partner_id}/v" style="display:none">
     Restituisce un GIF 1x1 trasparente e registra la visita.
     """
     from fastapi.responses import Response
@@ -16356,7 +16356,7 @@ async def api_preview_email_template(template_id: str, request: Request):
     sample_values = {
         "nome": "Mario Rossi",
         "email": "mario.rossi@example.com",
-        "bonus_link": "https://app.evolution-pro.it/bonus",
+        "bonus_link": "https://ciak.io/bonus",
         "booking_link": "https://calendly.com/evolution-pro/strategia",
         "booking_available_date": "26 marzo 2026"
     }
