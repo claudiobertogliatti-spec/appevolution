@@ -30,6 +30,8 @@ const NAV_ROUTES = {
   "clienti-analisi": "/admin/clienti-analisi",
   "partner-bloccati": "/admin/partner",
   agenti: "/admin/automazione",
+  "video-review": "/admin/video-review",
+  "partner-setup-pending": "/admin/partner-setup-pending",
 };
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -151,6 +153,9 @@ export function Oggi({ onAuthExpired }) {
   const [loading, setLoading] = useState(true);
   const [showApprovPanel, setShowApprovPanel] = useState(false);
   const [materialiPending, setMaterialiPending] = useState(0);
+  // Code migrate dalla sidebar agli alert (compaiono solo se count > 0).
+  const [videoPending, setVideoPending] = useState(0);
+  const [setupPending, setSetupPending] = useState(0);
 
   const go = (key) => {
     const route = NAV_ROUTES[key];
@@ -315,6 +320,32 @@ export function Oggi({ onAuthExpired }) {
     })();
   }, []);
 
+  // Code Video Review + Password da impostare: ex-voci di sidebar, ora alert
+  // auto-nascondenti in Oggi. Count separati, non bloccanti.
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await adminFetch("/api/admin/video-review");
+        if (r.ok) {
+          const d = await r.json();
+          const n = (d.videos || []).filter((v) => v.status === "ready_for_review").length;
+          setVideoPending(n);
+        }
+      } catch {
+        /* silenzioso */
+      }
+      try {
+        const r = await adminFetch("/api/admin/ciak/partner-setup-pending");
+        if (r.ok) {
+          const d = await r.json();
+          setSetupPending(d.pending || 0);
+        }
+      } catch {
+        /* silenzioso */
+      }
+    })();
+  }, []);
+
   if (loading || !data) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -367,6 +398,24 @@ export function Oggi({ onAuthExpired }) {
               }
               onClick={() => setShowApprovPanel(true)}
             />
+            {videoPending > 0 && (
+              <ActionCard
+                count={videoPending}
+                label="Video da approvare"
+                sublabel="Masterclass e lezioni pronte per la revisione"
+                urgency="high"
+                onClick={() => go("video-review")}
+              />
+            )}
+            {setupPending > 0 && (
+              <ActionCard
+                count={setupPending}
+                label="Password da impostare"
+                sublabel="Partner che hanno pagato ma non sono ancora entrati"
+                urgency="high"
+                onClick={() => go("partner-setup-pending")}
+              />
+            )}
             <ActionCard
               count={callDaFissare}
               label="Call da fissare"

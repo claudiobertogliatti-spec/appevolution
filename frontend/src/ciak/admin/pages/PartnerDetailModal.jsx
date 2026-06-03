@@ -664,6 +664,12 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
     date: new Date().toISOString().split("T")[0]
   });
 
+  // Dilazione (piano rateale): concessione volontaria di rate a questo partner.
+  // È la funzione ex-pagina "Quarantena", ora contestualizzata sulla scheda.
+  const [piano, setPiano] = useState(null);          // null = nessun piano attivo
+  const [pianoDraft, setPianoDraft] = useState(null); // {} mentre si compila
+  const [savingPiano, setSavingPiano] = useState(false);
+
   // Documents state (onboarding verification)
   const [onboardingDocs, setOnboardingDocs] = useState(null);
   const [onboardingDocsLoading, setOnboardingDocsLoading] = useState(false);
@@ -712,6 +718,8 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
         kpi_manual: partner.kpi_manual || null,
       });
       setRevisionNotes(partner.revision_notes || "");
+      setPiano(partner.piano_pagamento || null);
+      setPianoDraft(null);
       fetchPayments();
       fetchDocuments();
       fetchVideoPipeline(partner.id);
@@ -1044,6 +1052,69 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
       alert("Errore nella comunicazione con il server");
     } finally {
       setMarkingPartnership(false);
+    }
+  };
+
+  // ── Dilazione rate (piano rateale concesso al partner) ──────────────────
+  const emptyPiano = {
+    tipo: "rate_concordate",
+    rate_totali: 4,
+    rate_pagate: 0,
+    importo_rata: "",
+    prossima_scadenza: "",
+    note: "",
+  };
+
+  const handleSavePiano = async () => {
+    const d = pianoDraft;
+    if (!d) return;
+    if (Number(d.rate_pagate) > Number(d.rate_totali)) {
+      alert("Le rate pagate non possono superare il totale");
+      return;
+    }
+    setSavingPiano(true);
+    try {
+      const res = await adminFetch(`/api/admin/ciak/partner/${partner.id}/piano-pagamento`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tipo: d.tipo,
+          rate_totali: Number(d.rate_totali),
+          rate_pagate: Number(d.rate_pagate),
+          importo_rata: d.importo_rata === "" ? null : Number(d.importo_rata),
+          prossima_scadenza: d.prossima_scadenza || null,
+          note: d.note || null,
+        }),
+      });
+      if (!res.ok) throw new Error("Errore salvataggio piano");
+      const data = await res.json();
+      setPiano(data.piano_pagamento || null);
+      setPianoDraft(null);
+      setSaveSuccess(true);
+    } catch (e) {
+      authErr(e);
+      alert(e.message || "Errore nel salvataggio della dilazione");
+    } finally {
+      setSavingPiano(false);
+    }
+  };
+
+  const handleRemovePiano = async () => {
+    if (!window.confirm("Rimuovere la dilazione di questo partner?")) return;
+    setSavingPiano(true);
+    try {
+      const res = await adminFetch(`/api/admin/ciak/partner/${partner.id}/piano-pagamento`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Errore rimozione piano");
+      setPiano(null);
+      setPianoDraft(null);
+      setSaveSuccess(true);
+    } catch (e) {
+      authErr(e);
+      alert(e.message || "Errore nella rimozione della dilazione");
+    } finally {
+      setSavingPiano(false);
     }
   };
 
@@ -1914,6 +1985,149 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                     </div>
                   </div>
                 )}
+
+                {/* Dilazione rate — concessione volontaria al partner */}
+                <div className="p-5 rounded-xl border" style={{ borderColor: "#ECEDEF", background: "#FCFBF7" }}>
+                  <div className="flex items-center justify-between mb-1">
+                    <h4 className="font-bold flex items-center gap-2" style={{ color: "#0F172A" }}>
+                      <Calendar className="w-5 h-5" />
+                      Dilazione rate
+                    </h4>
+                    {piano && !pianoDraft && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setPianoDraft({ ...emptyPiano, ...piano, importo_rata: piano.importo_rata ?? "", prossima_scadenza: piano.prossima_scadenza || "", note: piano.note || "" })}
+                          className="text-xs font-bold text-slate-600 hover:text-slate-900"
+                        >
+                          Modifica
+                        </button>
+                        <button
+                          onClick={handleRemovePiano}
+                          disabled={savingPiano}
+                          className="text-xs font-bold text-red-500 hover:text-red-700 disabled:opacity-50"
+                        >
+                          Rimuovi
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-sm mb-4" style={{ color: "#92400E" }}>
+                    Piano rateale concordato con questo partner (mensilità o rate fuori-Klarna). Non incide sui pagamenti registrati sopra.
+                  </p>
+
+                  {/* Vista riepilogo */}
+                  {piano && !pianoDraft && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">Tipo</div>
+                        <div className="text-sm font-bold text-slate-800">
+                          {piano.tipo === "mensile" ? "Mensilità" : "Rate concordate"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">Rate</div>
+                        <div className="text-sm font-bold text-slate-800">{piano.rate_pagate}/{piano.rate_totali}</div>
+                        <div className="w-full h-1.5 rounded-full bg-gray-200 mt-1">
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${Math.max(piano.rate_totali ? Math.round((piano.rate_pagate / piano.rate_totali) * 100) : 0, 4)}%`,
+                              background: piano.rate_pagate >= piano.rate_totali ? "#34C77B" : "#FFD24D",
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">Importo rata</div>
+                        <div className="text-sm font-bold text-slate-800">
+                          {piano.importo_rata != null ? `€ ${Number(piano.importo_rata).toLocaleString("it-IT")}` : "—"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">Prossima</div>
+                        <div className="text-sm font-bold text-slate-800">{piano.prossima_scadenza || "—"}</div>
+                      </div>
+                      {piano.note && (
+                        <div className="col-span-2 md:col-span-4">
+                          <div className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">Note</div>
+                          <div className="text-sm text-slate-600">{piano.note}</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Form crea/modifica */}
+                  {pianoDraft && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs text-slate-500">Tipo piano</label>
+                        <select
+                          value={pianoDraft.tipo}
+                          onChange={e => setPianoDraft({ ...pianoDraft, tipo: e.target.value })}
+                          className="w-full mt-1 px-3 py-2 rounded-lg border border-gray-300 text-sm outline-none focus:border-slate-900"
+                        >
+                          <option value="rate_concordate">Rate concordate (fuori-Klarna)</option>
+                          <option value="mensile">Mensilità (vecchio contratto)</option>
+                        </select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-slate-500">Rate totali</label>
+                          <input type="number" min="1" value={pianoDraft.rate_totali}
+                            onChange={e => setPianoDraft({ ...pianoDraft, rate_totali: e.target.value })}
+                            className="w-full mt-1 px-3 py-2 rounded-lg border border-gray-300 text-sm outline-none focus:border-slate-900" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-slate-500">Rate pagate</label>
+                          <input type="number" min="0" value={pianoDraft.rate_pagate}
+                            onChange={e => setPianoDraft({ ...pianoDraft, rate_pagate: e.target.value })}
+                            className="w-full mt-1 px-3 py-2 rounded-lg border border-gray-300 text-sm outline-none focus:border-slate-900" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-slate-500">Importo rata (€)</label>
+                          <input type="number" min="0" placeholder="opzionale" value={pianoDraft.importo_rata}
+                            onChange={e => setPianoDraft({ ...pianoDraft, importo_rata: e.target.value })}
+                            className="w-full mt-1 px-3 py-2 rounded-lg border border-gray-300 text-sm outline-none focus:border-slate-900" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-slate-500">Prossima scadenza</label>
+                          <input type="date" value={pianoDraft.prossima_scadenza}
+                            onChange={e => setPianoDraft({ ...pianoDraft, prossima_scadenza: e.target.value })}
+                            className="w-full mt-1 px-3 py-2 rounded-lg border border-gray-300 text-sm outline-none focus:border-slate-900" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-500">Note (accordi presi)</label>
+                        <textarea rows={2} value={pianoDraft.note}
+                          onChange={e => setPianoDraft({ ...pianoDraft, note: e.target.value })}
+                          className="w-full mt-1 px-3 py-2 rounded-lg border border-gray-300 text-sm outline-none focus:border-slate-900 resize-none" />
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={handleSavePiano} disabled={savingPiano}
+                          className="px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-50"
+                          style={{ backgroundColor: "#FFD24D", color: "#0F172A" }}>
+                          {savingPiano ? "Salvataggio…" : "Salva dilazione"}
+                        </button>
+                        <button onClick={() => setPianoDraft(null)}
+                          className="px-4 py-2 rounded-lg border border-gray-300 text-slate-600 text-sm hover:bg-gray-50">
+                          Annulla
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Nessun piano */}
+                  {!piano && !pianoDraft && (
+                    <button onClick={() => setPianoDraft(emptyPiano)}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm"
+                      style={{ backgroundColor: "#0F172A", color: "#FFD24D" }}>
+                      <Plus className="w-4 h-4" />
+                      Concedi dilazione
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>
