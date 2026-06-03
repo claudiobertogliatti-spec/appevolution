@@ -3,7 +3,7 @@ Lista Fredda Router - Gestione contatti cold outreach
 Evolution PRO - 2026
 """
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Query, BackgroundTasks
+from fastapi import APIRouter, HTTPException, UploadFile, File, Query, BackgroundTasks, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
@@ -16,6 +16,12 @@ import logging
 import re
 
 logger = logging.getLogger(__name__)
+
+# Auth admin (role admin/superadmin) — riusa la dependency del router Ciak admin.
+# Protegge tutti gli endpoint dati (CRUD/export) di questa lista: contiene PII di
+# ~12k contatti freddi. Il webhook Systeme resta volutamente pubblico (lo chiama
+# Systeme.io dall'esterno, senza token).
+from routers.ciak_admin import require_ciak_admin
 
 router = APIRouter(prefix="/api/lista-fredda", tags=["lista-fredda"])
 
@@ -59,7 +65,7 @@ class SystemeTrackingEvent(BaseModel):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/import")
-async def import_lista_fredda_csv(file: UploadFile = File(...), background_tasks: BackgroundTasks = None):
+async def import_lista_fredda_csv(file: UploadFile = File(...), background_tasks: BackgroundTasks = None, _admin=Depends(require_ciak_admin)):
     """
     Importa contatti da file CSV nella collection lista_fredda.
     Deduplicazione automatica su email.
@@ -170,7 +176,7 @@ async def import_lista_fredda_csv(file: UploadFile = File(...), background_tasks
 
 
 @router.get("/stats")
-async def get_lista_fredda_stats():
+async def get_lista_fredda_stats(_admin=Depends(require_ciak_admin)):
     """
     Statistiche lista fredda: totale, per stato, aperture, click, conversioni.
     """
@@ -220,7 +226,8 @@ async def get_lista_fredda_leads(
     tag: Optional[str] = Query(None, description="Filtra per tag"),
     has_phone: Optional[bool] = Query(None, description="Solo con telefono"),
     limit: int = Query(50, le=500),
-    skip: int = Query(0)
+    skip: int = Query(0),
+    _admin=Depends(require_ciak_admin),
 ):
     """
     Lista contatti lista fredda con filtri.
@@ -246,7 +253,7 @@ async def get_lista_fredda_leads(
 
 
 @router.get("/leads/caldi")
-async def get_leads_caldi(limit: int = Query(50, le=200)):
+async def get_leads_caldi(limit: int = Query(50, le=200), _admin=Depends(require_ciak_admin)):
     """
     Lista contatti caldi (stato = caldo) con info contatto.
     Ordinati per ultima azione.
@@ -264,7 +271,8 @@ async def get_leads_caldi(limit: int = Query(50, le=200)):
 
 @router.get("/export")
 async def export_lista_fredda_csv(
-    stato: Optional[str] = Query(None, description="Filtra per stato")
+    stato: Optional[str] = Query(None, description="Filtra per stato"),
+    _admin=Depends(require_ciak_admin),
 ):
     """
     Export CSV filtrato per stato.
@@ -313,7 +321,7 @@ async def export_lista_fredda_csv(
 
 
 @router.get("/export-custom-audience")
-async def export_custom_audience():
+async def export_custom_audience(_admin=Depends(require_ciak_admin)):
     """
     Export CSV per Meta Custom Audience: una colonna `email` con SHA-256 (hex)
     dell'email normalizzata (trim + lowercase). Esclude i disiscritti.
@@ -354,7 +362,7 @@ async def export_custom_audience():
 
 
 @router.post("/leads")
-async def add_single_lead(lead: ListaFreddaLead):
+async def add_single_lead(lead: ListaFreddaLead, _admin=Depends(require_ciak_admin)):
     """Aggiunge un singolo contatto alla lista fredda (form manuale)."""
     existing = await db.lista_fredda.find_one({"email": lead.email.lower().strip()})
     if existing:
@@ -371,7 +379,7 @@ async def add_single_lead(lead: ListaFreddaLead):
 
 
 @router.patch("/leads/{email}")
-async def update_lista_fredda_lead(email: str, body: dict):
+async def update_lista_fredda_lead(email: str, body: dict, _admin=Depends(require_ciak_admin)):
     """Admin modifica un contatto della lista fredda (ricerca per email)."""
     from urllib.parse import unquote
     email_decoded = unquote(email).lower().strip()
@@ -394,7 +402,7 @@ async def update_lista_fredda_lead(email: str, body: dict):
 
 
 @router.delete("/leads/{email}")
-async def delete_lista_fredda_lead(email: str):
+async def delete_lista_fredda_lead(email: str, _admin=Depends(require_ciak_admin)):
     """Elimina un contatto dalla lista fredda."""
     from urllib.parse import unquote
     email_decoded = unquote(email).lower().strip()
