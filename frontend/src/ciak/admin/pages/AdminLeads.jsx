@@ -3,7 +3,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiGet } from "../api";
+import { apiGet, adminFetch } from "../api";
 
 const STATO_LABEL = {
   1: "Definizione",
@@ -71,6 +71,27 @@ export function AdminLeads({ onAuthExpired }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  const deleteLead = async (lead, e) => {
+    e.stopPropagation();
+    if (
+      !window.confirm(
+        `Eliminare definitivamente il lead "${lead.email}"?\nVerranno rimossi opt-in, Checkpoint e 8 Domande collegati. Operazione irreversibile.`
+      )
+    )
+      return;
+    try {
+      const res = await adminFetch(
+        `/api/admin/ciak/lead?email=${encodeURIComponent(lead.email)}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) throw new Error("Errore eliminazione");
+      load();
+    } catch (err) {
+      if (err.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else window.alert("Errore nell'eliminazione del lead.");
+    }
+  };
 
   return (
     <div className="p-10">
@@ -163,7 +184,16 @@ export function AdminLeads({ onAuthExpired }) {
                         <span className="ml-2 text-yellow-600 font-medium">€67 ✓</span>
                       )}
                     </td>
-                    <td className="px-5 py-3 text-slate-300">›</td>
+                    <td className="px-5 py-3 text-right whitespace-nowrap">
+                      <button
+                        onClick={(e) => deleteLead(l, e)}
+                        title="Elimina lead"
+                        className="text-xs font-medium text-red-600 hover:text-red-700 hover:underline mr-3"
+                      >
+                        Elimina
+                      </button>
+                      <span className="text-slate-300">›</span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
