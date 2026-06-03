@@ -19,6 +19,7 @@ import {
   ChevronDown, ChevronUp, BookOpen, Video, Link2, Target, Sparkles, Wand2
 } from "lucide-react";
 import { adminFetch } from "../api";
+import { attoEvo } from "../evo";
 import { ContractParamsModal } from "./ContractParamsModal";
 import { PercorsoEvoPanel } from "../components/PercorsoEvoPanel";
 
@@ -168,6 +169,25 @@ function SaveBtn({ onClick, saving, saved, label = "Salva" }) {
       {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <CheckCircle className="w-4 h-4" /> : <Save className="w-4 h-4" />}
       {saving ? "Salvataggio..." : saved ? "Salvato!" : label}
     </button>
+  );
+}
+
+// Divisore d'atto del Metodo EVO: contestualizza le sezioni-dati sotto l'atto
+// (Esamina/Valida) a cui appartengono, così l'admin parla la stessa lingua del
+// partner e di Percorso EVO. Riprende icona + agente + tagline canonici
+// (vedi backend MACRO_PHASES_DEFINITION).
+function EvoActHeader({ icon, label, agent, tagline }) {
+  return (
+    <div className="flex items-center gap-2.5 pt-4 pb-1 px-1">
+      <span className="text-lg">{icon}</span>
+      <div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "#0F172A" }}>{label}</span>
+          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "#FFF7DB", color: "#92400E" }}>{agent}</span>
+        </div>
+        <p className="text-[11px]" style={{ color: "#9CA3AF" }}>{tagline}</p>
+      </div>
+    </div>
   );
 }
 
@@ -363,7 +383,7 @@ function JourneyEditor({ data, saving, saved, onSave, onAuthExpired }) {
           <JField label="Nicchia" value={partner.nicchia || partner.niche} onChange={v => updatePartner("nicchia", v)} />
           <JField label="Subdomain Systeme" value={partner.systeme_subdomain} onChange={v => updatePartner("systeme_subdomain", v)} placeholder="es. mariorossi" />
           <JField label="YouTube Playlist ID" value={partner.youtube_playlist_id} onChange={v => updatePartner("youtube_playlist_id", v)} />
-          <JField label="Fase attuale" value={partner.phase || partner.fase} onChange={v => updatePartner("phase", v)} placeholder="F1, F2, ..." />
+          <JField label="Fase tecnica (F1–F7)" value={partner.phase || partner.fase} onChange={v => updatePartner("phase", v)} placeholder="F1, F2, ... — il viaggio si gestisce in Percorso EVO" />
         </div>
         <SaveBtn onClick={() => onSave("partner", "partners", {
           name: partner.name, email: partner.email, nicchia: partner.nicchia,
@@ -372,6 +392,9 @@ function JourneyEditor({ data, saving, saved, onSave, onAuthExpired }) {
           phase: partner.phase
         })} saving={saving.partner} saved={saved.partner} />
       </JourneySection>
+
+      {/* ── ATTO 1: ESAMINA ── */}
+      <EvoActHeader icon="🎯" label="Esamina" agent="Valentina" tagline="Chiariamo chi sei e a chi parli" />
 
       {/* POSIZIONAMENTO */}
       <JourneySection title="Posizionamento" icon={Target} color="#8B5CF6">
@@ -390,6 +413,9 @@ function JourneyEditor({ data, saving, saved, onSave, onAuthExpired }) {
         <SaveBtn onClick={() => onSave("posizionamento", "partner_posizionamento", { inputs: pos.inputs, positioning_output: pos.positioning_output })}
           saving={saving.posizionamento} saved={saved.posizionamento} />
       </JourneySection>
+
+      {/* ── ATTO 2: VALIDA ── */}
+      <EvoActHeader icon="🚀" label="Valida" agent="Andrea" tagline="Andiamo online e testiamo il mercato" />
 
       {/* MASTERCLASS */}
       <JourneySection title="Masterclass" icon={Sparkles} color="#F59E0B">
@@ -542,8 +568,8 @@ function JourneyEditor({ data, saving, saved, onSave, onAuthExpired }) {
         })} saving={saving.masterclass} saved={saved.masterclass} />
       </JourneySection>
 
-      {/* VIDEOCORSO */}
-      <JourneySection title="Videocorso — URL Lezioni" icon={BookOpen} color="#22C55E">
+      {/* LEZIONI (ex "Videocorso") */}
+      <JourneySection title="Lezioni — outline e URL" icon={BookOpen} color="#22C55E">
         <JField label="Titolo corso" value={vc.course_data?.titolo_corso}
           onChange={v => updateVc("course_data.titolo_corso", v)} placeholder="Titolo del corso" />
         {lessons.length > 0 ? (
@@ -1058,8 +1084,11 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                 <div className="flex items-center gap-3 mt-1">
                   <span className="text-sm text-gray-400">{partner.email}</span>
                   <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: "#FFD24D", color: "#0F172A" }}>
-                    {formData.phase}
+                    {attoEvo(formData.phase) || "—"}
                   </span>
+                  {formData.phase && (
+                    <span className="text-xs text-gray-500 font-mono">{formData.phase}</span>
+                  )}
                 </div>
               </div>
             </div>

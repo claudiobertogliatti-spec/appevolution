@@ -84,16 +84,20 @@ const NAV = [
   {
     id: "gestione-partner",
     label: "Gestione Partner",
+    // Ordine = flusso di lavoro: overview del viaggio EVO → operatività
+    // quotidiana → liste/asset partner → stati di ciclo-vita (onboarding
+    // incompleto / pagamenti sospesi / churn) in coda. Lista piatta (niente
+    // sotto-gruppi), a differenza di Gestione Clienti.
     pages: [
       { to: "/admin/percorso-evo", label: "Percorso EVO" },
-      { to: "/admin/approvazioni", label: "Approvazioni" },
       { to: "/admin/oggi", label: "Operatività Oggi" },
+      { to: "/admin/approvazioni", label: "Approvazioni" },
       { to: "/admin/partner", label: "Pipeline Partner" },
       { to: "/admin/video-review", label: "Video Review" },
       { to: "/admin/documenti-partner", label: "Documenti Partner" },
+      { to: "/admin/partner-setup-pending", label: "Setup Password Pending" },
       { to: "/admin/quarantena-partner", label: "Quarantena Partner" },
       { to: "/admin/ex-partner", label: "Ex Partner" },
-      { to: "/admin/partner-setup-pending", label: "Setup Password Pending" },
     ],
   },
   {
