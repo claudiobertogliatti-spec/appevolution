@@ -493,15 +493,18 @@ export function ClientiAnalisi({ onAuthExpired }) {
     if (!deleteConfirm) return;
     setDeleting(true);
     try {
-      const res = await adminFetch(`/api/admin/clienti-analisi/${deleteConfirm.id}`, { method: "DELETE" });
+      const res = await adminFetch(`/api/clienti/admin/${deleteConfirm.id}`, { method: "DELETE" });
       if (res.ok) {
         setClienti(prev => prev.filter(c => c.id !== deleteConfirm.id));
         if (selectedCliente?.id === deleteConfirm.id) setSelectedCliente(null);
         setDeleteConfirm(null);
         loadStats();
+      } else {
+        window.alert("Errore nell'eliminazione del cliente.");
       }
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired();
+      else window.alert("Errore nell'eliminazione del cliente.");
     } finally {
       setDeleting(false);
     }
