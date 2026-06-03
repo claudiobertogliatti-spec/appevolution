@@ -363,6 +363,7 @@ export default function CiakAdminApp() {
               subtitle="Funnel pre-acquisto: iscritto → checkpoint → 8 Domande → report → click €67"
               mirrorNote="Specchio dei tag Systeme — sola lettura. Il movimento di stato avviene in Systeme, non qui."
               onAuthExpired={handleLogout}
+              deletable
             />
           }
         />
