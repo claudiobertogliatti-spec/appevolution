@@ -1,7 +1,7 @@
 """
 Clienti Router - Handles potential clients who purchase the Strategic Analysis
 """
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import Response
 from pydantic import BaseModel, EmailStr
 from typing import Optional, Dict, Any, List
@@ -12,6 +12,9 @@ import stripe
 import asyncio
 
 router = APIRouter(prefix="/api/clienti", tags=["clienti"])
+
+# Auth admin (role admin/superadmin) — riusa la dependency del router Ciak admin.
+from routers.ciak_admin import require_ciak_admin
 
 # Initialize Stripe
 stripe.api_key = os.environ.get("STRIPE_API_KEY") or os.environ.get("STRIPE_SECRET_KEY")
@@ -616,11 +619,27 @@ async def update_cliente_status(cliente_id: str, data: UpdateStatus):
         
         if result.modified_count == 0:
             raise HTTPException(status_code=404, detail="Cliente non trovato")
-        
+
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@router.delete("/admin/{cliente_id}")
+async def delete_cliente(cliente_id: str, _admin=Depends(require_ciak_admin)):
+    """Elimina definitivamente un cliente analisi (db.clienti) — admin only.
+    Questionario, call e analisi sono embedded nel documento, quindi la sola
+    delete del doc rimuove tutti i dati collegati. Operazione irreversibile."""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+    try:
+        oid = ObjectId(cliente_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="ID cliente non valido")
+    result = await db.clienti.delete_one({"_id": oid})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Cliente non trovato")
+    return {"success": True}
 
 
 # AI Analysis Generation
