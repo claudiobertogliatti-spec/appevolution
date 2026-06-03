@@ -35,7 +35,14 @@ const OperativoContinuo = lazy(() => import("./steps/OperativoContinuo"));
 export default function PartnerOperativo({ partnerId, partnerName }) {
   const { state, loading, error, completeStep, saveDraft, refresh } = useJourneyState(partnerId);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [viewingStepId, setViewingStepId] = useState(null); // se !== null: partner sta modificando step già done
+  // se !== null: si apre direttamente quello step (modifica step già done, o
+  // deep-link "Vai allo step" dalla scheda admin via localStorage).
+  const [viewingStepId, setViewingStepId] = useState(() => {
+    if (typeof window === "undefined") return null;
+    const deepLink = localStorage.getItem("ciak_partner_initial_step");
+    if (deepLink) localStorage.removeItem("ciak_partner_initial_step");
+    return deepLink || null;
+  });
 
   if (loading) {
     return (
