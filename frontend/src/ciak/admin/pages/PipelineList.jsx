@@ -11,9 +11,9 @@
  * Backend: GET /api/admin/ciak/<endpoint> → { columns:[{id,label,count,items}], total }
  * Le righe sono ordinate seguendo il funnel (ordine delle colonne backend).
  */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiGet } from "../api";
+import { apiGet, adminFetch } from "../api";
 
 function fmtDate(s) {
   if (!s) return "—";
@@ -33,13 +33,13 @@ function initials(name) {
     .toUpperCase();
 }
 
-export function PipelineList({ endpoint, title, subtitle, onAuthExpired, mirrorNote }) {
+export function PipelineList({ endpoint, title, subtitle, onAuthExpired, mirrorNote, deletable }) {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [stageFilter, setStageFilter] = useState("");
 
-  useEffect(() => {
+  const load = useCallback(() => {
     setData(null);
     setError(null);
     apiGet(endpoint)
@@ -49,6 +49,32 @@ export function PipelineList({ endpoint, title, subtitle, onAuthExpired, mirrorN
         else setError(e.message);
       });
   }, [endpoint, onAuthExpired]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const deleteItem = async (item, e) => {
+    e.stopPropagation();
+    if (!item.email) return;
+    if (
+      !window.confirm(
+        `Eliminare definitivamente "${item.email}"?\nVerranno rimossi opt-in, Checkpoint e 8 Domande collegati. Operazione irreversibile.`
+      )
+    )
+      return;
+    try {
+      const res = await adminFetch(
+        `/api/admin/ciak/lead?email=${encodeURIComponent(item.email)}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) throw new Error("Errore eliminazione");
+      load();
+    } catch (err) {
+      if (err.message === "AUTH_EXPIRED") onAuthExpired?.();
+      else window.alert("Errore nell'eliminazione del contatto.");
+    }
+  };
 
   if (error) return <div className="p-8 text-slate-600">Errore: {error}</div>;
   if (!data) return <div className="p-8 text-slate-400">Caricamento…</div>;
@@ -135,7 +161,16 @@ export function PipelineList({ endpoint, title, subtitle, onAuthExpired, mirrorN
                     </span>
                   </td>
                   <td className="px-5 py-3 text-slate-500 text-xs">{fmtDate(r.updated_at)}</td>
-                  <td className="px-5 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-5 py-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                    {deletable && r.email && (
+                      <button
+                        onClick={(e) => deleteItem(r, e)}
+                        title="Elimina contatto"
+                        className="text-xs font-medium text-red-600 hover:text-red-700 hover:underline mr-3"
+                      >
+                        Elimina
+                      </button>
+                    )}
                     <button
                       onClick={() => openItem(r)}
                       className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-900 text-yellow-400 text-xs font-semibold hover:bg-slate-800 transition"

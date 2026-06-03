@@ -4,7 +4,8 @@
  * DECISIONE 3/6/2026 (congelo 12k): la lista fredda NON viene più inviata via
  * email dal dominio principale — reputazione bruciata (0,93% spam · 3,35% bounce
  * · 0% click su 3 invii dic 2025). Questa pagina è ora un ARCHIVIO READ-ONLY:
- * niente drip, niente coda Systeme, niente import/edit/delete.
+ * niente drip, niente coda Systeme, niente import/edit. L'eliminazione per-riga
+ * resta ammessa come azione manuale (pulizia dati di test/contatti errati).
  * Unico uso ammesso: esportare la custom audience (email SHA-256) per Meta Ads,
  * dove gli hash matchano e le email invalide semplicemente non agganciano.
  */
@@ -12,7 +13,7 @@
 import { useState, useEffect } from "react";
 import {
   Users, Mail, Phone, Download, Search, Filter, RefreshCw,
-  Eye, ArrowUpRight, CheckCircle, Snowflake, Shield, TrendingUp,
+  Eye, ArrowUpRight, CheckCircle, Snowflake, Shield, TrendingUp, Trash2,
 } from "lucide-react";
 import { adminFetch } from "../api";
 
@@ -84,6 +85,27 @@ export function ListaFredda({ onAuthExpired }) {
   const handleExportAudience = () => {
     const today = new Date().toISOString().split("T")[0];
     downloadBlob(`/api/lista-fredda/export-custom-audience`, `custom-audience-meta-${today}.csv`);
+  };
+
+  const handleDelete = async (lead) => {
+    if (!lead.email) return;
+    if (
+      !window.confirm(
+        `Eliminare definitivamente "${lead.email}" dall'archivio freddo?\nOperazione irreversibile.`
+      )
+    )
+      return;
+    try {
+      const res = await adminFetch(
+        `/api/lista-fredda/leads/${encodeURIComponent(lead.email)}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) throw new Error("Errore eliminazione");
+      loadData();
+    } catch (err) {
+      if (err.message === "AUTH_EXPIRED") onAuthExpired();
+      else window.alert("Errore nell'eliminazione del contatto.");
+    }
   };
 
   const filteredLeads = leads.filter((l) => {
@@ -213,19 +235,20 @@ export function ListaFredda({ onAuthExpired }) {
               <th className="px-4 py-3 font-semibold">Ultima Apertura</th>
               <th className="px-4 py-3 font-semibold">Ultimo Click</th>
               <th className="px-4 py-3 font-semibold">Data Reg.</th>
+              <th className="px-4 py-3 font-semibold text-right">Azioni</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading ? (
               <tr>
-                <td colSpan={6} className="text-center py-8 text-slate-500">
+                <td colSpan={7} className="text-center py-8 text-slate-500">
                   <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" />
                   Caricamento...
                 </td>
               </tr>
             ) : filteredLeads.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center py-8 text-slate-500">Nessun contatto trovato</td>
+                <td colSpan={7} className="text-center py-8 text-slate-500">Nessun contatto trovato</td>
               </tr>
             ) : (
               filteredLeads.map((lead) => {
@@ -286,6 +309,16 @@ export function ListaFredda({ onAuthExpired }) {
                         : lead.created_at
                           ? new Date(lead.created_at).toLocaleDateString("it-IT")
                           : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => handleDelete(lead)}
+                        title="Elimina contatto"
+                        className="inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-700 hover:underline"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Elimina
+                      </button>
                     </td>
                   </tr>
                 );
