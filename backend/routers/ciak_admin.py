@@ -112,12 +112,27 @@ async def ciak_partners_list(
             "contract": p.get("contract"),  # data contratto (string) o struttura
             "stato": st,
             "piano_pagamento": piano,
+            "ex_motivo": p.get("ex_motivo"),
+            "ex_data": p.get("ex_data"),
+            "quarantena_tipo": p.get("quarantena_tipo"),
+            "quarantena_motivo": p.get("quarantena_motivo"),
+            "quarantena_data_inizio": p.get("quarantena_data_inizio"),
+            "quarantena_ripresa_prevista": p.get("quarantena_ripresa_prevista"),
         })
     return {"total": len(partners), "items": partners}
 
 
 class PartnerStatoRequest(BaseModel):
     stato: str = Field(..., description="attivo | quarantena | ex")
+    motivo: Optional[str] = Field(None, description="Motivo uscita (es. 'Non rinnovato') — solo per stato=ex")
+    data_fine: Optional[str] = Field(None, description="Data fine partnership ISO (es. '2026-06-03') — solo per stato=ex")
+    # Quarantena: due nature distinte. "richiesta" = il partner ha chiesto di
+    # sospendere pagamenti + contratto (pausa concordata, reversibile). "morosita"
+    # = pagamenti fermi (churn potenziale). Distinte dal campo quarantena_tipo.
+    quarantena_tipo: Optional[str] = Field(None, description="richiesta | morosita — solo per stato=quarantena")
+    quarantena_motivo: Optional[str] = Field(None, description="Motivo sospensione — solo per stato=quarantena")
+    data_inizio: Optional[str] = Field(None, description="Data inizio sospensione ISO — solo per stato=quarantena")
+    ripresa_prevista: Optional[str] = Field(None, description="Data ripresa prevista ISO (opzionale) — solo per stato=quarantena")
 
 
 @router.post("/partner/{partner_id}/stato")
@@ -135,13 +150,28 @@ async def ciak_set_partner_stato(
         raise HTTPException(503, "Database non configurato")
     if payload.stato not in ("attivo", "quarantena", "ex"):
         raise HTTPException(400, "stato non valido (attivo | quarantena | ex)")
+    updates = {
+        "stato": payload.stato,
+        "stato_updated_at": datetime.now(timezone.utc).isoformat(),
+        "stato_updated_by": getattr(admin, "email", None) or getattr(admin, "user_id", None),
+    }
+    if payload.stato == "ex":
+        # Uscita pulita (es. "non rinnovato"), distinta dalla churn per morosità
+        # che arriva da Quarantena. Motivo/data opzionali, settati solo se forniti.
+        if payload.motivo:
+            updates["ex_motivo"] = payload.motivo
+        updates["ex_data"] = payload.data_fine or datetime.now(timezone.utc).date().isoformat()
+    elif payload.stato == "quarantena":
+        # Sospensione: default "richiesta" (pausa concordata su domanda del partner).
+        updates["quarantena_tipo"] = payload.quarantena_tipo or "richiesta"
+        if payload.quarantena_motivo:
+            updates["quarantena_motivo"] = payload.quarantena_motivo
+        updates["quarantena_data_inizio"] = payload.data_inizio or datetime.now(timezone.utc).date().isoformat()
+        if payload.ripresa_prevista:
+            updates["quarantena_ripresa_prevista"] = payload.ripresa_prevista
     res = await db.partners.update_one(
         {"id": partner_id},
-        {"$set": {
-            "stato": payload.stato,
-            "stato_updated_at": datetime.now(timezone.utc).isoformat(),
-            "stato_updated_by": getattr(admin, "email", None) or getattr(admin, "user_id", None),
-        }},
+        {"$set": updates},
     )
     if res.matched_count == 0:
         raise HTTPException(404, "Partner non trovato")

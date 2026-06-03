@@ -89,16 +89,12 @@ const NAV = [
   {
     id: "gestione-partner",
     label: "Gestione Partner",
-    // Ordine = flusso di lavoro: hub Partner (vista Per atto / Tabella, ex
-    // "Percorso EVO" + "Pipeline Partner" fusi) → code di revisione materiali
-    // → stati di ciclo-vita (onboarding incompleto / pagamenti sospesi / churn)
-    // in coda. Lista piatta, a differenza di Gestione Clienti.
+    // Solo gli STATI/elenchi del partner. Le code d'azione (Approvazioni, Video
+    // Review, Password da impostare) sono migrate negli alert di "Oggi" — restano
+    // pagine vive raggiungibili da lì e via URL, ma fuori dalla sidebar. La
+    // dilazione rate è ora nella scheda partner (tab Pagamenti), non più qui.
     pages: [
-      { to: "/admin/partner", label: "Partner" },
-      { to: "/admin/approvazioni", label: "Approvazioni" },
-      { to: "/admin/video-review", label: "Video Review" },
-      { to: "/admin/documenti-partner", label: "Documenti Partner" },
-      { to: "/admin/partner-setup-pending", label: "Password da impostare" },
+      { to: "/admin/partner", label: "Pipeline Partner" },
       { to: "/admin/quarantena-partner", label: "Quarantena Partner" },
       { to: "/admin/ex-partner", label: "Ex Partner" },
     ],
