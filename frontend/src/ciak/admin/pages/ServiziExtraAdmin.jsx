@@ -1,22 +1,30 @@
 /**
- * Ciak Admin — Servizi Extra (importata fedelmente da Evolution PRO).
+ * Ciak Admin — Servizi Extra (catalogo live, allineato al backend).
  *
- * Dashboard admin per la gestione dei servizi extra: abbonamenti Calendario PRO,
- * Pacchetto Starter, revenue ricorrente/totale e ultimi acquisti.
+ * Dashboard admin per i servizi extra: KPI abbonati/revenue (GET /admin/stats),
+ * ultimi acquisti e — soprattutto — il CATALOGO completo letto a runtime dalla
+ * fonte di verità GET /api/servizi-extra (SERVIZI_CATALOGO nel backend). Niente
+ * più card hardcoded: aggiungere/cambiare un servizio nel backend lo riflette qui.
  *
- * Sorgente: GET /api/servizi-extra/admin/stats
  * Le chiamate passano per adminFetch (token admin Ciak).
  */
 
 import { useState, useEffect } from "react";
 import {
-  ShoppingBag, TrendingUp, Users, DollarSign, Calendar,
+  ShoppingBag, TrendingUp, DollarSign, Calendar,
   RefreshCw, Check, Clock, AlertCircle, Package
 } from "lucide-react";
 import { adminFetch } from "../api";
 
+function prezzoLabel(s) {
+  const euro = `€${s.prezzo}`;
+  if (s.tipo === "abbonamento_mensile") return { big: euro, small: "/mese" };
+  return { big: euro, small: "una tantum" };
+}
+
 export function ServiziExtraAdmin({ onAuthExpired }) {
   const [stats, setStats] = useState(null);
+  const [catalogo, setCatalogo] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,12 +34,16 @@ export function ServiziExtraAdmin({ onAuthExpired }) {
   const loadStats = async () => {
     try {
       setLoading(true);
-      const res = await adminFetch(`/api/servizi-extra/admin/stats`);
-      const data = await res.json();
-      setStats(data);
+      const [statsRes, catRes] = await Promise.all([
+        adminFetch(`/api/servizi-extra/admin/stats`),
+        adminFetch(`/api/servizi-extra`),
+      ]);
+      setStats(await statsRes.json());
+      const catData = await catRes.json();
+      setCatalogo(catData.servizi || []);
     } catch (err) {
       if (err.message === "AUTH_EXPIRED") { onAuthExpired?.(); return; }
-      console.error("Errore caricamento stats:", err);
+      console.error("Errore caricamento servizi extra:", err);
     } finally {
       setLoading(false);
     }
@@ -125,58 +137,55 @@ export function ServiziExtraAdmin({ onAuthExpired }) {
         </div>
       )}
 
-      {/* Servizi Disponibili */}
+      {/* Catalogo Servizi — letto live dal backend */}
       <div className="bg-white rounded-xl border border-gray-100 p-6">
-        <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <Package className="w-5 h-5 text-gray-400" />
-          Catalogo Servizi
-        </h2>
-
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="border border-yellow-200 rounded-xl p-4 bg-yellow-50/50">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-2xl">📅</span>
-                <h3 className="font-bold text-gray-900 mt-2">Calendario Editoriale PRO</h3>
-                <p className="text-sm text-gray-500 mt-1">20 contenuti/mese con AI</p>
-              </div>
-              <div className="text-right">
-                <div className="text-xl font-bold text-gray-900">€297</div>
-                <div className="text-xs text-gray-400">/mese</div>
-              </div>
-            </div>
-            <div className="mt-3 flex items-center justify-between">
-              <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                Attivo
-              </span>
-              <span className="text-sm text-gray-500">
-                {stats?.servizi_attivi?.calendario_pro || 0} abbonati
-              </span>
-            </div>
-          </div>
-
-          <div className="border border-green-200 rounded-xl p-4 bg-green-50/50">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-2xl">🚀</span>
-                <h3 className="font-bold text-gray-900 mt-2">Pacchetto Starter</h3>
-                <p className="text-sm text-gray-500 mt-1">10 contenuti (una tantum)</p>
-              </div>
-              <div className="text-right">
-                <div className="text-xl font-bold text-gray-900">€97</div>
-                <div className="text-xs text-gray-400">una tantum</div>
-              </div>
-            </div>
-            <div className="mt-3 flex items-center justify-between">
-              <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                Attivo
-              </span>
-              <span className="text-sm text-gray-500">
-                {stats?.servizi_attivi?.pacchetto_starter || 0} venduti
-              </span>
-            </div>
-          </div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+            <Package className="w-5 h-5 text-gray-400" />
+            Catalogo Servizi
+          </h2>
+          <span className="text-xs text-gray-400">{catalogo.length} servizi attivi</span>
         </div>
+
+        {catalogo.length === 0 ? (
+          <p className="text-sm text-gray-400">Nessun servizio nel catalogo.</p>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-4">
+            {catalogo.map((s) => {
+              const ricorrente = s.tipo === "abbonamento_mensile";
+              const prezzo = prezzoLabel(s);
+              const stat = stats?.per_servizio?.[s.id];
+              const count = ricorrente ? stat?.attivi : stat?.totali;
+              return (
+                <div
+                  key={s.id}
+                  className={`border rounded-xl p-4 ${ricorrente ? "border-yellow-200 bg-yellow-50/50" : "border-gray-200 bg-gray-50/50"}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-gray-900">{s.nome}</h3>
+                      <p className="text-sm text-gray-500 mt-1">{s.descrizione}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-xl font-bold text-gray-900">{prezzo.big}</div>
+                      <div className="text-xs text-gray-400">{prezzo.small}</div>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between">
+                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                      {ricorrente ? "Abbonamento" : "Una tantum"}
+                    </span>
+                    {count != null && (
+                      <span className="text-sm text-gray-500">
+                        {count} {ricorrente ? "abbonati" : "venduti"}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Ultimi Acquisti */}
