@@ -670,6 +670,11 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
   const [pianoDraft, setPianoDraft] = useState(null); // {} mentre si compila
   const [savingPiano, setSavingPiano] = useState(false);
 
+  // Stato partner (per il punto d'ingresso morosità nel blocco dilazione)
+  const [statoLocal, setStatoLocal] = useState(null); // attivo | quarantena | ex
+  const [tipoLocal, setTipoLocal] = useState(null);   // richiesta | morosita (solo se quarantena)
+  const [savingMorosita, setSavingMorosita] = useState(false);
+
   // Documents state (onboarding verification)
   const [onboardingDocs, setOnboardingDocs] = useState(null);
   const [onboardingDocsLoading, setOnboardingDocsLoading] = useState(false);
@@ -720,6 +725,8 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
       setRevisionNotes(partner.revision_notes || "");
       setPiano(partner.piano_pagamento || null);
       setPianoDraft(null);
+      setStatoLocal(partner.stato || "attivo");
+      setTipoLocal(partner.quarantena_tipo || null);
       fetchPayments();
       fetchDocuments();
       fetchVideoPipeline(partner.id);
@@ -1115,6 +1122,56 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
       alert(e.message || "Errore nella rimozione della dilazione");
     } finally {
       setSavingPiano(false);
+    }
+  };
+
+  // Morosità: unico punto d'ingresso per marcare quarantena_tipo "morosita".
+  // (La sospensione "richiesta" si gestisce dalla pagina Quarantena Partner.)
+  const handleSetMorosita = async () => {
+    if (!window.confirm("Segnalare questo partner come moroso? Verrà spostato in Quarantena con badge Morosità.")) return;
+    setSavingMorosita(true);
+    try {
+      const res = await adminFetch(`/api/admin/ciak/partner/${partner.id}/stato`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          stato: "quarantena",
+          quarantena_tipo: "morosita",
+          quarantena_motivo: "Mancato pagamento rate concordate",
+        }),
+      });
+      if (!res.ok) throw new Error("Errore aggiornamento stato");
+      setStatoLocal("quarantena");
+      setTipoLocal("morosita");
+      setSaveSuccess(true);
+      if (onUpdate) onUpdate();
+    } catch (e) {
+      authErr(e);
+      alert(e.message || "Errore nella segnalazione morosità");
+    } finally {
+      setSavingMorosita(false);
+    }
+  };
+
+  const handleClearMorosita = async () => {
+    if (!window.confirm("Rimuovere la segnalazione di morosità e riattivare il partner?")) return;
+    setSavingMorosita(true);
+    try {
+      const res = await adminFetch(`/api/admin/ciak/partner/${partner.id}/stato`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stato: "attivo" }),
+      });
+      if (!res.ok) throw new Error("Errore aggiornamento stato");
+      setStatoLocal("attivo");
+      setTipoLocal(null);
+      setSaveSuccess(true);
+      if (onUpdate) onUpdate();
+    } catch (e) {
+      authErr(e);
+      alert(e.message || "Errore nella riattivazione");
+    } finally {
+      setSavingMorosita(false);
     }
   };
 
@@ -2127,6 +2184,37 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                       Concedi dilazione
                     </button>
                   )}
+
+                  {/* Segnalazione morosità — unico punto d'ingresso per quarantena_tipo: morosita */}
+                  <div className="mt-4 pt-4 border-t" style={{ borderColor: "#ECEDEF" }}>
+                    {statoLocal === "quarantena" && tipoLocal === "morosita" ? (
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold" style={{ background: "#FEF3C7", color: "#92400E" }}>
+                          <AlertTriangle className="w-3.5 h-3.5" />
+                          Segnalato moroso — è in Quarantena
+                        </span>
+                        <button onClick={handleClearMorosita} disabled={savingMorosita}
+                          className="text-xs font-bold text-slate-600 hover:text-slate-900 disabled:opacity-50">
+                          {savingMorosita ? "…" : "Rimuovi e riattiva"}
+                        </button>
+                      </div>
+                    ) : statoLocal === "quarantena" ? (
+                      <p className="text-xs text-slate-500">
+                        Partner sospeso su richiesta — la morosità si segnala solo su partner attivi. Riattivalo da <strong>Quarantena Partner</strong> per cambiarne lo stato.
+                      </p>
+                    ) : statoLocal === "ex" ? (
+                      <p className="text-xs text-slate-400">Partner archiviato come ex — nessuna azione sui pagamenti.</p>
+                    ) : (
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-xs text-slate-500">Il partner non sta pagando le rate concordate?</p>
+                        <button onClick={handleSetMorosita} disabled={savingMorosita}
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 hover:text-red-700 disabled:opacity-50 whitespace-nowrap">
+                          <AlertTriangle className="w-3.5 h-3.5" />
+                          {savingMorosita ? "…" : "Segna come moroso"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
