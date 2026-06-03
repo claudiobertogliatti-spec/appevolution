@@ -33,7 +33,7 @@ function initials(name) {
     .toUpperCase();
 }
 
-export function PipelineList({ endpoint, title, subtitle, onAuthExpired }) {
+export function PipelineList({ endpoint, title, subtitle, onAuthExpired, mirrorNote }) {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
@@ -83,9 +83,16 @@ export function PipelineList({ endpoint, title, subtitle, onAuthExpired }) {
           ))}
         </select>
       </div>
-      <p className="text-slate-500 mb-6">
+      <p className="text-slate-500 mb-3">
         {subtitle} — {data.total} contatti.
       </p>
+
+      {mirrorNote && (
+        <div className="mb-6 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-xs text-slate-500">
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+          {mirrorNote}
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         <div className="bg-gray-50 border border-gray-200 rounded-2xl p-8 text-center text-slate-400">

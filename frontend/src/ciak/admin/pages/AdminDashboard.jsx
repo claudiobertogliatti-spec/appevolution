@@ -4,15 +4,18 @@
  * Design lockato con Claudio (14/5): panoramica "come sta andando" + alert
  * priorità in cima. Gerarchia netta, niente densità criptica.
  *  ① Banda alert priorità — solo gli alert attivi, cliccabili
- *  ② Funnel a colpo d'occhio — 6 riquadri medi cliccabili (→ pagina di riferimento)
+ *  ② Funnel end-to-end — banda freddo → masterclass → €67 → €2.790 → partner,
+ *     riquadri cliccabili (→ pagina di riferimento). "Freddo" = archivio congelato
+ *     (bacino di partenza, non converte). Cuce numeri Systeme + Ciak.
  *  ③ Fatturato — 2 card
  *  ④ Salute partner — attivi / quarantena / ex
  *
- * Dati: /stats + /transactions + /partners + /pipeline-blueprint (in parallelo).
+ * Dati: /stats + /transactions + /partners + /pipeline-blueprint +
+ *       /transactions-partnership + /api/lista-fredda/stats (in parallelo).
  */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiGet } from "../api";
+import { apiGet, adminFetch } from "../api";
 
 // Ordine canonico della state machine (memory: ciak_technical_spec.md)
 const FUNNEL_STATES = [
@@ -110,9 +113,16 @@ export function AdminDashboard({ onAuthExpired }) {
       apiGet("/transactions", { limit: 1 }),
       apiGet("/partners"),
       apiGet("/pipeline-blueprint"),
+      // Estremità della banda end-to-end: archivio freddo (namespace separato)
+      // e firmati €2.790. Opzionali — se cadono, la dashboard regge comunque.
+      apiGet("/transactions-partnership").catch(() => null),
+      adminFetch("/api/lista-fredda/stats").then((r) => r.json()).catch(() => null),
     ])
-      .then(([stats, transactions, partners, blueprint]) =>
-        setD({ stats, transactions, partners: partners.items || [], blueprint })
+      .then(([stats, transactions, partners, blueprint, partnership, freddo]) =>
+        setD({
+          stats, transactions, partners: partners.items || [], blueprint,
+          partnership, freddo,
+        })
       )
       .catch((e) => {
         if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
@@ -123,7 +133,7 @@ export function AdminDashboard({ onAuthExpired }) {
   if (error) return <div className="p-8 text-slate-600">Errore: {error}</div>;
   if (!d) return <div className="p-8 text-slate-400">Caricamento…</div>;
 
-  const { stats, transactions, partners, blueprint } = d;
+  const { stats, transactions, partners, blueprint, partnership, freddo } = d;
   const fbs = stats.funnel_by_state || {};
 
   // Conteggi partner per stato
@@ -156,20 +166,26 @@ export function AdminDashboard({ onAuthExpired }) {
       cta: "Pipeline Blueprint", to: "/admin/pipeline-blueprint", urgent: false,
     });
 
-  // ② Funnel — 6 riquadri cliccabili
+  // ② Funnel end-to-end — banda freddo → masterclass → €67 → €2.790 → partner.
+  // "Freddo" è l'archivio congelato (non converte: pct null, fuori dal calcolo),
+  // serve solo a mostrare il bacino di partenza. Gli step centrali sono Ciak.
+  const freddoTot = freddo?.totale || 0;
   const iscritti = stats.leads_total || 0;
   const checkpoint = stats.checkpoint_completati || 0;
   const ottoDomande = reachedAtLeast(fbs, "ciak_completed");
   const acquisti = stats.acquisti_67 || 0;
   const callFatte = reachedAtLeast(fbs, "call_done");
+  const firmati = partnership?.total || 0;
 
   const funnel = [
+    { label: "Freddo (archivio)", value: freddoTot, pct: null, to: "/admin/lista-fredda" },
     { label: "Iscritti masterclass", value: iscritti, pct: null, to: "/admin/pipeline-prospect" },
     { label: "Checkpoint compilati", value: checkpoint, pct: conv(checkpoint, iscritti), to: "/admin/pipeline-prospect" },
     { label: "8 Domande completate", value: ottoDomande, pct: conv(ottoDomande, checkpoint), to: "/admin/pipeline-prospect" },
     { label: "Acquisti €67", value: acquisti, pct: conv(acquisti, ottoDomande), to: "/admin/pipeline-blueprint" },
     { label: "Call fatte", value: callFatte, pct: conv(callFatte, acquisti), to: "/admin/pipeline-blueprint" },
-    { label: "Partner attivi", value: partnerAttivi, pct: conv(partnerAttivi, callFatte), to: "/admin/partner" },
+    { label: "€2.790 firmati", value: firmati, pct: conv(firmati, callFatte), to: "/admin/pipeline-blueprint" },
+    { label: "Partner attivi", value: partnerAttivi, pct: conv(partnerAttivi, firmati), to: "/admin/partner" },
   ];
 
   return (
@@ -182,7 +198,7 @@ export function AdminDashboard({ onAuthExpired }) {
 
       {/* ② FUNNEL */}
       <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
-        Il funnel
+        Il funnel end-to-end
       </h2>
       <div className="flex flex-wrap gap-3 mb-10">
         {funnel.map((f, i) => (

@@ -312,6 +312,47 @@ async def export_lista_fredda_csv(
     )
 
 
+@router.get("/export-custom-audience")
+async def export_custom_audience():
+    """
+    Export CSV per Meta Custom Audience: una colonna `email` con SHA-256 (hex)
+    dell'email normalizzata (trim + lowercase). Esclude i disiscritti.
+
+    Decisione 3/6/2026 (congelo 12k): la lista fredda non viene più inviata via
+    email da dominio principale (reputazione bruciata). Resta utilizzabile SOLO
+    come seed per audience Meta — Meta matcha gli hash, le email invalide non
+    agganciano, quindi non serve verifier né rischio deliverability.
+    """
+    import hashlib
+
+    query = {"stato": {"$ne": "disiscritto"}}
+    leads = await db.lista_fredda.find(query, {"_id": 0, "email": 1}).to_list(50000)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["email"])  # header richiesto da Meta per colonna email hashata
+
+    seen = set()
+    n = 0
+    for lead in leads:
+        email = (lead.get("email") or "").strip().lower()
+        if not email or "@" not in email or email in seen:
+            continue
+        seen.add(email)
+        writer.writerow([hashlib.sha256(email.encode("utf-8")).hexdigest()])
+        n += 1
+
+    output.seek(0)
+    filename = f"custom_audience_meta_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
+    logger.info(f"[LISTA_FREDDA] Export custom audience: {n} email hashate")
+
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
 @router.post("/leads")
 async def add_single_lead(lead: ListaFreddaLead):
     """Aggiunge un singolo contatto alla lista fredda (form manuale)."""

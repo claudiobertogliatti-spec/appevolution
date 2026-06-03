@@ -1,15 +1,15 @@
 /**
  * Ciak Admin — entry point del pannello admin (ciak.io/admin).
  *
- * Sidebar a MACRO-VOCI: la sidebar mostra solo le 4 macro; al passaggio del
- * mouse si apre un flyout con le pagine della macro.
- *  - Dashboard        → KPI · Leads & Pipeline · Transazioni
- *  - Gestione Clienti → Lista Fredda · Lead Manager · Pipeline (Prospect/Blueprint) · Analisi
- *  - Gestione Partner → Partner · Operatività/Oggi · Pipeline Prospect
- *  - Strumenti        → Stefania AI · KB Matteo · Template Email
- *
- * Le pagine di "Dashboard" esistono già (funnel Ciak €67). Le altre macro
- * sono stub finché non vengono importati i componenti dal back-office Evolution.
+ * Sidebar a MACRO-VOCI: alcune macro sono link diretti, altre aprono al hover
+ * un flyout con le loro pagine (flat o in sotto-gruppi).
+ *  - Dashboard        → panoramica KPI (link diretto)
+ *  - Oggi             → cruscotto operativo quotidiano clienti €67 (link diretto)
+ *  - Gestione Clienti → Acquisizione · Qualifica · Conversione (3 sotto-gruppi)
+ *  - Gestione Partner → Partner · Approvazioni · Video Review · Documenti +
+ *                       stati di ciclo-vita (lista piatta)
+ *  - Marketing        → Campagne Ads · Calendario Editoriale · Servizi Extra
+ *  - Strumenti        → Stefania AI · Automazione · KPI · KB · Prompt · Template · Config
  *
  * Auth: role `admin` via /api/auth/login. Token in localStorage `ciak_admin_token`.
  */
@@ -23,8 +23,7 @@ import { AdminTransactions } from "./pages/AdminTransactions";
 import { LeadManager } from "./pages/LeadManager";
 import { ListaFredda } from "./pages/ListaFredda";
 import { ClientiAnalisi } from "./pages/ClientiAnalisi";
-import { PipelinePartner } from "./pages/PipelinePartner";
-import { PercorsoEvo } from "./pages/PercorsoEvo";
+import { PartnerHub } from "./pages/PartnerHub";
 import { Approvazioni } from "./pages/Approvazioni";
 import { Oggi } from "./pages/Oggi";
 import { StefaniaAdmin } from "./pages/StefaniaAdmin";
@@ -52,6 +51,10 @@ const NAV = [
   // Dashboard è un link diretto (nessun flyout): la Dashboard stessa è la
   // panoramica, e Transazioni si raggiunge dai suoi riquadri "Fatturato".
   { id: "dashboard", label: "Dashboard", to: "/admin", end: true },
+  // Oggi = cruscotto operativo quotidiano (clienti €67: colli di bottiglia,
+  // pipeline, clienti bloccati, approvazioni, alert partner). È trasversale →
+  // link diretto di primo livello, non più sepolto sotto Gestione Partner.
+  { id: "oggi", label: "Oggi", to: "/admin/oggi" },
   {
     id: "gestione-clienti",
     label: "Gestione Clienti",
@@ -62,10 +65,12 @@ const NAV = [
     groups: [
       {
         label: "Acquisizione",
+        // Ordine cronologico del funnel: la masterclass è il TOF (chi guarda
+        // entra), poi lo scraping/smistamento, infine l'archivio congelato.
         pages: [
+          { to: "/admin/masterclass-analytics", label: "Masterclass Analytics" },
           { to: "/admin/lead-manager", label: "Lead Manager" },
           { to: "/admin/lista-fredda", label: "Lista Fredda" },
-          { to: "/admin/masterclass-analytics", label: "Masterclass Analytics" },
         ],
       },
       {
@@ -84,18 +89,16 @@ const NAV = [
   {
     id: "gestione-partner",
     label: "Gestione Partner",
-    // Ordine = flusso di lavoro: overview del viaggio EVO → operatività
-    // quotidiana → liste/asset partner → stati di ciclo-vita (onboarding
-    // incompleto / pagamenti sospesi / churn) in coda. Lista piatta (niente
-    // sotto-gruppi), a differenza di Gestione Clienti.
+    // Ordine = flusso di lavoro: hub Partner (vista Per atto / Tabella, ex
+    // "Percorso EVO" + "Pipeline Partner" fusi) → code di revisione materiali
+    // → stati di ciclo-vita (onboarding incompleto / pagamenti sospesi / churn)
+    // in coda. Lista piatta, a differenza di Gestione Clienti.
     pages: [
-      { to: "/admin/percorso-evo", label: "Percorso EVO" },
-      { to: "/admin/oggi", label: "Operatività Oggi" },
+      { to: "/admin/partner", label: "Partner" },
       { to: "/admin/approvazioni", label: "Approvazioni" },
-      { to: "/admin/partner", label: "Pipeline Partner" },
       { to: "/admin/video-review", label: "Video Review" },
       { to: "/admin/documenti-partner", label: "Documenti Partner" },
-      { to: "/admin/partner-setup-pending", label: "Setup Password Pending" },
+      { to: "/admin/partner-setup-pending", label: "Password da impostare" },
       { to: "/admin/quarantena-partner", label: "Quarantena Partner" },
       { to: "/admin/ex-partner", label: "Ex Partner" },
     ],
@@ -357,6 +360,7 @@ export default function CiakAdminApp() {
               endpoint="/pipeline-prospect"
               title="Pipeline Prospect"
               subtitle="Funnel pre-acquisto: iscritto → checkpoint → 8 Domande → report → click €67"
+              mirrorNote="Specchio dei tag Systeme — sola lettura. Il movimento di stato avviene in Systeme, non qui."
               onAuthExpired={handleLogout}
             />
           }
@@ -386,9 +390,11 @@ export default function CiakAdminApp() {
         />
 
         {/* Gestione Partner */}
-        <Route path="percorso-evo" element={<PercorsoEvo onAuthExpired={handleLogout} />} />
+        <Route path="partner" element={<PartnerHub onAuthExpired={handleLogout} />} />
+        {/* Ex "Percorso EVO": fuso nell'hub Partner (vista "Per atto"). Redirect
+            per non rompere eventuali bookmark. */}
+        <Route path="percorso-evo" element={<Navigate to="/admin/partner" replace />} />
         <Route path="approvazioni" element={<Approvazioni />} />
-        <Route path="partner" element={<PipelinePartner onAuthExpired={handleLogout} />} />
         <Route path="partner/:id" element={<SectionStub />} />
         <Route path="oggi" element={<Oggi onAuthExpired={handleLogout} />} />
         {/* Video Review + Documenti Partner — importate da Evolution PRO */}
