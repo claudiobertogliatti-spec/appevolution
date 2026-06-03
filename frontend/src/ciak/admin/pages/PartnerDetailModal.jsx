@@ -731,6 +731,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
       fetchVideoPipeline(partner.id);
       // Tab di apertura: "profilo" (click sul nome) o "journey" (bottone Journey)
       setActiveTab(initialTab);
+      setJourneyData(null);
       if (initialTab === "journey") loadJourneyData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -845,7 +846,7 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
   };
 
   const loadJourneyData = async () => {
-    if (!partner?.id || journeyData) return;
+    if (!partner?.id) return;
     setJourneyLoading(true);
     try {
       const res = await adminFetch(`/api/admin/partner/${partner.id}/full-data`);
