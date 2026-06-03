@@ -3,7 +3,7 @@ Partner Journey Router
 Gestisce il percorso guidato del partner: Posizionamento, Masterclass, Videocorso, Funnel, Lancio
 """
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File, Form, Query
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timezone
@@ -5911,6 +5911,57 @@ async def save_draft_operativo_step(partner_id: str, step_id: str, body: _Operat
     return {"success": True, "saved_keys": list((body.data or {}).keys())}
 
 
+class _OperativoAdminStatusBody(BaseModel):
+    status: str  # pending | in_progress | done | skipped | blocked
+
+
+_JOURNEY_STATUSES = {"pending", "in_progress", "done", "skipped", "blocked"}
+
+
+@router.post("/operativo/admin/set-status/{partner_id}/{step_id}")
+async def admin_set_operativo_step_status(
+    partner_id: str, step_id: str, body: _OperativoAdminStatusBody
+):
+    """Admin imposta lo stato di uno step a un valore arbitrario, SENZA
+    l'auto-avanzamento di /operativo/complete. Serve a riaprire, saltare o
+    forzare manualmente uno step dalla scheda partner (vista macro-fasi + 14 step).
+    Allinea started_at/completed_at e partner.journey_current_step di conseguenza.
+    """
+    if body.status not in _JOURNEY_STATUSES:
+        raise HTTPException(400, f"Stato non valido: {body.status}")
+
+    now = datetime.utcnow()
+    current = await db.partner_journey_steps.find_one(
+        {"partner_id": partner_id, "step_id": step_id}
+    )
+    if not current:
+        raise HTTPException(404, f"Step {step_id} non trovato per partner {partner_id}")
+
+    set_fields: dict = {"status": body.status, "updated_at": now}
+    if body.status == "done":
+        set_fields["completed_at"] = now
+    elif body.status == "in_progress":
+        set_fields["completed_at"] = None
+        if not current.get("started_at"):
+            set_fields["started_at"] = now
+    else:  # pending | skipped | blocked
+        set_fields["completed_at"] = None
+
+    await db.partner_journey_steps.update_one(
+        {"partner_id": partner_id, "step_id": step_id},
+        {"$set": set_fields},
+    )
+
+    # Se l'admin riporta uno step in lavorazione, rispecchia lo step corrente sul partner.
+    if body.status == "in_progress":
+        await db.partners.update_one(
+            {"id": partner_id},
+            {"$set": {"journey_current_step": step_id}},
+        )
+
+    return {"success": True, "step_id": step_id, "status": body.status}
+
+
 @router.get("/operativo/stefania-context/{partner_id}")
 async def get_stefania_context(partner_id: str):
     """Ritorna contesto strutturato per Stefania su questo partner.
@@ -5967,7 +6018,11 @@ async def get_stefania_context(partner_id: str):
 
 
 @router.post("/operativo/upload/{partner_id}")
-async def upload_operativo_file(partner_id: str, file: UploadFile = File(...)):
+async def upload_operativo_file(
+    partner_id: str,
+    file: UploadFile = File(...),
+    notify: bool = Query(True, description="False quando carica l'admin: evita l'alert 'il partner ha caricato un materiale'"),
+):
     """Upload generico per gli step components Operativo (logo, foto, video, PDF).
     Ritorna URL Cloudinary. Fallback locale se Cloudinary non configurato."""
     content = await file.read()
@@ -5991,7 +6046,8 @@ async def upload_operativo_file(partner_id: str, file: UploadFile = File(...)):
             )
             if result.get("success"):
                 url = result.get("secure_url") or result.get("url", "")
-                await _notify_admin_partner_activity(partner_id, f"ha caricato un materiale ({file.filename})")
+                if notify:
+                    await _notify_admin_partner_activity(partner_id, f"ha caricato un materiale ({file.filename})")
                 return {"success": True, "url": url, "resource_type": resource_type}
     except Exception as e:
         logging.warning(f"[OPERATIVO-UPLOAD] Cloudinary failed: {e}")
@@ -6006,7 +6062,8 @@ async def upload_operativo_file(partner_id: str, file: UploadFile = File(...)):
         path = base_dir / f"{uuid.uuid4().hex[:8]}_{safe_name}"
         async with aiofiles.open(str(path), "wb") as f:
             await f.write(content)
-        await _notify_admin_partner_activity(partner_id, f"ha caricato un materiale ({file.filename})")
+        if notify:
+            await _notify_admin_partner_activity(partner_id, f"ha caricato un materiale ({file.filename})")
         return {"success": True, "url": f"/static/operativo/{partner_id}/{path.name}", "resource_type": resource_type, "fallback": "local"}
     except Exception as e:
         raise HTTPException(500, f"Upload fallito: {e}")

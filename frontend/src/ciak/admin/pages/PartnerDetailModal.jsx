@@ -20,25 +20,7 @@ import {
 } from "lucide-react";
 import { adminFetch } from "../api";
 import { ContractParamsModal } from "./ContractParamsModal";
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// CONFIGURAZIONE FASI
-// ═══════════════════════════════════════════════════════════════════════════════
-
-const PHASES = ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "LIVE"];
-
-const PHASE_LABELS = {
-  F1: "Onboarding",
-  F2: "Posizionamento",
-  F3: "Masterclass",
-  F4: "Struttura Corso",
-  F5: "Produzione Video",
-  F6: "Costruzione Accademia",
-  F7: "Preparazione Lancio",
-  F8: "Lancio",
-  F9: "Ottimizzazione",
-  LIVE: "Live"
-};
+import { PercorsoEvoPanel } from "../components/PercorsoEvoPanel";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MODAL CONFERMA ELIMINAZIONE
@@ -1172,25 +1154,6 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                       data-testid="input-nicchia"
                     />
                   </div>
-
-                  {/* Fase */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Fase Corrente
-                    </label>
-                    <select
-                      value={formData.phase}
-                      onChange={e => setFormData({...formData, phase: e.target.value})}
-                      className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
-                      data-testid="select-phase"
-                    >
-                      {PHASES.map(phase => (
-                        <option key={phase} value={phase}>
-                          {phase} - {PHASE_LABELS[phase]}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
                 </div>
 
                 {/* YouTube Playlist ID */}
@@ -1379,36 +1342,6 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                     </span>
                   </div>
 
-                  {/* Modifica Fase */}
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium mb-2" style={{ color: "#92400E" }}>
-                      Fase Partnership
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {PHASES.map(phase => (
-                        <button
-                          key={phase}
-                          onClick={() => {
-                            if (window.confirm(`Vuoi cambiare la fase di ${partnerName} a ${phase} (${PHASE_LABELS[phase]})?`)) {
-                              setFormData({...formData, phase: phase});
-                            }
-                          }}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                            formData.phase === phase
-                              ? 'bg-amber-500 text-white shadow-md'
-                              : 'bg-white border border-amber-300 text-amber-700 hover:bg-amber-100'
-                          }`}
-                          data-testid={`btn-phase-${phase}`}
-                        >
-                          {phase}
-                        </button>
-                      ))}
-                    </div>
-                    <p className="text-xs mt-2" style={{ color: "#92400E" }}>
-                      Fase attuale: <strong>{formData.phase}</strong> - {PHASE_LABELS[formData.phase]}
-                    </p>
-                  </div>
-
                   {/* Stati booleani */}
                   <div className="grid grid-cols-2 gap-3">
                     <label className="flex items-center gap-3 p-3 rounded-lg bg-white border cursor-pointer hover:bg-amber-50">
@@ -1504,6 +1437,11 @@ export const PartnerDetailModal = ({ partner, isOpen, onClose, onUpdate, onDelet
                     <Trash2 className="w-5 h-5" />
                     Elimina
                   </button>
+                </div>
+
+                {/* Percorso EVO — macro-fasi + 14 step (sostituisce il selettore fase legacy) */}
+                <div className="pt-6 border-t">
+                  <PercorsoEvoPanel partner={partner} />
                 </div>
               </div>
             )}
