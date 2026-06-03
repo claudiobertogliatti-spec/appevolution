@@ -55,6 +55,9 @@ const NAV = [
   // pipeline, clienti bloccati, approvazioni, alert partner). È trasversale →
   // link diretto di primo livello, non più sepolto sotto Gestione Partner.
   { id: "oggi", label: "Oggi", to: "/admin/oggi" },
+  // Stefania = coordinatrice AI trasversale (briefing operativi): voce di primo
+  // livello, non più sepolta sotto Strumenti.
+  { id: "stefania", label: "Stefania AI", to: "/admin/stefania" },
   {
     id: "gestione-clienti",
     label: "Gestione Clienti",
@@ -65,12 +68,14 @@ const NAV = [
     groups: [
       {
         label: "Acquisizione",
-        // Ordine cronologico del funnel: la masterclass è il TOF (chi guarda
-        // entra), poi lo scraping/smistamento, infine l'archivio congelato.
+        // Ordine = avvicinamento al confine €67: prima l'intake nuovo (Lead
+        // Manager, scraping nativo Ciak che alimenta Systeme), poi l'archivio
+        // freddo congelato (12k, export custom audience Meta), infine la
+        // Masterclass Analytics (i più caldi/engaged), adiacente alla Qualifica.
         pages: [
-          { to: "/admin/masterclass-analytics", label: "Masterclass Analytics" },
           { to: "/admin/lead-manager", label: "Lead Manager" },
           { to: "/admin/lista-fredda", label: "Lista Fredda" },
+          { to: "/admin/masterclass-analytics", label: "Masterclass Analytics" },
         ],
       },
       {
@@ -111,13 +116,13 @@ const NAV = [
   {
     id: "strumenti",
     label: "Strumenti",
+    // Solo i tool realmente cablati a un backend. Rimossi dalla sidebar (route e
+    // file restano vivi, raggiungibili via URL): Automazione (doppione di Lead
+    // Manager sullo stesso /api/discovery/leads + griglia agenti vetrina), KPI &
+    // Metriche (numeri mock, nessun partner post-lancio reale), Prompt Analisi e
+    // Template Email (0 endpoint backend → andavano in errore al caricamento).
     pages: [
-      { to: "/admin/stefania", label: "Stefania AI" },
-      { to: "/admin/automazione", label: "Automazione" },
-      { to: "/admin/metriche", label: "KPI & Metriche" },
       { to: "/admin/kb-matteo", label: "KB Matteo" },
-      { to: "/admin/analisi-prompt", label: "Prompt Analisi" },
-      { to: "/admin/template-email", label: "Template Email" },
       { to: "/admin/configurazione", label: "Configurazione" },
     ],
   },
