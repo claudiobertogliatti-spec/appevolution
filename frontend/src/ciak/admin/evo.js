@@ -1,11 +1,12 @@
 /**
- * Mappa la fase legacy del partner (F1–F10, stored nel journey backend) all'atto
- * del Metodo EVO mostrato in admin. Unica fonte di verità: usata da Percorso EVO,
- * Pipeline Partner ed Ex Partner così l'admin parla la stessa lingua del partner.
+ * Mappa la fase legacy del partner all'atto del Metodo EVO mostrato in admin.
+ * Unica fonte di verità: usata dall'hub Partner (viste Per atto / Tabella) ed
+ * Ex Partner, così l'admin parla la stessa lingua del partner.
  *
- * Canonico (vedi backend JOURNEY_STEPS_DEFINITION): F1-F2 = Esamina,
- * F3-F7 = Valida, oltre (F8/F9/F10/LIVE o journey completato) = Ottimizza.
- * Ritorna null se la fase non è ancora impostata: il chiamante decide il fallback.
+ * Canonico (vedi backend JOURNEY_STEPS_DEFINITION): la fase legacy arriva a F7.
+ * F1-F2 = Esamina, F3-F7 = Valida, qualsiasi cosa oltre (o journey completato)
+ * = Ottimizza. Ritorna null se la fase non è impostata: il chiamante sceglie il
+ * fallback.
  */
 export function attoEvo(phase) {
   if (!phase) return null;
