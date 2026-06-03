@@ -4,7 +4,7 @@
  * Sidebar a MACRO-VOCI: la sidebar mostra solo le 4 macro; al passaggio del
  * mouse si apre un flyout con le pagine della macro.
  *  - Dashboard        → KPI · Leads & Pipeline · Transazioni
- *  - Acquisizione     → Lead Manager · Lista Fredda · Clienti Analisi
+ *  - Gestione Clienti → Lista Fredda · Lead Manager · Pipeline (Prospect/Blueprint) · Analisi
  *  - Gestione Partner → Partner · Operatività/Oggi · Pipeline Prospect
  *  - Strumenti        → Stefania AI · KB Matteo · Template Email
  *
@@ -24,6 +24,8 @@ import { LeadManager } from "./pages/LeadManager";
 import { ListaFredda } from "./pages/ListaFredda";
 import { ClientiAnalisi } from "./pages/ClientiAnalisi";
 import { PipelinePartner } from "./pages/PipelinePartner";
+import { PercorsoEvo } from "./pages/PercorsoEvo";
+import { Approvazioni } from "./pages/Approvazioni";
 import { Oggi } from "./pages/Oggi";
 import { StefaniaAdmin } from "./pages/StefaniaAdmin";
 import { TemplateEmail } from "./pages/TemplateEmail";
@@ -51,19 +53,13 @@ const NAV = [
   // panoramica, e Transazioni si raggiunge dai suoi riquadri "Fatturato".
   { id: "dashboard", label: "Dashboard", to: "/admin", end: true },
   {
-    id: "acquisizione",
-    label: "Acquisizione Clienti",
+    id: "gestione-clienti",
+    label: "Gestione Clienti",
     pages: [
       { to: "/admin/lista-fredda", label: "Lista Fredda" },
       { to: "/admin/lead-manager", label: "Lead Manager" },
       { to: "/admin/pipeline-prospect", label: "Pipeline Prospect" },
       { to: "/admin/masterclass-analytics", label: "Masterclass Analytics" },
-    ],
-  },
-  {
-    id: "clienti-attivi",
-    label: "Clienti Attivi",
-    pages: [
       { to: "/admin/pipeline-blueprint", label: "Pipeline Blueprint" },
       { to: "/admin/analisi-da-validare", label: "Analisi da validare" },
     ],
@@ -72,6 +68,8 @@ const NAV = [
     id: "gestione-partner",
     label: "Gestione Partner",
     pages: [
+      { to: "/admin/percorso-evo", label: "Percorso EVO" },
+      { to: "/admin/approvazioni", label: "Approvazioni" },
       { to: "/admin/oggi", label: "Operatività Oggi" },
       { to: "/admin/partner", label: "Pipeline Partner" },
       { to: "/admin/video-review", label: "Video Review" },
@@ -307,7 +305,7 @@ export default function CiakAdminApp() {
         <Route path="leads/:email" element={<AdminLeadDetail onAuthExpired={handleLogout} />} />
         <Route path="transactions" element={<AdminTransactions onAuthExpired={handleLogout} />} />
 
-        {/* Acquisizione Clienti */}
+        {/* Gestione Clienti — acquisizione (lead → prospect) */}
         <Route path="lead-manager" element={<LeadManager onAuthExpired={handleLogout} />} />
         <Route path="lista-fredda" element={<ListaFredda onAuthExpired={handleLogout} />} />
         <Route
@@ -328,7 +326,7 @@ export default function CiakAdminApp() {
           element={<ClientiAnalisi onAuthExpired={handleLogout} />}
         />
 
-        {/* Clienti Attivi */}
+        {/* Gestione Clienti — attivi (post-acquisto: blueprint → analisi) */}
         <Route
           path="pipeline-blueprint"
           element={
@@ -346,6 +344,8 @@ export default function CiakAdminApp() {
         />
 
         {/* Gestione Partner */}
+        <Route path="percorso-evo" element={<PercorsoEvo onAuthExpired={handleLogout} />} />
+        <Route path="approvazioni" element={<Approvazioni />} />
         <Route path="partner" element={<PipelinePartner onAuthExpired={handleLogout} />} />
         <Route path="partner/:id" element={<SectionStub />} />
         <Route path="oggi" element={<Oggi onAuthExpired={handleLogout} />} />
