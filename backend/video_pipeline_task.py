@@ -1597,7 +1597,7 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
                 # Title per intro: nome partner + "Masterclass". Niche dal partner doc.
                 _enh_title = f"{name.upper()} — MASTERCLASS"
                 _enh_niche = (partner.get("niche") or partner.get("nicchia") or "") if partner else ""
-                _enh_cta = f"https://app.evolution-pro.it/partner/{partner_id}/landing"
+                _enh_cta = f"https://ciak.io/partner/{partner_id}/landing"
 
                 enhanced_url = await shotstack_enhance_video(
                     video_url=_gcs_url,

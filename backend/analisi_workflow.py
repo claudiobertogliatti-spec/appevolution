@@ -18,7 +18,7 @@ DOCX_DIR.mkdir(parents=True, exist_ok=True)
 
 # Config
 TEAM_EMAIL = os.environ.get("TEAM_EMAIL", "claudio@evolution-pro.it")
-APP_URL = os.environ.get("APP_URL", os.environ.get("REACT_APP_BACKEND_URL", "https://app.evolution-pro.it"))
+APP_URL = os.environ.get("APP_URL", os.environ.get("REACT_APP_BACKEND_URL", "https://ciak.io"))
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # STEP 1 — VALIDAZIONE RISPOSTE
