@@ -44,6 +44,8 @@ import { MasterclassAnalytics } from "./pages/MasterclassAnalytics";
 import { SiteConfig } from "./pages/SiteConfig";
 import { PartnerSetupPending } from "./pages/PartnerSetupPending";
 import { AnalisiDaValidare } from "./pages/AnalisiDaValidare";
+import { AntonellaDashboard } from "./pages/AntonellaDashboard";
+import { AntonellaOggi } from "./pages/AntonellaOggi";
 
 // ─── Struttura navigazione (macro → pagine) ──────────────────────────────
 
@@ -61,6 +63,9 @@ const NAV = [
   {
     id: "gestione-clienti",
     label: "Gestione Clienti",
+    // Vista Antonella (admin_type "antonella"): comunicazione/social, niente
+    // acquisizione/vendita €67 → macro nascosta dalla sua sidebar.
+    hideFor: ["antonella"],
     // 3 sotto-gruppi nel ciclo di vita cliente (LOCK 3/6). Acquisizione = zona
     // Systeme (Ciak smista/misura); Qualifica = specchio read-only dei tag
     // Systeme; Conversione = zona Ciak operativa (Stripe/contratto/AI). Il
@@ -116,6 +121,8 @@ const NAV = [
   {
     id: "strumenti",
     label: "Strumenti",
+    // Config/KB/automazioni = dominio Claudio → fuori dalla sidebar di Antonella.
+    hideFor: ["antonella"],
     // Solo i tool realmente cablati a un backend. Rimossi dalla sidebar (route e
     // file restano vivi, raggiungibili via URL): Automazione (doppione di Lead
     // Manager sullo stesso /api/discovery/leads + griglia agenti vetrina), KPI &
@@ -275,6 +282,12 @@ function MacroItem({ macro, currentPath }) {
 
 function AdminShell({ user, onLogout, children }) {
   const { pathname } = useLocation();
+  // Sidebar filtrata per ruolo admin: ogni macro con `hideFor` che include
+  // l'admin_type corrente viene tolta. Claudio (o qualsiasi tipo non elencato)
+  // vede tutto. NB: le route restano registrate — è un filtro di vista, non un
+  // lockout: Antonella mantiene i pieni poteri sulle sezioni che vede.
+  const adminType = user?.admin_type || "claudio";
+  const nav = NAV.filter((m) => !(m.hideFor || []).includes(adminType));
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <aside className="w-56 bg-slate-900 text-white flex flex-col flex-shrink-0">
@@ -283,7 +296,7 @@ function AdminShell({ user, onLogout, children }) {
           <p className="text-sm text-slate-400 mt-0.5">Area Admin</p>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {NAV.map((macro) => (
+          {nav.map((macro) => (
             <MacroItem key={macro.id} macro={macro} currentPath={pathname} />
           ))}
         </nav>
@@ -340,13 +353,19 @@ export default function CiakAdminApp() {
     return <LoginScreen onLogin={setUser} />;
   }
 
+  // Antonella (comunicazione/social): Dashboard e Oggi tarate sui suoi compiti,
+  // non sul funnel vendite €67. Conserva pieni poteri admin nelle sezioni visibili.
+  const isAntonella = user?.admin_type === "antonella";
+
   return (
     <AdminShell user={user} onLogout={handleLogout}>
       {/* NOTA: CiakAdminApp è montato sotto `/admin/*` in CiakApp, quindi i path
           di queste Route sono RELATIVI a /admin (niente prefisso /admin/). */}
       <Routes>
         {/* Dashboard — pagine reali (funnel Ciak €67) */}
-        <Route index element={<AdminDashboard onAuthExpired={handleLogout} />} />
+        <Route index element={isAntonella
+          ? <AntonellaDashboard onAuthExpired={handleLogout} />
+          : <AdminDashboard onAuthExpired={handleLogout} />} />
         <Route path="leads" element={<AdminLeads onAuthExpired={handleLogout} />} />
         <Route path="leads/:email" element={<AdminLeadDetail onAuthExpired={handleLogout} />} />
         <Route path="transactions" element={<AdminTransactions onAuthExpired={handleLogout} />} />
@@ -398,7 +417,9 @@ export default function CiakAdminApp() {
         <Route path="percorso-evo" element={<Navigate to="/admin/partner" replace />} />
         <Route path="approvazioni" element={<Approvazioni />} />
         <Route path="partner/:id" element={<SectionStub />} />
-        <Route path="oggi" element={<Oggi onAuthExpired={handleLogout} />} />
+        <Route path="oggi" element={isAntonella
+          ? <AntonellaOggi onAuthExpired={handleLogout} />
+          : <Oggi onAuthExpired={handleLogout} />} />
         {/* Video Review + Documenti Partner — importate da Evolution PRO */}
         <Route path="video-review" element={<VideoReview onAuthExpired={handleLogout} />} />
         <Route
