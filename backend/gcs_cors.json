@@ -1,0 +1,20 @@
+[
+  {
+    "origin": [
+      "https://ciak.io",
+      "https://www.ciak.io",
+      "https://app.evolution-pro.it"
+    ],
+    "method": ["GET", "HEAD", "PUT", "POST", "OPTIONS"],
+    "responseHeader": [
+      "Content-Type",
+      "Content-Range",
+      "Content-Length",
+      "Range",
+      "x-goog-resumable",
+      "Location",
+      "ETag"
+    ],
+    "maxAgeSeconds": 3600
+  }
+]
