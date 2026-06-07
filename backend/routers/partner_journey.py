@@ -5373,6 +5373,7 @@ class VideoUploadConfirmRequest(BaseModel):
     partner_id: str
     video_type: str = "masterclass"
     lesson_id: Optional[str] = None
+    lesson_title: Optional[str] = None   # etichetta lezione (es. nome file) per la review admin
     gcs_path: str   # gs://bucket/path/to/file.mp4
 
 
@@ -5445,15 +5446,25 @@ async def confirm_video_upload(req: VideoUploadConfirmRequest, background_tasks:
             upsert=True
         )
     elif req.video_type == "videocorso" and req.lesson_id:
+        # NB: partner_videocorso.lessons è un DICT keyed per lesson_id (vedi
+        # upload_videocorso_lesson / approve_videocorso_lesson / pipeline set_status),
+        # NON un array — quindi niente operatore posizionale `$`.
+        key = f"lessons.{req.lesson_id}"
+        set_doc = {
+            f"{key}.video_raw_url": gcs_path,
+            f"{key}.pipeline_status": "queued",   # chiave allineata alla pipeline (set_status)
+            f"{key}.video_pipeline_error": None,
+            f"{key}.status": "processing",
+            f"{key}.submitted_at": now,
+            "updated_at": now,
+        }
+        if req.lesson_title:
+            set_doc[f"{key}.title"] = req.lesson_title
         await db.partner_videocorso.update_one(
-            {"partner_id": req.partner_id, "lessons.id": req.lesson_id},
-            {"$set": {
-                "lessons.$.video_raw_url": gcs_path,
-                "lessons.$.video_pipeline_status": "queued",
-                "lessons.$.video_pipeline_error": None,
-                "lessons.$.video_submitted_at": now,
-                "updated_at": now,
-            }}
+            {"partner_id": req.partner_id},
+            {"$set": set_doc,
+             "$setOnInsert": {"partner_id": req.partner_id, "created_at": now}},
+            upsert=True,
         )
 
     # Avvia pipeline Celery
