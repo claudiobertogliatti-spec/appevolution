@@ -22,6 +22,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any, Union
 import uuid
+from bson import ObjectId
 from datetime import datetime, timezone, timedelta
 # from emergentintegrations.llm.chat import LlmChat, UserMessage
 try:
@@ -4247,6 +4248,14 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         cliente_id=user.get("cliente_id"),
         analisi_generata=user.get("analisi_generata"),
     )
+
+async def verify_admin(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Verifica che il chiamante sia un admin autenticato. Ritorna l'utente o solleva 401/403."""
+    user = await get_current_user(credentials)
+    if getattr(user, "role", None) != "admin":
+        raise HTTPException(status_code=403, detail="Accesso riservato agli amministratori")
+    return user
+
 
 @api_router.post("/auth/verify")
 async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):

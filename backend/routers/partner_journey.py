@@ -1230,7 +1230,7 @@ async def upload_videocorso_lesson(
 @router.post("/videocorso/approve-lesson")
 async def approve_videocorso_lesson(partner_id: str, lesson_id: str):
     """Approva una lezione del videocorso (admin)"""
-    await get_partner_or_404(partner_id)
+    partner = await get_partner_or_404(partner_id)
     
     lesson_key = f"lessons.{lesson_id}.status"
     await db.partner_videocorso.update_one(
