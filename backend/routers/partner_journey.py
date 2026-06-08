@@ -3,7 +3,7 @@ Partner Journey Router
 Gestisce il percorso guidato del partner: Posizionamento, Masterclass, Videocorso, Funnel, Lancio
 """
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File, Form, Query
+from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File, Form, Query, Request
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timezone
@@ -5378,11 +5378,16 @@ class VideoUploadConfirmRequest(BaseModel):
 
 
 @router.post("/video/request-upload-session")
-async def request_video_upload_session(req: VideoUploadSessionRequest):
+async def request_video_upload_session(req: VideoUploadSessionRequest, request: Request):
     """
     Crea una sessione GCS Resumable Upload e ritorna l'URL di upload diretto.
     Il browser caricherà il file direttamente su GCS (max size illimitato, progress tracking nativo).
     Non richiede signed URL: usa la sessione resumable di GCS che include l'auth nel URL stesso.
+
+    CORS CRITICO: GCS lega l'Access-Control-Allow-Origin della PUT all'`origin` con cui la
+    sessione è creata. Deve combaciare ESATTAMENTE con l'origine del browser (es. www.ciak.io,
+    NON ciak.io), altrimenti la PUT diretta del browser è bloccata ("Failed to fetch"). Per
+    questo leggiamo l'header Origin della richiesta invece di un valore fisso.
     """
     try:
         from google.cloud import storage as gcs_storage
@@ -5406,10 +5411,11 @@ async def request_video_upload_session(req: VideoUploadSessionRequest):
         blob = bucket.blob(gcs_object)
 
         # Crea sessione resumable — l'URL ritornato include l'auth e può essere usato dal browser
+        browser_origin = request.headers.get("origin") or os.environ.get("FRONTEND_URL", "https://www.ciak.io")
         upload_url = blob.create_resumable_upload_session(
             content_type=req.content_type,
             size=None,   # sconosciuto — il browser lo imposterà
-            origin=os.environ.get("FRONTEND_URL", "https://app.evolution-pro.it"),
+            origin=browser_origin,   # deve combaciare con l'origine reale del browser (vedi docstring)
         )
         logging.info(f"[VIDEO-UPLOAD] Sessione GCS creata per partner {req.partner_id}: {gcs_path}")
     except Exception as e:
