@@ -8,6 +8,7 @@ PARTE D - Brand Kit Partner (Canva)
 """
 
 import os
+import asyncio
 import json
 import logging
 import uuid
