@@ -1,0 +1,52 @@
+name: Deploy Backend (Cloud Run)
+
+# Deploya il backend su Cloud Run SOLO quando cambia codice in backend/ su main.
+# NB: questo workflow gira solo su push a main (mai sui PR), quindi i secret non
+# sono esposti a PR da fork. Richiede il setup WIF descritto in docs/ci-cd/deploy-setup.md.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy-backend.yml"
+
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: gcloud run deploy
+    runs-on: ubuntu-latest
+    # Necessario per Workload Identity Federation (token OIDC keyless)
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Auth a Google Cloud (Workload Identity Federation)
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: gen-lang-client-0744698012
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SA }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy evolution-pro-backend
+        run: |
+          gcloud run deploy evolution-pro-backend \
+            --source ./backend \
+            --region europe-west1 \
+            --project gen-lang-client-0744698012 \
+            --quiet
+
+      # Garantisce che il traffico vada all'ultima revisione (pitfall noto: traffico
+      # pinnato su revisioni vecchie — vedi CLAUDE.md "Problemi noti del backend" #3).
+      - name: Punta il traffico all'ultima revisione
+        run: |
+          gcloud run services update-traffic evolution-pro-backend \
+            --to-latest --region europe-west1 \
+            --project gen-lang-client-0744698012 --quiet
