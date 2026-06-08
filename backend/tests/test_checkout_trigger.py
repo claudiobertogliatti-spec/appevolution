@@ -1,6 +1,8 @@
 import pytest
 from routers import checkout
 
+pytestmark = pytest.mark.unit
+
 
 @pytest.mark.asyncio
 async def test_handle_checkout_triggers_delivery(monkeypatch):

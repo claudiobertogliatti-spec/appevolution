@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (syntax + lint + unit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      # 1) Check di sintassi su TUTTO il backend (BLOCCANTE).
+      #    Intercetta errori tipo "await outside async function" (problema #11 in CLAUDE.md),
+      #    che hanno gia' crashato il worker Celery in produzione.
+      - name: Syntax check (compileall)
+        run: python -m compileall -q backend
+
+      # 2) Lint errori di sintassi/parse (BLOCCANTE, zero falsi positivi).
+      - name: Lint sintassi (flake8 E9)
+        run: |
+          python -m pip install --quiet flake8
+          flake8 backend --count --select=E9 --show-source --statistics \
+            --exclude='backend/__pycache__,backend/tests/__pycache__'
+
+      # 3) Nomi non definiti / import mancanti (INFORMATIVO, non blocca).
+      #    Oggi il repo ha gia' diversi F821 noti (es. ObjectId, verify_admin,
+      #    LlmChat legacy). Quando saranno risolti, spostare in BLOCCANTE.
+      - name: Lint nomi non definiti (flake8 F — informativo)
+        continue-on-error: true
+        run: flake8 backend --count --select=F63,F7,F82 --show-source --statistics
+          --exclude='backend/__pycache__,backend/tests/__pycache__'
+
+      # 4) Dipendenze + unit test ermetici (BLOCCANTE).
+      - name: Install backend deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest pytest-asyncio
+
+      - name: Unit tests
+        working-directory: backend
+        run: pytest tests -m unit -q
+
+  frontend:
+    name: Frontend (build smoke)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: yarn
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Install
+        working-directory: frontend
+        run: yarn install --frozen-lockfile
+
+      # CI=false: i warning non bloccano (il codebase ne ha molti pre-esistenti).
+      # Errori reali (sintassi, import mancanti, JSX rotto) fanno comunque fallire.
+      - name: Build (smoke test)
+        working-directory: frontend
+        run: CI=false yarn build

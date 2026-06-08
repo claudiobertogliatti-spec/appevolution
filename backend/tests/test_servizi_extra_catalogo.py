@@ -6,6 +6,8 @@ docs/superpowers/specs/2026-05-31-evolution-one-restructure-design.md
 import pytest
 from routers.servizi_extra import SERVIZI_CATALOGO
 
+pytestmark = pytest.mark.unit
+
 
 EXPECTED_NEW_SERVIZI = {
     # id : (prezzo, tipo)

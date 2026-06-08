@@ -1,6 +1,8 @@
 import pytest
 from services import ciak_analisi_prompt_store as store
 
+pytestmark = pytest.mark.unit
+
 
 class FakeColl:
     def __init__(self):
