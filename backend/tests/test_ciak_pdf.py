@@ -1,4 +1,7 @@
+import pytest
 from services.ciak_pdf import render_bozza_html
+
+pytestmark = pytest.mark.unit
 
 BOZZA = {
     "intro": "Hai già clienti reali.",

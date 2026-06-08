@@ -1,6 +1,8 @@
 import pytest
 from services import ciak_analisi
 
+pytestmark = pytest.mark.unit
+
 
 async def _async(v):
     return v

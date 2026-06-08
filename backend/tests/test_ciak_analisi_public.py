@@ -2,6 +2,8 @@ import pytest
 from fastapi import HTTPException
 from routers import ciak_analisi_public as pub
 
+pytestmark = pytest.mark.unit
+
 
 class Coll:
     def __init__(self, doc): self.doc = doc
