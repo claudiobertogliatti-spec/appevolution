@@ -332,6 +332,7 @@ class StefaniaAI:
                     questionario = context.get("questionario", {})
                     if not questionario:
                         # Prova a recuperare dal DB
+                        from routers.dependencies import get_db
                         db = get_db()
                         if db:
                             q_data = await db.questionari_analisi.find_one(
