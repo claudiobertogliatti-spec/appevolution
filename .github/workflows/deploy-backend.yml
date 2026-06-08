@@ -4,6 +4,8 @@ name: Deploy Backend (Cloud Run)
 # NB: questo workflow gira solo su push a main (mai sui PR), quindi i secret non
 # sono esposti a PR da fork. Richiede il setup WIF descritto in docs/ci-cd/deploy-setup.md.
 on:
+  # Avvio manuale dal tab Actions (utile per deployare senza un commit).
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
