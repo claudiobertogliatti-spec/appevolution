@@ -5,6 +5,7 @@ Includes Smart-Optimization alerts based on CPL thresholds
 """
 
 import os
+import uuid
 import httpx
 import logging
 from datetime import datetime, timezone, timedelta
