@@ -23,8 +23,7 @@ jobs:
           cache-dependency-path: backend/requirements.txt
 
       # 1) Check di sintassi su TUTTO il backend (BLOCCANTE).
-      #    Intercetta errori tipo "await outside async function" (problema #11 in CLAUDE.md),
-      #    che hanno gia' crashato il worker Celery in produzione.
+      #    Intercetta errori tipo "await outside async function" (problema #11 in CLAUDE.md).
       - name: Syntax check (compileall)
         run: python -m compileall -q backend
 
@@ -36,8 +35,6 @@ jobs:
             --exclude='backend/__pycache__,backend/tests/__pycache__'
 
       # 3) Nomi non definiti / import mancanti (INFORMATIVO, non blocca).
-      #    Oggi il repo ha gia' diversi F821 noti (es. ObjectId, verify_admin,
-      #    LlmChat legacy). Quando saranno risolti, spostare in BLOCCANTE.
       - name: Lint nomi non definiti (flake8 F — informativo)
         continue-on-error: true
         run: flake8 backend --count --select=F63,F7,F82 --show-source --statistics
@@ -50,9 +47,24 @@ jobs:
           pip install -r backend/requirements.txt
           pip install pytest pytest-asyncio
 
+      # MONGO_URL fittizia: serve solo perche' routers/dependencies.py la richiede
+      # all'import (il client Motor e' lazy, nessuna connessione reale).
+      # Lista esplicita dei file unit: evita di importare gli integration test
+      # che fanno raise all'import senza un backend live.
       - name: Unit tests
         working-directory: backend
-        run: pytest tests -m unit -q
+        env:
+          MONGO_URL: mongodb://localhost:27017
+          DB_NAME: ciak_ci
+          JWT_SECRET_KEY: ci-test-secret
+        run: >
+          pytest -q
+          tests/test_ciak_analisi.py
+          tests/test_ciak_analisi_prompt_store.py
+          tests/test_ciak_analisi_public.py
+          tests/test_checkout_trigger.py
+          tests/test_ciak_pdf.py
+          tests/test_servizi_extra_catalogo.py
 
   frontend:
     name: Frontend (build smoke)
@@ -63,15 +75,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: yarn
-          cache-dependency-path: frontend/yarn.lock
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install
         working-directory: frontend
-        run: yarn install --frozen-lockfile
+        run: npm ci || npm install --no-audit --no-fund
 
       # CI=false: i warning non bloccano (il codebase ne ha molti pre-esistenti).
       # Errori reali (sintassi, import mancanti, JSX rotto) fanno comunque fallire.
       - name: Build (smoke test)
         working-directory: frontend
-        run: CI=false yarn build
+        run: CI=false npm run build
