@@ -32,6 +32,7 @@ import { PipelineList } from "./pages/PipelineList";
 import { QuarantenaPartner } from "./pages/QuarantenaPartner";
 import { ExPartner } from "./pages/ExPartner";
 import { VideoReview } from "./pages/VideoReview";
+import VideoPipelineMonitor from "./pages/VideoPipelineMonitor";
 import { PartnerDocumenti } from "./pages/PartnerDocumenti";
 import { StefaniaWarMode } from "./pages/StefaniaWarMode";
 import { CalendarioEditoriale } from "./pages/CalendarioEditoriale";
@@ -130,6 +131,7 @@ const NAV = [
     // Template Email (0 endpoint backend → andavano in errore al caricamento).
     pages: [
       { to: "/admin/kb-matteo", label: "KB Matteo" },
+      { to: "/admin/video-pipeline", label: "Pipeline Video" },
       { to: "/admin/configurazione", label: "Configurazione" },
     ],
   },
@@ -422,6 +424,7 @@ export default function CiakAdminApp() {
           : <Oggi onAuthExpired={handleLogout} />} />
         {/* Video Review + Documenti Partner — importate da Evolution PRO */}
         <Route path="video-review" element={<VideoReview onAuthExpired={handleLogout} />} />
+        <Route path="video-pipeline" element={<VideoPipelineMonitor onAuthExpired={handleLogout} />} />
         <Route
           path="documenti-partner"
           element={<PartnerDocumenti onAuthExpired={handleLogout} />}
