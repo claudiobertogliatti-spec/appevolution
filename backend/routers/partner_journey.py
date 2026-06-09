@@ -121,7 +121,7 @@ async def get_partner_or_404(partner_id: str):
 
 async def get_llm_chat(session_id: str = None, system_message: str = None):
     """Helper per ottenere istanza LLM con Emergent Key"""
-    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    from services.ciak_llm import LlmChat, UserMessage
     import uuid
     
     api_key = os.environ.get('EMERGENT_LLM_KEY')
@@ -138,7 +138,7 @@ async def get_llm_chat(session_id: str = None, system_message: str = None):
 
 # Import UserMessage for use in LLM calls
 try:
-    from emergentintegrations.llm.chat import UserMessage
+    from services.ciak_llm import UserMessage
 except ImportError:
     UserMessage = None
 

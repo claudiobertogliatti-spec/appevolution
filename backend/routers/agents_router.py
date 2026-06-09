@@ -15,7 +15,7 @@ from marco_ai import ask_marco, marco_ai, MARCO_SYSTEM_PROMPT
 from gaia_ai import ask_gaia, gaia_ai, GAIA_SYSTEM_PROMPT
 from stefania_ai import route_message, run_daily_monitoring, stefania_ai
 try:
-    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    from services.ciak_llm import LlmChat, UserMessage
 except ImportError:
     LlmChat = None
     UserMessage = None

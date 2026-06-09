@@ -44,7 +44,7 @@ OPENCLAW_RESEARCH_CONFIG = {
 
 async def get_research_llm():
     """Inizializza LLM per sintesi ricerca"""
-    from emergentintegrations.llm.chat import LlmChat
+    from services.ciak_llm import LlmChat
     
     api_key = os.environ.get('EMERGENT_LLM_KEY')
     if not api_key:
@@ -403,7 +403,7 @@ async def synthesize_research_with_claude(research_data: Dict) -> Dict:
     """
     try:
         llm = await get_research_llm()
-        from emergentintegrations.llm.chat import UserMessage
+        from services.ciak_llm import UserMessage
         
         prompt = f"""Analizza i seguenti dati di ricerca web e produci una sintesi strategica.
 

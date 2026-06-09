@@ -370,7 +370,7 @@ Rispondi SOLO in JSON valido con questa struttura:
         
         if EMERGENT_LLM_KEY:
             try:
-                from emergentintegrations.llm.chat import LlmChat, UserMessage
+                from services.ciak_llm import LlmChat, UserMessage
                 
                 chat = LlmChat(
                     api_key=EMERGENT_LLM_KEY,

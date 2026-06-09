@@ -142,7 +142,7 @@ Produci questo JSON (tutte le chiavi obbligatorie):
 async def genera_testo_ai(risposte: dict, nome: str) -> dict:
     """Chiama Claude per arricchire le risposte con considerazioni personalizzate."""
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from services.ciak_llm import LlmChat, UserMessage
         
         EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
         

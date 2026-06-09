@@ -336,7 +336,7 @@ Rispondi con JSON:
     logger.info(f"[GAIA] Usando Claude (fallback) per analisi: {source_url}")
     
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from services.ciak_llm import LlmChat, UserMessage
         
         # Crea istanza LLM 
         EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY", "")

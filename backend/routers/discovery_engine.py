@@ -228,7 +228,7 @@ class MarkResponseRequest(BaseModel):
 
 async def get_llm_chat(session_id: str = "discovery", system_message: str = "Sei STEFANIA, assistente AI di Evolution PRO."):
     """Helper per ottenere istanza LLM"""
-    from emergentintegrations.llm.chat import LlmChat
+    from services.ciak_llm import LlmChat
     if not EMERGENT_LLM_KEY:
         raise HTTPException(status_code=500, detail="LLM Key non configurata")
     return LlmChat(api_key=EMERGENT_LLM_KEY, session_id=session_id, system_message=system_message)
@@ -1927,7 +1927,7 @@ STRUTTURA CONSIGLIATA:
 Genera il messaggio:"""
 
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from services.ciak_llm import LlmChat, UserMessage
         
         if not EMERGENT_LLM_KEY:
             raise HTTPException(status_code=500, detail="LLM Key non configurata")
@@ -2135,7 +2135,7 @@ async def generate_outreach_message_background(lead_id: str, gift_type: GiftType
         if not lead:
             return
         
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from services.ciak_llm import LlmChat, UserMessage
         
         if not EMERGENT_LLM_KEY:
             logger.error(f"[OUTREACH BG] LLM Key non configurata")
