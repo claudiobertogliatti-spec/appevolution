@@ -713,3 +713,19 @@ Il retrigger manuale avvierà un task fresco sul container con timeout=1200s.
 <!-- trigger build: 2026-04-23T16:28:19.119Z — worker separato su evolution-pro-worker -->
 
 <!-- deploy: worker separato attivo 2026-04-23T16:39:17.810Z -->
+
+## ⏳ TODO YouTube — rigenerare il token sotto "Production" (fix scadenza 7 giorni)
+
+La pipeline video carica su YouTube con un token OAuth in `youtube-user-credentials`
+(Secret Manager, montato in `/secrets/youtube_credentials.pickle`). Se le lezioni
+finiscono in `error_youtube` con `invalid_grant`, il token e' scaduto/revocato.
+
+Fix fatto il 2026-06-09: token rigenerato (v5), deploy `00334`, consent screen
+pubblicata in **Production**. **RESTA DA FARE**: il token v5 era emesso quando
+l'app era ancora in "Testing", quindi eredita la scadenza a 7 giorni. Va
+**rigenerato una volta ORA che l'app e' Production** per renderlo permanente.
+
+Procedura completa: `docs/runbooks/youtube-reauth.md` (+ `scripts/youtube_reauth.py`).
+In breve: `python scripts/youtube_reauth.py client_secret.json` (consenso col canale
+Evolution PRO) -> `gcloud secrets versions add youtube-user-credentials
+--data-file=youtube_credentials.json` -> redeploy backend.
