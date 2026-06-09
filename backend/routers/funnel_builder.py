@@ -315,7 +315,7 @@ Genera un JSON con ESATTAMENTE questi campi (tutti in italiano, tono professiona
 Rispondi SOLO con il JSON, nessun altro testo."""
 
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from services.ciak_llm import LlmChat, UserMessage
         llm = LlmChat(
             api_key=api_key,
             session_id=f"funnel_ai_{partner_id}_{datetime.now().timestamp()}",

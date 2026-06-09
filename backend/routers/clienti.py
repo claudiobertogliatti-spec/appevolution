@@ -797,7 +797,7 @@ async def generate_analysis(cliente_id: str):
             answers_text += f"**{label}:**\n{value}\n\n"
         
         # Generate analysis with Claude
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from services.ciak_llm import LlmChat, UserMessage
         
         api_key = os.environ.get("EMERGENT_LLM_KEY")
         if not api_key:

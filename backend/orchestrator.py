@@ -367,7 +367,7 @@ class MultiAgentOrchestrator:
                 return
             
             # Genera contenuto per le sezioni usando LLM
-            from emergentintegrations.llm.chat import LlmChat, UserMessage
+            from services.ciak_llm import LlmChat, UserMessage
             
             api_key = os.environ.get('EMERGENT_LLM_KEY')
             if not api_key:

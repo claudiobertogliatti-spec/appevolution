@@ -8,7 +8,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional, Dict
 try:
-    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    from services.ciak_llm import LlmChat, UserMessage
 except ImportError:
     LlmChat = None
     UserMessage = None
