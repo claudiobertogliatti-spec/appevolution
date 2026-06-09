@@ -24,7 +24,7 @@ from typing import List, Optional, Dict, Any, Union
 import uuid
 from bson import ObjectId
 from datetime import datetime, timezone, timedelta
-# from emergentintegrations.llm.chat import LlmChat, UserMessage
+from services.ciak_llm import LlmChat, UserMessage
 try:
     from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 except ImportError:
@@ -3043,7 +3043,7 @@ async def genera_analisi_ai(user_id: str):
     Genera l'Analisi Strategica completa usando AI (Claude).
     Struttura professionale con punteggio di fattibilità e raccomandazione finale.
     """
-    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    from services.ciak_llm import LlmChat, UserMessage
     
     # Recupera il cliente
     cliente = await db.users.find_one(
@@ -3743,7 +3743,7 @@ async def genera_script_call(user_id: str):
     Genera uno Script Call personalizzato per la call strategica.
     Lo script è diviso in 8 blocchi operativi per guidare Claudio durante la call.
     """
-    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    from services.ciak_llm import LlmChat, UserMessage
     
     # Recupera il cliente
     cliente = await db.users.find_one(
@@ -6402,7 +6402,7 @@ async def chat_with_agent(request: ChatRequest):
     """
     try:
         from agent_prompts import AGENT_SYSTEM_PROMPTS, get_agent_prompt
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from services.ciak_llm import LlmChat, UserMessage
         
         # Determina l'agente da usare (default: STEFANIA)
         agent_id = (request.agent or "STEFANIA").upper()

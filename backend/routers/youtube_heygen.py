@@ -45,7 +45,7 @@ async def generate_triple_script(request: GenerateScriptsRequest):
     - LinkedIn Video (60-90 sec)
     """
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from services.ciak_llm import LlmChat, UserMessage
         
         EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
         if not EMERGENT_LLM_KEY:
@@ -124,7 +124,7 @@ async def generate_monthly_calendar(request: GenerateCalendarRequest):
     Genera un piano editoriale YouTube mensile sincronizzato con LinkedIn
     """
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from services.ciak_llm import LlmChat, UserMessage
         
         EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
         if not EMERGENT_LLM_KEY:

@@ -27,11 +27,13 @@ jobs:
       - name: Syntax check (compileall)
         run: python -m compileall -q backend
 
-      # 2) Lint errori di sintassi/parse (BLOCCANTE, zero falsi positivi).
-      - name: Lint sintassi (flake8 E9)
+      # 2) Errori di sintassi/parse (E9) + nomi non definiti (F821) (BLOCCANTE).
+      #    F821 ora e' a zero (migrazione LlmChat/UserMessage -> Anthropic nativo +
+      #    fix import asyncio/uuid/ObjectId/verify_admin/get_db): lo teniamo verde.
+      - name: Lint sintassi + nomi non definiti (flake8 E9,F821)
         run: |
           python -m pip install --quiet flake8
-          flake8 backend --count --select=E9 --show-source --statistics \
+          flake8 backend --count --select=E9,F821 --show-source --statistics \
             --exclude='backend/__pycache__,backend/tests/__pycache__'
 
       # 3) Nomi non definiti / import mancanti (INFORMATIVO, non blocca).

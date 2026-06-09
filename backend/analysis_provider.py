@@ -155,7 +155,7 @@ class ClaudeAnalysisProvider(AnalysisProvider):
         analysis_id = f"analysis_{uuid.uuid4().hex[:12]}"
         
         try:
-            from emergentintegrations.llm.chat import LlmChat, UserMessage
+            from services.ciak_llm import LlmChat, UserMessage
             
             if not self.api_key:
                 raise ValueError("EMERGENT_LLM_KEY not configured")
@@ -202,7 +202,7 @@ class ClaudeAnalysisProvider(AnalysisProvider):
         script_id = f"script_{uuid.uuid4().hex[:12]}"
         
         try:
-            from emergentintegrations.llm.chat import LlmChat, UserMessage
+            from services.ciak_llm import LlmChat, UserMessage
             
             if not self.api_key:
                 raise ValueError("EMERGENT_LLM_KEY not configured")
