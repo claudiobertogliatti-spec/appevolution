@@ -116,6 +116,21 @@ export function PartnerFilesPage({ partner }) {
     const file = e.target.files[0];
     if (!file || !partner?.id) return;
 
+    // Guardrail: /api/files/upload passa dal backend (Cloud Run) che rifiuta le
+    // richieste sopra ~32 MB con HTTP 413. Per i file grandi (es. video grezzo)
+    // questo upload e' destinato a fallire: blocchiamo prima e indirizziamo al
+    // percorso giusto ("Produzione Video" -> GCS), invece di crashare.
+    const MAX_DIRECT = 30 * 1024 * 1024;
+    if (file.size > MAX_DIRECT) {
+      window.alert(
+        "Questo file e' troppo grande per il caricamento da qui (max ~30 MB).\n\n" +
+        "Per il video della masterclass usa \"Produzione Video\". Se quel passo e' " +
+        "ancora bloccato, chiedi al team Evolution di caricarlo dall'area admin."
+      );
+      if (e.target) e.target.value = "";
+      return;
+    }
+
     setUploading(true);
     try {
       const fd = new FormData();
