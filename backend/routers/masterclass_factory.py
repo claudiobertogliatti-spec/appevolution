@@ -218,7 +218,7 @@ async def save_answers(partner_id: str, data: MasterclassAnswers):
 @router.post("/{partner_id}/generate-script")
 async def generate_script(partner_id: str, data: MasterclassAnswers):
     """Genera lo script strutturato della masterclass usando Claude"""
-    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    from services.ciak_llm import LlmChat, UserMessage
     import json
 
     partner = await db.partners.find_one({"id": partner_id}, {"_id": 0})

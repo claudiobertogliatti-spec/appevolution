@@ -123,7 +123,7 @@ async def get_questionario(user_id: str):
 
 async def get_llm_chat():
     """Inizializza LLM con Emergent Key"""
-    from emergentintegrations.llm.chat import LlmChat
+    from services.ciak_llm import LlmChat
     
     api_key = os.environ.get('EMERGENT_LLM_KEY')
     if not api_key:
@@ -221,7 +221,7 @@ Rispondi SOLO con il JSON valido."""
 
     try:
         llm = await get_llm_chat()
-        from emergentintegrations.llm.chat import UserMessage
+        from services.ciak_llm import UserMessage
         
         response = await llm.chat([UserMessage(text=prompt)])
         response_text = response.text.strip()
@@ -435,7 +435,7 @@ Rispondi SOLO con il JSON valido."""
 
     try:
         llm = await get_llm_chat()
-        from emergentintegrations.llm.chat import UserMessage
+        from services.ciak_llm import UserMessage
         
         response = await llm.chat([UserMessage(text=prompt)])
         response_text = response.text.strip()
@@ -673,7 +673,7 @@ Rispondi SOLO con il JSON valido."""
 
     try:
         llm = await get_llm_chat()
-        from emergentintegrations.llm.chat import UserMessage
+        from services.ciak_llm import UserMessage
         
         response = await llm.chat([UserMessage(text=prompt)])
         response_text = response.text.strip()

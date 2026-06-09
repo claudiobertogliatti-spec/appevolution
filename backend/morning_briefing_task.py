@@ -124,7 +124,7 @@ def morning_lead_briefing(self):
 
                 if leads_context:
                     try:
-                        from emergentintegrations.llm.chat import LlmChat, UserMessage
+                        from services.ciak_llm import LlmChat, UserMessage
                         from agent_prompts import ELENA_SYSTEM_PROMPT
 
                         api_key = os.environ.get("ANTHROPIC_API_KEY")
