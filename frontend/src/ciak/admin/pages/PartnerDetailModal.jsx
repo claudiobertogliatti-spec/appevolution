@@ -224,6 +224,8 @@ function JourneyEditor({ data, saving, saved, onSave, onAuthExpired }) {
   const [approvingVideo, setApprovingVideo] = useState(false);
   const [settingPronto, setSettingPronto] = useState(false);
   const [videoMsg, setVideoMsg] = useState(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const partnerId = data.partner?.id;
 
@@ -265,6 +267,51 @@ function JourneyEditor({ data, saving, saved, onSave, onAuthExpired }) {
       else setVideoMsg({ ok: false, text: "Errore di rete" });
     } finally {
       setSubmittingVideo(false);
+    }
+  };
+
+  // Upload diretto del grezzo su GCS (admin, NON soggetto al gate del percorso).
+  // Stesso motore di Step07 "Produzione Video": sessione resumable -> PUT diretto
+  // su GCS (niente limite 32 MB di Cloud Run) -> confirm-upload avvia la pipeline.
+  const handleDirectUpload = async (file) => {
+    if (!file || !partnerId) return;
+    setUploadingFile(true);
+    setUploadProgress(0);
+    setVideoMsg(null);
+    const contentType = file.type || "video/mp4";
+    try {
+      const sessRes = await adminFetch(`/api/partner-journey/video/request-upload-session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ partner_id: partnerId, video_type: "masterclass", filename: file.name, content_type: contentType }),
+      });
+      if (!sessRes.ok) throw new Error(`Sessione upload fallita (HTTP ${sessRes.status})`);
+      const { upload_url, gcs_path } = await sessRes.json();
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", upload_url);
+        xhr.setRequestHeader("Content-Type", contentType);
+        if (file.size > 0) xhr.setRequestHeader("Content-Range", `bytes 0-${file.size - 1}/${file.size}`);
+        xhr.upload.onprogress = (e) => { if (e.lengthComputable) setUploadProgress(Math.round((e.loaded / e.total) * 100)); };
+        xhr.onload = () => { (xhr.status >= 200 && xhr.status < 300) ? resolve() : reject(new Error(`Upload su GCS fallito (HTTP ${xhr.status})`)); };
+        xhr.onerror = () => reject(new Error("Errore di rete durante l'upload"));
+        xhr.send(file);
+      });
+      const confRes = await adminFetch(`/api/partner-journey/video/confirm-upload`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ partner_id: partnerId, video_type: "masterclass", gcs_path }),
+      });
+      if (!confRes.ok) throw new Error(`Conferma fallita (HTTP ${confRes.status})`);
+      setMcPipelineStatus("queued");
+      setMcRawVideoUrl(gcs_path);
+      setVideoMsg({ ok: true, text: "Video caricato e pipeline avviata." });
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") { onAuthExpired?.(); return; }
+      setVideoMsg({ ok: false, text: "Upload fallito: " + (e.message || e) });
+    } finally {
+      setUploadingFile(false);
+      setUploadProgress(0);
     }
   };
 
@@ -466,6 +513,30 @@ function JourneyEditor({ data, saving, saved, onSave, onAuthExpired }) {
                   {submittingVideo ? "Inviando..." : "Avvia Pipeline"}
                 </button>
               </div>
+            </div>
+            <div>
+              <label className="text-[11px] font-bold block mb-1" style={{ color: "#5F6572" }}>Oppure carica il file direttamente (no Drive, nessun limite 32 MB, salta il gate)</label>
+              <input
+                type="file"
+                accept="video/*"
+                id="mc-direct-upload"
+                style={{ display: "none" }}
+                disabled={uploadingFile}
+                onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) handleDirectUpload(f); e.target.value = ""; }}
+              />
+              <label
+                htmlFor="mc-direct-upload"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold cursor-pointer"
+                style={{ background: uploadingFile ? "#E5E7EB" : "#0F172A", color: uploadingFile ? "#9CA3AF" : "white" }}
+              >
+                {uploadingFile ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                {uploadingFile ? `Caricamento ${uploadProgress}%` : "Scegli video dal computer\u2026"}
+              </label>
+              {uploadingFile && (
+                <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: "#E5E7EB" }}>
+                  <div className="h-full rounded-full" style={{ width: `${uploadProgress}%`, background: "#3B82F6", transition: "width .2s" }} />
+                </div>
+              )}
             </div>
             <div className="flex gap-2 flex-wrap">
               <button
