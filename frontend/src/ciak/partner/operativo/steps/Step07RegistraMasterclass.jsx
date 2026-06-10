@@ -1,15 +1,18 @@
 import React, { useState } from "react";
 import StepBase from "./StepBase";
+import { uploadVideoResumable } from "../../../lib/gcsResumableUpload";
 
 const API = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || "";
 
 /**
  * Step 7 — Carica il video grezzo della masterclass.
  *
- * Il video grezzo (centinaia di MB) NON passa dal backend: Cloud Run rifiuta
- * ogni richiesta sopra ~32 MB con HTTP 413. Usiamo il flusso a 3 passi:
+ * Il video grezzo (anche vari GB) NON passa dal backend: Cloud Run rifiuta
+ * ogni richiesta sopra ~32 MB con HTTP 413. Flusso a 3 passi:
  *   1. POST /video/request-upload-session → sessione GCS resumable (upload_url)
- *   2. PUT diretto del file su GCS (bypassa Cloud Run, progress nativo)
+ *   2. Upload a CHUNK diretto su GCS con auto-ripresa (vedi lib/gcsResumableUpload):
+ *      un calo di rete costa al massimo un chunk da 32MB, mai l'intero file;
+ *      anche dopo un refresh si riprende dall'offset già caricato.
  *   3. POST /video/confirm-upload → registra gcs_path + avvia la pipeline Celery
  *      (taglio filler, transcript, render, upload YouTube → ready_for_review)
  */
@@ -22,47 +25,28 @@ export default function Step07RegistraMasterclass({ step, partnerId, onComplete,
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const [progress, setProgress] = useState(0);
+  const [statusMsg, setStatusMsg] = useState(null);
 
   const handle = async (file) => {
     if (!file) return;
     setBusy(true);
     setErr(null);
     setProgress(0);
+    setStatusMsg(null);
     const contentType = file.type || "video/mp4";
     try {
-      // 1. Sessione di upload diretto su GCS
-      const sessRes = await fetch(`${API}/api/partner-journey/video/request-upload-session`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      // 1+2. Sessione + upload a chunk con auto-ripresa
+      const { gcs_path } = await uploadVideoResumable({
+        api: API,
+        sessionBody: {
           partner_id: partnerId,
           video_type: "masterclass",
           filename: file.name,
           content_type: contentType,
-        }),
-      });
-      if (!sessRes.ok) throw new Error(`Sessione upload fallita (HTTP ${sessRes.status})`);
-      const { upload_url, gcs_path } = await sessRes.json();
-
-      // 2. PUT diretto del file su GCS (con progress)
-      await new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("PUT", upload_url);
-        xhr.setRequestHeader("Content-Type", contentType);
-        // Single-shot resumable: dichiara la dimensione totale così GCS finalizza
-        // l'oggetto in un'unica PUT (la sessione è stata creata con size sconosciuta).
-        if (file.size > 0) {
-          xhr.setRequestHeader("Content-Range", `bytes 0-${file.size - 1}/${file.size}`);
-        }
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) setProgress(Math.round((e.loaded / e.total) * 100));
-        };
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) resolve();
-          else reject(new Error(`Upload su GCS fallito (HTTP ${xhr.status})`));
-        };
-        xhr.onerror = () => reject(new Error("Errore di rete durante l'upload"));
-        xhr.send(file);
+        },
+        file,
+        onProgress: setProgress,
+        onStatus: setStatusMsg,
       });
 
       // 3. Conferma → avvia la pipeline
@@ -90,6 +74,7 @@ export default function Step07RegistraMasterclass({ step, partnerId, onComplete,
     } finally {
       setBusy(false);
       setProgress(0);
+      setStatusMsg(null);
     }
   };
 
@@ -99,7 +84,7 @@ export default function Step07RegistraMasterclass({ step, partnerId, onComplete,
       title="Carica il video grezzo della masterclass"
       ctaDisabled={!submitted || busy}
       onCta={() => onComplete({ video_submitted: true, filename: fileName })}
-      secondaryNote="MP4 o MOV, anche grezzo senza editing. Ci pensiamo noi al taglio e al render finale."
+      secondaryNote="MP4 o MOV, anche grezzo senza editing. Ci pensiamo noi al taglio e al render finale. Se la connessione cade, l'upload riprende da solo."
     >
       <label className={`block border-2 border-dashed rounded-md p-10 text-center cursor-pointer transition ${submitted ? "bg-green-50 border-green-500" : "bg-slate-50 border-slate-400 hover:border-yellow-400"} ${busy ? "pointer-events-none opacity-60" : ""}`}>
         <input
@@ -123,7 +108,7 @@ export default function Step07RegistraMasterclass({ step, partnerId, onComplete,
           <div className="bg-slate-200 rounded h-2 overflow-hidden">
             <div className="bg-yellow-400 h-full transition-all" style={{ width: `${progress}%` }}></div>
           </div>
-          <p className="text-xs text-slate-500 mt-1">Upload {progress}%</p>
+          <p className="text-xs text-slate-500 mt-1">Upload {progress}%{statusMsg ? ` — ${statusMsg}` : ""}</p>
         </div>
       )}
       {err && <p className="text-red-600 text-sm mt-3">{err}</p>}
