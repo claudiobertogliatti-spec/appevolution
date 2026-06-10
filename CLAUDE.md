@@ -739,15 +739,15 @@ Evolution PRO) -> `gcloud secrets versions add youtube-user-credentials
 
 ### Metodo veloce per scrivere/leggere il Posizionamento (USARE QUESTO, non la UI campo-per-campo)
 Endpoint SENZA autenticazione (verificato giu 2026):
-- \`GET /api/partners\` — lista partner con id
-- \`GET /api/partner-hub/{partner_id}\` — profilo hub completo
-- \`PUT /api/partner-hub/{partner_id}\` — upsert (body JSON, solo campi non-null)
-- \`PATCH /api/partner-hub/{partner_id}/field?field=X&value=Y\` — singolo campo (stessa chiamata delle matite UI)
+- `GET /api/partners` — lista partner con id
+- `GET /api/partner-hub/{partner_id}` — profilo hub completo
+- `PUT /api/partner-hub/{partner_id}` — upsert (body JSON, solo campi non-null)
+- `PATCH /api/partner-hub/{partner_id}/field?field=X&value=Y` — singolo campo (stessa chiamata delle matite UI)
 
-Campi: \`whoYouAre, targetAudience, problem, solution, pitch, differentiator\` (+ offerName, offerPrice, offerIncludes, offerGuarantee).
+Campi: `whoYouAre, targetAudience, problem, solution, pitch, differentiator` (+ offerName, offerPrice, offerIncludes, offerGuarantee).
 Eseguire le fetch dalla console del browser su una pagina di ciak-frontend.vercel.app (origin corretto). ~100× più veloce della UI; la tab Posizionamento storicamente bloccava gli screenshot CDP.
 
-Vista admin dell'area partner senza passare dal selettore: \`localStorage.setItem('ciak_partner_view_id', JSON.stringify({id,name}))\` poi navigare su /partner/mio-spazio.
+Vista admin dell'area partner senza passare dal selettore: `localStorage.setItem('ciak_partner_view_id', JSON.stringify({id,name}))` poi navigare su /partner/mio-spazio.
 
 ### ID partner (giu 2026)
 | Partner | ID |
@@ -778,5 +778,5 @@ Vista admin dell'area partner senza passare dal selettore: \`localStorage.setIte
 | Andrea Fredi | 045f338e-74a0-46b4-b928-2ace47b092f5 |
 
 ### Note Drive
-- Le cartelle partner sono sparse su più alberi: cercare con \`title contains '<cognome>'\`. Parent ricorrenti: \`1sN2AADdLgSsqY92sQMj9QypOM0TKVx-H\` e \`1VJKKwveD6hAWpw68Jy6K4z2KzZxBVeAB\`.
+- Le cartelle partner sono sparse su più alberi: cercare con `title contains '<cognome>'`. Parent ricorrenti: `1sN2AADdLgSsqY92sQMj9QypOM0TKVx-H` e `1VJKKwveD6hAWpw68Jy6K4z2KzZxBVeAB`.
 - app.evolution-pro.it risultava irraggiungibile (giu 2026): l'app operativa è ciak-frontend.vercel.app (/admin e /partner).
