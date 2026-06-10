@@ -729,3 +729,54 @@ Procedura completa: `docs/runbooks/youtube-reauth.md` (+ `scripts/youtube_reauth
 In breve: `python scripts/youtube_reauth.py client_secret.json` (consenso col canale
 Evolution PRO) -> `gcloud secrets versions add youtube-user-credentials
 --data-file=youtube_credentials.json` -> redeploy backend.
+
+
+## Sessione 2026-06-10 — Posizionamento 6 campi completato per TUTTI i 24 partner + API partner-hub
+
+### Stato
+- I 6 campi Posizionamento (Chi sei, Per chi lavori, Problema che risolvi, La tua soluzione, Pitch 10 secondi, Differenziatore) sono inseriti e verificati (backend + UI) per tutti i 24 partner. Elena Perniola lasciata vuota (nessun documento su Drive né web — regola di Claudio).
+- Testi sintetizzati fedelmente dai documenti Drive di ciascun partner: "DOCUMENTO DI POSIZIONAMENTO <Nome>" (questionario 46 domande) oppure "<Nome> Pos" (Piano Operativo Strategico). Mappatura questionario → campi: Q17→Chi sei · Q11→Per chi lavori · Q12→Problema · Q18/19→Soluzione · Q23 condensato→Pitch · Q20/24→Differenziatore.
+
+### Metodo veloce per scrivere/leggere il Posizionamento (USARE QUESTO, non la UI campo-per-campo)
+Endpoint SENZA autenticazione (verificato giu 2026):
+- \`GET /api/partners\` — lista partner con id
+- \`GET /api/partner-hub/{partner_id}\` — profilo hub completo
+- \`PUT /api/partner-hub/{partner_id}\` — upsert (body JSON, solo campi non-null)
+- \`PATCH /api/partner-hub/{partner_id}/field?field=X&value=Y\` — singolo campo (stessa chiamata delle matite UI)
+
+Campi: \`whoYouAre, targetAudience, problem, solution, pitch, differentiator\` (+ offerName, offerPrice, offerIncludes, offerGuarantee).
+Eseguire le fetch dalla console del browser su una pagina di ciak-frontend.vercel.app (origin corretto). ~100× più veloce della UI; la tab Posizionamento storicamente bloccava gli screenshot CDP.
+
+Vista admin dell'area partner senza passare dal selettore: \`localStorage.setItem('ciak_partner_view_id', JSON.stringify({id,name}))\` poi navigare su /partner/mio-spazio.
+
+### ID partner (giu 2026)
+| Partner | ID |
+|---------|----|
+| Arianna Aceto | 2 |
+| Marco Orlandi | 3 |
+| Sarah Arensi | 4 |
+| Valter Romani | 9 |
+| Simone Riccò | 10 |
+| Daphne Oliveti | 11 |
+| Mariantonietta Tornello | 12 |
+| Cosimo Filieri | 13 |
+| Annamaria Depalma | 14 |
+| Marco Lamanna | 15 |
+| Giuseppe Sarno | 16 |
+| Elena Perniola | 17 |
+| Maria Giulia Falcone | 18 |
+| Michele Baggio | 19 |
+| Alice Conventi | 20 |
+| Silvia Sedda | 21 |
+| Eva Gugliucciello | 22 |
+| Daniele Andolfi | 23 |
+| Sara Stella Due | 00435c30-cc6a-4667-a2b8-015c972661cd |
+| Filadelfio Vasi | 38999296-0c07-4409-a2ff-c2df8be7680e |
+| Federica Arimatea | fd1d56a7-2499-4be7-b39c-3b89caf6137d |
+| Loris Bonomi | eb88d08c-9b23-478c-b759-e40bdef483cc |
+| Marco Serra | 177e74e7-ec19-4ad2-98d4-b64a2d85c9ef |
+| Andrea Fredi | 045f338e-74a0-46b4-b928-2ace47b092f5 |
+
+### Note Drive
+- Le cartelle partner sono sparse su più alberi: cercare con \`title contains '<cognome>'\`. Parent ricorrenti: \`1sN2AADdLgSsqY92sQMj9QypOM0TKVx-H\` e \`1VJKKwveD6hAWpw68Jy6K4z2KzZxBVeAB\`.
+- app.evolution-pro.it risultava irraggiungibile (giu 2026): l'app operativa è ciak-frontend.vercel.app (/admin e /partner).
