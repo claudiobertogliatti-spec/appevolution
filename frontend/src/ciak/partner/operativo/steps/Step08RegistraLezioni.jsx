@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import StepBase from "./StepBase";
+import { uploadVideoResumable } from "../../../lib/gcsResumableUpload";
 
 const API = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || "";
 
@@ -7,8 +8,9 @@ const API = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_UR
  * Step 8 — Carica i video delle lezioni del videocorso (uno alla volta).
  *
  * Come Step07, i video grezzi NON passano dal backend (Cloud Run rifiuta > ~32 MB
- * con HTTP 413). Ogni lezione va diretta su GCS col flusso resumable e poi nella
- * pipeline (video_type="videocorso" + lesson_id → partner_videocorso.lessons.{id}).
+ * con HTTP 413). Ogni lezione va diretta su GCS con upload a CHUNK e auto-ripresa
+ * (vedi lib/gcsResumableUpload) e poi nella pipeline (video_type="videocorso" +
+ * lesson_id → partner_videocorso.lessons.{id}).
  * Manteniamo la UX a lista piatta: a ogni video assegniamo un lesson_id stabile.
  */
 export default function Step08RegistraLezioni({ step, partnerId, onComplete, onSaveDraft }) {
@@ -16,6 +18,7 @@ export default function Step08RegistraLezioni({ step, partnerId, onComplete, onS
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [err, setErr] = useState(null);
+  const [statusMsg, setStatusMsg] = useState(null);
 
   // lesson_id stabile e non riusato: max suffisso numerico esistente + 1.
   const nextLessonId = (list) => {
@@ -31,41 +34,23 @@ export default function Step08RegistraLezioni({ step, partnerId, onComplete, onS
     setBusy(true);
     setErr(null);
     setProgress(0);
+    setStatusMsg(null);
     const contentType = file.type || "video/mp4";
     const lessonId = nextLessonId(videos);
     try {
-      // 1. Sessione di upload diretto su GCS
-      const sessRes = await fetch(`${API}/api/partner-journey/video/request-upload-session`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      // 1+2. Sessione + upload a chunk con auto-ripresa
+      const { gcs_path } = await uploadVideoResumable({
+        api: API,
+        sessionBody: {
           partner_id: partnerId,
           video_type: "videocorso",
           lesson_id: lessonId,
           filename: file.name,
           content_type: contentType,
-        }),
-      });
-      if (!sessRes.ok) throw new Error(`Sessione upload fallita (HTTP ${sessRes.status})`);
-      const { upload_url, gcs_path } = await sessRes.json();
-
-      // 2. PUT diretto su GCS (single-shot resumable con Content-Range)
-      await new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("PUT", upload_url);
-        xhr.setRequestHeader("Content-Type", contentType);
-        if (file.size > 0) {
-          xhr.setRequestHeader("Content-Range", `bytes 0-${file.size - 1}/${file.size}`);
-        }
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) setProgress(Math.round((e.loaded / e.total) * 100));
-        };
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) resolve();
-          else reject(new Error(`Upload su GCS fallito (HTTP ${xhr.status})`));
-        };
-        xhr.onerror = () => reject(new Error("Errore di rete durante l'upload"));
-        xhr.send(file);
+        },
+        file,
+        onProgress: setProgress,
+        onStatus: setStatusMsg,
       });
 
       // 3. Conferma → avvia la pipeline per questa lezione
@@ -96,6 +81,7 @@ export default function Step08RegistraLezioni({ step, partnerId, onComplete, onS
     } finally {
       setBusy(false);
       setProgress(0);
+      setStatusMsg(null);
     }
   };
 
@@ -112,7 +98,7 @@ export default function Step08RegistraLezioni({ step, partnerId, onComplete, onS
       title="Carica i video delle lezioni (uno alla volta)"
       ctaDisabled={videos.length === 0 || busy}
       onCta={() => onComplete({ videos })}
-      secondaryNote="MP4 o MOV, anche grezzi. Ci pensiamo noi al taglio e al render. Puoi tornare qui per aggiungere altre lezioni."
+      secondaryNote="MP4 o MOV, anche grezzi. Ci pensiamo noi al taglio e al render. Se la connessione cade, l'upload riprende da solo. Puoi tornare qui per aggiungere altre lezioni."
     >
       <label className={`block bg-slate-50 border-2 border-dashed border-slate-400 rounded-md p-8 text-center cursor-pointer hover:border-yellow-400 mb-4 transition ${busy ? "pointer-events-none opacity-60" : ""}`}>
         <input type="file" accept="video/*" className="hidden" disabled={busy} onChange={(e) => handle(e.target.files?.[0])} />
@@ -123,7 +109,7 @@ export default function Step08RegistraLezioni({ step, partnerId, onComplete, onS
           <div className="bg-slate-200 rounded h-2 overflow-hidden">
             <div className="bg-yellow-400 h-full transition-all" style={{ width: `${progress}%` }}></div>
           </div>
-          <p className="text-xs text-slate-500 mt-1">Upload {progress}%</p>
+          <p className="text-xs text-slate-500 mt-1">Upload {progress}%{statusMsg ? ` — ${statusMsg}` : ""}</p>
         </div>
       )}
       {videos.length > 0 && (
