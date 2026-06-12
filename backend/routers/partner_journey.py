@@ -1374,31 +1374,10 @@ async def set_lesson_youtube_url(req: SetLessonYoutubeUrlRequest):
     systeme_embed = f'<iframe src="{embed_url}" width="560" height="315" frameborder="0" allowfullscreen></iframe>' if yt_id else ""
     now = datetime.now(timezone.utc).isoformat()
 
-    # Aggiungi alla playlist YouTube partner (crea se non esiste)
-    playlist_id = partner.get("youtube_playlist_id")
-    playlist_url = partner.get("youtube_playlist_url")
+    # NB: il video NON entra nella playlist qui. L'aggiunta avviene solo
+    # all'approvazione admin (approve_videocorso_video), cosi' la playlist
+    # contiene solo video approvati.
     playlist_note = ""
-    if yt_id:
-        try:
-            from video_pipeline_task import create_youtube_playlist_sync, add_to_youtube_playlist_sync
-            loop = asyncio.get_event_loop()
-            if not playlist_id:
-                playlist_id = await loop.run_in_executor(
-                    None, create_youtube_playlist_sync, partner.get("name", req.partner_id)
-                )
-                if playlist_id:
-                    playlist_url = f"https://www.youtube.com/playlist?list={playlist_id}"
-                    await db.partners.update_one(
-                        {"id": req.partner_id},
-                        {"$set": {"youtube_playlist_id": playlist_id, "youtube_playlist_url": playlist_url}}
-                    )
-                    playlist_note = f"\n📋 Playlist creata: {playlist_url}"
-            if playlist_id:
-                ok = await loop.run_in_executor(None, add_to_youtube_playlist_sync, yt_id, playlist_id)
-                if ok and not playlist_note:
-                    playlist_note = "\n📋 Aggiunto a playlist partner"
-        except Exception as e:
-            logging.warning(f"[VIDEOCORSO] Playlist error (non bloccante): {e}")
 
     # Aggiorna la singola lezione
     lk = f"lessons.{req.lesson_id}"
@@ -1527,10 +1506,39 @@ async def approve_masterclass_video(partner_id: str):
     )
 
     partner = await db.partners.find_one({"id": partner_id})
+
+    # Aggiungi alla playlist YouTube del partner SOLO ora (approvazione admin):
+    # la playlist contiene solo video approvati, mai gli scarti in review.
+    playlist_note = ""
+    yt_id = doc.get("video_youtube_id")
+    if yt_id:
+        try:
+            import asyncio
+            from video_pipeline_task import create_youtube_playlist_sync, add_to_youtube_playlist_sync
+            loop = asyncio.get_event_loop()
+            playlist_id = (partner or {}).get("youtube_playlist_id")
+            if not playlist_id:
+                playlist_id = await loop.run_in_executor(
+                    None, create_youtube_playlist_sync, (partner or {}).get("name", partner_id)
+                )
+                if playlist_id:
+                    await db.partners.update_one(
+                        {"id": partner_id},
+                        {"$set": {
+                            "youtube_playlist_id": playlist_id,
+                            "youtube_playlist_url": f"https://www.youtube.com/playlist?list={playlist_id}",
+                        }},
+                    )
+            if playlist_id:
+                ok = await loop.run_in_executor(None, add_to_youtube_playlist_sync, yt_id, playlist_id)
+                playlist_note = "\n📋 Aggiunto a playlist partner" if ok else ""
+        except Exception as e:
+            logging.warning(f"[MASTERCLASS] Playlist add (approve) non bloccante: {e}")
+
     await notify_telegram(
         f"✅ VIDEO MASTERCLASS APPROVATO\n\n"
         f"👤 {partner.get('name', partner_id)}\n"
-        f"📺 {doc.get('video_youtube_url', 'N/A')}"
+        f"📺 {doc.get('video_youtube_url', 'N/A')}{playlist_note}"
     )
 
     return {"success": True, "message": "Video approvato"}
@@ -1573,6 +1581,16 @@ async def reject_masterclass_video(partner_id: str, reason: Optional[str] = None
 
     rejected_id = mc.get("video_youtube_id")
     rejected_url = mc.get("video_youtube_url")
+    # Elimina il video rifiutato da YouTube (decisione: niente scarti sul canale).
+    if rejected_id:
+        try:
+            import asyncio
+            from video_pipeline_task import delete_youtube_video_sync
+            loop = asyncio.get_event_loop()
+            _ok = await loop.run_in_executor(None, delete_youtube_video_sync, rejected_id)
+            logging.info(f"[MASTERCLASS] reject: delete YouTube {rejected_id} -> {_ok}")
+        except Exception as e:
+            logging.warning(f"[MASTERCLASS] reject: delete YouTube fallito: {e}")
     rejected_history = list(mc.get("video_rejected_youtube_ids") or [])
     if rejected_id:
         rejected_history.append({
@@ -1725,6 +1743,34 @@ async def approve_videocorso_video(partner_id: str, lesson_id: str):
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
     )
+
+    # Aggiungi alla playlist YouTube del partner SOLO ora (approvazione admin).
+    try:
+        import asyncio
+        partner = await db.partners.find_one({"id": partner_id})
+        vc = await db.partner_videocorso.find_one({"partner_id": partner_id})
+        lesson = ((vc or {}).get("lessons") or {}).get(lesson_id, {})
+        yt_id = lesson.get("video_youtube_id") or ""
+        if yt_id:
+            from video_pipeline_task import create_youtube_playlist_sync, add_to_youtube_playlist_sync
+            loop = asyncio.get_event_loop()
+            playlist_id = (partner or {}).get("youtube_playlist_id")
+            if not playlist_id:
+                playlist_id = await loop.run_in_executor(
+                    None, create_youtube_playlist_sync, (partner or {}).get("name", partner_id)
+                )
+                if playlist_id:
+                    await db.partners.update_one(
+                        {"id": partner_id},
+                        {"$set": {
+                            "youtube_playlist_id": playlist_id,
+                            "youtube_playlist_url": f"https://www.youtube.com/playlist?list={playlist_id}",
+                        }},
+                    )
+            if playlist_id:
+                await loop.run_in_executor(None, add_to_youtube_playlist_sync, yt_id, playlist_id)
+    except Exception as e:
+        logging.warning(f"[VIDEOCORSO] Playlist add (approve) non bloccante: {e}")
 
     return {"success": True, "message": f"Lezione {lesson_id} approvata"}
 
@@ -5421,6 +5467,24 @@ async def request_video_upload_session(req: VideoUploadSessionRequest, request: 
     except Exception as e:
         logging.error(f"[VIDEO-UPLOAD] Errore creazione sessione GCS: {e}")
         raise HTTPException(status_code=500, detail=f"Errore GCS: {str(e)}")
+
+    # Salva il nome originale del file: la pipeline lo usa come titolo YouTube
+    # (richiesta Antonella: niente rename generico). Best-effort, non bloccante.
+    try:
+        if req.video_type == "videocorso" and req.lesson_id:
+            await db.partner_videocorso.update_one(
+                {"partner_id": req.partner_id},
+                {"$set": {f"lessons.{req.lesson_id}.video_original_name": req.filename}},
+                upsert=True,
+            )
+        else:
+            await db.masterclass_factory.update_one(
+                {"partner_id": req.partner_id},
+                {"$set": {"video_original_name": req.filename}},
+                upsert=True,
+            )
+    except Exception as _e:
+        logging.warning(f"[VIDEO-UPLOAD] impossibile salvare original_name: {_e}")
 
     return {
         "upload_url": upload_url,
