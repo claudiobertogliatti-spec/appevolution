@@ -1408,7 +1408,7 @@ async def set_lesson_youtube_url(req: SetLessonYoutubeUrlRequest):
         "message": "URL YouTube lezione impostato — pronto per approvazione",
         "lesson_id": req.lesson_id,
         "youtube_id": yt_id,
-        "playlist_id": playlist_id,
+        "playlist_id": partner.get("youtube_playlist_id"),
     }
 
 
