@@ -282,485 +282,998 @@ class ContractStatusResponse(BaseModel):
 # CONTRACT TEXT (same as frontend)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-CONTRACT_TEXT = """Contratto di Collaborazione in Partnership per la Creazione, Promozione e Vendita di Videocorsi Digitali
+CONTRACT_TEXT = """Contratto di Collaborazione in Partnership per la Creazione, Promozione e Vendita di Accademie Digitali, Videocorsi e Asset Formativi Online
 
 TRA
-Evolution PRO LLC, con sede legale in 8 The Green, Ste A, Dover, DE 19901, USA, File Number 2394173 Delaware Division of Corporations, EIN 30-1375330, in persona del legale rappresentante Claudio Bertogliatti, di seguito "Evolution PRO" o anche "Agenzia";
+Evolution PRO LLC, società costituita ai sensi delle leggi dello Stato del Delaware (USA), con sede legale in 8 The Green, Ste A, Dover, DE 19901, USA, File Number 2394173 Delaware Division of Corporations, EIN 30-1375330, in persona del legale rappresentante Claudio Bertogliatti, di seguito "Evolution PRO" o "Agenzia";
 
 e
 
 Il Partner sottoscrittore del presente contratto digitale.
 
-ARTICOLO 1 - OGGETTO DEL CONTRATTO
+Evolution PRO e il Partner sono di seguito congiuntamente denominate le "Parti" e singolarmente la "Parte". Il Partner dichiara di operare nell'esercizio della propria attività professionale, imprenditoriale o autonoma e di essere titolare di Partita IVA valida alla data di sottoscrizione del presente Contratto.
 
+ARTICOLO 1 – OGGETTO DEL CONTRATTO
 1.1 Finalità della collaborazione
-Il presente Contratto disciplina la collaborazione in partnership tra Evolution PRO e il Partner per la creazione, promozione e vendita di un videocorso digitale basato sulle competenze, sui contenuti e sul posizionamento del Partner. La proposta di Partnership viene formulata da Evolution PRO solo a seguito del completamento, da parte del Partner, di una preventiva Analisi Strategica a pagamento, finalizzata alla valutazione preliminare della sostenibilità, coerenza e fattibilità commerciale del progetto. Le Parti riconoscono pertanto che, alla data di sottoscrizione del presente Contratto, il progetto è già stato oggetto di valutazione preliminare positiva da parte di Evolution PRO nella suddetta fase precontrattuale. Tale valutazione positiva non costituisce garanzia di risultati economici futuri, ma esclusivamente presupposto per l'avvio del Programma Operativo oggetto del presente Contratto.
-
+Il presente Contratto disciplina la collaborazione in partnership tra Evolution PRO e il Partner per la progettazione, creazione, pubblicazione, promozione, vendita e ottimizzazione di un'Accademia Digitale, di videocorsi, masterclass, contenuti formativi e relativi asset digitali basati sulle competenze, sui contenuti e sul posizionamento professionale del Partner.
+La proposta di Partnership viene formulata da Evolution PRO esclusivamente a seguito del completamento, da parte del Partner, di una preventiva Analisi Strategica a pagamento finalizzata alla valutazione preliminare della sostenibilità, della coerenza e della fattibilità commerciale del progetto.
+Le Parti riconoscono che, alla data di sottoscrizione del presente Contratto, il progetto è già stato oggetto di valutazione preliminare positiva da parte di Evolution PRO nella suddetta fase precontrattuale.
+Tale valutazione positiva non costituisce garanzia di risultati economici futuri, né promessa di fatturato, vendite, clienti o profitti, ma rappresenta esclusivamente il presupposto necessario per l'accesso al Programma Operativo e all'avvio della Partnership.
+La Partnership viene erogata attraverso il Metodo E.V.O. (Esamina – Valida – Ottimizza), framework proprietario sviluppato da Evolution PRO per la creazione, il lancio e la crescita di Accademie Digitali e prodotti formativi online.
+Le attività previste dal Metodo E.V.O. vengono coordinate e rese disponibili attraverso la piattaforma proprietaria Ciak.io e attraverso gli ulteriori strumenti tecnologici utilizzati da Evolution PRO per l'erogazione dei servizi previsti dal presente Contratto.
+Il Programma Operativo, il Metodo E.V.O., la piattaforma Ciak.io e gli eventuali allegati richiamati nel presente Contratto costituiscono parte integrante e sostanziale della Partnership.
 1.1-bis Fase precontrattuale di Analisi Strategica
-Prima della sottoscrizione del presente Contratto, il Partner ha richiesto a Evolution PRO una prestazione autonoma di Analisi Strategica, avente natura precontrattuale e corrispettivo separato, finalizzata alla valutazione del progetto e alla verifica della sua idoneità a essere sviluppato in partnership. L'Analisi Strategica costituisce attività distinta e già eseguita rispetto alle prestazioni oggetto del presente Contratto e il relativo corrispettivo resta autonomo e non imputabile al prezzo della Partnership, salvo diverso accordo scritto.
-
+Prima della sottoscrizione del presente Contratto, il Partner ha richiesto a Evolution PRO una prestazione autonoma di Analisi Strategica, avente natura precontrattuale e corrispettivo separato, finalizzata alla valutazione del progetto, del posizionamento professionale del Partner e della sua idoneità a essere sviluppato attraverso il Metodo E.V.O. e la piattaforma Ciak.io.
+L’Analisi Strategica costituisce attività autonoma, distinta e già integralmente eseguita rispetto alle prestazioni oggetto del presente Contratto.
+Le Parti riconoscono che l’Analisi Strategica rappresenta esclusivamente una fase preliminare di valutazione e non costituisce promessa, garanzia o impegno all’avvio della Partnership.
+Il relativo corrispettivo resta autonomo, definitivamente maturato e non imputabile, compensabile o detraibile rispetto al prezzo della Partnership, salvo diverso accordo scritto sottoscritto dalle Parti.
+Le risultanze dell’Analisi Strategica costituiscono parte della documentazione preparatoria del progetto e potranno essere utilizzate da Evolution PRO come base operativa per l’avvio delle attività previste dal presente Contratto.
 1.1-ter Avvio operativo del progetto
-L'avvio operativo del progetto è subordinato al pagamento del corrispettivo previsto all'Articolo 5, nonché alla compilazione e consegna del Documento di Posizionamento e dei materiali preliminari richiesti. Qualora tali condizioni non siano soddisfatte entro 30 giorni dalla sottoscrizione, Evolution PRO potrà inviare formale sollecito scritto concedendo un ulteriore termine di 15 giorni. Decorso inutilmente tale termine, Evolution PRO potrà sospendere l'avvio operativo del progetto o agire ai sensi delle ulteriori disposizioni contrattuali applicabili. In caso di sospensione dovuta a inerzia imputabile al Partner, l'esecuzione operativa resterà sospesa fino alla regolarizzazione, salvo diverso accordo scritto tra le Parti.
-
+L’avvio operativo del progetto è subordinato:
+al pagamento del corrispettivo previsto all’Articolo 5 secondo le modalità concordate;
+alla compilazione del Documento di Posizionamento;
+alla consegna dei materiali preliminari richiesti da Evolution PRO;
+all’attivazione dell’account Partner sulla piattaforma Ciak.io.
+Qualora tali condizioni non siano soddisfatte entro 30 (trenta) giorni dalla sottoscrizione del presente Contratto, Evolution PRO potrà inviare formale sollecito scritto concedendo un ulteriore termine di 15 (quindici) giorni.
+Decorso inutilmente tale termine, Evolution PRO potrà sospendere l’avvio operativo del progetto, sospendere l’accesso alla piattaforma Ciak.io e avvalersi delle ulteriori disposizioni contrattuali applicabili.
+In caso di sospensione dovuta a inerzia, mancata collaborazione o inadempimento imputabile al Partner, l’esecuzione operativa resterà sospesa fino alla regolarizzazione della posizione.
+La sospensione delle attività non comporta proroga automatica della durata contrattuale, riduzione dei corrispettivi dovuti o rinuncia ai diritti maturati da Evolution PRO.
+Resta espressamente inteso che l’eventuale inattività o mancata collaborazione del Partner non potrà essere invocata quale motivo di contestazione delle attività già svolte, dei corrispettivi maturati o degli obblighi economici derivanti dal presente Contratto.
 1.2 Contenuti forniti dal Partner
-Il Partner si impegna a fornire ad Evolution PRO materiali originali, leciti e di propria titolarità (a titolo esemplificativo: testi, slide, immagini, loghi, tracce, format, video grezzi, audio, documenti didattici o formativi), garantendo che il loro utilizzo non violi diritti di terzi, inclusi ma non limitati a:
-- diritti d'autore e diritti connessi
-- marchi e segni distintivi
-- diritti di immagine
-- segreti commerciali o know-how protetto
-Il Partner manleva e tiene indenne Evolution PRO da ogni pretesa, danno, costo, onere o sanzione che dovesse derivare da violazioni di diritti di terzi connesse ai materiali forniti, inclusi eventuali costi legali e spese processuali.
-
+Il Partner si impegna a fornire ad Evolution PRO materiali originali, leciti, veritieri e di propria titolarità, inclusi a titolo esemplificativo ma non esaustivo: testi, slide, immagini, loghi, marchi, audio, video grezzi, documenti didattici, contenuti formativi, casi studio, testimonianze, materiali caricati sulla piattaforma Ciak.io e qualsiasi ulteriore risorsa necessaria allo sviluppo del progetto.
+Il Partner garantisce che l’utilizzo dei materiali forniti non viola diritti di terzi, inclusi ma non limitati a:
+diritti d’autore e diritti connessi;
+marchi, brevetti e segni distintivi;
+diritti di immagine;
+diritti alla riservatezza e protezione dei dati personali;
+segreti commerciali, know-how protetto o informazioni confidenziali.
+Il Partner garantisce inoltre che i contenuti forniti:
+sono conformi alla normativa vigente;
+non contengono informazioni false, ingannevoli o potenzialmente illecite;
+non formulano promesse economiche, professionali, sanitarie o di risultato prive di adeguato fondamento;
+non risultano lesivi di diritti, reputazione o interessi legittimi di terzi.
+Il Partner manleva e tiene integralmente indenne Evolution PRO, i suoi collaboratori, fornitori e partner tecnologici da qualsiasi pretesa, contestazione, danno, costo, sanzione, perdita economica o spesa legale derivante, direttamente o indirettamente, dai materiali o dalle informazioni fornite dal Partner.
+Evolution PRO si riserva il diritto di sospendere, rifiutare o richiedere la modifica di materiali ritenuti non conformi ai requisiti del presente Contratto, senza che ciò possa costituire inadempimento contrattuale o generare obblighi risarcitori a suo carico.
 1.3 Prestazioni di Evolution PRO
-Evolution PRO, nell'ambito della partnership, si impegna a fornire al Partner:
-- una sessione iniziale di allineamento strategico
-- consulenza strategica sul posizionamento del Corso e dell'offerta commerciale
-- configurazione di n. 1 funnel base composto da pagina opt-in, pagina di vendita e checkout
-- configurazione area corsi
-- supporto copy per i principali asset di vendita
-- servizi di editing per masterclass e lezioni videocorso
-Evolution PRO potrà, a proprio ragionevole giudizio, sospendere o rinviare la pubblicazione di materiali ritenuti:
-- non idonei sotto il profilo legale, etico o reputazionale
-- in contrasto con norme di legge o con le policy delle piattaforme utilizzate
-- tecnicamente inadeguati (bassa qualità audio/video, contenuti incompleti o difformi dal posizionamento concordato)
-In tali ipotesi, Evolution PRO ne darà motivata comunicazione scritta al Partner (via e-mail o PEC), indicando:
-- le ragioni della sospensione
-- le modifiche suggerite
-- un termine ragionevole entro cui il Partner dovrà fornire i contenuti corretti o integrare quelli esistenti
-Il Partner si impegna a collaborare in buona fede per rendere i materiali conformi ai requisiti indicati da Evolution PRO.
-
-1.4 Canali di pubblicazione e vendita - Esclusiva
-Il Corso sarà pubblicato, promosso e distribuito tramite i canali digitali di Evolution PRO (piattaforme Systeme.io o equivalenti, siti web, funnel, liste e-mail) e/o di terzi espressamente autorizzati da Evolution PRO.
-Per tutta la durata del presente Contratto e per i sessanta (60) giorni successivi alla sua cessazione, il Partner si impegna a non vendere, distribuire o promuovere autonomamente:
-- il medesimo Corso
-- Contenuti Sostanzialmente Equivalenti
-Ai fini del presente Contratto, per "Contenuti Sostanzialmente Equivalenti" si intendono, esclusivamente prodotti formativi che, cumulativamente:
-- abbiano medesimo target principale
-- riproducano oltre il 60% della struttura didattica del Corso
-- utilizzino in modo prevalente i medesimi materiali, casi studio, promesse o script sviluppati nell'ambito della Partnership
-- risultino destinati a sostituire direttamente il Corso oggetto del presente Contratto
-Restano espressamente esclusi dal divieto: consulenze 1:1, workshop dal vivo, webinar gratuiti, speech, contenuti editoriali e percorsi formativi diversi per struttura, finalità e promessa principale.
-Qualsiasi vendita autonoma del Corso o di Contenuti Sostanzialmente Equivalenti da parte del Partner - online o offline - dovrà essere preventivamente autorizzata per iscritto da Evolution PRO (via PEC o e-mail con conferma di lettura). Tale autorizzazione non potrà essere irragionevolmente negata qualora:
-- non sussista conflitto o concorrenza diretta con iniziative in corso di Evolution PRO
-- non derivi un pregiudizio economico rilevante o un danno d'immagine per Evolution PRO
-
+Nell'ambito della Partnership, Evolution PRO si impegna a mettere a disposizione del Partner il proprio sistema operativo proprietario finalizzato alla creazione, pubblicazione, promozione, vendita e ottimizzazione di Accademie Digitali, videocorsi e prodotti formativi online.
+Tale sistema comprende, a titolo esemplificativo e non esaustivo:
+una sessione iniziale di allineamento strategico;
+consulenza strategica sul posizionamento del progetto, dell'offerta commerciale e del target di riferimento;
+accesso alla piattaforma proprietaria Ciak.io;
+accesso al Metodo E.V.O. e al relativo Programma Operativo;
+accesso ai materiali formativi, alle guide operative, ai template e alle risorse rese disponibili da Evolution PRO;
+configurazione di n. 1 funnel base composto da pagina opt-in, pagina di vendita e checkout;
+configurazione dell'area corsi e delle relative automazioni essenziali;
+supporto copy per i principali asset di marketing e vendita;
+servizi di editing per masterclass e lezioni videocorso;
+supporto strategico durante le fasi di realizzazione, lancio e ottimizzazione del progetto.
+Le attività operative vengono coordinate ed erogate attraverso il sistema proprietario Ciak.io, piattaforma digitale sviluppata da Evolution PRO per guidare il Partner nell'applicazione del Metodo E.V.O. e nella realizzazione del progetto oggetto della Partnership.
+Evolution PRO si obbliga a svolgere le attività previste con diligenza professionale e secondo le migliori pratiche del settore, senza assumere obbligazioni di risultato economico.
+Il Partner riconosce e accetta che l'oggetto della Partnership consiste nell'accesso a un sistema, a un metodo operativo, a strumenti, competenze e supporto professionale finalizzati alla crescita del progetto, e non nella garanzia del raggiungimento di specifici risultati economici, commerciali o di vendita.
+Evolution PRO potrà, a proprio ragionevole giudizio, sospendere, rinviare o rifiutare la pubblicazione di materiali ritenuti:
+non idonei sotto il profilo legale, etico o reputazionale;
+in contrasto con norme di legge, regolamenti o policy delle piattaforme utilizzate;
+tecnicamente inadeguati;
+incompleti o incompatibili con il posizionamento concordato;
+suscettibili di arrecare danni reputazionali a Evolution PRO o ai suoi partner tecnologici.
+In tali ipotesi Evolution PRO ne darà comunicazione scritta al Partner, indicando:
+le ragioni della sospensione;
+le eventuali modifiche richieste;
+il termine entro cui i materiali dovranno essere integrati o sostituiti.
+Il Partner si impegna a collaborare in buona fede per rendere i materiali conformi ai requisiti richiesti.
+L'eventuale rifiuto o sospensione di contenuti non conformi non costituisce inadempimento contrattuale da parte di Evolution PRO.
+1.4 Canali di pubblicazione, distribuzione e vendita – Esclusiva
+L'Accademia Digitale, il Corso, la Masterclass, gli asset digitali e le attività di vendita sviluppate nell'ambito della Partnership saranno pubblicati, promossi e distribuiti attraverso la piattaforma Ciak.io, i sistemi utilizzati da Evolution PRO, le piattaforme di marketing adottate (Systeme.io o equivalenti), i siti web, i funnel, le automazioni e gli ulteriori canali autorizzati da Evolution PRO.
+Per tutta la durata del presente Contratto e per i novanta (90) giorni successivi alla sua cessazione, il Partner si impegna a non vendere, distribuire, promuovere o commercializzare autonomamente:
+il medesimo Corso;
+la medesima Accademia Digitale;
+Contenuti Sostanzialmente Equivalenti;
+funnel, masterclass o asset commerciali sviluppati nell'ambito della Partnership che risultino destinati alla vendita dello stesso prodotto formativo.
+Ai fini del presente Contratto, per "Contenuti Sostanzialmente Equivalenti" si intendono esclusivamente prodotti formativi che, cumulativamente:
+abbiano il medesimo target principale;
+riproducano oltre il 60% della struttura didattica del progetto;
+utilizzino in modo prevalente materiali, casi studio, promesse, framework, script o asset sviluppati nell'ambito della Partnership;
+risultino destinati a sostituire direttamente il progetto oggetto del presente Contratto.
+Restano espressamente esclusi dal divieto:
+consulenze individuali;
+workshop e formazione dal vivo;
+webinar gratuiti;
+speech;
+attività professionali ordinarie del Partner;
+contenuti editoriali;
+percorsi formativi differenti per struttura, finalità, target e promessa principale.
+Qualsiasi vendita autonoma del progetto oggetto della Partnership o di Contenuti Sostanzialmente Equivalenti dovrà essere preventivamente autorizzata per iscritto da Evolution PRO.
+Tale autorizzazione non potrà essere irragionevolmente negata qualora:
+non sussista conflitto diretto con iniziative commerciali in corso;
+non derivi un pregiudizio economico rilevante;
+non venga compromesso il corretto sfruttamento degli asset sviluppati nell'ambito della Partnership.
+Le Parti riconoscono che il Partner mantiene la piena titolarità dei propri contenuti originali e delle proprie competenze professionali, mentre Evolution PRO mantiene la piena titolarità del Metodo E.V.O., della piattaforma Ciak.io, dei funnel, delle automazioni, dei template, delle procedure operative e degli ulteriori asset proprietari sviluppati o messi a disposizione nell'ambito della Partnership.
 1.5 Gestione degli incassi e rendicontazione
-Gli incassi derivanti dalla vendita del Corso saranno gestiti da Evolution PRO tramite la piattaforma Systeme.io o altra piattaforma equivalente.
+Gli incassi derivanti dalla vendita del Corso, dell'Accademia Digitale o degli ulteriori prodotti formativi sviluppati nell'ambito della Partnership saranno gestiti da Evolution PRO tramite la piattaforma Ciak.io, Systeme.io o altri sistemi tecnologici utilizzati per la gestione delle vendite e dei pagamenti.
 Per "Importo Netto Incassato" si intende la somma:
-- effettivamente accreditata sui conti di Evolution PRO
-- al netto di rimborsi, storni, chargeback e commissioni dei sistemi di pagamento
-I dati di vendita risultanti dai sistemi ufficiali utilizzati da Evolution PRO fanno fede salvo errore materiale, malfunzionamento tecnico documentato o prova contraria fornita dal Partner. Evolution PRO metterà a disposizione del Partner un report mensile riepilogativo contenente almeno: ordini, incassi lordi, commissioni, chargeback/rimborsi, importo netto incassato, quota spettante alle Parti.
-
+effettivamente accreditata sui conti di Evolution PRO;
+al netto di rimborsi, storni, chargeback, commissioni bancarie e commissioni dei sistemi di pagamento utilizzati.
+I dati di vendita risultanti dai sistemi ufficiali utilizzati da Evolution PRO fanno fede salvo errore materiale, malfunzionamento tecnico documentato o prova contraria fornita dal Partner.
+Costituiscono prova primaria delle vendite e degli incassi i dati risultanti dalle piattaforme di pagamento e dai sistemi software utilizzati da Evolution PRO, inclusi Stripe, Systeme.io, Ciak.io o equivalenti.
+Evolution PRO metterà a disposizione del Partner un report riepilogativo periodico contenente almeno:
+numero degli ordini;
+incassi lordi;
+commissioni e costi di transazione;
+eventuali rimborsi, storni o chargeback;
+Importo Netto Incassato;
+quote spettanti alle Parti.
+Ove tecnicamente disponibile, il Partner potrà inoltre consultare direttamente i dati e le statistiche rese accessibili attraverso la piattaforma Ciak.io o altri strumenti messi a disposizione da Evolution PRO.
+Eventuali contestazioni relative ai dati contenuti nei report dovranno essere comunicate per iscritto entro 30 (trenta) giorni dalla loro trasmissione.
+Decorso tale termine senza contestazioni motivate, i dati riportati si intenderanno accettati e approvati dalle Parti, salvo errori materiali manifesti o comprovati malfunzionamenti tecnici.
 ARTICOLO 2 - DURATA, RINNOVO, RECESSO E RISOLUZIONE
-
 2.1 Durata del Contratto
-Il presente Contratto ha durata determinata di dodici (12) mesi decorrenti dalla data di sottoscrizione da parte di entrambe le Parti. Per l'intera durata contrattuale resta valido l'accordo di Partnership disciplinato dal presente Contratto, comprensivo delle condizioni economiche di cui all'Articolo 5. La durata contrattuale non è soggetta a proroghe automatiche. Eventuali ritardi imputabili al Partner non comporteranno proroghe automatiche, salvo che il ritardo superi complessivamente 30 giorni e renda oggettivamente impossibile l'esecuzione del Programma nei tempi previsti; in tal caso le Parti si confronteranno in buona fede per un eventuale riallineamento scritto. Decorso il termine dei 12 (dodici) mesi, l'accordo di revenue share di cui all'Articolo 5 cesserà automaticamente, fatto salvo quanto maturato fino a tale data.
-
+Il presente Contratto ha durata determinata di dodici (12) mesi decorrenti dalla data di sottoscrizione da parte di entrambe le Parti.
+Per l'intera durata contrattuale resta valido l'accordo di Partnership disciplinato dal presente Contratto, comprensivo delle condizioni economiche di cui all'Articolo 5, dell'accesso alla piattaforma Ciak.io, del Metodo E.V.O. e delle attività previste dal Programma Operativo.
+La durata contrattuale non è soggetta a rinnovo o proroga automatica.
+Le Parti riconoscono che il corretto svolgimento del Programma Operativo presuppone una collaborazione continuativa e tempestiva del Partner.
+Eventuali ritardi, omissioni, inattività o mancata collaborazione imputabili al Partner non comportano proroga automatica della durata contrattuale, sospensione degli obblighi economici o estensione del periodo di Partnership.
+Qualora i ritardi imputabili al Partner superino complessivamente 30 (trenta) giorni e rendano oggettivamente impossibile il completamento delle attività entro la durata contrattuale originaria, Evolution PRO potrà, a propria discrezione e senza obbligo, valutare la concessione di un'estensione tecnica limitata, da formalizzarsi esclusivamente per iscritto.
+In assenza di tale accordo scritto, il Contratto cesserà automaticamente alla scadenza dei dodici (12) mesi.
+Decorso il termine dei dodici (12) mesi:
+l'accordo di revenue share di cui all'Articolo 5 cesserà automaticamente;
+cesserà l'obbligo di Evolution PRO di fornire ulteriori attività operative non ancora eseguite a causa di ritardi o inadempimenti imputabili al Partner;
+resteranno validi gli obblighi economici, di riservatezza, tutela del brand, proprietà intellettuale e ogni altra clausola destinata a produrre effetti successivamente alla cessazione del Contratto.
+La cessazione del Contratto non pregiudica il diritto di Evolution PRO di richiedere il pagamento di somme già maturate, rate residue dovute o eventuali danni derivanti da inadempimenti del Partner.
 2.2 Natura del corrispettivo
-Il corrispettivo previsto dal presente Contratto costituisce investimento una tantum per l'avvio e lo sviluppo del progetto in partnership e non configura abbonamento né canone ricorrente.
-
+Il corrispettivo previsto dal presente Contratto costituisce un investimento una tantum finalizzato all'attivazione della Partnership, all'accesso al Metodo E.V.O., alla piattaforma Ciak.io, alle attività operative previste dal Programma Operativo e alle ulteriori prestazioni disciplinate dal presente Contratto.
+Tale corrispettivo non costituisce canone periodico, abbonamento o quota associativa e remunera le attività, le risorse, il know-how, le infrastrutture e gli strumenti messi a disposizione da Evolution PRO per la durata della Partnership.
+Resta salva la facoltà delle Parti di concordare successivamente servizi aggiuntivi, rinnovi, programmi di continuità, licenze software, attività di supporto strategico o ulteriori collaborazioni mediante accordi separati.
 2.3 Scadenza e prosecuzione della collaborazione
-Alla scadenza del periodo contrattuale di dodici (12) mesi, il Contratto cessa automaticamente senza rinnovo automatico. Eventuali ulteriori collaborazioni o nuovi progetti potranno essere concordati esclusivamente per iscritto tra le Parti, sulla base di nuove condizioni economiche e operative.
-
+Alla scadenza del periodo contrattuale di dodici (12) mesi, il Contratto cessa automaticamente senza rinnovo automatico.
+La cessazione del Contratto non comporta il trasferimento automatico della proprietà di strumenti, software, piattaforme, procedure, template, automazioni, metodologie o altri asset proprietari di Evolution PRO, fatti salvi i diritti espressamente riconosciuti al Partner dal presente Contratto.
+Eventuali ulteriori collaborazioni, rinnovi, programmi di continuità, nuovi progetti o servizi aggiuntivi potranno essere concordati esclusivamente per iscritto tra le Parti, sulla base di nuove condizioni economiche e operative.
 2.4 Comunicazione di rinnovo o modifica
-Eventuali richieste di rinnovo, proroga o modifica delle condizioni dovranno essere inviate almeno trenta (30) giorni prima della data di scadenza del Contratto tramite mail all'indirizzo assistenza@evolution-pro.it o tramite PEC. In assenza di accordo scritto entro tale termine, il Contratto cesserà automaticamente, salvo gli obblighi già maturati.
-
+Eventuali richieste di rinnovo, proroga, prosecuzione della collaborazione o modifica delle condizioni contrattuali dovranno essere comunicate per iscritto almeno trenta (30) giorni prima della data di scadenza del Contratto, tramite PEC o all'indirizzo e-mail ufficiale comunicato da Evolution PRO.
+In assenza di un accordo scritto sottoscritto da entrambe le Parti entro la data di scadenza, il Contratto cesserà automaticamente, fatti salvi gli obblighi già maturati e le clausole destinate a produrre effetti successivamente alla cessazione del rapporto.
 2.5 Continuità tecnica e gestione post-contratto
-Alla cessazione del Contratto, il Partner potrà mantenere online il Corso e le infrastrutture di marketing:
-- sottoscrivendo autonomamente, a proprie spese, un abbonamento diretto con la piattaforma utilizzata (Systeme.io o equivalente)
-- ovvero richiedendo il trasferimento del funnel, del database e delle automazioni verso altra piattaforma di propria scelta
-In tali ipotesi, Evolution PRO non sarà tenuta a fornire assistenza tecnica o manutenzione inclusa nel canone, salvo la possibilità per il Partner di richiedere un preventivo separato per il servizio tecnico di migrazione dei dati. Entro 15 giorni dalla cessazione, Evolution PRO fornirà al Partner istruzioni minime per il subentro tecnico o per la prosecuzione autonoma, restando esclusa ogni attività operativa non espressamente pattuita.
+Alla cessazione del Contratto, il Partner mantiene la piena disponibilità dei contenuti originali, del Corso e dei materiali formativi di propria titolarità.
+Il Partner potrà proseguire autonomamente la commercializzazione del Corso utilizzando infrastrutture tecniche proprie oppure richiedere il trasferimento dei dati e degli asset tecnicamente trasferibili.
+Restano esclusi dal trasferimento e rimangono di esclusiva proprietà di Evolution PRO:
+la piattaforma Ciak.io;
+il Metodo E.V.O.;
+le procedure operative;
+le automazioni proprietarie;
+i template;
+gli agenti AI;
+i framework strategici;
+ogni altro asset sviluppato da Evolution PRO e non espressamente ceduto per iscritto.
+Eventuali attività di esportazione, migrazione o supporto tecnico successivo alla cessazione del Contratto potranno essere richieste dal Partner mediante preventivo separato.
+2.6 Recesso unilaterale di Evolution PRO 
+Evolution PRO potrà recedere in presenza di impossibilità sopravvenuta, rischio legale grave o cause oggettive che rendano impossibile la prosecuzione della Partnership.
+2.7 Risoluzione per inadempimento (clausola risolutiva espressa) 
+Ciascuna Parte potrà risolvere anticipatamente il Contratto in caso di grave inadempimento dell’altra Parte, ai sensi di clausola risolutiva espressa. 
+Costituiscono, a titolo esemplificativo, inadempimenti gravi del Partner: 
+mancato o ritardato pagamento dei corrispettivi dovuti ai sensi dell’Articolo 5, protratto oltre 15 (quindici) giorni dalla scadenza; 
+mancata consegna, entro i termini indicati da Evolution PRO, dei materiali minimi necessari per l’avvio del progetto (documento di posizionamento, outline del Corso, file video non editati), nonostante formale sollecito; 
+violazione degli obblighi di riservatezza di cui all’Articolo 6; 
+violazione delle clausole di cui agli Articoli 1.4, 4 e 12 in tema di esclusiva, utilizzo autonomo del Corso o Contenuti Sostanzialmente Equivalenti, tutela del brand e concorrenza sleale; 
+condotte lesive dell’immagine o reputazione commerciale di Evolution PRO consistenti in dichiarazioni false, diffamatorie, gravemente denigratorie o idonee a produrre un pregiudizio concreto e documentabile alla reputazione commerciale dell’altra Parte.
+Costituiscono, a titolo esemplificativo, inadempimenti gravi di Evolution PRO: 
+omessa esecuzione delle attività minime previste nel Programma Operativo di cui all’Articolo 8, senza giustificato motivo e nonostante formale sollecito del Partner; 
+mancata messa online del Corso, nonostante la completa e puntuale consegna da parte del Partner dei materiali necessari e il regolare pagamento dei corrispettivi, protratta per oltre 60 (sessanta) giorni rispetto alle tempistiche ordinarie del Programma, fatta salva la prova di cause di forza maggiore o responsabilità del Partner; 
+violazioni accertate e gravi degli obblighi essenziali di protezione dei dati personali ai sensi dell’Articolo 10, imputabili a dolo o colpa grave. 
+La Parte che intende avvalersi della presente clausola risolutiva espressa dovrà inviare all’altra Parte, mediante PEC, una diffida ad adempiere con termine non inferiore a 15 (quindici) giorni. 
+Decorso inutilmente tale termine, il Contratto si intenderà risolto di diritto, fatti salvi gli obblighi economici già maturati e l’eventuale diritto al risarcimento del danno.
+In caso di risoluzione del Contratto per inadempimento imputabile al Partner, restano integralmente dovuti a Evolution PRO:
+• i corrispettivi già maturati;
+• le rate scadute e non pagate;
+• le rate residue previste dal piano di pagamento concordato;
+fatto salvo il diritto di Evolution PRO di richiedere il risarcimento degli ulteriori danni diretti e documentabili derivanti dall'interruzione anticipata della Partnership.
+La risoluzione del Contratto non estingue né riduce gli obblighi economici già assunti dal Partner.
+La collaborazione attiva del Partner costituisce obbligazione essenziale ai fini della corretta esecuzione del presente Contratto.
 
-2.6 Recesso unilaterale di Evolution PRO
-Fermo restando quanto previsto in tema di risoluzione per inadempimento, Evolution PRO potrà recedere unilateralmente solo in presenza di sopravvenute circostanze oggettive, documentabili e non imputabili a propria scelta arbitraria, che rendano non più sostenibile la prosecuzione del progetto, quali: impossibilità tecnica sopravvenuta, rischio legale documentato, conflitto reputazionale grave e non rimediabile, cessazione del fornitore critico senza alternativa ragionevole. Il recesso non potrà essere esercitato in modo arbitrario o discriminatorio e dovrà essere motivato per iscritto. In caso di recesso di Evolution PRO non dovuto a inadempimento del Partner, quest'ultimo avrà diritto:
-- alla consegna degli asset già realizzati e tecnicamente trasferibili
-- al rimborso della parte di corrispettivo relativa alle attività non ancora eseguite restando fermo che il corrispettivo iniziale remunera attività già avviate, organizzazione e allocazione delle risorse, e non è soggetto a restituzione, salvo i soli casi inderogabili previsti dalla legge o grave inadempimento imputabile a Evolution PRO
-
-2.7 Risoluzione per inadempimento (clausola risolutiva espressa)
-Ciascuna Parte potrà risolvere anticipatamente il Contratto in caso di grave inadempimento dell'altra Parte, ai sensi di clausola risolutiva espressa.
-Costituiscono, a titolo esemplificativo, inadempimenti gravi del Partner:
-- mancato o ritardato pagamento dei corrispettivi dovuti ai sensi dell'Articolo 5, protratto oltre 15 (quindici) giorni dalla scadenza
-- mancata consegna, entro i termini indicati da Evolution PRO, dei materiali minimi necessari per l'avvio del progetto (documento di posizionamento, outline del Corso, file video non editati), nonostante formale sollecito
-- violazione degli obblighi di riservatezza di cui all'Articolo 6
-- violazione delle clausole di cui agli Articoli 1.4, 4 e 12 in tema di esclusiva, utilizzo autonomo del Corso o Contenuti Sostanzialmente Equivalenti, tutela del brand e concorrenza sleale
-- condotte lesive dell'immagine o reputazione commerciale di Evolution PRO consistenti in dichiarazioni false, diffamatorie, gravemente denigratorie o idonee a produrre un pregiudizio concreto e documentabile alla reputazione commerciale dell'altra Parte
-Costituiscono, a titolo esemplificativo, inadempimenti gravi di Evolution PRO:
-- omessa esecuzione delle attività minime previste nel Programma Operativo di cui all'Articolo 8, senza giustificato motivo e nonostante formale sollecito del Partner
-- mancata messa online del Corso, nonostante la completa e puntuale consegna da parte del Partner dei materiali necessari e il regolare pagamento dei corrispettivi, protratta per oltre 60 (sessanta) giorni rispetto alle tempistiche ordinarie del Programma, fatta salva la prova di cause di forza maggiore o responsabilità del Partner
-- violazioni accertate e gravi degli obblighi essenziali di protezione dei dati personali ai sensi dell'Articolo 10, imputabili a dolo o colpa grave
-La Parte che intende avvalersi della presente clausola risolutiva espressa dovrà inviare all'altra Parte, mediante PEC, una diffida ad adempiere con termine non inferiore a 15 (quindici) giorni. Decorso inutilmente tale termine, il Contratto si intenderà risolto di diritto, fatti salvi gli obblighi economici già maturati e l'eventuale diritto al risarcimento del danno. La collaborazione attiva del Partner costituisce obbligazione essenziale ai fini della corretta esecuzione del presente Contratto.
-
-ARTICOLO 3 - DIRITTI E OBBLIGHI DELLE PARTI
+ARTICOLO 3 – OBBLIGHI DELLE PARTI E COLLABORAZIONE
 
 3.1 Obblighi principali del Partner
-Il Partner si impegna a partecipare attivamente allo sviluppo del progetto, rispettando le tempistiche indicate da Evolution PRO. In particolare, salvo diversa pianificazione scritta concordata tra le Parti nel Programma Operativo o nei canali ufficiali di progetto, il Partner si obbliga a:
-- compilare e consegnare il documento di posizionamento
-- partecipare ai briefing strategici e alle sessioni di definizione del piano marketing
-- fornire l'outline del Corso (argomenti, moduli, bonus)
-- registrare e consegnare i file video non editati
-- fornire i materiali necessari per la creazione del calendario editoriale
-- collaborare alla produzione e pubblicazione dei contenuti social secondo il piano editoriale definito, restando inteso che la gestione operativa continuativa dei canali social non è inclusa nella partnership
-- gestire in autonomia i contatti e i lead generati dalle campagne di marketing per le attività di vendita e relazione con i clienti, restando esclusa ogni attività di gestione tecnica delle piattaforme
-- utilizzare la piattaforma fornita (Systeme.io o equivalente) con un livello base di competenze operative per consultare dati, vendite e risultati
-L'assenza ingiustificata di comunicazione o operatività per oltre 30 (trenta) giorni consecutivi legittima Evolution PRO a sospendere temporaneamente le attività e, previa diffida scritta, a risolvere il Contratto per grave inadempimento.
-
+Il Partner si impegna a partecipare attivamente allo sviluppo del progetto, collaborando in modo continuativo e tempestivo con Evolution PRO e rispettando le tempistiche indicate nel Programma Operativo, sulla piattaforma Ciak.io o nei canali ufficiali di progetto.
+In particolare, salvo diversa pianificazione scritta concordata tra le Parti, il Partner si obbliga a:
+• compilare e consegnare il Documento di Posizionamento;
+• utilizzare attivamente la piattaforma Ciak.io per consultare attività, materiali, comunicazioni, richieste operative e avanzamento del progetto;
+• partecipare ai briefing strategici e alle sessioni di definizione del piano marketing;
+• fornire l'outline del Corso (argomenti, moduli, bonus);
+• registrare e consegnare i file video non editati nei tempi concordati;
+• fornire i materiali necessari alla realizzazione del funnel, del calendario editoriale e delle attività promozionali;
+• approvare o segnalare eventuali modifiche ai materiali prodotti da Evolution PRO entro 5 (cinque) giorni lavorativi dalla loro consegna;
+• collaborare alla produzione e pubblicazione dei contenuti social previsti dal piano editoriale;
+• gestire in autonomia i lead, i contatti e le opportunità commerciali generate dalle attività di marketing;
+• mantenere aggiornati i propri dati di contatto e garantire la reperibilità necessaria per l'esecuzione del progetto.
+In assenza di osservazioni scritte entro 5 (cinque) giorni lavorativi dalla consegna di materiali, documenti, copy, funnel o altre attività realizzate da Evolution PRO, tali materiali si intenderanno approvati dal Partner.
+La collaborazione attiva del Partner costituisce obbligazione essenziale ai fini della corretta esecuzione del presente Contratto.
+L'assenza ingiustificata di comunicazione, collaborazione o operatività per oltre 30 (trenta) giorni consecutivi legittima Evolution PRO a:
+• sospendere temporaneamente le attività operative;
+• sospendere l'accesso a Ciak.io e agli strumenti messi a disposizione;
+• posticipare le attività pianificate;
+• avviare la procedura di risoluzione per grave inadempimento ai sensi dell'Articolo 2.7.
+La sospensione delle attività dovuta a cause imputabili al Partner non comporta sospensione, riduzione o estinzione degli obblighi economici previsti dal presente Contratto.
 3.2 Collaborazione e comunicazioni operative
 Il Partner si impegna a:
-- mantenere una comunicazione costante e tempestiva con il team Evolution PRO
-- rispettare i termini di revisione dei materiali (entro 48 ore salvo diversa indicazione)
-- approvare o segnalare modifiche entro i tempi stabiliti
-- adottare un comportamento professionale e rispettoso verso i membri del team e i collaboratori
-
+• mantenere una comunicazione costante, collaborativa e tempestiva con Evolution PRO;
+• consultare regolarmente la piattaforma Ciak.io e gli altri canali ufficiali utilizzati per la gestione del progetto;
+• rispettare i termini di revisione dei materiali, delle proposte operative e delle richieste formulate da Evolution PRO;
+• approvare o segnalare eventuali modifiche ai materiali ricevuti entro i termini indicati;
+• fornire riscontri completi e sufficientemente dettagliati da consentire il corretto avanzamento delle attività;
+• adottare un comportamento professionale, corretto e rispettoso nei confronti di Evolution PRO, dei suoi collaboratori, fornitori e partner tecnologici.
+Salvo diversa indicazione scritta, il Partner dovrà fornire il proprio riscontro entro 5 (cinque) giorni lavorativi dalla ricezione di materiali, documenti, funnel, copy, contenuti o richieste operative.
+In assenza di osservazioni scritte entro tale termine, il materiale si intenderà approvato, validato e autorizzato alla successiva fase operativa.
+Le comunicazioni effettuate tramite Ciak.io, posta elettronica, PEC, sistemi di ticketing, piattaforme di project management o altri canali ufficialmente utilizzati da Evolution PRO costituiscono comunicazioni valide ai fini del presente Contratto.
+L'eventuale mancata lettura, consultazione o presa visione delle comunicazioni regolarmente trasmesse attraverso i canali sopra indicati non potrà essere invocata dal Partner quale motivo di contestazione delle attività svolte da Evolution PRO.
 3.3 Ritardi o mancata collaborazione del Partner
-Eventuali ritardi o omissioni da parte del Partner potranno comportare:
-- sospensione temporanea delle attività operative
-- posticipo proporzionale delle fasi successive del Programma
-- nessuna proroga automatica del Contratto o riduzione dei corrispettivi
-Evolution PRO informerà il Partner per iscritto e proporrà, ove possibile, un piano di riallineamento operativo. L'eventuale inattività del Partner superiore a 30 (trenta) giorni consecutivi potrà comportare la dichiarazione di progetto sospeso. Decorso un ulteriore termine di 15 (quindici) giorni senza ripristino operativo, il Contratto potrà essere risolto ai sensi dell'Articolo 2.7. In caso di sospensione del progetto per inattività imputabile al Partner superiore a 30 giorni consecutivi, Evolution PRO potrà dichiarare la sospensione operativa del progetto previa comunicazione scritta. Qualora l'inattività prosegua oltre ulteriori 15 giorni dalla diffida, Evolution PRO potrà risolvere il Contratto. La durata contrattuale non si prorogherà automaticamente; tuttavia, ove al momento della sospensione non siano ancora state eseguite attività essenziali per cause imputabili esclusivamente al Partner, le Parti potranno concordare un'estensione tecnica limitata e scritta.
-
+Eventuali ritardi, omissioni, inattività o mancata collaborazione da parte del Partner potranno comportare:
+• la sospensione temporanea delle attività operative;
+• il rinvio delle attività pianificate;
+• il posticipo delle fasi successive del Programma Operativo;
+• la sospensione dell'accesso a Ciak.io e agli ulteriori strumenti messi a disposizione da Evolution PRO.
+Evolution PRO informerà il Partner mediante comunicazione scritta, indicando le attività mancanti e le azioni necessarie per il riallineamento del progetto.
+L'eventuale inattività del Partner superiore a 30 (trenta) giorni consecutivi legittima Evolution PRO a dichiarare il progetto sospeso.
+Qualora l'inattività o la mancata collaborazione proseguano per ulteriori 15 (quindici) giorni dalla comunicazione di sospensione, Evolution PRO potrà avviare la procedura di risoluzione per grave inadempimento ai sensi dell'Articolo 2.7.
+La sospensione o il rallentamento del progetto imputabili al Partner:
+• non comportano proroga automatica della durata contrattuale;
+• non comportano riduzione o sospensione dei corrispettivi dovuti;
+• non costituiscono inadempimento da parte di Evolution PRO.
+Le Parti potranno concordare esclusivamente per iscritto eventuali estensioni tecniche finalizzate al completamento delle attività non eseguite a causa di ritardi imputabili al Partner.
 3.4 Obblighi principali di Evolution PRO
 Evolution PRO si impegna a:
-- eseguire con professionalità le attività previste nel Programma Operativo (creazione funnel, editing, copywriting, supporto strategico alle attività di marketing e ADV, supporto tecnico)
-- fornire al Partner accesso alla piattaforma di marketing per la consultazione delle attività, dei lead e dei risultati di vendita
-- assicurare assistenza iniziale per l'apprendimento delle funzioni principali della piattaforma
-- fornire supporto strategico e tecnico tramite i canali ufficiali (gruppo Telegram, e-mail dedicata assistenza@evolution-pro.it)
-- avvalersi di collaboratori e fornitori esterni qualificati, restando comunque responsabile della corretta esecuzione complessiva del servizio nei confronti del Partner
-
+• eseguire con diligenza professionale le attività previste dal Programma Operativo E.V.O.;
+• mettere a disposizione del Partner la piattaforma proprietaria Ciak.io e gli strumenti necessari alla gestione operativa del progetto;
+• realizzare le attività previste dalla Partnership, incluse a titolo esemplificativo: configurazione del funnel, configurazione dell'area corsi, editing dei contenuti, supporto copywriting, supporto strategico marketing, supporto tecnico e attività operative espressamente incluse nel Programma Operativo;
+• fornire al Partner accesso ai dati, alle informazioni e alle statistiche disponibili attraverso Ciak.io, Systeme.io o gli altri sistemi utilizzati per la gestione del progetto;
+• assicurare una formazione iniziale sufficiente all'utilizzo delle principali funzionalità degli strumenti messi a disposizione;
+• fornire supporto strategico e tecnico attraverso i canali ufficiali indicati da Evolution PRO;
+• coordinare il progetto secondo il Metodo E.V.O. e le procedure operative definite nel Programma Operativo;
+• avvalersi, ove necessario, di collaboratori, consulenti, fornitori esterni, software, sistemi di automazione e strumenti di intelligenza artificiale, restando responsabile della corretta esecuzione complessiva delle attività contrattualmente previste.
+Le Parti riconoscono che le obbligazioni assunte da Evolution PRO costituiscono obbligazioni di mezzi e non di risultato.
+Evolution PRO si impegna pertanto a mettere a disposizione competenze, strumenti, know-how, supporto strategico e infrastrutture operative, senza garantire specifici risultati economici, commerciali, di fatturato, di acquisizione clienti o di vendita.
 3.5 Diritti comuni delle Parti
-Le Parti potranno proporre modifiche, integrazioni o aggiornamenti al progetto, che saranno valutati e approvati per iscritto tramite PEC. Le Parti si impegnano a mantenere un atteggiamento trasparente e collaborativo per tutta la durata del Contratto e per i successivi sessanta (60) giorni. L'eventuale mancato adempimento del Partner agli obblighi di consegna o collaborazione non potrà essere considerato inadempimento di Evolution PRO, né giustificare richieste di rimborso o contestazioni del corrispettivo pattuito.
+Le Parti potranno proporre modifiche, integrazioni, aggiornamenti o variazioni al progetto, al Programma Operativo E.V.O., alle attività di marketing o agli asset sviluppati nell'ambito della Partnership.
+Tali modifiche avranno efficacia esclusivamente se approvate per iscritto dalle Parti mediante PEC, e-mail o altro canale ufficialmente riconosciuto da Evolution PRO.
+Le Parti si impegnano a mantenere per tutta la durata del Contratto un comportamento improntato ai principi di correttezza, buona fede, trasparenza e collaborazione reciproca.
+Ciascuna Parte si impegna a segnalare tempestivamente eventuali circostanze che possano compromettere il corretto svolgimento del progetto, collaborando per individuare soluzioni ragionevoli e sostenibili.
+L'eventuale mancato adempimento del Partner agli obblighi di consegna, approvazione, collaborazione, partecipazione operativa o utilizzo degli strumenti messi a disposizione da Evolution PRO non potrà essere imputato a Evolution PRO, né costituire motivo di contestazione delle attività svolte, richiesta di rimborso o sospensione degli obblighi economici previsti dal presente Contratto.
+Le Parti riconoscono che il successo del progetto dipende dalla collaborazione attiva e continuativa di entrambe le Parti e che l'eventuale inerzia o inattività del Partner può compromettere il raggiungimento degli obiettivi del Programma Operativo senza che ciò possa essere imputato a Evolution PRO.
 
-ARTICOLO 4 - PROPRIETÀ INTELLETTUALE
+ARTICOLO 4 – PROPRIETÀ INTELLETTUALE E INDUSTRIALE
 
 4.1 Titolarità dei diritti
-Il Partner mantiene la piena titolarità dei diritti d'autore e di sfruttamento economico sui contenuti originali forniti (idee, testi, video, materiali didattici o formativi). Con la firma del presente Contratto, il Partner dichiara che tali contenuti sono di sua esclusiva proprietà e che il loro utilizzo non viola diritti di terzi.
-
+Il Partner mantiene la piena titolarità dei diritti d'autore, dei diritti di sfruttamento economico e di ogni altro diritto relativo ai contenuti originali forniti nell'ambito della Partnership, inclusi a titolo esemplificativo: metodologie professionali, testi, video, materiali didattici, registrazioni, slide, documenti, casi studio, framework professionali e contenuti formativi.
+Con la sottoscrizione del presente Contratto, il Partner dichiara e garantisce che tali contenuti sono di sua esclusiva disponibilità o comunque utilizzabili legittimamente e che il loro impiego non viola diritti di terzi.
+Restano invece di esclusiva proprietà di Evolution PRO tutti i diritti relativi a:
+• Metodo E.V.O.;
+• piattaforma Ciak.io;
+• sistemi software sviluppati o utilizzati da Evolution PRO;
+• agenti AI, prompt, workflow e automazioni;
+• template, procedure operative, framework strategici e metodologie proprietarie;
+• documentazione interna;
+• sistemi di marketing, vendita, lancio e ottimizzazione sviluppati da Evolution PRO;
+• materiali formativi interni e risorse operative proprietarie.
+Per la durata del presente Contratto, Evolution PRO concede al Partner una licenza d'uso personale, limitata, non esclusiva, non trasferibile e revocabile relativamente agli strumenti, ai materiali e alle risorse messi a disposizione nell'ambito della Partnership, esclusivamente per le finalità previste dal presente Contratto.
+La sottoscrizione del presente Contratto non comporta alcun trasferimento di proprietà intellettuale da una Parte all'altra, salvo quanto espressamente previsto nel presente Contratto o in accordi successivi sottoscritti per iscritto.
 4.2 Licenza concessa a Evolution PRO
-Il Partner concede a Evolution PRO licenza d'uso temporanea, onerosa, non trasferibile e in esclusiva limitatamente al Corso oggetto della Partnership e ai canali di vendita concordati, al solo fine di consentirne:
-- la produzione, pubblicazione, distribuzione e promozione del Corso attraverso canali digitali o fisici (piattaforme, siti web, social media, eventi, masterclass)
-- la realizzazione delle attività di marketing, editing, funnel e copywriting previste nel Programma Operativo
-La licenza è valida per la durata del presente Contratto e per i sessanta (60) giorni successivi alla sua cessazione, salvo eventuale rinnovo o proroga concordata per iscritto tramite indirizzo PEC. La licenza è non trasferibile a terzi, se non per ragioni tecniche strettamente necessarie all'erogazione dei servizi (hosting, piattaforme, fornitori).
-
+Il Partner concede a Evolution PRO una licenza d'uso temporanea, non trasferibile e in esclusiva limitatamente al Corso, ai contenuti e ai materiali oggetto della Partnership, esclusivamente per le finalità previste dal presente Contratto.
+La licenza consente a Evolution PRO di:
+• produrre, modificare, editare, pubblicare, distribuire e promuovere il Corso;
+• utilizzare i contenuti nell'ambito della piattaforma Ciak.io e degli strumenti operativi collegati;
+• realizzare funnel, pagine web, masterclass, materiali promozionali, campagne marketing, automazioni e attività di vendita;
+• utilizzare i contenuti per le attività previste dal Programma Operativo E.V.O.;
+• archiviare, elaborare e gestire i contenuti tramite software, piattaforme, sistemi cloud e strumenti tecnologici necessari all'esecuzione della Partnership.
+La licenza è valida per l'intera durata del presente Contratto e per i novanta (90) giorni successivi alla sua cessazione, limitatamente alle attività tecniche necessarie alla chiusura delle campagne, alla gestione degli ordini acquisiti, alle attività amministrative e agli adempimenti connessi alla Partnership.
+Evolution PRO potrà consentire l'accesso ai contenuti esclusivamente a collaboratori, consulenti, fornitori tecnologici, sistemi software, strumenti di intelligenza artificiale e piattaforme utilizzati per l'esecuzione delle attività previste dal presente Contratto.
+La licenza non attribuisce a Evolution PRO alcun diritto di proprietà sui contenuti del Partner e cesserà automaticamente alla scadenza dei termini sopra indicati, fatti salvi gli obblighi di conservazione eventualmente previsti dalla legge.
 4.3 Miglioramenti tecnici e adattamenti
-Evolution PRO è autorizzata a modificare, adattare o ottimizzare i contenuti esclusivamente per migliorarne qualità visiva, accessibilità e performance commerciale, senza alterare il messaggio o la sostanza originale del Partner.
+Il Partner autorizza Evolution PRO ad apportare ai contenuti forniti tutte le modifiche, integrazioni, rielaborazioni, adattamenti tecnici e ottimizzazioni ragionevolmente necessarie per l'esecuzione delle attività previste dal presente Contratto.
+Tali interventi potranno includere, a titolo esemplificativo:
+• editing audio e video;
+• correzioni grafiche e impaginazione;
+• adattamenti per piattaforme digitali;
+• ottimizzazioni di accessibilità e fruibilità;
+• riorganizzazione dei contenuti;
+• adattamenti di copywriting, titolazione, call to action e struttura commerciale;
+• creazione di funnel, masterclass, materiali promozionali e asset di marketing derivati dai contenuti forniti dal Partner.
+Evolution PRO si impegna a non alterare in modo sostanziale il significato, il posizionamento professionale, il metodo o il messaggio principale del Partner senza il suo preventivo consenso.
+Le attività di ottimizzazione, adattamento e rielaborazione effettuate da Evolution PRO nell'ambito della Partnership non comportano alcun trasferimento della titolarità dei contenuti originali del Partner.
+4.4 Divieto di utilizzo autonomo durante la Partnership
+Per tutta la durata del presente Contratto e per i novanta (90) giorni successivi alla sua cessazione, il Partner si impegna a rispettare integralmente gli obblighi di esclusiva previsti dall'Articolo 1.4.
+In particolare, salvo preventiva autorizzazione scritta di Evolution PRO, il Partner non potrà riprodurre, distribuire, vendere, promuovere o pubblicare autonomamente:
+• il medesimo Corso;
+• l'Accademia Digitale oggetto della Partnership;
+• Contenuti Sostanzialmente Equivalenti come definiti all'Articolo 1.4;
+• funnel, masterclass, materiali promozionali o asset commerciali sviluppati nell'ambito della Partnership e destinati alla vendita del medesimo prodotto formativo.
+Restano salve le attività espressamente escluse dal regime di esclusiva ai sensi dell'Articolo 1.4 del presente Contratto.
+4.5 Uso promozionale, portfolio e case study
+Il Partner autorizza Evolution PRO, per tutta la durata del presente Contratto e successivamente alla sua cessazione, a utilizzare il proprio nome, marchio, immagine professionale, testimonianze, risultati, estratti di contenuti, screenshot, materiali promozionali, funnel, dashboard, statistiche, case study e altri elementi sviluppati nell'ambito della Partnership, esclusivamente per finalità di comunicazione istituzionale, portfolio, marketing, promozione commerciale e presentazione dei servizi di Evolution PRO.
+Tale utilizzo potrà avvenire attraverso siti web, piattaforme digitali, social media, presentazioni commerciali, webinar, eventi, materiali informativi, piattaforma Ciak.io e altri canali utilizzati da Evolution PRO.
+Evolution PRO si impegna a utilizzare tali materiali in modo corretto, veritiero e non denigratorio, nel rispetto della reputazione professionale del Partner.
+Il Partner potrà richiedere per iscritto la rimozione o la limitazione dell'utilizzo di specifici contenuti, immagini o testimonianze qualora sussistano giustificati motivi legati alla tutela della propria reputazione, immagine professionale, riservatezza o mutamento sostanziale del contesto originario.
+Resta in ogni caso consentito a Evolution PRO l'utilizzo di dati aggregati, statistiche anonimizzate, casi studio privi di elementi identificativi e informazioni utilizzate a fini documentali, formativi o storici.
+4.6 Tutela reciproca della proprietà intellettuale
+Ciascuna Parte si impegna a rispettare e tutelare i diritti di proprietà intellettuale, industriale e commerciale dell'altra Parte e di eventuali terzi.
+È fatto divieto al Partner di copiare, riprodurre, distribuire, condividere, rivendere, concedere in licenza o utilizzare, al di fuori delle finalità previste dal presente Contratto, il Metodo E.V.O., la piattaforma Ciak.io, i template, i funnel, le automazioni, i prompt, gli agenti AI, i framework strategici, le procedure operative e gli altri asset proprietari di Evolution PRO.
+È fatto divieto a Evolution PRO di utilizzare i contenuti originali del Partner per finalità diverse da quelle previste dal presente Contratto, salvo quanto espressamente autorizzato negli articoli precedenti.
+Qualsiasi utilizzo non autorizzato di contenuti, materiali, metodologie, software, marchi o altri diritti di proprietà intellettuale potrà costituire grave inadempimento contrattuale e legittimare la Parte lesa:
+• a richiedere l'immediata cessazione della violazione;
+• a risolvere il Contratto ai sensi dell'Articolo 2.7;
+• a richiedere il risarcimento di tutti i danni diretti e indiretti subiti.
+Restano impregiudicati tutti gli ulteriori diritti e rimedi previsti dalla normativa applicabile in materia di proprietà intellettuale, concorrenza sleale e tutela del know-how aziendale.
 
-4.4 Divieto di utilizzo autonomo durante la partnership
-Durante la vigenza del Contratto e nei sessanta (60) giorni successivi alla sua cessazione, il Partner si impegna a non riprodurre, distribuire, vendere o pubblicare autonomamente il medesimo Corso o Contenuti Sostanzialmente Equivalenti, senza preventiva autorizzazione scritta di Evolution PRO.
+ARTICOLO 5 – CORRISPETTIVI, PIANI DI PAGAMENTO E REVENUE SHARE
 
-4.5 Uso promozionale e citazione del Partner
-Evolution PRO potrà utilizzare estratti, immagini, clip o testimonianze del Corso e del Partner esclusivamente a fini promozionali o di portfolio aziendale, senza che ciò comporti una vendita diretta o uno sfruttamento commerciale autonomo dei contenuti. Tale utilizzo potrà proseguire anche dopo la cessazione del Contratto, nel rispetto della normativa vigente e senza pregiudicare i diritti morali o d'autore del Partner. Il Partner potrà revocare per giustificati motivi l'utilizzo di testimonianze personali o immagini che risultino lesive della propria reputazione o non più attuali, fermo restando l'uso di case study anonimizzati.
-
-4.6 Tutela reciproca
-Entrambe le Parti si impegnano a rispettare i diritti di proprietà intellettuale dell'altra e di eventuali terzi. Qualsiasi violazione comporterà la possibilità di risolvere il Contratto per giusta causa e richiedere il risarcimento dei danni subiti.
-
-ARTICOLO 5 - CORRISPETTIVI E PAGAMENTI
-
-5.1 Corrispettivo della partnership
-Il corrispettivo per l'ingresso nella Partnership è pari a € 2.790,00 (duemilasettecentonovanta/00), iva inclusa quale investimento una tantum per l'attivazione del progetto.
-
+5.1 Corrispettivo della Partnership
+Il corrispettivo previsto per l'accesso alla Partnership Evolution PRO è pari a € 2.790,00 (duemilasettecentonovanta/00), secondo le modalità di pagamento concordate tra le Parti e riportate nel presente Contratto o nei relativi allegati.
+Il corrispettivo remunera:
+• l'accesso al Metodo E.V.O.;
+• l'accesso alla piattaforma Ciak.io;
+• l'attivazione del Programma Operativo;
+• le attività strategiche, operative e tecniche previste dalla Partnership;
+• l'utilizzo delle infrastrutture, dei sistemi, del know-how e delle risorse messe a disposizione da Evolution PRO.
+Le Parti riconoscono che il valore economico complessivo dei servizi, delle attività e degli asset inclusi nella Partnership è riportato nell'Allegato B – Valore dei Servizi Inclusi nella Partnership.
+Il corrispettivo non rappresenta il prezzo di un singolo deliverable o di una specifica attività, bensì l'investimento complessivo richiesto per l'accesso al sistema, al metodo e alle risorse oggetto della Partnership.
+Il corrispettivo si considera definitivamente maturato con l'attivazione della Partnership e resta disciplinato dalle ulteriori disposizioni del presente Contratto in materia di pagamenti, sospensione, recesso, risoluzione e inadempimento.
 5.2 Modalità di pagamento
-Il pagamento avviene in un'unica soluzione alla firma del Contratto. In casi eccezionali, a discrezione di Evolution PRO e previa approvazione scritta, il pagamento potrà essere suddiviso in massimo 3 (tre) rate mensili a 30 (trenta) giorni. Tutti i pagamenti devono essere effettuati sul conto Revolut Bank UAB intestato a Evolution PRO LLC (IBAN: LT94 3250 0974 4929 5781) o tramite sistemi elettronici autorizzati (Stripe, PayPal, ecc.). I pagamenti si considerano perfezionati solo all'effettivo accredito.
-
-5.3 Decadenza del beneficio
-Il mancato pagamento anche di una sola rata oltre 10 giorni dalla scadenza, previa messa in mora scritta, comporta la decadenza dal beneficio della dilazione. In difetto, Evolution PRO potrà sospendere immediatamente l'accesso alla piattaforma e risolvere il Contratto per grave inadempimento. Il ritardo nel pagamento costituisce inadempimento essenziale ai sensi dell'Articolo 2.7.
-
+Il corrispettivo previsto dal presente Contratto è dovuto integralmente alla sottoscrizione del Contratto.
+A esclusiva discrezione di Evolution PRO, e previa approvazione scritta, potrà essere concessa al Partner una dilazione di pagamento mediante rateizzazione del corrispettivo, fino a un massimo di 3 (tre) rate mensili consecutive.
+La concessione della rateizzazione costituisce una mera agevolazione finanziaria concessa da Evolution PRO e non modifica:
+• il valore complessivo del Contratto;
+• gli obblighi economici assunti dal Partner;
+• la natura unitaria del corrispettivo previsto dalla Partnership.
+Tutti i pagamenti dovranno essere effettuati sul conto indicato da Evolution PRO oppure tramite sistemi elettronici autorizzati (Stripe, PayPal o equivalenti).
+I pagamenti si considerano perfezionati esclusivamente al momento dell'effettivo accredito delle somme.
+Il mancato pagamento anche di una sola rata entro 15 (quindici) giorni dalla relativa scadenza comporterà, previa comunicazione scritta di Evolution PRO:
+• la decadenza automatica del beneficio della rateizzazione;
+• l'immediata esigibilità dell'intero importo residuo ancora dovuto;
+• la facoltà per Evolution PRO di sospendere l'accesso a Ciak.io, alle infrastrutture tecniche, ai funnel, alle automazioni e ai servizi ancora non erogati;
+• la facoltà di avvalersi delle ulteriori tutele previste dagli Articoli 2.7 e 5 del presente Contratto.
+La sospensione delle attività o dell'accesso agli strumenti non comporta rinuncia ai crediti maturati né estinzione degli obblighi economici assunti dal Partner.
+5.3 Decadenza del beneficio della dilazione
+Il mancato pagamento anche di una sola rata oltre 10 (dieci) giorni dalla relativa scadenza, previa messa in mora scritta da parte di Evolution PRO, comporta la decadenza automatica del beneficio della dilazione concessa.
+Decorso inutilmente il termine indicato nella messa in mora, Evolution PRO avrà facoltà di:
+• sospendere immediatamente l'accesso alla piattaforma Ciak.io;
+• sospendere l'accesso ai funnel, alle automazioni, all'area corsi e agli ulteriori asset operativi messi a disposizione nell'ambito della Partnership;
+• sospendere le attività ancora non eseguite;
+• avvalersi della clausola risolutiva espressa di cui all'Articolo 2.7.
+Il ritardo nel pagamento costituisce inadempimento essenziale ai sensi del presente Contratto.
+In caso di risoluzione del Contratto per grave inadempimento del Partner derivante dal mancato pagamento dei corrispettivi pattuiti, la Partnership si intenderà cessata con effetto immediato.
+Resta fermo il diritto di Evolution PRO di richiedere:
+• il pagamento delle somme già maturate;
+• il pagamento delle rate scadute e non corrisposte;
+• il pagamento dell'intero importo residuo ancora dovuto ai sensi del piano di pagamento concordato;
+• il risarcimento degli eventuali ulteriori danni diretti e documentabili derivanti dall'interruzione anticipata del rapporto.
+La cessazione della Partnership non comporta rinuncia ai crediti maturati né estinzione degli obblighi economici assunti dal Partner.
 5.4 Valore complessivo del progetto e ripartizione dell'investimento
-Le Parti riconoscono che Evolution PRO sostiene, oltre al corrispettivo versato dal Partner, un ulteriore investimento organizzativo, strategico, tecnico e operativo, non quantificato come finanziamento o credito ma come apporto industriale al progetto.
-
-5.5 Royalties a favore di Evolution PRO
-A fronte dell'investimento sostenuto da Evolution PRO, il Partner riconosce a quest'ultima una royalty pari al 10% (dieci per cento) dei ricavi derivanti dalla vendita del Corso, per una durata di dodici (12) mesi dalla data di sottoscrizione del presente Contratto. La royalty del 10% è calcolata sull'Importo Netto Incassato come definito all'Articolo 1.5, ossia sull'importo effettivamente incassato da Evolution PRO per le vendite del Corso, al netto di rimborsi, storni, chargeback e commissioni dei sistemi di pagamento. Decorso il termine di dodici (12) mesi dalla sottoscrizione del presente Contratto, nessuna ulteriore royalty sarà dovuta, salvo diverso accordo scritto tra le Parti.
-
-5.6 Durata e Applicazione della Revenue Share
-La percentuale del 10% di cui all'Articolo 5 si applica esclusivamente alle vendite concluse durante il periodo di validità del presente Contratto. Per "vendite concluse" si intendono gli ordini o contratti formalizzati con accettazione da parte del cliente finale entro la scadenza dei 12 mesi, indipendentemente dalla data effettiva di incasso. Le vendite concluse successivamente alla scadenza del presente Contratto non saranno soggette ad alcuna percentuale a favore di Evolution PRO, salvo diverso accordo scritto tra le Parti.
-
+Le Parti riconoscono che il corrispettivo versato dal Partner rappresenta solo una parte del valore economico complessivo del progetto sviluppato nell'ambito della Partnership.
+Le Parti riconoscono inoltre che Evolution PRO contribuisce al progetto mediante un apporto organizzativo, strategico, tecnico e operativo consistente, tra l'altro, nella messa a disposizione di:
+• Metodo E.V.O.;
+• piattaforma proprietaria Ciak.io;
+• know-how specialistico;
+• infrastrutture tecnologiche;
+• sistemi software e automazioni;
+• funnel, template e framework operativi;
+• attività di consulenza strategica, supporto tecnico e coordinamento progettuale;
+• collaboratori, fornitori e risorse impiegate per l'esecuzione del Programma Operativo.
+Tale apporto costituisce parte integrante della Partnership e rappresenta un investimento industriale e organizzativo sostenuto da Evolution PRO per la realizzazione e lo sviluppo del progetto.
+Le Parti riconoscono che il modello di Partnership adottato da Evolution PRO si fonda sulla collaborazione reciproca e sulla condivisione del rischio imprenditoriale connesso allo sviluppo del progetto, senza che ciò configuri attività di finanziamento, concessione di credito o partecipazione societaria.
+Il Partner dichiara di aver preso visione dell'Allegato B – Valore dei Servizi Inclusi nella Partnership e di riconoscere il valore economico complessivo delle attività, delle risorse e degli asset messi a disposizione da Evolution PRO.
+5.5 Royalty a favore di Evolution PRO
+A fronte dell'investimento organizzativo, strategico, tecnico e operativo sostenuto da Evolution PRO nell'ambito della Partnership, il Partner riconosce a Evolution PRO una royalty pari al 10% (dieci per cento) dei ricavi derivanti dalla vendita del Corso, dell'Accademia Digitale e degli ulteriori prodotti formativi sviluppati nell'ambito del progetto.
+La royalty è dovuta per un periodo di dodici (12) mesi decorrenti dalla data di sottoscrizione del presente Contratto.
+La royalty del 10% è calcolata sull'Importo Netto Incassato, come definito all'Articolo 1.5 e risultante dai sistemi di rendicontazione utilizzati da Evolution PRO.
+Ai fini del calcolo della royalty, fanno fede i dati risultanti dalle piattaforme di pagamento, dai sistemi di vendita e dagli strumenti di rendicontazione utilizzati da Evolution PRO, salvo prova contraria documentata.
+Decorso il termine di dodici (12) mesi dalla sottoscrizione del presente Contratto:
+• cesserà automaticamente ogni obbligo di corresponsione della royalty;
+• resteranno dovuti esclusivamente eventuali importi già maturati e non ancora corrisposti;
+• resteranno ferme le ulteriori obbligazioni eventualmente sopravviventi previste dal presente Contratto.
+La cessazione della royalty non comporta alcun trasferimento automatico di proprietà o di diritti relativi al Metodo E.V.O., alla piattaforma Ciak.io o agli altri asset proprietari di Evolution PRO.
+5.6 Durata e applicazione della Revenue Share
+La royalty del 10% prevista dal presente Contratto si applica esclusivamente alle vendite del Corso, dell'Accademia Digitale o degli ulteriori prodotti formativi concluse durante il periodo di validità del presente Contratto.
+Per "vendita conclusa" si intende qualsiasi ordine, acquisto, adesione, iscrizione o contratto perfezionato da un cliente finale entro la scadenza dei dodici (12) mesi di durata della Partnership.
+Qualora una vendita conclusa durante la validità del Contratto preveda pagamenti rateali, abbonamenti, dilazioni o incassi distribuiti nel tempo, la royalty continuerà ad applicarsi a tutti gli importi derivanti da tale vendita fino al completo pagamento della stessa.
+Le vendite concluse successivamente alla cessazione del presente Contratto non saranno soggette ad alcuna royalty a favore di Evolution PRO, salvo diverso accordo scritto tra le Parti.
+Ai fini dell'individuazione della data di conclusione della vendita, fanno fede i dati risultanti dalle piattaforme di pagamento, dai sistemi di vendita e dagli strumenti di rendicontazione utilizzati da Evolution PRO.
 5.7 Natura non rimborsabile del corrispettivo
-Il corrispettivo iniziale remunera l'attivazione del progetto, la fase di impostazione strategica, l'allocazione delle risorse operative e l'avvio delle attività previste dalla Partnership e, in quanto tale, resta acquisito da Evolution PRO una volta avviata l'esecuzione del rapporto, fatti salvi i soli casi inderogabili previsti dalla legge o l'accertato grave inadempimento di Evolution PRO.
+Le Parti riconoscono che il corrispettivo iniziale previsto dal presente Contratto remunera:
+• l'attivazione della Partnership;
+• l'accesso al Metodo E.V.O.;
+• l'accesso alla piattaforma Ciak.io;
+• la pianificazione strategica del progetto;
+• l'allocazione delle risorse organizzative, tecniche e operative;
+• la messa a disposizione del know-how, delle infrastrutture e degli strumenti proprietari di Evolution PRO;
+• l'avvio del Programma Operativo.
+Ai fini del presente Contratto, l'esecuzione della Partnership si considera avviata dal momento in cui si verifica anche una sola delle seguenti attività:
+• attivazione dell'account Partner su Ciak.io;
+• accesso ai materiali del Programma Operativo;
+• avvio delle attività di posizionamento o pianificazione strategica;
+• consegna di documenti, materiali, funnel, copy o altre attività operative da parte di Evolution PRO;
+• partecipazione a sessioni di onboarding, allineamento strategico o avvio progetto.
+Una volta avviata l'esecuzione della Partnership, il corrispettivo iniziale si intende definitivamente maturato e acquisito da Evolution PRO e non sarà soggetto a rimborso, restituzione o compensazione.
+Restano salvi esclusivamente:
+• i casi inderogabili previsti dalla normativa applicabile;
+• l'accertato grave inadempimento imputabile a Evolution PRO.
+L'eventuale sospensione, rallentamento o interruzione del progetto dovuti a cause imputabili al Partner non costituiscono motivo di rimborso, riduzione del corrispettivo o restituzione delle somme già versate.
+5.8 Utilizzo della piattaforma e continuità operativa post-contratto
+Alla cessazione del presente Contratto, il Partner mantiene la piena disponibilità dei propri contenuti originali, del Corso e dei materiali formativi di propria titolarità.
+La prosecuzione autonoma delle attività di vendita, marketing o gestione tecnica del progetto potrà avvenire mediante infrastrutture tecniche proprie del Partner oppure tramite servizi sottoscritti direttamente con fornitori terzi, inclusa la piattaforma Systeme.io o altre piattaforme equivalenti.
+Salvo diverso accordo scritto, alla cessazione del Contratto:
+• cesserà il diritto di utilizzo della piattaforma Ciak.io;
+• cesserà il diritto di utilizzo del Metodo E.V.O. nella sua forma documentale, operativa e proprietaria;
+• cesserà l'accesso agli agenti AI, ai workflow, alle automazioni, ai template e agli strumenti messi a disposizione da Evolution PRO;
+• cesserà ogni obbligo di assistenza tecnica, strategica o operativa da parte di Evolution PRO.
+Eventuali attività di migrazione, esportazione dati, supporto tecnico, affiancamento operativo o servizi di continuità potranno essere forniti esclusivamente sulla base di un accordo separato e di un corrispettivo specifico.
+Le attività svolte autonomamente dal Partner successivamente alla cessazione del Contratto non generano alcun diritto a compensi, royalties, commissioni o ulteriori prestazioni a carico di Evolution PRO.
+5.9 Attività pubblicitarie (ADV) e promozione del progetto
+Le attività pubblicitarie a pagamento (ADV) non costituiscono elemento obbligatorio della Partnership, salvo diverso accordo scritto tra le Parti.
+Evolution PRO potrà fornire supporto strategico, consulenziale e operativo limitatamente alle attività espressamente incluse nel Programma Operativo o concordate successivamente tra le Parti.
+L'attivazione di campagne pubblicitarie a pagamento sarà valutata congiuntamente in funzione:
+• degli obiettivi del progetto;
+• del posizionamento del Corso;
+• delle risorse disponibili;
+• del budget messo a disposizione dal Partner.
+Tutti i costi pubblicitari, inclusi a titolo esemplificativo quelli sostenuti presso Meta, Google, YouTube, LinkedIn o altre piattaforme promozionali, restano integralmente a carico del Partner e dovranno essere sostenuti mediante account e metodi di pagamento riconducibili al Partner stesso, salvo diverso accordo scritto.
+Salvo diverso accordo scritto, Evolution PRO non assume obblighi di gestione continuativa delle campagne pubblicitarie né garantisce specifici risultati economici, commerciali, di vendita, acquisizione clienti o ritorno sull'investimento pubblicitario.
+Le Parti riconoscono che il successo commerciale del progetto può dipendere da molteplici fattori, tra cui:
+• qualità e completezza dei contenuti;
+• partecipazione attiva del Partner;
+• attività organiche di comunicazione;
+• utilizzo di campagne pubblicitarie;
+• condizioni di mercato;
+• livello di concorrenza;
+• capacità di conversione dell'offerta.
+L'eventuale mancata attivazione di campagne ADV da parte del Partner non costituisce inadempimento contrattuale, salvo che le Parti abbiano espressamente individuato tali attività come elemento essenziale del piano di lancio mediante accordo scritto.
 
-5.8 Licenza piattaforma
-Alla cessazione del Contratto, il mantenimento online del Corso e delle automazioni richiede la sottoscrizione di una licenza diretta con la piattaforma Systeme.io (o equivalente). In assenza di rinnovo o sottoscrizione di tale licenza, Evolution PRO non fornirà supporto tecnico, salvo accordo separato. Le attività svolte dal Partner in autonomia sulla piattaforma non generano alcun diritto a compensi, commissioni o assistenza da parte di Evolution PRO.
-
-5.9 Campagne pubblicitarie (ADV)
-Le campagne pubblicitarie a pagamento (ADV) non sono obbligatorie, ma fortemente consigliate nella fase post-lancio del Corso, al fine di incrementarne la visibilità e le potenzialità di vendita. Eventuali attività ADV saranno valutate congiuntamente dalle Parti in base alle caratteristiche del progetto e al budget messo a disposizione dal Partner. I costi pubblicitari sono interamente a carico del Partner, che provvederà a saldarli direttamente alle piattaforme pubblicitarie tramite collegamento del proprio metodo di pagamento. Evolution PRO fornisce supporto strategico alle attività ADV senza assunzione di obblighi operativi continuativi né garanzia di risultati economici. L'eventuale mancata attivazione di ADV da parte del Partner non costituisce inadempimento, salvo che le Parti abbiano concordato per iscritto un piano di lancio che la preveda come elemento essenziale.
-
-ARTICOLO 6 - CLAUSOLA DI RISERVATEZZA
+ARTICOLO 6 – RISERVATEZZA E SEGRETO AZIENDALE
 
 6.1 Oggetto della riservatezza
-Ciascuna Parte si impegna a mantenere strettamente riservate tutte le informazioni tecniche, strategiche, commerciali, operative o finanziarie apprese nel corso della collaborazione, comprese a titolo esemplificativo e non esaustivo:
-- strategie di marketing, funnel e automazioni
-- piani editoriali, campagne ADV e sistemi di vendita
-- dati di performance, report e statistiche
-- informazioni relative a clienti, lead, contatti o fornitori
-- contenuti video, materiali didattici e testi promozionali non ancora pubblicati
-- know-how, modelli organizzativi, procedure, documentazione interna e listini
-Tali informazioni sono considerate confidenziali e non potranno essere comunicate, copiate, divulgate o utilizzate per fini diversi da quelli strettamente necessari all'esecuzione del presente Contratto.
-
-6.2 Durata dell'obbligo
-L'obbligo di riservatezza decorre dalla data di sottoscrizione del Contratto e rimane valido:
-- per tutta la durata della collaborazione
-- per un periodo di 90 (novanta) giorni successivi alla sua cessazione, indipendentemente dalla causa di conclusione
-
-6.3 Eccezioni
-Non sono soggette all'obbligo di riservatezza le informazioni che:
-- erano già di pubblico dominio al momento della comunicazione
-- siano divenute di pubblico dominio successivamente, senza violazione del presente Contratto
-- siano state legittimamente acquisite da terzi non vincolati da obblighi di riservatezza
-- debbano essere comunicate in forza di ordini o richieste provenienti da autorità competenti, nel rispetto della legge
-
+Ciascuna Parte si impegna a mantenere strettamente riservate tutte le informazioni tecniche, strategiche, commerciali, operative, organizzative o finanziarie apprese nel corso della collaborazione, indipendentemente dalla forma con cui esse vengano comunicate (orale, scritta, digitale, audiovisiva o tramite accesso a piattaforme software).
+Sono considerate Informazioni Riservate, a titolo esemplificativo e non esaustivo:
+• strategie di marketing, funnel, automazioni e sistemi di vendita;
+• piani editoriali, campagne ADV e strategie di lancio;
+• dati di performance, report, statistiche e KPI;
+• informazioni relative a clienti, lead, contatti, fornitori e collaboratori;
+• contenuti video, materiali didattici e testi promozionali non ancora pubblicati;
+• listini, offerte commerciali, condizioni economiche e documentazione interna;
+• Metodo E.V.O.;
+• piattaforma Ciak.io;
+• workflow operativi;
+• agenti AI, prompt, procedure automatizzate e sistemi di orchestrazione;
+• framework strategici, modelli operativi, procedure interne e know-how aziendale;
+• qualsiasi informazione identificata come confidenziale o che, per sua natura, debba ragionevolmente essere considerata tale.
+Le Informazioni Riservate non potranno essere comunicate, divulgate, riprodotte, condivise, copiate o utilizzate per finalità diverse da quelle strettamente necessarie all'esecuzione del presente Contratto.
+Il Partner riconosce espressamente che il Metodo E.V.O., la piattaforma Ciak.io, i workflow, gli agenti AI, le procedure operative e il know-how sviluppato da Evolution PRO costituiscono informazioni commercialmente sensibili e asset strategici di particolare valore, meritevoli di specifica tutela.
+6.2 Durata dell'obbligo di riservatezza
+L'obbligo di riservatezza decorre dalla data di sottoscrizione del presente Contratto.
+Per le Informazioni Riservate di natura commerciale, operativa, economica, organizzativa o tecnica, tale obbligo rimarrà efficace per tutta la durata del Contratto e per i successivi 5 (cinque) anni dalla sua cessazione, indipendentemente dalla causa della stessa.
+Per quanto riguarda il Metodo E.V.O., la piattaforma Ciak.io, i workflow, gli agenti AI, i prompt, le procedure operative, i framework strategici, il know-how aziendale e ogni altro asset proprietario di Evolution PRO, l'obbligo di riservatezza e di non divulgazione resterà efficace senza limiti di tempo, fino a quando tali informazioni non divengano legittimamente di dominio pubblico per cause non imputabili al Partner.
+La cessazione del Contratto non comporta la cessazione degli obblighi di riservatezza previsti dal presente Articolo.
+6.3 Eccezioni agli obblighi di riservatezza
+Gli obblighi di riservatezza previsti dal presente Contratto non si applicano alle informazioni che la Parte ricevente sia in grado di dimostrare:
+• essere già di pubblico dominio al momento della comunicazione;
+• essere divenute di pubblico dominio successivamente senza violazione del presente Contratto;
+• essere già legittimamente conosciute dalla Parte ricevente prima della loro comunicazione;
+• essere state legittimamente acquisite da terzi non vincolati da obblighi di riservatezza;
+• dover essere comunicate in forza di disposizioni di legge, provvedimenti dell'autorità giudiziaria, amministrativa o di altre autorità competenti.
+In caso di richiesta di divulgazione da parte di un'autorità competente, la Parte destinataria della richiesta, ove legalmente consentito, informerà tempestivamente l'altra Parte prima della comunicazione delle informazioni riservate, al fine di consentire l'adozione delle eventuali misure di tutela ritenute opportune.
+Resta inteso che l'eccezione di cui al presente Articolo si applica esclusivamente nella misura strettamente necessaria all'adempimento dell'obbligo legale o dell'ordine ricevuto.
 6.4 Responsabilità e controllo
-Ciascuna Parte garantisce che i propri dipendenti, collaboratori, consulenti o subappaltatori rispettino il medesimo obbligo di riservatezza, rispondendo direttamente di eventuali violazioni. Evolution PRO adotterà misure organizzative e tecniche idonee alla tutela dei dati e delle informazioni sensibili del Partner.
-
-6.5 Violazione dell'obbligo - Penale
-La violazione grave e imputabile dell'obbligo di riservatezza comporterà una penale di € 2.000 per ciascuna violazione autonoma, fatto salvo il maggior danno. Non costituiscono violazione autonoma pluralità di atti meramente esecutivi del medesimo fatto.
-
+Ciascuna Parte si impegna a garantire che i propri dipendenti, collaboratori, consulenti, fornitori tecnologici e soggetti autorizzati ad accedere alle Informazioni Riservate rispettino obblighi di riservatezza almeno equivalenti a quelli previsti dal presente Contratto.
+Ciascuna Parte risponde delle violazioni imputabili ai soggetti sopra indicati nella misura consentita dalla normativa applicabile.
+Evolution PRO si impegna ad adottare misure organizzative, tecniche e procedurali ragionevolmente adeguate alla tutela delle informazioni riservate e dei dati trattati nell'ambito della Partnership, anche attraverso la piattaforma Ciak.io e gli strumenti tecnologici utilizzati per l'esecuzione del Programma Operativo.
+6.5 Violazione dell'obbligo di riservatezza - Penale
+La violazione grave e imputabile degli obblighi di riservatezza previsti dal presente Articolo comporterà l'obbligo di corrispondere alla Parte lesa una penale pari a Euro 5.000,00 (cinquemila/00) per ciascuna violazione autonoma accertata.
+Non costituiscono violazioni autonome la pluralità di atti meramente esecutivi del medesimo comportamento illecito.
+Resta in ogni caso salvo il diritto della Parte lesa di richiedere il risarcimento dell'eventuale maggior danno subito.
 6.6 Riservatezza precontrattuale
-L'obbligo di riservatezza si estende anche alle informazioni condivise in fase precontrattuale (es. trattative, preventivi, strategie di posizionamento), anche nel caso in cui il Contratto non venga successivamente eseguito o rinnovato.
+Gli obblighi di riservatezza previsti dal presente Articolo si applicano anche alle informazioni, ai documenti, alle strategie, alle analisi e ai materiali condivisi tra le Parti nella fase precontrattuale, incluse a titolo esemplificativo:
+• Analisi Strategica;
+• Studio di Fattibilità;
+• documenti di posizionamento;
+• proposte operative;
+• strategie di marketing;
+• modelli economici;
+• presentazioni commerciali;
+• dimostrazioni della piattaforma Ciak.io;
+• materiali relativi al Metodo E.V.O.
+Tali obblighi restano validi anche qualora il Contratto non venga successivamente sottoscritto, eseguito o rinnovato.
 
-ARTICOLO 7 - RECESSO E RISOLUZIONE ANTICIPATA
+ARTICOLO 7 – RECESSO, RISOLUZIONE E LIMITAZIONI DI RESPONSABILITÀ
 
-7.1 Esclusione del recesso ordinario
-Il presente Contratto non prevede diritto di recesso ordinario da parte delle Parti, salvo quanto previsto dall'Articolo 2.6 a favore di Evolution PRO. Il rapporto contrattuale ha durata determinata di dodici (12) mesi dalla sottoscrizione e potrà cessare anticipatamente esclusivamente nei casi di risoluzione per grave inadempimento, ai sensi del presente articolo e dell'Articolo 2.7. Salvo dolo, colpa grave, violazione di obblighi essenziali o responsabilità inderogabili di legge, l'eventuale responsabilità risarcitoria complessiva di Evolution PRO non potrà eccedere l'importo dei corrispettivi effettivamente versati dal Partner.
-
-7.2 Risoluzione per inadempimento di Evolution PRO
-Il Partner potrà richiedere la risoluzione anticipata del Contratto esclusivamente in caso di grave e comprovato inadempimento contrattuale di Evolution PRO, previa diffida ad adempiere inviata tramite PEC e decorso infruttuoso di un termine di quindici (15) giorni. In tale ipotesi, il Partner potrà richiedere il rimborso dell'eventuale parte di importo versato non proporzionata alle attività già eseguite e ai costi sostenuti da Evolution PRO, secondo quanto previsto dalla legge e nel rispetto del principio di proporzionalità. Ai fini della proporzionalità del rimborso si terrà conto delle attività effettivamente eseguite, del loro stato di completamento, dei costi già sostenuti e dell'utilizzabilità degli asset da parte del Partner.
-
+7.1 Esclusione del recesso ordinario e limitazione della responsabilità
+Il presente Contratto non prevede diritto di recesso ordinario da parte delle Parti, salvo quanto previsto dall'Articolo 2.6 a favore di Evolution PRO.
+Il rapporto contrattuale ha durata determinata di dodici (12) mesi dalla sottoscrizione e potrà cessare anticipatamente esclusivamente nei casi previsti dal presente Contratto, inclusa la risoluzione per grave inadempimento ai sensi dell'Articolo 2.7.
+Salvo i casi di dolo, colpa grave, violazione intenzionale degli obblighi essenziali o responsabilità inderogabili previste dalla legge applicabile, Evolution PRO non sarà responsabile per:
+• mancato raggiungimento di risultati economici;
+• perdita di profitto;
+• perdita di opportunità commerciali;
+• mancato fatturato;
+• danni indiretti, consequenziali o riflessi;
+• aspettative economiche non realizzate dal Partner.
+In ogni caso, l'eventuale responsabilità risarcitoria complessiva di Evolution PRO non potrà eccedere l'importo dei corrispettivi effettivamente versati dal Partner ai sensi del presente Contratto.
+7.2 Risoluzione per grave inadempimento di Evolution PRO
+Il Partner potrà richiedere la risoluzione anticipata del Contratto esclusivamente in presenza di un grave, comprovato e imputabile inadempimento di Evolution PRO agli obblighi essenziali previsti dal presente Contratto e dal Programma Operativo E.V.O.
+La risoluzione potrà essere richiesta solo previa diffida ad adempiere inviata tramite PEC o altro canale formalmente riconosciuto dal Contratto, con concessione a Evolution PRO di un termine non inferiore a quindici (15) giorni per porre rimedio all'inadempimento contestato.
+Non costituiscono grave inadempimento di Evolution PRO:
+• ritardi imputabili al Partner;
+• mancata collaborazione del Partner;
+• mancata consegna di materiali necessari;
+• sospensioni previste dal presente Contratto;
+• eventi di forza maggiore;
+• attività non espressamente comprese nella Partnership.
+In caso di accertata risoluzione per grave inadempimento imputabile a Evolution PRO, il Partner potrà richiedere esclusivamente il rimborso della quota di corrispettivo non proporzionata alle attività effettivamente eseguite e ai costi sostenuti da Evolution PRO.
+Ai fini della determinazione dell'eventuale rimborso si terrà conto, tra l'altro:
+• delle attività già eseguite;
+• delle attività già pianificate e avviate;
+• delle risorse allocate;
+• dei costi sostenuti;
+• dell'accesso a Ciak.io e agli strumenti della Partnership;
+• dei materiali, dei funnel, dei copy e degli asset già realizzati;
+• dell'utilizzabilità concreta degli asset da parte del Partner.
+In nessun caso il Partner avrà diritto alla restituzione integrale del corrispettivo qualora Evolution PRO abbia già avviato l'esecuzione della Partnership ai sensi dell'Articolo 5.7, salvo diverso obbligo imposto dalla normativa applicabile.
 7.3 Risoluzione per inadempimento del Partner
-In caso di grave inadempimento del Partner, Evolution PRO avrà diritto a trattenere il corrispettivo versato in relazione alle attività già eseguite e ai costi sostenuti, fatto salvo il diritto al risarcimento dell'eventuale maggior danno.
-
+In caso di risoluzione del Contratto per grave inadempimento del Partner, Evolution PRO avrà diritto a:
+• trattenere le somme già percepite;
+• esigere le rate scadute e non corrisposte;
+• richiedere il pagamento dell'eventuale saldo residuo previsto dal piano di pagamento concordato;
+• richiedere il risarcimento degli eventuali ulteriori danni diretti e documentabili derivanti dall'inadempimento.
+La risoluzione del Contratto non comporta rinuncia ai crediti maturati né estinzione degli obblighi economici già assunti dal Partner.
 7.4 Effetti della risoluzione per inadempimento del Partner
-In caso di risoluzione anticipata del Contratto per grave inadempimento del Partner, Evolution PRO avrà facoltà di completare le attività operative già avviate e di gestire la chiusura tecnica del progetto, senza obbligo di ulteriore sviluppo o investimento operativo. In tale ipotesi, il corrispettivo versato resterà acquisito da Evolution PRO nei limiti delle attività già eseguite e dei costi sostenuti, fatto salvo il diritto al risarcimento dell'eventuale maggior danno.
-
-7.5 Risoluzione per cause non imputabili alle Parti
-Qualora la prosecuzione del Contratto divenga oggettivamente impossibile per cause non imputabili alle Parti, ovvero per eventi straordinari che rendano irrealizzabile l'esecuzione del progetto, ciascuna Parte potrà risolvere il Contratto previa comunicazione scritta. In caso di impossibilità sopravvenuta non imputabile alle Parti, resteranno fermi gli effetti economici maturati in relazione alle attività già eseguite; per le attività non eseguite le Parti procederanno a una regolazione economica proporzionata alle attività effettivamente eseguite e ai costi sostenuti, da documentarsi su richiesta.
-
+In caso di risoluzione anticipata del Contratto per grave inadempimento del Partner:
+• cesserà ogni obbligo di Evolution PRO di proseguire lo sviluppo del progetto;
+• Evolution PRO potrà sospendere l'accesso a Ciak.io, alle automazioni, ai funnel, agli strumenti operativi e agli ulteriori asset messi a disposizione nell'ambito della Partnership;
+• Evolution PRO potrà, a propria discrezione, completare le attività tecniche già avviate esclusivamente per finalità amministrative, di chiusura del progetto o di tutela dei propri interessi.
+Restano fermi:
+• i crediti maturati;
+• gli obblighi economici del Partner;
+• gli obblighi di riservatezza;
+• gli obblighi relativi alla proprietà intellettuale;
+• ogni altra clausola destinata a produrre effetti successivamente alla cessazione del Contratto.
+7.5 Risoluzione per impossibilità sopravvenuta
+Qualora la prosecuzione del Contratto divenga oggettivamente impossibile per cause non imputabili alle Parti, incluse a titolo esemplificativo cause di forza maggiore, eventi straordinari, provvedimenti normativi, indisponibilità permanente di infrastrutture essenziali o altri eventi imprevedibili e inevitabili, ciascuna Parte potrà risolvere il Contratto mediante comunicazione scritta.
+In caso di impossibilità sopravvenuta non imputabile alle Parti:
+• resteranno fermi gli effetti economici maturati in relazione alle attività già eseguite;
+• le attività non ancora eseguite non saranno dovute;
+• le Parti procederanno a una regolazione economica proporzionata alle attività effettivamente eseguite, alle risorse impiegate e ai costi sostenuti.
+Ciascuna Parte collaborerà in buona fede al fine di ridurre gli effetti pregiudizievoli derivanti dall'evento che ha determinato l'impossibilità di prosecuzione del rapporto.
 7.6 Limitazioni di responsabilità
-Evolution PRO non garantisce risultati economici specifici in termini di vendite, conversioni o profitti, poiché tali variabili dipendono da fattori esterni (mercato, budget, contenuti, posizionamento del Partner, stagionalità). L'impegno contrattuale di Evolution PRO consiste nell'erogare i servizi con diligenza professionale, conformemente al Programma Operativo. In nessun caso Evolution PRO potrà essere ritenuta responsabile per danni indiretti o consequenziali (quali mancato guadagno o perdita di chance), salvo il caso di dolo o colpa grave. Evolution PRO non risponde, in particolare, di:
-- malfunzionamenti imputabili a piattaforme esterne, servizi di terzi o forza maggiore
-- risultati economici inferiori alle aspettative del Partner
-- perdite o disservizi dovuti a inadempimenti del Partner nelle consegne o nelle approvazioni dei materiali
-Il Partner riconosce che il successo economico del progetto dipende in misura significativa dalla qualità dei contenuti forniti, dal posizionamento personale e dall'impegno commerciale profuso. Il mancato raggiungimento di obiettivi di vendita non costituisce inadempimento contrattuale.
-
+Evolution PRO non garantisce risultati economici specifici in termini di vendite, conversioni, acquisizione clienti, fatturato o profitti, poiché tali risultati dipendono da molteplici fattori esterni al controllo di Evolution PRO, inclusi mercato, concorrenza, budget, qualità dei contenuti, posizionamento del Partner, attività commerciali svolte e stagionalità.
+L'impegno contrattuale di Evolution PRO consiste nell'erogare i servizi previsti dal presente Contratto con diligenza professionale, secondo il Programma Operativo e il Metodo E.V.O., configurando un'obbligazione di mezzi e non di risultato.
+In nessun caso Evolution PRO potrà essere ritenuta responsabile per danni indiretti, consequenziali, perdita di profitto, perdita di opportunità commerciali, perdita di chance o mancato guadagno, salvo il caso di dolo o colpa grave.
+Evolution PRO non risponde, in particolare, di:
+• malfunzionamenti imputabili a piattaforme esterne, servizi di terzi, strumenti AI, fornitori tecnologici, software cloud o eventi di forza maggiore;
+• risultati economici inferiori alle aspettative del Partner;
+• perdite o disservizi derivanti da ritardi, omissioni, inadempimenti o mancata collaborazione del Partner;
+• sospensioni o limitazioni imposte da piattaforme terze, sistemi di pagamento o canali pubblicitari.
+Il Partner riconosce che il successo economico del progetto dipende in misura significativa dalla qualità dei contenuti forniti, dal posizionamento professionale, dall'impegno commerciale, dall'attività di comunicazione svolta e dall'eventuale investimento promozionale effettuato.
+Il mancato raggiungimento di obiettivi economici o commerciali non costituisce inadempimento contrattuale da parte di Evolution PRO.
 7.7 Comunicazioni formali
-Ogni risoluzione del Contratto dovrà essere formalizzata per iscritto, a pena di inefficacia, secondo le modalità previste all'Articolo 13.
+Ogni recesso, risoluzione, diffida, contestazione o altra comunicazione avente rilevanza contrattuale dovrà essere effettuata per iscritto secondo le modalità previste dall'Articolo 13 del presente Contratto.
+Le comunicazioni effettuate con modalità differenti non produrranno effetti giuridici ai fini dell'esercizio dei diritti previsti dal presente Contratto, salvo diversa accettazione scritta della Parte destinataria.
 
-ARTICOLO 8 - SERVIZI FORNITI DA EVOLUTION PRO E OBBLIGHI DEL PARTNER
+ARTICOLO 8 – SERVIZI FORNITI DA EVOLUTION PRO, OBBLIGHI DEL PARTNER E PROGRAMMA E.V.O.
 
 8.1 Servizi forniti da Evolution PRO
-Nell'ambito della partnership, Evolution PRO fornisce al Partner servizi strategici, tecnici e operativi finalizzati alla creazione, pubblicazione, lancio e sviluppo del Corso, in particolare:
-- analisi strategica iniziale e definizione del posizionamento del progetto
-- supporto alla strutturazione dei contenuti formativi e dell'offerta commerciale
-- configurazione tecnica della piattaforma di marketing e vendita (Systeme.io o equivalente), inclusi area corsi, funnel e automazioni
-- realizzazione e ottimizzazione degli asset digitali necessari alla vendita del Corso (pagine, copy, materiali di supporto)
-- definizione di un piano editoriale mensile dedicato alla fase di lancio del Corso, replicabile dal Partner nella fase post-lancio
-- accesso a un gruppo Telegram dedicato e a un videocorso formativo riservato, comprensivo di risorse supplementari scaricabili
-Il supporto successivo alla fase di lancio è da intendersi esclusivamente di natura strategica e comprende l'analisi dei risultati e dei principali KPI, con l'obiettivo di ottimizzare e scalare il progetto entro la durata contrattuale. La corretta esecuzione del progetto presuppone la collaborazione attiva del Partner secondo quanto previsto dal Programma Operativo e dalle richieste scritte inviate nei canali ufficiali. L'assenza di tale collaborazione esclude qualsiasi responsabilità per eventuali ritardi o risultati inferiori alle aspettative.
-
+Nell'ambito della Partnership, Evolution PRO fornisce al Partner servizi strategici, tecnici e operativi finalizzati alla progettazione, realizzazione, pubblicazione, lancio e sviluppo commerciale del progetto formativo oggetto del presente Contratto.
+Le attività potranno comprendere, a titolo esemplificativo e non esaustivo:
+• analisi strategica e posizionamento del progetto;
+• definizione dell'offerta commerciale;
+• applicazione del Metodo E.V.O.;
+• accesso e utilizzo della piattaforma Ciak.io;
+• supporto alla strutturazione del Corso e dell'Accademia Digitale;
+• configurazione tecnica delle piattaforme utilizzate per la vendita e l'erogazione del Corso;
+• creazione di funnel, automazioni, aree riservate e asset digitali;
+• attività di copywriting e ottimizzazione commerciale;
+• editing e adattamento dei contenuti;
+• supporto alla preparazione del lancio;
+• monitoraggio dei principali indicatori di performance;
+• supporto strategico all'ottimizzazione del progetto durante la durata della Partnership.
+Le attività vengono erogate attraverso il Programma Operativo Evolution PRO e mediante gli strumenti, le piattaforme e le procedure adottate da Evolution PRO.
+Evolution PRO potrà modificare, aggiornare o sostituire strumenti, piattaforme, procedure operative o modalità di erogazione dei servizi, purché tali modifiche non comportino una riduzione sostanziale delle prestazioni oggetto della Partnership.
+Il supporto successivo alla fase di lancio ha natura esclusivamente strategica e consulenziale e non comprende attività operative continuative, salvo diverso accordo scritto.
+La corretta esecuzione del progetto presuppone la collaborazione attiva del Partner secondo quanto previsto dal presente Contratto, dal Programma Operativo e dalle richieste formulate nei canali ufficiali della Partnership.
+L'eventuale mancata collaborazione del Partner esclude la responsabilità di Evolution PRO per ritardi, rallentamenti o risultati inferiori alle aspettative.
 8.2 Obblighi del Partner
-Il Partner si impegna a collaborare attivamente e con continuità allo sviluppo del progetto, fornendo con puntualità contenuti, informazioni e materiali richiesti secondo le tempistiche operative concordate. Il mancato rispetto reiterato delle tempistiche o la mancata fornitura dei materiali necessari potrà determinare la sospensione temporanea delle attività operative da parte di Evolution PRO, senza che ciò comporti responsabilità o obblighi risarcitori a carico della stessa. Il Partner è pienamente responsabile della qualità, liceità e veridicità dei contenuti forniti, nonché della gestione commerciale dei contatti e dei clienti generati, salvo diverso accordo scritto tra le Parti. Il progetto si intende attivo esclusivamente in presenza di collaborazione effettiva del Partner; eventuali ritardi imputabili al Partner non potranno essere considerati inadempienze da parte di Evolution PRO. Il Partner si impegna a garantire un livello minimo di attivazione commerciale durante la fase di lancio e post-lancio del Corso, comprendente:
-- pubblicazione dei contenuti previsti dal piano editoriale
-- gestione attiva e tempestiva dei lead generati
-- disponibilità a confrontarsi in buona fede con Evolution PRO sull'opportunità di eventuali investimenti pubblicitari, senza obbligo di attivazione salvo diverso accordo scritto
-L'assenza di attivazione commerciale esclude qualsiasi responsabilità di Evolution PRO in merito ai risultati economici del progetto.
-
+Il Partner si impegna a collaborare attivamente, continuativamente e in buona fede allo sviluppo del progetto, partecipando alle attività previste dal Programma Operativo Evolution PRO e applicando le indicazioni fornite nell'ambito del Metodo E.V.O.
+Il Partner si impegna in particolare a:
+• fornire tempestivamente informazioni, materiali e contenuti richiesti;
+• partecipare alle attività di onboarding, allineamento e revisione previste dal Programma Operativo;
+• utilizzare gli strumenti messi a disposizione da Evolution PRO, inclusa la piattaforma Ciak.io;
+• approvare, revisionare o commentare i materiali sottoposti da Evolution PRO entro le tempistiche concordate;
+• mantenere una comunicazione attiva attraverso i canali ufficiali della Partnership.
+Il Partner è pienamente responsabile della qualità, della liceità, della correttezza e della veridicità dei contenuti forniti, nonché della gestione commerciale dei lead, dei clienti e delle opportunità generate, salvo diverso accordo scritto.
+Il mancato rispetto reiterato delle tempistiche, la mancata consegna dei materiali necessari o l'assenza di collaborazione operativa potranno determinare la sospensione temporanea delle attività da parte di Evolution PRO senza che ciò comporti responsabilità o obblighi risarcitori a carico della stessa.
+Il progetto si considera attivo esclusivamente in presenza di una collaborazione effettiva del Partner. Eventuali ritardi, rallentamenti o risultati inferiori alle aspettative derivanti da comportamenti imputabili al Partner non potranno essere considerati inadempimenti di Evolution PRO.
+Il Partner si impegna inoltre a garantire un livello minimo di attivazione commerciale durante le fasi di lancio e post-lancio del progetto, comprendente almeno:
+• pubblicazione dei contenuti previsti dal piano editoriale o dalle strategie concordate;
+• gestione attiva e tempestiva dei lead generati;
+• partecipazione alle attività di lancio previste dal Programma Operativo;
+• confronto in buona fede con Evolution PRO in merito alle opportunità di crescita e promozione del progetto.
+L'eventuale mancata attivazione commerciale, il mancato presidio dei lead o l'assenza di attività promozionale da parte del Partner escludono qualsiasi responsabilità di Evolution PRO in relazione ai risultati economici del progetto.
 8.3 Esclusioni
-Sono espressamente esclusi dai servizi inclusi nel presente Contratto, salvo accordo scritto separato:
-- la gestione operativa continuativa dei canali social
-- la gestione diretta delle campagne pubblicitarie a pagamento
-- la produzione di contenuti aggiuntivi non previsti
-- qualsiasi attività non espressamente indicata al presente articolo
-
-8.4 Aggiornamenti e migliorie del Programma Operativo
-Il Metodo E.V.O. – Programma in 8 settimane costituisce parte integrante e sostanziale del presente Contratto e rappresenta la guida ufficiale per la corretta esecuzione delle fasi di lavoro. Il Partner si impegna a rispettare le tempistiche e le attività previste per ciascuna fase, collaborando in modo attivo e continuativo. Eventuali ritardi imputabili al Partner potranno comportare la sospensione temporanea delle attività operative fino al riallineamento delle condizioni necessarie allo sviluppo del progetto. Qualora il Partner rimanga inattivo per un periodo superiore a 60 giorni consecutivi senza giustificato motivo, Evolution PRO potrà considerare il progetto sospeso, senza obbligo di proroghe automatiche o rimborsi delle somme già corrisposte. Evolution PRO potrà apportare aggiornamenti tecnici, organizzativi o didattici al Programma Operativo purché non comportino una riduzione sostanziale delle attività minime previste né alterino in modo significativo l'equilibrio economico del Contratto.
-
-8.5 Servizi extra non inclusi nella partnership
-I servizi inclusi nella partnership sono esclusivamente quelli indicati nel presente Articolo 8.1 e nel Programma Operativo di riferimento. Durante la durata contrattuale, il Partner potrà richiedere a Evolution PRO l'attivazione di servizi extra, a titolo esemplificativo e non esaustivo:
-- sessioni strategiche individuali aggiuntive
-- servizi di intelligenza artificiale personalizzati
-- gestione operativa dei canali social
-- gestione operativa delle automazioni sulla piattaforma
-- realizzazione o ottimizzazione di siti web, funnel o asset digitali aggiuntivi
-- servizi di advertising operativo e gestione campagne a pagamento
-Tali servizi saranno quantificati separatamente, su richiesta del Partner, e regolati da accordo scritto autonomo, senza modifica delle condizioni economiche, della durata o delle obbligazioni previste dal presente Contratto. L'eventuale mancata attivazione di servizi extra non costituisce inadempimento di Evolution PRO né incide sull'esecuzione della partnership.
-
-8.6 Clausola di buona fede e cooperazione
-Le Parti si impegnano a operare in spirito di collaborazione e trasparenza, mantenendo un dialogo costante e costruttivo. Ciascuna Parte adotterà la massima diligenza professionale nel rispettare le proprie scadenze e nel non ostacolare l'operato dell'altra.
-
-ARTICOLO 9 - CLAUSOLA FISCALE
-
+Salvo diverso accordo scritto tra le Parti, non sono inclusi nella Partnership:
+• la gestione operativa continuativa dei canali social;
+• la gestione diretta delle campagne pubblicitarie;
+• la chiusura delle vendite o attività commerciali svolte in nome e per conto del Partner;
+• il customer care verso clienti finali del Partner;
+• la produzione professionale di contenuti video, fotografici o multimediali;
+• la creazione di contenuti ulteriori rispetto a quelli previsti dal Programma Operativo;
+• servizi consulenziali, tecnici o operativi non espressamente previsti dal presente Contratto o dall'Allegato A – Programma Operativo.
+Qualsiasi attività ulteriore potrà essere oggetto di separato accordo scritto tra le Parti.
+8.4 Programma Operativo, Metodo E.V.O. e piattaforma Ciak.io
+Il Metodo E.V.O. (Esamina – Valida – Ottimizza) costituisce framework proprietario, know-how riservato e asset strategico di Evolution PRO per la progettazione, il lancio e l'ottimizzazione di Accademie Digitali e prodotti formativi digitali.
+Il Metodo viene erogato attraverso la piattaforma proprietaria Ciak.io e mediante il Programma Operativo allegato al presente Contratto come Allegato A, che ne costituisce parte integrante e sostanziale.
+Il Partner si impegna a rispettare le attività, le tempistiche e le modalità operative previste dal Programma Operativo, collaborando in modo attivo, continuativo e in buona fede.
+Qualora il Partner rimanga inattivo per oltre 60 (sessanta) giorni consecutivi senza giustificato motivo, Evolution PRO, previa comunicazione scritta, potrà dichiarare il progetto sospeso e interrompere temporaneamente le attività operative fino al ripristino delle condizioni necessarie alla prosecuzione del progetto.
+La sospensione del progetto non comporta proroghe automatiche della durata contrattuale né diritto a rimborsi, riduzioni di corrispettivo o risarcimenti.
+Evolution PRO potrà apportare aggiornamenti tecnici, organizzativi, didattici o funzionali al Programma Operativo, alla piattaforma Ciak.io e agli strumenti utilizzati per l'esecuzione della Partnership, purché tali modifiche non comportino una riduzione sostanziale delle prestazioni minime previste dal Contratto.
+Evolution PRO potrà inoltre sostituire software, piattaforme, fornitori tecnologici o strumenti operativi con soluzioni equivalenti o migliorative qualora ciò sia necessario per esigenze tecniche, organizzative, normative o di evoluzione del servizio.
+8.5 Servizi extra non inclusi nella Partnership
+I servizi inclusi nella Partnership sono esclusivamente quelli previsti dal presente Contratto, dall'Articolo 8.1 e dall'Allegato A – Programma Operativo.
+Durante la durata del Contratto, il Partner potrà richiedere l'attivazione di servizi aggiuntivi, opzionali e non inclusi nella Partnership, tra cui, a titolo esemplificativo e non esaustivo:
+• sessioni strategiche individuali aggiuntive;
+• servizi personalizzati basati su intelligenza artificiale;
+• implementazioni avanzate sulla piattaforma Ciak.io;
+• gestione operativa di funnel, automazioni e asset digitali;
+• realizzazione o ottimizzazione di siti web, landing page o infrastrutture digitali aggiuntive;
+• gestione operativa delle campagne pubblicitarie;
+• programmi di crescita, accelerazione e ottimizzazione commerciale;
+• ulteriori servizi professionali resi disponibili da Evolution PRO nel corso del rapporto.
+I servizi extra saranno regolati da preventivo, ordine, offerta commerciale, listino prezzi o accordo scritto separato e potranno essere soggetti a condizioni economiche autonome rispetto alla Partnership.
+L'eventuale acquisto, mancato acquisto, sospensione o cessazione dei servizi extra non modifica:
+• la durata del presente Contratto;
+• gli obblighi economici della Partnership;
+• la royalty prevista dall'Articolo 5;
+• le ulteriori obbligazioni assunte dalle Parti.
+L'eventuale mancata attivazione di servizi extra non costituisce inadempimento di Evolution PRO né incide sull'esecuzione della Partnership.
+I servizi extra eventualmente acquistati dal Partner restano disciplinati dalle relative condizioni economiche e contrattuali anche in caso di cessazione anticipata della Partnership, salvo diverso accordo scritto tra le Parti.
+8.6 Clausola di buona fede, cooperazione e continuità operativa
+Le Parti si impegnano a operare secondo principi di buona fede, correttezza, trasparenza e collaborazione reciproca per tutta la durata del presente Contratto.
+Ciascuna Parte si impegna a:
+• mantenere una comunicazione tempestiva e costruttiva;
+• fornire le informazioni ragionevolmente necessarie all'esecuzione del progetto;
+• evitare comportamenti idonei a ostacolare o rallentare inutilmente le attività previste dal Programma Operativo;
+• segnalare tempestivamente eventuali criticità che possano incidere sull'esecuzione della Partnership.
+Le Parti riconoscono che il successo del progetto presuppone una collaborazione continuativa e che eventuali ritardi, omissioni, indisponibilità prolungate o comportamenti non collaborativi possono compromettere il corretto svolgimento delle attività previste.
+L'eventuale mancata cooperazione di una Parte sarà valutata ai fini dell'accertamento degli obblighi contrattuali e delle eventuali responsabilità derivanti dal presente Contratto.
+ARTICOLO 9 – CLAUSOLA FISCALE
 9.1 Dati societari di Evolution PRO
-Evolution PRO LLC è una società estera regolarmente costituita nello Stato del Delaware (U.S.A.) in data 22/09/2023. Dati ufficiali:
-- Ragione sociale: Evolution PRO LLC
-- Sede legale: 8 The Green, Ste A, Dover, DE 19901, Stati Uniti
-- File Number: 2394173 (Delaware Division of Corporations)
-- EIN (Employer Identification Number): 30-1375330
-- IBAN: LT94 3250 0974 4929 5781 (Revolut Bank UAB)
-- E-mail: assistenza@evolution-pro.it
-Le attività operative sono svolte in Italia (Torino) in modalità da remoto, attraverso le piattaforme di marketing integrate con i sistemi Go High Level (USA) e Systeme (Francia).
-
-9.2 Regime IVA
-Evolution PRO LLC non è soggetta a IVA in Italia e non possiede Partita IVA italiana. Le fatture emesse da Evolution PRO LLC sono quindi esenti da IVA in Italia e soggette al meccanismo di inversione contabile (reverse charge), ove applicabile secondo la normativa vigente.
-
+Evolution PRO LLC è una società estera regolarmente costituita nello Stato del Delaware (U.S.A.).
+Dati societari:
+• Ragione sociale: Evolution PRO LLC;
+• Sede legale: 8 The Green, Ste A, Dover, DE 19901, Stati Uniti;
+• File Number: 2394173 – Delaware Division of Corporations;
+• EIN: 30-1375330;
+• E-mail: assistenza@evolution-pro.it.
+Evolution PRO LLC eroga i propri servizi attraverso infrastrutture digitali, piattaforme software e fornitori tecnologici internazionali utilizzati per l'esecuzione delle attività oggetto del presente Contratto.
+Le coordinate di pagamento saranno comunicate da Evolution PRO al Partner tramite i canali ufficiali indicati nel presente Contratto.
+9.2 Regime fiscale e documentazione
+Evolution PRO LLC emette la propria documentazione fiscale secondo la normativa applicabile alla propria struttura societaria e fiscale.
+Qualora previsto dalla normativa vigente, anche in funzione del Paese di stabilimento del Partner, troverà applicazione il meccanismo dell’inversione contabile, reverse charge, o ogni altro regime fiscale applicabile al momento dell’operazione.
+Il Partner prende atto che il trattamento fiscale dell’operazione potrà dipendere dalla propria qualifica soggettiva, dal Paese di stabilimento, dalla normativa applicabile e dalle informazioni fiscali fornite a Evolution PRO.
 9.3 Obblighi fiscali del Partner
-Il Partner, in qualità di soggetto passivo d'imposta, si impegna a:
-- integrare la fattura ricevuta con l'aliquota IVA prevista, se e in quanto dovuta
-- registrare la fattura nei registri IVA acquisti e vendite, secondo la normativa del proprio Stato di stabilimento
-- rispettare la normativa fiscale vigente in materia di registrazioni contabili e dichiarazioni fiscali
-- fornire, se richiesto per esigenze di compliance documentale, le sole informazioni strettamente necessarie a comprovare il corretto inquadramento fiscale dell'operazione, nel rispetto della normativa applicabile
-
-9.4 Responsabilità fiscale
-Il Partner è l'unico responsabile della corretta gestione fiscale e previdenziale dei compensi percepiti, nonché del versamento di imposte, contributi e adempimenti connessi alla propria attività professionale. Evolution PRO resta invece responsabile della regolarità delle proprie fatture e delle operazioni di sua competenza, impegnandosi a emettere documentazione conforme alla normativa applicabile. Le Parti riconoscono espressamente che:
-- il presente Contratto non costituisce rapporto di lavoro subordinato, di agenzia, di franchising o di associazione in partecipazione
-- ciascuna Parte opera in piena autonomia giuridica e fiscale
-- eventuali contestazioni fiscali dovranno essere gestite individualmente dalla Parte a cui si riferiscono, restando esclusa la corresponsabilità salvo dolo o colpa grave
-
-ARTICOLO 10 - DATA PROCESSING AGREEMENT (DPA)
-
+Il presente Contratto è riservato esclusivamente a soggetti che operano nell'esercizio della propria attività professionale, imprenditoriale o autonoma e titolari di Partita IVA valida.
+Il Partner dichiara e garantisce la correttezza, completezza e veridicità dei dati fiscali, anagrafici e amministrativi forniti a Evolution PRO.
+Il Partner, in qualità di soggetto passivo d’imposta, si impegna a:
+• comunicare dati fiscali corretti, aggiornati e completi;
+• integrare la documentazione fiscale ricevuta con l’aliquota IVA prevista, se e in quanto dovuta;
+• registrare la documentazione fiscale ricevuta nei registri contabili e fiscali applicabili;
+• rispettare la normativa fiscale, contabile e previdenziale vigente nel proprio Paese di stabilimento;
+• fornire, se richiesto per esigenze di compliance documentale, le sole informazioni strettamente necessarie a comprovare il corretto inquadramento fiscale dell’operazione.
+Eventuali errori, omissioni, inesattezze o variazioni dei dati fiscali forniti dal Partner dovranno essere comunicati tempestivamente a Evolution PRO.
+9.4 Autonomia fiscale delle Parti
+Il Partner è l’unico responsabile della corretta gestione fiscale, contabile e previdenziale dei compensi percepiti, nonché del versamento di imposte, contributi e adempimenti connessi alla propria attività professionale, imprenditoriale o autonoma.
+Evolution PRO resta responsabile della regolarità della documentazione fiscale emessa e delle operazioni di propria competenza, impegnandosi a emettere documentazione conforme alla normativa applicabile alla propria struttura fiscale.
+Le Parti riconoscono espressamente che:
+• il presente Contratto non costituisce rapporto di lavoro subordinato, agenzia, franchising, mandato con rappresentanza, associazione in partecipazione, società di fatto o joint venture societaria;
+• ciascuna Parte opera in piena autonomia giuridica, fiscale, organizzativa e professionale;
+• eventuali contestazioni fiscali, contributive, previdenziali o amministrative saranno gestite individualmente dalla Parte a cui si riferiscono, salvo il caso di dolo, colpa grave o corresponsabilità accertata.
+9.5 Assenza di consulenza fiscale reciproca
+Nessuna disposizione del presente Contratto potrà essere interpretata come consulenza fiscale, legale, tributaria, contabile o previdenziale resa da una Parte all’altra.
+Ciascuna Parte dichiara di avvalersi, ove necessario, dei propri consulenti fiscali, legali o contabili per la corretta gestione dei propri obblighi.
+ARTICOLO 10 – DATA PROCESSING AGREEMENT (DPA)
 10.1 Parti e oggetto
-Ai fini della protezione dei dati personali trattati nell'ambito del presente Contratto:
-- il Partner agisce in qualità di Titolare del trattamento
-- Evolution PRO LLC agisce in qualità di Responsabile del trattamento
-Con il presente accordo, il Titolare affida al Responsabile i trattamenti di dati personali necessari all'erogazione dei servizi di marketing, automazione, vendita e gestione della piattaforma previsti dal Contratto di partnership. Il DPA entra in vigore alla sottoscrizione del Contratto e cessa con la cancellazione o restituzione dei dati trattati, salvo obblighi legali di conservazione.
-
+Ai fini della normativa applicabile in materia di protezione dei dati personali:
+• il Partner agisce, di regola, in qualità di Titolare del trattamento dei dati personali dei propri clienti, lead e utenti;
+• Evolution PRO LLC agisce, di regola, in qualità di Responsabile del trattamento limitatamente ai dati trattati per l'erogazione dei servizi previsti dal presente Contratto.
+Resta inteso che Evolution PRO potrà agire quale autonomo Titolare del trattamento per i dati trattati per finalità amministrative, fiscali, contabili, contrattuali, di sicurezza informatica, tutela legale o gestione del rapporto commerciale con il Partner.
+Con il presente accordo il Partner affida a Evolution PRO i trattamenti di dati personali strettamente necessari all'esecuzione dei servizi oggetto della Partnership.
+Il presente DPA entra in vigore alla data di sottoscrizione del Contratto e cessa con la restituzione, cancellazione o anonimizzazione dei dati personali trattati, fatti salvi gli obblighi di conservazione previsti dalla normativa applicabile.
 10.2 Finalità del trattamento, tipologie di dati e categorie di interessati
-- Finalità: gestione del Corso, attività di marketing, analisi campagne, amministrazione della piattaforma e assistenza clienti
-- Tipologie di dati trattati: dati identificativi (nome, cognome, e-mail, telefono), dati fiscali e di pagamento, log di accesso, dati di navigazione, statistiche e preferenze utente
-- Categorie di interessati: clienti e potenziali clienti del Corso (lead), utenti registrati, il Partner stesso e suoi collaboratori
-
-10.3 Obblighi del Responsabile del trattamento (Evolution PRO)
+Le attività di trattamento potranno essere svolte per le seguenti finalità:
+• gestione del Corso e dell'Accademia Digitale;
+• gestione dei funnel di vendita e delle automazioni;
+• attività di marketing e comunicazione;
+• analisi delle performance;
+• assistenza tecnica e operativa;
+• utilizzo della piattaforma Ciak.io;
+• applicazione del Metodo E.V.O.;
+• gestione amministrativa e contrattuale del rapporto.
+Le tipologie di dati trattati potranno comprendere:
+• dati identificativi (nome, cognome, email, telefono);
+• dati fiscali e amministrativi;
+• dati relativi agli ordini e ai pagamenti;
+• dati di accesso e autenticazione;
+• dati di utilizzo della piattaforma;
+• log tecnici e di sistema;
+• dati di navigazione;
+• statistiche di utilizzo;
+• dati relativi all'interazione con strumenti automatizzati e sistemi AI utilizzati nell'ambito della Partnership.
+Le categorie di interessati potranno comprendere:
+• clienti del Partner;
+• lead e potenziali clienti;
+• utenti registrati;
+• collaboratori del Partner;
+• il Partner stesso.
+10.3 Obblighi del Responsabile del trattamento
 Evolution PRO si impegna a:
-- trattare i dati personali solo su istruzioni documentate del Partner
-- garantire che le persone autorizzate al trattamento siano vincolate da obbligo di riservatezza
-- adottare misure tecniche e organizzative adeguate (cifratura, autenticazione a due fattori, backup, logging e monitoraggio accessi)
-- assistere il Partner nell'esercizio dei diritti degli interessati
-- notificare eventuali violazioni di dati personali ("data breach") entro 48 ore dalla scoperta, fornendo tutte le informazioni necessarie, nei limiti di quanto richiesto dalla normativa applicabile
-- consentire al Partner verifiche documentali e audit tecnici, previo preavviso di regola di almeno dieci (10) giorni lavorativi, riducibile in casi di urgenza motivata da potenziale grave violazione
-- cancellare o restituire tutti i dati personali al termine del Contratto, salvo obblighi legali di conservazione
-
+• trattare i dati personali esclusivamente nei limiti necessari all'esecuzione del Contratto e secondo le istruzioni documentate del Partner;
+• garantire che le persone autorizzate al trattamento siano vincolate da obblighi di riservatezza;
+• adottare misure tecniche e organizzative adeguate alla protezione dei dati personali;
+• assistere il Partner, nei limiti ragionevoli e proporzionati, nell'adempimento degli obblighi previsti dalla normativa applicabile;
+• notificare eventuali violazioni dei dati personali senza ingiustificato ritardo e comunque entro 48 ore dalla loro scoperta, nei limiti richiesti dalla normativa applicabile;
+• collaborare con il Partner nella gestione delle richieste degli interessati;
+• cancellare, restituire o anonimizzare i dati al termine del rapporto, salvo obblighi di conservazione previsti dalla legge.
+Il Partner potrà richiedere verifiche documentali ragionevoli in merito alle misure di sicurezza adottate da Evolution PRO.
+Tali verifiche non potranno comportare accesso a:
+• dati di altri clienti;
+• codice sorgente;
+• workflow proprietari;
+• agenti AI;
+• prompt;
+• Metodo E.V.O.;
+• piattaforma Ciak.io;
+• infrastrutture condivise o asset proprietari di Evolution PRO.
 10.4 Sub-responsabili e fornitori tecnologici
-Evolution PRO potrà avvalersi di sub-responsabili esterni (es. hosting, servizi cloud, piattaforme di marketing), che garantiscono adeguati livelli di protezione dei dati. I principali sub-responsabili e fornitori tecnologici verranno indicati in un elenco aggiornato reso disponibile al Partner, che potrà opporsi per iscritto, per motivi legittimi, alla nomina di specifici sub-responsabili. L'elenco dei sub-responsabili sarà disponibile in forma aggiornata su richiesta del Partner o mediante link/documento allegato.
-
-10.5 Trasferimenti di dati extra-SEE
-Eventuali trasferimenti di dati personali verso Paesi extra UE/SEE avverranno nel pieno rispetto della normativa applicabile, utilizzando garanzie adeguate (quali decisioni di adeguatezza, clausole contrattuali standard o altri strumenti equivalenti).
-
+Evolution PRO è autorizzata ad avvalersi di fornitori tecnologici, sub-responsabili e servizi terzi necessari all'esecuzione del Contratto.
+A titolo esemplificativo:
+• piattaforme cloud;
+• sistemi di pagamento;
+• servizi email;
+• sistemi CRM;
+• piattaforme di marketing;
+• strumenti di intelligenza artificiale;
+• piattaforme di automazione;
+• sistemi di hosting e archiviazione dati.
+Evolution PRO manterrà un elenco aggiornato dei principali fornitori utilizzati e lo renderà disponibile al Partner su richiesta.
+Evolution PRO potrà aggiornare o sostituire tali fornitori senza necessità di modifica contrattuale, purché siano adottate garanzie adeguate ai sensi della normativa applicabile.
+10.5 Trasferimenti internazionali di dati
+Qualora, per esigenze operative o tecnologiche, i dati personali siano trasferiti verso Paesi situati al di fuori dello Spazio Economico Europeo, Evolution PRO adotterà le misure richieste dalla normativa applicabile.
+Tali misure potranno includere:
+• decisioni di adeguatezza;
+• clausole contrattuali standard (SCC);
+• strumenti equivalenti previsti dalla normativa vigente;
+• ulteriori misure tecniche e organizzative ritenute appropriate.
 10.6 Responsabilità delle Parti
-Ciascuna Parte risponde dei danni derivanti da trattamenti non conformi alle istruzioni concordate o alla normativa applicabile in materia di protezione dei dati personali. La responsabilità complessiva di Evolution PRO, in relazione alle attività di trattamento svolte in qualità di Responsabile, non potrà eccedere, salvo dolo, colpa grave o violazione di obblighi inderogabili di legge, i corrispettivi versati dal Partner nei 12 mesi precedenti l'evento dannoso.
-
-ARTICOLO 11 - CLAUSOLA DI SALVAGUARDIA E PREVALENZA DELLE CONDIZIONI ECONOMICHE
-
+Ciascuna Parte risponde dei danni derivanti da trattamenti effettuati in violazione della normativa applicabile o delle istruzioni legittimamente impartite.
+Salvo il caso di dolo, colpa grave o responsabilità inderogabili previste dalla legge, la responsabilità complessiva di Evolution PRO derivante dalle attività svolte in qualità di Responsabile del trattamento non potrà eccedere l'importo complessivamente corrisposto dal Partner ai sensi del presente Contratto.
+In nessun caso Evolution PRO sarà responsabile per:
+• perdita di profitto;
+• perdita di opportunità commerciali;
+• danni indiretti o consequenziali;
+• trattamenti effettuati autonomamente dal Partner;
+• malfunzionamenti imputabili a fornitori tecnologici terzi.
+10.7 Utilizzo di strumenti automatizzati e Intelligenza Artificiale
+Il Partner prende atto che Evolution PRO può utilizzare strumenti automatizzati, sistemi di intelligenza artificiale, workflow digitali e piattaforme software per l'erogazione dei servizi previsti dal presente Contratto.
+Tali strumenti vengono utilizzati come supporto operativo e organizzativo alle attività della Partnership.
+Evolution PRO si impegna ad adottare misure ragionevoli per garantire la sicurezza, la protezione e la riservatezza dei dati trattati attraverso tali sistemi.
+L'utilizzo di strumenti AI non comporta alcun trasferimento di proprietà intellettuale, know-how, workflow, prompt o asset proprietari di Evolution PRO al Partner.
+ARTICOLO 11 – CLAUSOLA DI SALVAGUARDIA, INTERO ACCORDO E PREVALENZA DELLE CONDIZIONI CONTRATTUALI
 11.1 Intero accordo tra le Parti
-Il presente Contratto rappresenta l'unico, completo e integrale accordo tra le Parti in relazione all'oggetto della collaborazione e sostituisce ogni precedente intesa, proposta o comunicazione scritta o verbale intercorsa tra le stesse in merito ai servizi forniti da Evolution PRO.
-
-11.2 Prevalenza delle condizioni economiche
-Le condizioni economiche, la durata e le modalità di pagamento previste nel presente Contratto costituiscono elementi essenziali dell'accordo. Eventuali modifiche o aggiornamenti potranno essere oggetto di nuova negoziazione scritta, nel rispetto del principio di buona fede, equità e trasparenza contrattuale.
-
-11.3 Validità e modifiche
-Qualsiasi modifica, integrazione o deroga al presente Contratto dovrà essere concordata per iscritto e sottoscritta da entrambe le Parti. In assenza di tale forma, le modifiche non avranno efficacia né potranno essere invocate da una sola Parte.
-
-11.4 Nullità parziale e sostituzione automatica
-Qualora una o più disposizioni del presente Contratto siano dichiarate nulle, illegittime o inefficaci da un'autorità competente, tale invalidità non comporterà la nullità dell'intero Contratto, che continuerà a produrre effetti per le restanti clausole. Le Parti si impegnano, in tal caso, a sostituire la clausola nulla con una nuova pattuizione che rispetti il più possibile la volontà originaria e mantenga l'equilibrio del rapporto.
-
-11.5 Versioni e lingua prevalente
-In caso di differenze o contrasto tra più versioni del Contratto (cartacea, digitale o tradotta in altra lingua), fa fede unicamente la versione in lingua italiana, sottoscritta digitalmente o con firma autografa da entrambe le Parti.
-
-11.6 Interpretazione e buona fede
-Le clausole del presente Contratto devono essere interpretate secondo i principi di correttezza, buona fede e funzione economico-sociale dell'accordo. Eventuali ambiguità saranno risolte privilegiando un'interpretazione che mantenga l'equilibrio delle prestazioni reciproche.
-
-ARTICOLO 12 - CLAUSOLA DI TUTELA DEL BRAND E RISERVATEZZA POST-CONTRATTUALE
-
-12.1 Proprietà del marchio e degli elementi distintivi
-Il Partner riconosce che il nome commerciale "Evolution PRO", il logo, i domini internet, i format grafici, i modelli di funnel, le metodologie operative, i testi e le procedure di marketing utilizzate da Evolution PRO costituiscono proprietà esclusiva di quest'ultima e sono tutelati dalle leggi in materia di diritto d'autore, marchi e segreti commerciali. Il Partner non potrà utilizzare, copiare, riprodurre o divulgare tali elementi, in tutto o in parte, senza previa autorizzazione scritta di Evolution PRO.
-
-12.2 Divieti e obblighi alla cessazione del Contratto
-Alla cessazione del Contratto, per qualsiasi causa, il Partner si impegna a:
-- non presentarsi o qualificarsi pubblicamente come collaboratore, affiliato, partner o rappresentante di Evolution PRO
-- rimuovere da siti web, social, piattaforme e materiali promozionali ogni riferimento al marchio, logo o contenuti riconducibili a Evolution PRO, salvo i meri riferimenti curricolari all'esperienza passata
-- non utilizzare o diffondere per finalità commerciali, formative o promozionali il marchio, il nome commerciale, i format proprietari e gli elementi distintivi riconducibili a Evolution PRO, salvo accordo scritto con l'Agenzia
-- non riutilizzare documenti, template, script, funnel, naming, elementi distintivi, sequenze o materiali proprietari di Evolution PRO in modo sostanzialmente identico o riconducibile
-
-12.3 Durata della tutela post-contrattuale
-Gli obblighi previsti dal presente articolo resteranno validi per un periodo di novanta (90) giorni successivi alla cessazione del Contratto, salvo rinnovo o proroga della collaborazione. Decorso tale termine, il Partner potrà riutilizzare materiali e strategie esclusivamente se rielaborati autonomamente e privi di riferimenti identificabili a Evolution PRO.
-
-12.4 Divieto di concorrenza sleale
-È vietato al Partner porre in essere condotte concretamente idonee a generare confusione sul mercato circa l'origine imprenditoriale dei servizi o a sfruttare parassitariamente, in modo riconoscibile, gli asset proprietari di Evolution PRO. Ogni violazione sarà considerata atto di concorrenza sleale ai sensi della normativa applicabile. Resta in ogni caso esclusa ogni limitazione all'utilizzo delle competenze professionali generali acquisite dal Partner, purché non venga riprodotto o imitato in modo riconoscibile il modello, il format o l'identità operativa di Evolution PRO.
-
-12.5 Penale e risarcimento
-In caso di violazione grave e documentata del presente articolo, il Partner sarà tenuto a corrispondere una penale di € 2.500 (duemilacinquecento/00), per ciascuna violazione autonoma, fatto salvo il maggior danno. Resta ferma la facoltà del giudice di ridurre la penale ove ne accerti la manifesta eccessività, nei limiti consentiti dalla legge.
-
+Il presente Contratto, unitamente ai relativi allegati e documenti espressamente richiamati, costituisce l'intero accordo tra le Parti in relazione all'oggetto della Partnership e sostituisce integralmente ogni precedente proposta, trattativa, intesa, accordo, comunicazione o dichiarazione, sia scritta che verbale, intercorsa tra le Parti sul medesimo oggetto.
+Restano esclusi dal presente Contratto eventuali servizi, attività o prestazioni non espressamente previsti o successivamente disciplinati mediante accordo scritto separato.
+11.2 Prevalenza delle condizioni economiche e operative
+Le condizioni economiche, la durata della Partnership, il Programma Operativo, il Metodo E.V.O., le modalità di pagamento e le clausole relative alla proprietà intellettuale costituiscono elementi essenziali dell'accordo.
+Eventuali modifiche o aggiornamenti potranno essere concordati esclusivamente mediante accordo scritto sottoscritto da entrambe le Parti.
+In caso di contrasto tra comunicazioni operative, materiali informativi, contenuti promozionali o altri documenti non contrattuali e il presente Contratto, prevarrà quest'ultimo.
+11.3 Modifiche contrattuali
+Qualsiasi modifica, integrazione, rinuncia, deroga o accordo aggiuntivo relativo al presente Contratto dovrà risultare da atto scritto sottoscritto da entrambe le Parti.
+Le comunicazioni operative, le indicazioni fornite tramite Ciak.io, e-mail, Telegram o altri strumenti utilizzati nell'ambito della Partnership non costituiscono modifica contrattuale, salvo espressa dichiarazione scritta delle Parti.
+11.4 Nullità parziale e conservazione del Contratto
+L'eventuale nullità, inefficacia, annullabilità o invalidità di una o più disposizioni del presente Contratto non comporterà la nullità o inefficacia dell'intero accordo.
+Le restanti disposizioni continueranno a produrre pienamente i propri effetti.
+Le Parti si impegnano a sostituire la disposizione eventualmente invalida con una nuova clausola valida che realizzi, per quanto possibile, la medesima finalità economica e giuridica perseguita dalla disposizione originaria.
+11.5 Versione prevalente e formato elettronico
+Il presente Contratto può essere sottoscritto in formato cartaceo o elettronico.
+In caso di pluralità di versioni linguistiche, traduzioni o copie del Contratto, farà fede esclusivamente la versione in lingua italiana.
+Le Parti riconoscono piena validità probatoria ai documenti informatici, alle firme elettroniche, alle firme digitali e ai sistemi di sottoscrizione elettronica utilizzati per la conclusione del presente Contratto, nei limiti consentiti dalla normativa applicabile.
+11.6 Interpretazione del Contratto
+Il presente Contratto dovrà essere interpretato secondo criteri di buona fede, correttezza, equilibrio contrattuale e ragionevolezza commerciale.
+Le Parti riconoscono che il Contratto disciplina una Partnership professionale tra soggetti economicamente indipendenti e che nessuna clausola dovrà essere interpretata in modo da alterare la natura autonoma del rapporto.
+Eventuali dubbi interpretativi saranno risolti privilegiando un'interpretazione coerente con la finalità economica complessiva della Partnership, con il Programma Operativo e con il Metodo E.V.O.
+11.7 Sopravvivenza delle clausole
+La cessazione, risoluzione o scadenza del presente Contratto non pregiudica l'efficacia delle disposizioni che, per loro natura o per espressa previsione contrattuale, sono destinate a sopravvivere alla cessazione del rapporto.
+A titolo esemplificativo restano efficaci anche successivamente alla cessazione del Contratto:
+• le clausole relative ai corrispettivi maturati e non corrisposti;
+• gli obblighi di riservatezza;
+• le disposizioni in materia di proprietà intellettuale;
+• le limitazioni di responsabilità;
+• le disposizioni in materia di protezione dei dati personali;
+• le clausole relative alla risoluzione delle controversie;
+• ogni altra disposizione destinata a produrre effetti successivamente alla cessazione del rapporto.
+ARTICOLO 12 – TUTELA DEL BRAND, DEGLI ASSET PROPRIETARI E DEL KNOW-HOW
+12.1 Proprietà degli asset proprietari
+Il Partner riconosce che costituiscono proprietà esclusiva di Evolution PRO:
+• il marchio Evolution PRO;
+• il marchio Ciak.io;
+• il Metodo E.V.O.;
+• i loghi, naming, domini internet e segni distintivi;
+• i funnel, template, workflow e framework operativi;
+• gli agenti AI, i prompt, le automazioni e le procedure proprietarie;
+• le metodologie commerciali, di marketing e di lancio;
+• la documentazione interna;
+• i contenuti formativi sviluppati da Evolution PRO;
+• ogni ulteriore asset proprietario sviluppato o utilizzato nell'ambito della Partnership.
+Tali elementi sono protetti dalle normative applicabili in materia di proprietà intellettuale, diritto d'autore, concorrenza sleale, segreti commerciali e know-how riservato.
+Il Partner non potrà copiarli, riprodurli, divulgarli, distribuirli, modificarli o utilizzarli senza preventiva autorizzazione scritta di Evolution PRO.
+12.2 Obblighi alla cessazione del Contratto
+Alla cessazione del Contratto, per qualsiasi causa intervenuta, il Partner si impegna a:
+• cessare immediatamente qualsiasi utilizzo del marchio Evolution PRO e del marchio Ciak.io;
+• non qualificarsi come collaboratore, partner, affiliato o rappresentante di Evolution PRO;
+• rimuovere dai propri canali ogni riferimento commerciale idoneo a generare confusione circa l'esistenza di rapporti in corso con Evolution PRO;
+• non utilizzare, diffondere o commercializzare materiali proprietari di Evolution PRO;
+• non riutilizzare funnel, workflow, template, procedure, prompt, automazioni, framework o altri asset proprietari in forma identica o sostanzialmente equivalente.
+Restano consentiti esclusivamente riferimenti curricolari veritieri all'esperienza professionale svolta durante la Partnership.
+12.3 Durata della tutela
+Gli obblighi relativi al marchio, ai segni distintivi, alla proprietà intellettuale e agli asset proprietari di Evolution PRO resteranno efficaci anche successivamente alla cessazione del Contratto.
+Per il know-how, il Metodo E.V.O., la piattaforma Ciak.io, i workflow, i prompt, gli agenti AI, le procedure operative e gli altri asset proprietari di Evolution PRO, gli obblighi di non utilizzo, non divulgazione e non riproduzione resteranno efficaci per un periodo di cinque (5) anni dalla cessazione del rapporto.
+Restano impregiudicati gli obblighi di riservatezza previsti dall'Articolo 6, ove applicabili per un periodo superiore.
+12.4 Divieto di concorrenza sleale e sfruttamento parassitario
+È fatto divieto al Partner di porre in essere comportamenti idonei a:
+• generare confusione circa l'origine imprenditoriale dei servizi;
+• sfruttare indebitamente la reputazione commerciale di Evolution PRO;
+• replicare in modo riconoscibile il Metodo E.V.O., la struttura operativa di Ciak.io o gli asset proprietari sviluppati da Evolution PRO;
+• appropriarsi dei risultati dell'attività organizzativa, commerciale o strategica di Evolution PRO.
+Resta espressamente esclusa qualsiasi limitazione all'utilizzo delle competenze professionali generali, delle esperienze maturate e delle conoscenze personali del Partner, purché non vengano riprodotti o imitati in modo riconoscibile gli asset proprietari di Evolution PRO.
+12.5 Penale
+In caso di violazione grave e documentata delle disposizioni del presente Articolo, il Partner sarà tenuto a corrispondere a Evolution PRO una penale pari a Euro 5.000,00 (cinquemila/00) per ciascuna violazione autonoma accertata.
+Non costituiscono violazioni autonome la pluralità di atti meramente esecutivi del medesimo comportamento illecito.
+Resta in ogni caso salvo il diritto di Evolution PRO di richiedere il risarcimento dell'eventuale maggior danno subito.
 12.6 Clausola di equilibrio e proporzionalità
-Le Parti riconoscono che le presenti restrizioni sono necessarie e proporzionate per la tutela del know-how, della reputazione e degli investimenti di Evolution PRO, e che non limitano indebitamente la libertà professionale del Partner, il quale potrà comunque utilizzare le proprie competenze e conoscenze acquisite per progetti differenti e autonomi, purché non concorrenti.
-
-ARTICOLO 13 - COMUNICAZIONI E NOTIFICHE
-
-13.1 Mezzi di comunicazione ammessi
-Tutte le comunicazioni, notifiche, diffide o richieste relative all'interpretazione, esecuzione o cessazione del presente Contratto dovranno essere effettuate per iscritto e saranno considerate valide solo se inviate tramite uno dei seguenti mezzi:
-- Posta Elettronica Certificata (PEC)
-- Raccomandata con Avviso di Ricevimento (A/R)
-- piattaforma di firma digitale o gestionale condiviso, purché il Partner vi abbia accesso e le comunicazioni risultino tracciabili e scaricabili
-- e-mail ordinaria con conferma di lettura, solo per comunicazioni non formali e prive di valore legale
-
-13.2 Obbligo di PEC per le Parti
-Le Parti si impegnano a comunicare reciprocamente un indirizzo PEC alla sottoscrizione del presente Contratto. Tale indirizzo sarà utilizzato come canale ufficiale per tutte le comunicazioni formali, comprese diffide e risoluzioni.
-
+Le Parti riconoscono che le limitazioni previste dal presente Articolo sono necessarie e proporzionate alla tutela:
+• del know-how;
+• degli investimenti sostenuti da Evolution PRO;
+• degli asset proprietari;
+• della reputazione commerciale;
+• del Metodo E.V.O.;
+• della piattaforma Ciak.io.
+Le presenti disposizioni non hanno finalità anticoncorrenziali e non limitano indebitamente la libertà professionale del Partner, il quale resta libero di esercitare la propria attività professionale, imprenditoriale o formativa attraverso modelli, strumenti e procedure autonomamente sviluppati.
+12.7 Divieto di replica del sistema
+Il Partner riconosce che il Metodo E.V.O., la piattaforma Ciak.io, i workflow operativi, gli agenti AI, i prompt e le procedure sviluppate da Evolution PRO costituiscono asset proprietari e know-how riservato.
+Per un periodo di cinque (5) anni dalla cessazione del Contratto, il Partner si impegna a non sviluppare, commercializzare o mettere a disposizione di terzi sistemi sostanzialmente derivati o riconoscibilmente basati sugli asset proprietari di Evolution PRO ottenuti durante la Partnership.
+Resta salvo il diritto del Partner di utilizzare le proprie competenze professionali generali e le conoscenze non riservate maturate nel corso della collaborazione.
+ARTICOLO 13 – COMUNICAZIONI E NOTIFICHE
+13.1 Canali di comunicazione
+Le Parti riconoscono che il presente rapporto viene gestito prevalentemente attraverso strumenti digitali.
+Le comunicazioni relative all'esecuzione ordinaria della Partnership potranno avvenire mediante:
+• piattaforma Ciak.io;
+• e-mail;
+• gruppo Telegram ufficiale del progetto;
+• sistemi di ticketing o assistenza eventualmente utilizzati da Evolution PRO;
+• ulteriori strumenti digitali comunicati da Evolution PRO nel corso del rapporto.
+Le comunicazioni operative effettuate attraverso tali strumenti costituiscono prova dell'attività svolta e delle richieste formulate nell'ambito della Partnership.
+13.2 Comunicazioni formali
+Le comunicazioni aventi rilevanza legale o contrattuale, incluse a titolo esemplificativo:
+• diffide;
+• contestazioni formali;
+• richieste di risoluzione;
+• richieste di pagamento;
+• modifiche contrattuali;
+• comunicazioni relative a inadempimenti;
+dovranno essere effettuate mediante:
+• Posta Elettronica Certificata (PEC);
+• raccomandata con avviso di ricevimento;
+• sistemi di firma elettronica o piattaforme di sottoscrizione digitale che consentano l'identificazione delle Parti e la tracciabilità delle comunicazioni.
 13.3 Validità delle comunicazioni
-Le comunicazioni inviate tramite PEC o Raccomandata A/R si considerano ricevute alla data di consegna risultante dalla ricevuta o conferma di consegna. Le comunicazioni inviate tramite e-mail ordinaria si considerano ricevute solo con conferma scritta di lettura o riscontro da parte del destinatario.
-
-13.4 Aggiornamento dei recapiti
-Ciascuna Parte si impegna a comunicare entro quindici (15) giorni lavorativi ogni variazione dei propri indirizzi PEC, e-mail o domicilio fisico. In assenza di tale aggiornamento, le notifiche effettuate agli indirizzi originari si considereranno validamente eseguite a tutti gli effetti di legge.
-
-ARTICOLO 14 - FORO COMPETENTE E LEGGE APPLICABILE
-
+Le comunicazioni trasmesse tramite PEC si considerano ricevute alla data risultante dalla ricevuta di avvenuta consegna.
+Le comunicazioni inviate mediante raccomandata si considerano ricevute alla data risultante dall'avviso di ricevimento o dal rifiuto di ricezione.
+Le comunicazioni effettuate tramite piattaforme di firma elettronica o sistemi digitali certificati si considerano ricevute alla data risultante dai relativi log o sistemi di tracciamento.
+Le comunicazioni operative inviate tramite e-mail, Ciak.io o Telegram si considerano valide ai fini della gestione ordinaria del progetto quando risultino ragionevolmente accessibili al destinatario.
+13.4 Recapiti ufficiali
+Ciascuna Parte si impegna a mantenere aggiornati i propri recapiti di contatto, inclusi:
+• indirizzo PEC;
+• indirizzo e-mail;
+• numero di telefono;
+• eventuale domicilio o sede legale.
+Ogni variazione dovrà essere comunicata all'altra Parte entro 15 (quindici) giorni lavorativi.
+In mancanza di aggiornamento, tutte le comunicazioni effettuate ai recapiti precedentemente comunicati si considereranno validamente eseguite.
+13.5 Valore probatorio delle comunicazioni digitali
+Le Parti riconoscono espressamente che:
+• i log di accesso a Ciak.io;
+• le attività registrate sulla piattaforma;
+• le comunicazioni effettuate tramite i canali ufficiali della Partnership;
+• le conferme di consegna e lettura;
+• i sistemi di ticketing e supporto;
+costituiscono elementi di prova utilizzabili ai fini dell'accertamento delle attività svolte, delle richieste formulate, delle approvazioni ricevute e dello stato di avanzamento del progetto.
+13.6 Firma elettronica e documenti digitali
+Le Parti riconoscono piena validità giuridica ai documenti informatici, alle firme elettroniche, alle firme digitali e ai sistemi di sottoscrizione elettronica utilizzati nell'ambito del presente Contratto, nei limiti consentiti dalla normativa applicabile.
+Le copie elettroniche del Contratto e dei relativi allegati hanno il medesimo valore probatorio dell'originale.
+ARTICOLO 14 – LEGGE APPLICABILE E RISOLUZIONE DELLE CONTROVERSIE
 14.1 Legge applicabile
-Il presente Contratto è regolato, interpretato ed eseguito in conformità alla legge italiana, anche qualora una delle Parti abbia sede legale o residenza al di fuori del territorio nazionale.
-
-14.2 Tentativo di composizione bonaria
-Prima di intraprendere qualsiasi azione giudiziaria, le Parti si impegnano a tentare una composizione amichevole della controversia, mediante scambio di comunicazioni scritte o convocazione di un incontro (anche da remoto) entro quindici (15) giorni dalla segnalazione del problema.
-
-14.3 Foro competente esclusivo
-Per ogni controversia relativa all'interpretazione, validità, esecuzione o risoluzione del presente Contratto, le Parti convengono espressamente che sarà competente in via esclusiva il Foro di Torino (Italia), con esclusione di qualsiasi altro foro alternativo, concorrente o estero.
-
-14.4 Validità delle altre disposizioni
-L'eventuale nullità o inefficacia di singole clausole non pregiudica la validità e l'efficacia delle restanti previsioni del Contratto, che continueranno a produrre i loro effetti.
-
-ARTICOLO 15 - CLAUSOLA FINALE
-
-15.1 Entrata in vigore e durata effettiva
-Il presente Contratto entra in vigore alla data della sua sottoscrizione da parte di entrambe le Parti e produce effetti immediati. La durata, le condizioni economiche e gli obblighi reciproci decorrono dalla stessa data, salvo diversa indicazione scritta concordata tra le Parti.
-
+Il presente Contratto è regolato, interpretato ed eseguito in conformità alla legge italiana, indipendentemente dal luogo di residenza, domicilio, sede legale o sede operativa delle Parti.
+14.2 Tentativo di composizione amichevole
+In caso di controversia derivante dal presente Contratto o comunque ad esso collegata, le Parti si impegnano preliminarmente a tentare una soluzione bonaria mediante confronto diretto e in buona fede.
+La Parte che intende sollevare una contestazione dovrà comunicarla per iscritto all'altra Parte, indicando in modo sufficientemente dettagliato i fatti contestati e le richieste formulate.
+Le Parti si impegnano a confrontarsi entro 30 (trenta) giorni dalla ricezione della comunicazione.
+14.3 Mediazione preventiva obbligatoria
+Qualora il tentativo di composizione amichevole non abbia esito positivo, le Parti si impegnano a esperire un tentativo di mediazione presso un organismo di mediazione avente sede nel Comune di Torino o comunque individuato di comune accordo.
+La mediazione costituisce condizione preliminare rispetto all'eventuale instaurazione di un procedimento giudiziario, salvo i casi urgenti previsti dalla legge.
+14.4 Foro competente esclusivo
+Solo in caso di esito negativo della procedura di mediazione di cui all'Articolo 14.3, ogni controversia relativa alla validità, interpretazione, esecuzione, risoluzione o cessazione del presente Contratto sarà devoluta alla competenza esclusiva del Foro di Torino (Italia), con esclusione di qualsiasi altro foro concorrente o alternativo consentito dalla legge.
+14.5 Conservazione del Contratto
+L'eventuale nullità, annullabilità, inefficacia o invalidità di una o più disposizioni del presente Contratto non comporterà la nullità dell'intero accordo.
+Le restanti disposizioni continueranno a produrre pienamente i propri effetti.
+Le Parti si impegnano a sostituire l'eventuale clausola invalida con una disposizione valida che realizzi, per quanto possibile, la medesima finalità economica e giuridica perseguita dalla clausola originaria.
+ARTICOLO 15 – DISPOSIZIONI FINALI
+15.1 Entrata in vigore
+Il presente Contratto entra in vigore alla data della sua sottoscrizione da parte di entrambe le Parti e produce effetti immediati.
+La durata, le condizioni economiche e gli obblighi reciproci decorrono dalla medesima data, salvo diverso accordo scritto.
 15.2 Modalità di sottoscrizione
 Il Contratto può essere sottoscritto:
-- in forma elettronica, mediante firma digitale qualificata, firma elettronica avanzata o tramite piattaforme di firma elettronica riconosciute
-- in forma autografa, su documento cartaceo in originale
-Entrambe le modalità producono pieno valore legale e probatorio secondo la normativa applicabile.
-
-15.3 Copia autentica e valore probatorio
-In caso di sottoscrizione digitale, il documento in formato PDF firmato elettronicamente costituirà l'unica copia autentica avente valore legale e probatorio. Eventuali copie stampate o riproduzioni cartacee avranno valore di copia di cortesia e non di originale.
-
-15.4 Dichiarazione di lettura e approvazione consapevole
-Il Partner dichiara di aver letto attentamente e compreso integralmente tutte le clausole contrattuali, confermando di averne ricevuto copia. Dichiara inoltre di essere stato informato in modo chiaro circa:
-- la durata minima vincolante del rapporto
-- le modalità di pagamento e le ipotesi in cui non è previsto rimborso
-- le limitazioni di responsabilità
-- la tutela del marchio e la riservatezza post-contrattuale
-- la scelta del foro competente
-Il Partner dichiara di disporre del tempo, delle risorse organizzative e delle competenze digitali minime necessarie per partecipare attivamente al Programma Operativo. Eventuali difficoltà personali, organizzative o professionali del Partner non costituiranno di per sé motivo automatico di sospensione, proroga o revisione economica, salvo diverso accordo scritto tra le Parti o quanto previsto dalla legge.
-
-ARTICOLO 16 - CLAUSOLE VESSATORIE - APPROVAZIONE SPECIFICA (artt. 1341 e 1342 c.c.)
-
-Ai sensi e per gli effetti degli articoli 1341 e 1342 del Codice Civile, il Partner dichiara di aver letto attentamente e di approvare specificamente le seguenti clausole:
-- art. 1.4 esclusiva
-- art. 2.6 recesso Evolution PRO
-- art. 2.7 clausola risolutiva espressa
-- art. 3 sospensione/risoluzione per inattività
-- art. 5 decadenza dilazione e disciplina rimborsi
-- art. 6.5 penale riservatezza
-- art. 7 limitazioni di responsabilità
-- art. 12 tutela brand e penale
-- art. 14.3 foro esclusivo
-
-ARTICOLO 17 – ACCETTAZIONE CONSAPEVOLE DEL MODELLO
-
-Il Partner dichiara di aver compreso e accettato che:
-- la Partnership ha natura di collaborazione strategica e operativa e non costituisce prestazione di risultato
-- il successo economico del progetto dipende da molteplici fattori non controllabili da Evolution PRO
-- il corrispettivo iniziale remunera l'accesso al sistema, al know-how e alle attività operative, indipendentemente dai risultati economici
-- eventuali contestazioni relative a performance, vendite o risultati non costituiscono inadempimento contrattuale"""
+• mediante firma digitale;
+• mediante firma elettronica avanzata;
+• mediante piattaforme di firma elettronica riconosciute;
+• mediante sottoscrizione autografa.
+Tutte le modalità sopra indicate producono pieno valore legale e probatorio nei limiti consentiti dalla normativa applicabile.
+15.3 Valore probatorio dei documenti digitali
+Le Parti riconoscono piena validità probatoria:
+• al Contratto sottoscritto elettronicamente;
+• ai documenti informatici;
+• ai log della piattaforma Ciak.io;
+• ai sistemi di firma elettronica utilizzati;
+• alle registrazioni delle attività svolte nell'ambito della Partnership.
+Le copie elettroniche costituiscono documento originale ai fini probatori.
+15.4 Dichiarazione di lettura e consapevolezza
+Il Partner dichiara:
+• di aver letto integralmente il presente Contratto;
+• di aver ricevuto copia del Contratto e dei relativi allegati;
+• di aver preso visione del Programma Operativo;
+• di aver compreso il funzionamento della Partnership, del Metodo E.V.O. e della piattaforma Ciak.io;
+• di essere consapevole che il successo del progetto richiede una propria partecipazione attiva e continuativa;
+• di possedere le risorse organizzative minime necessarie per prendere parte al Programma Operativo.
+Il Partner riconosce che eventuali difficoltà personali, professionali, organizzative o commerciali non costituiscono automaticamente motivo di sospensione, proroga, revisione economica o scioglimento del Contratto, salvo diverso accordo scritto o diversa previsione di legge.
+15.5 Approvazione specifica delle clausole
+Ai sensi e per gli effetti degli articoli 1341 e 1342 del Codice Civile italiano, il Partner dichiara di approvare specificamente le seguenti clausole:
+• Articolo 1.4 (Esclusiva);
+• Articolo 2.6 (Recesso di Evolution PRO);
+• Articolo 2.7 (Risoluzione per inadempimento);
+• Articolo 3.3 (Sospensione e risoluzione per inattività);
+• Articolo 5.3 (Decadenza del beneficio della dilazione);
+• Articolo 5.5 e 5.6 (Royalty e Revenue Share);
+• Articolo 5.7 (Natura non rimborsabile del corrispettivo);
+• Articolo 6.5 (Penale per violazione della riservatezza);
+• Articolo 7.6 (Limitazioni di responsabilità);
+• Articolo 10.6 (Limitazione di responsabilità in materia di trattamento dati);
+• Articolo 12 (Tutela del brand, know-how e asset proprietari);
+• Articolo 12.5 (Penale);
+• Articolo 14.3 (Mediazione preventiva);
+• Articolo 14.4 (Foro competente esclusivo di Torino).
+15.6 Chiusura del Contratto
+Le Parti dichiarano che il presente Contratto è stato liberamente negoziato, compreso e accettato in ogni sua parte.
+Ciascuna Parte conferma di aver avuto la possibilità di richiedere chiarimenti, consulenza professionale e ogni informazione ritenuta necessaria prima della sottoscrizione del presente accordo.
+ARTICOLO 16 – ACCETTAZIONE CONSAPEVOLE DEL MODELLO DI PARTNERSHIP
+16.1 Comprensione del modello
+Il Partner dichiara di aver compreso e accettato che il presente Contratto disciplina una Partnership professionale basata sulla collaborazione attiva tra le Parti e non l'acquisto di un servizio "chiavi in mano" o di una prestazione garantita di risultato.
+16.2 Natura della prestazione
+Il Partner riconosce che:
+• Evolution PRO assume un'obbligazione di mezzi e non di risultato;
+• Evolution PRO non garantisce livelli minimi di fatturato, vendite, conversioni, acquisizione clienti o ritorno economico;
+• il successo del progetto dipende da molteplici fattori esterni al controllo di Evolution PRO, inclusi il mercato, il posizionamento, la qualità dei contenuti, l'attività commerciale svolta dal Partner, la concorrenza, il budget promozionale e le condizioni economiche generali.
+16.3 Valore del corrispettivo
+Il Partner riconosce che il corrispettivo previsto dal presente Contratto remunera:
+• l'accesso al Metodo E.V.O.;
+• l'accesso alla piattaforma Ciak.io;
+• il know-how di Evolution PRO;
+• le attività strategiche, tecniche e operative svolte nell'ambito della Partnership;
+• l'allocazione delle risorse organizzative necessarie allo sviluppo del progetto.
+Tale corrispettivo non è subordinato al raggiungimento di specifici risultati economici o commerciali.
+16.4 Collaborazione essenziale del Partner
+Il Partner riconosce che la propria collaborazione attiva costituisce elemento essenziale del presente Contratto e che il mancato coinvolgimento nelle attività previste dal Programma Operativo può compromettere o impedire il corretto sviluppo del progetto.
+16.5 Assenza di affidamento su promesse di risultato
+Il Partner dichiara di non aver basato la propria decisione di aderire alla Partnership su promesse, garanzie o aspettative di risultati economici certi.
+Il Partner conferma che la decisione di sottoscrivere il presente Contratto è stata assunta in modo autonomo e consapevole, sulla base delle informazioni ricevute e della propria valutazione imprenditoriale e professionale.
+16.6 Conferma finale
+Le Parti confermano di aver letto integralmente il presente Contratto, di averne compreso il contenuto e di accettarne tutte le disposizioni.
+Il Partner dichiara di aver avuto la possibilità di richiedere chiarimenti, approfondimenti e consulenze professionali prima della sottoscrizione del presente accordo.
+"""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
