@@ -491,6 +491,31 @@ def add_to_youtube_playlist_sync(video_id: str, playlist_id: str) -> bool:
         return False
 
 
+def delete_youtube_video_sync(video_id: str) -> bool:
+    """Elimina un video da YouTube. Ritorna True se eliminato (o gia' assente)."""
+    if not video_id:
+        return False
+    try:
+        from googleapiclient.discovery import build
+        from services.secure_credentials import load_credentials, save_credentials
+        from google.auth.transport.requests import Request
+        creds_path = "/app/storage/youtube_credentials.pickle"
+        creds = load_credentials(creds_path)
+        if not creds:
+            logger.error("[VIDEO] YouTube delete: credenziali mancanti")
+            return False
+        if (not creds.valid) and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+            save_credentials(creds, creds_path)
+        service = build("youtube", "v3", credentials=creds)
+        service.videos().delete(id=video_id).execute()
+        logger.info(f"[VIDEO] YouTube video eliminato: {video_id}")
+        return True
+    except Exception as e:
+        logger.warning(f"[VIDEO] YouTube delete fallito per {video_id}: {e}")
+        return False
+
+
 def create_youtube_playlist_sync(partner_name: str) -> Optional[str]:
     """Crea una playlist YouTube unlisted per il partner. Ritorna playlist_id o None."""
     try:
@@ -1646,8 +1671,24 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
 
         # 6. YouTube upload
         await set_status("uploading_youtube")
-        ts = datetime.now().strftime("%m/%Y")
-        yt_title = f"{name} — {label.replace('_', ' ').title()} {ts}"
+        # Titolo = nome del file caricato dall'admin (richiesta Antonella: niente
+        # "rename" generico). Fallback allo schema storico se il nome non c'e'.
+        orig_name = None
+        try:
+            if video_type == "masterclass":
+                _mcdoc = await db.masterclass_factory.find_one({"partner_id": partner_id})
+                orig_name = (_mcdoc or {}).get("video_original_name")
+            else:
+                _vcdoc = await db.partner_videocorso.find_one({"partner_id": partner_id})
+                _les = ((_vcdoc or {}).get("lessons") or {}).get(lesson_id or "", {})
+                orig_name = _les.get("video_original_name") or _les.get("title")
+        except Exception:
+            orig_name = None
+        if orig_name:
+            yt_title = (os.path.splitext(str(orig_name))[0].strip() or name)[:100]
+        else:
+            ts = datetime.now().strftime("%m/%Y")
+            yt_title = f"{name} — {label.replace('_', ' ').title()} {ts}"
         youtube_url = upload_to_youtube_sync(youtube_source_path, yt_title, name)
 
         if not youtube_url:
@@ -1662,24 +1703,11 @@ async def _run_pipeline(task, partner_id: str, video_url: str, video_type: str, 
         embed_url = f"https://www.youtube.com/embed/{youtube_id}"
         systeme_embed = f'<iframe src="{embed_url}" width="560" height="315" frameborder="0" allowfullscreen></iframe>'
 
-        # 7. Playlist per-partner
-        playlist_id = partner.get("youtube_playlist_id") if partner else None
-        playlist_url = None
-        if not playlist_id:
-            playlist_id = create_youtube_playlist_sync(name)
-            if playlist_id:
-                playlist_url = f"https://www.youtube.com/playlist?list={playlist_id}"
-                await db.partners.update_one(
-                    {"id": partner_id},
-                    {"$set": {"youtube_playlist_id": playlist_id, "youtube_playlist_url": playlist_url}}
-                )
-                logger.info(f"[VIDEO-PIPE] Nuova playlist creata: {playlist_id}")
-        else:
-            playlist_url = f"https://www.youtube.com/playlist?list={playlist_id}"
-
-        if playlist_id:
-            ok = add_to_youtube_playlist_sync(youtube_id, playlist_id)
-            logger.info(f"[VIDEO-PIPE] Aggiunto a playlist {playlist_id}: {ok}")
+        # 7. Playlist per-partner — NON si aggiunge qui.
+        # Il video entra nella playlist solo all'approvazione admin
+        # (approve_masterclass_video / approve_videocorso_video), cosi' gli
+        # scarti non revisionati non sporcano la playlist del partner.
+        playlist_url = partner.get("youtube_playlist_url") if partner else None
 
         # 8. Salva in DB
         base_data = {
