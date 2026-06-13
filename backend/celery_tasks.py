@@ -34,6 +34,61 @@ def run_async(coro):
             pass
 
 
+def send_email_smtp(to_email: str, subject: str, body_html: str, reply_to: str = None) -> tuple:
+    """Invio email REALE via SMTP (register.it / authsmtp.securemail.pro).
+
+    FIX 13/6/2026 (Claudio): in precedenza TUTTI i task email del Celery non
+    spedivano nulla — aggiungevano solo un tag Systeme e loggavano
+    'sent_via_systeme', delegando a workflow Systeme mai realmente attivi.
+    Risultato: nessuna email partiva. Ora spediamo direttamente via SMTP, con
+    lo stesso mittente usato dalle email Checkpoint (SPF/DKIM ora a posto).
+
+    Ritorna (ok: bool, error: Optional[str]). Bloccante (smtplib): ok dentro un
+    worker Celery.
+    """
+    import smtplib
+    import re as _re
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+
+    host = os.environ.get("SMTP_HOST", "authsmtp.securemail.pro")
+    port = int(os.environ.get("SMTP_PORT", "587"))
+    user = os.environ.get("SMTP_USER", "")
+    pwd = os.environ.get("SMTP_PASSWORD", "")
+    sender = os.environ.get(
+        "CIAK_EMAIL_FROM",
+        os.environ.get("SMTP_FROM", f"Claudio Bertogliatti <{user}>" if user else "")
+    )
+
+    if not to_email or "@" not in to_email:
+        return False, "email destinatario mancante/non valida"
+    if not user or not pwd:
+        return False, "SMTP non configurato (SMTP_USER/SMTP_PASSWORD)"
+
+    # Fallback testo semplice dall'HTML (strip tag basilare)
+    text_fallback = _re.sub(r"<[^>]+>", "", body_html)
+    text_fallback = _re.sub(r"\n\s*\n\s*\n+", "\n\n", text_fallback).strip()
+
+    msg = MIMEMultipart("alternative")
+    msg["From"] = sender
+    msg["To"] = to_email
+    msg["Subject"] = subject
+    msg["Reply-To"] = reply_to or os.environ.get("CIAK_EMAIL_REPLY_TO", "claudio.bertogliatti@gmail.com")
+    msg.attach(MIMEText(text_fallback or subject, "plain", "utf-8"))
+    msg.attach(MIMEText(body_html, "html", "utf-8"))
+
+    try:
+        with smtplib.SMTP(host, port, timeout=20) as server:
+            server.starttls()
+            server.login(user, pwd)
+            server.send_message(msg)
+        logger.info(f"[SMTP] Email inviata a {to_email} (subject={subject[:40]!r})")
+        return True, None
+    except Exception as e:
+        logger.error(f"[SMTP] Invio fallito a {to_email}: {e}")
+        return False, str(e)
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # TASK 1: VIDEO GENERATION (HeyGen)
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -633,6 +688,21 @@ def send_analisi_welcome_email(self, user_id: str, cliente_id: str):
                 booking_available = datetime.now(timezone.utc) + timedelta(hours=48)
                 booking_link = f"https://calendly.com/evolution-pro/strategia?email={email}"
                 
+                # 0. INVIO REALE via SMTP (welcome analisi €67)
+                _ok = False
+                try:
+                    from email_templates import get_email_template_manager
+                    _tm = get_email_template_manager(db)
+                    _subj, _html = await _tm.render_template("analisi_welcome", {
+                        "nome": nome or "",
+                        "bonus_link": os.environ.get("ANALISI_BONUS_URL", "https://www.ciak.io"),
+                        "booking_available_date": booking_available.strftime("%d/%m/%Y"),
+                    })
+                    _ok, _err = send_email_smtp(email, _subj, _html)
+                    logger.info(f"[CELERY] Welcome analisi SMTP ok={_ok} err={_err}")
+                except Exception as _e:
+                    logger.error(f"[CELERY] Welcome analisi SMTP exception: {_e}")
+
                 # 1. Add tag to Systeme.io to trigger email automation
                 systeme_api_key = os.environ.get('SYSTEME_API_KEY')
                 if systeme_api_key:
@@ -672,7 +742,7 @@ def send_analisi_welcome_email(self, user_id: str, cliente_id: str):
                     "cliente_id": cliente_id,
                     "subject": "🎉 La tua Analisi Strategica è in preparazione!",
                     "sent_at": datetime.now(timezone.utc).isoformat(),
-                    "status": "sent_via_systeme",
+                    "status": ("sent_smtp" if _ok else "failed"),
                     "systeme_tags": ["analisi_pagata", "welcome_analisi"]
                 })
                 
@@ -733,6 +803,20 @@ def send_analisi_48h_reminder(self, user_id: str, cliente_id: str):
                     logger.error(f"[CELERY] No email for reminder: {user_id}")
                     return False
                 
+                # 0. INVIO REALE via SMTP (reminder 48h)
+                _ok = False
+                try:
+                    from email_templates import get_email_template_manager
+                    _tm = get_email_template_manager(db)
+                    _subj, _html = await _tm.render_template("analisi_reminder_48h", {
+                        "nome": nome or "",
+                        "booking_link": booking_link,
+                    })
+                    _ok, _err = send_email_smtp(email, _subj, _html)
+                    logger.info(f"[CELERY] Reminder48h SMTP ok={_ok} err={_err}")
+                except Exception as _e:
+                    logger.error(f"[CELERY] Reminder48h SMTP exception: {_e}")
+
                 # 1. Add reminder tag to Systeme.io
                 systeme_api_key = os.environ.get('SYSTEME_API_KEY')
                 if systeme_api_key:
@@ -769,7 +853,7 @@ def send_analisi_48h_reminder(self, user_id: str, cliente_id: str):
                     "cliente_id": cliente_id,
                     "subject": "🔔 La tua Analisi Strategica ti aspetta!",
                     "sent_at": datetime.now(timezone.utc).isoformat(),
-                    "status": "sent_via_systeme",
+                    "status": ("sent_smtp" if _ok else "failed"),
                     "systeme_tags": ["reminder_48h_analisi"]
                 })
                 
@@ -962,7 +1046,18 @@ def send_lead_sequence_email(self, lead_id: str, step: int, email: str, nome: st
                 except ValueError as e:
                     logger.error(f"[CELERY] Template {template_id} not found: {e}")
                     return {"error": f"Template not found: {template_id}"}
-                
+
+                # 0. INVIO REALE via SMTP (prima si delegava a Systeme che non spediva)
+                ok_smtp, smtp_err = send_email_smtp(email, subject, body_html)
+                if not ok_smtp:
+                    logger.error(f"[CELERY] SMTP send failed lead {lead_id} step {step}: {smtp_err}")
+                    await db.email_logs.insert_one({
+                        "type": f"lead_sequence_email_{step}", "to": email, "lead_id": lead_id,
+                        "subject": subject, "sent_at": datetime.now(timezone.utc).isoformat(),
+                        "status": "failed", "error": smtp_err, "template_id": template_id,
+                    })
+                    raise Exception(f"SMTP send failed: {smtp_err}")
+
                 # 1. Add tag to Systeme.io
                 systeme_api_key = os.environ.get('SYSTEME_API_KEY')
                 if systeme_api_key:
@@ -991,7 +1086,7 @@ def send_lead_sequence_email(self, lead_id: str, step: int, email: str, nome: st
                     "lead_id": lead_id,
                     "subject": subject,
                     "sent_at": datetime.now(timezone.utc).isoformat(),
-                    "status": "sent_via_systeme",
+                    "status": "sent_smtp",
                     "template_id": template_id
                 })
                 
@@ -1093,7 +1188,7 @@ def process_auto_approve_leads():
                     )
                     
                     # Get checkout URL
-                    checkout_url = os.environ.get('STRIPE_CHECKOUT_URL_ANALISI', 'https://buy.stripe.com/test_xxx')
+                    checkout_url = os.environ.get('STRIPE_CHECKOUT_URL_ANALISI', 'https://www.ciak.io/ciak-blueprint')
                     
                     # Schedule email sequence
                     from celery_app import celery_app
