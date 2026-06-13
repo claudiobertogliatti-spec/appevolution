@@ -935,55 +935,27 @@ def check_pending_analisi_reminders():
 # ═══════════════════════════════════════════════════════════════════════════════
 
 async def add_systeme_tag_async(api_key: str, email: str, tag_name: str):
-    """Add tag to contact in Systeme.io (async version)"""
-    import httpx
-    
-    headers = {
-        "X-API-Key": api_key,
-        "Content-Type": "application/json"
-    }
-    
-    # First, find or create contact
-    async with httpx.AsyncClient(timeout=30) as client:
-        # Search for contact
-        search_response = await client.get(
-            f"https://api.systeme.io/api/contacts?email={email}",
-            headers=headers
-        )
-        
-        contact_id = None
-        if search_response.status_code == 200:
-            data = search_response.json()
-            items = data.get("items", [])
-            if items:
-                contact_id = items[0].get("id")
-        
-        if not contact_id:
-            # Create contact
-            create_response = await client.post(
-                "https://api.systeme.io/api/contacts",
-                headers=headers,
-                json={"email": email}
-            )
-            if create_response.status_code in [200, 201]:
-                contact_id = create_response.json().get("id")
-        
-        if contact_id:
-            # Add tag (Systeme.io uses tag IDs, so we store the tag name in fields or use API appropriately)
-            # For simplicity, we'll add to a custom field or use automation triggers
-            await client.put(
-                f"https://api.systeme.io/api/contacts/{contact_id}",
-                headers=headers,
-                json={
-                    "fields": {
-                        "custom_tags": tag_name
-                    }
-                }
-            )
-            logger.info(f"[SYSTEME] Tag '{tag_name}' added to {email}")
-            return True
-    
-    return False
+    """Applica un TAG NATIVO Systeme.io al contatto (find/create contact +
+    find/create tag + assegnazione tag).
+
+    FIX 13/6/2026 (Claudio): in precedenza questa funzione NON applicava un tag
+    nativo — scriveva il nome del tag in un custom field 'custom_tags'. Risultato:
+    i contatti finivano su Systeme ma SENZA tag, quindi nessuna automazione /
+    segmentazione Systeme basata su tag scattava per loro.
+
+    Ora delega a services.ciak_systeme.ciak_emit_event, che è l'implementazione
+    già usata dal Checkpoint: trova o crea il contatto, trova o crea il tag e lo
+    assegna come tag nativo vero. `api_key` resta nella firma per compatibilità
+    con i chiamanti ma non è più usato (ciak_systeme legge SYSTEME_API_KEY).
+
+    Ritorna True se il tag è stato applicato.
+    """
+    try:
+        from services.ciak_systeme import ciak_emit_event
+        return await ciak_emit_event(email=email, event_name=tag_name)
+    except Exception as e:
+        logger.warning(f"[SYSTEME] add_systeme_tag_async '{tag_name}' per {email} fallito: {e}")
+        return False
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
