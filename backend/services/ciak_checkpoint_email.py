@@ -96,11 +96,11 @@ Quello che NON funziona nello Stato 1 è iniziare a "fare cose": aprire un profi
 
 Quello che FUNZIONA è fermarsi un attimo prima e definire la direzione.
 
-Il passo coerente con lo Stato 1 è il Ciak Blueprint: 60 minuti di analisi 1-a-1 con me sulla tua situazione specifica + una Roadmap Operativa scritta su misura per i tuoi prossimi 90 giorni.
+Il passo coerente con lo Stato 1 è l'Analisi Strategica (67€, rimborsabili): 60 minuti 1-a-1 con me in cui ricevi la roadmap esatta per trasformare la tua competenza in un brand — costruendo la tua Accademia Digitale e mettendo in vendita i tuoi videocorsi. Non un template: la tua situazione, i tuoi prossimi 90 giorni.
 
 Non vendo un percorso. Vendo chiarezza. Se al termine dei 60 minuti non hai una direzione precisa, ti rimborso integralmente.
 
-Prenota il tuo Ciak Blueprint: {url}
+Prenota la tua Analisi Strategica: {url}
 
 A presto,
 Claudio
@@ -120,11 +120,11 @@ Si fanno corsi, si comprano funnel, si registrano video, si testano ads. Sembra 
 
 Il passaggio successivo coerente con lo Stato 2 NON è fare di più. È fissare la struttura PRIMA di accelerare.
 
-Il Ciak Blueprint serve esattamente a questo: 60 minuti di analisi 1-a-1 con me + una Roadmap Operativa che mette insieme posizionamento, offerta, funnel, prezzi. Tutto sulla TUA situazione, non su un template.
+L'Analisi Strategica (67€, rimborsabili) serve esattamente a questo: 60 minuti 1-a-1 con me in cui ricevi la roadmap esatta per trasformare la tua competenza in un brand — costruendo la tua Accademia Digitale e mettendo in vendita i tuoi videocorsi, con posizionamento, offerta, funnel e prezzi al posto giusto. Tutto sulla TUA situazione, non su un template.
 
 Non vendo un percorso. Vendo chiarezza. Se al termine dei 60 minuti non hai una direzione precisa, ti rimborso integralmente.
 
-Prenota il tuo Ciak Blueprint: {url}
+Prenota la tua Analisi Strategica: {url}
 
 A presto,
 Claudio
@@ -144,11 +144,11 @@ Sembra un problema di traffico (mi servono più lead). Sembra un problema di cop
 
 Nella maggior parte dei casi che vedo, è un collo di bottiglia strutturale nascosto. Un punto preciso del modello in cui l'energia si disperde — e finché non lo identifichi, ogni leva nuova (più ads, più contenuti, più funnel) rende meno di quello che potrebbe.
 
-Il Ciak Blueprint serve a leggere lucidamente cosa sta funzionando e dove intervenire prima. 60 minuti 1-a-1 con me + una Roadmap Operativa focalizzata sul collo di bottiglia che sta limitando la tua crescita.
+L'Analisi Strategica (67€, rimborsabili) serve a leggere lucidamente cosa sta funzionando e dove intervenire prima: 60 minuti 1-a-1 con me in cui ricevi la roadmap esatta per trasformare la tua competenza in un brand — rafforzando la tua Accademia Digitale e la vendita dei tuoi videocorsi, focalizzata sul collo di bottiglia che sta limitando la tua crescita.
 
 Non vendo un percorso. Vendo chiarezza. Se al termine dei 60 minuti non hai una direzione precisa, ti rimborso integralmente.
 
-Prenota il tuo Ciak Blueprint: {url}
+Prenota la tua Analisi Strategica: {url}
 
 A presto,
 Claudio
@@ -166,11 +166,11 @@ E attenzione: nello Stato 4 il rischio non è la velocità. È perdere sostenibi
 
 Più i numeri salgono, più ogni decisione strategica pesa: che leva attivare, che offerta scalare, dove smettere di disperdere. È la fase in cui un confronto strategico esterno vale più di qualsiasi nuovo strumento.
 
-Il Ciak Blueprint in Stato 4 è un'analisi 1-a-1 profonda — 90 minuti invece dei 60 standard — orientata a identificare i 2-3 fuochi di concentrazione strategica per i prossimi 12 mesi. Output: una Roadmap Operativa che ti dice non cosa fare, ma cosa SMETTERE di fare e dove raddoppiare.
+L'Analisi Strategica (67€, rimborsabili) in Stato 4 è un'analisi 1-a-1 profonda — 90 minuti invece dei 60 standard — in cui ricevi la roadmap esatta per scalare il tuo brand attraverso la tua Accademia Digitale e la vendita dei tuoi videocorsi, identificando i 2-3 fuochi di concentrazione strategica per i prossimi 12 mesi. Output: una direzione che ti dice non cosa fare, ma cosa SMETTERE di fare e dove raddoppiare.
 
 Non vendo un percorso. Vendo chiarezza. Se al termine dell'analisi non hai una direzione precisa, ti rimborso integralmente.
 
-Prenota il tuo Ciak Blueprint: {url}
+Prenota la tua Analisi Strategica: {url}
 
 A presto,
 Claudio
@@ -221,7 +221,7 @@ def _build_html(nome: str, stato: int, tracking_token: Optional[str] = None) -> 
     </div>
     <div style="text-align:center;margin:32px 0 8px;">
       <a href="{cta_url}" style="display:inline-block;background:#1a1f24;color:#ffd24d;text-decoration:none;font-weight:700;padding:14px 28px;border-radius:8px;font-size:15px;">
-        Prenota il tuo Ciak Blueprint →
+        Prenota la tua Analisi Strategica (67€) →
       </a>
     </div>
     <div style="margin-top:32px;padding-top:20px;border-top:1px solid #e8e4dc;font-size:12px;color:#8b8680;line-height:1.5;">
@@ -245,19 +245,19 @@ def _html_paragraphs(text: str, stato: int) -> str:
         line = raw.strip()
         if not line:
             continue
-        # Salta saluto, firma e ultima riga "Prenota il tuo Ciak Blueprint" (è già nel CTA button)
+        # Salta saluto, firma e ultima riga "Prenota la tua Analisi Strategica" (è già nel CTA button)
         if line.startswith("Ciao "):
             continue
         if line.startswith("A presto,"):
             break
-        if line.startswith("Prenota il tuo Ciak Blueprint"):
+        if line.startswith("Prenota la tua Analisi Strategica"):
             continue
         # Evidenzia "E attenzione:" + label stato + frasi chiave
         line_html = (line
             .replace("E attenzione:", "<strong>E attenzione:</strong>")
             .replace(f"Stato {stato}", f"<strong>Stato {stato}</strong>")
-            .replace("Ciak Blueprint", "<strong>Ciak Blueprint</strong>")
-            .replace("Roadmap Operativa", "<strong>Roadmap Operativa</strong>")
+            .replace("Analisi Strategica", "<strong>Analisi Strategica</strong>")
+            .replace("Accademia Digitale", "<strong>Accademia Digitale</strong>")
             .replace("\n", "<br>"))
         paragraphs.append(f'<p style="margin:0 0 16px;">{line_html}</p>')
     return "".join(paragraphs)
@@ -324,25 +324,20 @@ async def send_checkpoint_email_async(
     stato: int,
     score: int,
 ) -> None:
-    """Audit log dell'email checkpoint + tag Systeme che la fa partire.
+    """Invia l'email Checkpoint via SMTP + audit log + tag Systeme.
 
-    STRATEGIA (LOCK 17/5/2026 — decisione Claudio):
-    L'email viene inviata da **Systeme.io** tramite workflow innescato dai tag
-    `ciak_checkpoint_stato_<n>` (vedi services/ciak_systeme.py). Questo
-    service NON manda più SMTP — Systeme ha infrastruttura email rodata
-    (DNS, deliverability, open rate nativo), evita debug DNS/SMTP register.it
-    su Cloud Run e allinea alla strategia v5 "single source of truth = Systeme".
+    FIX 12/6/2026 (Claudio): in precedenza questo service NON inviava nulla
+    (delegava a un workflow Systeme mai configurato) e marcava comunque
+    sent=True. Risultato: l'email non partiva da nessuna parte. Ora invia
+    direttamente via SMTP tramite send_checkpoint_email_sync (sender + i 4
+    testi sono già qui), registra l'esito REALE e applica il tag Systeme
+    solo se l'invio è andato a buon fine.
 
     Pipeline:
-      1. Genera tracking_token (compatibilità: per pixel custom su futuro
-         channel diretto, oggi non usato)
-      2. Insert su ciak_checkpoint_emails con sent=True, sent_via="systeme"
-         (assumiamo che Systeme la mandi — Systeme stesso ha retry/dlq)
-      3. Tag aggiuntivo ciak_checkpoint_email_sent_stato_<n> applicato qui
-         (il tag di trigger principale viene dal router, vedi _emit_checkpoint_tag)
-
-    Copy delle 4 email da configurare manualmente su Systeme:
-      docs/marketing/systeme-checkpoint-workflows.md
+      1. Genera tracking_token (pixel apertura nell'HTML)
+      2. Invio SMTP reale (in thread, non blocca l'event loop)
+      3. Audit su ciak_checkpoint_emails con esito reale (sent + error)
+      4. Tag ciak_checkpoint_email_sent_stato_<n> solo se inviata
 
     Fire-and-forget: non solleva eccezioni al chiamante.
     """
@@ -352,9 +347,13 @@ async def send_checkpoint_email_async(
     tracking_token = uuid.uuid4().hex
     now_iso = datetime.now(timezone.utc).isoformat()
 
-    # Audit log: una riga per ogni checkpoint completato.
-    # sent=True perché il tag Systeme è applicato e Systeme è infrastruttura
-    # gestita (consideriamo l'invio "delegato e affidabile" — Systeme retry).
+    # Invio reale via SMTP. send_checkpoint_email_sync è bloccante (smtplib),
+    # quindi lo eseguiamo in un thread per non bloccare l'event loop.
+    ok, err = await asyncio.to_thread(
+        send_checkpoint_email_sync, email, nome, stato, tracking_token
+    )
+
+    # Audit log: una riga per ogni checkpoint completato, con ESITO REALE.
     if _db is not None:
         try:
             await _db.ciak_checkpoint_emails.insert_one({
@@ -362,19 +361,26 @@ async def send_checkpoint_email_async(
                 "nome": nome,
                 "stato": stato,
                 "score": score,
-                "sent": True,
-                "sent_via": "systeme",
-                "error": None,
+                "sent": ok,
+                "sent_via": "smtp",
+                "error": err,
                 "tracking_token": tracking_token,
                 "opened_at": None,
                 "at": now_iso,
-                "sent_at": now_iso,
+                "sent_at": now_iso if ok else None,
             })
         except Exception as e:
             logger.warning("[CIAK-CHECKPOINT-EMAIL] audit insert failed: %s", e)
 
-    # Tag Systeme "email_sent" come segnale aggiuntivo (il workflow principale
-    # si triggera già su ciak_checkpoint_stato_<n>, applicato dal router).
+    if not ok:
+        logger.error(
+            "[CIAK-CHECKPOINT-EMAIL] invio fallito email=%s stato=%d: %s",
+            email, stato, err,
+        )
+        return
+
+    # Tag Systeme "email_sent" come segnale aggiuntivo (audit/segmentazione),
+    # applicato solo se l'email è realmente partita.
     try:
         from services.ciak_systeme import ciak_emit_event
         asyncio.create_task(ciak_emit_event(
