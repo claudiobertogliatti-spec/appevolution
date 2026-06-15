@@ -31,10 +31,10 @@ async function mountCookieBanner() {
   document.documentElement.setAttribute(MOUNT_FLAG, "1");
 
   try {
-    // v2 = fix init (epInit chiamato anche se DOMContentLoaded già scattato).
+    // v3 = aggiunta categoria "marketing" (Meta Pixel) + consenso versione 1.1.
     // Bumpare la query string se si modifica cookie-banner.html per bypassare
     // la cache aggressiva (force-cache) sui browser già visitati.
-    const res = await fetch("/ciak/cookie-banner.html?v=2", { cache: "force-cache" });
+    const res = await fetch("/ciak/cookie-banner.html?v=3", { cache: "force-cache" });
     if (!res.ok) throw new Error("HTTP " + res.status);
     const raw = await res.text();
 
