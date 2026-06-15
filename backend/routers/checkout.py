@@ -302,6 +302,25 @@ async def _handle_checkout_completed(data: dict) -> None:
     session_token = metadata.get("diagnostic_session_token")
     customer_email = data.get("customer_email") or data.get("customer_details", {}).get("email")
 
+    # Meta Conversions API — Purchase server-side.
+    # event_id = Stripe checkout session id = stesso eventID del pixel browser
+    # sulla thank-you page → deduplica lato Meta. Inviato per OGNI checkout pagato
+    # (anche le "vendite orfane" senza diagnostic). No-op se il token non è configurato.
+    try:
+        import asyncio as _asyncio_capi
+        from services.meta_capi import send_purchase_event
+        _amount_total = data.get("amount_total")
+        _purchase_value = (float(_amount_total) / 100.0) if _amount_total else 67.0
+        _asyncio_capi.create_task(send_purchase_event(
+            event_id=data.get("id"),
+            email=customer_email,
+            value=_purchase_value,
+            currency=(data.get("currency") or "eur").upper(),
+            event_source_url=f"{_frontend_url()}/ciak-blueprint/grazie",
+        ))
+    except Exception as _capi_err:  # noqa: BLE001 — non bloccare il webhook
+        logger.warning("[CIAK_WEBHOOK] Meta CAPI Purchase enqueue fallito: %s", _capi_err)
+
     diagnostic = None
     if session_token:
         diagnostic = await db.diagnostic_sessions.find_one(
