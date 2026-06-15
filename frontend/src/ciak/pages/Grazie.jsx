@@ -17,9 +17,29 @@
 import { useEffect, useState } from "react";
 import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
+import { trackPurchase } from "../lib/metaPixel";
 
 export function CiakGrazie() {
   const [calcomUrl, setCalcomUrl] = useState("");
+
+  // Meta Pixel — Purchase (€67). No-op senza consenso marketing.
+  // Dedup per session_id Stripe (se presente nel redirect success_url) salvato
+  // in sessionStorage, così un refresh della pagina non conta due volte.
+  // L'eventID passato al pixel coincide col session_id: aiuta la futura
+  // deduplica con la Conversions API server-side.
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const sessionId =
+        params.get("session_id") || params.get("session") || "";
+      const dedupeKey = "ciak_purchase_tracked_" + (sessionId || "noid");
+      if (sessionStorage.getItem(dedupeKey)) return;
+      trackPurchase(67, "EUR", sessionId || undefined);
+      sessionStorage.setItem(dedupeKey, "1");
+    } catch {
+      /* no-op */
+    }
+  }, []);
 
   // Carica config pubblica (cal.com booking url, settato da admin in /admin/configurazione)
   useEffect(() => {
