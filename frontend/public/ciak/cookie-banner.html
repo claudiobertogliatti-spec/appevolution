@@ -377,14 +377,14 @@
       <div class="ep-banner-text">
         <p class="ep-banner-title">🍪 Questo sito utilizza i cookie</p>
         <p class="ep-banner-desc">
-          Usiamo cookie tecnici (necessari al funzionamento) e cookie analitici anonimi (PostHog) per migliorare l'esperienza.
+          Usiamo cookie tecnici (necessari al funzionamento) , cookie analitici anonimi (PostHog) e — previo consenso — cookie di marketing (Meta Pixel di Facebook/Instagram) per misurare e ottimizzare le campagne pubblicitarie.
           Consulta la nostra <a onclick="epOpenPolicy('cookie')">Cookie Policy</a> e l'<a onclick="epOpenPolicy('privacy')">Informativa Privacy</a>.
         </p>
       </div>
       <div class="ep-banner-actions">
-        <button class="ep-btn ep-btn-necessary" onclick="epSaveConsent(false)">Solo necessari</button>
+        <button class="ep-btn ep-btn-necessary" onclick="epSaveConsent(false, false)">Solo necessari</button>
         <button class="ep-btn ep-btn-settings" onclick="epOpenSettings()">Preferenze</button>
-        <button class="ep-btn ep-btn-accept" onclick="epSaveConsent(true)">Accetta tutti</button>
+        <button class="ep-btn ep-btn-accept" onclick="epSaveConsent(true, true)">Accetta tutti</button>
       </div>
     </div>
   </div>
@@ -413,6 +413,17 @@
         </div>
         <label class="ep-toggle">
           <input type="checkbox" id="ep-toggle-analytics">
+          <span class="ep-toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="ep-cookie-row">
+        <div class="ep-cookie-row-info">
+          <p class="ep-row-title">Cookie di marketing</p>
+          <p class="ep-row-desc">Meta Pixel (Facebook/Instagram) — misurazione conversioni e retargeting pubblicitario. Attivi solo su ciak.io.</p>
+        </div>
+        <label class="ep-toggle">
+          <input type="checkbox" id="ep-toggle-marketing">
           <span class="ep-toggle-slider"></span>
         </label>
       </div>
@@ -457,6 +468,14 @@
           <tr><td>ph_*</td><td>PostHog</td><td>Analisi anonima utenti</td><td>1 anno</td></tr>
         </table>
 
+        <h3>Cookie di marketing (richiedono consenso)</h3>
+        <p>Attivi solo su ciak.io, dopo il consenso "Marketing".</p>
+        <table class="ep-policy-table">
+          <tr><th>Cookie</th><th>Fornitore</th><th>Finalità</th><th>Durata</th></tr>
+          <tr><td>_fbp</td><td>Meta Platforms (Facebook/Instagram)</td><td>Misurazione conversioni e retargeting pubblicitario</td><td>3 mesi</td></tr>
+          <tr><td>_fbc</td><td>Meta Platforms (Facebook/Instagram)</td><td>Attribuzione dei click provenienti dagli annunci</td><td>3 mesi</td></tr>
+        </table>
+
         <h3>Come gestire i cookie</h3>
         <p>Puoi modificare le tue preferenze in qualsiasi momento cliccando su "Gestisci preferenze cookie" in fondo alla pagina, oppure tramite le impostazioni del tuo browser.</p>
       </div>
@@ -475,6 +494,7 @@
           <li><strong>Clienti analisi (€67):</strong> nome, email, telefono, questionario, pagamento — erogazione servizio</li>
           <li><strong>Partner:</strong> dati anagrafici, fiscali, firma digitale, contenuti corso — esecuzione contratto</li>
           <li><strong>Lista marketing:</strong> nome, email — comunicazioni commerciali (consenso)</li>
+          <li><strong>Cookie di marketing (Meta Pixel):</strong> identificativi del browser/dispositivo, eventi di navigazione e conversione su ciak.io — misurazione e ottimizzazione delle campagne pubblicitarie (consenso)</li>
         </ul>
 
         <h3>Principali fornitori (sub-responsabili)</h3>
@@ -483,6 +503,7 @@
           <tr><td>Systeme.io</td><td>Francia/UE</td><td>Email marketing, CRM</td></tr>
           <tr><td>Stripe</td><td>USA</td><td>Pagamenti</td></tr>
           <tr><td>PostHog</td><td>USA</td><td>Analytics</td></tr>
+          <tr><td>Meta Platforms Ireland</td><td>Irlanda/UE</td><td>Pubblicità e misurazione (Meta Pixel)</td></tr>
           <tr><td>Anthropic</td><td>USA</td><td>Analisi AI</td></tr>
           <tr><td>Cloudflare</td><td>USA</td><td>CDN e sicurezza</td></tr>
         </table>
@@ -526,7 +547,7 @@
 
   <script>
     const EP_CONSENT_KEY = 'ep_cookie_consent';
-    const EP_CONSENT_VERSION = '1.0';
+    const EP_CONSENT_VERSION = '1.1';
 
     function epGetConsent() {
       try { return JSON.parse(localStorage.getItem(EP_CONSENT_KEY)); } catch { return null; }
@@ -542,17 +563,19 @@
         // Consenso già dato
         document.getElementById('ep-cookie-fab').style.display = 'block';
         if (consent.analytics) epEnableAnalytics();
+        if (consent.marketing) epEnableMarketing();
       }
     }
 
-    function epSaveConsent(analytics) {
-      const consent = { version: EP_CONSENT_VERSION, analytics, date: new Date().toISOString() };
+    function epSaveConsent(analytics, marketing) {
+      const consent = { version: EP_CONSENT_VERSION, analytics: !!analytics, marketing: !!marketing, date: new Date().toISOString() };
       localStorage.setItem(EP_CONSENT_KEY, JSON.stringify(consent));
       document.getElementById('ep-cookie-banner').style.display = 'none';
       document.getElementById('ep-cookie-overlay').style.display = 'none';
       document.getElementById('ep-cookie-modal').classList.remove('active');
       document.getElementById('ep-cookie-fab').style.display = 'block';
       if (analytics) epEnableAnalytics();
+      if (marketing) epEnableMarketing();
     }
 
     function epEnableAnalytics() {
@@ -561,9 +584,19 @@
       // Aggiungi qui altri script analitici da attivare solo con consenso
     }
 
+    function epEnableMarketing() {
+      try {
+        if (typeof window.ciakEnableMarketing === 'function') window.ciakEnableMarketing();
+        window.dispatchEvent(new Event('ep-marketing-enabled'));
+      } catch (e) {}
+    }
+
     function epOpenSettings() {
       const consent = epGetConsent();
-      if (consent) document.getElementById('ep-toggle-analytics').checked = consent.analytics;
+      if (consent) {
+        document.getElementById('ep-toggle-analytics').checked = !!consent.analytics;
+        document.getElementById('ep-toggle-marketing').checked = !!consent.marketing;
+      }
       document.getElementById('ep-cookie-modal').classList.add('active');
     }
 
@@ -573,7 +606,8 @@
 
     function epSaveFromSettings() {
       const analytics = document.getElementById('ep-toggle-analytics').checked;
-      epSaveConsent(analytics);
+      const marketing = document.getElementById('ep-toggle-marketing').checked;
+      epSaveConsent(analytics, marketing);
     }
 
     function epOpenPolicy(tab) {

@@ -13,6 +13,7 @@
 import { useState } from "react";
 import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
+import { trackInitiateCheckout } from "../lib/metaPixel";
 
 export function CiakBlueprint() {
   const [submitting, setSubmitting] = useState(false);
@@ -21,6 +22,8 @@ export function CiakBlueprint() {
   const startCheckout = async () => {
     setSubmitting(true);
     setError(null);
+    // Meta Pixel — InitiateCheckout (no-op se manca il consenso marketing).
+    trackInitiateCheckout(67, "EUR");
     // email opzionale: se il visitatore non ha fatto opt-in la raccoglie
     // Stripe sulla sua pagina. Inviare "" farebbe fallire la validazione
     // EmailStr lato backend (422) → niente redirect al checkout.
