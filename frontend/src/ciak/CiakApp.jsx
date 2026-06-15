@@ -37,10 +37,23 @@ import { CiakNotFound } from "./pages/NotFound";
 import { CookieBanner } from "./components/CookieBanner";
 import CiakAdminApp from "./admin/CiakAdminApp";
 import CiakPartnerApp from "./partner/CiakPartnerApp";
+// Side-effect: registra window.ciakEnableMarketing e (se il consenso marketing
+// è già presente) inizializza i Meta Pixel. Vedi lib/metaPixel.js.
+import "./lib/metaPixel";
+import { usePageTracking } from "./hooks/usePageTracking";
 // CiakClienteApp rimosso 2026-06-03 (consolidamento EVO/Ciak): duplicava il
 // flusso pubblico token-based di Ciak (/proposta/:token, /diagnostica/:token)
 // con login + porting Evolution. Su Ciak la strategia LOCKATA è magic-link
 // token-based; la cartella ciak/cliente/ è stata cancellata perché dead code.
+
+/**
+ * Tracker route SPA per Meta Pixel. Deve stare DENTRO <BrowserRouter> perché
+ * usa useLocation. Non renderizza nulla.
+ */
+function RouteTracker() {
+  usePageTracking();
+  return null;
+}
 
 export default function CiakApp() {
   return (
@@ -51,6 +64,7 @@ export default function CiakApp() {
             altrimenti FAB "Gestisci cookie" + funzioni globali epOpenPolicy
             usate dal footer per Privacy/Cookie/Condizioni di Vendita. */}
         <CookieBanner />
+        <RouteTracker />
         <Toaster position="top-center" richColors />
         <Routes>
           <Route path="/" element={<CiakLanding />} />
