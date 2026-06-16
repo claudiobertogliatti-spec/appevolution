@@ -12,7 +12,7 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   FileText, Download, Upload, Shield, FolderOpen, FileVideo,
   FileCheck, Loader2, FileAudio, Image, Receipt,
-  Target, Mail, PenLine, Trash2,
+  Target, Mail, PenLine, Trash2, Eye, Pencil,
 } from "lucide-react";
 
 // File category configuration — color = classe Tailwind
@@ -122,6 +122,28 @@ export function PartnerFilesPage({ partner }) {
     } catch (e) {
       console.error("Delete error:", e);
       alert("Eliminazione non riuscita. Riprova.");
+    }
+  };
+
+  const handleView = (f) => {
+    const url = f?.internal_url;
+    if (!url) return;
+    window.open(url.replace("/api", ""), "_blank", "noopener");
+  };
+
+  const handleRename = async (f) => {
+    if (!f?.file_id) return;
+    const nuovo = window.prompt("Nuovo nome del file:", f.original_name || "");
+    if (nuovo === null) return;
+    const name = nuovo.trim();
+    if (!name) return;
+    try {
+      const r = await fetch(`/api/files/${f.file_id}/rename?name=${encodeURIComponent(name)}`, { method: "PATCH" });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      await loadFiles();
+    } catch (e) {
+      console.error("Rename error:", e);
+      alert("Rinomina non riuscita. Riprova.");
     }
   };
 
@@ -364,6 +386,16 @@ export function PartnerFilesPage({ partner }) {
                   )}
                   {f.internal_url && (
                     <button
+                      onClick={() => handleView(f)}
+                      title="Visualizza file"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-gray-50 border border-gray-200 hover:border-yellow-400 transition-colors text-slate-600"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      Visualizza
+                    </button>
+                  )}
+                  {f.internal_url && (
+                    <button
                       onClick={() =>
                         window.open(f.internal_url.replace("/api", ""), "_blank")
                       }
@@ -371,6 +403,16 @@ export function PartnerFilesPage({ partner }) {
                     >
                       <Download className="w-3.5 h-3.5" />
                       Scarica
+                    </button>
+                  )}
+                  {f.file_id && (
+                    <button
+                      onClick={() => handleRename(f)}
+                      title="Rinomina file"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-gray-50 border border-gray-200 hover:border-yellow-400 transition-colors text-slate-600"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                      Rinomina
                     </button>
                   )}
                   {f.file_id && (
