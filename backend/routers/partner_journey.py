@@ -5967,6 +5967,31 @@ async def get_stefania_context(partner_id: str):
     }
 
 
+async def _register_operativo_file_in_files(
+    partner_id, filename, ext, resource_type, is_video, is_pdf, url, stored, size,
+):
+    """Registra un upload del Percorso (Operativo) anche nella collezione `files`,
+    così compare in 'I miei file' (Workspace) ed è eliminabile. Best-effort:
+    non deve mai rompere l'upload se fallisce."""
+    try:
+        category = "video" if is_video else ("document" if is_pdf else "image")
+        await db.files.insert_one({
+            "file_id": uuid.uuid4().hex,
+            "original_name": filename or f"upload.{ext}",
+            "stored_name": stored or (filename or f"upload.{ext}"),
+            "file_type": resource_type,
+            "category": category,
+            "partner_id": partner_id,
+            "status": "uploaded",
+            "internal_url": url,
+            "size": size,
+            "uploaded_at": datetime.utcnow().isoformat(),
+            "source": "operativo",
+        })
+    except Exception as _e:
+        logging.warning(f"[OPERATIVO-UPLOAD] db.files insert fallito: {_e}")
+
+
 @router.post("/operativo/upload/{partner_id}")
 async def upload_operativo_file(
     partner_id: str,
@@ -5996,6 +6021,10 @@ async def upload_operativo_file(
             )
             if result.get("success"):
                 url = result.get("secure_url") or result.get("url", "")
+                await _register_operativo_file_in_files(
+                    partner_id, file.filename, ext, resource_type,
+                    is_video, is_pdf, url, result.get("public_id"), len(content),
+                )
                 if notify:
                     await _notify_admin_partner_activity(partner_id, f"ha caricato un materiale ({file.filename})")
                 return {"success": True, "url": url, "resource_type": resource_type}
@@ -6012,8 +6041,13 @@ async def upload_operativo_file(
         path = base_dir / f"{uuid.uuid4().hex[:8]}_{safe_name}"
         async with aiofiles.open(str(path), "wb") as f:
             await f.write(content)
+        local_url = f"/static/operativo/{partner_id}/{path.name}"
+        await _register_operativo_file_in_files(
+            partner_id, file.filename, ext, resource_type,
+            is_video, is_pdf, local_url, path.name, len(content),
+        )
         if notify:
             await _notify_admin_partner_activity(partner_id, f"ha caricato un materiale ({file.filename})")
-        return {"success": True, "url": f"/static/operativo/{partner_id}/{path.name}", "resource_type": resource_type, "fallback": "local"}
+        return {"success": True, "url": local_url, "resource_type": resource_type, "fallback": "local"}
     except Exception as e:
         raise HTTPException(500, f"Upload fallito: {e}")
