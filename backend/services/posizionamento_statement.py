@@ -149,3 +149,156 @@ async def build_brand_positioning_statement(answers: dict) -> dict:
     except Exception as e:  # noqa: BLE001
         logger.warning(f"[POSIZIONAMENTO] Statement AI fallito ({e}) — uso fallback deterministico")
     return _deterministic(answers)
+
+
+# --- Revisione di Valentina: documento strategico definitivo (avatar, consapevolezza, 3 obiezioni) ---
+
+_REV_MODEL = os.environ.get("POSIZIONAMENTO_REVISIONE_MODEL", "claude-sonnet-4-6")
+
+_REV_SYSTEM = (
+    "Sei Valentina, stratega di posizionamento del metodo Evolution PRO (approccio "
+    "De Veglia). Ricevi le risposte grezze di un partner al questionario di "
+    "posizionamento e produci il DOCUMENTO STRATEGICO DEFINITIVO: ordinato, "
+    "professionale, pronto da usare.\n"
+    "REGOLE DI SCRITTURA (brand voice Ciak, non negoziabili):\n"
+    "- Italiano semplice e diretto, zero fuffa.\n"
+    "- Niente superlativi assoluti ('potente', 'incredibile', '10x', 'il migliore').\n"
+    "- Niente registro guru o coach motivazionale.\n"
+    "- Frasi brevi, massimo 25 parole.\n"
+    "- Usa 'percorso' invece di 'funnel', 'ambito specifico' invece di 'nicchia'.\n"
+    "- Riordina e riscrivi cio' che ha scritto il partner: NON inventare numeri o "
+    "fatti non presenti nelle risposte.\n"
+    "COSA PRODUCI:\n"
+    "1. sintesi_strategica: 2-3 frasi che inquadrano il posizionamento (chi serve, "
+    "con quale promessa, perche' proprio lui).\n"
+    "2. avatar: ritratto del cliente ideale in prosa: chi e', cosa teme, cosa "
+    "desidera, cosa perde se non agisce.\n"
+    "3. consapevolezza: a che livello di consapevolezza e' il pubblico (modello "
+    "Schwartz: inconsapevole, consapevole del problema, della soluzione, del "
+    "prodotto, molto consapevole) e di conseguenza cosa comunicare per primo.\n"
+    "4. obiezioni: ESATTAMENTE 3 obiezioni, una per tipo. 'Esterna' (tempo, soldi, "
+    "contesto), 'Interna' ('non fa per me', sfiducia in se'), 'Meccanismo' (dubbio "
+    "che il metodo funzioni). Per ognuna: l'obiezione come la direbbe il cliente e "
+    "una risposta breve e onesta."
+)
+
+_REV_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "sintesi_strategica": {"type": "string"},
+        "avatar": {"type": "string"},
+        "consapevolezza": {"type": "string"},
+        "obiezioni": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "tipo": {"type": "string", "enum": ["Esterna", "Interna", "Meccanismo"]},
+                    "obiezione": {"type": "string"},
+                    "risposta": {"type": "string"},
+                },
+                "required": ["tipo", "obiezione", "risposta"],
+            },
+        },
+    },
+    "required": ["sintesi_strategica", "avatar", "consapevolezza", "obiezioni"],
+}
+
+_REV_KEYS = [
+    "nicchia", "momento_di_vita", "livello_consapevolezza",
+    "paure_avatar", "desideri_avatar", "costo_del_no",
+    "promessa", "trasformazione_90gg", "prezzo_e_formato",
+    "metodo_nome", "metodo_step", "prova_sociale_concreta",
+    "origin_story", "contrarian_view", "differenza_riconoscibile",
+    "concorrenti_principali", "mercato_affollato",
+    "obiezione_principale", "limite_onesto", "spazio_specialista",
+]
+
+
+def _rev_t(answers: dict, key: str, fallback: str = "") -> str:
+    return (answers.get(key) or fallback).strip()
+
+
+def _rev_deterministic(answers: dict) -> dict:
+    """Fallback senza AI: compone i blocchi dalle risposte grezze. Non si rompe mai."""
+    avatar = " ".join(filter(None, [
+        _rev_t(answers, "nicchia"),
+        ("Teme: " + _rev_t(answers, "paure_avatar")) if _rev_t(answers, "paure_avatar") else "",
+        ("Desidera: " + _rev_t(answers, "desideri_avatar")) if _rev_t(answers, "desideri_avatar") else "",
+        ("Se non agisce: " + _rev_t(answers, "costo_del_no")) if _rev_t(answers, "costo_del_no") else "",
+    ])).strip() or "Da definire con il partner."
+    obiez_txt = _rev_t(answers, "obiezione_principale")
+    obiezioni = [{
+        "tipo": "Esterna",
+        "obiezione": obiez_txt or "Costa troppo o non ho tempo adesso.",
+        "risposta": "",
+    }]
+    return {
+        "sintesi_strategica": _rev_t(answers, "promessa", "Posizionamento da rifinire con il team."),
+        "avatar": avatar,
+        "consapevolezza": _rev_t(answers, "livello_consapevolezza", "Da valutare."),
+        "obiezioni": obiezioni,
+    }
+
+
+def _rev_call_claude(answers: dict, nome: str) -> dict:
+    """Chiamata sincrona Anthropic tool-use. Solleva eccezione in caso di errore."""
+    import anthropic
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise RuntimeError("ANTHROPIC_API_KEY non configurata")
+
+    payload = "\n".join(
+        f"- {k}: {(answers.get(k) or '').strip()}"
+        for k in _REV_KEYS if (answers.get(k) or "").strip()
+    )
+    user = (
+        f"Partner: {nome}\nRisposte al questionario:\n{payload}\n\n"
+        "Produci il documento strategico definitivo."
+    )
+
+    client = anthropic.Anthropic(api_key=api_key)
+    tool = {
+        "name": "documento_posizionamento",
+        "description": "Restituisci il documento strategico di posizionamento.",
+        "input_schema": _REV_SCHEMA,
+    }
+    resp = client.messages.create(
+        model=_REV_MODEL,
+        max_tokens=1600,
+        system=[{"type": "text", "text": _REV_SYSTEM, "cache_control": {"type": "ephemeral"}}],
+        messages=[{"role": "user", "content": user}],
+        tools=[tool],
+        tool_choice={"type": "tool", "name": "documento_posizionamento"},
+    )
+    for block in resp.content:
+        if getattr(block, "type", None) == "tool_use":
+            return dict(block.input)
+    raise RuntimeError("Nessun output strutturato dal modello")
+
+
+def _rev_valid(out: Any) -> bool:
+    if not isinstance(out, dict):
+        return False
+    if not all((out.get(k) or "") for k in ["sintesi_strategica", "avatar", "consapevolezza"]):
+        return False
+    ob = out.get("obiezioni")
+    return isinstance(ob, list) and len(ob) >= 1
+
+
+async def genera_documento_definitivo(answers: dict, nome: str) -> dict:
+    """Ritorna {sintesi_strategica, avatar, consapevolezza, obiezioni:[{tipo,obiezione,risposta}]}.
+
+    Prova la revisione AI di Valentina; su qualunque errore o output incompleto
+    ricade sul fallback deterministico. Non solleva mai: il PDF deve sempre
+    potersi generare.
+    """
+    try:
+        out = await asyncio.to_thread(_rev_call_claude, answers, nome)
+        if _rev_valid(out):
+            return out
+        logger.warning("[POSIZIONAMENTO] Revisione AI incompleta — uso fallback deterministico")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"[POSIZIONAMENTO] Revisione AI fallita ({e}) — uso fallback deterministico")
+    return _rev_deterministic(answers)
