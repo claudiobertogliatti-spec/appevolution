@@ -112,11 +112,21 @@ async def upload_file_direct(
         if filename.lower().endswith(('.wav', '.mp3', '.m4a', '.ogg', '.webm')):
             actual_resource_type = "video"  # Cloudinary treats audio as video
         
+        # Per i file "raw" (es. PDF) l'estensione fa parte del public_id: senza,
+        # l'URL Cloudinary non finisce in .pdf e il browser scarica un octet-stream
+        # invece di visualizzarlo (bug "il PDF brand non si visualizza").
+        _base = filename.rsplit('.', 1)[0]
+        _ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+        if actual_resource_type == "raw" and _ext:
+            _public_id = f"{int(time.time())}_{_base}.{_ext}"
+        else:
+            _public_id = f"{int(time.time())}_{_base}"
+
         result = cloudinary.uploader.upload(
             file_data,
             folder=folder,
             resource_type=actual_resource_type,
-            public_id=f"{int(time.time())}_{filename.rsplit('.', 1)[0]}",
+            public_id=_public_id,
         )
         
         return {
