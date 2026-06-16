@@ -1,9 +1,10 @@
 """Render PDF del Documento di Posizionamento del partner.
 
-12 domande in 4 sezioni (vedi spec wizard-posizionamento-12-domande-design.md).
+20 domande in 5 sezioni + Sintesi strategica rivista da Valentina (avatar,
+consapevolezza, 3 obiezioni) + Brand Positioning Statement (metodo De Veglia).
 Layout brand Ciak (navy #0F172A + giallo #FACC15, Poppins).
 Riusa html_to_pdf condiviso (backend/services/ciak_pdf.py)
-che gira su playwright/chromium già installato nel container.
+che gira su playwright/chromium gia' installato nel container.
 """
 import html as _html
 import logging
@@ -17,47 +18,52 @@ logger = logging.getLogger(__name__)
 SECTIONS_GROUPED = [
     {
         "header": "A chi parli",
-        "subtitle": "L'ICP scolpito — chi, dove ti cerca, quanto sa.",
+        "subtitle": "L'ICP scolpito — chi, dove ti cerca, cosa teme e desidera.",
         "items": [
             ("nicchia",                "01", "Nicchia precisa"),
             ("momento_di_vita",        "02", "Momento di vita / carriera"),
             ("livello_consapevolezza", "03", "Livello di consapevolezza"),
+            ("paure_avatar",           "04", "Paure del cliente"),
+            ("desideri_avatar",        "05", "Desideri profondi"),
+            ("costo_del_no",           "06", "Il costo del NO"),
         ],
     },
     {
         "header": "Cosa vendi",
         "subtitle": "Promessa, trasformazione, prezzo, formato.",
         "items": [
-            ("promessa",            "04", "Promessa in 1 frase"),
-            ("trasformazione_90gg", "05", "Trasformazione in 90 giorni"),
-            ("prezzo_e_formato",    "06", "Prezzo e formato"),
+            ("promessa",            "07", "Promessa in 1 frase"),
+            ("trasformazione_90gg", "08", "Trasformazione in 90 giorni"),
+            ("prezzo_e_formato",    "09", "Prezzo e formato"),
         ],
     },
     {
         "header": "Il tuo metodo",
         "subtitle": "Il modo riconoscibile in cui produci risultati.",
         "items": [
-            ("metodo_nome",            "07", "Nome metodo"),
-            ("metodo_step",            "08", "Step del metodo"),
-            ("prova_sociale_concreta", "09", "Prova sociale concreta"),
+            ("metodo_nome",            "10", "Nome metodo"),
+            ("metodo_step",            "11", "Step del metodo"),
+            ("prova_sociale_concreta", "12", "Prova sociale concreta"),
         ],
     },
     {
-        "header": "Perché tu",
+        "header": "Perche' tu",
         "subtitle": "La voce che ti rende difficile da copiare.",
         "items": [
-            ("origin_story",            "10", "Origin story"),
-            ("contrarian_view",         "11", "Punto di vista contrarian"),
-            ("differenza_riconoscibile","12", "Come ti descriverebbero"),
+            ("origin_story",            "13", "Origin story"),
+            ("contrarian_view",         "14", "Punto di vista contrarian"),
+            ("differenza_riconoscibile","15", "Come ti descriverebbero"),
         ],
     },
     {
         "header": "Contro chi giochi",
         "subtitle": "Il posizionamento competitivo — metodo De Veglia.",
         "items": [
-            ("concorrenti_principali", "13", "Concorrenti principali"),
-            ("mercato_affollato",      "14", "Promessa affollata del settore"),
-            ("spazio_specialista",     "15", "Il tuo spazio da specialista"),
+            ("concorrenti_principali", "16", "Concorrenti principali"),
+            ("mercato_affollato",      "17", "Promessa affollata del settore"),
+            ("obiezione_principale",   "18", "Obiezione n.1 + risposta"),
+            ("limite_onesto",          "19", "Per chi NON e' adatto"),
+            ("spazio_specialista",     "20", "Il tuo spazio da specialista"),
         ],
     },
 ]
@@ -94,6 +100,17 @@ body{font-family:'Poppins',sans-serif;color:var(--navy);line-height:1.6;backgrou
 .stmt .slot .k{flex:0 0 150px;font-weight:700;color:var(--slate-400);text-transform:uppercase;letter-spacing:.04em;font-size:10.5px;padding-top:2px;}
 .stmt .slot .v{color:var(--slate-600);}
 .stmt .note{padding:0 20px 18px;font-size:11.5px;color:var(--slate-400);}
+.rev{margin:0 60px 36px;border:2px solid var(--yellow);border-radius:14px;overflow:hidden;page-break-inside:avoid;}
+.rev .h{background:var(--yellow);color:var(--navy);padding:10px 20px;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;}
+.rev .body{padding:18px 20px;}
+.rev .blk{margin-bottom:14px;}
+.rev .blk:last-child{margin-bottom:0;}
+.rev .blk .lab{font-size:10.5px;font-weight:700;color:var(--slate-400);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
+.rev .blk p{font-size:13.5px;color:var(--slate-600);line-height:1.5;white-space:pre-wrap;}
+.rev .obz{border-top:1px solid var(--slate-200);padding:10px 0;}
+.rev .obz .tipo{display:inline-block;background:var(--navy);color:var(--yellow);font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 8px;border-radius:20px;margin-bottom:5px;}
+.rev .obz .q{font-size:13px;font-weight:600;color:var(--navy);margin-bottom:3px;}
+.rev .obz .a{font-size:12.5px;color:var(--slate-600);line-height:1.45;}
 """
 
 
@@ -122,7 +139,7 @@ def _render_statement_block(statement: dict | None) -> str:
     )
     return (
         '<div class="stmt">'
-        '  <div class="h">Brand Positioning Statement · <span>metodo De Veglia</span></div>'
+        '  <div class="h">Brand Positioning Statement &middot; <span>metodo De Veglia</span></div>'
         f'  <div class="b">{_esc(statement["frase"]).strip()}</div>'
         f'  <div class="slots">{slots_html}</div>'
         '  <div class="note">Generato dalle tue risposte e rifinito con Valentina. Sempre modificabile.</div>'
@@ -130,11 +147,57 @@ def _render_statement_block(statement: dict | None) -> str:
     )
 
 
-def render_posizionamento_html(answers: dict, nome: str, statement: dict | None = None) -> str:
-    """Costruisce l'HTML del Documento di Posizionamento dalle 15 risposte in 5 sezioni.
+def _render_revisione_block(revisione: dict | None) -> str:
+    """Blocco 'Sintesi strategica rivista da Valentina': sintesi, avatar,
+    consapevolezza e le 3 obiezioni strutturate."""
+    if not revisione:
+        return ""
+    sintesi = _esc(revisione.get("sintesi_strategica", "")).strip()
+    avatar = _esc(revisione.get("avatar", "")).strip()
+    consap = _esc(revisione.get("consapevolezza", "")).strip()
+    obiez = revisione.get("obiezioni") or []
+    if not (sintesi or avatar or consap or obiez):
+        return ""
 
-    Se `statement` è valorizzato, stampa il Brand Positioning Statement in cima.
-    """
+    blocks = []
+    if sintesi:
+        blocks.append(f'<div class="blk"><div class="lab">Sintesi strategica</div><p>{sintesi}</p></div>')
+    if avatar:
+        blocks.append(f'<div class="blk"><div class="lab">Avatar &mdash; chi serviamo</div><p>{avatar}</p></div>')
+    if consap:
+        blocks.append(f'<div class="blk"><div class="lab">Livello di consapevolezza</div><p>{consap}</p></div>')
+
+    if isinstance(obiez, list) and obiez:
+        rows = []
+        for o in obiez:
+            if not isinstance(o, dict):
+                continue
+            q = _esc(o.get("obiezione", "")).strip()
+            if not q:
+                continue
+            tipo = _esc(o.get("tipo", "")).strip()
+            a = _esc(o.get("risposta", "")).strip()
+            rows.append(
+                f'<div class="obz"><span class="tipo">{tipo}</span>'
+                f'<div class="q">{q}</div>'
+                + (f'<div class="a">{a}</div>' if a else "")
+                + '</div>'
+            )
+        if rows:
+            blocks.append('<div class="blk"><div class="lab">Le 3 obiezioni</div>' + "".join(rows) + '</div>')
+
+    return (
+        '<div class="rev">'
+        '  <div class="h">Sintesi strategica &middot; rivista da Valentina</div>'
+        f'  <div class="body">{"".join(blocks)}</div>'
+        '</div>'
+    )
+
+
+def render_posizionamento_html(
+    answers: dict, nome: str, statement: dict | None = None, revisione: dict | None = None
+) -> str:
+    """Costruisce l'HTML del Documento di Posizionamento dalle 20 risposte in 5 sezioni."""
     groups_html = []
     for group in SECTIONS_GROUPED:
         items_html = []
@@ -157,18 +220,21 @@ def render_posizionamento_html(answers: dict, nome: str, statement: dict | None 
     return f"""<!doctype html><html lang="it"><head><meta charset="utf-8"><style>{_CSS}</style></head>
 <body><div class="container">
 <header class="cover">
-  <div class="logo">Documento di Posizionamento · Metodo EVO™</div>
+  <div class="logo">Documento di Posizionamento &middot; Metodo EVO&trade;</div>
   <h1>Il tuo <span class="highlight-pill">posizionamento</span></h1>
-  <div class="sub">Fondamento Esamina · Fase 1</div>
+  <div class="sub">Fondamento Esamina &middot; Fase 1</div>
   <div class="who">Preparato per {_esc(nome)}</div>
 </header>
 {_render_statement_block(statement)}
+{_render_revisione_block(revisione)}
 <div class="page">
   {''.join(groups_html)}
-  <div class="footer">Documento generato dal Metodo EVO™ · Evolution PRO LLC · ciak.io</div>
+  <div class="footer">Documento generato dal Metodo EVO&trade; &middot; Evolution PRO LLC &middot; ciak.io</div>
 </div></div></body></html>"""
 
 
-async def genera_posizionamento_pdf(answers: dict, nome: str, statement: dict | None = None) -> bytes:
-    """HTML → PDF bytes via playwright/chromium (riuso shared helper)."""
-    return await html_to_pdf(render_posizionamento_html(answers, nome, statement))
+async def genera_posizionamento_pdf(
+    answers: dict, nome: str, statement: dict | None = None, revisione: dict | None = None
+) -> bytes:
+    """HTML -> PDF bytes via playwright/chromium (riuso shared helper)."""
+    return await html_to_pdf(render_posizionamento_html(answers, nome, statement, revisione))
