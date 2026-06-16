@@ -12,7 +12,7 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   FileText, Download, Upload, Shield, FolderOpen, FileVideo,
   FileCheck, Loader2, FileAudio, Image, Receipt,
-  Target, Mail, PenLine,
+  Target, Mail, PenLine, Trash2,
 } from "lucide-react";
 
 // File category configuration — color = classe Tailwind
@@ -109,6 +109,19 @@ export function PartnerFilesPage({ partner }) {
       }
     } catch (e) {
       console.error("Error loading files:", e);
+    }
+  };
+
+  const handleDelete = async (f) => {
+    if (!f?.file_id) return;
+    if (!window.confirm(`Eliminare "${f.original_name || "questo file"}"? L'operazione non è reversibile.`)) return;
+    try {
+      const r = await fetch(`/api/files/${f.file_id}`, { method: "DELETE" });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      await loadFiles();
+    } catch (e) {
+      console.error("Delete error:", e);
+      alert("Eliminazione non riuscita. Riprova.");
     }
   };
 
@@ -358,6 +371,16 @@ export function PartnerFilesPage({ partner }) {
                     >
                       <Download className="w-3.5 h-3.5" />
                       Scarica
+                    </button>
+                  )}
+                  {f.file_id && (
+                    <button
+                      onClick={() => handleDelete(f)}
+                      title="Elimina file"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-red-50 border border-red-200 hover:border-red-400 hover:bg-red-100 transition-colors text-red-600"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Elimina
                     </button>
                   )}
                 </div>
