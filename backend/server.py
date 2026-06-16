@@ -9861,6 +9861,15 @@ async def get_partner_files(partner_id: str):
         "partner_id": partner_id
     }
 
+@api_router.delete("/files/{file_id}")
+async def delete_partner_file(file_id: str):
+    """Elimina un file caricato dalla collezione `files` (tasto Elimina in 'I miei file').
+    Usato per rimuovere un caricamento sbagliato."""
+    result = await db.files.delete_one({"file_id": file_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="File non trovato")
+    return {"success": True, "deleted": file_id}
+
 @api_router.get("/files/{path:path}")
 async def serve_file(path: str):
     """Serve a file from storage"""
