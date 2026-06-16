@@ -31,6 +31,30 @@ const SECTIONS = [
           "Sanno di avere il problema e hanno già provato corsi e agenzie che non hanno funzionato, quindi sono diffidenti.",
         minChar: 25,
       },
+      {
+        key: "paure_avatar",
+        label: "Cosa non fa dormire la notte il tuo cliente?",
+        hint: "Le paure vere, dette con parole sue. Non \"vuole crescere\": la paura concreta dietro.",
+        example:
+          "Ha paura di restare invisibile mentre colleghi meno bravi vengono scelti, e di doversi reinventare a 45 anni partendo da zero.",
+        minChar: 40,
+      },
+      {
+        key: "desideri_avatar",
+        label: "Qual è il desiderio più profondo dietro al problema?",
+        hint: "Non il risultato tecnico, ma la vita che vuole davvero.",
+        example:
+          "Sentirsi finalmente sicuro del suo valore, scegliere i clienti invece di subirli, avere serate libere senza l'ansia del mese dopo.",
+        minChar: 40,
+      },
+      {
+        key: "costo_del_no",
+        label: "Cosa perde il cliente se NON risolve il problema?",
+        hint: "Il prezzo dell'immobilismo: soldi, tempo, occasioni, autostima. Rendilo concreto.",
+        example:
+          "Lascia sul tavolo 2-3 clienti al mese, lavora il doppio per metà dei risultati, e ogni anno che passa è più difficile cambiare.",
+        minChar: 40,
+      },
     ],
   },
   {
@@ -136,6 +160,22 @@ const SECTIONS = [
         hint: "La frase che ripetono in tanti. È il territorio affollato da NON occupare: lì non ti distingui.",
         example:
           "Tutti promettono \"più clienti con i funnel\" e \"strategie su misura\". È diventato rumore di fondo.",
+        minChar: 40,
+      },
+      {
+        key: "obiezione_principale",
+        label: "Qual è l'obiezione n.1 che ti senti dire prima di comprare? E come rispondi?",
+        hint: "La frase che frena (\"ci ho già provato\", \"non ho tempo\", \"costa troppo\") + la tua risposta onesta.",
+        example:
+          "\"Ho già fatto corsi che non hanno funzionato.\" Rispondo: quelli ti davano tattiche, io parto dal posizionamento — il motivo per cui le tattiche prima non attaccavano.",
+        minChar: 50,
+      },
+      {
+        key: "limite_onesto",
+        label: "Per chi NON è adatto il tuo metodo? O cosa NON fai di proposito?",
+        hint: "Ammettere un limite ti rende credibile: uno specialista non è per tutti.",
+        example:
+          "Non è per chi cerca il guadagno facile in 7 giorni: lavoro solo con chi ha già una competenza vera da posizionare.",
         minChar: 40,
       },
       {
