@@ -713,3 +713,43 @@ Il retrigger manuale avvierà un task fresco sul container con timeout=1200s.
 <!-- trigger build: 2026-04-23T16:28:19.119Z — worker separato su evolution-pro-worker -->
 
 <!-- deploy: worker separato attivo 2026-04-23T16:39:17.810Z -->
+
+## Contesto consolidato dalla memoria (2026-06-12)
+
+Estratto dai vecchi file di memoria (`appevolution_fresh/memory/`: SYSTEM_OVERVIEW.md, PRD.md, OPENCLAW_VALENTINA_INSTRUCTIONS.md) tenendo solo le info ancora valide. Lo snapshot vecchio NON va più consultato come fonte aggiornata: in caso di conflitto vince questo CLAUDE.md.
+
+### Fondatori
+- **Claudio Bertogliatti** — Fondatore e CEO. Email principale: `claudio.bertogliatti@gmail.com` (alias storico `claudio@evolutionpro.it`). Imprenditore digitale; metodo Evolution PRO = trasformare coach/consulenti/formatori in creatori di videocorsi. Priorità assoluta alle sue richieste; tono diretto e conciso.
+- **Antonella** — Co-fondatrice e Supervisore Operativo (operations, customer success, quality control). Email: `antonella@evolution-pro.it`. La sua approvazione è necessaria per le azioni "Categoria B" (vedi sotto). La sidebar admin ha una "vista Antonella" che nasconde la sezione ACQUISIZIONE.
+
+### Team agenti AI (ruoli + azioni)
+Valentina è l'orchestratrice; smista alle specializzate e coordina il workflow. Roster:
+- **VALENTINA** — orchestratrice/coordinatrice. Posizionamento (De Veglia), instradamento richieste. Non risponde direttamente ai partner.
+- **STEFANIA** — copy factory: email, social, script video, copy landing. Azioni: `generate_email_copy`, `generate_social_copy`. (Nel sistema admin compare anche come coordinatrice.)
+- **GAIA** — CRM/Systeme.io: tag, contatti, sync, automazioni email, SOP. Azioni: `add_systeme_tag`, `sync_systeme_contacts`, `trigger_email_campaign`.
+- **ORION** — lead intelligence: segmenti HOT/WARM/COLD/FROZEN, potenziale conversione, riattivazione. Azioni: `get_lead_stats`, `get_hot_leads`, `analyze_lead`, `get_conversion_potential`, `migrate_leads_segment`.
+- **MARTA** — sales/KPI: revenue per partner, pipeline, partner bloccati. Azioni: `get_sales_kpi`, `get_pipeline_status`, `get_partner_revenue`.
+- **ANDREA** — produzione video (pipeline masterclass/videocorso). Azione: `create_video_task`.
+- **ATLAS** — customer success: LTV/retention. Azione: `get_retention_stats`.
+- **LUCA** — legal/compliance: stato contratti, PDF contratto. Azione: `check_contract_status`.
+- **MARCO** — accountability settimanale + script di vendita (Ulama/Freddi). **MATTEO** — motore Blueprint/scoring posizionamento (NON modificare il system prompt senza via libera di Claudio).
+
+### Systeme.io — limiti API e modello OpenClaw
+L'API Systeme.io **permette**: leggere/creare contatti, ricerca per email, leggere/creare tag, aggiungere tag a contatto. **NON permette**: creare/modificare pipeline, funnel, automazioni; spostare contatti in colonne specifiche. Per questo serve la browser automation (Claude in Chrome / "OpenClaw").
+Categorie di azione:
+- **A (esecuzione diretta, reversibile)**: creare colonne pipeline, spostare contatti tra colonne, add tag, sync contatti.
+- **B (richiede approvazione di Claudio/Antonella)**: creare funnel, creare automazioni, lanciare campagne email, pubblicare landing.
+- **C (mai)**: generare contenuti (→ Stefania), rispondere ai partner, decisioni strategiche, modificare dati sensibili.
+
+### Snapshot dati (approssimativo, da ri-verificare a runtime)
+~13.349 lead in cache Systeme.io (HOT ~500 / WARM ~2.000 / COLD ~5.000 / FROZEN ~5.800); ~26 partner. Numeri storici (feb–apr 2026): usare le query reali per dati attuali. Chiave API Systeme.io valida fino al 31/12/2028.
+
+### Brand palette Evolution PRO
+- Giallo Evolution: `#FFD24D` · Nero Antracite: `#1A1F24` · Sidebar bg: `#F5F3EE` (sabbia) · Sidebar border: `#E8E4DC` · Yellow Dark: `#D4A017` · Muted: `#8B8680`.
+
+### ⚠️ Info SUPERATE nello snapshot vecchio (NON usare)
+- "Emergent Platform / Emergent LLM Key / Kubernetes" → ora Claude + Cloud Run (vedi sezioni sopra).
+- "Claude Sonnet 4" / "Kimi K2.5 via NVIDIA" come modelli → non canonici.
+- Fasi "F0–F3" (SYSTEM_OVERVIEW) e "F0–F10" (istruzioni Valentina) → **superate** dalla mappa ufficiale F1–F7/LIVE di questo file.
+- "HeyGen" per Andrea → la pipeline reale usa AssemblyAI + Shotstack + YouTube.
+- Credenziali di test nei vecchi file → non affidarsi; usare quelle correnti.
