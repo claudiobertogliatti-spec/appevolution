@@ -4699,6 +4699,55 @@ async def get_partner_hub(partner_id: str):
         result["bgColor"] = brand_kit.get("bg_color", result["bgColor"])
         result["fontPrimary"] = brand_kit.get("font_primary", result["fontPrimary"])
         result["fontSecondary"] = brand_kit.get("font_secondary", result["fontSecondary"])
+
+    # Fallback dal Percorso Operativo (partner_journey_steps): i dati inseriti nel
+    # Percorso devono comparire anche nel Workspace. Riempiono SOLO i campi ancora
+    # vuoti (gli edit espliciti del Workspace su partner_hub/brand_kit hanno priorità).
+    try:
+        journey = await db.partner_journey_steps.find(
+            {"partner_id": partner_id, "step_id": {"$in": ["03-brand-kit", "burocrazia"]}},
+            {"_id": 0, "step_id": 1, "data": 1},
+        ).to_list(10)
+        sdata = {s["step_id"]: (s.get("data") or {}) for s in journey}
+
+        brand = sdata.get("03-brand-kit", {})
+        if brand and not brand_kit:
+            if brand.get("logo_url"):
+                result["logo"] = brand["logo_url"]
+            cols = brand.get("colors") or []
+            if isinstance(cols, list):
+                if len(cols) >= 1 and cols[0]:
+                    result["primaryColor"] = cols[0]
+                if len(cols) >= 2 and cols[1]:
+                    result["accentColor"] = cols[1]
+                if len(cols) >= 3 and cols[2]:
+                    result["bgColor"] = cols[2]
+        if brand:
+            if brand.get("tone_of_voice") and not result.get("toneOfVoice"):
+                result["toneOfVoice"] = brand["tone_of_voice"]
+            pc = brand.get("parole_chiave") or []
+            if isinstance(pc, list) and not result.get("keywords"):
+                joined = ", ".join([p for p in pc if p])
+                if joined:
+                    result["keywords"] = joined
+            if brand.get("foto_url") and not result.get("photo"):
+                result["photo"] = brand["foto_url"]
+
+        buro = sdata.get("burocrazia", {})
+        if buro:
+            _id_map = {
+                "email": "email", "telefono": "phone", "comune": "city",
+                "sito_web": "website", "instagram": "instagram",
+                "linkedin": "linkedin", "youtube": "youtube",
+            }
+            for src, dst in _id_map.items():
+                if buro.get(src) and not result.get(dst):
+                    result[dst] = buro[src]
+            _full_name = f"{buro.get('nome', '')} {buro.get('cognome', '')}".strip()
+            if _full_name and not result.get("name"):
+                result["name"] = _full_name
+    except Exception as _e:
+        logging.warning(f"[partner-hub] merge fallback Percorso fallito: {_e}")
     
     return result
 
