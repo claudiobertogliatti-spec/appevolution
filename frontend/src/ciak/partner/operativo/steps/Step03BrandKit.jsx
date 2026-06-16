@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import StepBase from "./StepBase";
 import { API } from "../../../../utils/api-config";
@@ -53,9 +53,32 @@ export default function Step03BrandKit({ step, partnerId, onComplete, onSaveDraf
       .catch(() => {});
   }, [partnerId]);
 
-  const update = (patch) => {
-    if (onSaveDraft) onSaveDraft(patch);
+  // Autosave con DEBOUNCE: accumula le modifiche e salva una sola volta dopo
+  // 600ms di inattività. Senza questo, ogni battitura faceva una POST e le
+  // scritture concorrenti arrivavano fuori ordine, troncando il valore salvato
+  // (bug "il brand non salva le info").
+  const saveTimer = useRef(null);
+  const pendingPatch = useRef({});
+  const onSaveDraftRef = useRef(onSaveDraft);
+  onSaveDraftRef.current = onSaveDraft;
+  const flushSave = () => {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    const toSave = pendingPatch.current;
+    pendingPatch.current = {};
+    if (onSaveDraftRef.current && Object.keys(toSave).length) {
+      onSaveDraftRef.current(toSave);
+    }
   };
+  const update = (patch) => {
+    pendingPatch.current = { ...pendingPatch.current, ...patch };
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(flushSave, 600);
+  };
+  // Salva l'ultima modifica pendente quando si lascia lo step.
+  useEffect(() => () => flushSave(), []);
 
   const updateColor = (i, v) => {
     const next = [...colors];
@@ -104,6 +127,12 @@ export default function Step03BrandKit({ step, partnerId, onComplete, onSaveDraf
     !submitting;
 
   const finalize = async () => {
+    // Annulla un eventuale autosave pendente: il finalize invia già il payload completo.
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    pendingPatch.current = {};
     setSubmitting(true);
     setError(null);
     try {
