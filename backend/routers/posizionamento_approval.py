@@ -25,7 +25,10 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field
 
 from services.posizionamento_pdf_renderer import genera_posizionamento_pdf
-from services.posizionamento_statement import build_brand_positioning_statement
+from services.posizionamento_statement import (
+    build_brand_positioning_statement,
+    genera_documento_definitivo,
+)
 from services.posizionamento_storage import upload_posizionamento_pdf
 
 logger = logging.getLogger(__name__)
@@ -57,8 +60,13 @@ POSIZIONAMENTO_REQUIRED_KEYS_MIN_CHAR = {
     "origin_story": 80,
     "contrarian_view": 50,
     "differenza_riconoscibile": 40,
+    "paure_avatar": 40,
+    "desideri_avatar": 40,
+    "costo_del_no": 40,
     "concorrenti_principali": 30,
     "mercato_affollato": 40,
+    "obiezione_principale": 50,
+    "limite_onesto": 40,
     "spazio_specialista": 40,
 }
 
@@ -181,9 +189,13 @@ async def finalize_posizionamento(body: FinalizeBody) -> dict:
     # build_* ricade da solo sul fallback deterministico e non solleva mai.
     statement = await build_brand_positioning_statement(answers)
 
+    # Revisione di Valentina: documento strategico definitivo (avatar, consapevolezza,
+    # 3 obiezioni) dalle risposte grezze. Best-effort: fallback deterministico interno.
+    revisione = await genera_documento_definitivo(answers, partner.get("name", "Partner"))
+
     # Render PDF (se fallisce, NO side effects)
     try:
-        pdf_bytes = await genera_posizionamento_pdf(answers, partner.get("name", "Partner"), statement)
+        pdf_bytes = await genera_posizionamento_pdf(answers, partner.get("name", "Partner"), statement, revisione)
     except Exception as e:
         logger.exception(f"[POSIZIONAMENTO] PDF render failed for {body.partner_id}: {e}")
         try:
