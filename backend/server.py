@@ -9919,6 +9919,20 @@ async def delete_partner_file(file_id: str):
         raise HTTPException(status_code=404, detail="File non trovato")
     return {"success": True, "deleted": file_id}
 
+@api_router.patch("/files/{file_id}/rename")
+async def rename_partner_file(file_id: str, name: str):
+    """Rinomina il nome visualizzato di un file (tasto Rinomina in 'I miei file')."""
+    new_name = (name or "").strip()
+    if not new_name:
+        raise HTTPException(status_code=400, detail="Nome non valido")
+    result = await db.files.update_one(
+        {"file_id": file_id},
+        {"$set": {"original_name": new_name}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="File non trovato")
+    return {"success": True, "file_id": file_id, "name": new_name}
+
 @api_router.get("/files/{path:path}")
 async def serve_file(path: str):
     """Serve a file from storage"""
