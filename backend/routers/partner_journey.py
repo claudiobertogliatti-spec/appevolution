@@ -48,6 +48,12 @@ class PosizionamentoInputs(BaseModel):
     differenziazione: str = ""
     esperienza: str = ""
     esclusioni: str = ""
+    paure_avatar: str = ""
+    desideri_avatar: str = ""
+    costo_del_no: str = ""
+    obiezione_principale: str = ""
+    limite_onesto: str = ""
+    contesto_storico: str = ""
 
 class VideocorsoInputs(BaseModel):
     partner_id: str
@@ -785,6 +791,12 @@ async def save_posizionamento_inputs(request: PosizionamentoInputs):
                     "differenziazione": request.differenziazione,
                     "esperienza": request.esperienza,
                     "esclusioni": request.esclusioni,
+                    "paure_avatar": request.paure_avatar,
+                    "desideri_avatar": request.desideri_avatar,
+                    "costo_del_no": request.costo_del_no,
+                    "obiezione_principale": request.obiezione_principale,
+                    "limite_onesto": request.limite_onesto,
+                    "contesto_storico": request.contesto_storico,
                 },
                 "updated_at": datetime.now(timezone.utc).isoformat()
             },
@@ -814,36 +826,61 @@ async def generate_positioning(request: GenerateCourseStructureRequest):
 
     inputs = posizionamento.get("inputs", {})
 
-    prompt = f"""Sei un esperto di business strategy e posizionamento per accademie digitali.
-Genera un documento di posizionamento professionale basato sugli input del partner.
+    prompt = f"""Sei Valentina, la stratega di posizionamento di Evolution PRO. Lavori con il metodo di Marco De Veglia (BrandFacile) per il posizionamento e con Freddi per offerta e obiezioni. Il tuo compito: trasformare gli input del partner in un posizionamento da SPECIALISTA, non da generalista.
 
 PARTNER: {partner.get('name')}
 
 INPUT DEL PARTNER:
-1. IN COSA È COMPETENTE: {inputs.get('competenza', 'N/D')}
-2. CHI VUOLE AIUTARE (TARGET): {inputs.get('target', 'N/D')}
-3. PROBLEMA PRINCIPALE DEL CLIENTE: {inputs.get('problema_cliente', 'N/D')}
-4. RISULTATO CHE VUOLE FAR OTTENERE: {inputs.get('risultato', 'N/D')}
+1. COMPETENZA: {inputs.get('competenza', 'N/D')}
+2. TARGET: {inputs.get('target', 'N/D')}
+3. PROBLEMA DEL CLIENTE: {inputs.get('problema_cliente', 'N/D')}
+4. RISULTATO: {inputs.get('risultato', 'N/D')}
 5. COSA LO RENDE DIVERSO: {inputs.get('differenziazione', 'N/D')}
 6. ESPERIENZA E RISULTATI: {inputs.get('esperienza', 'N/D')}
-7. COSA NON VUOLE FARE: {inputs.get('esclusioni', 'N/D')}
+7. NON E' PER / ESCLUSIONI: {inputs.get('esclusioni', 'N/D')}
+8. PAURE DELL'AVATAR: {inputs.get('paure_avatar', 'N/D')}
+9. DESIDERI DELL'AVATAR: {inputs.get('desideri_avatar', 'N/D')}
+10. COSTO DEL NO: {inputs.get('costo_del_no', 'N/D')}
+11. OBIEZIONE PRINCIPALE: {inputs.get('obiezione_principale', 'N/D')}
+12. LIMITE ONESTO: {inputs.get('limite_onesto', 'N/D')}
+13. CONTESTO STORICO / VOCE DEL PARTNER: {inputs.get('contesto_storico', 'N/D')}
 
-Genera un posizionamento strutturato in formato JSON con questa struttura esatta:
+METODO (ragiona internamente seguendo questi passaggi, poi produci solo il JSON):
+
+A) IDEA DIFFERENZIANTE DA SPECIALISTA. Trova la UNA cosa che rende il partner uno specialista e non un generalista: l'angolo piu' specifico e credibile che emerge dai dati (un meccanismo, un'esperienza concreta, un punto di vista), non la somma di tutto. Dai priorita' ai dettagli concreti del CONTESTO STORICO e dell'ESPERIENZA rispetto alle frasi generiche.
+
+B) TEST DEL CONTRARIO (obbligatorio). L'idea differenziante e' valida SOLO se il suo contrario e' una posizione che dei concorrenti reali sostengono davvero. Se il contrario e' assurdo o nessuno lo rivendicherebbe (es. "completo", "di qualita'", "olistico", "integrato", "personalizzato", "a 360 gradi", "professionale", "autentico"), e' una PLATITUDINE: scartala e trova un angolo piu' tagliente. Devi scrivere esplicitamente il contrario per dimostrare che regge.
+
+C) TEST DEI LIMITI. Dichiara con onesta' per chi NON e' e cosa NON fa. Un posizionamento senza limite non e' credibile.
+
+D) BRAND POSITIONING STATEMENT (De Veglia, orientato ai concorrenti), template a 5 slot da compilare per intero:
+"[nome] e' [categoria] che [idea differenziante]. A differenza di [concorrenti] che [cosa fanno loro], [cosa fa il partner]. Per il cliente significa [vantaggio concreto]."
+
+E) 3 OBIEZIONI (Freddi): Esterna (tempo/soldi/circostanze), Interna (non ne sono capace / ho gia' fallito), Meccanismo (perche' questo metodo funziona dove gli altri no). Per ognuna: obiezione + risposta breve nella voce del partner.
+
+F) LIVELLO DI CONSAPEVOLEZZA (Schwartz, 1-5): stima dove si trova il target e indica in che ordine comunicare (problema -> meccanismo -> metodo -> offerta).
+
+BRAND VOICE (non negoziabile): italiano semplice, frasi brevi, concretezza. VIETATO il registro guru/coach: niente "intelligenza corporea", "bussola", "viaggio interiore", "energia", "autentico/autenticita'" ripetuto, "trasformazione" come riempitivo, "percorso di crescita" generico, "sblocca il tuo potenziale". Usa le parole concrete del partner quando ci sono.
+
+Produci SOLO questo JSON (nessun altro testo, nessun markdown):
 {{
-  "sintesi_progetto": "Un paragrafo chiaro (3-4 frasi) che riassume il progetto e la sua proposta di valore unica",
-  "target_ideale": "Descrizione dettagliata e specifica del cliente ideale (chi è, cosa fa, quali sfide ha)",
-  "problema_principale": "Il problema principale che il target affronta e perché è urgente risolverlo",
-  "risultato_promesso": "Il risultato concreto e misurabile che il partner promette di far ottenere",
-  "differenziazione": "Cosa rende unico questo progetto rispetto alla concorrenza e perché il partner è la persona giusta",
-  "posizionamento_finale": "Aiuto [target specifico] a [risultato concreto] anche se [problema/obiezione principale]"
-}}
-
-REGOLE:
-- Il posizionamento_finale DEVE seguire ESATTAMENTE il formato: Aiuto [target] a [risultato] anche se [problema]
-- Ogni sezione deve essere chiara, concisa e professionale (2-4 frasi)
-- Usa un linguaggio diretto e orientato ai risultati
-- Non usare gergo tecnico
-- Rispondi SOLO con il JSON, senza altro testo"""
+  "sintesi_progetto": "3-4 frasi che riassumono il progetto e la proposta di valore",
+  "target_ideale": "chi e' il cliente ideale, specifico: chi e', cosa fa, cosa ha gia' provato senza risultati",
+  "problema_principale": "il problema centrale e perche' e' urgente",
+  "risultato_promesso": "il risultato concreto e misurabile",
+  "differenziazione": "l'idea da specialista spiegata, niente platitudini",
+  "idea_differenziante": "in una riga, l'angolo da specialista",
+  "test_contrario": "il contrario credibile dell'idea differenziante, che dei concorrenti reali sostengono (prova che non e' una platitudine)",
+  "test_limiti": "per chi NON e' / cosa NON fa, con onesta'",
+  "brand_positioning_statement": "il template a 5 slot compilato per intero",
+  "obiezioni": {{
+    "esterna": {{"obiezione": "...", "risposta": "..."}},
+    "interna": {{"obiezione": "...", "risposta": "..."}},
+    "meccanismo": {{"obiezione": "...", "risposta": "..."}}
+  }},
+  "livello_consapevolezza": "livello Schwartz (1-5) + in che ordine comunicare",
+  "posizionamento_finale": "Aiuto [target] a [risultato] anche se [problema/obiezione]"
+}}"""
 
     try:
         llm = await get_llm_chat()
