@@ -15,7 +15,7 @@
  *  PATCH /api/partner-hub/:partnerId/field?field=&value=
  */
 import { useState, useEffect } from "react";
-import { Edit2, Upload } from "lucide-react";
+import { Edit2, Upload, Trash2 } from "lucide-react";
 
 export function PartnerProfileHub({ partner, section }) {
   const [internalTab, setInternalTab] = useState("identity");
@@ -119,6 +119,43 @@ export function PartnerProfileHub({ partner, section }) {
   const cancelEdit = () => {
     setIsEditing(null);
     setEditValue("");
+  };
+
+  const handlePromptEdit = async (field, current, label) => {
+    const v = window.prompt(`Modifica ${label || field}:`, current || "");
+    if (v === null) return;
+    setIsSaving(true);
+    try {
+      const r = await fetch(
+        `/api/partner-hub/${partnerId}/field?field=${field}&value=${encodeURIComponent(v.trim())}`,
+        { method: "PATCH" }
+      );
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setProfileData((prev) => ({ ...prev, [field]: v.trim() }));
+    } catch (e) {
+      console.error("Edit error:", e);
+      alert("Modifica non riuscita. Riprova.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleClear = async (field, label) => {
+    if (!window.confirm(`Eliminare "${label || field}"?`)) return;
+    setIsSaving(true);
+    try {
+      const r = await fetch(
+        `/api/partner-hub/${partnerId}/field?field=${field}&value=`,
+        { method: "PATCH" }
+      );
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setProfileData((prev) => ({ ...prev, [field]: "" }));
+    } catch (e) {
+      console.error("Clear error:", e);
+      alert("Eliminazione non riuscita. Riprova.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const EditableRow = ({ label, field, value, placeholder }) => (
@@ -351,9 +388,22 @@ export function PartnerProfileHub({ partner, section }) {
                   <span className="italic">Non caricato</span>
                 )}
               </div>
-              <button className="p-2 rounded-lg hover:bg-gray-100">
+              <button
+                onClick={() => handlePromptEdit("logo", profileData.logo, "Logo (URL)")}
+                title="Modifica"
+                className="p-2 rounded-lg hover:bg-gray-100"
+              >
                 <Edit2 className="w-4 h-4 text-slate-400" />
               </button>
+              {profileData.logo && (
+                <button
+                  onClick={() => handleClear("logo", "Logo")}
+                  title="Elimina"
+                  className="p-2 rounded-lg hover:bg-red-50"
+                >
+                  <Trash2 className="w-4 h-4 text-red-400" />
+                </button>
+              )}
             </div>
 
             <div className="flex items-center gap-4 py-3 border-b border-gray-200">
@@ -377,8 +427,8 @@ export function PartnerProfileHub({ partner, section }) {
               </div>
             </div>
 
-            <EditableRow label="Tono di voce" field="toneOfVoice" value={profileData.toneOfVoice} placeholder="Professionale ma caldo..." />
-            <EditableRow label="Parole chiave" field="keywords" value={profileData.keywords} placeholder="Crescita, Semplicità, Risultati..." />
+            <BrandEditRow label="Tono di voce" field="toneOfVoice" value={profileData.toneOfVoice} onEdit={handlePromptEdit} onClear={handleClear} />
+            <BrandEditRow label="Parole chiave" field="keywords" value={profileData.keywords} onEdit={handlePromptEdit} onClear={handleClear} />
           </div>
 
           <div className="bg-white rounded-2xl p-6 shadow-sm">
@@ -406,6 +456,33 @@ export function PartnerProfileHub({ partner, section }) {
             ))}
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function BrandEditRow({ label, field, value, onEdit, onClear }) {
+  return (
+    <div className="flex items-start gap-4 py-3 border-b border-gray-200">
+      <div className="w-32 flex-shrink-0 text-xs font-semibold text-slate-400">{label}</div>
+      <div className={`flex-1 text-sm ${value ? "font-medium text-slate-900" : "italic text-slate-400"}`}>
+        {value || "Non inserito"}
+      </div>
+      <button
+        onClick={() => onEdit(field, value, label)}
+        title="Modifica"
+        className="p-2 rounded-lg hover:bg-gray-100"
+      >
+        <Edit2 className="w-4 h-4 text-slate-400" />
+      </button>
+      {value && (
+        <button
+          onClick={() => onClear(field, label)}
+          title="Elimina"
+          className="p-2 rounded-lg hover:bg-red-50"
+        >
+          <Trash2 className="w-4 h-4 text-red-400" />
+        </button>
       )}
     </div>
   );
