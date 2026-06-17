@@ -9933,6 +9933,50 @@ async def rename_partner_file(file_id: str, name: str):
         raise HTTPException(status_code=404, detail="File non trovato")
     return {"success": True, "file_id": file_id, "name": new_name}
 
+
+@api_router.post("/admin/repair-pdf/{file_id}")
+async def repair_pdf_extension(file_id: str):
+    """Ripara un file PDF 'raw' su Cloudinary il cui URL legacy non finisce in
+    .pdf (generato prima del fix estensione): ri-carica gli stessi byte con
+    public_id .pdf e aggiorna il record in db.files. Idempotente."""
+    import httpx as _httpx
+    from cloudinary_service import upload_file_direct as _upl, is_cloudinary_configured as _cfg
+    f = await db.files.find_one({"file_id": file_id}, {"_id": 0})
+    if not f:
+        raise HTTPException(status_code=404, detail="File non trovato")
+    url = f.get("internal_url", "") or ""
+    if not url.startswith("http"):
+        raise HTTPException(status_code=400, detail="Il file non e' su Cloudinary")
+    if url.lower().endswith(".pdf"):
+        return {"success": True, "already_ok": True, "internal_url": url}
+    if not _cfg():
+        raise HTTPException(status_code=503, detail="Cloudinary non configurato")
+    async with _httpx.AsyncClient(timeout=60.0) as _c:
+        resp = await _c.get(url)
+        if resp.status_code != 200:
+            raise HTTPException(status_code=502, detail=f"Download fallito: HTTP {resp.status_code}")
+        pdf_bytes = resp.content
+    pid = f.get("public_id") or ""
+    folder = pid.rsplit("/", 1)[0] if "/" in pid else f"evolution-pro/partners/{f.get('partner_id','unknown')}/brand-kit"
+    stored = f.get("stored_name") or f"{file_id}.pdf"
+    if not stored.lower().endswith(".pdf"):
+        stored = f"{stored}.pdf"
+    up = await _upl(file_data=pdf_bytes, filename=stored, resource_type="raw", folder=folder)
+    if not up.get("success"):
+        raise HTTPException(status_code=502, detail=f"Upload Cloudinary fallito: {up.get('error')}")
+    new_url = up.get("secure_url") or up.get("url")
+    await db.files.update_one(
+        {"file_id": file_id},
+        {"$set": {
+            "internal_url": new_url,
+            "public_id": up.get("public_id"),
+            "size": len(pdf_bytes),
+            "size_readable": f"{len(pdf_bytes) // 1024} KB",
+        }},
+    )
+    return {"success": True, "old_url": url, "internal_url": new_url, "public_id": up.get("public_id")}
+
+
 @api_router.get("/files/{path:path}")
 async def serve_file(path: str):
     """Serve a file from storage"""
