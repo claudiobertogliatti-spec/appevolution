@@ -367,23 +367,7 @@ export function PartnerFilesPage({ partner }) {
                         ` • ${new Date(f.uploaded_at).toLocaleDateString("it-IT")}`}
                     </div>
                   </div>
-                  {f.status && (
-                    <span
-                      className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${
-                        f.status === "verified" || f.status === "approved"
-                          ? "bg-emerald-100 text-emerald-600"
-                          : f.status === "rejected"
-                          ? "bg-red-100 text-red-600"
-                          : "bg-yellow-100 text-yellow-600"
-                      }`}
-                    >
-                      {f.status === "verified" || f.status === "approved"
-                        ? "✓ Verificato"
-                        : f.status === "rejected"
-                        ? "✗ Rifiutato"
-                        : "In attesa"}
-                    </span>
-                  )}
+
                   {f.internal_url && (
                     <button
                       onClick={() => handleView(f)}
@@ -457,7 +441,7 @@ export function PartnerFilesPage({ partner }) {
             </p>
             <p className="text-xs text-slate-600">
               Tutti i file caricati sono conservati in modo sicuro e accessibili solo a te e al
-              team Evolution PRO. I file vengono verificati entro 24-48 ore dal caricamento.
+              team Evolution PRO.
             </p>
           </div>
         </div>
