@@ -11,7 +11,7 @@
  * Le chiamate passano per adminFetch (token admin Ciak).
  */
 import { useState, useEffect } from "react";
-import { Target, Mic, BookOpen, Check, Clock, Eye, X } from "lucide-react";
+import { Target, Mic, BookOpen, Check, Clock, Eye, X, FolderOpen, Download } from "lucide-react";
 import { adminFetch } from "../api";
 
 const STATUS_CONFIG = {
@@ -32,13 +32,14 @@ function StatusBadge({ status }) {
   );
 }
 
-function DocumentModal({ partner, documents, onClose }) {
+function DocumentModal({ partner, documents, files, onClose }) {
   const [activeTab, setActiveTab] = useState("positioning");
 
   const tabs = [
     { id: "positioning", label: "Posizionamento", icon: Target },
     { id: "script", label: "Script Masterclass", icon: Mic },
-    { id: "course", label: "Struttura Corso", icon: BookOpen }
+    { id: "course", label: "Struttura Corso", icon: BookOpen },
+    { id: "files", label: "File Caricati", icon: FolderOpen }
   ];
 
   return (
@@ -85,6 +86,9 @@ function DocumentModal({ partner, documents, onClose }) {
           )}
           {activeTab === "course" && (
             <CourseContent data={documents?.course_structure} />
+          )}
+          {activeTab === "files" && (
+            <FilesContent files={files} />
           )}
         </div>
       </div>
@@ -258,11 +262,66 @@ function CourseContent({ data }) {
   );
 }
 
+function FilesContent({ files }) {
+  const groups = files || {};
+  const all = [
+    ...(groups.document || []),
+    ...(groups.image || []),
+    ...(groups.video || []),
+    ...(groups.audio || []),
+    ...(groups.onboarding || [])
+  ];
+
+  if (all.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <FolderOpen className="w-12 h-12 text-[#ECEDEF] mx-auto mb-3" />
+        <div className="text-[#9CA3AF] font-semibold">Nessun file caricato</div>
+        <div className="text-[#9CA3AF] text-sm mt-1">Il partner non ha ancora caricato documenti, immagini o video.</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {all.map((f, idx) => {
+        const url = f.internal_url ? f.internal_url.replace("/api", "") : null;
+        return (
+          <div key={f.file_id || f.filename || idx} className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl p-4 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-[#FFD24D]/15 flex items-center justify-center flex-shrink-0">
+              <FolderOpen className="w-4 h-4 text-[#D4A017]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold text-[#0F172A] truncate">
+                {f.original_name || f.filename || f.document_type?.replace(/_/g, " ") || "File"}
+              </div>
+              <div className="text-xs text-[#9CA3AF]">
+                {(f.category || "documento")}{f.size_readable ? ` • ${f.size_readable}` : ""}{f.uploaded_at ? ` • ${new Date(f.uploaded_at).toLocaleDateString("it-IT")}` : ""}
+              </div>
+            </div>
+            {url && (
+              <>
+                <a href={url} target="_blank" rel="noreferrer" className="text-xs font-bold px-3 py-1.5 rounded-lg bg-white border border-[#ECEDEF] hover:border-[#FFD24D]/40 transition-colors flex items-center gap-1.5">
+                  <Eye className="w-3 h-3" /> Visualizza
+                </a>
+                <a href={url} download className="text-xs font-bold px-3 py-1.5 rounded-lg bg-white border border-[#ECEDEF] hover:border-[#FFD24D]/40 transition-colors flex items-center gap-1.5">
+                  <Download className="w-3 h-3" /> Scarica
+                </a>
+              </>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function PartnerDocumenti({ onAuthExpired }) {
   const [summaries, setSummaries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPartner, setSelectedPartner] = useState(null);
   const [documents, setDocuments] = useState(null);
+  const [filesData, setFilesData] = useState(null);
 
   useEffect(() => {
     loadSummaries();
@@ -289,6 +348,13 @@ export function PartnerDocumenti({ onAuthExpired }) {
       if (!res.ok) throw new Error(`Errore ${res.status}`);
       setDocuments(await res.json());
       setSelectedPartner(partner);
+      try {
+        const fr = await adminFetch(`/api/files/partner/${partner.partner_id}`);
+        if (fr.ok) {
+          const fd = await fr.json();
+          setFilesData(fd.files || null);
+        }
+      } catch (_) { /* lista file opzionale */ }
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
       else console.error("Failed to load partner documents:", e);
@@ -392,9 +458,11 @@ export function PartnerDocumenti({ onAuthExpired }) {
         <DocumentModal
           partner={selectedPartner}
           documents={documents}
+          files={filesData}
           onClose={() => {
             setSelectedPartner(null);
             setDocuments(null);
+            setFilesData(null);
           }}
         />
       )}
