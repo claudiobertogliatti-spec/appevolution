@@ -4691,14 +4691,24 @@ async def get_partner_hub(partner_id: str):
                 result[key] = value
     
     # Merge brand kit
+    # Gli edit espliciti del Workspace (partner_hub) hanno priorita': il brand_kit
+    # riempie solo i campi NON gia' impostati a mano nel Workspace.
+    _hub_keys = set(hub_profile.keys()) if hub_profile else set()
     if brand_kit:
-        result["logo"] = brand_kit.get("logo", result["logo"])
-        result["primaryColor"] = brand_kit.get("primary_color", result["primaryColor"])
-        result["accentColor"] = brand_kit.get("accent_color", result["accentColor"])
-        result["textColor"] = brand_kit.get("text_color", result["textColor"])
-        result["bgColor"] = brand_kit.get("bg_color", result["bgColor"])
-        result["fontPrimary"] = brand_kit.get("font_primary", result["fontPrimary"])
-        result["fontSecondary"] = brand_kit.get("font_secondary", result["fontSecondary"])
+        if "logo" not in _hub_keys:
+            result["logo"] = brand_kit.get("logo", result["logo"])
+        if "primaryColor" not in _hub_keys:
+            result["primaryColor"] = brand_kit.get("primary_color", result["primaryColor"])
+        if "accentColor" not in _hub_keys:
+            result["accentColor"] = brand_kit.get("accent_color", result["accentColor"])
+        if "textColor" not in _hub_keys:
+            result["textColor"] = brand_kit.get("text_color", result["textColor"])
+        if "bgColor" not in _hub_keys:
+            result["bgColor"] = brand_kit.get("bg_color", result["bgColor"])
+        if "fontPrimary" not in _hub_keys:
+            result["fontPrimary"] = brand_kit.get("font_primary", result["fontPrimary"])
+        if "fontSecondary" not in _hub_keys:
+            result["fontSecondary"] = brand_kit.get("font_secondary", result["fontSecondary"])
 
     # Fallback dal Percorso Operativo (partner_journey_steps): i dati inseriti nel
     # Percorso devono comparire anche nel Workspace. Riempiono SOLO i campi ancora
