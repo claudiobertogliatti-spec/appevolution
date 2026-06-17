@@ -300,7 +300,7 @@ async def ciak_stats(admin=Depends(require_ciak_admin)):
         raise HTTPException(503, "Database non configurato")
 
     leads_total = await db.ciak_leads.count_documents({})
-    checkpoint_total = await db.ciak_checkpoint_events.count_documents({})
+    checkpoint_total = len(await db.ciak_checkpoint_events.distinct("email"))
     diagnostic_total = await db.diagnostic_sessions.count_documents({})
 
     # Funnel per current_state della diagnostic session
