@@ -121,24 +121,6 @@ export function PartnerProfileHub({ partner, section }) {
     setEditValue("");
   };
 
-  const handlePromptEdit = async (field, current, label) => {
-    const v = window.prompt(`Modifica ${label || field}:`, current || "");
-    if (v === null) return;
-    setIsSaving(true);
-    try {
-      const r = await fetch(
-        `/api/partner-hub/${partnerId}/field?field=${field}&value=${encodeURIComponent(v.trim())}`,
-        { method: "PATCH" }
-      );
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      setProfileData((prev) => ({ ...prev, [field]: v.trim() }));
-    } catch (e) {
-      console.error("Edit error:", e);
-      alert("Modifica non riuscita. Riprova.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   const handleClear = async (field, label) => {
     if (!window.confirm(`Eliminare "${label || field}"?`)) return;
@@ -372,64 +354,53 @@ export function PartnerProfileHub({ partner, section }) {
               </span>
             </div>
 
-            <div className="flex items-center gap-4 py-3 border-b border-gray-200">
-              <div className="w-32 flex-shrink-0 text-xs font-semibold text-slate-400">Logo</div>
-              <div
-                className={`flex-1 text-sm ${
-                  profileData.logo ? "text-slate-900" : "text-slate-400"
-                }`}
-              >
-                {profileData.logo ? (
-                  <span>
-                    {profileData.logo}{" "}
-                    <span className="text-emerald-600 font-semibold text-xs">· Caricato</span>
-                  </span>
+            <BrandEditRow label="Logo" field="logo" value={profileData.logo} isEditing={isEditing} editValue={editValue} setEditValue={setEditValue} onStart={startEdit} onSave={saveEdit} onCancel={cancelEdit} onClear={handleClear} />
+
+            <div className="flex items-start gap-4 py-3 border-b border-gray-200">
+              <div className="w-32 flex-shrink-0 text-xs font-semibold text-slate-400">Colori</div>
+              <div className="flex-1">
+                {["primaryColor", "accentColor", "textColor", "bgColor"].includes(isEditing) ? (
+                  <div className="flex gap-2 items-center">
+                    <span className="text-xs text-slate-400 w-20">{({ primaryColor: "Primario", accentColor: "Accento", textColor: "Testo", bgColor: "Sfondo" })[isEditing]}</span>
+                    <input type="text" value={editValue} onChange={(e) => setEditValue(e.target.value)} placeholder="#RRGGBB" className="flex-1 px-3 py-2 rounded-lg border border-slate-500 text-sm outline-none" autoFocus />
+                    <button onClick={() => saveEdit(isEditing)} className="px-3 py-1 rounded-lg text-white text-xs font-semibold bg-emerald-500">✓</button>
+                    <button onClick={cancelEdit} className="px-3 py-1 rounded-lg text-xs font-semibold bg-gray-200 text-slate-600">✕</button>
+                  </div>
                 ) : (
-                  <span className="italic">Non caricato</span>
+                  <div className="flex items-center gap-3">
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => startEdit("primaryColor", profileData.primaryColor)} title="Modifica primario" className="w-8 h-8 rounded-lg ring-1 ring-gray-200 hover:ring-2 hover:ring-yellow-400 transition" style={{ background: profileData.primaryColor }} />
+                      <button type="button" onClick={() => startEdit("accentColor", profileData.accentColor)} title="Modifica accento" className="w-8 h-8 rounded-lg ring-1 ring-gray-200 hover:ring-2 hover:ring-yellow-400 transition" style={{ background: profileData.accentColor }} />
+                      <button type="button" onClick={() => startEdit("textColor", profileData.textColor)} title="Modifica testo" className="w-8 h-8 rounded-lg ring-1 ring-gray-200 hover:ring-2 hover:ring-yellow-400 transition" style={{ background: profileData.textColor }} />
+                      <button type="button" onClick={() => startEdit("bgColor", profileData.bgColor)} title="Modifica sfondo" className="w-8 h-8 rounded-lg border border-gray-200 hover:ring-2 hover:ring-yellow-400 transition" style={{ background: profileData.bgColor }} />
+                    </div>
+                    <span className="text-xs text-slate-400">Clicca un colore per modificarlo</span>
+                  </div>
                 )}
               </div>
-              <button
-                onClick={() => handlePromptEdit("logo", profileData.logo, "Logo (URL)")}
-                title="Modifica"
-                className="p-2 rounded-lg hover:bg-gray-100"
-              >
-                <Edit2 className="w-4 h-4 text-slate-400" />
-              </button>
-              {profileData.logo && (
-                <button
-                  onClick={() => handleClear("logo", "Logo")}
-                  title="Elimina"
-                  className="p-2 rounded-lg hover:bg-red-50"
-                >
-                  <Trash2 className="w-4 h-4 text-red-400" />
-                </button>
-              )}
             </div>
 
-            <div className="flex items-center gap-4 py-3 border-b border-gray-200">
-              <div className="w-32 flex-shrink-0 text-xs font-semibold text-slate-400">Colori</div>
-              <div className="flex-1 flex items-center gap-3">
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => handlePromptEdit("primaryColor", profileData.primaryColor, "Colore primario (HEX, es. #2C5F8A)")} title="Modifica primario" className="w-8 h-8 rounded-lg ring-1 ring-gray-200 hover:ring-2 hover:ring-yellow-400 transition" style={{ background: profileData.primaryColor }} />
-                  <button type="button" onClick={() => handlePromptEdit("accentColor", profileData.accentColor, "Colore accento (HEX)")} title="Modifica accento" className="w-8 h-8 rounded-lg ring-1 ring-gray-200 hover:ring-2 hover:ring-yellow-400 transition" style={{ background: profileData.accentColor }} />
-                  <button type="button" onClick={() => handlePromptEdit("textColor", profileData.textColor, "Colore testo (HEX)")} title="Modifica testo" className="w-8 h-8 rounded-lg ring-1 ring-gray-200 hover:ring-2 hover:ring-yellow-400 transition" style={{ background: profileData.textColor }} />
-                  <button type="button" onClick={() => handlePromptEdit("bgColor", profileData.bgColor, "Colore sfondo (HEX)")} title="Modifica sfondo" className="w-8 h-8 rounded-lg border border-gray-200 hover:ring-2 hover:ring-yellow-400 transition" style={{ background: profileData.bgColor }} />
-                </div>
-                <span className="text-xs text-slate-400">Clicca un colore per modificarlo</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4 py-3 border-b border-gray-200">
+            <div className="flex items-start gap-4 py-3 border-b border-gray-200">
               <div className="w-32 flex-shrink-0 text-xs font-semibold text-slate-400">Font</div>
-              <div className="flex-1 flex items-center gap-2">
-                <button type="button" onClick={() => handlePromptEdit("fontPrimary", profileData.fontPrimary, "Font primario")} title="Modifica font primario" className="text-sm font-semibold text-slate-900 px-2 py-1 rounded-lg hover:bg-gray-100 transition">{profileData.fontPrimary}</button>
-                <button type="button" onClick={() => handlePromptEdit("fontSecondary", profileData.fontSecondary, "Font secondario")} title="Modifica font secondario" className="text-sm text-slate-600 px-2 py-1 rounded-lg hover:bg-gray-100 transition">{profileData.fontSecondary}</button>
-                <Edit2 className="w-4 h-4 text-slate-400 ml-auto" />
+              <div className="flex-1">
+                {["fontPrimary", "fontSecondary"].includes(isEditing) ? (
+                  <div className="flex gap-2 items-center">
+                    <span className="text-xs text-slate-400 w-24">{isEditing === "fontPrimary" ? "Primario" : "Secondario"}</span>
+                    <input type="text" value={editValue} onChange={(e) => setEditValue(e.target.value)} className="flex-1 px-3 py-2 rounded-lg border border-slate-500 text-sm outline-none" autoFocus />
+                    <button onClick={() => saveEdit(isEditing)} className="px-3 py-1 rounded-lg text-white text-xs font-semibold bg-emerald-500">✓</button>
+                    <button onClick={cancelEdit} className="px-3 py-1 rounded-lg text-xs font-semibold bg-gray-200 text-slate-600">✕</button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => startEdit("fontPrimary", profileData.fontPrimary)} title="Modifica font primario" className="text-sm font-semibold text-slate-900 px-2 py-1 rounded-lg hover:bg-gray-100 transition">{profileData.fontPrimary}</button>
+                    <button type="button" onClick={() => startEdit("fontSecondary", profileData.fontSecondary)} title="Modifica font secondario" className="text-sm text-slate-600 px-2 py-1 rounded-lg hover:bg-gray-100 transition">{profileData.fontSecondary}</button>
+                  </div>
+                )}
               </div>
             </div>
 
-            <BrandEditRow label="Tono di voce" field="toneOfVoice" value={profileData.toneOfVoice} onEdit={handlePromptEdit} onClear={handleClear} />
-            <BrandEditRow label="Parole chiave" field="keywords" value={profileData.keywords} onEdit={handlePromptEdit} onClear={handleClear} />
+            <BrandEditRow label="Tono di voce" field="toneOfVoice" value={profileData.toneOfVoice} isEditing={isEditing} editValue={editValue} setEditValue={setEditValue} onStart={startEdit} onSave={saveEdit} onCancel={cancelEdit} onClear={handleClear} />
+            <BrandEditRow label="Parole chiave" field="keywords" value={profileData.keywords} isEditing={isEditing} editValue={editValue} setEditValue={setEditValue} onStart={startEdit} onSave={saveEdit} onCancel={cancelEdit} onClear={handleClear} />
           </div>
 
           <div className="bg-white rounded-2xl p-6 shadow-sm">
@@ -462,28 +433,33 @@ export function PartnerProfileHub({ partner, section }) {
   );
 }
 
-function BrandEditRow({ label, field, value, onEdit, onClear }) {
+function BrandEditRow({ label, field, value, isEditing, editValue, setEditValue, onStart, onSave, onCancel, onClear }) {
+  const editing = isEditing === field;
   return (
     <div className="flex items-start gap-4 py-3 border-b border-gray-200">
       <div className="w-32 flex-shrink-0 text-xs font-semibold text-slate-400">{label}</div>
-      <div className={`flex-1 text-sm ${value ? "font-medium text-slate-900" : "italic text-slate-400"}`}>
-        {value || "Non inserito"}
+      <div className="flex-1">
+        {editing ? (
+          <div className="flex gap-2">
+            <input type="text" value={editValue} onChange={(e) => setEditValue(e.target.value)} className="flex-1 px-3 py-2 rounded-lg border border-slate-500 text-sm outline-none" autoFocus />
+            <button onClick={() => onSave(field)} className="px-3 py-1 rounded-lg text-white text-xs font-semibold bg-emerald-500">✓</button>
+            <button onClick={onCancel} className="px-3 py-1 rounded-lg text-xs font-semibold bg-gray-200 text-slate-600">✕</button>
+          </div>
+        ) : (
+          <div className={`text-sm ${value ? "font-medium text-slate-900 break-all" : "italic text-slate-400"}`}>{value || "Non inserito"}</div>
+        )}
       </div>
-      <button
-        onClick={() => onEdit(field, value, label)}
-        title="Modifica"
-        className="p-2 rounded-lg hover:bg-gray-100"
-      >
-        <Edit2 className="w-4 h-4 text-slate-400" />
-      </button>
-      {value && (
-        <button
-          onClick={() => onClear(field, label)}
-          title="Elimina"
-          className="p-2 rounded-lg hover:bg-red-50"
-        >
-          <Trash2 className="w-4 h-4 text-red-400" />
-        </button>
+      {!editing && (
+        <>
+          <button onClick={() => onStart(field, value)} title="Modifica" className="p-2 rounded-lg hover:bg-gray-100 transition">
+            <Edit2 className="w-4 h-4 text-slate-400" />
+          </button>
+          {value && onClear && (
+            <button onClick={() => onClear(field, label)} title="Elimina" className="p-2 rounded-lg hover:bg-red-50 transition">
+              <Trash2 className="w-4 h-4 text-red-400" />
+            </button>
+          )}
+        </>
       )}
     </div>
   );
