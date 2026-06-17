@@ -410,20 +410,21 @@ export function PartnerProfileHub({ partner, section }) {
               <div className="w-32 flex-shrink-0 text-xs font-semibold text-slate-400">Colori</div>
               <div className="flex-1 flex items-center gap-3">
                 <div className="flex gap-2">
-                  <div className="w-8 h-8 rounded-lg" style={{ background: profileData.primaryColor }} title="Primario" />
-                  <div className="w-8 h-8 rounded-lg" style={{ background: profileData.accentColor }} title="Accento" />
-                  <div className="w-8 h-8 rounded-lg" style={{ background: profileData.textColor }} title="Testo" />
-                  <div className="w-8 h-8 rounded-lg border border-gray-200" style={{ background: profileData.bgColor }} title="Sfondo" />
+                  <button type="button" onClick={() => handlePromptEdit("primaryColor", profileData.primaryColor, "Colore primario (HEX, es. #2C5F8A)")} title="Modifica primario" className="w-8 h-8 rounded-lg ring-1 ring-gray-200 hover:ring-2 hover:ring-yellow-400 transition" style={{ background: profileData.primaryColor }} />
+                  <button type="button" onClick={() => handlePromptEdit("accentColor", profileData.accentColor, "Colore accento (HEX)")} title="Modifica accento" className="w-8 h-8 rounded-lg ring-1 ring-gray-200 hover:ring-2 hover:ring-yellow-400 transition" style={{ background: profileData.accentColor }} />
+                  <button type="button" onClick={() => handlePromptEdit("textColor", profileData.textColor, "Colore testo (HEX)")} title="Modifica testo" className="w-8 h-8 rounded-lg ring-1 ring-gray-200 hover:ring-2 hover:ring-yellow-400 transition" style={{ background: profileData.textColor }} />
+                  <button type="button" onClick={() => handlePromptEdit("bgColor", profileData.bgColor, "Colore sfondo (HEX)")} title="Modifica sfondo" className="w-8 h-8 rounded-lg border border-gray-200 hover:ring-2 hover:ring-yellow-400 transition" style={{ background: profileData.bgColor }} />
                 </div>
-                <span className="text-xs text-slate-400">Primario · Accento · Testo · Sfondo</span>
+                <span className="text-xs text-slate-400">Clicca un colore per modificarlo</span>
               </div>
             </div>
 
             <div className="flex items-center gap-4 py-3 border-b border-gray-200">
               <div className="w-32 flex-shrink-0 text-xs font-semibold text-slate-400">Font</div>
-              <div className="flex-1 flex gap-4">
-                <span className="text-sm font-semibold text-slate-900">{profileData.fontPrimary}</span>
-                <span className="text-sm text-slate-600">{profileData.fontSecondary}</span>
+              <div className="flex-1 flex items-center gap-2">
+                <button type="button" onClick={() => handlePromptEdit("fontPrimary", profileData.fontPrimary, "Font primario")} title="Modifica font primario" className="text-sm font-semibold text-slate-900 px-2 py-1 rounded-lg hover:bg-gray-100 transition">{profileData.fontPrimary}</button>
+                <button type="button" onClick={() => handlePromptEdit("fontSecondary", profileData.fontSecondary, "Font secondario")} title="Modifica font secondario" className="text-sm text-slate-600 px-2 py-1 rounded-lg hover:bg-gray-100 transition">{profileData.fontSecondary}</button>
+                <Edit2 className="w-4 h-4 text-slate-400 ml-auto" />
               </div>
             </div>
 
