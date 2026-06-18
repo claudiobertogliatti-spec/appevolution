@@ -10,7 +10,7 @@
 // Production domains that should use relative URLs.
 // ciak.io incluso: Vercel ha un rewrite /api/* → backend Cloud Run diretto
 // (evolution-pro-backend run.app), quindi le chiamate relative funzionano via proxy (no CORS).
-const PRODUCTION_DOMAINS = ['evolution-pro.it', 'app.evolution-pro.it', 'ciak.io'];
+const PRODUCTION_DOMAINS = ['ciak.io'];
 
 /**
  * Get the base API URL (WITHOUT /api suffix)
