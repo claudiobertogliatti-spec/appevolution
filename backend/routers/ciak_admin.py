@@ -293,6 +293,84 @@ async def ciak_delete_lead(
 
 # ─── Stats ─────────────────────────────────────────────────────────────────
 
+# --- Mark EUR 67 paid (manuale) ---
+
+class MarkPurchasedRequest(BaseModel):
+    email: str = Field(..., description="Email del lead da segnare come acquirente EUR 67")
+    amount_cent: int = Field(6700, ge=0, description="Importo in centesimi (default 6700 = EUR 67)")
+    metodo: Optional[str] = Field("manuale", description="Metodo pagamento (manuale|bonifico|contanti|offline)")
+    note: Optional[str] = Field(None, description="Nota interna facoltativa sul pagamento")
+
+
+@router.post("/lead/mark-purchased")
+async def ciak_mark_lead_purchased(
+    payload: MarkPurchasedRequest,
+    admin=Depends(require_ciak_admin),
+):
+    """
+    Segna MANUALMENTE l'acquisto dell'analisi EUR 67 per un lead, senza passare
+    da Stripe. Replica l'effetto del webhook checkout.session.completed:
+    transizione diagnostic_session a purchased_67 + evento
+    stripe_payment_completed (flag manual=True). Cosi' il lead compare in
+    GET /transactions e nei conteggi acquisti_67. Serve a ricreare acquisti
+    avvenuti offline.
+
+    Idempotente: se la sessione e' gia' in uno stato post-acquisto non fa nulla.
+    Richiede una diagnostic_session esistente per l'email (il lead deve aver
+    completato almeno le 8 Domande Ciak). NON esegue alcun pagamento reale.
+    """
+    if db is None:
+        raise HTTPException(503, "Database non configurato")
+    from services.ciak_state_machine import (
+        transition_to, add_event, STATE_PURCHASED_67,
+    )
+
+    email = payload.email.strip().lower()
+    diag = await db.diagnostic_sessions.find_one(
+        {"user_email": email}, sort=[("created_at", -1)]
+    )
+    if not diag:
+        raise HTTPException(
+            404,
+            "Nessuna diagnostic session per questa email: il lead deve aver "
+            "completato le 8 Domande Ciak prima di poter segnare l'acquisto.",
+        )
+
+    admin_id = getattr(admin, "email", None) or getattr(admin, "user_id", None)
+    already = diag.get("current_state") in _PURCHASED_STATES
+
+    if not already:
+        now = datetime.now(timezone.utc)
+        manual_id = "manual-" + now.strftime("%Y%m%d%H%M%S")
+        meta = {
+            "stripe_session_id": manual_id,
+            "amount_total": payload.amount_cent,
+            "manual": True,
+            "marked_by": admin_id,
+            "metodo": payload.metodo,
+            "note": payload.note,
+        }
+        transition_to(diag, STATE_PURCHASED_67, event_metadata=meta)
+        add_event(diag, "stripe_payment_completed", meta)
+        diag["manual_purchase"] = {
+            "marked_by": admin_id,
+            "marked_at": now.isoformat(),
+            "amount_total": payload.amount_cent,
+            "metodo": payload.metodo,
+            "note": payload.note,
+        }
+        await db.diagnostic_sessions.replace_one({"_id": diag["_id"]}, diag)
+
+    return {
+        "ok": True,
+        "email": email,
+        "current_state": diag.get("current_state"),
+        "already_purchased": already,
+        "manual": True,
+        "session_token": diag.get("session_token"),
+    }
+
+
 @router.get("/stats")
 async def ciak_stats(admin=Depends(require_ciak_admin)):
     """Conteggi rapidi per la dashboard admin (header KPI + funnel)."""
