@@ -1,21 +1,20 @@
 #!/usr/bin/env node
 /**
- * postbuild-ciak.js — genera build/index.ciak.html
+ * postbuild-ciak.js — genera build/index.ciak.html (shell SPA con meta Ciak).
  *
- * Strategia: CRA produce build/index.html con bundle JS/CSS hashed iniettati.
- * Cloniamo quel file sostituendo solo il blocco <!--BRAND_META_START--> .. <!--BRAND_META_END-->
- * con il blocco meta Ciak. Lo stesso bundle JS gira su entrambi i brand (host-based
- * routing in src/index.js), quindi non serve ricompilare nulla.
+ * CRA produce build/index.html con i bundle JS/CSS hashed iniettati.
+ * Cloniamo quel file sostituendo il blocco <!--! BRAND_META_START --> .. <!--! BRAND_META_END -->
+ * con il blocco meta Ciak. Lo stesso bundle JS gira su tutti gli host (routing in src/index.js).
  *
- * Vercel rewrites (vercel.json) serve build/index.ciak.html quando host = ciak.io
- * o www.ciak.io. I crawler social leggono i meta server-side — niente JS dipendenza.
+ * Consolidamento 2026-06-18: Ciak e' l'unico brand servito. Tutti gli host servono
+ * index.ciak.html via il rewrite catch-all in vercel.json. Rimuoviamo build/index.html
+ * cosi' Vercel non lo serve come directory-index (meta default) scavalcando il rewrite.
  */
 const fs = require("fs");
 const path = require("path");
 
 const buildDir = path.join(__dirname, "..", "build");
 const indexHtmlPath = path.join(buildDir, "index.html");
-const evolutionHtmlPath = path.join(buildDir, "index.evolution.html");
 const ciakMetaPath = path.join(__dirname, "ciak-meta.html");
 const outPath = path.join(buildDir, "index.ciak.html");
 
@@ -30,7 +29,7 @@ function fail(msg) {
 }
 
 if (!fs.existsSync(indexHtmlPath)) {
-  fail("build/index.html non trovato — il build CRA non è stato eseguito?");
+  fail("build/index.html non trovato — il build CRA non e' stato eseguito?");
 }
 if (!fs.existsSync(ciakMetaPath)) {
   fail("scripts/ciak-meta.html non trovato");
@@ -49,14 +48,11 @@ if (!MARKER_RE.test(indexHtml)) {
 const ciakHtml = indexHtml.replace(MARKER_RE, ciakMeta);
 
 fs.writeFileSync(outPath, ciakHtml, "utf8");
-
 const sizeKb = (fs.statSync(outPath).size / 1024).toFixed(1);
 console.log("✓ Generated build/index.ciak.html (" + sizeKb + " KB)");
 
-// Rinomina index.html → index.evolution.html così Vercel non lo serve
-// come directory-index auto-resolve scavalcando i rewrites host-aware.
-// Tutti i path SPA (ciak.io e app.evolution-pro.it) vengono mappati
-// esplicitamente dai rewrites in vercel.json.
-fs.renameSync(indexHtmlPath, evolutionHtmlPath);
-const sizeEvo = (fs.statSync(evolutionHtmlPath).size / 1024).toFixed(1);
-console.log("✓ Renamed build/index.html → build/index.evolution.html (" + sizeEvo + " KB)");
+// Rimuovi build/index.html: Ciak e' l'unico shell servito (via rewrite catch-all
+// in vercel.json). Senza questo, Vercel servirebbe index.html (meta default) come
+// directory-index su "/" scavalcando il rewrite.
+fs.unlinkSync(indexHtmlPath);
+console.log("✓ Removed build/index.html (solo index.ciak.html viene servito)");
