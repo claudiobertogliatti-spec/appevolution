@@ -1,9 +1,8 @@
 /**
  * Ciak.io — entry point app pubblica.
  *
- * Mondo SEPARATO da Evolution PRO (app.evolution-pro.it). Stesso monorepo,
- * routing isolato. Servito quando hostname = ciak.io / www.ciak.io
- * (vedi detect host in index.js).
+ * Unico brand servito su tutti gli host (consolidamento 2026-06-18).
+ * Stesso monorepo, routing isolato (vedi detect host in index.js).
  *
  * Funnel 4 livelli (lockato 2026-05-12 — memory/ciak_brand_copy_framework.md):
  *  LIV 1  Cold/Social (esterno)
