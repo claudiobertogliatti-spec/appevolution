@@ -44,7 +44,7 @@ def set_db(database):
     db = database
 
 SCADENZA_GIORNI = 7
-BASE_URL = os.environ.get('BASE_URL', os.environ.get('FRONTEND_URL', 'https://app.evolution-pro.it'))
+BASE_URL = os.environ.get('BASE_URL', os.environ.get('FRONTEND_URL', 'https://www.ciak.io'))
 
 
 class GeneraPropostaRequest(BaseModel):
