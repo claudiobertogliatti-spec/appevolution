@@ -2,8 +2,7 @@
   {
     "origin": [
       "https://ciak.io",
-      "https://www.ciak.io",
-      "https://app.evolution-pro.it"
+      "https://www.ciak.io"
     ],
     "method": ["GET", "HEAD", "PUT", "POST", "OPTIONS"],
     "responseHeader": [
