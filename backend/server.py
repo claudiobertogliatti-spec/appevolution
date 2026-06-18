@@ -114,8 +114,6 @@ app = FastAPI(title="Evolution PRO OS", version="3.0", redirect_slashes=False)
 # CORS Configuration - MUST be before routers
 # Allow specific origins for production + wildcard for development
 ALLOWED_ORIGINS = [
-    "https://app.evolution-pro.it",
-    "https://www.app.evolution-pro.it",
     "https://evolution-pro.it",
     "https://www.evolution-pro.it",
     "https://ciak.io",
@@ -1531,7 +1529,7 @@ async def create_analisi_checkout(user_id: str = None, email: str = None):
         raise HTTPException(status_code=400, detail="Pagamento già effettuato")
     
     # URL di successo e cancellazione
-    frontend_url = os.environ.get('FRONTEND_URL', 'https://app.evolution-pro.it')
+    frontend_url = os.environ.get('FRONTEND_URL', 'https://www.ciak.io')
     
     try:
         checkout = StripeCheckout(api_key=stripe_key)
@@ -2010,7 +2008,7 @@ async def partnership_checkout(request: Request, credentials: HTTPAuthorizationC
     if not stripe_key:
         raise HTTPException(status_code=500, detail="Stripe non configurato")
 
-    frontend_url = os.environ.get('FRONTEND_URL', 'https://app.evolution-pro.it')
+    frontend_url = os.environ.get('FRONTEND_URL', 'https://www.ciak.io')
     try:
         from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
         checkout = StripeCheckout(api_key=stripe_key)
