@@ -310,7 +310,7 @@ async def acquista_servizio(
     customer_email = user.get("email") if user else partner.get("email")
     
     # URL di ritorno
-    base_url = os.environ.get('FRONTEND_URL', 'https://app.evolution-pro.it')
+    base_url = os.environ.get('FRONTEND_URL', 'https://www.ciak.io')
     success_url = request.success_url or f"{base_url}/partner/servizi?success=true&servizio={servizio_id}"
     cancel_url = request.cancel_url or f"{base_url}/partner/servizi?cancelled=true"
     
