@@ -1573,7 +1573,7 @@ async def create_payment_session(user_id: str):
     if not stripe_key:
         raise HTTPException(status_code=500, detail="Stripe non configurato")
 
-    frontend_url = os.environ.get("FRONTEND_URL", "https://app.evolution-pro.it")
+    frontend_url = os.environ.get("FRONTEND_URL", "https://www.ciak.io")
 
     try:
         from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
