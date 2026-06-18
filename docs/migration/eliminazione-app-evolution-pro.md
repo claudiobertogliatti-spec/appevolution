@@ -56,9 +56,9 @@ Oggi `vercel.json` ha questo rewrite:
 Cioè `index.evolution.html` + il rename in `postbuild-ciak.js` **esistono solo per servire host non-ciak**.
 Consolidare significa rendere Ciak il default ed eliminare il ramo "evolution":
 
-- [ ] `frontend/vercel.json` — far puntare il rewrite di default a `index.ciak.html`; rimuovere la regola host-specifica ridondante.
-- [ ] `frontend/scripts/postbuild-ciak.js` — smettere di generare/rinominare `index.evolution.html`.
-- [ ] `frontend/src/utils/api-config.js` / `index.js` / `CiakApp.jsx` — pulizia commenti e lista domini.
+- [x] `frontend/vercel.json` — far puntare il rewrite di default a `index.ciak.html`; rimuovere la regola host-specifica ridondante.
+- [x] `frontend/scripts/postbuild-ciak.js` — smettere di generare/rinominare `index.evolution.html`.
+- [x] `frontend/src/utils/api-config.js` / `index.js` / `CiakApp.jsx` — pulizia commenti e lista domini.
 
 ATTENZIONE: tocca direttamente la pipeline di `ciak.io`: da fare in un passaggio dedicato, con verifica del
 build Vercel e degli OG meta dei crawler social, **dopo** la rimozione del dominio lato Vercel (sotto).
@@ -90,5 +90,5 @@ build Vercel e degli OG meta dei crawler social, **dopo** la rimozione del domin
 - [x] Nessun riferimento **operativo/funzionale** a `app.evolution-pro.it` nel codice backend.
 - [x] CORS, default URL e embed puntano a `ciak.io`.
 - [x] `CLAUDE.md` documenta la dismissione e non guida più verso il dominio morto.
-- [ ] Fase 2 (deploy Vercel consolidato su Ciak) completata.
+- [x] Fase 2 (deploy Vercel consolidato su Ciak) completata — 2026-06-18.
 - [ ] Fase 3 (infra: Vercel/Cloud Run/DNS/GCS/env/3rd-party) completata da Claudio.
