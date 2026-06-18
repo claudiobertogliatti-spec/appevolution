@@ -28,43 +28,44 @@
     },
     {
       "source": "/((?!api/|static/|ciak/|images/|agents/|favicon|apple-touch-icon|site\\.webmanifest|og-|robots|sitemap|llms|index\\.).*)?",
-      "has": [{ "type": "host", "value": "(www\\.)?ciak\\.io" }],
       "destination": "/index.ciak.html"
-    },
-    {
-      "source": "/((?!api/|static/|ciak/|images/|agents/|favicon|apple-touch-icon|site\\.webmanifest|og-|robots|sitemap|llms|index\\.).*)?",
-      "destination": "/index.evolution.html"
     }
   ],
   "headers": [
     {
       "source": "/ciak/(.*\\.webp)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     },
     {
       "source": "/static/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     },
     {
       "source": "/og-(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=604800" }
-      ]
-    },
-    {
-      "source": "/index.evolution.html",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800"
+        }
       ]
     },
     {
       "source": "/index.ciak.html",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
       ]
     }
   ]
