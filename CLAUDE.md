@@ -12,6 +12,19 @@ Claude è autorizzato a committare e pushare su `main` senza richiedere conferma
 
 **Se il sandbox bash fallisce**: usare Claude in Chrome → navigare su github.com/claudiobertogliatti-spec/appevolution → aprire il file → Edit → modificare via console CM6 → commit su main.
 
+## ⛔ Dominio `app.evolution-pro.it` — DISMESSO (eliminazione in corso)
+
+`app.evolution-pro.it` è un dominio **morto**: nessun partner ci accede più. L'app operativa
+(admin + area partner) vive su **`ciak.io`** (alias build `ciak-frontend.vercel.app`), stesso
+bundle `CiakApp`, stesso backend `evolution-pro-backend` (Cloud Run). La vecchia app Evolution PRO
+(`App.js` + `components/`) è già stata rimossa dal frontend il 2026-06-03.
+
+**Regola**: non introdurre nuovi riferimenti a `app.evolution-pro.it`. Per URL di frontend usare
+`https://www.ciak.io`. NON toccare il runtime/deploy di `ciak.io` durante la pulizia.
+
+Inventario, stato e step infra residui (DNS, Vercel domain, Cloud Run mapping, CORS GCS):
+vedi `docs/migration/eliminazione-app-evolution-pro.md`.
+
 ## Direzioni strategiche prodotto (Ciak) — leggere prima di lavorare su posizionamento/agenti/funnel
 
 **Fonte di verità completa**: `docs/strategy/ulama-adattamento-ciak.md` (backlog di 20 voci + analisi di 6 corsi). Consultarlo prima di toccare il percorso Partner (F1–F7), gli agenti (Valentina, Andrea, Gaia, Marco, Matteo, Stefania), il wizard `Step04Posizionamento`, il motore Blueprint (`ciak_matteo*`), o i renderer documenti posizionamento.
@@ -124,7 +137,7 @@ Se un video resta in `queued` per più di 30 minuti:
 
 **Fix applicato**: `backend/video_pipeline_task.py` — aggiunto `soft_time_limit=10800` (3h) e `time_limit=11100` al decorator `@celery_app.task` di `process_partner_video`.
 
-**Procedura di recovery** (da fare dal browser loggato come admin su `app.evolution-pro.it`):
+**Procedura di recovery** (da fare dal browser loggato come admin su `ciak.io/admin`):
 ```js
 // 1. Verifica stato
 const token = localStorage.getItem("access_token") || localStorage.getItem("token");
@@ -140,7 +153,7 @@ fetch("/api/admin/partner/PARTNER_ID/journey", {method:"PATCH",headers:{Authoriz
 fetch("/api/admin/partner/PARTNER_ID/retrigger-video?video_type=masterclass", {method:"POST",headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json()).then(console.log)
 ```
 
-**Nota**: tutti questi snippet JS funzionano direttamente dalla console del browser su `app.evolution-pro.it` (il token è in localStorage). Utile quando il backend non è raggiungibile dall'allowlist di rete Cowork.
+**Nota**: tutti questi snippet JS funzionano direttamente dalla console del browser su `ciak.io/admin` (il token è in localStorage). Utile quando il backend non è raggiungibile dall'allowlist di rete Cowork.
 
 ### 7. Falsi alert "Video processing failed: Input file not found"
 **Causa**: il vecchio endpoint `POST /api/videos/process` (pipeline legacy `VideoProcessor` in `server.py`) viene chiamato con un URL Drive come `input_file`. Lui lo tratta come percorso locale → errore. Questo endpoint è separato dalla pipeline Celery reale (`process_partner_video`). Gli alert che iniziano con `Video processing failed: Input file not found: /app/storage/videos/raw/https:/...` sono falsi positivi dalla pipeline legacy e **non** indicano un problema sulla pipeline Celery del partner.
