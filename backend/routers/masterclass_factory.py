@@ -313,6 +313,15 @@ async def approve_script(partner_id: str, data: ApproveScriptRequest):
     }
     await db.partner_files.insert_one(file_doc)
     
+    # Ponte Masterclass -> I Miei File: PDF brandizzato su Cloudinary + record in db.files
+    # (category masterclass, step_ref 05-masterclass, status approved), come Posizionamento/Brand Kit.
+    # Best-effort: non blocca mai l'approvazione se render/upload fallisce.
+    try:
+        from services.masterclass_pdf_renderer import save_approved_script_pdf
+        await save_approved_script_pdf(db, partner_id, data.script)
+    except Exception as _e:
+        logging.warning(f"[MASTERCLASS] Ponte PDF->I Miei File fallito per {partner_id}: {_e}")
+
     return {"success": True, "message": "Script approvato e salvato"}
 
 
