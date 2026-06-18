@@ -7,7 +7,7 @@
  */
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { apiGet } from "../api";
+import { apiGet, apiPost } from "../api";
 
 const STATO_LABEL = {
   1: "Definizione",
@@ -15,6 +15,8 @@ const STATO_LABEL = {
   3: "Validazione",
   4: "Evoluzione Strategica",
 };
+
+const PURCHASED_STATES = ["purchased_67", "call_booked", "call_done", "partner_approved", "partner_active"];
 
 function Section({ title, children }) {
   return (
@@ -41,6 +43,8 @@ export function AdminLeadDetail({ onAuthExpired }) {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [marking, setMarking] = useState(false);
+  const [markMsg, setMarkMsg] = useState(null);
 
   useEffect(() => {
     apiGet("/lead", { email: decodeURIComponent(email) })
@@ -50,6 +54,23 @@ export function AdminLeadDetail({ onAuthExpired }) {
         else setError(e.message);
       });
   }, [email, onAuthExpired]);
+
+  async function markPaid() {
+    if (!window.confirm("Segnare l'analisi 67 EUR come PAGATA (manuale) per " + data.email + "?\n\nNon esegue alcun pagamento reale: registra solo l'acquisto nel funnel (purchased_67).")) return;
+    setMarking(true);
+    setMarkMsg(null);
+    try {
+      const r = await apiPost("/lead/mark-purchased", { email: data.email });
+      setMarkMsg(r.already_purchased ? "Era gia' segnato come acquistato." : "Fatto: 67 EUR segnati come pagati.");
+      const fresh = await apiGet("/lead", { email: data.email });
+      setData(fresh);
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired();
+      else setMarkMsg("Errore: " + e.message);
+    } finally {
+      setMarking(false);
+    }
+  }
 
   if (error) return <div className="p-10 text-slate-600">Errore: {error}</div>;
   if (!data) return <div className="p-10 text-slate-400">Caricamento…</div>;
@@ -168,6 +189,36 @@ export function AdminLeadDetail({ onAuthExpired }) {
             </div>
           ))
         )}
+      </Section>
+
+      {/* Analisi 67 EUR - segna pagamento manuale (ricrea acquisti offline) */}
+      <Section title="Analisi 67 EUR">
+        {(() => {
+          const purchased = PURCHASED_STATES.includes(latest_diagnostic?.current_state);
+          return (
+            <>
+              <Field
+                label="Stato acquisto"
+                value={purchased ? "Pagato (purchased_67)" : "Non acquistato"}
+              />
+              {!purchased && (
+                <button
+                  onClick={markPaid}
+                  disabled={marking || diagnostics.length === 0}
+                  className="mt-2 px-5 py-2.5 rounded-lg bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-300 transition text-sm disabled:opacity-50"
+                >
+                  {marking ? "Registro..." : "Segna 67 EUR come pagato (manuale)"}
+                </button>
+              )}
+              {!purchased && diagnostics.length === 0 && (
+                <p className="text-xs text-slate-400 mt-2">
+                  Il lead deve completare prima le 8 Domande Ciak.
+                </p>
+              )}
+              {markMsg && <p className="text-sm text-slate-700 mt-3">{markMsg}</p>}
+            </>
+          );
+        })()}
       </Section>
     </div>
   );
