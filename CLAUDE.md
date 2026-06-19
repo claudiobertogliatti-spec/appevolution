@@ -897,3 +897,27 @@ Percorso admin manuale supportato:
 5. POST /api/partners/{id}/segna-pagamento-partnership {amount, metodo_pagamento, note} per ogni tranche incassata (fa $inc revenue, invia email benvenuto)
 6. POST /api/admin/ciak/partner/{id}/piano-pagamento {tipo:"rate_concordate", rate_totali:3, rate_pagate, importo_rata, prossima_scadenza, note}
 UI pronta in PartnerDetailModal + ContractParamsModal (admin Ciak). Il piano-pagamento e' descrittivo (non addebita): le rate reali si incassano fuori sistema e si registrano con segna-pagamento-partnership + update rate_pagate. Prezzo 2.790 default in contract.py DEFAULT_CONTRACT_PARAMS; contratto Art.5 ammette max 3 rate mensili.
+
+## Team AI Ciak (CANONICO, customer-facing) - MEMORIZZATO 2026-06-18
+
+Fonte di verita': frontend/src/ciak/partner/operativo/agents.js (export AGENTS). Foto in frontend/public/agents/*.jpg (6 file). Sono i 6 agenti "ufficiali" con foto, usati nelle chat dell'area partner (AgentDrawer / PhaseAgentHeader) e nella pagina proposta. NON inventare altri agenti customer-facing (Orion/Marta/Atlas/Luca esistono nel backend ma NON hanno foto ne' presenza customer-facing).
+
+Roster (id | nome | ruolo customer-facing | foto):
+- STEFANIA | Stefania | Coordinatrice del tuo percorso | /agents/stefania.jpg
+- VALENTINA | Valentina | Brand & Posizionamento | /agents/valentina.jpg
+- ANDREA | Andrea | Coach video e contenuti | /agents/andrea.jpg
+- GAIA | Gaia | Supporto tecnico funnel | /agents/gaia.jpg
+- MARCO | Marco | Strategia lancio | /agents/marco.jpg
+- MATTEO | Matteo | Analista Ciak Blueprint | /agents/matteo.jpg
+
+Mapping step->agente (STEP_TO_AGENT in agents.js), determina quale volto/prompt mostra la chat per step:
+- 01-contratto, 02-discovery-video, 10-funnel-team-work -> STEFANIA (default fallback STEFANIA)
+- burocrazia, 03-brand-kit, 04-posizionamento -> VALENTINA
+- 05-script-masterclass, 06-outline-lezioni, 07-registra-masterclass, 08-registra-lezioni -> ANDREA
+- 09-funnel-asset -> GAIA
+- 11-calendario-30gg, 12-prezzo-webinar, 13-lancio -> MARCO
+(MATTEO = analista Blueprint/diagnostica, scoring)
+
+Come funziona la chat area partner: AgentDrawer mostra volto+nome dell'agente attivo per lo step (getAgentForStep) e passa target_agent al backend, che swappa il system prompt dell'agente. File chat: frontend/src/ciak/partner/operativo/AgentDrawer.jsx, PhaseAgentHeader.jsx, agents.js, phases.js. Prossime modifiche richieste da Claudio riguarderanno proprio queste chat dell'area partner.
+
+Allineamento fatto 2026-06-18: la pagina proposta (frontend/src/ciak/pages/Proposta.jsx) ora usa questi 6 agenti CON foto (array TEAM con avatar) + le 3 Fasi ufficiali Evolution PRO (Creazione Accademia / Lancio del Progetto / Ottimizzazione del Servizio) al posto delle vecchie 7 fasi. Coerenza con evolution-pro.it (Metodo EVO: Esamina-Valida-Ottimizza, 3 fasi).
