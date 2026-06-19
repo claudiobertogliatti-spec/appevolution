@@ -15,6 +15,8 @@ export const AGENTS = {
     role: "Coordinatrice del tuo percorso",
     avatar: "/agents/stefania.jpg",
     initial: "S",
+    description:
+      "Tiene insieme tutto il percorso e ti dà sempre la prossima mossa quando non sai da dove ripartire. È il tuo primo punto di contatto per qualsiasi dubbio.",
   },
   VALENTINA: {
     id: "VALENTINA",
@@ -22,6 +24,8 @@ export const AGENTS = {
     role: "Brand & Posizionamento",
     avatar: "/agents/valentina.jpg",
     initial: "V",
+    description:
+      "Ti aiuta a definire chi sei, a chi parli e perché scelgono te. Posizionamento, brand e messaggio differenziante.",
   },
   ANDREA: {
     id: "ANDREA",
@@ -29,6 +33,8 @@ export const AGENTS = {
     role: "Coach video e contenuti",
     avatar: "/agents/andrea.jpg",
     initial: "A",
+    description:
+      "Ti segue nella registrazione di masterclass e videocorso: struttura, script, ritmo e qualità davanti alla camera.",
   },
   GAIA: {
     id: "GAIA",
@@ -36,6 +42,8 @@ export const AGENTS = {
     role: "Supporto tecnico funnel",
     avatar: "/agents/gaia.jpg",
     initial: "G",
+    description:
+      "Si occupa della parte tecnica: funnel, pagine, automazioni e collegamenti. Quando qualcosa non gira, chiedi a lei.",
   },
   MARCO: {
     id: "MARCO",
@@ -43,6 +51,8 @@ export const AGENTS = {
     role: "Strategia lancio",
     avatar: "/agents/marco.jpg",
     initial: "M",
+    description:
+      "Prepara il lancio e tiene il ritmo: calendario, prezzo, webinar e accountability fino al giorno in cui vai online.",
   },
   MATTEO: {
     id: "MATTEO",
@@ -50,8 +60,16 @@ export const AGENTS = {
     role: "Analista Ciak Blueprint",
     avatar: "/agents/matteo.jpg",
     initial: "M",
+    description:
+      "Analizza i tuoi dati e il tuo posizionamento per dirti, numeri alla mano, dove spingere e cosa correggere.",
   },
 };
+
+/**
+ * Ordine di presentazione del team nella pagina "Team di supporto".
+ * Segue il percorso: coordinamento → posizionamento → contenuti → tecnica → lancio → analisi.
+ */
+export const TEAM_ORDER = ["STEFANIA", "VALENTINA", "ANDREA", "GAIA", "MARCO", "MATTEO"];
 
 /**
  * Mapping step_id → agent_id.
