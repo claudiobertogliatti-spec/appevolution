@@ -1876,15 +1876,25 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
 
         # --- 2) Approvazione specifica delle clausole vessatorie ---
         story.append(Paragraph("2) Approvazione specifica delle clausole ai sensi degli artt. 1341 e 1342 c.c.", style_articolo))
-        vex = ("Ai sensi e per gli effetti degli artt. 1341 e 1342 del Codice Civile, il Partner "
-               "dichiara di aver letto, compreso e di approvare specificamente per iscritto le "
-               "seguenti clausole: Art. 2 (Durata, rinnovo, recesso e risoluzione), "
-               "Art. 5 (Corrispettivi, piani di pagamento e revenue share), "
-               "Art. 7 (Recesso, risoluzione e limitazioni di responsabilita'), "
-               "Art. 11 (Clausola di salvaguardia, intero accordo e prevalenza delle condizioni contrattuali), "
-               "Art. 12 (Tutela del brand, degli asset proprietari e del know-how), "
-               "Art. 14 (Legge applicabile e risoluzione delle controversie).")
-        story.append(Paragraph(vex, style_testo))
+        story.append(Paragraph("Il Partner dichiara di aver letto, compreso e approvato specificamente le seguenti clausole:", style_testo))
+        style_bullet = ParagraphStyle('BulletVex', parent=style_testo, leftIndent=16, spaceAfter=2)
+        _clausole_vex = [
+            "Art. 1.4 (Esclusiva)",
+            "Art. 2.6 (Recesso Evolution PRO)",
+            "Art. 2.7 (Risoluzione per inadempimento)",
+            "Art. 3.3 (Sospensione per inattività)",
+            "Art. 5.3 (Decadenza beneficio della dilazione)",
+            "Art. 5.5 e 5.6 (Royalty e Revenue Share)",
+            "Art. 5.7 (Corrispettivo non rimborsabile)",
+            "Art. 6.5 (Penale riservatezza)",
+            "Art. 7.6 (Limitazione di responsabilità)",
+            "Art. 10.6 (Limitazione responsabilità dati)",
+            "Art. 12 e 12.5 (Tutela asset e penali)",
+            "Art. 14.3 (Mediazione)",
+            "Art. 14.4 (Foro esclusivo Torino)",
+        ]
+        for _c in _clausole_vex:
+            story.append(Paragraph("•  " + _c, style_bullet))
         story.append(Spacer(1, 0.2*cm))
         story.append(Paragraph("Luogo e data: Torino, " + data_firma_fmt, style_testo))
         story.append(Spacer(1, 0.2*cm))
