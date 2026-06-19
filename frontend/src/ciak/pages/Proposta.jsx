@@ -732,7 +732,8 @@ function ContrattoInline({ proposta, onFirma, firmato }) {
     fetch(`/api/contract/text/${proposta.partner_id}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (d?.html) setContractText(d.html);
+        if (d?.contract_text) setContractText(d.contract_text);
+        else if (d?.html) setContractText(d.html);
       })
       .catch(() => {});
   }, [proposta.partner_id]);
@@ -799,10 +800,9 @@ function ContrattoInline({ proposta, onFirma, firmato }) {
         <h2 className="font-semibold text-lg">Contratto di Partnership</h2>
         <p className="text-slate-400 text-sm">Leggi attentamente e firma in basso.</p>
       </div>
-      <div
-        className="p-6 max-h-[500px] overflow-y-auto text-sm leading-relaxed text-slate-700"
-        dangerouslySetInnerHTML={{ __html: contractText || "<p>Caricamento testo contratto…</p>" }}
-      />
+      <div className="p-6 max-h-[500px] overflow-y-auto text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">
+        {contractText || "Caricamento testo contratto…"}
+      </div>
       <div className="border-t border-gray-200 p-6 bg-gray-50">
         <label className="flex items-start gap-3 mb-6 cursor-pointer">
           <input
@@ -869,7 +869,7 @@ function DocumentiUpload({ onUpload, uploading }) {
     <div>
       <h2 className="text-xl md:text-2xl font-semibold text-slate-900 mb-2">Documenti necessari</h2>
       <p className="text-slate-600 mb-6">
-        Carica un documento di identità valido (carta d'identità o passaporto):
+        Carica un documento di identità valido (carta d'identità oo passaporto):
       </p>
       <div className="grid grid-cols-2 gap-4 mb-6">
         {["Fronte", "Retro"].map((label, i) => (
