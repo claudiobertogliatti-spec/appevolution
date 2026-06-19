@@ -5827,6 +5827,38 @@ async def complete_operativo_step(partner_id: str, step_id: str, body: _Operativ
             mirror["dati_burocrazia_updated_at"] = now
             await db.partners.update_one({"id": partner_id}, {"$set": mirror})
 
+        # Collega i dati del form al CONTRATTO: scrive contract_partner_data
+        # (fonte del PDF/testo contratto). Mappa comune->citta, ragione_sociale->nome_azienda.
+        _cpd = {
+            "nome": merged_data.get("nome", ""),
+            "cognome": merged_data.get("cognome", ""),
+            "nome_azienda": merged_data.get("ragione_sociale", ""),
+            "codice_fiscale": merged_data.get("codice_fiscale", ""),
+            "partita_iva": merged_data.get("partita_iva", ""),
+            "indirizzo": merged_data.get("indirizzo", ""),
+            "citta": merged_data.get("comune", ""),
+            "cap": merged_data.get("cap", ""),
+            "provincia": merged_data.get("provincia", ""),
+            "email": merged_data.get("email", ""),
+            "pec": merged_data.get("pec", ""),
+            "iban": merged_data.get("iban", ""),
+            "partner_id": partner_id,
+            "saved_at": now.isoformat(),
+        }
+        await db.contract_partner_data.update_one(
+            {"partner_id": partner_id}, {"$set": _cpd}, upsert=True
+        )
+        # Rigenera il PDF contratto personalizzato se il contratto e' gia' firmato.
+        try:
+            _p = await db.partners.find_one({"id": partner_id}, {"_id": 0}) \
+                or await db.users.find_one({"id": partner_id}, {"_id": 0})
+            _cd = (_p or {}).get("contract") or {}
+            if _p and _cd.get("signature_base64"):
+                from routers.contract import generate_contract_pdf
+                await generate_contract_pdf(_p, _cd)
+        except Exception as _e:
+            logging.warning("Rigenerazione PDF contratto post-burocrazia fallita: %s", _e)
+
     # Notifica admin: il partner ha completato uno step / consegnato materiali / fatto una variazione.
     _was_done = current.get("status") == "done"
     _label = next((d["label"] for d in JOURNEY_STEPS_DEFINITION if d["step_id"] == step_id), step_id)
