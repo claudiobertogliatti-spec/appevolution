@@ -187,7 +187,7 @@ export function PartnerFilesPage({ partner }) {
     Object.entries(files).forEach(([category, fileList]) => {
       if (Array.isArray(fileList)) {
         fileList.forEach((f) => {
-          allFiles.push({ ...f, category });
+          allFiles.push({ ...f, category: f.category || category });
         });
       }
     });
