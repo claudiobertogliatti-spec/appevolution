@@ -45,7 +45,7 @@ celery_app = Celery(
     'evolution_pro',
     broker=broker_url,
     backend=backend_url,
-    include=['celery_tasks', 'morning_briefing_task', 'video_pipeline_task']
+    include=['celery_tasks', 'morning_briefing_task', 'video_pipeline_task', 'celery_sollecito']
 )
 
 # Celery configuration
@@ -107,6 +107,10 @@ celery_app.conf.update(
         'morning-lead-briefing': {
             'task': 'morning_lead_briefing',
             'schedule': crontab(hour=7, minute=0),  # Every day at 7:00 AM CET
+        },
+        'check-partner-journey-solleciti': {
+            'task': 'celery_sollecito.check_partner_journey_solleciti',
+            'schedule': crontab(hour=9, minute=30),  # Ogni giorno 9:30 CET — solleciti percorso 21gg
         },
         # ─────────────────────────────────────────────────────────────────
         # `daily-systeme-import` DISATTIVATO 2026-05-15.
