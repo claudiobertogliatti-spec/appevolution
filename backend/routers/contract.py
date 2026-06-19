@@ -1690,7 +1690,10 @@ async def _get_partner_params(partner_id: str) -> dict:
 
 async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[str]:
     """
-    Genera PDF del contratto firmato con layout professionale.
+    Genera PDF del contratto firmato con layout professionale:
+    carta intestata + logo Evolution PRO su ogni pagina, numerazione pagine
+    (Pagina X di Y), Luogo e data (Torino) e DOPPIA FIRMA (accettazione integrale
+    + approvazione specifica delle clausole vessatorie ex artt. 1341-1342 c.c.).
     Carica su Cloudinary e ritorna l'URL.
     """
     try:
@@ -1702,44 +1705,104 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
         from reportlab.lib import colors
         from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as RLImage, Table, TableStyle, HRFlowable
         from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER, TA_LEFT
-        
+        from reportlab.pdfgen import canvas as _canvas
+        from reportlab.lib.utils import ImageReader
+
+        LOGO_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "logo_evolutionpro.png")
+        YELLOW = colors.HexColor('#FFD24D')
+        DARK = colors.HexColor('#1a1a2e')
+        GREY = colors.HexColor('#999999')
+
+        # ---- Carta intestata (header + footer) disegnata su ogni pagina ----
+        def _header_footer(canvas, doc):
+            canvas.saveState()
+            pw, ph = A4
+            try:
+                logo = ImageReader(LOGO_PATH)
+                iw, ih = logo.getSize()
+                lh = 1.25 * cm
+                lw = lh * iw / ih
+                canvas.drawImage(logo, 2.2 * cm, ph - 2.3 * cm, width=lw, height=lh,
+                                 mask='auto', preserveAspectRatio=True)
+            except Exception:
+                canvas.setFont('Helvetica-Bold', 13)
+                canvas.setFillColor(DARK)
+                canvas.drawString(2.2 * cm, ph - 2.0 * cm, "EVOLUTION PRO")
+            canvas.setFont('Helvetica', 8)
+            canvas.setFillColor(GREY)
+            canvas.drawRightString(pw - 2.2 * cm, ph - 1.75 * cm, "Contratto di Partnership")
+            canvas.drawRightString(pw - 2.2 * cm, ph - 2.1 * cm, "Evolution PRO")
+            canvas.setStrokeColor(YELLOW)
+            canvas.setLineWidth(1.4)
+            canvas.line(2.2 * cm, ph - 2.5 * cm, pw - 2.2 * cm, ph - 2.5 * cm)
+            # footer
+            canvas.setStrokeColor(colors.HexColor('#dddddd'))
+            canvas.setLineWidth(0.5)
+            canvas.line(2.2 * cm, 1.7 * cm, pw - 2.2 * cm, 1.7 * cm)
+            canvas.setFont('Helvetica', 7)
+            canvas.setFillColor(GREY)
+            canvas.drawString(2.2 * cm, 1.35 * cm, "Evolution PRO  -  www.evolution-pro.it")
+            canvas.restoreState()
+
+        # ---- Canvas con numerazione "Pagina X di Y" ----
+        class NumberedCanvas(_canvas.Canvas):
+            def __init__(self, *args, **kwargs):
+                _canvas.Canvas.__init__(self, *args, **kwargs)
+                self._saved_page_states = []
+
+            def showPage(self):
+                self._saved_page_states.append(dict(self.__dict__))
+                self._startPage()
+
+            def save(self):
+                total = len(self._saved_page_states)
+                for state in self._saved_page_states:
+                    self.__dict__.update(state)
+                    self.setFont('Helvetica', 8)
+                    self.setFillColor(GREY)
+                    self.drawRightString(A4[0] - 2.2 * cm, 1.35 * cm,
+                                         f"Pagina {self._pageNumber} di {total}")
+                    _canvas.Canvas.showPage(self)
+                _canvas.Canvas.save(self)
+
         buffer = BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=A4,
-            rightMargin=2.5*cm, leftMargin=2.5*cm, topMargin=2.5*cm, bottomMargin=2.5*cm)
-        
+            rightMargin=2.2*cm, leftMargin=2.2*cm, topMargin=3.0*cm, bottomMargin=2.2*cm)
+
         styles = getSampleStyleSheet()
         style_titolo = ParagraphStyle('Titolo', parent=styles['Heading1'],
             fontSize=16, spaceAfter=6, spaceBefore=0,
-            textColor=colors.HexColor('#1a1a2e'), alignment=TA_CENTER)
+            textColor=DARK, alignment=TA_CENTER)
         style_sottotitolo = ParagraphStyle('Sottotitolo', parent=styles['Normal'],
             fontSize=10, spaceAfter=20, alignment=TA_CENTER,
             textColor=colors.HexColor('#666666'))
         style_articolo = ParagraphStyle('Articolo', parent=styles['Heading2'],
             fontSize=11, spaceBefore=14, spaceAfter=4,
-            textColor=colors.HexColor('#1a1a2e'))
+            textColor=DARK)
         style_testo = ParagraphStyle('Testo', parent=styles['Normal'],
             fontSize=9.5, spaceAfter=6, leading=14, alignment=TA_JUSTIFY)
         style_footer = ParagraphStyle('Footer', parent=styles['Normal'],
-            fontSize=8, textColor=colors.HexColor('#999999'), alignment=TA_CENTER)
-        
+            fontSize=8, textColor=GREY, alignment=TA_CENTER)
+
         story = []
-        
+
         # INTESTAZIONE
         story.append(Paragraph("EVOLUTION PRO", style_titolo))
         story.append(Paragraph("Contratto di Partnership", style_sottotitolo))
-        story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#1a1a2e')))
+        story.append(HRFlowable(width="100%", thickness=1, color=DARK))
         story.append(Spacer(1, 0.4*cm))
-        
-        # TABELLA DATI CONTRATTO
+
+        # TABELLA DATI CONTRATTO (invariata - parte iniziale con IP ecc.)
         signed_at = contract_data.get('signed_at', '')
         try:
             data_firma_fmt = datetime.fromisoformat(signed_at).strftime('%d/%m/%Y alle %H:%M')
-        except:
+        except Exception:
             data_firma_fmt = signed_at
-        
+
         info_data = [
             ['Versione contratto:', contract_data.get('version', 'v1.0')],
             ['Data firma:', data_firma_fmt],
+            ['Luogo:', 'Torino'],
             ['Partner:', partner.get('name', 'N/A')],
             ['Email:', partner.get('email', 'N/A')],
             ['IP Address:', contract_data.get('ip_address', 'N/D')],
@@ -1748,7 +1811,7 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
         t.setStyle(TableStyle([
             ('FONTSIZE', (0,0), (-1,-1), 9),
             ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
-            ('TEXTCOLOR', (0,0), (0,-1), colors.HexColor('#1a1a2e')),
+            ('TEXTCOLOR', (0,0), (0,-1), DARK),
             ('BOTTOMPADDING', (0,0), (-1,-1), 4),
             ('TOPPADDING', (0,0), (-1,-1), 4),
         ]))
@@ -1756,7 +1819,7 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
         story.append(Spacer(1, 0.6*cm))
         story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#dddddd')))
         story.append(Spacer(1, 0.4*cm))
-        
+
         # TESTO CONTRATTO
         for line in rendered_text.split('\n'):
             line = line.strip()
@@ -1767,16 +1830,32 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
             else:
                 line = line.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
                 story.append(Paragraph(line, style_testo))
-        
-        # SEZIONE FIRMA
+
+        # ===== SEZIONE FIRME - DOPPIA SOTTOSCRIZIONE =====
         story.append(Spacer(1, 0.6*cm))
-        story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#1a1a2e')))
-        story.append(Spacer(1, 0.4*cm))
-        story.append(Paragraph("FIRMA DIGITALE", style_articolo))
-        
+        story.append(HRFlowable(width="100%", thickness=1, color=DARK))
+        story.append(Spacer(1, 0.3*cm))
+        story.append(Paragraph(f"Luogo e data: Torino, {data_firma_fmt}", style_testo))
+        story.append(Spacer(1, 0.2*cm))
+
+        # firma digitale (riusata per entrambe le sottoscrizioni)
+        sig_b64 = contract_data.get('signature_base64', '')
+        if sig_b64.startswith('data:image'):
+            sig_b64 = sig_b64.split(',')[1]
+
+        def _sig_image():
+            try:
+                b = base64.b64decode(sig_b64)
+                return RLImage(BytesIO(b), width=170, height=68)
+            except Exception:
+                return Paragraph("[Firma digitale applicata]", style_testo)
+
+        # --- 1) Firma per accettazione integrale del contratto ---
+        story.append(Paragraph("1) Firma del Partner per accettazione integrale del contratto", style_articolo))
         firma_info = [
             ["Firmato da:", partner.get('name', 'N/A')],
-            ["Data e ora firma:", signed_at],
+            ["Data e ora firma:", data_firma_fmt],
+            ["Luogo:", "Torino"],
             ["Indirizzo IP:", contract_data.get('ip_address', 'N/D')],
             ["Metodo:", "Firma digitale tramite piattaforma Evolution PRO"],
         ]
@@ -1784,36 +1863,46 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
         t_firma.setStyle(TableStyle([
             ('FONTSIZE', (0,0), (-1,-1), 9),
             ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
-            ('TEXTCOLOR', (0,0), (0,-1), colors.HexColor('#1a1a2e')),
+            ('TEXTCOLOR', (0,0), (0,-1), DARK),
             ('BOTTOMPADDING', (0,0), (-1,-1), 4),
             ('TOPPADDING', (0,0), (-1,-1), 4),
         ]))
         story.append(t_firma)
-        story.append(Spacer(1, 0.3*cm))
-        
-        # Immagine firma
-        try:
-            sig_data = contract_data.get('signature_base64', '')
-            if sig_data.startswith('data:image'):
-                sig_data = sig_data.split(',')[1]
-            sig_bytes = base64.b64decode(sig_data)
-            sig_buffer = BytesIO(sig_bytes)
-            sig_img = RLImage(sig_buffer, width=200, height=80)
-            story.append(sig_img)
-        except Exception as e:
-            logger.warning(f"Impossibile aggiungere firma al PDF: {e}")
-            story.append(Paragraph("[Firma digitale applicata]", style_testo))
-        
-        # FOOTER
+        story.append(Spacer(1, 0.2*cm))
+        story.append(_sig_image())
+        story.append(Spacer(1, 0.2*cm))
+        story.append(Paragraph("_______________________________  (Il Partner)", style_testo))
+        story.append(Spacer(1, 0.5*cm))
+
+        # --- 2) Approvazione specifica delle clausole vessatorie ---
+        story.append(Paragraph("2) Approvazione specifica delle clausole ai sensi degli artt. 1341 e 1342 c.c.", style_articolo))
+        vex = ("Ai sensi e per gli effetti degli artt. 1341 e 1342 del Codice Civile, il Partner "
+               "dichiara di aver letto, compreso e di approvare specificamente per iscritto le "
+               "seguenti clausole: Art. 2 (Durata, rinnovo, recesso e risoluzione), "
+               "Art. 5 (Corrispettivi, piani di pagamento e revenue share), "
+               "Art. 7 (Recesso, risoluzione e limitazioni di responsabilita'), "
+               "Art. 11 (Clausola di salvaguardia, intero accordo e prevalenza delle condizioni contrattuali), "
+               "Art. 12 (Tutela del brand, degli asset proprietari e del know-how), "
+               "Art. 14 (Legge applicabile e risoluzione delle controversie).")
+        story.append(Paragraph(vex, style_testo))
+        story.append(Spacer(1, 0.2*cm))
+        story.append(Paragraph("Luogo e data: Torino, " + data_firma_fmt, style_testo))
+        story.append(Spacer(1, 0.2*cm))
+        story.append(_sig_image())
+        story.append(Spacer(1, 0.2*cm))
+        story.append(Paragraph("_______________________________  (Il Partner - per specifica approvazione)", style_testo))
+
+        # FOOTER legale
         story.append(Spacer(1, 0.4*cm))
         story.append(Paragraph(
             "Documento generato automaticamente dalla piattaforma Evolution PRO. "
             "La firma digitale apposta ha valore legale ai sensi del D.Lgs. 82/2005 (CAD).",
             style_footer))
-        
-        doc.build(story)
+
+        doc.build(story, onFirstPage=_header_footer, onLaterPages=_header_footer,
+                  canvasmaker=NumberedCanvas)
         pdf_bytes = buffer.getvalue()
-        
+
         # Salva il PDF in MongoDB per download sicuro
         partner_id = partner.get('id', 'unknown')
         await db.contract_pdfs.update_one(
@@ -1826,7 +1915,7 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
             }},
             upsert=True
         )
-        
+
         # Upload anche su Cloudinary come backup (non bloccante)
         try:
             import cloudinary
@@ -1844,9 +1933,9 @@ async def generate_contract_pdf(partner: dict, contract_data: dict) -> Optional[
             )
         except Exception as e:
             logger.warning(f"Cloudinary backup upload failed (non bloccante): {e}")
-        
+
         return f"/api/contract/pdf-download/{partner_id}"
-        
+
     except ImportError:
         logger.warning("ReportLab non installato, skip generazione PDF")
         return None
