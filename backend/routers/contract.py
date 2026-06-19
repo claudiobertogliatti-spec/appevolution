@@ -1394,7 +1394,7 @@ async def get_contract_status(partner_id: str):
 
 
 @router.get("/pdf/{partner_id}")
-async def get_contract_pdf(partner_id: str):
+async def get_contract_pdf(partner_id: str, force: bool = False):
     """
     Restituisce l'URL del PDF del contratto firmato.
     Se non esiste, lo rigenera.
@@ -1409,7 +1409,7 @@ async def get_contract_pdf(partner_id: str):
     
     # Controlla se il PDF è già in MongoDB
     existing = await db.contract_pdfs.find_one({"partner_id": str(partner_id)}, {"_id": 0, "partner_id": 1})
-    if existing:
+    if existing and not force:
         return {"success": True, "pdf_url": f"/api/contract/pdf-download/{partner_id}"}
     
     # Rigenera il PDF
