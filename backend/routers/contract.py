@@ -1453,18 +1453,20 @@ async def get_contract_text(partner_id: str):
     Restituisce il testo del contratto con parametri personalizzati per il partner.
     Se esiste un PDF custom caricato dall'admin, restituisce anche custom_pdf_url.
     """
-    partner = await db.partners.find_one({"id": partner_id}, {"_id": 0, "contract_params": 1})
-    params = DEFAULT_CONTRACT_PARAMS.copy()
-    if partner and partner.get("contract_params"):
-        params.update({k: v for k, v in partner["contract_params"].items() if v is not None})
+    # Param unificati: corrispettivo/rate + dati anagrafici del partner da
+    # contract_partner_data (stessa fonte usata per il PDF finale).
+    params = await _get_partner_params(partner_id)
 
     # Controlla se esiste un PDF custom per questo partner
     custom = await db.contract_custom_pdf.find_one({"partner_id": partner_id}, {"_id": 0})
     custom_pdf_url = custom.get("pdf_url") if custom else None
 
+    contract_text = render_contract_text(params)
+    # Non esporre i dati personali grezzi (es. IBAN/PEC) nel JSON dei params
+    params_safe = {k: v for k, v in params.items() if k != "personal_data"}
     return {
-        "contract_text": render_contract_text(params),
-        "params": params,
+        "contract_text": contract_text,
+        "params": params_safe,
         "custom_pdf_url": custom_pdf_url
     }
 
