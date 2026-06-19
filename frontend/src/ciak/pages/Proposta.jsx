@@ -29,22 +29,18 @@ import { CiakHeader } from "../components/CiakHeader";
 import { CiakFooter } from "../components/CiakFooter";
 
 const FASI = [
-  { num: 1, titolo: "Posizionamento", desc: "La tua identità di autorità: chi sei, per chi, e perché sei il riferimento" },
-  { num: 2, titolo: "Masterclass", desc: "Il contenuto che dimostra la tua competenza e attira il pubblico giusto" },
-  { num: 3, titolo: "Videocorso", desc: "Il prodotto che trasforma la tua competenza in un asset che vende" },
-  { num: 4, titolo: "Funnel", desc: "L'ecosistema che porta le persone dal primo contatto alla vendita" },
-  { num: 5, titolo: "Lancio", desc: "La campagna che genera i primi ricavi e ti rende visibile sul mercato" },
-  { num: 6, titolo: "Ottimizzazione", desc: "I numeri che migliorano ad ogni ciclo: vendite e posizionamento insieme" },
-  { num: 7, titolo: "Continuità", desc: "Il piano che mantiene attivo l'ecosistema e consolida la tua autorità" },
+  { num: 1, titolo: "Creazione Accademia", desc: "Struttura dei contenuti, scaletta delle lezioni, offerta formativa. Tu registri e noi orchestriamo l'intero sistema." },
+  { num: 2, titolo: "Lancio del Progetto", desc: "Apertura al mercato. Ads, traffico, prime vendite. Ottimizzazioni real-time." },
+  { num: 3, titolo: "Ottimizzazione del Servizio", desc: "Il sistema che trasforma traffico e contatti in richieste, appuntamenti e vendite." },
 ];
 
 const TEAM = [
-  { nome: "VALENTINA", ruolo: "Strategia e Onboarding" },
-  { nome: "ANDREA", ruolo: "Produzione Contenuti" },
-  { nome: "MARCO", ruolo: "Accountability" },
-  { nome: "GAIA", ruolo: "Supporto Tecnico" },
-  { nome: "STEFANIA", ruolo: "Coordinatrice" },
-  { nome: "CLAUDIO", ruolo: "Direzione" },
+  { nome: "VALENTINA", ruolo: "Brand & Posizionamento", avatar: "/agents/valentina.jpg" },
+  { nome: "ANDREA", ruolo: "Coach video e contenuti", avatar: "/agents/andrea.jpg" },
+  { nome: "MARCO", ruolo: "Strategia lancio", avatar: "/agents/marco.jpg" },
+  { nome: "GAIA", ruolo: "Supporto tecnico funnel", avatar: "/agents/gaia.jpg" },
+  { nome: "STEFANIA", ruolo: "Coordinatrice del tuo percorso", avatar: "/agents/stefania.jpg" },
+  { nome: "MATTEO", ruolo: "Analista Ciak Blueprint", avatar: "/agents/matteo.jpg" },
 ];
 
 export function CiakProposta() {
@@ -304,11 +300,11 @@ export function CiakProposta() {
         </div>
       </section>
 
-      {/* IL PERCORSO — 7 FASI */}
+      {/* IL PERCORSO — 3 FASI */}
       <section className="bg-white">
         <div className="mx-auto max-w-4xl px-6 py-16">
           <h2 className="text-2xl md:text-3xl font-semibold text-slate-900 mb-2 leading-tight">
-            Il percorso — 7 fasi
+            Il percorso — 3 fasi
           </h2>
           <p className="text-slate-500 mb-10">
             Dalla tua identità di autorità fino a un ecosistema di marketing che vende e ti posiziona sul mercato.
@@ -340,9 +336,7 @@ export function CiakProposta() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {TEAM.map((t) => (
               <div key={t.nome} className="bg-white rounded-2xl p-5 border border-gray-200">
-                <div className="w-11 h-11 rounded-full bg-slate-900 text-yellow-400 flex items-center justify-center font-semibold mb-3">
-                  {t.nome[0]}
-                </div>
+                <img src={t.avatar} alt={t.nome} className="w-11 h-11 rounded-full object-cover mb-3" />
                 <h3 className="font-semibold text-slate-900 text-sm">{t.nome}</h3>
                 <p className="text-slate-500 text-xs">{t.ruolo}</p>
               </div>
@@ -362,7 +356,7 @@ export function CiakProposta() {
               <p className="text-slate-400 text-sm mb-6">IVA inclusa</p>
               <div className="text-left space-y-3">
                 {[
-                  "Tutte e 7 le fasi: dal posizionamento all'ecosistema che vende",
+                  "Tutte le fasi: dal posizionamento all'ecosistema che vende",
                   "Supporto diretto del team completo",
                   "Accesso alla piattaforma Evolution PRO",
                   "Strumenti AI inclusi",
