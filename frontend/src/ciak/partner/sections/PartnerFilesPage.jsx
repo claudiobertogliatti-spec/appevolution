@@ -128,7 +128,7 @@ export function PartnerFilesPage({ partner }) {
   const handleView = (f) => {
     const url = f?.internal_url;
     if (!url) return;
-    window.open(url.replace("/api", ""), "_blank", "noopener");
+    window.open(url.startsWith("http") ? url : url.replace("/api", ""), "_blank", "noopener");
   };
 
   const handleRename = async (f) => {
@@ -381,7 +381,7 @@ export function PartnerFilesPage({ partner }) {
                   {f.internal_url && (
                     <button
                       onClick={() =>
-                        window.open(f.internal_url.replace("/api", ""), "_blank")
+                        window.open(f.internal_url.startsWith("http") ? f.internal_url : f.internal_url.replace("/api", ""), "_blank")
                       }
                       className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-gray-50 border border-gray-200 hover:border-yellow-400 transition-colors text-slate-600"
                     >
