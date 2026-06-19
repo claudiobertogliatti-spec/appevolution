@@ -65,13 +65,13 @@ build Vercel e degli OG meta dei crawler social, **dopo** la rimozione del domin
 
 ## 5) Fase 3 — infrastruttura (azioni di Claudio, fuori dal repo)
 
-- [ ] **Vercel** — rimuovere il dominio `app.evolution-pro.it` (e `www.`) dal progetto frontend.
-- [ ] **Cloud Run** — rimuovere l'eventuale domain mapping di `app.evolution-pro.it`
+- [x] **Vercel** (nessun dominio evolution su Vercel — verificato 2026-06-19) — rimuovere il dominio `app.evolution-pro.it` (e `www.`) dal progetto frontend.
+- [x] **Cloud Run** — 0 domain mapping in europe-west1; rimuovere l'eventuale mapping di `app.evolution-pro.it`
       (`gcloud run domain-mappings list --region europe-west1`; poi `... delete --domain app.evolution-pro.it`).
-- [ ] **DNS (register.it)** — rimuovere i record `app` / `www.app` di `evolution-pro.it`.
-- [ ] **GCS CORS** — applicare il `gcs_cors.json` aggiornato al bucket asset:
+- [x] **DNS (register.it)** — record `app` CNAME rimosso 2026-06-19; — rimuovere i record `app` / `www.app` di `evolution-pro.it`.
+- [x] **GCS CORS** — applicata su gs://gen-lang-client-0744698012_cloudbuild (solo ciak.io); — applicare il `gcs_cors.json` aggiornato al bucket asset:
       `gsutil cors set backend/gcs_cors.json gs://<bucket-asset>`.
-- [ ] **Cloud Run env** — verificare che `FRONTEND_URL` / `BASE_URL` del servizio `evolution-pro-backend`
+- [x] **Cloud Run env** — `FRONTEND_URL` già `https://www.ciak.io`; — verificare che `FRONTEND_URL` / `BASE_URL` del servizio `evolution-pro-backend`
       **non** siano fissati a `https://app.evolution-pro.it` (un env stale scavalcherebbe i nuovi default nel codice).
       `gcloud run services describe evolution-pro-backend --region europe-west1 --format='value(spec.template.spec.containers[0].env)'`
       -> se presente, aggiornare a `https://www.ciak.io`.
@@ -91,4 +91,4 @@ build Vercel e degli OG meta dei crawler social, **dopo** la rimozione del domin
 - [x] CORS, default URL e embed puntano a `ciak.io`.
 - [x] `CLAUDE.md` documenta la dismissione e non guida più verso il dominio morto.
 - [x] Fase 2 (deploy Vercel consolidato su Ciak) completata — 2026-06-18.
-- [ ] Fase 3 (infra: Vercel/Cloud Run/DNS/GCS/env/3rd-party) completata da Claudio.
+- [x] Fase 3 (Vercel/Cloud Run/DNS/GCS/env) completata 2026-06-19 — resta solo il check Stripe/Cal.com/Systeme.io.
