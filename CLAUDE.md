@@ -921,3 +921,18 @@ Mapping step->agente (STEP_TO_AGENT in agents.js), determina quale volto/prompt 
 Come funziona la chat area partner: AgentDrawer mostra volto+nome dell'agente attivo per lo step (getAgentForStep) e passa target_agent al backend, che swappa il system prompt dell'agente. File chat: frontend/src/ciak/partner/operativo/AgentDrawer.jsx, PhaseAgentHeader.jsx, agents.js, phases.js. Prossime modifiche richieste da Claudio riguarderanno proprio queste chat dell'area partner.
 
 Allineamento fatto 2026-06-18: la pagina proposta (frontend/src/ciak/pages/Proposta.jsx) ora usa questi 6 agenti CON foto (array TEAM con avatar) + le 3 Fasi ufficiali Evolution PRO (Creazione Accademia / Lancio del Progetto / Ottimizzazione del Servizio) al posto delle vecchie 7 fasi. Coerenza con evolution-pro.it (Metodo EVO: Esamina-Valida-Ottimizza, 3 fasi).
+
+
+## Sessione 2026-06-19 — Fix "I Miei File": Visualizza rotto per file caricati dal partner
+
+### Causa root (due bug concorrenti)
+1. **Frontend (`PartnerFilesPage.jsx`)**: `handleView`/`Scarica` facevano `url.replace("/api","")` sugli URL relativi. Ma Vercel proxa **solo** `/api/* -> Cloud Run`; `/files/...` senza prefisso cadeva sulla SPA (index.html) -> il file non si apriva. Fix: aprire l'URL **as-is** (`window.open(url)`), senza togliere `/api`. Vale anche per il contratto PDF (`/api/contract/pdf-download/{id}`).
+2. **Backend (`/api/files/upload` -> `file_storage.upload_file`)**: gli upload del partner finivano **solo su disco locale** di Cloud Run (effimero). `internal_url = /api/files/documents/pending/...`. Al riciclo dell'istanza i byte spariscono -> GET 404 (content-type `application/json`). I file ufficiali (contratto PDF in `db.contract_pdfs`, distinta su Cloudinary) erano già durevoli e infatti funzionavano.
+
+### Fix applicato
+- **Frontend**: rimosso `.replace("/api","")` in entrambi i punti.
+- **Backend**: `upload_file` ora legge i byte una volta (`await file.read()` + `file.seek(0)`) e li carica anche su **Cloudinary** (`upload_file_direct`, folder `evolution_pro/partner_files/{partner_id}`, resource_type per estensione: image/video/raw). `internal_url` = `secure_url` Cloudinary; disco locale resta come fallback best-effort.
+- **Cleanup**: rimosse via `DELETE /api/files/{file_id}` le 3 voci morte 404 di Luigi (Calafiore1/2.jpeg, Distinta_Calafiore.jpeg — foto-sorgente grezze, irrecuperabili perché su disco effimero). Restano i 2 file ufficiali durevoli (contratto PDF + distinta), entrambi 200.
+
+### Regola generale (anti-ricorrenza)
+**Mai affidarsi al disco locale di Cloud Run per file persistenti**: è effimero e per-istanza. Ogni file che deve sopravvivere va su Cloudinary/GCS. Se in futuro "Visualizza" torna a dare 404 con content-type `application/json`, è quasi certamente un file finito solo su disco locale.
