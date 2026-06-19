@@ -9845,10 +9845,47 @@ async def upload_file(
     partner_id: str = Form(...),
     category: str = Form(default="document")
 ):
-    """Upload a file (video or document) for a partner"""
+    """Upload a file (video or document) for a partner.
+
+    Durabilita': oltre al salvataggio locale (disco effimero su Cloud Run, perso
+    al riciclo dell'istanza) carichiamo i byte su Cloudinary e usiamo la secure_url
+    come internal_url, cosi' il file resta accessibile da qualsiasi istanza.
+    """
+    # Leggiamo i byte una volta sola, poi riportiamo il cursore a 0 per file_storage.
+    try:
+        _file_bytes = await file.read()
+        await file.seek(0)
+    except Exception:
+        _file_bytes = None
+
     result = await file_storage.upload_file(file, partner_id, category)
-    
+
     if result["success"]:
+        internal_url = result["internal_url"]
+
+        # Push durevole su Cloudinary (best-effort). Se fallisce, resta il locale.
+        if _file_bytes:
+            try:
+                from cloudinary_service import upload_file_direct, is_cloudinary_configured
+                if is_cloudinary_configured():
+                    _name = (result.get("original_name") or "file").lower()
+                    if _name.endswith((".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp")):
+                        _rt = "image"
+                    elif _name.endswith((".mp4", ".mov", ".avi", ".webm", ".mkv")):
+                        _rt = "video"
+                    else:
+                        _rt = "raw"
+                    _cl = await upload_file_direct(
+                        _file_bytes,
+                        result.get("original_name") or "file",
+                        resource_type=_rt,
+                        folder=f"evolution_pro/partner_files/{partner_id}",
+                    )
+                    if _cl.get("success") and _cl.get("secure_url"):
+                        internal_url = _cl["secure_url"]
+            except Exception as _e:
+                logging.warning(f"Cloudinary upload (partner files) fallito: {_e}")
+
         # Save file metadata to database
         file_record = StoredFile(
             file_id=result["file_id"],
@@ -9858,18 +9895,19 @@ async def upload_file(
             category=category,
             partner_id=partner_id,
             status=result["status"],
-            internal_url=result["internal_url"],
+            internal_url=internal_url,
             size=result["size"],
             uploaded_at=result["uploaded_at"]
         )
         await db.files.insert_one(file_record.model_dump())
-        
+        result["internal_url"] = internal_url
+
         # Update agent status (ANDREA for videos, LUCA for documents)
         if result["file_type"] == "video":
             await db.agents.update_one({"id": "ANDREA"}, {"$set": {"status": "ACTIVE"}})
         else:
             await db.agents.update_one({"id": "LUCA"}, {"$set": {"status": "ACTIVE"}})
-    
+
     return result
 
 @api_router.get("/files")
