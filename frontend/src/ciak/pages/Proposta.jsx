@@ -592,13 +592,23 @@ function ContractChat({ partnerId }) {
 
   if (!open) {
     return (
-      <button
-        onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-yellow-400 text-slate-900 shadow-2xl z-50 flex items-center justify-center hover:scale-110 transition-transform"
-        aria-label="Apri assistente contrattuale"
-      >
-        <MessageCircle className="w-6 h-6" />
-      </button>
+      <div className="fixed bottom-6 right-6 z-50">
+        <span className="pointer-events-none absolute inset-0 rounded-full bg-yellow-400 opacity-50 animate-ping" />
+        <button
+          onClick={() => setOpen(true)}
+          className="relative flex items-center gap-3 pl-3 pr-5 py-3 rounded-full bg-yellow-400 text-slate-900 shadow-2xl ring-2 ring-yellow-500/40 hover:scale-105 transition-transform"
+          aria-label="Apri assistente contrattuale: chiedi chiarimenti sul contratto"
+        >
+          <span className="relative flex items-center justify-center w-10 h-10 rounded-full bg-slate-900 text-yellow-400 flex-shrink-0">
+            <MessageCircle className="w-5 h-5" />
+            <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-red-500 border-2 border-yellow-400" />
+          </span>
+          <span className="flex flex-col items-start leading-tight text-left">
+            <span className="text-sm font-bold">Domande sul contratto?</span>
+            <span className="text-[11px] font-semibold text-slate-800">Clicca qui per chiarimenti</span>
+          </span>
+        </button>
+      </div>
     );
   }
 
