@@ -18,6 +18,7 @@ import {
 const MAIN_NAV = [
   { to: "/partner", end: true, label: "Home", icon: Home },
   { to: "/partner/workspace", label: "Workspace", icon: LayoutGrid },
+  { to: "/partner/supporto", label: "Team di supporto", icon: MessageCircle },
 ];
 
 const ACCELERA_ITEMS = [
@@ -93,13 +94,6 @@ export function PartnerSidebar({ user, onLogout }) {
               I tre livelli
             </NavLink>
           </Collapsible>
-        </div>
-
-        <div className="pt-3 mt-2 border-t border-slate-800">
-          <NavLink to="/partner/supporto" className={linkClass}>
-            <MessageCircle className="w-4 h-4 flex-shrink-0" />
-            Supporto Team
-          </NavLink>
         </div>
       </nav>
 
