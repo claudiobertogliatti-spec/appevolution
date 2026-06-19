@@ -867,3 +867,33 @@ Progetto Descript `b7e11cff-7c07-4bc1-99d0-8fc3fd46a374` ("Modulo1_L1_pilotaauto
 ### Note operative apprese
 - I commit su `main` sono stati fatti via **editor web GitHub + iniezione CodeMirror 6** (console JS): il sandbox bash non ha credenziali git push, e il connettore GitHub MCP **non ha permessi di scrittura albero** (403 su tree). Pattern affidabile: applicare modifica CM6 → attendere che il bottone "Commit changes…" si abiliti → aprire dialog → il campo messaggio ha placeholder "Update <file>" → click "Commit changes".
 - ⚠️ **Sicurezza**: `gcloud run services describe` stampa **tutte le secret in chiaro** (Stripe live, Anthropic, Mongo, ecc.). Per i describe futuri filtrare solo la chiave necessaria; se l'output è uscito dal PC, ruotare le chiavi live.
+
+## Sessione 2026-06-18 (continuazione) - Luigi Calafiore + funzione admin "Segna 67 EUR pagato (manuale)"
+
+### Luigi Calafiore - inserimento funnel ciak.io (ricostruzione processo offline)
+Lead luigi.calafiore@gmail.com inserito passando dal funnel reale di www.ciak.io:
+- Fase 1: opt-in masterclass gratuita (nome, email, telefono +39 327 188 1639) -> ciak_leads, source landing_hero + masterclass_gate.
+- Fase 2: 8 Domande Ciak compilate (profilo reale: design automobilistico, Calafiore Automobili, hypercar made in Italy). Matteo -> Stato 3 (Validazione), score 9, report generato.
+- Fase 3: analisi 67 EUR segnata come pagata (manuale) -> diagnostic_session a purchased_67.
+Verifica: compare in Pipeline Blueprint (acquistato), Transactions (6700 cent), stats acquisti_67=1, uscito da Pipeline Prospect.
+
+### NUOVA funzione admin: segna acquisto 67 EUR manuale (per acquisti offline)
+Nel funnel ciak il passaggio a purchased_67 avviene SOLO via webhook Stripe (checkout.py). Non esisteva un modo admin per segnare un 67 EUR pagato offline (il "segna pagamento manuale" nel CLAUDE.md riguardava il vecchio flusso cliente_analisi, non i lead diagnostici ciak). Aggiunto:
+- Backend: POST /api/admin/ciak/lead/mark-purchased in backend/routers/ciak_admin.py (commit 51e4bd1). Body: {email, amount_cent=6700, metodo="manuale", note}. Replica il webhook: transition_to(purchased_67) + add_event(stripe_payment_completed, manual=True) + replace_one. Idempotente (se gia' post-acquisto non fa nulla). Richiede una diagnostic_session esistente. NON esegue pagamenti reali ne emette tag Systeme.
+- Frontend: sezione "Analisi 67 EUR" + bottone "Segna 67 EUR come pagato (manuale)" in frontend/src/ciak/admin/pages/AdminLeadDetail.jsx (commit 015c950). Usa apiPost.
+Riutilizzabile per ogni inserimento offline: scheda lead admin -> bottone.
+
+### Note deploy/infra (importante per le prossime sessioni)
+- Sandbox bash Cowork NON ha credenziali git push (solo git fetch funziona). Commit fatti via connettore GitHub (create_or_update_file/push_files) oppure editor web CM6 in Claude in Chrome (base64+atob per evitare escaping; per file con unicode usare Uint8Array.from(atob(b64),c=>c.charCodeAt(0)) + new TextDecoder('utf-8')).
+- ATTENZIONE: la copia di lavoro locale del repo (C:\Users\berto\appevolution) e' risultata STALE/TRONCATA (es. ciak_admin.py troncato a meta' file). NON usarla come base per i commit: origin/main e' avanti. Recuperare il contenuto autorevole via connettore GitHub get_file_contents o git fetch + worktree.
+
+### Prossimo step Luigi: Partnership 2.790 EUR in 3 tranche (rate concordate)
+Bridge automatico lead->proposta NON cablato (AdminLeadDetail "Genera Proposta" e' un alert placeholder; la diagnostic_session non ha partner_id). Gli stati partner_approved/partner_active non sono scritti da alcun endpoint: il "partner reale" e' governato da partners.partnership_pagata/active, non dalla state machine.
+Percorso admin manuale supportato:
+1. POST /api/partners {name, niche, phase:"F1"} -> annota id
+2. POST /api/admin/upsert-partner-credentials {partner_id, name, email, password:"Evolution2026!", phase} (crea login + evolution_id + bridge)
+3. (opz) PATCH /api/admin/partners/{id}/contract-params {corrispettivo:2790, num_rate:3} (default gia' 2790/3 rate; bloccato se contratto firmato)
+4. (opz) POST /api/proposta/genera/{partner_id} -> URL https://www.ciak.io/proposta/{token} per firma digitale + PDF
+5. POST /api/partners/{id}/segna-pagamento-partnership {amount, metodo_pagamento, note} per ogni tranche incassata (fa $inc revenue, invia email benvenuto)
+6. POST /api/admin/ciak/partner/{id}/piano-pagamento {tipo:"rate_concordate", rate_totali:3, rate_pagate, importo_rata, prossima_scadenza, note}
+UI pronta in PartnerDetailModal + ContractParamsModal (admin Ciak). Il piano-pagamento e' descrittivo (non addebita): le rate reali si incassano fuori sistema e si registrano con segna-pagamento-partnership + update rate_pagate. Prezzo 2.790 default in contract.py DEFAULT_CONTRACT_PARAMS; contratto Art.5 ammette max 3 rate mensili.
