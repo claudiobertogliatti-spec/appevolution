@@ -23,6 +23,32 @@ def set_db(database):
     global db
     db = database
 
+# ─── Voce Partner (regola di tono universale, vince su tutto) ──────────────────
+
+PARTNER_VOICE = """## COME PARLI AL PARTNER — regola che vince su qualsiasi altra istruzione
+
+Stai parlando DIRETTAMENTE con il partner. E' una persona competente nel suo lavoro, ma
+spesso poco pratica di digitale, marketing e strumenti tecnici. Il tuo compito e' farlo
+avanzare con serenita', non metterlo in difficolta'.
+
+Principi non negoziabili (valgono sopra ogni altra parte di questo prompt):
+1. Professionale e MOTIVANTE, MAI accusatorio. Il partner deve sentirsi seguito, mai in colpa.
+   In questa chat NON esistono "avvisi formali", minacce contrattuali, conteggio delle scuse
+   o toni da richiamo. Se e' indietro, riparti con calma dal prossimo passo.
+2. Linguaggio SEMPLICE e concreto. Niente termini tecnici o nomi di metodi/framework
+   (es. funnel, CTA, lead, KPI, NEPQ, MEDDIC...). Se un concetto serve, spiegalo con parole
+   di tutti i giorni e, se aiuta, un piccolo esempio.
+3. UNA cosa alla volta. Dai sempre il prossimo singolo passo, chiaro e fattibile subito.
+   Niente elenchi lunghi.
+4. Ritmo dei 21 giorni: c'e' un traguardo a 21 giorni per andare online. Usalo per dare
+   direzione ed energia ("siamo in tempo: il prossimo passo e'..."), MAI per creare ansia
+   o sensi di colpa.
+5. Caldo e umano: usa il nome del partner, riconosci la fatica quando c'e', poi riportalo
+   con gentilezza al passo successivo. Frasi brevi.
+"""
+
+
+
 # ─── System Prompt ────────────────────────────────────────────────────────────
 
 STEFANIA_SYSTEM_PROMPT = """Sei STEFANIA, la coordinatrice di Evolution PRO.
@@ -239,6 +265,7 @@ async def stefania_chat(data: ChatMessage):
 
     # Selezione system prompt: se target_agent passato, usa quello (sub-progetto A
     # AgentDrawer manda target_agent per step per cambiare voce/persona).
+    resolved_agent = (data.target_agent or "STEFANIA").upper()
     base_prompt = STEFANIA_SYSTEM_PROMPT
     if data.target_agent and data.target_agent.upper() != "STEFANIA":
         try:
@@ -254,6 +281,10 @@ async def stefania_chat(data: ChatMessage):
     else:
         system_prompt = f"{base_prompt}\n\n---\n\nCONTESTO PARTNER ATTUALE:\n{context_str}"
 
+    # Voce partner: regola di tono universale, in cima a tutto.
+    system_prompt = f"{PARTNER_VOICE}\n\n{system_prompt}"
+
+
     # Carica storico (ultimi 16 messaggi)
     history: List[Dict] = []
     try:
@@ -262,7 +293,13 @@ async def stefania_chat(data: ChatMessage):
                 {"partner_id": str(data.partner_id)}, {"_id": 0, "messages": 1}
             )
             if doc and doc.get("messages"):
-                history = doc["messages"][-16:]
+                # Solo i messaggi dell'agente corrente: ogni agente ha la sua chat,
+                # niente travaso di contesto tra agenti diversi.
+                agent_msgs = [
+                    m for m in doc["messages"]
+                    if (m.get("agent") or "STEFANIA") == resolved_agent
+                ]
+                history = agent_msgs[-16:]
     except Exception as e:
         logger.warning(f"[stefania_chat] Storico non caricato: {e}")
 
@@ -303,8 +340,8 @@ async def stefania_chat(data: ChatMessage):
                     "$push": {
                         "messages": {
                             "$each": [
-                                {"role": "user", "content": data.message, "ts": now_iso},
-                                {"role": "assistant", "content": reply, "ts": now_iso},
+                                {"role": "user", "content": data.message, "ts": now_iso, "agent": resolved_agent},
+                                {"role": "assistant", "content": reply, "ts": now_iso, "agent": resolved_agent},
                             ]
                         }
                     },
@@ -317,7 +354,7 @@ async def stefania_chat(data: ChatMessage):
     return {
         "success": True,
         "reply": reply,
-        "agent": "STEFANIA",
+        "agent": resolved_agent,
         "responsible_agent": _get_agent(phase),
     }
 
