@@ -6,7 +6,7 @@
  * con le pagine:
  *  - Dashboard    (Luca)      → Home (Panoramica Reparti) · Oggi
  *  - Acquisizione (Andrea)    → New Lead · Lista Fredda · Masterclass gratuita · Pipeline Prospect · Campagne Ads · Calendario Editoriale
- *  - Vendite      (Gaia)      → Ciak Blueprint · Call di vendita · Trattative OK · Trattative KO · Analisi da validare
+ *  - Vendite      (Gaia)      → Ciak Blueprint · Call di vendita · Analisi da validare · Trattative OK · Trattative KO
  *  - Delivery     (Stefania)  → Pipeline Partner · Quarantena · Ex Partner · Masterclass · Video Lezioni · Bonus · File · Calendario editoriale · Campagne ADV · KPI Partner · Stefania
  *  - Casi studio  (Andrea)    → Casi studio (prova sociale per il funnel)
  *  - Back office  (Valentina) → Pagamenti · Date contratti · Servizi extra
@@ -95,9 +95,9 @@ const NAV = [
     pages: [
       { to: "/admin/pipeline-blueprint", label: "Ciak Blueprint" },
       { to: "/admin/vendite-call", label: "Call di vendita" },
+      { to: "/admin/analisi-da-validare", label: "Analisi da validare" },
       { to: "/admin/vendite-ok", label: "Trattative OK" },
       { to: "/admin/vendite-ko", label: "Trattative KO" },
-      { to: "/admin/analisi-da-validare", label: "Analisi da validare" },
     ],
   },
   // ── DELIVERY · Stefania ── dalla firma al LIVE (partner-facing) ────────
@@ -440,6 +440,10 @@ export default function CiakAdminApp() {
           }
         />
         <Route
+          path="analisi-da-validare"
+          element={<AnalisiDaValidare onAuthExpired={handleLogout} />}
+        />
+        <Route
           path="vendite-ok"
           element={
             <PipelineList
@@ -452,10 +456,6 @@ export default function CiakAdminApp() {
           }
         />
         <Route path="vendite-ko" element={<SectionStub />} />
-        <Route
-          path="analisi-da-validare"
-          element={<AnalisiDaValidare onAuthExpired={handleLogout} />}
-        />
 
         {/* ── Delivery ── */}
         <Route path="partner" element={<PartnerHub onAuthExpired={handleLogout} />} />
