@@ -1,17 +1,19 @@
 /**
- * Ciak Admin — CABINA DI REGIA (read-only v1).
- * Vista d'insieme dei 4 reparti operativi col semaforo di autonomia.
+ * Ciak Admin — CABINA DI REGIA (v2).
+ * 4 reparti + semaforo di autonomia. Le card portano al reparto.
+ * Approva/Rifiuta sui task in attesa (sblocco 🟡).
  * Dati: /api/agent-hub/summary, /api/agent-tasks/approval-stats,
  *       /api/agent-tasks/approvals, /api/discovery/stats/today.
  */
 import React, { useEffect, useState, useCallback } from "react";
-import { adminFetch } from "../api";
+import { useNavigate } from "react-router-dom";
+import { adminFetch, getAdminUser } from "../api";
 
 const REPARTI = [
-  { id: "vendite", nome: "Vendite", mandato: "Pipeline e firma", color: "#10B981", soft: "#D1FAE5", emoji: "🛒", agenti: "Gaia · Matteo" },
-  { id: "delivery", nome: "Delivery", mandato: "Dalla firma al LIVE", color: "#8B5CF6", soft: "#EDE9FE", emoji: "🚀", agenti: "Stefania · Valentina · Marco" },
-  { id: "comunicazione", nome: "Comunicazione", mandato: "Macchina dei contenuti", color: "#F59E0B", soft: "#FEF3C7", emoji: "📣", agenti: "Andrea" },
-  { id: "backoffice", nome: "Back office", mandato: "Soldi, contratti, infrastruttura", color: "#0EA5E9", soft: "#E0F2FE", emoji: "⚖️", agenti: "Presidio umano + tech" },
+  { id: "vendite", nome: "Vendite", mandato: "Pipeline e firma", color: "#10B981", soft: "#D1FAE5", emoji: "🛒", agenti: "Gaia · Matteo", to: "/admin/lead-manager" },
+  { id: "delivery", nome: "Delivery", mandato: "Dalla firma al LIVE", color: "#8B5CF6", soft: "#EDE9FE", emoji: "🚀", agenti: "Stefania · Valentina · Marco", to: "/admin/partner" },
+  { id: "comunicazione", nome: "Comunicazione", mandato: "Macchina dei contenuti", color: "#F59E0B", soft: "#FEF3C7", emoji: "📣", agenti: "Andrea", to: "/admin/calendario-editoriale" },
+  { id: "backoffice", nome: "Back office", mandato: "Soldi, contratti, infrastruttura", color: "#0EA5E9", soft: "#E0F2FE", emoji: "⚖️", agenti: "Presidio umano + tech", to: "/admin/transactions" },
 ];
 
 async function getJSON(path) {
@@ -29,8 +31,10 @@ function kpisFor(id, sum, health, lead) {
 }
 
 export function CabinaRegia({ onAuthExpired }) {
+  const navigate = useNavigate();
   const [d, setD] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -47,6 +51,30 @@ export function CabinaRegia({ onAuthExpired }) {
   }, [onAuthExpired]);
 
   useEffect(() => { load(); }, [load]);
+
+  async function act(task, kind) {
+    const id = task.id || task.task_id;
+    if (!id) return;
+    const reviewer = (getAdminUser() && getAdminUser().name) || "Claudio";
+    const body = { reviewer };
+    if (kind === "reject") {
+      const fb = window.prompt("Motivo del rifiuto (verrà usato per rigenerare):");
+      if (!fb || !fb.trim()) return;
+      body.feedback = fb.trim();
+    }
+    setBusy(id + kind);
+    try {
+      const r = await adminFetch("/api/agent-tasks/" + id + "/" + kind, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) { const t = await r.text(); window.alert("Errore: " + t); }
+      else { await load(); }
+    } catch (e) {
+      if (e && e.message === "AUTH_EXPIRED") onAuthExpired?.();
+    } finally { setBusy(null); }
+  }
 
   if (loading) return <div className="py-24 text-center text-slate-400">Carico la cabina di regia…</div>;
 
@@ -68,7 +96,7 @@ export function CabinaRegia({ onAuthExpired }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         {REPARTI.map((r) => (
-          <div key={r.id} className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+          <button key={r.id} onClick={() => navigate(r.to)} className="text-left rounded-2xl border border-slate-200 bg-white overflow-hidden hover:border-slate-300 hover:shadow-sm transition">
             <div className="px-5 py-4 flex items-center justify-between" style={{ background: r.soft }}>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style={{ background: r.color }}>{r.emoji}</div>
@@ -84,7 +112,7 @@ export function CabinaRegia({ onAuthExpired }) {
                 </div>
               ))}
             </div>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -97,17 +125,22 @@ export function CabinaRegia({ onAuthExpired }) {
           <div className="px-5 py-10 text-center text-slate-400 text-sm">Nessun task in attesa. I reparti stanno lavorando in autonomia.</div>
         ) : (
           <ul className="divide-y divide-slate-100">
-            {d.approvals.slice(0, 15).map((t, i) => (
-              <li key={t.task_id || i} className="px-5 py-3 flex items-center gap-3">
-                <span className="inline-block w-2 h-2 rounded-full bg-amber-400 shrink-0" />
-                <span className="text-sm text-slate-700 truncate flex-1">{t.title || t.task_type || "Task"}</span>
-                <span className="text-xs text-slate-400 shrink-0">{t.agent || t.created_by_agent || ""}</span>
-              </li>
-            ))}
+            {d.approvals.map((t, i) => {
+              const id = t.id || t.task_id;
+              return (
+                <li key={id || i} className="px-5 py-3 flex items-center gap-3">
+                  <span className="inline-block w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                  <span className="text-sm text-slate-700 truncate flex-1">{t.title || t.task_type || "Task"}</span>
+                  <span className="text-xs text-slate-400 shrink-0 mr-2">{t.agent || t.created_by_agent || ""}</span>
+                  <button disabled={!!busy} onClick={() => act(t, "approve")} className="text-xs font-medium px-2.5 py-1 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">Approva</button>
+                  <button disabled={!!busy} onClick={() => act(t, "reject")} className="text-xs font-medium px-2.5 py-1 rounded-md border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-50">Rifiuta</button>
+                </li>
+              );
+            })}
           </ul>
         )}
         <div className="px-5 py-3 border-t border-slate-100 text-xs text-slate-400">
-          Versione 1 — sola lettura. I comandi di sblocco (approva/rifiuta) e il briefing giornaliero unico arrivano nei prossimi passi.
+          Le card portano al reparto. Approva/Rifiuta sblocca i task 🟡 (il rifiuto chiede un motivo per la rigenerazione).
         </div>
       </div>
     </div>
