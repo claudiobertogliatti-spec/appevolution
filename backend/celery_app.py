@@ -128,11 +128,17 @@ celery_app.conf.update(
         #   3. Verificato copy email in voice Ciak (docs/marketing/email-cold-outreach-ciak.md)
         # Daily limit lockato a 500 (15/5/2026, scelta Claudio "restare calmi"
         # sulla lista 13k per non bruciare reputazione mittente Google).
-        # 'daily-systeme-import': {
-        #     'task': 'celery_tasks.daily_systeme_import',
-        #     'schedule': crontab(hour=9, minute=0),
-        #     'kwargs': {'daily_limit': 500},
-        # },
+        # `daily-systeme-import` RIATTIVATO 2026-06-26: campagna Systeme
+        # "Cold Outreach Legacy (B)" creata (trigger ciak_cold_outreach_legacy),
+        # copy in voce, mittente info@evolution-pro.it. Limite 300/giorno (scelta
+        # Claudio) per preservare reputazione mittente. Idle finche' la coda
+        # systeme_daily_queue non viene popolata (POST /admin/systeme-queue/load-lista-fredda)
+        # e il flusso non viene attivato su Systeme.
+        'daily-systeme-import': {
+            'task': 'celery_tasks.daily_systeme_import',
+            'schedule': crontab(hour=9, minute=0),
+            'kwargs': {'daily_limit': 300},
+        },
     },
 )
 
