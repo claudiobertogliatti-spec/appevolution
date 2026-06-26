@@ -1,19 +1,19 @@
 /**
- * Ciak Admin — CABINA DI REGIA (v2).
- * 4 reparti + semaforo di autonomia. Le card portano al reparto.
+ * Ciak Admin — CABINA DI REGIA (v3).
+ * 4 reparti operativi col semaforo di autonomia. Ogni reparto ha un RESPONSABILE
+ * (uno dei 6 agenti). I 4 responsabili continuano a far parte del team che lavora
+ * il percorso partner nella Delivery (con Marco e Matteo). Le card portano al reparto.
  * Approva/Rifiuta sui task in attesa (sblocco 🟡).
- * Dati: /api/agent-hub/summary, /api/agent-tasks/approval-stats,
- *       /api/agent-tasks/approvals, /api/discovery/stats/today.
  */
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { adminFetch, getAdminUser } from "../api";
 
 const REPARTI = [
-  { id: "vendite", nome: "Vendite", mandato: "Pipeline e firma", color: "#10B981", soft: "#D1FAE5", emoji: "🛒", agenti: "Gaia · Matteo", to: "/admin/lead-manager" },
-  { id: "delivery", nome: "Delivery", mandato: "Dalla firma al LIVE", color: "#8B5CF6", soft: "#EDE9FE", emoji: "🚀", agenti: "Stefania · Valentina · Marco", to: "/admin/partner" },
-  { id: "comunicazione", nome: "Comunicazione", mandato: "Macchina dei contenuti", color: "#F59E0B", soft: "#FEF3C7", emoji: "📣", agenti: "Andrea", to: "/admin/calendario-editoriale" },
-  { id: "backoffice", nome: "Back office", mandato: "Soldi, contratti, infrastruttura", color: "#0EA5E9", soft: "#E0F2FE", emoji: "⚖️", agenti: "Presidio umano + tech", to: "/admin/transactions" },
+  { id: "vendite", nome: "Vendite", mandato: "Pipeline e firma", color: "#10B981", soft: "#D1FAE5", emoji: "🛒", resp: "Gaia", respAvatar: "/agents/gaia.jpg", to: "/admin/lead-manager" },
+  { id: "delivery", nome: "Delivery", mandato: "Dalla firma al LIVE", color: "#8B5CF6", soft: "#EDE9FE", emoji: "🚀", resp: "Stefania", respAvatar: "/agents/stefania.jpg", team: "Stefania · Valentina · Andrea · Gaia · Marco · Matteo", to: "/admin/partner" },
+  { id: "comunicazione", nome: "Comunicazione", mandato: "Macchina dei contenuti", color: "#F59E0B", soft: "#FEF3C7", emoji: "📣", resp: "Andrea", respAvatar: "/agents/andrea.jpg", to: "/admin/calendario-editoriale" },
+  { id: "backoffice", nome: "Back office", mandato: "Soldi, contratti, infrastruttura", color: "#0EA5E9", soft: "#E0F2FE", emoji: "⚖️", resp: "Valentina", respAvatar: "/agents/valentina.jpg", to: "/admin/transactions" },
 ];
 
 async function getJSON(path) {
@@ -102,7 +102,13 @@ export function CabinaRegia({ onAuthExpired }) {
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style={{ background: r.color }}>{r.emoji}</div>
                 <div><h3 className="font-bold text-slate-900 leading-tight">{r.nome}</h3><p className="text-xs text-slate-600">{r.mandato}</p></div>
               </div>
-              <span className="text-xs text-slate-500 font-medium">{r.agenti}</span>
+              <div className="flex items-center gap-2">
+                <img src={r.respAvatar} alt={r.resp} title={"Responsabile: " + r.resp} className="w-8 h-8 rounded-full object-cover border-2 border-white" />
+                <div className="text-right leading-tight">
+                  <div className="text-[10px] uppercase tracking-wide text-slate-400">Responsabile</div>
+                  <div className="text-xs font-semibold text-slate-700">{r.resp}</div>
+                </div>
+              </div>
             </div>
             <div className="px-5 py-4 grid grid-cols-3 gap-3">
               {kpisFor(r.id, sum, health, d.lead).map(([label, value]) => (
@@ -112,6 +118,9 @@ export function CabinaRegia({ onAuthExpired }) {
                 </div>
               ))}
             </div>
+            {r.team && (
+              <div className="px-5 pb-3 -mt-1 text-[11px] text-slate-400">Team sul percorso partner: {r.team}</div>
+            )}
           </button>
         ))}
       </div>
@@ -140,7 +149,7 @@ export function CabinaRegia({ onAuthExpired }) {
           </ul>
         )}
         <div className="px-5 py-3 border-t border-slate-100 text-xs text-slate-400">
-          Le card portano al reparto. Approva/Rifiuta sblocca i task 🟡 (il rifiuto chiede un motivo per la rigenerazione).
+          Ogni reparto ha un responsabile. I 4 responsabili restano nel team che lavora il percorso partner nella Delivery. Approva/Rifiuta sblocca i task 🟡.
         </div>
       </div>
     </div>
