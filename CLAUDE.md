@@ -387,20 +387,8 @@ Roadmap visiva nell'header scuro in cima mostra i 4 step con colori aggiornati i
 - Quando arriva a `ready_for_review`: admin vede il video in Video Review panel (sezione "Da approvare") e in MasterclassPage step 4
 - Prima masterclass reale del sistema — usarla per verificare qualità produzione
 
-### AdminSidebarLight — struttura nav (2026-04-20)
-File: `frontend/src/components/admin/AdminSidebarLight.jsx`
-
-Sezioni nav:
-- **GIORNALIERO**: oggi, notifiche
-- **ACQUISIZIONE**: clienti-analisi (Pre-Call), flusso-analisi (Post-Call), lead-manager (Leads)
-- **PARTNER**: partner, video-review, documenti-partner, ex-partner
-- **MARKETING**: warmode, calendario-admin, servizi-admin
-- **SISTEMA**: agenti (Automazione), configurazione, metriche (KPI & Metriche), email-templates (Template Email)
-
-Vista Antonella: nasconde l'intera sezione ACQUISIZIONE (Set `ANTONELLA_HIDDEN`).
-MiniDashboard: 4 tile cliccabili (Approvazioni, Call da fissare, Alert partner, Conversione%). Auto-refresh 60s.
-Stefania pinned in cima con sfondo `#FFF9E6` e bordo `#FFD24D80`.
-Larghezza sidebar: 260px.
+### AdminSidebarLight — ⚠️ OBSOLETO (vecchio admin Evolution PRO)
+`frontend/src/components/admin/AdminSidebarLight.jsx` **non è** la sidebar attiva (non esiste più su `origin/main`). La struttura "GIORNALIERO / ACQUISIZIONE / PARTNER / MARKETING / SISTEMA" era l'admin Evolution PRO. La sidebar admin di **ciak.io** vive interamente nell'array `NAV` di `frontend/src/ciak/admin/CiakAdminApp.jsx` → struttura corrente a 5 macro-reparti documentata nella sezione "Sidebar admin Ciak — 5 macro-reparti" in fondo a questo file.
 
 ## AdminPartnerJourneyEditor — Editor Journey Admin (2026-04-20)
 
@@ -993,3 +981,27 @@ Gap sistematici: **Offerta** mancante per quasi tutti; **videocorso 0 lezioni** 
 Obiettivo **3 partnership/mese** (≈€8.370). Vincoli: **24/7 · budget ≈ zero · chiude solo Claudio**. Strategia organico/manuale. Numero magico: **~20 messaggi personalizzati/giorno (~400 contatti/mese)** → ~40 interessati → ~10 call → 3 close. 4 leve gratuite: outreach caldo personale (priorità), LinkedIn organico, lista fredda 13k (email engine già pronto da riallineare+accendere), referral 24 partner.
 Deliverable creati: `docs/marketing/claudio_voice_style.md`, `docs/strategy/sprint-acquisizione-3-partnership.md`, `docs/marketing/messaggi-outreach-pronti.md`.
 Prossimi step: (1) lista 100 contatti mirati sui 2 ICP (benessere + business/vendita), (2) riallineare le 9 email cold alla nuova voce, (3) foglio KPI contatti→risposte→call→close. Strumenti da autorizzare: Apollo, LinkedIn personal MCP, Gmail.
+
+## Sidebar admin Ciak — 5 macro-reparti + Agente di Riferimento (2026-06-26)
+
+**File unico**: `frontend/src/ciak/admin/CiakAdminApp.jsx` (array `NAV` + `<Routes>`). NON esiste `AdminSidebarLight.jsx`. La sidebar è a macro-voci con flyout al hover; `MacroItem` mostra sotto ogni titolo, in carattere piccolo, `(Agente di Riferimento: X)`. Filtro per ruolo: `hideFor: ["antonella"]`.
+
+Struttura (organigramma a reparti):
+
+| Macro | Agente di Riferimento | Voci | hideFor antonella |
+|---|---|---|---|
+| **Dashboard** | Luca | *Comando*: Panoramica Reparti (`/admin`) · *Urgenze*: Oggi, Approvazioni, Revisioni Video | no |
+| **Acquisizione** | Andrea | Lead Manager, Lista Fredda, Masterclass Analytics, Pipeline Prospect, Campagne Ads, Calendario Editoriale | sì |
+| **Vendite** | Gaia | Pipeline Blueprint, Analisi da validare, Servizi Extra | sì |
+| **Delivery** | Stefania | Partner, Quarantena, Ex Partner, Pipeline Video, Documenti Partner, Stefania | no |
+| **Back office** | Valentina | Transazioni, Configurazione, KB Matteo | sì |
+
+**Home `/admin`** = Panoramica Reparti (pagina `CabinaRegia`) per Claudio; Antonella mantiene `AntonellaDashboard`. La voce Panoramica usa `to: "/admin", end: true`. La route `/admin/cabina-regia` resta come alias (usata dal task schedulato `briefing-cabina-regia`). L'ex pagina KPI `AdminDashboard` è stata rimossa dalla sidebar e dall'index (import eliminato per non rompere il build CRA su Vercel, che tratta i warning come errori).
+
+**Antonella = reparto Delivery**: vede solo Dashboard + Delivery. Vista da rifinire (panoramica/Oggi dedicati a Delivery) — TODO.
+
+**Luca = nuovo Agente di Riferimento della Dashboard (AD/amministratore delegato di Claudio)**. È un agente **lato admin** (diverso dai 6 customer-facing in `agents.js`): interfaccia unica verso tutti gli agenti, risponde su qualsiasi tema anche tecnico. Fase 1 fatta (etichetta in sidebar). Fase 2 TODO: presenza/chat sulla Dashboard + collegamento dati reali (endpoint Cabina/KPI) + KB tecnica + **foto** `/agents/luca.jpg` nello stile degli altri 6 (serve un generatore di ritratti). Vincolo: NON toccare il system prompt di Matteo.
+
+Tutte le route preesistenti restano registrate (è un filtro di vista). Pagine fuori sidebar ma vive via URL: `leads`, `clienti-analisi`, `partner-setup-pending`, `automazione` (serve all'area partner), `metriche`, `analisi-prompt`, `template-email`.
+
+Commit: `660de01` (5 macro + Agente di Riferimento) · `b266800` (Panoramica Reparti = home /admin). Deploy via connettore GitHub, sha verificata + parse Babel/JSX OK.
