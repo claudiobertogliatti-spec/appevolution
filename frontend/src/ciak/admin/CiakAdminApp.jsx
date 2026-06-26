@@ -38,6 +38,7 @@ import { StefaniaWarMode } from "./pages/StefaniaWarMode";
 import { CalendarioEditoriale } from "./pages/CalendarioEditoriale";
 import { ServiziExtraAdmin } from "./pages/ServiziExtraAdmin";
 import { AgentDashboard } from "./pages/AgentDashboard";
+import { CabinaRegia } from "./pages/CabinaRegia";
 import { MetrichePostLancio } from "./pages/MetrichePostLancio";
 import { MatteoKBEditor } from "./pages/MatteoKBEditor";
 import { AnalisiPromptEditor } from "./pages/AnalisiPromptEditor";
@@ -54,6 +55,10 @@ const NAV = [
   // Dashboard è un link diretto (nessun flyout): la Dashboard stessa è la
   // panoramica, e Transazioni si raggiunge dai suoi riquadri "Fatturato".
   { id: "dashboard", label: "Dashboard", to: "/admin", end: true },
+  // Cabina di Regia = vista d'insieme dei 4 reparti operativi (Vendite /
+  // Delivery / Comunicazione / Back office) col semaforo di autonomia. Voce di
+  // primo livello, dominio Claudio → nascosta alla vista Antonella.
+  { id: "cabina-regia", label: "Cabina di Regia", to: "/admin/cabina-regia", hideFor: ["antonella"] },
   // Oggi = cruscotto operativo quotidiano (clienti €67: colli di bottiglia,
   // pipeline, clienti bloccati, approvazioni, alert partner). È trasversale →
   // link diretto di primo livello, non più sepolto sotto Gestione Partner.
@@ -451,6 +456,7 @@ export default function CiakAdminApp() {
         {/* Strumenti — importate da Evolution (KB Matteo: stub, richiede backend) */}
         <Route path="stefania" element={<StefaniaAdmin onAuthExpired={handleLogout} />} />
         <Route path="automazione" element={<AgentDashboard onAuthExpired={handleLogout} />} />
+        <Route path="cabina-regia" element={<CabinaRegia onAuthExpired={handleLogout} />} />
         <Route path="metriche" element={<MetrichePostLancio onAuthExpired={handleLogout} />} />
         <Route path="kb-matteo" element={<MatteoKBEditor onAuthExpired={handleLogout} />} />
         <Route path="analisi-prompt" element={<AnalisiPromptEditor onAuthExpired={handleLogout} />} />
