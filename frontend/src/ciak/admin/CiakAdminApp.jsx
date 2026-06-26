@@ -18,7 +18,6 @@
 import { useState } from "react";
 import { Routes, Route, NavLink, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { getToken, getAdminUser, clearSession, login } from "./api";
-import { AdminDashboard } from "./pages/AdminDashboard";
 import { AdminLeads } from "./pages/AdminLeads";
 import { AdminLeadDetail } from "./pages/AdminLeadDetail";
 import { AdminTransactions } from "./pages/AdminTransactions";
@@ -60,9 +59,9 @@ import { AntonellaOggi } from "./pages/AntonellaOggi";
 const NAV = [
   // ── DASHBOARD · Luca ───────────────────────────────────────────────────
   // Centro di comando: in alto la Panoramica Reparti (semaforo di autonomia =
-  // pagina Cabina di Regia), sotto le Urgenze (coda di azioni: cruscotto Oggi
-  // + Approvazioni + Revisioni Video). Visibile anche ad Antonella (Oggi +
-  // Revisioni Video sono parte del suo lavoro Delivery).
+  // pagina Cabina di Regia, ora home /admin), sotto le Urgenze (coda di azioni:
+  // cruscotto Oggi + Approvazioni + Revisioni Video). Visibile anche ad
+  // Antonella (Oggi + Revisioni Video sono parte del suo lavoro Delivery).
   {
     id: "dashboard",
     label: "Dashboard",
@@ -70,7 +69,7 @@ const NAV = [
     groups: [
       {
         label: "Comando",
-        pages: [{ to: "/admin/cabina-regia", label: "Panoramica Reparti" }],
+        pages: [{ to: "/admin", label: "Panoramica Reparti", end: true }],
       },
       {
         label: "Urgenze",
@@ -382,10 +381,11 @@ export default function CiakAdminApp() {
       {/* NOTA: CiakAdminApp è montato sotto `/admin/*` in CiakApp, quindi i path
           di queste Route sono RELATIVI a /admin (niente prefisso /admin/). */}
       <Routes>
-        {/* Dashboard — pagine reali (funnel Ciak €67) */}
+        {/* Home /admin = Panoramica Reparti (Cabina di Regia) per Claudio;
+            Antonella mantiene la sua dashboard dedicata. */}
         <Route index element={isAntonella
           ? <AntonellaDashboard onAuthExpired={handleLogout} />
-          : <AdminDashboard onAuthExpired={handleLogout} />} />
+          : <CabinaRegia onAuthExpired={handleLogout} />} />
         <Route path="leads" element={<AdminLeads onAuthExpired={handleLogout} />} />
         <Route path="leads/:email" element={<AdminLeadDetail onAuthExpired={handleLogout} />} />
         <Route path="transactions" element={<AdminTransactions onAuthExpired={handleLogout} />} />
