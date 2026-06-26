@@ -7,12 +7,13 @@
  *  - Dashboard    (Luca)      → Home (Panoramica Reparti) · Oggi
  *  - Acquisizione (Andrea)    → New Lead · Lista Fredda · Masterclass gratuita · Pipeline Prospect · Campagne Ads · Calendario Editoriale
  *  - Vendite      (Gaia)      → Ciak Blueprint · Call di vendita · Analisi da validare · Trattative OK · Trattative KO
- *  - Delivery     (Stefania)  → Pipeline Partner · Quarantena · Ex Partner · Masterclass · Video Lezioni · Bonus · File · Calendario editoriale · Campagne ADV · KPI Partner · Stefania
+ *  - Delivery     (Stefania)  → Pipeline Partner · Quarantena · Ex Partner · Masterclass · Video Lezioni · Bonus · File · Calendario editoriale · Campagne ADV · KPI Partner
  *  - Casi studio  (Andrea)    → Casi studio (prova sociale per il funnel)
  *  - Back office  (Valentina) → Pagamenti · Date contratti · Servizi extra
  *
  * Le voci tecniche/di sistema (KB Matteo, Analisi Prompt, Automazione, Template
- * Email, Configurazione) NON sono in sidebar: restano route raggiungibili via URL.
+ * Email, Configurazione, chat Stefania) NON sono in sidebar: restano route
+ * raggiungibili via URL.
  *
  * Antonella (admin_type "antonella") opera nel reparto Delivery → vede solo
  * Dashboard + Delivery (le altre macro hanno hideFor).
@@ -116,7 +117,6 @@ const NAV = [
       { to: "/admin/calendario-editoriale", label: "Calendario editoriale" },
       { to: "/admin/campagne-ads", label: "Campagne ADV" },
       { to: "/admin/metriche", label: "KPI Partner" },
-      { to: "/admin/stefania", label: "Stefania" },
     ],
   },
   // ── CASI STUDIO · Andrea ── prova sociale che alimenta il funnel ───────
@@ -468,7 +468,6 @@ export default function CiakAdminApp() {
         <Route path="calendario-editoriale" element={<CalendarioEditoriale onAuthExpired={handleLogout} />} />
         <Route path="campagne-ads" element={<StefaniaWarMode onAuthExpired={handleLogout} />} />
         <Route path="metriche" element={<MetrichePostLancio onAuthExpired={handleLogout} />} />
-        <Route path="stefania" element={<StefaniaAdmin onAuthExpired={handleLogout} />} />
 
         {/* ── Casi studio ── */}
         <Route path="casi-studio" element={<SectionStub />} />
@@ -479,6 +478,7 @@ export default function CiakAdminApp() {
         <Route path="servizi-extra" element={<ServiziExtraAdmin onAuthExpired={handleLogout} />} />
 
         {/* ── Route nascoste (fuori sidebar, raggiungibili via URL) ── */}
+        <Route path="stefania" element={<StefaniaAdmin onAuthExpired={handleLogout} />} />
         <Route path="leads" element={<AdminLeads onAuthExpired={handleLogout} />} />
         <Route path="leads/:email" element={<AdminLeadDetail onAuthExpired={handleLogout} />} />
         <Route path="clienti-analisi" element={<ClientiAnalisi onAuthExpired={handleLogout} />} />
