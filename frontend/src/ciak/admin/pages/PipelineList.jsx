@@ -4,12 +4,18 @@
  * Sostituisce il kanban orizzontale: Claudio vuole le pipeline come tabella,
  * stesso stile di Pipeline Partner. Lo "stadio" del funnel diventa una colonna.
  *
- * Usata da due route:
- *  - Pipeline Prospect  (Acquisizione Clienti) → endpoint /pipeline-prospect
- *  - Pipeline Blueprint (Clienti Attivi)       → endpoint /pipeline-blueprint
+ * Usata da:
+ *  - Pipeline Prospect  (Acquisizione)    → endpoint /pipeline-prospect
+ *  - Vendite per stadio (Ciak Blueprint / Call di vendita / Trattative OK)
+ *    → endpoint /pipeline-blueprint con `lockedStages` per isolare uno o piu'
+ *    stadi del funnel post-acquisto.
  *
  * Backend: GET /api/admin/ciak/<endpoint> → { columns:[{id,label,count,items}], total }
  * Le righe sono ordinate seguendo il funnel (ordine delle colonne backend).
+ *
+ * Prop `lockedStages` (array di id colonna): se presente, mostra SOLO le righe
+ * di quegli stadi e nasconde il selettore. Serve per avere una voce di sidebar
+ * dedicata a un singolo stadio (numeri separati, leggibili).
  */
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -33,7 +39,7 @@ function initials(name) {
     .toUpperCase();
 }
 
-export function PipelineList({ endpoint, title, subtitle, onAuthExpired, mirrorNote, deletable }) {
+export function PipelineList({ endpoint, title, subtitle, onAuthExpired, mirrorNote, deletable, lockedStages }) {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
@@ -86,7 +92,15 @@ export function PipelineList({ endpoint, title, subtitle, onAuthExpired, mirrorN
       rows.push({ ...item, stage_id: col.id, stage_label: col.label })
     );
   });
-  const filtered = stageFilter ? rows.filter((r) => r.stage_id === stageFilter) : rows;
+
+  // `lockedStages`: limita la vista a uno o piu' stadi e nasconde il selettore.
+  const locked = Array.isArray(lockedStages) && lockedStages.length > 0;
+  const baseRows = locked ? rows.filter((r) => lockedStages.includes(r.stage_id)) : rows;
+  const filtered = stageFilter ? baseRows.filter((r) => r.stage_id === stageFilter) : baseRows;
+  const shownTotal = baseRows.length;
+  const selectableColumns = locked
+    ? data.columns.filter((c) => lockedStages.includes(c.id))
+    : data.columns;
 
   const openItem = (item) => {
     if (item.email) navigate(`/admin/leads/${encodeURIComponent(item.email)}`);
@@ -96,21 +110,23 @@ export function PipelineList({ endpoint, title, subtitle, onAuthExpired, mirrorN
     <div className="p-8">
       <div className="flex items-start justify-between mb-1">
         <h1 className="text-2xl font-semibold text-slate-900">{title}</h1>
-        <select
-          value={stageFilter}
-          onChange={(e) => setStageFilter(e.target.value)}
-          className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm outline-none focus:border-slate-900"
-        >
-          <option value="">Tutti gli stadi</option>
-          {data.columns.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.label} ({c.count})
-            </option>
-          ))}
-        </select>
+        {!locked && (
+          <select
+            value={stageFilter}
+            onChange={(e) => setStageFilter(e.target.value)}
+            className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm outline-none focus:border-slate-900"
+          >
+            <option value="">Tutti gli stadi</option>
+            {selectableColumns.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label} ({c.count})
+              </option>
+            ))}
+          </select>
+        )}
       </div>
       <p className="text-slate-500 mb-3">
-        {subtitle} — {data.total} contatti.
+        {subtitle} — {shownTotal} contatti.
       </p>
 
       {mirrorNote && (

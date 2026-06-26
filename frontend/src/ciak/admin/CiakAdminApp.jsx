@@ -1,17 +1,21 @@
 /**
  * Ciak Admin — entry point del pannello admin (ciak.io/admin).
  *
- * Sidebar a 5 MACRO = i reparti dell'organigramma Ciak. Ogni macro mostra il
- * suo "Agente di Riferimento" (responsabile) e apre al hover un flyout con le
- * pagine (flat o in sotto-gruppi):
- *  - Dashboard    (Luca)      → Panoramica Reparti · Urgenze (Oggi/Approvazioni/Revisioni Video)
- *  - Acquisizione (Andrea)    → Lead Manager · Lista Fredda · Masterclass Analytics · Pipeline Prospect · Campagne Ads · Calendario Editoriale
- *  - Vendite      (Gaia)      → Pipeline Blueprint · Analisi da validare · Servizi Extra
- *  - Delivery     (Stefania)  → Partner · Quarantena · Ex Partner · Pipeline Video · Documenti Partner · Stefania
- *  - Back office  (Valentina) → Transazioni · Configurazione · KB Matteo
+ * Sidebar a 6 MACRO = i reparti dell'organigramma Ciak, in ordine di funnel.
+ * Ogni macro mostra il suo "Agente di Riferimento" e apre al hover un flyout
+ * con le pagine:
+ *  - Dashboard    (Luca)      → Home (Panoramica Reparti) · Oggi
+ *  - Acquisizione (Andrea)    → New Lead · Lista Fredda · Masterclass gratuita · Pipeline Prospect · Campagne Ads · Calendario Editoriale
+ *  - Vendite      (Gaia)      → Ciak Blueprint · Call di vendita · Trattative OK · Trattative KO · Analisi da validare
+ *  - Delivery     (Stefania)  → Pipeline Partner · Quarantena · Ex Partner · Masterclass · Video Lezioni · Bonus · File · Calendario editoriale · Campagne ADV · KPI Partner · Stefania
+ *  - Casi studio  (Andrea)    → Casi studio (prova sociale per il funnel)
+ *  - Back office  (Valentina) → Pagamenti · Date contratti · Servizi extra
+ *
+ * Le voci tecniche/di sistema (KB Matteo, Analisi Prompt, Automazione, Template
+ * Email, Configurazione) NON sono in sidebar: restano route raggiungibili via URL.
  *
  * Antonella (admin_type "antonella") opera nel reparto Delivery → vede solo
- * Dashboard + Delivery (le altre 3 macro hanno hideFor).
+ * Dashboard + Delivery (le altre macro hanno hideFor).
  *
  * Auth: role `admin` via /api/auth/login. Token in localStorage `ciak_admin_token`.
  */
@@ -52,93 +56,89 @@ import { AntonellaOggi } from "./pages/AntonellaOggi";
 
 // ─── Struttura navigazione (macro → pagine) ──────────────────────────────
 
-// Sidebar a 5 macro = i reparti dell'organigramma Ciak. Ogni macro ha un
-// `agente` (responsabile, mostrato come "Agente di Riferimento" sotto il
-// titolo). hideFor nasconde la macro alla vista Antonella, che opera nel
-// reparto Delivery. Tutte le route restano registrate: è un filtro di vista.
+// Sidebar a 6 macro = i reparti dell'organigramma Ciak, in ordine di funnel.
+// Ogni macro ha un `agente` (responsabile, mostrato come "Agente di
+// Riferimento"). hideFor nasconde la macro alla vista Antonella, che opera nel
+// reparto Delivery. Tutte le route restano registrate: e' un filtro di vista.
 const NAV = [
   // ── DASHBOARD · Luca ───────────────────────────────────────────────────
-  // Centro di comando: in alto la Panoramica Reparti (semaforo di autonomia =
-  // pagina Cabina di Regia, ora home /admin), sotto le Urgenze (coda di azioni:
-  // cruscotto Oggi + Approvazioni + Revisioni Video). Visibile anche ad
-  // Antonella (Oggi + Revisioni Video sono parte del suo lavoro Delivery).
   {
     id: "dashboard",
     label: "Dashboard",
     agente: "Luca",
-    groups: [
-      {
-        label: "Comando",
-        pages: [{ to: "/admin", label: "Panoramica Reparti", end: true }],
-      },
-      {
-        label: "Urgenze",
-        pages: [
-          { to: "/admin/oggi", label: "Oggi" },
-          { to: "/admin/approvazioni", label: "Approvazioni" },
-          { to: "/admin/video-review", label: "Revisioni Video" },
-        ],
-      },
+    pages: [
+      { to: "/admin", label: "Home", end: true },
+      { to: "/admin/oggi", label: "Oggi" },
     ],
   },
-  // ── ACQUISIZIONE · Andrea ──────────────────────────────────────────────
-  // Riempi e qualifica il funnel, prima del confine €67. Assorbe il vecchio
-  // "Marketing" (ads + contenuti = motore di acquisizione). Fuori da Antonella.
+  // ── ACQUISIZIONE · Andrea ── dal freddo al €67 ─────────────────────────
   {
     id: "acquisizione",
     label: "Acquisizione",
     agente: "Andrea",
     hideFor: ["antonella"],
     pages: [
-      { to: "/admin/lead-manager", label: "Lead Manager" },
+      { to: "/admin/lead-manager", label: "New Lead" },
       { to: "/admin/lista-fredda", label: "Lista Fredda" },
-      { to: "/admin/masterclass-analytics", label: "Masterclass Analytics" },
+      { to: "/admin/masterclass-analytics", label: "Masterclass gratuita" },
       { to: "/admin/pipeline-prospect", label: "Pipeline Prospect" },
-      { to: "/admin/campagne-ads", label: "Campagne Ads" },
-      { to: "/admin/calendario-editoriale", label: "Calendario Editoriale" },
+      { to: "/admin/acq-campagne-ads", label: "Campagne Ads" },
+      { to: "/admin/acq-calendario", label: "Calendario Editoriale" },
     ],
   },
-  // ── VENDITE · Gaia ─────────────────────────────────────────────────────
-  // Converti: dal €67 pagato alla firma della partnership. Fuori da Antonella.
+  // ── VENDITE · Gaia ── dal €67 alla firma (stadi separati) ──────────────
   {
     id: "vendite",
     label: "Vendite",
     agente: "Gaia",
     hideFor: ["antonella"],
     pages: [
-      { to: "/admin/pipeline-blueprint", label: "Pipeline Blueprint" },
+      { to: "/admin/pipeline-blueprint", label: "Ciak Blueprint" },
+      { to: "/admin/vendite-call", label: "Call di vendita" },
+      { to: "/admin/vendite-ok", label: "Trattative OK" },
+      { to: "/admin/vendite-ko", label: "Trattative KO" },
       { to: "/admin/analisi-da-validare", label: "Analisi da validare" },
-      { to: "/admin/servizi-extra", label: "Servizi Extra" },
     ],
   },
-  // ── DELIVERY · Stefania ────────────────────────────────────────────────
-  // Dalla firma al LIVE. Stefania è capo reparto; il team del percorso resta
-  // intatto. Include produzione asset (Pipeline Video), documenti partner e il
-  // pannello della capo reparto. È il reparto di Antonella → visibile a lei.
+  // ── DELIVERY · Stefania ── dalla firma al LIVE (partner-facing) ────────
   {
     id: "delivery",
     label: "Delivery",
     agente: "Stefania",
     pages: [
-      { to: "/admin/partner", label: "Partner" },
+      { to: "/admin/partner", label: "Pipeline Partner" },
       { to: "/admin/quarantena-partner", label: "Quarantena" },
       { to: "/admin/ex-partner", label: "Ex Partner" },
-      { to: "/admin/video-pipeline", label: "Pipeline Video" },
-      { to: "/admin/documenti-partner", label: "Documenti Partner" },
+      { to: "/admin/delivery-masterclass", label: "Masterclass" },
+      { to: "/admin/delivery-lezioni", label: "Video Lezioni" },
+      { to: "/admin/delivery-bonus", label: "Bonus" },
+      { to: "/admin/documenti-partner", label: "File" },
+      { to: "/admin/calendario-editoriale", label: "Calendario editoriale" },
+      { to: "/admin/campagne-ads", label: "Campagne ADV" },
+      { to: "/admin/metriche", label: "KPI Partner" },
       { to: "/admin/stefania", label: "Stefania" },
     ],
   },
-  // ── BACK OFFICE · Valentina ────────────────────────────────────────────
-  // Soldi, contratti, infrastruttura. Dominio Claudio → fuori da Antonella.
+  // ── CASI STUDIO · Andrea ── prova sociale che alimenta il funnel ───────
+  {
+    id: "casi-studio",
+    label: "Casi studio",
+    agente: "Andrea",
+    hideFor: ["antonella"],
+    pages: [
+      { to: "/admin/casi-studio", label: "Casi studio" },
+    ],
+  },
+  // ── BACK OFFICE · Valentina ── soldi e contratti ──────────────────────
   {
     id: "back-office",
     label: "Back office",
     agente: "Valentina",
     hideFor: ["antonella"],
     pages: [
-      { to: "/admin/transactions", label: "Transazioni" },
-      { to: "/admin/configurazione", label: "Configurazione" },
-      { to: "/admin/kb-matteo", label: "KB Matteo" },
+      { to: "/admin/transactions", label: "Pagamenti" },
+      { to: "/admin/date-contratti", label: "Date contratti" },
+      { to: "/admin/servizi-extra", label: "Servizi extra" },
     ],
   },
 ];
@@ -223,7 +223,7 @@ function FlyoutLink({ page }) {
 }
 
 function MacroItem({ macro, currentPath }) {
-  // Macro "diretta" (es. Dashboard): link semplice, nessun flyout.
+  // Macro "diretta" (link semplice, nessun flyout).
   if (macro.to) {
     return (
       <NavLink
@@ -247,7 +247,7 @@ function MacroItem({ macro, currentPath }) {
     );
   }
 
-  // Una macro può avere pagine flat (`pages`) oppure sotto-gruppi (`groups`).
+  // Una macro puo' avere pagine flat (`pages`) oppure sotto-gruppi (`groups`).
   const allPages = macro.groups ? macro.groups.flatMap((g) => g.pages) : macro.pages;
   const isActive = allPages.some((p) =>
     p.end ? currentPath === p.to : currentPath.startsWith(p.to)
@@ -302,8 +302,7 @@ function AdminShell({ user, onLogout, children }) {
   const { pathname } = useLocation();
   // Sidebar filtrata per ruolo admin: ogni macro con `hideFor` che include
   // l'admin_type corrente viene tolta. Claudio (o qualsiasi tipo non elencato)
-  // vede tutto. NB: le route restano registrate — è un filtro di vista, non un
-  // lockout: Antonella mantiene i pieni poteri sulle sezioni che vede.
+  // vede tutto. NB: le route restano registrate — e' un filtro di vista.
   const adminType = user?.admin_type || "claudio";
   const nav = NAV.filter((m) => !(m.hideFor || []).includes(adminType));
   return (
@@ -334,21 +333,21 @@ function AdminShell({ user, onLogout, children }) {
   );
 }
 
-// ─── Stub sezioni non ancora importate da Evolution ──────────────────────
+// ─── Stub sezioni non ancora costruite ───────────────────────────────────
 
 function SectionStub() {
   const { pathname } = useLocation();
   const allPages = NAV.flatMap((m) =>
     m.groups ? m.groups.flatMap((g) => g.pages) : m.pages || []
   );
-  const label = allPages.find((p) => pathname.startsWith(p.to))?.label || "Sezione";
+  const label = allPages.find((p) => p.end ? pathname === p.to : pathname.startsWith(p.to))?.label || "Sezione";
   return (
-    <div className="p-10 max-w-xl">
+    <div className="p-8 max-w-xl">
       <h1 className="text-2xl font-semibold text-slate-900 mb-2">{label}</h1>
       <div className="bg-yellow-50 border border-yellow-300 rounded-2xl p-5">
         <p className="text-sm text-slate-700">
-          Questa sezione sta per essere importata dal back-office Evolution PRO. La struttura
-          della sidebar è già definita — il contenuto arriva con la prossima fase di import.
+          Questa sezione e' in preparazione. La struttura della sidebar e' pronta — il
+          contenuto arriva nella prossima fase.
         </p>
       </div>
     </div>
@@ -378,7 +377,7 @@ export default function CiakAdminApp() {
 
   return (
     <AdminShell user={user} onLogout={handleLogout}>
-      {/* NOTA: CiakAdminApp è montato sotto `/admin/*` in CiakApp, quindi i path
+      {/* NOTA: CiakAdminApp e' montato sotto `/admin/*` in CiakApp, quindi i path
           di queste Route sono RELATIVI a /admin (niente prefisso /admin/). */}
       <Routes>
         {/* Home /admin = Panoramica Reparti (Cabina di Regia) per Claudio;
@@ -386,13 +385,19 @@ export default function CiakAdminApp() {
         <Route index element={isAntonella
           ? <AntonellaDashboard onAuthExpired={handleLogout} />
           : <CabinaRegia onAuthExpired={handleLogout} />} />
-        <Route path="leads" element={<AdminLeads onAuthExpired={handleLogout} />} />
-        <Route path="leads/:email" element={<AdminLeadDetail onAuthExpired={handleLogout} />} />
-        <Route path="transactions" element={<AdminTransactions onAuthExpired={handleLogout} />} />
 
-        {/* Gestione Clienti — acquisizione (lead → prospect) */}
+        {/* ── Dashboard ── */}
+        <Route path="oggi" element={isAntonella
+          ? <AntonellaOggi onAuthExpired={handleLogout} />
+          : <Oggi onAuthExpired={handleLogout} />} />
+
+        {/* ── Acquisizione ── */}
         <Route path="lead-manager" element={<LeadManager onAuthExpired={handleLogout} />} />
         <Route path="lista-fredda" element={<ListaFredda onAuthExpired={handleLogout} />} />
+        <Route
+          path="masterclass-analytics"
+          element={<MasterclassAnalytics onAuthExpired={handleLogout} />}
+        />
         <Route
           path="pipeline-prospect"
           element={
@@ -406,77 +411,87 @@ export default function CiakAdminApp() {
             />
           }
         />
-        {/* ClientiAnalisi: pannello clienti €67 — raggiungibile via URL,
-            drill-down dal kanban Pipeline Blueprint */}
-        <Route
-          path="clienti-analisi"
-          element={<ClientiAnalisi onAuthExpired={handleLogout} />}
-        />
+        <Route path="acq-campagne-ads" element={<SectionStub />} />
+        <Route path="acq-calendario" element={<SectionStub />} />
 
-        {/* Gestione Clienti — attivi (post-acquisto: blueprint → analisi) */}
+        {/* ── Vendite (stadi separati della pipeline-blueprint) ── */}
         <Route
           path="pipeline-blueprint"
           element={
             <PipelineList
               endpoint="/pipeline-blueprint"
-              title="Pipeline Blueprint"
-              subtitle="Post-acquisto: blueprint acquistato → call → in trattativa → contratto firmato + pagato"
+              title="Ciak Blueprint"
+              subtitle="Ha pagato i €67 — analisi acquistata"
+              lockedStages={["acquistato"]}
               onAuthExpired={handleLogout}
             />
           }
         />
         <Route
+          path="vendite-call"
+          element={
+            <PipelineList
+              endpoint="/pipeline-blueprint"
+              title="Call di vendita"
+              subtitle="Call prenotata e call fatta"
+              lockedStages={["call_prenotata", "call_fatta"]}
+              onAuthExpired={handleLogout}
+            />
+          }
+        />
+        <Route
+          path="vendite-ok"
+          element={
+            <PipelineList
+              endpoint="/pipeline-blueprint"
+              title="Trattative OK"
+              subtitle="Contratto firmato + pagato — diventa partner"
+              lockedStages={["contratto_pagato"]}
+              onAuthExpired={handleLogout}
+            />
+          }
+        />
+        <Route path="vendite-ko" element={<SectionStub />} />
+        <Route
           path="analisi-da-validare"
           element={<AnalisiDaValidare onAuthExpired={handleLogout} />}
         />
 
-        {/* Gestione Partner */}
+        {/* ── Delivery ── */}
         <Route path="partner" element={<PartnerHub onAuthExpired={handleLogout} />} />
-        {/* Ex "Percorso EVO": fuso nell'hub Partner (vista "Per atto"). Redirect
-            per non rompere eventuali bookmark. */}
+        <Route path="quarantena-partner" element={<QuarantenaPartner onAuthExpired={handleLogout} />} />
+        <Route path="ex-partner" element={<ExPartner onAuthExpired={handleLogout} />} />
+        <Route path="delivery-masterclass" element={<SectionStub />} />
+        <Route path="delivery-lezioni" element={<SectionStub />} />
+        <Route path="delivery-bonus" element={<SectionStub />} />
+        <Route path="documenti-partner" element={<PartnerDocumenti onAuthExpired={handleLogout} />} />
+        <Route path="calendario-editoriale" element={<CalendarioEditoriale onAuthExpired={handleLogout} />} />
+        <Route path="campagne-ads" element={<StefaniaWarMode onAuthExpired={handleLogout} />} />
+        <Route path="metriche" element={<MetrichePostLancio onAuthExpired={handleLogout} />} />
+        <Route path="stefania" element={<StefaniaAdmin onAuthExpired={handleLogout} />} />
+
+        {/* ── Casi studio ── */}
+        <Route path="casi-studio" element={<SectionStub />} />
+
+        {/* ── Back office ── */}
+        <Route path="transactions" element={<AdminTransactions onAuthExpired={handleLogout} />} />
+        <Route path="date-contratti" element={<SectionStub />} />
+        <Route path="servizi-extra" element={<ServiziExtraAdmin onAuthExpired={handleLogout} />} />
+
+        {/* ── Route nascoste (fuori sidebar, raggiungibili via URL) ── */}
+        <Route path="leads" element={<AdminLeads onAuthExpired={handleLogout} />} />
+        <Route path="leads/:email" element={<AdminLeadDetail onAuthExpired={handleLogout} />} />
+        <Route path="clienti-analisi" element={<ClientiAnalisi onAuthExpired={handleLogout} />} />
         <Route path="percorso-evo" element={<Navigate to="/admin/partner" replace />} />
         <Route path="approvazioni" element={<Approvazioni />} />
         <Route path="partner/:id" element={<SectionStub />} />
-        <Route path="oggi" element={isAntonella
-          ? <AntonellaOggi onAuthExpired={handleLogout} />
-          : <Oggi onAuthExpired={handleLogout} />} />
-        {/* Video Review + Documenti Partner — importate da Evolution PRO */}
         <Route path="video-review" element={<VideoReview onAuthExpired={handleLogout} />} />
         <Route path="video-pipeline" element={<VideoPipelineMonitor onAuthExpired={handleLogout} />} />
-        <Route
-          path="documenti-partner"
-          element={<PartnerDocumenti onAuthExpired={handleLogout} />}
-        />
-        {/* Quarantena / Ex Partner — gestione piani rateali + stato partner */}
-        <Route
-          path="quarantena-partner"
-          element={<QuarantenaPartner onAuthExpired={handleLogout} />}
-        />
-        <Route path="ex-partner" element={<ExPartner onAuthExpired={handleLogout} />} />
-        <Route
-          path="partner-setup-pending"
-          element={<PartnerSetupPending onAuthExpired={handleLogout} />}
-        />
-
-        {/* Marketing — importate da Evolution PRO */}
-        <Route path="campagne-ads" element={<StefaniaWarMode onAuthExpired={handleLogout} />} />
-        <Route
-          path="calendario-editoriale"
-          element={<CalendarioEditoriale onAuthExpired={handleLogout} />}
-        />
-        <Route path="servizi-extra" element={<ServiziExtraAdmin onAuthExpired={handleLogout} />} />
-
-        {/* Strumenti — importate da Evolution (KB Matteo: stub, richiede backend) */}
-        <Route path="stefania" element={<StefaniaAdmin onAuthExpired={handleLogout} />} />
+        <Route path="partner-setup-pending" element={<PartnerSetupPending onAuthExpired={handleLogout} />} />
         <Route path="automazione" element={<AgentDashboard onAuthExpired={handleLogout} />} />
         <Route path="cabina-regia" element={<CabinaRegia onAuthExpired={handleLogout} />} />
-        <Route path="metriche" element={<MetrichePostLancio onAuthExpired={handleLogout} />} />
         <Route path="kb-matteo" element={<MatteoKBEditor onAuthExpired={handleLogout} />} />
         <Route path="analisi-prompt" element={<AnalisiPromptEditor onAuthExpired={handleLogout} />} />
-        <Route
-          path="masterclass-analytics"
-          element={<MasterclassAnalytics onAuthExpired={handleLogout} />}
-        />
         <Route path="template-email" element={<TemplateEmail onAuthExpired={handleLogout} />} />
         <Route path="configurazione" element={<SiteConfig onAuthExpired={handleLogout} />} />
 
