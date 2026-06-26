@@ -747,6 +747,8 @@ async def pipeline_blueprint(admin=Depends(require_ciak_admin)):
     Pipeline Blueprint — journey POST-acquisto €67 in formato kanban.
     Fonte: diagnostic_sessions (state machine) + ciak_orphan_purchases.
     Arricchimento "in trattativa" / "contratto pagato" da `proposte` (best-effort, per email).
+    I partner reali (contratto firmato / attivo) finiscono sempre in "contratto pagato",
+    anche se chiusi offline senza proposta Stripe.
     """
     if db is None:
         raise HTTPException(503, "Database non configurato")
@@ -793,6 +795,24 @@ async def pipeline_blueprint(admin=Depends(require_ciak_admin)):
     # Acquisti orfani — colonna "acquistato"
     async for o in db.ciak_orphan_purchases.find({}):
         _bump(o.get("customer_email"), "acquistato", None, o.get("created_at"))
+
+    # Partner reali → "contratto pagato" anche per chiusure offline (no proposta
+    # Stripe). Bump SOLO le entry già presenti nel funnel, così non si aggiungono
+    # partner storici privi di percorso diagnostico.
+    partner_emails = set()
+    async for p in db.partners.find(
+        {}, {"email": 1, "contract_signed": 1, "partnership_pagata": 1, "stato": 1}
+    ):
+        em = (p.get("email") or "").strip().lower()
+        if not em:
+            continue
+        if p.get("contract_signed") or p.get("partnership_pagata") or p.get("stato") == "attivo":
+            partner_emails.add(em)
+    if partner_emails:
+        for em, e in entries.items():
+            if (em or "").strip().lower() in partner_emails and \
+               _BLUEPRINT_RANK["contratto_pagato"] > _BLUEPRINT_RANK.get(e.get("stage"), -1):
+                e["stage"] = "contratto_pagato"
 
     columns = _columns_from_entries(entries, _BLUEPRINT_COLUMNS)
     return {"columns": columns, "total": sum(c["count"] for c in columns)}
