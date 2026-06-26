@@ -6812,6 +6812,26 @@ async def get_approval_statistics():
     stats = await get_approval_stats(db)
     return stats
 
+@api_router.post("/agent-tasks/{task_id}/approve")
+async def api_approve_agent_task(task_id: str, request: ApproveRequest):
+    """Approva un task in attesa di approvazione (sblocco dalla Cabina di Regia)."""
+    try:
+        task = await approve_task(db, task_id, request.reviewer, request.notes)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"success": True, "task_id": task_id, "status": (task or {}).get("status")}
+
+
+@api_router.post("/agent-tasks/{task_id}/reject")
+async def api_reject_agent_task(task_id: str, request: RejectRequest):
+    """Rifiuta un task in attesa con feedback (sblocco dalla Cabina di Regia)."""
+    try:
+        task = await reject_task(db, task_id, request.reviewer, request.feedback)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"success": True, "task_id": task_id, "status": (task or {}).get("status")}
+
+
 # Parametric routes AFTER static routes
 @api_router.get("/agent-tasks/{task_id}")
 async def get_agent_task(task_id: str):
