@@ -1,15 +1,17 @@
 /**
  * Ciak Admin — entry point del pannello admin (ciak.io/admin).
  *
- * Sidebar a MACRO-VOCI: alcune macro sono link diretti, altre aprono al hover
- * un flyout con le loro pagine (flat o in sotto-gruppi).
- *  - Dashboard        → panoramica KPI (link diretto)
- *  - Oggi             → cruscotto operativo quotidiano clienti €67 (link diretto)
- *  - Gestione Clienti → Acquisizione · Qualifica · Conversione (3 sotto-gruppi)
- *  - Gestione Partner → Partner · Approvazioni · Video Review · Documenti +
- *                       stati di ciclo-vita (lista piatta)
- *  - Marketing        → Campagne Ads · Calendario Editoriale · Servizi Extra
- *  - Strumenti        → Stefania AI · Automazione · KPI · KB · Prompt · Template · Config
+ * Sidebar a 5 MACRO = i reparti dell'organigramma Ciak. Ogni macro mostra il
+ * suo "Agente di Riferimento" (responsabile) e apre al hover un flyout con le
+ * pagine (flat o in sotto-gruppi):
+ *  - Dashboard    (Luca)      → Panoramica Reparti · Urgenze (Oggi/Approvazioni/Revisioni Video)
+ *  - Acquisizione (Andrea)    → Lead Manager · Lista Fredda · Masterclass Analytics · Pipeline Prospect · Campagne Ads · Calendario Editoriale
+ *  - Vendite      (Gaia)      → Pipeline Blueprint · Analisi da validare · Servizi Extra
+ *  - Delivery     (Stefania)  → Partner · Quarantena · Ex Partner · Pipeline Video · Documenti Partner · Stefania
+ *  - Back office  (Valentina) → Transazioni · Configurazione · KB Matteo
+ *
+ * Antonella (admin_type "antonella") opera nel reparto Delivery → vede solo
+ * Dashboard + Delivery (le altre 3 macro hanno hideFor).
  *
  * Auth: role `admin` via /api/auth/login. Token in localStorage `ciak_admin_token`.
  */
@@ -51,93 +53,93 @@ import { AntonellaOggi } from "./pages/AntonellaOggi";
 
 // ─── Struttura navigazione (macro → pagine) ──────────────────────────────
 
+// Sidebar a 5 macro = i reparti dell'organigramma Ciak. Ogni macro ha un
+// `agente` (responsabile, mostrato come "Agente di Riferimento" sotto il
+// titolo). hideFor nasconde la macro alla vista Antonella, che opera nel
+// reparto Delivery. Tutte le route restano registrate: è un filtro di vista.
 const NAV = [
-  // Dashboard è un link diretto (nessun flyout): la Dashboard stessa è la
-  // panoramica, e Transazioni si raggiunge dai suoi riquadri "Fatturato".
-  { id: "dashboard", label: "Dashboard", to: "/admin", end: true },
-  // Cabina di Regia = vista d'insieme dei 4 reparti operativi (Vendite /
-  // Delivery / Comunicazione / Back office) col semaforo di autonomia. Voce di
-  // primo livello, dominio Claudio → nascosta alla vista Antonella.
-  { id: "cabina-regia", label: "Cabina di Regia", to: "/admin/cabina-regia", hideFor: ["antonella"] },
-  // Oggi = cruscotto operativo quotidiano (clienti €67: colli di bottiglia,
-  // pipeline, clienti bloccati, approvazioni, alert partner). È trasversale →
-  // link diretto di primo livello, non più sepolto sotto Gestione Partner.
-  { id: "oggi", label: "Oggi", to: "/admin/oggi" },
-  // Stefania = coordinatrice AI trasversale (briefing operativi): voce di primo
-  // livello, non più sepolta sotto Strumenti.
-  { id: "stefania", label: "Stefania AI", to: "/admin/stefania" },
+  // ── DASHBOARD · Luca ───────────────────────────────────────────────────
+  // Centro di comando: in alto la Panoramica Reparti (semaforo di autonomia =
+  // pagina Cabina di Regia), sotto le Urgenze (coda di azioni: cruscotto Oggi
+  // + Approvazioni + Revisioni Video). Visibile anche ad Antonella (Oggi +
+  // Revisioni Video sono parte del suo lavoro Delivery).
   {
-    id: "gestione-clienti",
-    label: "Gestione Clienti",
-    // Vista Antonella (admin_type "antonella"): comunicazione/social, niente
-    // acquisizione/vendita €67 → macro nascosta dalla sua sidebar.
-    hideFor: ["antonella"],
-    // 3 sotto-gruppi nel ciclo di vita cliente (LOCK 3/6). Acquisizione = zona
-    // Systeme (Ciak smista/misura); Qualifica = specchio read-only dei tag
-    // Systeme; Conversione = zona Ciak operativa (Stripe/contratto/AI). Il
-    // confine è il checkout €67.
+    id: "dashboard",
+    label: "Dashboard",
+    agente: "Luca",
     groups: [
       {
-        label: "Acquisizione",
-        // Ordine = avvicinamento al confine €67: prima l'intake nuovo (Lead
-        // Manager, scraping nativo Ciak che alimenta Systeme), poi l'archivio
-        // freddo congelato (12k, export custom audience Meta), infine la
-        // Masterclass Analytics (i più caldi/engaged), adiacente alla Qualifica.
-        pages: [
-          { to: "/admin/lead-manager", label: "Lead Manager" },
-          { to: "/admin/lista-fredda", label: "Lista Fredda" },
-          { to: "/admin/masterclass-analytics", label: "Masterclass Analytics" },
-        ],
+        label: "Comando",
+        pages: [{ to: "/admin/cabina-regia", label: "Panoramica Reparti" }],
       },
       {
-        label: "Qualifica",
-        pages: [{ to: "/admin/pipeline-prospect", label: "Pipeline Prospect" }],
-      },
-      {
-        label: "Conversione",
+        label: "Urgenze",
         pages: [
-          { to: "/admin/pipeline-blueprint", label: "Pipeline Blueprint" },
-          { to: "/admin/analisi-da-validare", label: "Analisi da validare" },
+          { to: "/admin/oggi", label: "Oggi" },
+          { to: "/admin/approvazioni", label: "Approvazioni" },
+          { to: "/admin/video-review", label: "Revisioni Video" },
         ],
       },
     ],
   },
+  // ── ACQUISIZIONE · Andrea ──────────────────────────────────────────────
+  // Riempi e qualifica il funnel, prima del confine €67. Assorbe il vecchio
+  // "Marketing" (ads + contenuti = motore di acquisizione). Fuori da Antonella.
   {
-    id: "gestione-partner",
-    label: "Gestione Partner",
-    // Solo gli STATI/elenchi del partner. Le code d'azione (Approvazioni, Video
-    // Review, Password da impostare) sono migrate negli alert di "Oggi" — restano
-    // pagine vive raggiungibili da lì e via URL, ma fuori dalla sidebar. La
-    // dilazione rate è ora nella scheda partner (tab Pagamenti), non più qui.
+    id: "acquisizione",
+    label: "Acquisizione",
+    agente: "Andrea",
+    hideFor: ["antonella"],
     pages: [
-      { to: "/admin/partner", label: "Pipeline Partner" },
-      { to: "/admin/quarantena-partner", label: "Quarantena Partner" },
-      { to: "/admin/ex-partner", label: "Ex Partner" },
-    ],
-  },
-  {
-    id: "marketing",
-    label: "Marketing",
-    pages: [
+      { to: "/admin/lead-manager", label: "Lead Manager" },
+      { to: "/admin/lista-fredda", label: "Lista Fredda" },
+      { to: "/admin/masterclass-analytics", label: "Masterclass Analytics" },
+      { to: "/admin/pipeline-prospect", label: "Pipeline Prospect" },
       { to: "/admin/campagne-ads", label: "Campagne Ads" },
       { to: "/admin/calendario-editoriale", label: "Calendario Editoriale" },
+    ],
+  },
+  // ── VENDITE · Gaia ─────────────────────────────────────────────────────
+  // Converti: dal €67 pagato alla firma della partnership. Fuori da Antonella.
+  {
+    id: "vendite",
+    label: "Vendite",
+    agente: "Gaia",
+    hideFor: ["antonella"],
+    pages: [
+      { to: "/admin/pipeline-blueprint", label: "Pipeline Blueprint" },
+      { to: "/admin/analisi-da-validare", label: "Analisi da validare" },
       { to: "/admin/servizi-extra", label: "Servizi Extra" },
     ],
   },
+  // ── DELIVERY · Stefania ────────────────────────────────────────────────
+  // Dalla firma al LIVE. Stefania è capo reparto; il team del percorso resta
+  // intatto. Include produzione asset (Pipeline Video), documenti partner e il
+  // pannello della capo reparto. È il reparto di Antonella → visibile a lei.
   {
-    id: "strumenti",
-    label: "Strumenti",
-    // Config/KB/automazioni = dominio Claudio → fuori dalla sidebar di Antonella.
-    hideFor: ["antonella"],
-    // Solo i tool realmente cablati a un backend. Rimossi dalla sidebar (route e
-    // file restano vivi, raggiungibili via URL): Automazione (doppione di Lead
-    // Manager sullo stesso /api/discovery/leads + griglia agenti vetrina), KPI &
-    // Metriche (numeri mock, nessun partner post-lancio reale), Prompt Analisi e
-    // Template Email (0 endpoint backend → andavano in errore al caricamento).
+    id: "delivery",
+    label: "Delivery",
+    agente: "Stefania",
     pages: [
-      { to: "/admin/kb-matteo", label: "KB Matteo" },
+      { to: "/admin/partner", label: "Partner" },
+      { to: "/admin/quarantena-partner", label: "Quarantena" },
+      { to: "/admin/ex-partner", label: "Ex Partner" },
       { to: "/admin/video-pipeline", label: "Pipeline Video" },
+      { to: "/admin/documenti-partner", label: "Documenti Partner" },
+      { to: "/admin/stefania", label: "Stefania" },
+    ],
+  },
+  // ── BACK OFFICE · Valentina ────────────────────────────────────────────
+  // Soldi, contratti, infrastruttura. Dominio Claudio → fuori da Antonella.
+  {
+    id: "back-office",
+    label: "Back office",
+    agente: "Valentina",
+    hideFor: ["antonella"],
+    pages: [
+      { to: "/admin/transactions", label: "Transazioni" },
       { to: "/admin/configurazione", label: "Configurazione" },
+      { to: "/admin/kb-matteo", label: "KB Matteo" },
     ],
   },
 ];
@@ -236,7 +238,12 @@ function MacroItem({ macro, currentPath }) {
           }`
         }
       >
-        {macro.label}
+        <span className="block leading-tight">{macro.label}</span>
+        {macro.agente && (
+          <span className="block text-[10px] font-normal normal-case text-slate-500 leading-tight mt-0.5">
+            (Agente di Riferimento: {macro.agente})
+          </span>
+        )}
       </NavLink>
     );
   }
@@ -257,7 +264,12 @@ function MacroItem({ macro, currentPath }) {
             : "text-slate-300 hover:bg-slate-800/60"
         }`}
       >
-        {macro.label}
+        <span className="block leading-tight">{macro.label}</span>
+        {macro.agente && (
+          <span className="block text-[10px] font-normal normal-case text-slate-500 leading-tight mt-0.5">
+            (Agente di Riferimento: {macro.agente})
+          </span>
+        )}
       </NavLink>
 
       {/* Flyout: appare al hover sulla macro, mostra le pagine */}
@@ -360,8 +372,9 @@ export default function CiakAdminApp() {
     return <LoginScreen onLogin={setUser} />;
   }
 
-  // Antonella (comunicazione/social): Dashboard e Oggi tarate sui suoi compiti,
-  // non sul funnel vendite €67. Conserva pieni poteri admin nelle sezioni visibili.
+  // Antonella opera nel reparto Delivery: Dashboard e Oggi tarate sui suoi
+  // compiti (AntonellaDashboard/AntonellaOggi). Conserva pieni poteri admin
+  // nelle sezioni visibili.
   const isAntonella = user?.admin_type === "antonella";
 
   return (
