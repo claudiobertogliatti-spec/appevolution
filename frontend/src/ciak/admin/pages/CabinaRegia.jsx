@@ -82,7 +82,7 @@ export function CabinaRegia({ onAuthExpired }) {
   const gV = d.appr.approved_today ?? 0, gG = d.appr.pending_count ?? d.approvals.length ?? 0, gR = d.appr.stale_count ?? 0;
 
   return (
-    <div className="max-w-6xl">
+    <div className="max-w-6xl p-6 md:p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Cabina di Regia</h1>
         <p className="text-sm text-slate-500 mt-1">Evolution PRO nei suoi 4 reparti operativi. Salute complessiva: <span className="font-semibold">{health.overall || "—"}</span></p>
