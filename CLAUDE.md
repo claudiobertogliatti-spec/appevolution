@@ -936,3 +936,34 @@ Allineamento fatto 2026-06-18: la pagina proposta (frontend/src/ciak/pages/Propo
 
 ### Regola generale (anti-ricorrenza)
 **Mai affidarsi al disco locale di Cloud Run per file persistenti**: è effimero e per-istanza. Ogni file che deve sopravvivere va su Cloudinary/GCS. Se in futuro "Visualizza" torna a dare 404 con content-type `application/json`, è quasi certamente un file finito solo su disco locale.
+
+
+## Sessione 2026-06-26 — Cabina di Regia (organigramma 4 reparti) + canale di deploy via connettore GitHub
+
+### ✅ NUOVO CANALE DI DEPLOY — connettore GitHub ora SCRIVIBILE (usare questo)
+Il connettore GitHub di Claude (GitHub App "Claude Github MCP Connector", owner `anthropics`) era **autorizzato ma non installato** sui repo → ogni scrittura dava `403 "Resource not accessible by integration"`. **Risolto il 2026-06-26 installando la GitHub App sul repo `appevolution`** (installation_id `142749581`).
+**Da ora il deploy si fa via connettore**, in un colpo e byte-esatto:
+- `create_or_update_file` (per gli update serve la `sha` del blob corrente), `push_files` (più file in un commit), `delete_file`.
+- Verifica: il commit ritorna la `sha` del blob → confrontarla con `git hash-object` del file locale (deve coincidere).
+- **NON serve più** l'editor web GitHub + iniezione CM6 (vecchio workaround lento e a rischio corruzione): resta solo come fallback estremo.
+- Il sandbox bash resta senza credenziali di push (solo `git fetch`); il canale di scrittura è il connettore.
+
+### Cabina di Regia — nuova pagina admin
+File `frontend/src/ciak/admin/pages/CabinaRegia.jsx` · route `/admin/cabina-regia` (voce di primo livello sotto "Dashboard", `hideFor: ["antonella"]`, registrata in `CiakAdminApp.jsx`).
+Vista d'insieme dei **4 reparti operativi** col **semaforo di autonomia**: 🟢 automatico · 🟡 aspetta l'OK di Claudio · 🔴 urgente (fermo >4h).
+Dati (endpoint già esistenti, senza auth): `/api/agent-hub/summary`, `/api/agent-tasks/approval-stats`, `/api/agent-tasks/approvals`, `/api/discovery/stats/today`.
+Semaforo = matrice di `backend/approval_workflow.py` (NEVER_APPROVE=🟢 · ALWAYS_APPROVE/`awaiting_approval`=🟡 · stale/escalated=🔴).
+Bottoni **Approva/Rifiuta** sui task 🟡 → nuovi endpoint backend `POST /api/agent-tasks/{id}/approve` e `/reject` in `server.py` (usano `approve_task`/`reject_task` di `approval_workflow.py`). Card cliccabili che portano al reparto.
+
+### Organigramma — 4 reparti e responsabili (decisi da Claudio 2026-06-26)
+| Reparto | Responsabile | Pagina collegata |
+|---|---|---|
+| Vendite (acquisizione → firma) | **Gaia** | `/admin/lead-manager` |
+| Delivery (firma → LIVE) | **Stefania** | `/admin/partner` |
+| Comunicazione (contenuti) | **Andrea** | `/admin/calendario-editoriale` |
+| Back office (soldi/contratti/infra) | **Valentina** | `/admin/transactions` |
+
+Regola: i 4 responsabili **continuano a far parte del team che lavora il percorso partner nella Delivery** (insieme a Marco e Matteo, che restano specialisti del percorso, non capi-reparto). Il "responsabile" è un cappello operativo in più, non sostituisce il ruolo dell'agente nel team prodotto.
+
+### Briefing giornaliero schedulato
+Task Cowork `briefing-cabina-regia` (cron `30 7 * * *`, ora locale): ogni mattina apre `/admin/cabina-regia` e manda a Claudio il riepilogo dei 4 reparti + semaforo + cosa aspetta il suo OK. Richiede app Cowork aperta e login admin su ciak.io.
