@@ -33,6 +33,8 @@ vedi `docs/migration/eliminazione-app-evolution-pro.md`.
 
 **Regola di brand voice (non negoziabile)**: tono diretto, italiano semplice, anti-fuffa, frasi brevi. Vietato il registro guru/coach-speak (vedi tabella termini vietati in `backend/services/ciak_matteo.py`). Marco De Veglia (BrandFacile) è già allineato e si importa senza filtri; Ulama e Freddi vanno filtrati dal registro motivazionale/spirituale.
 
+**Voice di Claudio per OUTREACH (email/DM/WhatsApp)**: fonte di verità in `docs/marketing/claudio_voice_style.md` (aggiornato 2026-06-26 con sample diretto di Claudio). Ogni messaggio di contatto proposto a Claudio deve rispettare quei 7 punti: apertura diretta motivata da interesse reale · credenziali numeriche in una riga (22 anni vendita, €6M, 25.000 trattative) · anti-posizionamento ("non un corso, non un'agenzia") · promessa a basso impegno (direzione strategica prima dell'implementazione) · 1 sola CTA www.ciak.io · chiusura che restituisce libertà ("se non ti interessa ignora pure") · firma "Claudio". Aggiornare quel file ogni volta che Claudio raffina il suo stile.
+
 **Mappa per origine**: posizionamento = **De Veglia/BrandFacile** (core) · strategia high-ticket = Ulama + Freddi · contenuti/organico = Baleni/Cavina · esecuzione sullo stack = Corsi Systeme.io · ads/scaling = Lead a Catinelle.
 
 **Priorità di implementazione (dal backlog)**:
@@ -967,3 +969,27 @@ Regola: i 4 responsabili **continuano a far parte del team che lavora il percors
 
 ### Briefing giornaliero schedulato
 Task Cowork `briefing-cabina-regia` (cron `30 7 * * *`, ora locale): ogni mattina apre `/admin/cabina-regia` e manda a Claudio il riepilogo dei 4 reparti + semaforo + cosa aspetta il suo OK. Richiede app Cowork aperta e login admin su ciak.io.
+
+
+## Sessione 2026-06-26 (continuazione) — Audit 7 partner attivi + Sprint acquisizione "dentro o fuori"
+
+### Fronte 1 — Verifica migrazione dati 7 partner (via API partner-hub + full-data)
+Metodo: fetch da console browser su www.ciak.io. Endpoint senza auth: `GET /api/partners`, `GET /api/partner-hub/{id}`. Con auth admin (token in `localStorage.ciak_admin_token`): `GET /api/admin/partner/{id}/full-data`, `/api/admin/ciak/leads`, `/api/admin/ciak/stats`.
+ID: Marco Lamanna=15, Eva Gugliucciello=22, Cosimo Filieri=13, Daniele Andolfi=23, Andrea Fredi=045f338e-..., Sara Stella Due=00435c30-..., **Luigi Calafiore=92e68c6c-2671-46ba-9e06-df5752ebc7f6**.
+Stato (posiz.=6 campi hub; offerta=offerName/Price/Includes/Guarantee):
+- Daniele Andolfi (F5): posiz OK, offerta vuota, blueprint OK, MC script+video OK, videocorso 0 lezioni, **unico con funnel Systeme reale** (7121027).
+- Cosimo Filieri (F5): posiz OK, **offerta parziale** (La Musicheria 59€; manca garanzia), blueprint OK, MC script+video OK, 0 lezioni, no funnel.
+- Marco Lamanna (F4): posiz OK, offerta vuota, blueprint OK, MC video ma NO script, 0 lezioni, no funnel.
+- Andrea Fredi (F1): posiz OK, offerta vuota, blueprint NO, MC script+video OK, 0 lezioni, no funnel.
+- Sara Stella Due (F5): posiz OK, offerta vuota, blueprint NO, MC video ma no script, 0 lezioni, no funnel.
+- Eva Gugliucciello (F5): posiz OK, offerta vuota, blueprint NO, MC script ma NO video, no videocorso, no funnel.
+- Luigi Calafiore (F1): **tutto vuoto**, da popolare da zero.
+Gap sistematici: **Offerta** mancante per quasi tutti; **videocorso 0 lezioni** per tutti; incoerenze fase↔dati (Eva e Sara in F5 senza asset da F5).
+
+### Fronte 2 — Pipeline lead quasi vuota
+`/api/admin/ciak/stats`: 7 lead, 2 acquisti €67. **Silvia Arcari (silvia.arcari73@gmail.com) è l'unico inbound vero.** Il resto è rete personale di Claudio (WhatsApp) o inserimenti manuali. → Il funnel non genera lead organici; converte l'outreach caldo personale.
+
+### Decisione "dentro o fuori" + deliverable
+Obiettivo **3 partnership/mese** (≈€8.370). Vincoli: **24/7 · budget ≈ zero · chiude solo Claudio**. Strategia organico/manuale. Numero magico: **~20 messaggi personalizzati/giorno (~400 contatti/mese)** → ~40 interessati → ~10 call → 3 close. 4 leve gratuite: outreach caldo personale (priorità), LinkedIn organico, lista fredda 13k (email engine già pronto da riallineare+accendere), referral 24 partner.
+Deliverable creati: `docs/marketing/claudio_voice_style.md`, `docs/strategy/sprint-acquisizione-3-partnership.md`, `docs/marketing/messaggi-outreach-pronti.md`.
+Prossimi step: (1) lista 100 contatti mirati sui 2 ICP (benessere + business/vendita), (2) riallineare le 9 email cold alla nuova voce, (3) foglio KPI contatti→risposte→call→close. Strumenti da autorizzare: Apollo, LinkedIn personal MCP, Gmail.
