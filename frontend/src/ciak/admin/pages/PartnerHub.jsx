@@ -120,19 +120,20 @@ function PartnerCard({ p, onOpen }) {
 }
 
 function AttoView({ partners, onOpen }) {
-  // Gli ex partner non sono più sul percorso: esclusi dalle colonne.
-  const attivi = partners.filter((p) => (p.stato || "attivo") !== "ex");
-  const exCount = partners.length - attivi.length;
+  // Solo i partner ATTIVI vivono sul percorso EVO. Quarantena ed ex restano
+  // nelle rispettive sezioni (Quarantena / Ex Partner), fuori dal kanban.
+  const attivi = partners.filter((p) => (p.stato || "attivo") === "attivo");
+  const fuoriCount = partners.length - attivi.length;
   // Partner senza fase = appena onboardato → inizio percorso (Esamina).
   const byAtto = (id) => attivi.filter((p) => (attoEvo(p.phase) || "Esamina") === id);
 
   return (
     <>
       <p className="text-slate-500 mb-6">
-        {attivi.length} partner sul percorso, raggruppati per atto del Metodo EVO.
+        {attivi.length} partner attivi sul percorso, raggruppati per atto del Metodo EVO.
         Clicca un partner per gestire i 14 step.
-        {exCount > 0 && (
-          <span className="text-slate-400"> · {exCount} ex partner non mostrati.</span>
+        {fuoriCount > 0 && (
+          <span className="text-slate-400"> · {fuoriCount} tra quarantena ed ex non mostrati.</span>
         )}
       </p>
 
