@@ -1,7 +1,7 @@
 /**
  * Ciak Admin — KPI & Metriche (importata fedelmente da Evolution PRO).
  *
- * Metriche post-lancio per i partner in Fase F8+: dati live Systeme.io, KPI
+ * Metriche post-lancio per i partner in atto EVO Ottimizza: dati live Systeme.io, KPI
  * grid, iscrizioni settimanali, NPS breakdown e funnel completamento moduli.
  *
  * Sorgente Evolution: components/admin/MetrichePostLancio.jsx
@@ -18,6 +18,7 @@ import {
   SYSTEME_LIVE_DATA
 } from "../../../data/constants";
 import { adminFetch } from "../api";
+import { attoEvo } from "../evo";
 
 export function MetrichePostLancio({ partners: partnersProp, onAuthExpired }) {
   const [partners, setPartners] = useState(partnersProp || []);
@@ -40,7 +41,7 @@ export function MetrichePostLancio({ partners: partnersProp, onAuthExpired }) {
     load();
   }, [partnersProp, onAuthExpired]);
 
-  const launchedPartners = partners.filter(p => ["F8", "F9", "F10"].includes(p.phase));
+  const launchedPartners = partners.filter(p => attoEvo(p.phase) === "Ottimizza");
   const [sel, setSel] = useState(launchedPartners[0]?.name || null);
 
   useEffect(() => {
@@ -59,7 +60,7 @@ export function MetrichePostLancio({ partners: partnersProp, onAuthExpired }) {
         <div className="text-6xl mb-4">📊</div>
         <div className="text-lg font-bold text-[#5F6572] mb-2">Nessun Partner Lanciato</div>
         <div className="text-sm text-[#9CA3AF]">
-          Le metriche post-lancio saranno disponibili quando un partner raggiunge la Fase F8+
+          Le metriche post-lancio saranno disponibili quando un partner raggiunge l'atto Ottimizza (post-lancio)
         </div>
       </div>
     );
@@ -108,7 +109,7 @@ export function MetrichePostLancio({ partners: partnersProp, onAuthExpired }) {
                 ? 'bg-[#FFD24D] text-black'
                 : 'bg-[#FAFAF7] border border-[#ECEDEF] text-[#5F6572] hover:border-[#FFD24D]/30'}`}
           >
-            {p.name} · {p.phase}
+            {p.name} · {attoEvo(p.phase) || "—"}
           </button>
         ))}
       </div>
