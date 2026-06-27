@@ -9,7 +9,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   Users, Search, RefreshCw, Plus, Upload, Edit3, Trash2,
   X, Save, Loader2, Globe, Phone, Snowflake, TrendingUp,
-  Flame, ExternalLink, UserPlus, MapPin,
+  Flame, ExternalLink, UserPlus, MapPin, Check,
 } from "lucide-react";
 import { adminFetch } from "../api";
 
@@ -678,6 +678,7 @@ export function LeadManager({ onAuthExpired }) {
   const [showImport, setShowImport] = useState(false);
   const [showPlacesSearch, setShowPlacesSearch] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [approvingId, setApprovingId] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -722,6 +723,22 @@ export function LeadManager({ onAuthExpired }) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired();
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleApprove = async (lead) => {
+    if (!lead.id) return;
+    setApprovingId(lead.id);
+    try {
+      const res = await adminFetch(`/api/lista-fredda/approve-from-discovery/${lead.id}`, { method: "POST" });
+      if (!res.ok) throw new Error("Errore approvazione");
+      setLeads(prev => prev.filter(l => l.id !== lead.id));
+      setTotal(t => Math.max(0, t - 1));
+    } catch (e) {
+      if (e.message === "AUTH_EXPIRED") onAuthExpired();
+      else window.alert("Errore nell'approvazione del lead.");
+    } finally {
+      setApprovingId(null);
     }
   };
 
@@ -876,7 +893,15 @@ export function LeadManager({ onAuthExpired }) {
                           <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
                         </a>
                       )}
-                      <button onClick={() => setEditLead(lead)}
+<button onClick={() => handleApprove(lead)} disabled={approvingId === lead.id}
+                        title="Approva → Lista Fredda"
+                        className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-colors">
+                        {approvingId === lead.id
+                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          : <Check className="w-3.5 h-3.5" />}
+                        Approva
+                      </button>
+                                            <button onClick={() => setEditLead(lead)}
                         className="p-1.5 rounded-lg hover:bg-yellow-50 transition-colors">
                         <Edit3 className="w-3.5 h-3.5 text-yellow-600" />
                       </button>
