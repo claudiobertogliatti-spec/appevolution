@@ -1,6 +1,7 @@
 /**
  * Ciak Admin — Lead Manager.
- * Gestione unificata: Discovery Leads + Lista Fredda.
+ * Gestione Discovery Leads (New Lead). La Lista Fredda ha la sua pagina dedicata
+ * (/admin/lista-fredda): qui NON è più possibile switchare alla Lista Fredda.
  * Import CSV / form manuale, edit inline, filtri, ricerca Google Places.
  */
 
@@ -662,7 +663,9 @@ function PlacesSearchModal({ onClose, onImported, onAuthExpired }) {
 const PER_PAGE = 50;
 
 export function LeadManager({ onAuthExpired }) {
-  const [activeTab, setActiveTab] = useState("discovery");
+  // Solo Discovery Leads: lo switch alla Lista Fredda è stato rimosso
+  // (la Lista Fredda ha la sua pagina dedicata /admin/lista-fredda).
+  const activeTab = "discovery";
   const [leads, setLeads] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -679,42 +682,24 @@ export function LeadManager({ onAuthExpired }) {
   const load = async () => {
     setLoading(true);
     try {
-      if (activeTab === "discovery") {
-        const params = new URLSearchParams({ limit: PER_PAGE, skip: page * PER_PAGE });
-        if (filterStatus) params.set("status", filterStatus);
-        if (filterSource) params.set("source", filterSource);
-        if (filterScore > 0) params.set("min_score", filterScore);
-        const res = await adminFetch(`/api/discovery/leads?${params}`);
-        const data = await res.json();
-        let items = data.leads || [];
-        if (search) {
-          const q = search.toLowerCase();
-          items = items.filter(l =>
-            (l.display_name || "").toLowerCase().includes(q) ||
-            (l.email || "").toLowerCase().includes(q) ||
-            (l.platform_username || "").toLowerCase().includes(q) ||
-            (l.niche_detected || "").toLowerCase().includes(q)
-          );
-        }
-        setLeads(items);
-        setTotal(data.total || 0);
-      } else {
-        const params = new URLSearchParams({ limit: PER_PAGE, skip: page * PER_PAGE });
-        if (filterStatus) params.set("stato", filterStatus);
-        const res = await adminFetch(`/api/lista-fredda/leads?${params}`);
-        const data = await res.json();
-        let items = data.leads || [];
-        if (search) {
-          const q = search.toLowerCase();
-          items = items.filter(l =>
-            (l.first_name || "").toLowerCase().includes(q) ||
-            (l.last_name || "").toLowerCase().includes(q) ||
-            (l.email || "").toLowerCase().includes(q)
-          );
-        }
-        setLeads(items);
-        setTotal(data.total || 0);
+      const params = new URLSearchParams({ limit: PER_PAGE, skip: page * PER_PAGE });
+      if (filterStatus) params.set("status", filterStatus);
+      if (filterSource) params.set("source", filterSource);
+      if (filterScore > 0) params.set("min_score", filterScore);
+      const res = await adminFetch(`/api/discovery/leads?${params}`);
+      const data = await res.json();
+      let items = data.leads || [];
+      if (search) {
+        const q = search.toLowerCase();
+        items = items.filter(l =>
+          (l.display_name || "").toLowerCase().includes(q) ||
+          (l.email || "").toLowerCase().includes(q) ||
+          (l.platform_username || "").toLowerCase().includes(q) ||
+          (l.niche_detected || "").toLowerCase().includes(q)
+        );
       }
+      setLeads(items);
+      setTotal(data.total || 0);
     } catch (e) {
       if (e.message === "AUTH_EXPIRED") onAuthExpired();
     } finally {
@@ -722,14 +707,12 @@ export function LeadManager({ onAuthExpired }) {
     }
   };
 
-  useEffect(() => { load(); }, [activeTab, filterStatus, filterSource, filterScore, page]);
+  useEffect(() => { load(); }, [filterStatus, filterSource, filterScore, page]);
 
   const handleDelete = async (lead) => {
     if (!window.confirm(`Eliminare "${lead.display_name || lead.email}"?`)) return;
     const id = lead.id || encodeURIComponent(lead.email);
-    const url = activeTab === "discovery"
-      ? `/api/discovery/leads/${id}`
-      : `/api/lista-fredda/leads/${encodeURIComponent(lead.email)}`;
+    const url = `/api/discovery/leads/${id}`;
     setDeletingId(id);
     try {
       await adminFetch(url, { method: "DELETE" });
@@ -747,28 +730,23 @@ export function LeadManager({ onAuthExpired }) {
     setEditLead(null);
   };
 
-  const isDiscovery = activeTab === "discovery";
+  const isDiscovery = true;
 
   return (
     <div className="p-8">
       <h1 className="text-2xl font-semibold text-slate-900 mb-1">Lead Manager</h1>
-      <p className="text-slate-500 mb-6">Discovery Leads e Lista Fredda — import, edit, filtri.</p>
+      <p className="text-slate-500 mb-6">Discovery Leads — import, edit, filtri.</p>
 
       {/* Header / toolbar */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
         <div className="flex gap-1 p-1 rounded-xl bg-gray-100">
-          {[["discovery", "Discovery Lead", Users], ["fredda", "Lista Fredda", Snowflake]].map(([id, label, Icon]) => (
-            <button key={id} onClick={() => { setActiveTab(id); setPage(0); setFilterStatus(""); setFilterSource(""); setLeads([]); }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === id ? "bg-white text-slate-900 shadow-sm" : "text-slate-400"}`}>
-              <Icon className="w-4 h-4" />
-              {label}
-              {activeTab === id && (
-                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-600">
-                  {total}
-                </span>
-              )}
-            </button>
-          ))}
+          <div className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-white text-slate-900 shadow-sm">
+            <Users className="w-4 h-4" />
+            Discovery Lead
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-600">
+              {total}
+            </span>
+          </div>
         </div>
 
         <div className="flex-1 min-w-[200px] flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-gray-200">
@@ -782,38 +760,32 @@ export function LeadManager({ onAuthExpired }) {
         <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(0); }}
           className="px-3 py-2 rounded-xl text-sm border border-gray-200 bg-white">
           <option value="">Tutti gli stati</option>
-          {Object.entries(isDiscovery ? DISCOVERY_STATUSES : FREDDA_STATI).map(([v, c]) => (
+          {Object.entries(DISCOVERY_STATUSES).map(([v, c]) => (
             <option key={v} value={v}>{c.label}</option>
           ))}
         </select>
 
-        {isDiscovery && (
-          <>
-            <select value={filterSource} onChange={e => { setFilterSource(e.target.value); setPage(0); }}
-              className="px-3 py-2 rounded-xl text-sm border border-gray-200 bg-white">
-              <option value="">Tutte le fonti</option>
-              {Object.entries(SOURCES).map(([v, c]) => <option key={v} value={v}>{c.label}</option>)}
-            </select>
-            <select value={filterScore} onChange={e => { setFilterScore(Number(e.target.value)); setPage(0); }}
-              className="px-3 py-2 rounded-xl text-sm border border-gray-200 bg-white">
-              <option value={0}>Tutti gli score</option>
-              <option value={80}>Hot (≥80)</option>
-              <option value={50}>Warm (≥50)</option>
-            </select>
-          </>
-        )}
+        <select value={filterSource} onChange={e => { setFilterSource(e.target.value); setPage(0); }}
+          className="px-3 py-2 rounded-xl text-sm border border-gray-200 bg-white">
+          <option value="">Tutte le fonti</option>
+          {Object.entries(SOURCES).map(([v, c]) => <option key={v} value={v}>{c.label}</option>)}
+        </select>
+        <select value={filterScore} onChange={e => { setFilterScore(Number(e.target.value)); setPage(0); }}
+          className="px-3 py-2 rounded-xl text-sm border border-gray-200 bg-white">
+          <option value={0}>Tutti gli score</option>
+          <option value={80}>Hot (≥80)</option>
+          <option value={50}>Warm (≥50)</option>
+        </select>
 
         <button onClick={load} className="p-2 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
           <RefreshCw className={`w-4 h-4 text-slate-400 ${loading ? "animate-spin" : ""}`} />
         </button>
 
-        {isDiscovery && (
-          <button onClick={() => setShowPlacesSearch(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-emerald-600 text-white">
-            <MapPin className="w-4 h-4" />
-            Google Attività
-          </button>
-        )}
+        <button onClick={() => setShowPlacesSearch(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-emerald-600 text-white">
+          <MapPin className="w-4 h-4" />
+          Google Attività
+        </button>
 
         <button onClick={() => setShowImport(true)}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-slate-900 text-yellow-400">
@@ -833,7 +805,7 @@ export function LeadManager({ onAuthExpired }) {
             <Users className="w-12 h-12 text-gray-300" />
             <p className="text-sm text-slate-400">Nessun lead trovato</p>
           </div>
-        ) : isDiscovery ? (
+        ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
@@ -920,53 +892,6 @@ export function LeadManager({ onAuthExpired }) {
               ))}
             </tbody>
           </table>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs uppercase tracking-widest text-slate-400 border-b border-gray-200">
-                {["Nome", "Email", "Telefono", "Tag", "Stato", "Email seq.", ""].map(h => (
-                  <th key={h} className="px-4 py-3 font-semibold">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {leads.map((lead, i) => (
-                <tr key={lead.id || lead.email || i} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-slate-900">
-                    {lead.first_name} {lead.last_name}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-slate-600">{lead.email}</td>
-                  <td className="px-4 py-3 text-xs text-slate-600">{lead.phone || "—"}</td>
-                  <td className="px-4 py-3">
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-slate-600">{lead.tag}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={lead.stato} map={FREDDA_STATI} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="text-xs text-slate-400">
-                      {lead.email_inviata > 0 ? `${lead.email_inviata} inv.` : "—"}
-                      {lead.risposta_ricevuta ? " ✓ Risposta" : ""}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1 justify-end">
-                      <button onClick={() => setEditLead(lead)}
-                        className="p-1.5 rounded-lg hover:bg-yellow-50 transition-colors">
-                        <Edit3 className="w-3.5 h-3.5 text-yellow-600" />
-                      </button>
-                      <button onClick={() => handleDelete(lead)} disabled={deletingId === lead.email}
-                        className="p-1.5 rounded-lg hover:bg-red-50 transition-colors">
-                        {deletingId === lead.email
-                          ? <Loader2 className="w-3.5 h-3.5 animate-spin text-red-500" />
-                          : <Trash2 className="w-3.5 h-3.5 text-red-500" />}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         )}
       </div>
 
@@ -990,14 +915,11 @@ export function LeadManager({ onAuthExpired }) {
       )}
 
       {/* Modals */}
-      {editLead && isDiscovery && (
+      {editLead && (
         <DiscoveryEditModal lead={editLead} onClose={() => setEditLead(null)} onSaved={handleSaved} onAuthExpired={onAuthExpired} />
       )}
-      {editLead && !isDiscovery && (
-        <FreddaEditModal lead={editLead} onClose={() => setEditLead(null)} onSaved={handleSaved} onAuthExpired={onAuthExpired} />
-      )}
       {showImport && (
-        <ImportModal type={activeTab === "discovery" ? "discovery" : "fredda"}
+        <ImportModal type="discovery"
           onClose={() => setShowImport(false)}
           onImported={() => { load(); }}
           onAuthExpired={onAuthExpired} />
