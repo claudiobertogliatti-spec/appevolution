@@ -139,7 +139,7 @@ export function ListaFredda({ onAuthExpired }) {
         <div>
           <h1 className="text-2xl font-semibold text-slate-900 flex items-center gap-2">
             <Snowflake className="w-6 h-6 text-blue-400" />
-            Lista Fredda — Archivio congelato
+            Lista Fredda
           </h1>
           <p className="text-sm text-slate-500 mt-1">
             Sola lettura. Nessun invio email da questa lista.
@@ -164,28 +164,6 @@ export function ListaFredda({ onAuthExpired }) {
             <Shield className="w-4 h-4" />
             <span className="text-sm font-medium">{exporting ? "Esporto..." : "Esporta custom audience"}</span>
           </button>
-        </div>
-      </div>
-
-      {/* Banner congelamento */}
-      <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5">
-        <div className="flex items-start gap-3">
-          <Snowflake className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-slate-700 space-y-1">
-            <div className="font-semibold text-slate-900">Perché è congelata</div>
-            <p className="text-slate-600">
-              Gli invii a questa lista dal dominio principale (dic 2025) hanno prodotto
-              <strong> 0,93% di segnalazioni spam</strong>, <strong>3,35% di bounce</strong> e
-              <strong> 0% di click</strong> su tre newsletter. La reputazione del mittente è
-              compromessa: <strong>non si invia più da qui</strong>.
-            </p>
-            <p className="text-slate-600">
-              Unico riutilizzo: <strong>Esporta custom audience</strong> → CSV di email
-              SHA-256 da caricare come pubblico personalizzato su Meta Ads (gli hash matchano,
-              le email non valide non agganciano — zero rischio deliverability). I disiscritti
-              sono esclusi automaticamente.
-            </p>
-          </div>
         </div>
       </div>
 
