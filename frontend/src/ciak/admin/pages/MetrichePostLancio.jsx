@@ -1,234 +1,236 @@
 /**
- * Ciak Admin — KPI & Metriche (importata fedelmente da Evolution PRO).
+ * Ciak Admin — KPI Partner (atto EVO Ottimizza).
  *
- * Metriche post-lancio per i partner in atto EVO Ottimizza: dati live Systeme.io, KPI
- * grid, iscrizioni settimanali, NPS breakdown e funnel completamento moduli.
+ * Dati REALI per partner da GET /api/partner-journey/ottimizzazione/{id}.
+ * Niente più dati demo: si mostra solo ciò che il backend traccia davvero
+ * (visite, contatti/lead, studenti, vendite, fatturato, conversione + la fonte),
+ * e si dichiara onestamente "non ancora disponibile" dove non c'è una fonte
+ * (LTV, completamento corso, churn) — stesso principio del backend
+ * (academy_metrics.py restituisce {disponibile:false, motivo:"..."}).
  *
- * Sorgente Evolution: components/admin/MetrichePostLancio.jsx
- * Riceve i partner dalla prop `partners`; se assente li carica autonomamente
- * via adminFetch GET /api/admin/ciak/partners → { items: [...] }.
- * Le metriche dettagliate restano dati statici (data/constants).
+ * I KPI principali si alimentano, in ordine di priorità: KPI manuali inseribili
+ * dal dettaglio partner (PartnerDetailModal → PATCH /api/partners/{id} kpi_manual),
+ * dati interni (partner_visits, payments) o Systeme.io.
+ *
+ * Lista partner: GET /api/admin/ciak/partners (filtro atto Ottimizza via attoEvo).
  */
 import { useState, useEffect } from "react";
-import { TrendingUp, Users, Star, DollarSign, BarChart3 } from "lucide-react";
-import {
-  S,
-  POST_LAUNCH_METRICS,
-  SYSTEME_STATUS,
-  SYSTEME_LIVE_DATA
-} from "../../../data/constants";
+import { Users, TrendingUp, DollarSign, Eye, MousePointerClick, ShoppingCart, Star, Info } from "lucide-react";
 import { adminFetch } from "../api";
 import { attoEvo } from "../evo";
 
+const FONTE_LABEL = {
+  manuale: "KPI inseriti a mano",
+  interno: "Dati interni (tracking)",
+  systeme: "Systeme.io live",
+  nessuna: "Nessun dato ancora",
+};
+
+const fmtNum = (n) => Number(n ?? 0).toLocaleString("it-IT");
+const fmtEur = (n) => "€" + Number(n ?? 0).toLocaleString("it-IT");
+const fmtDate = (s) => {
+  if (!s) return null;
+  try { return new Date(s).toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "2-digit" }); }
+  catch { return null; }
+};
+
+function Header() {
+  return (
+    <div>
+      <h1 className="text-2xl font-semibold text-slate-900">KPI Partner</h1>
+      <p className="text-sm text-slate-500 mt-0.5">Metriche reali dei partner in atto Ottimizza (post-lancio).</p>
+    </div>
+  );
+}
+
 export function MetrichePostLancio({ partners: partnersProp, onAuthExpired }) {
   const [partners, setPartners] = useState(partnersProp || []);
+  const [sel, setSel] = useState(null);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
 
+  // Carica la lista partner se non passata via prop.
   useEffect(() => {
-    if (partnersProp) {
-      setPartners(partnersProp);
-      return;
-    }
-    const load = async () => {
+    if (partnersProp) { setPartners(partnersProp); return; }
+    (async () => {
       try {
         const res = await adminFetch(`/api/admin/ciak/partners`);
-        const data = await res.json();
-        setPartners(data.items || []);
+        const d = await res.json();
+        setPartners(d.items || []);
       } catch (e) {
-        if (e.message === "AUTH_EXPIRED") { onAuthExpired?.(); return; }
-        console.error("Errore caricamento partners:", e);
+        if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
       }
-    };
-    load();
+    })();
   }, [partnersProp, onAuthExpired]);
 
-  const launchedPartners = partners.filter(p => attoEvo(p.phase) === "Ottimizza");
-  const [sel, setSel] = useState(launchedPartners[0]?.name || null);
+  const launched = partners.filter((p) => attoEvo(p.phase) === "Ottimizza");
 
+  // Seleziona il primo partner disponibile.
   useEffect(() => {
-    if (!sel && launchedPartners.length > 0) {
-      setSel(launchedPartners[0].name);
-    }
+    if (!sel && launched.length > 0) setSel(launched[0].id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [partners]);
 
-  const m = sel ? POST_LAUNCH_METRICS[sel] : null;
-  const systemeData = sel ? SYSTEME_LIVE_DATA[sel] : null;
+  // Carica le metriche reali del partner selezionato.
+  useEffect(() => {
+    if (!sel) { setData(null); return; }
+    setLoading(true);
+    (async () => {
+      try {
+        const res = await adminFetch(`/api/partner-journey/ottimizzazione/${sel}`);
+        setData(await res.json());
+      } catch (e) {
+        if (e.message === "AUTH_EXPIRED") onAuthExpired?.();
+        else setData(null);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [sel, onAuthExpired]);
 
-  if (!m) {
+  if (launched.length === 0) {
     return (
-      <div className="animate-slide-in text-center py-12" data-testid="metriche-empty">
-        <div className="text-6xl mb-4">📊</div>
-        <div className="text-lg font-bold text-[#5F6572] mb-2">Nessun Partner Lanciato</div>
-        <div className="text-sm text-[#9CA3AF]">
-          Le metriche post-lancio saranno disponibili quando un partner raggiunge l'atto Ottimizza (post-lancio)
+      <div className="p-8 space-y-6">
+        <Header />
+        <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center">
+          <div className="text-4xl mb-3">📊</div>
+          <div className="text-lg font-semibold text-slate-700 mb-1">Nessun partner in atto Ottimizza</div>
+          <div className="text-sm text-slate-400">
+            Le metriche post-lancio compaiono quando un partner raggiunge l'atto Ottimizza (post-lancio).
+          </div>
         </div>
       </div>
     );
   }
 
-  const npsColor = m.nps >= 9 ? "#16a34a" : m.nps >= 7 ? "#f97316" : "#dc2626";
+  const kpi = data?.kpi || {};
+  const academy = data?.academy || {};
+  const caso = data?.caso_studio || {};
+  const fonte = kpi.fonte || academy.fonte || "nessuna";
+
+  const cards = [
+    { l: "Visite landing", v: fmtNum(kpi.visite), icon: Eye },
+    { l: "Contatti / Lead", v: fmtNum(kpi.contatti), icon: MousePointerClick },
+    { l: "Studenti", v: fmtNum(academy.studenti), icon: Users },
+    { l: "Vendite", v: fmtNum(kpi.vendite), icon: ShoppingCart },
+    { l: "Fatturato", v: fmtEur(academy.fatturato), icon: DollarSign },
+    { l: "Conversione", v: `${Number(kpi.conversione ?? 0)}%`, icon: TrendingUp },
+  ];
+
+  // Metriche che il backend dichiara non ancora disponibili (onestà sui dati).
+  const nonDisp = [
+    ["LTV medio", academy.ltv],
+    ["Completamento corso", academy.completion],
+    ["Churn", academy.churn],
+  ].filter(([, o]) => o && o.disponibile === false);
 
   return (
-    <div className="animate-slide-in space-y-6" data-testid="metriche-post-lancio">
-      {/* Systeme.io Live Status */}
-      {SYSTEME_STATUS.connected && systemeData && (
-        <div className="bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl p-5">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse shadow-lg shadow-green-400/50" />
-            <span className="text-sm font-extrabold text-[#0F172A]">Systeme.io — Dati Live</span>
-            <span className="ml-auto text-xs font-semibold text-[#5F6572]">
-              Ultimo sync: {SYSTEME_STATUS.lastSync}
-            </span>
-          </div>
-          <div className="grid grid-cols-4 gap-3">
-            {[
-              { l: "Nuovi iscritti oggi", v: systemeData.newSignupsToday, icon: "👥" },
-              { l: "Tasso conversione", v: `${systemeData.conversionRate}%`, icon: "📈" },
-              { l: "Views funnel", v: systemeData.funnelStats.views.toLocaleString(), icon: "👁" },
-              { l: "Ultimo pagamento", v: `€${systemeData.lastPayment.amount}`, sub: systemeData.lastPayment.date, icon: "💳" },
-            ].map((k, i) => (
-              <div key={i} className="bg-white/15 backdrop-blur rounded-lg p-3">
-                <div className="text-lg mb-1">{k.icon}</div>
-                <div className="font-mono text-xl font-bold text-[#0F172A]">{k.v}</div>
-                <div className="text-[10px] font-semibold text-[#5F6572] mt-1">{k.l}</div>
-                {k.sub && <div className="text-[10px] font-medium text-[#9CA3AF]">{k.sub}</div>}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+    <div className="p-8 space-y-6">
+      <Header />
 
-      {/* Partner Selector */}
+      {/* Selettore partner */}
       <div className="flex gap-2 flex-wrap">
-        {launchedPartners.map(p => (
+        {launched.map((p) => (
           <button
-            key={p.name}
-            onClick={() => setSel(p.name)}
-            className={`px-4 py-2 rounded-full text-xs font-bold transition-all
-              ${sel === p.name
-                ? 'bg-[#FFD24D] text-black'
-                : 'bg-[#FAFAF7] border border-[#ECEDEF] text-[#5F6572] hover:border-[#FFD24D]/30'}`}
+            key={p.id}
+            onClick={() => setSel(p.id)}
+            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+              sel === p.id
+                ? "bg-yellow-400 text-slate-900"
+                : "bg-white border border-gray-200 text-slate-600 hover:border-yellow-300"
+            }`}
           >
-            {p.name} · {attoEvo(p.phase) || "—"}
+            {p.name} · {attoEvo(p.phase)}
           </button>
         ))}
       </div>
 
-      {/* KPI Grid */}
-      <div className="grid grid-cols-4 gap-4">
-        {[
-          { l: "Studenti iscritti", v: m.students, sub: `${m.activeStudents} attivi`, color: "#1a2332", icon: Users },
-          { l: "Completamento corso", v: `${m.completionRate}%`, sub: "tasso medio", color: "#16a34a", icon: TrendingUp },
-          { l: "NPS Score", v: m.nps, sub: m.nps >= 9 ? "Eccellente" : m.nps >= 7 ? "Buono" : "Da migliorare", color: npsColor, icon: Star },
-          { l: "Revenue Generata", v: `€${m.revenue.toLocaleString()}`, sub: `${m.refunds} rimborso/i`, color: "#7c3aed", icon: DollarSign },
-        ].map(k => (
-          <div
-            key={k.l}
-            className="bg-white border border-[#ECEDEF] rounded-xl p-5"
-            style={{ borderTopColor: k.color, borderTopWidth: 3 }}
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <k.icon className="w-4 h-4" style={{ color: k.color }} />
-              <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">{k.l}</span>
-            </div>
-            <div className="font-mono text-3xl font-bold mb-1" style={{ color: k.color }}>{k.v}</div>
-            <div className="text-xs font-semibold" style={{ color: k.color }}>{k.sub}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Charts Row */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Weekly Signups */}
-        <div className="bg-white border border-[#ECEDEF] rounded-xl p-5">
-          <div className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-4">
-            Iscrizioni per Settimana
-          </div>
-          <div className="flex items-end gap-2 h-16">
-            {m.weeklySignups.map((v, i) => {
-              const max = Math.max(...m.weeklySignups);
-              const isMax = v === max;
-              return (
-                <div key={i} className="flex-1 flex flex-col items-center">
-                  <span className="text-[10px] font-bold text-[#9CA3AF] mb-1">{v}</span>
-                  <div
-                    className="w-full rounded-t transition-all"
-                    style={{
-                      height: `${(v / max) * 48}px`,
-                      background: isMax ? '#FFD24D' : '#2c3e55',
-                      opacity: isMax ? 1 : 0.6
-                    }}
-                  />
-                  <span className="text-[9px] font-bold text-[#9CA3AF] mt-1">W{i + 1}</span>
-                </div>
-              );
-            })}
-          </div>
+      {loading ? (
+        <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center text-slate-400">
+          Caricamento metriche…
         </div>
-
-        {/* NPS Breakdown */}
-        <div className="bg-white border border-[#ECEDEF] rounded-xl p-5">
-          <div className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-4">
-            NPS Breakdown
+      ) : (
+        <>
+          {/* Fonte dati + stato partnership */}
+          <div className="flex flex-wrap items-center gap-3">
+            <span
+              className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full ${
+                fonte === "nessuna" ? "bg-gray-100 text-slate-500" : "bg-emerald-50 text-emerald-700"
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${fonte === "nessuna" ? "bg-slate-400" : "bg-emerald-500"}`} />
+              Fonte dati: {FONTE_LABEL[fonte] || fonte}
+            </span>
+            {kpi.aggiornato_at && <span className="text-xs text-slate-400">Aggiornato {fmtDate(kpi.aggiornato_at)}</span>}
+            {data?.partnership?.stato && (
+              <span className="text-xs text-slate-400">
+                Partnership: {data.partnership.stato}
+                {data.partnership.giorni_rimanenti != null ? ` · ${data.partnership.giorni_rimanenti}gg rimanenti` : ""}
+              </span>
+            )}
           </div>
-          <div className="flex gap-4 mb-3">
-            {[
-              { l: "Promotori", v: m.npsBreakdown.promoters, c: "#16a34a" },
-              { l: "Passivi", v: m.npsBreakdown.passives, c: "#f97316" },
-              { l: "Detrattori", v: m.npsBreakdown.detractors, c: "#dc2626" },
-            ].map(n => (
-              <div key={n.l} className="text-center">
-                <div className="font-mono text-xl font-bold" style={{ color: n.c }}>{n.v}%</div>
-                <div className="text-[10px] font-bold text-[#9CA3AF]">{n.l}</div>
+
+          {fonte === "nessuna" && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-sm text-slate-700 flex items-start gap-2">
+              <Info className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+              <span>
+                Nessun dato ancora per questo partner. Inserisci i KPI dal dettaglio partner
+                (Pipeline Partner → apri il partner → KPI: visite, lead, vendite, conversione),
+                oppure arriveranno automaticamente da tracking interno / Systeme.io.
+              </span>
+            </div>
+          )}
+
+          {/* KPI reali */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {cards.map((c) => (
+              <div key={c.l} className="bg-white border border-gray-200 rounded-2xl p-5">
+                <div className="flex items-center gap-2 mb-2">
+                  <c.icon className="w-4 h-4 text-yellow-600" />
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{c.l}</span>
+                </div>
+                <div className="text-3xl font-bold text-slate-900">{c.v}</div>
               </div>
             ))}
           </div>
-          <div className="h-3 rounded-full flex overflow-hidden bg-[#FAFAF7]">
-            <div className="h-full transition-all" style={{ width: `${m.npsBreakdown.promoters}%`, background: "#16a34a" }} />
-            <div className="h-full transition-all" style={{ width: `${m.npsBreakdown.passives}%`, background: "#f97316" }} />
-            <div className="h-full transition-all" style={{ width: `${m.npsBreakdown.detractors}%`, background: "#dc2626" }} />
-          </div>
-          <div className="mt-4">
-            <div className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-2">Feedback più citati</div>
-            <div className="flex flex-wrap gap-1">
-              {m.topFeedback.map((f, i) => (
-                <span key={i} className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-full px-3 py-1 text-[11px] font-semibold text-[#5F6572]">
-                  "{f}"
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Module Completion Funnel */}
-      <div className="bg-white border border-[#ECEDEF] rounded-xl p-5">
-        <div className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-4">
-          Completamento per Modulo — Funnel Studenti
-        </div>
-        <div className="space-y-2">
-          {m.moduleCompletion.map((pct, i) => (
-            <div key={i} className="flex items-center gap-3">
-              <div className="w-24 text-xs font-semibold text-[#5F6572] flex-shrink-0">
-                M{i} {["Intro", "Attiv.", "Masterclass", "Videocorso", "Edit", "Accademia", "Pre-Lancio", "Lancio", "Monit."][i]?.slice(0, 8) || ""}
+          {/* Prossima azione + recensioni */}
+          <div className="grid md:grid-cols-2 gap-4">
+            {data?.prossima_azione && (
+              <div className="bg-white border border-gray-200 rounded-2xl p-5">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-2">
+                  Prossima azione consigliata
+                </div>
+                <div className="text-sm text-slate-700">{data.prossima_azione}</div>
               </div>
-              <div className="flex-1 h-2 bg-[#FAFAF7] rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{
-                    width: `${pct}%`,
-                    background: pct > 70 ? '#16a34a' : pct > 40 ? '#FFD24D' : '#ea580c'
-                  }}
-                />
+            )}
+            <div className="bg-white border border-gray-200 rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <Star className="w-4 h-4 text-yellow-600" />
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Recensioni raccolte</span>
               </div>
-              <div className="font-mono text-xs font-bold text-[#9CA3AF] w-10 text-right">{pct}%</div>
+              <div className="text-3xl font-bold text-slate-900">{fmtNum(caso.recensioni)}</div>
             </div>
-          ))}
-        </div>
-        <div className="mt-4 text-xs text-[#9CA3AF] font-semibold bg-[#FAFAF7] rounded-lg p-3">
-          💡 Il calo maggiore avviene tra M3 e M5 — punto di abbandono tipico nei corsi online. Considerare un checkpoint STEFANIA a M4.
-        </div>
-      </div>
+          </div>
+
+          {/* Metriche non ancora disponibili (onestà sui dati) */}
+          {nonDisp.length > 0 && (
+            <div className="bg-white border border-gray-200 rounded-2xl p-5">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-3">
+                Non ancora disponibili
+              </div>
+              <div className="space-y-2">
+                {nonDisp.map(([label, o]) => (
+                  <div key={label} className="flex items-start gap-2 text-sm">
+                    <span className="font-medium text-slate-600 w-44 flex-shrink-0">{label}</span>
+                    <span className="text-slate-400">{o.motivo}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
