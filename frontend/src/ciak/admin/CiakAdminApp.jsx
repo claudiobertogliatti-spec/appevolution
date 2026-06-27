@@ -2,11 +2,12 @@
  * Ciak Admin — entry point del pannello admin (ciak.io/admin).
  *
  * Sidebar a 6 MACRO = i reparti dell'organigramma Ciak, in ordine di funnel.
- * Ogni macro mostra il suo "Agente di Riferimento". Click su un reparto
+ * Ogni macro mostra il suo "Agente di Riferimento". Click su una sezione
  * multi-pagina → apre una LANDING (/admin/reparto/:id) con grandi finestre
  * cliccabili dei sotto-argomenti (titolo + descrizione, tutto ampio e
- * leggibile). Il flyout al hover resta come quick-nav.
- *  - Dashboard    (Luca)      → Home (Panoramica Reparti) · Oggi        [link diretto]
+ * leggibile). NESSUN menu a tendina: si entra solo cliccando la sezione.
+ * Le sezioni con una sola pagina (es. Casi studio) linkano direttamente.
+ *  - Dashboard    (Luca)      → Home (Panoramica Reparti) · Oggi
  *  - Acquisizione (Andrea)    → New Lead · Lista Fredda · Pipeline · Campagne Ads · Calendario Editoriale
  *  - Vendite      (Gaia)      → Ciak Blueprint · Analisi da validare · Call di vendita · Trattative OK · Trattative KO
  *  - Delivery     (Stefania)  → Pipeline Partner · Quarantena · Ex Partner · File · Masterclass · Video Lezioni · Calendario editoriale · Campagne ADV · KPI Partner
@@ -62,15 +63,16 @@ import { AntonellaOggi } from "./pages/AntonellaOggi";
 
 // Sidebar a 6 macro = i reparti dell'organigramma Ciak, in ordine di funnel.
 // Ogni macro ha un `agente` (responsabile, mostrato come "Agente di
-// Riferimento"). `landing: true` → il click sul reparto apre la pagina-reparto
-// con grandi card cliccabili. hideFor nasconde la macro alla vista Antonella.
-// Ogni pagina ha un `desc` breve usato nelle card della landing.
+// Riferimento"). `landing: true` → il click sulla sezione apre la pagina-reparto
+// con grandi card cliccabili (nessun menu a tendina). hideFor nasconde la macro
+// alla vista Antonella. Ogni pagina ha un `desc` breve usato nelle card.
 const NAV = [
   // ── DASHBOARD · Luca ───────────────────────────────────────────────────
   {
     id: "dashboard",
     label: "Dashboard",
     agente: "Luca",
+    landing: true,
     pages: [
       { to: "/admin", label: "Home", end: true, desc: "Panoramica reparti e semaforo di autonomia" },
       { to: "/admin/oggi", label: "Oggi", desc: "Cosa richiede la tua attenzione adesso" },
@@ -221,28 +223,10 @@ function LoginScreen({ onLogin }) {
   );
 }
 
-// ─── Sidebar a macro-voci con flyout al hover ────────────────────────────
-
-function FlyoutLink({ page }) {
-  return (
-    <NavLink
-      to={page.to}
-      end={page.end}
-      className={({ isActive }) =>
-        `block px-4 py-2.5 text-[15px] transition ${
-          isActive
-            ? "text-yellow-400 font-medium bg-slate-700/50"
-            : "text-slate-300 hover:bg-slate-700/50"
-        }`
-      }
-    >
-      {page.label}
-    </NavLink>
-  );
-}
+// ─── Sidebar a macro-voci (click → pagina-reparto, niente flyout) ────────
 
 function MacroItem({ macro, currentPath }) {
-  // Macro "diretta" (link semplice, nessun flyout).
+  // Macro "diretta" (link semplice).
   if (macro.to) {
     return (
       <NavLink
@@ -272,48 +256,21 @@ function MacroItem({ macro, currentPath }) {
     (landingPath && currentPath.startsWith(landingPath)) ||
     allPages.some((p) => (p.end ? currentPath === p.to : currentPath.startsWith(p.to)));
   return (
-    <div className="group relative">
-      {/* Macro-voce: link alla landing-reparto (o alla prima pagina) */}
-      <NavLink
-        to={macroTarget(macro)}
-        className={`block px-3 py-3 rounded-lg transition ${
-          isActive
-            ? "bg-slate-800 text-yellow-400 font-medium"
-            : "text-slate-200 hover:bg-slate-800/60"
-        }`}
-      >
-        <span className="block text-base font-medium leading-tight">{macro.label}</span>
-        {macro.agente && (
-          <span className="block text-[11px] font-normal normal-case text-slate-500 leading-tight mt-0.5">
-            (Agente di Riferimento: {macro.agente})
-          </span>
-        )}
-      </NavLink>
-
-      {/* Flyout: appare al hover sulla macro, mostra le pagine (quick-nav) */}
-      <div className="absolute left-full top-0 ml-1 hidden group-hover:block z-50">
-        <div className="bg-slate-800 rounded-lg shadow-xl border border-slate-700 py-2 min-w-[240px]">
-          <p className="px-4 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
-            {macro.label}
-          </p>
-          {macro.groups
-            ? macro.groups.map((g, gi) => (
-                <div
-                  key={g.label}
-                  className={gi > 0 ? "mt-1 pt-1 border-t border-slate-700/60" : ""}
-                >
-                  <p className="px-4 py-1 text-[11px] font-medium uppercase tracking-wider text-slate-500/80">
-                    {g.label}
-                  </p>
-                  {g.pages.map((p) => (
-                    <FlyoutLink key={p.to} page={p} />
-                  ))}
-                </div>
-              ))
-            : macro.pages.map((p) => <FlyoutLink key={p.to} page={p} />)}
-        </div>
-      </div>
-    </div>
+    <NavLink
+      to={macroTarget(macro)}
+      className={`block px-3 py-3 rounded-lg transition ${
+        isActive
+          ? "bg-slate-800 text-yellow-400 font-medium"
+          : "text-slate-200 hover:bg-slate-800/60"
+      }`}
+    >
+      <span className="block text-base font-medium leading-tight">{macro.label}</span>
+      {macro.agente && (
+        <span className="block text-[11px] font-normal normal-case text-slate-500 leading-tight mt-0.5">
+          (Agente di Riferimento: {macro.agente})
+        </span>
+      )}
+    </NavLink>
   );
 }
 
