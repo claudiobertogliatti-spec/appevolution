@@ -13,6 +13,7 @@
 import { useState, useEffect } from "react";
 import { Target, Mic, BookOpen, Check, Clock, Eye, X, FolderOpen, Download } from "lucide-react";
 import { adminFetch } from "../api";
+import { attoEvo } from "../evo";
 
 const STATUS_CONFIG = {
   completed: { label: "Completato", color: "text-green-400", bg: "bg-green-500/20" },
@@ -53,7 +54,7 @@ function DocumentModal({ partner, documents, files, onClose }) {
             </div>
             <div>
               <div className="font-bold text-[#0F172A]">{partner.partner_name}</div>
-              <div className="text-xs text-[#9CA3AF]">Fase {partner.partner_phase} · Documenti</div>
+              <div className="text-xs text-[#9CA3AF]">Atto {attoEvo(partner.partner_phase) || "—"} · Documenti</div>
             </div>
           </div>
           <button onClick={onClose} className="text-[#9CA3AF] hover:text-[#0F172A] transition-colors">
@@ -285,7 +286,7 @@ function FilesContent({ files }) {
   return (
     <div className="space-y-2">
       {all.map((f, idx) => {
-        const url = f.internal_url ? f.internal_url.replace("/api", "") : null;
+        const url = f.internal_url || null;
         return (
           <div key={f.file_id || f.filename || idx} className="bg-[#FAFAF7] border border-[#ECEDEF] rounded-xl p-4 flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-[#FFD24D]/15 flex items-center justify-center flex-shrink-0">
@@ -393,7 +394,7 @@ export function PartnerDocumenti({ onAuthExpired }) {
         <div className="w-full">
           <div className="grid grid-cols-6 text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider border-b border-[#ECEDEF] px-5 py-3">
             <span>Partner</span>
-            <span>Fase</span>
+            <span>Atto EVO</span>
             <span className="text-center">Posizionamento</span>
             <span className="text-center">Script</span>
             <span className="text-center">Corso</span>
@@ -418,7 +419,7 @@ export function PartnerDocumenti({ onAuthExpired }) {
                 </div>
                 <div>
                   <span className="font-mono text-xs font-bold px-2 py-1 rounded bg-[#FFD24D]/15 text-[#D4A017]">
-                    {partner.partner_phase}
+                    {attoEvo(partner.partner_phase) || "—"}
                   </span>
                 </div>
                 <div className="text-center">
