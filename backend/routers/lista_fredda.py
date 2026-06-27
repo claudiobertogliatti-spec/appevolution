@@ -378,6 +378,55 @@ async def add_single_lead(lead: ListaFreddaLead, _admin=Depends(require_ciak_adm
     return {"success": True, "id": doc["id"], "message": "Contatto aggiunto"}
 
 
+@router.post("/approve-from-discovery/{lead_id}")
+async def approve_from_discovery(lead_id: str, _admin=Depends(require_ciak_admin)):
+    """
+    Approva un lead 'New Lead' (discovery): lo sposta nella Lista Fredda per il
+    contatto. Usa l'email se presente, altrimenti deriva una chiave dal telefono
+    (lead contattabili via telefono/WhatsApp). Rimuove il lead dalla lista New Lead.
+    """
+    src = await db.discovery_leads.find_one({"id": lead_id})
+    if not src:
+        raise HTTPException(status_code=404, detail="Lead non trovato")
+
+    email = (src.get("email") or "").strip().lower()
+    if not email:
+        phone_digits = re.sub(r"[^0-9]", "", (src.get("business_phone") or src.get("phone") or ""))
+        key = phone_digits or lead_id
+        email = f"noemail+{key}@lead.local"
+
+    name = (src.get("display_name") or "").strip()
+    parts = name.split(" ", 1)
+    now = datetime.now(timezone.utc).isoformat()
+
+    existing = await db.lista_fredda.find_one({"email": email})
+    if not existing:
+        await db.lista_fredda.insert_one({
+            "email": email,
+            "first_name": parts[0] or None,
+            "last_name": parts[1] if len(parts) > 1 else None,
+            "phone": src.get("phone") or src.get("business_phone"),
+            "tag": "new-lead",
+            "stato": "in_sequenza",
+            "email_inviata": 0,
+            "ultima_apertura": None,
+            "ultimo_click": None,
+            "risposta_ricevuta": False,
+            "entrato_in_funnel": False,
+            "date_registered": None,
+            "created_at": now,
+            "updated_at": now,
+            "fonte": "new_lead_approved",
+            "niche": src.get("niche_detected"),
+            "note_admin": src.get("notes_admin"),
+        })
+
+    # Spostato: esce dalla lista New Lead (discovery)
+    await db.discovery_leads.delete_one({"id": lead_id})
+
+    return {"success": True, "email": email, "already_present": bool(existing)}
+
+
 @router.patch("/leads/{email}")
 async def update_lista_fredda_lead(email: str, body: dict, _admin=Depends(require_ciak_admin)):
     """Admin modifica un contatto della lista fredda (ricerca per email)."""
